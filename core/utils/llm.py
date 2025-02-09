@@ -101,7 +101,7 @@ class DifyLLM(LLM):
         try:
             # 取最后一条用户消息
             last_msg = next(m for m in reversed(dialogue) if m["role"] == "user")
-            #
+            #加个日记
             logger.info(f"Base URL: {self.base_url}")
             logger.info(f"API Key: {self.api_key}")
             logger.info(f"Session ID: {session_id}")
