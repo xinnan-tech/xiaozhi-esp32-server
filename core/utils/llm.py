@@ -96,13 +96,19 @@ class DifyLLM(LLM):
     def __init__(self, config):
         self.api_key = config["api_key"]
         self.base_url = config.get("base_url", "https://api.dify.ai/v1").rstrip('/')
-
+    
     def response(self, session_id, dialogue):
         try:
             # 取最后一条用户消息
             last_msg = next(m for m in reversed(dialogue) if m["role"] == "user")
+            #
+            logger.info(f"Base URL: {self.base_url}")
+            logger.info(f"API Key: {self.api_key}")
+            logger.info(f"Session ID: {session_id}")
+            logger.info(f"Last Message: {last_msg}")
 
             # 发起流式请求
+            response_content = []
             with requests.post(
                     f"{self.base_url}/chat-messages",
                     headers={"Authorization": f"Bearer {self.api_key}"},
@@ -119,6 +125,8 @@ class DifyLLM(LLM):
                         event = json.loads(line[6:])
                         if event.get('answer'):
                             yield event['answer']
+                            response_content.append(event['answer'])
+            logger.info(f"Response Content: {response_content}")
 
         except Exception:
             yield "【服务响应异常】"
