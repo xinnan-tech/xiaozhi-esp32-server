@@ -30,11 +30,6 @@ docker push ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest-amd64
 docker tag xiaozhi-esp32-server:local ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest-arm64
 docker push ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest-arm64
 
-# 合并版本号
-docker manifest create ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:1.0.0 ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest-amd64 ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest-arm64 --amend
-docker manifest inspect ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:1.0.0
-docker manifest push ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:1.0.0
-
 # 推送最新版本
 docker manifest rm ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
 docker manifest create ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest-amd64 ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest-arm64 --amend

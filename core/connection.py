@@ -153,12 +153,17 @@ class ConnectionHandler:
             text = None
             try:
                 future = self.tts_queue.get()
+                if future is None:
+                    continue
                 text = None
                 try:
+                    self.logger.debug("正在处理TTS任务...")
                     tts_file, text = future.result(timeout=10)
+                    self.logger.debug(f"TTS文件生成完毕，文件路径: {tts_file}")
                     if os.path.exists(tts_file):
                         opus_datas, duration = self.tts.wav_to_opus_data(tts_file)
                     else:
+                        self.logger.error(f"TTS文件不存在: {tts_file}")
                         opus_datas = []
                         duration = 0
                 except TimeoutError:
@@ -175,6 +180,7 @@ class ConnectionHandler:
                 if self.tts.delete_audio_file and os.path.exists(tts_file):
                     os.remove(tts_file)
             except Exception as e:
+                self.logger.error(f"TTS任务处理错误: {e}")
                 self.clearSpeakStatus()
                 asyncio.run_coroutine_threadsafe(
                     self.websocket.send(json.dumps({"type": "tts", "state": "stop", "session_id": self.session_id})),
@@ -190,7 +196,7 @@ class ConnectionHandler:
         if tts_file is None:
             self.logger.error(f"tts转换失败，{text}")
             return None
-        self.logger.debug(f"TTS 文件生成完毕")
+        self.logger.debug(f"TTS 文件生成完毕: {tts_file}")
         return tts_file, text
 
     def clearSpeakStatus(self):

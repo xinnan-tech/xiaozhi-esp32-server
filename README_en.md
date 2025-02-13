@@ -14,8 +14,13 @@ This project requires compatible esp32 hardware devices. If you have purchased e
 Xiage's deployed backend, and wish to independently set up the `xiaozhi-esp32` backend service, this project is for
 you.
 
-To see a demo, watch this
-video: [Xiaozhi ESP32 Connecting to Custom Backend Model](https://www.bilibili.com/video/BV1FMFyejExX)
+To see a demo, watch this video:
+
+<a href="https://www.bilibili.com/video/BV1FMFyejExX">
+ <picture>
+   <img alt="小智esp32连接自己的后台模型" src="docs/images/demo.png" />
+ </picture>
+</a>
 
 To fully experience this project, follow these steps:
 
@@ -26,6 +31,11 @@ To fully experience this project, follow these steps:
 - Download the `xiaozhi-esp32` project, replace the default `endpoint address` with your own, compile, and flash the
   firmware to your device.
 - Start the device and check your server console logs to verify successful connection.
+
+## Warning
+
+This project has been established for a short time and has not passed the network security assessment, so please do not
+use it in the production environment.
 
 ## Feature List
 
@@ -64,8 +74,8 @@ is recommended to run the local source code.
 
 ## Method 1: Quick deployment of docker
 
-If your computer is an `arm` architecture computer, please use `Method 2: Run local source code`. The `arm` architecture
-needs to wait for a few more days, because there is currently no mirror that is suitable for the arm architecture.
+The docker image has supported the CPU of x86 architecture and arm64 architecture, and supports running on Chinese
+operating systems.
 
 1. Install docker
 
@@ -175,8 +185,7 @@ is very useful, and it is required to `compile esp32 firmware` later.
 
 ### 1.Install Prerequisites
 
-This project uses `conda` to manage the dependent environment, and after installation, it starts executing the following
-commands.
+This project uses 'conda' to manage dependencies, and after installation, start executing the following commands:
 
 ```
 conda remove -n xiaozhi-esp32-server --all -y
@@ -184,7 +193,7 @@ conda create -n xiaozhi-esp32-server python=3.10 -y
 conda activate xiaozhi-esp32-server
 ```
 
-If your computer is Windows, execute:
+After executing the above command, if your computer is Windows or Mac, execute the following statement:
 
 ```
 conda activate xiaozhi-esp32-server
@@ -192,7 +201,7 @@ conda install conda-forge::libopus
 conda install conda-forge::ffmpeg
 ```
 
-If your computer is ubuntu, execute:
+If your computer is ubuntu, execute the following statement:
 
 ```
 apt-get install libopus0 ffmpeg 
