@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "xiaozhi-esp32-server"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+version = "0.1.0"
+description = ""
+authors = ["kalicyh <34980061+kaliCYH@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+torch = "2.2.2"
+silero_vad = "5.1.2"
+websockets = "14.2"
+opuslib = "3.0.1"
+numpy = "1.26.4"
+pydub = "0.25.1"
+funasr = "1.2.3"
+google-generativeai = "0.8.4"
+edge-tts = "7.0.0"
+httpx = "0.27.2"
+aiohttp = "3.9.3"
+aiohttp-cors = "0.7.0"
+ormsgpack = "1.7.0"
+ruamel-yaml = "0.18.10"
+
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
