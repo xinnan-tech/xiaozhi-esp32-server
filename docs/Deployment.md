@@ -42,24 +42,9 @@ docker run -d --name xiaozhi-esp32-server --restart always --security-opt seccom
 
 3.按本教程重新来一遍
 
-# 方式二：借助docker环境运行部署
+# 方式二：借助docker环境运行部署（仅限开发人员/小白勿用）
 
 ## 1.克隆项目
-
-这个方法的原理，其实是和第一种方式类似。区别在于，第一种方式只要下载一个配置文件，而本方式要下载项目源码。
-
-优点就是源码在你主机躺着，你可以使用本机的代码编辑器加载项目和修改源码。每次修改完项目，想要看效果，那就要重启docker。
-
-缺点就要下载本项目的代码，还要下载模型文件，如果这个项目不常用，确实会占用您电脑的空间。
-
-你先要下载本项目源码，源码可以通过`git clone`命令下载，如果你不熟悉`git clone`命令。
-
-你可以用浏览器打开这个地址`https://github.com/xinnan-tech/xiaozhi-esp32-server.git`
-
-打开完，找到页面中一个绿色的按钮，写着`Code`的按钮，点开它，然后你就看到`Download ZIP`的按钮。
-
-点击它，下载本项目源码压缩包。下载到你电脑后，解压它，此时它的名字可能叫`xiaozhi-esp32-server-main`
-你需要把它重命名成`xiaozhi-esp32-server`，好了请记住这个目录，我们暂且称它为`项目目录`。
 
 ## 2.[跳转到下载语音识别模型文件](#模型文件)
 
@@ -69,21 +54,44 @@ docker run -d --name xiaozhi-esp32-server --restart always --security-opt seccom
 
 修改完配置后，打开命令行工具，`cd`进入到你的项目目录下，执行以下命令
 
-```
-docker run -d --name xiaozhi-esp32-server --restart always --security-opt seccomp:unconfined \
+```sh
+docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconfined \
   -p 8000:8000 \
-  -v ./:/opt/xiaozhi-esp32-server \
-  ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
+  -p 8002:8002 \
+  -v ./:/app \
+  ccr.ccs.tencentyun.com/kalicyh/poetry:v3.10_latest
 ```
 
-## 5.[跳转到运行状态确认](#运行状态确认)
+然后就和正常开发一样了
 
-后期，如果你修改了代码，想让新代码跑起来，可以用以下命令让docker容器重启：
+## 5.安装依赖
 
+在刚刚的打开的终端运行
+
+```sh
+poetry install --no-root
 ```
-docker restart xiaozhi-esp32-server
-# 查看日志输出
-docker logs -f xiaozhi-esp32-server
+
+```sh
+apt-get update
+apt-get install -y --no-install-recommends libopus0 ffmpeg
+```
+
+速度慢可以尝试使用清华镜像
+
+```sh
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+apt-get update
+apt-get install -y --no-install-recommends libopus0 ffmpeg
+```
+
+## 6.运行项目
+
+```sh
+poetry run python app.py
 ```
 
 # 方式三：本地源码运行

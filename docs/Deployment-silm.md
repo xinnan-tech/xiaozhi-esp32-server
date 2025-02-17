@@ -96,19 +96,48 @@ cd xiaozhi-esp32-server
 
 或手动下载 [ZIP 包](https://github.com/xinnan-tech/xiaozhi-esp32-server/archive/refs/heads/main.zip)，解压后重命名为 `xiaozhi-esp32-server`。
 
-### 2. 运行 Docker
+## 2.运行docker
+
+修改完配置后，打开命令行工具，`cd`进入到你的项目目录下，执行以下命令
 
 ```sh
-docker run -d --name xiaozhi-esp32-server --restart always --security-opt seccomp:unconfined \
+docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconfined \
   -p 8000:8000 \
-  -v ./:/opt/xiaozhi-esp32-server \
-  ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
+  -p 8002:8002 \
+  -v ./:/app \
+  ccr.ccs.tencentyun.com/kalicyh/poetry:v3.10_latest
 ```
 
-### 3. 修改代码 & 重启 Docker
+然后就和正常开发一样了
+
+## 3.安装依赖
+
+在刚刚的打开的终端运行
 
 ```sh
-docker restart xiaozhi-esp32-server
+poetry install --no-root
+```
+
+```sh
+apt-get update
+apt-get install -y --no-install-recommends libopus0 ffmpeg
+```
+
+速度慢可以尝试使用清华镜像
+
+```sh
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+apt-get update
+apt-get install -y --no-install-recommends libopus0 ffmpeg
+```
+
+## 4.运行项目
+
+```sh
+poetry run python app.py
 ```
 
 ## 方式三：本地运行（适用于开发）
