@@ -69,6 +69,9 @@ class ConnectionHandler:
         self.tts_start_speak_time = None
         self.tts_duration = 0
 
+        # iot相关变量
+        self.iot_descriptors = {}
+
         self.cmd_exit = self.config["CMD_exit"]
         self.max_cmd_length = 0
         for cmd in self.cmd_exit:
