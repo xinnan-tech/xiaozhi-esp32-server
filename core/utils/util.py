@@ -67,8 +67,6 @@ def remove_special_symbols(text):
     """ 去除大模型输出内容中的特殊字符 """
     # 用正则匹配所有非字母、非数字、非空白字符
     cleaned = re.sub(r'[^\w\s]', '', text, flags=re.UNICODE)
-    # 去除下划线（如果不希望保留）
-    cleaned = cleaned.replace('_', '')
     return cleaned
 
 def get_string_no_punctuation_or_emoji(s):
