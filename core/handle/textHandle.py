@@ -3,6 +3,7 @@ import json
 from core.handle.abortHandle import handleAbortMessage
 from core.handle.helloHandle import handleHelloMessage
 from core.handle.audioHandle import startToChat
+from core.handle.iotHandle import handleIotDescriptors
 
 logger = logging.getLogger(__name__)
 
@@ -35,5 +36,8 @@ async def handleTextMessage(conn, message):
                 conn.asr_audio.clear()
                 if "text" in msg_json:
                     await startToChat(conn, msg_json["text"])
+        elif msg_json["type"] == "iot":
+            if "descriptors" in msg_json:
+                await handleIotDescriptors(conn, msg_json["descriptors"])
     except json.JSONDecodeError:
         await conn.websocket.send(message)
