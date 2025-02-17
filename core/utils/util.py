@@ -63,6 +63,13 @@ def is_punctuation_or_emoji(char):
     ]
     return any(start <= code_point <= end for start, end in emoji_ranges)
 
+def remove_special_symbols(text):
+    """ 去除大模型输出内容中的特殊字符 """
+    # 用正则匹配所有非字母、非数字、非空白字符
+    cleaned = re.sub(r'[^\w\s]', '', text, flags=re.UNICODE)
+    # 去除下划线（如果不希望保留）
+    cleaned = cleaned.replace('_', '')
+    return cleaned
 
 def get_string_no_punctuation_or_emoji(s):
     """去除字符串首尾的空格、标点符号和表情符号"""
@@ -75,7 +82,7 @@ def get_string_no_punctuation_or_emoji(s):
     end = len(chars) - 1
     while end >= start and is_punctuation_or_emoji(chars[end]):
         end -= 1
-    return ''.join(chars[start:end + 1])
+    return remove_special_symbols(''.join(chars[start:end + 1]))
 
 
 def remove_punctuation_and_length(text):
