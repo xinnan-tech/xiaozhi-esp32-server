@@ -1,7 +1,9 @@
 # 第一阶段：前端构建
-FROM ccr.ccs.tencentyun.com/kalicyh/node:18-alpine AS frontend-builder
+FROM kalicyh/node:v18-alpine AS frontend-builder
 
 WORKDIR /app/ZhiKongTaiWeb
+
+# RUN corepack enable && yarn config set registry https://registry.npmmirror.com
 
 COPY ZhiKongTaiWeb/package.json ZhiKongTaiWeb/yarn.lock ./
 
@@ -11,7 +13,7 @@ COPY ZhiKongTaiWeb .
 RUN yarn build
 
 # 第二阶段：构建 Python 依赖
-FROM ccr.ccs.tencentyun.com/kalicyh/poetry:v3.10_xiaozhi AS builder
+FROM kalicyh/poetry:v3.10_xiaozhi AS builder
 
 WORKDIR /app
 

@@ -57,7 +57,7 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
   -p 8000:8000 \
   -p 8002:8002 \
   -v ./:/app \
-  ccr.ccs.tencentyun.com/kalicyh/poetry:v3.10_latest
+  kalicyh/poetry:v3.10_xiaozhi
 ```
 
 然后就和正常开发一样了
@@ -68,11 +68,6 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
 
 ```sh
 poetry install --no-root
-```
-
-```sh
-apt-get update
-apt-get install -y --no-install-recommends libopus0 ffmpeg
 ```
 
 速度慢可以尝试使用清华镜像

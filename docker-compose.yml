@@ -1,6 +1,6 @@
 services:
   xiaozhi-esp32-server:
-    image: ccr.ccs.tencentyun.com/kalicyh/esp32-ai-server:latest
+    image: kalicyh/xiaozhi-esp32-server:latest
     container_name: xiaozhi-esp32-server
     restart: always
     #security_opt:
