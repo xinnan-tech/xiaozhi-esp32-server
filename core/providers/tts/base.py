@@ -5,6 +5,7 @@ import numpy as np
 import opuslib
 from pydub import AudioSegment
 from abc import ABC, abstractmethod
+from core.utils.performance_monitor import track_performance
 
 TAG = __name__
 logger = setup_logging()
@@ -19,6 +20,7 @@ class TTSProviderBase(ABC):
     def generate_filename(self):
         pass
 
+    @track_performance("TTS")
     def to_tts(self, text):
         tmp_file = self.generate_filename()
         try:
