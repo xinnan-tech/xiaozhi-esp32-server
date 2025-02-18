@@ -18,6 +18,7 @@ from core.handle.audioHandle import handleAudioMessage, sendAudioMessage
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator  # 添加导入
+from core.utils.performance_monitor import track_performance
 
 TAG = __name__
 
@@ -189,7 +190,8 @@ class ConnectionHandler:
             return False
         return not self.is_device_verified
     
-    def chat(self, query):
+    @track_performance("LLM")
+    def process_llm_response(self, query: str) -> bool:
         # 如果设备未验证，就发送验证码
         if self.isNeedAuth():
             self.llm_finish_task = True
