@@ -221,7 +221,7 @@ TTS:
    #最自然的AI语音
    #api申请地址https://fish.audio/zh-CN/go-api/billing/
     type: fish_audio
-    api_key: "d8b0446f13144ee6be79ba236ccc0320"
+    api_key: "你的fish_audio-apikey"
     api_url: "https://api.fish.audio/v1/tts"
-    voice: "d8cd5a82063946588b371a4189cf59cc"
+    voice: "声音模型ID"
     output_file: "tmp/"
