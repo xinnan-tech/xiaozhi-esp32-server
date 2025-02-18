@@ -25,12 +25,25 @@ class LLMProvider(LLMProviderBase):
                 messages=dialogue,
                 stream=True
             )
+            
+            is_active = True
             for chunk in responses:
-                # 检查是否存在有效的choice且content不为空
-                if chunk.choices and len(chunk.choices) > 0:
-                    delta = chunk.choices[0].delta
-                    content = getattr(delta, 'content', '')
-                    if content:  # 仅在content非空时生成
+                try:
+                    # 检查是否存在有效的choice且content不为空
+                    delta = chunk.choices[0].delta if getattr(chunk, 'choices', None) else None
+                    content = delta.content if hasattr(delta, 'content') else ''
+                except IndexError:
+                    content = ''
+                if content:
+                    # 处理标签跨多个chunk的情况
+                    if '<think>' in content:
+                        is_active = False
+                        content = content.split('<think>')[0]  # 保留标签前的有效内容
+                    if '</think>' in content:
+                        is_active = True
+                        content = content.split('</think>')[-1]  # 保留标签后的有效内容
+                    if is_active:
                         yield content
+
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in response generation: {e}")
