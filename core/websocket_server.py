@@ -66,7 +66,7 @@ class WebSocketServer:
     def _start_perf_monitor(self):
         async def print_stats():
             while True:
-                await asyncio.sleep(30)  # 每5分钟输出一次
+                await asyncio.sleep(30)  # 性能统计时间设置（秒）
                 summary = monitor.get_summary()
                 print("\n=== 模块性能统计 ===")
                 for module, stats in summary.items():
