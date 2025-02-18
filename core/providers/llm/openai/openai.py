@@ -25,7 +25,7 @@ class LLMProvider(LLMProviderBase):
                 messages=dialogue,
                 stream=True
             )
-                        is_active = True
+            is_active = True
             for chunk in responses:
                 # 检查是否存在有效的choice且content不为空
                 delta = chunk.choices[0].delta if chunk.choices else None
