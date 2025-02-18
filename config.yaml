@@ -217,3 +217,11 @@ TTS:
     parallel_infer: true
     repetition_penalty: 1.35
     aux_ref_audio_paths: []
+  fish_audio_tts:
+   #最自然的AI语音
+   #api申请地址https://fish.audio/zh-CN/go-api/billing/
+    type: fish_audio
+    api_key: "d8b0446f13144ee6be79ba236ccc0320"
+    api_url: "https://api.fish.audio/v1/tts"
+    voice: "d8cd5a82063946588b371a4189cf59cc"
+    output_file: "tmp/"
