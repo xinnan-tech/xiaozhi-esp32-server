@@ -28,11 +28,6 @@ setuptools = "^75.8.0"
 loguru = "^0.7.3"
 
 
-[[tool.poetry.source]]
-name = "mirrors"
-url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
-priority = "primary"
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
