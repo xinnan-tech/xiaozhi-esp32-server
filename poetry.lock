@@ -2202,14 +2202,15 @@ datalib = ["numpy (>=1)", "pandas (>=1.2.3)", "pandas-stubs (>=1.1.0.11)"]
 realtime = ["websockets (>=13,<15)"]
 
 [[package]]
-name = "opuslib"
-version = "3.0.1"
+name = "opuslib-next"
+version = "1.1.2"
 description = "Python bindings to the libopus, IETF low-delay audio codec"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "opuslib-3.0.1.tar.gz", hash = "sha256:2cb045e5b03e7fc50dfefe431e3404dddddbd8f5961c10c51e32dfb69a044c97"},
+    {file = "opuslib_next-1.1.2-py2.py3-none-any.whl", hash = "sha256:adc432290ed721febff19dc0deb3b0cdbe846e80cd79fec742a7d47d960f13ed"},
+    {file = "opuslib_next-1.1.2.tar.gz", hash = "sha256:d44a63c69783ab3ccaf349d46a1e37741eb620d6391461a18f95ac1b538e6796"},
 ]
 
 [[package]]
@@ -3731,4 +3732,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10.16"
-content-hash = "a4198be98d482e4393ef98f074b2c62c59786c8ef679adc2285473d1b9eb7d92"
+content-hash = "9d724dd1cc50a7a6a42f0b5d8a81ad788332939ffc6a3ba12537106567f4ebe7"

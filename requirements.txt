@@ -2,7 +2,7 @@ pyyml==0.0.2
 torch==2.2.2
 silero_vad==5.1.2
 websockets==14.2
-opuslib==3.0.1
+opuslib_next==1.1.2
 numpy==1.26.4
 pydub==0.25.1
 funasr==1.2.3
