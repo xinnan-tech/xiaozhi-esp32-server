@@ -25,12 +25,17 @@ class LLMProvider(LLMProviderBase):
                 messages=dialogue,
                 stream=True
             )
+                        is_active = True
             for chunk in responses:
                 # 检查是否存在有效的choice且content不为空
-                if chunk.choices and len(chunk.choices) > 0:
-                    delta = chunk.choices[0].delta
-                    content = getattr(delta, 'content', '')
-                    if content:  # 仅在content非空时生成
+                delta = chunk.choices[0].delta if chunk.choices else None
+                content = getattr(delta, 'content', '') if delta else ''
+                if content:  # 仅在content非空时生成 
+                    if '<think>' in content: # 跳过<think>深度思考内容
+                        is_active = False
+                    elif '</think>' in content:
+                        is_active = True
+                    elif is_active:
                         yield content
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in response generation: {e}")
