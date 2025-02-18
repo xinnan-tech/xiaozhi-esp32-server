@@ -108,10 +108,8 @@ class ConnectionHandler:
                     if self.is_device_verified:
                         await self.private_config.update_last_chat_time() 
                     
-                    vad, asr, llm, tts = self.private_config.create_private_instances()
-                    if all([vad, asr, llm, tts]):
-                        self.vad = vad
-                        self.asr = asr
+                    llm, tts = self.private_config.create_private_instances()
+                    if all([llm, tts]):
                         self.llm = llm
                         self.tts = tts
                         self.logger.bind(tag=TAG).info(f"Loaded private config and instances for device {device_id}")

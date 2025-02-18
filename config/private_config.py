@@ -172,21 +172,12 @@ class PrivateConfig:
         #  判断存在私有配置，并且self.device_id在私有配置中
         if not self.private_config:
             self.logger.bind(tag=TAG).error("Private config not found for device_id: {}", self.device_id)
-            return None, None, None, None
+            return None, None
         
         """创建私有处理模块实例"""
         config = self.private_config
         selected_modules = config['selected_module']
         return (
-            vad.create_instance(
-                selected_modules["VAD"],
-                config["VAD"][selected_modules["VAD"]]
-            ),
-            asr.create_instance(
-                selected_modules["ASR"],
-                config["ASR"][selected_modules["ASR"]],
-                self.default_config.get("delete_audio", True)  # Using default_config for global settings
-            ),
             llm.create_instance(
                 selected_modules["LLM"]
                 if not 'type' in config["LLM"][selected_modules["LLM"]]
