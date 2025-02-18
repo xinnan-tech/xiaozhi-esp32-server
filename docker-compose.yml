@@ -1,6 +1,6 @@
 services:
   xiaozhi-esp32-server:
-    image: kalicyh/xiaozhi-esp32-server:latest
+    image: ghcr.io/kalicyh/xiaozhi-esp32-server:latest
     container_name: xiaozhi-esp32-server
     restart: always
     #security_opt:
