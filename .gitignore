@@ -143,4 +143,5 @@ tmp
 .config.yaml
 .secrets.yaml
 .private_config.yaml
+.env.development
 docker-compose.yml
