@@ -73,7 +73,7 @@ async def startToChat(conn, text):
         schedule_with_interrupt(0, send_stt_message(conn, text))
     )
     conn.scheduled_tasks.append(stt_task)
-    conn.executor.submit(conn.chat, text)
+    conn.executor.submit(conn.process_llm_response, text)
 
 
 async def sendAudioMessage(conn, audios, duration, text):
