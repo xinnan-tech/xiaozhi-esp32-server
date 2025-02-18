@@ -19,7 +19,7 @@ def setup_logging(log_dir='tmp', data_dir='data'):
     logger.remove()
 
     # 输出到控制台
-    logger.add(sys.stdout, format=log_format, level="INFO")
+    logger.add(sys.stdout, format=log_format, level="DEBUG")
 
     # 输出到文件
     logger.add(os.path.join(log_dir, "server.log"), format="{time:YYYY-MM-DD HH:mm:ss} - {name} - {level} - {extra[tag]} - {message}", level="INFO")

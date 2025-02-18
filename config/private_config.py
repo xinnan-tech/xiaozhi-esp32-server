@@ -182,11 +182,13 @@ class PrivateConfig:
                 selected_modules["VAD"],
                 config["VAD"][selected_modules["VAD"]]
             ),
+            self.logger.bind(tag=TAG).error(f"666"),
             asr.create_instance(
                 selected_modules["ASR"],
                 config["ASR"][selected_modules["ASR"]],
                 self.default_config.get("delete_audio", True)  # Using default_config for global settings
             ),
+            self.logger.bind(tag=TAG).error(f"666"),
             llm.create_instance(
                 selected_modules["LLM"]
                 if not 'type' in config["LLM"][selected_modules["LLM"]]

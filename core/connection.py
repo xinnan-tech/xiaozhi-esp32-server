@@ -107,8 +107,9 @@ class ConnectionHandler:
                     
                     if self.is_device_verified:
                         await self.private_config.update_last_chat_time() 
-                    
+                    self.logger.bind(tag=TAG).error(f"这咋了")
                     vad, asr, llm, tts = self.private_config.create_private_instances()
+                    self.logger.bind(tag=TAG).error(f"那咋了")
                     if all([vad, asr, llm, tts]):
                         self.vad = vad
                         self.asr = asr
