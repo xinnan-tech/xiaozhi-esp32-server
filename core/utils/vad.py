@@ -4,6 +4,7 @@ import opuslib
 import time
 import numpy as np
 import torch
+from core.utils.performance_monitor import track_performance
 
 TAG = __name__
 logger = setup_logging()
@@ -28,6 +29,7 @@ class SileroVAD(VAD):
         self.vad_threshold = config.get("threshold")
         self.silence_threshold_ms = config.get("min_silence_duration_ms")
 
+    @track_performance("VAD")
     def is_vad(self, conn, opus_packet):
         try:
             pcm_frame = self.decoder.decode(opus_packet, 960)

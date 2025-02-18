@@ -9,6 +9,7 @@ import uuid
 import opuslib
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
+from core.utils.performance_monitor import track_performance
 
 TAG = __name__
 logger = setup_logging()
@@ -65,6 +66,7 @@ class FunASR(ASR):
 
         return file_path
 
+    @track_performance("ASR")
     def speech_to_text(self, opus_data: List[bytes], session_id: str) -> Tuple[Optional[str], Optional[str]]:
         """语音转文本主处理逻辑"""
         file_path = None
