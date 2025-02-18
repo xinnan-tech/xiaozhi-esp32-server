@@ -40,8 +40,6 @@ docker run -d --name xiaozhi-esp32-server --restart always --security-opt seccom
 
 ## [跳转到版本升级操作](#版本升级操作)
 
-3.按本教程重新来一遍
-
 # 方式二：借助docker环境运行部署（仅限开发人员/小白勿用）
 
 ## 1.克隆项目
@@ -248,3 +246,5 @@ docker stop xiaozhi-esp32-server
 docker rm xiaozhi-esp32-server
 docker rmi ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
 ```
+
+3、重新开始安装
