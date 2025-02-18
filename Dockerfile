@@ -1,4 +1,5 @@
 # 第一阶段：前端构建
+
 FROM kalicyh/node:v18-alpine AS frontend-builder
 
 WORKDIR /app/ZhiKongTaiWeb
@@ -13,6 +14,7 @@ COPY ZhiKongTaiWeb .
 RUN yarn build
 
 # 第二阶段：构建 Python 依赖
+
 FROM kalicyh/poetry:v3.10_xiaozhi AS builder
 
 WORKDIR /app

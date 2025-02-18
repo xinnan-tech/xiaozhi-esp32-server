@@ -1,5 +1,98 @@
+# 方式一：docker快速部署
 
-# 本地源码运行
+docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统上运行。
+
+## 1. 安装docker
+
+如果您的电脑还没安装docker，可以按照这里的教程安装：[docker安装](https://www.runoob.com/docker/ubuntu-docker-install.html)
+
+## 2. 创建目录
+
+安装完后，你需要为这个项目找一个安放配置文件的目录，我们暂且称它为`项目目录`，这个目录最好是一个新建的空的目录。
+
+## 3. 下载配置文件
+
+用浏览器打开[这个链接](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/config.yaml)。
+
+在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`config.yaml`文件。 把文件下载到你的
+`项目目录`。
+
+## 4.[跳转到配置项目文件](#配置项目)
+
+## 5. 执行docker命令
+
+打开命令行工具，`cd` 进入到你的`项目目录`，执行以下命令
+
+```
+#如果你是linux，执行
+ls
+#如果你是windows，执行
+dir
+```
+
+如果你能看到`config.yaml`文件，确确实实进入到了`项目目录`，接着执行以下命令：
+
+```
+docker run -d --name xiaozhi-esp32-server --restart always --security-opt seccomp:unconfined -p 8000:8000 -v $(pwd)/config.yaml:/opt/xiaozhi-esp32-server/config.yaml ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
+```
+
+## 6.[跳转到运行状态确认](#运行状态确认)
+
+## [跳转到版本升级操作](#版本升级操作)
+
+# 方式二：借助docker环境运行部署（仅限开发人员/小白勿用）
+
+## 1.克隆项目
+
+## 2.[跳转到下载语音识别模型文件](#模型文件)
+
+## 3.[跳转到配置项目文件](#配置项目)
+
+## 4.运行docker
+
+修改完配置后，打开命令行工具，`cd`进入到你的项目目录下，执行以下命令
+
+```sh
+docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconfined \
+  -p 8000:8000 \
+  -p 8002:8002 \
+  -v ./:/app \
+  ccr.ccs.tencentyun.com/kalicyh/poetry:v3.10_latest
+```
+
+然后就和正常开发一样了
+
+## 5.安装依赖
+
+在刚刚的打开的终端运行
+
+```sh
+poetry install --no-root
+```
+
+```sh
+apt-get update
+apt-get install -y --no-install-recommends libopus0 ffmpeg
+```
+
+速度慢可以尝试使用清华镜像
+
+```sh
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+apt-get update
+apt-get install -y --no-install-recommends libopus0 ffmpeg
+```
+
+## 6.运行项目
+
+```sh
+poetry run python app.py
+```
+
+# 方式三：本地源码运行
 
 ## 1.安装基础环境
 
@@ -115,6 +208,18 @@ LLM:
 
 ## 运行状态确认
 
+如果首次执行，可能需要几分钟时间，你要耐心等待他完成拉取。正常拉取完成后，你可以在命令行执行以下命令查看服务是否启动成功
+
+```
+docker ps
+```
+
+如果你能看到`xiaozhi-server`，说明服务启动成功。那你还可以进一步执行以下命令，查看服务的日志
+
+```
+docker logs -f xiaozhi-esp32-server
+```
+
 如果你能看到，类似以下日志,则是本项目服务启动成功的标志。
 
 ```
@@ -122,8 +227,24 @@ LLM:
 2025-xx-xx xx:51:59,516 - websockets.server - INFO - server listening on 0.0.0.0:8000
 ```
 
-接下来，你就可以开始 `编译esp32固件`了，请往下翻，翻到编译`esp32固件`相关章节。
+接下来，你就可以开始 `编译esp32固件`了，请往下翻，翻到编译`esp32固件`相关章节。那么由于你是用docker部署，你要自己查看自己本机电脑的ip是多少。
 正常来说，假设你的ip是`192.168.1.25`，那么你的接口地址就是：`ws://192.168.1.25:8000`。这个信息很有用的，后面`编译esp32固件`
 需要用到。
 
 请注意，你的接口地址是`websocket`协议的地址，你可以使用`apifox`等工具调试。但是不能直接用浏览器打开访问，如果用浏览器打开，日志会显示错误，会让你怀疑是否部署成功了。
+
+## 版本升级操作
+
+如果想升级版本，可以这么操作
+
+1、备份好`config.yaml`文件，一些关键的配置到时复制到新的`config.yaml`文件里。
+
+2、执行以下命令
+
+```
+docker stop xiaozhi-esp32-server
+docker rm xiaozhi-esp32-server
+docker rmi ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
+```
+
+3、重新开始安装

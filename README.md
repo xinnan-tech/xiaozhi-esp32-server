@@ -123,15 +123,7 @@ server:
 
 ### 一、[部署文档](./docs/Deployment.md)
 
-[精简版部署文档](./docs/Deployment-silm.md)
-
-本项目支持以下三种部署方式，您可根据实际需求选择：
-
-1. **[Docker 快速部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2)**  
-   适合快速体验，不需过多环境配置。
-2. **[借助 Docker 环境运行部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)**  
-   适用于已安装 Docker 且希望对代码进行自定义修改的用户。
-3. **[本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)**  
+1. **[本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)**  
    适合熟悉 Conda 环境或希望从零搭建运行环境的用户。  
    对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
 
