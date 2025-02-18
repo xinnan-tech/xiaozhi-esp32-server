@@ -13,8 +13,6 @@ class LLMProvider(LLMProviderBase):
         配置项：
           - model_name: 模型名称或路径（必填）
           - base_url: vllm 服务地址，默认为 "http://localhost:8000"
-          - max_tokens: 生成文本的最大 token 数量（可选）
-          - temperature: 采样温度（可选）
         """
         self.model_name = config.get("model_name")
         if not self.model_name:
