@@ -4,6 +4,7 @@ from config.logger import setup_logging
 from core.connection import ConnectionHandler
 from core.utils.util import get_local_ip
 from core.utils import asr, vad, llm, tts
+from core.utils.performance_monitor import monitor
 
 TAG = __name__
 
@@ -12,6 +13,7 @@ class WebSocketServer:
         self.config = config
         self.logger = setup_logging()
         self._vad, self._asr, self._llm, self._tts = self._create_processing_instances()
+        self._start_perf_monitor()
 
     def _create_processing_instances(self):
         """创建处理模块实例"""
@@ -60,3 +62,15 @@ class WebSocketServer:
         """处理新连接，每次创建独立的ConnectionHandler"""
         handler = ConnectionHandler(self.config, self._vad, self._asr, self._llm, self._tts)
         await handler.handle_connection(websocket)
+
+    def _start_perf_monitor(self):
+        async def print_stats():
+            while True:
+                await asyncio.sleep(30)  # 每5分钟输出一次
+                summary = monitor.get_summary()
+                print("\n=== 模块性能统计 ===")
+                for module, stats in summary.items():
+                    print(f"{module}: 平均{stats['avg']:.3f}s | 最大{stats['max']:.3f}s | 最小{stats['min']:.3f}s | 调用次数{stats['total_calls']}")
+                print("===================\n")
+        
+        asyncio.create_task(print_stats())
