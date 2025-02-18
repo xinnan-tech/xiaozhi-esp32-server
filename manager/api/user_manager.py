@@ -1,11 +1,12 @@
 import os
 import yaml
 import hashlib
-import logging
+from config.logger import setup_logging
 from core.utils.util import get_project_dir
 from core.utils.lock_manager import FileLockManager
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 class UserManager:
     def __init__(self):
@@ -23,9 +24,9 @@ class UserManager:
                 with open(self.secrets_path, 'w', encoding='utf-8') as f:
                     yaml.dump(default_config, f)
                 os.chmod(self.secrets_path, 0o600)
-                logger.info("Created new .secrets.yaml file")
+                logger.bind(tag=TAG).info("Created new .secrets.yaml file")
             except Exception as e:
-                logger.error(f"Failed to create .secrets.yaml: {e}")
+                logger.bind(tag=TAG).error(f"Failed to create .secrets.yaml: {e}")
                 raise
     
     async def _load_user_data_internal(self):
@@ -34,9 +35,9 @@ class UserManager:
             with open(self.secrets_path, 'r', encoding='utf-8') as f:
                 data = yaml.safe_load(f) or {'users': {}}
                 users = data['users']
-                logger.debug("Successfully loaded user data")
+                logger.bind(tag=TAG).debug("Successfully loaded user data")
         except Exception as e:
-            logger.error(f"Failed to load user data: {e}")
+            logger.bind(tag=TAG).error(f"Failed to load user data: {e}")
             users = {}
         return users
     
@@ -50,7 +51,7 @@ class UserManager:
                 self.lock_manager.release_lock(self.secrets_path)
             
         except Exception as e:
-            logger.error(f"Failed to load user data: {e}")
+            logger.bind(tag=TAG).error(f"Failed to load user data: {e}")
             users = {}
         return users
 
@@ -59,9 +60,9 @@ class UserManager:
         try:
             with open(self.secrets_path, 'w', encoding='utf-8') as f:
                 yaml.dump({'users': users}, f)
-            logger.debug("Successfully saved user data")
+            logger.bind(tag=TAG).debug("Successfully saved user data")
         except Exception as e:
-            logger.error(f"Failed to save user data: {e}")
+            logger.bind(tag=TAG).error(f"Failed to save user data: {e}")
             raise
 
     async def save_user_data(self, users):
@@ -73,7 +74,7 @@ class UserManager:
             finally:
                 self.lock_manager.release_lock(self.secrets_path)
         except Exception as e:
-            logger.error(f"Failed to save user data: {e}")
+            logger.bind(tag=TAG).error(f"Failed to save user data: {e}")
             raise
 
     def hash_password(self, password):
@@ -103,7 +104,7 @@ class UserManager:
             finally:
                 self.lock_manager.release_lock(self.secrets_path)
         except Exception as e:
-            logger.error(f"Error adding user: {e}")
+            logger.bind(tag=TAG).error(f"Error adding user: {e}")
             raise
 
     async def update_user(self, username, data):
@@ -120,7 +121,7 @@ class UserManager:
             finally:
                 self.lock_manager.release_lock(self.secrets_path)
         except Exception as e:
-            logger.error(f"Error updating user: {e}")
+            logger.bind(tag=TAG).error(f"Error updating user: {e}")
             return False
 
     async def get_user_devices(self, username: str) -> list:
@@ -151,7 +152,7 @@ class UserManager:
             finally:
                 self.lock_manager.release_lock(self.secrets_path)
         except Exception as e:
-            logger.error(f"Error adding device: {e}")
+            logger.bind(tag=TAG).error(f"Error adding device: {e}")
             return False
 
     async def remove_device(self, username: str, device_id: str) -> bool:
@@ -170,5 +171,5 @@ class UserManager:
             finally:
                 self.lock_manager.release_lock(self.secrets_path)
         except Exception as e:
-            logger.error(f"Error removing device: {e}")
+            logger.bind(tag=TAG).error(f"Error removing device: {e}")
             return False

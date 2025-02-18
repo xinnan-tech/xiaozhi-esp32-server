@@ -6,8 +6,10 @@ from manager.http_server import WebUI
 from aiohttp import web
 from core.utils.util import get_local_ip
 
+TAG = __name__
+
 async def main():
-    setup_logging()  # 最先初始化日志
+    logger = setup_logging()
     config = load_config()
     
     # 启动 WebSocket 服务器
@@ -28,9 +30,9 @@ async def main():
             await site.start()
             webui_runner = runner
             local_ip = get_local_ip()
-            print(f"WebUI server is running at http://{local_ip}:{port}")
+            logger.bind(tag=TAG).info(f"WebUI server is running at http://{local_ip}:{port}")
         except Exception as e:
-            print(f"Failed to start WebUI server: {e}")
+            logger.bind(tag=TAG).error(f"Failed to start WebUI server: {e}")
     
     try:
         # 等待 WebSocket 服务器运行

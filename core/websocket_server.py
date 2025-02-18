@@ -1,15 +1,16 @@
 import asyncio
 import websockets
-import logging
+from config.logger import setup_logging
 from core.connection import ConnectionHandler
 from core.utils.util import get_local_ip
 from core.utils import asr, vad, llm, tts
 
+TAG = __name__
 
 class WebSocketServer:
     def __init__(self, config: dict):
         self.config = config
-        self.logger = logging.getLogger(__name__)
+        self.logger = setup_logging()
         self._vad, self._asr, self._llm, self._tts = self._create_processing_instances()
 
     def _create_processing_instances(self):
@@ -46,9 +47,8 @@ class WebSocketServer:
         host = server_config["ip"]
         port = server_config["port"]
 
-        self.logger.info("=======下面的地址是websocket协议地址，请勿用浏览器访问=======")
-        self.logger.info("Server is running at ws://%s:%s", get_local_ip(), port)
-        self.logger.info("=======上面的地址是websocket协议地址，请勿用浏览器访问=======")
+        self.logger.bind(tag=TAG).info("Server is running at ws://{}:{}", get_local_ip(), port)
+        self.logger.bind(tag=TAG).info("=======上面的地址是websocket协议地址，请勿用浏览器访问=======")
         async with websockets.serve(
                 self._handle_connection,
                 host,

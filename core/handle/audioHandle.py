@@ -1,15 +1,16 @@
-import logging
+from config.logger import setup_logging
 import json
 import asyncio
 import time
 from core.utils.util import remove_punctuation_and_length, get_string_no_punctuation_or_emoji
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 
 async def handleAudioMessage(conn, audio):
     if not conn.asr_server_receive:
-        logger.debug(f"前期数据处理中，暂停接收")
+        logger.bind(tag=TAG).debug(f"前期数据处理中，暂停接收")
         return
     if conn.client_listen_mode == "auto":
         have_voice = conn.vad.is_vad(conn, audio)
@@ -28,7 +29,7 @@ async def handleAudioMessage(conn, audio):
         conn.client_abort = False
         conn.asr_server_receive = False
         text, file_path = conn.asr.speech_to_text(conn.asr_audio, conn.session_id)
-        logger.info(f"识别文本: {text}")
+        logger.bind(tag=TAG).info(f"识别文本: {text}")
         text_len, text_without_punctuation = remove_punctuation_and_length(text)
         if text_len <= conn.max_cmd_length and await handleCMDMessage(conn, text_without_punctuation):
             return
@@ -44,7 +45,7 @@ async def handleCMDMessage(conn, text):
     cmd_exit = conn.cmd_exit
     for cmd in cmd_exit:
         if text == cmd:
-            logger.info("识别到明确的退出命令".format(text))
+            logger.bind(tag=TAG).info("识别到明确的退出命令".format(text))
             await finishToChat(conn)
             return True
     return False
@@ -80,7 +81,7 @@ async def sendAudioMessage(conn, audios, duration, text):
 
     # 发送 tts.start
     if text == conn.tts_first_text:
-        logger.info(f"发送第一段语音: {text}")
+        logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
         conn.tts_start_speak_time = time.time()
 
     # 发送 sentence_start（每个音频文件之前发送一次）

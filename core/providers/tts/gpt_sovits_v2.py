@@ -3,10 +3,12 @@ import uuid
 import json
 import base64
 import requests
-import logging
+from config.logger import setup_logging
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
-logger = logging.getLogger(__name__)
+
+TAG = __name__
+logger = setup_logging()
 
 class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
@@ -62,4 +64,4 @@ class TTSProvider(TTSProviderBase):
             with open(output_file, "wb") as file:
                 file.write(resp.content)
         else:
-            logger.error(f"GPT_SoVITS_V2 TTS请求失败: {resp.status_code} - {resp.text}")
+            logger.bind(tag=TAG).error(f"GPT_SoVITS_V2 TTS请求失败: {resp.status_code} - {resp.text}")

@@ -5,10 +5,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(current_dir)
 sys.path.append(root_dir)
 
-import logging
+from config.logger import setup_logging
 from aiohttp import web
 from aiohttp_cors import setup as cors_setup, ResourceOptions
-from core.utils.util import get_local_ip
 from manager.api.login import LoginHandler
 from manager.api.register import RegisterHandler
 from manager.api.user_manager import UserManager
@@ -16,7 +15,8 @@ from manager.api.config import ConfigHandler
 from manager.session import SessionManager
 from functools import wraps
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 def auth_required(handler):
     """鉴权装饰器"""
@@ -94,23 +94,21 @@ class WebUI:
             # 从请求头获取session_id
             session_id = request.headers.get('Authorization')
             if not session_id:
-                logger.warning("No session_id in Authorization header")
+                logger.bind(tag=TAG).warning("No session_id in Authorization header")
                 return web.json_response({'error': 'Unauthorized'}, status=401)
 
             username = self.session_manager.validate_session(session_id)
             if not username:
-                logger.warning(f"Invalid session_id: {session_id}")
+                logger.bind(tag=TAG).warning(f"Invalid session_id: {session_id}")
                 return web.json_response({'error': 'Unauthorized'}, status=401)
                 
             request['username'] = username
-            logger.debug(f"Auth success for user: {username}")
+            logger.bind(tag=TAG).debug(f"Auth success for user: {username}")
             return await handler(request)
         return wrapper
 
     def run(self, host='0.0.0.0', port=8002):
         """运行服务器"""
-        local_ip = get_local_ip()
-        logger.info(f"WebUI server is running at http://{local_ip}:{port}")
         web.run_app(self.app, host=host, port=port)
 
 if __name__ == '__main__':

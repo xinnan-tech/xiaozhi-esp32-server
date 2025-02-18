@@ -4,7 +4,7 @@ import uuid
 import time
 import queue
 import asyncio
-import logging
+from config.logger import setup_logging
 import threading
 import websockets
 from typing import Dict, Any
@@ -19,10 +19,12 @@ from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator  # 添加导入
 
+TAG = __name__
+
 class ConnectionHandler:
     def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts):
         self.config = config
-        self.logger = logging.getLogger(__name__)
+        self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
 
         self.websocket = None
@@ -85,7 +87,7 @@ class ConnectionHandler:
         try:
             # 获取并验证headers
             self.headers = dict(ws.request.headers)
-            self.logger.info(f"New connection request - Headers: {self.headers}")
+            self.logger.bind(tag=TAG).info(f"New connection request - Headers: {self.headers}")
 
             # 进行认证
             await self.auth.authenticate(self.headers)
@@ -94,7 +96,7 @@ class ConnectionHandler:
             
             # Load private configuration if device_id is provided
             bUsePrivateConfig = self.config.get("use_private_config", False)
-            logging.info(f"bUsePrivateConfig: {bUsePrivateConfig}, device_id: {device_id}")
+            self.logger.bind(tag=TAG).info(f"bUsePrivateConfig: {bUsePrivateConfig}, device_id: {device_id}")
             if bUsePrivateConfig and device_id:
                 try:
                     self.private_config = PrivateConfig(device_id, self.config, self.auth_code_gen)
@@ -112,12 +114,12 @@ class ConnectionHandler:
                         self.asr = asr
                         self.llm = llm
                         self.tts = tts
-                        self.logger.info(f"Loaded private config and instances for device {device_id}")
+                        self.logger.bind(tag=TAG).info(f"Loaded private config and instances for device {device_id}")
                     else:
-                        self.logger.error(f"Failed to create instances for device {device_id}")
+                        self.logger.bind(tag=TAG).error(f"Failed to create instances for device {device_id}")
                         self.private_config = None
                 except Exception as e:
-                    self.logger.error(f"Error initializing private config: {e}")
+                    self.logger.bind(tag=TAG).error(f"Error initializing private config: {e}")
                     self.private_config = None
                     raise
 
@@ -138,15 +140,15 @@ class ConnectionHandler:
                 async for message in self.websocket:
                     await self._route_message(message)
             except websockets.exceptions.ConnectionClosed:
-                self.logger.info("客户端断开连接")
+                self.logger.bind(tag=TAG).info("客户端断开连接")
                 await self.close()
 
         except AuthenticationError as e:
-            self.logger.error(f"Authentication failed: {str(e)}")
+            self.logger.bind(tag=TAG).error(f"Authentication failed: {str(e)}")
             await ws.close()
             return
         except Exception as e:
-            self.logger.error(f"Connection error: {str(e)}")
+            self.logger.bind(tag=TAG).error(f"Connection error: {str(e)}")
             await ws.close()
             return
 
@@ -208,7 +210,7 @@ class ConnectionHandler:
             start_time = time.time()  # 记录开始时间
             llm_responses = self.llm.response(self.session_id, self.dialogue.get_llm_dialogue())
         except Exception as e:
-            self.logger.error(f"LLM 处理出错 {query}: {e}")
+            self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
             return None
         # 提交 TTS 任务到线程池
         self.llm_finish_task = False
@@ -220,7 +222,7 @@ class ConnectionHandler:
                 break
 
             end_time = time.time()  # 记录结束时间
-            self.logger.debug(f"大模型返回时间时间: {end_time - start_time} 秒, 生成token={content}")
+            self.logger.bind(tag=TAG).debug(f"大模型返回时间时间: {end_time - start_time} 秒, 生成token={content}")
             if is_segment(response_message):
                 segment_text = "".join(response_message[start:])
                 segment_text = get_string_no_punctuation_or_emoji(segment_text)
@@ -241,7 +243,7 @@ class ConnectionHandler:
         self.llm_finish_task = True
         # 更新对话
         self.dialogue.put(Message(role="assistant", content="".join(response_message)))
-        self.logger.debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
+        self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
         return True
 
     def _priority_thread(self):
@@ -253,25 +255,25 @@ class ConnectionHandler:
                     continue
                 text = None
                 try:
-                    self.logger.debug("正在处理TTS任务...")
+                    self.logger.bind(tag=TAG).debug("正在处理TTS任务...")
                     tts_file, text = future.result(timeout=10)
                     if text is None or len(text) <= 0:
                         continue
                     if tts_file is None:
-                        self.logger.error(f"TTS文件生成失败: {text}")
+                        self.logger.bind(tag=TAG).error(f"TTS文件生成失败: {text}")
                         continue
-                    self.logger.debug(f"TTS文件生成完毕，文件路径: {tts_file}")
+                    self.logger.bind(tag=TAG).debug(f"TTS文件生成完毕，文件路径: {tts_file}")
                     if os.path.exists(tts_file):
                         opus_datas, duration = self.tts.wav_to_opus_data(tts_file)
                     else:
-                        self.logger.error(f"TTS文件不存在: {tts_file}")
+                        self.logger.bind(tag=TAG).error(f"TTS文件不存在: {tts_file}")
                         opus_datas = []
                         duration = 0
                 except TimeoutError:
-                    self.logger.error("TTS 任务超时")
+                    self.logger.bind(tag=TAG).error("TTS 任务超时")
                     continue
                 except Exception as e:
-                    self.logger.error(f"TTS 任务出错: {e}")
+                    self.logger.bind(tag=TAG).error(f"TTS 任务出错: {e}")
                     continue
                 if not self.client_abort:
                     # 如果没有中途打断就发送语音
@@ -281,27 +283,27 @@ class ConnectionHandler:
                 if self.tts.delete_audio_file and os.path.exists(tts_file):
                     os.remove(tts_file)
             except Exception as e:
-                self.logger.error(f"TTS任务处理错误: {e}")
+                self.logger.bind(tag=TAG).error(f"TTS任务处理错误: {e}")
                 self.clearSpeakStatus()
                 asyncio.run_coroutine_threadsafe(
                     self.websocket.send(json.dumps({"type": "tts", "state": "stop", "session_id": self.session_id})),
                     self.loop
                 )
-                self.logger.error(f"tts_priority priority_thread: {text}{e}")
+                self.logger.bind(tag=TAG).error(f"tts_priority priority_thread: {text}{e}")
 
     def speak_and_play(self, text):
         if text is None or len(text) <= 0:
-            self.logger.info(f"无需tts转换，query为空，{text}")
+            self.logger.bind(tag=TAG).info(f"无需tts转换，query为空，{text}")
             return None, text
         tts_file = self.tts.to_tts(text)
         if tts_file is None:
-            self.logger.error(f"tts转换失败，{text}")
+            self.logger.bind(tag=TAG).error(f"tts转换失败，{text}")
             return None, text
-        self.logger.debug(f"TTS 文件生成完毕: {tts_file}")
+        self.logger.bind(tag=TAG).debug(f"TTS 文件生成完毕: {tts_file}")
         return tts_file, text
 
     def clearSpeakStatus(self):
-        self.logger.debug(f"清除服务端讲话状态")
+        self.logger.bind(tag=TAG).debug(f"清除服务端讲话状态")
         self.asr_server_receive = True
         self.tts_last_text = None
         self.tts_first_text = None
@@ -310,7 +312,7 @@ class ConnectionHandler:
 
     def recode_first_last_text(self, text):
         if not self.tts_first_text:
-            self.logger.info(f"大模型说出第一句话: {text}")
+            self.logger.bind(tag=TAG).info(f"大模型说出第一句话: {text}")
             self.tts_first_text = text
         self.tts_last_text = text
 
@@ -320,14 +322,14 @@ class ConnectionHandler:
         self.executor.shutdown(wait=False)
         if self.websocket:
             await self.websocket.close()
-        self.logger.info("连接资源已释放")
+        self.logger.bind(tag=TAG).info("连接资源已释放")
 
     def reset_vad_states(self):
         self.client_audio_buffer = bytes()
         self.client_have_voice = False
         self.client_have_voice_last_time = 0
         self.client_voice_stop = False
-        self.logger.debug("VAD states reset.")
+        self.logger.bind(tag=TAG).debug("VAD states reset.")
 
     def stop_all_tasks(self):
         while self.scheduled_tasks:

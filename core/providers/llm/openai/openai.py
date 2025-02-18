@@ -1,8 +1,9 @@
-import logging
+from config.logger import setup_logging
 import openai
 from core.providers.llm.base import LLMProviderBase
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 
 class LLMProvider(LLMProviderBase):
@@ -14,7 +15,7 @@ class LLMProvider(LLMProviderBase):
         else:
             self.base_url = config.get("url")
         if "你" in self.api_key:
-            logger.error("你还没配置LLM的密钥，请在配置文件中配置密钥，否则无法正常工作")
+            logger.bind(tag=TAG).error("你还没配置LLM的密钥，请在配置文件中配置密钥，否则无法正常工作")
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
     def response(self, session_id, dialogue):
@@ -32,4 +33,4 @@ class LLMProvider(LLMProviderBase):
                     if content:  # 仅在content非空时生成
                         yield content
         except Exception as e:
-            logger.error(f"Error in response generation: {e}")
+            logger.bind(tag=TAG).error(f"Error in response generation: {e}")

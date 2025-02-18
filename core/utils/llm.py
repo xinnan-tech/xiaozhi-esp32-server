@@ -1,13 +1,13 @@
 import os
 import sys
-import logging
+from config.logger import setup_logging
 import importlib
 from datetime import datetime
 from core.utils.util import is_segment
 from core.utils.util import get_string_no_punctuation_or_emoji
 from core.utils.util import read_config, get_project_dir
 
-logger = logging.getLogger(__name__)
+logger = setup_logging()
 
 
 def create_instance(class_name, *args, **kwargs):

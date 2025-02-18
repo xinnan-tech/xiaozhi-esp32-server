@@ -25,6 +25,7 @@ aiohttp-cors = "0.7.0"
 ormsgpack = "1.7.0"
 ruamel-yaml = "0.18.10"
 setuptools = "^75.8.0"
+loguru = "^0.7.3"
 
 
 [[tool.poetry.source]]

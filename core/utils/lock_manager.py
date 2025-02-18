@@ -1,8 +1,9 @@
 import asyncio
 from typing import Dict
-import logging
+from config.logger import setup_logging
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 class FileLockManager:
     _instance = None
@@ -25,7 +26,7 @@ class FileLockManager:
         """获取锁"""
         lock = cls.get_lock(file_path)
         await lock.acquire()
-        logger.debug(f"Acquired lock for {file_path}")
+        logger.bind(tag=TAG).debug(f"Acquired lock for {file_path}")
 
     @classmethod
     def release_lock(cls, file_path: str):
@@ -33,6 +34,6 @@ class FileLockManager:
         if file_path in cls._locks:
             try:
                 cls._locks[file_path].release()
-                logger.debug(f"Released lock for {file_path}")
+                logger.bind(tag=TAG).debug(f"Released lock for {file_path}")
             except RuntimeError as e:
-                logger.warning(f"Failed to release lock for {file_path}: {e}")
+                logger.bind(tag=TAG).warning(f"Failed to release lock for {file_path}: {e}")

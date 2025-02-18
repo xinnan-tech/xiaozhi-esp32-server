@@ -1,8 +1,9 @@
-import logging
+from config.logger import setup_logging
 from aiohttp import web
 import datetime
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 class LoginHandler:
     def __init__(self, user_manager, session_manager):
@@ -17,7 +18,7 @@ class LoginHandler:
             password = data.get('password')
 
             if not username or not password:
-                logger.warning(f"Login attempt with empty credentials from {request.remote}")
+                logger.bind(tag=TAG).warning(f"Login attempt with empty credentials from {request.remote}")
                 return web.json_response({
                     'success': False, 
                     'message': '用户名和密码不能为空'
@@ -25,7 +26,7 @@ class LoginHandler:
 
             stored_user = await self.user_manager.get_user(username)
             if not stored_user or stored_user['password'] != self.user_manager.hash_password(password):
-                logger.warning(f"Failed login attempt for user {username} from {request.remote}")
+                logger.bind(tag=TAG).warning(f"Failed login attempt for user {username} from {request.remote}")
                 return web.json_response({
                     'success': False, 
                     'message': '用户名或密码错误'
@@ -45,7 +46,7 @@ class LoginHandler:
             })
 
         except Exception as e:
-            logger.error(f"Login error: {str(e)}", exc_info=True)
+            logger.bind(tag=TAG).error(f"Login error: {str(e)}", exc_info=True)
             return web.json_response({
                 'success': False, 
                 'message': '登录失败，请稍后重试'

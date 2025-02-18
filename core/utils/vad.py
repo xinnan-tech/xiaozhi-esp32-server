@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-import logging
+from config.logger import setup_logging
 import opuslib
 import time
 import numpy as np
 import torch
 
-logger = logging.getLogger(__name__)
-
+TAG = __name__
+logger = setup_logging()
 
 class VAD(ABC):
     @abstractmethod
@@ -17,7 +17,7 @@ class VAD(ABC):
 
 class SileroVAD(VAD):
     def __init__(self, config):
-        logger.info("SileroVAD", config)
+        logger.bind(tag=TAG).info("SileroVAD", config)
         self.model, self.utils = torch.hub.load(repo_or_dir=config["model_dir"],
                                                 source='local',
                                                 model='silero_vad',
@@ -60,9 +60,9 @@ class SileroVAD(VAD):
 
             return client_have_voice
         except opuslib.OpusError as e:
-            logger.info(f"解码错误: {e}")
+            logger.bind(tag=TAG).info(f"解码错误: {e}")
         except Exception as e:
-            logger.error(f"Error processing audio packet: {e}")
+            logger.bind(tag=TAG).error(f"Error processing audio packet: {e}")
 
 
 def create_instance(class_name, *args, **kwargs) -> VAD:

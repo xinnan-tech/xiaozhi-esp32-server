@@ -1,7 +1,7 @@
 import os
 import time
 import yaml
-import logging
+from config.logger import setup_logging
 from typing import Dict, Any, Optional
 from copy import deepcopy
 from core.utils.util import get_project_dir
@@ -9,12 +9,14 @@ from core.utils import asr, vad, llm, tts
 from manager.api.user_manager import UserManager
 from core.utils.lock_manager import FileLockManager
 
+TAG = __name__
+
 class PrivateConfig:
     def __init__(self, device_id: str, default_config: Dict[str, Any], auth_code_gen=None):
         self.device_id = device_id
         self.default_config = default_config
         self.config_path = get_project_dir() + 'data/.private_config.yaml'
-        self.logger = logging.getLogger(__name__)
+        self.logger = setup_logging()
         self.private_config = {}
         self.auth_code_gen = auth_code_gen
         self.user_manager = UserManager()
@@ -74,7 +76,7 @@ class PrivateConfig:
                 self.lock_manager.release_lock(self.config_path)
 
         except Exception as e:
-            self.logger.error(f"Error handling private config: {e}")
+            self.logger.bind(tag=TAG).error(f"Error handling private config: {e}")
             self.private_config = {}
 
     async def update_config(self, selected_modules: Dict[str, str], prompt: str, nickname: str) -> bool:
@@ -129,7 +131,7 @@ class PrivateConfig:
                 self.lock_manager.release_lock(self.config_path)
 
         except Exception as e:
-            self.logger.error(f"Error updating config: {e}")
+            self.logger.bind(tag=TAG).error(f"Error updating config: {e}")
             return False
 
     async def delete_config(self) -> bool:
@@ -163,13 +165,13 @@ class PrivateConfig:
                 self.lock_manager.release_lock(self.config_path)
 
         except Exception as e:
-            self.logger.error(f"Error deleting config: {e}")
+            self.logger.bind(tag=TAG).error(f"Error deleting config: {e}")
             return False
 
     def create_private_instances(self):
         #  判断存在私有配置，并且self.device_id在私有配置中
         if not self.private_config:
-            logging.error("Private config not found for device_id: %s", self.device_id)
+            self.logger.bind(tag=TAG).error("Private config not found for device_id: {}", self.device_id)
             return None, None, None, None
         
         """创建私有处理模块实例"""
@@ -208,7 +210,7 @@ class PrivateConfig:
             timestamp: 指定的时间戳,不传则使用当前时间
         """
         if not self.private_config:
-            self.logger.error("Private config not found")
+            self.logger.bind(tag=TAG).error("Private config not found")
             return False
             
         try:
@@ -235,7 +237,7 @@ class PrivateConfig:
                 self.lock_manager.release_lock(self.config_path)
                 
         except Exception as e:
-            self.logger.error(f"Error updating last chat time: {e}")
+            self.logger.bind(tag=TAG).error(f"Error updating last chat time: {e}")
             return False
 
     def get_auth_code(self) -> str:
@@ -252,7 +254,7 @@ class PrivateConfig:
             try:
                 # 检查用户是否存在
                 if not self.user_manager.get_user(username):
-                    self.logger.error(f"User {username} not found")
+                    self.logger.bind(tag=TAG).error(f"User {username} not found")
                     return False
 
                 # 读取所有配置
@@ -260,12 +262,12 @@ class PrivateConfig:
                     all_configs = yaml.safe_load(f) or {}
 
                 if self.device_id not in all_configs:
-                    self.logger.error(f"Device {self.device_id} not found")
+                    self.logger.bind(tag=TAG).error(f"Device {self.device_id} not found")
                     return False
 
                 # 删除认证码
                 auth_code = all_configs[self.device_id].get('auth_code')
-                self.logger.info(f"Binding user {username} to device {self.device_id}")
+                self.logger.bind(tag=TAG).info(f"Binding user {username} to device {self.device_id}")
                 if auth_code:
                     del all_configs[self.device_id]['auth_code']
 
@@ -293,7 +295,7 @@ class PrivateConfig:
                 self.lock_manager.release_lock(self.config_path)
 
         except Exception as e:
-            self.logger.error(f"Error binding user: {e}")
+            self.logger.bind(tag=TAG).error(f"Error binding user: {e}")
             return False
 
     async def unbind_user(self) -> bool:
@@ -330,7 +332,7 @@ class PrivateConfig:
                 self.lock_manager.release_lock(self.config_path)
 
         except Exception as e:
-            self.logger.error(f"Error unbinding user: {e}")
+            self.logger.bind(tag=TAG).error(f"Error unbinding user: {e}")
             return False
 
     def get_owner(self) -> Optional[str]:

@@ -1,10 +1,11 @@
-import logging
+from config.logger import setup_logging
 import requests
 import json
 import re
 from core.providers.llm.base import LLMProviderBase
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 # 定义用于匹配中文标点符号的正则表达式（包括句号、感叹号、问号、分号）
 punctuation_pattern = re.compile(r'([。！？；])')
@@ -27,7 +28,7 @@ class LLMProvider(LLMProviderBase):
                 "query": last_msg["content"],
                 "stream": True
             }
-            logger.info(f"发送到 Coze API 的请求数据: {json.dumps(data, ensure_ascii=False)}")
+            logger.bind(tag=TAG).info(f"发送到 Coze API 的请求数据: {json.dumps(data, ensure_ascii=False)}")
             
             headers = {
                 'Authorization': f'Bearer {self.personal_access_token}',
@@ -43,7 +44,7 @@ class LLMProvider(LLMProviderBase):
                 json=data,
                 stream=True
             )
-            logger.info(f"请求状态: {response.status_code}")
+            logger.bind(tag=TAG).info(f"请求状态: {response.status_code}")
             
             if response.status_code == 200:
                 # 对每一行流数据进行处理，不做跨块累积
@@ -54,7 +55,7 @@ class LLMProvider(LLMProviderBase):
                         # 使用 utf-8 解码，错误部分用替换符
                         line = line_bytes.decode('utf-8', errors='replace')
                     except Exception as e:
-                        logger.error(f"解码失败: {e}")
+                        logger.bind(tag=TAG).error(f"解码失败: {e}")
                         continue
                     if line.startswith("data:"):
                         data_str = line[len("data:"):].strip()
@@ -63,7 +64,7 @@ class LLMProvider(LLMProviderBase):
                         try:
                             data_chunk = json.loads(data_str)
                         except json.JSONDecodeError as e:
-                            logger.error(f"JSON解析失败: {e} 数据: {line}")
+                            logger.bind(tag=TAG).error(f"JSON解析失败: {e} 数据: {line}")
                             continue
                         msg = data_chunk.get("message", {})
                         if msg.get("role") == "assistant" and msg.get("type") == "answer":
@@ -88,8 +89,8 @@ class LLMProvider(LLMProviderBase):
                                 if content.strip():
                                     yield content.strip()
             else:
-                logger.error(f"请求失败，状态码: {response.status_code}")
+                logger.bind(tag=TAG).error(f"请求失败，状态码: {response.status_code}")
                 yield f"【Coze服务响应异常：请求失败，状态码 {response.status_code}】"
         except Exception as e:
-            logger.error(f"Error in Coze response generation: {e}")
+            logger.bind(tag=TAG).error(f"Error in Coze response generation: {e}")
             yield "【Coze服务响应异常】"

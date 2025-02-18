@@ -1,10 +1,10 @@
 import json
-import logging
+from config.logger import setup_logging
 import requests
 from core.providers.llm.base import LLMProviderBase
 
-logger = logging.getLogger(__name__)
-
+TAG = __name__
+logger = setup_logging()
 
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
@@ -35,5 +35,5 @@ class LLMProvider(LLMProviderBase):
                             yield event['answer']
 
         except Exception as e:
-            logger.error(f"Error in response generation: {e}")
+            logger.bind(tag=TAG).error(f"Error in response generation: {e}")
             yield "【服务响应异常】"

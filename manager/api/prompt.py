@@ -1,12 +1,12 @@
-import logging
+from config.logger import setup_logging
 from aiohttp import web
 from config.settings import update_config
 from ruamel.yaml.scalarstring import PreservedScalarString
 from manager.api.auth import verify_token
 from manager.api.response import response_unauthorized, response_success, response_error
 
-logger = logging.getLogger(__name__)
-
+TAG = __name__
+logger = setup_logging()
 
 class PromptApi:
     def __init__(self, config):
@@ -38,5 +38,5 @@ class PromptApi:
 
             return response_success()
         except Exception as e:
-            logger.error(f"Failed to update prompt: {e}")
+            logger.bind(tag=TAG).error(f"Failed to update prompt: {e}")
             return response_error(str(e))

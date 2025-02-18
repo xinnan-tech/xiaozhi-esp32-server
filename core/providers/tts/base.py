@@ -1,12 +1,13 @@
 import asyncio
-import logging
+from config.logger import setup_logging
 import os
 import numpy as np
 import opuslib
 from pydub import AudioSegment
 from abc import ABC, abstractmethod
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 
 class TTSProviderBase(ABC):
@@ -26,14 +27,14 @@ class TTSProviderBase(ABC):
                 asyncio.run(self.text_to_speak(text, tmp_file))
                 if not os.path.exists(tmp_file):
                     max_repeat_time = max_repeat_time - 1
-                    logger.error(f"语音生成失败: {text}:{tmp_file}，再试{max_repeat_time}次")
+                    logger.bind(tag=TAG).error(f"语音生成失败: {text}:{tmp_file}，再试{max_repeat_time}次")
 
             if max_repeat_time > 0:
-                logger.info(f"语音生成成功: {text}:{tmp_file}，重试{5 - max_repeat_time}次")
+                logger.bind(tag=TAG).info(f"语音生成成功: {text}:{tmp_file}，重试{5 - max_repeat_time}次")
 
             return tmp_file
         except Exception as e:
-            logger.info(f"Failed to generate TTS file: {e}")
+            logger.bind(tag=TAG).info(f"Failed to generate TTS file: {e}")
             return None
 
     @abstractmethod

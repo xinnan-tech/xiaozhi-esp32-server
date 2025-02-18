@@ -1,8 +1,9 @@
-import logging
+from config.logger import setup_logging
 import requests, json
 from core.providers.llm.base import LLMProviderBase
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 
 class LLMProvider(LLMProviderBase):
@@ -41,5 +42,5 @@ class LLMProvider(LLMProviderBase):
                         yield json_response["response"]
 
         except Exception as e:
-            logger.error(f"Error in Ollama response generation: {e}")
+            logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
             yield "【Ollama服务响应异常】"

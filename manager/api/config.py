@@ -1,13 +1,14 @@
 import os
 import yaml
-import logging
+from config.logger import setup_logging
 from aiohttp import web
 from core.utils.util import get_project_dir
 from config.private_config import PrivateConfig
 from manager.api.user_manager import UserManager  # 添加导入
 from core.utils.auth_code_gen import AuthCodeGenerator  # 添加导入
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 class ConfigHandler:
     def __init__(self, session_manager):
@@ -42,7 +43,7 @@ class ConfigHandler:
             })
 
         except Exception as e:
-            logger.error(f"Error getting module options: {str(e)}", exc_info=True)
+            logger.bind(tag=TAG).error(f"Error getting module options: {str(e)}", exc_info=True)
             return web.json_response({
                 'success': False,
                 'message': '获取配置选项失败'
@@ -52,11 +53,11 @@ class ConfigHandler:
         """只返回用户绑定的设备配置"""
         try:
             username = request['username']
-            logger.info(f"Getting devices for user: {username}")
+            logger.bind(tag=TAG).info(f"Getting devices for user: {username}")
             
             # 从用户管理器获取用户的设备列表
             user_devices = await self.user_manager.get_user_devices(username)
-            logger.info(f"User {username} has devices: {user_devices}")
+            logger.bind(tag=TAG).info(f"User {username} has devices: {user_devices}")
             
             # 读取所有配置
             all_configs = {}
@@ -71,7 +72,7 @@ class ConfigHandler:
                 if device_id in user_devices
             }
             
-            logger.info(f"Returning {len(user_configs)} device configs for user {username}")
+            logger.bind(tag=TAG).info(f"Returning {len(user_configs)} device configs for user {username}")
             return web.json_response({
                 'success': True,
                 'data': user_configs,
@@ -79,7 +80,7 @@ class ConfigHandler:
             })
             
         except Exception as e:
-            logger.error(f"Error getting devices for user {request.get('username')}: {str(e)}", exc_info=True)
+            logger.bind(tag=TAG).error(f"Error getting devices for user {request.get('username')}: {str(e)}", exc_info=True)
             return web.json_response({
                 'success': False,
                 'message': f'获取设备列表失败: {str(e)}'
@@ -101,7 +102,7 @@ class ConfigHandler:
                     'message': '无权操作此设备'
                 }, status=403)
 
-            logger.info(f"Device config updated: {device_id} :\n{config}")
+            logger.bind(tag=TAG).info(f"Device config updated: {device_id} :\n{config}")
             if not device_id or not config:
                 return web.json_response({
                     'success': False,
@@ -128,7 +129,7 @@ class ConfigHandler:
             })
 
         except Exception as e:
-            logger.error(f"Error saving device config: {str(e)}", exc_info=True)
+            logger.bind(tag=TAG).error(f"Error saving device config: {str(e)}", exc_info=True)
             return web.json_response({
                 'success': False,
                 'message': f'保存配置失败: {str(e)}'
@@ -163,7 +164,7 @@ class ConfigHandler:
             })
 
         except Exception as e:
-            logger.error(f"Error deleting device config: {str(e)}", exc_info=True)
+            logger.bind(tag=TAG).error(f"Error deleting device config: {str(e)}", exc_info=True)
             return web.json_response({
                 'success': False,
                 'message': f'删除配置失败: {str(e)}'
@@ -219,7 +220,7 @@ class ConfigHandler:
                 }, status=500)
 
         except Exception as e:
-            logger.error(f"Error binding device: {str(e)}", exc_info=True)
+            logger.bind(tag=TAG).error(f"Error binding device: {str(e)}", exc_info=True)
             return web.json_response({
                 'success': False,
                 'message': f'绑定设备失败: {str(e)}'

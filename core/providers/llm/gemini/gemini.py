@@ -1,8 +1,9 @@
-import logging
+from config.logger import setup_logging
 import google.generativeai as genai
 from core.providers.llm.base import LLMProviderBase
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
@@ -11,7 +12,7 @@ class LLMProvider(LLMProviderBase):
         self.api_key = config.get("api_key")
         
         if not self.api_key or "你" in self.api_key:
-            logger.error("你还没配置Gemini LLM的密钥，请在配置文件中配置密钥，否则无法正常工作")
+            logger.bind(tag=TAG).error("你还没配置Gemini LLM的密钥，请在配置文件中配置密钥，否则无法正常工作")
             return
             
         try:
@@ -28,7 +29,7 @@ class LLMProvider(LLMProviderBase):
             }
             self.chat = None
         except Exception as e:
-            logger.error(f"Gemini初始化失败: {e}")
+            logger.bind(tag=TAG).error(f"Gemini初始化失败: {e}")
             self.model = None
 
     def response(self, session_id, dialogue):
@@ -69,7 +70,7 @@ class LLMProvider(LLMProviderBase):
 
         except Exception as e:
             error_msg = str(e)
-            logger.error(f"Gemini响应生成错误: {error_msg}")
+            logger.bind(tag=TAG).error(f"Gemini响应生成错误: {error_msg}")
             
             # 针对不同错误返回友好提示
             if "Rate limit" in error_msg:

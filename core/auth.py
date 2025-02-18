@@ -1,6 +1,7 @@
-import logging
+from config.logger import setup_logging
 
-logger = logging.getLogger(__name__)
+TAG = __name__
+logger = setup_logging()
 
 
 class AuthenticationError(Exception):
@@ -37,15 +38,15 @@ class AuthMiddleware:
         # 验证Authorization header
         auth_header = headers.get("authorization", "")
         if not auth_header.startswith("Bearer "):
-            logger.error("Missing or invalid Authorization header")
+            logger.bind(tag=TAG).error("Missing or invalid Authorization header")
             raise AuthenticationError("Missing or invalid Authorization header")
 
         token = auth_header.split(" ")[1]
         if token not in self.tokens:
-            logger.error(f"Invalid token: {token}")
+            logger.bind(tag=TAG).error(f"Invalid token: {token}")
             raise AuthenticationError("Invalid token")
 
-        logger.info(f"Authentication successful - Device: {device_id}, Token: {self.tokens[token]}")
+        logger.bind(tag=TAG).info(f"Authentication successful - Device: {device_id}, Token: {self.tokens[token]}")
         return True
 
     def get_token_name(self, token):
