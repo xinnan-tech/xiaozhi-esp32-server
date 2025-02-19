@@ -4,13 +4,15 @@
 
 （中文 | [English](README_en.md)）
 
-本项目为开源智能硬件项目 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 提供后端服务。根据 [小智通信协议](https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh) 使用 `Python` 实现。
+本项目为开源智能硬件项目 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32)
+提供后端服务。根据 [小智通信协议](https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh) 使用 `Python` 实现。
 
 ---
 
 ## 适用人群 👥
 
-本项目需要配合 ESP32 硬件设备使用。如果您已经购买了 ESP32 相关硬件，且成功对接过虾哥部署的后端服务，并希望独立搭建自己的 `xiaozhi-esp32` 后端服务，那么本项目非常适合您。
+本项目需要配合 ESP32 硬件设备使用。如果您已经购买了 ESP32 相关硬件，且成功对接过虾哥部署的后端服务，并希望独立搭建自己的
+`xiaozhi-esp32` 后端服务，那么本项目非常适合您。
 
 跳转到[使用方式](#使用方式-)
 
@@ -26,7 +28,8 @@
 
 ## 系统要求与部署前提 🖥️
 
-- **硬件**：一套兼容 `xiaozhi-esp32` 的硬件设备（具体型号请参考 [此处](https://rcnv1t9vps13.feishu.cn/wiki/DdgIw4BUgivWDPkhMj1cGIYCnRf)）。
+- **硬件**：一套兼容 `xiaozhi-esp32`
+  的硬件设备（具体型号请参考 [此处](https://rcnv1t9vps13.feishu.cn/wiki/DdgIw4BUgivWDPkhMj1cGIYCnRf)）。
 - **服务器**：至少 4 核 CPU、8G 内存的电脑或服务器。
 - **固件编译**：请将后端服务的接口地址更新至 `xiaozhi-esp32` 项目中，再重新编译固件并烧录到设备上。
 
@@ -76,15 +79,15 @@ server:
 
 ### LLM
 
-| 类型 | 平台名称                      | 使用方式            |   收费模式   |                                      备注                                       |
-|:----:|:-----------------------------:|:-------------------:|:--------:|:-----------------------------------------------------------------------------:|
-| LLM  | 阿里百炼 (AliLLM)             | openai 接口调用     | 消耗 token |        [点击申请密钥](https://bailian.console.aliyun.com/?apiKey=1#/api-key)        |
-| LLM  | 深度求索 (DeepSeekLLM)        | openai 接口调用     | 消耗 token |                   [点击申请密钥](https://platform.deepseek.com/)                    |
-| LLM  | 智谱（ChatGLMLLM）                    | openai 接口调用     |    免费    |       虽然免费，仍需[点击申请密钥](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)       |
-| LLM  | OllamaLLM                     | ollama 接口调用     |  免费/自定义  |             需预先下载模型（`ollama pull`），服务地址：`http://localhost:11434`              |
-| LLM  | DifyLLM                       | dify 接口调用       | 消耗 token |                          本地化部署，注意配置提示词需在 Dify 控制台设置                           |
-| LLM  | GeminiLLM                     | gemini 接口调用     |    免费    |                 [点击申请密钥](https://aistudio.google.com/apikey)                  |
-| LLM  | CozeLLM                       | coze 接口调用       | 消耗 token |                           需提供 bot_id、user_id 及个人令牌                            |
+| 类型  |        平台名称        |    使用方式     |   收费模式   |                                备注                                 |
+|:---:|:------------------:|:-----------:|:--------:|:-----------------------------------------------------------------:|
+| LLM |   阿里百炼 (AliLLM)    | openai 接口调用 | 消耗 token |  [点击申请密钥](https://bailian.console.aliyun.com/?apiKey=1#/api-key)  |
+| LLM | 深度求索 (DeepSeekLLM) | openai 接口调用 | 消耗 token |             [点击申请密钥](https://platform.deepseek.com/)              |
+| LLM |   智谱（ChatGLMLLM）   | openai 接口调用 |    免费    | 虽然免费，仍需[点击申请密钥](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) |
+| LLM |     OllamaLLM      | ollama 接口调用 |  免费/自定义  |       需预先下载模型（`ollama pull`），服务地址：`http://localhost:11434`        |
+| LLM |      DifyLLM       |  dify 接口调用  | 消耗 token |                    本地化部署，注意配置提示词需在 Dify 控制台设置                     |
+| LLM |     GeminiLLM      | gemini 接口调用 |    免费    |           [点击申请密钥](https://aistudio.google.com/apikey)            |
+| LLM |      CozeLLM       |  coze 接口调用  | 消耗 token |                     需提供 bot_id、user_id 及个人令牌                      |
 
 实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
 
@@ -92,30 +95,30 @@ server:
 
 ### TTS
 
-| 类型 | 平台名称                            | 使用方式        | 收费模式      | 备注                                                                                                                      |
-|:----:|:-----------------------------------:|:---------------:|:-------------:|:-------------------------------------------------------------------------------------------------------------------------:|
-| TTS  | EdgeTTS                           | 接口调用        | 免费          | 默认 TTS，基于微软语音合成技术                                                                                              |
-| TTS  | 火山引擎豆包 TTS (DoubaoTTS)        | 接口调用        | 消耗 token    | [点击创建密钥](https://console.volcengine.com/speech/service/8)；建议使用付费版本以获得更高并发                                      |
-| TTS  | CosyVoiceSiliconflow              | 接口调用        | 消耗 token    | 需申请硅基流动 API 密钥；输出格式为 wav                                                                                     |
-| TTS  | CozeCnTTS                         | 接口调用        | 消耗 token    | 需提供 Coze API key；输出格式为 wav                                                                                        |
-| TTS  | FishSpeech                        | 接口调用        | 免费/自定义   | 本地启动 TTS 服务；启动方法见配置文件内说明                                                                                  |
-| TTS  | GPT_SOVITS_V2                     | 接口调用        | 免费/自定义   | 本地启动 TTS 服务，适用于个性化语音合成场景                                                                                  |
+| 类型  |          平台名称          | 使用方式 |   收费模式   |                                    备注                                     |
+|:---:|:----------------------:|:----:|:--------:|:-------------------------------------------------------------------------:|
+| TTS |        EdgeTTS         | 接口调用 |    免费    |                             默认 TTS，基于微软语音合成技术                             |
+| TTS | 火山引擎豆包 TTS (DoubaoTTS) | 接口调用 | 消耗 token | [点击创建密钥](https://console.volcengine.com/speech/service/8)；建议使用付费版本以获得更高并发 |
+| TTS |  CosyVoiceSiliconflow  | 接口调用 | 消耗 token |                         需申请硅基流动 API 密钥；输出格式为 wav                          |
+| TTS |       CozeCnTTS        | 接口调用 | 消耗 token |                        需提供 Coze API key；输出格式为 wav                         |
+| TTS |       FishSpeech       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务；启动方法见配置文件内说明                          |
+| TTS |     GPT_SOVITS_V2      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
 
 ---
 
 ### VAD
 
-| 类型 | 平台名称   | 使用方式  | 收费模式 | 备注 |
-|:----:|:----------:|:---------:|:--------:|:----:|
-| VAD  | SileroVAD  | 本地使用  | 免费     |      |
+| 类型  |   平台名称    | 使用方式 | 收费模式 | 备注 |
+|:---:|:---------:|:----:|:----:|:--:|
+| VAD | SileroVAD | 本地使用 |  免费  |    |
 
 ---
 
 ### ASR
 
-| 类型 | 平台名称 | 使用方式  | 收费模式 | 备注 |
-|:----:|:--------:|:---------:|:--------:|:----:|
-| ASR  | FunASR   | 本地使用  | 免费     |      |
+| 类型  |  平台名称  | 使用方式 | 收费模式 | 备注 |
+|:---:|:------:|:----:|:----:|:--:|
+| ASR | FunASR | 本地使用 |  免费  |    |
 
 ---
 
@@ -123,10 +126,13 @@ server:
 
 ### 一、[部署文档](./docs/Deployment.md)
 
-1. **[本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)**  
-   适合熟悉 Conda 环境或希望从零搭建运行环境的用户。  
-   对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
+1.
+    *
 
+*[本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)
+**  
+适合熟悉 Conda 环境或希望从零搭建运行环境的用户。  
+对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
 
 ### 二、[固件编译](./docs/firmware-build.md)
 
@@ -150,6 +156,7 @@ server:
 ### 3、我说话很慢，停顿时小智老是抢话 🗣️
 
 建议：在配置文件中找到如下部分，将 `min_silence_duration_ms` 的值调大（例如改为 `1000`）：
+
 ```yaml
 VAD:
   SileroVAD:
@@ -163,38 +170,55 @@ VAD:
 本项目默认配置为低成本方案，建议初学者先使用默认免费模型，解决“跑得动”的问题，再优化“跑得快”。  
 如需提升响应速度，可尝试更换各组件。以下为各组件的响应速度测试数据（仅供参考，不构成承诺）：
 
-#### LLM 类组件
+| 影响因素  |       因素值        | 
+|:-----:|:----------------:|
+| 测试地点  |    广东省广州市海珠区     |
+| 测试时间  | 2025年2月19日 12:52 |
+| 宽带运营商 |       中国联通       |
 
-| 排名 | 组件名称        | 响应速度(ms) |
-|:---:|:---------------:|:------------:|
-| 1   | AliLLM          | 630          |
-| 2   | ChatGLMLLM      | 2000         | 
-| 3   | DeepSeekLLM     | 6800         |
+测试方法：
 
-```
-测试地点：广东省佛山市禅城区
-测试时间：2025年2月9日 16:12
-宽带运营商：中国移动
-测试方法：更换配置后，执行 core/utils/llm.py 文件
-```
+1、把各组件的密钥配置上去，只有配置了密钥的组件才参与测试。
 
-#### TTS 类组件
-
-| 排名 | 组件名称      | 响应速度(ms) |
-|:---:|:--------------:|:------------:|
-| 1   | DoubaoTTS     | 645          |
-| 2   | EdgeTTS       | 1019         |
+2、配置完密钥后，执行以下方法
 
 ```
-测试地点：广东省佛山市禅城区
-测试时间：2025年2月9日 16:12
-宽带运营商：中国移动
-测试方法：更换配置后，执行 core/utils/tts.py 文件
+# 进入项目根目录，执行以下命令：
+conda activate xiaozhi-esp32-server
+python performance_tester.py 
 ```
+
+生成报告如下
+
+LLM 性能排行:
+
+| 模块名称       | 平均首Token时间 | 平均总响应时间 |
+|:-----------|:-----------|:--------|
+| AliLLM     | 0.547s     | 1.485s  |
+| ChatGLMLLM | 0.677s     | 3.057s  |
+| OllamaLLM  | 0.003s     | 0.003s  |
+
+TTS 性能排行:
+
+| 模块名称                 | 平均合成时间 |
+|----------------------|--------|
+| EdgeTTS              | 1.019s |
+| DoubaoTTS            | 0.503s |
+| CosyVoiceSiliconflow | 3.732s |
+
+推荐配置组合 (综合响应速度):
+
+| 组合方案                          | 综合得分  | LLM首Token | TTS合成  |
+|-------------------------------|-------|-----------|--------|
+| AliLLM + DoubaoTTS            | 0.539 | 0.547s    | 0.503s |
+| AliLLM + EdgeTTS              | 0.642 | 0.547s    | 1.019s |
+| ChatGLMLLM + DoubaoTTS        | 0.642 | 0.677s    | 0.503s |
+| ChatGLMLLM + EdgeTTS          | 0.745 | 0.677s    | 1.019s |
+| AliLLM + CosyVoiceSiliconflow | 1.184 | 0.547s    | 3.732s |
 
 ### 结论 🔍
 
-`2025年2月9日`，如果我的电脑在`广东省佛山市禅城区`，且使用的是`中国移动`网络，我会优先使用：
+`2025年2月19日`，如果我的电脑在`广东省广州市海珠区`，且使用的是`中国联通`网络，我会优先使用：
 
 - LLM：`AliLLM`
 - TTS：`DoubaoTTS`

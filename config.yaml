@@ -272,3 +272,10 @@ TTS:
     # volume: 50
     # speech_rate: 0
     # pitch_rate: 0
+
+# 模块测试配置
+module_test:
+  test_sentences:  # 自定义测试语句
+    - "你好，请介绍一下你自己"
+    - "What's the weather like today?"
+    - "请用100字概括量子计算的基本原理和应用前景"
