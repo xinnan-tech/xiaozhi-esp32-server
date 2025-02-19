@@ -128,6 +128,12 @@ LLM:
     user_id: 你的user_id
     base_url: "https://api.coze.cn/open_api/v2/chat" # 服务地址
     personal_access_token: 你的coze个人令牌
+  HomeAssistant:
+    # 定义LLM API类型
+    type: homeassistant
+    base_url: http://homeassistant.local:8123
+    agent_id: conversation.chatgpt
+    api_key: 你的home assistant api访问令牌
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
