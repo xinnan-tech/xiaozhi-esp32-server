@@ -10,3 +10,4 @@ services:
       - "8002:8002"
     volumes:
       - ./data:/app/data
+      - ./models/SenseVoiceSmall/model.pt:/app/models/SenseVoiceSmall/model.pt
