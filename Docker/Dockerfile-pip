@@ -36,7 +36,7 @@ RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib
 # 第三阶段：生产镜像
 FROM python:3.10-slim
 
-WORKDIR /opt/xiaozhi-esp32-server
+WORKDIR /app
 
 # 优化apt安装
 RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list && \
@@ -48,10 +48,15 @@ RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib
 
 # 从构建阶段复制Python包和前端构建产物
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-COPY --from=frontend-builder /app/ZhiKongTaiWeb/dist /opt/xiaozhi-esp32-server/manager/static/webui
+COPY --from=frontend-builder /app/ZhiKongTaiWeb/dist /app/manager/static/webui
 
 # 复制应用代码
 COPY . .
+
+# 下载模型文件（断点续传 + 自动重试）(如果本没有镜像挂载则取消注释)
+#RUN mkdir -p /app/model/SenseVoiceSmall && \
+#    wget -O /app/model/SenseVoiceSmall/model.pt -c --tries=5 --waitretry=5 \
+#    https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt
 
 # 启动应用
 CMD ["python", "app.py"]
