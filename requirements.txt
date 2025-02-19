@@ -15,4 +15,5 @@ aiohttp==3.9.3
 aiohttp_cors==0.7.0
 ormsgpack==1.7.0
 ruamel.yaml==0.18.10
+sentence-transformers[onnx]==3.4.1
 loguru==0.7.3
