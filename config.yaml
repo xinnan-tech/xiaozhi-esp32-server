@@ -128,6 +128,12 @@ LLM:
     user_id: 你的user_id
     base_url: "https://api.coze.cn/open_api/v2/chat" # 服务地址
     personal_access_token: 你的coze个人令牌
+  LMStudioLLM:
+    # 定义LLM API类型
+    type: openai
+    model_name: deepseek-r1-distill-llama-8b@q4_k_m # 使用的模型名称，需要预先在社区下载
+    url: http://localhost:1234/v1 # LM Studio服务地址
+    api_key: lm-studio # LM Studio服务的固定API Key
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
