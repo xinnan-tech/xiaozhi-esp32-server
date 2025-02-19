@@ -1,0 +1,12 @@
+services:
+  xiaozhi-esp32-server:
+    image: ghcr.io/kalicyh/xiaozhi-esp32-server:latest
+    container_name: xiaozhi-esp32-server
+    restart: always
+    #security_opt:
+    #  - seccomp:unconfined
+    ports:
+      - "8000:8000"
+      - "8002:8002"
+    volumes:
+      - ./data:/app/data

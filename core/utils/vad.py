@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
-import opuslib
+import opuslib_next
 import time
 import numpy as np
 import torch
@@ -24,7 +24,7 @@ class SileroVAD(VAD):
                                                 force_reload=False)
         (get_speech_timestamps, _, _, _, _) = self.utils
 
-        self.decoder = opuslib.Decoder(16000, 1)
+        self.decoder = opuslib_next.Decoder(16000, 1)
         self.vad_threshold = config.get("threshold")
         self.silence_threshold_ms = config.get("min_silence_duration_ms")
 
@@ -59,7 +59,7 @@ class SileroVAD(VAD):
                     conn.client_have_voice_last_time = time.time() * 1000
 
             return client_have_voice
-        except opuslib.OpusError as e:
+        except opuslib_next.OpusError as e:
             logger.bind(tag=TAG).info(f"解码错误: {e}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error processing audio packet: {e}")

@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -n 'Frontend,Backend' -c 'blue,green' 'yarn run dev:ui' 'npm run dev:api'",
+    "dev:ui": "vite",
+    "dev:api": "cd .. && poetry run python manager/http_server.py",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.4",
+    "concurrently": "^9.1.2",
     "vite": "^5.4.8"
   }
 }

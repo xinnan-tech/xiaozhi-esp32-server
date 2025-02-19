@@ -217,3 +217,58 @@ TTS:
     parallel_infer: true
     repetition_penalty: 1.35
     aux_ref_audio_paths: []
+  MinimaxTTS:
+    # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
+    # 平台地址：https://platform.minimaxi.com/
+    # 充值地址：https://platform.minimaxi.com/user-center/payment/balance
+    # group_id地址：https://platform.minimaxi.com/user-center/basic-information
+    # api_key地址：https://platform.minimaxi.com/user-center/basic-information/interface-key
+    # 定义TTS API类型
+    type: minimax
+    output_file: tmp/
+    group_id: 你的minimax平台groupID
+    api_key: 你的minimax平台接口密钥
+    model: "speech-01-turbo"
+    # 此处设置将优先于voice_setting中voice_id的设置；如都不设置，默认为 female-shaonv
+    voice_id: "female-shaonv"
+    # 以下可不用设置，使用默认设置
+    # voice_setting:
+    #     voice_id: "male-qn-qingse"
+    #     speed: 1
+    #     vol: 1
+    #     pitch: 0
+    #     emotion: "happy"
+    # pronunciation_dict:
+    #     tone:
+    #       - "处理/(chu3)(li3)"
+    #       - "危险/dangerous"
+    # audio_setting:
+    #     sample_rate: 32000
+    #     bitrate: 128000
+    #     format: "mp3"
+    #     channel: 1
+    # timber_weights:
+    #   -
+    #     voice_id: male-qn-qingse
+    #     weight: 1
+    #   -
+    #     voice_id: female-shaonv
+    #     weight: 1
+    # language_boost: auto
+  AliyunTTS:
+    # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
+    # 平台地址：https://nls-portal.console.aliyun.com/
+    # appkey地址：https://nls-portal.console.aliyun.com/applist
+    # token地址：https://nls-portal.console.aliyun.com/overview
+    # 定义TTS API类型
+    type: aliyun
+    output_file: tmp/
+    appkey: 你的阿里云智能语音交互服务项目Appkey
+    token: 你的阿里云智能语音交互服务AccessToken
+    voice: xiaoyun
+    # 以下可不用设置，使用默认设置
+    # format: wav
+    # sample_rate: 16000
+    # volume: 50
+    # speech_rate: 0
+    # pitch_rate: 0

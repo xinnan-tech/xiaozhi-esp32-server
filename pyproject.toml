@@ -11,7 +11,6 @@ pyyml = "0.0.2"
 torch = "2.2.2"
 silero-vad = "5.1.2"
 websockets = "14.2"
-opuslib = "3.0.1"
 numpy = "1.26.4"
 pydub = "0.25.1"
 funasr = "1.2.3"
@@ -26,12 +25,8 @@ ormsgpack = "1.7.0"
 ruamel-yaml = "0.18.10"
 setuptools = "^75.8.0"
 loguru = "^0.7.3"
+opuslib-next = "^1.1.2"
 
-
-[[tool.poetry.source]]
-name = "mirrors"
-url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
-priority = "primary"
 
 [build-system]
 requires = ["poetry-core"]
