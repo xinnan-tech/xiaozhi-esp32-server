@@ -9,7 +9,7 @@ def setup_logging(log_dir='tmp', data_dir='data'):
 
     # 设置日志格式，时间、日志级别、标签、消息
     log_format = (
-        "<green>{time:YYYY-MM-DD HH:mm:ss}</green>"
+        # "<green>{time:YYYY-MM-DD HH:mm:ss}</green>"
         "[<light-blue>{extra[tag]}</light-blue>]"
         " - <level>{level}</level> - "
         "<light-green>{message}</light-green>"

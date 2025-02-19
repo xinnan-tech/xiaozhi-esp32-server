@@ -38,6 +38,20 @@ xiaozhi:
     sample_rate: 16000
     channels: 1
     frame_duration: 60
+
+# 长期记忆参数
+memory:
+    # 记忆摘要提示
+    summary_prompt: "你还保留着一些长期的记忆，这有助于让你的对话更加丰富和连贯："
+    # 记忆最大长度
+    max_memory_length: 10000
+    # 摘要最大长度
+    max_summary_length: 2000
+    # 单次摘要长度
+    summary_length: 1000
+    # 记忆文件夹
+    memory_dir: "memory_data"
+
 prompt: |
   你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗。
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
@@ -65,6 +79,7 @@ selected_module:
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
+  EMBD: SentenceTransformer
 
 ASR:
   FunASR:
@@ -76,6 +91,13 @@ VAD:
     threshold: 0.5
     model_dir: models/snakers4_silero-vad
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
+
+EMBD:
+  SentenceTransformer:
+    # 下载 https://huggingface.co/jinaai/jina-embeddings-v2-base-zh/blob/main/onnx/model.onnx 到 models/jina-embeddings-v2-base-zh/onnx/model.onnx
+    model_dir: models/jina-embeddings-v2-base-zh
+    # cpu cuda:0 推荐cpu节省显存
+    device: "cpu"
 
 LLM:
   # 当前支持的type为openai、dify、ollama，可自行适配
@@ -217,6 +239,62 @@ TTS:
     parallel_infer: true
     repetition_penalty: 1.35
     aux_ref_audio_paths: []
+    
+  MinimaxTTS:
+    # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
+    # 平台地址：https://platform.minimaxi.com/
+    # 充值地址：https://platform.minimaxi.com/user-center/payment/balance
+    # group_id地址：https://platform.minimaxi.com/user-center/basic-information
+    # api_key地址：https://platform.minimaxi.com/user-center/basic-information/interface-key
+    # 定义TTS API类型
+    type: minimax
+    output_file: tmp/
+    group_id: 你的minimax平台groupID
+    api_key: 你的minimax平台接口密钥
+    model: "speech-01-turbo"
+    # 此处设置将优先于voice_setting中voice_id的设置；如都不设置，默认为 female-shaonv
+    voice_id: "female-shaonv"
+    # 以下可不用设置，使用默认设置
+    # voice_setting:
+    #     voice_id: "male-qn-qingse"
+    #     speed: 1
+    #     vol: 1
+    #     pitch: 0
+    #     emotion: "happy"
+    # pronunciation_dict:
+    #     tone:
+    #       - "处理/(chu3)(li3)"
+    #       - "危险/dangerous"
+    # audio_setting:
+    #     sample_rate: 32000
+    #     bitrate: 128000
+    #     format: "mp3"
+    #     channel: 1
+    # timber_weights:
+    #   -
+    #     voice_id: male-qn-qingse
+    #     weight: 1
+    #   -
+    #     voice_id: female-shaonv
+    #     weight: 1
+    # language_boost: auto
+  AliyunTTS:
+    # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
+    # 平台地址：https://nls-portal.console.aliyun.com/
+    # appkey地址：https://nls-portal.console.aliyun.com/applist
+    # token地址：https://nls-portal.console.aliyun.com/overview
+    # 定义TTS API类型
+    type: aliyun
+    output_file: tmp/
+    appkey: 你的阿里云智能语音交互服务项目Appkey
+    token: 你的阿里云智能语音交互服务AccessToken
+    voice: xiaoyun
+    # 以下可不用设置，使用默认设置
+    # format: wav
+    # sample_rate: 16000
+    # volume: 50
+    # speech_rate: 0
+    # pitch_rate: 0
   fish_audio_tts:
    #最自然的AI语音
    #api申请地址https://fish.audio/zh-CN/go-api/billing/
