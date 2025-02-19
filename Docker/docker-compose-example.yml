@@ -11,7 +11,7 @@ services:
       - "8002:8002" # 管理后台
     volumes:
       # 配置文件 记得创建文件夹
-      - ../data:/opt/xiaozhi-esp32-server/data
+      - ../data:/app/data
       # 模型文件 //可以挂载本地下载好的模型
       #- ./models:/opt/xiaozhi-esp32-server/models
       # 临时文件 //可以看log和音频文件 记得创建文件夹
