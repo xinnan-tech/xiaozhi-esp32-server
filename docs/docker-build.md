@@ -1,12 +1,15 @@
 # 编译docker镜像
-1、安装docker
+> 两个Dockerfile 可以自行根据网络条件选择
+
+## 使用Dockerfile编译镜像
+1、安装docker（国内）
 ```
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 2、编译docker镜像
 ```
 # 普通编译
-docker build -t xiaozhi-esp32-server:local -f ./Dockerfile .
+docker build -t xiaozhi-esp32-server:local -f ./Docker/Dockerfile .
 ```
 3、测试本地镜像
 ```
@@ -39,5 +42,24 @@ docker manifest push ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
 ```
 cd /Users/hrz/myworkspace/docker-java-env/thirddata/
 docker run -d --name xiaozhi-esp32-server --restart always -p 8000:8000 -v $(pwd)/config.yaml:/opt/xiaozhi-esp32-server/config.yaml ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
+docker logs -f xiaozhi-esp32-server
+```
+
+## 使用Dockerfile-pip编译镜像 (代理)
+
+1、复制并编译config.yaml
+```
+cp config.yaml ./data/.config.yaml
+```
+2、运行编译命令
+```
+docker build -t xiaozhi-esp32-server -f ./Docker/Dockerfile-pip .
+```
+3、运行线上镜像
+```
+docker run -d --name xiaozhi-esp32-server --restart always -p 8000:8000 -p 8002:8002 -v $(pwd)/data:/opt/xiaozhi-esp32-server/data xiaozhi-esp32-server
+``` 
+4、查看日志
+```
 docker logs -f xiaozhi-esp32-server
 ```
