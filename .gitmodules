@@ -1,0 +1,3 @@
+[submodule "models/SenseVoiceSmall"]
+	path = models/SenseVoiceSmall
+	url = https://huggingface.co/FunAudioLLM/SenseVoiceSmall
