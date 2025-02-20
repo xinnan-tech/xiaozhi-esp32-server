@@ -9,8 +9,11 @@ from pydantic import BaseModel, Field, conint, model_validator
 from typing_extensions import Annotated
 from datetime import datetime
 from typing import Literal
-# from base import TTSProviderBase
 from core.providers.tts.base import TTSProviderBase
+from config.logger import setup_logging
+
+TAG = __name__
+logger = setup_logging()
 
 
 class ServeReferenceAudio(BaseModel):
@@ -86,6 +89,9 @@ class TTSProvider(TTSProviderBase):
         self.channels = config.get("channels",1)
         self.rate = config.get("rate",44100)
         self.api_key = config.get("api_key","YOUR_API_KEY")
+        if not self.api_key or "你" in self.api_key:
+            logger.bind(tag=TAG).error("你还没配置FishSpeech TTS的密钥，请在配置文件中配置密钥，否则无法正常工作")
+            return
         self.normalize = config.get("normalize",True)
         self.max_new_tokens = config.get("max_new_tokens",1024)
         self.chunk_length = config.get("chunk_length",200)
