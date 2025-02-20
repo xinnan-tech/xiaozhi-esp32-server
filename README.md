@@ -89,6 +89,7 @@ server:
 | LLM |      DifyLLM       |  dify 接口调用  | 消耗 token |                    本地化部署，注意配置提示词需在 Dify 控制台设置                     |
 | LLM |     GeminiLLM      | gemini 接口调用 |    免费    |           [点击申请密钥](https://aistudio.google.com/apikey)            |
 | LLM |      CozeLLM       |  coze 接口调用  | 消耗 token |                     需提供 bot_id、user_id 及个人令牌                      |
+| LLM |   Home Assistant   | homeassistant语音助手接口调用 |    免费    |                        需提供home assistant令牌                        |
 
 实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
 
