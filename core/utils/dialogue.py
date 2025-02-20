@@ -24,3 +24,15 @@ class Dialogue:
         for m in self.dialogue:
             dialogue.append({"role": m.role, "content": m.content})
         return dialogue
+
+def chat_history_to_dialogue(chat_history: list[dict[str, str]]) -> Dialogue:
+    """
+    将 chat history（列表形式，每个元素为包含 'role' 和 'content' 的字典）
+    转换为 Dialogue 对象。
+    """
+    dialogue = Dialogue()
+    for entry in chat_history:        
+        message = Message(role=entry["role"], content=entry["content"])
+        dialogue.put(message)
+    return dialogue
+

@@ -100,10 +100,14 @@ class TTSProvider(TTSProviderBase):
     def generate_filename(self, extension=".wav"):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
 
-    async def text_to_speak(self, text, output_file):
+    async def text_to_speak(self, text, output_file, config:dict=None):
         # Prepare reference data
-        byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
-        ref_texts = [read_ref_text(ref_text) for ref_text in self.reference_text]
+        if config and config.get("ref_text") and config.get("ref_audio"):
+            byte_audios = [audio_to_bytes(config.get("ref_audio"))]
+            ref_texts = [read_ref_text(config.get("ref_text"))]
+        else:
+            byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
+            ref_texts = [read_ref_text(ref_text) for ref_text in self.reference_text]
 
         data = {
             "text": text,
