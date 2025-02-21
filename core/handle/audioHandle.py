@@ -15,9 +15,15 @@ import pygame
 import traceback
 import random
 import difflib
+from core.handle.musicHandler import MusicHandler
 
 TAG = __name__
 logger = setup_logging()
+
+
+class AudioHandler:
+    def __init__(self, config):
+        self.music_handler = MusicHandler(config)
 
 
 async def handleAudioMessage(conn, audio):
@@ -45,7 +51,7 @@ async def handleAudioMessage(conn, audio):
         text_len, text_without_punctuation = remove_punctuation_and_length(text)
         
         # 添加音乐命令处理
-        if await handleMusicCommand(conn, text_without_punctuation):
+        if await conn.music_handler.handle_music_command(conn, text_without_punctuation):
             conn.asr_server_receive = True
             conn.asr_audio.clear()
             return
@@ -181,173 +187,3 @@ async def no_voice_close_connect(conn):
             conn.asr_server_receive = False
             prompt = "时间过得真快，我都好久没说话了。请你用十个字左右话跟我告别，以“再见”或“拜拜”为结尾"
             await startToChat(conn, prompt)
-
-
-async def play_local_music(conn, specific_file=None):
-    """通过websocket发送音乐到端侧设备播放"""
-    try:
-        music_dir = os.path.abspath(conn.config.get("music_dir", "./music"))
-        logger.bind(tag=TAG).info(f"音乐目录路径: {music_dir}")
-        
-        if not os.path.exists(music_dir):
-            logger.bind(tag=TAG).error(f"音乐目录不存在: {music_dir}")
-            return
-
-        if specific_file:
-            music_path = os.path.join(music_dir, specific_file)
-            if not os.path.exists(music_path):
-                logger.bind(tag=TAG).error(f"指定的音乐文件不存在: {music_path}")
-                return
-            selected_music = specific_file
-        else:
-            music_files = [f for f in os.listdir(music_dir) if f.endswith('.mp3')]
-            if not music_files:
-                logger.bind(tag=TAG).error("未找到MP3音乐文件")
-                return
-            selected_music = random.choice(music_files)
-            music_path = os.path.join(music_dir, selected_music)
-
-        logger.bind(tag=TAG).info(f"准备播放: {selected_music}")
-        
-        # 发送TTS start消息
-        await conn.websocket.send(json.dumps({
-            "type": "tts",
-            "state": "start",
-            "session_id": conn.session_id
-        }))
-
-        # 发送sentence_start消息
-        await conn.websocket.send(json.dumps({
-            "type": "tts",
-            "state": "sentence_start",
-            "text": f"正在播放：{selected_music.replace('.mp3', '')}",
-            "session_id": conn.session_id
-        }))
-
-        conn.is_playing_music = True
-        
-        try:
-            logger.bind(tag=TAG).debug("开始转换音乐文件为opus格式")
-            opus_packets, duration = conn.tts.wav_to_opus_data(music_path)
-            logger.bind(tag=TAG).info(f"转换完成，获得 {len(opus_packets)} 个数据包，时长 {duration} 秒")
-            
-            # 发送sentence_end消息
-            await conn.websocket.send(json.dumps({
-                "type": "tts",
-                "state": "sentence_end",
-                "session_id": conn.session_id
-            }))
-
-            # 发送新的sentence_start消息
-            await conn.websocket.send(json.dumps({
-                "type": "tts",
-                "state": "sentence_start",
-                "text": selected_music,
-                "session_id": conn.session_id
-            }))
-            
-            # 计算每个数据包的播放时间（毫秒）
-            packet_duration = (duration * 1000) / len(opus_packets)  # 每个包的持续时间（毫秒）
-            logger.bind(tag=TAG).info(f"每个数据包的播放时间: {packet_duration:.2f}ms")
-            
-            total_sent = 0
-            start_time = time.time()
-            
-            for i, opus_packet in enumerate(opus_packets):
-                if not conn.is_playing_music:
-                    break
-                    
-                # 计算应该经过的时间
-                expected_time = start_time + (i * packet_duration / 1000)
-                current_time = time.time()
-                
-                # 如果发送太快，等待一下
-                if current_time < expected_time:
-                    await asyncio.sleep(expected_time - current_time)
-                
-                await conn.websocket.send(opus_packet)
-                total_sent += len(opus_packet)
-                
-                # 每100个包记录一次进度
-                if i % 100 == 0:
-                    logger.bind(tag=TAG).debug(f"已发送 {i}/{len(opus_packets)} 个数据包")
-                
-            logger.bind(tag=TAG).info(f"音乐数据发送完成，共发送 {total_sent} 字节")
-
-            # 发送sentence_end消息
-            await conn.websocket.send(json.dumps({
-                "type": "tts",
-                "state": "sentence_end",
-                "session_id": conn.session_id
-            }))
-            
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"音乐转换或发送失败: {str(e)}")
-            import traceback
-            logger.bind(tag=TAG).error(f"详细错误: {traceback.format_exc()}")
-            
-    except Exception as e:
-        logger.bind(tag=TAG).error(f"播放音乐失败: {str(e)}")
-        import traceback
-        logger.bind(tag=TAG).error(f"详细错误: {traceback.format_exc()}")
-    finally:
-        conn.is_playing_music = False
-        # 发送TTS stop消息
-        await conn.websocket.send(json.dumps({
-            "type": "tts",
-            "state": "stop",
-            "session_id": conn.session_id
-        }))
-
-
-async def handleMusicCommand(conn, text):
-    """处理音乐播放指令（增强版）"""
-    # 去除所有标点符号和空格
-    clean_text = re.sub(r'[^\w\s]', '', text).strip()
-    
-    logger.bind(tag=TAG).debug(f"检查是否是音乐命令: {clean_text}")
-    
-    # 1. 尝试匹配具体歌名
-    music_dir = os.path.abspath(conn.config.get("music_dir", "./music"))
-    logger.bind(tag=TAG).debug(f"音乐目录: {music_dir}")
-    
-    if os.path.exists(music_dir):
-        music_files = [f for f in os.listdir(music_dir) if f.endswith('.mp3')]
-        logger.bind(tag=TAG).debug(f"找到的音乐文件: {music_files}")
-        
-        # 从用户输入中提取可能的歌名
-        potential_song = None
-        for keyword in ["听", "播放", "放"]:
-            if keyword in clean_text:
-                parts = clean_text.split(keyword)
-                if len(parts) > 1:
-                    potential_song = parts[1].strip()
-                    break
-        
-        if potential_song:
-            # 使用模糊匹配找到最匹配的歌曲
-            best_match = None
-            highest_ratio = 0
-            
-            for music_file in music_files:
-                song_name = os.path.splitext(music_file)[0]
-                # 计算相似度
-                ratio = difflib.SequenceMatcher(None, potential_song, song_name).ratio()
-                if ratio > highest_ratio and ratio > 0.4:  # 设置最小匹配阈值
-                    highest_ratio = ratio
-                    best_match = music_file
-            
-            if best_match:
-                logger.bind(tag=TAG).info(f"找到最匹配的歌曲: {best_match} (匹配度: {highest_ratio})")
-                await play_local_music(conn, specific_file=best_match)
-                return True
-            else:
-                logger.bind(tag=TAG).info(f"未找到匹配的歌曲: {potential_song}")
-    
-    # 2. 检查是否是通用播放音乐命令
-    music_related_keywords = conn.config.get("music_commands", [])
-    if any(cmd in clean_text for cmd in music_related_keywords):
-        await play_local_music(conn)
-        return True
-        
-    return False
