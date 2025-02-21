@@ -12,7 +12,7 @@ the[Xiaozhi Communication Protocol](https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO
 
 This project requires compatible esp32 hardware devices. If you have purchased esp32 hardware, successfully connected to
 Xiage's deployed backend, and wish to independently set up the `xiaozhi-esp32` backend service, this project is for
-you。
+you.
 
 To see a demo, watch this video:
 

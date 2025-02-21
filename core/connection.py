@@ -17,13 +17,12 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.audioHandle import handleAudioMessage, sendAudioMessage
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
-from core.utils.llm_memory import MemoryManager
 from core.utils.auth_code_gen import AuthCodeGenerator  # 添加导入
 
 TAG = __name__
 
 class ConnectionHandler:
-    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _embd):
+    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts):
         self.config = config
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
@@ -50,7 +49,6 @@ class ConnectionHandler:
         self.asr = _asr
         self.llm = _llm
         self.tts = _tts
-        self.embd = _embd
         self.dialogue = None
 
         # vad相关变量
@@ -85,17 +83,6 @@ class ConnectionHandler:
         self.is_device_verified = False  # 添加设备验证状态标志
 
 
-        self.llm_memory = MemoryManager(
-            llm=_llm, 
-            embd=_embd,
-            summary_prompt=config.get("memory", {}).get("summary_prompt", "你还保留着一些长期的记忆，这有助于让你的对话更加丰富和连贯："),
-            max_memory_length=config.get("memory", {}).get("max_memory_length", 10000),
-            max_summary_length=config.get("memory", {}).get("max_summary_length", 2000),
-            summary_length=config.get("memory", {}).get("summary_length", 1000),
-            memory_dir=config.get("memory", {}).get("memory_dir", "memory_data"),
-        )
-
-
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
@@ -106,13 +93,11 @@ class ConnectionHandler:
             await self.auth.authenticate(self.headers)
 
             device_id = self.headers.get("device-id", None)
-            self.device_id = device_id
             
             # Load private configuration if device_id is provided
             bUsePrivateConfig = self.config.get("use_private_config", False)
             self.logger.bind(tag=TAG).info(f"bUsePrivateConfig: {bUsePrivateConfig}, device_id: {device_id}")
             if bUsePrivateConfig and device_id:
-
                 try:
                     self.private_config = PrivateConfig(device_id, self.config, self.auth_code_gen)
                     await self.private_config.load_or_create()
@@ -127,9 +112,7 @@ class ConnectionHandler:
                     if all([llm, tts]):
                         self.llm = llm
                         self.tts = tts
-                        self.embd = embd
                         self.logger.bind(tag=TAG).info(f"Loaded private config and instances for device {device_id}")
-
                     else:
                         self.logger.bind(tag=TAG).error(f"Failed to create instances for device {device_id}")
                         self.private_config = None
@@ -156,7 +139,6 @@ class ConnectionHandler:
                     await self._route_message(message)
             except websockets.exceptions.ConnectionClosed:
                 self.logger.bind(tag=TAG).info("客户端断开连接")
-                await self.llm_memory.add_chat_paragraph(device_id,self.dialogue.get_llm_dialogue()[1:])
                 await self.close()
 
         except AuthenticationError as e:
@@ -165,8 +147,6 @@ class ConnectionHandler:
             return
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"Connection error: {str(e)}")
-            await self.llm_memory.add_chat_paragraph(device_id,self.dialogue.get_llm_dialogue()[1:])
-
             await ws.close()
             return
 
@@ -200,7 +180,6 @@ class ConnectionHandler:
             return False
         return True
 
-
     def isNeedAuth(self):
         bUsePrivateConfig = self.config.get("use_private_config", False)
         if not bUsePrivateConfig:
@@ -219,20 +198,15 @@ class ConnectionHandler:
                 loop.run_until_complete(self._check_and_broadcast_auth_code())
             finally:
                 loop.close()
-            return True        
-
-        query = self.llm_memory.handle_user_scene(self.device_id, query)
+            return True
+        
         self.dialogue.put(Message(role="user", content=query))
         response_message = []
         start = 0
         # 提交 LLM 任务
         try:
             start_time = time.time()  # 记录开始时间
-            memory_summary = self.llm_memory.get_memory_summary(self.device_id)
-            llm_responses = self.llm.response(
-                self.session_id, 
-                self.dialogue.get_llm_dialogue_with_memory(memory_summary)
-            )
+            llm_responses = self.llm.response(self.session_id, self.dialogue.get_llm_dialogue())
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
             return None

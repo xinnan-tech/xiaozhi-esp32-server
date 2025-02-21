@@ -5,7 +5,7 @@ from config.logger import setup_logging
 from typing import Dict, Any, Optional
 from copy import deepcopy
 from core.utils.util import get_project_dir
-from core.utils import asr, vad, llm, tts, embedding
+from core.utils import asr, vad, llm, tts
 from manager.api.user_manager import UserManager
 from core.utils.lock_manager import FileLockManager
 
@@ -192,10 +192,6 @@ class PrivateConfig:
                 config["TTS"][selected_modules["TTS"]]["type"],
                 config["TTS"][selected_modules["TTS"]],
                 self.default_config.get("delete_audio", True)  # Using default_config for global settings
-            ),
-            embedding.create_instance(
-                selected_modules["EMBD"],
-                config["EMBD"][selected_modules["EMBD"]] 
             )
         )
 

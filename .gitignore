@@ -1,6 +1,5 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-.idea/
 *.py[cod]
 *$py.class
 
@@ -146,4 +145,3 @@ tmp
 .private_config.yaml
 .env.development
 docker-compose.yml
-models/jina-embeddings-v2-base-zh/onnx/model.onnx

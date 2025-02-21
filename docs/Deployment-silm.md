@@ -110,12 +110,6 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
 
 然后就和正常开发一样了
 
-进入`bash`
-
-```sh
-docker exec -it xiaozhi-env /bin/bash
-```
-
 ## 3.安装依赖
 
 在刚刚的打开的终端运行

@@ -38,20 +38,6 @@ xiaozhi:
     sample_rate: 16000
     channels: 1
     frame_duration: 60
-
-# 长期记忆参数
-memory:
-    # 记忆摘要提示
-    summary_prompt: "你还保留着一些长期的记忆，这有助于让你的对话更加丰富和连贯："
-    # 记忆最大长度
-    max_memory_length: 10000
-    # 摘要最大长度
-    max_summary_length: 2000
-    # 单次摘要长度
-    summary_length: 1000
-    # 记忆文件夹
-    memory_dir: "memory_data"
-
 prompt: |
   你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗。
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
@@ -79,18 +65,10 @@ selected_module:
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
-  EMBD: SentenceTransformer
 
 ASR:
   FunASR:
-    type: fun_local
     model_dir: models/SenseVoiceSmall
-    output_dir: tmp/
-  DoubaoASR:
-    type: doubao
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
-    cluster: volcengine_input_common
     output_dir: tmp/
 
 VAD:
@@ -98,13 +76,6 @@ VAD:
     threshold: 0.5
     model_dir: models/snakers4_silero-vad
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
-
-EMBD:
-  SentenceTransformer:
-    # 下载 https://huggingface.co/jinaai/jina-embeddings-v2-base-zh/blob/main/onnx/model.onnx 到 models/jina-embeddings-v2-base-zh/onnx/model.onnx
-    model_dir: models/jina-embeddings-v2-base-zh
-    # cpu cuda:0 推荐cpu节省显存
-    device: "cpu"
 
 LLM:
   # 当前支持的type为openai、dify、ollama，可自行适配
