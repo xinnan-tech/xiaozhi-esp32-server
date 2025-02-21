@@ -24,7 +24,13 @@ WORKDIR /app
 COPY requirements.txt .
 
 # 优化apt安装
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list && \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends gcc libopus-dev ffmpeg && \
+    rm -rf /var/lib/apt/lists/* && \
+    # 直接使用系统Python
+    pip install --no-cache-dir -r requirements.txt \
     -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 第三阶段：生产镜像
