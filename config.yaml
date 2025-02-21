@@ -59,7 +59,7 @@ CMD_exit:
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
-  ASR: FunASR
+  ASR: DoubaoASR
   VAD: SileroVAD
   # 将根据配置名称对应的type调用实际的LLM适配器
   LLM: ChatGLMLLM
@@ -68,9 +68,15 @@ selected_module:
 
 ASR:
   FunASR:
+    type: fun_local
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
-
+  DoubaoASR:
+    type: doubao
+    appid: 你的火山引擎语音合成服务appid
+    access_token: 你的火山引擎语音合成服务access_token
+    cluster: volcengine_input_common
+    output_dir: tmp/
 VAD:
   SileroVAD:
     threshold: 0.5
