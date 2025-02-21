@@ -185,7 +185,7 @@ class MusicHandler:
             logger.bind(tag=TAG).warning("发送TTS消息时连接已关闭")
 
     def stop_playing(self):
-        """停止当前音乐播放"""
+        """停止音乐播放"""
         self.stop_event.set()
         self.is_playing = False
         
