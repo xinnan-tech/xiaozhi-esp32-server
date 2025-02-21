@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "concurrently -n 'Frontend,Backend' -c 'blue,green' 'yarn run dev:ui' 'npm run dev:api'",
     "dev:ui": "vite",
-    "dev:api": "cd .. && poetry run python manager/http_server.py",
+    "dev:api": "cd .. && poetry run python app.py",
+    "dev:d": "docker exec xiaozhi-env poetry run python app.py",
     "build": "vite build",
     "preview": "vite preview"
   },

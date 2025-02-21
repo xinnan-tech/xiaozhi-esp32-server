@@ -112,6 +112,15 @@ LLM:
 - 线路二：百度网盘下载[SenseVoiceSmall](https://pan.baidu.com/share/init?surl=QlgM58FHhYv1tFnUT_A8Sg&pwd=qvna) 提取码:
   `qvna`
 
+huggingface地址：
+
+```
+https://huggingface.co/jinaai/jina-embeddings-v2-base-zh?clone=true
+https://huggingface.co/FunAudioLLM/SenseVoiceSmall/tree/main?clone=true
+```
+
+镜像地址`https://hf-mirror.com/`
+
 
 ## 运行状态确认
 

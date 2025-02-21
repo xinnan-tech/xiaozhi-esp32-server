@@ -37,11 +37,6 @@ RUN poetry install --no-root
 # 从构建阶段复制虚拟环境和前端构建产物
 COPY --from=frontend-builder /app/ZhiKongTaiWeb/dist /app/manager/static/webui
 
-# 下载模型文件（断点续传 + 自动重试）
-RUN mkdir -p /app/model/SenseVoiceSmall && \
-    wget -O /app/model/SenseVoiceSmall/model.pt -c --tries=5 --waitretry=5 \
-    https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt
-
 # 设置虚拟环境路径
 ENV PATH="/app/.venv/bin:$PATH"
 

@@ -26,8 +26,6 @@ ruamel-yaml = "0.18.10"
 setuptools = "^75.8.0"
 loguru = "^0.7.3"
 opuslib-next = "^1.1.2"
-sentence-transformers = {version = "3.4.1", extras = ["onnx"]}
-
 
 
 [build-system]

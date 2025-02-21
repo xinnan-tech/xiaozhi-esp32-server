@@ -105,7 +105,7 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
   -p 8000:8000 \
   -p 8002:8002 \
   -v ./:/app \
-  kalicyh/poetry:v3.10_xiaozhi
+  kalicyh/poetry:v3.10_latest
 ```
 
 然后就和正常开发一样了
