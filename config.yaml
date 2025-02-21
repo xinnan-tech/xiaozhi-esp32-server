@@ -141,6 +141,10 @@ TTS:
     type: edge
     voice: zh-CN-XiaoxiaoNeural
     output_file: tmp/
+  CosyVoice:
+    # 定义TTS API类型
+    # 直连CosyVoice开源的FastAPI的接口 修改 xiaozhi-esp32-server/core/providers/tts/cosyvoice.py 定制化信息
+    type: cosyvoice
   DoubaoTTS:
     # 定义TTS API类型
     type: doubao
