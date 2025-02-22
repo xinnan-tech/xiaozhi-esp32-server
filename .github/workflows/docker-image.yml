@@ -23,7 +23,7 @@ jobs:
       - name: Log in to the GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
+          registry: ccr.ccs.tencentyun.com
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.TOKEN }}
 
@@ -38,5 +38,5 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.REGISTRY_URL }}/${{ secrets.REGISTRY_NAMESPACE }}/xiaozhi-esp32-server:latest
+          tags: ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
           platforms: linux/amd64,linux/arm64
