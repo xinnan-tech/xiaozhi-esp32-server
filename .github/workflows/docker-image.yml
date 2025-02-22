@@ -2,8 +2,9 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    tags:
+      - 'v*.*.*'  # 只在以 v 开头的标签推送时触发，例如 v1.0.0
+
 jobs:
   release:
     name: Release Docker image
@@ -24,9 +25,9 @@ jobs:
       - name: Log in to the GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ccr.ccs.tencentyun.com
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.TOKEN }}
 
       - name: Extract version from tag
         id: get_version
@@ -39,5 +40,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ env.VERSION }}
+            ghcr.io/${{ github.repository }}:latest
           platforms: linux/amd64,linux/arm64
