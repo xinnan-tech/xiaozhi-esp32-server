@@ -9,6 +9,7 @@ import traceback
 import time
 import threading
 import websockets
+import yaml
 
 TAG = __name__
 logger = setup_logging()
@@ -16,7 +17,18 @@ logger = setup_logging()
 class MusicHandler:
     def __init__(self, config):
         self.config = config
-        self.music_dir = os.path.abspath(config.get("music_dir", "./music"))
+        # 加载独立音乐配置
+        music_config_path = os.path.abspath("music/music_config.yaml")
+        if os.path.exists(music_config_path):
+            with open(music_config_path, 'r') as f:
+                self.music_config = yaml.safe_load(f)
+        else:
+            self.music_config = {}
+            logger.bind(tag=TAG).warning("未找到独立音乐配置文件，使用默认配置")
+            
+        self.music_dir = os.path.abspath(
+            self.music_config.get("music_dir", "./music/mp3")  # 默认路径修改
+        )
         self.is_playing = False
         self.stop_event = threading.Event()
         
@@ -39,7 +51,7 @@ class MusicHandler:
                     return True
         
         # 检查是否是通用播放音乐命令
-        music_related_keywords = self.config.get("music_commands", [])
+        music_related_keywords = self.music_config.get("music_commands", [])
         if any(cmd in clean_text for cmd in music_related_keywords):
             await self.play_local_music(conn)
             return True
@@ -76,6 +88,7 @@ class MusicHandler:
                 logger.bind(tag=TAG).error(f"音乐目录不存在: {self.music_dir}")
                 return
 
+            # 确保路径正确性
             if specific_file:
                 music_path = os.path.join(self.music_dir, specific_file)
                 if not os.path.exists(music_path):
