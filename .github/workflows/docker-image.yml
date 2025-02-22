@@ -3,6 +3,7 @@ name: Docker Image CI
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 jobs:
   release:
     name: Release Docker image
@@ -25,7 +26,7 @@ jobs:
         with:
           registry: ccr.ccs.tencentyun.com
           username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.TOKEN }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
 
       - name: Extract version from tag
         id: get_version
