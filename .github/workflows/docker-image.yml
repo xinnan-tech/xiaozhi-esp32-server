@@ -2,9 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    tags:
-      - 'v*.*.*'  # 只在以 v 开头的标签推送时触发，例如 v1.0.0
-
+    branches: [ "main" ]
 jobs:
   release:
     name: Release Docker image
@@ -25,8 +23,8 @@ jobs:
       - name: Log in to the GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.TOKEN }}
 
       - name: Extract version from tag
@@ -40,7 +38,5 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:latest
+          tags: ${{ secrets.REGISTRY_URL }}/${{ secrets.REGISTRY_NAMESPACE }}/xiaozhi-esp32-server:latest
           platforms: linux/amd64,linux/arm64
