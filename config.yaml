@@ -72,7 +72,7 @@ CMD_exit:
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
-  ASR: DoubaoASR
+  ASR: FunASR
   VAD: SileroVAD
   # 将根据配置名称对应的type调用实际的LLM适配器
   LLM: ChatGLMLLM
