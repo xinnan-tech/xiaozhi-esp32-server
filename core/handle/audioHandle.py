@@ -3,9 +3,27 @@ import json
 import asyncio
 import time
 from core.utils.util import remove_punctuation_and_length, get_string_no_punctuation_or_emoji
+import os
+from pydub import AudioSegment
+from pydub.playback import play
+from concurrent.futures import ThreadPoolExecutor
+import re
+import uuid
+import tempfile
+import winsound  # Windows专用
+import pygame
+import traceback
+import random
+import difflib
+from core.handle.musicHandler import MusicHandler
 
 TAG = __name__
 logger = setup_logging()
+
+
+class AudioHandler:
+    def __init__(self, config):
+        self.music_handler = MusicHandler(config)
 
 
 async def handleAudioMessage(conn, audio):
@@ -35,6 +53,10 @@ async def handleAudioMessage(conn, audio):
             text, file_path = await conn.asr.speech_to_text(conn.asr_audio, conn.session_id)
             logger.bind(tag=TAG).info(f"识别文本: {text}")
             text_len, text_without_punctuation = remove_punctuation_and_length(text)
+            if await conn.music_handler.handle_music_command(conn, text_without_punctuation):
+                conn.asr_server_receive = True
+                conn.asr_audio.clear()
+                return
             if text_len <= conn.max_cmd_length and await handleCMDMessage(conn, text_without_punctuation):
                 return
             if text_len > 0:
@@ -163,5 +185,5 @@ async def no_voice_close_connect(conn):
         if no_voice_time > 1000 * close_connection_no_voice_time:
             conn.client_abort = False
             conn.asr_server_receive = False
-            prompt = "时间过得真快，我都好久没说话了。请你用十个字左右话跟我告别，以“再见”或“拜拜拜”为结尾"
+            prompt = "时间过得真快，我都好久没说话了。请你用十个字左右话跟我告别，以“再见”或“拜拜”为结尾"
             await startToChat(conn, prompt)

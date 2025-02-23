@@ -25,6 +25,16 @@ async def handleTextMessage(conn, message):
                 conn.client_listen_mode = msg_json["mode"]
                 logger.bind(tag=TAG).debug(f"客户端拾音模式：{conn.client_listen_mode}")
             if msg_json["state"] == "start":
+                if conn.music_handler.is_playing:
+                    conn.music_handler.stop_playing()
+                    await conn.websocket.send(json.dumps({
+                        "type": "tts",
+                        "state": "stop",
+                        "session_id": conn.session_id
+                    }))
+                    conn.clearSpeakStatus()
+                    conn.asr_audio.clear()
+                    conn.asr_server_receive = True
                 conn.client_have_voice = True
                 conn.client_voice_stop = False
             elif msg_json["state"] == "stop":
