@@ -63,7 +63,7 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 接下里，程序还不能直接运行，你需要配置一下，你到底使用的是什么模型。你可以看这个教程：
 [跳转到配置项目文件](#配置项目)
 
-配置问项目文件后，回到本教程继续往下。
+配置完项目文件后，回到本教程继续往下。
 
 ## 5. 执行docker命令
 
@@ -86,11 +86,13 @@ docker logs -f xiaozhi-esp32-server
 如果后期想升级版本，可以这么操作
 
 1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
-请注意是逐个复制，不要直接覆盖。因为新的`.config.yaml`文件可能有一些新的配置项，旧的`.config.yaml`文件不一定有。
+请注意是对关键密钥逐个复制，不要直接覆盖。因为新的`.config.yaml`文件可能有一些新的配置项，旧的`.config.yaml`文件不一定有。
 
 2、执行以下命令
 
 ```
+docker stop xiaozhi-esp32-server
+docker rm xiaozhi-esp32-server
 docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
 ```
 
