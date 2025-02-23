@@ -1,4 +1,7 @@
-# 编译docker镜像
+# 本地编译docker镜像方法
+
+现在本项目已经使用github自动编译docker功能，本文档是提供给有本地编译docker镜像需求的朋友准备的。
+
 1、安装docker
 ```
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -6,7 +9,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 2、编译docker镜像
 ```
 # 普通编译
-docker build -t xiaozhi-esp32-server:local -f ./Dockerfile .
+docker build -t xiaozhi-esp32-server:local -f ./Dockerfile-pip .
 ```
 3、测试本地镜像
 ```

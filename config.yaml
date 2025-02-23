@@ -22,6 +22,19 @@ server:
     # 可选:设备白名单，如果设置了白名单，那么白名单的机器无论是什么token都可以连接。
     #allowed_devices:
     #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
+log:
+  # 设置控制台输出的日志格式，时间、日志级别、标签、消息
+  log_format: "<green>{time:YY-MM-DD HH:mm:ss}</green>[<light-blue>{extra[tag]}</light-blue>] - <level>{level}</level> - <light-green>{message}</light-green>"
+  # 设置日志文件输出的格式，时间、日志级别、标签、消息
+  log_format_simple: "{time:YYYY-MM-DD HH:mm:ss} - {name} - {level} - {extra[tag]} - {message}"
+  # 设置日志等级：INFO、DEBUG
+  log_level: INFO
+  # 设置日志路径
+  log_dir: tmp
+  # 设置日志文件
+  log_file: "server.log"
+  # 设置数据文件路径
+  data_dir: data
 manager:
   # 是否启用管理后台
   # 目前这个模块还在开发中，建议：不要修改enabled选项
@@ -59,7 +72,7 @@ CMD_exit:
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
-  ASR: FunASR
+  ASR: DoubaoASR
   VAD: SileroVAD
   # 将根据配置名称对应的type调用实际的LLM适配器
   LLM: ChatGLMLLM
@@ -68,9 +81,15 @@ selected_module:
 
 ASR:
   FunASR:
+    type: fun_local
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
-
+  DoubaoASR:
+    type: doubao
+    appid: 你的火山引擎语音合成服务appid
+    access_token: 你的火山引擎语音合成服务access_token
+    cluster: volcengine_input_common
+    output_dir: tmp/
 VAD:
   SileroVAD:
     threshold: 0.5
