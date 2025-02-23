@@ -163,8 +163,8 @@ poetry run python app.py
 conda remove -n xiaozhi-esp32-server --all -y
 conda create -n xiaozhi-esp32-server python=3.10 -y
 conda activate xiaozhi-esp32-server
-conda install conda-forge::libopus
-conda install conda-forge::ffmpeg
+conda install conda-forge::libopus -y
+conda install conda-forge::ffmpeg -y
 ```
 
 ## 2.安装本项目依赖
