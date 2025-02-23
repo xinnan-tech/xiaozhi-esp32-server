@@ -14,15 +14,64 @@
 本项目需要配合 ESP32 硬件设备使用。如果您已经购买了 ESP32 相关硬件，且成功对接过虾哥部署的后端服务，并希望独立搭建自己的
 `xiaozhi-esp32` 后端服务，那么本项目非常适合您。
 
-跳转到[使用方式](#使用方式-)
+想看使用效果？请猛戳视频 🎥
 
-想看使用效果？请猛戳这个视频 🎥
+<table>
+  <tr>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
+         <picture>
+           <img alt="小智esp32连接自己的后台模型" src="docs/images/demo1.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
+         <picture>
+           <img alt="自定义音色" src="docs/images/demo2.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
+         <picture>
+           <img alt="使用粤语交流" src="docs/images/demo3.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/av114036381327149" target="_blank">
+         <picture>
+           <img alt="控制家电开关" src="docs/images/demo5.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
+         <picture>
+           <img alt="成本最低配置" src="docs/images/demo4.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+    </td>
+    </tr>
+</table>
 
-<a href="https://www.bilibili.com/video/BV1FMFyejExX">
- <picture>
-   <img alt="小智esp32连接自己的后台模型" src="docs/images/demo.png" />
- </picture>
-</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ---
 
@@ -80,15 +129,16 @@ server:
 
 ### LLM
 
-| 类型  |        平台名称        |    使用方式     |   收费模式   |                                备注                                 |
-|:---:|:------------------:|:-----------:|:--------:|:-----------------------------------------------------------------:|
-| LLM |   阿里百炼 (AliLLM)    | openai 接口调用 | 消耗 token |  [点击申请密钥](https://bailian.console.aliyun.com/?apiKey=1#/api-key)  |
-| LLM | 深度求索 (DeepSeekLLM) | openai 接口调用 | 消耗 token |             [点击申请密钥](https://platform.deepseek.com/)              |
-| LLM |   智谱（ChatGLMLLM）   | openai 接口调用 |    免费    | 虽然免费，仍需[点击申请密钥](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) |
-| LLM |     OllamaLLM      | ollama 接口调用 |  免费/自定义  |       需预先下载模型（`ollama pull`），服务地址：`http://localhost:11434`        |
-| LLM |      DifyLLM       |  dify 接口调用  | 消耗 token |                    本地化部署，注意配置提示词需在 Dify 控制台设置                     |
-| LLM |     GeminiLLM      | gemini 接口调用 |    免费    |           [点击申请密钥](https://aistudio.google.com/apikey)            |
-| LLM |      CozeLLM       |  coze 接口调用  | 消耗 token |                     需提供 bot_id、user_id 及个人令牌                      |
+| 类型  |        平台名称        |         使用方式          |   收费模式   |                                备注                                 |
+|:---:|:------------------:|:---------------------:|:--------:|:-----------------------------------------------------------------:|
+| LLM |   阿里百炼 (AliLLM)    |      openai 接口调用      | 消耗 token |  [点击申请密钥](https://bailian.console.aliyun.com/?apiKey=1#/api-key)  |
+| LLM | 深度求索 (DeepSeekLLM) |      openai 接口调用      | 消耗 token |             [点击申请密钥](https://platform.deepseek.com/)              |
+| LLM |   智谱（ChatGLMLLM）   |      openai 接口调用      |    免费    | 虽然免费，仍需[点击申请密钥](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) |
+| LLM |     OllamaLLM      |      ollama 接口调用      |  免费/自定义  |       需预先下载模型（`ollama pull`），服务地址：`http://localhost:11434`        |
+| LLM |      DifyLLM       |       dify 接口调用       | 消耗 token |                    本地化部署，注意配置提示词需在 Dify 控制台设置                     |
+| LLM |     GeminiLLM      |      gemini 接口调用      |    免费    |           [点击申请密钥](https://aistudio.google.com/apikey)            |
+| LLM |      CozeLLM       |       coze 接口调用       | 消耗 token |                     需提供 bot_id、user_id 及个人令牌                      |
+| LLM |   Home Assistant   | homeassistant语音助手接口调用 |    免费    |                        需提供home assistant令牌                        |
 
 实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
 
@@ -117,9 +167,10 @@ server:
 
 ### ASR
 
-| 类型  |  平台名称  | 使用方式 | 收费模式 | 备注 |
-|:---:|:------:|:----:|:----:|:--:|
-| ASR | FunASR | 本地使用 |  免费  |    |
+| 类型  |   平台名称    | 使用方式 | 收费模式 | 备注 |
+|:---:|:---------:|:----:|:----:|:--:|
+| ASR |  FunASR   | 本地使用 |  免费  |    |
+| ASR | DoubaoASR | 接口调用 |  收费  |    |
 
 ---
 
@@ -127,12 +178,20 @@ server:
 
 ### 一、[部署文档](./docs/Deployment.md)
 
-1.
-    *
+本项目支持以下三种部署方式，您可根据实际需求选择：
 
-*[本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)
-**  
-适合熟悉 Conda 环境或希望从零搭建运行环境的用户。  
+1. [Docker 快速部署](./docs/Deployment.md)
+
+适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。
+
+2. [借助 Docker 环境运行部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)
+
+适用于已安装 Docker 且希望对代码进行自定义修改的软件工程师。
+
+3. [本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)
+
+适合熟悉`Conda` 环境或希望从零搭建运行环境的用户。  
+
 对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
 
 ### 二、[固件编译](./docs/firmware-build.md)
@@ -152,7 +211,7 @@ server:
 
 ### 2、我想通过小智控制电灯、空调、远程开关机等操作 💡
 
-建议：在配置文件中将 `LLM` 设置为 `DifyLLM`，并通过 `Dify` 编排智能体来实现相关控制。
+建议：在配置文件中将 `LLM` 设置为 `HomeAssistant`，通过 调用`HomeAssistant`接口实现相关控制。
 
 ### 3、我说话很慢，停顿时小智老是抢话 🗣️
 
@@ -166,7 +225,23 @@ VAD:
     min_silence_duration_ms: 700  # 如果说话停顿较长，可将此值调大
 ```
 
-### 4、如何提高小智对话响应速度？ ⚡
+### 4、为什么我说的话，小智识别出来很多韩文、日文、英文？🇰🇷
+
+建议：检查一下`models/SenseVoiceSmall`是否已经有`model.pt`
+文件，如果没有就要下载，查看这里[下载语音识别模型文件](docs/Deployment.md#模型文件)
+
+### 5、为什么会出现“TTS 任务出错 文件不存在”？📁
+
+建议：检查一下是否正确使用`conda` 安装了`libopus`和`ffmpeg`库。
+
+如果没有安装，就安装
+
+```
+conda install conda-forge::libopus
+conda install conda-forge::ffmpeg
+```
+
+### 6、如何提高小智对话响应速度？ ⚡
 
 本项目默认配置为低成本方案，建议初学者先使用默认免费模型，解决“跑得动”的问题，再优化“跑得快”。  
 如需提升响应速度，可尝试更换各组件。以下为各组件的响应速度测试数据（仅供参考，不构成承诺）：
@@ -224,7 +299,7 @@ TTS 性能排行:
 - LLM：`AliLLM`
 - TTS：`DoubaoTTS`
 
-### 5、更多问题，可联系我们反馈 💬
+### 7、更多问题，可联系我们反馈 💬
 
 ![图片](docs/images/wechat.jpg)
 

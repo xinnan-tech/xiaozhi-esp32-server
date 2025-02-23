@@ -28,18 +28,21 @@ async def handleAudioMessage(conn, audio):
     if conn.client_voice_stop:
         conn.client_abort = False
         conn.asr_server_receive = False
-        text, file_path = conn.asr.speech_to_text(conn.asr_audio, conn.session_id)
-        logger.bind(tag=TAG).info(f"识别文本: {text}")
-        text_len, text_without_punctuation = remove_punctuation_and_length(text)
-        if text_len <= conn.max_cmd_length and await handleCMDMessage(conn, text_without_punctuation):
-            return
-        if text_len > 0:
-            await startToChat(conn, text)
-        else:
+        # 音频太短了，无法识别
+        if len(conn.asr_audio) < 3:
             conn.asr_server_receive = True
+        else:
+            text, file_path = await conn.asr.speech_to_text(conn.asr_audio, conn.session_id)
+            logger.bind(tag=TAG).info(f"识别文本: {text}")
+            text_len, text_without_punctuation = remove_punctuation_and_length(text)
+            if text_len <= conn.max_cmd_length and await handleCMDMessage(conn, text_without_punctuation):
+                return
+            if text_len > 0:
+                await startToChat(conn, text)
+            else:
+                conn.asr_server_receive = True
         conn.asr_audio.clear()
         conn.reset_vad_states()
-
 
 async def handleCMDMessage(conn, text):
     cmd_exit = conn.cmd_exit
