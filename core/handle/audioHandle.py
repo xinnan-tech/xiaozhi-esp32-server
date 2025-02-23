@@ -3,18 +3,6 @@ import json
 import asyncio
 import time
 from core.utils.util import remove_punctuation_and_length, get_string_no_punctuation_or_emoji
-import os
-from pydub import AudioSegment
-from pydub.playback import play
-from concurrent.futures import ThreadPoolExecutor
-import re
-import uuid
-import tempfile
-import winsound  # Windows专用
-import pygame
-import traceback
-import random
-import difflib
 from core.handle.musicHandler import MusicHandler
 
 TAG = __name__
