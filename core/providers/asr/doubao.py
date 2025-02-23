@@ -136,7 +136,7 @@ class ASRProvider(ASRProviderBase):
         """Construct the request payload."""
         return {
             "app": {
-                "appid": self.appid,
+                "appid": f"{self.appid}",
                 "cluster": self.cluster,
                 "token": self.access_token,
             },
