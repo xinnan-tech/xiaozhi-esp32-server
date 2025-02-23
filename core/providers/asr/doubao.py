@@ -8,7 +8,7 @@ import websockets
 import json
 import gzip
 
-import opuslib
+import opuslib_next
 from core.providers.asr.base import ASRProviderBase
 
 from config.logger import setup_logging
@@ -103,14 +103,14 @@ class ASRProvider(ASRProviderBase):
         file_name = f"asr_{session_id}_{uuid.uuid4()}.wav"
         file_path = os.path.join(self.output_dir, file_name)
 
-        decoder = opuslib.Decoder(16000, 1)  # 16kHz, 单声道
+        decoder = opuslib_next.Decoder(16000, 1)  # 16kHz, 单声道
         pcm_data = []
 
         for opus_packet in opus_data:
             try:
                 pcm_frame = decoder.decode(opus_packet, 960)  # 960 samples = 60ms
                 pcm_data.append(pcm_frame)
-            except opuslib.OpusError as e:
+            except opuslib_next.OpusError as e:
                 logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
 
         with wave.open(file_path, "wb") as wf:
@@ -216,14 +216,14 @@ class ASRProvider(ASRProviderBase):
     @staticmethod
     def decode_opus(opus_data: List[bytes], session_id: str) -> List[bytes]:
 
-        decoder = opuslib.Decoder(16000, 1)  # 16kHz, 单声道
+        decoder = opuslib_next.Decoder(16000, 1)  # 16kHz, 单声道
         pcm_data = []
 
         for opus_packet in opus_data:
             try:
                 pcm_frame = decoder.decode(opus_packet, 960)  # 960 samples = 60ms
                 pcm_data.append(pcm_frame)
-            except opuslib.OpusError as e:
+            except opuslib_next.OpusError as e:
                 logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
 
         return pcm_data
