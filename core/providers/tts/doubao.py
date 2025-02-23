@@ -25,7 +25,7 @@ class TTSProvider(TTSProviderBase):
     async def text_to_speak(self, text, output_file):
         request_json = {
             "app": {
-                "appid": self.appid,
+                "appid": f"{self.appid}",
                 "token": "access_token",
                 "cluster": self.cluster
             },
@@ -49,8 +49,13 @@ class TTSProvider(TTSProviderBase):
             }
         }
 
-        resp = requests.post(self.api_url, json.dumps(request_json), headers=self.header)
-        if "data" in resp.json():
-            data = resp.json()["data"]
-            file_to_save = open(output_file, "wb")
-            file_to_save.write(base64.b64decode(data))
+        try:
+            resp = requests.post(self.api_url, json.dumps(request_json), headers=self.header)
+            if "data" in resp.json():
+                data = resp.json()["data"]
+                file_to_save = open(output_file, "wb")
+                file_to_save.write(base64.b64decode(data))
+            else:
+                raise Exception(f"{__name__} status_code: {resp.status_code} response: {resp.content}")
+        except Exception as e:
+            raise Exception(f"{__name__} error: {e}")
