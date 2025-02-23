@@ -89,7 +89,7 @@ class TTSProvider(TTSProviderBase):
         self.channels = config.get("channels",1)
         self.rate = config.get("rate",44100)
         self.api_key = config.get("api_key","YOUR_API_KEY")
-        if not self.api_key or "你" in self.api_key:
+        if "你" in self.api_key:
             logger.bind(tag=TAG).error("你还没配置FishSpeech TTS的密钥，请在配置文件中配置密钥，否则无法正常工作")
             return
         self.normalize = config.get("normalize",True)

@@ -7,6 +7,7 @@ from core.utils import asr, vad, llm, tts
 
 TAG = __name__
 
+
 class WebSocketServer:
     def __init__(self, config: dict):
         self.config = config
@@ -22,7 +23,10 @@ class WebSocketServer:
                 self.config["VAD"][self.config["selected_module"]["VAD"]]
             ),
             asr.create_instance(
-                self.config["selected_module"]["ASR"],
+                self.config["selected_module"]["ASR"]
+                if not 'type' in self.config["ASR"][self.config["selected_module"]["ASR"]]
+                else
+                self.config["ASR"][self.config["selected_module"]["ASR"]]["type"],
                 self.config["ASR"][self.config["selected_module"]["ASR"]],
                 self.config["delete_audio"]
             ),
