@@ -1,3 +1,4 @@
+version: '3'
 services:
   xiaozhi-esp32-server:
     image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
