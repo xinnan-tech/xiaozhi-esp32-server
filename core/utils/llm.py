@@ -15,6 +15,7 @@ from core.utils.util import is_segment
 from core.utils.util import get_string_no_punctuation_or_emoji
 from core.utils.util import read_config, get_project_dir
 
+TAG = __name__
 logger = setup_logging()
 
 
@@ -22,6 +23,7 @@ def create_instance(class_name, *args, **kwargs):
     # 创建LLM实例
     if os.path.exists(os.path.join('core', 'providers', 'llm', class_name, f'{class_name}.py')):
         lib_name = f'core.providers.llm.{class_name}.{class_name}'
+        logger.bind(tag=TAG).info(f"加载LLM模块: {lib_name}")
         if lib_name not in sys.modules:
             sys.modules[lib_name] = importlib.import_module(f'{lib_name}')
         return sys.modules[lib_name].LLMProvider(*args, **kwargs)
