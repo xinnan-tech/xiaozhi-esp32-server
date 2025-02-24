@@ -38,10 +38,10 @@ class LLMProvider(LLMProviderBase):
                     # 处理标签跨多个chunk的情况
                     if '<think>' in content:
                         is_active = False
-                        content = content.split('<think>')[0]  # 保留标签前的有效内容
+                        content = content.split('<think>')[0]
                     if '</think>' in content:
                         is_active = True
-                        content = content.split('</think>')[-1]  # 保留标签后的有效内容
+                        content = content.split('</think>')[-1]
                     if is_active:
                         yield content
 
