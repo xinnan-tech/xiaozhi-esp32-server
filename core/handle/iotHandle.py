@@ -1,5 +1,10 @@
 import json
-import logging
+from config.logger import setup_logging
+
+TAG = __name__
+logger = setup_logging()
+
+
 class IotDescriptor:
     """
     A class to represent an IoT descriptor.
@@ -15,6 +20,7 @@ class IotDescriptor:
         A dictionary containing methods of the IoT descriptor.
     -------
     """
+
     def __init__(self, name, description, properties, methods):
         self.name = name
         self.description = description
@@ -33,21 +39,19 @@ class IotDescriptor:
             }
             """
             # setattr(self, key, {}) # 创建一个空字典, 名字是属性名
-            property = globals()[key] = {} # 创建一个空字典, 名字是属性名
-            property['name'] = key
-            property["description"] = value["description"]
-            if(value["type"] == "number"):
-                property["value"] = 0
-            elif(value["type"] == "bool"):
-                property["value"] = False
-            elif(value["type"] == "string"):
-                property["value"] = ""
+            property_item = globals()[key] = {}  # 创建一个空字典, 名字是属性名
+            property_item['name'] = key
+            property_item["description"] = value["description"]
+            if value["type"] == "number":
+                property_item["value"] = 0
+            elif value["type"] == "bool":
+                property_item["value"] = False
+            elif value["type"] == "string":
+                property_item["value"] = ""
             else:
                 raise ValueError("Invalid type")
-            self.properties.append(property)
+            self.properties.append(property_item)
 
-            
-            
         # 根据描述创建方法
         for key, value in methods.items():
             # "SetVolume": {"description":"设置音量","parameters":{"volume":{"description":"0到100之间的整数","type":"number"}}}
@@ -62,24 +66,23 @@ class IotDescriptor:
             }
             """
             # setattr(self, key, {}) # 创建一个空字典, 名字是方法名
-            method = globals()[key] = {} # 创建一个空字典, 名字是方法名
+            method = globals()[key] = {}  # 创建一个空字典, 名字是方法名
             method["description"] = value["description"]
             method['name'] = key
             for k, v in value["parameters"].items():
                 # 不同的参数解析
                 method[k] = {}
                 method[k]["description"] = v["description"]
-                if(v["type"] == "number"):
+                if v["type"] == "number":
                     method[k]["value"] = 0
-                elif(v["type"] == "bool"):
+                elif v["type"] == "bool":
                     method[k]["value"] = False
-                elif(v["type"] == "string"):
+                elif v["type"] == "string":
                     method[k]["value"] = ""
                 else:
                     raise ValueError("Invalid type")
 
-            self.methods.append(method)      
-
+            self.methods.append(method)
 
 
 async def handleIotDescriptors(conn, descriptors):
@@ -100,13 +103,16 @@ async def handleIotDescriptors(conn, descriptors):
     descriptors: 描述列表
     """
     for descriptor in descriptors:
-        iot_descriptor = IotDescriptor(descriptor["name"], descriptor["description"], descriptor["properties"], descriptor["methods"])
+        iot_descriptor = IotDescriptor(descriptor["name"], descriptor["description"], descriptor["properties"],
+                                       descriptor["methods"])
         conn.iot_descriptors[descriptor["name"]] = iot_descriptor
-        
-    for key, value in conn.iot_descriptors.items():
-        conn.logger.info(f"物联网描述: {key + value.name}的描述是:{value.description}, 有下面的参数{value.properties}, 还有方法:{value.methods}")
 
-
+    # 暂时从配置文件中设置音量，后期通过意图识别控制音量
+    default_iot_volume = 100
+    if "iot" in conn.config:
+        default_iot_volume = conn.config["iot"]["Speaker"]["volume"]
+    logger.bind(tag=TAG).info(f"服务端设置音量为{default_iot_volume}")
+    await send_iot_conn(conn, "Speaker", "SetVolume", {"volume": default_iot_volume})
 
 
 async def send_iot_conn(conn, name, method_name, parameters):
@@ -147,4 +153,4 @@ async def send_iot_conn(conn, name, method_name, parameters):
                         ]
                     }))
                     return
-    conn.logger.error(f"未找到方法{method}")
+    logger.bind(tag=TAG).error(f"未找到方法{method_name}")
