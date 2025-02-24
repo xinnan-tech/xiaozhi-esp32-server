@@ -38,7 +38,7 @@ class WebUI:
         self.session_manager = SessionManager()
         
         # 添加静态文件路径
-        self.static_path = os.path.join(root_dir, 'manager', 'static', 'webui')
+        self.static_path = os.path.join(root_dir, 'ZhiKongTaiWeb', 'dist')
         
         self.setup_routes()
         self.setup_cors()

@@ -1,7 +1,5 @@
 import os
 import uuid
-import json
-import base64
 import requests
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase

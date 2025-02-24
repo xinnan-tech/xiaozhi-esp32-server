@@ -10,37 +10,97 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 
 安装完后，你需要为这个项目找一个安放配置文件的目录，我们暂且称它为`项目目录`，这个目录最好是一个新建的空的目录。
 
+创建好目录后，你需要在`项目目录`下面创建`data`文件夹和`models`文件夹，`models`下面还要再创建`SenseVoiceSmall`文件夹。
+
+最终目录结构如下所示：
+
+```
+你的项目根目录
+  ├─ data
+  ├─ models
+     ├─ SenseVoiceSmall
+```
+
+## 4. 下载语音识别模型文件
+
+你需要下载语音识别的模型文件，因为本项目的默认语音识别用的是本地离线语音识别方案。可通过这个方式下载
+[跳转到下载语音识别模型文件](#模型文件)
+
+下载完后，回到本教程。
+
+## 3. 下载docker-compose.yaml
+
+用浏览器打开[这个链接](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docker-compose.yml)。
+
+在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`docker-compose.yml`文件。 把文件下载到你的
+`项目目录`中。
+
+下载完后，回到本教程继续往下。
+
 ## 3. 下载配置文件
 
 用浏览器打开[这个链接](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/config.yaml)。
 
 在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`config.yaml`文件。 把文件下载到你的
-`项目目录`。
+`项目目录`下面的`data`文件夹中，然后把`config.yaml`文件重命名为`.config.yaml`。
 
-## 4.[跳转到配置项目文件](#配置项目)
+下载完配置文件后，我们确认一下整个`项目目录`里面的文件如下所示：
+
+```
+你的项目根目录
+  ├─ docker-compose.yml
+  ├─ data
+    ├─ .config.yaml
+  ├─ models
+     ├─ SenseVoiceSmall
+       ├─ model.pt
+```
+
+如果你的文件目录结构也是上面的，就继续往下。如果不是，你就再仔细看看是不是漏操作了什么。
+
+## 4. 配置项目文件
+
+接下里，程序还不能直接运行，你需要配置一下，你到底使用的是什么模型。你可以看这个教程：
+[跳转到配置项目文件](#配置项目)
+
+配置完项目文件后，回到本教程继续往下。
 
 ## 5. 执行docker命令
 
-打开命令行工具，`cd` 进入到你的`项目目录`，执行以下命令
+打开命令行工具，使用`终端`或`命令行`工具 进入到你的`项目目录`，执行以下命令
 
 ```
-#如果你是linux，执行
-ls
-#如果你是windows，执行
-dir
+docker-compose up -d
 ```
 
-如果你能看到`config.yaml`文件，确确实实进入到了`项目目录`，接着执行以下命令：
+执行完后，再执行以下命令，查看日志信息。
 
 ```
-docker run -d --name xiaozhi-esp32-server --restart always --security-opt seccomp:unconfined -p 8000:8000 -v $(pwd)/config.yaml:/opt/xiaozhi-esp32-server/config.yaml ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
+docker logs -f xiaozhi-esp32-server
 ```
 
-## 6.[跳转到运行状态确认](#运行状态确认)
+这时，你就要留意日志信息，可以根据这个教程，判断是否成功了。[跳转到运行状态确认](#运行状态确认)
 
-## [跳转到版本升级操作](#版本升级操作)
+## 6.版本升级操作
 
-# 方式二：借助docker环境运行部署（仅限开发人员/小白勿用）
+如果后期想升级版本，可以这么操作
+
+1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
+请注意是对关键密钥逐个复制，不要直接覆盖。因为新的`.config.yaml`文件可能有一些新的配置项，旧的`.config.yaml`文件不一定有。
+
+2、执行以下命令
+
+```
+docker stop xiaozhi-esp32-server
+docker rm xiaozhi-esp32-server
+docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
+```
+
+3、重新按docker方式部署
+
+# 方式二：借助Docker环境运行部署
+
+开发人员如果不想安装`conda`环境，可以使用这种方法管理好依赖。
 
 ## 1.克隆项目
 
@@ -96,26 +156,15 @@ poetry run python app.py
 
 ## 1.安装基础环境
 
-本项目使用`conda`管理依赖环境，安装好后，开始执行以下命令。
+本项目使用`conda`管理依赖环境。如果不方便安装`conda`，需要根据实际的操作系统安装好`libopus`和`ffmpeg`。
+如果确定使用`conda`，则安装好后，开始执行以下命令。
 
 ```
 conda remove -n xiaozhi-esp32-server --all -y
 conda create -n xiaozhi-esp32-server python=3.10 -y
 conda activate xiaozhi-esp32-server
-```
-
-执行以上命令后， 如果你的电脑是Windows或Mac，执行下面的语句：
-
-```
-conda activate xiaozhi-esp32-server
-conda install conda-forge::libopus
-conda install conda-forge::ffmpeg
-```
-
-如果你的电脑是ubuntu，执行下面的语句：
-
-```
-apt-get install libopus0 ffmpeg 
+conda install conda-forge::libopus -y
+conda install conda-forge::ffmpeg -y
 ```
 
 ## 2.安装本项目依赖
@@ -136,9 +185,17 @@ pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip install -r requirements.txt
 ```
 
-## 3.[跳转到下载语音识别模型文件](#模型文件)
+## 3.下载语音识别模型文件
 
-## 4.[跳转到配置项目文件](#配置项目)
+你需要下载语音识别的模型文件，因为本项目的默认语音识别用的是本地离线语音识别方案。可通过这个方式下载
+[跳转到下载语音识别模型文件](#模型文件)
+
+下载完后，回到本教程。
+
+## 4.配置项目文件
+
+接下里，程序还不能直接运行，你需要配置一下，你到底使用的是什么模型。你可以看这个教程：
+[跳转到配置项目文件](#配置项目)
 
 ## 5.运行项目
 
@@ -148,25 +205,20 @@ conda activate xiaozhi-esp32-server
 python app.py
 ```
 
-## 6.[跳转到运行状态确认](#运行状态确认)
+这时，你就要留意日志信息，可以根据这个教程，判断是否成功了。[跳转到运行状态确认](#运行状态确认)
 
 # 汇总
 
 ## 配置项目
 
-修改`config.yaml`文件，配置本项目所需的各种参数。默认的LLM使用的是`ChatGLMLLM`
+如果你的`项目目录`目录没有`data`，你需要创建`data`目录。
+如果你的`data`下面没有`.config.yaml`文件，你可以把源码目录下的`config.yaml`文件复制一份，重命名为`.config.yaml`
+
+修改`项目目录`下`data`目录下的`.config.yaml`文件，配置本项目所需的各种参数。默认的LLM使用的是`ChatGLMLLM`
 ，你需要配置密钥，因为他们的模型，虽然有免费的，但是仍要去[官网](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)注册密钥，才能启动。
 默认的TTS使用的是`EdgeTTS`，这个无需配置，如果你需要更换成`豆包TTS`，则需要配置密钥。
 
-```
-# 如果您是一名开发者，建议阅读以下内容。如果不是开发者，可以忽略这部分内容。
-# 在开发中，在项目根目录创建data目录，将【config.yaml】复制一份，改成【.config.yaml】，放进data目录中
-# 系统会优先读取【data/.config.yaml】文件的配置。
-# 这样做，可以避免在提交代码的时候，错误地提交密钥信息，保护您的密钥安全。
-```
-
 配置说明：这里是各个功能使用的默认组件，例如LLM默认使用`ChatGLMLLM`模型。如果需要切换模型，就是改对应的名称。
-
 本项目的默认配置仅是成本最低配置（`glm-4-flash`和`EdgeTTS`都是免费的），如果需要更优的更快的搭配，需要自己结合部署环境切换各组件的使用。
 
 ```
@@ -197,7 +249,7 @@ LLM:
 
 ## 模型文件
 
-下载源码后，需要下载模型文件。 默认使用`SenseVoiceSmall`模型，进行语音转文字。因为模型较大，需要独立下载，下载后把`model.pt`
+本项目语音识别模型，默认使用`SenseVoiceSmall`模型，进行语音转文字。因为模型较大，需要独立下载，下载后把`model.pt`
 文件放在`model/SenseVoiceSmall`
 目录下。下面两个下载路线任选一个。
 
@@ -205,46 +257,21 @@ LLM:
 - 线路二：百度网盘下载[SenseVoiceSmall](https://pan.baidu.com/share/init?surl=QlgM58FHhYv1tFnUT_A8Sg&pwd=qvna) 提取码:
   `qvna`
 
-
 ## 运行状态确认
-
-如果首次执行，可能需要几分钟时间，你要耐心等待他完成拉取。正常拉取完成后，你可以在命令行执行以下命令查看服务是否启动成功
-
-```
-docker ps
-```
-
-如果你能看到`xiaozhi-server`，说明服务启动成功。那你还可以进一步执行以下命令，查看服务的日志
-
-```
-docker logs -f xiaozhi-esp32-server
-```
 
 如果你能看到，类似以下日志,则是本项目服务启动成功的标志。
 
 ```
-2025-xx-xx xx:51:59,492 - core.server - INFO - Server is running at ws://xx.xx.xx.xxx:8000
-2025-xx-xx xx:51:59,516 - websockets.server - INFO - server listening on 0.0.0.0:8000
+25-02-23 12:01:09[core.websocket_server] - INFO - Server is running at ws://xxx.xx.xx.xx:8000
+25-02-23 12:01:09[core.websocket_server] - INFO - =======上面的地址是websocket协议地址，请勿用浏览器访问=======
 ```
 
-接下来，你就可以开始 `编译esp32固件`了，请往下翻，翻到编译`esp32固件`相关章节。那么由于你是用docker部署，你要自己查看自己本机电脑的ip是多少。
-正常来说，假设你的ip是`192.168.1.25`，那么你的接口地址就是：`ws://192.168.1.25:8000`。这个信息很有用的，后面`编译esp32固件`
-需要用到。
+正常来说，如果您是通过源码运行本项目，日志会有你的接口地址信息。
+但是如果你用docker部署，那么你的日志里给出的接口地址信息就不是真实的接口地址。
 
-请注意，你的接口地址是`websocket`协议的地址，你可以使用`apifox`等工具调试。但是不能直接用浏览器打开访问，如果用浏览器打开，日志会显示错误，会让你怀疑是否部署成功了。
+最正确的方法，是根据电脑的局域网IP来确定你的接口地址。
+如果你的电脑的局域网IP比如是`192.168.1.25`，那么你的接口地址就是：`ws://192.168.1.25:8000`。
 
-## 版本升级操作
+这个信息很有用的，后面`编译esp32固件`需要用到。
 
-如果想升级版本，可以这么操作
-
-1、备份好`config.yaml`文件，一些关键的配置到时复制到新的`config.yaml`文件里。
-
-2、执行以下命令
-
-```
-docker stop xiaozhi-esp32-server
-docker rm xiaozhi-esp32-server
-docker rmi ccr.ccs.tencentyun.com/xinnan/xiaozhi-esp32-server:latest
-```
-
-3、重新开始安装
+接下来，你就可以开始 [编译esp32固件](firmware-build.md)了。
