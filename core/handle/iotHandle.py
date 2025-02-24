@@ -44,12 +44,10 @@ class IotDescriptor:
             property_item["description"] = value["description"]
             if value["type"] == "number":
                 property_item["value"] = 0
-            elif value["type"] == "bool":
+            elif value["type"] == "boolean":
                 property_item["value"] = False
-            elif value["type"] == "string":
-                property_item["value"] = ""
             else:
-                raise ValueError("Invalid type")
+                property_item["value"] = ""
             self.properties.append(property_item)
 
         # 根据描述创建方法
@@ -75,12 +73,10 @@ class IotDescriptor:
                 method[k]["description"] = v["description"]
                 if v["type"] == "number":
                     method[k]["value"] = 0
-                elif v["type"] == "bool":
+                elif v["type"] == "boolean":
                     method[k]["value"] = False
-                elif v["type"] == "string":
-                    method[k]["value"] = ""
                 else:
-                    raise ValueError("Invalid type")
+                    method[k]["value"] = ""
 
             self.methods.append(method)
 
@@ -92,7 +88,7 @@ async def handleIotDescriptors(conn, descriptors):
         "name":"Speaker",
         "description":"当前 AI 机器人的扬声器",
         "properties":{
-            "volume":{"description":"当前音量 值","type":"number"}  可以有bool, int, string三种类型
+            "volume":{"description":"当前音量 值","type":"number"}  可以有boolean, number, string三种类型
         },
         "methods":{
             "SetVolume":{

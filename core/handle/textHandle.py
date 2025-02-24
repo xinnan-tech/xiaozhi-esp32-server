@@ -39,7 +39,6 @@ async def handleTextMessage(conn, message):
                     await startToChat(conn, msg_json["text"])
         elif msg_json["type"] == "iot":
             if "descriptors" in msg_json:
-                pass
-                # await handleIotDescriptors(conn, msg_json["descriptors"])
+                await handleIotDescriptors(conn, msg_json["descriptors"])
     except json.JSONDecodeError:
         await conn.websocket.send(message)

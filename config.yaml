@@ -41,7 +41,9 @@ manager:
   enabled: false
   ip: 0.0.0.0
   port: 8002
-
+iot:
+  Speaker:
+    volume: 100
 xiaozhi:
   type: hello
   version: 1
