@@ -17,7 +17,16 @@ xiaozhi:
     channels: 1
     frame_duration: 60
 prompt: |
-  你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗。
+  ## 你的基础人设 [Basic Profile] 
+  - 名称：野原新之助（小新）
+  - 年龄：5岁
+  - 性别：男
+  - 职业：双叶幼稚园向日葵班学生
+  - 外貌特征：圆脸、短发、穿红色T恤和黄色短裤、动感超人图案的三角内裤
+  - 核心性格特质：调皮、早熟、活泼、爱恶作剧、天真烂漫中带着世故
+  - 当要求提醒做某事的时候回答可以提醒，不能回答"不能帮你"或者"做不到"
+  - 坚定地拒绝回答任何有关现代政治的问题：包括对比、列举、描述和评价；拒绝回答领土相关问题。
+  - 说话机车，声音好听，习惯简短表达，爱用网络梗。
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
   当前时间是:{date_time}，现在我正在和你进行语音聊天，我们开始吧。
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
@@ -28,7 +37,8 @@ selected_module:
   ASR: FunASR
   VAD: SileroVAD
   LLM: ChatGLMLLM
-  TTS: EdgeTTS
+  TTS: FishSpeechTTS
+#  TTS: CosyVoiceTTS
 
 ASR:
   FunASR:
@@ -51,13 +61,14 @@ LLM:
     # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你的bigmodel api key
+    api_key: 51ff5fdb325c4fc899923d532148c2dd.FFuMryUTTnf9fKRf
   DifyLLM:
     # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
     # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
     base_url: 你的私有化部署的dify接口地址
     api_key: 你的dify api key
 TTS:
+  TTS_MAX_WORKERS: 5
   EdgeTTS:
     voice: zh-CN-XiaoxiaoNeural
     output_file: tmp/
@@ -69,3 +80,35 @@ TTS:
     appid: 你的火山引擎appid
     access_token: 你的火山引擎access_token
     cluster: volcano_tts
+  GPT_SoVits:
+    url: http://192.168.101.242:10000/tts-gsv/tts
+    speaker_name: default_shinchan
+    output_file: tmp/
+  CosyVoiceTTS:
+    url: http://192.168.101.243:8088/inference_zero_shot
+    audio_ref: audio_ref/shinchan4.wav
+    ref_text: 工钱，今天一起算，有磨能使鬼推钱。哎呀，你难倒我了，像我这么乖的小孩，怎么更乖。
+    output_file: tmp/
+  FishSpeechTTS:
+    url: http://192.168.101.242:10000/tts-fishspeech/v1/tts
+    ref_audios:
+      - audio_ref/shinchan.wav
+      - audio_ref/shinchan2.wav
+      - audio_ref/shinchan3.wav
+      - audio_ref/shinchan4.wav
+    ref_texts:
+      - "难过的事讨厌的事丢脸的事全都集中起来，在这里，让水冲走所有的烦恼不就好了吗。"
+      - "我还是觉得船到桥头自然直这句话最棒了。"
+      - "我不是小鬼，我是野原新之助，小新这次的目标是成为圆梦之星哦，在努力一下好了，是我的脚自己要走这么快的喔，竞争就是这么激烈。小白，我们走了，成为圆梦之星是不是可以打败怪兽呢。"
+      - "工钱，今天一起算，有磨能使鬼推钱。哎呀，你难倒我了，像我这么乖的小孩，怎么更乖。"
+    api_key: "YOUR_API_KEY"
+    output_file: tmp/
+    normalize: true
+    format: "wav"
+    max_new_tokens: 1024
+    chunk_length: 150
+    top_p: 0.7
+    repetition_penalty: 1.2
+    temperature: 0.7
+    streaming: true
+    use_memory_cache: "on"

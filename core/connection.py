@@ -14,7 +14,7 @@ from core.utils.dialogue import Message, Dialogue
 from core.handle.textHandle import handleTextMessage
 from core.utils.util import get_string_no_punctuation_or_emoji
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-from core.handle.audioHandle import handleAudioMessage, sendAudioMessage
+from core.handle.audioHandle import handleAudioMessage, sendAudioMessage, sendAudioMessageStream
 
 
 class ConnectionHandler:
@@ -36,7 +36,8 @@ class ConnectionHandler:
         self.loop = asyncio.get_event_loop()
         self.stop_event = threading.Event()
         self.tts_queue = queue.Queue()
-        self.executor = ThreadPoolExecutor(max_workers=10)
+        self.tts_stream_queue = queue.Queue()
+        self.executor = ThreadPoolExecutor(max_workers=self.config["TTS"]["TTS_MAX_WORKERS"])
         self.scheduled_tasks = deque()
 
         # 依赖的组件
@@ -79,7 +80,8 @@ class ConnectionHandler:
 
         await self.loop.run_in_executor(None, self._initialize_components)
 
-        tts_priority = threading.Thread(target=self._priority_thread, daemon=True)
+        # tts_priority = threading.Thread(target=self._priority_thread, daemon=True)
+        tts_priority = threading.Thread(target=self._priority_thread_stream, daemon=True)
         tts_priority.start()
 
         try:
@@ -131,22 +133,60 @@ class ConnectionHandler:
                 segment_text = get_string_no_punctuation_or_emoji(segment_text)
                 if len(segment_text) > 0:
                     self.recode_first_last_text(segment_text)
-                    future = self.executor.submit(self.speak_and_play, segment_text)
-                    self.tts_queue.put(future)
+                    chunk_queque = queue.Queue()
+                    try:
+                        self.executor.submit(self.speak_and_play_queue, segment_text,chunk_queque)
+                        self.tts_stream_queue.put({
+                            "text": segment_text,
+                            "chunk_queque": chunk_queque
+                        })
+                    except Exception as e:
+                        self.logger.error(f"TTS 处理出错 {segment_text}: {e}")
                     start = len(response_message)
 
         # 处理剩余的响应
         if start < len(response_message):
             segment_text = "".join(response_message[start:])
             self.recode_first_last_text(segment_text)
-            future = self.executor.submit(self.speak_and_play, segment_text)
-            self.tts_queue.put(future)
+            chunk_queque = queue.Queue()
+            self.executor.submit(self.speak_and_play_queue, segment_text,chunk_queque)
+            self.tts_stream_queue.put({
+                "text": segment_text,
+                "chunk_queque": chunk_queque
+            })
 
         self.llm_finish_task = True
         # 更新对话
         self.dialogue.put(Message(role="assistant", content="".join(response_message)))
         self.logger.debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
         return True
+
+    def _priority_thread_stream(self):
+        while not self.stop_event.is_set():
+            text = None
+            try:
+                tts_stream_queue_msg = self.tts_stream_queue.get()
+                try:
+                    text = tts_stream_queue_msg["text"]
+                    chunk_queque = tts_stream_queue_msg["chunk_queque"]
+                except TimeoutError:
+                    self.logger.error("TTS 任务超时")
+                    continue
+                except Exception as e:
+                    self.logger.error(f"TTS 任务出错: {e}")
+                    continue
+                if not self.client_abort:
+                    # 如果没有中途打断就发送语音
+                    asyncio.run_coroutine_threadsafe(
+                        sendAudioMessageStream(self, chunk_queque, 0, text), self.loop
+                    )
+            except Exception as e:
+                self.clearSpeakStatus()
+                asyncio.run_coroutine_threadsafe(
+                    self.websocket.send(json.dumps({"type": "tts", "state": "stop", "session_id": self.session_id})),
+                    self.loop
+                )
+                self.logger.error(f"tts_priority priority_thread: {text}{e}")
 
     def _priority_thread(self):
         while not self.stop_event.is_set():
@@ -181,6 +221,14 @@ class ConnectionHandler:
                     self.loop
                 )
                 self.logger.error(f"tts_priority priority_thread: {text}{e}")
+
+    def speak_and_play_queue(self,text,tts_queque):
+        if text is None or len(text) <= 0:
+            print(f"无需tts转换，query为空，{text}")
+            return None
+        self.tts.to_tts_stream_queue(text,tts_queque)
+        if tts_queque is None:
+            print(f"tts转换失败，{text}")
 
     def speak_and_play(self, text):
         if text is None or len(text) <= 0:

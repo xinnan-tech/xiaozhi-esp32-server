@@ -139,3 +139,6 @@ cython_debug/
 *.iml
 model.pt
 tmp
+/.idea/
+/generated_audio.wav
+/temp.wav

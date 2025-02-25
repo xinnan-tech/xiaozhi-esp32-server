@@ -21,7 +21,7 @@ async def handleTextMessage(conn, message):
                 conn.client_listen_mode = msg_json["mode"]
                 logger.debug(f"客户端拾音模式：{conn.client_listen_mode}")
             if msg_json["state"] == "start":
-                conn.client_have_voice = True
+                # conn.client_have_voice = True
                 conn.client_voice_stop = False
             elif msg_json["state"] == "stop":
                 conn.client_have_voice = True
