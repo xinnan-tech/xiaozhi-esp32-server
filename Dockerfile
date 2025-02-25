@@ -6,12 +6,26 @@ WORKDIR /app
 COPY requirements.txt .
 
 # 安装构建依赖
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    libopus-dev \
-    ffmpeg --fix-missing && \
-    rm -rf /var/lib/apt/lists/*
+ARG DEPENDENCIES="  \
+    ca-certificates \
+    libsox-dev \
+    build-essential \
+    cmake \
+    libasound-dev \
+    portaudio19-dev \
+    libportaudio2 \
+    libportaudiocpp0 \
+    ffmpeg"
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -ex \
+    && rm -f /etc/apt/apt.conf.d/docker-clean \
+    && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache \
+    && apt-get update \
+    && apt-get -y install --no-install-recommends ${DEPENDENCIES} \
+    && echo "no" | dpkg-reconfigure dash
+
 
 # 安装Python依赖到虚拟环境
 RUN python -m venv /opt/venv
