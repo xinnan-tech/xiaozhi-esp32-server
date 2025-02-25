@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+  fish-speech:
+    image: 192.168.101.99/yyn/fish-speech
+    container_name: fishspeech
+    restart: always
+    privileged: true
+    shm_size: '8gb'  # 设置共享内存大小为 8GB，设置小了，服务无法启动
+    network_mode: "bridge"
+    volumes:
+      - fish-speech-references:/opt/fish-speech/references
+      - fish-speech-ckpt:/opt/fish-speech/checkpoints
+      - fish-speech-models:/root/.cache/
+      - fish-speech-models:/root/.cache/
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: [ '1' ]
+              capabilities: [ gpu ]
+    environment:
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - HOSTNAME=192.168.101.244
+    command: python -m tools.api --listen 0.0.0.0:7861 --llama-checkpoint-path "checkpoints/fish-speech-1.4" --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" --decoder-config-name firefly_gan_vq --compile
+    ports:
+      - "17861:7861"
+
+
+
+volumes:
+  fish-speech-references:
+    driver_opts:
+      type: "nfs"
+      o: "addr=192.168.101.244,nolock,soft,rw"
+      device: ":/data/share/fish-speech/references"  # reference
+
+  fish-speech-ckpt:
+    driver_opts:
+      type: "nfs"
+      o: "addr=192.168.101.244,nolock,soft,rw"
+      device: ":/data/share/fish-speech/checkpoints"  # ckpt
+
+  fish-speech-logs:
+    driver_opts:
+      type: "nfs"
+      o: "addr=192.168.101.244,nolock,soft,rw"
+      device: ":/data/share/var/logs/fishspeech/logs"
+
+  fish-speech-models:
+    driver_opts:
+      type: "nfs"
+      o: "addr=192.168.101.244,nolock,soft,rw"
+      device: ":/data/share/models"  # 远程 hg/ms
