@@ -19,14 +19,14 @@ from core.handle.sendAudioHandle import sendAudioMessage
 from core.handle.receiveAudioHandle import handleAudioMessage
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
-from core.utils.auth_code_gen import AuthCodeGenerator  # 添加导入
-from core.handle.musicHandler import MusicHandler  # 添加这行
+from core.utils.auth_code_gen import AuthCodeGenerator
+
 
 TAG = __name__
 
 
 class ConnectionHandler:
-    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, websocket_server=None):
+    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music):
         self.config = config
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
@@ -88,8 +88,7 @@ class ConnectionHandler:
         self.private_config = None
         self.auth_code_gen = AuthCodeGenerator.get_instance()
         self.is_device_verified = False  # 添加设备验证状态标志
-        self.music_handler = MusicHandler(config)  # 确保这行存在
-        self.websocket_server = websocket_server  # 添加server引用
+        self.music_handler = _music
 
     async def handle_connection(self, ws):
         try:
@@ -334,10 +333,6 @@ class ConnectionHandler:
         if self.websocket:
             await self.websocket.close()
         self.logger.bind(tag=TAG).info("连接资源已释放")
-
-        # 确保从活跃连接集合中移除
-        if self.websocket_server and self in self.websocket_server.active_connections:
-            self.websocket_server.active_connections.discard(self)
 
     def reset_vad_states(self):
         self.client_audio_buffer = bytes()

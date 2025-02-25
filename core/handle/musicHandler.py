@@ -53,12 +53,12 @@ class MusicHandler:
     async def handle_music_command(self, conn, text):
         """处理音乐播放指令"""
         clean_text = re.sub(r'[^\w\s]', '', text).strip()
-        logger.bind(tag=TAG).info(f"检查是否是音乐命令: {clean_text}")
+        logger.bind(tag=TAG).debug(f"检查是否是音乐命令: {clean_text}")
 
         # 尝试匹配具体歌名
         if os.path.exists(self.music_dir):
             music_files = [f for f in os.listdir(self.music_dir) if f.endswith('.mp3')]
-            logger.bind(tag=TAG).info(f"找到的音乐文件: {music_files}")
+            logger.bind(tag=TAG).debug(f"找到的音乐文件: {music_files}")
 
             potential_song = _extract_song_name(clean_text)
             if potential_song:
