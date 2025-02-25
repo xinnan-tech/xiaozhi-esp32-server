@@ -10,7 +10,7 @@ RUN sudo apt-get update && \
     sudo apt-get install -y --no-install-recommends \
     gcc \
     libopus-dev \
-    ffmpeg && \
+    ffmpeg --fix-missing && \
     rm -rf /var/lib/apt/lists/*
 
 # 安装Python依赖到虚拟环境
