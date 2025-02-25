@@ -6,7 +6,6 @@ import random
 import difflib
 import re
 import traceback
-import time
 import threading
 import websockets
 
@@ -144,9 +143,8 @@ class MusicHandler:
         try:
             # 将流式任务保存为实例属性
             self._current_stream_task = asyncio.current_task()
-            total_sent = 0
-            start_time = time.time()
 
+            # TODO 对发送音频进行流控，以避免过快的网络传输导致的卡顿
             for i, opus_packet in enumerate(opus_packets):
                 if self.stop_event.is_set():
                     # 如果被中断，先发送停止消息再退出
@@ -156,23 +154,8 @@ class MusicHandler:
                         except:
                             pass
                     break
-
-                expected_time = start_time + (i * packet_duration / 1000)
-                current_time = time.time()
-
-                if current_time < expected_time:
-                    await asyncio.sleep(expected_time - current_time)
-
-                try:
-                    await conn.websocket.send(opus_packet)
-                    total_sent += len(opus_packet)
-                except:
-                    break
-
-                if i % 100 == 0:
-                    logger.bind(tag=TAG).debug(f"已发送 {i}/{len(opus_packets)} 个数据包")
-
-                await asyncio.sleep(0.02)  # 控制发送频率
+                await conn.websocket.send(opus_packet)
+            logger.bind(tag=TAG).info("发送完毕")
         except asyncio.CancelledError:
             logger.bind(tag=TAG).info("音乐播放被强制取消")
         finally:

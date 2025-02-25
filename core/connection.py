@@ -94,7 +94,9 @@ class ConnectionHandler:
         try:
             # 获取并验证headers
             self.headers = dict(ws.request.headers)
-            self.logger.bind(tag=TAG).info(f"New connection request - Headers: {self.headers}")
+            # 获取客户端ip地址
+            client_ip = ws.remote_address[0]
+            self.logger.bind(tag=TAG).info(f"{client_ip} conn - Headers: {self.headers}")
 
             # 进行认证
             await self.auth.authenticate(self.headers)
