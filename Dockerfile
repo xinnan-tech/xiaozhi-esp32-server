@@ -6,8 +6,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # 安装构建依赖
-RUN sodu apt-get update && \
-    sodu apt-get install -y --no-install-recommends \
+RUN sudo apt-get update && \
+    sudo apt-get install -y --no-install-recommends \
     gcc \
     libopus-dev \
     ffmpeg && \
