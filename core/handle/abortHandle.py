@@ -9,9 +9,6 @@ async def handleAbortMessage(conn):
     logger.bind(tag=TAG).info("Abort message received")
     # 设置成打断状态，会自动打断llm、tts任务
     conn.client_abort = True
-    # 停止音乐播放
-    if conn.music_handler.is_playing:
-        conn.music_handler.stop_playing()
     # 打断屏显任务
     conn.stop_all_tasks()
     # 打断客户端说话状态

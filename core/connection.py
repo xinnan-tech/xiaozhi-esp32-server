@@ -15,13 +15,15 @@ from core.utils.dialogue import Message, Dialogue
 from core.handle.textHandle import handleTextMessage
 from core.utils.util import get_string_no_punctuation_or_emoji
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-from core.handle.audioHandle import handleAudioMessage, sendAudioMessage
+from core.handle.sendAudioHandle import sendAudioMessage
+from core.handle.receiveAudioHandle import handleAudioMessage
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator  # 添加导入
 from core.handle.musicHandler import MusicHandler  # 添加这行
 
 TAG = __name__
+
 
 class ConnectionHandler:
     def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, websocket_server=None):
@@ -82,13 +84,12 @@ class ConnectionHandler:
         for cmd in self.cmd_exit:
             if len(cmd) > self.max_cmd_length:
                 self.max_cmd_length = len(cmd)
-        
+
         self.private_config = None
         self.auth_code_gen = AuthCodeGenerator.get_instance()
         self.is_device_verified = False  # 添加设备验证状态标志
         self.music_handler = MusicHandler(config)  # 确保这行存在
         self.websocket_server = websocket_server  # 添加server引用
-
 
     async def handle_connection(self, ws):
         try:
@@ -102,7 +103,7 @@ class ConnectionHandler:
             await self.auth.authenticate(self.headers)
 
             device_id = self.headers.get("device-id", None)
-            
+
             # Load private configuration if device_id is provided
             bUsePrivateConfig = self.config.get("use_private_config", False)
             self.logger.bind(tag=TAG).info(f"bUsePrivateConfig: {bUsePrivateConfig}, device_id: {device_id}")
@@ -113,10 +114,10 @@ class ConnectionHandler:
                     # 判断是否已经绑定
                     owner = self.private_config.get_owner()
                     self.is_device_verified = owner is not None
-                    
+
                     if self.is_device_verified:
-                        await self.private_config.update_last_chat_time() 
-                    
+                        await self.private_config.update_last_chat_time()
+
                     llm, tts = self.private_config.create_private_instances()
                     if all([llm, tts]):
                         self.llm = llm
@@ -176,7 +177,7 @@ class ConnectionHandler:
             date_time = time.strftime("%Y-%m-%d %H:%M", time.localtime())
             self.prompt = self.prompt.replace("{date_time}", date_time)
         self.dialogue.put(Message(role="system", content=self.prompt))
-          
+
     async def _check_and_broadcast_auth_code(self):
         """检查设备绑定状态并广播认证码"""
         if not self.private_config.get_owner():
@@ -196,7 +197,7 @@ class ConnectionHandler:
             # 如果不使用私有配置，就不需要验证
             return False
         return not self.is_device_verified
-    
+
     def chat(self, query):
         # 如果设备未验证，就发送验证码
         if self.isNeedAuth():
@@ -209,7 +210,7 @@ class ConnectionHandler:
             finally:
                 loop.close()
             return True
-        
+
         self.dialogue.put(Message(role="user", content=query))
         response_message = []
         start = 0
@@ -326,18 +327,14 @@ class ConnectionHandler:
 
     async def close(self):
         """资源清理方法"""
-        # 先停止音乐播放
-        if self.music_handler.is_playing:
-            self.music_handler.stop_playing()
-            await self.music_handler._send_tts_message(self, "stop")
-        
+
         # 清理其他资源
         self.stop_event.set()
         self.executor.shutdown(wait=False)
         if self.websocket:
             await self.websocket.close()
         self.logger.bind(tag=TAG).info("连接资源已释放")
-        
+
         # 确保从活跃连接集合中移除
         if self.websocket_server and self in self.websocket_server.active_connections:
             self.websocket_server.active_connections.discard(self)

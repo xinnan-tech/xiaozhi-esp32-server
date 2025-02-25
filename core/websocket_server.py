@@ -63,14 +63,6 @@ class WebSocketServer:
 
     async def _handle_connection(self, websocket):
         """处理新连接，每次创建独立的ConnectionHandler"""
-        # 当有新连接时，停止所有正在播放的音乐
-        for handler in self.active_connections.copy():
-            if handler.music_handler.is_playing:
-                self.logger.bind(tag=TAG).info(f"终止现有连接 {handler.session_id} 的音乐播放")
-                # 先发送停止消息再终止
-                await handler.music_handler._send_tts_message(handler, "stop")
-                handler.music_handler.stop_playing()
-        
         # 创建ConnectionHandler时传入当前server实例
         handler = ConnectionHandler(self.config, self._vad, self._asr, self._llm, self._tts, self)
         self.active_connections.add(handler)
