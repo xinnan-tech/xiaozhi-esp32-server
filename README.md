@@ -58,28 +58,13 @@
     </tr>
 </table>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ---
 
 ## 系统要求与部署前提 🖥️
 
 - **硬件**：一套兼容 `xiaozhi-esp32`
   的硬件设备（具体型号请参考 [此处](https://rcnv1t9vps13.feishu.cn/wiki/DdgIw4BUgivWDPkhMj1cGIYCnRf)）。
-- **服务器**：至少 4 核 CPU、8G 内存的电脑或服务器。
+- **服务器**：至少 4 核 CPU、8G 内存的电脑。
 - **固件编译**：请将后端服务的接口地址更新至 `xiaozhi-esp32` 项目中，再重新编译固件并烧录到设备上。
 
 ---
@@ -178,17 +163,25 @@ server:
 
 ### 一、[部署文档](./docs/Deployment.md)
 
-本项目支持以下三种部署方式，您可根据实际需求选择：
+本项目支持以下三种部署方式，您可根据实际需求选择。
+
+本项目的文档主要是`文字版本`的教程，如果你想要`视频版本`的教程，您可以学习一下[这个大佬的手把手教程](https://www.bilibili.com/video/BV1gePuejEvT)。
+
+如果你能把`文字版本的教程`和`视频版本的教程`结合起来一起看，可以让你更快上手。
 
 1. [Docker 快速部署](./docs/Deployment.md)
-   适合快速体验，不需过多环境配置。缺点是，拉取镜像有点慢。
+
+适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。
 
 2. [借助 Docker 环境运行部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)
-   适用于已安装 Docker 且希望对代码进行自定义修改的用户。
+
+适用于已安装 Docker 且希望对代码进行自定义修改的软件工程师。
 
 3. [本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)
-   适合熟悉 Conda 环境或希望从零搭建运行环境的用户。  
-   对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
+
+适合熟悉`Conda` 环境或希望从零搭建运行环境的用户。
+
+对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
 
 ### 二、[固件编译](./docs/firmware-build.md)
 
@@ -304,7 +297,6 @@ TTS 性能排行:
 ## 鸣谢 🙏
 
 - 本项目受 [百聆语音对话机器人](https://github.com/wwbin2017/bailing) 启发，并在其基础上实现。
-- 感谢 [腾讯云](https://cloud.tencent.com/) 提供免费 Docker 镜像空间。
 - 感谢 [十方融海](https://www.tenclass.com/) 对小智通讯协议提供的详尽文档支持。
 
 <a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">

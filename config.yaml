@@ -41,7 +41,9 @@ manager:
   enabled: false
   ip: 0.0.0.0
   port: 8002
-
+iot:
+  Speaker:
+    volume: 100
 xiaozhi:
   type: hello
   version: 1
@@ -147,6 +149,12 @@ LLM:
     user_id: 你的user_id
     base_url: "https://api.coze.cn/open_api/v2/chat" # 服务地址
     personal_access_token: 你的coze个人令牌
+  LMStudioLLM:
+    # 定义LLM API类型
+    type: openai
+    model_name: deepseek-r1-distill-llama-8b@q4_k_m # 使用的模型名称，需要预先在社区下载
+    url: http://localhost:1234/v1 # LM Studio服务地址
+    api_key: lm-studio # LM Studio服务的固定API Key
   HomeAssistant:
     # 定义LLM API类型
     type: homeassistant

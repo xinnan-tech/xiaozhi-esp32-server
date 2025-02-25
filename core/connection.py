@@ -4,6 +4,7 @@ import uuid
 import time
 import queue
 import asyncio
+import traceback
 from config.logger import setup_logging
 import threading
 import websockets
@@ -72,6 +73,9 @@ class ConnectionHandler:
         self.tts_last_text = None
         self.tts_start_speak_time = None
         self.tts_duration = 0
+
+        # iot相关变量
+        self.iot_descriptors = {}
 
         self.cmd_exit = self.config["CMD_exit"]
         self.max_cmd_length = 0
@@ -149,7 +153,8 @@ class ConnectionHandler:
             await ws.close()
             return
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"Connection error: {str(e)}")
+            stack_trace = traceback.format_exc()
+            self.logger.bind(tag=TAG).error(f"Connection error: {str(e)}-{stack_trace}")
             await ws.close()
             return
 
