@@ -142,3 +142,4 @@ tmp
 /.idea/
 /generated_audio.wav
 /temp.wav
+/models/SenseVoiceSmall/
