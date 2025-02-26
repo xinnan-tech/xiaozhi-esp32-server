@@ -4,7 +4,6 @@ services:
     image: 192.168.101.99/yyn/192.168.101.99/yyn/esp32-server:1.0
     container_name: esp32-server
     restart: always
-    privileged: true
     shm_size: '8gb'  # 设置共享内存大小为 8GB，设置小了，服务无法启动
     network_mode: "bridge"
     volumes:
@@ -18,7 +17,7 @@ services:
           devices:
             - driver: nvidia
               capabilities: [gpu]
-              device_ids: ['0','1']
+              device_ids: ['1']
     environment:
       - GRADIO_SERVER_NAME=0.0.0.0
       - HOSTNAME=192.168.101.243
