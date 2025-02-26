@@ -92,10 +92,10 @@ TTS:
   FishSpeechTTS:
     url: http://192.168.101.242:10000/tts-fishspeech/v1/tts
     ref_audios:
-      - audio_ref/shinchan.wav
-      - audio_ref/shinchan2.wav
-      - audio_ref/shinchan3.wav
-      - audio_ref/shinchan4.wav
+      - "audio_ref/shinchan.wav"
+      - "audio_ref/shinchan2.wav"
+      - "audio_ref/shinchan3.wav"
+      - "audio_ref/shinchan4.wav"
     ref_texts:
       - "难过的事讨厌的事丢脸的事全都集中起来，在这里，让水冲走所有的烦恼不就好了吗。"
       - "我还是觉得船到桥头自然直这句话最棒了。"
