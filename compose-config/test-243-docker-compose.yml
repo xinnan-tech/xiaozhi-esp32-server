@@ -6,11 +6,6 @@ services:
     restart: always
     shm_size: '8gb'  # 设置共享内存大小为 8GB，设置小了，服务无法启动
     network_mode: "bridge"
-    volumes:
-      - /appdata/share/tts-data/fish-speech/references:/opt/fish-speech/references
-      - /appdata/share/tts-data/fish-speech/logs:/opt/fish-speech/logs
-      - /appdata/share/tts-models/fish-speech/checkpoints:/opt/fish-speech/checkpoints
-      - /appdata/share/models/cache:/root/.cache/
     deploy:
       resources:
         reservations:
