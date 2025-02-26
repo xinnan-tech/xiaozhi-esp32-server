@@ -267,8 +267,6 @@ class FishSpeech_TTS(TTS):
                     byte_audios = [audio_to_bytes(ref_audio) for ref_audio in ref_audios]
                 if ref_texts is None:
                     ref_texts = []
-                else:
-                    ref_texts = [read_ref_text(ref_text) for ref_text in ref_texts]
             else:
                 byte_audios = []
                 ref_texts = []
