@@ -6,9 +6,7 @@ import json
 
 
 def get_project_dir():
-    projectName = 'xiaozhi-esp32-server'
-    filePath = os.path.abspath(__file__)
-    return filePath[:filePath.rfind('/' + projectName + '/') + len(projectName) + 2]
+    return os.environ["PROJECT_ROOT_PATH"]
 
 
 def get_local_ip():
