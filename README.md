@@ -1,4 +1,15 @@
-![图片](docs/images/banner.png)
+[![SVG Banners](https://svg-banners.vercel.app/api?type=origin&text1=你好😃，小智📟&text2=开源小智ESP-32后端服务&width=800&height=210)](https://github.com/xinnan-tech/xiaozhi-esp32-server)
+<p align="center">
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors">
+    <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/xinnan-tech/xiaozhi-esp32-server" />
+  </a>
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/issues">
+    <img alt="Issues" src="https://img.shields.io/github/issues/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
+  </a>
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/pulls">
+    <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
+  </a>
+</p>
 
 # 小智 ESP-32 后端服务(xiaozhi-esp32-server)
 
@@ -165,7 +176,8 @@ server:
 
 本项目支持以下三种部署方式，您可根据实际需求选择。
 
-本项目的文档主要是`文字版本`的教程，如果你想要`视频版本`的教程，您可以学习一下[这个大佬的手把手教程](https://www.bilibili.com/video/BV1gePuejEvT)。
+本项目的文档主要是`文字版本`的教程，如果你想要`视频版本`
+的教程，您可以学习一下[这个大佬的手把手教程](https://www.bilibili.com/video/BV1gePuejEvT)。
 
 如果你能把`文字版本的教程`和`视频版本的教程`结合起来一起看，可以让你更快上手。
 
