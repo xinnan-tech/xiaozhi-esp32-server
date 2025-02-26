@@ -110,6 +110,48 @@ async def handleIotDescriptors(conn, descriptors):
     logger.bind(tag=TAG).info(f"服务端设置音量为{default_iot_volume}")
     await send_iot_conn(conn, "Speaker", "SetVolume", {"volume": default_iot_volume})
 
+async def handleIotStatus(conn, states):
+    """
+    处理物联网状态
+    示例: [{
+        "name":"Speaker",
+        "state":{
+            "volume":100
+        }
+    }]
+    states: 状态列表
+    """
+    for state in states:
+        for key, value in conn.iot_descriptors.items():
+            if key == state["name"]:
+                for property_item in value.properties:
+                    # properties为字典列表, 记录各种属性
+                    for k, v in state["state"].items():
+                        # state为字典, 记录各种属性的值, 是需要记录的信息
+                        if property_item["name"] == k:
+                            # 检查一下属性是不是相同的
+                            if type(v) != type(property_item["value"]):
+                                logger.bind(tag=TAG).error(f"属性{property_item['name']}的值类型不匹配")
+                                break
+                            else:
+                                property_item["value"] = v
+                                logger.bind(tag=TAG).info(f"物联网状态更新: {key} , {property_item['name']} = {v}")
+                            break
+                break
+
+async def get_iot_status(conn, name, property_name):
+    """
+    获取物联网状态
+    name: 设备名称 "Speaker"
+    property_name: 属性名称 "volume"
+    返回值: 属性值, 实际的属性有int, bool和str三种类型
+    """
+    for key, value in conn.iot_descriptors.items():
+        if key == name:
+            for property_item in value.properties:
+                if property_item["name"] == property_name:
+                    return property_item["value"]
+    return None
 
 async def send_iot_conn(conn, name, method_name, parameters):
     """
