@@ -121,12 +121,14 @@ async def sendAudioMessageStream(conn, audios_queue, duration, text):
 
     # 发送音频数据 -获取队列的数据发送
     start_time = time.time()
+    check_index = 0
     while True:
         try:
+            start_get_queue = time.time()
             # 尝试获取数据，如果没有数据，则等待一小段时间再试
             audio_data_chunke = None
             try:
-                audio_data_chunke = audios_queue.get(timeout=2)  # 设置超时为1秒
+                audio_data_chunke = audios_queue.get(timeout=5)  # 设置超时为1秒
             except Exception as e:
                 # 如果超时，继续等待
                 print(f"获取队列超时～{e}")
@@ -145,8 +147,10 @@ async def sendAudioMessageStream(conn, audios_queue, duration, text):
                 break
 
             if audio_data_chunke_data:
+                queue_duration = time.time() - start_get_queue - duration
+                # queue_duration = 0 if queue_duration < 0 else queue_duration
                 opus_datas, duration = conn.tts.wav_to_opus_data_audio(audio_data_chunke_data)
-                conn.tts_duration = conn.tts_duration + duration
+                conn.tts_duration = conn.tts_duration+duration+queue_duration
                 for opus_packet in opus_datas:
                     await conn.websocket.send(opus_packet)
                 print(f"已获取音频数据，长度为 {len(audio_data_chunke_data)}，总长度为 {len(audio_data_chunke_data)}")
