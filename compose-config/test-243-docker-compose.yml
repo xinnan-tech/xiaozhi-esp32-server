@@ -6,7 +6,7 @@ services:
     restart: always
     network_mode: "bridge"
     volumes:
-      - /appdata/share/esp32-server/asr-models:/app/asr-models
+      - /appdata/share/esp32-server/asr-models:/opt/xiaozhi-es32-server/asr-models
     deploy:
       resources:
         reservations:

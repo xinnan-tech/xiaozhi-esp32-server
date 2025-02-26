@@ -143,3 +143,4 @@ tmp
 /generated_audio.wav
 /temp.wav
 /models/SenseVoiceSmall/
+/asr-models/

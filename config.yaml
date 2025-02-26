@@ -42,7 +42,7 @@ selected_module:
 
 ASR:
   FunASR:
-    model_dir: asr-models/SenseVoiceSmall
+    model_dir: asr-models/iic/SenseVoiceSmall
     output_dir: tmp/
 
 VAD:
