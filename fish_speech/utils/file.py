@@ -39,8 +39,6 @@ def get_latest_checkpoint(path: Path | str) -> Path | None:
 
 
 def audio_to_bytes(file_path):
-    if not file_path or not Path(file_path).exists():
-        return None
     with open(file_path, "rb") as wav_file:
         wav = wav_file.read()
     return wav
