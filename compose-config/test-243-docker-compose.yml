@@ -17,4 +17,4 @@ services:
       - GRADIO_SERVER_NAME=0.0.0.0
       - HOSTNAME=192.168.101.243
     ports:
-      - "18089:8080"
+      - "18089:8000"
