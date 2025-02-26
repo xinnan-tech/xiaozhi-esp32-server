@@ -61,4 +61,4 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY . .
 
 # 启动应用
-CMD ["python", "app.py"]
+CMD ["./entrypoint-api.sh"]
