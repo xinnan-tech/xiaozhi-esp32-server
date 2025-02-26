@@ -4,8 +4,9 @@ services:
     image: 192.168.101.99/yyn/192.168.101.99/yyn/esp32-server:1.0
     container_name: esp32-server
     restart: always
-    shm_size: '8gb'  # 设置共享内存大小为 8GB，设置小了，服务无法启动
     network_mode: "bridge"
+    volumes:
+      - /appdata/share/esp32-server/asr-models:/app/asr-models
     deploy:
       resources:
         reservations:
