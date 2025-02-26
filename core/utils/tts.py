@@ -6,6 +6,7 @@ import json
 import queue
 import threading
 import time
+import traceback
 import uuid
 import base64
 import wave
@@ -254,85 +255,88 @@ class FishSpeech_TTS(TTS):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
 
     async def text_to_speak_queue(self, text, queue: queue.Queue):
-
-        idstr = None
-        # priority: ref_id > [{text, audio},...]
-        if idstr is None:
-            ref_audios = self.ref_audios
-            ref_texts = self.ref_texts
-            if ref_audios is None:
+        try:
+            idstr = None
+            # priority: ref_id > [{text, audio},...]
+            if idstr is None:
+                ref_audios = self.ref_audios
+                ref_texts = self.ref_texts
+                if ref_audios is None:
+                    byte_audios = []
+                else:
+                    byte_audios = [audio_to_bytes(ref_audio) for ref_audio in ref_audios]
+                if ref_texts is None:
+                    ref_texts = []
+                else:
+                    ref_texts = [read_ref_text(ref_text) for ref_text in ref_texts]
+            else:
                 byte_audios = []
-            else:
-                byte_audios = [audio_to_bytes(ref_audio) for ref_audio in ref_audios]
-            if ref_texts is None:
                 ref_texts = []
-            else:
-                ref_texts = [read_ref_text(ref_text) for ref_text in ref_texts]
-        else:
-            byte_audios = []
-            ref_texts = []
-            pass  # in api.py
+                pass  # in api.py
 
-        data = {
-            "text": text,
-            "references": [
-                ServeReferenceAudio(
-                    audio=ref_audio if ref_audio is not None else b"", text=ref_text
-                )
-                for ref_text, ref_audio in zip(ref_texts, byte_audios)
-            ],
-            "reference_id": idstr,
-            "normalize": self.normalize,
-            "format": self.format,
-            "max_new_tokens": self.max_new_tokens,
-            "chunk_length": self.chunk_length,
-            "top_p": self.top_p,
-            "repetition_penalty": self.repetition_penalty,
-            "temperature": self.temperature,
-            "streaming": self.streaming,
-            "use_memory_cache": self.use_memory_cache,
-            "seed": self.seed,
-        }
+            data = {
+                "text": text,
+                "references": [
+                    ServeReferenceAudio(
+                        audio=ref_audio if ref_audio is not None else b"", text=ref_text
+                    )
+                    for ref_text, ref_audio in zip(ref_texts, byte_audios)
+                ],
+                "reference_id": idstr,
+                "normalize": self.normalize,
+                "format": self.format,
+                "max_new_tokens": self.max_new_tokens,
+                "chunk_length": self.chunk_length,
+                "top_p": self.top_p,
+                "repetition_penalty": self.repetition_penalty,
+                "temperature": self.temperature,
+                "streaming": self.streaming,
+                "use_memory_cache": self.use_memory_cache,
+                "seed": self.seed,
+            }
 
-        pydantic_data = ServeTTSRequest(**data)
-        last_chunk = b''
-        overlap = 882
-        chunk_total = b''
-        with requests.post(
-                self.url,
-                data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
-                stream=self.streaming,
-                headers={
-                    "authorization": f"Bearer {self.api_key}",
-                    "content-type": "application/msgpack",
-                },
-        ) as response:
-            if response.status_code == 200:
-                for chunk in response.iter_content(chunk_size=52920):
-                    # 拼接当前块和上一块数据
-                    chunk_total += chunk
-                    if len(chunk_total) >= 52920 and len(chunk_total)%2==0:
+            pydantic_data = ServeTTSRequest(**data)
+            last_chunk = b''
+            overlap = 882
+            chunk_total = b''
+            with requests.post(
+                    self.url,
+                    data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
+                    stream=self.streaming,
+                    headers={
+                        "authorization": f"Bearer {self.api_key}",
+                        "content-type": "application/msgpack",
+                    },
+            ) as response:
+                if response.status_code == 200:
+                    for chunk in response.iter_content(chunk_size=52920):
+                        # 拼接当前块和上一块数据
+                        chunk_total += chunk
+                        if len(chunk_total) >= 52920 and len(chunk_total)%2==0:
+                            current_audio = last_chunk + chunk_total
+                            # 只保留当前块的最后16个字节
+                            last_chunk = current_audio[-overlap:]  # 这里可以根据实际音频样本长度调整
+                            queue.put({
+                                "data": current_audio,
+                                "end": False
+                            })
+                            chunk_total = b''
+                    if len(chunk_total) > 0:
                         current_audio = last_chunk + chunk_total
-                        # 只保留当前块的最后16个字节
-                        last_chunk = current_audio[-overlap:]  # 这里可以根据实际音频样本长度调整
                         queue.put({
                             "data": current_audio,
                             "end": False
                         })
-                        chunk_total = b''
-                if len(chunk_total) > 0:
-                    current_audio = last_chunk + chunk_total
-                    queue.put({
-                        "data": current_audio,
-                        "end": False
-                    })
 
-            else:
-                print('请求失败:', response.status_code, response.text)
-        queue.put({
-            "data": None,
-            "end": True
-        })
+                else:
+                    print('请求失败:', response.status_code, response.text)
+            queue.put({
+                "data": None,
+                "end": True
+            })
+        except Exception as e:
+            print(f"请求tts-fishspeech发生错误: {e}")
+            traceback.print_exc()
 
     async def text_to_speak(self, text, output_file):
         raise "不支持"
