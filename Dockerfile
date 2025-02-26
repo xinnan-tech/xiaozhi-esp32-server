@@ -11,7 +11,6 @@ ARG DEPENDENCIES="  \
     libsox-dev \
     build-essential \
     cmake \
-    libopus0 \
     libasound-dev \
     portaudio19-dev \
     libportaudio2 \
@@ -40,6 +39,20 @@ WORKDIR /opt/xiaozhi-es32-server
 
 # 从构建阶段复制虚拟环境
 COPY --from=builder /opt/venv /opt/venv
+
+# 安装运行时依赖
+ARG DEPENDENCIES="  \
+    libopus0 \
+    ffmpeg"
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -ex \
+    && rm -f /etc/apt/apt.conf.d/docker-clean \
+    && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache \
+    && apt-get update \
+    && apt-get -y install --no-install-recommends ${DEPENDENCIES} \
+    && echo "no" | dpkg-reconfigure dash
 
 # 设置虚拟环境路径
 ENV PATH="/opt/venv/bin:$PATH"
