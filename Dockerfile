@@ -11,6 +11,7 @@ ARG DEPENDENCIES="  \
     libsox-dev \
     build-essential \
     cmake \
+    libopus0 \
     libasound-dev \
     portaudio19-dev \
     libportaudio2 \
