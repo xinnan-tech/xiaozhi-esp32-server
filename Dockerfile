@@ -40,14 +40,6 @@ WORKDIR /opt/xiaozhi-es32-server
 # 从构建阶段复制虚拟环境
 COPY --from=builder /opt/venv /opt/venv
 
-# 安装运行时依赖
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libopus0 \
-    ffmpeg && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
 # 设置虚拟环境路径
 ENV PATH="/opt/venv/bin:$PATH"
 
