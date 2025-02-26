@@ -5,6 +5,7 @@ import importlib
 from datetime import datetime
 from core.utils.util import read_config, get_project_dir
 
+TAG = __name__
 logger = setup_logging()
 
 
@@ -12,6 +13,7 @@ def create_instance(class_name, *args, **kwargs):
     # 创建TTS实例
     if os.path.exists(os.path.join('core', 'providers', 'tts', f'{class_name}.py')):
         lib_name = f'core.providers.tts.{class_name}'
+        logger.bind(tag=TAG).info(f"加载TTS模块: {lib_name}")
         if lib_name not in sys.modules:
             sys.modules[lib_name] = importlib.import_module(f'{lib_name}')
         return sys.modules[lib_name].TTSProvider(*args, **kwargs)

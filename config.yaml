@@ -107,6 +107,13 @@ LLM:
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
     api_key: 你的deepseek api key
+  OpenAILLM:
+    # 定义LLM API类型
+    type: openai
+    # 可在这里找到你的 api_key https://platform.openai.com/api-keys
+    base_url: https://api.openai.com/v1
+    model_name: gpt-4-turbo # o3-mini
+    api_key: 你的openAI api key
   DeepSeekLLM:
     # 定义LLM API类型
     type: openai
@@ -161,6 +168,23 @@ LLM:
     base_url: http://homeassistant.local:8123
     agent_id: conversation.chatgpt
     api_key: 你的home assistant api访问令牌
+  SparkLLM:
+    # 定义LLM API类型
+    type: spark
+    #appid、api_secret、api_key三个服务认证信息请前往开放平台控制台查看（https://console.xfyun.cn/services/bm35）
+    # base_url = "wss://spark-api.xf-yun.com/v3.5/chat",      # Max环境的地址   
+    # base_url = "wss://spark-api.xf-yun.com/v4.0/chat",  # 4.0Ultra环境的地址
+    # base_url = "wss://spark-api.xf-yun.com/v3.1/chat"  # Pro环境的地址
+    # base_url = "wss://spark-api.xf-yun.com/v1.1/chat"  # Lite环境的地址
+    # domain = "generalv3.5",     # Max版本
+    # domain = "4.0Ultra",     # 4.0Ultra 版本
+    # domain = "generalv3"    # Pro版本
+    # domain = "lite"      # Lite版本址
+    appid: 你的xfyun App Id
+    api_secret: 你的xfyun Access Token
+    api_key: 你的xfyun api key
+    base_url: wss://spark-api.xf-yun.com/v4.0/chat
+    model_name: 4.0Ultra
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
@@ -305,6 +329,31 @@ TTS:
     # volume: 50
     # speech_rate: 0
     # pitch_rate: 0
+  OpenAITTS:
+    # 定义TTS API类型
+    type: openai
+    # OpenAI TTS服务配置
+    model_name: tts-1
+    api_url: https://api.openai.com/v1
+    api_key: 你的openAI api key
+    # 可选的语音模型：alloy, ash, coral, echo, fable, onyx, nova, sage, shimmer
+    voice: alloy
+    # 输出文件目录
+    output_file: tmp/    
+  SparkTTS:
+    # 定义LLM API类型
+    type: spark
+    # "voice": "xiaoyan",
+    # "sample_rate": 16000,
+    # "output_file": "output"
+    #appid、api_secret、api_key三个服务认证信息请前往开放平台控制台查看（https://console.xfyun.cn/services/bm35）
+    # Spark_url="wss://spark-api.xf-yun.com/v3.5/chat",      # Max环境的地址   
+    appid: 你的xfyun App Id
+    api_secret: 你的xfyun Access Token
+    api_key: 你的xfyun api key    
+    voice: xiaoyan
+    sample_rate: 16000
+    output_file: tmp/    
 
 # 模块测试配置
 module_test:
