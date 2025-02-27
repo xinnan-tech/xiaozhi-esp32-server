@@ -155,20 +155,13 @@ async def sendAudioMessageStream(conn, audios_queue, duration, text):
                     last_duration = 0
                 opus_datas, duration = conn.tts.wav_to_opus_data_audio(conn,audio_data_chunke_data)
                 conn.tts_duration = duration + last_duration + 0.5
-                ops_buff.append(opus_datas)
-                if len(ops_buff) > 1:
-                    for opus_packets_1 in ops_buff:
-                        for opus_packet in opus_packets_1:
-                            await conn.websocket.send(opus_packet)
-                            ops_buff=[]
+                for opus_packet in opus_datas:
+                    await conn.websocket.send(opus_packet)
                 print(f"已获取音频数据，长度为 {len(audio_data_chunke_data)}，总长度为 {len(audio_data_chunke_data)}")
                 start_time = time.time()  # 更新获取数据的时间
         except Exception as e:
             print(f"发生错误: {e}")
             traceback.print_exc()  # 打印错误堆栈
-    for opus_packets_1 in ops_buff:
-        for opus_packet in opus_packets_1:
-            await conn.websocket.send(opus_packet)
 
     if conn.llm_finish_task and text == conn.tts_last_text:
         stop_duration = conn.tts_duration + 0.5
