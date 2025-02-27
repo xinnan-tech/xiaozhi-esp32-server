@@ -1,6 +1,9 @@
 version: '3.8'
 services:
   esp32-server:
+    build:
+      context: ..
+      dockerfile: Dockerfile
     image: 192.168.101.99/yyn/192.168.101.99/yyn/esp32-server:1.0
     container_name: esp32-server
     restart: always
