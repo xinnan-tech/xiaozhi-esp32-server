@@ -117,7 +117,7 @@ async def sendAudioMessageStream(conn, audios_queue, duration, text):
     )
     conn.scheduled_tasks.append(text_task)
 
-    conn.tts_duration = conn.tts_duration + duration
+    conn.tts_duration = 0
 
     # 发送音频数据 -获取队列的数据发送
     start_time = time.time()
@@ -147,10 +147,12 @@ async def sendAudioMessageStream(conn, audios_queue, duration, text):
                 break
 
             if audio_data_chunke_data:
-                queue_duration = time.time() - start_get_queue - duration
-                # queue_duration = 0 if queue_duration < 0 else queue_duration
+                queue_duration = time.time() - start_get_queue
+                last_duration = conn.tts_duration - queue_duration
+                if last_duration <= 0 :
+                    last_duration = 0
                 opus_datas, duration = conn.tts.wav_to_opus_data_audio(audio_data_chunke_data)
-                conn.tts_duration = conn.tts_duration+duration+queue_duration
+                conn.tts_duration = duration + last_duration
                 for opus_packet in opus_datas:
                     await conn.websocket.send(opus_packet)
                 print(f"已获取音频数据，长度为 {len(audio_data_chunke_data)}，总长度为 {len(audio_data_chunke_data)}")
@@ -160,14 +162,14 @@ async def sendAudioMessageStream(conn, audios_queue, duration, text):
             traceback.print_exc()  # 打印错误堆栈
 
     if conn.llm_finish_task and text == conn.tts_last_text:
-        stop_duration = conn.tts_duration - (time.time() - conn.tts_start_speak_time)
+        stop_duration = conn.tts_duration
         stop_task = asyncio.create_task(
             schedule_with_interrupt(stop_duration, send_tts_stop(conn, text))
         )
         conn.scheduled_tasks.append(stop_task)
 
 async def sendAudioMessage(conn, audios, duration, text):
-    base_delay = conn.tts_duration
+    base_delay = conn.tts_duration+0.5
 
     if text == conn.tts_first_text:
         conn.tts_start_speak_time = time.time()
