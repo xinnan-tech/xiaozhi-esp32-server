@@ -77,21 +77,24 @@ class TTS(ABC):
 
         return self.wav_to_opus_data_byte(audio)
 
-    def wav_to_opus_data_audio(self, chunk, type_format="mp3"):
+    def wav_to_opus_data_audio(self,conn, chunk, type_format="mp3"):
         print(f"长度：{len(chunk)}")
         tts_speech = torch.from_numpy(np.array(np.frombuffer(chunk, dtype=np.int16))).unsqueeze(dim=0)
         with io.BytesIO() as bf:
             torchaudio.save(bf, tts_speech, 44100, format="wav")
             audio = AudioSegment.from_file(bf, format="wav")
         audio.fade_in(1000).fade_out(1000)
-        return self.wav_to_opus_data_byte(audio)
+        return self.wav_to_opus_data_byte(conn,audio)
 
-    def wav_to_opus_data_byte(self, audio):
+    def wav_to_opus_data_byte(self,conn, audio):
         duration = len(audio) / 1000.0
         # 转换为单声道和16kHz采样率（确保与编码器匹配）
         audio = audio.set_channels(1).set_frame_rate(16000)
         # 获取原始PCM数据（16位小端）
         raw_data = audio.raw_data
+        if conn.last_opus_data:
+            raw_data = conn.last_opus_data + raw_data
+            conn.last_opus_data = None
         # 初始化Opus编码器
         encoder = opuslib.Encoder(16000, 1, opuslib.APPLICATION_AUDIO)
         # 编码参数
@@ -105,6 +108,7 @@ class TTS(ABC):
 
             # 如果最后一帧不足，补零
             if len(chunk) < frame_size * 2:
+                # conn.last_opus_data = chunk
                 chunk += b'\x00' * (frame_size * 2 - len(chunk))
 
             # 转换为numpy数组处理
@@ -309,11 +313,11 @@ class FishSpeech_TTS(TTS):
                     },
             ) as response:
                 if response.status_code == 200:
-                    for chunk in response.iter_content(chunk_size=52920):
+                    for chunk in response.iter_content(chunk_size=1024):
                         # 拼接当前块和上一块数据
                         chunk_total += chunk
-                        if len(chunk_total) >= 52920 and len(chunk_total)%2==0:
-                            current_audio = last_chunk + chunk_total
+                        if len(chunk_total) >= 44100 and len(chunk_total)%44100==0:
+                            current_audio = chunk_total
                             # 只保留当前块的最后16个字节
                             last_chunk = current_audio[-overlap:]  # 这里可以根据实际音频样本长度调整
                             queue.put({
@@ -322,7 +326,7 @@ class FishSpeech_TTS(TTS):
                             })
                             chunk_total = b''
                     if len(chunk_total) > 0:
-                        current_audio = last_chunk + chunk_total
+                        current_audio = chunk_total
                         queue.put({
                             "data": current_audio,
                             "end": False
