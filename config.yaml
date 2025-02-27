@@ -328,3 +328,4 @@ music:
     - "我要听歌"
     - "放点音乐"
   music_dir: "./music"  # 音乐文件存放路径
+  online_commands: ["点歌", "在线播放"] # 在线播放相关命令
