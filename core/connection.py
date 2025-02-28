@@ -200,10 +200,8 @@ class ConnectionHandler:
         return not self.is_device_verified
 
     def chat(self, query):
-        # 如果设备未验证，就发送验证码
         if self.isNeedAuth():
             self.llm_finish_task = True
-            # 创建一个新的事件循环来运行异步函数
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
@@ -214,68 +212,56 @@ class ConnectionHandler:
 
         self.dialogue.put(Message(role="user", content=query))
         response_message = []
-        start = 0
-        # 提交 LLM 任务
+        processed_chars = 0  # 跟踪已处理的字符位置
         try:
-            start_time = time.time()  # 记录开始时间
+            start_time = time.time()
             llm_responses = self.llm.response(self.session_id, self.dialogue.get_llm_dialogue())
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
             return None
-        # 提交 TTS 任务到线程池
+
         self.llm_finish_task = False
         for content in llm_responses:
             response_message.append(content)
-            # 如果中途被打断，就停止生成
             if self.client_abort:
-                start = len(response_message)
                 break
 
-            end_time = time.time()  # 记录结束时间
-            self.logger.bind(tag=TAG).debug(f"大模型返回时间时间: {end_time - start_time} 秒, 生成token={content}")
-            # 合并当前累积的文本
-            current_text = "".join(response_message[start:])
-            # 定义需要检查的标点符号
-            punctuations = (".", "?", "。", "？", "！", "!", ";", "；", ":", "：", "，", ",")
-            last_punct_pos = -1
+            end_time = time.time()
+            self.logger.bind(tag=TAG).debug(f"大模型返回时间: {end_time - start_time} 秒, 生成token={content}")
 
-            # 查找最后一个标点符号的位置
+            # 合并当前全部文本并处理未分割部分
+            full_text = "".join(response_message)
+            current_text = full_text[processed_chars:]  # 从未处理的位置开始
+
+            # 查找最后一个有效标点
+            punctuations = ("。", "？", "！", ".", "?", "!", ";", "；", ":", "：", "，", ",")
+            last_punct_pos = -1
             for punct in punctuations:
                 pos = current_text.rfind(punct)
                 if pos > last_punct_pos:
                     last_punct_pos = pos
 
-            # 如果找到标点符号则分割
+            # 找到分割点则处理
             if last_punct_pos != -1:
                 segment_text_raw = current_text[:last_punct_pos + 1]
                 segment_text = get_string_no_punctuation_or_emoji(segment_text_raw)
-                if len(segment_text) > 0:
+                if segment_text:
                     self.recode_first_last_text(segment_text)
                     future = self.executor.submit(self.speak_and_play, segment_text)
                     self.tts_queue.put(future)
+                    processed_chars += len(segment_text_raw)  # 更新已处理字符位置
 
-                    # 计算新的起始位置
-                    segment_length = len(segment_text_raw)
-                    accumulated = 0
-                    new_start = start
-                    for i in range(start, len(response_message)):
-                        accumulated += len(response_message[i])
-                        new_start = i + 1
-                        if accumulated >= segment_length:
-                            break
-                    start = new_start
-
-        # 处理剩余的响应
-        current_text = "".join(response_message[start:])
-        if len(current_text) > 0:
-            segment_text = get_string_no_punctuation_or_emoji(current_text)
-            if len(segment_text) > 0:
+        # 处理最后剩余的文本
+        full_text = "".join(response_message)
+        remaining_text = full_text[processed_chars:]
+        if remaining_text:
+            segment_text = get_string_no_punctuation_or_emoji(remaining_text)
+            if segment_text:
                 self.recode_first_last_text(segment_text)
                 future = self.executor.submit(self.speak_and_play, segment_text)
                 self.tts_queue.put(future)
 
         self.llm_finish_task = True
-        # 更新对话
         self.dialogue.put(Message(role="assistant", content="".join(response_message)))
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
         return True
