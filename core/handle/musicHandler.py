@@ -4,7 +4,7 @@ import random
 import difflib
 import re
 import traceback
-from core.handle.sendAudioHandle import sendAudioMessage, send_stt_message
+from core.handle.sendAudioHandle import send_stt_message
 
 TAG = __name__
 logger = setup_logging()
@@ -102,7 +102,8 @@ class MusicHandler:
             conn.tts_last_text = selected_music
             conn.llm_finish_task = True
             opus_packets, duration = conn.tts.wav_to_opus_data(music_path)
-            await sendAudioMessage(conn, opus_packets, duration, selected_music)
+
+            conn.audio_play_queue.put((opus_packets, selected_music))
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"播放音乐失败: {str(e)}")

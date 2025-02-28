@@ -8,49 +8,39 @@ TAG = __name__
 logger = setup_logging()
 
 
-async def isLLMWantToFinish(conn):
-    first_text = conn.tts_first_text
-    last_text = conn.tts_last_text
+async def isLLMWantToFinish(last_text):
     _, last_text_without_punctuation = remove_punctuation_and_length(last_text)
     if "再见" in last_text_without_punctuation or "拜拜" in last_text_without_punctuation:
-        return True
-    _, first_text_without_punctuation = remove_punctuation_and_length(first_text)
-    if "再见" in first_text_without_punctuation or "拜拜" in first_text_without_punctuation:
         return True
     return False
 
 
-async def sendAudioMessage(conn, audios, duration, text):
-    base_delay = conn.tts_duration
-
+async def sendAudioMessage(conn, audios, text):
     # 发送 tts.start
     if text == conn.tts_first_text:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
         conn.tts_start_speak_time = time.time()
-
-    # 发送 sentence_start（每个音频文件之前发送一次）
-    sentence_task = asyncio.create_task(
-        schedule_with_interrupt(base_delay, send_tts_message(conn, "sentence_start", text))
-    )
-    conn.scheduled_tasks.append(sentence_task)
-
-    conn.tts_duration += duration
+    await send_tts_message(conn, "sentence_start", text)
 
     # 发送音频数据
+    frame_duration = 60  # 初始帧持续时间（毫秒）
+    start_time = time.time()  # 记录开始时间
     for idx, opus_packet in enumerate(audios):
+        if conn.client_abort:
+            return
+        # 计算当前包的预期发送时间
+        expected_time = start_time + idx * (frame_duration / 1000)
+        current_time = time.time()
+        # 如果未到预期时间则等待差值
+        if current_time < expected_time:
+            await asyncio.sleep(expected_time - current_time)
+        # 发送音频包
         await conn.websocket.send(opus_packet)
 
     if conn.llm_finish_task and text == conn.tts_last_text:
-        stop_duration = conn.tts_duration - (time.time() - conn.tts_start_speak_time)
-        stop_task = asyncio.create_task(
-            schedule_with_interrupt(stop_duration, send_tts_message(conn, 'stop'))
-        )
-        conn.scheduled_tasks.append(stop_task)
-        if await isLLMWantToFinish(conn):
-            finish_task = asyncio.create_task(
-                schedule_with_interrupt(stop_duration, await conn.close())
-            )
-            conn.scheduled_tasks.append(finish_task)
+        await send_tts_message(conn, 'stop')
+        if await isLLMWantToFinish(text):
+            await conn.close()
 
 
 async def send_tts_message(conn, state, text=None):
@@ -84,12 +74,3 @@ async def send_stt_message(conn, text):
             "session_id": conn.session_id}
         ))
     await send_tts_message(conn, "start")
-
-
-async def schedule_with_interrupt(delay, coro):
-    """可中断的延迟调度"""
-    try:
-        await asyncio.sleep(delay)
-        await coro
-    except asyncio.CancelledError:
-        pass
