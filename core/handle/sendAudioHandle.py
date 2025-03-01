@@ -16,29 +16,37 @@ async def isLLMWantToFinish(last_text):
 
 
 async def sendAudioMessage(conn, audios, text):
-    # 发送 tts.start
+    # 发送句子开始消息
     if text == conn.tts_first_text:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
-        conn.tts_start_speak_time = time.time()
+        conn.tts_start_speak_time = time.perf_counter()
     await send_tts_message(conn, "sentence_start", text)
 
-    # 发送音频数据
-    frame_duration = 60  # 初始帧持续时间（毫秒）
-    start_time = time.time()  # 记录开始时间
-    for idx, opus_packet in enumerate(audios):
+    # 初始化流控参数
+    frame_duration = 60  # 毫秒
+    start_time = time.perf_counter()  # 使用高精度计时器
+    play_position = 0  # 已播放的时长（毫秒）
+
+    for opus_packet in audios:
         if conn.client_abort:
             return
+
         # 计算当前包的预期发送时间
-        expected_time = start_time + idx * (frame_duration / 1000)
-        current_time = time.time()
-        # 如果未到预期时间则等待差值
-        if current_time < expected_time:
-            await asyncio.sleep(expected_time - current_time)
+        expected_time = start_time + (play_position / 1000)
+        current_time = time.perf_counter()
+
+        # 等待直到预期时间
+        delay = expected_time - current_time
+        if delay > 0:
+            await asyncio.sleep(delay)
+
         # 发送音频包
         await conn.websocket.send(opus_packet)
-
+        play_position += frame_duration  # 更新播放位置
+    await send_tts_message(conn, "sentence_end", text)
+    # 发送结束消息（如果是最后一个文本）
     if conn.llm_finish_task and text == conn.tts_last_text:
-        await send_tts_message(conn, 'stop')
+        await send_tts_message(conn, 'stop', None)
         if await isLLMWantToFinish(text):
             await conn.close()
 

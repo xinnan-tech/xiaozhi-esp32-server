@@ -4,13 +4,14 @@ from config.settings import load_config, check_config_file
 from core.websocket_server import WebSocketServer
 from manager.http_server import WebUI
 from aiohttp import web
-from core.utils.util import get_local_ip
+from core.utils.util import get_local_ip, check_ffmpeg_installed
 
 TAG = __name__
 
 
 async def main():
     check_config_file()
+    check_ffmpeg_installed()
     logger = setup_logging()
     config = load_config()
 
