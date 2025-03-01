@@ -267,7 +267,7 @@ LLM:
 ## 模型文件
 
 本项目语音识别模型，默认使用`SenseVoiceSmall`模型，进行语音转文字。因为模型较大，需要独立下载，下载后把`model.pt`
-文件放在`model/SenseVoiceSmall`
+文件放在`models/SenseVoiceSmall`
 目录下。下面两个下载路线任选一个。
 
 - 线路一：阿里魔塔下载[SenseVoiceSmall](https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt)
