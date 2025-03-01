@@ -34,13 +34,6 @@ def write_json_file(file_path, data):
         json.dump(data, file, ensure_ascii=False, indent=4)
 
 
-def is_segment(tokens):
-    if tokens[-1] in (",", ".", "?", "，", "。", "？", "！", "!", ";", "；", ":", "："):
-        return True
-    else:
-        return False
-
-
 def is_punctuation_or_emoji(char):
     """检查字符是否为空格、指定标点或表情符号"""
     # 定义需要去除的中英文标点（包括全角/半角）

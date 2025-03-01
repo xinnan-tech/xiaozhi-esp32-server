@@ -6,7 +6,7 @@ import re
 import traceback
 from pathlib import Path
 import time
-from core.handle.sendAudioHandle import sendAudioMessage, send_stt_message
+from core.handle.sendAudioHandle import send_stt_message
 from core.utils import p3
 
 TAG = __name__
@@ -146,7 +146,7 @@ class MusicHandler:
                 opus_packets, duration = p3.decode_opus_from_file(music_path)
             else:
                 opus_packets, duration = conn.tts.wav_to_opus_data(music_path)
-            await sendAudioMessage(conn, opus_packets, duration, selected_music)
+            conn.audio_play_queue.put((opus_packets, selected_music))
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"播放音乐失败: {str(e)}")

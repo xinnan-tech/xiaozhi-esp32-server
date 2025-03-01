@@ -1,8 +1,7 @@
 from config.logger import setup_logging
-import asyncio
 import time
 from core.utils.util import remove_punctuation_and_length
-from core.handle.sendAudioHandle import schedule_with_interrupt, send_stt_message
+from core.handle.sendAudioHandle import send_stt_message
 
 TAG = __name__
 logger = setup_logging()
@@ -61,10 +60,7 @@ async def handleCMDMessage(conn, text):
 
 async def startToChat(conn, text):
     # 异步发送 stt 信息
-    stt_task = asyncio.create_task(
-        schedule_with_interrupt(0, send_stt_message(conn, text))
-    )
-    conn.scheduled_tasks.append(stt_task)
+    await send_stt_message(conn, text)
     conn.executor.submit(conn.chat, text)
 
 
