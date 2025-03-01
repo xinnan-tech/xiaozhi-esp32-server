@@ -126,7 +126,7 @@ LLM:
     # 定义LLM API类型
     type: ollama
     model_name: qwen2.5 #  使用的模型名称，需要预先使用ollama pull下载
-    base_url: http://localhost:11434  # Ollama服务地址
+    base_url: http://localhost:11434/v1  # Ollama服务地址
   DifyLLM:
     # 定义LLM API类型
     type: dify
@@ -305,6 +305,15 @@ TTS:
     # volume: 50
     # speech_rate: 0
     # pitch_rate: 0
+
+  OpenAIEdgeTTS:
+    # edge-tts的OpenAI格式版本可自行搭建在本地或远程服务器上
+    # https://github.com/travisvn/openai-edge-tts
+    type: openai_edge_tts
+    output_file: tmp/
+    voice: zh-CN-XiaoxiaoNeural
+    host: 127.0.0.1:5050
+    apikey: apikey
 
 # 模块测试配置
 module_test:

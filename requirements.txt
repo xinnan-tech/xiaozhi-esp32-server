@@ -17,3 +17,4 @@ ormsgpack==1.7.0
 ruamel.yaml==0.18.10
 loguru==0.7.3
 requests==2.32.3
+emoji==2.14.1
