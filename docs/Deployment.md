@@ -159,13 +159,30 @@ poetry run python app.py
 本项目使用`conda`管理依赖环境。如果不方便安装`conda`，需要根据实际的操作系统安装好`libopus`和`ffmpeg`。
 如果确定使用`conda`，则安装好后，开始执行以下命令。
 
+重要提示！windows 用户，可以通过安装`Anaconda`来管理环境。安装好`Anaconda`后，在`开始`那里搜索`anaconda`相关的关键词，
+找到`Anaconda Prpmpt`，使用管理员身份运行它。如下图。
+
+![conda_prompt](./images/conda_env_1.png)
+
+运行之后，如果你能看到命令行窗口前面有一个(base)字样，说明你成功进入了`conda`环境。那么你就可以执行以下命令了。
+
+![conda_env](./images/conda_env_2.png)
+
 ```
 conda remove -n xiaozhi-esp32-server --all -y
 conda create -n xiaozhi-esp32-server python=3.10 -y
 conda activate xiaozhi-esp32-server
-conda install conda-forge::libopus -y
-conda install conda-forge::ffmpeg -y
+
+# 添加清华源通道
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
+
+conda install libopus -y
+conda install ffmpeg -y
 ```
+
+请注意，以上命令，不是一股脑执行就成功的，你需要一步步执行，每一步执行完后，都检查一下输出的日志，查看是否成功。
 
 ## 2.安装本项目依赖
 
@@ -179,7 +196,7 @@ conda install conda-forge::ffmpeg -y
 你需要把它重命名成`xiaozhi-esp32-server`，好了请记住这个目录，我们暂且称它为`项目目录`。
 
 ```
-# 使用dos或者终端，进入到你的项目目录，执行以下命令
+# 继续使用conda环境，进入到你的项目目录，执行以下命令
 conda activate xiaozhi-esp32-server
 pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip install -r requirements.txt
