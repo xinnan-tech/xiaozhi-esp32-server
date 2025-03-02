@@ -19,15 +19,12 @@ class TTSProvider(TTSProviderBase):
             "Authorization": f"Bearer {self.apikey}"
         }
 
-    def clean_emojis(self, text):
-        return emoji.replace_emoji(text, '')
-
     def generate_filename(self, extension=".mp3"):
         return os.path.join(self.output_file, f"tts-{__name__}{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
 
     async def text_to_speak(self, text, output_file):
         request_json = {
-            "input": self.clean_emojis(text),
+            "input": text,
             "voice": self.voice
         }
 

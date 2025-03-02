@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import emoji
 import yaml
 import socket
 
@@ -47,15 +48,17 @@ def is_punctuation_or_emoji(char):
     if char.isspace() or char in punctuation_set:
         return True
     # 检查表情符号（保留原有逻辑）
-    code_point = ord(char)
-    emoji_ranges = [
-        (0x1F600, 0x1F64F), (0x1F300, 0x1F5FF),
-        (0x1F680, 0x1F6FF), (0x1F900, 0x1F9FF),
-        (0x1FA70, 0x1FAFF), (0x2600, 0x26FF),
-        (0x2700, 0x27BF)
-    ]
-    return any(start <= code_point <= end for start, end in emoji_ranges)
-
+    #code_point = ord(char)
+    #emoji_ranges = [
+    #    (0x1F600, 0x1F64F), (0x1F300, 0x1F5FF),
+    #    (0x1F680, 0x1F6FF), (0x1F900, 0x1F9FF),
+    #    (0x1FA70, 0x1FAFF), (0x2600, 0x26FF),
+    #    (0x2700, 0x27BF)
+    #]
+    #return any(start <= code_point <= end for start, end in emoji_ranges)
+    
+    # 使用emoji库来检查
+    return emoji.emoji_count(char) > 0
 
 def get_string_no_punctuation_or_emoji(s):
     """去除字符串首尾的空格、标点符号和表情符号"""

@@ -26,6 +26,7 @@ ruamel-yaml = "0.18.10"
 setuptools = "^75.8.0"
 loguru = "^0.7.3"
 opuslib-next = "^1.1.2"
+emoji = "2.14.1"
 
 
 [build-system]
