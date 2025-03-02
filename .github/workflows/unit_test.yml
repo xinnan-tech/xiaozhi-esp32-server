@@ -57,14 +57,14 @@ jobs:
       # Show the test results in the Actions tab
       - name: Upload Unit Test Results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: Unit Test Results (Python 3.7)
+          name: Unit Test Results ${{ matrix.os }}
           path: results/*.xml
 
       - name: Download Artifacts
         if: success() || failure()
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
