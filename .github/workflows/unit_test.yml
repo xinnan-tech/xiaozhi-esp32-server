@@ -51,7 +51,7 @@ jobs:
       # output the version of python and pip
       - name: PyTest
         run: |
-          python -m pytest test --junit-xml results/pytest.xml
+          pytest
         continue-on-error: true
 
       # Show the test results in the Actions tab
