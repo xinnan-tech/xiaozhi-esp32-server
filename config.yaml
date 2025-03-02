@@ -175,8 +175,10 @@ TTS:
     # 山引擎语音一定要购买花钱，起步价30元，就有100并发了。如果用免费的只有2个并发，会经常报tts错误
     # 购买服务后，购买免费的音色后，可能要等半小时左右，才能使用。
     # 地址：https://console.volcengine.com/speech/service/8
+    api_url: https://openspeech.bytedance.com/api/v1/tts
     voice: BV001_streaming
     output_file: tmp/
+    authorization: "Bearer;"
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
     cluster: volcano_tts
@@ -308,10 +310,15 @@ TTS:
     # 添加 302.ai TTS 配置
     # token申请地址：https://dash.302.ai/
   TTS302AI:
-    type: tts_302ai  # 对应 tts_302ai.py 文件名
-    voice: "zh_female_wanwanxiaohe_moon_bigtts"  # 默认语音类型
+    # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
+    # 获取api_keyn路径：https://dash.302.ai/apis/list
+    # 价格，$35/百万字符。火山原版¥450元/万字符
+    type: doubao
+    api_url: https://api.302ai.cn/doubao/tts_hd
+    authorization: "Bearer "
+    voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_file: tmp/
-    access_token: "你的302API密钥"  # 您的 302.ai 访问令牌
+    access_token: "你的302API密钥"
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句

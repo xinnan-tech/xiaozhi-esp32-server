@@ -234,7 +234,7 @@ class ConnectionHandler:
             current_text = full_text[processed_chars:]  # 从未处理的位置开始
 
             # 查找最后一个有效标点
-            punctuations = ("。", "？", "！", ".", "?", "!", ";", "；", ":", "：", "，", ",")
+            punctuations = ("。", "？", "！", "?", "!", ";", "；", ":", "：", "，")
             last_punct_pos = -1
             for punct in punctuations:
                 pos = current_text.rfind(punct)
