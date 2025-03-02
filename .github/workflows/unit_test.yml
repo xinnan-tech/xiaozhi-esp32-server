@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.11"]
 
     steps:
       - name: Checkout repository
@@ -37,6 +37,17 @@ jobs:
           python -m pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      - name: Install ffmpeg and libopus
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-latest' ]; then
+            sudo apt-get update
+            apt-get install -y --no-install-recommends libopus0 ffmpeg
+          fi
+
+          if [ ${{ matrix.os }} == 'macos-latest' ]; then
+            brew install ffmpeg opus
+          fi
+        
       - name: Run tests with pytest
         run: |
           pytest --maxfail=5 --disable-warnings --tb=short
