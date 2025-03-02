@@ -80,6 +80,33 @@ class IotDescriptor:
 
             self.methods.append(method)
 
+def makeOpenAItoolsDescriptors(methods):
+    methods = {}
+    for key, value in methods.items():
+        method = {}
+        method["function"] = {}
+        method["function"]["parameters"] = {}
+        method["function"]["parameters"]["properties"] = {}
+        
+        method["type"] = "function"
+        method["function"]["name"] = key
+        method["function"]["description"] = value["description"]
+        method["function"]["parameters"]["type"] = "object"
+        
+        required = []
+        
+        for k, v in value["parameters"].items():
+            # 不同的参数解析
+            method["function"]["parameters"]["properties"][k] = {}
+            method["function"]["parameters"]["properties"][k]["type"] = v["type"]
+            method["function"]["parameters"]["properties"][k]["description"] = v["description"]
+            required.append(k)
+        method["function"]["parameters"]["required"] = required
+        methods[key] = method
+    return methods
+
+async def SetVolume(conn, volume):
+    await send_iot_conn(conn, "Speaker", "SetVolume", {"volume": volume})
 
 async def handleIotDescriptors(conn, descriptors):
     """
@@ -98,10 +125,15 @@ async def handleIotDescriptors(conn, descriptors):
     }]
     descriptors: 描述列表
     """
+    methods = {}
     for descriptor in descriptors:
         iot_descriptor = IotDescriptor(descriptor["name"], descriptor["description"], descriptor["properties"],
                                        descriptor["methods"])
         conn.iot_descriptors[descriptor["name"]] = iot_descriptor
+        
+        methods[descriptor["name"]] = makeOpenAItoolsDescriptors(descriptor["methods"])
+        
+    logger.bind(tag=TAG).info(methods)
 
     # 暂时从配置文件中设置音量，后期通过意图识别控制音量
     default_iot_volume = 100
