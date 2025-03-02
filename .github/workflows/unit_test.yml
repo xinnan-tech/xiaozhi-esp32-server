@@ -41,7 +41,7 @@ jobs:
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-latest' ]; then
             sudo apt-get update
-            apt-get install -y --no-install-recommends libopus0 ffmpeg
+            sudo apt-get install -y --no-install-recommends libopus0 ffmpeg
           fi
 
           if [ ${{ matrix.os }} == 'macos-latest' ]; then
