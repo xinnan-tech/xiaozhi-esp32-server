@@ -305,7 +305,13 @@ TTS:
     # volume: 50
     # speech_rate: 0
     # pitch_rate: 0
-
+    # 添加 302.ai TTS 配置
+    # token申请地址：https://dash.302.ai/
+  TTS302AI:
+    type: tts_302ai  # 对应 tts_302ai.py 文件名
+    voice: "zh_female_wanwanxiaohe_moon_bigtts"  # 默认语音类型
+    output_file: tmp/
+    access_token: "你的302API密钥"  # 您的 302.ai 访问令牌
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
