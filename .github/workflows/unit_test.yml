@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.11"]
+        python-version: ["3.10", "3.11"]
 
     steps:
       - name: Checkout repository
@@ -47,29 +47,33 @@ jobs:
           if [ ${{ matrix.os }} == 'macos-latest' ]; then
             brew install ffmpeg opus
           fi
-        
-      # output the version of python and pip
+
       - name: PyTest
         run: |
-            pytest --junit-xml=results/pytest.xml
-        continue-on-error: true
+            pytest 
+           
+      # output the version of python and pip
+    #   - name: PyTest
+    #     run: |
+    #         pytest --junit-xml=results/pytest.xml
+    #     continue-on-error: true
 
-      # Show the test results in the Actions tab
-      - name: Upload Unit Test Results
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unit Test Results ${{ matrix.os }}
-          path: results/*.xml
+    #   # Show the test results in the Actions tab
+    #   - name: Upload Unit Test Results
+    #     if: ${{ always() }}
+    #     uses: actions/upload-artifact@v4
+    #     with:
+    #       name: Unit Test Results ${{ matrix.os }}
+    #       path: results/*.xml
 
-      - name: Download Artifacts
-        if: success() || failure()
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
+    #   - name: Download Artifacts
+    #     if: success() || failure()
+    #     uses: actions/download-artifact@v4
+    #     with:
+    #       path: artifacts
 
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          junit_files: artifacts/**/*.xml
+    #   - name: Publish Unit Test Results
+    #     uses: EnricoMi/publish-unit-test-result-action@v2
+    #     with:
+    #       junit_files: artifacts/**/*.xml
 
