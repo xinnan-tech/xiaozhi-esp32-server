@@ -258,6 +258,14 @@ class FishSpeech_TTS(TTS):
     def generate_filename(self, extension=".wav"):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
 
+    def _get_audio_from_tts(self,data_bytes):
+        tts_speech = torch.from_numpy(np.array(np.frombuffer(data_bytes, dtype=np.int16))).unsqueeze(dim=0)
+        with io.BytesIO() as bf:
+            torchaudio.save(bf, tts_speech, 44100, format="wav")
+            audio = AudioSegment.from_file(bf, format="wav")
+        audio.set_channels(1).set_frame_rate(16000)
+        return audio
+
     async def text_to_speak_queue(self, text, queue: queue.Queue):
         try:
             idstr = None
@@ -303,6 +311,7 @@ class FishSpeech_TTS(TTS):
             last_chunk = b''
             overlap = 882
             chunk_total = b''
+            audio_buff=None
             with requests.post(
                     self.url,
                     data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
@@ -313,22 +322,29 @@ class FishSpeech_TTS(TTS):
                     },
             ) as response:
                 if response.status_code == 200:
-                    for chunk in response.iter_content(chunk_size=1024):
+                    for chunk in response.iter_content():
                         # 拼接当前块和上一块数据
                         chunk_total += chunk
-                        if len(chunk_total) >= 44100 and len(chunk_total)%44100==0:
-                            current_audio = chunk_total
-                            # 只保留当前块的最后16个字节
-                            last_chunk = current_audio[-overlap:]  # 这里可以根据实际音频样本长度调整
-                            queue.put({
-                                "data": current_audio,
-                                "end": False
-                            })
+                        if len(chunk_total) >= 86400 and len(chunk_total)%86400==0:
+                            audio = self._get_audio_from_tts(chunk_total)
+                            if not audio_buff:
+                                audio_buff = audio
+                            else:
+                                audio_buff += audio
+                            if len(audio_buff.raw_data)%1920 == 0:
+                                queue.put({
+                                    "data": audio_buff,
+                                    "end": False
+                                })
+                                audio_buff = None
                             chunk_total = b''
                     if len(chunk_total) > 0:
-                        current_audio = chunk_total
+                        if not audio_buff:
+                            audio_buff = self._get_audio_from_tts(chunk_total)
+                        else:
+                            audio_buff += self._get_audio_from_tts(chunk_total)
                         queue.put({
-                            "data": current_audio,
+                            "data": audio_buff,
                             "end": False
                         })
 
