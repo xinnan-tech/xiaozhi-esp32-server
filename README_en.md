@@ -278,7 +278,7 @@ _As of February 19, 2025, if my computer were located in Haizhu District, Guangz
 
 ### 7. For more questions, feel free to contact us for feedback 💬
 
-![WeChat QR Code](docs/images/wechat.jpg)
+Our contact information is in [Baidu Netdisk](https://pan.baidu.com/s/1x6USjvP1nTRsZ45XlJu65Q)，The extraction code is`223y`。
 
 ---
 

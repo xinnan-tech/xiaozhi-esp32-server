@@ -3,6 +3,7 @@ import re
 import json
 import yaml
 import socket
+import subprocess
 
 
 def get_project_dir():
@@ -32,13 +33,6 @@ def write_json_file(file_path, data):
     """将数据写入 JSON 文件"""
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
-
-
-def is_segment(tokens):
-    if tokens[-1] in (",", ".", "?", "，", "。", "？", "！", "!", ";", "；", ":", "："):
-        return True
-    else:
-        return False
 
 
 def is_punctuation_or_emoji(char):
@@ -121,3 +115,29 @@ def check_password(password):
 
     # 如果满足所有条件，则返回True
     return True
+
+def check_ffmpeg_installed():
+    ffmpeg_installed = False
+    try:
+        # 执行ffmpeg -version命令，并捕获输出
+        result = subprocess.run(
+            ['ffmpeg', '-version'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True  # 如果返回码非零则抛出异常
+        )
+        # 检查输出中是否包含版本信息（可选）
+        output = result.stdout + result.stderr
+        if 'ffmpeg version' in output.lower():
+            ffmpeg_installed = True
+        return False
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # 命令执行失败或未找到
+        ffmpeg_installed = False
+    if not ffmpeg_installed:
+        error_msg = "您的电脑还没正确安装ffmpeg\n"
+        error_msg += "\n建议您：\n"
+        error_msg += "1、按照项目的安装文档，正确进入conda环境\n"
+        error_msg += "2、查阅安装文档，如何在conda环境中安装ffmpeg\n"
+        raise ValueError(error_msg)
