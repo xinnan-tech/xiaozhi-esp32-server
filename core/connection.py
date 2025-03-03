@@ -71,7 +71,9 @@ class ConnectionHandler:
 
         # tts相关变量
         self.tts_first_text = None
+        self.tts_first_text_index = -1
         self.tts_last_text = None
+        self.tts_last_text_index = -1
         self.tts_start_speak_time = None
         self.tts_duration = 0
 
@@ -328,22 +330,22 @@ class ConnectionHandler:
         while not self.stop_event.is_set():
             text = None
             try:
-                opus_datas, text, text_id = self.audio_play_queue.get()
-                future = asyncio.run_coroutine_threadsafe(sendAudioMessage(self, opus_datas, text, text_id), self.loop)
+                opus_datas, text, text_index = self.audio_play_queue.get()
+                future = asyncio.run_coroutine_threadsafe(sendAudioMessage(self, opus_datas, text, text_index), self.loop)
                 future.result()
             except Exception as e:
                 self.logger.bind(tag=TAG).error(f"audio_play_priority priority_thread: {text} {e}")
 
-    def speak_and_play(self, text, text_id=0):
+    def speak_and_play(self, text, text_index=0):
         if text is None or len(text) <= 0:
             self.logger.bind(tag=TAG).info(f"无需tts转换，query为空，{text}")
-            return None, text, text_id
+            return None, text, text_index
         tts_file = self.tts.to_tts(text)
         if tts_file is None:
             self.logger.bind(tag=TAG).error(f"tts转换失败，{text}")
-            return None, text, text_id
+            return None, text, text_index
         self.logger.bind(tag=TAG).debug(f"TTS 文件生成完毕: {tts_file}")
-        return tts_file, text, text_id
+        return tts_file, text, text_index
 
     def clearSpeakStatus(self):
         self.logger.bind(tag=TAG).debug(f"清除服务端讲话状态")
@@ -351,13 +353,15 @@ class ConnectionHandler:
         self.tts_last_text = None
         self.tts_last_text_index = -1
         self.tts_first_text = None
+        self.tts_first_text_index = -1
         self.tts_duration = 0
         self.tts_start_speak_time = None
 
     def recode_first_last_text(self, text, text_index=0):
-        if not self.tts_first_text:
+        if self.tts_first_text_index == -1:
             self.logger.bind(tag=TAG).info(f"大模型说出第一句话: {text}")
             self.tts_first_text = text
+            self.tts_first_text_index = text_index
         self.tts_last_text = text
         self.tts_last_text_index = text_index
 
