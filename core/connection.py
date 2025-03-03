@@ -21,6 +21,8 @@ from core.utils.auth_code_gen import AuthCodeGenerator
 
 TAG = __name__
 
+class TTSException(RuntimeError):
+    pass
 
 class ConnectionHandler:
     def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music):
@@ -221,6 +223,7 @@ class ConnectionHandler:
             return None
 
         self.llm_finish_task = False
+        text_index = 0
         for content in llm_responses:
             response_message.append(content)
             if self.client_abort:
@@ -246,8 +249,12 @@ class ConnectionHandler:
                 segment_text_raw = current_text[:last_punct_pos + 1]
                 segment_text = get_string_no_punctuation_or_emoji(segment_text_raw)
                 if segment_text:
-                    self.recode_first_last_text(segment_text)
-                    future = self.executor.submit(self.speak_and_play, segment_text)
+                    # 强制设置空字符，测试TTS出错返回语音的健壮性
+                    # if text_index % 2 == 0:
+                    #     segment_text = " "
+                    text_index += 1
+                    self.recode_first_last_text(segment_text, text_index)
+                    future = self.executor.submit(self.speak_and_play, segment_text, text_index)
                     self.tts_queue.put(future)
                     processed_chars += len(segment_text_raw)  # 更新已处理字符位置
 
@@ -257,8 +264,9 @@ class ConnectionHandler:
         if remaining_text:
             segment_text = get_string_no_punctuation_or_emoji(remaining_text)
             if segment_text:
-                self.recode_first_last_text(segment_text)
-                future = self.executor.submit(self.speak_and_play, segment_text)
+                text_index += 1
+                self.recode_first_last_text(segment_text, text_index)
+                future = self.executor.submit(self.speak_and_play, segment_text, text_index)
                 self.tts_queue.put(future)
 
         self.llm_finish_task = True
@@ -276,11 +284,13 @@ class ConnectionHandler:
                 text = None
                 try:
                     self.logger.bind(tag=TAG).debug("正在处理TTS任务...")
-                    tts_file, text = future.result(timeout=10)
+                    tts_file, text, text_index = future.result(timeout=10)
                     if text is None or len(text) <= 0:
+                        raise TTSException(f"{text_index}: tts text is empty")
                         continue
                     if tts_file is None:
-                        self.logger.bind(tag=TAG).error(f"TTS文件生成失败: {text}")
+                        self.logger.bind(tag=TAG).error(f"TTS文件生成失败: {text_index}: {text}")
+                        raise TTSException(f"{text_index}: tts file is empty")
                         continue
                     self.logger.bind(tag=TAG).debug(f"TTS文件生成完毕，文件路径: {tts_file}")
                     if os.path.exists(tts_file):
@@ -290,13 +300,19 @@ class ConnectionHandler:
                         opus_datas = []
                 except TimeoutError:
                     self.logger.bind(tag=TAG).error("TTS 任务超时")
+                    raise TTSException("tts timeout")
                     continue
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"TTS 任务出错: {e}")
-                    continue
+                    if self.llm_finish_task and self.tts_last_text == text and self.tts_last_text_index == text_index:
+                        # raise TTSException("tts error, but need stop")
+                        self.logger.bind(tag=TAG).debug(f"TTS 任务出错: 但需要正常停止")
+                        opus_datas, duration = [], 0
+                    else:
+                        continue
                 if not self.client_abort:
                     # 如果没有中途打断就发送语音
-                    self.audio_play_queue.put((opus_datas, text))
+                    self.audio_play_queue.put((opus_datas, text, text_index))
                 if self.tts.delete_audio_file and os.path.exists(tts_file):
                     os.remove(tts_file)
             except Exception as e:
@@ -306,42 +322,44 @@ class ConnectionHandler:
                     self.websocket.send(json.dumps({"type": "tts", "state": "stop", "session_id": self.session_id})),
                     self.loop
                 )
-                self.logger.bind(tag=TAG).error(f"tts_priority priority_thread: {text}{e}")
+                self.logger.bind(tag=TAG).error(f"tts_priority priority_thread: {text} {e}")
 
     def _audio_play_priority_thread(self):
         while not self.stop_event.is_set():
             text = None
             try:
-                opus_datas, text = self.audio_play_queue.get()
-                future = asyncio.run_coroutine_threadsafe(sendAudioMessage(self, opus_datas, text), self.loop)
+                opus_datas, text, text_id = self.audio_play_queue.get()
+                future = asyncio.run_coroutine_threadsafe(sendAudioMessage(self, opus_datas, text, text_id), self.loop)
                 future.result()
             except Exception as e:
-                self.logger.bind(tag=TAG).error(f"audio_play_priority priority_thread: {text}{e}")
+                self.logger.bind(tag=TAG).error(f"audio_play_priority priority_thread: {text} {e}")
 
-    def speak_and_play(self, text):
+    def speak_and_play(self, text, text_id=0):
         if text is None or len(text) <= 0:
             self.logger.bind(tag=TAG).info(f"无需tts转换，query为空，{text}")
-            return None, text
+            return None, text, text_id
         tts_file = self.tts.to_tts(text)
         if tts_file is None:
             self.logger.bind(tag=TAG).error(f"tts转换失败，{text}")
-            return None, text
+            return None, text, text_id
         self.logger.bind(tag=TAG).debug(f"TTS 文件生成完毕: {tts_file}")
-        return tts_file, text
+        return tts_file, text, text_id
 
     def clearSpeakStatus(self):
         self.logger.bind(tag=TAG).debug(f"清除服务端讲话状态")
         self.asr_server_receive = True
         self.tts_last_text = None
+        self.tts_last_text_index = -1
         self.tts_first_text = None
         self.tts_duration = 0
         self.tts_start_speak_time = None
 
-    def recode_first_last_text(self, text):
+    def recode_first_last_text(self, text, text_index=0):
         if not self.tts_first_text:
             self.logger.bind(tag=TAG).info(f"大模型说出第一句话: {text}")
             self.tts_first_text = text
         self.tts_last_text = text
+        self.tts_last_text_index = text_index
 
     async def close(self):
         """资源清理方法"""
