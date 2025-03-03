@@ -57,6 +57,22 @@
          </picture>
         </a>
     </td>
+  </tr>
+  <tr>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1Vy96YCE3R" target="_blank">
+         <picture>
+           <img alt="自定义音色" src="docs/images/demo6.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
+         <picture>
+           <img alt="播放音乐" src="docs/images/demo7.png" />
+         </picture>
+        </a>
+    </td>
     <td>
         <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
          <picture>
@@ -66,7 +82,7 @@
     </td>
     <td>
     </td>
-    </tr>
+  </tr>
 </table>
 
 ---
