@@ -16,6 +16,10 @@ jobs:
       issues: write
 
     steps:
+      - name: Check Disk Space
+        run: |
+          df -h
+          docker system df
       - name: Clean up Docker resources
         run: |
           docker system prune -af
