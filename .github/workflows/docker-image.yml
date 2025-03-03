@@ -16,17 +16,15 @@ jobs:
       issues: write
 
     steps:
+      - name: Clean up Docker resources
+        run: |
+          docker system prune -af
+          docker builder prune -af
       - name: Check out the repo
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: |
-            # 使用更节省空间的缓存存储模式
-            image=moby/buildkit:master
-            # 限制并行构建的worker数量减少内存压力
-            --allow-insecure-entitlement security.insecure
 
       - name: Log in to the GitHub Container Registry
         uses: docker/login-action@v3
@@ -50,14 +48,3 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ env.VERSION }}
             ghcr.io/${{ github.repository }}:latest
           platforms: linux/amd64,linux/arm64
-          # 使用 registry 缓存避免占用本地磁盘
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
-          # 启用压缩减少传输数据量
-          compression: zstd
-
-      - name: Clean up Docker resources
-        run: |
-          # 清理构建缓存和临时镜像
-          docker system prune -af
-          docker builder prune -af
