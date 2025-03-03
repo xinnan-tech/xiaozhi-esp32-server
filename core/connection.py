@@ -21,8 +21,10 @@ from core.utils.auth_code_gen import AuthCodeGenerator
 
 TAG = __name__
 
+
 class TTSException(RuntimeError):
     pass
+
 
 class ConnectionHandler:
     def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music):
@@ -70,12 +72,8 @@ class ConnectionHandler:
         self.dialogue = Dialogue()
 
         # tts相关变量
-        self.tts_first_text = None
         self.tts_first_text_index = -1
-        self.tts_last_text = None
         self.tts_last_text_index = -1
-        self.tts_start_speak_time = None
-        self.tts_duration = 0
 
         # iot相关变量
         self.iot_descriptors = {}
@@ -239,7 +237,7 @@ class ConnectionHandler:
             current_text = full_text[processed_chars:]  # 从未处理的位置开始
 
             # 查找最后一个有效标点
-            punctuations = ("。", "？", "！", "?", "!", ";", "；", ":", "：", "，")
+            punctuations = ("。", "？", "！", "?", "!", ";", "；", ":", "：")
             last_punct_pos = -1
             for punct in punctuations:
                 pos = current_text.rfind(punct)
@@ -284,38 +282,28 @@ class ConnectionHandler:
                 if future is None:
                     continue
                 text = None
+                opus_datas, text_index, tts_file = [], 0, None
                 try:
                     self.logger.bind(tag=TAG).debug("正在处理TTS任务...")
                     tts_file, text, text_index = future.result(timeout=10)
                     if text is None or len(text) <= 0:
-                        raise TTSException(f"{text_index}: tts text is empty")
-                        continue
-                    if tts_file is None:
-                        self.logger.bind(tag=TAG).error(f"TTS文件生成失败: {text_index}: {text}")
-                        raise TTSException(f"{text_index}: tts file is empty")
-                        continue
-                    self.logger.bind(tag=TAG).debug(f"TTS文件生成完毕，文件路径: {tts_file}")
-                    if os.path.exists(tts_file):
-                        opus_datas, duration = self.tts.wav_to_opus_data(tts_file)
+                        self.logger.bind(tag=TAG).error(f"TTS出错：{text_index}: tts text is empty")
+                    elif tts_file is None:
+                        self.logger.bind(tag=TAG).error(f"TTS出错： file is empty: {text_index}: {text}")
                     else:
-                        self.logger.bind(tag=TAG).error(f"TTS文件不存在: {tts_file}")
-                        opus_datas = []
+                        self.logger.bind(tag=TAG).debug(f"TTS生成：文件路径: {tts_file}")
+                        if os.path.exists(tts_file):
+                            opus_datas, duration = self.tts.wav_to_opus_data(tts_file)
+                        else:
+                            self.logger.bind(tag=TAG).error(f"TTS出错：文件不存在{tts_file}")
                 except TimeoutError:
-                    self.logger.bind(tag=TAG).error("TTS 任务超时")
-                    raise TTSException("tts timeout")
-                    continue
+                    self.logger.bind(tag=TAG).error("TTS超时")
                 except Exception as e:
-                    self.logger.bind(tag=TAG).error(f"TTS 任务出错: {e}")
-                    if self.llm_finish_task and self.tts_last_text == text and self.tts_last_text_index == text_index:
-                        # raise TTSException("tts error, but need stop")
-                        self.logger.bind(tag=TAG).debug(f"TTS 任务出错: 但需要正常停止")
-                        opus_datas, duration = [], 0
-                    else:
-                        continue
+                    self.logger.bind(tag=TAG).error(f"TTS出错: {e}")
                 if not self.client_abort:
                     # 如果没有中途打断就发送语音
                     self.audio_play_queue.put((opus_datas, text, text_index))
-                if self.tts.delete_audio_file and os.path.exists(tts_file):
+                if self.tts.delete_audio_file and tts_file is not None and os.path.exists(tts_file):
                     os.remove(tts_file)
             except Exception as e:
                 self.logger.bind(tag=TAG).error(f"TTS任务处理错误: {e}")
@@ -331,7 +319,8 @@ class ConnectionHandler:
             text = None
             try:
                 opus_datas, text, text_index = self.audio_play_queue.get()
-                future = asyncio.run_coroutine_threadsafe(sendAudioMessage(self, opus_datas, text, text_index), self.loop)
+                future = asyncio.run_coroutine_threadsafe(sendAudioMessage(self, opus_datas, text, text_index),
+                                                          self.loop)
                 future.result()
             except Exception as e:
                 self.logger.bind(tag=TAG).error(f"audio_play_priority priority_thread: {text} {e}")
@@ -350,19 +339,13 @@ class ConnectionHandler:
     def clearSpeakStatus(self):
         self.logger.bind(tag=TAG).debug(f"清除服务端讲话状态")
         self.asr_server_receive = True
-        self.tts_last_text = None
         self.tts_last_text_index = -1
-        self.tts_first_text = None
         self.tts_first_text_index = -1
-        self.tts_duration = 0
-        self.tts_start_speak_time = None
 
     def recode_first_last_text(self, text, text_index=0):
         if self.tts_first_text_index == -1:
             self.logger.bind(tag=TAG).info(f"大模型说出第一句话: {text}")
-            self.tts_first_text = text
             self.tts_first_text_index = text_index
-        self.tts_last_text = text
         self.tts_last_text_index = text_index
 
     async def close(self):

@@ -139,9 +139,7 @@ class MusicHandler:
                     return
             text = f"正在播放{selected_music}"
             await send_stt_message(conn, text)
-            conn.tts_first_text = selected_music
             conn.tts_first_text_index = 0
-            conn.tts_last_text = selected_music
             conn.tts_last_text_index = 0
             conn.llm_finish_task = True
             if music_path.endswith(".p3"):

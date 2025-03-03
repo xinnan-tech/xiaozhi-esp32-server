@@ -146,3 +146,4 @@ tmp
 .private_config.yaml
 .env.development
 docker-compose.yml
+web/vue/node_modules

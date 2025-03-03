@@ -19,7 +19,6 @@ async def sendAudioMessage(conn, audios, text, text_index=0):
     # 发送句子开始消息
     if text_index == conn.tts_first_text_index:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
-        conn.tts_start_speak_time = time.perf_counter()
     await send_tts_message(conn, "sentence_start", text)
 
     # 初始化流控参数
