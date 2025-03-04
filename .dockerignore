@@ -5,6 +5,9 @@ __pycache__
 Dockerfile
 docs/
 tmp/
+data/
 LICENSE
 README.md
 README_en.md
+manager/static
+manager/static/webui/

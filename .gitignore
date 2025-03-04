@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.idea/
 *.py[cod]
 *$py.class
 
@@ -139,8 +140,10 @@ cython_debug/
 *.iml
 model.pt
 tmp
-/.idea/
-/generated_audio.wav
-/temp.wav
-/models/SenseVoiceSmall/
-/asr-models/
+.DS_Store
+.config.yaml
+.secrets.yaml
+.private_config.yaml
+.env.development
+docker-compose.yml
+web/vue/node_modules

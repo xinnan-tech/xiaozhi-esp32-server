@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <script src="js/vue3.5.13.js"></script>
+    <link rel="stylesheet" href="css/element-plus2.9.4.css">
+    <script src="js/element-plus2.9.4.js"></script>
+    <script src="js/icons-vue2.3.1.js"></script>
+    <script src="js/common.js"></script>
+    <link rel="icon" href="images/favicon.ico" />
+    <link rel="stylesheet" href="css/common.css">
+    <title>小智-server</title>
+    <style>
+        /* 页面特有样式 */
+        .content-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 2rem;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .role-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .character-count {
+            text-align: right;
+            color: #999;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .button-group {
+            margin-top: 1rem;
+        }
+
+        .note {
+            color: #909399;
+            font-size: 12px;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="animated-bg"></div>
+    <app-header>xiaozhi-esp32-server</app-header>
+
+    <div class="user-menu">
+        <el-dropdown @command="handleCommand">
+            <div class="user-info">
+                <el-avatar :size="32" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"/>
+                <span class="user-name">管理员</span>
+            </div>
+            <template #dropdown>
+                <el-dropdown-menu>
+                    <el-dropdown-item command="logout">退出</el-dropdown-item>
+                </el-dropdown-menu>
+            </template>
+        </el-dropdown>
+    </div>
+
+    <div class="content-container">
+        <div class="role-description">角色介绍</div>
+        <el-input
+                type="textarea"
+                v-model="form.prompt"
+                :rows="10"
+                resize="vertical"
+                @input="updateCharCount"
+        ></el-input>
+        <div class="character-count">{{ charCount }} / 2000</div>
+
+        <div class="button-group">
+            <el-button type="primary" @click="savePrompt">保存配置</el-button>
+            <el-button @click="loadPrompt">重置</el-button>
+        </div>
+
+        <div class="note">注意：保存配置后，需要重启设备，新的配置才会生效。</div>
+    </div>
+
+    <app-footer></app-footer>
+</div>
+
+<script>
+    const {ElMessage} = ElementPlus;
+    const App = {
+        data() {
+            return {
+                form: {
+                    prompt: ''
+                },
+                charCount: 0
+            };
+        },
+        methods: {
+            loadPrompt() {
+                let that = this;
+                that.form.prompt = '';
+                get('/api/prompt', function (data) {
+                    if (data.code === -1) {
+                        ElMessage({
+                            message: data.msg,
+                            type: 'error'
+                        });
+                    } else {
+                        that.form.prompt = data.prompt;
+                        that.updateCharCount();
+                    }
+                })
+            },
+            updateCharCount() {
+                this.charCount = this.form.prompt.length;
+            },
+            savePrompt() {
+                post('/api/prompt', {prompt: this.form.prompt}, (data) => {
+                    if (data.code === 0) {
+                        ElMessage({
+                            message: '保存成功',
+                            type: 'success'
+                        });
+                        this.loadPrompt();
+                    } else {
+                        ElMessage({
+                            message: data.msg || '保存失败',
+                            type: 'error'
+                        });
+                    }
+                });
+            },
+            // 新增退出处理方法
+            handleCommand(command) {
+                if (command === 'logout') {
+                    this.handleLogout();
+                }
+            },
+            handleLogout() {
+                localStorage.removeItem('token');
+                location.href = 'login.html';
+            },
+        },
+        mounted() {
+            this.loadPrompt();
+        }
+    };
+
+    const app = createVueApp(App);
+    app.mount("#app");
+</script>
+</body>
+</html>

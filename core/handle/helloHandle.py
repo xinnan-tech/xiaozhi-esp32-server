@@ -1,7 +1,7 @@
 import json
-import logging
+from config.logger import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging()
 
 
 async def handleHelloMessage(conn):

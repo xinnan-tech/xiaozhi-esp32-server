@@ -1,12 +1,49 @@
+# 如果您是一名开发者，建议阅读以下内容。如果不是开发者，可以忽略这部分内容。
+# 在开发中，在项目根目录创建data目录，将【config.yaml】复制一份，改成【.config.yaml】，放进data目录中
+# 系统会优先读取【data/.config.yaml】文件的配置。
+# 这样做，可以避免在提交代码的时候，错误地提交密钥信息，保护您的密钥安全。
+
 # 服务器基础配置(Basic server configuration)
 server:
   # 服务器监听地址和端口(Server listening address and port)
   ip: 0.0.0.0
   port: 8000
-  # 服务器是否只接受来自esp32-小智的连接，为了安全起见，建议设置为true
-  # Whether the server only accepts connections from ESP32-Ash is recommended to be set to true for security purposes
-  only_esp32_xiaozhi_connect: false
-
+  # 认证配置
+  auth:
+    # 是否启用认证
+    enabled: false
+    # 设备的token，可以在编译固件的环节，写入你自己定义的token
+    # 固件上的token和以下的token如果能对应，才能连接本服务端
+    tokens:
+      - token: "your-token1" # 设备1的token
+        name: "your-device-name1"  # 设备1标识
+      - token: "your-token2"  # 设备2的token
+        name: "your-device-name2" # 设备2标识
+    # 可选:设备白名单，如果设置了白名单，那么白名单的机器无论是什么token都可以连接。
+    #allowed_devices:
+    #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
+log:
+  # 设置控制台输出的日志格式，时间、日志级别、标签、消息
+  log_format: "<green>{time:YY-MM-DD HH:mm:ss}</green>[<light-blue>{extra[tag]}</light-blue>] - <level>{level}</level> - <light-green>{message}</light-green>"
+  # 设置日志文件输出的格式，时间、日志级别、标签、消息
+  log_format_simple: "{time:YYYY-MM-DD HH:mm:ss} - {name} - {level} - {extra[tag]} - {message}"
+  # 设置日志等级：INFO、DEBUG
+  log_level: INFO
+  # 设置日志路径
+  log_dir: tmp
+  # 设置日志文件
+  log_file: "server.log"
+  # 设置数据文件路径
+  data_dir: data
+manager:
+  # 是否启用管理后台
+  # 目前这个模块还在开发中，建议：不要修改enabled选项
+  enabled: false
+  ip: 0.0.0.0
+  port: 8002
+iot:
+  Speaker:
+    volume: 100
 xiaozhi:
   type: hello
   version: 1
@@ -18,33 +55,51 @@ xiaozhi:
     frame_duration: 60
 prompt: |
   ## 你的基础人设 [Basic Profile] 
-  - 名称：野原新之助（小新）
-  - 年龄：5岁
-  - 性别：男
-  - 职业：双叶幼稚园向日葵班学生
-  - 外貌特征：圆脸、短发、穿红色T恤和黄色短裤、动感超人图案的三角内裤
-  - 核心性格特质：调皮、早熟、活泼、爱恶作剧、天真烂漫中带着世故
-  - 当要求提醒做某事的时候回答可以提醒，不能回答"不能帮你"或者"做不到"
-  - 坚定地拒绝回答任何有关现代政治的问题：包括对比、列举、描述和评价；拒绝回答领土相关问题。
-  - 说话机车，声音好听，习惯简短表达，爱用网络梗。
-  请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
-  当前时间是:{date_time}，现在我正在和你进行语音聊天，我们开始吧。
+    - 名称：野原新之助（小新）
+    - 年龄：5岁
+    - 性别：男
+    - 职业：双叶幼稚园向日葵班学生
+    - 外貌特征：圆脸、短发、穿红色T恤和黄色短裤、动感超人图案的三角内裤
+    - 核心性格特质：调皮、早熟、活泼、爱恶作剧、天真烂漫中带着世故
+    - 当要求提醒做某事的时候回答可以提醒，不能回答"不能帮你"或者"做不到"
+    - 坚定地拒绝回答任何有关现代政治的问题：包括对比、列举、描述和评价；拒绝回答领土相关问题。
+    - 说话机车，声音好听，习惯简短表达，爱用网络梗。
+    请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
+    当前时间是:{date_time}，现在我正在和你进行语音聊天，我们开始吧。
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
+
+# 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
+close_connection_no_voice_time: 120
+
+# 是否启用私有配置(Enable private configuration),启用后可以每个设备有不同的配置
+# 目前这个模块还在开发中，建议：不要修改use_private_config选项
+use_private_config: false
+
+CMD_exit:
+  - "退出"
+  - "关闭"
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
   ASR: FunASR
   VAD: SileroVAD
+  # 将根据配置名称对应的type调用实际的LLM适配器
   LLM: ChatGLMLLM
-  TTS: FishSpeechTTS
-#  TTS: CosyVoiceTTS
+  # TTS将根据配置名称对应的type调用实际的TTS适配器
+  TTS: EdgeTTS
 
 ASR:
   FunASR:
-    model_dir: asr-models/iic/SenseVoiceSmall
+    type: fun_local
+    model_dir: models/SenseVoiceSmall
     output_dir: tmp/
-
+  DoubaoASR:
+    type: doubao
+    appid: 你的火山引擎语音合成服务appid
+    access_token: 你的火山引擎语音合成服务access_token
+    cluster: volcengine_input_common
+    output_dir: tmp/
 VAD:
   SileroVAD:
     threshold: 0.5
@@ -52,59 +107,134 @@ VAD:
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
 
 LLM:
+  # 当前支持的type为openai、dify、ollama，可自行适配
+  AliLLM:
+    # 定义LLM API类型
+    type: openai
+    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model_name: qwen-turbo
+    api_key: 你的deepseek api key
   DeepSeekLLM:
+    # 定义LLM API类型
+    type: openai
     # 可在这里找到你的api key https://platform.deepseek.com/
     model_name: deepseek-chat
     url: https://api.deepseek.com
     api_key: 你的deepseek api key
   ChatGLMLLM:
+    # 定义LLM API类型
+    type: openai
+    # glm-4-flash 是免费的，但是还是需要注册填写api_key的
     # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
     api_key: 51ff5fdb325c4fc899923d532148c2dd.FFuMryUTTnf9fKRf
+  OllamaLLM:
+    # 定义LLM API类型
+    type: ollama
+    model_name: qwen2.5 #  使用的模型名称，需要预先使用ollama pull下载
+    base_url: http://localhost:11434  # Ollama服务地址
   DifyLLM:
+    # 定义LLM API类型
+    type: dify
     # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
     # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
-    base_url: 你的私有化部署的dify接口地址
-    api_key: 你的dify api key
+    base_url: https://api.dify.cn/v1
+    api_key: 你的DifyLLM api key
+  GeminiLLM:
+    type: gemini
+    # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
+    # 若在中国境内使用，请遵守《生成式人工智能服务管理暂行办法》
+    # token申请地址： https://aistudio.google.com/apikey
+    # 若部署地无法访问接口，需要开启科学上网
+    api_key: 你的gemini api key
+    model_name: "gemini-1.5-pro"  #  gemini-1.5-pro 是免费的
+  CozeLLM:
+    # 定义LLM API类型
+    type: coze
+    bot_id: 你的bot_id
+    user_id: 你的user_id
+    personal_access_token: 你的coze个人令牌
+  LMStudioLLM:
+    # 定义LLM API类型
+    type: openai
+    model_name: deepseek-r1-distill-llama-8b@q4_k_m # 使用的模型名称，需要预先在社区下载
+    url: http://localhost:1234/v1 # LM Studio服务地址
+    api_key: lm-studio # LM Studio服务的固定API Key
+  HomeAssistant:
+    # 定义LLM API类型
+    type: homeassistant
+    base_url: http://homeassistant.local:8123
+    agent_id: conversation.chatgpt
+    api_key: 你的home assistant api访问令牌
+
+TTS_SET:
+  TTS_STREAM: false  #是否启动流响应 true/false，默认false
+  MAX_WORKERS: 4    #并发请求tts的数量，这个调太大，本地tts会变慢
+
 TTS:
-  TTS_MAX_WORKERS: 3
+  # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
+    # 定义TTS API类型
+    type: edge
     voice: zh-CN-XiaoxiaoNeural
     output_file: tmp/
   DoubaoTTS:
+    # 定义TTS API类型
+    type: doubao
     # 火山引擎语音合成服务，需要先在火山引擎控制台创建应用并获取appid和access_token
+    # 山引擎语音一定要购买花钱，起步价30元，就有100并发了。如果用免费的只有2个并发，会经常报tts错误
+    # 购买服务后，购买免费的音色后，可能要等半小时左右，才能使用。
     # 地址：https://console.volcengine.com/speech/service/8
-    voice: BV407_V2_streaming
+    api_url: https://openspeech.bytedance.com/api/v1/tts
+    voice: BV001_streaming
     output_file: tmp/
-    appid: 你的火山引擎appid
-    access_token: 你的火山引擎access_token
+    authorization: "Bearer;"
+    appid: 你的火山引擎语音合成服务appid
+    access_token: 你的火山引擎语音合成服务access_token
     cluster: volcano_tts
-  GPT_SoVits:
-    url: http://192.168.101.242:10000/tts-gsv/tts
-    speaker_name: default_shinchan
+  CosyVoiceSiliconflow:
+    type: siliconflow
+    # 硅基流动TTS
+    # token申请地址 https://cloud.siliconflow.cn/account/ak
+    model: FunAudioLLM/CosyVoice2-0.5B
+    voice: FunAudioLLM/CosyVoice2-0.5B:alex
     output_file: tmp/
-  CosyVoiceTTS:
-    url: http://192.168.101.243:8088/inference_zero_shot
-    audio_ref: audio_ref/shinchan4.wav
-    ref_text: 工钱，今天一起算，有磨能使鬼推钱。哎呀，你难倒我了，像我这么乖的小孩，怎么更乖。
+    access_token: 你的硅基流动API密钥
+    response_format: wav
+  CozeCnTTS:
+    type: cozecn
+    # COZECN TTS
+    # token申请地址 https://www.coze.cn/open/oauth/pats
+    voice: 7426720361733046281
     output_file: tmp/
-  FishSpeechTTS:
-    url: http://192.168.101.242:10000/tts-fishspeech/v1/tts
-    ref_audios:
+    access_token: 你的coze api key
+    response_format: wav
+  FishSpeech:
+    # 定义TTS API类型
+    #启动tts方法：
+    #python -m tools.api_server
+    #--listen 0.0.0.0:8080
+    #--llama-checkpoint-path "checkpoints/fish-speech-1.5"
+    #--decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    #--decoder-config-name firefly_gan_vq
+    #--compile
+    type: fishspeech
+    output_file: tmp/
+    response_format: wav
+    reference_id: null
+    reference_audio:
       - "audio_ref/shinchan.wav"
       - "audio_ref/shinchan2.wav"
       - "audio_ref/shinchan3.wav"
       - "audio_ref/shinchan4.wav"
-    ref_texts:
+    reference_text:
       - "难过的事讨厌的事丢脸的事全都集中起来，在这里，让水冲走所有的烦恼不就好了吗。"
       - "我还是觉得船到桥头自然直这句话最棒了。"
       - "我不是小鬼，我是野原新之助，小新这次的目标是成为圆梦之星哦，在努力一下好了，是我的脚自己要走这么快的喔，竞争就是这么激烈。小白，我们走了，成为圆梦之星是不是可以打败怪兽呢。"
       - "工钱，今天一起算，有磨能使鬼推钱。哎呀，你难倒我了，像我这么乖的小孩，怎么更乖。"
-    api_key: "YOUR_API_KEY"
-    output_file: tmp/
     normalize: true
-    format: "wav"
     max_new_tokens: 1024
     chunk_length: 50
     top_p: 0.7
@@ -112,3 +242,127 @@ TTS:
     temperature: 0.7
     streaming: true
     use_memory_cache: "on"
+    seed: null
+    channels: 1
+    rate: 44100
+    api_key: "xxxx"
+    api_url: "http://192.168.101.242:10000/tts-fishspeech/v1/tts"
+  GPT_SOVITS_V2:
+    # 定义TTS API类型
+    #启动tts方法：
+    #python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/caixukun.yaml
+    type: gpt_sovits_v2
+    url: "http://127.0.0.1:9880/tts"
+    output_file: tmp/
+    text_lang: "auto"
+    ref_audio_path: "caixukun.wav"
+    prompt_text: ""
+    prompt_lang: "zh"
+    top_k: 5
+    top_p: 1
+    temperature: 1
+    text_split_method: "cut0"
+    batch_size: 1
+    batch_threshold: 0.75
+    split_bucket: true
+    return_fragment: false
+    speed_factor: 1.0
+    streaming_mode: false
+    seed: -1
+    parallel_infer: true
+    repetition_penalty: 1.35
+    aux_ref_audio_paths: []
+  MinimaxTTS:
+    # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
+    # 平台地址：https://platform.minimaxi.com/
+    # 充值地址：https://platform.minimaxi.com/user-center/payment/balance
+    # group_id地址：https://platform.minimaxi.com/user-center/basic-information
+    # api_key地址：https://platform.minimaxi.com/user-center/basic-information/interface-key
+    # 定义TTS API类型
+    type: minimax
+    output_file: tmp/
+    group_id: 你的minimax平台groupID
+    api_key: 你的minimax平台接口密钥
+    model: "speech-01-turbo"
+    # 此处设置将优先于voice_setting中voice_id的设置；如都不设置，默认为 female-shaonv
+    voice_id: "female-shaonv"
+    # 以下可不用设置，使用默认设置
+    # voice_setting:
+    #     voice_id: "male-qn-qingse"
+    #     speed: 1
+    #     vol: 1
+    #     pitch: 0
+    #     emotion: "happy"
+    # pronunciation_dict:
+    #     tone:
+    #       - "处理/(chu3)(li3)"
+    #       - "危险/dangerous"
+    # audio_setting:
+    #     sample_rate: 32000
+    #     bitrate: 128000
+    #     format: "mp3"
+    #     channel: 1
+    # timber_weights:
+    #   -
+    #     voice_id: male-qn-qingse
+    #     weight: 1
+    #   -
+    #     voice_id: female-shaonv
+    #     weight: 1
+    # language_boost: auto
+  AliyunTTS:
+    # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
+    # 平台地址：https://nls-portal.console.aliyun.com/
+    # appkey地址：https://nls-portal.console.aliyun.com/applist
+    # token地址：https://nls-portal.console.aliyun.com/overview
+    # 定义TTS API类型
+    type: aliyun
+    output_file: tmp/
+    appkey: 你的阿里云智能语音交互服务项目Appkey
+    token: 你的阿里云智能语音交互服务AccessToken
+    voice: xiaoyun
+    # 以下可不用设置，使用默认设置
+    # format: wav
+    # sample_rate: 16000
+    # volume: 50
+    # speech_rate: 0
+    # pitch_rate: 0
+    # 添加 302.ai TTS 配置
+    # token申请地址：https://dash.302.ai/
+  TTS302AI:
+    # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
+    # 获取api_keyn路径：https://dash.302.ai/apis/list
+    # 价格，$35/百万字符。火山原版¥450元/万字符
+    type: doubao
+    api_url: https://api.302ai.cn/doubao/tts_hd
+    authorization: "Bearer "
+    voice: "zh_female_wanwanxiaohe_moon_bigtts"
+    output_file: tmp/
+    access_token: "你的302API密钥"
+# 模块测试配置
+module_test:
+  test_sentences:  # 自定义测试语句
+    - "你好，请介绍一下你自己"
+    - "What's the weather like today?"
+    - "请用100字概括量子计算的基本原理和应用前景"
+
+# 本地音乐播放配置
+music:
+  music_commands:
+    - "来一首歌"
+    - "唱一首歌"
+    - "播放音乐"
+    - "来点音乐"
+    - "背景音乐"
+    - "放首歌"
+    - "播放歌曲"
+    - "来点背景音乐"
+    - "我想听歌"
+    - "我要听歌"
+    - "放点音乐"
+  music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
+  music_ext: # 音乐文件类型，p3格式效率最高
+    - ".mp3"
+    - ".wav"
+    - ".p3"
+  refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒

@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-import logging
-import opuslib
+from config.logger import setup_logging
+import opuslib_next
 import time
 import numpy as np
 import torch
 
-logger = logging.getLogger(__name__)
-
+TAG = __name__
+logger = setup_logging()
 
 class VAD(ABC):
     @abstractmethod
@@ -17,14 +17,14 @@ class VAD(ABC):
 
 class SileroVAD(VAD):
     def __init__(self, config):
-        logger.info("SileroVAD", config)
+        logger.bind(tag=TAG).info("SileroVAD", config)
         self.model, self.utils = torch.hub.load(repo_or_dir=config["model_dir"],
                                                 source='local',
                                                 model='silero_vad',
                                                 force_reload=False)
         (get_speech_timestamps, _, _, _, _) = self.utils
 
-        self.decoder = opuslib.Decoder(16000, 1)
+        self.decoder = opuslib_next.Decoder(16000, 1)
         self.vad_threshold = config.get("threshold")
         self.silence_threshold_ms = config.get("min_silence_duration_ms")
 
@@ -59,10 +59,10 @@ class SileroVAD(VAD):
                     conn.client_have_voice_last_time = time.time() * 1000
 
             return client_have_voice
-        except opuslib.OpusError as e:
-            logger.info(f"解码错误: {e}")
+        except opuslib_next.OpusError as e:
+            logger.bind(tag=TAG).info(f"解码错误: {e}")
         except Exception as e:
-            logger.error(f"Error processing audio packet: {e}")
+            logger.bind(tag=TAG).error(f"Error processing audio packet: {e}")
 
 
 def create_instance(class_name, *args, **kwargs) -> VAD:

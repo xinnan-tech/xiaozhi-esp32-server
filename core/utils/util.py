@@ -1,12 +1,14 @@
-import yaml
-import unicodedata
-import socket
 import os
+import re
 import json
+import yaml
+import socket
+import subprocess
 
 
 def get_project_dir():
-    return os.environ["PROJECT_ROOT_PATH"]
+    """获取项目根目录"""
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/'
 
 
 def get_local_ip():
@@ -47,7 +49,7 @@ def is_punctuation_or_emoji(char):
         '。', '.',  # 中文句号 + 英文句号
         '！', '!',  # 中文感叹号 + 英文感叹号
         '-', '－',  # 英文连字符 + 中文全角横线
-        '、'         # 中文顿号
+        '、'  # 中文顿号
     }
     if char.isspace() or char in punctuation_set:
         return True
@@ -61,6 +63,7 @@ def is_punctuation_or_emoji(char):
     ]
     return any(start <= code_point <= end for start, end in emoji_ranges)
 
+
 def get_string_no_punctuation_or_emoji(s):
     """去除字符串首尾的空格、标点符号和表情符号"""
     chars = list(s)
@@ -72,7 +75,8 @@ def get_string_no_punctuation_or_emoji(s):
     end = len(chars) - 1
     while end >= start and is_punctuation_or_emoji(chars[end]):
         end -= 1
-    return ''.join(chars[start:end+1])
+    return ''.join(chars[start:end + 1])
+
 
 def remove_punctuation_and_length(text):
     # 全角符号和半角符号的Unicode范围
@@ -86,5 +90,60 @@ def remove_punctuation_and_length(text):
                       char not in full_width_punctuations and char not in half_width_punctuations and char not in space and char not in full_width_space])
 
     if result == "Yeah":
-        return 0
-    return len(result)
+        return 0, ""
+    return len(result), result
+
+
+def check_password(password):
+    """
+    检查密码是否满足以下条件：
+    1. 密码长度大于八位。
+    2. 密码包含英文和数字。
+    3. 密码不能包含“xiaozhi”字符。
+
+    :param password: 要检查的密码
+    :return: 如果密码满足条件，则返回True；否则返回False。
+    """
+    # 检查密码长度
+    if len(password) < 8:
+        return False
+
+    # 检查是否包含英文字符和数字
+    if not re.search(r'[A-Za-z]', password) or not re.search(r'[0-9]', password):
+        return False
+
+    # 检查是否包含“xiaozhi”字符
+    if "xiaozhi" in password:
+        return False
+
+    if "1234" in password:
+        return False
+
+    # 如果满足所有条件，则返回True
+    return True
+
+def check_ffmpeg_installed():
+    ffmpeg_installed = False
+    try:
+        # 执行ffmpeg -version命令，并捕获输出
+        result = subprocess.run(
+            ['ffmpeg', '-version'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True  # 如果返回码非零则抛出异常
+        )
+        # 检查输出中是否包含版本信息（可选）
+        output = result.stdout + result.stderr
+        if 'ffmpeg version' in output.lower():
+            ffmpeg_installed = True
+        return False
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # 命令执行失败或未找到
+        ffmpeg_installed = False
+    if not ffmpeg_installed:
+        error_msg = "您的电脑还没正确安装ffmpeg\n"
+        error_msg += "\n建议您：\n"
+        error_msg += "1、按照项目的安装文档，正确进入conda环境\n"
+        error_msg += "2、查阅安装文档，如何在conda环境中安装ffmpeg\n"
+        raise ValueError(error_msg)

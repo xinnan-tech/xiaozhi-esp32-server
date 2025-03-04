@@ -1,0 +1,18 @@
+version: '3'
+services:
+  xiaozhi-esp32-server:
+    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
+    container_name: xiaozhi-esp32-server
+    restart: always
+    security_opt:
+      - seccomp:unconfined
+    ports:
+      # ws服务端
+      - "8000:8000"
+      # 管理后台
+      - "8002:8002"
+    volumes:
+      # 配置文件目录
+      - ./data:/app/data
+      # 模型文件挂接，很重要
+      - ./models/SenseVoiceSmall/model.pt:/app/models/SenseVoiceSmall/model.pt
