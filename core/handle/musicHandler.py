@@ -385,14 +385,14 @@ class MusicHandler:
                     return
             text = f"正在本地播放{selected_music}"
             await send_stt_message(conn, text)
-            conn.tts_first_text = selected_music
-            conn.tts_last_text = selected_music
+            conn.tts_first_text_index = 0
+            conn.tts_last_text_index = 0
             conn.llm_finish_task = True
             if music_path.endswith(".p3"):
                 opus_packets, duration = p3.decode_opus_from_file(music_path)
             else:
                 opus_packets, duration = conn.tts.wav_to_opus_data(music_path)
-            conn.audio_play_queue.put((opus_packets, selected_music))
+            conn.audio_play_queue.put((opus_packets, selected_music, 0))
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"播放音乐失败: {str(e)}")

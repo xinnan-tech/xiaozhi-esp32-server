@@ -24,3 +24,27 @@ class Dialogue:
         for m in self.dialogue:
             dialogue.append({"role": m.role, "content": m.content})
         return dialogue
+
+    def get_llm_dialogue_with_memory(self, memory_str: str = None) -> List[Dict[str, str]]:
+        # 构建带记忆的对话
+        dialogue = []
+        
+        # 添加系统提示和记忆
+        system_message = next(
+            (msg for msg in self.dialogue if msg.role == "system"), None
+        )
+
+
+        if system_message:
+            enhanced_system_prompt = (
+                f"{system_message.content}\n\n"
+                f"相关记忆：\n{memory_str}"
+            )
+            dialogue.append({"role": "system", "content": enhanced_system_prompt})
+
+        # 添加用户和助手的对话
+        for msg in self.dialogue:
+            if msg.role != "system":  # 跳过原始的系统消息
+                dialogue.append({"role": msg.role, "content": msg.content})
+
+        return dialogue
