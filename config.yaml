@@ -85,7 +85,8 @@ selected_module:
 Memory:
   mem0ai:
     type: mem0ai
-    # https://app.mem0.ai/dashboard/api-keys，注册可获得试用credits
+    # https://app.mem0.ai/dashboard/api-keys
+    # 每月有1000次免费调用
     api_key: 你的mem0ai api key
     
 ASR:
