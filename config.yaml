@@ -104,10 +104,9 @@ LLM:
     # 定义LLM API类型
     type: openai
     # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
-    #qwen-omni-turbo
-    #qwen-omni-turbo 这个模型支持视觉识别
+    #qwen-omni-turbo 可使用一系列阿里的视觉识别模型
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    model_name: qwen-omni-turbo #qwen-omni-turbo
+    model_name: qwen-turbo
     api_key: 你的deepseek api key
   DeepSeekLLM:
     # 定义LLM API类型
