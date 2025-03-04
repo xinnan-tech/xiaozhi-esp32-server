@@ -1,14 +1,6 @@
 <template>
   <div class="app-container">
     <NavBar current-tab="device" @tab-change="handleTabChange"/>
-
-    <!-- Breadcrumb -->
-    <div class="breadcrumb">
-      <router-link to="/">首页</router-link> /
-      <router-link to="/panel">设备管理</router-link> /
-      <span>配置角色</span>
-    </div>
-
     <!-- Main Content -->
     <div class="main-content">
       <h1 class="page-title">配置角色: {{ deviceId }}</h1>
@@ -285,11 +277,28 @@ const resetConfig = async () => {
 </script>
 
 <style scoped>
+
 .app-container {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f5f7fa;
+  height: 100vh; /* 改为固定视口高度 */
+  margin: 0;
+  background: #f5f7fa;
+}
+
+.main-content {
+  flex: 1;
+  margin: 0; /* 移除自动居中 */
+  padding: 0; /* 移除内边距 */
+  width: 100%;
+  max-width: none; /* 移除最大宽度限制 */
+  overflow: auto; /* 添加滚动条 */
+}
+
+.form-section {
+  min-height: 100%; /* 撑满容器 */
+  padding: 24px; /* 增加内边距 */
+  box-shadow: none; /* 移除阴影 */
 }
 
 .breadcrumb {
