@@ -9,4 +9,3 @@ async def handleVLMessage(conn, text):
         {"type": "text", "text": "图中描绘的是什么景象,请细致查看并描述"},
     ]
     conn.executor.submit(conn.chat, messages)
-    await conn.websocket.send(json.dumps(conn.welcome_msg))
