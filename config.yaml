@@ -121,7 +121,7 @@ LLM:
     # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你的chat-glm api key
+    api_key: 51ff5fdb325c4fc899923d532148c2dd.FFuMryUTTnf9fKRf
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -163,7 +163,7 @@ LLM:
 
 TTS_SET:
   TTS_STREAM: false  #是否启动流响应 true/false，默认false
-  MAX_WORKERS: 3    #并发请求tts的数量，这个调太大，本地tts会变慢
+  MAX_WORKERS: 4    #并发请求tts的数量，这个调太大，本地tts会变慢
 
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
@@ -216,15 +216,23 @@ TTS:
     output_file: tmp/
     response_format: wav
     reference_id: null
-    reference_audio: ["/tmp/test.wav",]
-    reference_text: ["你弄来这些吟词宴曲来看，还是这些混话来欺负我。",]
+    reference_audio:
+      - "audio_ref/shinchan.wav"
+      - "audio_ref/shinchan2.wav"
+      - "audio_ref/shinchan3.wav"
+      - "audio_ref/shinchan4.wav"
+    reference_text:
+      - "难过的事讨厌的事丢脸的事全都集中起来，在这里，让水冲走所有的烦恼不就好了吗。"
+      - "我还是觉得船到桥头自然直这句话最棒了。"
+      - "我不是小鬼，我是野原新之助，小新这次的目标是成为圆梦之星哦，在努力一下好了，是我的脚自己要走这么快的喔，竞争就是这么激烈。小白，我们走了，成为圆梦之星是不是可以打败怪兽呢。"
+      - "工钱，今天一起算，有磨能使鬼推钱。哎呀，你难倒我了，像我这么乖的小孩，怎么更乖。"
     normalize: true
     max_new_tokens: 1024
-    chunk_length: 200
+    chunk_length: 50
     top_p: 0.7
     repetition_penalty: 1.2
     temperature: 0.7
-    streaming: false
+    streaming: true
     use_memory_cache: "on"
     seed: null
     channels: 1

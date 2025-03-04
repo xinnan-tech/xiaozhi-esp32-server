@@ -38,9 +38,9 @@ class TTSProviderBase(ABC):
             logger.bind(tag=TAG).info(f": {e}")
             return None
 
-    def to_tts_stream(self,text, queue: queue.Queue):
+    def to_tts_stream(self, text, queue: queue.Queue, text_index=0):
         try:
-            asyncio.run(self.text_to_speak_stream(text, queue))
+            asyncio.run(self.text_to_speak_stream(text, queue, text_index))
         except Exception as e:
             logger.bind(tag=TAG).info(f"Failed to generate TTS file: {e}")
             return None
@@ -49,7 +49,7 @@ class TTSProviderBase(ABC):
     async def text_to_speak(self, text, output_file):
         pass
 
-    async def text_to_speak_stream(self,text,queue: queue.Queue):
+    async def text_to_speak_stream(self, text, queue: queue.Queue, text_index=0):
         raise Exception("该TTS还没有实现stream模式")
 
     def wav_to_opus_data(self, wav_file_path):
@@ -94,7 +94,7 @@ class TTSProviderBase(ABC):
 
         return opus_datas, duration
 
-    def wav_to_opus_data_audio(self,audio):
+    def wav_to_opus_data_audio(self, audio):
         duration = len(audio) / 1000.0
         # 转换为单声道和16kHz采样率（确保与编码器匹配）
         audio = audio.set_channels(1).set_frame_rate(16000)
@@ -126,4 +126,3 @@ class TTSProviderBase(ABC):
             opus_datas.append(opus_data)
 
         return opus_datas, duration
-

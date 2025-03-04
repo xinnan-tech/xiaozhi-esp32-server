@@ -16,11 +16,11 @@ async def isLLMWantToFinish(last_text):
         return True
     return False
 
-async def sendAudioMessageStream(conn, audios_queue, text):
+
+async def sendAudioMessageStream(conn, audios_queue, text, text_index=0):
     # 发送句子开始消息
-    if text == conn.tts_first_text:
+    if text_index == conn.tts_first_text_index:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
-        conn.tts_start_speak_time = time.perf_counter()
     await send_tts_message(conn, "sentence_start", text)
 
     # 初始化流控参数
@@ -37,17 +37,16 @@ async def sendAudioMessageStream(conn, audios_queue, text):
                 audio_data_chunke = audios_queue.get(timeout=5)  # 设置超时为1秒
             except Exception as e:
                 # 如果超时，继续等待
-                print(f"获取队列超时～{e}")
+                logger.bind(tag=TAG).error(f"获取队列超时～{e}")
 
             audio_opus_datas = audio_data_chunke.get('data') if audio_data_chunke else None
-            duration =  audio_data_chunke.get('duration') if audio_data_chunke else 0
+            duration = audio_data_chunke.get('duration') if audio_data_chunke else 0
 
             if audio_data_chunke:
                 start_time = time.time()
             # 检查是否超过 5 秒没有数据
-            if time.time() - start_time > 5:
-                logger.bind(tag=TAG).error("超过5秒没有数据，退出。")
-                time_out_stop = True
+            if time.time() - start_time > 15:
+                logger.bind(tag=TAG).error("超过15秒没有数据，退出。")
                 break
 
             if audio_data_chunke and audio_data_chunke.get("end", True):
@@ -66,13 +65,16 @@ async def sendAudioMessageStream(conn, audios_queue, text):
             logger.bind(tag=TAG).error(f"发生错误: {e}")
             traceback.print_exc()  # 打印错误堆栈
     await send_tts_message(conn, "sentence_end", text)
+
+    print(f'{text_index}-{conn.tts_last_text_index}')
     # 发送结束消息（如果是最后一个文本）
-    if (conn.llm_finish_task and text == conn.tts_last_text) or time_out_stop:
-        if conn.tts_duration > 0:
+    if conn.llm_finish_task and text_index == conn.tts_last_text_index:
+        if conn.tts_duration and conn.tts_duration > 0:
             await asyncio.sleep(conn.tts_duration)
         await send_tts_message(conn, 'stop', None)
         if await isLLMWantToFinish(text):
             await conn.close()
+
 
 async def sendAudioMessage(conn, audios, text, text_index=0):
     # 发送句子开始消息

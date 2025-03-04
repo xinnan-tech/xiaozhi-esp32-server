@@ -174,7 +174,7 @@ class TTSProvider(TTSProviderBase):
         audio.set_channels(1).set_frame_rate(16000)
         return audio
 
-    async def text_to_speak_stream(self, text, queue: queue.Queue):
+    async def text_to_speak_stream(self, text, queue: queue.Queue,text_index=0):
         try:
             # Prepare reference data
             byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
@@ -204,6 +204,7 @@ class TTSProvider(TTSProviderBase):
             pydantic_data = ServeTTSRequest(**data)
             audio_buff = None
             chunk_total = b''
+            print("请求tts")
             with requests.post(
                     self.api_url,
                     data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
@@ -228,7 +229,8 @@ class TTSProvider(TTSProviderBase):
                                 queue.put({
                                     "data": opus_datas,
                                     "duration": duration,
-                                    "end": False
+                                    "end": False,
+                                    "text_index": text_index
                                 })
                                 audio_buff = None
                             chunk_total = b''
