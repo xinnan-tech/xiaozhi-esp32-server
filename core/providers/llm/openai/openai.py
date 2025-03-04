@@ -23,7 +23,10 @@ class LLMProvider(LLMProviderBase):
             responses = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=dialogue,
-                stream=True
+                # 设置输出数据的模态，当前支持["text"]
+                modalities=["text"],
+                stream=True,
+                stream_options={"include_usage": True}
             )
             
             is_active = True

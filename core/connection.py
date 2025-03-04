@@ -167,6 +167,8 @@ class ConnectionHandler:
     async def _route_message(self, message):
         """消息路由"""
         if isinstance(message, str):
+            print('str')
+            print(message)
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
             await handleAudioMessage(self, message)

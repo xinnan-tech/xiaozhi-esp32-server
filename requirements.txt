@@ -1,3 +1,4 @@
+#pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple
 pyyml==0.0.2
 torch==2.2.2
 silero_vad==5.1.2
