@@ -1,20 +1,53 @@
 <template>
-  <div class="app">
-    <NavBar current-tab="device" @tab-change="handleTabChange"/>
-    <main class="content">
-      <div class="page-header">
-        <div class="header-left">
-         
-          <div class="breadcrumb">
-            <router-link to="/">首页</router-link> /
-            <span>设备管理</span>
-          </div>
+  <div class="app-container">
+    <!-- 顶部导航栏 -->
+    <header class="header">
+      <div class="logo-container">
+        <div class="logo">
+          <img src="../assets/robot.png" alt="小智AI" />
         </div>
+       <span class="logo-text"><router-link to="/">小智.AI</router-link></span>
+        <!-- <span class="logo-text">小智.AI</span> -->
       </div>
-      <button class="add-btn" @click="showBindDialog = true">
-            <i class="icon-plus"></i>添加设备
-      </button>
-      <!-- 绑定设备弹窗 -->
+      
+      <div class="nav-buttons">
+        <button class="nav-button active">
+          <span class="icon">⚙️</span>
+          设备管理
+        </button>
+      </div>
+      <div class="search-container">
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="输入关键搜索..." 
+          v-model="searchQuery"
+        />
+        <button class="search-button">🔍</button>
+      </div>
+      
+      <div class="user-info">
+        <div class="user-avatar">👤</div>
+        <span class="user-notification">158</span>
+        <span class="user-balance">B642</span>
+      </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+      <!-- 欢迎横幅 -->
+      <section class="welcome-banner">
+        <div class="welcome-text">
+          <h1>您好，小智</h1>
+          <h2>让我们度过<span class="highlight">美好的一天</span>！</h2>
+          <p class="subtitle">Hello, Let's have a wonderful day!</p>
+          
+          <button class="add-device-btn" @click="showBindDialog = true">
+            添加设备
+            <span class="arrow">→</span>
+          </button>
+        </div>
+              <!-- 绑定设备弹窗 -->
       <div v-if="showBindDialog" class="dialog-overlay">
         <div class="dialog">
           <h3>绑定新设备</h3>
@@ -41,10 +74,14 @@
           </div>
         </div>
       </div>
+        <div class="welcome-image">
+          <img src="../assets/welcome_banner.png" alt="AI图像" />
+        </div>
+      </section>
 
-      <template v-if="devices.length > 0">
-        <div class="device-list">
-          <DeviceCard
+      <!-- 设备卡片网格 -->
+      <section class="device-grid">
+        <DeviceCard
             v-for="device in devices"
             :key="device.id"
             :device-id="device.id"
@@ -58,13 +95,20 @@
             @history="handleHistory(device)"
             @delete="handleDelete(device)"
           />
-        </div>
-      </template>
-     
+      </section>
+
+      <!-- 分页控制 -->
+      <div class="pagination">
+        <button class="pagination-btn prev">
+          <span class="arrow">←</span>
+        </button>
+        <button class="pagination-btn next">
+          <span class="arrow">→</span>
+        </button>
+      </div>
     </main>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -210,219 +254,287 @@ const handleTabChange = (tab) => {
 onMounted(loadDevices);
 </script>
 
-<style scoped>
-.app {
-  min-height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
+<style>
+:root {
+  --primary-color: #4e6ef2;
+  --secondary-color: #f0f4ff;
+  --text-color: #333;
+  --light-text: #666;
+  --lighter-text: #999;
+  --border-color: #eaeaea;
+  --card-bg: #fff;
+  --hover-color: #e6f0ff;
+  --gradient-start: #4e6ef2;
+  --gradient-end: #7986cb;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
   background-color: #f5f7fa;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  height: 60px;
-  padding: 0 20px;
-  background-color: #001529;
-  color: white;
-}
-
-.logo {
-  font-size: 20px;
-  font-weight: bold;
-  margin-right: 40px;
-  cursor: pointer;
-  transition: opacity 0.3s;
-}
-
-.logo:hover {
-  opacity: 0.8;
-}
-
-.nav {
-  display: flex;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  height: 60px;
-  color: white;
-  text-decoration: none;
-}
-
-.nav-item.active {
-  background-color: #4178EE;
-}
-
-.icon-device {
-  margin-right: 8px;
-}
-
-.content {
-  flex: 1;
-  padding: 20px;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.breadcrumb {
-  margin-bottom: 20px;
-  color: #666;
-}
-
-.breadcrumb a {
-  color: #666;
-  text-decoration: none;
-}
-
-.action-bar {
-  margin-bottom: 20px;
-}
-
-.add-device-btn {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.icon-plus {
-  margin-right: 8px;
-}
-
-.device-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.device-card {
-  background: white;
-  border-radius: 4px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.device-id {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 16px;
-}
-
-.note {
-  color: #4178EE;
-  font-size: 14px;
-  font-weight: normal;
-}
-
-.device-details p {
-  margin-bottom: 12px;
-}
-
-.ota-upgrade {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 16px;
-}
-
-.device-actions {
-  display: flex;
-  margin-top: 20px;
-}
-
-.action-btn {
-  padding: 8px 16px;
-  margin-right: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-}
-
-.action-btn.primary {
-  background: #4178EE;
-  color: white;
-  border-color: #4178EE;
-}
-
-.action-btn.danger {
-  color: #f56c6c;
-}
-
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 300px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.empty-message {
-  text-align: center;
-  color: #666;
-  padding: 24px;
-}
-
-.empty-message p {
-  margin: 8px 0 0;
-  font-size: 14px;
+  color: var(--text-color);
   line-height: 1.6;
 }
 
-.icon-info {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/%3E%3C/svg%3E");
-  background-size: contain;
-  opacity: 0.6;
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
-.page-header {
+/* 顶部导航栏样式 */
+.header {
   display: flex;
-  justify-content: flex-start;
   align-items: center;
-  margin-bottom: 20px;
+  padding: 0.8rem 1.5rem;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.header-left {
+.logo-container {
   display: flex;
   align-items: center;
-  gap: 20px;
+  margin-right: 2rem;
 }
 
-.add-btn {
+.logo {
+  width: 2rem;
+  height: 2rem;
+  margin-right: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: #28a745;
+}
+
+.logo img {
+  width: 100%;
+  height: auto;
+}
+
+.logo-text {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-color);
+}
+
+.nav-buttons {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+}
+
+.nav-button {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 0.9rem;
+  margin-right: 1rem;
+}
+
+.nav-button .icon {
+  margin-right: 0.5rem;
+}
+
+.tab-container {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.tab-item {
+  margin-right: 0.5rem;
+}
+
+.tab-close {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  background-color: var(--secondary-color);
+  border-radius: 20px;
+  padding: 0.3rem 0.8rem;
+  margin: 0 1rem;
+  flex-grow: 0.5;
+  max-width: 400px;
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  flex-grow: 1;
+  padding: 0.5rem;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.search-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  background-color: #e0e0e0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+}
+
+.user-notification, .user-balance {
+  background-color: #f0f0f0;
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+/* 主要内容区域样式 */
+.main-content {
+  flex-grow: 1;
+  padding: 1.5rem;
+  background-color: #f5f7fa;
+}
+
+/* 欢迎横幅样式 */
+.welcome-banner {
+  display: flex;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e6f0ff 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+  min-height: 200px; /* 原高度300px缩减为200px */
+}
+
+.welcome-text {
+  padding: 1.8rem; /* 原2.5rem减少28% */
+  flex: 1;
+}
+
+.welcome-text h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.welcome-text h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.highlight {
+  color: var(--primary-color);
+}
+
+.subtitle {
+  color: var(--light-text);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.add-device-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.7rem 1.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
-  height: 36px;
 }
 
-.add-btn:hover {
-  background-color: #218838;
+.add-device-btn:hover {
+  background-color: #3d5bd9;
+  transform: translateY(-2px);
 }
 
-.icon-plus {
-  font-size: 16px;
+.arrow {
+  margin-left: 0.5rem;
 }
 
+.welcome-image {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.welcome-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 改为cover保持图片比例 */
+  opacity: 0.2;
+}
+
+/* 设备卡片网格样式 */
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* 分页控制样式 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.pagination-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover {
+  background-color: var(--hover-color);
+}
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -493,8 +605,74 @@ onMounted(loadDevices);
   border-color: #90be9c;
   cursor: not-allowed;
 }
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .welcome-banner {
+    flex-direction: column;
+    min-height: 160px; /* 同步降低响应式高度 */
+  }
+  
+  .welcome-image {
+    height: 120px; /* 原200px缩减为120px */
+  }
+}
 
-.breadcrumb {
-  margin-bottom: 0;
+@media (max-width: 768px) {
+  .header {
+    flex-wrap: wrap;
+  }
+  
+  .search-container {
+    order: 3;
+    width: 100%;
+    margin: 1rem 0 0;
+    max-width: none;
+  }
+  
+  .device-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+  
+  .welcome-text h1 {
+    font-size: 1.5rem;
+  }
+  
+  .welcome-text h2 {
+    font-size: 1.7rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .header {
+    padding: 0.5rem;
+  }
+  
+  .logo-text {
+    display: none;
+  }
+  
+  .nav-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .tab-container {
+    display: none;
+  }
+  
+  .user-notification, .user-balance {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  .welcome-text {
+    padding: 1.5rem;
+  }
+  
+  .device-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
+
+

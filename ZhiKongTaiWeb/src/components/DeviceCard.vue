@@ -1,33 +1,45 @@
 <template>
   <div class="device-card">
-    <div class="device-header">
-      <h2 class="device-id">{{ deviceId }} <span class="note">[{{ deviceNote || '备注' }}]</span></h2>
+    <div class="card-header">
+      <div class="device-code">{{ deviceId }}</div>
+      <div class="card-actions">
+        <button class="action-btn delete" @click="handleDelete">🗑️</button>
+        <button class="action-btn info">ℹ️</button>
+      </div>
     </div>
     
-    <div class="device-details">
-      <p class="device-type">设备型号：{{ deviceType }}</p>
-      <p class="device-role">角色昵称：{{ deviceRole }}</p>
-      <p class="device-modules">
-        当前模型：
-        <span class="module-item">LLM: {{ selectedModules?.LLM || '-' }}</span>
-        <span class="module-item">TTS: {{ selectedModules?.TTS || '-' }}</span>
-      </p>
-      <p class="last-activity">最近对话：{{ lastActivity }}</p>
-    </div>
-    
-    <div class="device-actions">
-      <button class="action-btn primary" @click="handleConfigure">配置角色</button>
-      <button class="action-btn" @click="$emit('voiceprint')">声纹识别</button>
-      <button class="action-btn" @click="$emit('history')">历史对话</button>
-      <div class="delete-container">
-        <button class="action-btn danger" @click="handleDelete">
-          <i class="icon-delete"></i> 删除设备
-        </button>
-        <div class="delete-warning">删除后设备配置将不可恢复</div>
+    <div class="card-body">
+      <div class="device-info">
+        <div class="info-label">设备型号：</div>
+        <div class="info-value">{{ deviceType }}</div>
+      </div>
+      
+      <div class="device-actions">
+        <button class="device-action-btn" @click="handleConfigure">配置角色</button>
+        <button class="device-action-btn">声纹识别</button>
+        <button class="device-action-btn">历史对话</button>
+        
+        <div class="ota-toggle">
+          <span class="ota-label">OTA升级：</span>
+          <label class="toggle">
+            <input type="checkbox" :checked="false">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="device-footer">
+        <div class="last-active">最近对话：{{ lastActivity}}</div>
+        <div class="app-version">客户端版本：{{ "v1.0.0" }}</div>
       </div>
     </div>
   </div>
 </template>
+
+
+
+
+
 
 <script setup>
 import { ref, watch, computed } from 'vue';
@@ -97,110 +109,181 @@ const handleConfigure = () => {
 
 <style scoped>
 .device-card {
-  background: white;
-  border-radius: 4px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  margin-bottom: 16px;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.device-id {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 16px;
+.device-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.note {
-  color: #4178EE;
-  font-size: 14px;
-  font-weight: normal;
-}
-
-.device-details p {
-  margin-bottom: 12px;
-}
-
-.ota-upgrade {
-  display: inline-flex;
+.card-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  margin-left: 16px;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.device-code {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: #f5f5f5;
+  transition: background-color 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.action-btn.delete:hover {
+  background-color: #ffebee;
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+.device-info {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.info-label {
+  color: var(--light-text);
+  font-size: 0.9rem;
+  margin-right: 0.5rem;
+}
+
+.info-value {
+  font-size: 0.9rem;
 }
 
 .device-actions {
   display: flex;
-  margin-top: 20px;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.action-btn {
-  padding: 8px 16px;
-  margin-right: 12px;
-  border: 1px solid #ddd;
+.device-action-btn {
+  padding: 0.4rem 0.8rem;
+  background-color: #f0f4ff;
+  border: none;
   border-radius: 4px;
-  background: white;
+  font-size: 0.8rem;
+  color: var(--text-color);
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-.action-btn.primary {
-  background: #4178EE;
-  color: white;
-  border-color: #4178EE;
+.device-action-btn:hover {
+  background-color: #e6f0ff;
 }
 
-.action-btn.danger {
-  background: #fff3f3;
-  border-color: #ffa4a4;
-  color: #f56c6c;
+.ota-toggle {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  width: 100%;
 }
 
-.action-btn.danger:hover {
-  background: #fde2e2;
-  border-color: #f56c6c;
+.ota-label {
+  font-size: 0.8rem;
+  color: var(--light-text);
+  margin-right: 0.5rem;
 }
 
-.device-modules {
-  margin-bottom: 12px;
-  color: #666;
-}
-
-.module-item {
-  display: inline-block;
-  margin-right: 16px;
-  padding: 4px 8px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  font-size: 0.9em;
-}
-
-.device-role {
-  color: #666;
-  margin-bottom: 12px;
-}
-
-.delete-container {
+/* 开关样式 */
+.toggle {
   position: relative;
-  margin-left: auto;  /* Push delete button to the right */
+  display: inline-block;
+  width: 40px;
+  height: 20px;
 }
 
-.delete-warning {
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
   position: absolute;
-  bottom: calc(100% + 5px);  /* Position above the button */
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  background: #fff3f3;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #ffa4a4;
-  font-size: 12px;
-  color: #f56c6c;
-  display: none;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
 }
 
-.delete-container:hover .delete-warning {
-  display: block;
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
 }
 
-.icon-delete {
-  margin-right: 4px;
+input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 20px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.device-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--lighter-text);
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 576px) {
+  .device-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .device-action-btn {
+    width: 100%;
+  }
 }
 </style>
