@@ -326,6 +326,23 @@ TTS:
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_file: tmp/
     access_token: "你的302API密钥"
+   ACGNTTS:
+    #在线网址：https://acgn.ttson.cn/
+    #token购买：www.ttson.cn
+    #开发相关疑问请提交至3497689533@qq.com
+    #角色id获取地址：ctrl+f快速检索角色——网站管理者不允许发布,可询问网站管理者：1069379506
+    #各参数意义见开发文档：https://www.yuque.com/alexuh/skmti9/wm6taqislegb02gd?singleDoc#
+    type: ACGNTTS
+    token: 6d9a327f340146c39ad50cbb3844ca4b
+    voice_id: 1695
+    speed_factor: 1
+    pitch_factor: 0
+    volume_change_dB: 0
+    to_lang: ZH
+    url: https://u95167-bd74-2aef8085.westx.seetacloud.com:8443/flashsummary/tts?token=
+    format: wav
+    output_file: tmp/
+    emotion: 1
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
