@@ -94,13 +94,7 @@ class TTSProviderBase(ABC):
 
         return opus_datas, duration
 
-    def wav_to_opus_data_audio(self, audio):
-        duration = len(audio) / 1000.0
-        # 转换为单声道和16kHz采样率（确保与编码器匹配）
-        audio = audio.set_channels(1).set_frame_rate(16000)
-        # 获取原始PCM数据（16位小端）
-        raw_data = audio.raw_data
-
+    def wav_to_opus_data_audio_raw(self, raw_data):
         # 初始化Opus编码器
         encoder = opuslib_next.Encoder(16000, 1, opuslib_next.APPLICATION_AUDIO)
 
@@ -116,6 +110,7 @@ class TTSProviderBase(ABC):
 
             # 如果最后一帧不足，补零
             if len(chunk) < frame_size * 2:
+                # logger.bind(tag=TAG).info("开始补0")
                 chunk += b'\x00' * (frame_size * 2 - len(chunk))
 
             # 转换为numpy数组处理
@@ -125,4 +120,4 @@ class TTSProviderBase(ABC):
             opus_data = encoder.encode(np_frame.tobytes(), frame_size)
             opus_datas.append(opus_data)
 
-        return opus_datas, duration
+        return opus_datas

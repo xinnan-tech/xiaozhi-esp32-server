@@ -57,7 +57,7 @@ async def sendAudioMessageStream(conn, audios_queue, text, text_index=0):
                 last_duration = conn.tts_duration - queue_duration
                 if last_duration <= 0:
                     last_duration = 0
-                conn.tts_duration = duration + last_duration + 0.5
+                conn.tts_duration = duration + last_duration
                 for opus_packet in audio_opus_datas:
                     await conn.websocket.send(opus_packet)
                 start_time = time.time()  # 更新获取数据的时间

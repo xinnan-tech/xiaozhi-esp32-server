@@ -236,7 +236,7 @@ TTS:
       - "工钱，今天一起算，有磨能使鬼推钱。哎呀，你难倒我了，像我这么乖的小孩，怎么更乖。"
     normalize: true
     max_new_tokens: 1024
-    chunk_length: 50
+    chunk_length: 200
     top_p: 0.7
     repetition_penalty: 1.2
     temperature: 0.7
