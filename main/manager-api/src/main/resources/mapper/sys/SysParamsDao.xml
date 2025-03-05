@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="xiaozhi.modules.sys.dao.SysParamsDao">
+
+    <!-- 根据参数编码，查询value -->
+	<select id="getValueByCode" resultType="String">
+        select param_value from sys_params where param_code = #{value}
+    </select>
+
+    <!-- 获取参数编码列表 -->
+    <select id="getParamCodeList" resultType="String">
+        select param_code from sys_params where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 根据参数编码，更新value -->
+    <update id="updateValueByCode">
+        update sys_params set param_value = #{paramValue} where param_code = #{paramCode}
+    </update>
+</mapper>

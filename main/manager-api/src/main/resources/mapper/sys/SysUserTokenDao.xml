@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="xiaozhi.modules.security.dao.SysUserTokenDao">
+
+	<select id="getByToken" resultType="xiaozhi.modules.security.entity.SysUserTokenEntity">
+		select * from sys_user_token where token = #{value}
+	</select>
+
+	<select id="getByUserId" resultType="xiaozhi.modules.security.entity.SysUserTokenEntity">
+		select * from sys_user_token where user_id = #{value}
+	</select>
+
+	<update id="logout">
+		update sys_user_token set expire_date = #{expireDate} where user_id = #{userId}
+	</update>
+</mapper>

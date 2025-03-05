@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="xiaozhi.modules.sys.dao.SysUserDao">
+
+	<select id="getList" resultType="xiaozhi.modules.sys.entity.SysUserEntity">
+		select t1.*, (select t2.name from sys_dept t2 where t2.id=t1.dept_id) deptName
+			from sys_user t1 where t1.super_admin = 0
+		<if test="username != null and username.trim() != ''">
+			and t1.username like #{username}
+		</if>
+		<if test="deptId != null and deptId.trim() != ''">
+			and t1.dept_id = #{deptId}
+		</if>
+		<if test="gender != null and gender.trim() != ''">
+			and t1.gender = #{gender}
+		</if>
+		<if test="deptIdList != null">
+			and t1.dept_id in
+			<foreach item="id" collection="deptIdList" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+	</select>
+
+	<select id="getById" resultType="xiaozhi.modules.sys.entity.SysUserEntity">
+		select t1.*, (select t2.name from sys_dept t2 where t2.id=t1.dept_id) deptName from sys_user t1
+			where t1.id = #{value}
+	</select>
+
+	<select id="getByUsername" resultType="xiaozhi.modules.sys.entity.SysUserEntity">
+		select * from sys_user where username = #{value}
+	</select>
+
+	<update id="updatePassword">
+		update sys_user set password = #{newPassword} where id = #{id}
+	</update>
+
+	<select id="getCountByDeptId" resultType="int">
+		select count(*) from sys_user where dept_id = #{value}
+	</select>
+
+	<select id="getUserIdListByDeptId" resultType="Long">
+		select id from sys_user where dept_id in
+			<foreach item="deptId" collection="list" open="(" separator="," close=")">
+				#{deptId}
+			</foreach>
+	</select>
+
+</mapper>

@@ -142,5 +142,6 @@ model.pt
 tmp
 .DS_Store
 /data
-/web/node_modules
+*/node_modules
 web/vue/node_modules
+main/manager-web/node_modules
