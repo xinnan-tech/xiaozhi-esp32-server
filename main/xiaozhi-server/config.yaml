@@ -35,12 +35,6 @@ log:
   log_file: "server.log"
   # 设置数据文件路径
   data_dir: data
-manager:
-  # 是否启用管理后台
-  # 目前这个模块还在开发中，建议：不要修改enabled选项
-  enabled: false
-  ip: 0.0.0.0
-  port: 8002
 iot:
   Speaker:
     volume: 100
@@ -63,10 +57,6 @@ delete_audio: true
 
 # 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
 close_connection_no_voice_time: 120
-
-# 是否启用私有配置(Enable private configuration),启用后可以每个设备有不同的配置
-# 目前这个模块还在开发中，建议：不要修改use_private_config选项
-use_private_config: false
 
 CMD_exit:
   - "退出"

@@ -8,14 +8,14 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 
 ## 2. 创建目录
 
-安装完后，你需要为这个项目找一个安放配置文件的目录，我们暂且称它为`项目目录`，这个目录最好是一个新建的空的目录。
+安装完后，你需要为这个项目找一个安放配置文件的目录，例如我们可以新建一个文件夹叫`xiaozhi-server`。
 
-创建好目录后，你需要在`项目目录`下面创建`data`文件夹和`models`文件夹，`models`下面还要再创建`SenseVoiceSmall`文件夹。
+创建好目录后，你需要在`xiaozhi-server`下面创建`data`文件夹和`models`文件夹，`models`下面还要再创建`SenseVoiceSmall`文件夹。
 
 最终目录结构如下所示：
 
 ```
-你的项目根目录
+xiaozhi-server
   ├─ data
   ├─ models
      ├─ SenseVoiceSmall
@@ -33,7 +33,7 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 用浏览器打开[这个链接](../main/xiaozhi-server/docker-compose.yml)。
 
 在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`docker-compose.yml`文件。 把文件下载到你的
-`项目目录`中。
+`xiaozhi-server`中。
 
 下载完后，回到本教程继续往下。
 
@@ -42,12 +42,12 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 用浏览器打开[这个链接](../main/xiaozhi-server/config.yaml)。
 
 在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`config.yaml`文件。 把文件下载到你的
-`项目目录`下面的`data`文件夹中，然后把`config.yaml`文件重命名为`.config.yaml`。
+`xiaozhi-server`下面的`data`文件夹中，然后把`config.yaml`文件重命名为`.config.yaml`。
 
-下载完配置文件后，我们确认一下整个`项目目录`里面的文件如下所示：
+下载完配置文件后，我们确认一下整个`xiaozhi-server`里面的文件如下所示：
 
 ```
-你的项目根目录
+xiaozhi-server
   ├─ docker-compose.yml
   ├─ data
     ├─ .config.yaml
@@ -67,7 +67,7 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 
 ## 5. 执行docker命令
 
-打开命令行工具，使用`终端`或`命令行`工具 进入到你的`项目目录`，执行以下命令
+打开命令行工具，使用`终端`或`命令行`工具 进入到你的`xiaozhi-server`，执行以下命令
 
 ```
 docker-compose up -d
@@ -110,7 +110,7 @@ docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
 
 ## 4.运行docker
 
-修改完配置后，打开命令行工具，`cd`进入到你的项目目录下，执行以下命令
+修改完配置后，打开命令行工具，`cd`进入到你的`main/xiaozhi-server`下，执行以下命令
 
 ```sh
 docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconfined \
@@ -193,12 +193,12 @@ conda install ffmpeg -y
 打开完，找到页面中一个绿色的按钮，写着`Code`的按钮，点开它，然后你就看到`Download ZIP`的按钮。
 
 点击它，下载本项目源码压缩包。下载到你电脑后，解压它，此时它的名字可能叫`xiaozhi-esp32-server-main`
-你需要把它重命名成`xiaozhi-esp32-server`，在这个文件里，进入到`main`文件夹，再进入到`xiaozhi-server`，好了请记住这个目录`xiaozhi-server`，我们暂且称它为`项目目录`。
+你需要把它重命名成`xiaozhi-esp32-server`，在这个文件里，进入到`main`文件夹，再进入到`xiaozhi-server`，好了请记住这个目录`xiaozhi-server`。
 
 ```
 # 继续使用conda环境
 conda activate xiaozhi-esp32-server
-# 进入到你的项目目录，记住由于你是用源码运行，main/xiaozhi-server是你的项目目录
+# 进入到你的项目根目录，再进入main/xiaozhi-server
 cd main/xiaozhi-server
 pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip install -r requirements.txt
@@ -219,7 +219,7 @@ pip install -r requirements.txt
 ## 5.运行项目
 
 ```
-# 确保在本项目目录下执行
+# 确保在xiaozhi-server目录下执行
 conda activate xiaozhi-esp32-server
 python app.py
 ```
@@ -230,10 +230,10 @@ python app.py
 
 ## 配置项目
 
-如果你的`项目目录`目录没有`data`，你需要创建`data`目录。
+如果你的`xiaozhi-server`目录没有`data`，你需要创建`data`目录。
 如果你的`data`下面没有`.config.yaml`文件，你可以把源码目录下的`config.yaml`文件复制一份，重命名为`.config.yaml`
 
-修改`项目目录`下`data`目录下的`.config.yaml`文件，配置本项目必须的两个配置。
+修改`xiaozhi-server`下`data`目录下的`.config.yaml`文件，配置本项目必须的两个配置。
 
 - 默认的LLM使用的是`ChatGLMLLM`，你需要配置密钥，因为他们的模型，虽然有免费的，但是仍要去[官网](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)注册密钥，才能启动。
 - 默认的记忆层`mem0ai`，你需要配置密钥，因为他们的API，虽然有免费额度，但是仍要去[官网](https://app.mem0.ai/dashboard/api-keys)注册密钥，才能启动。
