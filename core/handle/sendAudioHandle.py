@@ -25,7 +25,7 @@ async def sendAudioMessageStream(conn, audios_queue, text, text_index=0):
 
     # 初始化流控参数
     frame_duration = 60  # 毫秒
-    start_time = time.perf_counter()  # 使用高精度计时器
+    start_time = time.time()  # 使用高精度计时器
     play_position = 0  # 已播放的时长（毫秒）
     time_out_stop = False
     while True:

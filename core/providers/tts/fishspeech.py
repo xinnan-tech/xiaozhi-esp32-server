@@ -174,7 +174,7 @@ class TTSProvider(TTSProviderBase):
         audio.set_channels(1).set_frame_rate(16000)
         return audio
 
-    async def text_to_speak_stream(self, text, queue: queue.Queue,text_index=0):
+    async def text_to_speak_stream(self, text, queue: queue.Queue, text_index=0):
         try:
             # Prepare reference data
             byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
@@ -222,7 +222,7 @@ class TTSProvider(TTSProviderBase):
                             if not audio_buff:
                                 audio_buff = audio
                             else:
-                                audio_buff += audio
+                                audio_buff = audio_buff.append(audio, crossfade=10)
                             if len(audio_buff.raw_data) % 1920 == 0:
                                 # 把 audio 转成 opus
                                 opus_datas, duration = self.wav_to_opus_data_audio(audio_buff)
@@ -238,7 +238,7 @@ class TTSProvider(TTSProviderBase):
                         if not audio_buff:
                             audio_buff = self._get_audio_from_tts(chunk_total)
                         else:
-                            audio_buff += self._get_audio_from_tts(chunk_total)
+                            audio_buff = audio_buff.append(self._get_audio_from_tts(chunk_total), crossfade=10)
                         # 把 audio 转成 opus
                         opus_datas, duration = self.wav_to_opus_data_audio(audio_buff)
                         queue.put({
