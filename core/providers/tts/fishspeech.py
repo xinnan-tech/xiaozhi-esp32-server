@@ -1,11 +1,20 @@
 
 import base64
 import os
+import traceback
 import uuid
+import queue
+import io
+
+import numpy as np
 import requests
 import ormsgpack
 from pathlib import Path
+
+import torch
+import torchaudio
 from pydantic import BaseModel, Field, conint, model_validator
+from pydub import AudioSegment
 from typing_extensions import Annotated
 from datetime import datetime
 from typing import Literal
@@ -155,4 +164,102 @@ class TTSProvider(TTSProviderBase):
             print(f"Request failed with status code {response.status_code}")
             print(response.json())
 
+    def _get_audio_from_tts(self, data_bytes):
+        tts_speech = torch.from_numpy(np.array(np.frombuffer(data_bytes, dtype=np.int16))).unsqueeze(dim=0)
+        with io.BytesIO() as bf:
+            torchaudio.save(bf, tts_speech, 44100, format="wav")
+            audio = AudioSegment.from_file(bf, format="wav")
+        audio = audio.set_channels(1).set_frame_rate(16000)
+        return audio
 
+    async def text_to_speak_stream(self, text, queue: queue.Queue, text_index=0):
+        try:
+            # Prepare reference data
+            byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
+            ref_texts = [read_ref_text(ref_text) for ref_text in self.reference_text]
+
+            data = {
+                "text": text,
+                "references": [
+                    ServeReferenceAudio(
+                        audio=audio if audio else b"", text=text
+                    )
+                    for text, audio in zip(ref_texts, byte_audios)
+                ],
+                "reference_id": self.reference_id,
+                "normalize": self.normalize,
+                "format": self.format,
+                "max_new_tokens": self.max_new_tokens,
+                "chunk_length": self.chunk_length,
+                "top_p": self.top_p,
+                "repetition_penalty": self.repetition_penalty,
+                "temperature": self.temperature,
+                "streaming": self.streaming,
+                "use_memory_cache": self.use_memory_cache,
+                "seed": self.seed,
+            }
+
+            pydantic_data = ServeTTSRequest(**data)
+            audio_buff = None
+            chunk_total = b''
+            last_raw = b''
+            audio_raw = b''
+            print("请求tts")
+            with requests.post(
+                    self.api_url,
+                    data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/msgpack",
+                    },
+            ) as response:
+                if response.status_code == 200:
+                    for chunk in response.iter_content():
+                        # 拼接当前块和上一块数据
+                        chunk_total += chunk
+                        # 最后一个是静音，说明是一个完整的音频
+                        if len(chunk_total) % 2 == 0 and chunk_total[-2:] == b'\x00\x00':
+                            audio = self._get_audio_from_tts(chunk_total)
+                            audio_raw = audio_raw + audio.raw_data
+                            #长度凑够2贞开始发送，60ms*4=240ms
+                            if len(audio_raw) >= 7680:
+                                duration = 60 * len(audio_raw) // 1920
+                                if (len(audio_raw) % 1920) > 0:
+                                    duration += 60
+                                duration = duration / 1000.0
+                                logger.bind(tag=TAG).info(f'发送数据长度：{len(audio_raw)}')
+                                opus_datas = self.wav_to_opus_data_audio_raw(audio_raw)
+                                queue.put({
+                                    "data": opus_datas,
+                                    "duration": duration,
+                                    "end": False,
+                                    "text_index": text_index
+                                })
+                                audio_raw = b''
+                            chunk_total = b''
+                    if len(chunk_total) > 0:
+                        audio = self._get_audio_from_tts(chunk_total)
+                        audio_raw = audio_raw + audio.raw_data
+                        duration = 60 * len(audio_raw) // 1920
+                        if (len(audio_raw) % 1920) > 0:
+                            duration += 60
+                        duration = duration / 1000.0
+                        # 把 audio 转成 opus
+                        logger.bind(tag=TAG).info(f'发送数据长度：{len(audio_raw)}')
+                        opus_datas = self.wav_to_opus_data_audio_raw(audio_raw)
+                        queue.put({
+                            "data": opus_datas,
+                            "duration": duration,
+                            "end": False
+                        })
+
+                else:
+                    print('请求失败:', response.status_code, response.text)
+                queue.put({
+                    "data": None,
+                    "end": True
+                })
+        except Exception as e:
+            logger.bind(tag=TAG).error("tts发生错误")
+            traceback.print_exc()
+            raise e
