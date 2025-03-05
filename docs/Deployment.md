@@ -30,7 +30,7 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 
 ## 3. 下载docker-compose.yaml
 
-用浏览器打开[这个链接](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docker-compose.yml)。
+用浏览器打开[这个链接](../main/xiaozhi-server/docker-compose.yml)。
 
 在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`docker-compose.yml`文件。 把文件下载到你的
 `项目目录`中。
@@ -39,7 +39,7 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 
 ## 3. 下载配置文件
 
-用浏览器打开[这个链接](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/config.yaml)。
+用浏览器打开[这个链接](../main/xiaozhi-server/config.yaml)。
 
 在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`config.yaml`文件。 把文件下载到你的
 `项目目录`下面的`data`文件夹中，然后把`config.yaml`文件重命名为`.config.yaml`。
@@ -193,14 +193,15 @@ conda install ffmpeg -y
 打开完，找到页面中一个绿色的按钮，写着`Code`的按钮，点开它，然后你就看到`Download ZIP`的按钮。
 
 点击它，下载本项目源码压缩包。下载到你电脑后，解压它，此时它的名字可能叫`xiaozhi-esp32-server-main`
-你需要把它重命名成`xiaozhi-esp32-server`，好了请记住这个目录，我们暂且称它为`项目目录`。
+你需要把它重命名成`xiaozhi-esp32-server`，在这个文件里，进入到`main`文件夹，再进入到`xiaozhi-server`，好了请记住这个目录`xiaozhi-server`，我们暂且称它为`项目目录`。
 
 ```
-# 继续使用conda环境，进入到你的项目目录，执行以下命令
+# 继续使用conda环境
 conda activate xiaozhi-esp32-server
+# 进入到你的项目目录，记住由于你是用源码运行，main/xiaozhi-server是你的项目目录
+cd main/xiaozhi-server
 pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
-pip install poetry
-poetry install --no-root
+pip install -r requirements.txt
 ```
 
 ## 3.下载语音识别模型文件
@@ -217,21 +218,13 @@ poetry install --no-root
 
 ## 5.运行项目
 
-如果您想启动8000端口，接收esp32的语音服务
 ```
-# 确保在本项目的根目录下执行
+# 确保在本项目目录下执行
 conda activate xiaozhi-esp32-server
-poetry run python app.py
+python app.py
 ```
 这时，你就要留意日志信息，可以根据这个教程，判断是否成功了。[跳转到运行状态确认](#运行状态确认)
 
-
-如果您想启动8002端口服务，启动管理后台
-```
-# 确保在本项目的根目录下执行
-conda activate xiaozhi-esp32-server
-poetry run uvicorn web.app:app --host 0.0.0.0 --port 8888 --reload
-```
 
 # 汇总
 
