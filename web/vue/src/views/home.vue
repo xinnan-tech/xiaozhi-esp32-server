@@ -3,39 +3,39 @@
     <el-container style="height: 100%;">
       <el-header class="header">
         <div style="display: flex;justify-content: space-between;">
-          <div style="display: flex;align-items: center;gap: 10px;">
-            <img src="@/assets/xiaozhi-logo.png" alt="" style="width: 56px;height: 56px;" />
-            <img src="@/assets/xiaozhi-ai.png" alt="" style="width: 78px;height: 16px;" />
+          <div style="display: flex;align-items: center;gap: 8px;">
+            <img src="@/assets/xiaozhi-logo.png" alt="" style="width: 45px;height: 45px;" />
+            <img src="@/assets/xiaozhi-ai.png" alt="" style="width: 70px;height: 13px;" />
             <div class="equipment-management" @click="settingDevice=false">
-              <img src="@/assets/home/equipment.png" alt="" style="width: 16px;height: 14px;" />
+              <img src="@/assets/home/equipment.png" alt="" style="width: 12px;height: 11px;" />
               设备管理
             </div>
             <div class="console">
-              <i class="el-icon-s-grid" style="font-size: 14px;color: #979db1;" />
+              <i class="el-icon-s-grid" style="font-size: 11px;color: #979db1;" />
               控制台
             </div>
             <div class="equipment-management2">
               设备管理
-              <img src="@/assets/home/close.png" alt="" style="width: 8px;height: 8px;" />
+              <img src="@/assets/home/close.png" alt="" style="width: 6px;height: 6px;" />
             </div>
           </div>
-          <div style="display: flex;align-items: center;gap: 10px;">
+          <div style="display: flex;align-items: center;gap: 8px;">
             <div class="serach-box">
               <el-input placeholder="输入名称搜索.." v-model="serach" />
               <img src="@/assets/home/search.png" alt=""
-                style="width: 16px;height: 16px;margin-right: 15px;cursor: pointer;" />
+                style="width: 12px;height: 12px;margin-right: 11px;cursor: pointer;" />
             </div>
-            <img src="@/assets/home/avatar.png" alt="" style="width: 28px;height: 28px;" />
+            <img src="@/assets/home/avatar.png" alt="" style="width: 21px;height: 21px;" />
             <div class="user-info">
               158 3632 4642</div>
           </div>
         </div>
       </el-header>
-      <el-main style="padding: 20px;display: flex;flex-direction: column;">
+      <el-main style="padding: 15px;display: flex;flex-direction: column;">
         <div v-show="!settingDevice">
           <div class="add-device">
             <div class="add-device-bg">
-              <div class="hellow-text" style="margin-top: 30px;">
+              <div class="hellow-text" style="margin-top: 23px;">
                 您好，小智</div>
               <div class="hellow-text">让我们度过<div style="display: inline-block;color: #5778FF;">
                   美好的一天！
@@ -47,37 +47,37 @@
                 <div class="left-add">
                   添加设备
                 </div>
-                <div style="width: 23px;height: 13px;background: #5778ff;margin-left: -10px;" />
+                <div style="width: 17px;height: 10px;background: #5778ff;margin-left: -8px;" />
                 <div class="right-add">
-                  <i class="el-icon-right" style="font-size: 30px;color: #fff;" />
+                  <i class="el-icon-right" style="font-size: 23px;color: #fff;" />
                 </div>
               </div>
             </div>
           </div>
           <div
-            style="display: flex;flex-wrap: wrap;margin-top: 20px;gap: 20px;justify-content: space-between;box-sizing: border-box;">
+            style="display: flex;flex-wrap: wrap;margin-top: 15px;gap: 15px;justify-content: space-between;box-sizing: border-box;">
             <div class="device-item" v-for="(item,index) in 10" :key="index">
               <div style="display: flex;justify-content: space-between;">
-                <div style="font-weight: 700;font-size: 24px;text-align: left;color: #3d4566;">
+                <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
                   CC:ba:97:11:a6:ac
                 </div>
                 <div>
                   <img src="@/assets/home/delete.png" alt=""
-                    style="width: 24px;height: 24px;margin-right: 10px;" />
-                  <img src="@/assets/home/info.png" alt="" style="width: 24px;height: 24px;" />
+                    style="width: 18px;height: 18px;margin-right: 8px;" />
+                  <img src="@/assets/home/info.png" alt="" style="width: 18px;height: 18px;" />
                 </div>
               </div>
               <div class="device-name">
                 设备型号：esp32-s3-touch-amoled-1.8
               </div>
-              <div style="display: flex;gap: 10px;align-items: center;">
+              <div style="display: flex;gap: 8px;align-items: center;">
                 <div class="settings-btn" @click="clickSettingDevice">
                   配置角色</div>
                 <div class="settings-btn">
                   声纹识别</div>
                 <div class="settings-btn">
                   历史对话</div>
-                <el-switch v-model="switchValue" inactive-text="OTA升级:" :width="42"
+                <el-switch v-model="switchValue" inactive-text="OTA升级:" :width="32"
                   style="margin-left: auto;" />
               </div>
               <div class="version-info">
@@ -87,7 +87,7 @@
             </div>
           </div>
         </div>
-        <div v-show="settingDevice" style="border-radius: 20px;background: #fafcfe;">
+<div v-show="settingDevice" style="border-radius: 20px;background: #fafcfe;">
           <div
             style="padding: 19px 30px;font-weight: 700;font-size: 24px;text-align: left;color: #3d4566;display: flex;gap: 16px;align-items: center;">
             <div
@@ -257,8 +257,8 @@ export default {
 </script>
 <style scoped lang="scss">
 .welcome {
-  min-width: 1200px;
-  min-height: 675px;
+  min-width: 900px;
+  min-height: 506px;
   height: 100vh;
   background-image: url("@/assets/home/background.png");
   background-size: cover;
@@ -275,31 +275,30 @@ export default {
   cursor: pointer;
 }
 .equipment-management {
-  width: 110px;
-  height: 32px;
-  border-radius: 16px;
+  width: 83px;
+  height: 24px;
+  border-radius: 12px;
   background: #5778ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   font-weight: 500;
   color: #fff;
-  font-size: 14px;
+  font-size: 11px;
 }
 .equipment-management2 {
-  width: 116px;
-  height: 30px;
-  border-radius: 15px;
+  width: 87px;
+  height: 23px;
+  border-radius: 11px;
   background: #fff;
   display: flex;
   justify-content: center;
-  font-size: 12px;
-  color: #979db1;
+  font-size: 9px;
   font-weight: 400;
-  gap: 10px;
+  gap: 8px;
   color: #3d4566;
-  margin-left: 20px;
+  margin-left: 5px;
   align-items: center;
 }
 .header {
@@ -307,8 +306,8 @@ export default {
   border: 1px solid #fff;
 }
 .add-device {
-  height: 260px;
-  border-radius: 20px;
+  height: 195px;
+  border-radius: 15px;
   position: relative;
   overflow: hidden;
   background: linear-gradient(
@@ -320,8 +319,8 @@ export default {
 }
 .audio-box {
   flex: 1;
-  height: 46px;
-  border-radius: 10px;
+  height: 35px;
+  border-radius: 8px;
   border: 1px solid #e4e6ef;
 }
 .add-device-bg {
@@ -340,139 +339,138 @@ export default {
   box-sizing: border-box;
   /* 兼容老版本Opera浏览器 */
   .hellow-text {
-    margin-left: 100px;
+    margin-left: 75px;
     color: #3d4566;
-    font-size: 44px;
+    font-size: 33px;
     font-weight: 700;
     letter-spacing: 0;
   }
   .hi-hint {
     font-weight: 400;
-    font-size: 12px;
+    font-size: 9px;
     text-align: left;
     color: #818cae;
-    margin-left: 100px;
-    margin-top: 7px;
+    margin-left: 75px;
+    margin-top: 5px;
   }
 }
 .serach-box {
   display: flex;
-  width: 306px;
-  height: 40px;
-  border-radius: 20px;
+  width: 230px;
+  height: 30px;
+  border-radius: 15px;
   background-color: #e2f5f7;
   align-items: center;
 }
 .user-info {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 12px;
   letter-spacing: -0.02px;
   text-align: left;
   color: #3d4566;
 }
 .clear-btn {
-  width: 60px;
-  height: 24px;
+  width: 45px;
+  height: 18px;
   background: #fd8383;
-  border-radius: 12px;
-  line-height: 24px;
-  font-size: 14px;
+  border-radius: 9px;
+  line-height: 18px;
+  font-size: 11px;
   color: #fff;
   cursor: pointer;
 }
 .clear-text {
   color: #979db1;
-  font-size: 14px;
+  font-size: 11px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-left: 20px;
+  gap: 8px;
+  margin-left: 15px;
 }
 .template-item {
-  height: 46px;
-  width: 100px;
-  border-radius: 10px;
+  height: 35px;
+  width: 75px;
+  border-radius: 8px;
   background: #e6ebff;
-  line-height: 46px;
+  line-height: 35px;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 11px;
   text-align: center;
   color: #5778ff;
 }
 .prompt-bottom {
-  margin-bottom: 5px;display: flex;justify-content: space-between;padding: 0 20px;align-items: center;
+  margin-bottom: 4px;display: flex;justify-content: space-between;padding: 0 15px;align-items: center;
 }
-.input-46 {
+.input-35 {
   border: 1px solid #e4e6ef;
   background: #f6f8fb;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 .console {
-  width: 120px;
-  height: 30px;
-  border-radius: 15px;
+  width: 90px;
+  height: 23px;
+  border-radius: 11px;
   background: radial-gradient(50% 50% at 50% 50%, #fff 0%, #e8f0ff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 9px;
   color: #979db1;
   font-weight: 400;
-  gap: 10px;
-  color: #979db1;
-  margin-left: 20px;
+  gap: 8px;
+  margin-left: 15px;
 }
 .dialog-btn {
   cursor: pointer;
   flex: 1;
-  border-radius: 23px;
+  border-radius: 17px;
   background: #5778ff;
-  height: 46px;
+  height: 34px;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 11px;
   color: #fff;
-  line-height: 46px;
+  line-height: 34px;
   text-align: center;
 }
 .add-device-btn {
   display: flex;
   align-items: center;
-  margin-left: 100px;
-  margin-top: 20px;
+  margin-left: 75px;
+  margin-top: 15px;
   cursor: pointer;
   .left-add {
-    width: 140px;
-    height: 46px;
-    border-radius: 23px;
+    width: 105px;
+    height: 34px;
+    border-radius: 17px;
     background: #5778ff;
     color: #fff;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 500;
     text-align: center;
-    line-height: 46px;
+    line-height: 34px;
   }
   .right-add {
-    width: 46px;
-    height: 46px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: #5778ff;
-    margin-left: -8px;
+    margin-left: -6px;
     display: flex;
     justify-content: center;
     align-items: center;
   }
 }
 .device-item {
-  width: 455px;
-  border-radius: 20px;
+  width: 341px;
+  border-radius: 15px;
   background: #fafcfe;
-  padding: 30px;
+  padding: 22px;
   box-sizing: border-box;
 }
 .device-name {
-  margin: 10px 0 14px;
+  margin: 8px 0 10px;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 11px;
   color: #3d4566;
   text-align: left;
 }
@@ -481,29 +479,29 @@ audio::-webkit-media-controls-panel {
 }
 .settings-btn {
   font-weight: 500;
-  font-size: 14px;
+  font-size: 11px;
   color: #5778ff;
   background: #e6ebff;
-  width: 76px;
-  height: 28px;
-  line-height: 28px;
+  width: 57px;
+  height: 21px;
+  line-height: 21px;
   cursor: pointer;
-  border-radius: 14px;
+  border-radius: 10px;
 }
 .version-info {
   display: flex;
   justify-content: space-between;
-  margin-top: 20px;
-  font-size: 14px;
+  margin-top: 15px;
+  font-size: 11px;
   color: #979db1;
   font-weight: 400;
 }
 .save-btn,
 .reset-btn {
-  width: 140px;
-  height: 46px;
-  border-radius: 23px;
-  line-height: 46px;
+  width: 105px;
+  height: 34px;
+  border-radius: 17px;
+  line-height: 34px;
   box-sizing: border-box;
   cursor: pointer;
 }
@@ -519,19 +517,19 @@ audio::-webkit-media-controls-panel {
 }
 .textarea-box {
   border: 1px solid #e4e6ef;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f6f8fb;
 }
 ::v-deep {
   .textarea-box .el-textarea__inner {
     background-color: transparent !important;
     border: none !important;
-    padding: 20px;
+    padding: 15px;
   }
   .el-textarea .el-input__count {
     color: #979db1;
-    font-size: 14px;
-    right: 20px;
+    font-size: 11px;
+    right: 15px;
     background-color: transparent;
   }
   .el-input__inner {
@@ -545,34 +543,34 @@ audio::-webkit-media-controls-panel {
   }
   .lh-form-item {
     .el-form-item__label {
-      line-height: 23px;
+      line-height: 17px;
     }
   }
   .el-form-item__label {
-    line-height: 46px;
+    line-height: 34px;
     font-weight: 400;
-    font-size: 14px;
+    font-size: 11px;
     text-align: left;
     color: #3d4566;
   }
   .el-switch__core {
-    height: 28px;
-    border-radius: 14px;
+    height: 21px;
+    border-radius: 10px;
   }
   .el-switch {
-    line-height: 28x;
+    line-height: 28px;
   }
   .el-switch.is-checked .el-switch__core::after {
-    left: calc(100% - 6px);
+    left: calc(100% - 4px);
   }
   .el-switch__label {
     color: #3d4566;
   }
   .el-switch__core:after {
     left: 4px;
-    width: 20px;
-    height: 20px;
-    top: 3px;
+    width: 15px;
+    height: 15px;
+    top: 2px;
   }
   .el-dialog__headerbtn .el-dialog__close {
     display: none;
@@ -594,7 +592,7 @@ audio::-webkit-media-controls-panel {
     transform: translate(-50%, -50%) !important;
     overflow-y: scroll !important;
     max-height: 100vh !important;
-    border-radius: 20px;
+    border-radius: 15px;
   }
 }
 </style>

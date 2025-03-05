@@ -3,9 +3,9 @@
     <el-container style="height: 100%;">
       <el-header>
         <div
-          style="display: flex;align-items: center;margin-top: 25px;margin-left: 30px;gap: 10px;">
-          <img src="@/assets/xiaozhi-logo.png" alt="" style="width: 56px;height: 56px;" />
-          <img src="@/assets/xiaozhi-ai.png" alt="" style="width: 78px;height: 16px;" />
+          style="display: flex;align-items: center;margin-top: 15px;margin-left: 10px;gap: 10px;">
+          <img src="@/assets/xiaozhi-logo.png" alt="" style="width: 45px;height: 45px;" />
+          <img src="@/assets/xiaozhi-ai.png" alt="" style="width: 70px;height: 13px;" />
         </div>
       </el-header>
       <el-main style="position: relative;">
@@ -15,7 +15,7 @@
             <img src="@/assets/login/hi.png" alt="" style="width: 34px;height: 34px;" />
             <div class="login-text">登录</div>
             <div class="login-welcome">
-              Welcome to log in</div>
+              WELCOME TO LOG IN</div>
           </div>
           <el-tabs v-model="activeName" @tab-click="handleClick">
             <el-tab-pane label="用户名" name="username">
@@ -28,7 +28,7 @@
                   <img src="@/assets/login/password.png" alt="" class="input-icon" />
                   <el-input v-model="form.password" placeholder="请输入密码" />
                 </div>
-                <div style="font-weight: 400;font-size: 16px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
+                <div style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
                   <div style="cursor: pointer;">新用户注册</div>
                   <div style="cursor: pointer;">忘记密码？</div>
                 </div>
@@ -61,7 +61,7 @@
             </el-tab-pane>
           </el-tabs>
           <div class="login-btn">登陆</div>
-          <div style="font-size: 16px;color: #979db1;">
+          <div style="font-size: 14px;color: #979db1;">
             登录即同意<div style="display: inline-block;color: #5778FF;cursor: pointer;">《用户协议》</div>和
             <div style="display: inline-block;color: #5778FF;cursor: pointer;">《隐私政策》</div>
           </div>
@@ -69,7 +69,7 @@
       </el-main>
       <el-footer>
         <div style="font-size: 12px;font-weight: 400;color: #979db1;">
-          ©2025 xiaozhi-esp32-server</div>
+          ©2024 小智Al控制面板2.0粤ICP备2022121736号-2</div>
       </el-footer>
     </el-container>
   </div>
@@ -93,7 +93,7 @@ export default {
   },
   methods:{
     handleClick(){
-      
+
     }
   }
 }
@@ -115,13 +115,13 @@ export default {
 }
 .login-text {
   font-weight: 700;
-  font-size: 48px;
+  font-size: 32px;
   text-align: left;
   color: #3d4566;
 }
 .login-welcome {
   font-weight: 400;
-  font-size: 12px;
+  font-size: 9px;
   text-align: left;
   color: #818cae;
   align-self: flex-end;
@@ -134,13 +134,13 @@ export default {
   right: 18%;
   background-color: #fff;
   border-radius: 20px;
-  padding: 36px 0;
-  width: 550px;
+  padding: 35px 0;
+  width: 450px;
   box-sizing: border-box;
 }
 .el-dropdown-link {
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14px;
   text-align: left;
   color: #979db1;
 }
@@ -150,24 +150,24 @@ export default {
   flex-shrink: 0;
 }
 .login-btn {
-  height: 50px;
+  height: 35px;
   background: #5778ff;
   border-radius: 10px;
   font-weight: 400;
-  font-size: 18px;
+  font-size: 14px;
   cursor: pointer;
   color: #fff;
-  line-height: 50px;
-  margin: 82px 30px 20px;
+  line-height: 35px;
+  margin: 35px 15px 15px;
 }
 .code-send {
-  width: 80px;
-  height: 38px;
+  width: 70px;
+  height: 32px;
   border-radius: 10px;
   background: #e6ebff;
-  line-height: 38px;
+  line-height: 32px;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14px;
   color: #5778ff;
   flex-shrink: 0;
   cursor: pointer;
@@ -179,8 +179,8 @@ export default {
   border-radius: 10px;
   background: #f6f8fb;
   border: 1px solid #e4e6ef;
-  height: 56px;
-  padding: 0 30px;
+  height: 40px;
+  padding: 0 15px;
   gap: 20px;
 }
 ::v-deep {

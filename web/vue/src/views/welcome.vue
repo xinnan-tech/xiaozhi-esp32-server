@@ -3,26 +3,27 @@
     <el-container style="height: 100%;">
       <el-header>
         <div
-          style="display: flex;align-items: center;margin-top: 25px;margin-left: 30px;gap: 10px;">
-          <img src="@/assets/xiaozhi-logo.png" alt="" style="width: 56px;height: 56px;" />
-          <img src="@/assets/xiaozhi-ai.png" alt="" style="width: 78px;height: 16px;" />
+          style="display: flex;align-items: center;margin-top: 15px;margin-left: 10px;gap: 10px;">
+          <img src="@/assets/xiaozhi-logo.png" alt="" style="width: 45px;height: 45px;" />
+          <img src="@/assets/xiaozhi-ai.png" alt="" style="width: 70px;height: 13px;" />
         </div>
-      </el-header> 
+      </el-header>
       <el-main style="position: relative;">
-        <div style="margin-left: 18%;position: absolute;top: 50%;transform: translateY(-50%);">
+        <div style="margin-left: 18%;position: absolute;top: 50%;transform: translateY(-50%);margin-top: -20px">
           <div style="display: flex;align-items: center;margin-bottom: 27px;">
             <div class="left-pillar" />
             <div class="hi-text-bg" />
-            <div class="hi-text">Hi，小智</div>
+            <div class="hi-text">Hi，你好</div>
           </div>
           <div class="introduction">让我们一起探索</div>
           <div class="introduction">人工智能与机器人技术</div>
           <div class="introduction">的迷人世界！</div>
-          <div class="hint"
-            style="text-align: left;font-weight: 400;font-size: 12px;text-align: left;color: #818cae;">
-            Let's explore the fascinating world
-          </div>
-          <div style="margin-top: 107px;display: flex;gap: 20px;">
+
+          <!-- 副标题 -->
+          <p class="english-subtitle">Let's explore the fascinating world</p>
+
+          <!-- 按钮 -->
+          <div style="margin-top: 60px;display: flex;gap: 20px;">
             <div class="btn">
               <img src="@/assets/welcome/questions.png" alt="" class="btn-icon" />
               DIY教程
@@ -36,6 +37,7 @@
               控制台
             </div>
           </div>
+
         </div>
       </el-main>
       <el-footer>
@@ -87,7 +89,7 @@ export default {
 .hi-text {
   line-height: 36px;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 14px;
   text-align: left;
   color: #3d4566;
   padding-left: 14px;
@@ -95,27 +97,35 @@ export default {
 }
 .introduction {
   font-weight: 700;
-  font-size: 54px;
+  font-size: 42px;
   text-align: left;
   color: #3d4566;
 }
 .btn {
-  width: 140px;
-  height: 56px;
+  width: 100px;
+  height: 40px;
   align-items: center;
   justify-content: center;
   border-radius: 28px;
   display: flex;
   gap: 10px;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 12px;
   text-align: left;
   color: #3d4566;
   cursor: pointer;
   background-color: #fff;
 }
 .btn-icon {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
+}
+.english-subtitle {
+  font-size: 11px;
+  color: #818cae;
+  text-align: left;
+  margin-top: 5px;
+  position: relative;
+  top: 8px;
 }
 </style>
