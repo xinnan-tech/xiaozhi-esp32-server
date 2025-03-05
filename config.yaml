@@ -333,7 +333,7 @@ TTS:
     #角色id获取地址：ctrl+f快速检索角色——网站管理者不允许发布,可询问网站管理者：1069379506
     #各参数意义见开发文档：https://www.yuque.com/alexuh/skmti9/wm6taqislegb02gd?singleDoc#
     type: ACGNTTS
-    token: 6d9a327f340146c39ad50cbb3844ca4b
+    token: your_token
     voice_id: 1695
     speed_factor: 1
     pitch_factor: 0
