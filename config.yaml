@@ -58,6 +58,8 @@ prompt: |
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
   当前时间是:{date_time}，现在我正在和你进行语音聊天，我们开始吧。
   如果用户希望结束对话，请在最后说“拜拜”或“再见”。
+  如果用户希望打开摄像头等类型的要求时,你只需要回复“好的正在打开”
+  如果用户希望识别画面，识别图片，识别场景等类型的要求时“你只需要回复正在识别”
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
 
@@ -112,8 +114,9 @@ LLM:
     # 定义LLM API类型
     type: openai
     # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    #qwen-omni-turbo 可使用一系列阿里的视觉识别模型
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    model_name: qwen-turbo
+    model_name: qwen-omni-turbo
     api_key: 你的deepseek api key
   DeepSeekLLM:
     # 定义LLM API类型
@@ -126,10 +129,11 @@ LLM:
     # 定义LLM API类型
     type: openai
     # glm-4-flash 是免费的，但是还是需要注册填写api_key的
+    # glm-4v-plus 是视觉识别模型
     # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
-    model_name: glm-4-flash
+    model_name: glm-4v-plus
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你的chat-glm api key
+    api_key: 你的deepseek api key
   OllamaLLM:
     # 定义LLM API类型
     type: ollama

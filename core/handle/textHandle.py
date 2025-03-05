@@ -2,6 +2,7 @@ from config.logger import setup_logging
 import json
 from core.handle.abortHandle import handleAbortMessage
 from core.handle.helloHandle import handleHelloMessage
+from core.handle.VLHandle import handleVLMessage
 from core.handle.receiveAudioHandle import startToChat
 from core.handle.iotHandle import handleIotDescriptors
 
@@ -40,5 +41,9 @@ async def handleTextMessage(conn, message):
         elif msg_json["type"] == "iot":
             if "descriptors" in msg_json:
                 await handleIotDescriptors(conn, msg_json["descriptors"])
+         ####视觉识别添加能力 msg中应该包含图片数据
+        elif msg_json["type"] == "VL":
+            await handleVLMessage(conn, msg_json['msg'])
+
     except json.JSONDecodeError:
         await conn.websocket.send(message)
