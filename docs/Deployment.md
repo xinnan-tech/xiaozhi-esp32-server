@@ -240,9 +240,10 @@ poetry run uvicorn web.app:app --host 0.0.0.0 --port 8888 --reload
 如果你的`项目目录`目录没有`data`，你需要创建`data`目录。
 如果你的`data`下面没有`.config.yaml`文件，你可以把源码目录下的`config.yaml`文件复制一份，重命名为`.config.yaml`
 
-修改`项目目录`下`data`目录下的`.config.yaml`文件，配置本项目所需的各种参数。默认的LLM使用的是`ChatGLMLLM`
-，你需要配置密钥，因为他们的模型，虽然有免费的，但是仍要去[官网](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)注册密钥，才能启动。
-默认的TTS使用的是`EdgeTTS`，这个无需配置，如果你需要更换成`豆包TTS`，则需要配置密钥。
+修改`项目目录`下`data`目录下的`.config.yaml`文件，配置本项目必须的两个配置。
+
+- 默认的LLM使用的是`ChatGLMLLM`，你需要配置密钥，因为他们的模型，虽然有免费的，但是仍要去[官网](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)注册密钥，才能启动。
+- 默认的记忆层`mem0ai`，你需要配置密钥，因为他们的API，虽然有免费额度，但是仍要去[官网](https://app.mem0.ai/dashboard/api-keys)注册密钥，才能启动。
 
 配置说明：这里是各个功能使用的默认组件，例如LLM默认使用`ChatGLMLLM`模型。如果需要切换模型，就是改对应的名称。
 本项目的默认配置仅是成本最低配置（`glm-4-flash`和`EdgeTTS`都是免费的），如果需要更优的更快的搭配，需要自己结合部署环境切换各组件的使用。

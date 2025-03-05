@@ -80,7 +80,15 @@ selected_module:
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
+  Memory: mem0ai
 
+Memory:
+  mem0ai:
+    type: mem0ai
+    # https://app.mem0.ai/dashboard/api-keys
+    # 每月有1000次免费调用
+    api_key: 你的mem0ai api key
+    
 ASR:
   FunASR:
     type: fun_local
@@ -147,7 +155,6 @@ LLM:
     type: coze
     bot_id: 你的bot_id
     user_id: 你的user_id
-    base_url: "https://api.coze.cn/open_api/v2/chat" # 服务地址
     personal_access_token: 你的coze个人令牌
   LMStudioLLM:
     # 定义LLM API类型

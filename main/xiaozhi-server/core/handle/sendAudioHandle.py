@@ -15,11 +15,10 @@ async def isLLMWantToFinish(last_text):
     return False
 
 
-async def sendAudioMessage(conn, audios, text):
+async def sendAudioMessage(conn, audios, text, text_index=0):
     # 发送句子开始消息
-    if text == conn.tts_first_text:
+    if text_index == conn.tts_first_text_index:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
-        conn.tts_start_speak_time = time.perf_counter()
     await send_tts_message(conn, "sentence_start", text)
 
     # 初始化流控参数
@@ -45,7 +44,7 @@ async def sendAudioMessage(conn, audios, text):
         play_position += frame_duration  # 更新播放位置
     await send_tts_message(conn, "sentence_end", text)
     # 发送结束消息（如果是最后一个文本）
-    if conn.llm_finish_task and text == conn.tts_last_text:
+    if conn.llm_finish_task and text_index == conn.tts_last_text_index:
         await send_tts_message(conn, 'stop', None)
         if await isLLMWantToFinish(text):
             await conn.close()
