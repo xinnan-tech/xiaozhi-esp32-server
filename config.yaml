@@ -168,6 +168,15 @@ LLM:
     base_url: http://homeassistant.local:8123
     agent_id: conversation.chatgpt
     api_key: 你的home assistant api访问令牌
+  FastgptLLM:
+    # 定义LLM API类型
+    type: fastgpt
+    # 如果使用fastgpt，配置文件里prompt(提示词)是无效的，需要在fastgpt控制台设置提示词
+    base_url: https://host/api/v1
+    api_key: fastgpt-xxx
+    variables: 
+      k: "v"
+      k2: "v2"
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
