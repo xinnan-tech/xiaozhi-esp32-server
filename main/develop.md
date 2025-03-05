@@ -16,5 +16,5 @@ xiaozhi-esp32-server
 
 # manager-web 、manager-api接口协议
 
-[虾哥团队通信协议：Websocket 连接](https://app.apifox.com/project/5931378)
+[manager前后端接口协议](https://app.apifox.com/invite/project?token=H_8qhgfjUeaAL0wybghgU)
 

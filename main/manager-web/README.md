@@ -1,6 +1,11 @@
 # xiaozhi
 
 ## Project setup
+
+开发使用代码编辑器，导入项目时，选择`manager-web`文件夹作为项目目录
+
+参照[manager前后端接口协议](https://app.apifox.com/invite/project?token=H_8qhgfjUeaAL0wybghgU)开发
+
 ```
 npm install
 ```
