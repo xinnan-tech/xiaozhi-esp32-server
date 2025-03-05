@@ -79,7 +79,7 @@ selected_module:
   # 将根据配置名称对应的type调用实际的LLM适配器
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
-  TTS: EdgeTTS
+  TTS: FishSpeech
 
 ASR:
   FunASR:
@@ -121,7 +121,7 @@ LLM:
     # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 51ff5fdb325c4fc899923d532148c2dd.FFuMryUTTnf9fKRf
+    api_key: 你的ChatGLMLLM api key
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -162,7 +162,7 @@ LLM:
     api_key: 你的home assistant api访问令牌
 
 TTS_SET:
-  TTS_STREAM: false  #是否启动流响应 true/false，默认false
+  TTS_STREAM: true  #是否启动流响应 true/false，默认false
   MAX_WORKERS: 4    #并发请求tts的数量，这个调太大，本地tts会变慢
 
 TTS:
@@ -228,7 +228,7 @@ TTS:
       - "工钱，今天一起算，有磨能使鬼推钱。哎呀，你难倒我了，像我这么乖的小孩，怎么更乖。"
     normalize: true
     max_new_tokens: 1024
-    chunk_length: 50
+    chunk_length: 200
     top_p: 0.7
     repetition_penalty: 1.2
     temperature: 0.7
