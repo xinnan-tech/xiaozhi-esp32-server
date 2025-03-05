@@ -147,3 +147,4 @@ tmp
 .env.development
 docker-compose.yml
 web/vue/node_modules
+/asr-models/

@@ -25,7 +25,7 @@ async def sendAudioMessageStream(conn, audios_queue, text, text_index=0):
 
     # 初始化流控参数
     frame_duration = 60  # 毫秒
-    start_time = time.perf_counter()  # 使用高精度计时器
+    start_time = time.time()  # 使用高精度计时器
     play_position = 0  # 已播放的时长（毫秒）
     time_out_stop = False
     while True:
@@ -57,7 +57,7 @@ async def sendAudioMessageStream(conn, audios_queue, text, text_index=0):
                 last_duration = conn.tts_duration - queue_duration
                 if last_duration <= 0:
                     last_duration = 0
-                conn.tts_duration = duration + last_duration + 0.5
+                conn.tts_duration = duration + last_duration
                 for opus_packet in audio_opus_datas:
                     await conn.websocket.send(opus_packet)
                 start_time = time.time()  # 更新获取数据的时间

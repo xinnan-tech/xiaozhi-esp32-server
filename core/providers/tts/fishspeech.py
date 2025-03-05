@@ -171,10 +171,10 @@ class TTSProvider(TTSProviderBase):
         with io.BytesIO() as bf:
             torchaudio.save(bf, tts_speech, 44100, format="wav")
             audio = AudioSegment.from_file(bf, format="wav")
-        audio.set_channels(1).set_frame_rate(16000)
+        audio = audio.set_channels(1).set_frame_rate(16000)
         return audio
 
-    async def text_to_speak_stream(self, text, queue: queue.Queue,text_index=0):
+    async def text_to_speak_stream(self, text, queue: queue.Queue, text_index=0):
         try:
             # Prepare reference data
             byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
@@ -204,6 +204,8 @@ class TTSProvider(TTSProviderBase):
             pydantic_data = ServeTTSRequest(**data)
             audio_buff = None
             chunk_total = b''
+            last_raw = b''
+            audio_raw = b''
             print("请求tts")
             with requests.post(
                     self.api_url,
@@ -217,30 +219,36 @@ class TTSProvider(TTSProviderBase):
                     for chunk in response.iter_content():
                         # 拼接当前块和上一块数据
                         chunk_total += chunk
-                        if len(chunk_total) >= 86400 and len(chunk_total) % 86400 == 0:
+                        # 最后一个是静音，说明是一个完整的音频
+                        if len(chunk_total) % 2 == 0 and chunk_total[-2:] == b'\x00\x00':
                             audio = self._get_audio_from_tts(chunk_total)
-                            if not audio_buff:
-                                audio_buff = audio
-                            else:
-                                audio_buff += audio
-                            if len(audio_buff.raw_data) % 1920 == 0:
-                                # 把 audio 转成 opus
-                                opus_datas, duration = self.wav_to_opus_data_audio(audio_buff)
+                            audio_raw = audio_raw + audio.raw_data
+                            #长度凑够2贞开始发送，60ms*4=240ms
+                            if len(audio_raw) >= 7680:
+                                duration = 60 * len(audio_raw) // 1920
+                                if (len(audio_raw) % 1920) > 0:
+                                    duration += 60
+                                duration = duration / 1000.0
+                                logger.bind(tag=TAG).info(f'发送数据长度：{len(audio_raw)}')
+                                opus_datas = self.wav_to_opus_data_audio_raw(audio_raw)
                                 queue.put({
                                     "data": opus_datas,
                                     "duration": duration,
                                     "end": False,
                                     "text_index": text_index
                                 })
-                                audio_buff = None
+                                audio_raw = b''
                             chunk_total = b''
                     if len(chunk_total) > 0:
-                        if not audio_buff:
-                            audio_buff = self._get_audio_from_tts(chunk_total)
-                        else:
-                            audio_buff += self._get_audio_from_tts(chunk_total)
+                        audio = self._get_audio_from_tts(chunk_total)
+                        audio_raw = audio_raw + audio.raw_data
+                        duration = 60 * len(audio_raw) // 1920
+                        if (len(audio_raw) % 1920) > 0:
+                            duration += 60
+                        duration = duration / 1000.0
                         # 把 audio 转成 opus
-                        opus_datas, duration = self.wav_to_opus_data_audio(audio_buff)
+                        logger.bind(tag=TAG).info(f'发送数据长度：{len(audio_raw)}')
+                        opus_datas = self.wav_to_opus_data_audio_raw(audio_raw)
                         queue.put({
                             "data": opus_datas,
                             "duration": duration,
