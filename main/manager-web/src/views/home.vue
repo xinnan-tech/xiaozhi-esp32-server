@@ -185,7 +185,7 @@
         </div>
         <div
           style="font-size: 12px;font-weight: 400;margin-top: auto;padding-top: 30px;color: #979db1;">
-          ©2024 小智Al控制面板2.0粤ICP备2022121736号-2</div>
+          ©2025 xiaozhi-esp32-server</div>
       </el-main>
     </el-container>
     <el-dialog :visible.sync="addDeviceDialogVisible" width="400px" center>
