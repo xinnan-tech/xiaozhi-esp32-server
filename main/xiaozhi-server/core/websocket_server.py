@@ -4,7 +4,7 @@ from config.logger import setup_logging
 from core.connection import ConnectionHandler
 from core.handle.musicHandler import MusicHandler
 from core.utils.util import get_local_ip
-from core.utils import asr, vad, llm, tts, memory
+from core.utils import asr, vad, llm, tts, memory, intent
 
 TAG = __name__
 
@@ -13,13 +13,17 @@ class WebSocketServer:
     def __init__(self, config: dict):
         self.config = config
         self.logger = setup_logging()
-        self._vad, self._asr, self._llm, self._tts, self._music, self._memory = self._create_processing_instances()
+        self._vad, self._asr, self._llm, self._tts, self._music, self._memory, self.intent = self._create_processing_instances()
         self.active_connections = set()  # 添加全局连接记录
 
     def _create_processing_instances(self):
         memory_cls_name = self.config["selected_module"].get("Memory", "nomem") # 默认使用nomem
         has_memory_cfg = self.config.get("Memory") and memory_cls_name in self.config["Memory"]
         memory_cfg = self.config["Memory"][memory_cls_name] if has_memory_cfg else {}
+
+        intent_cls_name = self.config["selected_module"].get("Intent", "nointent") # 默认使用nointent
+        has_intent_cfg = self.config.get("Intent") and intent_cls_name in self.config["Intent"]
+        intent_cfg = self.config["Intent"][intent_cls_name] if has_intent_cfg else {}
 
         """创建处理模块实例"""
         return (
@@ -52,6 +56,7 @@ class WebSocketServer:
             ),
             MusicHandler(self.config),
             memory.create_instance(memory_cls_name, memory_cfg),
+            intent.create_instance(intent_cls_name, intent_cfg),
         )
 
     async def start(self):
@@ -71,7 +76,7 @@ class WebSocketServer:
     async def _handle_connection(self, websocket):
         """处理新连接，每次创建独立的ConnectionHandler"""
         # 创建ConnectionHandler时传入当前server实例
-        handler = ConnectionHandler(self.config, self._vad, self._asr, self._llm, self._tts, self._music, self._memory)
+        handler = ConnectionHandler(self.config, self._vad, self._asr, self._llm, self._tts, self._music, self._memory, self.intent)
         self.active_connections.add(handler)
         try:
             await handler.handle_connection(websocket)

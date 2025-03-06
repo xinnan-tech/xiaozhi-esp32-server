@@ -27,7 +27,7 @@ class TTSException(RuntimeError):
 
 
 class ConnectionHandler:
-    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music, _memory):
+    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music, _memory, _intent):
         self.config = config
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
@@ -55,6 +55,7 @@ class ConnectionHandler:
         self.llm = _llm
         self.tts = _tts
         self.memory = _memory
+        self.intent = _intent
 
         # vad相关变量
         self.client_audio_buffer = bytes()
@@ -103,6 +104,7 @@ class ConnectionHandler:
             device_id = self.headers.get("device-id", None)
             self.memory.set_role_id(device_id)
             self.memory.set_llm(self.llm)
+            self.intent.set_llm(self.llm)
 
             # Load private configuration if device_id is provided
             bUsePrivateConfig = self.config.get("use_private_config", False)
@@ -214,6 +216,7 @@ class ConnectionHandler:
             return True
 
         self.dialogue.put(Message(role="user", content=query))
+
         response_message = []
         processed_chars = 0  # 跟踪已处理的字符位置
         try:
@@ -373,3 +376,14 @@ class ConnectionHandler:
         self.client_have_voice_last_time = 0
         self.client_voice_stop = False
         self.logger.bind(tag=TAG).debug("VAD states reset.")
+
+    def chat_and_close(self, text):
+        """Chat with the user and then close the connection"""
+        try:
+            # Use the existing chat method
+            self.chat(text)
+            
+            # After chat is complete, close the connection
+            asyncio.run_coroutine_threadsafe(self.close(), self.loop)
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"Chat and close error: {str(e)}")

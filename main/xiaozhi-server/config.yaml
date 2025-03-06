@@ -71,7 +71,14 @@ selected_module:
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
   Memory: nomem
+  Intent: nointent
 
+Intent:
+  nointent:
+    type: nointent
+  intent_llm:
+    type: intent_llm
+    
 Memory:
   mem0ai:
     type: mem0ai

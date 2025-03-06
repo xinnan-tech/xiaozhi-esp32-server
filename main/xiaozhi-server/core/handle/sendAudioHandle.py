@@ -7,14 +7,6 @@ from core.utils.util import remove_punctuation_and_length, get_string_no_punctua
 TAG = __name__
 logger = setup_logging()
 
-
-async def isLLMWantToFinish(last_text):
-    _, last_text_without_punctuation = remove_punctuation_and_length(last_text)
-    if "再见" in last_text_without_punctuation or "拜拜" in last_text_without_punctuation:
-        return True
-    return False
-
-
 async def sendAudioMessage(conn, audios, text, text_index=0):
     # 发送句子开始消息
     if text_index == conn.tts_first_text_index:
@@ -46,9 +38,6 @@ async def sendAudioMessage(conn, audios, text, text_index=0):
     # 发送结束消息（如果是最后一个文本）
     if conn.llm_finish_task and text_index == conn.tts_last_text_index:
         await send_tts_message(conn, 'stop', None)
-        if await isLLMWantToFinish(text):
-            await conn.close()
-
 
 async def send_tts_message(conn, state, text=None):
     """发送 TTS 状态消息"""
