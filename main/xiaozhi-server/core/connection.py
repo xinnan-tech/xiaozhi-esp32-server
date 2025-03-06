@@ -101,8 +101,7 @@ class ConnectionHandler:
             await self.auth.authenticate(self.headers)
 
             device_id = self.headers.get("device-id", None)
-            self.memory.set_role_id(device_id)
-            self.memory.set_llm(self.llm)
+            self.memory.init_memory(device_id, self.llm)
 
             # Load private configuration if device_id is provided
             bUsePrivateConfig = self.config.get("use_private_config", False)
