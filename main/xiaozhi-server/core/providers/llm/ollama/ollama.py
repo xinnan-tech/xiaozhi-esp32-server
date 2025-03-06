@@ -44,21 +44,3 @@ class LLMProvider(LLMProviderBase):
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
             yield "【Ollama服务响应异常】"
-
-    def response_no_stream(self, system_prompt, user_prompt):
-        try:
-            # Make request to Ollama API
-            response = requests.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model_name,
-                    "prompt": f"System: {system_prompt}\nUser: {user_prompt}",
-                    "stream": False
-                }
-            )
-
-            return json.loads(response.text)["response"]
-
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
-            return "【Ollama服务响应异常】"
