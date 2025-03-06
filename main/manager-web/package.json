@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "element-ui": "^2.15.14",
+    "flyio": "^0.6.14",
     "normalize.css": "^8.0.1",
     "vue": "^2.6.14",
     "vue-router": "^3.5.1",

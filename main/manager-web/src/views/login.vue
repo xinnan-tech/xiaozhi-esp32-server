@@ -15,51 +15,25 @@
             <img src="@/assets/login/hi.png" alt="" style="width: 34px;height: 34px;" />
             <div class="login-text">登录</div>
             <div class="login-welcome">
-              WELCOME TO LOG IN</div>
+              WELCOME TO LOGIN</div>
           </div>
-          <el-tabs v-model="activeName" @tab-click="handleClick">
-            <el-tab-pane label="用户名" name="username">
-              <div style="padding: 0 30px;">
-                <div class="input-box">
-                  <img src="@/assets/login/username.png" alt="" class="input-icon" />
-                  <el-input v-model="form.username" placeholder="请输入用户名" />
-                </div>
-                <div class="input-box">
-                  <img src="@/assets/login/password.png" alt="" class="input-icon" />
-                  <el-input v-model="form.password" placeholder="请输入密码" />
-                </div>
-                <div style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
-                  <div style="cursor: pointer;">新用户注册</div>
-                  <div style="cursor: pointer;">忘记密码？</div>
-                </div>
-              </div>
-            </el-tab-pane>
-            <el-tab-pane label="手机号" name="phone">
-              <div style="padding: 0 30px;">
-                <div class="input-box">
-                  <img src="@/assets/login/phone.png" alt="" class="input-icon" />
-                  <el-input v-model="form.phoneNumber" placeholder="请输入手机号" />
-                  <div style="width: 120px;flex-shrink: 0;">
-                    <el-dropdown>
-                      <span class="el-dropdown-link">
-                        +86 中国大陆<i class="el-icon-arrow-down el-icon--right"></i>
-                      </span>
-                      <el-dropdown-menu slot="dropdown">
-                        <el-dropdown-item>黄金糕</el-dropdown-item>
-                      </el-dropdown-menu>
-                    </el-dropdown>
-                  </div>
-                </div>
-                <div style="padding: 0 12px 0 30px;margin-top: 20px;" class="input-box">
-                  <img src="@/assets/login/shield.png" alt="" class="input-icon" />
-                  <el-input v-model="form.phoneCode" placeholder="请输入验证码" />
-                  <div class="code-send">
-                    发送
-                  </div>
-                </div>
-              </div>
-            </el-tab-pane>
-          </el-tabs>
+          <div style="padding: 0 30px;">
+            <div class="input-box">
+              <img src="@/assets/login/username.png" alt="" class="input-icon" />
+              <el-input v-model="form.username" placeholder="请输入用户名" />
+            </div>
+            <div class="input-box">
+              <img src="@/assets/login/password.png" alt="" class="input-icon" />
+              <el-input v-model="form.password" placeholder="请输入密码" />
+            </div>
+            <div class="input-box">
+              <img src="@/assets/login/shield.png" alt="" class="input-icon" />
+              <el-input v-model="form.captcha" placeholder="请输入验证码" />
+            </div>
+            <div style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
+              <div style="cursor: pointer;">新用户注册</div>
+            </div>
+          </div>
           <div class="login-btn">登陆</div>
           <div style="font-size: 14px;color: #979db1;">
             登录即同意<div style="display: inline-block;color: #5778FF;cursor: pointer;">《用户协议》</div>和
@@ -84,10 +58,9 @@ export default {
     return {
       activeName: "username",
       form:{
-        phoneNumber:'',
-        phoneCode:'',
         username:'',
-        password:''
+        password:'',
+        captcha:''
       }
     }
   },
