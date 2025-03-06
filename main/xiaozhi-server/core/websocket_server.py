@@ -17,7 +17,7 @@ class WebSocketServer:
         self.active_connections = set()  # 添加全局连接记录
 
     def _create_processing_instances(self):
-        memory_cls_name = self.config["selected_module"].get("Memory", "mem0ai") # 默认使用mem0ai
+        memory_cls_name = self.config["selected_module"].get("Memory", "nomem") # 默认使用nomem
         has_memory_cfg = self.config.get("Memory") and memory_cls_name in self.config["Memory"]
         memory_cfg = self.config["Memory"][memory_cls_name] if has_memory_cfg else {}
 

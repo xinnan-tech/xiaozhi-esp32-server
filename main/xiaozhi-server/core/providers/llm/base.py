@@ -6,3 +6,7 @@ class LLMProviderBase(ABC):
     def response(self, session_id, dialogue):
         """LLM response generator"""
         pass
+
+    @abstractmethod
+    def response_no_stream(self, system_prompt, user_prompt):
+        pass

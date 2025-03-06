@@ -70,7 +70,7 @@ selected_module:
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
-  Memory: mem0ai
+  Memory: nomem
 
 Memory:
   mem0ai:
@@ -78,7 +78,13 @@ Memory:
     # https://app.mem0.ai/dashboard/api-keys
     # 每月有1000次免费调用
     api_key: 你的mem0ai api key
-    
+  nomem:
+    # 不想使用记忆功能，可以使用nomem 
+    type: nomem
+  mem_local_short:
+    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器 
+    type: mem_local_short
+
 ASR:
   FunASR:
     type: fun_local
