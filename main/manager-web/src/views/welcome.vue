@@ -42,7 +42,7 @@
       </el-main>
       <el-footer>
         <div style="font-size: 12px;font-weight: 400;color: #3D4566">
-          ©2025 xiaozhi-esp32-server</div>
+          ©2024 小智Al控制面板2.0粤ICP备2022121736号-2</div>
       </el-footer>
     </el-container>
   </div>

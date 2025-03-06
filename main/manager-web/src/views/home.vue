@@ -21,7 +21,7 @@
           </div>
           <div style="display: flex;align-items: center;gap: 8px;">
             <div class="serach-box">
-              <el-input placeholder="输入名称搜索.." v-model="serach" />
+              <el-input placeholder="输入名称搜索.." v-model="serach" style="border: none; background: transparent;" />
               <img src="@/assets/home/search.png" alt=""
                 style="width: 12px;height: 12px;margin-right: 11px;cursor: pointer;" />
             </div>
@@ -87,20 +87,20 @@
             </div>
           </div>
         </div>
-<div v-show="settingDevice" style="border-radius: 20px;background: #fafcfe;">
+<div v-show="settingDevice" style="border-radius: 18px;background: #fafcfe;">
           <div
-            style="padding: 19px 30px;font-weight: 700;font-size: 24px;text-align: left;color: #3d4566;display: flex;gap: 16px;align-items: center;">
+            style="padding: 17px 27px;font-weight: 700;font-size: 21px;text-align: left;color: #3d4566;display: flex;gap: 14px;align-items: center;">
             <div
-              style="width: 46px;height: 46px;background: #5778ff;border-radius: 50%;display: flex;align-items: center;justify-content: center;">
-              <img src="@/assets/home/setting-user.png" alt="" style="width: 24px;height: 24px;" />
+              style="width: 41px;height: 41px;background: #5778ff;border-radius: 50%;display: flex;align-items: center;justify-content: center;">
+              <img src="@/assets/home/setting-user.png" alt="" style="width: 21px;height: 21px;" />
             </div>
             CC:ba:97:11:a6:ac
           </div>
           <div style="height: 1px;background: #e8f0ff;" />
-          <el-form ref="form" :model="form" label-width="90px">
-            <div style="padding: 20px 30px;max-width: 990px;">
+          <el-form ref="form" :model="form" label-width="81px">
+            <div style="padding: 18px 28px;max-width: 890px;">
               <el-form-item label="助手昵称：">
-                <div class="input-46">
+                <div class="input-46" style="width: 57.5%;">
                   <el-input v-model="form.name" />
                 </div>
               </el-form-item>
@@ -119,7 +119,7 @@
                 </div>
               </el-form-item>
               <el-form-item label="角色音色：">
-                <div style="display: flex;gap: 10px;align-items: center;">
+                <div style="display: flex;gap: 9px;align-items: center;">
                   <div class="input-46" style="flex:1.4;">
                     <el-select v-model="form.timbre" placeholder="请选择" style="width: 100%;">
                       <el-option v-for="item in options" :key="item.value" :label="item.label"
@@ -135,28 +135,28 @@
               </el-form-item>
               <el-form-item label="角色介绍：">
                 <div class="textarea-box">
-                  <el-input type="textarea" rows="6" resize="none" placeholder="请输入内容"
+                  <el-input type="textarea" rows="5.4" resize="none" placeholder="请输入内容"
                     v-model="form.introduction" maxlength="2000" show-word-limit />
                 </div>
               </el-form-item>
               <el-form-item label="记忆体：">
                 <div class="textarea-box">
-                  <el-input type="textarea" rows="6" resize="none" placeholder="请输入内容"
+                  <el-input type="textarea" rows="5.4" resize="none" placeholder="请输入内容"
                     v-model="form.prompt" maxlength="1000" />
                   <div class="prompt-bottom">
                     <div style="display: flex;gap: 10px;align-items: center;">
-                      <div style="color: #979db1;font-size: 14px;">当前记忆（每次对话后重新生成）</div>
+                      <div style="color: #979db1;font-size: 12px;">当前记忆（每次对话后重新生成）</div>
                       <div class="clear-btn">
-                        <i class="el-icon-delete-solid" style="font-size: 14px;" />
+                        <i class="el-icon-delete-solid" style="font-size: 12px;" />
                         清除
                       </div>
                     </div>
-                    <div style="color: #979db1;font-size:14px;">{{form.prompt.length}}/1000</div>
+                    <div style="color: #979db1;font-size:12px;">{{form.prompt.length}}/1000</div>
                   </div>
                 </div>
               </el-form-item>
               <el-form-item label="语言模型（内测）：" class="lh-form-item">
-                <div style="display: flex;gap: 10px;">
+                <div style="display: flex;gap: 9px;">
                   <div class="input-46" style="width: 100%;">
                     <el-select v-model="form.model" placeholder="请选择" style="width: 100%;">
                       <el-option v-for="item in options" :key="item.value" :label="item.label"
@@ -172,23 +172,23 @@
               </el-form-item>
             </div>
           </el-form>
-          <div style="display: flex;padding: 20px;gap: 10px;align-items: center;">
+          <div style="display: flex;padding: 18px;gap: 9px;align-items: center;">
             <div class="save-btn">
               保存配置</div>
             <div class="reset-btn">
               重制</div>
             <div class="clear-text">
-              <img src="@/assets/home/red-info.png" alt="" style="width: 24px;height: 24px;" />
+              <img src="@/assets/home/red-info.png" alt="" style="width: 21px;height: 21px;" />
               保存配置后，需要重启设备，新的配置才会生效。
             </div>
           </div>
         </div>
         <div
           style="font-size: 12px;font-weight: 400;margin-top: auto;padding-top: 30px;color: #979db1;">
-          ©2025 xiaozhi-esp32-server</div>
+          ©2024 小智Al控制面板2.0粤ICP备2022121736号-2</div>
       </el-main>
     </el-container>
-    <el-dialog :visible.sync="addDeviceDialogVisible" width="480px" center>
+    <el-dialog :visible.sync="addDeviceDialogVisible" width="400px" center>
       <div
         style="margin: 0 20px 20px;display: flex;align-items: center;gap: 10px;font-weight: 700;font-size: 20px;text-align: left;color: #3d4566;;">
         <div
@@ -356,11 +356,14 @@ export default {
 }
 .serach-box {
   display: flex;
-  width: 230px;
+  width: 250px;
   height: 30px;
   border-radius: 15px;
-  background-color: #e2f5f7;
+  background-color: #f6fcfe66;
+  border: 1px solid #e4e6ef;
   align-items: center;
+  padding: 0 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .user-info {
   font-weight: 600;
@@ -389,7 +392,7 @@ export default {
 }
 .template-item {
   height: 35px;
-  width: 75px;
+  width: 85px;
   border-radius: 8px;
   background: #e6ebff;
   line-height: 35px;
@@ -461,7 +464,7 @@ export default {
   }
 }
 .device-item {
-  width: 341px;
+  width: 350px;
   border-radius: 15px;
   background: #fafcfe;
   padding: 22px;
@@ -526,6 +529,14 @@ audio::-webkit-media-controls-panel {
     border: none !important;
     padding: 15px;
   }
+  // 搜索输入框的样式调整
+  .serach-box .el-input__inner {
+    border: none;
+    background-color: transparent;
+    padding: 0 5px 0 15px;
+    font-size: 12px;
+    color: #3d4566;
+  }
   .el-textarea .el-input__count {
     color: #979db1;
     font-size: 11px;
@@ -533,13 +544,14 @@ audio::-webkit-media-controls-panel {
     background-color: transparent;
   }
   .el-input__inner {
-    border: none;
-    background-color: transparent;
+    //border: none;
+    //background-color: transparent;
     padding: 0 5px 0 15px;
+    border-radius: 8px;
   }
   .input-46 .el-input__inner {
     padding: 0 15px;
-    height: 46px;
+    height: 38px;
   }
   .lh-form-item {
     .el-form-item__label {
@@ -596,3 +608,5 @@ audio::-webkit-media-controls-panel {
   }
 }
 </style>
+
+
