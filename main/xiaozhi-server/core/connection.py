@@ -89,6 +89,7 @@ class ConnectionHandler:
         self.auth_code_gen = AuthCodeGenerator.get_instance()
         self.is_device_verified = False  # 添加设备验证状态标志
         self.music_handler = _music
+        self.close_after_chat = False # 是否在聊天结束后关闭连接
 
     async def handle_connection(self, ws):
         try:
@@ -383,6 +384,6 @@ class ConnectionHandler:
             self.chat(text)
             
             # After chat is complete, close the connection
-            asyncio.run_coroutine_threadsafe(self.close(), self.loop)
+            self.close_after_chat = True
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"Chat and close error: {str(e)}")

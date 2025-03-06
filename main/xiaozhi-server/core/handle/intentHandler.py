@@ -39,8 +39,7 @@ async def check_direct_exit(conn, text):
     for cmd in cmd_exit:
         if text == cmd:
             logger.bind(tag=TAG).info(f"识别到明确的退出命令: {text}")
-            conn.asr_server_receive = True
-            conn.asr_audio.clear()
+            await conn.close()
             return True
     return False
 
@@ -80,6 +79,8 @@ async def process_intent_result(conn, intent, original_text):
     if "结束聊天" in intent:
         logger.bind(tag=TAG).info(f"识别到退出意图: {intent}")
         
+        #如果正在播放音乐，可以关了 TODO
+
         # 如果是明确的离别意图，发送告别语并关闭连接
         await send_stt_message(conn, original_text) 
         conn.executor.submit(conn.chat_and_close, original_text)
@@ -88,12 +89,7 @@ async def process_intent_result(conn, intent, original_text):
     # 处理播放音乐意图
     if "播放音乐" in intent:
         logger.bind(tag=TAG).info(f"识别到音乐播放意图: {intent}")
-        parts = intent.split("[")
-        song_name = "随机音乐"
-        if len(parts) > 1:
-            song_name = parts[1].split("]")[0]
-            
-        await conn.music_handler.handle_music_command(conn, "播放音乐 "+song_name)
+        await conn.music_handler.handle_music_command(conn, intent)
         return True
         
     # 其他意图处理可以在这里扩展

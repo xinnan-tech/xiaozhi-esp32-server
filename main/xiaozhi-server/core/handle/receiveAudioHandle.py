@@ -43,16 +43,6 @@ async def handleAudioMessage(conn, audio):
         conn.reset_vad_states()
 
 
-async def handleCMDMessage(conn, text):
-    cmd_exit = conn.cmd_exit
-    for cmd in cmd_exit:
-        if text == cmd:
-            logger.bind(tag=TAG).info("识别到明确的退出命令".format(text))
-            await conn.close()
-            return True
-    return False
-
-
 async def startToChat(conn, text):
     # 首先进行意图分析
     intent_handled = await handle_user_intent(conn, text)
