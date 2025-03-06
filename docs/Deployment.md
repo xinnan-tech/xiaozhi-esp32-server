@@ -117,39 +117,28 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
   -p 8000:8000 \
   -p 8002:8002 \
   -v ./:/app \
-  kalicyh/poetry:v3.10_xiaozhi
+  kalicyh/uv:v3.10_xiaozhi
 ```
 
 然后就和正常开发一样了
+
+再次进入
+```sh
+docker exec -it xiaozhi-env /bin/bash
+```
 
 ## 5.安装依赖
 
 在刚刚的打开的终端运行
 
 ```sh
-poetry install --no-root
-```
-
-```sh
-apt-get update
-apt-get install -y --no-install-recommends libopus0 ffmpeg
-```
-
-速度慢可以尝试使用清华镜像
-
-```sh
-echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list
-echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-apt-get update
-apt-get install -y --no-install-recommends libopus0 ffmpeg
+uv sync
 ```
 
 ## 6.运行项目
 
 ```sh
-poetry run python app.py
+uv run app.py
 ```
 
 # 方式三：本地源码运行
@@ -200,8 +189,7 @@ conda install ffmpeg -y
 conda activate xiaozhi-esp32-server
 # 进入到你的项目根目录，再进入main/xiaozhi-server
 cd main/xiaozhi-server
-pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
-pip install -r requirements.txt
+uv sync
 ```
 
 ## 3.下载语音识别模型文件
