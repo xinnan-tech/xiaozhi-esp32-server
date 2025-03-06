@@ -25,7 +25,6 @@
         <jsoup.version>1.19.1</jsoup.version>
         <jasypt.version>3.0.5</jasypt.version>
         <knife4j.version>4.6.0</knife4j.version>
-        <quartz.version>2.3.2</quartz.version>
         <shiro.version>2.0.2</shiro.version>
         <captcha.version>1.6.2</captcha.version>
         <guava.version>33.0.0-jre</guava.version>
@@ -34,21 +33,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz</artifactId>
-            <version>${quartz.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.mchange</groupId>
-                    <artifactId>c3p0</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.zaxxer</groupId>
-                    <artifactId>HikariCP-java6</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>org.apache.shiro</groupId>
             <artifactId>shiro-core</artifactId>
