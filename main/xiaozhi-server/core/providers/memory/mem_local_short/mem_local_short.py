@@ -94,6 +94,10 @@ class MemoryProvider(MemoryProviderBase):
         self.short_momery = ""
         self.memory_path = get_project_dir() + 'data/.memory.yaml'
         self.load_memory()
+
+    def init_memory(self, role_id, llm):
+        super().init_memory(role_id, llm)
+        self.load_memory()
     
     def load_memory(self):
         all_memory = {}
