@@ -158,6 +158,15 @@ LLM:
     base_url: http://homeassistant.local:8123
     agent_id: conversation.chatgpt
     api_key: 你的home assistant api访问令牌
+  FastgptLLM:
+    # 定义LLM API类型
+    type: fastgpt
+    # 如果使用fastgpt，配置文件里prompt(提示词)是无效的，需要在fastgpt控制台设置提示词
+    base_url: https://host/api/v1
+    api_key: fastgpt-xxx
+    variables:
+      k: "v"
+      k2: "v2"
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
@@ -316,6 +325,36 @@ TTS:
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_file: tmp/
     access_token: "你的302API密钥"
+  ACGNTTS:
+    #在线网址：https://acgn.ttson.cn/
+    #token购买：www.ttson.cn
+    #开发相关疑问请提交至3497689533@qq.com
+    #角色id获取地址：ctrl+f快速检索角色——网站管理者不允许发布,可询问网站管理者：1069379506
+    #各参数意义见开发文档：https://www.yuque.com/alexuh/skmti9/wm6taqislegb02gd?singleDoc#
+    type: ttson
+    token: your_token
+    voice_id: 1695
+    speed_factor: 1
+    pitch_factor: 0
+    volume_change_dB: 0
+    to_lang: ZH
+    url: https://u95167-bd74-2aef8085.westx.seetacloud.com:8443/flashsummary/tts?token=
+    format: wav
+    output_file: tmp/
+    emotion: 1
+  OpenAITTS:
+    # openai官方文本转语音服务，可支持全球大多数语种
+    type: openai
+    api_key: 你的openai api key
+    # 国内需要使用代理
+    api_url: https://api.openai.com/v1/audio/speech
+    # 可选tts-1或tts-1-hd，tts-1速度更快tts-1-hd质量更好
+    model: tts-1
+    # 演讲者，可选alloy, echo, fable, onyx, nova, shimmer
+    voice: alloy
+    # 语速范围0.25-4.0
+    speed: 1
+    output_file: tmp/
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
