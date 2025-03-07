@@ -307,9 +307,22 @@ TTS:
     # volume: 50
     # speech_rate: 0
     # pitch_rate: 0
+  OpenAITTS:
+    # openai官方文本转语音服务，可支持全球大多数语种
+    type: openai_tts
+    api_key: 你的openai api key
+    # 国内需要使用代理
+    api_url: https://api.openai.com/v1/audio/speech
+    # 可选tts-1或tts-1-hd，tts-1速度更快tts-1-hd质量更好
+    model: tts-1
+    # 演讲者，可选alloy, echo, fable, onyx, nova, shimmer
+    voice: alloy
+    # 语速范围0.25-4.0
+    speed: 1
+    output_file: tmp/
+  TTS302AI:
     # 添加 302.ai TTS 配置
     # token申请地址：https://dash.302.ai/
-  TTS302AI:
     # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
     # 获取api_keyn路径：https://dash.302.ai/apis/list
     # 价格，$35/百万字符。火山原版¥450元/万字符
