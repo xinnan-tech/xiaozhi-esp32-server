@@ -1,4 +1,15 @@
-![图片](docs/images/banner.png)
+[![SVG Banners](https://svg-banners.vercel.app/api?type=origin&text1=你好😃，小智📟&text2=开源小智ESP-32后端服务&width=830&height=210)](https://github.com/xinnan-tech/xiaozhi-esp32-server)
+<p align="center">
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors">
+    <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/xinnan-tech/xiaozhi-esp32-server" />
+  </a>
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/issues">
+    <img alt="Issues" src="https://img.shields.io/github/issues/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
+  </a>
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/pulls">
+    <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
+  </a>
+</p>
 
 # 小智 ESP-32 后端服务(xiaozhi-esp32-server)
 
@@ -64,16 +75,23 @@
 
 - **硬件**：一套兼容 `xiaozhi-esp32`
   的硬件设备（具体型号请参考 [此处](https://rcnv1t9vps13.feishu.cn/wiki/DdgIw4BUgivWDPkhMj1cGIYCnRf)）。
-- **服务器**：至少 4 核 CPU、8G 内存的电脑。
-- **固件编译**：请将后端服务的接口地址更新至 `xiaozhi-esp32` 项目中，再重新编译固件并烧录到设备上。
+
+- **电脑或服务器**：至少 4 核 CPU、8G 内存的电脑。
+- **固件编译**：请将本后端服务的接口地址更新至 `xiaozhi-esp32` 项目中，再重新编译`xiaozhi-esp32`固件并烧录到设备上。
+
+如果你没有esp32相关的硬件设备，但是非常想体验该项目，可以使用以下的项目让你的电脑、手机模拟成esp32设备。
+
+- [小智安卓端](https://github.com/TOM88812/xiaozhi-android-client)
+- [小智电脑端](https://github.com/Huang-junsen/py-xiaozhi)
 
 ---
 
 ## 警告 ⚠️
 
-本项目成立时间较短，还未通过网络安全测评，请勿在生产环境中使用。
+1、本项目为开源软件，本软件与对接的任何第三方API服务商（包括但不限于语音识别、大模型、语音合成等平台）均不存在商业合作关系，不为其服务质量及资金安全提供任何形式的担保。
+建议使用者优先选择持有相关业务牌照的服务商，并仔细阅读其服务协议及隐私政策。本软件不托管任何账户密钥、不参与资金流转、不承担充值资金损失风险。
 
-如果您在公网环境中部署学习本项目，请务必在配置文件 `config.yaml` 中开启防护：
+2、本项目成立时间较短，还未通过网络安全测评，请勿在生产环境中使用。 如果您在公网环境中部署学习本项目，请务必在配置文件 `config.yaml` 中开启防护：
 
 ```yaml
 server:
@@ -165,7 +183,8 @@ server:
 
 本项目支持以下三种部署方式，您可根据实际需求选择。
 
-本项目的文档主要是`文字版本`的教程，如果你想要`视频版本`的教程，您可以学习一下[这个大佬的手把手教程](https://www.bilibili.com/video/BV1gePuejEvT)。
+本项目的文档主要是`文字版本`的教程，如果你想要`视频版本`
+的教程，您可以学习一下[这个大佬的手把手教程](https://www.bilibili.com/video/BV1gePuejEvT)。
 
 如果你能把`文字版本的教程`和`视频版本的教程`结合起来一起看，可以让你更快上手。
 
@@ -290,7 +309,13 @@ TTS 性能排行:
 
 ### 7、更多问题，可联系我们反馈 💬
 
-![图片](docs/images/wechat.jpg)
+我们的联系方式放在[百度网盘中,点击前往](https://pan.baidu.com/s/1x6USjvP1nTRsZ45XlJu65Q)，提取码是`223y`。
+
+网盘里有“硬件烧录QQ群”、“开源服务端交流群”、“产品建议联系人” 三张图片，请根据需要选择加入。
+
+- 硬件烧录QQ群：适用于硬件烧录问题
+- 开源服务端交流群：适用于服务端问题
+- 产品建议联系人：适用于产品功能、产品设计等建议
 
 ---
 

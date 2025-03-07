@@ -14,10 +14,9 @@ class TTSProvider(TTSProviderBase):
         self.access_token = config.get("access_token")
         self.cluster = config.get("cluster")
         self.voice = config.get("voice")
-
-        self.host = "openspeech.bytedance.com"
-        self.api_url = f"https://{self.host}/api/v1/tts"
-        self.header = {"Authorization": f"Bearer;{self.access_token}"}
+        self.api_url = config.get("api_url")
+        self.authorization = config.get("authorization")
+        self.header = {"Authorization": f"{self.authorization}{self.access_token}"}
 
     def generate_filename(self, extension=".wav"):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
