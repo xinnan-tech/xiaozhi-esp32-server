@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  xiaozhi-esp32-server:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    restart: always
+    depends_on:
+      - xiaozhi-esp32-api
+
+  xiaozhi-esp32-api:
+    build: 
+      context: ./main/manager-api
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      ##记得改mysql和redis IP 密码
+      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://mysqlipurl:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_DRUID_USERNAME=xiaozhi_esp32_server
+      - SPRING_DATASOURCE_DRUID_PASSWORD=password
+      - SPRING_DATA_REDIS_HOST=redisipurl
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      - xiaozhi-esp32-server
+
+  xiaozhi-esp32-web:
+    build:
+      context: ./main/manager-web
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8080"
+    depends_on:
+      - xiaozhi-esp32-api
