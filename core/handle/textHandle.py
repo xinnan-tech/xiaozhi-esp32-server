@@ -41,9 +41,9 @@ async def handleTextMessage(conn, message):
         elif msg_json["type"] == "iot":
             if "descriptors" in msg_json:
                 await handleIotDescriptors(conn, msg_json["descriptors"])
-         ####视觉识别添加能力 msg中应该包含图片数据
+         ####视觉识别添加能力 image中应该包含图片数据
         elif msg_json["type"] == "VL":
-            await handleVLMessage(conn, msg_json['msg'])
+            await handleVLMessage(conn, msg_json)
 
     except json.JSONDecodeError:
         await conn.websocket.send(message)
