@@ -298,6 +298,9 @@ TTS:
     appkey: 你的阿里云智能语音交互服务项目Appkey
     token: 你的阿里云智能语音交互服务AccessToken
     voice: xiaoyun
+    access_key_id: 你的阿里云账号access_key_id
+    access_key_secret: 你的阿里云账号access_key_secret
+
     # 以下可不用设置，使用默认设置
     # format: wav
     # sample_rate: 16000
