@@ -4,6 +4,7 @@ import json
 import base64
 import requests
 from datetime import datetime
+from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
 
 
@@ -17,6 +18,7 @@ class TTSProvider(TTSProviderBase):
         self.api_url = config.get("api_url")
         self.authorization = config.get("authorization")
         self.header = {"Authorization": f"{self.authorization}{self.access_token}"}
+        check_model_key("TTS", self.access_token)
 
     def generate_filename(self, extension=".wav"):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")

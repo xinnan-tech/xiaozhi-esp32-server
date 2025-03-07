@@ -351,7 +351,7 @@ TTS:
     # 可选tts-1或tts-1-hd，tts-1速度更快tts-1-hd质量更好
     model: tts-1
     # 演讲者，可选alloy, echo, fable, onyx, nova, shimmer
-    voice: alloy
+    voice: onyx
     # 语速范围0.25-4.0
     speed: 1
     output_file: tmp/
