@@ -149,4 +149,6 @@ tmp
 .private_config.yaml
 .env.development
 docker-compose.yml
+main/manager-web/node_modules
+main/xiaozhi-server/data
 web/vue/node_modules
