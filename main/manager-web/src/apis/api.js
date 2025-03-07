@@ -12,20 +12,13 @@ const DEV_API_SERVICE = 'https://apifoxmock.com/m1/5931378-5618560-default'
  * 根据开发环境返回接口url
  * @returns {string}
  */
-export function getServiceUrl () {
-  return DEV_API_SERVICE
+export function getServiceUrl() {
+    return DEV_API_SERVICE
 }
-
-const Api = {
-    getServiceUrl,
-    user
-};
 
 
 /** request服务封装 */
 export default {
-  getServiceUrl,
-  user,
-  Api,
+    getServiceUrl,
+    user,
 }
-
