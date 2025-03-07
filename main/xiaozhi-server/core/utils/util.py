@@ -1,9 +1,9 @@
 import os
-import re
 import json
 import yaml
 import socket
 import subprocess
+import logging
 
 
 def get_project_dir():
@@ -87,34 +87,12 @@ def remove_punctuation_and_length(text):
         return 0, ""
     return len(result), result
 
-
-def check_password(password):
-    """
-    检查密码是否满足以下条件：
-    1. 密码长度大于八位。
-    2. 密码包含英文和数字。
-    3. 密码不能包含“xiaozhi”字符。
-
-    :param password: 要检查的密码
-    :return: 如果密码满足条件，则返回True；否则返回False。
-    """
-    # 检查密码长度
-    if len(password) < 8:
+def check_model_key(modelType, modelKey):
+    if "你" in modelKey:
+        logging.error("你还没配置" + modelType + "的密钥，请在配置文件中配置密钥，否则无法正常工作")
         return False
-
-    # 检查是否包含英文字符和数字
-    if not re.search(r'[A-Za-z]', password) or not re.search(r'[0-9]', password):
-        return False
-
-    # 检查是否包含“xiaozhi”字符
-    if "xiaozhi" in password:
-        return False
-
-    if "1234" in password:
-        return False
-
-    # 如果满足所有条件，则返回True
     return True
+
 
 def check_ffmpeg_installed():
     ffmpeg_installed = False

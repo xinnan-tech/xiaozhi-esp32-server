@@ -1,25 +1,24 @@
-from config.logger import setup_logging
 import google.generativeai as genai
+from core.utils.util import check_model_key
 from core.providers.llm.base import LLMProviderBase
 
-TAG = __name__
-logger = setup_logging()
 
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
         """初始化Gemini LLM Provider"""
-        self.model_name = config.get("model_name", "gemini-1.5-pro") 
+        self.model_name = config.get("model_name", "gemini-1.5-pro")
         self.api_key = config.get("api_key")
-        
-        if not self.api_key or "你" in self.api_key:
-            logger.bind(tag=TAG).error("你还没配置Gemini LLM的密钥，请在配置文件中配置密钥，否则无法正常工作")
+
+        have_key = check_model_key("LLM", self.api_key)
+
+        if not have_key:
             return
-            
+
         try:
             # 初始化Gemini客户端
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel(self.model_name)
-            
+
             # 设置生成参数
             self.generation_config = {
                 "temperature": 0.7,
@@ -55,7 +54,7 @@ class LLMProvider(LLMProviderBase):
 
             # 创建新的聊天会话
             chat = self.model.start_chat(history=chat_history)
-            
+
             # 发送消息并获取流式响应
             response = chat.send_message(
                 current_msg,
@@ -71,7 +70,7 @@ class LLMProvider(LLMProviderBase):
         except Exception as e:
             error_msg = str(e)
             logger.bind(tag=TAG).error(f"Gemini响应生成错误: {error_msg}")
-            
+
             # 针对不同错误返回友好提示
             if "Rate limit" in error_msg:
                 yield "【Gemini服务请求太频繁,请稍后再试】"
