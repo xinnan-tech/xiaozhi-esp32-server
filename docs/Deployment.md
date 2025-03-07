@@ -189,6 +189,7 @@ conda install ffmpeg -y
 conda activate xiaozhi-esp32-server
 # 进入到你的项目根目录，再进入main/xiaozhi-server
 cd main/xiaozhi-server
+pip install uv
 uv sync
 ```
 
@@ -209,7 +210,7 @@ uv sync
 ```
 # 确保在xiaozhi-server目录下执行
 conda activate xiaozhi-esp32-server
-python app.py
+uv run app.py
 ```
 这时，你就要留意日志信息，可以根据这个教程，判断是否成功了。[跳转到运行状态确认](#运行状态确认)
 
