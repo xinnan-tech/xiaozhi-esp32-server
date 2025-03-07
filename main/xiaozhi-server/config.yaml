@@ -339,7 +339,7 @@ TTS:
     volume_change_dB: 0
     to_lang: ZH
     url: https://u95167-bd74-2aef8085.westx.seetacloud.com:8443/flashsummary/tts?token=
-    format: wav
+    format: mp3
     output_file: tmp/
     emotion: 1
   OpenAITTS:
