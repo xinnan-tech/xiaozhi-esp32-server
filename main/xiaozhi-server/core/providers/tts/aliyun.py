@@ -73,10 +73,18 @@ class TTSProvider(TTSProviderBase):
 
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
-
-        access_key_id = config.get("access_key_id")      # 从环境变量读取 AccessKey ID
-        access_key_secret = config.get("access_key_secret")     # 从环境变量读取 AccessKey Secret
-        token, expire_time = AccessToken.create_token(access_key_id, access_key_secret)
+        
+        # 新增空值判断逻辑
+        access_key_id = config.get("access_key_id")
+        access_key_secret = config.get("access_key_secret")
+        if access_key_id and access_key_secret:
+            # 使用密钥对生成临时token
+            token, expire_time = AccessToken.create_token(access_key_id, access_key_secret)
+        else:
+            # 直接使用预生成的长期token
+            token = config.get("token")
+            expire_time = None
+        
         print('token: %s, expire time(s): %s' % (token, expire_time))
 
         self.appkey = config.get("appkey")
