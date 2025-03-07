@@ -25,3 +25,14 @@ class LLMProviderBase(ABC):
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
             return "【LLM服务响应异常】"
+    
+    def response_with_functions(self, session_id, dialogue, functions=None):
+        """
+        Default implementation for function calling (streaming)
+        This should be overridden by providers that support function calls
+        
+        Returns: generator that yields either text tokens or a special function call token
+        """
+        # For providers that don't support functions, just return regular response
+        for token in self.response(session_id, dialogue):
+            yield {"type": "content", "content": token}

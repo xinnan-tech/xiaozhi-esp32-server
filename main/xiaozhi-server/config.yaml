@@ -58,6 +58,9 @@ delete_audio: true
 # 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
 close_connection_no_voice_time: 120
 
+# 是否使用函数调用模式, 默认为false,需要大模型支持tools调用
+use_function_call_mode: false
+
 CMD_exit:
   - "退出"
   - "关闭"

@@ -47,3 +47,41 @@ class LLMProvider(LLMProviderBase):
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in response generation: {e}")
+
+    def response_with_functions(self, session_id, dialogue, functions=None):
+        try:
+            stream = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=dialogue,
+                stream=True,
+                tools=functions,
+            )
+            
+            current_function_call = None
+            current_content = ""
+            
+            for chunk in stream:
+                delta = chunk.choices[0].delta
+                
+                if delta.content:
+                    current_content += delta.content
+                    yield {"type": "content", "content": delta.content}
+                
+                if delta.tool_calls:
+                    tool_call = delta.tool_calls[0]
+                    # Handle the function call data using proper attribute access
+                    if not current_function_call:
+                        current_function_call = {
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments
+                            }
+                        }
+            
+            if current_function_call:
+                logger.bind(tag=TAG).debug(f"ollama Function call detected: {current_function_call}")
+                yield {"type": "function_call", "function_call": current_function_call}
+                
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"Error in function call streaming: {e}")
+            yield {"type": "content", "content": f"【OpenAI服务响应异常: {e}】"}
