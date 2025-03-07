@@ -15,10 +15,10 @@ server:
     # 设备的token，可以在编译固件的环节，写入你自己定义的token
     # 固件上的token和以下的token如果能对应，才能连接本服务端
     tokens:
-      - token: "your-token1" # 设备1的token
-        name: "your-device-name1"  # 设备1标识
-      - token: "your-token2"  # 设备2的token
-        name: "your-device-name2" # 设备2标识
+      - token: "test-token"  # 符合文档建议的强密码策略
+        name: "xiaozhi001"  # 设备1标识
+      - token: "test-token"  # 设备2的token
+        name: "xiaozhi002" # 设备2标识
     # 可选:设备白名单，如果设置了白名单，那么白名单的机器无论是什么token都可以连接。
     #allowed_devices:
     #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
@@ -104,7 +104,7 @@ LLM:
     # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
-    api_key: 你的deepseek web key
+    api_key: sk-9d4aeaf8ab9c41ecbc2f138332bff33b
   DeepSeekLLM:
     # 定义LLM API类型
     type: openai
@@ -119,7 +119,7 @@ LLM:
     # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你的chat-glm web key
+    api_key: 1e5337850ba84989b1caf7a72a4ccf25.i0cQ9GYOa9rNJj3L
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -176,8 +176,8 @@ TTS:
     voice: BV001_streaming
     output_file: tmp/
     authorization: "Bearer;"
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: 6032790313
+    access_token: zfBIDamb9IAniLYsm-TByMkAi9tBVoiM
     cluster: volcano_tts
   CosyVoiceSiliconflow:
     type: siliconflow
@@ -186,8 +186,27 @@ TTS:
     model: FunAudioLLM/CosyVoice2-0.5B
     voice: FunAudioLLM/CosyVoice2-0.5B:alex
     output_file: tmp/
-    access_token: 你的硅基流动API密钥
+    access_token: sk-xnujjnmkiqyihtxzuyfmidyioshxcjauydhvjrerewrbgfnr
     response_format: wav
+  CosyVoice:
+    type: cosyvoice
+    model: "FunAudioLLM/CosyVoice2-0.5B"
+    voice: "FunAudioLLM/CosyVoice2-0.5B:中文女"
+    api_url: http://127.0.0.1:9881/tts
+    mode: 3s极速复刻  # 预训练音色, 3s极速复刻, 跨语种复刻, 自然语言控制
+    speaker: 中文女  # 预训练音色模式下的说话人 (有效值: 中文女, 中文男, 日语男, 粤语女, 英文女, 英文男, 韩语女)
+    prompt_audio: data/voice/佩奇-孩子们听到没有快点下来不然你们就吃不到蛋糕咯.mp3  # 3s极速复刻和跨语种复刻模式下的参考音频
+    prompt_text: 孩子们听到没有快点下来不然你们就吃不到蛋糕咯  # 3s极速复刻模式下的参考文本
+    instruct_text: 请用开心的语气说话  # 自然语言控制模式下的指令文本
+    seed: 0  # 随机种子，0表示随机
+    speed: 1.0  # 语速，1.0为正常语速
+    stream: false  # 是否流式输出
+    timeout: 120  # 请求超时时间（秒）- 增加到120秒以处理较大的音频文件
+    max_retries: 3  # 最大重试次数
+    retry_delay: 2  # 重试间隔（秒）- 增加到2秒以给服务器更多恢复时间
+    output_file: "tmp/"
+    access_token: ""
+    response_format: "wav"
   CozeCnTTS:
     type: cozecn
     # COZECN TTS

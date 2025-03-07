@@ -1,5 +1,7 @@
 import asyncio
 import websockets
+import ssl
+import os
 from config.logger import setup_logging
 from core.connection import ConnectionHandler
 from core.handle.musicHandler import MusicHandler
@@ -58,13 +60,24 @@ class WebSocketServer:
         server_config = self.config["server"]
         host = server_config["ip"]
         port = server_config["port"]
+        
+        # 创建 SSL 上下文
+        ssl_context = None
+        if server_config.get("use_ssl", True):  # 默认启用 SSL
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            cert_path = os.path.join("data", "server.crt")
+            key_path = os.path.join("data", "server.key")
+            ssl_context.load_cert_chain(cert_path, key_path)
 
-        self.logger.bind(tag=TAG).info("Server is running at ws://{}:{}", get_local_ip(), port)
+        protocol = "wss" if ssl_context else "ws"
+        self.logger.bind(tag=TAG).info("Server is running at {}://{}:{}", protocol, get_local_ip(), port)
         self.logger.bind(tag=TAG).info("=======上面的地址是websocket协议地址，请勿用浏览器访问=======")
+        
         async with websockets.serve(
                 self._handle_connection,
                 host,
-                port
+                port,
+                ssl=ssl_context
         ):
             await asyncio.Future()
 

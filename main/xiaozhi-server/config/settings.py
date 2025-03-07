@@ -20,6 +20,8 @@ def load_config():
     """加载配置文件"""
     parser = argparse.ArgumentParser(description="Server configuration")
     config_file = get_config_file()
+    # 打印绝对路径
+    # print(f"config_file: {os.path.abspath(config_file)}")
     parser.add_argument("--config_path", type=str, default=config_file)
     args = parser.parse_args()
     return read_config(args.config_path)
