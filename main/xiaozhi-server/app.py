@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import signal
 from config.settings import load_config, check_config_file
 from core.websocket_server import WebSocketServer
 from core.utils.util import check_ffmpeg_installed
@@ -7,9 +8,20 @@ from core.utils.util import check_ffmpeg_installed
 TAG = __name__
 
 async def wait_for_exit():
-    """在 Windows 上等待用户按 Ctrl + C"""
+    """Windows 和 Linux 兼容的退出监听"""
     loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, sys.stdin.read)  # 监听标准输入（阻塞）
+    stop_event = asyncio.Event()
+
+    if sys.platform == "win32":
+        # Windows: 用 sys.stdin.read() 监听 Ctrl + C
+        await loop.run_in_executor(None, sys.stdin.read)
+    else:
+        # Linux/macOS: 用 signal 监听 Ctrl + C
+        def stop():
+            stop_event.set()
+        loop.add_signal_handler(signal.SIGINT, stop)
+        loop.add_signal_handler(signal.SIGTERM, stop)  # 支持 kill 进程
+        await stop_event.wait()
 
 async def main():
     check_config_file()
@@ -21,15 +33,15 @@ async def main():
     ws_task = asyncio.create_task(ws_server.start())
 
     try:
-        await wait_for_exit()  # Windows 下用 sys.stdin.read() 监听退出
+        await wait_for_exit()  # 监听退出信号
     except asyncio.CancelledError:
         print("任务被取消，清理资源中...")
     finally:
         ws_task.cancel()
         try:
-            await ws_task  # 确保 WebSocket 任务正确关闭
+            await ws_task
         except asyncio.CancelledError:
-            pass  # 忽略取消异常
+            pass
         print("服务器已关闭，程序退出。")
 
 if __name__ == "__main__":
