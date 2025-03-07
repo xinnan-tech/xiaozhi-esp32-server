@@ -6,6 +6,8 @@ services:
     restart: always
     security_opt:
       - seccomp:unconfined
+    environment:
+      - TZ=Asia/Shanghai
     ports:
       # ws服务端
       - "8000:8000"
@@ -13,6 +15,6 @@ services:
       - "8002:8002"
     volumes:
       # 配置文件目录
-      - ./data:/app/data
+      - ./data:/opt/xiaozhi-esp32-server/data
       # 模型文件挂接，很重要
-      - ./models/SenseVoiceSmall/model.pt:/app/models/SenseVoiceSmall/model.pt
+      - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
