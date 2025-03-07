@@ -17,3 +17,6 @@ ormsgpack==1.7.0
 ruamel.yaml==0.18.10
 loguru==0.7.3
 requests==2.32.3
+cozepy==0.12.0
+miniaudio==1.61
+mem0ai==0.1.62

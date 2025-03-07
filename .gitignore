@@ -132,6 +132,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# music directory
+music/
+
 # pytype static type analyzer
 .pytype/
 
@@ -146,3 +149,4 @@ tmp
 .private_config.yaml
 .env.development
 docker-compose.yml
+web/vue/node_modules
