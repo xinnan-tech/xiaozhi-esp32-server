@@ -58,7 +58,7 @@ jobs:
       - name: Build and push manager-web
         uses: docker/build-push-action@v6
         with:
-          context: ./main/manager-api
+          context: ./main
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}
