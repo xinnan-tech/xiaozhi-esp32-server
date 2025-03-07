@@ -43,24 +43,24 @@ jobs:
         run: |
           echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      # 构建 xiaozhi-server 镜像
-      - name: Build and push xiaozhi-server
-        uses: docker/build-push-action@v6
-        with:
-          context: ./main/xiaozhi-server
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:server_latest
-          platforms: linux/amd64,linux/arm64
+#      # 构建 xiaozhi-server 镜像
+#      - name: Build and push xiaozhi-server
+#        uses: docker/build-push-action@v6
+#        with:
+#          context: ./main/xiaozhi-server
+#          push: true
+#          tags: |
+#            ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}
+#            ghcr.io/${{ github.repository }}:server_latest
+#          platforms: linux/amd64,linux/arm64
 
       # 构建 manager-api 镜像
-      - name: Build and push manager-api
+      - name: Build and push manager-web
         uses: docker/build-push-action@v6
         with:
           context: ./main/manager-api
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:api_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:api_latest
+            ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}
+            ghcr.io/${{ github.repository }}:web_latest
           platforms: linux/amd64,linux/arm64

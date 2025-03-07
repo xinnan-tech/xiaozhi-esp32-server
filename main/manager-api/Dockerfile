@@ -7,7 +7,7 @@ COPY ../manager-web .
 RUN npm run build
 
 # 第二阶段：构建Java后端
-FROM maven:3.8.6-openjdk-21 as api-builder
+FROM maven:3-eclipse-temurin-21-alpine as api-builder
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
