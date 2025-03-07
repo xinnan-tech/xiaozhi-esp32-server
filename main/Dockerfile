@@ -1,16 +1,16 @@
 # 第一阶段：构建Vue前端
 FROM node:18 as web-builder
 WORKDIR /app
-COPY ../manager-web/package*.json ./
+COPY manager-web/package*.json ./
 RUN npm install
-COPY ../manager-web .
+COPY manager-web .
 RUN npm run build
 
 # 第二阶段：构建Java后端
 FROM maven:3-eclipse-temurin-21-alpine as api-builder
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
+COPY manager-api/pom.xml .
+COPY manager-api/src ./src
 RUN mvn clean package -Dmaven.test.skip=true
 
 # 第三阶段：构建最终镜像
@@ -23,7 +23,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # 配置Nginx
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY manager-web/docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # 复制前端构建产物
 COPY --from=web-builder /app/dist /usr/share/nginx/html
@@ -35,6 +35,6 @@ COPY --from=api-builder /app/target/xiaozhi-esp32-api.jar /app/xiaozhi-esp32-api
 EXPOSE 8002
 
 # 启动脚本
-COPY docker/start.sh /start.sh
+COPY manager-web/docker/start.sh /start.sh
 RUN chmod +x /start.sh
 CMD ["/start.sh"]
