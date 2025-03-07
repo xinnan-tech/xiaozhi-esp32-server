@@ -23,4 +23,8 @@ public interface SysDictTypeService extends BaseService<SysDictTypeEntity> {
     void update(SysDictTypeDTO dto);
 
     void delete(Long[] ids);
+
+    List<DictType> getAllList();
+
+    List<DictType> getDictTypeList();
 }

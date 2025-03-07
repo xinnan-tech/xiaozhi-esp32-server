@@ -1,7 +1,7 @@
 # 第一阶段：构建 Python 依赖
 FROM kalicyh/poetry:v3.10_xiaozhi AS builder
 
-WORKDIR /app
+WORKDIR /opt/xiaozhi-esp32-server
 
 # 同时拷贝本地环境.venv
 COPY . .
