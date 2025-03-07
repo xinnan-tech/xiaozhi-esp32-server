@@ -15,7 +15,7 @@ spring:
     druid:
       #MySQL
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
+      url: jdbc:mysql://192.168.110.130:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
       username: root
       password: 123456
       initial-size: 10
@@ -47,3 +47,6 @@ logging:
   level:
     org.flowable.engine.impl.persistence.entity.*: debug
     org.flowable.task.service.impl.persistence.entity.*: debug
+# 登录验证码过期时间（秒）
+captcha:
+  expire: 300

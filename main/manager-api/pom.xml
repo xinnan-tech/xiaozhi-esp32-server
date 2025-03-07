@@ -67,6 +67,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- 验证码工具包 -->
         <dependency>
             <groupId>com.github.whvcse</groupId>
             <artifactId>easy-captcha</artifactId>
