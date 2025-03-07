@@ -233,11 +233,7 @@ python app.py
 如果你的`xiaozhi-server`目录没有`data`，你需要创建`data`目录。
 如果你的`data`下面没有`.config.yaml`文件，你可以把源码目录下的`config.yaml`文件复制一份，重命名为`.config.yaml`
 
-<<<<<<< HEAD
 修改`xiaozhi-server`下`data`目录下的`.config.yaml`文件，配置本项目必须的两个配置。
-=======
-修改`项目目录`下`data`目录下的`.config.yaml`文件，配置本项目必须的两个配置。
->>>>>>> f7e7726bea47a5fc28971f49723df956bd58c397
 
 - 默认的LLM使用的是`ChatGLMLLM`，你需要配置密钥，因为他们的模型，虽然有免费的，但是仍要去[官网](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)注册密钥，才能启动。
 - 默认的记忆层`mem0ai`，你需要配置密钥，因为他们的API，虽然有免费额度，但是仍要去[官网](https://app.mem0.ai/dashboard/api-keys)注册密钥，才能启动。
