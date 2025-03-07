@@ -150,4 +150,11 @@ main/manager-web/node_modules
 .secrets.yaml
 .private_config.yaml
 .env.development
+<<<<<<< HEAD
 
+=======
+docker-compose.yml
+main/manager-web/node_modules
+main/xiaozhi-server/data
+web/vue/node_modules
+>>>>>>> f7e7726bea47a5fc28971f49723df956bd58c397

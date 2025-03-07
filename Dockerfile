@@ -1,10 +1,16 @@
+<<<<<<< HEAD
 # 第一阶段：构建Python依赖
 FROM python:3.10-slim AS builder
+=======
+# 第一阶段：构建 Python 依赖
+FROM kalicyh/poetry:v3.10_xiaozhi AS builder
+>>>>>>> f7e7726bea47a5fc28971f49723df956bd58c397
 
 WORKDIR /app
 
 COPY main/xiaozhi-server/requirements.txt .
 
+<<<<<<< HEAD
 # 优化apt安装
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -24,6 +30,10 @@ COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/pytho
 
 # 复制应用代码
 COPY main/xiaozhi-server/ .
+=======
+# 设置虚拟环境路径
+ENV PATH="/app/.venv/bin:$PATH"
+>>>>>>> f7e7726bea47a5fc28971f49723df956bd58c397
 
 # 启动应用
 CMD ["python", "app.py"]

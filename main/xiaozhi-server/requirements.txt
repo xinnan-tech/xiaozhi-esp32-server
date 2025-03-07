@@ -18,4 +18,9 @@ ruamel.yaml==0.18.10
 loguru==0.7.3
 requests==2.32.3
 cozepy==0.12.0
+<<<<<<< HEAD:main/xiaozhi-server/requirements.txt
 mem0ai==0.1.62
+=======
+miniaudio==1.61
+mem0ai==0.1.62
+>>>>>>> f7e7726bea47a5fc28971f49723df956bd58c397:requirements.txt
