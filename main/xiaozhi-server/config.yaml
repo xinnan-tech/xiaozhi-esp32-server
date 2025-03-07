@@ -249,6 +249,21 @@ TTS:
     parallel_infer: true
     repetition_penalty: 1.35
     aux_ref_audio_paths: []
+  GPT_SOVITS_V3:
+    type: gpt_sovits_v3
+    url: "http://127.0.0.1:9880/tts"
+    output_file: tmp/
+    text_lang: "auto"
+    ref_audio_path: "caixukun.wav"
+    prompt_lang: "zh"
+    prompt_text: ""
+    top_k: 5
+    top_p: 1
+    temperature: 1
+    sample_steps: 16
+    media_type: "wav"
+    streaming_mode: false
+    threshold: 30
   MinimaxTTS:
     # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
     # 平台地址：https://platform.minimaxi.com/
