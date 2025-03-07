@@ -47,7 +47,7 @@ jobs:
       - name: Build and push xiaozhi-server
         uses: docker/build-push-action@v6
         with:
-          context: ./xiaozhi-server
+          context: ./main/xiaozhi-server
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}
@@ -58,7 +58,7 @@ jobs:
       - name: Build and push manager-web
         uses: docker/build-push-action@v6
         with:
-          context: ./manager-web
+          context: ./main/manager-web
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}
@@ -69,7 +69,7 @@ jobs:
       - name: Build and push manager-api
         uses: docker/build-push-action@v6
         with:
-          context: ./manager-api
+          context: ./main/manager-api
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:api_${{ env.VERSION }}
