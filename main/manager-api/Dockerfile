@@ -1,31 +1,40 @@
-# 使用 Java 21 作为基础镜像
+# 第一阶段：构建Vue前端
+FROM node:18 as web-builder
+WORKDIR /app
+COPY ../manager-web/package*.json ./
+RUN npm install
+COPY ../manager-web .
+RUN npm run build
+
+# 第二阶段：构建Java后端
+FROM maven:3.8.6-openjdk-21 as api-builder
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -Dmaven.test.skip=true
+
+# 第三阶段：构建最终镜像
 FROM eclipse-temurin:21-jdk-jammy
 
-# 设置工作目录
-WORKDIR /app
-
-# 复制 Maven 配置文件
-COPY pom.xml .
-
-# 复制源代码和配置文件
-COPY src ./src
-
-# 安装 Maven
+# 安装Nginx并清理缓存
 RUN apt-get update && \
-    apt-get install -y maven && \
+    apt-get install -y nginx && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# 编译打包，跳过测试编译
-RUN mvn install -Dmaven.test.skip=true
+# 配置Nginx
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+# 复制前端构建产物
+COPY --from=web-builder /app/dist /usr/share/nginx/html
+
+# 复制Java后端JAR包
+COPY --from=api-builder /app/target/xiaozhi-esp32-api.jar /app/xiaozhi-esp32-api.jar
 
 # 暴露端口
 EXPOSE 8002
 
-# 启动应用
-CMD ["sh", "-c", "java -jar target/xiaozhi-esp32-api.jar \
-    --spring.datasource.druid.url=${SPRING_DATASOURCE_DRUID_URL} \
-    --spring.datasource.druid.username=${SPRING_DATASOURCE_DRUID_USERNAME} \
-    --spring.datasource.druid.password=${SPRING_DATASOURCE_DRUID_PASSWORD} \
-    --spring.data.redis.host=${SPRING_DATA_REDIS_HOST} \
-    --spring.data.redis.port=${SPRING_DATA_REDIS_PORT}"] 
+# 启动脚本
+COPY docker/start.sh /start.sh
+RUN chmod +x /start.sh
+CMD ["/start.sh"]

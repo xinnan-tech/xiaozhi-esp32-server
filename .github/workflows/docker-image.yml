@@ -54,17 +54,6 @@ jobs:
             ghcr.io/${{ github.repository }}:server_latest
           platforms: linux/amd64,linux/arm64
 
-      # 构建 manager-web 镜像
-      - name: Build and push manager-web
-        uses: docker/build-push-action@v6
-        with:
-          context: ./main/manager-web
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:web_latest
-          platforms: linux/amd64,linux/arm64
-
       # 构建 manager-api 镜像
       - name: Build and push manager-api
         uses: docker/build-push-action@v6
