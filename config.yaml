@@ -24,7 +24,7 @@ server:
     #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
-  log_format: "<green>{time:YY-MM-DD HH:mm:ss}</green>[<light-blue>{extra[tag]}</light-blue>] - <level>{level}</level> - <light-green>{message}</light-green>"
+  log_format: "{time:YY-MM-DD HH:mm:ss}[<light-blue>{extra[tag]}light-blue>] - {level} - <light-green>{message}light-green>"
   # 设置日志文件输出的格式，时间、日志级别、标签、消息
   log_format_simple: "{time:YYYY-MM-DD HH:mm:ss} - {name} - {level} - {extra[tag]} - {message}"
   # 设置日志等级：INFO、DEBUG
@@ -333,7 +333,7 @@ TTS:
     #角色id获取地址：ctrl+f快速检索角色——网站管理者不允许发布,可询问网站管理者：1069379506
     #各参数意义见开发文档：https://www.yuque.com/alexuh/skmti9/wm6taqislegb02gd?singleDoc#
     type: ACGNTTS
-    token: your_token
+    token: "你的ACGNTTS密钥"
     voice_id: 1695
     speed_factor: 1
     pitch_factor: 0
