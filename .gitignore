@@ -132,6 +132,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# music directory
+music/
+
 # pytype static type analyzer
 .pytype/
 
@@ -148,3 +151,4 @@ tmp
 docker-compose.yml
 main/manager-web/node_modules
 main/xiaozhi-server/data
+web/vue/node_modules

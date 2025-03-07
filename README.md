@@ -57,6 +57,22 @@
          </picture>
         </a>
     </td>
+  </tr>
+  <tr>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1Vy96YCE3R" target="_blank">
+         <picture>
+           <img alt="自定义音色" src="docs/images/demo6.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
+         <picture>
+           <img alt="播放音乐" src="docs/images/demo7.png" />
+         </picture>
+        </a>
+    </td>
     <td>
         <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
          <picture>
@@ -66,7 +82,7 @@
     </td>
     <td>
     </td>
-    </tr>
+  </tr>
 </table>
 
 ---
@@ -91,7 +107,8 @@
 1、本项目为开源软件，本软件与对接的任何第三方API服务商（包括但不限于语音识别、大模型、语音合成等平台）均不存在商业合作关系，不为其服务质量及资金安全提供任何形式的担保。
 建议使用者优先选择持有相关业务牌照的服务商，并仔细阅读其服务协议及隐私政策。本软件不托管任何账户密钥、不参与资金流转、不承担充值资金损失风险。
 
-2、本项目成立时间较短，还未通过网络安全测评，请勿在生产环境中使用。 如果您在公网环境中部署学习本项目，请务必在配置文件 `config.yaml` 中开启防护：
+2、本项目成立时间较短，还未通过网络安全测评，请勿在生产环境中使用。 如果您在公网环境中部署学习本项目，请务必在配置文件
+`config.yaml` 中开启防护：
 
 ```yaml
 server:
@@ -174,6 +191,14 @@ server:
 |:---:|:---------:|:----:|:----:|:--:|
 | ASR |  FunASR   | 本地使用 |  免费  |    |
 | ASR | DoubaoASR | 接口调用 |  收费  |    |
+
+---
+
+### Memory
+
+|   类型   |  平台名称  | 使用方式 | 收费模式 | 备注 |
+|:------:|:------:|:----:|:----:|:--:|
+| Memory | mem0ai | 接口调用 |  免费  |    |
 
 ---
 

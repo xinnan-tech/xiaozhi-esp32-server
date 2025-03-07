@@ -80,7 +80,15 @@ selected_module:
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
+  Memory: mem0ai
 
+Memory:
+  mem0ai:
+    type: mem0ai
+    # https://app.mem0.ai/dashboard/api-keys
+    # 每月有1000次免费调用
+    api_key: 你的mem0ai api key
+    
 ASR:
   FunASR:
     type: fun_local
@@ -147,7 +155,6 @@ LLM:
     type: coze
     bot_id: 你的bot_id
     user_id: 你的user_id
-    base_url: "https://api.coze.cn/open_api/v2/chat" # 服务地址
     personal_access_token: 你的coze个人令牌
   LMStudioLLM:
     # 定义LLM API类型
@@ -307,9 +314,22 @@ TTS:
     # volume: 50
     # speech_rate: 0
     # pitch_rate: 0
+  OpenAITTS:
+    # openai官方文本转语音服务，可支持全球大多数语种
+    type: openai_tts
+    api_key: 你的openai api key
+    # 国内需要使用代理
+    api_url: https://api.openai.com/v1/audio/speech
+    # 可选tts-1或tts-1-hd，tts-1速度更快tts-1-hd质量更好
+    model: tts-1
+    # 演讲者，可选alloy, echo, fable, onyx, nova, shimmer
+    voice: alloy
+    # 语速范围0.25-4.0
+    speed: 1
+    output_file: tmp/
+  TTS302AI:
     # 添加 302.ai TTS 配置
     # token申请地址：https://dash.302.ai/
-  TTS302AI:
     # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
     # 获取api_keyn路径：https://dash.302.ai/apis/list
     # 价格，$35/百万字符。火山原版¥450元/万字符
@@ -319,6 +339,23 @@ TTS:
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_file: tmp/
     access_token: "你的302API密钥"
+   ACGNTTS:
+    #在线网址：https://acgn.ttson.cn/
+    #token购买：www.ttson.cn
+    #开发相关疑问请提交至3497689533@qq.com
+    #角色id获取地址：ctrl+f快速检索角色——网站管理者不允许发布,可询问网站管理者：1069379506
+    #各参数意义见开发文档：https://www.yuque.com/alexuh/skmti9/wm6taqislegb02gd?singleDoc#
+    type: ACGNTTS
+    token: "你的ACGNTTS密钥"
+    voice_id: 1695
+    speed_factor: 1
+    pitch_factor: 0
+    volume_change_dB: 0
+    to_lang: ZH
+    url: https://u95167-bd74-2aef8085.westx.seetacloud.com:8443/flashsummary/tts?token=
+    format: wav
+    output_file: tmp/
+    emotion: 1
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
