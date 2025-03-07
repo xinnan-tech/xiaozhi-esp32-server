@@ -2,8 +2,10 @@ name: Docker Image CI
 
 on:
   push:
-    tags:
-      - 'v*.*.*'  # 只在以 v 开头的标签推送时触发，例如 v1.0.0
+#    tags:
+#      - 'v*.*.*'  # 只在以 v 开头的标签推送时触发，例如 v1.0.0
+    branches:
+      - docker-web-api
 
 jobs:
   release:
