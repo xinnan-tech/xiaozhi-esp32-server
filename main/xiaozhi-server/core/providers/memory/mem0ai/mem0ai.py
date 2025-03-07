@@ -1,3 +1,5 @@
+import traceback
+
 from ..base import MemoryProviderBase, logger
 from mem0 import MemoryClient
 
@@ -14,7 +16,13 @@ class MemoryProvider(MemoryProviderBase):
             return
         else:
             self.use_mem0 = True
-        self.client = MemoryClient(api_key=self.api_key)
+        try:
+            self.client = MemoryClient(api_key=self.api_key)
+            logger.bind(tag=TAG).info("成功连接到 Mem0ai 服务")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"连接到 Mem0ai 服务时发生错误: {str(e)}")
+            logger.bind(tag=TAG).error(f"详细错误: {traceback.format_exc()}")
+            self.use_mem0 = False
 
     async def save_memory(self, msgs):
         if not self.use_mem0:
