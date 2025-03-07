@@ -50,8 +50,8 @@ jobs:
           context: ./xiaozhi-server
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}
+            ghcr.io/${{ github.repository }}:server_latest
           platforms: linux/amd64,linux/arm64
 
       # 构建 manager-web 镜像
@@ -61,8 +61,8 @@ jobs:
           context: ./manager-web
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:manager_web_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:manager_web_latest
+            ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}
+            ghcr.io/${{ github.repository }}:web_latest
           platforms: linux/amd64,linux/arm64
 
       # 构建 manager-api 镜像
@@ -72,6 +72,6 @@ jobs:
           context: ./manager-api
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:manager_api_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:manager_api_latest
+            ghcr.io/${{ github.repository }}:api_${{ env.VERSION }}
+            ghcr.io/${{ github.repository }}:api_latest
           platforms: linux/amd64,linux/arm64
