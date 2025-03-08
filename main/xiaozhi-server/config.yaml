@@ -37,7 +37,8 @@ log:
   data_dir: data
 iot:
   Speaker:
-    volume: 100
+    # 设置esp32的音量，范围0-100
+    volume: 80
 xiaozhi:
   type: hello
   version: 1
