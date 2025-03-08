@@ -75,7 +75,7 @@ def get_string_no_punctuation_or_emoji(s):
 def remove_punctuation_and_length(text):
     # 全角符号和半角符号的Unicode范围
     full_width_punctuations = '！＂＃＄％＆＇（）＊＋，－。／：；＜＝＞？＠［＼］＾＿｀｛｜｝～'
-    half_width_punctuations = '!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~'
+    half_width_punctuations = r'!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~'
     space = ' '  # 半角空格
     full_width_space = '　'  # 全角空格
 
