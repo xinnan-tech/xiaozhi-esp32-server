@@ -47,7 +47,7 @@ jobs:
       - name: Build and push xiaozhi-server
         uses: docker/build-push-action@v6
         with:
-          context: ./main/xiaozhi-server
+          context: .
           file: Dockerfile-web
           push: true
           tags: |
@@ -59,7 +59,7 @@ jobs:
       - name: Build and push manager-web
         uses: docker/build-push-action@v6
         with:
-          context: ./main
+          context: .
           file: Dockerfile-web
           push: true
           tags: |
