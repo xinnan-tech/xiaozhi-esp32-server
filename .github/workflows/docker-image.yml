@@ -48,7 +48,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile-web
+          file: Dockerfile-server
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}
