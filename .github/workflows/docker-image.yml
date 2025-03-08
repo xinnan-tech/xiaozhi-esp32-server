@@ -48,6 +48,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./main/xiaozhi-server
+          file: Dockerfile-web
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}
@@ -59,6 +60,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./main
+          file: Dockerfile-web
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}

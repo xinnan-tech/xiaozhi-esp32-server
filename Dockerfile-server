@@ -3,7 +3,7 @@ FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY main/xiaozhi-server/requirements.txt .
 
 # 优化apt安装
 RUN pip install --no-cache-dir -r requirements.txt
@@ -23,7 +23,7 @@ RUN apt-get update && \
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 
 # 复制应用代码
-COPY . .
+COPY main/xiaozhi-server .
 
 # 启动应用
 CMD ["python", "app.py"]
