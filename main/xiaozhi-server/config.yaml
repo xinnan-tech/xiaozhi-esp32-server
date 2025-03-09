@@ -58,29 +58,37 @@ delete_audio: true
 # 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
 close_connection_no_voice_time: 120
 
-# 是否使用函数调用模式, 默认为false,需要大模型支持tools调用
-use_function_call_mode: false
-
 CMD_exit:
   - "退出"
   - "关闭"
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
-  ASR: FunASR
+  # 语音活动检测模块，默认使用SileroVAD模型
   VAD: SileroVAD
+  # 语音识别模块，默认使用FunASR本地模型
+  ASR: FunASR
   # 将根据配置名称对应的type调用实际的LLM适配器
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
-  Memory: nomem
+  # 记忆模块，默认使用本地压缩记忆，如果想使用超长记忆，推荐使用mem0ai
+  Memory: mem_local_short
+  # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
   Intent: nointent
 
+# 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
+  # 不使用意图识别
   nointent:
     type: nointent
+  # 意图识别使用大模型，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
   intent_llm:
     type: intent_llm
+  # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
+  # 新手使用function_call，建议使用：AliLLM，并把的model_name设置为：qwen-max
+  function_call:
+    type: function_call
     
 Memory:
   mem0ai:
@@ -341,18 +349,6 @@ module_test:
 
 # 本地音乐播放配置
 music:
-  music_commands:
-    - "来一首歌"
-    - "唱一首歌"
-    - "播放音乐"
-    - "来点音乐"
-    - "背景音乐"
-    - "放首歌"
-    - "播放歌曲"
-    - "来点背景音乐"
-    - "我想听歌"
-    - "我要听歌"
-    - "放点音乐"
   music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
   music_ext: # 音乐文件类型，p3格式效率最高
     - ".mp3"

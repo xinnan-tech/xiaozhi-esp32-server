@@ -20,13 +20,13 @@ FunctionCallConfig = [
                 "type": "function",
                 "function": {
                     "name": "play_music",
-                    "description": "当用户想播放音乐时调用",
+                    "description": "唱歌、听歌、播放音乐方法。比如用户说播放音乐，参数为：random，比如用户说播放两只老虎，参数为：两只老虎",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "song_name": {
                                 "type": "string",
-                                "description": "要播放的歌曲名称，如果没有指定具体歌名则为'random'"
+                                "description": "歌曲名称，如果没有指定具体歌名则为'random'"
                             }
                         },
                         "required": ["song_name"]

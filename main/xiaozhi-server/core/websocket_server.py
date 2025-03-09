@@ -21,10 +21,6 @@ class WebSocketServer:
         has_memory_cfg = self.config.get("Memory") and memory_cls_name in self.config["Memory"]
         memory_cfg = self.config["Memory"][memory_cls_name] if has_memory_cfg else {}
 
-        intent_cls_name = self.config["selected_module"].get("Intent", "nointent") # 默认使用nointent
-        has_intent_cfg = self.config.get("Intent") and intent_cls_name in self.config["Intent"]
-        intent_cfg = self.config["Intent"][intent_cls_name] if has_intent_cfg else {}
-
         """创建处理模块实例"""
         return (
             vad.create_instance(
@@ -56,7 +52,13 @@ class WebSocketServer:
             ),
             MusicHandler(self.config),
             memory.create_instance(memory_cls_name, memory_cfg),
-            intent.create_instance(intent_cls_name, intent_cfg),
+            intent.create_instance(
+                self.config["selected_module"]["Intent"]
+                if not 'type' in self.config["Intent"][self.config["selected_module"]["Intent"]]
+                else
+                self.config["Intent"][self.config["selected_module"]["Intent"]]["type"],
+                self.config["Intent"][self.config["selected_module"]["Intent"]]
+            ),
         )
 
     async def start(self):

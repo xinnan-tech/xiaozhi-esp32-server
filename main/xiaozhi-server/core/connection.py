@@ -91,7 +91,12 @@ class ConnectionHandler:
         self.is_device_verified = False  # 添加设备验证状态标志
         self.music_handler = _music
         self.close_after_chat = False # 是否在聊天结束后关闭连接
-        self.use_function_call_mode = self.config.get("use_function_call_mode",  False) # 是否使用function calling模式，开启后可以通过函数调用处理意图
+        self.use_function_call_mode = False
+        if self.config["selected_module"]["Intent"] == 'function_call':
+            self.use_function_call_mode = True
+
+        self.logger.bind(tag=TAG).info(f"use_function_call_mode:{self.use_function_call_mode}")
+
 
     async def handle_connection(self, ws):
         try:
@@ -227,7 +232,7 @@ class ConnectionHandler:
             future = asyncio.run_coroutine_threadsafe(self.memory.query_memory(query), self.loop)
             memory_str = future.result()
             
-            self.logger.bind(tag=TAG).info(f"记忆内容: {memory_str}")
+            self.logger.bind(tag=TAG).debug(f"记忆内容: {memory_str}")
             llm_responses = self.llm.response(
                 self.session_id, 
                 self.dialogue.get_llm_dialogue_with_memory(memory_str)
