@@ -73,7 +73,7 @@ selected_module:
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
-  # 记忆模块，默认使用本地压缩记忆，如果想使用超长记忆，推荐使用mem0ai
+  # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
   Memory: nomem
   # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
   # 如果意图识别设置成 function_call，建议使用：DoubaoLLM，推荐把的model_name设置为：doubao-pro-32k-functioncall-241028
