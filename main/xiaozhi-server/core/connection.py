@@ -90,13 +90,12 @@ class ConnectionHandler:
         self.auth_code_gen = AuthCodeGenerator.get_instance()
         self.is_device_verified = False  # 添加设备验证状态标志
         self.music_handler = _music
-        self.close_after_chat = False # 是否在聊天结束后关闭连接
+        self.close_after_chat = False  # 是否在聊天结束后关闭连接
         self.use_function_call_mode = False
         if self.config["selected_module"]["Intent"] == 'function_call':
             self.use_function_call_mode = True
 
         self.logger.bind(tag=TAG).info(f"use_function_call_mode:{self.use_function_call_mode}")
-
 
     async def handle_connection(self, ws):
         try:
@@ -214,7 +213,6 @@ class ConnectionHandler:
             return False
         return not self.is_device_verified
 
-
     def chat(self, query):
         if self.isNeedAuth():
             self.llm_finish_task = True
@@ -231,10 +229,10 @@ class ConnectionHandler:
             # 使用带记忆的对话
             future = asyncio.run_coroutine_threadsafe(self.memory.query_memory(query), self.loop)
             memory_str = future.result()
-            
+
             self.logger.bind(tag=TAG).debug(f"记忆内容: {memory_str}")
             llm_responses = self.llm.response(
-                self.session_id, 
+                self.session_id,
                 self.dialogue.get_llm_dialogue_with_memory(memory_str)
             )
         except Exception as e:
@@ -256,7 +254,7 @@ class ConnectionHandler:
             current_text = full_text[processed_chars:]  # 从未处理的位置开始
 
             # 查找最后一个有效标点
-            punctuations = ("。", "？", "！", "?", "!", ";", "；", ":", "：")
+            punctuations = ("。", "？", "！", "；", "：")
             last_punct_pos = -1
             for punct in punctuations:
                 pos = current_text.rfind(punct)
@@ -303,26 +301,26 @@ class ConnectionHandler:
             return True
 
         self.dialogue.put(Message(role="user", content=query))
-        
+
         # Define intent functions
         functions = get_functions()
-        
+
         response_message = []
         processed_chars = 0  # 跟踪已处理的字符位置
         function_call_data = None  # 存储function call数据
-        
+
         try:
             start_time = time.time()
-            
+
             # 使用带记忆的对话
             future = asyncio.run_coroutine_threadsafe(self.memory.query_memory(query), self.loop)
             memory_str = future.result()
-            
-            #self.logger.bind(tag=TAG).info(f"记忆内容: {memory_str}")
-            
+
+            # self.logger.bind(tag=TAG).info(f"记忆内容: {memory_str}")
+
             # 使用支持functions的streaming接口
             llm_responses = self.llm.response_with_functions(
-                self.session_id, 
+                self.session_id,
                 self.dialogue.get_llm_dialogue_with_memory(memory_str),
                 functions=functions
             )
@@ -332,13 +330,13 @@ class ConnectionHandler:
 
         self.llm_finish_task = False
         text_index = 0
-        
+
         # 处理流式响应
         for response in llm_responses:
             if response["type"] == "content":
                 content = response["content"]
                 response_message.append(content)
-                
+
                 if self.client_abort:
                     break
 
@@ -351,7 +349,7 @@ class ConnectionHandler:
                 current_text = full_text[processed_chars:]  # 从未处理的位置开始
 
                 # 查找最后一个有效标点
-                punctuations = ("。", "？", "！", "?", "!", ";", "；", ":", "：")
+                punctuations = ("。", "？", "！", "；", "：")
                 last_punct_pos = -1
                 for punct in punctuations:
                     pos = current_text.rfind(punct)
@@ -368,7 +366,7 @@ class ConnectionHandler:
                         future = self.executor.submit(self.speak_and_play, segment_text, text_index)
                         self.tts_queue.put(future)
                         processed_chars += len(segment_text_raw)  # 更新已处理字符位置
-                        
+
             elif response["type"] == "function_call":
                 # Extract function call data
                 function_call_data = {
@@ -376,7 +374,7 @@ class ConnectionHandler:
                     "arguments": response["function_call"]["function"]["arguments"]
                 }
                 self.logger.bind(tag=TAG).info(f"Function call detected: {function_call_data}")
-                
+
         # 处理最后剩余的文本
         full_text = "".join(response_message)
         remaining_text = full_text[processed_chars:]
@@ -390,7 +388,7 @@ class ConnectionHandler:
 
         # 存储对话内容
         self.dialogue.put(Message(role="assistant", content="".join(response_message)))
-        
+
         # 处理function call
         if function_call_data:
             result = handle_llm_function_call(self, function_call_data)
@@ -400,10 +398,10 @@ class ConnectionHandler:
                 self.recode_first_last_text(text, text_index)
                 future = self.executor.submit(self.speak_and_play, text, text_index)
                 self.tts_queue.put(future)
-        
+
         self.llm_finish_task = True
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
-        
+
         return True
 
     def _tts_priority_thread(self):
@@ -502,7 +500,7 @@ class ConnectionHandler:
         try:
             # Use the existing chat method
             self.chat(text)
-            
+
             # After chat is complete, close the connection
             self.close_after_chat = True
         except Exception as e:

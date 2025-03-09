@@ -73,8 +73,9 @@ selected_module:
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
   # 记忆模块，默认使用本地压缩记忆，如果想使用超长记忆，推荐使用mem0ai
-  Memory: mem_local_short
+  Memory: nomem
   # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
+  # 如果意图识别设置成 function_call，建议使用：DoubaoLLM，推荐把的model_name设置为：doubao-pro-32k-functioncall-241028
   Intent: nointent
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
@@ -86,7 +87,6 @@ Intent:
   intent_llm:
     type: intent_llm
   # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
-  # 新手使用function_call，建议使用：AliLLM，并把的model_name设置为：qwen-max
   function_call:
     type: function_call
     
@@ -129,6 +129,13 @@ LLM:
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
     api_key: 你的deepseek web key
+  DoubaoLLM:
+    # 定义LLM API类型
+    type: openai
+    # 可在这里开通 https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-pro-32k&projectName=undefined
+    base_url: https://ark.cn-beijing.volces.com/api/v3
+    model_name: doubao-pro-32k-functioncall-241028
+    api_key: 你的doubao web key
   DeepSeekLLM:
     # 定义LLM API类型
     type: openai

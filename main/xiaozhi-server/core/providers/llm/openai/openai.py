@@ -79,7 +79,7 @@ class LLMProvider(LLMProviderBase):
                         }
             
             if current_function_call:
-                logger.bind(tag=TAG).debug(f"ollama Function call detected: {current_function_call}")
+                logger.bind(tag=TAG).debug(f"openai Function call detected: {current_function_call}")
                 yield {"type": "function_call", "function_call": current_function_call}
                 
         except Exception as e:
