@@ -383,6 +383,13 @@ module_test:
 
 # 本地音乐播放配置
 music:
+  jellyfin:
+    #尽量保持同一局域网http://xxx.xx:8096
+    endpoint:
+    #管理-控制台-高级-api密钥
+    api_key: your api key
+    #选择格式
+    container: mp3
   music_commands:
     - "来一首歌"
     - "唱一首歌"

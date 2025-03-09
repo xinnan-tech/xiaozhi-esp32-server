@@ -4,6 +4,7 @@ import yaml
 import socket
 import subprocess
 import logging
+import math
 
 
 def get_project_dir():
@@ -119,3 +120,9 @@ def check_ffmpeg_installed():
         error_msg += "1、按照项目的安装文档，正确进入conda环境\n"
         error_msg += "2、查阅安装文档，如何在conda环境中安装ffmpeg\n"
         raise ValueError(error_msg)
+
+def seconds_to_time(seconds):
+    # 将秒数转换为小时、分钟和秒
+    hours, remainder = divmod(seconds, 3600)  # 1 小时 = 3600 秒
+    minutes, seconds = divmod(remainder, 60)  # 1 分钟 = 60 秒
+    return f"{math.floor(hours):02}:{math.floor(minutes):02}:{math.floor(seconds):02}"
