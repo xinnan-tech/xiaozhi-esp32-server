@@ -127,7 +127,7 @@ async def analyze_intent_with_llm(conn, text):
     dialogue.put(Message(role="user", content=text))
 
     try:
-        intent_result = await conn.intent.detect_intent(dialogue.dialogue)
+        intent_result = await conn.intent.detect_intent(conn, dialogue.dialogue)
         logger.bind(tag=TAG).info(f"意图识别结果: {intent_result}")
 
         # 尝试解析JSON结果
