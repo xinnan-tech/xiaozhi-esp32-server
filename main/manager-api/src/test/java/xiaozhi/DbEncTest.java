@@ -1,16 +1,23 @@
 package xiaozhi;
-
 import org.jasypt.encryption.StringEncryptor;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+// 如果使用 JUnit 5
+import org.junit.jupiter.api.Test;
+// 如果使用 JUnit 4，需要确保项目中添加了 JUnit 4 的依赖
+// import org.junit.Test;
+// 由于原导入语句无法解析，若使用 JUnit 5，移除该导入
+// 若后续代码需要使用 JUnit 4 的 @RunWith 注解，需确保项目添加 JUnit 4 依赖
+// 这里假设使用 JUnit 5，移除该导入
+// import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+// import org.springframework.test.context.junit4.SpringRunner;
 
 /**
  * 单元测试
  */
-@RunWith(SpringRunner.class)
+// 由于原代码使用了 JUnit 5 的导入，这里移除 JUnit 4 的 @RunWith 注解
+// 若后续需要使用 JUnit 4 的功能，需确保项目添加 JUnit 4 依赖
+// @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class DbEncTest {
 

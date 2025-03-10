@@ -4,12 +4,15 @@ import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.sys.entity.SysUserEntity;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+// 若使用 JUnit 5，应导入以下包
+import org.junit.jupiter.api.Test;
+// 由于代码中使用了 JUnit 5 的 @Test 注解，应移除 JUnit 4 的 @RunWith 相关导入
+// import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
+// 由于代码中使用了 JUnit 5 的 @Test 注解，应移除 JUnit 4 的 @RunWith 相关代码
+// @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class RedisTest {
     @Resource
