@@ -106,6 +106,8 @@ Memory:
   mem_local_short:
     # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器 
     type: mem_local_short
+  mem0_milvus:
+    type: mem0_milvus
 
 ASR:
   FunASR:
