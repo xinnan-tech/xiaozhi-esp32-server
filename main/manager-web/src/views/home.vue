@@ -58,14 +58,14 @@
           <div
             style="display: flex;flex-wrap: wrap;margin-top: 15px;gap: 15px;justify-content: flex-start;box-sizing: border-box;">
             <div class="device-item" v-for="(item,index) in filteredDeviceList" :key="index">
-              <div style="display: flex;justify-content: space-between;">
+              <div style="display: flex;justify-content: space-between; align-items: center; ">
                 <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
 <!--                  CC:ba:97:11:a6:ac-->
                   {{item.list[0]?.mac_address}}
                 </div>
-                <div>
+                <div style="display: flex;align-items: center;">
                   <img src="@/assets/home/delete.png" alt=""
-                    style="width: 18px;height: 18px;margin-right: 8px;" />
+                    style="width: 18px;height: 18px;margin-right: 8px;" @click="unbindDevice(item.list[0]?.id)" />
                   <img src="@/assets/home/info.png" alt="" style="width: 18px;height: 18px;" />
                 </div>
               </div>
@@ -290,6 +290,27 @@ export default {
           );
         });
       }
+    },
+    // 解绑设备
+    unbindDevice(device_id) {
+      this.$confirm('确定要解绑该设备吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        // 调用解绑设备的接口
+        Api.user.unbindDevice(device_id, ({ data }) => {
+          if (data.code === 0) {
+            this.$message.success('解绑成功');
+            this.getList();
+          } else {
+            this.$message.error(data.msg || '解绑失败');
+          }
+        });
+      }).catch(() => {
+        // 用户取消操作
+        this.$message.info('已取消解绑');
+      });
     },
   },
   mounted() {
