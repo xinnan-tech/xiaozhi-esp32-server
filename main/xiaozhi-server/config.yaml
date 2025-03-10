@@ -311,6 +311,36 @@ TTS:
     media_type: "wav"
     streaming_mode: false
     threshold: 30
+  GSV:
+  # GSV原神本地语音合成
+  # 整合包下载：https://pan.ai-hobbyist.com/Infer%20Packs/TTS
+  # 国内镜像：https://alist.hancat.work/d/cdn/GPT-Sovits%E8%AF%AD%E9%9F%B3%E5%90%88%E6%88%90%E6%95%B4%E5%90%88%E5%8C%85%EF%BC%8C%E6%94%AF%E6%8C%81%E5%A4%9A%E4%BA%BA%E5%AF%B9%E8%AF%9D%E3%80%82%E6%B0%B8%E4%B9%85%E5%85%8D%E8%B4%B9%EF%BC%8C%E4%B8%A5%E7%A6%81%E5%80%92%E5%8D%96%EF%BC%81.7z
+  # 本TTS需要配合模型来使用，模型可以去这里下载：
+  # 二次元 & 游戏角色 GPT-Sovits V2 语音合成模型：https://www.modelscope.cn/models/aihobbyist/Anime_GPT-Sovits_Models
+  # 下载后将其解压到model文件夹
+  # URL需要修改批处理文件才可生效，默认WebUI端口号为8080，API端口号为WebUI端口号+1
+    url: "http://127.0.0.1:9881/infer_single"
+    app_key: ""
+    audio_dl_url: "http://127.0.0.1:9881"
+    model_name: "【原神】须弥"
+    speaker_name: "纳西妲"
+    prompt_text_lang: "中文"
+    emocton: "中立_neutral"
+    text_lang: "中文"
+    top_k: 10
+    top_p: 1
+    temperature: 1
+    text_split_method: "按标点符号切"
+    batch_size: 10
+    batch_size: 0.75
+    split_bucket: true
+    speed_facter: 1
+    fragment_interval: 0.3
+    media_type: "wav"
+    parallel_infer: true
+    repetition_penalty: 1.35
+    seed: -1
+    output_file: tmp/
   MinimaxTTS:
     # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
     # 平台地址：https://platform.minimaxi.com/
