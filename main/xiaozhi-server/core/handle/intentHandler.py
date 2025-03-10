@@ -122,12 +122,10 @@ async def analyze_intent_with_llm(conn, text):
         logger.bind(tag=TAG).warning("意图识别服务未初始化")
         return None
 
-    # 创建对话历史记录
+    # 对话历史记录
     dialogue = conn.dialogue
-    dialogue.put(Message(role="user", content=text))
-
     try:
-        intent_result = await conn.intent.detect_intent(dialogue.dialogue)
+        intent_result = await conn.intent.detect_intent(dialogue.dialogue, text)
         logger.bind(tag=TAG).info(f"意图识别结果: {intent_result}")
 
         # 尝试解析JSON结果
