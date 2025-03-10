@@ -21,9 +21,9 @@
           </div>
           <div style="display: flex;align-items: center;gap: 8px;margin-top: 10px">
             <div class="serach-box">
-              <el-input placeholder="输入名称搜索.." v-model="serach" style="border: none; background: transparent;" />
+              <el-input placeholder="输入名称搜索.." v-model="serach" style="border: none; background: transparent;" @keyup.enter.native="handleSearch"  />
               <img src="@/assets/home/search.png" alt=""
-                style="width: 12px;height: 12px;margin-right: 11px;cursor: pointer;" />
+                style="width: 12px;height: 12px;margin-right: 11px;cursor: pointer;" @click="handleSearch" />
             </div>
             <img src="@/assets/home/avatar.png" alt="" style="width: 21px;height: 21px;" />
             <div class="user-info">
@@ -56,8 +56,8 @@
             </div>
           </div>
           <div
-            style="display: flex;flex-wrap: wrap;margin-top: 15px;gap: 15px;justify-content: space-between;box-sizing: border-box;">
-            <div class="device-item" v-for="(item,index) in deviceList" :key="index">
+            style="display: flex;flex-wrap: wrap;margin-top: 15px;gap: 15px;justify-content: flex-start;box-sizing: border-box;">
+            <div class="device-item" v-for="(item,index) in filteredDeviceList" :key="index">
               <div style="display: flex;justify-content: space-between;">
                 <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
 <!--                  CC:ba:97:11:a6:ac-->
@@ -229,7 +229,9 @@ export default {
   name: 'home',
   data() {
     return {
-      serach: '',
+      serach: '', // 搜索框输入内容
+      deviceList: [], // 原始设备列表
+      filteredDeviceList: [], // 过滤后的设备列表
       switchValue: false,
       addDeviceDialogVisible: false,
       deviceCode: "",
@@ -250,8 +252,7 @@ export default {
       }],
       userInfo: {
         mobile: '' // 初始化用户信息
-      },
-      deviceList:[]
+      }
     };
   },
   methods: {
@@ -270,14 +271,30 @@ export default {
     // 获取已绑设备
     getList(){
       Api.user.getHomeList(({data})=>{
-        console.log(data.data)
-        this.deviceList = data.data
+        this.deviceList = data.data; // 保存原始设备列表
+        this.filteredDeviceList = data.data; // 初始化过滤后的设备列表
       })
-    }
+    },
+    // 处理搜索
+    handleSearch() {
+      if (this.serach.trim() === '') {
+        // 如果搜索框为空，显示全部设备
+        this.filteredDeviceList = this.deviceList;
+      } else {
+        // 过滤设备列表
+        this.filteredDeviceList = this.deviceList.filter(device => {
+          return (
+            device.list[0]?.mac_address?.includes(this.serach) ||  // 匹配MAC地址
+            device.list[0]?.device_type?.includes(this.serach) ||  // 匹配设备型号
+            device.list[0]?.app_version?.includes(this.serach)     // 匹配APP版本
+          );
+        });
+      }
+    },
   },
   mounted() {
     this.fetchUserInfo(); // 组件加载时获取用户信息
-    this.getList()
+    this.getList(); // 初始化设备列表
   }
 }
 </script>
