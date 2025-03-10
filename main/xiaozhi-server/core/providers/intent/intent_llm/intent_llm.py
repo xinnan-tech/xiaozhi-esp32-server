@@ -70,22 +70,20 @@ class IntentProvider(IntentProviderBase):
         # )
         return prompt1_classfy, prompt2_getmusicname
     
-    async def detect_intent(self, conn, dialogue_history: List[Dict]) -> str:
+    async def detect_intent(self, conn, dialogue_history: List[Dict], text:str) -> str:
         if not self.llm:
             raise ValueError("LLM provider not set")
 
         # 构建用户最后一句话的提示
         msgStr = ""
-        # for msg in dialogue_history:
-        #     if msg.role == "user":
-        #         msgStr += f"User: {msg.content}\n"
-        #     elif msg.role== "assistant":
-        #         msgStr += f"Assistant: {msg.content}\n"
-        msgStr += f"{dialogue_history[-2].role}: {dialogue_history[-2].content}\n"
-        msgStr += f"{dialogue_history[-1].role}: {dialogue_history[-1].content}\n"
-
-        user_prompt = f"请分析用户的意图：\n{msgStr}"
+        for msg in dialogue_history:
+            if msg.role == "user":
+                msgStr += f"User: {msg.content}\n"
+            elif msg.role== "assistant":
+                msgStr += f"Assistant: {msg.content}\n"
+        msgStr += f"User: {text}\n"
         
+        user_prompt = f"请分析用户的意图：\n{msgStr}"
         # 使用LLM进行意图识别
         intent = self.llm.response_no_stream(
             system_prompt=self.prompt1_classfy,

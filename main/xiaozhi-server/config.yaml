@@ -76,21 +76,24 @@ selected_module:
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
   Memory: nomem
   # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
-  # 如果意图识别设置成 function_call，建议使用：DoubaoLLM，推荐把的model_name设置为：doubao-pro-32k-functioncall-241028
+  # 意图识别使用intent_llm，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
+  # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
+  # 如果意图识别设置成 function_call，建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
   Intent: nointent
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
   # 不使用意图识别
   nointent:
+    # 不需要动
     type: nointent
-  # 意图识别使用大模型，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
   intent_llm:
+    # 不需要动
     type: intent_llm
-  # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
   function_call:
-    type: function_call
-    
+    # 不需要动
+    type: nointent
+
 Memory:
   mem0ai:
     type: mem0ai
@@ -133,7 +136,10 @@ LLM:
   DoubaoLLM:
     # 定义LLM API类型
     type: openai
-    # 可在这里开通 https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-pro-32k&projectName=undefined
+    # 先开通服务，打开以下网址，开通的服务搜索Doubao-pro-32k，开通它
+    # 开通改地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
+    # 免费额度500000token
+    # 开通后，进入这里获取密钥：https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey?apikey=%7B%7D
     base_url: https://ark.cn-beijing.volces.com/api/v3
     model_name: doubao-pro-32k-functioncall-241028
     api_key: 你的doubao web key
@@ -368,7 +374,7 @@ TTS:
   TTS302AI:
     # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
     # 获取api_keyn路径：https://dash.302.ai/apis/list
-    # 价格，$35/百万字符。火山原版¥450元/万字符
+    # 价格，$35/百万字符。火山原版¥450元/百万字符
     type: doubao
     api_url: https://api.302ai.cn/doubao/tts_hd
     authorization: "Bearer "

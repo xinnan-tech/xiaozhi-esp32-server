@@ -67,8 +67,9 @@ async def no_voice_close_connect(conn):
     else:
         no_voice_time = time.time() * 1000 - conn.client_no_voice_last_time
         close_connection_no_voice_time = conn.config.get("close_connection_no_voice_time", 120)
-        if no_voice_time > 1000 * close_connection_no_voice_time:
+        if not conn.close_after_chat and no_voice_time > 1000 * close_connection_no_voice_time:
+            conn.close_after_chat = True
             conn.client_abort = False
             conn.asr_server_receive = False
-            prompt = "时间过得真快，我都好久没说话了。请你用十个字左右话跟我告别，以“再见”或“拜拜”为结尾"
+            prompt = "请你以“时间过得真快”未来头，用富有感情、依依不舍的话来结束这场对话吧。"
             await startToChat(conn, prompt)
