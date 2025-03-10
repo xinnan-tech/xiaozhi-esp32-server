@@ -2,6 +2,7 @@ from config.logger import setup_logging
 import time
 from core.utils.util import remove_punctuation_and_length
 from core.handle.sendAudioHandle import send_stt_message
+from core.handle.intentHandler import handle_user_intent
 
 TAG = __name__
 logger = setup_logging()
@@ -33,13 +34,7 @@ async def handleAudioMessage(conn, audio):
         else:
             text, file_path = await conn.asr.speech_to_text(conn.asr_audio, conn.session_id)
             logger.bind(tag=TAG).info(f"识别文本: {text}")
-            text_len, text_without_punctuation = remove_punctuation_and_length(text)
-            if await conn.music_handler.handle_music_command(conn, text_without_punctuation):
-                conn.asr_server_receive = True
-                conn.asr_audio.clear()
-                return
-            if text_len <= conn.max_cmd_length and await handleCMDMessage(conn, text_without_punctuation):
-                return
+            text_len, _ = remove_punctuation_and_length(text)
             if text_len > 0:
                 await startToChat(conn, text)
             else:
@@ -48,20 +43,22 @@ async def handleAudioMessage(conn, audio):
         conn.reset_vad_states()
 
 
-async def handleCMDMessage(conn, text):
-    cmd_exit = conn.cmd_exit
-    for cmd in cmd_exit:
-        if text == cmd:
-            logger.bind(tag=TAG).info("识别到明确的退出命令".format(text))
-            await conn.close()
-            return True
-    return False
-
-
 async def startToChat(conn, text):
-    # 异步发送 stt 信息
+    # 首先进行意图分析
+    intent_handled = await handle_user_intent(conn, text)
+    
+    if intent_handled:
+        # 如果意图已被处理，不再进行聊天
+        conn.asr_server_receive = True
+        return
+    
+    # 意图未被处理，继续常规聊天流程
     await send_stt_message(conn, text)
-    conn.executor.submit(conn.chat, text)
+    if conn.use_function_call_mode:
+        # 使用支持function calling的聊天方法
+        conn.executor.submit(conn.chat_with_function_calling, text)
+    else:
+        conn.executor.submit(conn.chat, text)
 
 
 async def no_voice_close_connect(conn):

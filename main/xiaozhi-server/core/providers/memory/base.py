@@ -8,6 +8,7 @@ class MemoryProviderBase(ABC):
     def __init__(self, config):
         self.config = config
         self.role_id = None
+        self.llm = None
 
     @abstractmethod
     async def save_memory(self, msgs):
@@ -19,5 +20,6 @@ class MemoryProviderBase(ABC):
         """Query memories for specific role based on similarity"""
         return "please implement query method"
 
-    def set_role_id(self, role_id: str):
-        self.role_id = role_id
+    def init_memory(self, role_id, llm):
+        self.role_id = role_id    
+        self.llm = llm
