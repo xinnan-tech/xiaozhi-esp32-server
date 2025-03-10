@@ -27,9 +27,17 @@
               <img src="@/assets/login/password.png" alt="" class="input-icon"/>
               <el-input v-model="form.password" placeholder="请输入密码"/>
             </div>
-            <div class="input-box">
-              <img src="@/assets/login/shield.png" alt="" class="input-icon"/>
-              <el-input v-model="form.captcha" placeholder="请输入验证码"/>
+            <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
+              <img 
+                :src="captchaUrl" 
+                alt="验证码" 
+                style="width: 150px; height: 40px; cursor: pointer;"
+                @click="fetchCaptcha"
+              />
+              <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
+                <img src="@/assets/login/shield.png" alt="" class="input-icon"/>
+                <el-input v-model="form.captcha" placeholder="请输入验证码" style="flex: 1;"/>
+              </div>
             </div>
             <div
                 style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
@@ -55,8 +63,9 @@
 </template>
 
 <script>
-import Api from '@/apis/api'
-import {isNull, showDanger, showSuccess, goToPage} from '@/utils'
+import axios from 'axios'
+import { showDanger, showSuccess, goToPage } from '@/utils'
+import api from '@/apis/request'  // 替换原来的Api导入
 
 export default {
   name: 'login',
@@ -67,30 +76,79 @@ export default {
         username: '',
         password: '',
         captcha: ''
-      }
+      },
+      captchaUuid: '',
+      captchaUrl: ''
     }
   },
+  mounted() {
+    this.fetchCaptcha();
+  },
   methods: {
-    login() {
-      if (isNull(this.form.username)) {
-        showDanger('用户名不能为空')
-        return
-      }
-      if (isNull(this.form.password)) {
-        showDanger('密码不能为空')
-        return
-      }
-      if (isNull(this.form.captcha)) {
-        showDanger('验证码不能为空')
-        return
-      }
-      Api.user.login(this.form, ({data}) => {
-        showSuccess('登陆成功！')
-        goToPage('/home')
-      })
+    async fetchCaptcha() {
+        try {
+            this.captchaUuid = Date.now().toString()
+            const response = await api.get(`/captcha?uuid=${this.captchaUuid}`, {
+                responseType: 'blob',  // Keep this as first config option
+                headers: {
+                 'Accept': 'image/gif'  // Match with actual backend type
+                }
+            })
+
+            // 释放之前创建的URL对象
+            if (this.captchaUrl) {
+                URL.revokeObjectURL(this.captchaUrl)
+            }
+            
+            // 验证图片类型并创建新URL
+            if (response.data.type === 'image/png') {
+                // Directly use the received Blob
+                this.captchaUrl = URL.createObjectURL(response.data)
+                console.log('PNG验证码加载成功，UUID:', this.captchaUuid)
+            } else {
+                throw new Error(`无效的图片类型: ${response.data.type}`)
+            }
+        } catch (error) {
+            // 清空验证码图片并显示错误
+            this.captchaUrl = ''
+            showDanger('验证码加载失败，请重试')
+            console.error('验证码请求异常:', error)
+            throw error
+        }
+    },
+    
+    async login() {
+        if (isNull(this.form.username)) {
+            showDanger('用户名不能为空')
+            return
+        }
+        if (isNull(this.form.password)) {
+            showDanger('密码不能为空')
+            return
+        }
+        if (isNull(this.form.captcha)) {
+            showDanger('验证码不能为空')
+            return
+        }
+        
+        try {
+            const response = await api.post('/user/login', {
+                username: this.form.username,
+                password: this.form.password,
+                captcha: this.form.captcha,
+                uuid: this.captchaUuid
+            })
+            
+            showSuccess('登录成功！')
+            goToPage('/home')
+        } catch (error) {
+            const msg = error.response?.data?.msg || '登录失败'
+            showDanger(msg)
+            this.fetchCaptcha() // 自动刷新验证码
+        }
     }
-  }
-}
+}      // ← 补全methods对象闭合括号
+}      // ← 补全export default闭合括号
 </script>
 <style scoped lang="scss">
 .welcome {
