@@ -67,7 +67,10 @@ public class LoginController {
     @Operation(summary = "注册")
     public Result<Void> register(@RequestBody LoginDTO login) {
         // 验证是否正确输入验证码
-        captchaService.validate(login.getCaptchaId(), login.getCaptcha());
+        boolean validate = captchaService.validate(login.getCaptchaId(), login.getCaptcha());
+        if (!validate) {
+            throw new RenException("验证码错误，请重新获取");
+        }
         // 按照用户名获取用户
         SysUserDTO userDTO = sysUserService.getByUsername(login.getMobile());
         if (userDTO != null){
