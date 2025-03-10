@@ -1,6 +1,9 @@
 const HAVE_NO_RESULT = '暂无'
 export default {
     HAVE_NO_RESULT, // 项目的配置信息
+    PAGE: {
+        LOGIN: '/login',
+    },
     STORAGE_KEY: {
         TOKEN: 'TOKEN',
         PUBLIC_KEY: 'PUBLIC_KEY',
