@@ -34,19 +34,18 @@ class JellyfinHandler:
         self.config = config
         self.music_related_keywords = []
 
+        default_music_related_keywords = ["来一首歌", "唱一首歌", "播放音乐", "来点音乐", "背景音乐", "放首歌",
+                                          "播放歌曲", "来点背景音乐", "我想听歌", "我要听歌", "放点音乐"]
         if "music" in self.config:
             self.music_config = self.config["music"]
             self.jellyfin_endpoint = self.music_config['jellyfin']['endpoint']
             self.jellyfin_container = self.music_config['jellyfin']['container']
             self.jellyfin_api_key = self.music_config['jellyfin']['api_key']
 
-            self.music_related_keywords = self.music_config.get("music_commands", [])
-            self.music_ext = self.music_config.get("music_ext", (".mp3", ".wav", ".p3", ".m4a"))
+            self.music_related_keywords = self.music_config.get("music_commands", default_music_related_keywords)
         else:
-            self.jellyfin_endpoint = os.path.abspath("./music")
-            self.music_related_keywords = ["来一首歌", "唱一首歌", "播放音乐", "来点音乐", "背景音乐", "放首歌",
-                                           "播放歌曲", "来点背景音乐", "我想听歌", "我要听歌", "放点音乐"]
-            self.music_ext = (".mp3", ".wav", ".p3", ".m4a")
+            self.jellyfin_endpoint = None
+            logger.bind(tag=TAG).debug(f"未配置jellyfin服务模块")
 
     async def handle_music_command(self, conn, text):
         """处理音乐播放指令"""
@@ -67,10 +66,9 @@ class JellyfinHandler:
             else:
                 logger.bind(tag=TAG).debug(f"未找到潜在的音乐名[播放、听、唱、放]: {clean_text}")
 
-
         # 检查是否是通用播放音乐命令
         if any(cmd in clean_text for cmd in self.music_related_keywords):
-            await self.play_local_music(conn)
+            logger.bind(tag=TAG).debug(f"不支持随机播放音乐")
             return True
 
         return False
@@ -82,31 +80,18 @@ class JellyfinHandler:
         """
         specific_file = stream_item['ItemId']
         song_name = stream_item['Name']
-        music_path = None
         song_bytes = None
         dura_str = None
         try:
-            # 确保路径正确性
-            if specific_file:
-                song_bytes = self.download_music_stream(specific_file)
-                selected_music = specific_file
-                dura_str = seconds_to_time(stream_item['RunTimeTicks']/10000000)
-            else:
-                selected_music = '中秋月.mp3'
-                music_path = os.path.join(self.jellyfin_endpoint, selected_music)
-                if not os.path.exists(music_path):
-                    logger.bind(tag=TAG).error(f"选定的音乐文件不存在: {music_path}")
-                    return
+            song_bytes = self.download_music_stream(specific_file)
+            dura_str = seconds_to_time(stream_item['RunTimeTicks']/10000000)
             text = f"正在播放{song_name}.mp3 {dura_str}"
             await send_stt_message(conn, text)
             conn.tts_first_text = song_name
             conn.tts_last_text = song_name
             conn.llm_finish_task = True
-            if music_path and music_path.endswith(".p3"):
-                opus_packets, duration = p3.decode_opus_from_file(music_path)
-            else:
-                #如果文件下载不完整，会报错no close frame received or sent，一般出现在文件太大且转码速度不够
-                opus_packets, duration = conn.tts.wav_stream_to_opus_data(song_bytes)
+            #如果文件下载不完整，会报错no close frame received or sent，一般出现在文件太大且转码速度不够
+            opus_packets, duration = conn.tts.wav_stream_to_opus_data(song_bytes)
             conn.audio_play_queue.put((opus_packets, text, 0))
 
         except Exception as e:
@@ -122,7 +107,8 @@ class JellyfinHandler:
         best_match = None
         highest_ratio = 0
         song_list = self.search_list(potential_song)
-
+        if not song_list:
+            logger.bind(tag=TAG).warning(f"搜索[{potential_song}]结果为空")
         for item in song_list:
             song_name = item['Name']
             ratio = difflib.SequenceMatcher(None, potential_song, song_name).ratio()
@@ -167,4 +153,4 @@ class JellyfinHandler:
         if resp.status_code == 200:
             return json.loads(resp.content)['SearchHints']
         else:
-            raise Exception(f"Failed to download audio file. Status code: {resp.status_code}")
+            raise Exception(f"Failed to search audio file. Status code: {resp.status_code}")
