@@ -18,38 +18,24 @@ class TTSProviderBase(ABC):
     @abstractmethod
     def generate_filename(self):
         pass
-    def _filter_special_symbols(self, text):
-        """过滤AI会朗读的特殊符号"""
-        import re
-        # 保留中文、英文、数字、基本标点
-        # 特别处理URL中的斜杠（替换为空格避免连读）
-        text = re.sub(r'(http[s]?://[^\s]+)', lambda m: m.group(0).replace('/', ' '), text)
-        # 移除其他特殊符号
-        return re.sub(r'[<>\[\](){}♫♪★☆▽※↑↓←→\\|*#_~`^€£¥¢§©®™]', '', text)
+
     def to_tts(self, text):
         tmp_file = self.generate_filename()
-         # 我打个盹
-        self.default_audio_path_0 = os.path.join(
-            os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../core/assets")),
-            "network_timeout_0.mp3"
-        )
         try:
             max_repeat_time = 5
             while not os.path.exists(tmp_file) and max_repeat_time > 0:
-                 # 新增过滤处理
-                filtered_text = self._filter_special_symbols(text)
-                asyncio.run(self.text_to_speak(filtered_text, tmp_file))
+                asyncio.run(self.text_to_speak(text, tmp_file))
                 if not os.path.exists(tmp_file):
                     max_repeat_time = max_repeat_time - 1
-                    logger.bind(tag=TAG).error(f"语音生成失败: {filtered_text}:{tmp_file}，再试{max_repeat_time}次")
+                    logger.bind(tag=TAG).error(f"语音生成失败: {text}:{tmp_file}，再试{max_repeat_time}次")
 
             if max_repeat_time > 0:
-                logger.bind(tag=TAG).info(f"语音生成成功: {filtered_text}:{tmp_file}，重试{5 - max_repeat_time}次")
+                logger.bind(tag=TAG).info(f"语音生成成功: {text}:{tmp_file}，重试{5 - max_repeat_time}次")
 
             return tmp_file
         except Exception as e:
             logger.bind(tag=TAG).info(f"Failed to generate TTS file: {e}")
-            return self.default_audio_path_0
+            return None
 
     @abstractmethod
     async def text_to_speak(self, text, output_file):

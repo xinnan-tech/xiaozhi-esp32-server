@@ -88,18 +88,6 @@ class ConnectionHandler:
         self.auth_code_gen = AuthCodeGenerator.get_instance()
         self.is_device_verified = False  # 添加设备验证状态标志
         self.music_handler = _music
-           # 确保路径指向core目录下的assets文件夹
-
-        # 我打个盹
-        self.default_audio_path_0 = os.path.join(
-            os.path.dirname(__file__),  # 当前文件所在目录（core/）
-            "assets/network_timeout_0.wav"
-        )
-        #网络超时
-        self.default_audio_path_1 = os.path.join(
-                os.path.dirname(__file__),  # 当前文件所在目录（core/）
-                "assets/network_timeout_1.wav"
-         )
 
     async def handle_connection(self, ws):
         try:
@@ -306,14 +294,6 @@ class ConnectionHandler:
                 try:
                     self.logger.bind(tag=TAG).debug("正在处理TTS任务...")
                     tts_file, text, text_index = future.result(timeout=10)
-                    # 新增重试逻辑
-                    retry_count = 0
-                    max_retries = 3  # 最大重试次数
-                    while (text is None or len(text) <= 0 or tts_file is None) and retry_count < max_retries:
-                        retry_count += 1
-                        self.logger.bind(tag=TAG).warning(f"TTS生成失败，第{retry_count}次重试...")
-                        tts_file, text, text_index = self.speak_and_play(text, text_index)
-                        
                     if text is None or len(text) <= 0:
                         self.logger.bind(tag=TAG).error(f"TTS出错：{text_index}: tts text is empty")
                     elif tts_file is None:
@@ -326,12 +306,8 @@ class ConnectionHandler:
                             self.logger.bind(tag=TAG).error(f"TTS出错：文件不存在{tts_file}")
                 except TimeoutError:
                     self.logger.bind(tag=TAG).error("TTS超时")
-                    if os.path.exists(self.default_audio_path_0):
-                        opus_datas, _ = self.tts.wav_to_opus_data(self.default_audio_path)
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"TTS出错: {e}")
-                    if os.path.exists(self.default_audio_path_0):
-                        opus_datas, _ = self.tts.wav_to_opus_data(self.default_audio_path)
                 if not self.client_abort:
                     # 如果没有中途打断就发送语音
                     self.audio_play_queue.put((opus_datas, text, text_index))
@@ -339,8 +315,6 @@ class ConnectionHandler:
                     os.remove(tts_file)
             except Exception as e:
                 self.logger.bind(tag=TAG).error(f"TTS任务处理错误: {e}")
-                if os.path.exists(self.default_audio_path_1):
-                    opus_datas, _ = self.tts.wav_to_opus_data(self.default_audio_path)
                 self.clearSpeakStatus()
                 asyncio.run_coroutine_threadsafe(
                     self.websocket.send(json.dumps({"type": "tts", "state": "stop", "session_id": self.session_id})),
