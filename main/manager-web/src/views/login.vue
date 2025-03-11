@@ -111,15 +111,15 @@ export default {
     },
     
     async login() {
-        if (isNull(this.form.username)) {
+        if (!this.form.username.trim()) {  // 替换isNull校验
             showDanger('用户名不能为空')
             return
         }
-        if (isNull(this.form.password)) {
+        if (!this.form.password.trim()) {  // 替换isNull校验
             showDanger('密码不能为空')
             return
         }
-        if (isNull(this.form.captcha)) {
+        if (!this.form.captcha.trim()) {  // 替换isNull校验
             showDanger('验证码不能为空')
             return
         }
