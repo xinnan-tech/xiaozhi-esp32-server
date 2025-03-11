@@ -58,4 +58,20 @@ export default {
                 });
               }).send()
     },
+    // 绑定设备
+    bindDevice(deviceCode, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/api/v1/user/device/bind/${deviceCode}`)
+            .method('POST')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .fail((err) => {
+                console.error('绑定设备失败:', err);
+                RequestService.reAjaxFun(() => {
+                    this.bindDevice(deviceCode, callback);
+                });
+            }).send();
+    }
 }
