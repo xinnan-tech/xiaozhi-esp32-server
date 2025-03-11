@@ -89,9 +89,10 @@ export default {
         try {
             this.captchaUuid = Date.now().toString()
             const response = await api.get(`/captcha?uuid=${this.captchaUuid}`, {
-                responseType: 'blob',  // Keep this as first config option
+                responseType: 'blob',  
                 headers: {
-                 'Accept': 'image/gif'  // Match with actual backend type
+                'Content-Type': 'application/json;charset=utf8',
+                 'Accept': 'image/gif'  
                 }
             })
 
@@ -102,13 +103,14 @@ export default {
             
             // 验证图片类型并创建新URL
             if (response.data.type === 'image/png') {
-                // Directly use the received Blob
+          
                 this.captchaUrl = URL.createObjectURL(response.data)
                 console.log('PNG验证码加载成功，UUID:', this.captchaUuid)
             } else {
                 throw new Error(`无效的图片类型: ${response.data.type}`)
             }
-        } catch (error) {
+        } 
+        catch (error) {
             // 清空验证码图片并显示错误
             this.captchaUrl = ''
             showDanger('验证码加载失败，请重试')
