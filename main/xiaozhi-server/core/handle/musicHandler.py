@@ -15,7 +15,7 @@ logger = setup_logging()
 
 def _extract_song_name(text):
     """从用户输入中提取歌名"""
-    for keyword in ["听", "播放", "放", "唱"]:
+    for keyword in ["播放音乐"]:
         if keyword in text:
             parts = text.split(keyword)
             if len(parts) > 1:
@@ -36,6 +36,7 @@ def _find_best_match(potential_song, music_files):
             best_match = music_file
     return best_match
 
+
 class MusicManager:
     def __init__(self, music_dir, music_ext):
         self.music_dir = Path(music_dir)
@@ -55,23 +56,20 @@ class MusicManager:
                     music_files.append(str(file.relative_to(self.music_dir)))
         return music_files
 
+
 class MusicHandler:
     def __init__(self, config):
         self.config = config
-        self.music_related_keywords = []
 
         if "music" in self.config:
             self.music_config = self.config["music"]
             self.music_dir = os.path.abspath(
                 self.music_config.get("music_dir", "./music")  # 默认路径修改
             )
-            self.music_related_keywords = self.music_config.get("music_commands", [])
             self.music_ext = self.music_config.get("music_ext", (".mp3", ".wav", ".p3"))
             self.refresh_time = self.music_config.get("refresh_time", 60)
         else:
             self.music_dir = os.path.abspath("./music")
-            self.music_related_keywords = ["来一首歌", "唱一首歌", "播放音乐", "来点音乐", "背景音乐", "放首歌",
-                                           "播放歌曲", "来点背景音乐", "我想听歌", "我要听歌", "放点音乐"]
             self.music_ext = (".mp3", ".wav", ".p3")
             self.refresh_time = 60
 
@@ -100,13 +98,9 @@ class MusicHandler:
                     logger.bind(tag=TAG).info(f"找到最匹配的歌曲: {best_match}")
                     await self.play_local_music(conn, specific_file=best_match)
                     return True
-
         # 检查是否是通用播放音乐命令
-        if any(cmd in clean_text for cmd in self.music_related_keywords):
-            await self.play_local_music(conn)
-            return True
-
-        return False
+        await self.play_local_music(conn)
+        return True
 
     async def play_local_music(self, conn, specific_file=None):
         """播放本地音乐文件"""
@@ -117,26 +111,18 @@ class MusicHandler:
 
             # 确保路径正确性
             if specific_file:
-                music_path = os.path.join(self.music_dir, specific_file)
-                if not os.path.exists(music_path):
-                    logger.bind(tag=TAG).error(f"指定的音乐文件不存在: {music_path}")
-                    return
                 selected_music = specific_file
+                music_path = os.path.join(self.music_dir, specific_file)
             else:
-                if time.time() - self.scan_time > self.refresh_time:
-                    # 刷新音乐文件列表
-                    self.music_files = MusicManager(self.music_dir, self.music_ext).get_music_files()
-                    self.scan_time = time.time()
-                    logger.bind(tag=TAG).debug(f"刷新的音乐文件列表: {self.music_files}")
-
                 if not self.music_files:
                     logger.bind(tag=TAG).error("未找到MP3音乐文件")
                     return
                 selected_music = random.choice(self.music_files)
                 music_path = os.path.join(self.music_dir, selected_music)
-                if not os.path.exists(music_path):
-                    logger.bind(tag=TAG).error(f"选定的音乐文件不存在: {music_path}")
-                    return
+
+            if not os.path.exists(music_path):
+                logger.bind(tag=TAG).error(f"选定的音乐文件不存在: {music_path}")
+                return
             text = f"正在播放{selected_music}"
             await send_stt_message(conn, text)
             conn.tts_first_text_index = 0

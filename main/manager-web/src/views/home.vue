@@ -3,7 +3,7 @@
     <el-container style="height: 100%;">
       <el-header class="header">
         <div style="display: flex;justify-content: space-between;">
-          <div style="display: flex;align-items: center;gap: 8px;">
+          <div style="display: flex;align-items: center;gap: 8px;margin-top: 10px;">
             <img src="@/assets/xiaozhi-logo.png" alt="" style="width: 45px;height: 45px;" />
             <img src="@/assets/xiaozhi-ai.png" alt="" style="width: 70px;height: 13px;" />
             <div class="equipment-management" @click="settingDevice=false">
@@ -19,15 +19,16 @@
               <img src="@/assets/home/close.png" alt="" style="width: 6px;height: 6px;" />
             </div>
           </div>
-          <div style="display: flex;align-items: center;gap: 8px;">
+          <div style="display: flex;align-items: center;gap: 8px;margin-top: 10px">
             <div class="serach-box">
-              <el-input placeholder="输入名称搜索.." v-model="serach" style="border: none; background: transparent;" />
+              <el-input placeholder="输入名称搜索.." v-model="serach" style="border: none; background: transparent;" @keyup.enter.native="handleSearch"  />
               <img src="@/assets/home/search.png" alt=""
-                style="width: 12px;height: 12px;margin-right: 11px;cursor: pointer;" />
+                style="width: 12px;height: 12px;margin-right: 11px;cursor: pointer;" @click="handleSearch" />
             </div>
             <img src="@/assets/home/avatar.png" alt="" style="width: 21px;height: 21px;" />
             <div class="user-info">
-              158 3632 4642</div>
+              {{ userInfo.mobile }}
+            </div>
           </div>
         </div>
       </el-header>
@@ -55,20 +56,21 @@
             </div>
           </div>
           <div
-            style="display: flex;flex-wrap: wrap;margin-top: 15px;gap: 15px;justify-content: space-between;box-sizing: border-box;">
-            <div class="device-item" v-for="(item,index) in 10" :key="index">
-              <div style="display: flex;justify-content: space-between;">
+            style="display: flex;flex-wrap: wrap;margin-top: 15px;gap: 15px;justify-content: flex-start;box-sizing: border-box;">
+            <div class="device-item" v-for="(item,index) in filteredDeviceList" :key="index">
+              <div style="display: flex;justify-content: space-between; align-items: center; ">
                 <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
-                  CC:ba:97:11:a6:ac
+<!--                  CC:ba:97:11:a6:ac-->
+                  {{item.list[0]?.mac_address}}
                 </div>
-                <div>
+                <div style="display: flex;align-items: center;">
                   <img src="@/assets/home/delete.png" alt=""
-                    style="width: 18px;height: 18px;margin-right: 8px;" />
+                    style="width: 18px;height: 18px;margin-right: 8px;" @click="unbindDevice(item.list[0]?.id)" />
                   <img src="@/assets/home/info.png" alt="" style="width: 18px;height: 18px;" />
                 </div>
               </div>
               <div class="device-name">
-                设备型号：esp32-s3-touch-amoled-1.8
+                设备型号：{{item.list[0]?.device_type}}
               </div>
               <div style="display: flex;gap: 8px;align-items: center;">
                 <div class="settings-btn" @click="clickSettingDevice">
@@ -77,12 +79,12 @@
                   声纹识别</div>
                 <div class="settings-btn">
                   历史对话</div>
-                <el-switch v-model="switchValue" inactive-text="OTA升级:" :width="32"
+                <el-switch :value="item.list[0]?.ota_upgrade && true || false" inactive-text="OTA升级:" :width="32"
                   style="margin-left: auto;" />
               </div>
               <div class="version-info">
-                <div>最近对话：6天前</div>
-                <div>APP版本：1.1.0</div>
+                <div>最近对话：{{item.list[0]?.recent_chat_time}}</div>
+                <div>APP版本：{{item.list[0]?.app_version}}</div>
               </div>
             </div>
           </div>
@@ -185,7 +187,8 @@
         </div>
         <div
           style="font-size: 12px;font-weight: 400;margin-top: auto;padding-top: 30px;color: #979db1;">
-          ©2025 xiaozhi-esp32-server</div>
+          ©2025 xiaozhi-esp32-server
+        </div>
       </el-main>
     </el-container>
     <el-dialog :visible.sync="addDeviceDialogVisible" width="400px" center>
@@ -220,11 +223,15 @@
 <script>
 // @ is an alias to /src
 
+import Api from '@/apis/api';
+
 export default {
   name: 'home',
   data() {
     return {
-      serach: '',
+      serach: '', // 搜索框输入内容
+      deviceList: [], // 原始设备列表
+      filteredDeviceList: [], // 过滤后的设备列表
       switchValue: false,
       addDeviceDialogVisible: false,
       deviceCode: "",
@@ -242,8 +249,11 @@ export default {
       }, {
         value: '选项2',
         label: '双皮奶'
-      }]
-    }
+      }],
+      userInfo: {
+        mobile: '' // 初始化用户信息
+      }
+    };
   },
   methods: {
     showAddDialog() {
@@ -251,10 +261,65 @@ export default {
     },
     clickSettingDevice() {
       this.settingDevice = true
-    }
+    },
+    // 获取用户信息
+    fetchUserInfo() {
+      Api.user.getUserInfo(({data}) => {
+        this.userInfo = data.data
+      });
+    },
+    // 获取已绑设备
+    getList(){
+      Api.user.getHomeList(({data})=>{
+        this.deviceList = data.data; // 保存原始设备列表
+        this.filteredDeviceList = data.data; // 初始化过滤后的设备列表
+      })
+    },
+    // 处理搜索
+    handleSearch() {
+      if (this.serach.trim() === '') {
+        // 如果搜索框为空，显示全部设备
+        this.filteredDeviceList = this.deviceList;
+      } else {
+        // 过滤设备列表
+        this.filteredDeviceList = this.deviceList.filter(device => {
+          return (
+            device.list[0]?.mac_address?.includes(this.serach) ||  // 匹配MAC地址
+            device.list[0]?.device_type?.includes(this.serach) ||  // 匹配设备型号
+            device.list[0]?.app_version?.includes(this.serach)     // 匹配APP版本
+          );
+        });
+      }
+    },
+    // 解绑设备
+    unbindDevice(device_id) {
+      this.$confirm('确定要解绑该设备吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        // 调用解绑设备的接口
+        Api.user.unbindDevice(device_id, ({ data }) => {
+          if (data.code === 0) {
+            this.$message.success('解绑成功');
+            this.getList();
+          } else {
+            this.$message.error(data.msg || '解绑失败');
+          }
+        });
+      }).catch(() => {
+        // 用户取消操作
+        this.$message.info('已取消解绑');
+      });
+    },
+  },
+  mounted() {
+    this.fetchUserInfo(); // 组件加载时获取用户信息
+    this.getList(); // 初始化设备列表
   }
 }
 </script>
+
 <style scoped lang="scss">
 .welcome {
   min-width: 900px;
@@ -464,7 +529,7 @@ export default {
   }
 }
 .device-item {
-  width: 350px;
+  width: 345px;
   border-radius: 15px;
   background: #fafcfe;
   padding: 22px;
@@ -507,6 +572,7 @@ audio::-webkit-media-controls-panel {
   line-height: 34px;
   box-sizing: border-box;
   cursor: pointer;
+  font-size: 12px;
 }
 .save-btn {
   border-radius: 23px;

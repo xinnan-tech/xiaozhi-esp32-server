@@ -1,5 +1,8 @@
+import traceback
+
 from ..base import MemoryProviderBase, logger
 from mem0 import MemoryClient
+from core.utils.util import check_model_key
 
 TAG = __name__
 
@@ -8,13 +11,19 @@ class MemoryProvider(MemoryProviderBase):
         super().__init__(config)
         self.api_key = config.get("api_key", "")
         self.api_version = config.get("api_version", "v1.1")
-        if len(self.api_key) == 0 or "你" in self.api_key:
-            logger.bind(tag=TAG).error("你还没配置Mem0ai的密钥，请在配置文件中配置密钥，否则无法提供记忆服务")
+        have_key = check_model_key("Mem0ai", self.api_key)
+        if not have_key :
             self.use_mem0 = False
             return
         else:
             self.use_mem0 = True
-        self.client = MemoryClient(api_key=self.api_key)
+        try:
+            self.client = MemoryClient(api_key=self.api_key)
+            logger.bind(tag=TAG).info("成功连接到 Mem0ai 服务")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"连接到 Mem0ai 服务时发生错误: {str(e)}")
+            logger.bind(tag=TAG).error(f"详细错误: {traceback.format_exc()}")
+            self.use_mem0 = False
 
     async def save_memory(self, msgs):
         if not self.use_mem0:

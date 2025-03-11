@@ -42,8 +42,3 @@ spring:
         wall:
           config:
             multi-statement-allow: true
-
-logging:
-  level:
-    org.flowable.engine.impl.persistence.entity.*: debug
-    org.flowable.task.service.impl.persistence.entity.*: debug

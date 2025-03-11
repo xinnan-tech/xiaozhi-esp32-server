@@ -1,9 +1,10 @@
 import os
-import re
 import json
 import yaml
 import socket
 import subprocess
+import logging
+import re
 
 
 def get_project_dir():
@@ -75,7 +76,7 @@ def get_string_no_punctuation_or_emoji(s):
 def remove_punctuation_and_length(text):
     # 全角符号和半角符号的Unicode范围
     full_width_punctuations = '！＂＃＄％＆＇（）＊＋，－。／：；＜＝＞？＠［＼］＾＿｀｛｜｝～'
-    half_width_punctuations = '!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~'
+    half_width_punctuations = r'!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~'
     space = ' '  # 半角空格
     full_width_space = '　'  # 全角空格
 
@@ -87,34 +88,12 @@ def remove_punctuation_and_length(text):
         return 0, ""
     return len(result), result
 
-
-def check_password(password):
-    """
-    检查密码是否满足以下条件：
-    1. 密码长度大于八位。
-    2. 密码包含英文和数字。
-    3. 密码不能包含“xiaozhi”字符。
-
-    :param password: 要检查的密码
-    :return: 如果密码满足条件，则返回True；否则返回False。
-    """
-    # 检查密码长度
-    if len(password) < 8:
+def check_model_key(modelType, modelKey):
+    if "你" in modelKey:
+        logging.error("你还没配置" + modelType + "的密钥，请在配置文件中配置密钥，否则无法正常工作")
         return False
-
-    # 检查是否包含英文字符和数字
-    if not re.search(r'[A-Za-z]', password) or not re.search(r'[0-9]', password):
-        return False
-
-    # 检查是否包含“xiaozhi”字符
-    if "xiaozhi" in password:
-        return False
-
-    if "1234" in password:
-        return False
-
-    # 如果满足所有条件，则返回True
     return True
+
 
 def check_ffmpeg_installed():
     ffmpeg_installed = False
@@ -141,3 +120,11 @@ def check_ffmpeg_installed():
         error_msg += "1、按照项目的安装文档，正确进入conda环境\n"
         error_msg += "2、查阅安装文档，如何在conda环境中安装ffmpeg\n"
         raise ValueError(error_msg)
+    
+def extract_json_from_string(input_string):
+    """提取字符串中的 JSON 部分"""
+    pattern = r'(\{.*\})'
+    match = re.search(pattern, input_string)
+    if match:
+        return match.group(1)  # 返回提取的 JSON 字符串
+    return None

@@ -129,55 +129,67 @@ server:
   基于 `xiaozhi-esp32` 协议，通过 WebSocket 实现数据交互。
 - **对话交互**  
   支持唤醒对话、手动对话及实时打断。长时间无对话时自动休眠
+- **意图识别**  
+  支持使用LLM意图识别、function call函数调用，减少硬编码意图判断
 - **多语言识别**  
   支持国语、粤语、英语、日语、韩语（默认使用 FunASR）。
 - **LLM 模块**  
   支持灵活切换 LLM 模块，默认使用 ChatGLMLLM，也可选用阿里百炼、DeepSeek、Ollama 等接口。
 - **TTS 模块**  
   支持 EdgeTTS（默认）、火山引擎豆包 TTS 等多种 TTS 接口，满足语音合成需求。
+- **记忆功能**  
+  支持超长记忆、本地总结记忆、无记忆三种模式，满足不同场景需求。
 
 ### 正在开发 🚧
 
-- 对话记忆功能
 - 多种心情模式
 - 智控台webui
+- iot功能
 
 ![图片](docs/images/webui.png)
 ---
 
 ## 本项目支持的平台/组件列表 📋
 
-### LLM
+### LLM 语言模型
 
-| 类型  |        平台名称        |         使用方式          |   收费模式   |                                备注                                 |
-|:---:|:------------------:|:---------------------:|:--------:|:-----------------------------------------------------------------:|
-| LLM |   阿里百炼 (AliLLM)    |      openai 接口调用      | 消耗 token |  [点击申请密钥](https://bailian.console.aliyun.com/?apiKey=1#/api-key)  |
-| LLM | 深度求索 (DeepSeekLLM) |      openai 接口调用      | 消耗 token |             [点击申请密钥](https://platform.deepseek.com/)              |
-| LLM |   智谱（ChatGLMLLM）   |      openai 接口调用      |    免费    | 虽然免费，仍需[点击申请密钥](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) |
-| LLM |     OllamaLLM      |      ollama 接口调用      |  免费/自定义  |       需预先下载模型（`ollama pull`），服务地址：`http://localhost:11434`        |
-| LLM |      DifyLLM       |       dify 接口调用       | 消耗 token |                    本地化部署，注意配置提示词需在 Dify 控制台设置                     |
-| LLM |     GeminiLLM      |      gemini 接口调用      |    免费    |           [点击申请密钥](https://aistudio.google.com/apikey)            |
-| LLM |      CozeLLM       |       coze 接口调用       | 消耗 token |                     需提供 bot_id、user_id 及个人令牌                      |
-| LLM |   Home Assistant   | homeassistant语音助手接口调用 |    免费    |                        需提供home assistant令牌                        |
+| 类型  |        平台名称        |         使用方式          |    收费模式     |                                                           备注                                                            |
+|:---:|:------------------:|:---------------------:|:-----------:|:-----------------------------------------------------------------------------------------------------------------------:|
+| LLM |   阿里百炼 (AliLLM)    |      openai 接口调用      |  消耗 token   |                             [点击申请密钥](https://bailian.console.aliyun.com/?apiKey=1#/api-key)                             |
+| LLM |     DoubaoLLM      |      openai 接口调用      |  消耗 token   | [点击申请密钥](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-pro-32k&projectName=undefined) |
+| LLM | 深度求索 (DeepSeekLLM) |      openai 接口调用      |  消耗 token   |                                        [点击申请密钥](https://platform.deepseek.com/)                                         |
+| LLM |   智谱（ChatGLMLLM）   |      openai 接口调用      |     免费      |                            虽然免费，仍需[点击申请密钥](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)                            |
+| LLM |     OllamaLLM      |      ollama 接口调用      | 免费/消耗 token |                                  需预先下载模型（`ollama pull`），服务地址：`http://localhost:11434`                                   |
+| LLM |      DifyLLM       |       dify 接口调用       | 免费/消耗 token |                                               本地化部署，注意配置提示词需在 Dify 控制台设置                                                |
+| LLM |     FastgptLLM     |     fastgpt 接口调用      | 免费/消耗 token |                                              本地化部署，注意配置提示词需在 Fastgpt 控制台设置                                              |
+| LLM |     GeminiLLM      |      gemini 接口调用      |     免费      |                                      [点击申请密钥](https://aistudio.google.com/apikey)                                       |
+| LLM |      CozeLLM       |       coze 接口调用       |  消耗 token   |                                                需提供 bot_id、user_id 及个人令牌                                                 |
+| LLM |   Home Assistant   | homeassistant语音助手接口调用 |     免费      |                                                   需提供home assistant令牌                                                   |
 
 实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
 
 ---
 
-### TTS
+### TTS 语音合成
 
 | 类型  |          平台名称          | 使用方式 |   收费模式   |                                    备注                                     |
 |:---:|:----------------------:|:----:|:--------:|:-------------------------------------------------------------------------:|
 | TTS |        EdgeTTS         | 接口调用 |    免费    |                             默认 TTS，基于微软语音合成技术                             |
 | TTS | 火山引擎豆包 TTS (DoubaoTTS) | 接口调用 | 消耗 token | [点击创建密钥](https://console.volcengine.com/speech/service/8)；建议使用付费版本以获得更高并发 |
+| TTS |       AliyunTTS        | 接口调用 | 消耗 token |          [点击创建密钥](https://nls-portal.console.aliyun.com/applist)          |
 | TTS |  CosyVoiceSiliconflow  | 接口调用 | 消耗 token |                         需申请硅基流动 API 密钥；输出格式为 wav                          |
+| TTS |        TTS302AI        | 接口调用 | 消耗 token |                  [点击创建密钥](https://dash.302.ai/apis/list)                  |
 | TTS |       CozeCnTTS        | 接口调用 | 消耗 token |                        需提供 Coze API key；输出格式为 wav                         |
+| TTS |        ACGNTTS         | 接口调用 | 消耗 token |                        [联系网站管理员购买密钥](www.ttson.cn)                        |
+| TTS |       OpenAITTS        | 接口调用 | 消耗 token |                                 境外使用，境外购买                                 |
 | TTS |       FishSpeech       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务；启动方法见配置文件内说明                          |
 | TTS |     GPT_SOVITS_V2      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
+| TTS |     GPT_SOVITS_V3      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
+| TTS |       MinimaxTTS       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
 
 ---
 
-### VAD
+### VAD 语音活动检测
 
 | 类型  |   平台名称    | 使用方式 | 收费模式 | 备注 |
 |:---:|:---------:|:----:|:----:|:--:|
@@ -185,7 +197,7 @@ server:
 
 ---
 
-### ASR
+### ASR 语音识别
 
 | 类型  |   平台名称    | 使用方式 | 收费模式 | 备注 |
 |:---:|:---------:|:----:|:----:|:--:|
@@ -194,11 +206,21 @@ server:
 
 ---
 
-### Memory
+### Memory 记忆存储
 
-|   类型   |  平台名称  | 使用方式 | 收费模式 | 备注 |
-|:------:|:------:|:----:|:----:|:--:|
-| Memory | mem0ai | 接口调用 |  免费  |    |
+|   类型   |      平台名称       | 使用方式 |   收费模式   | 备注 |
+|:------:|:---------------:|:----:|:--------:|:--:|
+| Memory |     mem0ai      | 接口调用 | 100次/月额度 |    |
+| Memory | mem_local_short | 本地总结 |    免费    |    |
+
+---
+
+### Intent 意图识别
+
+|   类型   |     平台名称      | 使用方式 |  收费模式   |          备注           |
+|:------:|:-------------:|:----:|:-------:|:---------------------:|
+| Intent |  intent_llm   | 接口调用 | 根据LLM收费 |    通过大模型识别意图，通用性强     |
+| Intent | function_call | 接口调用 | 根据LLM收费 | 通过大模型函数调用完成意图，速度快，效果好 |
 
 ---
 
@@ -231,39 +253,18 @@ server:
 
 点这里查看[固件编译](./docs/firmware-build.md)的详细过程。
 
-编译成功且联网成功后，通过唤醒词唤醒小智，留意server端输出的控制台信息。
+烧录成功且联网成功后，通过唤醒词唤醒小智，留意server端输出的控制台信息。
 
 ---
 
 ## 常见问题 ❓
 
-### 1、TTS 经常失败，经常超时 ⏰
-
-建议：如果 `EdgeTTS` 经常失败，请先检查是否使用了代理（梯子）。如果使用了，请尝试关闭代理后再试；  
-如果用的是火山引擎的豆包 TTS，经常失败时建议使用付费版本，因为测试版本仅支持 2 个并发。
-
-### 2、我想通过小智控制电灯、空调、远程开关机等操作 💡
-
-建议：在配置文件中将 `LLM` 设置为 `HomeAssistant`，通过 调用`HomeAssistant`接口实现相关控制。
-
-### 3、我说话很慢，停顿时小智老是抢话 🗣️
-
-建议：在配置文件中找到如下部分，将 `min_silence_duration_ms` 的值调大（例如改为 `1000`）：
-
-```yaml
-VAD:
-  SileroVAD:
-    threshold: 0.5
-    model_dir: models/snakers4_silero-vad
-    min_silence_duration_ms: 700  # 如果说话停顿较长，可将此值调大
-```
-
-### 4、为什么我说的话，小智识别出来很多韩文、日文、英文？🇰🇷
+### 1、为什么我说的话，小智识别出来很多韩文、日文、英文？🇰🇷
 
 建议：检查一下`models/SenseVoiceSmall`是否已经有`model.pt`
 文件，如果没有就要下载，查看这里[下载语音识别模型文件](docs/Deployment.md#模型文件)
 
-### 5、为什么会出现“TTS 任务出错 文件不存在”？📁
+### 2、为什么会出现“TTS 任务出错 文件不存在”？📁
 
 建议：检查一下是否正确使用`conda` 安装了`libopus`和`ffmpeg`库。
 
@@ -274,7 +275,12 @@ conda install conda-forge::libopus
 conda install conda-forge::ffmpeg
 ```
 
-### 6、如何提高小智对话响应速度？ ⚡
+### 3、TTS 经常失败，经常超时 ⏰
+
+建议：如果 `EdgeTTS` 经常失败，请先检查是否使用了代理（梯子）。如果使用了，请尝试关闭代理后再试；  
+如果用的是火山引擎的豆包 TTS，经常失败时建议使用付费版本，因为测试版本仅支持 2 个并发。
+
+### 4、如何提高小智对话响应速度？ ⚡
 
 本项目默认配置为低成本方案，建议初学者先使用默认免费模型，解决“跑得动”的问题，再优化“跑得快”。  
 如需提升响应速度，可尝试更换各组件。以下为各组件的响应速度测试数据（仅供参考，不构成承诺）：
@@ -305,7 +311,6 @@ LLM 性能排行:
 |:-----------|:-----------|:--------|
 | AliLLM     | 0.547s     | 1.485s  |
 | ChatGLMLLM | 0.677s     | 3.057s  |
-| OllamaLLM  | 0.003s     | 0.003s  |
 
 TTS 性能排行:
 
@@ -331,6 +336,22 @@ TTS 性能排行:
 
 - LLM：`AliLLM`
 - TTS：`DoubaoTTS`
+
+### 5、我说话很慢，停顿时小智老是抢话 🗣️
+
+建议：在配置文件中找到如下部分，将 `min_silence_duration_ms` 的值调大（例如改为 `1000`）：
+
+```yaml
+VAD:
+  SileroVAD:
+    threshold: 0.5
+    model_dir: models/snakers4_silero-vad
+    min_silence_duration_ms: 700  # 如果说话停顿较长，可将此值调大
+```
+
+### 6、我想通过小智控制电灯、空调、远程开关机等操作 💡
+
+建议：在配置文件中将 `LLM` 设置为 `HomeAssistant`，通过 调用`HomeAssistant`接口实现相关控制。
 
 ### 7、更多问题，可联系我们反馈 💬
 
