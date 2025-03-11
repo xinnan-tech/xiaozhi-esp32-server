@@ -86,37 +86,28 @@ export default {
   },
   methods: {
     async fetchCaptcha() {
-        try {
-            this.captchaUuid = Date.now().toString()
-            const response = await api.get(`/captcha?uuid=${this.captchaUuid}`, {
-                responseType: 'blob',  
-                headers: {
-                'Content-Type': 'application/json;charset=utf8',
-                 'Accept': 'image/gif'  
-                }
-            })
-
-            // 释放之前创建的URL对象
-            if (this.captchaUrl) {
-                URL.revokeObjectURL(this.captchaUrl)
-            }
-            
-            // 验证图片类型并创建新URL
-            if (response.data.type === 'image/png') {
-          
-                this.captchaUrl = URL.createObjectURL(response.data)
-                console.log('PNG验证码加载成功，UUID:', this.captchaUuid)
-            } else {
-                throw new Error(`无效的图片类型: ${response.data.type}`)
-            }
-        } 
-        catch (error) {
-            // 清空验证码图片并显示错误
-            this.captchaUrl = ''
-            showDanger('验证码加载失败，请重试')
-            console.error('验证码请求异常:', error)
-            throw error
-        }
+      this.captchaUuid = Date.now().toString()
+      try {
+          // 添加请求地址打印
+          console.log('请求地址：', api.defaults.baseURL+`/captcha?uuid=${this.captchaUuid}`)
+          const response = await api.get(`/captcha?uuid=${this.captchaUuid}`, {
+              responseType: 'blob',
+              headers: {
+                  'Content-Type': 'image/gif',
+                  'Pragma': 'No-cache', 
+                  'Cache-Control': 'no-cache'
+              }
+          });
+          // 生成新的验证码URL
+          if (response.data) {
+              const blob = new Blob([response.data], { type: response.data.type });
+              this.captchaUrl = URL.createObjectURL(blob);
+          }
+      } 
+      catch (error) {
+          console.error('验证码加载异常:', error);
+          showDanger('验证码加载失败，点击刷新');
+      }
     },
     
     async login() {
