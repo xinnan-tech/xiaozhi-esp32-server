@@ -5,6 +5,7 @@ import socket
 import subprocess
 import logging
 import math
+import re
 
 
 def get_project_dir():
@@ -121,8 +122,19 @@ def check_ffmpeg_installed():
         error_msg += "2、查阅安装文档，如何在conda环境中安装ffmpeg\n"
         raise ValueError(error_msg)
 
+
 def seconds_to_time(seconds):
     # 将秒数转换为小时、分钟和秒
     hours, remainder = divmod(seconds, 3600)  # 1 小时 = 3600 秒
     minutes, seconds = divmod(remainder, 60)  # 1 分钟 = 60 秒
     return f"{math.floor(hours):02}:{math.floor(minutes):02}:{math.floor(seconds):02}"
+
+
+def extract_json_from_string(input_string):
+    """提取字符串中的 JSON 部分"""
+    pattern = r'(\{.*\})'
+    match = re.search(pattern, input_string)
+    if match:
+        return match.group(1)  # 返回提取的 JSON 字符串
+    return None
+

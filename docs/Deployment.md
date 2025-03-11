@@ -93,7 +93,7 @@ docker logs -f xiaozhi-esp32-server
 ```
 docker stop xiaozhi-esp32-server
 docker rm xiaozhi-esp32-server
-docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
+docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
 ```
 
 3、重新按docker方式部署
@@ -299,14 +299,14 @@ LLM:
 
 以下是一些常见问题，供参考：
 
-[1、为什么我说的话，小智识别出来很多韩文、日文、英文](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[1、为什么我说的话，小智识别出来很多韩文、日文、英文](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
 
-[2、为什么会出现“TTS 任务出错 文件不存在”？](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[2、为什么会出现“TTS 任务出错 文件不存在”？](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
 
-[3、TTS 经常失败，经常超时](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[3、TTS 经常失败，经常超时](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
 
-[4、如何提高小智对话响应速度？](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[4、如何提高小智对话响应速度？](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
 
-[5、我说话很慢，停顿时小智老是抢话](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[5、我说话很慢，停顿时小智老是抢话](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
 
-[6、我想通过小智控制电灯、空调、远程开关机等操作](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[6、我想通过小智控制电灯、空调、远程开关机等操作](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)

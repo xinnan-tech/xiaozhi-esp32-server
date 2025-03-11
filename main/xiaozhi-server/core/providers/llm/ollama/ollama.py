@@ -51,30 +51,8 @@ class LLMProvider(LLMProviderBase):
                 tools=functions,
             )
             
-            current_function_call = None
-            current_content = ""
-            
             for chunk in stream:
-                delta = chunk.choices[0].delta
-                
-                if delta.content:
-                    current_content += delta.content
-                    yield {"type": "content", "content": delta.content}
-                
-                if delta.tool_calls:
-                    tool_call = delta.tool_calls[0]
-                    # Handle the function call data using proper attribute access
-                    if not current_function_call:
-                        current_function_call = {
-                            "function": {
-                                "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments
-                            }
-                        }
-            
-            if current_function_call:
-                logger.bind(tag=TAG).debug(f"ollama Function call detected: {current_function_call}")
-                yield {"type": "function_call", "function_call": current_function_call}
+                yield chunk.choices[0].delta.content, chunk.choices[0].delta.tool_calls
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in Ollama function call: {e}")
