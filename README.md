@@ -100,6 +100,8 @@
 - [小智安卓端](https://github.com/TOM88812/xiaozhi-android-client)
 - [小智电脑端](https://github.com/Huang-junsen/py-xiaozhi)
 
+如果你是一名软件开发者，这里有一份[《致开发者的公开信》](docs/contributor_open_letter.md)，欢迎加入！
+
 ---
 
 ## 警告 ⚠️
