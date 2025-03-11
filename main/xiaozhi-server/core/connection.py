@@ -437,6 +437,9 @@ class ConnectionHandler:
             self.dialogue.put(Message(role="assistant", content=text))
         if result.action == Action.REQLLM: # 调用函数后再请求llm生成回复
             text = result.response
+        if result.action == Action.NOTFOUND:
+            text = result.response
+
         
 
     def _tts_priority_thread(self):
