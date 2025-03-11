@@ -23,4 +23,14 @@ public interface SysDictTypeService extends BaseService<SysDictTypeEntity> {
     void update(SysDictTypeDTO dto);
 
     void delete(Long[] ids);
+    
+    /**
+     * 获取所有字典类型及其数据
+     */
+    List<DictType> getAllList();
+    
+    /**
+     * 获取所有字典类型
+     */
+    List<DictType> getDictTypeList();
 }

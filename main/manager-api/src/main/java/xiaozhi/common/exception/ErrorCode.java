@@ -35,4 +35,9 @@ public interface ErrorCode {
     int REDIS_ERROR = 10027;
     int JOB_ERROR = 10028;
     int INVALID_SYMBOL = 10029;
+    
+    // 添加缺失的错误代码
+    int PASSWORD_LENGTH_ERROR = 10030;
+    int PASSWORD_WEAK_ERROR = 10031;
+    int DEL_MYSELF_ERROR = 10032;
 }
