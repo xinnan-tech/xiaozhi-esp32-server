@@ -1,25 +1,23 @@
 package xiaozhi.modules.sys.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import lombok.AllArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
-import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
-import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.modules.security.password.PasswordUtils;
-import xiaozhi.modules.security.user.SecurityUser;
 import xiaozhi.modules.sys.dao.SysUserDao;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.entity.SysUserEntity;
 import xiaozhi.modules.sys.enums.SuperAdminEnum;
 import xiaozhi.modules.sys.service.SysUserService;
-import lombok.AllArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
@@ -86,7 +84,13 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         entity.setPassword(password);
 
         //保存用户
-        entity.setSuperAdmin(SuperAdminEnum.NO.value());
+        Long userCount = getUserCount();
+        if (userCount == 0) {
+            entity.setSuperAdmin(SuperAdminEnum.YES.value());
+        } else {
+            entity.setSuperAdmin(SuperAdminEnum.NO.value());
+        }
+
         insert(entity);
     }
 
@@ -139,23 +143,11 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         baseDao.updatePassword(id, newPassword);
     }
 
-    @Override
-    public int getCountByDeptId(Long deptId) {
-        return baseDao.getCountByDeptId(deptId);
+    private Long getUserCount() {
+        QueryWrapper<SysUserEntity> queryWrapper = new QueryWrapper<>();
+        return baseDao.selectCount(queryWrapper);
     }
 
-    @Override
-    public List<Long> getUserIdListByDeptId(List<Long> deptIdList) {
-        return baseDao.getUserIdListByDeptId(deptIdList);
-    }
-
-    @Override
-    public void deleteUserCache(Long userId) {
-        // 删除缓存
-        redisUtils.delete(RedisKeys.getUserInfoKey(userId));
-        redisUtils.delete(RedisKeys.getDataScopeListKey(userId));
-        redisUtils.delete(RedisKeys.getSysUserName(userId));
-    }
 
     @Override
     public boolean isStrongPassword(String password) {
@@ -164,18 +156,5 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         Pattern pattern = Pattern.compile(weakPasswordRegex);
         Matcher matcher = pattern.matcher(password);
         return matcher.matches();
-    }
-
-    @Override
-    public String getName(Long id) {
-        String name = (String) redisUtils.get(RedisKeys.getSysUserName(id));
-        if (StringUtils.isBlank(name)) {
-            SysUserEntity sysUserEntity = selectById(id);
-            if (sysUserEntity != null) {
-                redisUtils.set(RedisKeys.getSysUserName(id), sysUserEntity.getUsername());
-                return sysUserEntity.getUsername();
-            }
-        }
-        return name;
     }
 }

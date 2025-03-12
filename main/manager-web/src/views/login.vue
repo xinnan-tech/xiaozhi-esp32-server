@@ -25,7 +25,7 @@
             </div>
             <div class="input-box">
               <img src="@/assets/login/password.png" alt="" class="input-icon"/>
-              <el-input v-model="form.password" placeholder="请输入密码"/>
+              <el-input v-model="form.password" type="password" placeholder="请输入密码"/>
             </div>
             <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
               <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
@@ -63,7 +63,7 @@
 </template>
 
 <script>
-import {goToPage, showDanger, showSuccess} from '@/utils'
+import {getUUID, goToPage, showDanger, showSuccess} from '@/utils'
 import Api from '@/apis/api';
 
 
@@ -87,7 +87,7 @@ export default {
   },
   methods: {
     fetchCaptcha() {
-      this.captchaUuid = Date.now().toString()
+      this.captchaUuid = getUUID();
 
       Api.user.getCaptcha(this.captchaUuid, (res) => {
         if (res.status === 200) {
@@ -96,7 +96,7 @@ export default {
 
         } else {
           console.error('验证码加载异常:', error);
-          showDanger('验证码加载失败，点击刷新');
+          showDanger('验证码加载失败，点击刷新')
         }
       });
     },
@@ -117,9 +117,13 @@ export default {
 
       this.form.captchaId = this.captchaUuid
       Api.user.login(this.form, ({data}) => {
+        console.log(data)
         showSuccess('登陆成功！')
         goToPage('/home')
       })
+      setTimeout(() => {
+        this.fetchCaptcha()
+      }, 1000)
     },
 
     goToRegister() {

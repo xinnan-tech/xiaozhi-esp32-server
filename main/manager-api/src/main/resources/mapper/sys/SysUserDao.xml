@@ -36,15 +36,4 @@
 		update sys_user set password = #{newPassword} where id = #{id}
 	</update>
 
-	<select id="getCountByDeptId" resultType="int">
-		select count(*) from sys_user where dept_id = #{value}
-	</select>
-
-	<select id="getUserIdListByDeptId" resultType="Long">
-		select id from sys_user where dept_id in
-			<foreach item="deptId" collection="list" open="(" separator="," close=")">
-				#{deptId}
-			</foreach>
-	</select>
-
 </mapper>

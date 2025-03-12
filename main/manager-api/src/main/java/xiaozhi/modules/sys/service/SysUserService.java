@@ -39,23 +39,6 @@ public interface SysUserService extends BaseService<SysUserEntity> {
     void updatePassword(Long id, String newPassword);
 
     /**
-     * 根据部门ID，查询用户数
-     */
-    int getCountByDeptId(Long deptId);
-
-    /**
-     * 根据部门ID,查询用户Id列表
-     */
-    List<Long> getUserIdListByDeptId(List<Long> deptIdList);
-
-    /**
-     * 删除用户缓存
-     *
-     * @param userId
-     */
-    void deleteUserCache(Long userId);
-
-    /**
      * 验证密码强度
      *
      * @param newPassword
@@ -63,5 +46,4 @@ public interface SysUserService extends BaseService<SysUserEntity> {
      */
     boolean isStrongPassword(String newPassword);
 
-    String getName(Long creator);
 }

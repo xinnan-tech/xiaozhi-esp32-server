@@ -80,7 +80,6 @@ public class SysUserController {
         //效验数据
         ValidatorUtils.validateEntity(dto);
         String newPassword = dto.getNewPassword();
-        String password = dto.getPassword();
 
         //密码的强度
         if (newPassword == null || newPassword.length() < 8) {
