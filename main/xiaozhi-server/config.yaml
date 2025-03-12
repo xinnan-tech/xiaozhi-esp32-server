@@ -63,6 +63,10 @@ CMD_exit:
   - "退出"
   - "关闭"
 
+# plugin下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
+functions: 
+  - change_role
+
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
   # 语音活动检测模块，默认使用SileroVAD模型

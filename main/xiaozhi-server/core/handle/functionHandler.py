@@ -57,6 +57,8 @@ class FunctionHandler:
                 return func(conn, **arguments)
             elif funcItem.type == ToolType.WAIT:
                 return func(**arguments)
+            elif funcItem.type == ToolType.CHANGE_SYS_PROMPT:
+                return func(conn, **arguments)
             else:
                 return ActionResponse(action=Action.NOTFOUND, result="没有找到对应的函数", response="")
         except Exception as e:

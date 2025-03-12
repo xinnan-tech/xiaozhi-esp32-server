@@ -9,7 +9,7 @@ logger = setup_logging()
 class ToolType(Enum):
     NONE = (1, "调用完工具后，不做其他操作")
     WAIT = (2, "调用工具，等待函数返回")
-    ADD_SYS_PROMPT = (3, "修改系统提示词，切换角色性格或职责")
+    CHANGE_SYS_PROMPT = (3, "修改系统提示词，切换角色性格或职责")
     SYSTEM_CTL = (4, "系统控制，影响正常的对话流程，如退出、播放音乐等，需要传递conn参数")
 
     def __init__(self, code, message):
