@@ -15,10 +15,12 @@ from core.utils.util import get_string_no_punctuation_or_emoji, extract_json_fro
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.sendAudioHandle import sendAudioMessage
 from core.handle.receiveAudioHandle import handleAudioMessage
-from core.handle.intentHandler import Action, get_functions, handle_llm_function_call
+from core.handle.functionHandler import FunctionHandler
+from plugins_func.register import Action
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator
+import plugins_func.loadplugins  
 
 TAG = __name__
 
@@ -94,6 +96,8 @@ class ConnectionHandler:
         self.use_function_call_mode = False
         if self.config["selected_module"]["Intent"] == 'function_call':
             self.use_function_call_mode = True
+        
+        self.func_handler = FunctionHandler(self.config)
 
     async def handle_connection(self, ws):
         try:
@@ -289,7 +293,7 @@ class ConnectionHandler:
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
         return True
 
-    def chat_with_function_calling(self, query):
+    def chat_with_function_calling(self, query, tool_call = False):
         self.logger.bind(tag=TAG).debug(f"Chat with function calling start: {query}")
         """Chat with function calling for intent detection using streaming"""
         if self.isNeedAuth():
@@ -297,11 +301,12 @@ class ConnectionHandler:
             future = asyncio.run_coroutine_threadsafe(self._check_and_broadcast_auth_code(), self.loop)
             future.result()
             return True
-
-        self.dialogue.put(Message(role="user", content=query))
+        
+        if not tool_call:
+            self.dialogue.put(Message(role="user", content=query))
 
         # Define intent functions
-        functions = get_functions()
+        functions = self.func_handler.get_functions()
 
         response_message = []
         processed_chars = 0  # 跟踪已处理的字符位置
@@ -337,7 +342,7 @@ class ConnectionHandler:
         for response in llm_responses:
             content, tools_call = response
             if content is not None and len(content)>0:
-                if len(response_message)<=0 and content=="```":
+                if len(response_message)<=0 and (content=="```" or "<tool_call>" in content):
                     tool_call_flag = True
 
             if tools_call is not None:
@@ -385,7 +390,38 @@ class ConnectionHandler:
                             self.tts_queue.put(future)
                             processed_chars += len(segment_text_raw)  # 更新已处理字符位置
 
-        # 处理最后剩余的文本
+        # 处理function call
+        if tool_call_flag:
+            bHasError = False
+            if function_id is None:
+                a = extract_json_from_string(content_arguments)
+                if a is not None:
+                    try:
+                        content_arguments_json = json.loads(a)
+                        function_name = content_arguments_json["name"]
+                        function_arguments = json.dumps(content_arguments_json["arguments"], ensure_ascii=False)
+                        function_id = str(uuid.uuid4().hex)
+                    except Exception as e:
+                        bHasError = True
+                        response_message.append(a)
+                else:
+                    bHasError = True
+                    response_message.append(content_arguments)
+                if bHasError:
+                    self.logger.bind(tag=TAG).error(f"function call error: {content_arguments}")
+                else:
+                    function_arguments = json.loads(function_arguments)
+            if not bHasError:
+                self.logger.bind(tag=TAG).info(f"function_name={function_name}, function_id={function_id}, function_arguments={function_arguments}")
+                function_call_data = {
+                    "name": function_name,
+                    "id": function_id,
+                    "arguments": function_arguments
+                }
+                result = self.func_handler.handle_llm_function_call(self, function_call_data)
+                self._handle_function_result(result, function_call_data, text_index+1)
+
+         # 处理最后剩余的文本
         full_text = "".join(response_message)
         remaining_text = full_text[processed_chars:]
         if remaining_text:
@@ -400,27 +436,6 @@ class ConnectionHandler:
         if len(response_message)>0:
             self.dialogue.put(Message(role="assistant", content="".join(response_message)))
 
-        # 处理function call
-        if tool_call_flag:
-            if function_id is None:
-                a = extract_json_from_string(content_arguments)
-                if a is not None:
-                    content_arguments_json = json.loads(a)
-                    function_name = content_arguments_json["function_name"]
-                    function_arguments = json.dumps(content_arguments_json["args"], ensure_ascii=False)
-                    function_id = str(uuid.uuid4().hex)
-                else:
-                    return []
-                function_arguments = json.loads(function_arguments)
-            self.logger.bind(tag=TAG).info(f"function_name={function_name}, function_id={function_id}, function_arguments={function_arguments}")
-            function_call_data = {
-                "name": function_name,
-                "id": function_id,
-                "arguments": function_arguments
-            }
-            result = handle_llm_function_call(self, function_call_data)
-            self._handle_function_result(result, function_call_data, text_index+1)
-
         self.llm_finish_task = True
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
 
@@ -434,7 +449,20 @@ class ConnectionHandler:
             self.tts_queue.put(future)
             self.dialogue.put(Message(role="assistant", content=text))
         if result.action == Action.REQLLM: # 调用函数后再请求llm生成回复
-            text = result.response
+            
+            text = result.result
+            if text is not None and len(text) > 0:
+                function_id = function_call_data["id"]
+                function_name = function_call_data["name"]
+                function_arguments = function_call_data["arguments"]
+                self.dialogue.put(Message(role='assistant',
+                                            tool_calls=[{"id": function_id, 
+                                                        "function": {"arguments": function_arguments,"name": function_name},
+                                                        "type": 'function', 
+                                                        "index": 0}]))
+
+                self.dialogue.put(Message(role="tool", tool_call_id=function_id, content=text))
+                self.chat_with_function_calling(text, tool_call=True)
         if result.action == Action.NOTFOUND:
             text = result.response
 

@@ -19,3 +19,4 @@ loguru==0.7.3
 requests==2.32.3
 cozepy==0.12.0
 mem0ai==0.1.62
+bs4==0.0.2
