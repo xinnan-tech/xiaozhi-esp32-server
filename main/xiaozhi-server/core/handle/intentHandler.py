@@ -123,7 +123,7 @@ async def analyze_intent_with_llm(conn, text):
     # 对话历史记录
     dialogue = conn.dialogue
     try:
-        intent_result = await conn.intent.detect_intent(dialogue.dialogue, text)
+        intent_result = await conn.intent.detect_intent(conn, dialogue.dialogue, text)
 
         # 尝试解析JSON结果
         try:
