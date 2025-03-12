@@ -67,7 +67,7 @@ def handle_llm_function_call(conn, function_call_data):
             except Exception as e:
                 logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
         else:
-            return ActionResponse(action=Action.NOTFOUND, result="没有找到对应的函数", response="")
+            return ActionResponse(action=Action.NOTFOUND, result="没有找到对应的函数", response="没有找到对应的函数处理相对于的功能呢，你可以需要添加预设的对应函数处理呢")
     except Exception as e:
         logger.bind(tag=TAG).error(f"处理function call错误: {e}")
 

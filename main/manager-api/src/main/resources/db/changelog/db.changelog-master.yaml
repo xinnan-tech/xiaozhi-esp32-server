@@ -9,3 +9,10 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/001create_sys.sql
+  - changeSet:
+      id: 202503101631
+      author: zjy
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202503101631.sql
