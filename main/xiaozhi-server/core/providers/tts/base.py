@@ -49,10 +49,10 @@ class TTSProviderBase(ABC):
             file_type = file_type.lstrip('.')
         audio = AudioSegment.from_file(wav_file_path, format=file_type)
 
-        duration = len(audio) / 1000.0
+        # 转换为单声道/16kHz采样率/16位小端编码（确保与编码器匹配）
+        audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
 
-        # 转换为单声道和16kHz采样率（确保与编码器匹配）
-        audio = audio.set_channels(1).set_frame_rate(16000)
+        duration = len(audio) / 1000.0
 
         # 获取原始PCM数据（16位小端）
         raw_data = audio.raw_data
