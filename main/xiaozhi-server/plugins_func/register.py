@@ -70,9 +70,10 @@ class FunctionRegistry:
         # 注销函数，检测是否存在
         if name not in self.function_registry:
             self.logger.bind(tag=TAG).error(f"函数 '{name}' 未找到")
-            return
+            return False
         self.function_registry.pop(name, None)
         self.logger.bind(tag=TAG).info(f"函数 '{name}' 注销成功")
+        return True
 
     def get_function(self, name):
         return self.function_registry.get(name)

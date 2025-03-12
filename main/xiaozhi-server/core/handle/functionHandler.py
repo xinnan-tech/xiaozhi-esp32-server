@@ -15,9 +15,24 @@ class FunctionHandler:
         self.register_nessary_functions()
         self.register_config_functions()
         self.functions_desc = self.function_registry.get_all_function_desc()
-        self.print_support_functions()
+        func_names = self.current_support_functions()
+        self.modify_plugin_loader_des(func_names)
 
-    def print_support_functions(self):
+    def modify_plugin_loader_des(self, func_names):
+        if "plugin_loader" not in func_names:
+            return
+        # 可编辑的列表中去掉plugin_loader
+        surport_plugins = [func for func in func_names if func != "plugin_loader"]
+        func_names = ",".join(surport_plugins)
+        for function_desc in self.functions_desc:
+            if function_desc["function"]["name"] == "plugin_loader":
+                function_desc["function"]["description"] = function_desc["function"]["description"].replace("[plugins]", func_names)
+                break
+        
+    def upload_functions_desc(self):
+        self.functions_desc = self.function_registry.get_all_function_desc()
+
+    def current_support_functions(self):
         func_names = []
         for func in self.functions_desc:
             func_names.append(func["function"]["name"])
@@ -33,13 +48,14 @@ class FunctionHandler:
         """注册必要的函数"""
         self.function_registry.register_function("handle_exit_intent")
         self.function_registry.register_function("play_music")
+        self.function_registry.register_function("plugin_loader")
 
     def register_config_functions(self):
         """注册配置中的函数,可以不同客户端使用不同的配置"""
         self.function_registry.register_function("get_weather")
         for func in self.config.get("functions", []):
             self.function_registry.register_function(func)
-    
+
     def get_function(self, name):
         return self.function_registry.get_function(name)
 
