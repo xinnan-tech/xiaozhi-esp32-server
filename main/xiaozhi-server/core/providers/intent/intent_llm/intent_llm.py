@@ -22,9 +22,9 @@ class IntentProvider(IntentProviderBase):
         intent_list = []
 
         """
-        #                 "continue_chat": "1.继续聊天, 除了播放音乐和结束聊天的时候的选项, 比如日常的聊天和问候, 对话等",
-        #                 "end_chat": "2.结束聊天, 用户发来如再见之类的表示结束的话, 不想再进行对话的时候",
-        #                 "play_music": "3.播放音乐, 用户希望你可以播放音乐, 只用于播放音乐的意图"
+        "continue_chat":    "1.继续聊天, 除了播放音乐和结束聊天的时候的选项, 比如日常的聊天和问候, 对话等",
+        "end_chat":         "2.结束聊天, 用户发来如再见之类的表示结束的话, 不想再进行对话的时候",
+        "play_music":       "3.播放音乐, 用户希望你可以播放音乐, 只用于播放音乐的意图"
         """
         for key, value in self.intent_options.items():
             if key == "play_music":
@@ -80,11 +80,6 @@ class IntentProvider(IntentProviderBase):
 
         # 构建用户最后一句话的提示
         msgStr = ""
-        # for msg in dialogue_history:
-        #     if msg.role == "user":
-        #         msgStr += f"User: {msg.content}\n"
-        #     elif msg.role== "assistant":
-        #         msgStr += f"Assistant: {msg.content}\n"
 
         # 只使用最后两句即可
         if len(dialogue_history) >= 2:
@@ -95,7 +90,7 @@ class IntentProvider(IntentProviderBase):
         msgStr += f"User: {text}\n"
         user_prompt = f"当前的对话如下：\n{msgStr}"
         prompt_music = f"{self.promot}\n<start>{conn.music_handler.music_files}\n<end>"
-        # logger.bind(tag=TAG).info(f"User prompt: {prompt_music}")
+        logger.bind(tag=TAG).debug(f"User prompt: {prompt_music}")
         # 使用LLM进行意图识别
         intent = self.llm.response_no_stream(
             system_prompt=prompt_music,
