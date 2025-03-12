@@ -2,6 +2,7 @@ from config.logger import setup_logging
 import json
 from core.handle.sendAudioHandle import send_stt_message
 from core.utils.dialogue import Message
+from core.utils.util import remove_punctuation_and_length
 from config.functionCallConfig import FunctionCallConfig
 import asyncio
 from enum import Enum
@@ -105,6 +106,7 @@ async def handle_user_intent(conn, text):
 
 async def check_direct_exit(conn, text):
     """检查是否有明确的退出命令"""
+    _, text = remove_punctuation_and_length(text)
     cmd_exit = conn.cmd_exit
     for cmd in cmd_exit:
         if text == cmd:
