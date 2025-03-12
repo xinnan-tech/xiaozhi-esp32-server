@@ -84,7 +84,7 @@
 
 <script>
 import { showDanger, showSuccess, goToPage } from '@/utils'
-import api from '@/apis/request'
+import Api from '@/apis/api';
 
 export default {
   name: 'register',
@@ -105,25 +105,19 @@ export default {
   },
   methods: {
     // 复用验证码获取方法
-    async fetchCaptcha() {
+      fetchCaptcha() {
       this.captchaUuid = Date.now().toString()
-      try {
-        const response = await api.get(`/captcha?uuid=${this.captchaUuid}`, {
-          responseType: 'blob',
-          headers: {
-            'Content-Type': 'image/gif',
-            'Pragma': 'No-cache',
-            'Cache-Control': 'no-cache'
+  
+      Api.user.getCaptcha(this.captchaUuid, ( res ) => {
+           if(res.status == 200){
+              const blob = new Blob([res.data], { type:res.data.type });
+              this.captchaUrl = URL.createObjectURL(blob);
+           
+          } else {
+            console.error('验证码加载异常:', error);
+            showDanger('验证码加载失败，点击刷新');
           }
         });
-        if (response.data) {
-          const blob = new Blob([response.data], { type: response.data.type });
-          this.captchaUrl = URL.createObjectURL(blob);
-        }
-      } catch (error) {
-        console.error('验证码加载异常:', error);
-        showDanger('验证码加载失败，点击刷新');
-      }
     },
 
     // 注册逻辑

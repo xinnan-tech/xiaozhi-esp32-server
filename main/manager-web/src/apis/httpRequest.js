@@ -23,21 +23,42 @@ function sendRequest() {
         _data: {},
         _header: {'content-type': 'application/json; charset=utf-8'},
         _url: '',
+        _responseType: undefined, // 新增响应类型字段
         'send'() {
             this._header.token = localStorage.getItem(Constant.STORAGE_KEY.TOKEN)
+            
+            // 打印请求信息
+            console.log('请求发送:', {
+                url: this._url,
+                method: this._method,
+                params: this._data,
+                headers: this._header,
+                responseType: this._responseType
+            });
+
             fly.request(this._url, this._data, {
                 method: this._method,
-                headers: this._header
+                headers: this._header,
+                responseType: this._responseType
             }).then((res) => {
-                const error = httpHandlerError(res, this._failCallback)
+                // 打印成功响应
+      
+                console.log('请求成功:', {
+                    status: res.status,
+                    data: this._responseType === 'blob' ? 
+                        `Blob(${res.data.type}, ${res.data.size} bytes)` : res.data,
+                    headers: res.headers
+                });
+                const error = httpHandlerError(res, this._failCallback);
                 if (error) {
                     return
                 }
+                
                 if (this._sucCallback) {
                     this._sucCallback(res)
                 }
             }).catch((res) => {
-                console.log(1111, res)
+                // 打印失败响应
                 httpHandlerError(res, this._failCallback)
             })
             return this
@@ -75,6 +96,11 @@ function sendRequest() {
         },
         'async'(flag) {
             this.async = flag
+        },
+        // 新增类型设置方法
+        'type'(responseType) {
+            this._responseType = responseType;
+            return this;
         }
     }
 }
@@ -84,13 +110,21 @@ function sendRequest() {
  * callBack 回调函数
  * errTip 自定义错误信息
  */
+// 在错误处理函数中添加日志
 function httpHandlerError(info, callBack) {
+    console.log('响应处理:', {
+        status: info.status,
+        code: info.data?.code,
+        message: info.data?.msg
+    });
+    
     /** 请求成功，退出该函数 可以根据项目需求来判断是否请求成功。这里判断的是status为200的时候是成功 */
     let networkError = false
     if (info.status === 200) {
-        if (info.data.code === 'success' || info.data.code === 0) {
+
+        if (info.data.code === 'success' || info.data.code === 0 || info.data.code === undefined) {
             return networkError
-        } else if (info.data.code === 401) {
+        }else if (info.data.code === 401) {
             goToPage(Constant.PAGE.LOGIN, true)
             return true
         } else {

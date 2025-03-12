@@ -63,9 +63,9 @@
 </template>
 
 <script>
-import axios from 'axios'
 import { showDanger, showSuccess, goToPage } from '@/utils'
-import api from '@/apis/request'  // 替换原来的Api导入
+import Api from '@/apis/api';
+
 
 export default {
   name: 'login',
@@ -85,29 +85,19 @@ export default {
     this.fetchCaptcha();
   },
   methods: {
-    async fetchCaptcha() {
+    fetchCaptcha() {
       this.captchaUuid = Date.now().toString()
-      try {
-          // 添加请求地址打印
-          console.log('请求地址：', api.defaults.baseURL+`/captcha?uuid=${this.captchaUuid}`)
-          const response = await api.get(`/captcha?uuid=${this.captchaUuid}`, {
-              responseType: 'blob',
-              headers: {
-                  'Content-Type': 'image/gif',
-                  'Pragma': 'No-cache', 
-                  'Cache-Control': 'no-cache'
-              }
-          });
-          // 生成新的验证码URL
-          if (response.data) {
-              const blob = new Blob([response.data], { type: response.data.type });
+      
+      Api.user.getCaptcha(this.captchaUuid, ( res ) => {
+           if(res.status == 200){
+              const blob = new Blob([res.data], { type:res.data.type });
               this.captchaUrl = URL.createObjectURL(blob);
+           
+          } else {
+            console.error('验证码加载异常:', error);
+            showDanger('验证码加载失败，点击刷新');
           }
-      } 
-      catch (error) {
-          console.error('验证码加载异常:', error);
-          showDanger('验证码加载失败，点击刷新');
-      }
+        });
     },
     
     async login() {
@@ -124,21 +114,21 @@ export default {
             return
         }
         
-        try {
-            const response = await api.post('/user/login', {
-                username: this.form.username,
-                password: this.form.password,
-                captcha: this.form.captcha,
-                uuid: this.captchaUuid
-            })
+        // try {
+        //     const response = await api.post('/user/login', {
+        //         username: this.form.username,
+        //         password: this.form.password,
+        //         captcha: this.form.captcha,
+        //         uuid: this.captchaUuid
+        //     })
             
-            showSuccess('登录成功！')
-            goToPage('/home')
-        } catch (error) {
-            const msg = error.response?.data?.msg || '登录失败'
-            showDanger(msg)
-            this.fetchCaptcha() // 自动刷新验证码
-        }
+        //     showSuccess('登录成功！')
+        //     goToPage('/home')
+        // } catch (error) {
+        //     const msg = error.response?.data?.msg || '登录失败'
+        //     showDanger(msg)
+        //     this.fetchCaptcha() // 自动刷新验证码
+        // }
     },  // ← 注意添加逗号分隔
 
     goToRegister() {
