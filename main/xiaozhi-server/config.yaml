@@ -412,6 +412,20 @@ TTS:
     # 语速范围0.25-4.0
     speed: 1
     output_file: tmp/
+  CustomTTS:
+    # 自定义的TTS接口服务，请求参数可自定义
+    # 要求接口使用GET方式请求，返回wav格式音频
+    type: custom
+    url: "http://127.0.0.1:9880/tts"
+    params: # 自定义请求参数
+      text: "{prompt_text}" # {prompt_text}会被替换为实际的提示词内容
+      speaker: jok老师
+      speed: 1
+      foo: bar
+      testabc: 123456
+    headers: # 自定义请求头
+      Authorization: Bearer xxxx
+    output_file: tmp/
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
