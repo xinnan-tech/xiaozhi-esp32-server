@@ -95,7 +95,7 @@ export default {
         password: '',
         confirmPassword: '',
         captcha: '',
-        uuid: ''
+        captchaId: ''
       },
       captchaUrl: ''
     }
@@ -106,8 +106,8 @@ export default {
   methods: {
     // 复用验证码获取方法
     fetchCaptcha() {
-      this.form.uuid = Date.now().toString()
-      Api.user.getCaptcha(this.form.uuid, (res) => {
+      this.form.captchaId = Date.now().toString()
+      Api.user.getCaptcha(this.form.captchaId, (res) => {
         if (res.status === 200) {
           const blob = new Blob([res.data], {type: res.data.type});
           this.captchaUrl = URL.createObjectURL(blob);

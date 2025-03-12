@@ -75,7 +75,8 @@ export default {
       form: {
         username: '',
         password: '',
-        captcha: ''
+        captcha: '',
+        captchaId: ''
       },
       captchaUuid: '',
       captchaUrl: ''
@@ -114,6 +115,7 @@ export default {
         return
       }
 
+      this.form.captchaId = this.captchaUuid
       Api.user.login(this.form, ({data}) => {
         showSuccess('登陆成功！')
         goToPage('/home')

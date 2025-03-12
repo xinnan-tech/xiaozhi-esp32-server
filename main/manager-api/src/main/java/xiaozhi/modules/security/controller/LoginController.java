@@ -51,7 +51,7 @@ public class LoginController {
             throw new RenException("验证码错误，请重新获取");
         }
         // 按照用户名获取用户
-        SysUserDTO userDTO = sysUserService.getByUsername(login.getMobile());
+        SysUserDTO userDTO = sysUserService.getByUsername(login.getUsername());
         // 判断用户是否存在
         if (userDTO == null) {
             throw new RenException("请检测用户和密码是否输入错误");
@@ -72,15 +72,16 @@ public class LoginController {
             throw new RenException("验证码错误，请重新获取");
         }
         // 按照用户名获取用户
-        SysUserDTO userDTO = sysUserService.getByUsername(login.getMobile());
+        SysUserDTO userDTO = sysUserService.getByUsername(login.getUsername());
         if (userDTO != null){
             throw new RenException("此手机号码已经注册过");
         }
         userDTO = new SysUserDTO();
-        userDTO.setUsername(login.getMobile());
+        userDTO.setUsername(login.getUsername());
         userDTO.setPassword(login.getPassword());
         sysUserService.save(userDTO);
         return new Result<Void>();
+
     }
 
 }
