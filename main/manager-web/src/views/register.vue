@@ -41,16 +41,16 @@
 
             <!-- 验证码部分保持相同 -->
             <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
-              <img 
-                :src="captchaUrl" 
-                alt="验证码"
-                style="width: 150px; height: 40px; cursor: pointer;"
-                @click="fetchCaptcha"
-              />
               <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
                 <img src="@/assets/login/shield.png" alt="" class="input-icon"/>
                 <el-input v-model="form.captcha" placeholder="请输入验证码" style="flex: 1;"/>
               </div>
+              <img v-if="captchaUrl"
+                  :src="captchaUrl"
+                  alt="验证码"
+                  style="width: 150px; height: 40px; cursor: pointer;"
+                  @click="fetchCaptcha"
+              />
             </div>
 
             <!-- 修改底部链接 -->
@@ -61,7 +61,7 @@
 
           <!-- 修改按钮文本 -->
           <div class="login-btn" @click="register">立即注册</div>
-          
+
           <!-- 保持相同的协议声明 -->
           <div style="font-size: 14px;color: #979db1;">
             注册即同意
@@ -83,7 +83,7 @@
 </template>
 
 <script>
-import { showDanger, showSuccess, goToPage } from '@/utils'
+import {goToPage, showDanger, showSuccess} from '@/utils'
 import Api from '@/apis/api';
 
 export default {
@@ -94,9 +94,9 @@ export default {
         username: '',
         password: '',
         confirmPassword: '',
-        captcha: ''
+        captcha: '',
+        uuid: ''
       },
-      captchaUuid: '',
       captchaUrl: ''
     }
   },
@@ -105,23 +105,22 @@ export default {
   },
   methods: {
     // 复用验证码获取方法
-      fetchCaptcha() {
-      this.captchaUuid = Date.now().toString()
-  
-      Api.user.getCaptcha(this.captchaUuid, ( res ) => {
-           if(res.status == 200){
-              const blob = new Blob([res.data], { type:res.data.type });
-              this.captchaUrl = URL.createObjectURL(blob);
-           
-          } else {
-            console.error('验证码加载异常:', error);
-            showDanger('验证码加载失败，点击刷新');
-          }
-        });
+    fetchCaptcha() {
+      this.form.uuid = Date.now().toString()
+      Api.user.getCaptcha(this.form.uuid, (res) => {
+        if (res.status === 200) {
+          const blob = new Blob([res.data], {type: res.data.type});
+          this.captchaUrl = URL.createObjectURL(blob);
+
+        } else {
+          console.error('验证码加载异常:', error);
+          showDanger('验证码加载失败，点击刷新');
+        }
+      });
     },
 
     // 注册逻辑
-    async register() {
+    register() {
       if (!this.form.username.trim()) {
         showDanger('用户名不能为空')
         return
@@ -138,24 +137,16 @@ export default {
         showDanger('验证码不能为空')
         return
       }
-      Api.user.register({
-        username: this.form.username,
-        password: this.form.password,
-        captcha: this.form.captcha,
-        uuid: this.captchaUuid
-      }).then(response => {
-        if (response.data.code === 200) {
+      Api.user.register(this.form, ({data}) => {
+        console.log(data)
+        if (data.code === 0) {
           showSuccess('注册成功！')
           goToPage('/login')
         } else {
-          showDanger(response.data.msg || '注册失败')
+          showDanger(data.msg || '注册失败')
           this.fetchCaptcha()
         }
-      }).catch(error => {
-            const msg = error.response?.data?.msg || '注册失败'
-            showDanger(msg)
-            this.fetchCaptcha() // 自动刷新验证码
-        });
+      })
 
     },
 
@@ -167,5 +158,5 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import './auth.scss';  // 修改为导入新建的SCSS文件
+@import './auth.scss'; // 修改为导入新建的SCSS文件
 </style>

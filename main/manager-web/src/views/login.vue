@@ -28,16 +28,16 @@
               <el-input v-model="form.password" placeholder="请输入密码"/>
             </div>
             <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
-              <img 
-                :src="captchaUrl" 
-                alt="验证码" 
-                style="width: 150px; height: 40px; cursor: pointer;"
-                @click="fetchCaptcha"
-              />
               <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
                 <img src="@/assets/login/shield.png" alt="" class="input-icon"/>
                 <el-input v-model="form.captcha" placeholder="请输入验证码" style="flex: 1;"/>
               </div>
+              <img v-if="captchaUrl"
+                   :src="captchaUrl"
+                   alt="验证码"
+                   style="width: 150px; height: 40px; cursor: pointer;"
+                   @click="fetchCaptcha"
+              />
             </div>
             <div
                 style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
@@ -63,7 +63,7 @@
 </template>
 
 <script>
-import { showDanger, showSuccess, goToPage } from '@/utils'
+import {goToPage, showDanger, showSuccess} from '@/utils'
 import Api from '@/apis/api';
 
 
@@ -87,56 +87,45 @@ export default {
   methods: {
     fetchCaptcha() {
       this.captchaUuid = Date.now().toString()
-      
-      Api.user.getCaptcha(this.captchaUuid, ( res ) => {
-           if(res.status == 200){
-              const blob = new Blob([res.data], { type:res.data.type });
-              this.captchaUrl = URL.createObjectURL(blob);
-           
-          } else {
-            console.error('验证码加载异常:', error);
-            showDanger('验证码加载失败，点击刷新');
-          }
-        });
+
+      Api.user.getCaptcha(this.captchaUuid, (res) => {
+        if (res.status === 200) {
+          const blob = new Blob([res.data], {type: res.data.type});
+          this.captchaUrl = URL.createObjectURL(blob);
+
+        } else {
+          console.error('验证码加载异常:', error);
+          showDanger('验证码加载失败，点击刷新');
+        }
+      });
     },
-    
+
     async login() {
-        if (!this.form.username.trim()) {  // 替换isNull校验
-            showDanger('用户名不能为空')
-            return
-        }
-        if (!this.form.password.trim()) {  // 替换isNull校验
-            showDanger('密码不能为空')
-            return
-        }
-        if (!this.form.captcha.trim()) {  // 替换isNull校验
-            showDanger('验证码不能为空')
-            return
-        }
-        
-        // try {
-        //     const response = await api.post('/user/login', {
-        //         username: this.form.username,
-        //         password: this.form.password,
-        //         captcha: this.form.captcha,
-        //         uuid: this.captchaUuid
-        //     })
-            
-        //     showSuccess('登录成功！')
-        //     goToPage('/home')
-        // } catch (error) {
-        //     const msg = error.response?.data?.msg || '登录失败'
-        //     showDanger(msg)
-        //     this.fetchCaptcha() // 自动刷新验证码
-        // }
-    },  // ← 注意添加逗号分隔
+      if (!this.form.username.trim()) {  // 替换isNull校验
+        showDanger('用户名不能为空')
+        return
+      }
+      if (!this.form.password.trim()) {  // 替换isNull校验
+        showDanger('密码不能为空')
+        return
+      }
+      if (!this.form.captcha.trim()) {  // 替换isNull校验
+        showDanger('验证码不能为空')
+        return
+      }
+
+      Api.user.login(this.form, ({data}) => {
+        showSuccess('登陆成功！')
+        goToPage('/home')
+      })
+    },
 
     goToRegister() {
-        goToPage('/register')
+      goToPage('/register')
     }
-}      // ← 补全methods对象闭合括号
-}      // ← 补全export default闭合括号
+  }
+}
 </script>
 <style scoped lang="scss">
-@import './auth.scss';  // 添加这行引用
+@import './auth.scss'; // 添加这行引用
 </style>
