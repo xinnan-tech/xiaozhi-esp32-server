@@ -117,7 +117,7 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
   -p 8000:8000 \
   -p 8002:8002 \
   -v ./:/app \
-  kalicyh/poetry:v3.10_xiaozhi
+  kalicyh/python:xiaozhi
 ```
 
 然后就和正常开发一样了
@@ -127,29 +127,13 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
 在刚刚的打开的终端运行
 
 ```sh
-poetry install --no-root
-```
-
-```sh
-apt-get update
-apt-get install -y --no-install-recommends libopus0 ffmpeg
-```
-
-速度慢可以尝试使用清华镜像
-
-```sh
-echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list
-echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-apt-get update
-apt-get install -y --no-install-recommends libopus0 ffmpeg
+pip install -r requirements.txt
 ```
 
 ## 6.运行项目
 
 ```sh
-poetry run python app.py
+python app.py
 ```
 
 # 方式三：本地源码运行

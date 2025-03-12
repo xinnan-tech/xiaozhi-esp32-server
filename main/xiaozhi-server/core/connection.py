@@ -95,8 +95,6 @@ class ConnectionHandler:
         if self.config["selected_module"]["Intent"] == 'function_call':
             self.use_function_call_mode = True
 
-        self.logger.bind(tag=TAG).info(f"use_function_call_mode:{self.use_function_call_mode}")
-
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
