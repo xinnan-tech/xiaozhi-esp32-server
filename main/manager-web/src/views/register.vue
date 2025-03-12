@@ -138,21 +138,25 @@ export default {
         showDanger('验证码不能为空')
         return
       }
+      Api.user.register({
+        username: this.form.username,
+        password: this.form.password,
+        captcha: this.form.captcha,
+        uuid: this.captchaUuid
+      }).then(response => {
+        if (response.data.code === 200) {
+          showSuccess('注册成功！')
+          goToPage('/login')
+        } else {
+          showDanger(response.data.msg || '注册失败')
+          this.fetchCaptcha()
+        }
+      }).catch(error => {
+            const msg = error.response?.data?.msg || '注册失败'
+            showDanger(msg)
+            this.fetchCaptcha() // 自动刷新验证码
+        });
 
-      try {
-        await api.post('/user/register', {
-          username: this.form.username,
-          password: this.form.password,
-          captcha: this.form.captcha,
-          uuid: this.captchaUuid
-        })
-        showSuccess('注册成功！')
-        goToPage('/login')
-      } catch (error) {
-        const msg = error.response?.data?.msg || '注册失败'
-        showDanger(msg)
-        this.fetchCaptcha()
-      }
     },
 
     goToLogin() {

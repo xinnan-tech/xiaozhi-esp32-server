@@ -76,5 +76,15 @@ export default {
             .fail((err) => {  // 添加错误参数
             
             }).send()
+    },    // 登录
+    register(registerForm, callback) {
+        RequestService.sendRequest().url(`${getServiceUrl()}/api/v1/user/register`).method('POST')
+            .data(registerForm)
+            .success((res) => {
+                RequestService.clearRequestTime()
+                callback(res)
+            })
+            .fail(() => {
+            }).send()
     },
 }
