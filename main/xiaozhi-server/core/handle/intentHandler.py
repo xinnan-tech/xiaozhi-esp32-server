@@ -93,8 +93,6 @@ async def handle_user_intent(conn, text):
         # 使用支持function calling的聊天方法,不再进行意图分析
         return False
 
-    logger.bind(tag=TAG).info(f"分析用户意图: {text}")
-
     # 使用LLM进行意图分析
     intent = await analyze_intent_with_llm(conn, text)
 
@@ -126,7 +124,6 @@ async def analyze_intent_with_llm(conn, text):
     dialogue = conn.dialogue
     try:
         intent_result = await conn.intent.detect_intent(dialogue.dialogue, text)
-        logger.bind(tag=TAG).info(f"意图识别结果: {intent_result}")
 
         # 尝试解析JSON结果
         try:
