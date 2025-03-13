@@ -2,6 +2,7 @@ from config.logger import setup_logging
 import json
 from core.handle.sendAudioHandle import send_stt_message
 from core.utils.dialogue import Message
+from core.utils.util import remove_punctuation_and_length
 from config.functionCallConfig import FunctionCallConfig
 import asyncio
 from enum import Enum
@@ -126,8 +127,6 @@ async def handle_user_intent(conn, text):
         # 使用支持function calling的聊天方法,不再进行意图分析
         return False
 
-    logger.bind(tag=TAG).info(f"分析用户意图: {text}")
-
     # 使用LLM进行意图分析
     intent = await analyze_intent_with_llm(conn, text)
 
@@ -140,6 +139,7 @@ async def handle_user_intent(conn, text):
 
 async def check_direct_exit(conn, text):
     """检查是否有明确的退出命令"""
+    _, text = remove_punctuation_and_length(text)
     cmd_exit = conn.cmd_exit
     for cmd in cmd_exit:
         if text == cmd:
@@ -158,8 +158,7 @@ async def analyze_intent_with_llm(conn, text):
     # 对话历史记录
     dialogue = conn.dialogue
     try:
-        intent_result = await conn.intent.detect_intent(dialogue.dialogue, text)
-        logger.bind(tag=TAG).info(f"意图识别结果: {intent_result}")
+        intent_result = await conn.intent.detect_intent(conn, dialogue.dialogue, text)
 
         # 尝试解析JSON结果
         try:

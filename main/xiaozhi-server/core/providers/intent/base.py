@@ -20,7 +20,7 @@ class IntentProviderBase(ABC):
         logger.bind(tag=TAG).debug("Set LLM for intent provider")
 
     @abstractmethod
-    async def detect_intent(self, dialogue_history: List[Dict], text: str) -> str:
+    async def detect_intent(self, conn, dialogue_history: List[Dict], text: str) -> str:
         """
         检测用户最后一句话的意图
         Args:
