@@ -24,7 +24,7 @@ import xiaozhi.common.validator.AssertUtils;
 public class DeviceController {
     private final DeviceService deviceService;
 
-    @PostMapping("/bind")
+    @PostMapping("/bind/{deviceCode}")
     @Operation(summary = "绑定设备")
     @RequiresPermissions("sys:device:bind")
     public Result<DeviceDTO> register(@RequestBody String deviceCode) {
@@ -44,7 +44,7 @@ public class DeviceController {
         return new Result<List<DeviceDTO>>().ok(devices);
     }
 
-    @PutMapping("/unbind")
+    @PostMapping("/unbind")
     @Operation(summary = "解绑设备")
     @RequiresPermissions("sys:device:unbind")
     public Result unbindDevice(@RequestBody Long deviceId) {
