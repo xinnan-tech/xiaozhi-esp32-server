@@ -60,7 +60,6 @@
             <div class="device-item" v-for="(item,index) in filteredDeviceList" :key="index">
               <div style="display: flex;justify-content: space-between; align-items: center; ">
                 <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
-<!--                  CC:ba:97:11:a6:ac-->
                   {{item.list[0]?.mac_address}}
                 </div>
                 <div style="display: flex;align-items: center;">
@@ -73,7 +72,7 @@
                 设备型号：{{item.list[0]?.device_type}}
               </div>
               <div style="display: flex;gap: 8px;align-items: center;">
-                <div class="settings-btn" @click="clickSettingDevice">
+                <div class="settings-btn" @click="clickSettingDevice(item)">
                   配置角色</div>
                 <div class="settings-btn">
                   声纹识别</div>
@@ -96,14 +95,14 @@
               style="width: 41px;height: 41px;background: #5778ff;border-radius: 50%;display: flex;align-items: center;justify-content: center;">
               <img src="@/assets/home/setting-user.png" alt="" style="width: 21px;height: 21px;" />
             </div>
-            CC:ba:97:11:a6:ac
+            {{ currentDevice?.list?.[0]?.id || '加载中...' }}
           </div>
           <div style="height: 1px;background: #e8f0ff;" />
           <el-form ref="form" :model="form" label-width="81px">
             <div style="padding: 18px 28px;max-width: 890px;">
               <el-form-item label="助手昵称：">
                 <div class="input-46" style="width: 57.5%;">
-                  <el-input v-model="form.name" />
+                  <el-input v-model="form.nickname" />
                 </div>
               </el-form-item>
               <el-form-item label="角色模版：">
@@ -123,8 +122,8 @@
               <el-form-item label="角色音色：">
                 <div style="display: flex;gap: 9px;align-items: center;">
                   <div class="input-46" style="flex:1.4;">
-                    <el-select v-model="form.timbre" placeholder="请选择" style="width: 100%;">
-                      <el-option v-for="item in options" :key="item.value" :label="item.label"
+                    <el-select v-model="form.templateId" placeholder="请选择" style="width: 100%;">
+                      <el-option v-for="item in voiceOptions" :key="item.value" :label="item.label"
                         :value="item.value">
                       </el-option>
                     </el-select>
@@ -138,30 +137,30 @@
               <el-form-item label="角色介绍：">
                 <div class="textarea-box">
                   <el-input type="textarea" rows="5.4" resize="none" placeholder="请输入内容"
-                    v-model="form.introduction" maxlength="2000" show-word-limit />
+                    v-model="form.voice" maxlength="2000" show-word-limit />
                 </div>
               </el-form-item>
               <el-form-item label="记忆体：">
                 <div class="textarea-box">
                   <el-input type="textarea" rows="5.4" resize="none" placeholder="请输入内容"
-                    v-model="form.prompt" maxlength="1000" />
+                    v-model="form.roleDescription" maxlength="1000" />
                   <div class="prompt-bottom">
                     <div style="display: flex;gap: 10px;align-items: center;">
                       <div style="color: #979db1;font-size: 12px;">当前记忆（每次对话后重新生成）</div>
-                      <div class="clear-btn">
+                      <div class="clear-btn" @click="clearroleDescription">
                         <i class="el-icon-delete-solid" style="font-size: 12px;" />
                         清除
                       </div>
                     </div>
-                    <div style="color: #979db1;font-size:12px;">{{form.prompt.length}}/1000</div>
+                    <div style="color: #979db1;font-size:12px;">{{ form.roleDescription.length }}/1000</div>
                   </div>
                 </div>
               </el-form-item>
               <el-form-item label="语言模型（内测）：" class="lh-form-item">
                 <div style="display: flex;gap: 9px;">
                   <div class="input-46" style="width: 100%;">
-                    <el-select v-model="form.model" placeholder="请选择" style="width: 100%;">
-                      <el-option v-for="item in options" :key="item.value" :label="item.label"
+                    <el-select v-model="form.selectedModules.llm" placeholder="请选择" style="width: 100%;">
+                      <el-option v-for="item in modelOptions" :key="item.value" :label="item.label"
                         :value="item.value">
                       </el-option>
                     </el-select>
@@ -175,9 +174,10 @@
             </div>
           </el-form>
           <div style="display: flex;padding: 18px;gap: 9px;align-items: center;">
-            <div class="save-btn">
-              保存配置</div>
-            <div class="reset-btn">
+            <div class="save-btn" @click="saveConfig">
+              保存配置
+            </div>
+            <div class="reset-btn" @click="resetConfig">
               重制</div>
             <div class="clear-text">
               <img src="@/assets/home/red-info.png" alt="" style="width: 21px;height: 21px;" />
@@ -235,21 +235,23 @@ export default {
       switchValue: false,
       addDeviceDialogVisible: false,
       deviceCode: "", // 设备验证码
+      currentDevice: null, // 存储当前设备
       settingDevice: false,
       form: {
-        name: "",
-        timbre: "",
-        introduction: "",
-        prompt: "",
-        model: ""
+        nickname: "",
+        templateId: "",
+        voice: "",
+        roleDescription: "",
+        selectedModules: {
+          tts: "",
+          vad: "",
+          asr: "",
+          llm: ""
+        }
       },
-      options: [{
-        value: '选项1',
-        label: '黄金糕'
-      }, {
-        value: '选项2',
-        label: '双皮奶'
-      }],
+      voiceOptions: [], // 角色音色的选项
+      modelOptions: [], // 语言模型的选项
+
       userInfo: {
         mobile: '' // 初始化用户信息
       }
@@ -259,8 +261,43 @@ export default {
     showAddDialog() {
         this.addDeviceDialogVisible = true;
     },
-    clickSettingDevice() {
-      this.settingDevice = true
+    clickSettingDevice(item) {
+      this.settingDevice = true;
+      this.currentDevice = item;
+      // 加载设备配置
+      Api.user.getDeviceConfig(item.list[0]?.id, ({ data }) => {
+        if (data.code === 0) {
+          this.form = {
+            nickname: data.data.nickname || "",
+            templateId: data.data.templateId || "",
+            voice: data.data.voice || "",
+            roleDescription: data.data.roleDescription || "",
+            selectedModules: {
+              tts: data.data.selectedModules?.tts || "",
+              vad: data.data.selectedModules?.vad || "",
+              asr: data.data.selectedModules?.asr || "",
+              llm: data.data.selectedModules?.llm || ""
+            }
+          };
+          // 获取模型音色
+          Api.user.getModelVoices(item.list[0]?.device_type, ({ data }) => {
+            if (data.code === 0) {
+              this.voiceOptions = data.data.map(voice => ({
+                value: voice,
+                label: voice
+              }));
+            } else {
+              this.$message.error(data.msg || '获取音色失败');
+            }
+          });
+        } else if (data.code === 401) {
+            this.$message.error('未授权，请重新登录');
+            this.$router.push('/login');
+        } else {
+            this.$message.error(data.msg || '加载配置失败');
+        }
+    });
+
     },
     // 获取用户信息
     fetchUserInfo() {
@@ -328,11 +365,76 @@ export default {
                 this.$message.error(data.msg || '设备绑定失败');
             }
         });
-    }
+    },
+    // 清空记忆体输入框内容
+    clearroleDescription() {
+        this.form.roleDescription = "";
+    },
+    // 保存配置
+    saveConfig(item) {
+        const configData = {
+            nickname: this.form.nickname,
+            templateId: this.form.templateId,
+            voice: this.form.voice,
+            roleDescription: this.form.roleDescription,
+            selectedModules: {
+              tts: this.form.selectedModules.tts,
+              vad: this.form.selectedModules.vad,
+              asr: this.form.selectedModules.asr,
+              llm: this.form.selectedModules.llm
+            }
+        };
+
+        Api.user.saveDeviceConfig(this.currentDevice.list[0]?.id, configData, ({ data }) => {
+          if (data.code === 0) {
+            this.$message.success('配置保存成功');
+            this.settingDevice = false;
+            this.getList();
+          } else if (data.code === 401) {
+            this.$message.error('未授权，请重新登录');
+            this.$router.push('/login');
+          } else {
+            this.$message.error(data.msg || '配置保存失败');
+          }
+        });
+    },
+
+    // 重置配置
+    resetConfig() {
+        this.form = {
+            nickname: "",
+            templateId: "",
+            voice: "",
+            roleDescription: "",
+            selectedModules: {
+              tts: "",
+              vad: "",
+              asr: "",
+              llm: ""
+            }
+        };
+        this.$message.info('配置已重置');
+      },
+
+    // 获取模型名称
+    fetchModelNames() {
+        Api.user.getModelNames(({ data }) => {
+            if (data.code === 0) {
+                this.modelOptions = data.data.map(model => ({
+                    value: model,
+                    label: model
+                }));
+            } else {
+                this.$message.error(data.msg || '获取模型名称失败');
+            }
+        });
+    },
+
   },
   mounted() {
     this.fetchUserInfo(); // 组件加载时获取用户信息
     this.getList(); // 初始化设备列表
+    this.fetchModelNames();
   }
 }
 </script>
@@ -606,6 +708,9 @@ audio::-webkit-media-controls-panel {
   border-radius: 8px;
   background: #f6f8fb;
 }
+.textarea-box:focus-within {
+  border-color: #5778ff;
+}
 ::v-deep {
   .textarea-box .el-textarea__inner {
     background-color: transparent !important;
@@ -685,7 +790,7 @@ audio::-webkit-media-controls-panel {
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    overflow-y: scroll !important;
+    overflow-y: auto !important;
     max-height: 100vh !important;
     border-radius: 15px;
   }
