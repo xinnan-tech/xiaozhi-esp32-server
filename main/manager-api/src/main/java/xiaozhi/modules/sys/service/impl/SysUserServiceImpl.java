@@ -16,6 +16,7 @@ import xiaozhi.modules.sys.enums.SuperAdminEnum;
 import xiaozhi.modules.sys.service.SysUserService;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,10 +27,17 @@ import java.util.regex.Pattern;
 @AllArgsConstructor
 @Service
 public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntity> implements SysUserService {
+    private final SysUserDao sysUserDao;
 
     @Override
     public SysUserDTO getByUsername(String username) {
-        SysUserEntity entity = baseDao.getByUsername(username);
+        QueryWrapper<SysUserEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("username", username);
+        List<SysUserEntity> users = sysUserDao.selectList(queryWrapper);
+        if (users == null || users.isEmpty()) {
+            return null;
+        }
+        SysUserEntity entity = users.getFirst();
         return ConvertUtils.sourceToTarget(entity, SysUserDTO.class);
     }
 
