@@ -348,7 +348,9 @@ VAD:
 
 ### 6、我想通过小智控制电灯、空调、远程开关机等操作 💡
 
-建议：在配置文件中将 `LLM` 设置为 `HomeAssistant`，通过 调用`HomeAssistant`接口实现相关控制。
+方法1：在配置文件中将 `LLM` 设置为 `HomeAssistant`，通过 调用`HomeAssistant`接口实现相关控制。
+
+方法2：以工具调用的方式控制HomeAssistant设备，LLM不必选择HomeAssistant，但必须配置一款支持tool调用的LLM，同时配置HomeAssistant的api_key、base_url，最后在提示词prompt里以示例的格式设置需要控制的设备，音乐播放需要在homeassistant中对接好musicassistant，同时音乐有削刮出媒体信息，对应的媒体播放器配置在设备列表中即可。
 
 ### 7、更多问题，可联系我们反馈 💬
 
