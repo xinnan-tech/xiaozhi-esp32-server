@@ -1,4 +1,4 @@
-package xiaozhi.modules.device.mapper;
+package xiaozhi.modules.device.entity;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Param; // 新增 Param 注解导入
 import java.util.List;
 
 @Mapper
-public interface DeviceMapper extends BaseMapper<DeviceDTO> {
+public interface DeviceEntity extends BaseMapper<DeviceDTO> {
     // 新增 @Param 注解保证参数绑定
     List<DeviceDTO> selectByUserId(@Param("userId") Long userId);
     

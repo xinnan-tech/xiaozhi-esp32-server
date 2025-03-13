@@ -90,6 +90,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         } else {
             entity.setSuperAdmin(SuperAdminEnum.NO.value());
         }
+        entity.setStatus(1);
 
         insert(entity);
     }
@@ -119,12 +120,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
     @Transactional(rollbackFor = Exception.class)
     public void updateUserInfo(SysUserDTO dto) {
         SysUserEntity entity = selectById(dto.getId());
-        entity.setHeadUrl(dto.getHeadUrl());
-        entity.setRealName(dto.getRealName());
-        entity.setGender(dto.getGender());
-        entity.setMobile(dto.getMobile());
-        entity.setEmail(dto.getEmail());
-
+        entity.setStatus(dto.getStatus());
         updateById(entity);
     }
 

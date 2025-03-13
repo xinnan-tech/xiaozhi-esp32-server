@@ -10,15 +10,15 @@ import java.util.Date;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import xiaozhi.modules.device.mapper.DeviceMapper;
+import xiaozhi.modules.device.entity.DeviceEntity;
 
 @Service
 public class DeviceServiceImpl implements DeviceService {
-    private final DeviceMapper deviceMapper;
+    private final DeviceEntity deviceEntity;
 
     // 添加构造函数来初始化 deviceMapper
-    public DeviceServiceImpl(DeviceMapper deviceMapper) {
-        this.deviceMapper = deviceMapper;
+    public DeviceServiceImpl(DeviceEntity deviceEntity) {
+        this.deviceEntity = deviceEntity;
     }
 
     @Override
@@ -27,23 +27,23 @@ public class DeviceServiceImpl implements DeviceService {
         device.setUserId(userId);
         device.setDeviceCode(deviceCode);
         device.setCreateDate(new Date());
-        deviceMapper.insert(device);
+        deviceEntity.insert(device);
         return device;
     }
 
     @Override
     public List<DeviceDTO> getUserDevices(Long userId) {
-        return deviceMapper.selectByUserId(userId);
+        return deviceEntity.selectByUserId(userId);
     }
 
     @Override
     public void unbindDevice(Long userId, Long deviceId) {
-        deviceMapper.deleteById(deviceId);
+        deviceEntity.deleteById(deviceId);
     }
 
     @Override
     public PageData<DeviceDTO> adminDeviceList(Map<String, Object> params) {
-        IPage<DeviceDTO> page = deviceMapper.selectPage(
+        IPage<DeviceDTO> page = deviceEntity.selectPage(
             new Page<>( 
                 Long.parseLong(params.get("page").toString()), 
                 Long.parseLong(params.get("limit").toString())
