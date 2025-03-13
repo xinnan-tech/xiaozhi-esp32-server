@@ -11,11 +11,10 @@ import websockets
 from typing import Dict, Any
 from core.utils.dialogue import Message, Dialogue
 from core.handle.textHandle import handleTextMessage
-from core.utils.util import get_string_no_punctuation_or_emoji, extract_json_from_string
+from core.utils.util import get_string_no_punctuation_or_emoji
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.sendAudioHandle import sendAudioMessage
 from core.handle.receiveAudioHandle import handleAudioMessage
-from core.handle.intentHandler import Action, get_functions, handle_llm_function_call
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator
@@ -28,7 +27,7 @@ class TTSException(RuntimeError):
 
 
 class ConnectionHandler:
-    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music, _memory, _intent):
+    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music, _memory):
         self.config = config
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
@@ -56,7 +55,6 @@ class ConnectionHandler:
         self.llm = _llm
         self.tts = _tts
         self.memory = _memory
-        self.intent = _intent
 
         # vad相关变量
         self.client_audio_buffer = bytes()
@@ -90,10 +88,6 @@ class ConnectionHandler:
         self.auth_code_gen = AuthCodeGenerator.get_instance()
         self.is_device_verified = False  # 添加设备验证状态标志
         self.music_handler = _music
-        self.close_after_chat = False  # 是否在聊天结束后关闭连接
-        self.use_function_call_mode = False
-        if self.config["selected_module"]["Intent"] == 'function_call':
-            self.use_function_call_mode = True
 
     async def handle_connection(self, ws):
         try:
@@ -107,8 +101,7 @@ class ConnectionHandler:
             await self.auth.authenticate(self.headers)
 
             device_id = self.headers.get("device-id", None)
-            self.memory.init_memory(device_id, self.llm)
-            self.intent.set_llm(self.llm)
+            self.memory.set_role_id(device_id)
 
             # Load private configuration if device_id is provided
             bUsePrivateConfig = self.config.get("use_private_config", False)
@@ -211,6 +204,7 @@ class ConnectionHandler:
             return False
         return not self.is_device_verified
 
+
     def chat(self, query):
         if self.isNeedAuth():
             self.llm_finish_task = True
@@ -219,7 +213,6 @@ class ConnectionHandler:
             return True
 
         self.dialogue.put(Message(role="user", content=query))
-
         response_message = []
         processed_chars = 0  # 跟踪已处理的字符位置
         try:
@@ -227,10 +220,10 @@ class ConnectionHandler:
             # 使用带记忆的对话
             future = asyncio.run_coroutine_threadsafe(self.memory.query_memory(query), self.loop)
             memory_str = future.result()
-
-            self.logger.bind(tag=TAG).debug(f"记忆内容: {memory_str}")
+            
+            self.logger.bind(tag=TAG).info(f"记忆内容: {memory_str}")
             llm_responses = self.llm.response(
-                self.session_id,
+                self.session_id, 
                 self.dialogue.get_llm_dialogue_with_memory(memory_str)
             )
         except Exception as e:
@@ -252,7 +245,7 @@ class ConnectionHandler:
             current_text = full_text[processed_chars:]  # 从未处理的位置开始
 
             # 查找最后一个有效标点
-            punctuations = ("。", "？", "！", "；", "：")
+            punctuations = ("。", "？", "！", "?", "!", ";", "；", ":", "：")
             last_punct_pos = -1
             for punct in punctuations:
                 pos = current_text.rfind(punct)
@@ -288,157 +281,6 @@ class ConnectionHandler:
         self.dialogue.put(Message(role="assistant", content="".join(response_message)))
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
         return True
-
-    def chat_with_function_calling(self, query):
-        self.logger.bind(tag=TAG).debug(f"Chat with function calling start: {query}")
-        """Chat with function calling for intent detection using streaming"""
-        if self.isNeedAuth():
-            self.llm_finish_task = True
-            future = asyncio.run_coroutine_threadsafe(self._check_and_broadcast_auth_code(), self.loop)
-            future.result()
-            return True
-
-        self.dialogue.put(Message(role="user", content=query))
-
-        # Define intent functions
-        functions = get_functions()
-
-        response_message = []
-        processed_chars = 0  # 跟踪已处理的字符位置
-   
-        try:
-            start_time = time.time()
-
-            # 使用带记忆的对话
-            future = asyncio.run_coroutine_threadsafe(self.memory.query_memory(query), self.loop)
-            memory_str = future.result()
-
-            #self.logger.bind(tag=TAG).info(f"对话记录: {self.dialogue.get_llm_dialogue_with_memory(memory_str)}")
-
-            # 使用支持functions的streaming接口
-            llm_responses = self.llm.response_with_functions(
-                self.session_id,
-                self.dialogue.get_llm_dialogue_with_memory(memory_str),
-                functions=functions
-            )
-        except Exception as e:
-            self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
-            return None
-
-        self.llm_finish_task = False
-        text_index = 0
-
-        # 处理流式响应
-        tool_call_flag = False
-        function_name = None
-        function_id = None
-        function_arguments = ""
-        content_arguments = ""
-        for response in llm_responses:
-            content, tools_call = response
-            if content is not None and len(content)>0:
-                if len(response_message)<=0 and content=="```":
-                    tool_call_flag = True
-
-            if tools_call is not None:
-                tool_call_flag = True
-                if tools_call[0].id is not None:
-                    function_id = tools_call[0].id
-                if tools_call[0].function.name is not None:
-                    function_name = tools_call[0].function.name
-                if tools_call[0].function.arguments is not None:
-                    function_arguments += tools_call[0].function.arguments
-
-            if content is not None and len(content) > 0:
-                if tool_call_flag:
-                    content_arguments+=content
-                else:
-                    response_message.append(content)
-
-                    if self.client_abort:
-                        break
-
-                    end_time = time.time()
-                    self.logger.bind(tag=TAG).debug(f"大模型返回时间: {end_time - start_time} 秒, 生成token={content}")
-
-                    # 处理文本分段和TTS逻辑
-                    # 合并当前全部文本并处理未分割部分
-                    full_text = "".join(response_message)
-                    current_text = full_text[processed_chars:]  # 从未处理的位置开始
-
-                    # 查找最后一个有效标点
-                    punctuations = ("。", "？", "！", "；", "：")
-                    last_punct_pos = -1
-                    for punct in punctuations:
-                        pos = current_text.rfind(punct)
-                        if pos > last_punct_pos:
-                            last_punct_pos = pos
-
-                    # 找到分割点则处理
-                    if last_punct_pos != -1:
-                        segment_text_raw = current_text[:last_punct_pos + 1]
-                        segment_text = get_string_no_punctuation_or_emoji(segment_text_raw)
-                        if segment_text:
-                            text_index += 1
-                            self.recode_first_last_text(segment_text, text_index)
-                            future = self.executor.submit(self.speak_and_play, segment_text, text_index)
-                            self.tts_queue.put(future)
-                            processed_chars += len(segment_text_raw)  # 更新已处理字符位置
-
-        # 处理最后剩余的文本
-        full_text = "".join(response_message)
-        remaining_text = full_text[processed_chars:]
-        if remaining_text:
-            segment_text = get_string_no_punctuation_or_emoji(remaining_text)
-            if segment_text:
-                text_index += 1
-                self.recode_first_last_text(segment_text, text_index)
-                future = self.executor.submit(self.speak_and_play, segment_text, text_index)
-                self.tts_queue.put(future)
-
-        # 存储对话内容
-        if len(response_message)>0:
-            self.dialogue.put(Message(role="assistant", content="".join(response_message)))
-
-        # 处理function call
-        if tool_call_flag:
-            if function_id is None:
-                a = extract_json_from_string(content_arguments)
-                if a is not None:
-                    content_arguments_json = json.loads(a)
-                    function_name = content_arguments_json["function_name"]
-                    function_arguments = json.dumps(content_arguments_json["args"], ensure_ascii=False)
-                    function_id = str(uuid.uuid4().hex)
-                else:
-                    return []
-                function_arguments = json.loads(function_arguments)
-            self.logger.bind(tag=TAG).info(f"function_name={function_name}, function_id={function_id}, function_arguments={function_arguments}")
-            function_call_data = {
-                "name": function_name,
-                "id": function_id,
-                "arguments": function_arguments
-            }
-            result = handle_llm_function_call(self, function_call_data)
-            self._handle_function_result(result, function_call_data, text_index+1)
-
-        self.llm_finish_task = True
-        self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
-
-        return True
-
-    def _handle_function_result(self, result, function_call_data, text_index):
-        if result.action == Action.RESPONSE: # 直接回复前端
-            text = result.response
-            self.recode_first_last_text(text, text_index)
-            future = self.executor.submit(self.speak_and_play, text, text_index)
-            self.tts_queue.put(future)
-            self.dialogue.put(Message(role="assistant", content=text))
-        if result.action == Action.REQLLM: # 调用函数后再请求llm生成回复
-            text = result.response
-        if result.action == Action.NOTFOUND:
-            text = result.response
-
-        
 
     def _tts_priority_thread(self):
         while not self.stop_event.is_set():
@@ -530,14 +372,3 @@ class ConnectionHandler:
         self.client_have_voice_last_time = 0
         self.client_voice_stop = False
         self.logger.bind(tag=TAG).debug("VAD states reset.")
-
-    def chat_and_close(self, text):
-        """Chat with the user and then close the connection"""
-        try:
-            # Use the existing chat method
-            self.chat(text)
-
-            # After chat is complete, close the connection
-            self.close_after_chat = True
-        except Exception as e:
-            self.logger.bind(tag=TAG).error(f"Chat and close error: {str(e)}")

@@ -26,9 +26,6 @@ class Dialogue:
         return dialogue
 
     def get_llm_dialogue_with_memory(self, memory_str: str = None) -> List[Dict[str, str]]:
-        if memory_str is None or len(memory_str) == 0:
-            return self.get_llm_dialogue()
-        
         # 构建带记忆的对话
         dialogue = []
         

@@ -93,7 +93,7 @@ docker logs -f xiaozhi-esp32-server
 ```
 docker stop xiaozhi-esp32-server
 docker rm xiaozhi-esp32-server
-docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
 ```
 
 3、重新按docker方式部署
@@ -117,7 +117,7 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
   -p 8000:8000 \
   -p 8002:8002 \
   -v ./:/app \
-  kalicyh/python:xiaozhi
+  kalicyh/poetry:v3.10_xiaozhi
 ```
 
 然后就和正常开发一样了
@@ -127,13 +127,29 @@ docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconf
 在刚刚的打开的终端运行
 
 ```sh
-pip install -r requirements.txt
+poetry install --no-root
+```
+
+```sh
+apt-get update
+apt-get install -y --no-install-recommends libopus0 ffmpeg
+```
+
+速度慢可以尝试使用清华镜像
+
+```sh
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+apt-get update
+apt-get install -y --no-install-recommends libopus0 ffmpeg
 ```
 
 ## 6.运行项目
 
 ```sh
-python app.py
+poetry run python app.py
 ```
 
 # 方式三：本地源码运行
@@ -279,18 +295,3 @@ LLM:
 这个信息很有用的，后面`编译esp32固件`需要用到。
 
 接下来，你就可以开始 [编译esp32固件](firmware-build.md)了。
-
-
-以下是一些常见问题，供参考：
-
-[1、为什么我说的话，小智识别出来很多韩文、日文、英文](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
-
-[2、为什么会出现“TTS 任务出错 文件不存在”？](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
-
-[3、TTS 经常失败，经常超时](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
-
-[4、如何提高小智对话响应速度？](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
-
-[5、我说话很慢，停顿时小智老是抢话](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)
-
-[6、我想通过小智控制电灯、空调、远程开关机等操作](../README.md#1%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E8%AF%B4%E7%9A%84%E8%AF%9D%E5%B0%8F%E6%99%BA%E8%AF%86%E5%88%AB%E5%87%BA%E6%9D%A5%E5%BE%88%E5%A4%9A%E9%9F%A9%E6%96%87%E6%97%A5%E6%96%87%E8%8B%B1%E6%96%87)

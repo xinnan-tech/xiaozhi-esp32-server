@@ -43,19 +43,3 @@ class LLMProvider(LLMProviderBase):
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in response generation: {e}")
-
-    def response_with_functions(self, session_id, dialogue, functions=None):
-        try:
-            stream = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=dialogue,
-                stream=True,
-                tools=functions,
-            )
-            
-            for chunk in stream:
-                yield chunk.choices[0].delta.content, chunk.choices[0].delta.tool_calls
-                
-        except Exception as e:
-            self.logger.bind(tag=TAG).error(f"Error in function call streaming: {e}")
-            yield {"type": "content", "content": f"【OpenAI服务响应异常: {e}】"}
