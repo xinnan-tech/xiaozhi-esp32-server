@@ -14,10 +14,11 @@ class TTSProvider(TTSProviderBase):
         self.url = config.get("url")
         self.headers = config.get("headers", {})
         self.params = config.get("params")
+        self.format = config.get("format", "wav")
         self.output_file = config.get("output_file", "tmp/")
 
-    def generate_filename(self, extension=".wav"):
-        return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
+    def generate_filename(self):
+        return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}.{self.format}")
 
     async def text_to_speak(self, text, output_file):
         request_params = {}
