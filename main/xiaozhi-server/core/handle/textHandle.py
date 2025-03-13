@@ -37,17 +37,7 @@ async def handleTextMessage(conn, message):
                 conn.client_have_voice = False
                 conn.asr_audio.clear()
                 if "text" in msg_json:
-                    text = msg_json["text"]
-                    text_len, text_without_punctuation = remove_punctuation_and_length(text)
-                    if await conn.music_handler.handle_music_command(conn, text_without_punctuation):
-                        conn.asr_server_receive = True
-                        conn.asr_audio.clear()
-                        return
-                    # if text_len <= conn.max_cmd_length and await handleCMDMessage(conn, text_without_punctuation):
-                    #    return
-                    if text_len > 0:
-                        await startToChat(conn, text)
-                    #await startToChat(conn, msg_json["text"])
+                    await startToChat(conn, msg_json["text"])
         elif msg_json["type"] == "iot":
             if "descriptors" in msg_json:
                 await handleIotDescriptors(conn, msg_json["descriptors"])
@@ -55,5 +45,3 @@ async def handleTextMessage(conn, message):
                 await handleIotStatus(conn, msg_json["states"])  
     except json.JSONDecodeError:
         await conn.websocket.send(message)
-
-
