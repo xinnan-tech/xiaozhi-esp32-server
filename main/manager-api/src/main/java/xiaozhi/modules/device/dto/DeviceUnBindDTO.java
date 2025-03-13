@@ -6,7 +6,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 设备绑定表单
+ * 设备解绑表单
  */
 @Data
 @Schema(description = "设备解绑表单")
