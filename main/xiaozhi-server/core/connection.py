@@ -460,7 +460,7 @@ class ConnectionHandler:
                     else:
                         self.logger.bind(tag=TAG).debug(f"TTS生成：文件路径: {tts_file}")
                         if os.path.exists(tts_file):
-                            opus_datas, duration = self.tts.wav_to_opus_data(tts_file)
+                            opus_datas, duration = self.tts.audio_to_opus_data(tts_file)
                         else:
                             self.logger.bind(tag=TAG).error(f"TTS出错：文件不存在{tts_file}")
                 except TimeoutError:
