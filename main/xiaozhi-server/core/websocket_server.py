@@ -3,6 +3,7 @@ import websockets
 from config.logger import setup_logging
 from core.connection import ConnectionHandler
 from core.handle.musicHandler import MusicHandler
+from core.handle.hassHandler import HassHandler
 from core.utils.util import get_local_ip
 from core.utils import asr, vad, llm, tts, memory, intent
 
