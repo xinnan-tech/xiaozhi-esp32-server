@@ -4,7 +4,6 @@ from core.handle.abortHandle import handleAbortMessage
 from core.handle.helloHandle import handleHelloMessage
 from core.handle.receiveAudioHandle import startToChat
 from core.handle.iotHandle import handleIotDescriptors, handleIotStatus
-from core.utils.util import remove_punctuation_and_length, get_string_no_punctuation_or_emoji
 
 TAG = __name__
 logger = setup_logging()
