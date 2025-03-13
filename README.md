@@ -148,6 +148,8 @@ server:
 - 智控台webui
 - iot功能
 
+想了解具体开发进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
+
 ![图片](docs/images/webui.png)
 ---
 
