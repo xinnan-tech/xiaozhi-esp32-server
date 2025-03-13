@@ -15,7 +15,6 @@ import xiaozhi.modules.security.user.SecurityUser;
 import java.util.List;
 import java.util.Map;
 import xiaozhi.common.validator.AssertUtils;
-import xiaozhi.common.exception.ErrorCode;
 
 @AllArgsConstructor
 @RestController

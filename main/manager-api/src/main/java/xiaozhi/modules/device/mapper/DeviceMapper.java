@@ -2,7 +2,6 @@ package xiaozhi.modules.device.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-// 正确的导入路径应该是 com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import xiaozhi.modules.device.dto.DeviceDTO;
 import org.apache.ibatis.annotations.Mapper;
