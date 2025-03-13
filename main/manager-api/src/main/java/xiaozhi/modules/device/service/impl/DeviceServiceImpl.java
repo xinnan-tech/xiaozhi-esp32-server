@@ -1,55 +1,57 @@
 package xiaozhi.modules.device.service.impl;
 
-import xiaozhi.modules.device.service.DeviceService;
-import xiaozhi.modules.device.dto.DeviceDTO;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import org.springframework.stereotype.Service;
 import xiaozhi.common.page.PageData;
+import xiaozhi.common.service.impl.BaseServiceImpl;
+import xiaozhi.modules.device.dao.DeviceDao;
+import xiaozhi.modules.device.dto.DeviceHeaderDTO;
+import xiaozhi.modules.device.entity.DeviceEntity;
+import xiaozhi.modules.device.service.DeviceService;
+
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.springframework.stereotype.Service;
-import java.util.Date;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import xiaozhi.modules.device.entity.DeviceEntity;
 
 @Service
-public class DeviceServiceImpl implements DeviceService {
-    private final DeviceEntity deviceEntity;
+public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> implements DeviceService {
+    private final DeviceDao deviceDao;
 
     // 添加构造函数来初始化 deviceMapper
-    public DeviceServiceImpl(DeviceEntity deviceEntity) {
-        this.deviceEntity = deviceEntity;
+    public DeviceServiceImpl(DeviceDao deviceDao) {
+        this.deviceDao = deviceDao;
     }
 
     @Override
-    public DeviceDTO bindDevice(Long userId, String deviceCode) {
-        DeviceDTO device = new DeviceDTO();
+    public DeviceEntity bindDevice(Long userId, DeviceHeaderDTO deviceHeader) {
+        DeviceEntity device = new DeviceEntity();
         device.setUserId(userId);
-        device.setDeviceCode(deviceCode);
+        device.setMacAddress(deviceHeader.getDeviceId());
         device.setCreateDate(new Date());
-        deviceEntity.insert(device);
+        deviceDao.insert(device);
         return device;
     }
 
     @Override
-    public List<DeviceDTO> getUserDevices(Long userId) {
-        return deviceEntity.selectByUserId(userId);
+    public List<DeviceEntity> getUserDevices(Long userId) {
+        QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        return deviceDao.selectList(wrapper);
     }
 
     @Override
     public void unbindDevice(Long userId, Long deviceId) {
-        deviceEntity.deleteById(deviceId);
+        deviceDao.deleteById(deviceId);
     }
 
     @Override
-    public PageData<DeviceDTO> adminDeviceList(Map<String, Object> params) {
-        IPage<DeviceDTO> page = deviceEntity.selectPage(
-            new Page<>( 
-                Long.parseLong(params.get("page").toString()), 
-                Long.parseLong(params.get("limit").toString())
-            ),
-            new QueryWrapper<DeviceDTO>().allEq(params)
+    public PageData<DeviceEntity> adminDeviceList(Map<String, Object> params) {
+        IPage<DeviceEntity> page = deviceDao.selectPage(
+                getPage(params, "sort", true),
+                new QueryWrapper<>()
         );
         return new PageData<>(page.getRecords(), page.getTotal());
     }
+
 }

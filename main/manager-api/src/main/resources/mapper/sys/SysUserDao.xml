@@ -4,8 +4,7 @@
 <mapper namespace="xiaozhi.modules.sys.dao.SysUserDao">
 
 	<select id="getList" resultType="xiaozhi.modules.sys.entity.SysUserEntity">
-		select t1.*, (select t2.name from sys_dept t2 where t2.id=t1.dept_id) deptName
-			from sys_user t1 where t1.super_admin = 0
+		select t1.* from sys_user t1 where t1.super_admin = 0
 		<if test="username != null and username.trim() != ''">
 			and t1.username like #{username}
 		</if>

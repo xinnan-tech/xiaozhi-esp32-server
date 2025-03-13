@@ -1,17 +1,18 @@
 package xiaozhi.modules.device.service;
 
 import xiaozhi.common.page.PageData;
-import xiaozhi.modules.device.dto.DeviceDTO;
+import xiaozhi.modules.device.dto.DeviceHeaderDTO;
+import xiaozhi.modules.device.entity.DeviceEntity;
 
 import java.util.List;
 import java.util.Map;
 
 public interface DeviceService {
-    DeviceDTO bindDevice(Long userId, String deviceCode);
+    DeviceEntity bindDevice(Long userId, DeviceHeaderDTO deviceHeader);
     
-    List<DeviceDTO> getUserDevices(Long userId);
+    List<DeviceEntity> getUserDevices(Long userId);
     
     void unbindDevice(Long userId, Long deviceId);
     
-    PageData<DeviceDTO> adminDeviceList(Map<String, Object> params);
+    PageData<DeviceEntity> adminDeviceList(Map<String, Object> params);
 }
