@@ -15,7 +15,8 @@ import xiaozhi.modules.security.user.SecurityUser;
 import java.util.List;
 import java.util.Map;
 import xiaozhi.common.validator.AssertUtils;
-
+import xiaozhi.modules.device.dto.DeviceBindDTO;
+import xiaozhi.modules.device.dto.DeviceUnBindDTO;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/device")
@@ -24,14 +25,15 @@ import xiaozhi.common.validator.AssertUtils;
 public class DeviceController {
     private final DeviceService deviceService;
 
-    @PostMapping("/bind/{deviceCode}")
+    
+    @PostMapping("/bind")
     @Operation(summary = "绑定设备")
     @RequiresPermissions("sys:device:bind")
-    public Result<DeviceDTO> register(@RequestBody String deviceCode) {
+    public Result<DeviceDTO> register(@RequestBody DeviceBindDTO deviveBind) {
         UserDetail user = SecurityUser.getUser();
 
-        AssertUtils.isBlank(deviceCode, 400, "设备编码不能为空");
-        DeviceDTO device = deviceService.bindDevice(user.getId(), deviceCode);
+        AssertUtils.isBlank(deviveBind.getDeviceCode(),400, "设备编码不能为空");
+        DeviceDTO device = deviceService.bindDevice(user.getId(), deviveBind.getDeviceCode());
         return new Result<DeviceDTO>().ok(device);
     }
 
@@ -47,9 +49,9 @@ public class DeviceController {
     @PostMapping("/unbind")
     @Operation(summary = "解绑设备")
     @RequiresPermissions("sys:device:unbind")
-    public Result unbindDevice(@RequestBody Long deviceId) {
+    public Result unbindDevice(@RequestBody DeviceUnBindDTO unDeviveBind) {
         UserDetail user = SecurityUser.getUser();
-        deviceService.unbindDevice(user.getId(), deviceId);
+        deviceService.unbindDevice(user.getId(), unDeviveBind.getDeviceId());
         return new Result();
     }
 
