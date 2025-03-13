@@ -210,7 +210,7 @@
         </div>
       </div>
       <div style="display: flex;margin: 0 20px;gap: 10px;">
-        <div class="dialog-btn" @click="addDeviceDialogVisible=false">确定</div>
+        <div class="dialog-btn" @click="addDevice">确定</div>
         <div class="dialog-btn"
           style="background: #e6ebff;border: 1px solid #adbdff;color: #5778ff;"
           @click="addDeviceDialogVisible=false">
@@ -234,7 +234,7 @@ export default {
       filteredDeviceList: [], // 过滤后的设备列表
       switchValue: false,
       addDeviceDialogVisible: false,
-      deviceCode: "",
+      deviceCode: "", // 设备验证码
       settingDevice: false,
       form: {
         name: "",
@@ -257,7 +257,7 @@ export default {
   },
   methods: {
     showAddDialog() {
-      this.addDeviceDialogVisible = true;
+        this.addDeviceDialogVisible = true;
     },
     clickSettingDevice() {
       this.settingDevice = true
@@ -312,6 +312,23 @@ export default {
         this.$message.info('已取消解绑');
       });
     },
+    // 添加设备
+    addDevice() {
+        if (!this.deviceCode) {
+            this.$message.warning('请输入设备验证码');
+            return;
+        }
+
+        Api.user.bindDevice(this.deviceCode, ({ data }) => {
+            if (data.code === 0) {
+                this.$message.success('设备绑定成功');
+                this.addDeviceDialogVisible = false;
+                this.getList(); // 刷新设备列表
+            } else {
+                this.$message.error(data.msg || '设备绑定失败');
+            }
+        });
+    }
   },
   mounted() {
     this.fetchUserInfo(); // 组件加载时获取用户信息

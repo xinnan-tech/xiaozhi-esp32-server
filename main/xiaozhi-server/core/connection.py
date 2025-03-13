@@ -28,7 +28,7 @@ class TTSException(RuntimeError):
 
 
 class ConnectionHandler:
-    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music, _memory, _intent):
+    def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _music, _hass, _memory, _intent):
         self.config = config
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
@@ -90,12 +90,11 @@ class ConnectionHandler:
         self.auth_code_gen = AuthCodeGenerator.get_instance()
         self.is_device_verified = False  # 添加设备验证状态标志
         self.music_handler = _music
+        self.hass_handler = _hass
         self.close_after_chat = False  # 是否在聊天结束后关闭连接
         self.use_function_call_mode = False
         if self.config["selected_module"]["Intent"] == 'function_call':
             self.use_function_call_mode = True
-
-        self.logger.bind(tag=TAG).info(f"use_function_call_mode:{self.use_function_call_mode}")
 
     async def handle_connection(self, ws):
         try:

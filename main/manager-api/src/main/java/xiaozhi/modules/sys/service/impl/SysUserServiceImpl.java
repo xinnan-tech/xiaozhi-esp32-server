@@ -1,29 +1,22 @@
 package xiaozhi.modules.sys.service.impl;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
-import xiaozhi.common.page.PageData;
-import xiaozhi.common.redis.RedisKeys;
-import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
-import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.modules.security.password.PasswordUtils;
-import xiaozhi.modules.security.user.SecurityUser;
 import xiaozhi.modules.sys.dao.SysUserDao;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.entity.SysUserEntity;
 import xiaozhi.modules.sys.enums.SuperAdminEnum;
 import xiaozhi.modules.sys.service.SysUserService;
-import lombok.AllArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,40 +27,17 @@ import java.util.regex.Pattern;
 @AllArgsConstructor
 @Service
 public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntity> implements SysUserService {
-    private final RedisUtils redisUtils;
-
-    @Override
-    public PageData<SysUserDTO> page(Map<String, Object> params) {
-        //转换成like
-        paramsToLike(params, "username");
-
-        //分页
-        IPage<SysUserEntity> page = getPage(params, "t1.create_date", false);
-
-        //查询
-        List<SysUserEntity> list = baseDao.getList(params);
-
-        return getPageData(list, page.getTotal(), SysUserDTO.class);
-    }
-
-    @Override
-    public List<SysUserDTO> list(Map<String, Object> params) {
-
-        List<SysUserEntity> entityList = baseDao.getList(params);
-
-        return ConvertUtils.sourceToTarget(entityList, SysUserDTO.class);
-    }
-
-    @Override
-    public SysUserDTO get(Long id) {
-        SysUserEntity entity = baseDao.getById(id);
-
-        return ConvertUtils.sourceToTarget(entity, SysUserDTO.class);
-    }
+    private final SysUserDao sysUserDao;
 
     @Override
     public SysUserDTO getByUsername(String username) {
-        SysUserEntity entity = baseDao.getByUsername(username);
+        QueryWrapper<SysUserEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("username", username);
+        List<SysUserEntity> users = sysUserDao.selectList(queryWrapper);
+        if (users == null || users.isEmpty()) {
+            return null;
+        }
+        SysUserEntity entity = users.getFirst();
         return ConvertUtils.sourceToTarget(entity, SysUserDTO.class);
     }
 
@@ -86,42 +56,15 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         entity.setPassword(password);
 
         //保存用户
-        entity.setSuperAdmin(SuperAdminEnum.NO.value());
-        insert(entity);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void update(SysUserDTO dto) {
-        SysUserEntity entity = ConvertUtils.sourceToTarget(dto, SysUserEntity.class);
-
-        //密码加密
-        if (StringUtils.isBlank(dto.getPassword())) {
-            entity.setPassword(null);
+        Long userCount = getUserCount();
+        if (userCount == 0) {
+            entity.setSuperAdmin(SuperAdminEnum.YES.value());
         } else {
-            //密码强度
-            if (!isStrongPassword(entity.getPassword())) {
-                throw new RenException(ErrorCode.PASSWORD_WEAK_ERROR);
-            }
-            String password = PasswordUtils.encode(entity.getPassword());
-            entity.setPassword(password);
+            entity.setSuperAdmin(SuperAdminEnum.NO.value());
         }
+        entity.setStatus(1);
 
-        //更新用户
-        updateById(entity);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void updateUserInfo(SysUserDTO dto) {
-        SysUserEntity entity = selectById(dto.getId());
-        entity.setHeadUrl(dto.getHeadUrl());
-        entity.setRealName(dto.getRealName());
-        entity.setGender(dto.getGender());
-        entity.setMobile(dto.getMobile());
-        entity.setEmail(dto.getEmail());
-
-        updateById(entity);
+        insert(entity);
     }
 
     @Override
@@ -131,51 +74,17 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         baseDao.deleteBatchIds(Arrays.asList(ids));
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void updatePassword(Long id, String newPassword) {
-        newPassword = PasswordUtils.encode(newPassword);
-
-        baseDao.updatePassword(id, newPassword);
+    private Long getUserCount() {
+        QueryWrapper<SysUserEntity> queryWrapper = new QueryWrapper<>();
+        return baseDao.selectCount(queryWrapper);
     }
 
-    @Override
-    public int getCountByDeptId(Long deptId) {
-        return baseDao.getCountByDeptId(deptId);
-    }
 
-    @Override
-    public List<Long> getUserIdListByDeptId(List<Long> deptIdList) {
-        return baseDao.getUserIdListByDeptId(deptIdList);
-    }
-
-    @Override
-    public void deleteUserCache(Long userId) {
-        // 删除缓存
-        redisUtils.delete(RedisKeys.getUserInfoKey(userId));
-        redisUtils.delete(RedisKeys.getDataScopeListKey(userId));
-        redisUtils.delete(RedisKeys.getSysUserName(userId));
-    }
-
-    @Override
-    public boolean isStrongPassword(String password) {
+    private boolean isStrongPassword(String password) {
         // 弱密码的正则表达式
         String weakPasswordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).+$";
         Pattern pattern = Pattern.compile(weakPasswordRegex);
         Matcher matcher = pattern.matcher(password);
         return matcher.matches();
-    }
-
-    @Override
-    public String getName(Long id) {
-        String name = (String) redisUtils.get(RedisKeys.getSysUserName(id));
-        if (StringUtils.isBlank(name)) {
-            SysUserEntity sysUserEntity = selectById(id);
-            if (sysUserEntity != null) {
-                redisUtils.set(RedisKeys.getSysUserName(id), sysUserEntity.getUsername());
-                return sysUserEntity.getUsername();
-            }
-        }
-        return name;
     }
 }

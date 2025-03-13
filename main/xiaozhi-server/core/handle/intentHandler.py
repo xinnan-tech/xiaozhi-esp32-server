@@ -2,6 +2,7 @@ from config.logger import setup_logging
 import json
 from core.handle.sendAudioHandle import send_stt_message
 from core.utils.dialogue import Message
+from core.utils.util import remove_punctuation_and_length
 from config.functionCallConfig import FunctionCallConfig
 import asyncio
 from enum import Enum
@@ -66,6 +67,39 @@ def handle_llm_function_call(conn, function_call_data):
                 return ActionResponse(action=Action.RESPONSE, result="退出意图已处理", response="还想听什么歌？")
             except Exception as e:
                 logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
+                
+        elif function_name == "hass_play_music":
+            #hass播放音乐
+            try:
+                arguments = json.loads(function_call_data["arguments"])
+                entity_id = arguments["entity_id"]
+                media_content_id = arguments["media_content_id"]
+
+                future = asyncio.run_coroutine_threadsafe(
+                    conn.hass_handler.hass_play_music(conn, entity_id, media_content_id),
+                    conn.loop
+                )
+                future.result()
+                return ActionResponse(action=Action.RESPONSE, result="音乐已播放", response=f"正在为你播放{media_content_id}")
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
+
+        elif function_name == "hass_toggle_device":
+            #hass控制设备
+            try:
+                arguments = json.loads(function_call_data["arguments"])
+                state = arguments["state"]
+                entity_id = arguments["entity_id"]
+
+                future = asyncio.run_coroutine_threadsafe(
+                    conn.hass_handler.hass_toggle_device(conn, entity_id, state),
+                    conn.loop
+                )
+                ha_response = future.result()
+                return ActionResponse(action=Action.RESPONSE, result="执行成功", response=ha_response)
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"处理控制设备意图错误: {e}")
+                
         else:
             return ActionResponse(action=Action.NOTFOUND, result="没有找到对应的函数", response="没有找到对应的函数处理相对于的功能呢，你可以需要添加预设的对应函数处理呢")
     except Exception as e:
@@ -93,8 +127,6 @@ async def handle_user_intent(conn, text):
         # 使用支持function calling的聊天方法,不再进行意图分析
         return False
 
-    logger.bind(tag=TAG).info(f"分析用户意图: {text}")
-
     # 使用LLM进行意图分析
     intent = await analyze_intent_with_llm(conn, text)
 
@@ -107,6 +139,7 @@ async def handle_user_intent(conn, text):
 
 async def check_direct_exit(conn, text):
     """检查是否有明确的退出命令"""
+    _, text = remove_punctuation_and_length(text)
     cmd_exit = conn.cmd_exit
     for cmd in cmd_exit:
         if text == cmd:
@@ -125,8 +158,7 @@ async def analyze_intent_with_llm(conn, text):
     # 对话历史记录
     dialogue = conn.dialogue
     try:
-        intent_result = await conn.intent.detect_intent(dialogue.dialogue, text)
-        logger.bind(tag=TAG).info(f"意图识别结果: {intent_result}")
+        intent_result = await conn.intent.detect_intent(conn, dialogue.dialogue, text)
 
         # 尝试解析JSON结果
         try:
