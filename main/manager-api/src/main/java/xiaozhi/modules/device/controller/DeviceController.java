@@ -24,7 +24,7 @@ import xiaozhi.common.validator.AssertUtils;
 public class DeviceController {
     private final DeviceService deviceService;
 
-    @PostMapping("/bind/{deviceCode}")
+    @PostMapping("/bind")
     @Operation(summary = "绑定设备")
     @RequiresPermissions("sys:device:bind")
     public Result<DeviceDTO> register(@RequestBody String deviceCode) {
