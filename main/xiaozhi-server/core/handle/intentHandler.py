@@ -67,6 +67,37 @@ def handle_llm_function_call(conn, function_call_data):
                 return ActionResponse(action=Action.RESPONSE, result="退出意图已处理", response="还想听什么歌？")
             except Exception as e:
                 logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
+        elif function_name == "hass_play_music":
+             #hass播放音乐
+            try:
+                 arguments = json.loads(function_call_data["arguments"])
+                 entity_id = arguments["entity_id"]
+                 media_content_id = arguments["media_content_id"]
+ 
+                 future = asyncio.run_coroutine_threadsafe(
+                     conn.hass_handler.hass_play_music(conn, entity_id, media_content_id),
+                     conn.loop
+                 )
+                 future.result()
+                 return ActionResponse(action=Action.RESPONSE, result="音乐已播放", response=f"正在为你播放{media_content_id}")
+            except Exception as e:
+                 logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
+ 
+        elif function_name == "hass_toggle_device":
+             #hass控制设备
+             try:
+                 arguments = json.loads(function_call_data["arguments"])
+                 state = arguments["state"]
+                 entity_id = arguments["entity_id"]
+ 
+                 future = asyncio.run_coroutine_threadsafe(
+                     conn.hass_handler.hass_toggle_device(conn, entity_id, state),
+                     conn.loop
+                 )
+                 ha_response = future.result()
+                 return ActionResponse(action=Action.RESPONSE, result="执行成功", response=ha_response)
+             except Exception as e:
+                 logger.bind(tag=TAG).error(f"处理控制设备意图错误: {e}")
         else:
             return ActionResponse(action=Action.NOTFOUND, result="没有找到对应的函数", response="没有找到对应的函数处理相对于的功能呢，你可以需要添加预设的对应函数处理呢")
     except Exception as e:

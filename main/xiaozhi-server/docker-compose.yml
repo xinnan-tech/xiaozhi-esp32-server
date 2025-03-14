@@ -1,41 +1,38 @@
-# 指定 Docker Compose 文件的版本
+# 如果本机已经安装了MySQL，可以直接在数据库中创建名为`xiaozhi_esp32_server`的数据库。
+# 如果还没有MySQL，你可以通过docker安装mysql,执行以下一句话
+# docker run --name xiaozhi-esp32-server-db -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -e MYSQL_DATABASE=xiaozhi_esp32_server -e MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci" -d mysql:latest
+# 如果你的mysql账号和密码有修改过，记得修改下方数据库的账号和密码
+# 记得修改下方数据库的IP，ip不能写127.0.0.1或localhost，否则容器无法访问，要写你电脑局域网ip
 version: '3'
-
-# 定义服务（容器）
 services:
-  # 服务名称：xiaozhi-esp32-server
   xiaozhi-esp32-server:
-    # 使用的镜像地址，从 ghcr.nju.edu.cn 拉取最新版本的镜像
-    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
-
-    # 容器名称，启动后容器的名字为 xiaozhi-esp32-server
+    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
     container_name: xiaozhi-esp32-server
-
-    # 容器重启策略，always 表示容器退出时总是自动重启
     restart: always
-
-    # 安全配置，禁用 seccomp 安全配置文件（允许容器执行更多系统调用）
     security_opt:
       - seccomp:unconfined
-
-    # 环境变量配置
     environment:
-      # 设置容器的时区为 Asia/Shanghai（上海时区）
       - TZ=Asia/Shanghai
-
-    # 端口映射，将容器内部的端口映射到宿主机的端口
     ports:
-      # 将容器内部的 8000 端口映射到宿主机的 8000 端口，用于 WebSocket 服务
+      # ws服务端
       - "8000:8000"
-      # 将容器内部的 8002 端口映射到宿主机的 8002 端口，用于管理后台
-      - "8002:8002"
-
-    # 数据卷挂载，将宿主机的目录或文件挂载到容器内部
     volumes:
-      # 将宿主机的 ./data 目录挂载到容器的 /opt/xiaozhi-esp32-server/data 目录
-      # 用于存储配置文件等数据
+      # 配置文件目录
       - ./data:/opt/xiaozhi-esp32-server/data
-
-      # 将宿主机的 ./models/SenseVoiceSmall/model.pt 文件挂载到容器的 /opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
-      # 用于加载模型文件，注释中提到“很重要”，说明模型文件是服务运行的关键
+      # 模型文件挂接，很重要
       - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+#  #智控台还没开发好，还不能完全使用，会报很多错误，如果是非技术人员，请不要启用智控台服务
+#  xiaozhi-esp32-server-web:
+#    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
+#    container_name: xiaozhi-esp32-server-web
+#    restart: always
+#    ports:
+#      - "8002:8002"
+#    environment:
+#      - TZ=Asia/Shanghai
+#      ##记得改mysql和redis IP 密码
+#      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://192.168.1.20:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+#      - SPRING_DATASOURCE_DRUID_USERNAME=root
+#      - SPRING_DATASOURCE_DRUID_PASSWORD=123456
+#      - SPRING_DATA_REDIS_HOST=192.168.1.20
+#      - SPRING_DATA_REDIS_PORT=6379

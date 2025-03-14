@@ -106,6 +106,7 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
         return paramValue;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public <T> T getValueObject(String paramCode, Class<T> clazz) {
         String paramValue = getValue(paramCode);

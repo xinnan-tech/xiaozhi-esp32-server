@@ -18,18 +18,44 @@ FunctionCallConfig = [
             },
             {
                 "type": "function",
-                "function": {
-                    "name": "play_music",
-                    "description": "唱歌、听歌、播放音乐方法。比如用户说播放音乐，参数为：random，比如用户说播放两只老虎，参数为：两只老虎",
+             "function": {
+                 "name": "hass_toggle_device",
+                 "description": "用homeassistant帮助用户打开或关闭设备",
+                     "parameters": {
+                         "type": "object",
+                         "properties": {
+                             "state": {
+                                 "type": "string",
+                                 "enum": ["on", "off"],
+                                 "description": "指定开还是关,开是on,关是off"
+                             },
+                             "entity_id": {
+                             "type": "string",
+                             "description": "需要操作的设备id,homeassistant里的entity_id"
+                             }
+                         },
+                         "required": ["state", "entity_id"]
+                     }
+                 }
+             },
+             {
+             "type": "function",
+             "function": {
+                 "name": "hass_play_music",
+                 "description": "用户想听音乐、有声书的时候使用，在房间的媒体播放器（media_player）里播放对应音频",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "song_name": {
+                            "media_content_id": {
                                 "type": "string",
-                                "description": "歌曲名称，如果没有指定具体歌名则为'random'"
+                                "description": "可以是音乐或有声书的专辑名称、歌曲名、演唱者,如果未指定就填random"
+                             },
+                             "entity_id": {
+                             "type": "string",
+                             "description": "需要操作的音箱的设备id,homeassistant里的entity_id,media_player开头"
                             }
                         },
-                        "required": ["song_name"]
+                        "required": ["media_content_id", "entity_id"]
                     }
                 }
             }
