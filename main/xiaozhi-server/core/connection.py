@@ -451,7 +451,8 @@ class ConnectionHandler:
                 opus_datas, text_index, tts_file = [], 0, None
                 try:
                     self.logger.bind(tag=TAG).debug("正在处理TTS任务...")
-                    tts_file, text, text_index = future.result(timeout=10)
+                    tts_timeout = self.config.get("tts_timeout", 10)
+                    tts_file, text, text_index = future.result(timeout=tts_timeout)
                     if text is None or len(text) <= 0:
                         self.logger.bind(tag=TAG).error(f"TTS出错：{text_index}: tts text is empty")
                     elif tts_file is None:
@@ -459,7 +460,7 @@ class ConnectionHandler:
                     else:
                         self.logger.bind(tag=TAG).debug(f"TTS生成：文件路径: {tts_file}")
                         if os.path.exists(tts_file):
-                            opus_datas, duration = self.tts.wav_to_opus_data(tts_file)
+                            opus_datas, duration = self.tts.audio_to_opus_data(tts_file)
                         else:
                             self.logger.bind(tag=TAG).error(f"TTS出错：文件不存在{tts_file}")
                 except TimeoutError:

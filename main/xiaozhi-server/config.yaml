@@ -58,6 +58,8 @@ delete_audio: true
 
 # 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
 close_connection_no_voice_time: 120
+# TTS请求超时时间(秒)
+tts_timeout: 10
 
 CMD_exit:
   - "退出"
@@ -411,6 +413,21 @@ TTS:
     voice: onyx
     # 语速范围0.25-4.0
     speed: 1
+    output_file: tmp/
+  CustomTTS:
+    # 自定义的TTS接口服务，请求参数可自定义
+    # 要求接口使用GET方式请求，并返回音频文件
+    type: custom
+    url: "http://127.0.0.1:9880/tts"
+    params: # 自定义请求参数
+      # text: "{prompt_text}" # {prompt_text}会被替换为实际的提示词内容
+      # speaker: jok老师
+      # speed: 1
+      # foo: bar
+      # testabc: 123456
+    headers: # 自定义请求头
+      # Authorization: Bearer xxxx
+    format: wav # 接口返回的音频格式
     output_file: tmp/
 # 模块测试配置
 module_test:
