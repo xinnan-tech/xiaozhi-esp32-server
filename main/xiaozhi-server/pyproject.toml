@@ -1,42 +1,82 @@
+#定义 Poetry 项目的元数据
 [tool.poetry]
+# 项目名称
 name = "xiaozhi-esp32-server"
+# 项目版本号
 version = "0.1.0"
+# 项目描述
 description = ""
+# 项目作者信息
 authors = ["kalicyh <34980061+kaliCYH@users.noreply.github.com>"]
+# 项目的 README 文件
 readme = "README.md"
 
+# 定义项目的依赖项
 [tool.poetry.dependencies]
+# Python 版本要求，^3.10 表示兼容 3.10.x 系列的最新版本
 python = "^3.10"
+
+# 以下是项目的主要依赖项及其版本
+# 用于处理 YAML 文件的库
 pyyml = "0.0.2"
+# PyTorch 机器学习框架
 torch = "2.2.2"
+# Silero 语音活动检测库
 silero-vad = "5.1.2"
+# WebSocket 协议支持库
 websockets = "14.2"
+# 科学计算库
 numpy = "1.26.4"
+# 音频处理库
 pydub = "0.25.1"
+# 自动语音识别工具包
 funasr = "1.2.3"
+# PyTorch 的音频处理扩展
 torchaudio = "2.2.2"
+# OpenAI API 客户端库
 openai = "1.61.0"
+# Google 生成式 AI 客户端库
 google-generativeai = "0.8.4"
+# 文本转语音库
 edge-tts = "7.0.0"
+# 现代化 HTTP 客户端库
 httpx = "0.27.2"
+# 异步 HTTP 客户端/服务器库
 aiohttp = "3.9.3"
+# 为 AIOHTTP 提供跨域资源共享支持的库
 aiohttp-cors = "0.7.0"
+# 高效的 MessagePack 序列化库
 ormsgpack = "1.7.0"
+# 强大的 YAML 文件处理库
 ruamel-yaml = "0.18.10"
+# Python 包管理工具
 setuptools = "^75.8.0"
+# 简单易用的日志库
 loguru = "^0.7.3"
+# Opus 音频编解码库
 opuslib-next = "^1.1.2"
+# FastAPI Web 框架，包含所有额外功能
 fastapi = {extras = ["all"], version = "^0.115.8"}
+# ASGI 服务器，用于运行 FastAPI 应用
 uvicorn = "^0.34.0"
+# JWT（JSON Web Token）库
 pyjwt = "^2.10.1"
+# 用于 JWT 加密和解密的库，包含 cryptography 扩展
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+# 密码哈希库
 bcrypt = "^4.2.1"
+# SQLAlchemy ORM 框架
 sqlalchemy = "^2.0.38"
+# MySQL 数据库连接库
 pymysql = "^1.1.1"
+# 异步 PostgreSQL 数据库连接库
 asyncpg = "^0.30.0"
+# ONNX 运行时库，用于运行 ONNX 模型
 onnxruntime = "1.19.2"
 
-
+# 定义项目的构建系统
 [build-system]
+# 构建系统所需的依赖项
 requires = ["poetry-core"]
+# 构建系统的后端
 build-backend = "poetry.core.masonry.api"

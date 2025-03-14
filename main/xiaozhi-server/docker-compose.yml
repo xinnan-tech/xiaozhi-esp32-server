@@ -1,20 +1,41 @@
+# 指定 Docker Compose 文件的版本
 version: '3'
+
+# 定义服务（容器）
 services:
+  # 服务名称：xiaozhi-esp32-server
   xiaozhi-esp32-server:
+    # 使用的镜像地址，从 ghcr.nju.edu.cn 拉取最新版本的镜像
     image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:latest
+
+    # 容器名称，启动后容器的名字为 xiaozhi-esp32-server
     container_name: xiaozhi-esp32-server
+
+    # 容器重启策略，always 表示容器退出时总是自动重启
     restart: always
+
+    # 安全配置，禁用 seccomp 安全配置文件（允许容器执行更多系统调用）
     security_opt:
       - seccomp:unconfined
+
+    # 环境变量配置
     environment:
+      # 设置容器的时区为 Asia/Shanghai（上海时区）
       - TZ=Asia/Shanghai
+
+    # 端口映射，将容器内部的端口映射到宿主机的端口
     ports:
-      # ws服务端
+      # 将容器内部的 8000 端口映射到宿主机的 8000 端口，用于 WebSocket 服务
       - "8000:8000"
-      # 管理后台
+      # 将容器内部的 8002 端口映射到宿主机的 8002 端口，用于管理后台
       - "8002:8002"
+
+    # 数据卷挂载，将宿主机的目录或文件挂载到容器内部
     volumes:
-      # 配置文件目录
+      # 将宿主机的 ./data 目录挂载到容器的 /opt/xiaozhi-esp32-server/data 目录
+      # 用于存储配置文件等数据
       - ./data:/opt/xiaozhi-esp32-server/data
-      # 模型文件挂接，很重要
+
+      # 将宿主机的 ./models/SenseVoiceSmall/model.pt 文件挂载到容器的 /opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+      # 用于加载模型文件，注释中提到“很重要”，说明模型文件是服务运行的关键
       - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
