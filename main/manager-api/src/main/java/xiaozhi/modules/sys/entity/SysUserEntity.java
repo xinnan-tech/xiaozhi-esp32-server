@@ -36,7 +36,7 @@ public class SysUserEntity extends BaseEntity {
      * 更新者
      */
     @TableField(fill = FieldFill.INSERT)
-    private Long create_date;
+    private Date createDate;
     /**
      * 更新者
      */
