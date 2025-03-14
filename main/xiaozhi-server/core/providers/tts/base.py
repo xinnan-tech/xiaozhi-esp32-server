@@ -5,6 +5,7 @@ import numpy as np
 import opuslib_next
 from pydub import AudioSegment
 from abc import ABC, abstractmethod
+from io import BytesIO
 
 TAG = __name__
 logger = setup_logging()
@@ -41,6 +42,14 @@ class TTSProviderBase(ABC):
     async def text_to_speak(self, text, output_file):
         pass
 
+
+    def wav_stream_to_opus_data(self, wav_bytes):
+        # 使用pydub加载PCM文件
+        if not wav_bytes:
+            raise IOError('stream null')
+        audio = AudioSegment.from_file(BytesIO(wav_bytes))
+        return self.audio_to_opus_data(audio)
+
     def wav_to_opus_data(self, wav_file_path):
         # 使用pydub加载PCM文件
         # 获取文件后缀名
@@ -48,6 +57,9 @@ class TTSProviderBase(ABC):
         if file_type:
             file_type = file_type.lstrip('.')
         audio = AudioSegment.from_file(wav_file_path, format=file_type)
+        return self.audio_to_opus_data(audio)
+
+    def audio_to_opus_data(self, audio:AudioSegment):
 
         duration = len(audio) / 1000.0
 
