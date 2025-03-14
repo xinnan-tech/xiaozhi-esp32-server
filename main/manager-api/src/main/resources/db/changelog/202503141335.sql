@@ -16,8 +16,7 @@ CREATE TABLE sys_user (
   creator bigint COMMENT '创建者',
   update_date datetime COMMENT '更新时间',
   primary key (id),
-  unique key uk_username (username),
-  key idx_create_date (create_date)
+  unique key uk_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户';
 
 -- 系统用户Token
@@ -46,8 +45,7 @@ create table sys_params
   updater              bigint COMMENT '更新者',
   update_date          datetime COMMENT '更新时间',
   primary key (id),
-  unique key uk_param_code (param_code),
-  key idx_create_date (create_date)
+  unique key uk_param_code (param_code)
 )ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COMMENT='参数管理';
 
 -- 字典类型
