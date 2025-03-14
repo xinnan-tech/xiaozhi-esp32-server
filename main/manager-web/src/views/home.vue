@@ -26,9 +26,14 @@
                 style="width: 12px;height: 12px;margin-right: 11px;cursor: pointer;" @click="handleSearch" />
             </div>
             <img src="@/assets/home/avatar.png" alt="" style="width: 21px;height: 21px;" />
+            <el-dropdown trigger="hover" @command="handleCommand">
             <div class="user-info">
               {{ userInfo.mobile }}
             </div>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
           </div>
         </div>
       </el-header>
@@ -60,7 +65,6 @@
             <div class="device-item" v-for="(item,index) in filteredDeviceList" :key="index">
               <div style="display: flex;justify-content: space-between; align-items: center; ">
                 <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
-<!--                  CC:ba:97:11:a6:ac-->
                   {{item.list[0]?.mac_address}}
                 </div>
                 <div style="display: flex;align-items: center;">
@@ -73,7 +77,7 @@
                 设备型号：{{item.list[0]?.device_type}}
               </div>
               <div style="display: flex;gap: 8px;align-items: center;">
-                <div class="settings-btn" @click="clickSettingDevice">
+                <div class="settings-btn" @click="clickSettingDevice(item)">
                   配置角色</div>
                 <div class="settings-btn">
                   声纹识别</div>
@@ -96,14 +100,14 @@
               style="width: 41px;height: 41px;background: #5778ff;border-radius: 50%;display: flex;align-items: center;justify-content: center;">
               <img src="@/assets/home/setting-user.png" alt="" style="width: 21px;height: 21px;" />
             </div>
-            CC:ba:97:11:a6:ac
+            {{ currentDevice?.list?.[0]?.id || '加载中...' }}
           </div>
           <div style="height: 1px;background: #e8f0ff;" />
           <el-form ref="form" :model="form" label-width="81px">
             <div style="padding: 18px 28px;max-width: 890px;">
               <el-form-item label="助手昵称：">
                 <div class="input-46" style="width: 57.5%;">
-                  <el-input v-model="form.name" />
+                  <el-input v-model="form.nickname" />
                 </div>
               </el-form-item>
               <el-form-item label="角色模版：">
@@ -123,8 +127,8 @@
               <el-form-item label="角色音色：">
                 <div style="display: flex;gap: 9px;align-items: center;">
                   <div class="input-46" style="flex:1.4;">
-                    <el-select v-model="form.timbre" placeholder="请选择" style="width: 100%;">
-                      <el-option v-for="item in options" :key="item.value" :label="item.label"
+                    <el-select v-model="form.templateId" placeholder="请选择" style="width: 100%;">
+                      <el-option v-for="item in voiceOptions" :key="item.value" :label="item.label"
                         :value="item.value">
                       </el-option>
                     </el-select>
@@ -138,36 +142,91 @@
               <el-form-item label="角色介绍：">
                 <div class="textarea-box">
                   <el-input type="textarea" rows="5.4" resize="none" placeholder="请输入内容"
-                    v-model="form.introduction" maxlength="2000" show-word-limit />
+                    v-model="form.voice" maxlength="2000" show-word-limit />
                 </div>
               </el-form-item>
               <el-form-item label="记忆体：">
                 <div class="textarea-box">
                   <el-input type="textarea" rows="5.4" resize="none" placeholder="请输入内容"
-                    v-model="form.prompt" maxlength="1000" />
+                    v-model="form.roleDescription" maxlength="1000" />
                   <div class="prompt-bottom">
                     <div style="display: flex;gap: 10px;align-items: center;">
                       <div style="color: #979db1;font-size: 12px;">当前记忆（每次对话后重新生成）</div>
-                      <div class="clear-btn">
+                      <div class="clear-btn" @click="clearroleDescription">
                         <i class="el-icon-delete-solid" style="font-size: 12px;" />
                         清除
                       </div>
                     </div>
-                    <div style="color: #979db1;font-size:12px;">{{form.prompt.length}}/1000</div>
+                    <div style="color: #979db1;font-size:12px;">{{ form.roleDescription.length }}/1000</div>
                   </div>
                 </div>
               </el-form-item>
-              <el-form-item label="语言模型（内测）：" class="lh-form-item">
+              <el-form-item label="大语言模型(LLM)：" class="lh-form-item">
                 <div style="display: flex;gap: 9px;">
-                  <div class="input-46" style="width: 100%;">
-                    <el-select v-model="form.model" placeholder="请选择" style="width: 100%;">
-                      <el-option v-for="item in options" :key="item.value" :label="item.label"
-                        :value="item.value">
-                      </el-option>
-                    </el-select>
-                  </div>
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.llm" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.llm" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
                 </div>
               </el-form-item>
+
+              <el-form-item label="语音转文本模型(ASR)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.asr" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.asr" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="语音活动检测模型(VAD)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.vad" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.vad" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="语音生成模型(TTS)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.tts" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.tts" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="意图分类模型(Intent)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.intent" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.intent" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="记忆增强模型(Memory)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.memory" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.memory" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
               <el-form-item label="" class="lh-form-item">
                 <div style="color: #979db1;text-align: left;">除了“Qwen
                   实时”，其他模型通常会增加约1秒的延迟。改变模型后，建议清空记忆体，以免影响体验。</div>
@@ -175,9 +234,10 @@
             </div>
           </el-form>
           <div style="display: flex;padding: 18px;gap: 9px;align-items: center;">
-            <div class="save-btn">
-              保存配置</div>
-            <div class="reset-btn">
+            <div class="save-btn" @click="saveConfig">
+              保存配置
+            </div>
+            <div class="reset-btn" @click="resetConfig">
               重制</div>
             <div class="clear-text">
               <img src="@/assets/home/red-info.png" alt="" style="width: 21px;height: 21px;" />
@@ -235,21 +295,32 @@ export default {
       switchValue: false,
       addDeviceDialogVisible: false,
       deviceCode: "", // 设备验证码
+      currentDevice: null, // 存储当前设备
       settingDevice: false,
       form: {
-        name: "",
-        timbre: "",
-        introduction: "",
-        prompt: "",
-        model: ""
+        nickname: "",
+        templateId: "",
+        voice: "",
+        roleDescription: "",
+        selectedModules: {
+          tts: "",
+          vad: "",
+          asr: "",
+          llm: "",
+          memory:"",
+          intent:""
+        }
       },
-      options: [{
-        value: '选项1',
-        label: '黄金糕'
-      }, {
-        value: '选项2',
-        label: '双皮奶'
-      }],
+      voiceOptions: [], // 角色音色
+      modelOptions: {  // 语言模型
+        llm: [],
+        asr: [],
+        vad: [],
+        tts: [],
+        memory: [],
+        intent: []
+      },
+
       userInfo: {
         mobile: '' // 初始化用户信息
       }
@@ -259,8 +330,45 @@ export default {
     showAddDialog() {
         this.addDeviceDialogVisible = true;
     },
-    clickSettingDevice() {
-      this.settingDevice = true
+    clickSettingDevice(item) {
+      this.settingDevice = true;
+      this.currentDevice = item;
+      // 加载设备配置
+      Api.user.getDeviceConfig(item.list[0]?.id, ({ data }) => {
+        if (data.code === 0) {
+          this.form = {
+            nickname: data.data.nickname || "",
+            templateId: data.data.templateId || "",
+            voice: data.data.voice || "",
+            roleDescription: data.data.roleDescription || "",
+            selectedModules: {
+              tts: data.data.selectedModules?.tts || "",
+              vad: data.data.selectedModules?.vad || "",
+              asr: data.data.selectedModules?.asr || "",
+              llm: data.data.selectedModules?.llm || "",
+              memory:data.data.selectedModules?.memory || "",
+              intent:data.data.selectedModules?.intent || "",
+            }
+          };
+          // 获取模型音色
+          Api.user.getModelVoices(item.list[0]?.device_type, ({ data }) => {
+            if (data.code === 0) {
+              this.voiceOptions = data.data.map(voice => ({
+                value: voice,
+                label: voice
+              }));
+            } else {
+              this.$message.error(data.msg || '获取音色失败');
+            }
+          });
+        } else if (data.code === 401) {
+            this.$message.error('未授权，请重新登录');
+            this.$router.push('/login');
+        } else {
+            this.$message.error(data.msg || '加载配置失败');
+        }
+    });
+
     },
     // 获取用户信息
     fetchUserInfo() {
@@ -328,11 +436,107 @@ export default {
                 this.$message.error(data.msg || '设备绑定失败');
             }
         });
+    },
+    // 清空记忆体输入框内容
+    clearroleDescription() {
+        this.form.roleDescription = "";
+    },
+    // 保存配置
+    saveConfig() {
+        const configData = {
+            nickname: this.form.nickname,
+            templateId: this.form.templateId,
+            voice: this.form.voice,
+            roleDescription: this.form.roleDescription,
+            selectedModules: {
+                tts: this.form.selectedModules.tts,
+                vad: this.form.selectedModules.vad,
+                asr: this.form.selectedModules.asr,
+                llm: this.form.selectedModules.llm,
+                its: this.form.selectedModules.its,
+                memory: this.form.selectedModules.memory,
+                intent: this.form.selectedModules.intent,
+            }
+        };
+
+        Api.user.saveDeviceConfig(this.currentDevice.list[0]?.id, configData, ({ data }) => {
+            if (data.code === 0) {
+                this.$message.success('配置保存成功');
+                this.settingDevice = false;
+                this.getList();
+            } else if (data.code === 401) {
+                this.$message.error('未授权，请重新登录');
+                this.$router.push('/login');
+            } else {
+                this.$message.error(data.msg || '配置保存失败');
+            }
+        });
+    },
+
+    // 重置配置
+    resetConfig() {
+        this.form = {
+            nickname: "",
+            templateId: "",
+            voice: "",
+            roleDescription: "",
+            selectedModules: {
+              tts: "",
+              vad: "",
+              asr: "",
+              llm: ""
+            }
+        };
+        this.$message.info('配置已重置');
+      },
+
+    // 获取模型名称
+    fetchModelNames() {
+        Api.user.getModelNames(({ data }) => {
+            if (data.code === 0) {
+                const allModels = data.data;
+
+                // 根据模型后缀名称分类
+                this.modelOptions.llm = allModels.filter(model => model.includes("LLM"));
+                this.modelOptions.asr = allModels.filter(model => model.includes("ASR"));
+                this.modelOptions.its = allModels.filter(model => model.includes("TTS"));
+                this.modelOptions.vad = allModels.filter(model => model.includes("VAD"));
+                this.modelOptions.memory = allModels.filter(model => model.includes("Memory"));
+                this.modelOptions.intent = allModels.filter(model => model.includes("Intent"));
+            } else {
+                this.$message.error(data.msg || '获取模型名称失败');
+            }
+        });
     }
+
   },
+    // 处理下拉菜单命令
+    handleCommand(command) {
+      if (command === 'logout') {
+        this.$confirm('确定要退出登录吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          // 调用退出登录的接口
+          Api.user.logout(({ data }) => {
+            if (data.code === 0) {
+              this.$message.success('退出成功');
+              this.$router.push('/login'); // 跳转到登录页面
+            } else {
+              this.$message.error(data.msg || '退出失败');
+            }
+          });
+        }).catch(() => {
+          // 用户取消操作
+          this.$message.info('已取消退出');
+        });
+      }
+    },
   mounted() {
     this.fetchUserInfo(); // 组件加载时获取用户信息
     this.getList(); // 初始化设备列表
+    this.fetchModelNames();
   }
 }
 </script>
@@ -404,6 +608,7 @@ export default {
   height: 35px;
   border-radius: 8px;
   border: 1px solid #e4e6ef;
+  padding: 5px;
 }
 .add-device-bg {
   width: 100%;
@@ -453,6 +658,7 @@ export default {
   letter-spacing: -0.02px;
   text-align: left;
   color: #3d4566;
+  cursor: pointer;
 }
 .clear-btn {
   width: 45px;
@@ -606,12 +812,16 @@ audio::-webkit-media-controls-panel {
   border-radius: 8px;
   background: #f6f8fb;
 }
+.textarea-box:focus-within {
+  border-color: #5778ff;
+}
 ::v-deep {
   .textarea-box .el-textarea__inner {
     background-color: transparent !important;
     border: none !important;
     padding: 15px;
   }
+
   // 搜索输入框的样式调整
   .serach-box .el-input__inner {
     border: none;
@@ -620,27 +830,32 @@ audio::-webkit-media-controls-panel {
     font-size: 12px;
     color: #3d4566;
   }
+
   .el-textarea .el-input__count {
     color: #979db1;
     font-size: 11px;
     right: 15px;
     background-color: transparent;
   }
+
   .el-input__inner {
     //border: none;
     //background-color: transparent;
     padding: 0 5px 0 15px;
     border-radius: 8px;
   }
+
   .input-46 .el-input__inner {
     padding: 0 15px;
     height: 38px;
   }
+
   .lh-form-item {
     .el-form-item__label {
       line-height: 17px;
     }
   }
+
   .el-form-item__label {
     line-height: 34px;
     font-weight: 400;
@@ -648,35 +863,44 @@ audio::-webkit-media-controls-panel {
     text-align: left;
     color: #3d4566;
   }
+
   .el-switch__core {
     height: 21px;
     border-radius: 10px;
   }
+
   .el-switch {
     line-height: 28px;
   }
+
   .el-switch.is-checked .el-switch__core::after {
     left: calc(100% - 4px);
   }
+
   .el-switch__label {
     color: #3d4566;
   }
+
   .el-switch__core:after {
     left: 4px;
     width: 15px;
     height: 15px;
     top: 2px;
   }
+
   .el-dialog__headerbtn .el-dialog__close {
     display: none;
   }
+
   .el-dialog__header,
   .el-dialog__footer {
     padding: 0;
   }
+
   .el-dialog--center .el-dialog__body {
     padding: 24px 0;
   }
+
   .el-dialog {
     display: flex !important;
     flex-direction: column !important;
@@ -685,9 +909,27 @@ audio::-webkit-media-controls-panel {
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    overflow-y: scroll !important;
+    overflow-y: auto !important;
     max-height: 100vh !important;
     border-radius: 15px;
+  }
+
+  .el-dropdown-menu {
+    background: #fff;
+    border: 1px solid #e4e6ef;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .el-dropdown-menu__item {
+    font-size: 12px;
+    color: #3d4566;
+    padding: 8px 16px;
+  }
+
+  .el-dropdown-menu__item:hover {
+    background: #f6f8fb;
+    color: #5778ff;
   }
 }
 </style>
