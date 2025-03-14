@@ -367,10 +367,10 @@ VAD:
 - 本项目受 [百聆语音对话机器人](https://github.com/wwbin2017/bailing) 启发，并在其基础上实现。
 - 感谢 [十方融海](https://www.tenclass.com/) 对小智通讯协议提供的详尽文档支持。
 
-<a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
+<a href="https://star-history.com/#c1pher-cn/xiaozhi-esp32-server&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=c1pher-cn/xiaozhi-esp32-server&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=c1pher-cn/xiaozhi-esp32-server&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=c1pher-cn/xiaozhi-esp32-server&type=Date" />
  </picture>
 </a>
