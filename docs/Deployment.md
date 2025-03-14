@@ -6,6 +6,31 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 
 如果您的电脑还没安装docker，可以按照这里的教程安装：[docker安装](https://www.runoob.com/docker/ubuntu-docker-install.html)
 
+> [!NOTE]
+> 懒人脚本
+>
+> 你可以使用以下命令一键下载并执行部署脚本：
+> ```bash
+> curl -L -o docker-setup.sh https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/docker-setup.sh && chmod +x docker-setup.sh
+> ```
+>
+> 如果您的电脑是windows系统，请使用powershell运行以下命令：
+> ```bash
+> bash docker-setup.sh
+> ```
+> 如果您的电脑是linux系统，请使用bash运行以下命令：
+> ```bash
+> ./docker-setup.sh
+> ```
+>
+> 脚本会自动完成以下操作：
+> 1. 创建必要的目录结构
+> 2. 下载语音识别模型
+> 3. 下载配置文件
+> 4. 检查文件完整性
+>
+> 执行完成后，请按照提示配置 API 密钥。
+
 ## 2. 创建目录
 
 安装完后，你需要为这个项目找一个安放配置文件的目录，例如我们可以新建一个文件夹叫`xiaozhi-server`。
