@@ -1,0 +1,72 @@
+{
+    "name": "@types/ws",
+    "version": "8.5.14",
+    "description": "TypeScript definitions for ws",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/ws",
+    "license": "MIT",
+    "contributors": [
+        {
+            "name": "Paul Loyd",
+            "githubUsername": "loyd",
+            "url": "https://github.com/loyd"
+        },
+        {
+            "name": "Margus Lamp",
+            "githubUsername": "mlamp",
+            "url": "https://github.com/mlamp"
+        },
+        {
+            "name": "Philippe D'Alva",
+            "githubUsername": "TitaneBoy",
+            "url": "https://github.com/TitaneBoy"
+        },
+        {
+            "name": "reduckted",
+            "githubUsername": "reduckted",
+            "url": "https://github.com/reduckted"
+        },
+        {
+            "name": "teidesu",
+            "githubUsername": "teidesu",
+            "url": "https://github.com/teidesu"
+        },
+        {
+            "name": "Bartosz Wojtkowiak",
+            "githubUsername": "wojtkowiak",
+            "url": "https://github.com/wojtkowiak"
+        },
+        {
+            "name": "Kyle Hensel",
+            "githubUsername": "k-yle",
+            "url": "https://github.com/k-yle"
+        },
+        {
+            "name": "Samuel Skeen",
+            "githubUsername": "cwadrupldijjit",
+            "url": "https://github.com/cwadrupldijjit"
+        }
+    ],
+    "main": "",
+    "types": "index.d.ts",
+    "exports": {
+        ".": {
+            "types": {
+                "import": "./index.d.mts",
+                "default": "./index.d.ts"
+            }
+        },
+        "./package.json": "./package.json"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/ws"
+    },
+    "scripts": {},
+    "dependencies": {
+        "@types/node": "*"
+    },
+    "peerDependencies": {},
+    "typesPublisherContentHash": "4f28320da3aae9bcd0905e47ff3eb3a16b1882e182a1b60100f36e518359b5a7",
+    "typeScriptVersion": "5.0"
+}

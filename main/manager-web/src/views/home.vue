@@ -156,17 +156,72 @@
                   </div>
                 </div>
               </el-form-item>
-              <el-form-item label="语言模型（内测）：" class="lh-form-item">
+              <el-form-item label="大语言模型(LLM)：" class="lh-form-item">
                 <div style="display: flex;gap: 9px;">
-                  <div class="input-46" style="width: 100%;">
-                    <el-select v-model="form.selectedModules.llm" placeholder="请选择" style="width: 100%;">
-                      <el-option v-for="item in modelOptions" :key="item.value" :label="item.label"
-                        :value="item.value">
-                      </el-option>
-                    </el-select>
-                  </div>
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.llm" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.llm" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
                 </div>
               </el-form-item>
+
+              <el-form-item label="语音转文本模型(ASR)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.asr" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.asr" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="语音活动检测模型(VAD)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.vad" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.vad" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="语音生成模型(TTS)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.tts" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.tts" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="意图分类模型(Intent)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.intent" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.intent" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="记忆增强模型(Memory)：" class="lh-form-item">
+                <div style="display: flex;gap: 9px;">
+                    <div class="input-46" style="width: 100%;">
+                        <el-select v-model="form.selectedModules.memory" filterable placeholder="请选择" style="width: 100%;">
+                            <el-option v-for="item in modelOptions.memory" :key="item" :label="item" :value="item">
+                            </el-option>
+                        </el-select>
+                    </div>
+                </div>
+              </el-form-item>
+
               <el-form-item label="" class="lh-form-item">
                 <div style="color: #979db1;text-align: left;">除了“Qwen
                   实时”，其他模型通常会增加约1秒的延迟。改变模型后，建议清空记忆体，以免影响体验。</div>
@@ -246,11 +301,20 @@ export default {
           tts: "",
           vad: "",
           asr: "",
-          llm: ""
+          llm: "",
+          memory:"",
+          intent:""
         }
       },
-      voiceOptions: [], // 角色音色的选项
-      modelOptions: [], // 语言模型的选项
+      voiceOptions: [], // 角色音色
+      modelOptions: {  // 语言模型
+        llm: [],
+        asr: [],
+        vad: [],
+        tts: [],
+        memory: [],
+        intent: []
+      },
 
       userInfo: {
         mobile: '' // 初始化用户信息
@@ -276,7 +340,9 @@ export default {
               tts: data.data.selectedModules?.tts || "",
               vad: data.data.selectedModules?.vad || "",
               asr: data.data.selectedModules?.asr || "",
-              llm: data.data.selectedModules?.llm || ""
+              llm: data.data.selectedModules?.llm || "",
+              memory:data.data.selectedModules?.memory || "",
+              intent:data.data.selectedModules?.intent || "",
             }
           };
           // 获取模型音色
@@ -371,31 +437,34 @@ export default {
         this.form.roleDescription = "";
     },
     // 保存配置
-    saveConfig(item) {
+    saveConfig() {
         const configData = {
             nickname: this.form.nickname,
             templateId: this.form.templateId,
             voice: this.form.voice,
             roleDescription: this.form.roleDescription,
             selectedModules: {
-              tts: this.form.selectedModules.tts,
-              vad: this.form.selectedModules.vad,
-              asr: this.form.selectedModules.asr,
-              llm: this.form.selectedModules.llm
+                tts: this.form.selectedModules.tts,
+                vad: this.form.selectedModules.vad,
+                asr: this.form.selectedModules.asr,
+                llm: this.form.selectedModules.llm,
+                its: this.form.selectedModules.its,
+                memory: this.form.selectedModules.memory,
+                intent: this.form.selectedModules.intent,
             }
         };
 
         Api.user.saveDeviceConfig(this.currentDevice.list[0]?.id, configData, ({ data }) => {
-          if (data.code === 0) {
-            this.$message.success('配置保存成功');
-            this.settingDevice = false;
-            this.getList();
-          } else if (data.code === 401) {
-            this.$message.error('未授权，请重新登录');
-            this.$router.push('/login');
-          } else {
-            this.$message.error(data.msg || '配置保存失败');
-          }
+            if (data.code === 0) {
+                this.$message.success('配置保存成功');
+                this.settingDevice = false;
+                this.getList();
+            } else if (data.code === 401) {
+                this.$message.error('未授权，请重新登录');
+                this.$router.push('/login');
+            } else {
+                this.$message.error(data.msg || '配置保存失败');
+            }
         });
     },
 
@@ -420,15 +489,20 @@ export default {
     fetchModelNames() {
         Api.user.getModelNames(({ data }) => {
             if (data.code === 0) {
-                this.modelOptions = data.data.map(model => ({
-                    value: model,
-                    label: model
-                }));
+                const allModels = data.data;
+
+                // 根据模型后缀名称分类
+                this.modelOptions.llm = allModels.filter(model => model.includes("LLM"));
+                this.modelOptions.asr = allModels.filter(model => model.includes("ASR"));
+                this.modelOptions.its = allModels.filter(model => model.includes("TTS"));
+                this.modelOptions.vad = allModels.filter(model => model.includes("VAD"));
+                this.modelOptions.memory = allModels.filter(model => model.includes("Memory"));
+                this.modelOptions.intent = allModels.filter(model => model.includes("Intent"));
             } else {
                 this.$message.error(data.msg || '获取模型名称失败');
             }
         });
-    },
+    }
 
   },
   mounted() {
@@ -506,6 +580,7 @@ export default {
   height: 35px;
   border-radius: 8px;
   border: 1px solid #e4e6ef;
+  padding: 5px;
 }
 .add-device-bg {
   width: 100%;
