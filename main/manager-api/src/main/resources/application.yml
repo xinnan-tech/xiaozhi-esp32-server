@@ -48,10 +48,6 @@ knife4j:
     password: admin
   setting:
     enableFooter: false
-
-renren:
-  redis:
-    open: false
   xss:
     enabled: true
     exclude-urls:
