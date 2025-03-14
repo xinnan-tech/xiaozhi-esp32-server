@@ -20,7 +20,8 @@ async def handleAudioMessage(conn, audio):
     # 如果本次没有声音，本段也没声音，就把声音丢弃了
     if have_voice == False and conn.client_have_voice == False:
         await no_voice_close_connect(conn)
-        conn.asr_audio.clear()
+        conn.asr_audio.append(audio)
+        conn.asr_audio = conn.asr_audio[-5:]  # 保留最新的5帧音频内容，解决ASR句首丢字问题
         return
     conn.client_no_voice_last_time = 0.0
     conn.asr_audio.append(audio)
@@ -29,7 +30,7 @@ async def handleAudioMessage(conn, audio):
         conn.client_abort = False
         conn.asr_server_receive = False
         # 音频太短了，无法识别
-        if len(conn.asr_audio) < 3:
+        if len(conn.asr_audio) < 10:
             conn.asr_server_receive = True
         else:
             text, file_path = await conn.asr.speech_to_text(conn.asr_audio, conn.session_id)
