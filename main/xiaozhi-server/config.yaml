@@ -37,7 +37,8 @@ log:
   data_dir: data
 iot:
   Speaker:
-    volume: 100
+    # 设置esp32的音量，范围0-100
+    volume: 80
 xiaozhi:
   type: hello
   version: 1
@@ -64,21 +65,48 @@ CMD_exit:
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
-  ASR: FunASR
+  # 语音活动检测模块，默认使用SileroVAD模型
   VAD: SileroVAD
+  # 语音识别模块，默认使用FunASR本地模型
+  ASR: FunASR
   # 将根据配置名称对应的type调用实际的LLM适配器
   LLM: ChatGLMLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
-  Memory: mem0ai
+  # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
+  Memory: nomem
+  # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
+  # 意图识别使用intent_llm，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
+  # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
+  # 如果意图识别设置成 function_call，建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
+  Intent: nointent
+
+# 意图识别，是用于理解用户意图的模块，例如：播放音乐
+Intent:
+  # 不使用意图识别
+  nointent:
+    # 不需要动
+    type: nointent
+  intent_llm:
+    # 不需要动
+    type: intent_llm
+  function_call:
+    # 不需要动
+    type: nointent
 
 Memory:
   mem0ai:
     type: mem0ai
     # https://app.mem0.ai/dashboard/api-keys
     # 每月有1000次免费调用
-    api_key: 填写你申请的key
-    
+    api_key: m0-sLgoEcHDl35WQttEMpFSr3F1FA75nvozKEhb7eh5
+  nomem:
+    # 不想使用记忆功能，可以使用nomem 
+    type: nomem
+  mem_local_short:
+    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器 
+    type: mem_local_short
+
 ASR:
   FunASR:
     type: fun_local
@@ -105,6 +133,16 @@ LLM:
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
     api_key: 你的deepseek web key
+  DoubaoLLM:
+    # 定义LLM API类型
+    type: openai
+    # 先开通服务，打开以下网址，开通的服务搜索Doubao-pro-32k，开通它
+    # 开通改地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
+    # 免费额度500000token
+    # 开通后，进入这里获取密钥：https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey?apikey=%7B%7D
+    base_url: https://ark.cn-beijing.volces.com/api/v3
+    model_name: doubao-pro-32k-functioncall-241028
+    api_key: 你的doubao web key
   DeepSeekLLM:
     # 定义LLM API类型
     type: openai
@@ -119,7 +157,7 @@ LLM:
     # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你自己的key
+    api_key: d796742def124203a77940bc2cca3273.kVHYy17ZWTUQWfst
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -143,8 +181,9 @@ LLM:
   CozeLLM:
     # 定义LLM API类型
     type: coze
-    bot_id: 你的bot_id
-    user_id: 你的user_id
+    # bot_id和user_id的内容写在引号之内
+    bot_id: "你的bot_id"
+    user_id: "你的user_id"
     personal_access_token: 你的coze个人令牌
   LMStudioLLM:
     # 定义LLM API类型
@@ -258,6 +297,21 @@ TTS:
     parallel_infer: true
     repetition_penalty: 1.35
     aux_ref_audio_paths: []
+  GPT_SOVITS_V3:
+    type: gpt_sovits_v3
+    url: "http://127.0.0.1:9880/tts"
+    output_file: tmp/
+    text_lang: "auto"
+    ref_audio_path: "caixukun.wav"
+    prompt_lang: "zh"
+    prompt_text: ""
+    top_k: 5
+    top_p: 1
+    temperature: 1
+    sample_steps: 16
+    media_type: "wav"
+    streaming_mode: false
+    threshold: 30
   MinimaxTTS:
     # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
     # 平台地址：https://platform.minimaxi.com/
@@ -321,7 +375,7 @@ TTS:
   TTS302AI:
     # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
     # 获取api_keyn路径：https://dash.302.ai/apis/list
-    # 价格，$35/百万字符。火山原版¥450元/万字符
+    # 价格，$35/百万字符。火山原版¥450元/百万字符
     type: doubao
     api_url: https://api.302ai.cn/doubao/tts_hd
     authorization: "Bearer "
@@ -367,18 +421,6 @@ module_test:
 
 # 本地音乐播放配置
 music:
-  music_commands:
-    - "来一首歌"
-    - "唱一首歌"
-    - "播放音乐"
-    - "来点音乐"
-    - "背景音乐"
-    - "放首歌"
-    - "播放歌曲"
-    - "来点背景音乐"
-    - "我想听歌"
-    - "我要听歌"
-    - "放点音乐"
   music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
   music_ext: # 音乐文件类型，p3格式效率最高
     - ".mp3"

@@ -4,6 +4,7 @@ import yaml
 import socket
 import subprocess
 import logging
+import re
 
 
 def get_project_dir():
@@ -75,7 +76,7 @@ def get_string_no_punctuation_or_emoji(s):
 def remove_punctuation_and_length(text):
     # 全角符号和半角符号的Unicode范围
     full_width_punctuations = '！＂＃＄％＆＇（）＊＋，－。／：；＜＝＞？＠［＼］＾＿｀｛｜｝～'
-    half_width_punctuations = '!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~'
+    half_width_punctuations = r'!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~'
     space = ' '  # 半角空格
     full_width_space = '　'  # 全角空格
 
@@ -119,3 +120,11 @@ def check_ffmpeg_installed():
         error_msg += "1、按照项目的安装文档，正确进入conda环境\n"
         error_msg += "2、查阅安装文档，如何在conda环境中安装ffmpeg\n"
         raise ValueError(error_msg)
+    
+def extract_json_from_string(input_string):
+    """提取字符串中的 JSON 部分"""
+    pattern = r'(\{.*\})'
+    match = re.search(pattern, input_string)
+    if match:
+        return match.group(1)  # 返回提取的 JSON 字符串
+    return None

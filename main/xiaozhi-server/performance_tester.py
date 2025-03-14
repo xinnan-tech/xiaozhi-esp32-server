@@ -18,19 +18,16 @@ logging.basicConfig(level=logging.WARNING)
 
 class AsyncPerformanceTester:
     def __init__(self):
-        # 读取配置文件
         self.config = read_config(get_config_file())
-        # 获取测试句子，如果没有配置则使用默认的测试句子
         self.test_sentences = self.config.get("module_test", {}).get(
             "test_sentences",
             ["你好，请介绍一下你自己", "What's the weather like today?",
              "请用100字概括量子计算的基本原理和应用前景"]
         )
-        # 初始化结果存储字典
         self.results = {
-            "llm": {},  # 存储LLM（大语言模型）的测试结果
-            "tts": {},  # 存储TTS（文本转语音）的测试结果
-            "combinations": []  # 存储LLM和TTS的组合测试结果
+            "llm": {},
+            "tts": {},
+            "combinations": []
         }
 
     async def _check_ollama_service(self, base_url: str, model_name: str) -> bool:
@@ -62,19 +59,15 @@ class AsyncPerformanceTester:
     async def _test_tts(self, tts_name: str, config: Dict) -> Dict:
         """异步测试单个TTS性能"""
         try:
-            # 设置TTS模块的日志级别为WARNING，避免过多的日志输出
             logging.getLogger("core.providers.tts.base").setLevel(logging.WARNING)
 
-            # 检查TTS配置中的关键字段是否已正确配置
             token_fields = ["access_token", "api_key", "token"]
             if any(field in config and any(x in config[field] for x in ["你的", "placeholder"]) for field in
                    token_fields):
                 print(f"⏭️  TTS {tts_name} 未配置access_token/api_key，已跳过")
                 return {"name": tts_name, "type": "tts", "errors": 1}
 
-            # 获取TTS模块类型，如果没有配置则使用tts_name
             module_type = config.get('type', tts_name)
-            # 创建TTS实例
             tts = create_tts_instance(
                 module_type,
                 config,
@@ -83,17 +76,13 @@ class AsyncPerformanceTester:
 
             print(f"🎵 测试 TTS: {tts_name}")
 
-            # 生成临时文件名
             tmp_file = tts.generate_filename()
-            # 测试TTS连接
             await tts.text_to_speak("连接测试", tmp_file)
 
-            # 检查生成的音频文件是否存在
             if not tmp_file or not os.path.exists(tmp_file):
                 print(f"❌ {tts_name} 连接失败")
                 return {"name": tts_name, "type": "tts", "errors": 1}
 
-            # 计算TTS合成时间
             total_time = 0
             test_count = len(self.test_sentences[:2])
 
@@ -104,14 +93,12 @@ class AsyncPerformanceTester:
                 duration = time.time() - start
                 total_time += duration
 
-                # 检查生成的音频文件是否存在
                 if tmp_file and os.path.exists(tmp_file):
                     print(f"✓ {tts_name} [{i}/{test_count}]")
                 else:
                     print(f"✗ {tts_name} [{i}/{test_count}]")
                     return {"name": tts_name, "type": "tts", "errors": 1}
 
-            # 返回测试结果
             return {
                 "name": tts_name,
                 "type": "tts",
@@ -137,14 +124,12 @@ class AsyncPerformanceTester:
                 if not await self._check_ollama_service(base_url, model_name):
                     return {"name": llm_name, "type": "llm", "errors": 1}
             else:
-                # 检查LLM配置中的api_key是否已正确配置
                 if "api_key" in config and any(x in config["api_key"] for x in ["你的", "placeholder", "sk-xxx"]):
                     print(f"🚫 跳过未配置的LLM: {llm_name}")
                     return {"name": llm_name, "type": "llm", "errors": 1}
 
-            # 获取LLM模块类型，如果没有配置则使用llm_name
+            # 获取实际类型（兼容旧配置）
             module_type = config.get('type', llm_name)
-            # 创建LLM实例
             llm = create_llm_instance(module_type, config)
 
             # 统一使用UTF-8编码
@@ -164,7 +149,6 @@ class AsyncPerformanceTester:
                 print(f"⚠️  {llm_name} 无有效数据，可能配置错误")
                 return {"name": llm_name, "type": "llm", "errors": 1}
 
-            # 计算首字时间和响应时间
             first_token_times = [r["first_token_time"] for r in valid_results]
             response_times = [r["response_time"] for r in valid_results]
 
@@ -177,7 +161,6 @@ class AsyncPerformanceTester:
                 print(f"⚠️  {llm_name} 有效数据不足，可能网络不稳定")
                 return {"name": llm_name, "type": "llm", "errors": 1}
 
-            # 返回测试结果
             return {
                 "name": llm_name,
                 "type": "llm",
@@ -230,7 +213,6 @@ class AsyncPerformanceTester:
 
     def _generate_combinations(self):
         """生成最佳组合建议"""
-        # 获取有效的LLM和TTS模块
         valid_llms = [
             k for k, v in self.results["llm"].items()
             if v["errors"] == 0 and v["avg_first_token"] >= 0.05
@@ -241,7 +223,6 @@ class AsyncPerformanceTester:
         min_first_token = min([self.results["llm"][llm]["avg_first_token"] for llm in valid_llms]) if valid_llms else 1
         min_tts_time = min([self.results["tts"][tts]["avg_time"] for tts in valid_tts]) if valid_tts else 1
 
-        # 计算每个组合的得分
         for llm in valid_llms:
             for tts in valid_tts:
                 # 计算相对性能分数（越小越好）
@@ -270,21 +251,20 @@ class AsyncPerformanceTester:
                     }
                 })
 
-        # 按分数排序，分数越小越好
+        # 分数越小越好
         self.results["combinations"].sort(key=lambda x: x["score"])
 
     def _print_results(self):
         """打印测试结果"""
-        # 打印LLM性能排行
         llm_table = []
         for name, data in self.results["llm"].items():
             if data["errors"] == 0:
                 stability = data["std_first_token"] / data["avg_first_token"]
                 llm_table.append([
-                    name,  # 模型名称
-                    f"{data['avg_first_token']:.3f}秒",  # 首字耗时
-                    f"{data['avg_response']:.3f}秒",  # 总耗时
-                    f"{stability:.3f}"  # 稳定性
+                    name,  # 不需要固定宽度，让tabulate自己处理对齐
+                    f"{data['avg_first_token']:.3f}秒",
+                    f"{data['avg_response']:.3f}秒",
+                    f"{stability:.3f}"
                 ])
 
         if llm_table:
@@ -299,13 +279,12 @@ class AsyncPerformanceTester:
         else:
             print("\n⚠️ 没有可用的LLM模块进行测试。")
 
-        # 打印TTS性能排行
         tts_table = []
         for name, data in self.results["tts"].items():
             if data["errors"] == 0:
                 tts_table.append([
-                    name,  # 模型名称
-                    f"{data['avg_time']:.3f}秒"  # 合成耗时
+                    name,  # 不需要固定宽度
+                    f"{data['avg_time']:.3f}秒"
                 ])
 
         if tts_table:
@@ -320,17 +299,16 @@ class AsyncPerformanceTester:
         else:
             print("\n⚠️ 没有可用的TTS模块进行测试。")
 
-        # 打印推荐配置组合
         if self.results["combinations"]:
             print("\n推荐配置组合 (得分越小越好):")
             combo_table = []
             for combo in self.results["combinations"][:5]:
                 combo_table.append([
-                    f"{combo['llm']} + {combo['tts']}",  # 组合方案
-                    f"{combo['score']:.3f}",  # 综合得分
-                    f"{combo['details']['llm_first_token']:.3f}秒",  # LLM首字耗时
-                    f"{combo['details']['llm_stability']:.3f}",  # 稳定性
-                    f"{combo['details']['tts_time']:.3f}秒"  # TTS合成耗时
+                    f"{combo['llm']} + {combo['tts']}",  # 不需要固定宽度
+                    f"{combo['score']:.3f}",
+                    f"{combo['details']['llm_first_token']:.3f}秒",
+                    f"{combo['details']['llm_stability']:.3f}",
+                    f"{combo['details']['tts_time']:.3f}秒"
                 ])
 
             print(tabulate(
@@ -450,12 +428,9 @@ class AsyncPerformanceTester:
 
 
 async def main():
-    # 创建性能测试器实例
     tester = AsyncPerformanceTester()
-    # 运行测试
     await tester.run()
 
 
 if __name__ == "__main__":
-    # 运行主函数
     asyncio.run(main())

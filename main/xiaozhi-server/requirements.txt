@@ -1,83 +1,21 @@
-# 用于处理 YAML 文件的库，版本 0.0.2
-# YAML 是一种常用的配置文件格式，pyyml 提供了对 YAML 文件的读写支持
 pyyml==0.0.2
-
-# PyTorch 是一个开源的机器学习框架，版本 2.2.2
-# 提供了张量计算、自动求导和神经网络构建等功能
 torch==2.2.2
-
-# Silero VAD 是一个语音活动检测（Voice Activity Detection）库，版本 5.1.2
-# 用于检测音频中是否有语音活动
 silero_vad==5.1.2
-
-# WebSockets 是一个用于实现 WebSocket 协议的库，版本 14.2
-# 支持异步通信，适用于实时数据传输场景
 websockets==14.2
-
-# Opuslib_next 是一个用于编解码 Opus 音频格式的库，版本 1.1.2
-# Opus 是一种高效的音频压缩格式，常用于语音通信
 opuslib_next==1.1.2
-
-# NumPy 是一个用于科学计算的库，版本 1.26.4
-# 提供了高效的数组操作和数学函数支持
 numpy==1.26.4
-
-# Pydub 是一个用于音频处理的库，版本 0.25.1
-# 支持音频文件的读取、格式转换和简单编辑
 pydub==0.25.1
-
-# FunASR 是一个自动语音识别（ASR）工具包，版本 1.2.3
-# 提供了语音转文本的功能，支持多种模型和语言
 funasr==1.2.3
-
-# Torchaudio 是 PyTorch 的音频处理库，版本 2.2.2
-# 提供了音频加载、处理和转换的功能
 torchaudio==2.2.2
-
-# OpenAI 是 OpenAI API 的官方 Python 客户端库，版本 1.61.0
-# 用于与 OpenAI 的 GPT 模型进行交互
 openai==1.61.0
-
-# Google Generative AI 是 Google 生成式 AI 的 Python 客户端库，版本 0.8.4
-# 用于与 Google 的生成式 AI 模型进行交互
 google-generativeai==0.8.4
-
-# Edge TTS 是一个用于文本转语音（TTS）的库，版本 7.0.0
-# 支持多种语音和语言，适用于语音合成场景
 edge_tts==7.0.0
-
-# HTTPX 是一个现代化的 HTTP 客户端库，版本 0.27.2
-# 支持同步和异步请求，适用于 HTTP API 调用
 httpx==0.27.2
-
-# AIOHTTP 是一个异步 HTTP 客户端/服务器库，版本 3.9.3
-# 支持异步 Web 服务和客户端请求
 aiohttp==3.9.3
-
-# AIOHTTP CORS 是一个为 AIOHTTP 提供跨域资源共享（CORS）支持的库，版本 0.7.0
-# 用于处理 Web 服务的跨域请求
 aiohttp_cors==0.7.0
-
-# ormsgpack 是一个高效的 MessagePack 序列化库，版本 1.7.0
-# MessagePack 是一种二进制序列化格式，比 JSON 更高效
 ormsgpack==1.7.0
-
-# ruamel.yaml 是一个用于处理 YAML 文件的库，版本 0.18.10
-# 支持 YAML 文件的读写和解析，功能比 pyyml 更强大
 ruamel.yaml==0.18.10
-
-# Loguru 是一个简单易用的日志库，版本 0.7.3
-# 提供了丰富的日志功能和友好的输出格式
 loguru==0.7.3
-
-# Requests 是一个常用的 HTTP 客户端库，版本 2.32.3
-# 支持同步 HTTP 请求，适用于简单的 API 调用
 requests==2.32.3
-
-# Cozepy 是一个与 Coze 平台交互的 Python 库，版本 0.12.0
-# 提供了与 Coze 平台 API 的集成支持
 cozepy==0.12.0
-
-# Mem0ai 是一个与 Mem0 平台交互的 Python 库，版本 0.1.62
-# 提供了与 Mem0 平台 API 的集成支持
 mem0ai==0.1.62
