@@ -1,4 +1,4 @@
-import {goToPage, showDanger, showWarning} from '../utils/index'
+import {goToPage, showDanger, showWarning, isNotNull} from '../utils/index'
 import Constant from '../utils/constant'
 import Fly from 'flyio/dist/npm/fly';
 import store from '../store/index'
@@ -26,7 +26,9 @@ function sendRequest() {
         _url: '',
         _responseType: undefined, // 新增响应类型字段
         'send'() {
-            this._header.Authorization = 'Bearer ' + (JSON.parse(store.getters.getToken)).token
+            if(isNotNull(store.getters.getToken)){
+                this._header.Authorization = 'Bearer ' + (JSON.parse(store.getters.getToken)).token
+            }
 
             // 打印请求信息
             fly.request(this._url, this._data, {
