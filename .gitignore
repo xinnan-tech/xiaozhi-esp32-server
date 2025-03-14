@@ -151,3 +151,5 @@ main/manager-web/node_modules
 .private_config.yaml
 .env.development
 
+/main/xiaozhi-server/audio_ref/
+/audio_ref/

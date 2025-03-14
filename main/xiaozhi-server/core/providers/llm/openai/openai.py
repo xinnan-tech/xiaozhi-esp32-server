@@ -2,6 +2,7 @@ import openai
 from core.utils.util import check_model_key
 from core.providers.llm.base import LLMProviderBase
 
+TAG = __name__
 
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
@@ -42,7 +43,7 @@ class LLMProvider(LLMProviderBase):
                         yield content
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in response generation: {e}")
+            self.logger.bind(tag=TAG).error(f"Error in response generation: {e}")
 
     def response_with_functions(self, session_id, dialogue, functions=None):
         try:
