@@ -6,25 +6,29 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 
 如果您的电脑还没安装docker，可以按照这里的教程安装：[docker安装](https://www.runoob.com/docker/ubuntu-docker-install.html)
 
-> [!NOTE]
-> 懒人脚本
->
-> 你可以使用以下命令一键下载并执行部署脚本：
-> 请确保你的环境可以正常访问 GitHub 否则无法下载脚本。
-> ```bash
-> curl -L -o docker-setup.sh https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/docker-setup.sh && chmod +x docker-setup.sh
-> ```
->
-> 如果您的电脑是windows系统，请使用powershell运行以下命令：
-> ```bash
-> bash docker-setup.sh
-> ```
-> 如果您的电脑是linux系统，请使用bash运行以下命令：
-> ```bash
-> ./docker-setup.sh
-> ```
->
-> 脚本会自动完成以下操作：
+### 1.1 懒人脚本
+
+你可以使用以下命令一键下载并执行部署脚本：
+请确保你的环境可以正常访问 GitHub 否则无法下载脚本。
+```bash
+curl -L -o docker-setup.sh https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/docker-setup.sh
+```
+
+如果您的电脑是windows系统，请使用使用 Git Bash、WSL、PowerShell 或 CMD 运行以下命令：
+```bash
+# Git Bash 或 WSL
+sh docker-setup.sh
+# PowerShell 或 CMD
+.\docker-setup.sh
+```
+
+如果您的电脑是linux 或者 macos 系统，请使用终端运行以下命令：
+```bash
+chmod +x docker-setup.sh
+./docker-setup.sh
+```
+
+脚本会自动完成以下操作：
 > 1. 创建必要的目录结构
 > 2. 下载语音识别模型
 > 3. 下载配置文件
@@ -32,7 +36,11 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 >
 > 执行完成后，请按照提示配置 API 密钥。
 
-## 2. 创建目录
+### 1.2 手动部署
+
+如果懒人脚本无法正常运行，请手动部署。
+
+#### 1.2.1 创建目录
 
 安装完后，你需要为这个项目找一个安放配置文件的目录，例如我们可以新建一个文件夹叫`xiaozhi-server`。
 
@@ -47,7 +55,7 @@ mkdir -p xiaozhi-server/data xiaozhi-server/models/SenseVoiceSmall
 cd xiaozhi-server
 ```
 
-## 3. 下载语音识别模型文件
+#### 1.2.2 下载语音识别模型文件
 
 你需要下载语音识别的模型文件，因为本项目的默认语音识别用的是本地离线语音识别方案。
 
@@ -60,11 +68,11 @@ cd xiaozhi-server
 curl -L --progress-bar -o models/SenseVoiceSmall/model.pt https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt
 ```
 
-## 4. 下载配置文件
+#### 1.2.3 下载配置文件
 
 你需要下载两个配置文件：`docker-compose.yaml` 和 `config.yaml`。你可以通过以下命令下载，或者手动从项目仓库下载这两个文件。
 
-### 4.1 下载 docker-compose.yaml
+##### 1.2.3.1 下载 docker-compose.yaml
 
 如果你的电脑安装了 curl 工具，可以直接使用以下命令下载：
 
@@ -75,7 +83,7 @@ curl -L --progress-bar -o docker-compose.yml https://raw.githubusercontent.com/x
 如果没有安装 curl，你也可以直接用浏览器打开这个地址下载文件：
 https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/main/xiaozhi-server/docker-compose.yml
 
-### 4.2 下载 config.yaml
+##### 1.2.3.2 下载 config.yaml
 
 > [!NOTE]
 > 注意，`config.yaml` 文件需要放在 data 目录下，并且重命名成 `.config.yaml`
