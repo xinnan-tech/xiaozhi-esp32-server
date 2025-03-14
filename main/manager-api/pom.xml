@@ -29,6 +29,7 @@
         <guava.version>33.0.0-jre</guava.version>
         <easyexcel.version>3.3.2</easyexcel.version>
         <liquibase-core.version>4.20.0</liquibase-core.version>
+        <caffeine.version>3.1.8</caffeine.version>
     </properties>
 
     <dependencies>
@@ -86,6 +87,38 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit 5 Jupiter Engine -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit 5 Jupiter Params -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit Platform Commons -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-commons</artifactId>
+            <version>1.12.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit Platform Engine -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-engine</artifactId>
+            <version>1.12.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -168,7 +201,14 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- caffeine本地缓存 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
+        </dependency>
     </dependencies>
+
 
     <!-- 阿里云maven仓库 -->
     <repositories>
