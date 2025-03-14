@@ -13,6 +13,7 @@ CREATE TABLE sys_user (
   status tinyint COMMENT '状态  0：停用   1：正常',
   create_date datetime COMMENT '创建时间',
   updater bigint COMMENT '更新者',
+  creator bigint COMMENT '创建者',
   update_date datetime COMMENT '更新时间',
   primary key (id),
   unique key uk_username (username),
