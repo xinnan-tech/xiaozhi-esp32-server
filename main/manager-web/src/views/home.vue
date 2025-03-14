@@ -28,7 +28,7 @@
             <img src="@/assets/home/avatar.png" alt="" style="width: 21px;height: 21px;" />
             <el-dropdown trigger="hover" @command="handleCommand">
             <div class="user-info">
-              {{ userInfo.mobile }}
+              {{ userInfo.username }}
             </div>
               <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item command="logout">退出登录</el-dropdown-item>
@@ -322,7 +322,7 @@ export default {
       },
 
       userInfo: {
-        mobile: '' // 初始化用户信息
+        username: '' // 初始化用户信息
       }
     };
   },

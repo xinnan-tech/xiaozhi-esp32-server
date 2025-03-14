@@ -58,6 +58,12 @@ public class ShiroConfig {
         filters.put("oauth2", new Oauth2Filter());
         shiroFilter.setFilters(filters);
 
+        //添加Shiro的内置过滤器
+        /*anon：无需认证就可以访问
+        authc：必须认证了才能让问
+        user：必须拥有，记住我功能，才能访问
+        perms：拥有对某个资源的权限才能访问
+        role：拥有某个角色权限才能访问*/
         Map<String, String> filterMap = new LinkedHashMap<>();
         filterMap.put("/webjars/**", "anon");
         filterMap.put("/druid/**", "anon");

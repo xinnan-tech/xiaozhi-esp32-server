@@ -12,6 +12,8 @@ public interface SysUserService extends BaseService<SysUserEntity> {
 
     SysUserDTO getByUsername(String username);
 
+    SysUserDTO getByUserId(Long userId);
+
     void save(SysUserDTO dto);
 
     void delete(Long[] ids);
