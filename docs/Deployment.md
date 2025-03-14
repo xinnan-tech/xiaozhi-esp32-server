@@ -10,6 +10,7 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 > 懒人脚本
 >
 > 你可以使用以下命令一键下载并执行部署脚本：
+> 请确保你的环境可以正常访问 GitHub 否则无法下载脚本。
 > ```bash
 > curl -L -o docker-setup.sh https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/docker-setup.sh && chmod +x docker-setup.sh
 > ```
