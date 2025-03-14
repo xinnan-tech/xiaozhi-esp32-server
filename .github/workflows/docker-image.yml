@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: Docker Image CI  # 工作流的名称
 
 on:
   push:
@@ -7,62 +7,69 @@ on:
 
 jobs:
   release:
-    name: Release Docker images
-    runs-on: ubuntu-latest
+    name: Release Docker images  # 作业的名称
+    runs-on: ubuntu-latest  # 在最新的 Ubuntu 环境中运行
     permissions:
-      packages: write
-      contents: write
-      id-token: write
-      issues: write
+      packages: write  # 允许写入 GitHub Packages
+      contents: write  # 允许写入仓库内容
+      id-token: write  # 允许写入 ID token
+      issues: write   # 允许写入 issues
+
     steps:
+      # 检查磁盘空间
       - name: Check Disk Space
         run: |
-          df -h
-          docker system df
+          df -h  # 显示磁盘使用情况
+          docker system df  # 显示 Docker 系统的磁盘使用情况
 
+      # 清理 Docker 资源
       - name: Clean up Docker resources
         run: |
-          docker system prune -af
-          docker builder prune -af
+          docker system prune -af  # 清理所有未使用的 Docker 资源
+          docker builder prune -af  # 清理构建缓存
 
+      # 检出代码
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # 使用 actions/checkout 动作检出代码
 
+      # 设置 Docker Buildx
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3  # 使用 Docker Buildx 进行多平台构建
 
+      # 登录到 GitHub Container Registry (GHCR)
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3  # 使用 docker/login-action 登录到 GHCR
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.TOKEN }}
+          registry: ghcr.io  # 指定注册表为 GitHub Container Registry
+          username: ${{ github.actor }}  # 使用 GitHub 用户名
+          password: ${{ secrets.TOKEN }}  # 使用 GitHub Token 进行认证
 
+      # 从标签中提取版本号
       - name: Extract version from tag
         id: get_version
         run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV  # 提取标签中的版本号并设置为环境变量
 
-      # 构建 xiaozhi-server 镜像
+      # 构建并推送 xiaozhi-server 镜像
       - name: Build and push xiaozhi-server
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v6  # 使用 docker/build-push-action 构建并推送镜像
         with:
-          context: .
-          file: Dockerfile-server
-          push: true
+          context: .  # 构建上下文为当前目录
+          file: Dockerfile-server  # 使用 Dockerfile-server 文件进行构建
+          push: true  # 推送镜像到注册表
           tags: |
-            ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:server_latest
-          platforms: linux/amd64,linux/arm64
+            ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}  # 带版本号的镜像标签
+            ghcr.io/${{ github.repository }}:server_latest  # 最新版本的镜像标签
+          platforms: linux/amd64,linux/arm64  # 构建适用于 amd64 和 arm64 平台的镜像
 
-      # 构建 manager-api 镜像
+      # 构建并推送 manager-web 镜像
       - name: Build and push manager-web
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v6  # 使用 docker/build-push-action 构建并推送镜像
         with:
-          context: .
-          file: Dockerfile-web
-          push: true
+          context: .  # 构建上下文为当前目录
+          file: Dockerfile-web  # 使用 Dockerfile-web 文件进行构建
+          push: true  # 推送镜像到注册表
           tags: |
-            ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:web_latest
-          platforms: linux/amd64,linux/arm64
+            ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}  # 带版本号的镜像标签
+            ghcr.io/${{ github.repository }}:web_latest  # 最新版本的镜像标签
+          platforms: linux/amd64,linux/arm64  # 构建适用于 amd64 和 arm64 平台的镜像
