@@ -181,8 +181,9 @@ LLM:
   CozeLLM:
     # 定义LLM API类型
     type: coze
-    bot_id: 你的bot_id
-    user_id: 你的user_id
+    # bot_id和user_id的内容写在引号之内
+    bot_id: "你的bot_id"
+    user_id: "你的user_id"
     personal_access_token: 你的coze个人令牌
   LMStudioLLM:
     # 定义LLM API类型

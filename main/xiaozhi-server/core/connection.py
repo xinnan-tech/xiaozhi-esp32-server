@@ -95,8 +95,6 @@ class ConnectionHandler:
         if self.config["selected_module"]["Intent"] == 'function_call':
             self.use_function_call_mode = True
 
-        self.logger.bind(tag=TAG).info(f"use_function_call_mode:{self.use_function_call_mode}")
-
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
@@ -437,6 +435,9 @@ class ConnectionHandler:
             self.dialogue.put(Message(role="assistant", content=text))
         if result.action == Action.REQLLM: # 调用函数后再请求llm生成回复
             text = result.response
+        if result.action == Action.NOTFOUND:
+            text = result.response
+
         
 
     def _tts_priority_thread(self):
