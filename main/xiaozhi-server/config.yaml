@@ -64,8 +64,11 @@ CMD_exit:
   - "关闭"
 
 # plugin下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-functions: 
+# 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
+# 下面是加载查天气、角色切换的插件示例
+functions:
   - change_role
+  - get_weather
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:

@@ -66,7 +66,7 @@ class WebSocketServer:
         host = server_config["ip"]
         port = server_config["port"]
         selected_module = self.config.get("selected_module")
-        self.logger.bind(tag=TAG).info(f"selected_module: {selected_module}")
+        self.logger.bind(tag=TAG).info(f"selected_module values: {', '.join(selected_module.values())}")
 
         self.logger.bind(tag=TAG).info("Server is running at ws://{}:{}", get_local_ip(), port)
         self.logger.bind(tag=TAG).info("=======上面的地址是websocket协议地址，请勿用浏览器访问=======")

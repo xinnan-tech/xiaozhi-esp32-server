@@ -7,7 +7,7 @@ get_weather_function_desc = {
     "type": "function",
     "function": {
         "name": "get_weather",
-        "description": "获取某个地点的天气，用户应先提供一个位置，比如用户说杭州天气，参数为：zhejiang/hangzhou，比如用户说北京天气怎么样，参数为：beijing/beijing",
+        "description": "获取某个地点的天气，用户应先提供一个位置，比如用户说杭州天气，参数为：zhejiang/hangzhou，比如用户说北京天气怎么样，参数为：beijing/beijing。如果用户只问天气怎么样，参数是:guangdong/guangzhou",
         "parameters": {
             "type": "object",
             "properties": {
