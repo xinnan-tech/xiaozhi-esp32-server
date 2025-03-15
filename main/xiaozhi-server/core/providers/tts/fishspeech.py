@@ -92,9 +92,8 @@ class TTSProvider(TTSProviderBase):
         self.channels = config.get("channels", 1)
         self.rate = config.get("rate", 44100)
         self.api_key = config.get("api_key", "YOUR_API_KEY")
-        have_key = check_model_key("FishSpeech TTS", self.api_key)
-        if not have_key:
-            return
+        self.have_key = check_model_key("FishSpeech TTS", self.api_key)
+
         self.normalize = config.get("normalize", True)
         self.max_new_tokens = config.get("max_new_tokens", 1024)
         self.chunk_length = config.get("chunk_length", 200)
@@ -136,14 +135,13 @@ class TTSProvider(TTSProviderBase):
         }
 
         pydantic_data = ServeTTSRequest(**data)
-
+        headers={"Content-Type": "application/msgpack"}
+        if self.have_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
         response = requests.post(
             self.api_url,
             data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/msgpack",
-            },
+            headers=headers
         )
 
         if response.status_code == 200:
