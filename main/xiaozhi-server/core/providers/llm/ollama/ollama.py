@@ -13,7 +13,6 @@ class LLMProvider(LLMProviderBase):
         self.base_url = config.get("base_url", "http://localhost:11434")
         # Initialize OpenAI client with Ollama base URL
         # 如果没有v1，增加v1
-
         if not self.base_url.endswith("/v1"):
             self.base_url = f"{self.base_url}/v1"
 
@@ -21,7 +20,6 @@ class LLMProvider(LLMProviderBase):
             base_url=self.base_url,
             api_key="ollama"  # Ollama doesn't need an API key but OpenAI client requires one
         )
-        print("ollama init finished")
 
     def response(self, session_id, dialogue):
         try:
