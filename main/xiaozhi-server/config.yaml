@@ -51,7 +51,7 @@ xiaozhi:
 prompt: |
   你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗。
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
-  当前时间是:{date_time}，现在我正在和你进行语音聊天，我们开始吧。
+  现在我正在和你进行语音聊天，我们开始吧。
   如果用户希望结束对话，请在最后说“拜拜”或“再见”。
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
@@ -64,13 +64,6 @@ tts_timeout: 10
 CMD_exit:
   - "退出"
   - "关闭"
-
-# plugin下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-# 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
-# 下面是加载查天气、角色切换的插件示例
-functions:
-  - change_role
-  - get_weather
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
@@ -94,14 +87,20 @@ selected_module:
 Intent:
   # 不使用意图识别
   nointent:
-    # 不需要动
+    # 不需要动type
     type: nointent
   intent_llm:
-    # 不需要动
+    # 不需要动type
     type: intent_llm
   function_call:
-    # 不需要动
+    # 不需要动type
     type: nointent
+    # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
+    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
+    # 下面是加载查天气、角色切换的插件示例
+    functions:
+      - change_role
+      - get_weather
 
 Memory:
   mem0ai:

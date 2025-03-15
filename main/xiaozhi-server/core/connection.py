@@ -189,10 +189,6 @@ class ConnectionHandler:
         self.prompt = self.config["prompt"]
         if self.private_config:
             self.prompt = self.private_config.private_config.get("prompt", self.prompt)
-        # 赋予LLM时间观念
-        if "{date_time}" in self.prompt:
-            date_time = time.strftime("%Y-%m-%d %H:%M", time.localtime())
-            self.prompt = self.prompt.replace("{date_time}", date_time)
         self.dialogue.put(Message(role="system", content=self.prompt))
     
     def change_system_prompt(self, prompt):
@@ -200,9 +196,6 @@ class ConnectionHandler:
         # 找到原来的role==system，替换原来的系统提示
         for m in self.dialogue.dialogue:
             if m.role == "system":
-                if "{date_time}" in self.prompt:
-                    date_time = time.strftime("%Y-%m-%d %H:%M", time.localtime())
-                    self.prompt = self.prompt.replace("{date_time}", date_time)
                 m.content = prompt
 
     async def _check_and_broadcast_auth_code(self):
