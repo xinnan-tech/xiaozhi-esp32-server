@@ -9,7 +9,7 @@ import user from './module/user.js'
  */
 const DEV_API_SERVICE = 'https://apifoxmock.com/m1/5931378-5618560-default'
 // 8002开发完成完成后使用这个
-// const DEV_API_SERVICE = '/xiaozhi-esp32-api/api/v1'
+// const DEV_API_SERVICE = '/xiaozhi-esp32-api'
 
 /**
  * 根据开发环境返回接口url

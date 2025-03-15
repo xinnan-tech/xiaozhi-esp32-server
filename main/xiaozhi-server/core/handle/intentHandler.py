@@ -1,6 +1,7 @@
 from config.logger import setup_logging
 import json
 from core.handle.sendAudioHandle import send_stt_message
+from core.utils.util import remove_punctuation_and_length
 
 TAG = __name__
 logger = setup_logging()
@@ -37,6 +38,7 @@ async def handle_user_intent(conn, text):
 
 async def check_direct_exit(conn, text):
     """检查是否有明确的退出命令"""
+    _, text = remove_punctuation_and_length(text)
     cmd_exit = conn.cmd_exit
     for cmd in cmd_exit:
         if text == cmd:
@@ -55,7 +57,7 @@ async def analyze_intent_with_llm(conn, text):
     # 对话历史记录
     dialogue = conn.dialogue
     try:
-        intent_result = await conn.intent.detect_intent(dialogue.dialogue, text)
+        intent_result = await conn.intent.detect_intent(conn, dialogue.dialogue, text)
 
         # 尝试解析JSON结果
         try:

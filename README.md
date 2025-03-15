@@ -148,6 +148,8 @@ server:
 - 智控台webui
 - iot功能
 
+想了解具体开发进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
+
 ![图片](docs/images/webui.png)
 ---
 
@@ -232,14 +234,9 @@ server:
 
 本项目支持以下三种部署方式，您可根据实际需求选择。
 
-本项目的文档主要是`文字版本`的教程，如果你想要`视频版本`
-的教程，您可以学习一下[这个大佬的手把手教程](https://www.bilibili.com/video/BV1gePuejEvT)。
-
-如果你能把`文字版本的教程`和`视频版本的教程`结合起来一起看，可以让你更快上手。
-
 1. [Docker 快速部署](./docs/Deployment.md)
 
-适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。
+适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。视频教程可参考[美女大佬教你Docker部署](https://www.bilibili.com/video/BV1RNQnYDE5t)
 
 2. [借助 Docker 环境运行部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)
 
@@ -249,7 +246,7 @@ server:
 
 适合熟悉`Conda` 环境或希望从零搭建运行环境的用户。
 
-对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
+对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。视频教程可参考[帅哥大佬教你源码部署](https://www.bilibili.com/video/BV1GvQWYZEd2)
 
 ### 二、[固件编译](./docs/firmware-build.md)
 

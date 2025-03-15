@@ -41,18 +41,19 @@ class TTSProviderBase(ABC):
     async def text_to_speak(self, text, output_file):
         pass
 
-    def wav_to_opus_data(self, wav_file_path):
-        # 使用pydub加载PCM文件
+    def audio_to_opus_data(self, audio_file_path):
+        """音频文件转换为Opus编码"""
         # 获取文件后缀名
-        file_type = os.path.splitext(wav_file_path)[1]
+        file_type = os.path.splitext(audio_file_path)[1]
         if file_type:
             file_type = file_type.lstrip('.')
-        audio = AudioSegment.from_file(wav_file_path, format=file_type)
+        audio = AudioSegment.from_file(audio_file_path, format=file_type)
 
+        # 转换为单声道/16kHz采样率/16位小端编码（确保与编码器匹配）
+        audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
+
+        # 音频时长(秒)
         duration = len(audio) / 1000.0
-
-        # 转换为单声道和16kHz采样率（确保与编码器匹配）
-        audio = audio.set_channels(1).set_frame_rate(16000)
 
         # 获取原始PCM数据（16位小端）
         raw_data = audio.raw_data
