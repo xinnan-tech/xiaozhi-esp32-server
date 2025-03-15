@@ -6,7 +6,6 @@ from core.utils.util import remove_punctuation_and_length
 TAG = __name__
 logger = setup_logging()
 
-
 async def handle_user_intent(conn, text):
     """
     Handle user intent before starting chat

@@ -47,9 +47,12 @@ class FunctionHandler:
     def register_nessary_functions(self):
         """注册必要的函数"""
         self.function_registry.register_function("handle_exit_intent")
-        self.function_registry.register_function("play_music")
+        #self.function_registry.register_function("play_music")
         self.function_registry.register_function("plugin_loader")
         self.function_registry.register_function("get_time")
+        #self.function_registry.register_function("hass_play_music")
+        #self.function_registry.register_function("hass_set_state")
+        #self.function_registry.register_function("hass_get_state")
 
     def register_config_functions(self):
         """注册配置中的函数,可以不同客户端使用不同的配置"""

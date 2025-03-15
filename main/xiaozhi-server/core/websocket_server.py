@@ -3,6 +3,7 @@ import websockets
 from config.logger import setup_logging
 from core.connection import ConnectionHandler
 from core.handle.musicHandler import MusicHandler
+from core.handle.hassHandler import HassHandler
 from core.utils.util import get_local_ip
 from core.utils import asr, vad, llm, tts, memory, intent
 
@@ -13,7 +14,7 @@ class WebSocketServer:
     def __init__(self, config: dict):
         self.config = config
         self.logger = setup_logging()
-        self._vad, self._asr, self._llm, self._tts, self._music, self._memory, self.intent = self._create_processing_instances()
+        self._vad, self._asr, self._llm, self._tts, self._music, self._hass, self._memory, self.intent = self._create_processing_instances()
         self.active_connections = set()  # 添加全局连接记录
 
     def _create_processing_instances(self):
@@ -51,6 +52,7 @@ class WebSocketServer:
                 self.config["delete_audio"]
             ),
             MusicHandler(self.config),
+            HassHandler(self.config),
             memory.create_instance(memory_cls_name, memory_cfg),
             intent.create_instance(
                 self.config["selected_module"]["Intent"]
@@ -80,7 +82,7 @@ class WebSocketServer:
     async def _handle_connection(self, websocket):
         """处理新连接，每次创建独立的ConnectionHandler"""
         # 创建ConnectionHandler时传入当前server实例
-        handler = ConnectionHandler(self.config, self._vad, self._asr, self._llm, self._tts, self._music, self._memory, self.intent)
+        handler = ConnectionHandler(self.config, self._vad, self._asr, self._llm, self._tts, self._music, self._hass, self._memory, self.intent)
         self.active_connections.add(handler)
         try:
             await handler.handle_connection(websocket)

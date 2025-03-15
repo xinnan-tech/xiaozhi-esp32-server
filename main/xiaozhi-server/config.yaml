@@ -53,6 +53,14 @@ prompt: |
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
   现在我正在和你进行语音聊天，我们开始吧。
   如果用户希望结束对话，请在最后说“拜拜”或“再见”。
+  下面是我家智能设备，可以通过homeassistant控制
+  房间,设备别名,设备id
+  书房,吸顶灯,light.649e3159aa36
+  书房,homepod播放器,media_player.shu_fang_id
+  书房,灯带,light.plug
+  书房,窗帘,cover.curtain_158d000710f50
+  书房,显示器挂灯,light.yeelink_lamp
+
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
 
@@ -96,11 +104,20 @@ Intent:
     # 不需要动type
     type: nointent
     # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
-    # 下面是加载查天气、角色切换的插件示例
+    # 系统默认已经记载“handle_exit_intent(退出识别)”，请勿重复加载
+    # play_music 本地音乐播放插件
+    # hass_play_music 是控制homeassistant在指定媒体设备播放music assistant中的音乐，会与本地音乐播放功能冲突，只能保留一个
+    # hass_get_state 是查询homeassistant中的设备状态
+    # hass_set_state 是设置homeassistant中设备的状态，比如打开关闭设备，调整灯光亮度、音响声音大小、静音设置、窗帘扫地机器人暂停启动。
+    # 下面是加载查天气、角色切换、本地音乐播放的插件示例
     functions:
       - change_role
       - get_weather
+      - play_music
+      #- hass_play_music
+      #- hass_get_state
+      #- hass_set_state
+
 
 Memory:
   mem0ai:
