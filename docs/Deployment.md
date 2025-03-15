@@ -1,3 +1,5 @@
+# 部署方案参考
+![图片](images/deploy.png)
 # 方式一：docker快速部署
 
 docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统上运行。
