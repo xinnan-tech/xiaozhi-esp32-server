@@ -1,9 +1,11 @@
 package xiaozhi.modules.security.service;
 
 import xiaozhi.common.page.PageData;
+import xiaozhi.common.page.TokenDTO;
 import xiaozhi.common.service.BaseService;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.security.entity.SysUserTokenEntity;
+import xiaozhi.modules.sys.dto.SysUserDTO;
 
 import java.util.Map;
 
@@ -19,7 +21,9 @@ public interface SysUserTokenService extends BaseService<SysUserTokenEntity> {
      *
      * @param userId 用户ID
      */
-    Result createToken(Long userId);
+    Result<TokenDTO> createToken(Long userId);
+
+    SysUserDTO getUserByToken(String token);
 
     /**
      * 退出

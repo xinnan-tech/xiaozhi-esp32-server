@@ -13,7 +13,8 @@
     "vue": "^2.6.14",
     "vue-axios": "^3.5.2",
     "vue-router": "^3.6.5",
-    "vuex": "^3.6.2"
+    "vuex": "^3.6.2",
+    "xiaozhi": "file:"
   },
   "devDependencies": {
     "@vue/cli-plugin-router": "~5.0.0",

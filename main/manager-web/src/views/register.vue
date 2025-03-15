@@ -83,7 +83,7 @@
 </template>
 
 <script>
-import {goToPage, showDanger, showSuccess} from '@/utils'
+import {getUUID, goToPage, showDanger, showSuccess} from '@/utils'
 import Api from '@/apis/api';
 
 export default {
@@ -95,7 +95,7 @@ export default {
         password: '',
         confirmPassword: '',
         captcha: '',
-        uuid: ''
+        captchaId: ''
       },
       captchaUrl: ''
     }
@@ -106,8 +106,8 @@ export default {
   methods: {
     // 复用验证码获取方法
     fetchCaptcha() {
-      this.form.uuid = Date.now().toString()
-      Api.user.getCaptcha(this.form.uuid, (res) => {
+      this.form.captchaId = getUUID();
+      Api.user.getCaptcha(this.form.captchaId, (res) => {
         if (res.status === 200) {
           const blob = new Blob([res.data], {type: res.data.type});
           this.captchaUrl = URL.createObjectURL(blob);
@@ -147,7 +147,9 @@ export default {
           this.fetchCaptcha()
         }
       })
-
+      setTimeout(() => {
+        this.fetchCaptcha()
+      }, 1000)
     },
 
     goToLogin() {

@@ -25,30 +25,6 @@ public class SysUserEntity extends BaseEntity {
      */
     private String password;
     /**
-     * 姓名
-     */
-    private String realName;
-    /**
-     * 头像
-     */
-    private String headUrl;
-    /**
-     * 性别   0：男   1：女    2：保密
-     */
-    private Integer gender;
-    /**
-     * 邮箱
-     */
-    private String email;
-    /**
-     * 手机号
-     */
-    private String mobile;
-    /**
-     * 部门ID
-     */
-    private Long deptId;
-    /**
      * 超级管理员   0：否   1：是
      */
     private Integer superAdmin;
@@ -56,6 +32,11 @@ public class SysUserEntity extends BaseEntity {
      * 状态  0：停用   1：正常
      */
     private Integer status;
+    /**
+     * 更新者
+     */
+    @TableField(fill = FieldFill.INSERT)
+    private Date createDate;
     /**
      * 更新者
      */

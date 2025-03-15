@@ -131,7 +131,7 @@ class MusicHandler:
             if music_path.endswith(".p3"):
                 opus_packets, duration = p3.decode_opus_from_file(music_path)
             else:
-                opus_packets, duration = conn.tts.wav_to_opus_data(music_path)
+                opus_packets, duration = conn.tts.audio_to_opus_data(music_path)
             conn.audio_play_queue.put((opus_packets, selected_music, 0))
 
         except Exception as e:

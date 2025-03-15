@@ -25,7 +25,7 @@
             </div>
             <div class="input-box">
               <img src="@/assets/login/password.png" alt="" class="input-icon"/>
-              <el-input v-model="form.password" placeholder="请输入密码"/>
+              <el-input v-model="form.password" type="password" placeholder="请输入密码"/>
             </div>
             <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
               <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
@@ -63,7 +63,7 @@
 </template>
 
 <script>
-import {goToPage, showDanger, showSuccess} from '@/utils'
+import {getUUID, goToPage, showDanger, showSuccess} from '@/utils'
 import Api from '@/apis/api';
 
 
@@ -75,7 +75,8 @@ export default {
       form: {
         username: '',
         password: '',
-        captcha: ''
+        captcha: '',
+        captchaId: ''
       },
       captchaUuid: '',
       captchaUrl: ''
@@ -86,18 +87,22 @@ export default {
   },
   methods: {
     fetchCaptcha() {
-      this.captchaUuid = Date.now().toString()
+      if (this.$store.getters.getToken) {
+        goToPage('/home')
+      } else {
+        this.captchaUuid = getUUID();
 
-      Api.user.getCaptcha(this.captchaUuid, (res) => {
-        if (res.status === 200) {
-          const blob = new Blob([res.data], {type: res.data.type});
-          this.captchaUrl = URL.createObjectURL(blob);
+        Api.user.getCaptcha(this.captchaUuid, (res) => {
+          if (res.status === 200) {
+            const blob = new Blob([res.data], {type: res.data.type});
+            this.captchaUrl = URL.createObjectURL(blob);
 
-        } else {
-          console.error('验证码加载异常:', error);
-          showDanger('验证码加载失败，点击刷新');
-        }
-      });
+          } else {
+            console.error('验证码加载异常:', error);
+            showDanger('验证码加载失败，点击刷新')
+          }
+        });
+      }
     },
 
     async login() {
@@ -114,10 +119,19 @@ export default {
         return
       }
 
+      this.form.captchaId = this.captchaUuid
       Api.user.login(this.form, ({data}) => {
+        console.log(data)
         showSuccess('登陆成功！')
+        
+        this.$store.commit('setToken', JSON.stringify(data.data))
+
         goToPage('/home')
       })
+
+      setTimeout(() => {
+        this.fetchCaptcha()
+      }, 1000)
     },
 
     goToRegister() {
