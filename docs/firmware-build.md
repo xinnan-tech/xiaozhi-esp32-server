@@ -34,6 +34,46 @@ config WEBSOCKET_URL
 
 注意：你的地址是`ws://`开头，不是`wss://`开头，一定不要写错了。
 
+3. 取消设备激活限制：解决第一次启动设备需要输入验证码的问题。[#221](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/221)
+
+打开`xiaozhi-esp32/main/application.cc`，跳转到**第 141 行到 154 行** （行数可能随着xiaozhi-esp32源码更新有变动）。找到以下代码（或关键词搜索`ota_.HasActivationCode()`)：
+
+```cpp
+if (ota_.HasActivationCode()) {
+    // Activation code is valid
+    SetDeviceState(kDeviceStateActivating);
+    ShowActivationCode();
+
+    // Check again in 60 seconds or until the device is idle
+    for (int i = 0; i < 60; ++i) {
+        if (device_state_ == kDeviceStateIdle) {
+        	break;
+    	}
+    	vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+    continue;
+}
+```
+
+将其注释，或复制以下替换成以下内容。
+
+```cpp
+//        if (ota_.HasActivationCode()) {
+//            // Activation code is valid
+//            SetDeviceState(kDeviceStateActivating);
+//            ShowActivationCode();
+//
+//            // Check again in 60 seconds or until the device is idle
+//            for (int i = 0; i < 60; ++i) {
+//                if (device_state_ == kDeviceStateIdle) {
+//                    break;
+//                }
+//                vTaskDelay(pdMS_TO_TICKS(1000));
+//            }
+//            continue;
+//        }
+```
+
 3. 设置编译参数
 
 ```
