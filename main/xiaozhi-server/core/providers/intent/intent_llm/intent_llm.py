@@ -1,10 +1,11 @@
 from typing import List, Dict
 from ..base import IntentProviderBase
+from core.handle.musicHandler import initialize_music_handler
 from config.logger import setup_logging
-import re 
+import re
+
 TAG = __name__
 logger = setup_logging()
-
 
 
 class IntentProvider(IntentProviderBase):
@@ -73,8 +74,8 @@ class IntentProvider(IntentProviderBase):
             "你现在可以使用的音乐的名称如下(使用<start>和<end>标志):\n"
         )
         return prompt
-    
-    async def detect_intent(self, conn, dialogue_history: List[Dict], text:str) -> str:
+
+    async def detect_intent(self, conn, dialogue_history: List[Dict], text: str) -> str:
         if not self.llm:
             raise ValueError("LLM provider not set")
 
@@ -89,7 +90,9 @@ class IntentProvider(IntentProviderBase):
 
         msgStr += f"User: {text}\n"
         user_prompt = f"当前的对话如下：\n{msgStr}"
-        prompt_music = f"{self.promot}\n<start>{conn.music_handler.music_file_names}\n<end>"
+        music_config = initialize_music_handler(conn)
+        music_file_names = music_config["music_file_names"]
+        prompt_music = f"{self.promot}\n<start>{music_file_names}\n<end>"
         logger.bind(tag=TAG).debug(f"User prompt: {prompt_music}")
         # 使用LLM进行意图识别
         intent = self.llm.response_no_stream(

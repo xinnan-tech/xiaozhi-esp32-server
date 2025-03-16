@@ -1,16 +1,18 @@
 from config.logger import setup_logging
 import os
+import re
+import time
 import random
 import difflib
-import re
 import traceback
 from pathlib import Path
-import time
-from core.handle.sendAudioHandle import send_stt_message
 from core.utils import p3
+from core.handle.sendAudioHandle import send_stt_message
 
 TAG = __name__
 logger = setup_logging()
+
+MUSIC_CACHE = {}
 
 
 def _extract_song_name(text):
@@ -37,105 +39,106 @@ def _find_best_match(potential_song, music_files):
     return best_match
 
 
-class MusicManager:
-    def __init__(self, music_dir, music_ext):
-        self.music_dir = Path(music_dir)
-        self.music_ext = music_ext
-
-    def get_music_files(self):
-        music_files = []
-        music_file_names = []
-        for file in self.music_dir.rglob("*"):
-            # 判断是否是文件
-            if file.is_file():
-                # 获取文件扩展名
-                ext = file.suffix.lower()
-                # 判断扩展名是否在列表中
-                if ext in self.music_ext:
-                    # music_files.append(str(file.resolve()))  # 添加绝对路径
-                    # 添加相对路径
-                    music_files.append(str(file.relative_to(self.music_dir)))
-                    music_file_names.append(os.path.splitext(str(file.relative_to(self.music_dir)))[0])
-        return music_files, music_file_names
+def get_music_files(music_dir, music_ext):
+    music_dir = Path(music_dir)
+    music_files = []
+    music_file_names = []
+    for file in music_dir.rglob("*"):
+        # 判断是否是文件
+        if file.is_file():
+            # 获取文件扩展名
+            ext = file.suffix.lower()
+            # 判断扩展名是否在列表中
+            if ext in music_ext:
+                # 添加相对路径
+                music_files.append(str(file.relative_to(music_dir)))
+                music_file_names.append(os.path.splitext(str(file.relative_to(music_dir)))[0])
+    return music_files, music_file_names
 
 
-class MusicHandler:
-    def __init__(self, config):
-        self.config = config
-
-        if "music" in self.config:
-            self.music_config = self.config["music"]
-            self.music_dir = os.path.abspath(
-                self.music_config.get("music_dir", "./music")  # 默认路径修改
+def initialize_music_handler(conn):
+    global MUSIC_CACHE
+    if MUSIC_CACHE == {}:
+        logger.bind(tag=TAG).info(f"实例化音乐:")
+        if "music" in conn.config:
+            MUSIC_CACHE["music_config"] = conn.config["music"]
+            MUSIC_CACHE["music_dir"] = os.path.abspath(
+                MUSIC_CACHE["music_config"].get("music_dir", "./music")  # 默认路径修改
             )
-            self.music_ext = self.music_config.get("music_ext", (".mp3", ".wav", ".p3"))
-            self.refresh_time = self.music_config.get("refresh_time", 60)
+            MUSIC_CACHE["music_ext"] = MUSIC_CACHE["music_config"].get("music_ext", (".mp3", ".wav", ".p3"))
+            MUSIC_CACHE["refresh_time"] = MUSIC_CACHE["music_config"].get("refresh_time", 60)
         else:
-            self.music_dir = os.path.abspath("./music")
-            self.music_ext = (".mp3", ".wav", ".p3")
-            self.refresh_time = 60
-
+            MUSIC_CACHE["music_dir"] = os.path.abspath("./music")
+            MUSIC_CACHE["music_ext"] = (".mp3", ".wav", ".p3")
+            MUSIC_CACHE["refresh_time"] = 60
         # 获取音乐文件列表
-        self.music_files, self.music_file_names = MusicManager(self.music_dir, self.music_ext).get_music_files()
-        self.scan_time = time.time()
-        logger.bind(tag=TAG).debug(f"找到的音乐文件: {self.music_files}")
+        MUSIC_CACHE["music_files"], MUSIC_CACHE["music_file_names"] = get_music_files(MUSIC_CACHE["music_dir"],
+                                                                                      MUSIC_CACHE["music_ext"])
+        MUSIC_CACHE["scan_time"] = time.time()
+    return MUSIC_CACHE
 
-    async def handle_music_command(self, conn, text):
-        """处理音乐播放指令"""
-        clean_text = re.sub(r'[^\w\s]', '', text).strip()
-        logger.bind(tag=TAG).debug(f"检查是否是音乐命令: {clean_text}")
 
-        # 尝试匹配具体歌名
-        if os.path.exists(self.music_dir):
-            if time.time() - self.scan_time > self.refresh_time:
-                # 刷新音乐文件列表
-                self.music_files, self.music_file_names = MusicManager(self.music_dir, self.music_ext).get_music_files()
-                self.scan_time = time.time()
-                logger.bind(tag=TAG).debug(f"刷新的音乐文件: {self.music_files}")
+async def handle_music_command(conn, text):
+    initialize_music_handler(conn)
+    global MUSIC_CACHE
 
-            potential_song = _extract_song_name(clean_text)
-            if potential_song:
-                best_match = _find_best_match(potential_song, self.music_files)
-                if best_match:
-                    logger.bind(tag=TAG).info(f"找到最匹配的歌曲: {best_match}")
-                    await self.play_local_music(conn, specific_file=best_match)
-                    return True
-        # 检查是否是通用播放音乐命令
-        await self.play_local_music(conn)
-        return True
+    """处理音乐播放指令"""
+    clean_text = re.sub(r'[^\w\s]', '', text).strip()
+    logger.bind(tag=TAG).debug(f"检查是否是音乐命令: {clean_text}")
 
-    async def play_local_music(self, conn, specific_file=None):
-        """播放本地音乐文件"""
-        try:
-            if not os.path.exists(self.music_dir):
-                logger.bind(tag=TAG).error(f"音乐目录不存在: {self.music_dir}")
+    # 尝试匹配具体歌名
+    if os.path.exists(MUSIC_CACHE["music_dir"]):
+        if time.time() - MUSIC_CACHE["scan_time"] > MUSIC_CACHE["refresh_time"]:
+            # 刷新音乐文件列表
+            MUSIC_CACHE["music_files"], MUSIC_CACHE["music_file_names"] = get_music_files(MUSIC_CACHE["music_dir"],
+                                                                                          MUSIC_CACHE["music_ext"])
+            MUSIC_CACHE["scan_time"] = time.time()
+
+        potential_song = _extract_song_name(clean_text)
+        if potential_song:
+            best_match = _find_best_match(potential_song, MUSIC_CACHE["music_files"])
+            if best_match:
+                logger.bind(tag=TAG).info(f"找到最匹配的歌曲: {best_match}")
+                await play_local_music(conn, specific_file=best_match)
+                return True
+    # 检查是否是通用播放音乐命令
+    await play_local_music(conn)
+    return True
+
+
+async def play_local_music(conn, specific_file=None):
+    global MUSIC_CACHE
+    """播放本地音乐文件"""
+    try:
+        if not os.path.exists(MUSIC_CACHE["music_dir"]):
+            logger.bind(tag=TAG).error(f"音乐目录不存在: " + MUSIC_CACHE["music_dir"])
+            return
+
+        # 确保路径正确性
+        if specific_file:
+            selected_music = specific_file
+            music_path = os.path.join(MUSIC_CACHE["music_dir"], specific_file)
+        else:
+            if not MUSIC_CACHE["music_files"]:
+                logger.bind(tag=TAG).error("未找到MP3音乐文件")
                 return
+            selected_music = random.choice(MUSIC_CACHE["music_files"])
+            music_path = os.path.join(MUSIC_CACHE["music_dir"], selected_music)
 
-            # 确保路径正确性
-            if specific_file:
-                selected_music = specific_file
-                music_path = os.path.join(self.music_dir, specific_file)
-            else:
-                if not self.music_files:
-                    logger.bind(tag=TAG).error("未找到MP3音乐文件")
-                    return
-                selected_music = random.choice(self.music_files)
-                music_path = os.path.join(self.music_dir, selected_music)
+        if not os.path.exists(music_path):
+            logger.bind(tag=TAG).error(f"选定的音乐文件不存在: {music_path}")
+            return
+        text = f"正在播放{selected_music}"
+        await send_stt_message(conn, text)
+        conn.tts_first_text_index = 0
+        conn.tts_last_text_index = 0
+        conn.llm_finish_task = True
+        if music_path.endswith(".p3"):
+            opus_packets, duration = p3.decode_opus_from_file(music_path)
+        else:
+            opus_packets, duration = conn.tts.audio_to_opus_data(music_path)
+        conn.audio_play_queue.put((opus_packets, selected_music, 0))
 
-            if not os.path.exists(music_path):
-                logger.bind(tag=TAG).error(f"选定的音乐文件不存在: {music_path}")
-                return
-            text = f"正在播放{selected_music}"
-            await send_stt_message(conn, text)
-            conn.tts_first_text_index = 0
-            conn.tts_last_text_index = 0
-            conn.llm_finish_task = True
-            if music_path.endswith(".p3"):
-                opus_packets, duration = p3.decode_opus_from_file(music_path)
-            else:
-                opus_packets, duration = conn.tts.audio_to_opus_data(music_path)
-            conn.audio_play_queue.put((opus_packets, selected_music, 0))
-
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"播放音乐失败: {str(e)}")
-            logger.bind(tag=TAG).error(f"详细错误: {traceback.format_exc()}")
+    except Exception as e:
+        logger.bind(tag=TAG).error(f"播放音乐失败: {str(e)}")
+        logger.bind(tag=TAG).error(f"详细错误: {traceback.format_exc()}")

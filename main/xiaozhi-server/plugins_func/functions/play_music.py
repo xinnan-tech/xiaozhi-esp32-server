@@ -1,5 +1,6 @@
 from plugins_func.register import register_function,ToolType, ActionResponse, Action
 from config.logger import setup_logging
+from core.handle.musicHandler import handle_music_command
 import asyncio
 
 TAG = __name__
@@ -36,7 +37,7 @@ def play_music(conn, song_name: str):
 
         # 提交异步任务
         future = asyncio.run_coroutine_threadsafe(
-            conn.music_handler.handle_music_command(conn, music_intent),
+            handle_music_command(conn, music_intent),
             conn.loop
         )
 
