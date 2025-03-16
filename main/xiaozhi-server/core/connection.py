@@ -451,7 +451,7 @@ class ConnectionHandler:
                 opus_datas, text_index, tts_file = [], 0, None
                 try:
                     self.logger.bind(tag=TAG).debug("正在处理TTS任务...")
-                    tts_file, text, text_index = future.result(timeout=20)
+                    tts_file, text, text_index = future.result(timeout=10)
                     if text is None or len(text) <= 0:
                         self.logger.bind(tag=TAG).error(f"TTS出错：{text_index}: tts text is empty")
                     elif tts_file is None:
