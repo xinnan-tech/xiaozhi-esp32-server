@@ -54,7 +54,7 @@ class LLMProvider(LLMProviderBase):
             stream = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=dialogue,
-                stream=False,
+                stream=True,
                 tools=functions,
             )
 
