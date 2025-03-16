@@ -7,7 +7,7 @@ logger = setup_logging()
 
 
 class IntentProvider(IntentProviderBase):
-    async def detect_intent(self, dialogue_history: List[Dict], text: str) -> str:
+    async def detect_intent(self, conn, dialogue_history: List[Dict], text: str) -> str:
         """
         默认的意图识别实现，始终返回继续聊天
         Args:

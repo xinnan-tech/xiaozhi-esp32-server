@@ -92,13 +92,17 @@
 - **硬件**：一套兼容 `xiaozhi-esp32`
   的硬件设备（具体型号请参考 [此处](https://rcnv1t9vps13.feishu.cn/wiki/DdgIw4BUgivWDPkhMj1cGIYCnRf)）。
 
-- **电脑或服务器**：至少 4 核 CPU、8G 内存的电脑。
+- **电脑或服务器**：建议 4 核 CPU、8G 内存的电脑。如果开启ASR也使用API，可运行在2核CPU、2G内存的服务器中。
 - **固件编译**：请将本后端服务的接口地址更新至 `xiaozhi-esp32` 项目中，再重新编译`xiaozhi-esp32`固件并烧录到设备上。
+
+![图片](docs/images/deploy.png)
 
 如果你没有esp32相关的硬件设备，但是非常想体验该项目，可以使用以下的项目让你的电脑、手机模拟成esp32设备。
 
 - [小智安卓端](https://github.com/TOM88812/xiaozhi-android-client)
 - [小智电脑端](https://github.com/Huang-junsen/py-xiaozhi)
+
+如果你是一名软件开发者，这里有一份[《致开发者的公开信》](docs/contributor_open_letter.md)，欢迎加入！
 
 ---
 
@@ -145,6 +149,8 @@ server:
 - 多种心情模式
 - 智控台webui
 - iot功能
+
+想了解具体开发进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
 
 ![图片](docs/images/webui.png)
 ---
@@ -208,10 +214,10 @@ server:
 
 ### Memory 记忆存储
 
-|   类型   |      平台名称       | 使用方式 |   收费模式   | 备注 |
-|:------:|:---------------:|:----:|:--------:|:--:|
-| Memory |     mem0ai      | 接口调用 | 100次/月额度 |    |
-| Memory | mem_local_short | 本地总结 |    免费    |    |
+|   类型   |      平台名称       | 使用方式 |   收费模式    | 备注 |
+|:------:|:---------------:|:----:|:---------:|:--:|
+| Memory |     mem0ai      | 接口调用 | 1000次/月额度 |    |
+| Memory | mem_local_short | 本地总结 |    免费     |    |
 
 ---
 
@@ -230,14 +236,9 @@ server:
 
 本项目支持以下三种部署方式，您可根据实际需求选择。
 
-本项目的文档主要是`文字版本`的教程，如果你想要`视频版本`
-的教程，您可以学习一下[这个大佬的手把手教程](https://www.bilibili.com/video/BV1gePuejEvT)。
-
-如果你能把`文字版本的教程`和`视频版本的教程`结合起来一起看，可以让你更快上手。
-
 1. [Docker 快速部署](./docs/Deployment.md)
 
-适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。
+适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。视频教程可参考[美女大佬教你Docker部署](https://www.bilibili.com/video/BV1RNQnYDE5t)
 
 2. [借助 Docker 环境运行部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)
 
@@ -247,7 +248,7 @@ server:
 
 适合熟悉`Conda` 环境或希望从零搭建运行环境的用户。
 
-对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
+对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。视频教程可参考[帅哥大佬教你源码部署](https://www.bilibili.com/video/BV1GvQWYZEd2)
 
 ### 二、[固件编译](./docs/firmware-build.md)
 

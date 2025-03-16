@@ -51,13 +51,15 @@ xiaozhi:
 prompt: |
   你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗。
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
-  当前时间是:{date_time}，现在我正在和你进行语音聊天，我们开始吧。
+  现在我正在和你进行语音聊天，我们开始吧。
   如果用户希望结束对话，请在最后说“拜拜”或“再见”。
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
 
 # 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
 close_connection_no_voice_time: 120
+# TTS请求超时时间(秒)
+tts_timeout: 10
 
 CMD_exit:
   - "退出"
@@ -85,14 +87,20 @@ selected_module:
 Intent:
   # 不使用意图识别
   nointent:
-    # 不需要动
+    # 不需要动type
     type: nointent
   intent_llm:
-    # 不需要动
+    # 不需要动type
     type: intent_llm
   function_call:
-    # 不需要动
+    # 不需要动type
     type: nointent
+    # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
+    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
+    # 下面是加载查天气、角色切换的插件示例
+    functions:
+      - change_role
+      - get_weather
 
 Memory:
   mem0ai:
@@ -181,8 +189,9 @@ LLM:
   CozeLLM:
     # 定义LLM API类型
     type: coze
-    bot_id: 你的bot_id
-    user_id: 你的user_id
+    # bot_id和user_id的内容写在引号之内
+    bot_id: "你的bot_id"
+    user_id: "你的user_id"
     personal_access_token: 你的coze个人令牌
   LMStudioLLM:
     # 定义LLM API类型
@@ -410,6 +419,21 @@ TTS:
     voice: onyx
     # 语速范围0.25-4.0
     speed: 1
+    output_file: tmp/
+  CustomTTS:
+    # 自定义的TTS接口服务，请求参数可自定义
+    # 要求接口使用GET方式请求，并返回音频文件
+    type: custom
+    url: "http://127.0.0.1:9880/tts"
+    params: # 自定义请求参数
+      # text: "{prompt_text}" # {prompt_text}会被替换为实际的提示词内容
+      # speaker: jok老师
+      # speed: 1
+      # foo: bar
+      # testabc: 123456
+    headers: # 自定义请求头
+      # Authorization: Bearer xxxx
+    format: wav # 接口返回的音频格式
     output_file: tmp/
 # 模块测试配置
 module_test:

@@ -1,6 +1,9 @@
 package xiaozhi.modules.security.service.impl;
 
 import cn.hutool.core.date.DateUtil;
+import lombok.AllArgsConstructor;
+import xiaozhi.common.exception.ErrorCode;
+import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.TokenDTO;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.HttpContextUtils;
@@ -10,18 +13,23 @@ import xiaozhi.modules.security.entity.SysUserTokenEntity;
 import xiaozhi.modules.security.oauth2.TokenGenerator;
 import xiaozhi.modules.security.service.SysUserTokenService;
 import org.springframework.stereotype.Service;
+import xiaozhi.modules.sys.dto.SysUserDTO;
+import xiaozhi.modules.sys.service.SysUserService;
 
 import java.util.Date;
 
+@AllArgsConstructor
 @Service
 public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, SysUserTokenEntity> implements SysUserTokenService {
+
+    private final SysUserService sysUserService;
     /**
      * 12小时后过期
      */
     private final static int EXPIRE = 3600 * 12;
 
     @Override
-    public Result createToken(Long userId) {
+    public Result<TokenDTO> createToken(Long userId) {
         //用户token
         String token;
 
@@ -68,6 +76,20 @@ public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, Sy
         tokenDTO.setExpire(EXPIRE);
         tokenDTO.setClientHash(clientHash);
         return new Result().ok(tokenDTO);
+    }
+
+    @Override
+    public SysUserDTO getUserByToken(String token) {
+        SysUserTokenEntity userToken = baseDao.getByToken(token);
+
+        Date now = new Date();
+        if (userToken.getExpireDate().before(now)) {
+            throw new RenException(ErrorCode.UNAUTHORIZED);
+        }
+
+        SysUserDTO userDTO = sysUserService.getByUserId(userToken.getUserId());
+        userDTO.setPassword("");
+        return userDTO;
     }
 
     @Override

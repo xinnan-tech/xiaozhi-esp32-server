@@ -25,15 +25,23 @@
             </div>
             <div class="input-box">
               <img src="@/assets/login/password.png" alt="" class="input-icon"/>
-              <el-input v-model="form.password" placeholder="请输入密码"/>
+              <el-input v-model="form.password" type="password" placeholder="请输入密码"/>
             </div>
-            <div class="input-box">
-              <img src="@/assets/login/shield.png" alt="" class="input-icon"/>
-              <el-input v-model="form.captcha" placeholder="请输入验证码"/>
+            <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
+              <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
+                <img src="@/assets/login/shield.png" alt="" class="input-icon"/>
+                <el-input v-model="form.captcha" placeholder="请输入验证码" style="flex: 1;"/>
+              </div>
+              <img v-if="captchaUrl"
+                   :src="captchaUrl"
+                   alt="验证码"
+                   style="width: 150px; height: 40px; cursor: pointer;"
+                   @click="fetchCaptcha"
+              />
             </div>
             <div
                 style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
-              <div style="cursor: pointer;">新用户注册</div>
+              <div style="cursor: pointer;" @click="goToRegister">新用户注册</div>
             </div>
           </div>
           <div class="login-btn" @click="login">登陆</div>
@@ -55,8 +63,9 @@
 </template>
 
 <script>
-import Api from '@/apis/api'
-import {isNull, showDanger, showSuccess, goToPage} from '@/utils'
+import {getUUID, goToPage, showDanger, showSuccess} from '@/utils'
+import Api from '@/apis/api';
+
 
 export default {
   name: 'login',
@@ -66,162 +75,71 @@ export default {
       form: {
         username: '',
         password: '',
-        captcha: ''
-      }
+        captcha: '',
+        captchaId: ''
+      },
+      captchaUuid: '',
+      captchaUrl: ''
     }
   },
+  mounted() {
+    this.fetchCaptcha();
+  },
   methods: {
-    login() {
-      if (isNull(this.form.username)) {
+    fetchCaptcha() {
+      if (this.$store.getters.getToken) {
+        goToPage('/home')
+      } else {
+        this.captchaUuid = getUUID();
+
+        Api.user.getCaptcha(this.captchaUuid, (res) => {
+          if (res.status === 200) {
+            const blob = new Blob([res.data], {type: res.data.type});
+            this.captchaUrl = URL.createObjectURL(blob);
+
+          } else {
+            console.error('验证码加载异常:', error);
+            showDanger('验证码加载失败，点击刷新')
+          }
+        });
+      }
+    },
+
+    async login() {
+      if (!this.form.username.trim()) {  // 替换isNull校验
         showDanger('用户名不能为空')
         return
       }
-      if (isNull(this.form.password)) {
+      if (!this.form.password.trim()) {  // 替换isNull校验
         showDanger('密码不能为空')
         return
       }
-      if (isNull(this.form.captcha)) {
+      if (!this.form.captcha.trim()) {  // 替换isNull校验
         showDanger('验证码不能为空')
         return
       }
+
+      this.form.captchaId = this.captchaUuid
       Api.user.login(this.form, ({data}) => {
+        console.log(data)
         showSuccess('登陆成功！')
+        
+        this.$store.commit('setToken', JSON.stringify(data.data))
+
         goToPage('/home')
       })
+
+      setTimeout(() => {
+        this.fetchCaptcha()
+      }, 1000)
+    },
+
+    goToRegister() {
+      goToPage('/register')
     }
   }
 }
 </script>
 <style scoped lang="scss">
-.welcome {
-  min-width: 1200px;
-  min-height: 675px;
-  height: 100vh;
-  background-image: url("@/assets/login/background.png");
-  background-size: cover;
-  /* 确保背景图像覆盖整个元素 */
-  background-position: center;
-  /* 从顶部中心对齐 */
-  -webkit-background-size: cover;
-  /* 兼容老版本WebKit浏览器 */
-  -o-background-size: cover;
-  /* 兼容老版本Opera浏览器 */
-}
-
-.login-text {
-  font-weight: 700;
-  font-size: 32px;
-  text-align: left;
-  color: #3d4566;
-}
-
-.login-welcome {
-  font-weight: 400;
-  font-size: 9px;
-  text-align: left;
-  color: #818cae;
-  align-self: flex-end;
-  margin-bottom: 7px;
-}
-
-.login-box {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  right: 18%;
-  background-color: #fff;
-  border-radius: 20px;
-  padding: 35px 0;
-  width: 450px;
-  box-sizing: border-box;
-}
-
-.el-dropdown-link {
-  font-weight: 400;
-  font-size: 14px;
-  text-align: left;
-  color: #979db1;
-}
-
-.input-icon {
-  width: 19px;
-  height: 22px;
-  flex-shrink: 0;
-}
-
-.login-btn {
-  height: 35px;
-  background: #5778ff;
-  border-radius: 10px;
-  font-weight: 400;
-  font-size: 14px;
-  cursor: pointer;
-  color: #fff;
-  line-height: 35px;
-  margin: 35px 15px 15px;
-}
-
-.code-send {
-  width: 70px;
-  height: 32px;
-  border-radius: 10px;
-  background: #e6ebff;
-  line-height: 32px;
-  font-weight: 400;
-  font-size: 14px;
-  color: #5778ff;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-.input-box {
-  display: flex;
-  margin-top: 20px;
-  align-items: center;
-  border-radius: 10px;
-  background: #f6f8fb;
-  border: 1px solid #e4e6ef;
-  height: 40px;
-  padding: 0 15px;
-  gap: 20px;
-}
-
-::v-deep {
-  .el-tabs__nav-wrap::after {
-    height: 1px;
-  }
-
-  .el-tabs__nav-wrap::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 1px;
-    background-color: #e4e7ed;
-    z-index: 1;
-  }
-
-  .el-tabs__item {
-    height: 65px;
-    line-height: 65px;
-    font-weight: 700;
-    color: #3d4566;
-  }
-
-  .el-tabs__item.is-active {
-    color: #5778ff;
-  }
-
-  .el-tabs__nav-scroll {
-    padding: 0 30px;
-  }
-
-  .el-input__inner {
-    border: none;
-    background-color: transparent;
-    height: 56px;
-    padding: 0;
-  }
-}
+@import './auth.scss'; // 添加这行引用
 </style>

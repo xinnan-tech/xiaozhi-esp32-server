@@ -13,7 +13,7 @@ import java.io.Serializable;
 @Schema(description = "登录表单")
 public class LoginDTO implements Serializable {
 
-    @Schema(description = "用户名", required = true)
+    @Schema(description = "手机号码")
     @NotBlank(message = "{sysuser.username.require}")
     private String username;
 
@@ -27,6 +27,6 @@ public class LoginDTO implements Serializable {
 
     @Schema(description = "唯一标识")
     @NotBlank(message = "{sysuser.uuid.require}")
-    private String uuid;
+    private String captchaId;
 
 }
