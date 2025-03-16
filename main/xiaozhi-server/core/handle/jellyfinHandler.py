@@ -33,9 +33,9 @@ class JellyfinHandler:
     def __init__(self, config):
         self.config = config
         self.music_related_keywords = []
-
         default_music_related_keywords = ["来一首歌", "唱一首歌", "播放音乐", "来点音乐", "背景音乐", "放首歌",
                                           "播放歌曲", "来点背景音乐", "我想听歌", "我要听歌", "放点音乐"]
+        self.music_files = ['播放音乐']
         if "music" in self.config:
             self.music_config = self.config["music"]
             self.jellyfin_endpoint = self.music_config['jellyfin']['endpoint']
@@ -49,12 +49,18 @@ class JellyfinHandler:
 
     async def handle_music_command(self, conn, text):
         """处理音乐播放指令"""
-        clean_text = re.sub(r'[^\w\s]', '', text).strip()
-        logger.bind(tag=TAG).debug(f"检查是否是音乐命令: {clean_text}")
+        try:
+            content = (re.findall(r"'([^']*)'", text) or [text])[0]
+            clean_text = re.sub(r'[^\w\s]', '', content).strip()
+            potential_song = clean_text.split(' ')[-1]
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"非intent命令: {str(e)}")
+            clean_text = re.sub(r'[^\w\s]', '', text).strip()
+            logger.bind(tag=TAG).debug(f"检查是否是音乐命令: {clean_text}")
+            potential_song = _extract_song_name(clean_text)
 
         # 尝试匹配具体歌名
         if self.jellyfin_endpoint:
-            potential_song = _extract_song_name(clean_text)
             if potential_song:
                 best_match_item = self._find_best_match(potential_song)
                 if best_match_item:

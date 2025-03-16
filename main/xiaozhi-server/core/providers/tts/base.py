@@ -47,18 +47,18 @@ class TTSProviderBase(ABC):
         if not wav_bytes:
             raise IOError('stream null')
         audio = AudioSegment.from_file(BytesIO(wav_bytes))
-        return self.audio_to_opus_data(audio)
+        return self.audio_seg_to_opus_data(audio)
 
-    def audio_to_opus_data(self, audio_file_path:str):
+    def audio_to_opus_data(self, wav_file_path:str):
         """音频文件转换为Opus编码"""
         # 获取文件后缀名
-        file_type = os.path.splitext(audio_file_path)[1]
+        file_type = os.path.splitext(wav_file_path)[1]
         if file_type:
             file_type = file_type.lstrip('.')
         audio = AudioSegment.from_file(wav_file_path, format=file_type)
-        return self.audio_to_opus_data(audio)
+        return self.audio_seg_to_opus_data(audio)
 
-    def audio_to_opus_data(self, audio:AudioSegment):
+    def audio_seg_to_opus_data(self, audio:AudioSegment):
         # 转换为单声道/16kHz采样率/16位小端编码（确保与编码器匹配）
         audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
 
