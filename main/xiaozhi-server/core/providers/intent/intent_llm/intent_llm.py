@@ -89,7 +89,7 @@ class IntentProvider(IntentProviderBase):
 
         msgStr += f"User: {text}\n"
         user_prompt = f"当前的对话如下：\n{msgStr}"
-        prompt_music = f"{self.promot}\n<start>{conn.music_handler.music_files}\n<end>"
+        prompt_music = f"{self.promot}\n<start>{conn.music_handler.music_file_names}\n<end>"
         logger.bind(tag=TAG).debug(f"User prompt: {prompt_music}")
         # 使用LLM进行意图识别
         intent = self.llm.response_no_stream(
@@ -100,8 +100,7 @@ class IntentProvider(IntentProviderBase):
         # 使用正则表达式提取 {} 中的内容
         match = re.search(r'\{.*?\}', intent)
         if match:
-            result = match.group(0)  # 获取匹配到的内容（包含 {}）
-            print(result)  # 输出：{intent: '播放音乐 [中秋月]'}
+            result = match.group(0)
             intent = result
         else:
             intent = "{intent: '继续聊天'}"

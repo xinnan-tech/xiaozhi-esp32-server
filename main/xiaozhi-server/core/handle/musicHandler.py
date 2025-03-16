@@ -44,6 +44,7 @@ class MusicManager:
 
     def get_music_files(self):
         music_files = []
+        music_file_names = []
         for file in self.music_dir.rglob("*"):
             # 判断是否是文件
             if file.is_file():
@@ -54,7 +55,8 @@ class MusicManager:
                     # music_files.append(str(file.resolve()))  # 添加绝对路径
                     # 添加相对路径
                     music_files.append(str(file.relative_to(self.music_dir)))
-        return music_files
+                    music_file_names.append(os.path.splitext(str(file.relative_to(self.music_dir)))[0])
+        return music_files, music_file_names
 
 
 class MusicHandler:
@@ -74,7 +76,7 @@ class MusicHandler:
             self.refresh_time = 60
 
         # 获取音乐文件列表
-        self.music_files = MusicManager(self.music_dir, self.music_ext).get_music_files()
+        self.music_files, self.music_file_names = MusicManager(self.music_dir, self.music_ext).get_music_files()
         self.scan_time = time.time()
         logger.bind(tag=TAG).debug(f"找到的音乐文件: {self.music_files}")
 
@@ -87,7 +89,7 @@ class MusicHandler:
         if os.path.exists(self.music_dir):
             if time.time() - self.scan_time > self.refresh_time:
                 # 刷新音乐文件列表
-                self.music_files = MusicManager(self.music_dir, self.music_ext).get_music_files()
+                self.music_files, self.music_file_names = MusicManager(self.music_dir, self.music_ext).get_music_files()
                 self.scan_time = time.time()
                 logger.bind(tag=TAG).debug(f"刷新的音乐文件: {self.music_files}")
 

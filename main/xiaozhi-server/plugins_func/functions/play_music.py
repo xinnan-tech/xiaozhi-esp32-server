@@ -29,12 +29,28 @@ def play_music(conn, song_name: str):
     try:
         music_intent = f"播放音乐 {song_name}" if song_name != "random" else "随机播放音乐"
 
-        # 执行音乐播放命令
+        # 检查事件循环状态
+        if not conn.loop.is_running():
+            logger.bind(tag=TAG).error("事件循环未运行，无法提交任务")
+            return ActionResponse(action=Action.RESPONSE, result="系统繁忙", response="请稍后再试")
+
+        # 提交异步任务
         future = asyncio.run_coroutine_threadsafe(
             conn.music_handler.handle_music_command(conn, music_intent),
             conn.loop
         )
-        future.result()
-        return ActionResponse(action=Action.RESPONSE, result="退出意图已处理", response="还想听什么歌？")
+
+        # 非阻塞回调处理
+        def handle_done(f):
+            try:
+                f.result()  # 可在此处理成功逻辑
+                logger.bind(tag=TAG).info("播放完成")
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"播放失败: {e}")
+
+        future.add_done_callback(handle_done)
+
+        return ActionResponse(action=Action.RESPONSE, result="指令已接收", response="正在为您播放音乐")
     except Exception as e:
         logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
+        return ActionResponse(action=Action.RESPONSE, result=str(e), response="播放音乐时出错了")

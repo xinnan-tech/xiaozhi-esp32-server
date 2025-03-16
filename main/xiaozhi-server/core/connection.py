@@ -20,7 +20,7 @@ from plugins_func.register import Action
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator
-import plugins_func.loadplugins  
+import plugins_func.loadplugins
 
 TAG = __name__
 
