@@ -1,6 +1,6 @@
 from typing import List, Dict
 from ..base import IntentProviderBase
-from core.handle.musicHandler import initialize_music_handler
+from plugins_func.functions.play_music import initialize_music_handler
 from config.logger import setup_logging
 import re
 
