@@ -11,7 +11,7 @@ import websockets
 from typing import Dict, Any
 from core.utils.dialogue import Message, Dialogue
 from core.handle.textHandle import handleTextMessage
-from core.utils.util import get_string_no_punctuation_or_emoji, extract_json_from_string
+from core.utils.util import get_string_no_punctuation_or_emoji, extract_json_from_string, get_ip_info
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.sendAudioHandle import sendAudioMessage
 from core.handle.receiveAudioHandle import handleAudioMessage
@@ -37,6 +37,8 @@ class ConnectionHandler:
 
         self.websocket = None
         self.headers = None
+        self.client_ip = None
+        self.client_ip_info = {}
         self.session_id = None
         self.prompt = None
         self.welcome_msg = None
@@ -103,8 +105,10 @@ class ConnectionHandler:
             # 获取并验证headers
             self.headers = dict(ws.request.headers)
             # 获取客户端ip地址
-            client_ip = ws.remote_address[0]
-            self.logger.bind(tag=TAG).info(f"{client_ip} conn - Headers: {self.headers}")
+            self.client_ip = ws.remote_address[0]
+            self.client_ip_info = get_ip_info(self.client_ip)
+            self.logger.bind(tag=TAG).info(f"{self.client_ip} conn - Headers: {self.headers}")
+            self.logger.bind(tag=TAG).info(f"Client ip info: {self.client_ip_info}")
 
             # 进行认证
             await self.auth.authenticate(self.headers)
