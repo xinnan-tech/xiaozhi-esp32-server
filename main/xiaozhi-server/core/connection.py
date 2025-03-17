@@ -450,7 +450,7 @@ class ConnectionHandler:
             future = self.executor.submit(self.speak_and_play, text, text_index)
             self.tts_queue.put(future)
             self.dialogue.put(Message(role="assistant", content=text))
-        if result.action == Action.REQLLM: # 调用函数后再请求llm生成回复
+        elif result.action == Action.REQLLM: # 调用函数后再请求llm生成回复
             
             text = result.result
             if text is not None and len(text) > 0:
@@ -465,9 +465,10 @@ class ConnectionHandler:
 
                 self.dialogue.put(Message(role="tool", tool_call_id=function_id, content=text))
                 self.chat_with_function_calling(text, tool_call=True)
-        if result.action == Action.NOTFOUND:
+        elif result.action == Action.NOTFOUND:
             text = result.response
-
+        else:
+            text = result.response
         
 
     def _tts_priority_thread(self):

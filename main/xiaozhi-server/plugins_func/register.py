@@ -19,6 +19,7 @@ class ToolType(Enum):
 
 
 class Action(Enum):
+    ERROR = (-1, "错误")
     NOTFOUND = (0, "没有找到函数")
     NONE = (1, "啥也不干")
     RESPONSE = (2, "直接回复")
