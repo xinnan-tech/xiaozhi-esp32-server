@@ -109,6 +109,27 @@ Memory:
   mem0_milvus:
  　 # 本地mem0记忆功能，通过mem0+milvus向量数据库，数据保存在本地，不会上传到服务器 
     type: mem0_milvus
+    llm:
+      provider: deepseek
+      config:
+        model: qwen-plus #模型可替换
+        deepseek_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1 #API-URL 可替换
+        api_key: sk-xxxxxxx #填写API-key
+        temperature: 0.2
+        max_tokens: 2000
+        top_p: 1.0
+
+    embedder:
+      provider: huggingface
+      config:
+        model: /mnt/mem0/m3e-large #可以替换在线模型或者使用本地模型
+
+    vector_store:
+      provider: milvus #可以使用容器本地部署milvus向量数据库
+      config:
+        url: http://localhost:19530 #使用本地的milvus向量数据库
+        collection_name: mem0_collection
+        embedding_model_dims: 1024
 
 ASR:
   FunASR:
