@@ -257,6 +257,7 @@ def register_device_type(descriptor):
 
 async def handleIotDescriptors(conn, descriptors):
     """处理物联网描述"""
+    bUseIotFunctionHandler = conn.config.get("use_iot_function_handler", False)
     functions_changed = False
     
     for descriptor in descriptors:
@@ -265,16 +266,17 @@ async def handleIotDescriptors(conn, descriptors):
                                        descriptor["methods"])
         conn.iot_descriptors[descriptor["name"]] = iot_descriptor
         
-        # 注册或获取设备类型
-        type_id = register_device_type(descriptor)
-        device_functions = device_type_registry.get_device_functions(type_id)
-        
-        # 在连接级注册设备函数
-        if hasattr(conn, 'func_handler'):
-            for func_name in device_functions:
-                conn.func_handler.function_registry.register_function(func_name)
-                logger.bind(tag=TAG).info(f"注册IOT函数到function handler: {func_name}")
-                functions_changed = True
+        if bUseIotFunctionHandler:
+            # 注册或获取设备类型
+            type_id = register_device_type(descriptor)
+            device_functions = device_type_registry.get_device_functions(type_id)
+            
+            # 在连接级注册设备函数
+            if hasattr(conn, 'func_handler'):
+                for func_name in device_functions:
+                    conn.func_handler.function_registry.register_function(func_name)
+                    logger.bind(tag=TAG).info(f"注册IOT函数到function handler: {func_name}")
+                    functions_changed = True
             
     # 如果注册了新函数，更新function描述列表
     if functions_changed and hasattr(conn, 'func_handler'):

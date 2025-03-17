@@ -102,6 +102,9 @@ Intent:
       - change_role
       - get_weather
 
+# 是否使用iot_function_handler处理,开启后iot消息会自动注册到function_call中
+use_iot_function_handler: false
+
 Memory:
   mem0ai:
     type: mem0ai
