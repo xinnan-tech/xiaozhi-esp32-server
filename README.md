@@ -190,6 +190,7 @@ server:
 | TTS |     GPT_SOVITS_V2      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
 | TTS |     GPT_SOVITS_V3      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
 | TTS |       MinimaxTTS       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
+| TTS |       Kokoro       | 本地使用 |  免费  |                         小型TTS模型，使用中文微调后的版本[ZH-v1.1](https://huggingface.co/hexgrad/Kokoro-82M-v1.1-zh)                          |
 
 ---
 
