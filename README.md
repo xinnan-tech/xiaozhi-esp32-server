@@ -57,6 +57,13 @@
          </picture>
         </a>
     </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
+         <picture>
+           <img alt="成本最低配置" src="docs/images/demo4.png" />
+         </picture>
+        </a>
+    </td>
   </tr>
   <tr>
     <td>
@@ -74,9 +81,16 @@
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1Z8XuYZEAS" target="_blank">
          <picture>
-           <img alt="成本最低配置" src="docs/images/demo4.png" />
+           <img alt="天气插件" src="docs/images/demo8.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV178XuYfEpi" target="_blank">
+         <picture>
+           <img alt="IOT指令控制设备" src="docs/images/demo9.png" />
          </picture>
         </a>
     </td>
