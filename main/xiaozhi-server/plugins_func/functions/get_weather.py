@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
-from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from config.logger import setup_logging
+from plugins_func.register import register_function, ToolType, ActionResponse, Action
 
 TAG = __name__
 logger = setup_logging()
@@ -32,8 +32,6 @@ GET_WEATHER_FUNCTION_DESC = {
     }
 }
 
-API_KEY = "bdd98ec1d87747f3a2e8b1741a5af796" # TODO: 做成配置项
-DEFAULT_LOCATION = "广州"
 HEADERS = {
     'User-Agent': (
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -42,8 +40,8 @@ HEADERS = {
 }
 
 
-def fetch_city_info(location):
-    url = f"https://geoapi.qweather.com/v2/city/lookup?key={API_KEY}&location={location}&lang=zh"
+def fetch_city_info(location, api_key):
+    url = f"https://geoapi.qweather.com/v2/city/lookup?key={api_key}&location={location}&lang=zh"
     response = requests.get(url, headers=HEADERS).json()
     return response.get('location', [])[0] if response.get('location') else None
 
@@ -78,17 +76,19 @@ def parse_weather_info(soup):
 
 @register_function('get_weather', GET_WEATHER_FUNCTION_DESC, ToolType.SYSTEM_CTL)
 def get_weather(conn, location: str = None, lang: str = "zh_CN"):
-    location = location or conn.client_ip_info.get("city") or DEFAULT_LOCATION
+    api_key = conn.config["plugins"]["get_weather"]["api_key"]
+    default_location = conn.config["plugins"]["get_weather"]["default_location"]
+    location = location or conn.client_ip_info.get("city") or default_location
     logger.bind(tag=TAG).debug(f"获取天气: {location}")
-    
-    city_info = fetch_city_info(location)
+
+    city_info = fetch_city_info(location, api_key)
     if not city_info:
         return ActionResponse(Action.REQLLM, f"未找到相关的城市: {location}，请确认地点是否正确", None)
-    
+
     soup = fetch_weather_page(city_info['fxLink'])
     if not soup:
         return ActionResponse(Action.REQLLM, None, "请求失败")
-    
+
     city_name, current_abstract, current_basic, temps_list = parse_weather_info(soup)
     weather_report = f"根据下列数据，用{lang}回应用户的查询天气请求：\n{city_name}未来7天天气:\n"
     for i, (date, high, low) in enumerate(temps_list):

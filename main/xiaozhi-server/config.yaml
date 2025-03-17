@@ -102,6 +102,14 @@ Intent:
       - change_role
       - get_weather
 
+# 插件的基础配置
+plugins:
+  # 获取天气插件的配置，这里填写你的api_key
+  # 这个密钥是项目共用的key，用多了可能会被限制
+  # 想稳定一点就自行申请替换，每天有1000次免费调用
+  # 申请地址：https://console.qweather.com/#/apps/create-key/over
+  get_weather: { "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
+
 Memory:
   mem0ai:
     type: mem0ai

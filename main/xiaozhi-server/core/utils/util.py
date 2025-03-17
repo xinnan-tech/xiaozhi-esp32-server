@@ -1,6 +1,5 @@
 import os
 import json
-from datetime import datetime
 import yaml
 import socket
 import subprocess
@@ -74,13 +73,9 @@ def get_ip_info(ip_addr):
         resp = requests.get(url).json()
 
         ip_info = {
-            "ip": resp.get("ipAddress"),
             "city": resp.get("cityName"),
             "region": resp.get("regionName"), 
-            "country": resp.get("countryName"),
-            "country_code": resp.get("countryCode"),
-            "loc": f"{resp.get('latitude')},{resp.get('longitude')}",
-            "timezone": resp.get("timeZones")[0] if resp.get("timeZones") else None
+            "country": resp.get("countryName")
         }
         return ip_info
     except Exception as e:
