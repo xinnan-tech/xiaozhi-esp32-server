@@ -30,7 +30,7 @@ log:
   # 设置日志等级：INFO、DEBUG
   log_level: INFO
   # 设置日志路径
-  log_dir: tmp
+  log_dir: log
   # 设置日志文件
   log_file: "server.log"
   # 设置数据文件路径
@@ -51,15 +51,13 @@ xiaozhi:
 prompt: |
   你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗。
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
-  现在我正在和你进行语音聊天，我们开始吧。
+  当前时间是:{date_time}，现在我正在和你进行语音聊天，我们开始吧。
   如果用户希望结束对话，请在最后说“拜拜”或“再见”。
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
 
 # 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
 close_connection_no_voice_time: 120
-# TTS请求超时时间(秒)
-tts_timeout: 10
 
 CMD_exit:
   - "退出"
@@ -87,20 +85,14 @@ selected_module:
 Intent:
   # 不使用意图识别
   nointent:
-    # 不需要动type
+    # 不需要动
     type: nointent
   intent_llm:
-    # 不需要动type
+    # 不需要动
     type: intent_llm
   function_call:
-    # 不需要动type
+    # 不需要动
     type: nointent
-    # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
-    # 下面是加载查天气、角色切换的插件示例
-    functions:
-      - change_role
-      - get_weather
 
 Memory:
   mem0ai:
@@ -220,7 +212,7 @@ TTS:
     # 定义TTS API类型
     type: edge
     voice: zh-CN-XiaoxiaoNeural
-    output_file: tmp/
+    output_dir: tmp/
   DoubaoTTS:
     # 定义TTS API类型
     type: doubao
@@ -230,7 +222,7 @@ TTS:
     # 地址：https://console.volcengine.com/speech/service/8
     api_url: https://openspeech.bytedance.com/api/v1/tts
     voice: BV001_streaming
-    output_file: tmp/
+    output_dir: tmp/
     authorization: "Bearer;"
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
@@ -241,7 +233,7 @@ TTS:
     # token申请地址 https://cloud.siliconflow.cn/account/ak
     model: FunAudioLLM/CosyVoice2-0.5B
     voice: FunAudioLLM/CosyVoice2-0.5B:alex
-    output_file: tmp/
+    output_dir: tmp/
     access_token: 你的硅基流动API密钥
     response_format: wav
   CozeCnTTS:
@@ -249,7 +241,7 @@ TTS:
     # COZECN TTS
     # token申请地址 https://www.coze.cn/open/oauth/pats
     voice: 7426720361733046281
-    output_file: tmp/
+    output_dir: tmp/
     access_token: 你的coze web key
     response_format: wav
   FishSpeech:
@@ -262,7 +254,7 @@ TTS:
     #--decoder-config-name firefly_gan_vq
     #--compile
     type: fishspeech
-    output_file: tmp/
+    output_dir: tmp/
     response_format: wav
     reference_id: null
     reference_audio: ["/tmp/test.wav",]
@@ -286,7 +278,7 @@ TTS:
     #python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/caixukun.yaml
     type: gpt_sovits_v2
     url: "http://127.0.0.1:9880/tts"
-    output_file: tmp/
+    output_dir: tmp/
     text_lang: "auto"
     ref_audio_path: "caixukun.wav"
     prompt_text: ""
@@ -306,24 +298,20 @@ TTS:
     repetition_penalty: 1.35
     aux_ref_audio_paths: []
   GPT_SOVITS_V3:
-    # 定义TTS API类型 GPT-SoVITS-v3lora-20250228
-    #启动tts方法：
-    #python api.py
     type: gpt_sovits_v3
-    url: "http://127.0.0.1:9880"
-    output_file: tmp/
-    text_language: "auto"
-    refer_wav_path: "caixukun.wav"
-    prompt_language: "zh"
+    url: "http://127.0.0.1:9880/tts"
+    output_dir: tmp/
+    text_lang: "auto"
+    ref_audio_path: "caixukun.wav"
+    prompt_lang: "zh"
     prompt_text: ""
-    top_k: 15
-    top_p: 1.0
-    temperature: 1.0
-    cut_punc: ""
-    speed: 1.0
-    inp_refs: []
-    sample_steps: 32
-    if_sr: false
+    top_k: 5
+    top_p: 1
+    temperature: 1
+    sample_steps: 16
+    media_type: "wav"
+    streaming_mode: false
+    threshold: 30
   MinimaxTTS:
     # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
     # 平台地址：https://platform.minimaxi.com/
@@ -332,7 +320,7 @@ TTS:
     # api_key地址：https://platform.minimaxi.com/user-center/basic-information/interface-key
     # 定义TTS API类型
     type: minimax
-    output_file: tmp/
+    output_dir: tmp/
     group_id: 你的minimax平台groupID
     api_key: 你的minimax平台接口密钥
     model: "speech-01-turbo"
@@ -369,7 +357,7 @@ TTS:
     # token地址：https://nls-portal.console.aliyun.com/overview
     # 定义TTS API类型
     type: aliyun
-    output_file: tmp/
+    output_dir: tmp/
     appkey: 你的阿里云智能语音交互服务项目Appkey
     token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
     voice: xiaoyun
@@ -409,7 +397,7 @@ TTS:
     to_lang: ZH
     url: https://u95167-bd74-2aef8085.westx.seetacloud.com:8443/flashsummary/tts?token=
     format: mp3
-    output_file: tmp/
+    output_dir: tmp/
     emotion: 1
   OpenAITTS:
     # openai官方文本转语音服务，可支持全球大多数语种
@@ -423,22 +411,7 @@ TTS:
     voice: onyx
     # 语速范围0.25-4.0
     speed: 1
-    output_file: tmp/
-  CustomTTS:
-    # 自定义的TTS接口服务，请求参数可自定义
-    # 要求接口使用GET方式请求，并返回音频文件
-    type: custom
-    url: "http://127.0.0.1:9880/tts"
-    params: # 自定义请求参数
-      # text: "{prompt_text}" # {prompt_text}会被替换为实际的提示词内容
-      # speaker: jok老师
-      # speed: 1
-      # foo: bar
-      # testabc: 123456
-    headers: # 自定义请求头
-      # Authorization: Bearer xxxx
-    format: wav # 接口返回的音频格式
-    output_file: tmp/
+    output_dir: tmp/
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
