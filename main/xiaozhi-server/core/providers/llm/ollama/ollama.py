@@ -12,10 +12,10 @@ class LLMProvider(LLMProviderBase):
         self.model_name = config.get("model_name")
         self.base_url = config.get("base_url", "http://localhost:11434")
         # Initialize OpenAI client with Ollama base URL
-        #如果没有v1，增加v1
+        # 如果没有v1，增加v1
         if not self.base_url.endswith("/v1"):
             self.base_url = f"{self.base_url}/v1"
-            
+
         self.client = OpenAI(
             base_url=self.base_url,
             api_key="ollama"  # Ollama doesn't need an API key but OpenAI client requires one
@@ -28,13 +28,20 @@ class LLMProvider(LLMProviderBase):
                 messages=dialogue,
                 stream=True
             )
-            
+            is_active=True
             for chunk in responses:
                 try:
                     delta = chunk.choices[0].delta if getattr(chunk, 'choices', None) else None
                     content = delta.content if hasattr(delta, 'content') else ''
                     if content:
-                        yield content
+                        if '<think>' in content:
+                            is_active = False
+                            content = content.split('<think>')[0]
+                        if '</think>' in content:
+                            is_active = True
+                            content = content.split('</think>')[-1]
+                        if is_active:
+                            yield content
                 except Exception as e:
                     logger.bind(tag=TAG).error(f"Error processing chunk: {e}")
 
@@ -50,7 +57,7 @@ class LLMProvider(LLMProviderBase):
                 stream=True,
                 tools=functions,
             )
-            
+
             for chunk in stream:
                 yield chunk.choices[0].delta.content, chunk.choices[0].delta.tool_calls
 

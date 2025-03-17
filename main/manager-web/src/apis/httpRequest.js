@@ -1,6 +1,7 @@
-import {goToPage, showDanger, showWarning} from '../utils/index'
+import {goToPage, showDanger, showWarning, isNotNull} from '../utils/index'
 import Constant from '../utils/constant'
 import Fly from 'flyio/dist/npm/fly';
+import store from '../store/index'
 
 const fly = new Fly()
 // 设置超时
@@ -25,7 +26,9 @@ function sendRequest() {
         _url: '',
         _responseType: undefined, // 新增响应类型字段
         'send'() {
-            this._header.token = localStorage.getItem(Constant.STORAGE_KEY.TOKEN)
+            if(isNotNull(store.getters.getToken)){
+                this._header.Authorization = 'Bearer ' + (JSON.parse(store.getters.getToken)).token
+            }
 
             // 打印请求信息
             fly.request(this._url, this._data, {
@@ -43,7 +46,7 @@ function sendRequest() {
                 }
             }).catch((res) => {
                 // 打印失败响应
-                console.log(res)
+                console.log('catch', res)
                 httpHandlerError(res, this._failCallback)
             })
             return this
@@ -97,6 +100,7 @@ function sendRequest() {
  */
 // 在错误处理函数中添加日志
 function httpHandlerError(info, callBack) {
+    console.log('httpHandlerError', info)
     
     /** 请求成功，退出该函数 可以根据项目需求来判断是否请求成功。这里判断的是status为200的时候是成功 */
     let networkError = false

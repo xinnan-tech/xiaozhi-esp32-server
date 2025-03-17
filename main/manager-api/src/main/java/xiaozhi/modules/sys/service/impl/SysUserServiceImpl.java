@@ -42,6 +42,13 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
     }
 
     @Override
+    public SysUserDTO getByUserId(Long userId) {
+        SysUserEntity sysUserEntity = sysUserDao.selectById(userId);
+
+        return ConvertUtils.sourceToTarget(sysUserEntity, SysUserDTO.class);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void save(SysUserDTO dto) {
         SysUserEntity entity = ConvertUtils.sourceToTarget(dto, SysUserEntity.class);

@@ -22,3 +22,4 @@ mem0ai==0.1.62
 kokoro==0.8.4
 kokoro[misaki-zh]>=0.8.2
 soundfile==0.13.1
+bs4==0.0.2

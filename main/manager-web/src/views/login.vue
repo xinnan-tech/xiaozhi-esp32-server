@@ -87,18 +87,22 @@ export default {
   },
   methods: {
     fetchCaptcha() {
-      this.captchaUuid = getUUID();
+      if (this.$store.getters.getToken) {
+        goToPage('/home')
+      } else {
+        this.captchaUuid = getUUID();
 
-      Api.user.getCaptcha(this.captchaUuid, (res) => {
-        if (res.status === 200) {
-          const blob = new Blob([res.data], {type: res.data.type});
-          this.captchaUrl = URL.createObjectURL(blob);
+        Api.user.getCaptcha(this.captchaUuid, (res) => {
+          if (res.status === 200) {
+            const blob = new Blob([res.data], {type: res.data.type});
+            this.captchaUrl = URL.createObjectURL(blob);
 
-        } else {
-          console.error('验证码加载异常:', error);
-          showDanger('验证码加载失败，点击刷新')
-        }
-      });
+          } else {
+            console.error('验证码加载异常:', error);
+            showDanger('验证码加载失败，点击刷新')
+          }
+        });
+      }
     },
 
     async login() {
@@ -119,8 +123,12 @@ export default {
       Api.user.login(this.form, ({data}) => {
         console.log(data)
         showSuccess('登陆成功！')
+        
+        this.$store.commit('setToken', JSON.stringify(data.data))
+
         goToPage('/home')
       })
+
       setTimeout(() => {
         this.fetchCaptcha()
       }, 1000)

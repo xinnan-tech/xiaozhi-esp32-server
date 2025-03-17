@@ -6,12 +6,15 @@ import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.MessageUtils;
+import xiaozhi.modules.security.controller.LoginController;
 import xiaozhi.modules.security.entity.SysUserTokenEntity;
 import xiaozhi.modules.security.service.ShiroService;
 import xiaozhi.modules.sys.entity.SysUserEntity;
@@ -29,6 +32,8 @@ public class Oauth2Realm extends AuthorizingRealm {
     @Lazy
     @Resource
     private ShiroService shiroService;
+
+    private static final Logger logger = LoggerFactory.getLogger(Oauth2Realm.class);
 
     @Override
     public boolean supports(AuthenticationToken token) {
@@ -82,6 +87,11 @@ public class Oauth2Realm extends AuthorizingRealm {
         userDetail.setToken(accessToken);
 
         //账号锁定
+        if (userDetail.getStatus() == null) {
+            logger.error("账号状态异常，status 不能为空");
+            throw new DisabledAccountException(MessageUtils.getMessage(ErrorCode.ACCOUNT_DISABLE));
+        }
+
         if (userDetail.getStatus() == 0) {
             throw new LockedAccountException(MessageUtils.getMessage(ErrorCode.ACCOUNT_LOCK));
         }

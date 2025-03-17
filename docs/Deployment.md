@@ -1,3 +1,5 @@
+# 部署方案参考
+![图片](images/deploy.png)
 # 方式一：docker快速部署
 
 docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统上运行。
@@ -6,7 +8,45 @@ docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统
 
 如果您的电脑还没安装docker，可以按照这里的教程安装：[docker安装](https://www.runoob.com/docker/ubuntu-docker-install.html)
 
-## 2. 创建目录
+如果你已经安装好docker，你可以[1.1使用懒人脚本](#11-懒人脚本)自动帮你下载所需的文件和配置文件，你可以使用docker[1.2手动部署](#12-手动部署)。
+
+### 1.1 懒人脚本
+
+你可以使用以下命令一键下载并执行部署脚本：
+请确保你的环境可以正常访问 GitHub 否则无法下载脚本。
+```bash
+curl -L -o docker-setup.sh https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/docker-setup.sh
+```
+
+如果您的电脑是windows系统，请使用使用 Git Bash、WSL、PowerShell 或 CMD 运行以下命令：
+```bash
+# Git Bash 或 WSL
+sh docker-setup.sh
+# PowerShell 或 CMD
+.\docker-setup.sh
+```
+
+如果您的电脑是linux 或者 macos 系统，请使用终端运行以下命令：
+```bash
+chmod +x docker-setup.sh
+./docker-setup.sh
+```
+
+脚本会自动完成以下操作：
+> 1. 创建必要的目录结构
+> 2. 下载语音识别模型
+> 3. 下载配置文件
+> 4. 检查文件完整性
+>
+> 执行完成后，请按照提示配置 API 密钥。
+
+当你一切顺利完成以上操作后，继续操作[配置项目文件](#3-配置项目文件)
+
+### 1.2 手动部署
+
+如果懒人脚本无法正常运行，请按本章节1.2进行手动部署。
+
+#### 1.2.1 创建目录
 
 安装完后，你需要为这个项目找一个安放配置文件的目录，例如我们可以新建一个文件夹叫`xiaozhi-server`。
 
@@ -21,14 +61,18 @@ xiaozhi-server
      ├─ SenseVoiceSmall
 ```
 
-## 4. 下载语音识别模型文件
+#### 1.2.2 下载语音识别模型文件
 
 你需要下载语音识别的模型文件，因为本项目的默认语音识别用的是本地离线语音识别方案。可通过这个方式下载
 [跳转到下载语音识别模型文件](#模型文件)
 
 下载完后，回到本教程。
 
-## 3. 下载docker-compose.yaml
+#### 1.2.3 下载配置文件
+
+你需要下载两个配置文件：`docker-compose.yaml` 和 `config.yaml`。需要从项目仓库下载这两个文件。
+
+##### 1.2.3.1 下载 docker-compose.yaml
 
 用浏览器打开[这个链接](../main/xiaozhi-server/docker-compose.yml)。
 
@@ -37,7 +81,7 @@ xiaozhi-server
 
 下载完后，回到本教程继续往下。
 
-## 3. 下载配置文件
+##### 1.2.3.2 下载 config.yaml
 
 用浏览器打开[这个链接](../main/xiaozhi-server/config.yaml)。
 
@@ -58,14 +102,14 @@ xiaozhi-server
 
 如果你的文件目录结构也是上面的，就继续往下。如果不是，你就再仔细看看是不是漏操作了什么。
 
-## 4. 配置项目文件
+## 3. 配置项目文件
 
 接下里，程序还不能直接运行，你需要配置一下，你到底使用的是什么模型。你可以看这个教程：
 [跳转到配置项目文件](#配置项目)
 
 配置完项目文件后，回到本教程继续往下。
 
-## 5. 执行docker命令
+## 4. 执行docker命令
 
 打开命令行工具，使用`终端`或`命令行`工具 进入到你的`xiaozhi-server`，执行以下命令
 
@@ -81,14 +125,14 @@ docker logs -f xiaozhi-esp32-server
 
 这时，你就要留意日志信息，可以根据这个教程，判断是否成功了。[跳转到运行状态确认](#运行状态确认)
 
-## 6.版本升级操作
+## 5. 版本升级操作
 
 如果后期想升级版本，可以这么操作
 
-1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
+5.1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
 请注意是对关键密钥逐个复制，不要直接覆盖。因为新的`.config.yaml`文件可能有一些新的配置项，旧的`.config.yaml`文件不一定有。
 
-2、执行以下命令
+5.2、执行以下命令
 
 ```
 docker stop xiaozhi-esp32-server
@@ -96,7 +140,7 @@ docker rm xiaozhi-esp32-server
 docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
 ```
 
-3、重新按docker方式部署
+5.3、重新按docker方式部署
 
 # 方式二：借助Docker环境运行部署
 
@@ -217,20 +261,23 @@ python app.py
 如果你的`xiaozhi-server`目录没有`data`，你需要创建`data`目录。
 如果你的`data`下面没有`.config.yaml`文件，你可以把源码目录下的`config.yaml`文件复制一份，重命名为`.config.yaml`
 
-修改`xiaozhi-server`下`data`目录下的`.config.yaml`文件，配置本项目必须的两个配置。
+修改`xiaozhi-server`下`data`目录下的`.config.yaml`文件，配置本项目必须的一个配置。
 
 - 默认的LLM使用的是`ChatGLMLLM`，你需要配置密钥，因为他们的模型，虽然有免费的，但是仍要去[官网](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)注册密钥，才能启动。
-- 默认的记忆层`mem0ai`，你需要配置密钥，因为他们的API，虽然有免费额度，但是仍要去[官网](https://app.mem0.ai/dashboard/api-keys)注册密钥，才能启动。
 
 配置说明：这里是各个功能使用的默认组件，例如LLM默认使用`ChatGLMLLM`模型。如果需要切换模型，就是改对应的名称。
 本项目的默认配置仅是成本最低配置（`glm-4-flash`和`EdgeTTS`都是免费的），如果需要更优的更快的搭配，需要自己结合部署环境切换各组件的使用。
 
 ```
 selected_module:
-  ASR: FunASR
   VAD: SileroVAD
+  ASR: FunASR
   LLM: ChatGLMLLM
   TTS: EdgeTTS
+  # 默认不开启记忆，如需开启请看配置文件里的描述
+  Memory: nomem   
+  # 默认不开启意图识别，如需开启请看配置文件里的描述
+  Intent: nointent
 ```
 
 比如修改`LLM`使用的组件，就看本项目支持哪些`LLM` API接口，当前支持的是`openai`、`dify`。欢迎验证和支持更多LLM平台的接口。
@@ -248,8 +295,6 @@ LLM:
     type: dify
     ...
 ```
-
-有些服务，比如如果你使用`Dify`、`豆包的TTS`，是需要密钥的，记得在配置文件加上哦！
 
 ## 模型文件
 
