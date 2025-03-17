@@ -21,6 +21,7 @@ from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator
 import plugins_func.loadplugins
+import redis
 
 TAG = __name__
 
@@ -31,9 +32,18 @@ class TTSException(RuntimeError):
 
 class ConnectionHandler:
     def __init__(self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _memory, _intent):
+
         self.config = config
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
+
+        self.redis_client = redis.Redis(
+            host=config['redis']['host'],
+            port=config['redis']['port'],
+            password=config['redis']['password'],
+            db=config['redis']['db'],
+            decode_responses=True
+        )
 
         self.websocket = None
         self.headers = None
@@ -97,6 +107,8 @@ class ConnectionHandler:
             self.use_function_call_mode = True
         
         self.func_handler = FunctionHandler(self.config)
+
+
 
     async def handle_connection(self, ws):
         try:
@@ -207,6 +219,9 @@ class ConnectionHandler:
                 self.recode_first_last_text(text)
                 future = self.executor.submit(self.speak_and_play, text)
                 self.tts_queue.put(future)
+                       # 封装存储逻辑
+                if not await self._store_device_info(auth_code):
+                    return False
             return False
         return True
 
@@ -572,3 +587,28 @@ class ConnectionHandler:
             self.close_after_chat = True
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"Chat and close error: {str(e)}")
+    async def _store_device_info(self, auth_code: str) -> bool:
+        """存储设备信息到Redis（封装方法）"""
+        redis_key = f"device:{auth_code}"
+        device_info = {
+            **dict(self.headers),
+            'timestamp': int(time.time()),
+            'auth_code': auth_code,
+        }
+        
+        if not device_info.get('device-id'):
+            self.logger.bind(tag=TAG).error("设备信息缺少device-id字段")
+            return False
+
+        try:
+            json_data = json.dumps(device_info, ensure_ascii=False)
+            set_result = await self.loop.run_in_executor(
+                None,
+                lambda: self.redis_client.set(redis_key, json_data, ex=3600)
+            )
+            self.logger.bind(tag=TAG).debug(f"设备信息存储成功: {json_data}")
+            return True
+        except redis.RedisError as e:
+            self.logger.bind(tag=TAG).error(f"Redis操作异常: {str(e)}")
+            return False
+        
