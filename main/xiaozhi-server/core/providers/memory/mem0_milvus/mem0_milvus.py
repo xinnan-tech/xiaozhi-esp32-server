@@ -6,38 +6,15 @@ TAG = __name__
 class MemoryProvider(MemoryProviderBase):
     def __init__(self, config):
         super().__init__(config)
-        config = {
-            "llm": {
-                "provider": "deepseek",
-                "config": {
-                    "model": "qwen-plus", #模型可替换
-                    "deepseek_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",　#API-URL 可替换
-                    "api_key": "sk-xxxxxxxxxxxx", #填写API-key
-                    "temperature": 0.2,
-                    "max_tokens": 2000,
-                    "top_p": 1.0
-                }
-            },
-            "embedder": {
-                "provider": "huggingface",
-                "config": {
-                    "model": "/mnt/mem0/m3e-large"　#可以替换在线模型或者使用本地模型
-                }
-            },
-            "vector_store": {
-                "provider": "milvus",　#可以使用容器本地部署milvus向量数据库
-                "config": {
-                    "url": "http://localhost:19530",　#使用本地的milvus向量数据库
-                    "collection_name": "mem0_collection",
-                    "embedding_model_dims": 1024
-                }
-            }
-        }
-
-        self.use_mem0 = False
-        self.client = Memory.from_config(config)
-        self.use_mem0 = True
-
+        self.config = config
+        try:
+            self.client = Memory.from_config(self.config)
+            self.use_mem0 = True
+            logger.bind(tag=TAG).info("成功使用Mem0_milvus服务")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Mem0配置错误: {str(e)}")
+            self.use_mem0 = False
+            
     async def save_memory(self, msgs):
         if not self.use_mem0:
             return None
