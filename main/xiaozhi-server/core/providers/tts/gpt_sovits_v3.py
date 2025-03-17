@@ -22,7 +22,7 @@ class TTSProvider(TTSProviderBase):
         self.cut_punc = config.get("cut_punc","")
         self.speed = config.get("speed", 1.0)
         self.inp_refs = config.get("inp_refs",[])
-        self.sample_steps = config.get("inp_refs",32)
+        self.sample_steps = config.get("sample_steps",32)
         self.if_sr = config.get("if_sr",False)
 
 

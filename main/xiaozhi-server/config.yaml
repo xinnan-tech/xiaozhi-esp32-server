@@ -35,10 +35,7 @@ log:
   log_file: "server.log"
   # 设置数据文件路径
   data_dir: data
-iot:
-  Speaker:
-    # 设置esp32的音量，范围0-100
-    volume: 80
+
 xiaozhi:
   type: hello
   version: 1
@@ -101,9 +98,6 @@ Intent:
     functions:
       - change_role
       - get_weather
-
-# 是否使用iot_function_handler处理,开启后iot消息会自动注册到function_call中
-use_iot_function_handler: false
 
 Memory:
   mem0ai:
