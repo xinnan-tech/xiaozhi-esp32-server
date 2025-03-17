@@ -22,6 +22,9 @@ server:
     # 可选:设备白名单，如果设置了白名单，那么白名单的机器无论是什么token都可以连接。
     #allowed_devices:
     #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
+# 可选:使用了redis，本地必须安装redis，并且启动redis服务，查看redis是否启动：redis-cli ping
+# 如果返回PONG，说明redis已经启动，如果返回NOAUTH Authentication required，说明redis需要密码，需要在redis.conf中设置密码
+# brew info redis 可以查看本地redis的安装路径，然后进入redis.conf文件，修改requirepass为你的密码，然后重启redis服务
 redis:
   host: 127.0.0.1
   port: 6379
