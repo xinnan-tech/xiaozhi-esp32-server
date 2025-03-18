@@ -2,99 +2,109 @@
   <div class="welcome">
     <!-- 公共头部 -->
     <HeaderBar/>
-    <el-main style="padding: 20px;display: flex;flex-direction: column;">
-      <div style="border-radius: 20px;background: #fafcfe;">
+    <!-- 面包屑-->
+    <div class="breadcrumbs" style="padding: 20px;">
+      <el-breadcrumb separator="/">
+        <el-breadcrumb-item>控制台</el-breadcrumb-item>
+        <el-breadcrumb-item><router-link to="/home">智能体</router-link></el-breadcrumb-item>
+        <el-breadcrumb-item>配置智能体</el-breadcrumb-item>
+      </el-breadcrumb>
+    </div>
+    <el-main style="padding: 20px;display: flex;justify-content: center;">
+      <div style="border-radius: 20px;background: #fafcfe; max-width: 1200px;">
         <div
             style="padding: 19px 30px;font-weight: 700;font-size: 24px;text-align: left;color: #3d4566;display: flex;gap: 16px;align-items: center;">
           <div
               style="width: 46px;height: 46px;background: #5778ff;border-radius: 50%;display: flex;align-items: center;justify-content: center;">
             <img src="@/assets/home/setting-user.png" alt="" style="width: 24px;height: 24px;"/>
           </div>
-          {{ deviceMac }}
+          {{ agentName }} ({{ agentId }})
         </div>
         <div style="height: 1px;background: #e8f0ff;"/>
-        <el-form ref="form" :model="form" label-width="90px">
-          <div style="padding: 20px 30px;max-width: 990px;">
-            <el-form-item label="助手昵称：">
-              <div class="input-46">
-                <el-input v-model="form.name"/>
-              </div>
-            </el-form-item>
-            <el-form-item label="角色模版：">
-              <div style="display: flex;gap: 10px;">
-                <div class="template-item">
-                  台湾女友
-                </div>
-                <div class="template-item">
-                  土豆子
-                </div>
-                <div class="template-item">
-                  英语老师
-                </div>
-                <div class="template-item">
-                  好奇小男孩
-                </div>
-                <div class="template-item">
-                  汪汪队队长
-                </div>
-              </div>
-            </el-form-item>
-            <el-form-item label="角色音色：">
-              <div style="display: flex;gap: 10px;align-items: center;">
-                <div class="input-46" style="flex:1.4;">
-                  <el-select v-model="form.timbre" placeholder="请选择" style="width: 100%;">
-                    <el-option v-for="item in options" :key="item.value" :label="item.label"
-                               :value="item.value">
-                    </el-option>
-                  </el-select>
-                </div>
-                <div class="audio-box">
-                  <audio src="http://music.163.com/song/media/outer/url?id=447925558.mp3" controls
-                         style="height: 100%;width: 100%;"/>
-                </div>
-              </div>
-            </el-form-item>
-            <el-form-item label="角色介绍：">
-              <div class="textarea-box">
-                <el-input type="textarea" rows="6" resize="none" placeholder="请输入内容"
-                          v-model="form.introduction" maxlength="2000" show-word-limit/>
-              </div>
-            </el-form-item>
-            <el-form-item label="记忆体：">
-              <div class="textarea-box">
-                <el-input type="textarea" rows="6" resize="none" placeholder="请输入内容"
-                          v-model="form.prompt" maxlength="1000"/>
-                <div class="prompt-bottom">
-                  <div style="display: flex;gap: 10px;align-items: center;">
-                    <div style="color: #979db1;font-size: 14px;">当前记忆（每次对话后重新生成）</div>
-                    <div class="clear-btn">
-                      <i class="el-icon-delete-solid" style="font-size: 14px;"/>
-                      清除
-                    </div>
+        <div style="max-height: 800px;overflow-y: auto;">
+          <el-form ref="form" :model="form" label-width="120px">
+            <div style="padding: 20px 30px;">
+              <el-form-item label="角色模版：">
+                <div style="display: flex;gap: 10px;">
+                  <div class="template-item">
+                    台湾女友
                   </div>
-                  <div style="color: #979db1;font-size:14px;">{{ form.prompt.length }}/1000</div>
+                  <div class="template-item">
+                    土豆子
+                  </div>
+                  <div class="template-item">
+                    英语老师
+                  </div>
+                  <div class="template-item">
+                    好奇小男孩
+                  </div>
+                  <div class="template-item">
+                    汪汪队队长
+                  </div>
                 </div>
-              </div>
-            </el-form-item>
-            <el-form-item label="语言模型（内测）：" class="lh-form-item">
-              <div style="display: flex;gap: 10px;">
-                <div class="input-46" style="width: 100%;">
-                  <el-select v-model="form.model" placeholder="请选择" style="width: 100%;">
-                    <el-option v-for="item in options" :key="item.value" :label="item.label"
-                               :value="item.value">
-                    </el-option>
-                  </el-select>
+              </el-form-item>
+              <el-form-item label="助手昵称：">
+                <div class="input-46">
+                  <el-input v-model="form.nickName"/>
                 </div>
-              </div>
-            </el-form-item>
-            <el-form-item label="" class="lh-form-item">
-              <div style="color: #979db1;text-align: left;">除了“Qwen
-                实时”，其他模型通常会增加约1秒的延迟。改变模型后，建议清空记忆体，以免影响体验。
-              </div>
-            </el-form-item>
-          </div>
-        </el-form>
-        <div style="display: flex;padding: 20px;gap: 10px;align-items: center;">
+              </el-form-item>
+              <el-form-item label="角色音色：">
+                <div style="display: flex;gap: 10px;align-items: center;">
+                  <div class="input-46" style="flex:1.4;">
+                    <el-select v-model="form.timbre" placeholder="请选择" style="width: 100%;">
+                      <el-option v-for="item in options" :key="item.value" :label="item.label"
+                                :value="item.value">
+                      </el-option>
+                    </el-select>
+                  </div>
+                  <div class="audio-box">
+                    <audio src="http://music.163.com/song/media/outer/url?id=447925558.mp3" controls
+                          style="height: 100%;width: 100%;"/>
+                  </div>
+                </div>
+              </el-form-item>
+              <el-form-item label="角色介绍：">
+                <div class="textarea-box">
+                  <el-input type="textarea" rows="6" resize="none" placeholder="请输入内容"
+                            v-model="form.introduction" maxlength="2000" show-word-limit/>
+                </div>
+              </el-form-item>
+              <el-form-item label="记忆体：">
+                <div class="textarea-box">
+                  <el-input type="textarea" rows="6" resize="none" placeholder="请输入内容"
+                            v-model="form.prompt" maxlength="1000"/>
+                  <div class="prompt-bottom">
+                    <div style="display: flex;gap: 10px;align-items: center;">
+                      <div style="color: #979db1;font-size: 14px;">当前记忆（每次对话后重新生成）</div>
+                      <div class="clear-btn">
+                        <i class="el-icon-delete-solid" style="font-size: 14px;"/>
+                        清除
+                      </div>
+                    </div>
+                    <div style="color: #979db1;font-size:14px;">{{ form.prompt.length }}/1000</div>
+                  </div>
+                </div>
+              </el-form-item>
+              <el-form-item label="语言模型(内测)：" class="lh-form-item">
+                <div style="display: flex;gap: 10px;">
+                  <div class="input-46" style="width: 100%;">
+                    <el-select v-model="form.model" placeholder="请选择" style="width: 100%;">
+                      <el-option v-for="item in options" :key="item.value" :label="item.label"
+                                :value="item.value">
+                      </el-option>
+                    </el-select>
+                  </div>
+                </div>
+              </el-form-item>
+              <el-form-item label="" class="lh-form-item">
+                <div style="color: #979db1;text-align: left;">除了“Qwen
+                  实时”，其他模型通常会增加约1秒的延迟。改变模型后，建议清空记忆体，以免影响体验。
+                </div>
+              </el-form-item>
+            </div>
+          </el-form>
+        </div>
+        <div style="display: flex;padding: 20px;gap: 10px;align-items: center;justify-content: center;">
           <div class="save-btn" @click="saveConfig">
             保存配置
           </div>
@@ -107,22 +117,22 @@
           </div>
         </div>
       </div>
-      <div style="font-size: 12px;font-weight: 400;margin-top: auto;padding-top: 30px;color: #979db1;">
-        ©2025 xiaozhi-esp32-server
-      </div>
     </el-main>
+    <Footer :visible="true" />
   </div>
 </template>
 
 <script>
 import HeaderBar from "@/components/HeaderBar.vue";
+import Footer from "@/components/Footer.vue";
 
 export default {
   name: 'RoleConfigPage',
-  components: {HeaderBar},
+  components: {HeaderBar,Footer},
   data() {
     return {
-      deviceMac: 'CC:ba:97:11:a6:ac',
+      agentId: this.$route.query.agentId,
+      agentName: this.$route.query.agentName,
       form: {
         name: "",
         timbre: "",
@@ -140,6 +150,11 @@ export default {
     }
   },
   methods: {
+    handleGetConfig(){
+      api.agent.getAgentConfig(this.agentId, ({data}) => {
+        this.form = data
+      })
+    },
     saveConfig() {
       // 此处写保存配置逻辑
       this.$message.success('配置已保存')
@@ -167,6 +182,10 @@ export default {
 </script>
 
 <style scoped>
+.breadcrumbs{
+  padding: 20px 0 0 5px;
+}
+
 .welcome {
   min-width: 1200px;
   min-height: 675px;
@@ -185,7 +204,7 @@ export default {
   flex: 1;
   height: 46px;
   border-radius: 10px;
-  border: 1px solid #e4e6ef;
+  /* border: 1px solid #e4e6ef; */
 }
 
 .clear-btn {
@@ -209,15 +228,15 @@ export default {
 }
 
 .template-item {
-  height: 46px;
-  width: 100px;
+  padding: 0 20px;
   border-radius: 10px;
   background: #e6ebff;
-  line-height: 46px;
+  line-height: 42px;
   font-weight: 400;
   font-size: 14px;
   text-align: center;
   color: #5778ff;
+  cursor: pointer;
 }
 
 .prompt-bottom {

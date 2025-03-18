@@ -12,6 +12,13 @@ const routes = [
     }
   },
   {
+    path: '/device',
+    name: 'RoleConfig',
+    component: function () {
+      return import('../views/device.vue')
+    }
+  },
+  {
     path: '/role-config',
     name: 'RoleConfig',
     component: function () {

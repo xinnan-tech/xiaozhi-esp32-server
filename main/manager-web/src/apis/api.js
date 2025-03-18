@@ -1,4 +1,6 @@
 // 引入各个模块的请求
+import agent from './module/agent.js'
+import device from './module/device.js'
 import user from './module/user.js'
 
 /**
@@ -7,7 +9,7 @@ import user from './module/user.js'
  * 如果你想调用8002端口，就用'/xiaozhi-esp32-api/api/v1'，请与vue.config.js的devServer配置相结合，方便跨域请求
  *
  */
-const DEV_API_SERVICE = 'https://apifoxmock.com/m1/5931378-5618560-default'
+const DEV_API_SERVICE = 'https://m1.apifoxmock.com/m1/5931378-5618560-default'
 // 8002开发完成完成后使用这个
 // const DEV_API_SERVICE = '/xiaozhi-esp32-api'
 
@@ -24,4 +26,6 @@ export function getServiceUrl() {
 export default {
     getServiceUrl,
     user,
+    agent,
+    device
 }
