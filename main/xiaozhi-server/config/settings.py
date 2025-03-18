@@ -46,21 +46,13 @@ def get_config_file():
     global default_config_file
     """获取配置文件路径，优先使用私有配置文件（若存在）。
 
-   Returns:
+    Returns:
        str: 配置文件路径（相对路径或默认路径）
-   """
-    # 判断是否存在私有的配置文件
-    default_config = "config.yaml"
-    project_dir = get_project_dir()
-    # 创建data目录（如果不存在）
-    data_dir = os.path.join(project_dir, "data")
-    os.makedirs(data_dir, exist_ok=True)
-    # 配置文件路径
-    config_path = os.path.join(project_dir, "data", default_config)
-    # 优先使用私有配置，若不存在则使用默认配置
-    config_path = config_path if os.path.exists(config_path) else default_config
-
-    return config_path
+    """
+    config_file = default_config_file
+    if os.path.exists(get_project_dir() + "data/." + default_config_file):
+        config_file = "data/." + default_config_file
+    return config_file
 
 
 def load_config():
@@ -118,7 +110,7 @@ def find_missing_keys(new_config, old_config, parent_key=''):
 def check_config_file():
     old_config_file = get_config_file()
     global default_config_file
-    if not old_config_file.startswith('data'):
+    if not 'data' in old_config_file:
         return
     old_config = read_config(get_project_dir() + old_config_file)
     new_config = read_config(get_project_dir() + default_config_file)

@@ -15,7 +15,7 @@ class TTSProvider(TTSProviderBase):
         self.headers = config.get("headers", {})
         self.params = config.get("params")
         self.format = config.get("format", "wav")
-        self.output_file = config.get("output_file", "tmp/")
+        self.output_file = config.get("output_dir", "tmp/")
 
     def generate_filename(self):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}.{self.format}")

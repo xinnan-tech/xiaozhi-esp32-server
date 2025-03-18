@@ -30,7 +30,7 @@ log:
   # 设置日志等级：INFO、DEBUG
   log_level: INFO
   # 设置日志路径
-  log_dir: log
+  log_dir: tmp
   # 设置日志文件
   log_file: "server.log"
   # 设置数据文件路径
@@ -397,7 +397,7 @@ TTS:
     api_url: https://api.302ai.cn/doubao/tts_hd
     authorization: "Bearer "
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
-    output_file: tmp/
+    output_dir: tmp/
     access_token: "你的302API密钥"
   ACGNTTS:
     #在线网址：https://acgn.ttson.cn/

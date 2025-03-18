@@ -13,7 +13,7 @@ logger = setup_logging()
 class TTSProviderBase(ABC):
     def __init__(self, config, delete_audio_file):
         self.delete_audio_file = delete_audio_file
-        self.output_file = config.get("output_file")
+        self.output_file = config.get("output_dir")
 
     @abstractmethod
     def generate_filename(self):
