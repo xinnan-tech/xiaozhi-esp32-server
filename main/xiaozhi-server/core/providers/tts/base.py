@@ -5,6 +5,7 @@ import numpy as np
 import opuslib_next
 from pydub import AudioSegment
 from abc import ABC, abstractmethod
+import traceback
 
 TAG = __name__
 logger = setup_logging()
@@ -13,7 +14,27 @@ logger = setup_logging()
 class TTSProviderBase(ABC):
     def __init__(self, config, delete_audio_file):
         self.delete_audio_file = delete_audio_file
-        self.output_file = config.get("output_dir")
+        # 设置默认输出目录
+        self.output_file = config.get("output_dir", "tmp/")
+        if not self.output_file:
+            self.output_file = "tmp/"
+            
+        logger.bind(tag=TAG).info(f"初始化TTS基类，输出目录: {self.output_file}")
+        try:
+            if not os.path.exists(self.output_file):
+                os.makedirs(self.output_file)
+                logger.bind(tag=TAG).info(f"创建输出目录: {self.output_file}")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"创建输出目录失败: {str(e)}")
+            # 如果创建失败，尝试使用当前目录下的tmp文件夹
+            self.output_file = "tmp/"
+            try:
+                if not os.path.exists(self.output_file):
+                    os.makedirs(self.output_file)
+                    logger.bind(tag=TAG).info(f"创建默认输出目录: {self.output_file}")
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"创建默认输出目录也失败: {str(e)}")
+                raise Exception(f"无法创建TTS输出目录: {str(e)}")
 
     @abstractmethod
     def generate_filename(self):
@@ -21,9 +42,11 @@ class TTSProviderBase(ABC):
 
     def to_tts(self, text):
         tmp_file = self.generate_filename()
+        logger.bind(tag=TAG).info(f"开始TTS转换，文本: {text}, 输出文件: {tmp_file}")
         try:
             max_repeat_time = 5
             while not os.path.exists(tmp_file) and max_repeat_time > 0:
+                logger.bind(tag=TAG).info(f"尝试生成语音，剩余重试次数: {max_repeat_time}")
                 asyncio.run(self.text_to_speak(text, tmp_file))
                 if not os.path.exists(tmp_file):
                     max_repeat_time = max_repeat_time - 1
@@ -31,10 +54,13 @@ class TTSProviderBase(ABC):
 
             if max_repeat_time > 0:
                 logger.bind(tag=TAG).info(f"语音生成成功: {text}:{tmp_file}，重试{5 - max_repeat_time}次")
-
-            return tmp_file
+                return tmp_file
+            else:
+                logger.bind(tag=TAG).error(f"语音生成失败，已达到最大重试次数: {text}:{tmp_file}")
+                return None
         except Exception as e:
-            logger.bind(tag=TAG).info(f"Failed to generate TTS file: {e}")
+            logger.bind(tag=TAG).error(f"TTS转换过程发生异常: {str(e)}")
+            logger.bind(tag=TAG).error(f"异常堆栈: {traceback.format_exc()}")
             return None
 
     @abstractmethod

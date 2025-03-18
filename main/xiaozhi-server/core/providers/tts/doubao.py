@@ -17,11 +17,12 @@ class TTSProvider(TTSProviderBase):
         self.voice = config.get("voice")
         self.api_url = config.get("api_url")
         self.authorization = config.get("authorization")
+        self.output_dir = config.get("output_dir", "tmp/")
         self.header = {"Authorization": f"{self.authorization}{self.access_token}"}
         check_model_key("TTS", self.access_token)
 
     def generate_filename(self, extension=".wav"):
-        return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
+        return os.path.join(self.output_dir, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
 
     async def text_to_speak(self, text, output_file):
         request_json = {
