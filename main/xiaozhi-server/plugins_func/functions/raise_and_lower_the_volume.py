@@ -49,6 +49,8 @@ def raise_and_lower_the_volume(conn, action: str):
 
 async def _raise_and_lower_the_volume(conn, action):
     volume = await get_iot_status(conn, "Speaker", "volume")
+    if volume is None:
+        raise Exception("你的设备不支持音量控制")
     if action == 'raise':
         volume += 10
     elif action == 'lower':
