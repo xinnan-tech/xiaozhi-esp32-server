@@ -197,12 +197,12 @@ def register_device_type(descriptor):
 
     # 为每个属性创建查询函数
     for prop_name, prop_info in descriptor["properties"].items():
-        func_name = f"get_{{device_name.lower()}}_{{prop_name.lower()}}"
+        func_name = f"get_{device_name.lower()}_{prop_name.lower()}"
         func_desc = {
             "type": "function",
             "function": {
                 "name": func_name,
-                "description": f"查询{{descriptor['description']}}的{{prop_info['description']}}",
+                "description": f"查询{descriptor['description']}的{prop_info['description']}",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -212,7 +212,7 @@ def register_device_type(descriptor):
                         },
                         "response_failure": {
                             "type": "string",
-                            "description": f"查询失败时的友好回复，例如：'无法获取{{device_name}}的{{prop_info['description']}}'"
+                            "description": f"查询失败时的友好回复，例如：'无法获取{device_name}的{prop_info['description']}'"
                         }
                     },
                     "required": ["response_success", "response_failure"]
@@ -256,7 +256,7 @@ def register_device_type(descriptor):
             "type": "function",
             "function": {
                 "name": func_name,
-                "description": f"{{descriptor['description']}} - {{method_info['description']}}",
+                "description": f"{descriptor['description']} - {method_info['description']}",
                 "parameters": {
                     "type": "object",
                     "properties": parameters,
