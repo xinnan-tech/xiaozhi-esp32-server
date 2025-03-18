@@ -24,7 +24,7 @@ async def handleTextMessage(conn, message):
         elif msg_json["type"] == "listen":
             if "mode" in msg_json:
                 conn.client_listen_mode = msg_json["mode"]
-                logger.bind(tag=TAG).debug(f"客户端拾音模式：{conn. client_listen_mode}")
+                logger.bind(tag=TAG).debug(f"客户端拾音模式：{conn.client_listen_mode}")
             if msg_json["state"] == "start":
                 conn.client_have_voice = True
                 conn.client_voice_stop = False
@@ -43,6 +43,6 @@ async def handleTextMessage(conn, message):
             if "descriptors" in msg_json:
                 await handleIotDescriptors(conn, msg_json["descriptors"])
             if "states" in msg_json:
-                await handleIotStatus(conn, msg_json["states"])  
+                await handleIotStatus(conn, msg_json["states"])
     except json.JSONDecodeError:
         await conn.websocket.send(message)
