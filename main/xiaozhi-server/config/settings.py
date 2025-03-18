@@ -7,22 +7,73 @@ from core.utils.util import read_config, get_project_dir
 default_config_file = "config.yaml"
 
 
+def ensure_directories(config):
+    """确保所有配置路径存在"""
+    dirs_to_create = set()
+    project_dir = get_project_dir()  # 获取项目根目录
+    # 日志文件目录
+    log_dir = config.get('log', {}).get('log_dir', 'tmp')
+    dirs_to_create.add(os.path.join(project_dir, log_dir))
+
+    # ASR/TTS模块输出目录
+    for module in ['ASR', 'TTS']:
+        for provider in config.get(module, {}).values():
+            output_dir = provider.get('output_dir', '')
+            if output_dir:
+                dirs_to_create.add(output_dir)
+
+    # 根据selected_module创建模型目录
+    selected_modules = config.get('selected_module', {})
+    for module_type in ['ASR', 'LLM', 'TTS']:
+        selected_provider = selected_modules.get(module_type)
+        if not selected_provider:
+            continue
+        provider_config = config.get(module_type, {}).get(selected_provider, {})
+        output_dir = provider_config.get('output_dir')
+        if output_dir:
+            full_model_dir = os.path.join(project_dir, output_dir)
+            dirs_to_create.add(full_model_dir)
+
+    # 统一创建目录（保留原data目录创建）
+    for dir_path in dirs_to_create:
+        try:
+            os.makedirs(dir_path, exist_ok=True)
+        except PermissionError:
+            print(f"警告：无法创建目录 {dir_path}，请检查写入权限")
+
+
 def get_config_file():
     global default_config_file
+    """获取配置文件路径，优先使用私有配置文件（若存在）。
+
+   Returns:
+       str: 配置文件路径（相对路径或默认路径）
+   """
     # 判断是否存在私有的配置文件
-    config_file = default_config_file
-    if os.path.exists(get_project_dir() + "data/." + default_config_file):
-        config_file = "data/." + default_config_file
-    return config_file
+    default_config = "config.yaml"
+    project_dir = get_project_dir()
+    # 创建data目录（如果不存在）
+    data_dir = os.path.join(project_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    # 配置文件路径
+    config_path = os.path.join(project_dir, "data", default_config)
+    # 优先使用私有配置，若不存在则使用默认配置
+    config_path = config_path if os.path.exists(config_path) else default_config
+
+    return config_path
 
 
 def load_config():
     """加载配置文件"""
     parser = argparse.ArgumentParser(description="Server configuration")
     config_file = get_config_file()
+
     parser.add_argument("--config_path", type=str, default=config_file)
     args = parser.parse_args()
-    return read_config(args.config_path)
+    config = read_config(args.config_path)
+    # 初始化目录
+    ensure_directories(config)
+    return config
 
 
 def update_config(config):
