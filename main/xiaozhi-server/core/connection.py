@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import time
+import copy
 import queue
 import asyncio
 import traceback
@@ -141,7 +142,7 @@ class ConnectionHandler:
             self.websocket = ws
             self.session_id = str(uuid.uuid4())
 
-            self.welcome_msg = self.config["xiaozhi"]
+            self.welcome_msg = copy.deepcopy(self.config["xiaozhi"])
             self.welcome_msg["session_id"] = self.session_id
             await self.websocket.send(json.dumps(self.welcome_msg))
 
