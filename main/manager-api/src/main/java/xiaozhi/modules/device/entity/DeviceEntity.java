@@ -31,11 +31,8 @@ public class DeviceEntity {
     @Schema(description = "设备别名")
     private String alias;
 
-    @Schema(description = "智能体编码")
-    private String agentCode;
-
     @Schema(description = "智能体ID")
-    private Long agentId;
+    private String agentId;
 
     @Schema(description = "固件版本号")
     private String appVersion;

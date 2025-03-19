@@ -1,105 +1,24 @@
 from config.logger import setup_logging
 import json
+import uuid
 from core.handle.sendAudioHandle import send_stt_message
-from core.utils.dialogue import Message
 from core.utils.util import remove_punctuation_and_length
-from config.functionCallConfig import FunctionCallConfig
-import asyncio
-from enum import Enum
 
 TAG = __name__
 logger = setup_logging()
 
 
-class Action(Enum):
-    NOTFOUND = (0, "没有找到函数")
-    NONE = (1, "啥也不干")
-    RESPONSE = (2, "直接回复")
-    REQLLM = (3, "调用函数后再请求llm生成回复")
-
-    def __init__(self, code, message):
-        self.code = code
-        self.message = message
-
-
-class ActionResponse:
-    def __init__(self, action: Action, result, response):
-        self.action = action  # 动作类型
-        self.result = result  # 动作产生的结果
-        self.response = response  # 直接回复的内容
-
-
-def get_functions():
-    """获取功能调用配置"""
-    return FunctionCallConfig
-
-
-def handle_llm_function_call(conn, function_call_data):
-    try:
-        function_name = function_call_data["name"]
-
-        if function_name == "handle_exit_intent":
-            # 处理退出意图
-            try:
-                say_goodbye = json.loads(function_call_data["arguments"]).get("say_goodbye", "再见")
-                conn.close_after_chat = True
-                logger.bind(tag=TAG).info(f"退出意图已处理:{say_goodbye}")
-                return ActionResponse(action=Action.RESPONSE, result="退出意图已处理", response=say_goodbye)
-            except Exception as e:
-                logger.bind(tag=TAG).error(f"处理退出意图错误: {e}")
-
-        elif function_name == "play_music":
-            # 处理音乐播放意图
-            try:
-                song_name = "random"
-                arguments = function_call_data["arguments"]
-                if arguments is not None and len(arguments) > 0:
-                    args = json.loads(arguments)
-                    song_name = args.get("song_name", "random")
-                music_intent = f"播放音乐 {song_name}" if song_name != "random" else "随机播放音乐"
-
-                # 执行音乐播放命令
-                future = asyncio.run_coroutine_threadsafe(
-                    conn.music_handler.handle_music_command(conn, music_intent),
-                    conn.loop
-                )
-                future.result()
-                return ActionResponse(action=Action.RESPONSE, result="退出意图已处理", response="还想听什么歌？")
-            except Exception as e:
-                logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
-        else:
-            return ActionResponse(action=Action.NOTFOUND, result="没有找到对应的函数", response="没有找到对应的函数处理相对于的功能呢，你可以需要添加预设的对应函数处理呢")
-    except Exception as e:
-        logger.bind(tag=TAG).error(f"处理function call错误: {e}")
-
-    return None
-
-
 async def handle_user_intent(conn, text):
-    """
-    Handle user intent before starting chat
-    
-    Args:
-        conn: Connection object
-        text: User's text input
-    
-    Returns:
-        bool: True if intent was handled, False if should proceed to chat
-    """
     # 检查是否有明确的退出命令
     if await check_direct_exit(conn, text):
         return True
-
     if conn.use_function_call_mode:
         # 使用支持function calling的聊天方法,不再进行意图分析
         return False
-
     # 使用LLM进行意图分析
     intent = await analyze_intent_with_llm(conn, text)
-
     if not intent:
         return False
-
     # 处理各种意图
     return await process_intent_result(conn, intent, text)
 
@@ -126,7 +45,6 @@ async def analyze_intent_with_llm(conn, text):
     dialogue = conn.dialogue
     try:
         intent_result = await conn.intent.detect_intent(conn, dialogue.dialogue, text)
-
         # 尝试解析JSON结果
         try:
             intent_data = json.loads(intent_result)
@@ -147,9 +65,6 @@ async def process_intent_result(conn, intent, original_text):
     # 处理退出意图
     if "结束聊天" in intent:
         logger.bind(tag=TAG).info(f"识别到退出意图: {intent}")
-
-        # 如果正在播放音乐，可以关了 TODO
-
         # 如果是明确的离别意图，发送告别语并关闭连接
         await send_stt_message(conn, original_text)
         conn.executor.submit(conn.chat_and_close, original_text)
@@ -158,10 +73,37 @@ async def process_intent_result(conn, intent, original_text):
     # 处理播放音乐意图
     if "播放音乐" in intent:
         logger.bind(tag=TAG).info(f"识别到音乐播放意图: {intent}")
-        await conn.music_handler.handle_music_command(conn, intent)
+        # 调用play_music函数来播放音乐
+        song_name = extract_text_in_brackets(intent)
+        function_id = str(uuid.uuid4().hex)
+        function_name = "play_music"
+        function_arguments = '{ "song_name": "' + song_name + '" }'
+
+        function_call_data = {
+            "name": function_name,
+            "id": function_id,
+            "arguments": function_arguments
+        }
+        conn.func_handler.handle_llm_function_call(conn, function_call_data)
         return True
 
     # 其他意图处理可以在这里扩展
 
     # 默认返回False，表示继续常规聊天流程
     return False
+
+
+def extract_text_in_brackets(s):
+    """
+    从字符串中提取中括号内的文字
+
+    :param s: 输入字符串
+    :return: 中括号内的文字，如果不存在则返回空字符串
+    """
+    left_bracket_index = s.find('[')
+    right_bracket_index = s.find(']')
+
+    if left_bracket_index != -1 and right_bracket_index != -1 and left_bracket_index < right_bracket_index:
+        return s[left_bracket_index + 1:right_bracket_index]
+    else:
+        return ""

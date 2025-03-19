@@ -2,7 +2,7 @@ from config.logger import setup_logging
 import json
 from core.handle.abortHandle import handleAbortMessage
 from core.handle.helloHandle import handleHelloMessage
-from core.handle.receiveAudioHandle import startToChat
+from core.handle.receiveAudioHandle import startToChat, handleAudioMessage
 from core.handle.iotHandle import handleIotDescriptors, handleIotStatus
 
 TAG = __name__
@@ -31,6 +31,8 @@ async def handleTextMessage(conn, message):
             elif msg_json["state"] == "stop":
                 conn.client_have_voice = True
                 conn.client_voice_stop = True
+                if len(conn.asr_audio) > 0:
+                    await handleAudioMessage(conn, b'')
             elif msg_json["state"] == "detect":
                 conn.asr_server_receive = False
                 conn.client_have_voice = False
@@ -41,6 +43,6 @@ async def handleTextMessage(conn, message):
             if "descriptors" in msg_json:
                 await handleIotDescriptors(conn, msg_json["descriptors"])
             if "states" in msg_json:
-                await handleIotStatus(conn, msg_json["states"])  
+                await handleIotStatus(conn, msg_json["states"])
     except json.JSONDecodeError:
         await conn.websocket.send(message)

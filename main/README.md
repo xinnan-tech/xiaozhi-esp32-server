@@ -18,6 +18,6 @@ xiaozhi-esp32-server
 
 # manager-web 、manager-api接口协议
 
-[manager前后端接口协议](https://app.apifox.com/invite/project?token=H_8qhgfjUeaAL0wybghgU)
+[manager前后端接口协议](https://app.apifox.com/invite/project?token=eXg2_tUv85q-gc3ZRowmn)
 
 [前端页面设计图](https://codesign.qq.com/app/s/526108506410828)

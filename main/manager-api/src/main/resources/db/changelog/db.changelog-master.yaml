@@ -3,23 +3,16 @@
 # 每次对数据表进行改动时，只允许新建新对changeSet，不允许对上一个changeSet配置及文件进行修改
 databaseChangeLog:
   - changeSet:
-      id: 001create_sys
+      id: 202503141335
       author: John
       changes:
         - sqlFile:
             encoding: utf8
-            path: classpath:db/changelog/001create_sys.sql
+            path: classpath:db/changelog/202503141335.sql
   - changeSet:
-      id: 202503101631
-      author: zjy
-      changes:
-        - sqlFile:
-            encoding: utf8
-            path: classpath:db/changelog/202503101631.sql
-  - changeSet:
-      id: 202503131429
+      id: 202503141346
       author: czc
       changes:
         - sqlFile:
             encoding: utf8
-            path: classpath:db/changelog/202503131429.sql
+            path: classpath:db/changelog/202503141346.sql
