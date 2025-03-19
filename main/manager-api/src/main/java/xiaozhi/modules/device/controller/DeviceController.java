@@ -49,6 +49,21 @@ public class DeviceController {
         DeviceEntity device = deviceService.bindDevice(user.getId(), deviceHeader);
         return new Result<DeviceEntity>().ok(device);
     }
+    
+//    @PostMapping("/add/{deviceCode}")
+//    @Operation(summary = "添加设备")
+//    @RequiresPermissions("sys:role:normal")
+//    public Result<DeviceEntity> addDevice(@PathVariable String deviceCode) {
+//        UserDetail user = SecurityUser.getUser();
+//
+//        String deviceHeaders = (String) redisUtils.get(RedisKeys.getDeviceCaptchaKey(deviceCode));
+//        if (StringUtils.isBlank(deviceHeaders)) {
+//            return new Result<DeviceEntity>().error(ErrorCode.DEVICE_CAPTCHA_ERROR);
+//        }
+//        DeviceHeaderDTO deviceHeader = JsonUtils.parseObject(deviceHeaders.getBytes(), DeviceHeaderDTO.class);
+//        DeviceEntity device = deviceService.addDevice(user.getId(), deviceHeader);
+//        return new Result<DeviceEntity>().ok(device);
+//    }
 
     @GetMapping("/bind")
     @Operation(summary = "获取已绑定设备")

@@ -64,7 +64,7 @@ export default {
     // 绑定设备
     bindDevice(deviceCode, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/device/bind/${deviceCode}`)
+            .url(`${getServiceUrl()}/api/v1/device/bind/${deviceCode}`)
             .method('POST')
             .success((res) => {
                 RequestService.clearRequestTime();

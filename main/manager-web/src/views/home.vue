@@ -47,6 +47,7 @@
 import DeviceItem from '@/components/DeviceItem.vue'
 import AddDeviceDialog from '@/components/AddDeviceDialog.vue'
 import HeaderBar from '@/components/HeaderBar.vue'
+import Api from '@/apis/api';
 export default {
   name: 'HomePage',
   components: { DeviceItem, AddDeviceDialog, HeaderBar },
@@ -74,6 +75,11 @@ export default {
     handleDeviceAdded(deviceCode) {
       // 根据需要处理添加设备后逻辑，比如刷新设备列表等
       console.log('设备验证码：', deviceCode)
+      Api.user.bindDevice(deviceCode).then(res => {
+        console.log('绑定设备成功：', res)
+      }).catch(err => {
+        console.error('绑定设备失败：', err)
+      })
     }
   }
 }
