@@ -181,8 +181,12 @@ LLM:
     type: dify
     # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
     # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
-    base_url: https://api.dify.cn/v1
+    base_url: https://api.dify.ai/v1
     api_key: 你的DifyLLM web key
+    # 使用的对话模式 可以选择工作流 workflows/run 对话模式 chat-messages  文本生成 completion-messages
+    # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
+    # 文本生成的默认输入参数也是query
+    mode: chat-messages
   GeminiLLM:
     type: gemini
     # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
