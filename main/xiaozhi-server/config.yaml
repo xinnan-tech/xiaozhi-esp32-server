@@ -69,7 +69,7 @@ selected_module:
   # 语音识别模块，默认使用FunASR本地模型
   ASR: FunASR
   # 将根据配置名称对应的type调用实际的LLM适配器
-  LLM: ChatGLMLLM
+  LLM: XinferenceLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
@@ -125,10 +125,6 @@ ASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
-  SherpaASR:
-    type: sherpa_onnx_local
-    model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
-    output_dir: tmp/
   DoubaoASR:
     type: doubao
     appid: 你的火山引擎语音合成服务appid
@@ -142,8 +138,13 @@ VAD:
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
 
 LLM:
-  # 所有openai类型均可以修改超参，以AliLLM为例
   # 当前支持的type为openai、dify、ollama，可自行适配
+  XinferenceLLM:
+    # 定义LLM API类型
+    type: xinference
+    # Xinference服务地址和模型名称
+    model_name: qwen2.5:72b-AWQ  # 使用的模型名称，需要预先在Xinference启动对应模型
+    base_url: http://localhost:9997  # Xinference服务地址
   AliLLM:
     # 定义LLM API类型
     type: openai
@@ -151,11 +152,6 @@ LLM:
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
     api_key: 你的deepseek web key
-    temperature: 0.7  # 温度值
-    max_tokens: 500   # 最大生成token数
-    top_p: 1         
-    top_k: 50        
-    frequency_penalty: 0  # 频率惩罚
   DoubaoLLM:
     # 定义LLM API类型
     type: openai
@@ -184,19 +180,15 @@ LLM:
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
-    model_name: qwen2.5 #  使用的模型名称，需要预先使用ollama pull下载
+    model_name: qwen2.5:3b #  使用的模型名称，需要预先使用ollama pull下载
     base_url: http://localhost:11434  # Ollama服务地址
   DifyLLM:
     # 定义LLM API类型
     type: dify
     # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
     # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
-    base_url: https://api.dify.ai/v1
-    api_key: 你的DifyLLM web key
-    # 使用的对话模式 可以选择工作流 workflows/run 对话模式 chat-messages  文本生成 completion-messages
-    # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
-    # 文本生成的默认输入参数也是query
-    mode: chat-messages
+    base_url: https://api.dify.cn/v1
+    api_key: 你的dify api访问令牌
   GeminiLLM:
     type: gemini
     # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
@@ -204,9 +196,7 @@ LLM:
     # token申请地址： https://aistudio.google.com/apikey
     # 若部署地无法访问接口，需要开启科学上网
     api_key: 你的gemini web key
-    model_name: "gemini-2.0-flash"
-    http_proxy: ""  #"http://127.0.0.1:10808"
-    https_proxy: "" #http://127.0.0.1:10808"
+    model_name: "gemini-1.5-pro"  #  gemini-1.5-pro 是免费的
   CozeLLM:
     # 定义LLM API类型
     type: coze
@@ -412,21 +402,9 @@ TTS:
     type: doubao
     api_url: https://api.302ai.cn/doubao/tts_hd
     authorization: "Bearer "
-    # 湾湾小何音色
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_dir: tmp/
     access_token: "你的302API密钥"
-  GizwitsTTS:
-    type: doubao
-    # 火山引擎作为基座，可以完全使用企业级火山引擎语音合成服务
-    # 前一万名注册的用户，将送5元体验金额
-    # 获取API Key地址：https://agentrouter.gizwitsapi.com/panel/token
-    api_url: https://bytedance.gizwitsapi.com/api/v1/tts
-    authorization: "Bearer "
-    # 湾湾小何音色
-    voice: "zh_female_wanwanxiaohe_moon_bigtts"
-    output_dir: tmp/
-    access_token: "你的机智云API key"
   ACGNTTS:
     #在线网址：https://acgn.ttson.cn/
     #token购买：www.ttson.cn
