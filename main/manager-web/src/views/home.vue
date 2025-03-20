@@ -1,7 +1,7 @@
 <template>
   <div class="welcome">
       <!-- 公共头部 -->
-      <HeaderBar />
+      <HeaderBar :devices="devices" @search-result="handleSearchResult" />
       <el-main style="padding: 20px;display: flex;flex-direction: column;">
         <div>
           <!-- 首页内容 -->
@@ -30,7 +30,7 @@
               </div>
             </div>
           </div>
-          <div style="display: flex;flex-wrap: wrap;margin-top: 20px;gap: 20px;justify-content: space-between;box-sizing: border-box;">
+          <div style="display: flex;flex-wrap: wrap;margin-top: 20px;gap: 20px;justify-content: flex-start;box-sizing: border-box;">
             <DeviceItem v-for="(item,index) in devices" :key="index" :device="item" @configure="goToRoleConfig" @deviceManage="handleDeviceManage" />
           </div>
         </div>
@@ -47,22 +47,22 @@
 import DeviceItem from '@/components/DeviceItem.vue'
 import AddWisdomBodyDialog from '@/components/AddWisdomBodyDialog.vue'
 import HeaderBar from '@/components/HeaderBar.vue'
+
 export default {
   name: 'HomePage',
   components: { DeviceItem, AddWisdomBodyDialog, HeaderBar },
   data() {
     return {
       addDeviceDialogVisible: false,
-      // 此处模拟设备列表（10条数据）
-      devices: Array.from({ length: 10 }, (_, i) => ({
-        id: i,
-        mac: 'CC:ba:97:11:a6:ac',
-        model: 'esp32-s3-touch-amoled-1.8',
-        voiceModel: 'esp32-s3-touch-amoled-1.8',
-        lastConversation: '6天前',
-      }))
+      devices: [],
+      originalDevices: [],
     }
   },
+
+  mounted() {
+    this.fetchAgentList();
+  },
+
   methods: {
     showAddDialog() {
       this.addDeviceDialogVisible = true
@@ -71,13 +71,28 @@ export default {
       // 点击配置角色后跳转到角色配置页
       this.$router.push('/role-config')
     },
-    handleWisdomBodyAdded(name) {
-      console.log('新增智慧体名称：', name)
-      this.addDeviceDialogVisible = false
+    handleWisdomBodyAdded(res) {
+      console.log('新增智能体响应：', res);
+      this.fetchAgentList();
+      this.addDeviceDialogVisible = false;
     },
     handleDeviceManage() {
       this.$router.push('/device-management');
     },
+    // 获取智能体列表
+    fetchAgentList() {
+      import('@/apis/module/user').then(({ default: userApi }) => {
+        userApi.getAgentList(({data}) => {
+          this.originalDevices = data.data;
+          this.devices = data.data;
+        });
+      });
+    },
+    // 搜索更新智能体列表
+    handleSearchResult(filteredList) {
+      this.devices = filteredList; // 更新设备列表
+    }
+
   }
 }
 </script>

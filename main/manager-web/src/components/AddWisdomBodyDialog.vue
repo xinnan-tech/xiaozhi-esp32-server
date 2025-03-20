@@ -29,6 +29,9 @@
 </template>
 
 <script>
+import userApi from '@/apis/module/user';
+
+
 export default {
   name: 'AddWisdomBodyDialog',
   props: {
@@ -39,9 +42,16 @@ export default {
   },
   methods: {
     confirm() {
-      this.$emit('update:visible', false)
-      this.$emit('confirmed', this.wisdomBodyName)
-      this.wisdomBodyName = ""
+      if (!this.wisdomBodyName.trim()) {
+        this.$message.error('请输入智慧体名称');
+        return;
+      }
+      userApi.addAgent(this.wisdomBodyName, (res) => {
+        this.$message.success('添加成功');
+        this.$emit('confirm', res);
+        this.$emit('update:visible', false);
+        this.wisdomBodyName = "";
+      });
     },
     cancel() {
       this.$emit('update:visible', false)

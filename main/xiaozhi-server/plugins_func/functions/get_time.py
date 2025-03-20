@@ -6,7 +6,7 @@ get_time_function_desc = {
     "function": {
         "name": "get_time",
         "description": "获取当前时间、日期、星期几",
-        "parameters": {}
+        'parameters': {'type': 'object', 'properties': {}, 'required': []}
     }
 }
 

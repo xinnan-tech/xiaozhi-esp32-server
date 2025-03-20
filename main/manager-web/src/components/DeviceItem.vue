@@ -1,8 +1,8 @@
 <template>
   <div class="device-item">
     <div style="display: flex;justify-content: space-between;">
-      <div style="font-weight: 700;font-size: 24px;text-align: left;color: #3d4566;">
-        {{ device.mac }}
+      <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
+         {{ device.agentName }}
       </div>
       <div>
         <img src="@/assets/home/delete.png" alt=""
@@ -11,10 +11,10 @@
       </div>
     </div>
     <div class="device-name">
-      设备型号：{{ device.model }}
+      设备型号：{{ device.ttsModelName }}
     </div>
     <div class="device-name">
-      音色模型：{{ device.voiceModel }}
+      音色模型：{{ device.ttsVoiceName }}
     </div>
     <div style="display: flex;gap: 10px;align-items: center;">
       <div class="settings-btn" @click="$emit('configure')">
@@ -31,7 +31,7 @@
       </div>
     </div>
     <div class="version-info">
-      <div>最近对话：{{ device.lastConversation }}</div>
+      <div>最近对话：{{ device.lastConnectedAt }}</div>
     </div>
   </div>
 </template>
@@ -58,7 +58,7 @@ export default {
 .device-name {
   margin: 7px 0 10px;
   font-weight: 400;
-  font-size: 10px;
+  font-size: 11px;
   color: #3d4566;
   text-align: left;
 }

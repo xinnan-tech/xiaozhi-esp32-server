@@ -125,6 +125,10 @@ ASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
+  SherpaASR:
+    type: sherpa_onnx_local
+    model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
+    output_dir: tmp/
   DoubaoASR:
     type: doubao
     appid: 你的火山引擎语音合成服务appid
@@ -138,6 +142,7 @@ VAD:
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
 
 LLM:
+  # 所有openai类型均可以修改超参，以AliLLM为例
   # 当前支持的type为openai、dify、ollama，可自行适配
   AliLLM:
     # 定义LLM API类型
@@ -146,6 +151,11 @@ LLM:
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
     api_key: 你的deepseek web key
+    temperature: 0.7  # 温度值
+    max_tokens: 500   # 最大生成token数
+    top_p: 1         
+    top_k: 50        
+    frequency_penalty: 0  # 频率惩罚
   DoubaoLLM:
     # 定义LLM API类型
     type: openai
@@ -194,7 +204,9 @@ LLM:
     # token申请地址： https://aistudio.google.com/apikey
     # 若部署地无法访问接口，需要开启科学上网
     api_key: 你的gemini web key
-    model_name: "gemini-1.5-pro"  #  gemini-1.5-pro 是免费的
+    model_name: "gemini-2.0-flash"
+    http_proxy: ""  #"http://127.0.0.1:10808"
+    https_proxy: "" #http://127.0.0.1:10808"
   CozeLLM:
     # 定义LLM API类型
     type: coze
@@ -400,9 +412,21 @@ TTS:
     type: doubao
     api_url: https://api.302ai.cn/doubao/tts_hd
     authorization: "Bearer "
+    # 湾湾小何音色
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_dir: tmp/
     access_token: "你的302API密钥"
+  GizwitsTTS:
+    type: doubao
+    # 火山引擎作为基座，可以完全使用企业级火山引擎语音合成服务
+    # 前一万名注册的用户，将送5元体验金额
+    # 获取API Key地址：https://agentrouter.gizwitsapi.com/panel/token
+    api_url: https://bytedance.gizwitsapi.com/api/v1/tts
+    authorization: "Bearer "
+    # 湾湾小何音色
+    voice: "zh_female_wanwanxiaohe_moon_bigtts"
+    output_dir: tmp/
+    access_token: "你的机智云API key"
   ACGNTTS:
     #在线网址：https://acgn.ttson.cn/
     #token购买：www.ttson.cn

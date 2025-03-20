@@ -201,6 +201,7 @@ server:
 | TTS |  CosyVoiceSiliconflow  | 接口调用 | 消耗 token |                         需申请硅基流动 API 密钥；输出格式为 wav                          |
 | TTS |        TTS302AI        | 接口调用 | 消耗 token |                  [点击创建密钥](https://dash.302.ai/apis/list)                  |
 | TTS |       CozeCnTTS        | 接口调用 | 消耗 token |                        需提供 Coze API key；输出格式为 wav                         |
+| TTS |       GizwitsTTS       | 接口调用 | 消耗 token |                  [点击创建密钥](https://agentrouter.gizwitsapi.com)                  |
 | TTS |        ACGNTTS         | 接口调用 | 消耗 token |                        [联系网站管理员购买密钥](www.ttson.cn)                        |
 | TTS |       OpenAITTS        | 接口调用 | 消耗 token |                                 境外使用，境外购买                                 |
 | TTS |       FishSpeech       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务；启动方法见配置文件内说明                          |
@@ -223,7 +224,9 @@ server:
 | 类型  |   平台名称    | 使用方式 | 收费模式 | 备注 |
 |:---:|:---------:|:----:|:----:|:--:|
 | ASR |  FunASR   | 本地使用 |  免费  |    |
+| ASR | SherpaASR | 本地使用 |  免费  |    |
 | ASR | DoubaoASR | 接口调用 |  收费  |    |
+
 
 ---
 

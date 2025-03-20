@@ -19,13 +19,13 @@
       </div>
       <div style="display: flex;align-items: center;gap: 7px; margin-top: 2px;">
         <div class="serach-box">
-          <el-input placeholder="输入名称搜索.." v-model="serach" style="border: none; background: transparent;" />
+          <el-input placeholder="输入名称搜索.." v-model="serach" style="border: none; background: transparent;" @keyup.enter.native="handleSearch" />
           <img src="@/assets/home/search.png" alt=""
-               style="width: 14px;height: 14px;margin-right: 11px;cursor: pointer;" />
+               style="width: 14px;height: 14px;margin-right: 11px;cursor: pointer;" @click="handleSearch" />
         </div>
         <img src="@/assets/home/avatar.png" alt="" style="width: 21px;height: 21px;" />
         <div class="user-info">
-          158 3632 4642
+           {{ userInfo.mobile || '加载中...' }}
         </div>
       </div>
     </div>
@@ -33,17 +33,57 @@
 </template>
 
 <script>
+import userApi from '@/apis/module/user'
+
+
 export default {
   name: 'HeaderBar',
+  props: ['devices'],  // 接收父组件设备列表
   data() {
-    return { serach: '' }
+    return {
+      serach: '',
+      userInfo: {
+        mobile: ''
+      }
+    }
+  },
+  mounted() {
+    this.fetchUserInfo()
   },
   methods: {
     goHome() {
       // 跳转到首页
       this.$router.push('/')
+    },
+    // 获取用户信息
+    fetchUserInfo() {
+      userApi.getUserInfo(({data}) => {
+        this.userInfo = data.data
+      })
+    },
+
+    // 处理搜索
+    handleSearch() {
+      const searchValue = this.serach.trim();
+      let filteredDevices;
+
+      if (!searchValue) {
+        // 当搜索内容为空时，显示原始完整列表
+        filteredDevices = this.$parent.originalDevices;
+      } else {
+         // 过滤逻辑
+        filteredDevices = this.devices.filter(device => {
+          return device.agentName.includes(searchValue) ||
+              device.ttsModelName.includes(searchValue) ||
+              device.ttsVoiceName.includes(searchValue);
+        });
+      }
+
+      this.$emit('search-result', filteredDevices);
     }
+
   }
+
 }
 </script>
 

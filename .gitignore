@@ -141,8 +141,8 @@ music/
 # Cython debug symbols
 cython_debug/
 *.iml
-model.pt
 tmp
+.history
 .DS_Store
 main/xiaozhi-server/data
 main/manager-web/node_modules
@@ -151,3 +151,6 @@ main/manager-web/node_modules
 .private_config.yaml
 .env.development
 
+# model files
+main/xiaozhi-server/models/SenseVoiceSmall/model.pt
+main/xiaozhi-server/models/sherpa-onnx*
