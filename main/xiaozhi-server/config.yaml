@@ -74,11 +74,11 @@ selected_module:
   TTS: EdgeTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
   Memory: nomem
-  # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
+  # 意图识别模块，默认使用function_call。开启后，可以播放音乐、控制音量、识别退出指令
   # 意图识别使用intent_llm，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
   # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
-  # 如果意图识别设置成 function_call，建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
-  Intent: nointent
+  # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
+  Intent: function_call
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
