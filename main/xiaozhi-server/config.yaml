@@ -479,6 +479,16 @@ TTS:
     # 语速范围0.25-4.0
     speed: 1
     output_dir: tmp/
+  SherpaTTS:
+    # 使用sherpa-onnx提供的轻量级本地TTS方案
+    # 修改repo_id和speaker更换模型和音色，会自动从huggingface下载，确保网络通畅
+    # 模型列表可以参考：https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
+    type: sherpa_onnx_local
+    model_dir: models/sherpa_onnx_tts # 模型本地目录
+    repo_id: "csukuangfj/vits-zh-hf-theresa" # huggingface模型仓库
+    speaker: 99 # 音色id
+    speed: 0.7 # 语速
+    output_dir: tmp/
   CustomTTS:
     # 自定义的TTS接口服务，请求参数可自定义
     # 要求接口使用GET方式请求，并返回音频文件

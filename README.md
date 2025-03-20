@@ -208,6 +208,7 @@ server:
 | TTS |     GPT_SOVITS_V2      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
 | TTS |     GPT_SOVITS_V3      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
 | TTS |       MinimaxTTS       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
+| TTS |       SherpaTTS        | 本地使用 |  免费/自定义  | 使用 [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 提供的轻量级本地TTS方案；可自定义使用的模型和音色 |
 
 ---
 
