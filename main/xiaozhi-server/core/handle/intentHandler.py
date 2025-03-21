@@ -67,7 +67,7 @@ async def process_intent_result(conn, intent, original_text):
         logger.bind(tag=TAG).info(f"识别到退出意图: {intent}")
         # 如果是明确的离别意图，发送告别语并关闭连接
         await send_stt_message(conn, original_text)
-        conn.executor.submit(conn.chat_and_close, original_text)
+        conn.create_chat_and_close_task(original_text)
         return True
 
     # 处理播放音乐意图
