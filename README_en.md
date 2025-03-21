@@ -165,6 +165,7 @@ In fact, any LLM that supports OpenAI API calls can be integrated.
 | Type |    Platform Name    | Usage Method | Pricing Model | Remarks |
 |:----:|:-------------------:|:------------:|:-------------:|:-------:|
 | ASR  | FunASR              | Local        | Free          |         |
+| ASR  | SherpaASR           | Local        | Free          |         |
 | ASR  | DoubaoASR           | API call     | Paid          |         |
 
 ---

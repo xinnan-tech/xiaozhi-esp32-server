@@ -74,11 +74,11 @@ selected_module:
   TTS: EdgeTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
   Memory: nomem
-  # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
+  # 意图识别模块，默认使用function_call。开启后，可以播放音乐、控制音量、识别退出指令
   # 意图识别使用intent_llm，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
   # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
-  # 如果意图识别设置成 function_call，建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
-  Intent: nointent
+  # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
+  Intent: function_call
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
@@ -94,10 +94,11 @@ Intent:
     type: nointent
     # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
     # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
-    # 下面是加载查天气、角色切换的插件示例
+    # 下面是加载查天气、角色切换、加载查新闻的插件示例
     functions:
       - change_role
       - get_weather
+      - get_news
 
 # 插件的基础配置
 plugins:
@@ -106,6 +107,14 @@ plugins:
   # 想稳定一点就自行申请替换，每天有1000次免费调用
   # 申请地址：https://console.qweather.com/#/apps/create-key/over
   get_weather: { "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
+  # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
+  # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
+  get_news:
+    default_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
+    category_urls:
+      society: "https://www.chinanews.com.cn/rss/society.xml"
+      world: "https://www.chinanews.com.cn/rss/world.xml"
+      finance: "https://www.chinanews.com.cn/rss/finance.xml"
 
 Memory:
   mem0ai:
@@ -125,6 +134,10 @@ ASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
+  SherpaASR:
+    type: sherpa_onnx_local
+    model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
+    output_dir: tmp/
   DoubaoASR:
     type: doubao
     appid: 你的火山引擎语音合成服务appid
@@ -138,6 +151,7 @@ VAD:
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
 
 LLM:
+  # 所有openai类型均可以修改超参，以AliLLM为例
   # 当前支持的type为openai、dify、ollama，可自行适配
   AliLLM:
     # 定义LLM API类型
@@ -146,6 +160,23 @@ LLM:
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
     api_key: 你的deepseek web key
+    temperature: 0.7  # 温度值
+    max_tokens: 500   # 最大生成token数
+    top_p: 1         
+    top_k: 50        
+    frequency_penalty: 0  # 频率惩罚
+  AliAppLLM:
+    # 定义LLM API类型
+    type: AliBL
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    app_id: 你的app_id
+    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    api_key: 你的api_key
+    # 是否不使用本地prompt：true|false (默不用请在百练应用中设置prompt) 
+    is_no_prompt: true
+    # Ali_memory_id：false（不使用）|你的memory_id（请在百练应用中设置中获取）
+    # Tips！：Ali_memory未实现多用户存储记忆(记忆按id调用)
+    ali_memory_id: false
   DoubaoLLM:
     # 定义LLM API类型
     type: openai
@@ -194,7 +225,9 @@ LLM:
     # token申请地址： https://aistudio.google.com/apikey
     # 若部署地无法访问接口，需要开启科学上网
     api_key: 你的gemini web key
-    model_name: "gemini-1.5-pro"  #  gemini-1.5-pro 是免费的
+    model_name: "gemini-2.0-flash"
+    http_proxy: ""  #"http://127.0.0.1:10808"
+    https_proxy: "" #http://127.0.0.1:10808"
   CozeLLM:
     # 定义LLM API类型
     type: coze
@@ -236,7 +269,8 @@ TTS:
     # 火山引擎语音合成服务，需要先在火山引擎控制台创建应用并获取appid和access_token
     # 山引擎语音一定要购买花钱，起步价30元，就有100并发了。如果用免费的只有2个并发，会经常报tts错误
     # 购买服务后，购买免费的音色后，可能要等半小时左右，才能使用。
-    # 地址：https://console.volcengine.com/speech/service/8
+    # 普通音色在这里开通：https://console.volcengine.com/speech/service/8
+    # 湾湾小何音色在这里开通：https://console.volcengine.com/speech/service/10007，开通后将下面的voice设置成zh_female_wanwanxiaohe_moon_bigtts
     api_url: https://openspeech.bytedance.com/api/v1/tts
     voice: BV001_streaming
     output_dir: tmp/
