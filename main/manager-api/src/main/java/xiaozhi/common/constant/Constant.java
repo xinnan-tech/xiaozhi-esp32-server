@@ -73,10 +73,6 @@ public interface Constant {
      * 排序方式
      */
     String ORDER = "order";
-    /**
-     * token header
-     */
-    String TOKEN_HEADER = "token";
 
     String AUTHORIZATION = "Authorization";
 

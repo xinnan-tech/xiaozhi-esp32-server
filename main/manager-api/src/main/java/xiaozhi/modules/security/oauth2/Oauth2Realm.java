@@ -14,7 +14,6 @@ import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.MessageUtils;
-import xiaozhi.modules.security.controller.LoginController;
 import xiaozhi.modules.security.entity.SysUserTokenEntity;
 import xiaozhi.modules.security.service.ShiroService;
 import xiaozhi.modules.sys.entity.SysUserEntity;
@@ -82,8 +81,6 @@ public class Oauth2Realm extends AuthorizingRealm {
         //转换成UserDetail对象
         UserDetail userDetail = ConvertUtils.sourceToTarget(userEntity, UserDetail.class);
 
-        //获取用户对应的部门数据权限
-        userDetail.setDeptIdList(null);
         userDetail.setToken(accessToken);
 
         //账号锁定

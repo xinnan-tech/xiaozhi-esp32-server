@@ -39,6 +39,15 @@ const routes = [
       return import('../views/register.vue')
     }
   },
+      // 新增设备管理页面路由
+  {
+    path: '/device-management',
+    name: 'DeviceManagement',
+    component: function () {
+      return import('../views/DeviceManagement.vue')
+    }
+
+  }
 ]
 
 const router = new VueRouter({

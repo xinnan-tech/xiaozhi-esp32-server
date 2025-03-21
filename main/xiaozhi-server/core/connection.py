@@ -5,13 +5,15 @@ import time
 import queue
 import asyncio
 import traceback
-from config.logger import setup_logging
+
 import threading
 import websockets
 from typing import Dict, Any
+import plugins_func.loadplugins
+from config.logger import setup_logging
 from core.utils.dialogue import Message, Dialogue
 from core.handle.textHandle import handleTextMessage
-from core.utils.util import get_string_no_punctuation_or_emoji, extract_json_from_string
+from core.utils.util import get_string_no_punctuation_or_emoji, extract_json_from_string, get_ip_info
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.sendAudioHandle import sendAudioMessage
 from core.handle.receiveAudioHandle import handleAudioMessage
@@ -20,7 +22,6 @@ from plugins_func.register import Action
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator
-import plugins_func.loadplugins
 
 TAG = __name__
 
@@ -37,6 +38,8 @@ class ConnectionHandler:
 
         self.websocket = None
         self.headers = None
+        self.client_ip = None
+        self.client_ip_info = {}
         self.session_id = None
         self.prompt = None
         self.welcome_msg = None
@@ -95,16 +98,14 @@ class ConnectionHandler:
         self.use_function_call_mode = False
         if self.config["selected_module"]["Intent"] == 'function_call':
             self.use_function_call_mode = True
-        
-        self.func_handler = FunctionHandler(self.config)
 
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
             self.headers = dict(ws.request.headers)
             # 获取客户端ip地址
-            client_ip = ws.remote_address[0]
-            self.logger.bind(tag=TAG).info(f"{client_ip} conn - Headers: {self.headers}")
+            self.client_ip = ws.remote_address[0]
+            self.logger.bind(tag=TAG).info(f"{self.client_ip} conn - Headers: {self.headers}")
 
             # 进行认证
             await self.auth.authenticate(self.headers)
@@ -148,6 +149,7 @@ class ConnectionHandler:
             self.welcome_msg["session_id"] = self.session_id
             await self.websocket.send(json.dumps(self.welcome_msg))
 
+            # 异步初始化
             await self.loop.run_in_executor(None, self._initialize_components)
 
             # tts 消化线程
@@ -188,8 +190,14 @@ class ConnectionHandler:
         self.prompt = self.config["prompt"]
         if self.private_config:
             self.prompt = self.private_config.private_config.get("prompt", self.prompt)
+
+        self.client_ip_info = get_ip_info(self.client_ip)
+        self.logger.bind(tag=TAG).info(f"Client ip info: {self.client_ip_info}")
+        self.prompt = self.prompt + f"\n我在:{self.client_ip_info}"
         self.dialogue.put(Message(role="system", content=self.prompt))
-    
+
+        self.func_handler = FunctionHandler(self.config)
+
     def change_system_prompt(self, prompt):
         self.prompt = prompt
         # 找到原来的role==system，替换原来的系统提示
@@ -295,7 +303,7 @@ class ConnectionHandler:
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
         return True
 
-    def chat_with_function_calling(self, query, tool_call = False):
+    def chat_with_function_calling(self, query, tool_call=False):
         self.logger.bind(tag=TAG).debug(f"Chat with function calling start: {query}")
         """Chat with function calling for intent detection using streaming"""
         if self.isNeedAuth():
@@ -303,7 +311,7 @@ class ConnectionHandler:
             future = asyncio.run_coroutine_threadsafe(self._check_and_broadcast_auth_code(), self.loop)
             future.result()
             return True
-        
+
         if not tool_call:
             self.dialogue.put(Message(role="user", content=query))
 
@@ -312,7 +320,7 @@ class ConnectionHandler:
 
         response_message = []
         processed_chars = 0  # 跟踪已处理的字符位置
-   
+
         try:
             start_time = time.time()
 
@@ -320,7 +328,7 @@ class ConnectionHandler:
             future = asyncio.run_coroutine_threadsafe(self.memory.query_memory(query), self.loop)
             memory_str = future.result()
 
-            #self.logger.bind(tag=TAG).info(f"对话记录: {self.dialogue.get_llm_dialogue_with_memory(memory_str)}")
+            # self.logger.bind(tag=TAG).info(f"对话记录: {self.dialogue.get_llm_dialogue_with_memory(memory_str)}")
 
             # 使用支持functions的streaming接口
             llm_responses = self.llm.response_with_functions(
@@ -343,8 +351,8 @@ class ConnectionHandler:
         content_arguments = ""
         for response in llm_responses:
             content, tools_call = response
-            if content is not None and len(content)>0:
-                if len(response_message)<=0 and (content=="```" or "<tool_call>" in content):
+            if content is not None and len(content) > 0:
+                if len(response_message) <= 0 and (content == "```" or "<tool_call>" in content):
                     tool_call_flag = True
 
             if tools_call is not None:
@@ -358,7 +366,7 @@ class ConnectionHandler:
 
             if content is not None and len(content) > 0:
                 if tool_call_flag:
-                    content_arguments+=content
+                    content_arguments += content
                 else:
                     response_message.append(content)
 
@@ -414,16 +422,17 @@ class ConnectionHandler:
                 else:
                     function_arguments = json.loads(function_arguments)
             if not bHasError:
-                self.logger.bind(tag=TAG).info(f"function_name={function_name}, function_id={function_id}, function_arguments={function_arguments}")
+                self.logger.bind(tag=TAG).info(
+                    f"function_name={function_name}, function_id={function_id}, function_arguments={function_arguments}")
                 function_call_data = {
                     "name": function_name,
                     "id": function_id,
                     "arguments": function_arguments
                 }
                 result = self.func_handler.handle_llm_function_call(self, function_call_data)
-                self._handle_function_result(result, function_call_data, text_index+1)
+                self._handle_function_result(result, function_call_data, text_index + 1)
 
-         # 处理最后剩余的文本
+        # 处理最后剩余的文本
         full_text = "".join(response_message)
         remaining_text = full_text[processed_chars:]
         if remaining_text:
@@ -435,7 +444,7 @@ class ConnectionHandler:
                 self.tts_queue.put(future)
 
         # 存储对话内容
-        if len(response_message)>0:
+        if len(response_message) > 0:
             self.dialogue.put(Message(role="assistant", content="".join(response_message)))
 
         self.llm_finish_task = True
@@ -444,31 +453,40 @@ class ConnectionHandler:
         return True
 
     def _handle_function_result(self, result, function_call_data, text_index):
-        if result.action == Action.RESPONSE: # 直接回复前端
+        if result.action == Action.RESPONSE:  # 直接回复前端
             text = result.response
             self.recode_first_last_text(text, text_index)
             future = self.executor.submit(self.speak_and_play, text, text_index)
             self.tts_queue.put(future)
             self.dialogue.put(Message(role="assistant", content=text))
-        if result.action == Action.REQLLM: # 调用函数后再请求llm生成回复
-            
+        elif result.action == Action.REQLLM:  # 调用函数后再请求llm生成回复
+
             text = result.result
             if text is not None and len(text) > 0:
                 function_id = function_call_data["id"]
                 function_name = function_call_data["name"]
                 function_arguments = function_call_data["arguments"]
                 self.dialogue.put(Message(role='assistant',
-                                            tool_calls=[{"id": function_id, 
-                                                        "function": {"arguments": function_arguments,"name": function_name},
-                                                        "type": 'function', 
-                                                        "index": 0}]))
+                                          tool_calls=[{"id": function_id,
+                                                       "function": {"arguments": function_arguments,
+                                                                    "name": function_name},
+                                                       "type": 'function',
+                                                       "index": 0}]))
 
                 self.dialogue.put(Message(role="tool", tool_call_id=function_id, content=text))
                 self.chat_with_function_calling(text, tool_call=True)
-        if result.action == Action.NOTFOUND:
-            text = result.response
-
-        
+        elif result.action == Action.NOTFOUND:
+            text = result.result
+            self.recode_first_last_text(text, text_index)
+            future = self.executor.submit(self.speak_and_play, text, text_index)
+            self.tts_queue.put(future)
+            self.dialogue.put(Message(role="assistant", content=text))
+        else:
+            text = result.result
+            self.recode_first_last_text(text, text_index)
+            future = self.executor.submit(self.speak_and_play, text, text_index)
+            self.tts_queue.put(future)
+            self.dialogue.put(Message(role="assistant", content=text))
 
     def _tts_priority_thread(self):
         while not self.stop_event.is_set():

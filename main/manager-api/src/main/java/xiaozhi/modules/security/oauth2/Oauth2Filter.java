@@ -11,7 +11,6 @@ import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
 import org.springframework.web.bind.annotation.RequestMethod;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
-import xiaozhi.common.exception.RenException;
 import xiaozhi.common.utils.HttpContextUtils;
 import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.common.utils.Result;
@@ -90,21 +89,10 @@ public class Oauth2Filter extends AuthenticatingFilter {
      * 获取请求的token
      */
     private String getRequestToken(HttpServletRequest httpRequest) {
-        String token;
+        String token = null;
         //从header中获取token
         String authorization = httpRequest.getHeader(Constant.AUTHORIZATION);
-        if (StringUtils.isBlank(authorization) && authorization.contains("Bearer ")) {
-            throw new RenException(ErrorCode.UNAUTHORIZED);
-        }
-        token = authorization.replace("Bearer ", "");
-
-        //如果header中不存在token，则从参数中获取token
-        if (StringUtils.isBlank(token)) {
-            authorization = httpRequest.getParameter(Constant.AUTHORIZATION);
-
-            if (StringUtils.isBlank(authorization) && authorization.contains("Bearer ")) {
-                throw new RenException(ErrorCode.UNAUTHORIZED);
-            }
+        if (StringUtils.isNotBlank(authorization) && authorization.startsWith("Bearer ")) {
             token = authorization.replace("Bearer ", "");
         }
         return token;

@@ -1,6 +1,7 @@
 package xiaozhi.modules.sys.service;
 
 import xiaozhi.common.service.BaseService;
+import xiaozhi.modules.sys.dto.PasswordDTO;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.entity.SysUserEntity;
 
@@ -18,4 +19,5 @@ public interface SysUserService extends BaseService<SysUserEntity> {
 
     void delete(Long[] ids);
 
+    void changePassword(Long userId, PasswordDTO passwordDTO);
 }

@@ -1,11 +1,11 @@
 import os
 import json
-from datetime import datetime
 import yaml
 import socket
 import subprocess
 import logging
 import re
+import requests
 
 
 def get_project_dir():
@@ -23,6 +23,64 @@ def get_local_ip():
         return local_ip
     except Exception as e:
         return "127.0.0.1"
+
+def is_private_ip(ip_addr):
+    """
+    Check if an IP address is a private IP address (compatible with IPv4 and IPv6).
+
+    @param {string} ip_addr - The IP address to check.
+    @return {bool} True if the IP address is private, False otherwise.
+    """
+    try:
+        # Validate IPv4 or IPv6 address format
+        if not re.match(r"^(\d{1,3}\.){3}\d{1,3}$|^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$", ip_addr):
+            return False  # Invalid IP address format
+
+        # IPv4 private address ranges
+        if '.' in ip_addr:  # IPv4 address
+            ip_parts = list(map(int, ip_addr.split('.')))
+            if ip_parts[0] == 10:
+                return True  # 10.0.0.0/8 range
+            elif ip_parts[0] == 172 and 16 <= ip_parts[1] <= 31:
+                return True  # 172.16.0.0/12 range
+            elif ip_parts[0] == 192 and ip_parts[1] == 168:
+                return True  # 192.168.0.0/16 range
+            elif ip_addr == '127.0.0.1':
+                return True  # Loopback address
+            elif ip_parts[0] == 169 and ip_parts[1] == 254:
+                return True # Link-local address 169.254.0.0/16
+            else:
+                return False  # Not a private IPv4 address
+        else:  # IPv6 address
+            ip_addr = ip_addr.lower()
+            if ip_addr.startswith('fc00:') or ip_addr.startswith('fd00:'):
+                return True  # Unique Local Addresses (FC00::/7)
+            elif ip_addr == '::1':
+                return True  # Loopback address
+            elif ip_addr.startswith('fe80:'):
+                return True # Link-local unicast addresses (FE80::/10)
+            else:
+                return False  # Not a private IPv6 address
+
+    except (ValueError, IndexError):
+        return False  # IP address format error or insufficient segments
+
+def get_ip_info(ip_addr):
+    try:
+        base_url = "https://freeipapi.com/api/json"
+        url = base_url if is_private_ip(ip_addr) else f"{base_url}/{ip_addr}"
+
+        resp = requests.get(url).json()
+
+        ip_info = {
+            "city": resp.get("cityName"),
+            "region": resp.get("regionName"), 
+            "country": resp.get("countryName")
+        }
+        return ip_info
+    except Exception as e:
+        logging.error(f"Error getting client ip info: {e}")
+        return {}
 
 
 def read_config(config_path):

@@ -1,6 +1,5 @@
 package xiaozhi.common.utils;
 
-import xiaozhi.common.constant.Constant;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
@@ -8,6 +7,8 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import xiaozhi.common.exception.ErrorCode;
+import xiaozhi.common.exception.RenException;
 
 import java.util.Date;
 import java.util.Enumeration;
@@ -30,13 +31,14 @@ public class HttpContextUtils {
         return ((ServletRequestAttributes) requestAttributes).getRequest();
     }
 
-    public static String getToken() {
-        HttpServletRequest httpRequest = getHttpServletRequest();
-        String token = httpRequest.getHeader(Constant.TOKEN_HEADER);
-
-        //如果header中不存在token，则从参数中获取token
+    public static String getToken(String authorization) {
+        String token;
+        if (StringUtils.isBlank(authorization) && authorization.contains("Bearer ")) {
+            throw new RenException(ErrorCode.UNAUTHORIZED);
+        }
+        token = authorization.replace("Bearer ", "");
         if (StringUtils.isBlank(token)) {
-            token = httpRequest.getParameter(Constant.TOKEN_HEADER);
+            throw new RenException(ErrorCode.TOKEN_NOT_EMPTY);
         }
         return token;
     }

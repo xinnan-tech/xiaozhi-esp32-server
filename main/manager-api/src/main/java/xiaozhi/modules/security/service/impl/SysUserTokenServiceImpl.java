@@ -2,6 +2,7 @@ package xiaozhi.modules.security.service.impl;
 
 import cn.hutool.core.date.DateUtil;
 import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.TokenDTO;
@@ -12,7 +13,7 @@ import xiaozhi.modules.security.dao.SysUserTokenDao;
 import xiaozhi.modules.security.entity.SysUserTokenEntity;
 import xiaozhi.modules.security.oauth2.TokenGenerator;
 import xiaozhi.modules.security.service.SysUserTokenService;
-import org.springframework.stereotype.Service;
+import xiaozhi.modules.sys.dto.PasswordDTO;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.service.SysUserService;
 
@@ -81,6 +82,9 @@ public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, Sy
     @Override
     public SysUserDTO getUserByToken(String token) {
         SysUserTokenEntity userToken = baseDao.getByToken(token);
+        if (null == userToken) {
+            throw new RenException(ErrorCode.TOKEN_INVALID);
+        }
 
         Date now = new Date();
         if (userToken.getExpireDate().before(now)) {
@@ -94,6 +98,16 @@ public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, Sy
 
     @Override
     public void logout(Long userId) {
+        Date expireDate = DateUtil.offsetMinute(new Date(), -1);
+        baseDao.logout(userId, expireDate);
+    }
+
+    @Override
+    public void changePassword(Long userId, PasswordDTO passwordDTO) {
+        // 修改密码
+        sysUserService.changePassword(userId, passwordDTO);
+
+        // 使 token 失效，后需要重新登录
         Date expireDate = DateUtil.offsetMinute(new Date(), -1);
         baseDao.logout(userId, expireDate);
     }

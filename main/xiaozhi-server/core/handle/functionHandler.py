@@ -50,6 +50,7 @@ class FunctionHandler:
         self.function_registry.register_function("play_music")
         self.function_registry.register_function("plugin_loader")
         self.function_registry.register_function("get_time")
+        self.function_registry.register_function("raise_and_lower_the_volume")
 
     def register_config_functions(self):
         """注册配置中的函数,可以不同客户端使用不同的配置"""
@@ -69,7 +70,7 @@ class FunctionHandler:
             arguments = function_call_data["arguments"]
             arguments = json.loads(arguments) if arguments else {}
             logger.bind(tag=TAG).info(f"调用函数: {function_name}, 参数: {arguments}")
-            if funcItem.type == ToolType.SYSTEM_CTL:
+            if funcItem.type == ToolType.SYSTEM_CTL or funcItem.type == ToolType.IOT_CTL:
                 return func(conn, **arguments)
             elif funcItem.type == ToolType.WAIT:
                 return func(**arguments)

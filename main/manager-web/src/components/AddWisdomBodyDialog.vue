@@ -1,19 +1,18 @@
 <template>
-  <el-dialog :visible.sync="visible" width="400px" center >
+  <el-dialog :visible.sync="visible" width="400px" center>
     <div style="margin: 0 10px 10px;display: flex;align-items: center;gap: 10px;font-weight: 700;font-size: 20px;text-align: left;color: #3d4566;">
       <div style="width: 40px;height: 40px;border-radius: 50%;background: #5778ff;display: flex;align-items: center;justify-content: center;">
         <img src="@/assets/home/equipment.png" alt="" style="width: 18px;height: 15px;" />
       </div>
-      添加设备
+      添加智慧体
     </div>
     <div style="height: 1px;background: #e8f0ff;" />
     <div style="margin: 22px 15px;">
       <div style="font-weight: 400;font-size: 14px;text-align: left;color: #3d4566;">
-        <div style="color: red;display: inline-block;">*</div>
-        <span style="font-size: 11px"> 验证码：</span>
+        <div style="color: red;display: inline-block;">*</div> 智慧体名称：
       </div>
       <div class="input-46" style="margin-top: 12px;">
-        <el-input placeholder="请输入设备播报的6位数验证码.." v-model="deviceCode" />
+        <el-input placeholder="请输入智慧体名称.." v-model="wisdomBodyName" />
       </div>
     </div>
     <div style="display: flex;margin: 15px 15px;gap: 7px;">
@@ -30,23 +29,33 @@
 </template>
 
 <script>
+import userApi from '@/apis/module/user';
+
+
 export default {
-  name: 'AddDeviceDialog',
+  name: 'AddWisdomBodyDialog',
   props: {
     visible: { type: Boolean, required: true }
   },
   data() {
-    return { deviceCode: "" }
+    return { wisdomBodyName: "" }
   },
   methods: {
     confirm() {
-      this.$emit('update:visible', false)
-      this.$emit('added', this.deviceCode)
-      this.deviceCode = ""
+      if (!this.wisdomBodyName.trim()) {
+        this.$message.error('请输入智慧体名称');
+        return;
+      }
+      userApi.addAgent(this.wisdomBodyName, (res) => {
+        this.$message.success('添加成功');
+        this.$emit('confirm', res);
+        this.$emit('update:visible', false);
+        this.wisdomBodyName = "";
+      });
     },
     cancel() {
       this.$emit('update:visible', false)
-      this.deviceCode = ""
+      this.wisdomBodyName = ""
     }
   }
 }
@@ -57,7 +66,7 @@ export default {
 .input-46 {
   border: 1px solid #e4e6ef;
   background: #f6f8fb;
-  border-radius: 10px;
+  border-radius: 15px;
 }
 
 .dialog-btn {
@@ -72,7 +81,6 @@ export default {
   line-height: 40px;
   text-align: center;
 }
-
 ::v-deep .el-dialog {
   border-radius: 15px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -86,5 +94,4 @@ export default {
 ::v-deep .el-dialog__header{
   padding: 10px;
 }
-
 </style>

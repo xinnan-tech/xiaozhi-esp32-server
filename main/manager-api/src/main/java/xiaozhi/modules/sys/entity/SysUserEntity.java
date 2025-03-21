@@ -3,9 +3,9 @@ package xiaozhi.modules.sys.entity;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import xiaozhi.common.entity.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import xiaozhi.common.entity.BaseEntity;
 
 import java.util.Date;
 
@@ -35,11 +35,6 @@ public class SysUserEntity extends BaseEntity {
     /**
      * 更新者
      */
-    @TableField(fill = FieldFill.INSERT)
-    private Date createDate;
-    /**
-     * 更新者
-     */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private Long updater;
     /**
@@ -47,10 +42,5 @@ public class SysUserEntity extends BaseEntity {
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateDate;
-    /**
-     * 部门名称
-     */
-    @TableField(exist = false)
-    private String deptName;
 
 }

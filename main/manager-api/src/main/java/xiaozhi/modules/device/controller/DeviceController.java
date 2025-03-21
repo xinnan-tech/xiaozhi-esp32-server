@@ -25,11 +25,10 @@ import xiaozhi.modules.security.user.SecurityUser;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "设备管理")
 @AllArgsConstructor
 @RestController
 @RequestMapping("/device")
-@Tag(name = "设备管理")
-
 public class DeviceController {
     private final DeviceService deviceService;
     private final RedisUtils redisUtils;

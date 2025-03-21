@@ -70,7 +70,9 @@ public class ShiroConfig {
         filterMap.put("/v3/api-docs/**", "anon");
         filterMap.put("/doc.html", "anon");
         filterMap.put("/favicon.ico", "anon");
-        filterMap.put("/user/**", "anon");
+        filterMap.put("/user/captcha", "anon");
+        filterMap.put("/user/login", "anon");
+        filterMap.put("/user/register", "anon");
         filterMap.put("/**", "oauth2");
         shiroFilter.setFilterChainDefinitionMap(filterMap);
 

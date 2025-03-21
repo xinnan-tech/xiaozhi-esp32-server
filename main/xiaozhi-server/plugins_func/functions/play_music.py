@@ -112,7 +112,6 @@ def get_music_files(music_dir, music_ext):
 def initialize_music_handler(conn):
     global MUSIC_CACHE
     if MUSIC_CACHE == {}:
-        logger.bind(tag=TAG).info(f"实例化音乐:")
         if "music" in conn.config:
             MUSIC_CACHE["music_config"] = conn.config["music"]
             MUSIC_CACHE["music_dir"] = os.path.abspath(

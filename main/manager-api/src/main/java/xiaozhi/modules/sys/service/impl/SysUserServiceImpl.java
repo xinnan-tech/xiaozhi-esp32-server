@@ -10,6 +10,7 @@ import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.modules.security.password.PasswordUtils;
 import xiaozhi.modules.sys.dao.SysUserDao;
+import xiaozhi.modules.sys.dto.PasswordDTO;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.entity.SysUserEntity;
 import xiaozhi.modules.sys.enums.SuperAdminEnum;
@@ -79,6 +80,31 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
     public void delete(Long[] ids) {
         //删除用户
         baseDao.deleteBatchIds(Arrays.asList(ids));
+    }
+
+    @Override
+    public void changePassword(Long userId, PasswordDTO passwordDTO) {
+        SysUserEntity sysUserEntity = sysUserDao.selectById(userId);
+
+        if (null == sysUserEntity) {
+            throw new RenException(ErrorCode.TOKEN_INVALID);
+        }
+
+        // 判断旧密码是否正确
+        if (!PasswordUtils.matches(passwordDTO.getPassword(), sysUserEntity.getPassword())) {
+            throw new RenException("旧密码输入错误");
+        }
+
+        //新密码强度
+        if (!isStrongPassword(passwordDTO.getNewPassword())) {
+            throw new RenException(ErrorCode.PASSWORD_WEAK_ERROR);
+        }
+
+        //密码加密
+        String password = PasswordUtils.encode(passwordDTO.getNewPassword());
+        sysUserEntity.setPassword(password);
+
+        updateById(sysUserEntity);
     }
 
     private Long getUserCount() {

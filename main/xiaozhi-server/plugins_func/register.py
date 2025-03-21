@@ -11,6 +11,7 @@ class ToolType(Enum):
     WAIT = (2, "调用工具，等待函数返回")
     CHANGE_SYS_PROMPT = (3, "修改系统提示词，切换角色性格或职责")
     SYSTEM_CTL = (4, "系统控制，影响正常的对话流程，如退出、播放音乐等，需要传递conn参数")
+    IOT_CTL = (5, "IOT设备控制，需要传递conn参数")
 
     def __init__(self, code, message):
         self.code = code
@@ -18,6 +19,7 @@ class ToolType(Enum):
 
 
 class Action(Enum):
+    ERROR = (-1, "错误")
     NOTFOUND = (0, "没有找到函数")
     NONE = (1, "啥也不干")
     RESPONSE = (2, "直接回复")
@@ -40,8 +42,31 @@ class FunctionItem:
         self.func = func
         self.type = type
 
+class DeviceTypeRegistry:
+    """设备类型注册表，用于管理IOT设备类型及其函数"""
+    def __init__(self):
+        self.type_functions = {}  # type_signature -> {func_name: FunctionItem}
+    
+    def generate_device_type_id(self, descriptor):
+        """通过设备能力描述生成类型ID"""
+        properties = sorted(descriptor["properties"].keys())
+        methods = sorted(descriptor["methods"].keys())
+        # 使用属性和方法的组合作为设备类型的唯一标识
+        type_signature = f"{descriptor['name']}:{','.join(properties)}:{','.join(methods)}"
+        return type_signature
+    
+    def get_device_functions(self, type_id):
+        """获取设备类型对应的所有函数"""
+        return self.type_functions.get(type_id, {})
+    
+    def register_device_type(self, type_id, functions):
+        """注册设备类型及其函数"""
+        if type_id not in self.type_functions:
+            self.type_functions[type_id] = functions
+
 # 初始化函数注册字典
 all_function_registry = {}
+device_type_registry = DeviceTypeRegistry()
 
 def register_function(name, desc, type=None):
     """注册函数到函数注册字典的装饰器"""

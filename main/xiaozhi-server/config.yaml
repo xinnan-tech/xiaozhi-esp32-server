@@ -35,10 +35,7 @@ log:
   log_file: "server.log"
   # 设置数据文件路径
   data_dir: data
-iot:
-  Speaker:
-    # 设置esp32的音量，范围0-100
-    volume: 80
+
 xiaozhi:
   type: hello
   version: 1
@@ -102,6 +99,14 @@ Intent:
       - change_role
       - get_weather
 
+# 插件的基础配置
+plugins:
+  # 获取天气插件的配置，这里填写你的api_key
+  # 这个密钥是项目共用的key，用多了可能会被限制
+  # 想稳定一点就自行申请替换，每天有1000次免费调用
+  # 申请地址：https://console.qweather.com/#/apps/create-key/over
+  get_weather: { "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
+
 Memory:
   mem0ai:
     type: mem0ai
@@ -109,10 +114,10 @@ Memory:
     # 每月有1000次免费调用
     api_key: 你的mem0ai api key
   nomem:
-    # 不想使用记忆功能，可以使用nomem 
+    # 不想使用记忆功能，可以使用nomem
     type: nomem
   mem_local_short:
-    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器 
+    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器
     type: mem_local_short
 
 ASR:
@@ -176,8 +181,12 @@ LLM:
     type: dify
     # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
     # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
-    base_url: https://api.dify.cn/v1
+    base_url: https://api.dify.ai/v1
     api_key: 你的DifyLLM web key
+    # 使用的对话模式 可以选择工作流 workflows/run 对话模式 chat-messages  文本生成 completion-messages
+    # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
+    # 文本生成的默认输入参数也是query
+    mode: chat-messages
   GeminiLLM:
     type: gemini
     # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
@@ -220,7 +229,7 @@ TTS:
     # 定义TTS API类型
     type: edge
     voice: zh-CN-XiaoxiaoNeural
-    output_file: tmp/
+    output_dir: tmp/
   DoubaoTTS:
     # 定义TTS API类型
     type: doubao
@@ -230,7 +239,7 @@ TTS:
     # 地址：https://console.volcengine.com/speech/service/8
     api_url: https://openspeech.bytedance.com/api/v1/tts
     voice: BV001_streaming
-    output_file: tmp/
+    output_dir: tmp/
     authorization: "Bearer;"
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
@@ -241,7 +250,7 @@ TTS:
     # token申请地址 https://cloud.siliconflow.cn/account/ak
     model: FunAudioLLM/CosyVoice2-0.5B
     voice: FunAudioLLM/CosyVoice2-0.5B:alex
-    output_file: tmp/
+    output_dir: tmp/
     access_token: 你的硅基流动API密钥
     response_format: wav
   CozeCnTTS:
@@ -249,7 +258,7 @@ TTS:
     # COZECN TTS
     # token申请地址 https://www.coze.cn/open/oauth/pats
     voice: 7426720361733046281
-    output_file: tmp/
+    output_dir: tmp/
     access_token: 你的coze web key
     response_format: wav
   FishSpeech:
@@ -262,7 +271,7 @@ TTS:
     #--decoder-config-name firefly_gan_vq
     #--compile
     type: fishspeech
-    output_file: tmp/
+    output_dir: tmp/
     response_format: wav
     reference_id: null
     reference_audio: ["/tmp/test.wav",]
@@ -286,7 +295,7 @@ TTS:
     #python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/caixukun.yaml
     type: gpt_sovits_v2
     url: "http://127.0.0.1:9880/tts"
-    output_file: tmp/
+    output_dir: tmp/
     text_lang: "auto"
     ref_audio_path: "caixukun.wav"
     prompt_text: ""
@@ -311,7 +320,7 @@ TTS:
     #python api.py
     type: gpt_sovits_v3
     url: "http://127.0.0.1:9880"
-    output_file: tmp/
+    output_dir: tmp/
     text_language: "auto"
     refer_wav_path: "caixukun.wav"
     prompt_language: "zh"
@@ -332,7 +341,7 @@ TTS:
     # api_key地址：https://platform.minimaxi.com/user-center/basic-information/interface-key
     # 定义TTS API类型
     type: minimax
-    output_file: tmp/
+    output_dir: tmp/
     group_id: 你的minimax平台groupID
     api_key: 你的minimax平台接口密钥
     model: "speech-01-turbo"
@@ -369,7 +378,7 @@ TTS:
     # token地址：https://nls-portal.console.aliyun.com/overview
     # 定义TTS API类型
     type: aliyun
-    output_file: tmp/
+    output_dir: tmp/
     appkey: 你的阿里云智能语音交互服务项目Appkey
     token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
     voice: xiaoyun
@@ -391,9 +400,21 @@ TTS:
     type: doubao
     api_url: https://api.302ai.cn/doubao/tts_hd
     authorization: "Bearer "
+    # 湾湾小何音色
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
-    output_file: tmp/
+    output_dir: tmp/
     access_token: "你的302API密钥"
+  GizwitsTTS:
+    type: doubao
+    # 火山引擎作为基座，可以完全使用企业级火山引擎语音合成服务
+    # 前一万名注册的用户，将送5元体验金额
+    # 获取API Key地址：https://agentrouter.gizwitsapi.com/panel/token
+    api_url: https://bytedance.gizwitsapi.com/api/v1/tts
+    authorization: "Bearer "
+    # 湾湾小何音色
+    voice: "zh_female_wanwanxiaohe_moon_bigtts"
+    output_dir: tmp/
+    access_token: "你的机智云API key"
   ACGNTTS:
     #在线网址：https://acgn.ttson.cn/
     #token购买：www.ttson.cn
@@ -409,7 +430,7 @@ TTS:
     to_lang: ZH
     url: https://u95167-bd74-2aef8085.westx.seetacloud.com:8443/flashsummary/tts?token=
     format: mp3
-    output_file: tmp/
+    output_dir: tmp/
     emotion: 1
   OpenAITTS:
     # openai官方文本转语音服务，可支持全球大多数语种
@@ -423,7 +444,7 @@ TTS:
     voice: onyx
     # 语速范围0.25-4.0
     speed: 1
-    output_file: tmp/
+    output_dir: tmp/
   CustomTTS:
     # 自定义的TTS接口服务，请求参数可自定义
     # 要求接口使用GET方式请求，并返回音频文件
@@ -438,7 +459,7 @@ TTS:
     headers: # 自定义请求头
       # Authorization: Bearer xxxx
     format: wav # 接口返回的音频格式
-    output_file: tmp/
+    output_dir: tmp/
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
