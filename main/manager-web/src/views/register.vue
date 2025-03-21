@@ -4,8 +4,8 @@
       <!-- 保持相同的头部 -->
       <el-header>
         <div style="display: flex;align-items: center;margin-top: 15px;margin-left: 10px;gap: 10px;">
-          <img src="@/assets/xiaozhi-logo.png" alt="" style="width: 45px;height: 45px;"/>
-          <img src="@/assets/xiaozhi-ai.png" alt="" style="width: 70px;height: 13px;"/>
+          <img alt="" src="@/assets/xiaozhi-logo.png" style="width: 45px;height: 45px;"/>
+          <img alt="" src="@/assets/xiaozhi-ai.png" style="width: 70px;height: 13px;"/>
         </div>
       </el-header>
 
@@ -13,7 +13,7 @@
         <div class="login-box">
           <!-- 修改标题部分 -->
           <div style="display: flex;align-items: center;gap: 20px;margin-bottom: 39px;padding: 0 30px;">
-            <img src="@/assets/login/hi.png" alt="" style="width: 34px;height: 34px;"/>
+            <img alt="" src="@/assets/login/hi.png" style="width: 34px;height: 34px;"/>
             <div class="login-text">注册</div>
             <div class="login-welcome">
               WELCOME TO REGISTER
@@ -23,33 +23,33 @@
           <div style="padding: 0 30px;">
             <!-- 用户名输入框 -->
             <div class="input-box">
-              <img src="@/assets/login/username.png" alt="" class="input-icon"/>
+              <img alt="" class="input-icon" src="@/assets/login/username.png"/>
               <el-input v-model="form.username" placeholder="请输入用户名"/>
             </div>
 
             <!-- 密码输入框 -->
             <div class="input-box">
-              <img src="@/assets/login/password.png" alt="" class="input-icon"/>
-              <el-input v-model="form.password" type="password" placeholder="请输入密码"/>
+              <img alt="" class="input-icon" src="@/assets/login/password.png"/>
+              <el-input v-model="form.password" placeholder="请输入密码" type="password"/>
             </div>
 
             <!-- 新增确认密码 -->
             <div class="input-box">
-              <img src="@/assets/login/password.png" alt="" class="input-icon"/>
-              <el-input v-model="form.confirmPassword" type="password" placeholder="请确认密码"/>
+              <img alt="" class="input-icon" src="@/assets/login/password.png"/>
+              <el-input v-model="form.confirmPassword" placeholder="请确认密码" type="password"/>
             </div>
 
             <!-- 验证码部分保持相同 -->
             <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
               <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
-                <img src="@/assets/login/shield.png" alt="" class="input-icon"/>
+                <img alt="" class="input-icon" src="@/assets/login/shield.png"/>
                 <el-input v-model="form.captcha" placeholder="请输入验证码" style="flex: 1;"/>
               </div>
               <img v-if="captchaUrl"
-                  :src="captchaUrl"
-                  alt="验证码"
-                  style="width: 150px; height: 40px; cursor: pointer;"
-                  @click="fetchCaptcha"
+                   :src="captchaUrl"
+                   alt="验证码"
+                   style="width: 150px; height: 40px; cursor: pointer;"
+                   @click="fetchCaptcha"
               />
             </div>
 
@@ -119,24 +119,33 @@ export default {
       });
     },
 
+    // 封装输入验证逻辑
+    validateInput(input, message) {
+      if (!input.trim()) {
+        showDanger(message);
+        return false;
+      }
+      return true;
+    },
     // 注册逻辑
     register() {
-      if (!this.form.username.trim()) {
-        showDanger('用户名不能为空')
-        return
+      // 验证用户名
+      if (!this.validateInput(this.form.username, '用户名不能为空')) {
+        return;
       }
-      if (!this.form.password.trim()) {
-        showDanger('密码不能为空')
-        return
+      // 验证密码
+      if (!this.validateInput(this.form.password, '密码不能为空')) {
+        return;
       }
       if (this.form.password !== this.form.confirmPassword) {
         showDanger('两次输入的密码不一致')
         return
       }
-      if (!this.form.captcha.trim()) {
-        showDanger('验证码不能为空')
-        return
+      // 验证验证码
+      if (!this.validateInput(this.form.captcha, '验证码不能为空')) {
+        return;
       }
+
       Api.user.register(this.form, ({data}) => {
         console.log(data)
         if (data.code === 0) {
@@ -159,6 +168,6 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 @import './auth.scss'; // 修改为导入新建的SCSS文件
 </style>

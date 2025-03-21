@@ -64,5 +64,5 @@ class LLMProvider(LLMProviderBase):
                 yield chunk.choices[0].delta.content, chunk.choices[0].delta.tool_calls
 
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"Error in function call streaming: {e}")
+            logger.bind(tag=TAG).error(f"Error in function call streaming: {e}")
             yield {"type": "content", "content": f"【OpenAI服务响应异常: {e}】"}
