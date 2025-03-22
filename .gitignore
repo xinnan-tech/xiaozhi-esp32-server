@@ -145,6 +145,7 @@ tmp
 .history
 .DS_Store
 main/xiaozhi-server/data
+!main/xiaozhi-server/data/tts_notify.mp3
 main/manager-web/node_modules
 .config.yaml
 .secrets.yaml

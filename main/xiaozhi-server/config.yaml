@@ -57,6 +57,10 @@ delete_audio: true
 close_connection_no_voice_time: 120
 # TTS请求超时时间(秒)
 tts_timeout: 10
+# TTS播放结束提示音
+tts_notify: "data/tts_notify.mp3"
+# 开场是否回复唤醒词
+enable_greeting: true
 
 CMD_exit:
   - "退出"

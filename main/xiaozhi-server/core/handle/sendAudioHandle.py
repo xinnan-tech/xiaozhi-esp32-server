@@ -60,9 +60,19 @@ async def send_tts_message(conn, state, text=None):
     if text is not None:
         message["text"] = text
 
-    await conn.websocket.send(json.dumps(message))
+    # TTS播放结束
     if state == "stop":
+        # 清除服务端讲话状态
         conn.clearSpeakStatus()
+        # 播放提示音
+        tts_notify = conn.config.get("tts_notify", "")
+        if tts_notify:
+            opus_packets, duration = conn.tts.audio_to_opus_data(tts_notify)
+            for opus_packet in opus_packets:
+                await conn.websocket.send(opus_packet)
+
+    # 发送消息到客户端
+    await conn.websocket.send(json.dumps(message))
 
 
 async def send_stt_message(conn, text):

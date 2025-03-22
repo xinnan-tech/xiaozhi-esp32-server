@@ -3,6 +3,7 @@ import json
 from core.handle.abortHandle import handleAbortMessage
 from core.handle.helloHandle import handleHelloMessage
 from core.handle.receiveAudioHandle import startToChat, handleAudioMessage
+from core.handle.sendAudioHandle import send_stt_message, send_tts_message
 from core.handle.iotHandle import handleIotDescriptors, handleIotStatus
 
 TAG = __name__
@@ -38,7 +39,13 @@ async def handleTextMessage(conn, message):
                 conn.client_have_voice = False
                 conn.asr_audio.clear()
                 if "text" in msg_json:
-                    await startToChat(conn, msg_json["text"])
+                    if conn.config.get("enable_greeting", True):
+                        # 启用开场白 通过llm回复唤醒词
+                        await startToChat(conn, msg_json["text"])
+                    else:
+                        # 不启用 直接转为聆听状态
+                        await send_stt_message(conn, msg_json["text"])
+                        await send_tts_message(conn, "stop", None)
         elif msg_json["type"] == "iot":
             if "descriptors" in msg_json:
                 await handleIotDescriptors(conn, msg_json["descriptors"])
