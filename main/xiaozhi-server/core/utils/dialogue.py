@@ -35,6 +35,15 @@ class Dialogue:
             self.getMessages(m, dialogue)
         return dialogue
 
+    def update_system_message(self, new_content: str):
+        """更新或添加系统消息"""
+        # 查找第一个系统消息
+        system_msg = next((msg for msg in self.dialogue if msg.role == "system"), None)
+        if system_msg:
+            system_msg.content = new_content
+        else:
+            self.put(Message(role="system", content=new_content))
+
     def get_llm_dialogue_with_memory(self, memory_str: str = None) -> List[Dict[str, str]]:
         if memory_str is None or len(memory_str) == 0:
             return self.get_llm_dialogue()

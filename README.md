@@ -51,7 +51,7 @@
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/av114036381327149" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
          <picture>
            <img alt="控制家电开关" src="docs/images/demo5.png" />
          </picture>
@@ -95,6 +95,11 @@
         </a>
     </td>
     <td>
+        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
+         <picture>
+           <img alt="播报新闻" src="docs/images/demo0.png" />
+         </picture>
+        </a>
     </td>
   </tr>
 </table>
@@ -185,7 +190,6 @@ server:
 | LLM |     FastgptLLM     |     fastgpt 接口调用      | 免费/消耗 token |                                              本地化部署，注意配置提示词需在 Fastgpt 控制台设置                                              |
 | LLM |     GeminiLLM      |      gemini 接口调用      |     免费      |                                      [点击申请密钥](https://aistudio.google.com/apikey)                                       |
 | LLM |      CozeLLM       |       coze 接口调用       |  消耗 token   |                                                需提供 bot_id、user_id 及个人令牌                                                 |
-| LLM |   Home Assistant   | homeassistant语音助手接口调用 |     免费      |                                                   需提供home assistant令牌                                                   |
 
 实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
 
@@ -370,7 +374,41 @@ VAD:
 
 ### 6、我想通过小智控制电灯、空调、远程开关机等操作 💡
 
-建议：在配置文件中将 `LLM` 设置为 `HomeAssistant`，通过 调用`HomeAssistant`接口实现相关控制。
+本项目，支持以工具调用的方式控制HomeAssistant设备
+
+1、首先选择一款支持function call支持的LLM，例如`ChatGLMLLM`。
+
+2、在配置文件中，将 `selected_module.Intent` 设置为 `function_call`。
+
+3、登录`HomeAssistant`，点击`左下角个人`，切换`安全`导航栏，划到底部`长期访问令牌`生成api_key。
+
+在配置文件中，配置好你的home assistant的`devices`（被控制的设备）和`api_key`和`base_url`等信息。例如：
+
+``` yaml 
+plugins
+  home_assistant:
+    devices:
+      - 客厅,玩具灯,switch.cuco_cn_460494544_cp1_on_p_2_1
+      - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
+    base_url: http://你的homeassistant地址:8123
+    api_key: 你的home assistant api访问令牌
+```
+
+最后，允许function_call 插件在配置文件中启用`hass_get_state`(必须)、`hass_set_state`(必须)、`hass_play_music`(不想用ha听音乐可以不启动)，例如：
+
+``` yaml 
+Intent:
+  ...
+  function_call:
+    type: nointent
+    functions:
+      - change_role
+      - get_weather
+      - get_news
+      - hass_get_state
+      - hass_set_state
+      - hass_play_music
+```
 
 ### 7、更多问题，可联系我们反馈 💬
 
