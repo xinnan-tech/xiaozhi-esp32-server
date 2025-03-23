@@ -31,7 +31,7 @@ async def checkWakeupWords(conn, text):
         conn.tts_last_text_index = 0
         conn.llm_finish_task = True
 
-        file = getWakeupWordFile()
+        file = getWakeupWordFile(WAKEUP_CONFIG["file_name"])
         if file is None:
             asyncio.create_task(wakeupWordsResponse(conn))
             return False
@@ -43,10 +43,14 @@ async def checkWakeupWords(conn, text):
     return False
 
 
-def getWakeupWordFile():
+def getWakeupWordFile(file_name):
+    for file in os.listdir(WAKEUP_CONFIG["dir"]):
+        if "my_"+file_name in file:
+            return f"config/assets/{file}"
+
     """查找config/assets/目录下名称为wakeup_words的文件"""
     for file in os.listdir(WAKEUP_CONFIG["dir"]):
-        if WAKEUP_CONFIG["file_name"] in file:
+        if file_name in file:
             return f"config/assets/{file}"
     return None
 
@@ -60,9 +64,9 @@ async def wakeupWordsResponse(conn):
         file_type = os.path.splitext(tts_file)[1]
         if file_type:
             file_type = file_type.lstrip('.')
-        old_file = getWakeupWordFile()
+        old_file = getWakeupWordFile("my_" +WAKEUP_CONFIG["file_name"])
         if old_file is not None:
             os.remove(old_file)
         """将文件挪到"wakeup_words.mp3"""
-        shutil.move(tts_file, WAKEUP_CONFIG["dir"] + WAKEUP_CONFIG["file_name"] + "." + file_type)
+        shutil.move(tts_file, WAKEUP_CONFIG["dir"] + "my_" +WAKEUP_CONFIG["file_name"] + "." + file_type)
         WAKEUP_CONFIG["create_time"] = time.time()
