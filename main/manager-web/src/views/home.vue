@@ -47,11 +47,7 @@
 import DeviceItem from '@/components/DeviceItem.vue'
 import AddWisdomBodyDialog from '@/components/AddWisdomBodyDialog.vue'
 import HeaderBar from '@/components/HeaderBar.vue'
-<<<<<<< HEAD
 import Api from '@/apis/api';
-=======
-
->>>>>>> 0c2b194444d33f83a3ae664ee5de702ac25bb1a3
 export default {
   name: 'HomePage',
   components: { DeviceItem, AddWisdomBodyDialog, HeaderBar },
@@ -75,7 +71,6 @@ export default {
       // 点击配置角色后跳转到角色配置页
       this.$router.push('/role-config')
     },
-<<<<<<< HEAD
     handleDeviceAdded(deviceCode) {
       // 根据需要处理添加设备后逻辑，比如刷新设备列表等
       console.log('设备验证码：', deviceCode)
@@ -84,7 +79,7 @@ export default {
       }).catch(err => {
         console.error('绑定设备失败：', err)
       })
-=======
+    },
     handleWisdomBodyAdded(res) {
       console.log('新增智能体响应：', res);
       this.fetchAgentList();
@@ -105,9 +100,7 @@ export default {
     // 搜索更新智能体列表
     handleSearchResult(filteredList) {
       this.devices = filteredList; // 更新设备列表
->>>>>>> 0c2b194444d33f83a3ae664ee5de702ac25bb1a3
     }
-
   }
 }
 </script>

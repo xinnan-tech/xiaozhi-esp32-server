@@ -171,7 +171,7 @@ def save_audio(path: str,
 
 
 def init_jit_model(model_path: str,
-                   device=torch.device('cpu')):
+                   device=torch.device('mps')):
     model = torch.jit.load(model_path, map_location=device)
     model.eval()
     return model

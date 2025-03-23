@@ -102,7 +102,7 @@ class ConnectionHandler:
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
-            self.headers = dict(ws.request.headers)
+            self.headers = dict(ws.request_headers)
             # 获取客户端ip地址
             self.client_ip = ws.remote_address[0]
             self.logger.bind(tag=TAG).info(f"{self.client_ip} conn - Headers: {self.headers}")
