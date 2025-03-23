@@ -127,6 +127,13 @@ plugins:
       - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
     base_url: http://homeassistant.local:8123
     api_key: 你的home assistant api访问令牌
+  play_music:
+    music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
+    music_ext: # 音乐文件类型，p3格式效率最高
+      - ".mp3"
+      - ".wav"
+      - ".p3"
+    refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
 
 
 Memory:
