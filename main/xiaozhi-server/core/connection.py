@@ -196,7 +196,7 @@ class ConnectionHandler:
         self.prompt = self.prompt + f"\n我在:{self.client_ip_info}"
         self.dialogue.put(Message(role="system", content=self.prompt))
 
-        self.func_handler = FunctionHandler(self.config)
+        self.func_handler = FunctionHandler(self)
 
     def change_system_prompt(self, prompt):
         self.prompt = prompt

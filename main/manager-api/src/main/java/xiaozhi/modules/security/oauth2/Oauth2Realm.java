@@ -19,6 +19,7 @@ import xiaozhi.modules.security.service.ShiroService;
 import xiaozhi.modules.sys.entity.SysUserEntity;
 import xiaozhi.modules.sys.enums.SuperAdminEnum;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -47,7 +48,7 @@ public class Oauth2Realm extends AuthorizingRealm {
         UserDetail user = (UserDetail) principals.getPrimaryPrincipal();
 
         //用户权限列表
-        Set<String> permsSet = shiroService.getUserPermissions(user);
+        Set<String> permsSet = new HashSet<>();
 
         if (user.getSuperAdmin() == SuperAdminEnum.YES.value()) {
             permsSet.add("sys:role:superAdmin");

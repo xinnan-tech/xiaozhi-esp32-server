@@ -5,6 +5,7 @@ import numpy as np
 import opuslib_next
 from pydub import AudioSegment
 from abc import ABC, abstractmethod
+from core.utils.tts import MarkdownCleaner
 
 TAG = __name__
 logger = setup_logging()
@@ -23,6 +24,7 @@ class TTSProviderBase(ABC):
         tmp_file = self.generate_filename()
         try:
             max_repeat_time = 5
+            text = MarkdownCleaner.clean_markdown(text)
             while not os.path.exists(tmp_file) and max_repeat_time > 0:
                 asyncio.run(self.text_to_speak(text, tmp_file))
                 if not os.path.exists(tmp_file):
@@ -47,7 +49,8 @@ class TTSProviderBase(ABC):
         file_type = os.path.splitext(audio_file_path)[1]
         if file_type:
             file_type = file_type.lstrip('.')
-        audio = AudioSegment.from_file(audio_file_path, format=file_type)
+        # 读取音频文件，-nostdin 参数：不要从标准输入读取数据，否则FFmpeg会阻塞
+        audio = AudioSegment.from_file(audio_file_path, format=file_type, parameters=["-nostdin"])
 
         # 转换为单声道/16kHz采样率/16位小端编码（确保与编码器匹配）
         audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)

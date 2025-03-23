@@ -19,22 +19,6 @@ public class ShiroServiceImpl implements ShiroService {
     private final SysUserDao sysUserDao;
     private final SysUserTokenDao sysUserTokenDao;
 
-    @Override
-    public Set<String> getUserPermissions(UserDetail user) {
-        //系统管理员，拥有最高权限
-        // TODO: 暂时写死，后续改成从数据库查询
-        List<String> permissionsList = new ArrayList<>();
-        //用户权限列表
-        Set<String> permsSet = new HashSet<>();
-        for (String permissions : permissionsList) {
-            if (StringUtils.isBlank(permissions)) {
-                continue;
-            }
-            permsSet.addAll(Arrays.asList(permissions.trim().split(",")));
-        }
-
-        return permsSet;
-    }
 
     @Override
     public SysUserTokenEntity getByToken(String token) {
