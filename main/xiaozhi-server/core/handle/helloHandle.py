@@ -58,7 +58,7 @@ def getWakeupWordFile(file_name):
 async def wakeupWordsResponse(conn):
     """唤醒词响应"""
     wakeup_word = random.choice(WAKEUP_CONFIG["words"])
-    result = conn.llm.response_no_stream(conn.prompt, wakeup_word)
+    result = conn.llm.response_no_stream(conn.config["prompt"], wakeup_word)
     tts_file = await asyncio.to_thread(conn.tts.to_tts, result)
     if tts_file is not None and os.path.exists(tts_file):
         file_type = os.path.splitext(tts_file)[1]
