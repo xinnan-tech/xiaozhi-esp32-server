@@ -510,7 +510,7 @@ class ConnectionHandler:
                             opus_datas, duration = self.tts.audio_to_opus_data(tts_file)
                         else:
                             self.logger.bind(tag=TAG).error(f"TTS出错：文件不存在{tts_file}")
-                except asyncio.TimeoutError | TimeoutError:
+                except asyncio.TimeoutError:
                     self.logger.bind(tag=TAG).error("TTS超时")
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"TTS出错: {e}")
