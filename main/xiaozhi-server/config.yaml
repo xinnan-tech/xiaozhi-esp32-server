@@ -35,10 +35,7 @@ log:
   log_file: "server.log"
   # 设置数据文件路径
   data_dir: data
-iot:
-  Speaker:
-    # 设置esp32的音量，范围0-100
-    volume: 80
+
 xiaozhi:
   type: hello
   version: 1
@@ -51,13 +48,23 @@ xiaozhi:
 prompt: |
   你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗。
   请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
-  当前时间是:{date_time}，现在我正在和你进行语音聊天，我们开始吧。
-  如果用户希望结束对话，请在最后说“拜拜”或“再见”。
+  现在我正在和你进行语音聊天，我们开始吧。
+
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
 
 # 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
 close_connection_no_voice_time: 120
+# TTS请求超时时间(秒)
+tts_timeout: 10
+# 开启唤醒词加速
+enable_wakeup_words_response_cache: true
+# 开场是否回复唤醒词
+enable_greeting: true
+# 说完话是否开启提示音
+enable_stop_tts_notify: false
+# 说完话是否开启提示音，音效地址
+stop_tts_notify_voice: "config/assets/tts_notify.mp3"
 
 CMD_exit:
   - "退出"
@@ -75,24 +82,67 @@ selected_module:
   TTS: EdgeTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
   Memory: nomem
-  # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
+  # 意图识别模块，默认使用function_call。开启后，可以播放音乐、控制音量、识别退出指令
   # 意图识别使用intent_llm，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
   # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
-  # 如果意图识别设置成 function_call，建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
-  Intent: nointent
+  # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
+  Intent: function_call
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
   # 不使用意图识别
   nointent:
-    # 不需要动
+    # 不需要动type
     type: nointent
   intent_llm:
-    # 不需要动
+    # 不需要动type
     type: intent_llm
   function_call:
-    # 不需要动
+    # 不需要动type
     type: nointent
+    # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
+    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
+    # 下面是加载查天气、角色切换、加载查新闻的插件示例
+    functions:
+      - change_role
+      - get_weather
+      - get_news
+      # play_music是服务器自带的音乐播放，hass_play_music是通过home assistant控制的独立外部程序音乐播放
+      # 如果用了hass_play_music，就不要开启play_music，两者只留一个
+      - play_music
+      #- hass_get_state
+      #- hass_set_state
+      #- hass_play_music
+
+# 插件的基础配置
+plugins:
+  # 获取天气插件的配置，这里填写你的api_key
+  # 这个密钥是项目共用的key，用多了可能会被限制
+  # 想稳定一点就自行申请替换，每天有1000次免费调用
+  # 申请地址：https://console.qweather.com/#/apps/create-key/over
+  get_weather: { "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
+  # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
+  # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
+  get_news:
+    default_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
+    category_urls:
+      society: "https://www.chinanews.com.cn/rss/society.xml"
+      world: "https://www.chinanews.com.cn/rss/world.xml"
+      finance: "https://www.chinanews.com.cn/rss/finance.xml"
+  home_assistant:
+    devices:
+      - 客厅,玩具灯,switch.cuco_cn_460494544_cp1_on_p_2_1
+      - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
+    base_url: http://homeassistant.local:8123
+    api_key: 你的home assistant api访问令牌
+  play_music:
+    music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
+    music_ext: # 音乐文件类型，p3格式效率最高
+      - ".mp3"
+      - ".wav"
+      - ".p3"
+    refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
+
 
 Memory:
   mem0ai:
@@ -101,10 +151,10 @@ Memory:
     # 每月有1000次免费调用
     api_key: 你的mem0ai api key
   nomem:
-    # 不想使用记忆功能，可以使用nomem 
+    # 不想使用记忆功能，可以使用nomem
     type: nomem
   mem_local_short:
-    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器 
+    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器
     type: mem_local_short
   mem0_milvus:
  　 # 本地mem0记忆功能，通过mem0+milvus向量数据库，数据保存在本地，不会上传到服务器 
@@ -136,6 +186,10 @@ ASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
+  SherpaASR:
+    type: sherpa_onnx_local
+    model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
+    output_dir: tmp/
   DoubaoASR:
     type: doubao
     appid: 你的火山引擎语音合成服务appid
@@ -149,6 +203,7 @@ VAD:
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
 
 LLM:
+  # 所有openai类型均可以修改超参，以AliLLM为例
   # 当前支持的type为openai、dify、ollama，可自行适配
   AliLLM:
     # 定义LLM API类型
@@ -157,6 +212,23 @@ LLM:
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
     api_key: 你的deepseek web key
+    temperature: 0.7  # 温度值
+    max_tokens: 500   # 最大生成token数
+    top_p: 1         
+    top_k: 50        
+    frequency_penalty: 0  # 频率惩罚
+  AliAppLLM:
+    # 定义LLM API类型
+    type: AliBL
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    app_id: 你的app_id
+    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    api_key: 你的api_key
+    # 是否不使用本地prompt：true|false (默不用请在百练应用中设置prompt) 
+    is_no_prompt: true
+    # Ali_memory_id：false（不使用）|你的memory_id（请在百练应用中设置中获取）
+    # Tips！：Ali_memory未实现多用户存储记忆(记忆按id调用)
+    ali_memory_id: false
   DoubaoLLM:
     # 定义LLM API类型
     type: openai
@@ -192,8 +264,12 @@ LLM:
     type: dify
     # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
     # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
-    base_url: https://api.dify.cn/v1
+    base_url: https://api.dify.ai/v1
     api_key: 你的DifyLLM web key
+    # 使用的对话模式 可以选择工作流 workflows/run 对话模式 chat-messages  文本生成 completion-messages
+    # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
+    # 文本生成的默认输入参数也是query
+    mode: chat-messages
   GeminiLLM:
     type: gemini
     # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
@@ -201,12 +277,15 @@ LLM:
     # token申请地址： https://aistudio.google.com/apikey
     # 若部署地无法访问接口，需要开启科学上网
     api_key: 你的gemini web key
-    model_name: "gemini-1.5-pro"  #  gemini-1.5-pro 是免费的
+    model_name: "gemini-2.0-flash"
+    http_proxy: ""  #"http://127.0.0.1:10808"
+    https_proxy: "" #http://127.0.0.1:10808"
   CozeLLM:
     # 定义LLM API类型
     type: coze
-    bot_id: 你的bot_id
-    user_id: 你的user_id
+    # bot_id和user_id的内容写在引号之内
+    bot_id: "你的bot_id"
+    user_id: "你的user_id"
     personal_access_token: 你的coze个人令牌
   LMStudioLLM:
     # 定义LLM API类型
@@ -214,12 +293,6 @@ LLM:
     model_name: deepseek-r1-distill-llama-8b@q4_k_m # 使用的模型名称，需要预先在社区下载
     url: http://localhost:1234/v1 # LM Studio服务地址
     api_key: lm-studio # LM Studio服务的固定API Key
-  HomeAssistant:
-    # 定义LLM API类型
-    type: homeassistant
-    base_url: http://homeassistant.local:8123
-    agent_id: conversation.chatgpt
-    api_key: 你的home assistant api访问令牌
   FastgptLLM:
     # 定义LLM API类型
     type: fastgpt
@@ -235,17 +308,18 @@ TTS:
     # 定义TTS API类型
     type: edge
     voice: zh-CN-XiaoxiaoNeural
-    output_file: tmp/
+    output_dir: tmp/
   DoubaoTTS:
     # 定义TTS API类型
     type: doubao
     # 火山引擎语音合成服务，需要先在火山引擎控制台创建应用并获取appid和access_token
     # 山引擎语音一定要购买花钱，起步价30元，就有100并发了。如果用免费的只有2个并发，会经常报tts错误
     # 购买服务后，购买免费的音色后，可能要等半小时左右，才能使用。
-    # 地址：https://console.volcengine.com/speech/service/8
+    # 普通音色在这里开通：https://console.volcengine.com/speech/service/8
+    # 湾湾小何音色在这里开通：https://console.volcengine.com/speech/service/10007，开通后将下面的voice设置成zh_female_wanwanxiaohe_moon_bigtts
     api_url: https://openspeech.bytedance.com/api/v1/tts
     voice: BV001_streaming
-    output_file: tmp/
+    output_dir: tmp/
     authorization: "Bearer;"
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
@@ -256,7 +330,7 @@ TTS:
     # token申请地址 https://cloud.siliconflow.cn/account/ak
     model: FunAudioLLM/CosyVoice2-0.5B
     voice: FunAudioLLM/CosyVoice2-0.5B:alex
-    output_file: tmp/
+    output_dir: tmp/
     access_token: 你的硅基流动API密钥
     response_format: wav
   CozeCnTTS:
@@ -264,7 +338,7 @@ TTS:
     # COZECN TTS
     # token申请地址 https://www.coze.cn/open/oauth/pats
     voice: 7426720361733046281
-    output_file: tmp/
+    output_dir: tmp/
     access_token: 你的coze web key
     response_format: wav
   FishSpeech:
@@ -277,7 +351,7 @@ TTS:
     #--decoder-config-name firefly_gan_vq
     #--compile
     type: fishspeech
-    output_file: tmp/
+    output_dir: tmp/
     response_format: wav
     reference_id: null
     reference_audio: ["/tmp/test.wav",]
@@ -301,7 +375,7 @@ TTS:
     #python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/caixukun.yaml
     type: gpt_sovits_v2
     url: "http://127.0.0.1:9880/tts"
-    output_file: tmp/
+    output_dir: tmp/
     text_lang: "auto"
     ref_audio_path: "caixukun.wav"
     prompt_text: ""
@@ -321,20 +395,24 @@ TTS:
     repetition_penalty: 1.35
     aux_ref_audio_paths: []
   GPT_SOVITS_V3:
+    # 定义TTS API类型 GPT-SoVITS-v3lora-20250228
+    #启动tts方法：
+    #python api.py
     type: gpt_sovits_v3
-    url: "http://127.0.0.1:9880/tts"
-    output_file: tmp/
-    text_lang: "auto"
-    ref_audio_path: "caixukun.wav"
-    prompt_lang: "zh"
+    url: "http://127.0.0.1:9880"
+    output_dir: tmp/
+    text_language: "auto"
+    refer_wav_path: "caixukun.wav"
+    prompt_language: "zh"
     prompt_text: ""
-    top_k: 5
-    top_p: 1
-    temperature: 1
-    sample_steps: 16
-    media_type: "wav"
-    streaming_mode: false
-    threshold: 30
+    top_k: 15
+    top_p: 1.0
+    temperature: 1.0
+    cut_punc: ""
+    speed: 1.0
+    inp_refs: []
+    sample_steps: 32
+    if_sr: false
   MinimaxTTS:
     # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
     # 平台地址：https://platform.minimaxi.com/
@@ -343,7 +421,7 @@ TTS:
     # api_key地址：https://platform.minimaxi.com/user-center/basic-information/interface-key
     # 定义TTS API类型
     type: minimax
-    output_file: tmp/
+    output_dir: tmp/
     group_id: 你的minimax平台groupID
     api_key: 你的minimax平台接口密钥
     model: "speech-01-turbo"
@@ -380,7 +458,7 @@ TTS:
     # token地址：https://nls-portal.console.aliyun.com/overview
     # 定义TTS API类型
     type: aliyun
-    output_file: tmp/
+    output_dir: tmp/
     appkey: 你的阿里云智能语音交互服务项目Appkey
     token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
     voice: xiaoyun
@@ -402,9 +480,21 @@ TTS:
     type: doubao
     api_url: https://api.302ai.cn/doubao/tts_hd
     authorization: "Bearer "
+    # 湾湾小何音色
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
-    output_file: tmp/
+    output_dir: tmp/
     access_token: "你的302API密钥"
+  GizwitsTTS:
+    type: doubao
+    # 火山引擎作为基座，可以完全使用企业级火山引擎语音合成服务
+    # 前一万名注册的用户，将送5元体验金额
+    # 获取API Key地址：https://agentrouter.gizwitsapi.com/panel/token
+    api_url: https://bytedance.gizwitsapi.com/api/v1/tts
+    authorization: "Bearer "
+    # 湾湾小何音色
+    voice: "zh_female_wanwanxiaohe_moon_bigtts"
+    output_dir: tmp/
+    access_token: "你的机智云API key"
   ACGNTTS:
     #在线网址：https://acgn.ttson.cn/
     #token购买：www.ttson.cn
@@ -420,7 +510,7 @@ TTS:
     to_lang: ZH
     url: https://u95167-bd74-2aef8085.westx.seetacloud.com:8443/flashsummary/tts?token=
     format: mp3
-    output_file: tmp/
+    output_dir: tmp/
     emotion: 1
   OpenAITTS:
     # openai官方文本转语音服务，可支持全球大多数语种
@@ -434,40 +524,25 @@ TTS:
     voice: onyx
     # 语速范围0.25-4.0
     speed: 1
-    output_file: tmp/
+    output_dir: tmp/
+  CustomTTS:
+    # 自定义的TTS接口服务，请求参数可自定义
+    # 要求接口使用GET方式请求，并返回音频文件
+    type: custom
+    url: "http://127.0.0.1:9880/tts"
+    params: # 自定义请求参数
+      # text: "{prompt_text}" # {prompt_text}会被替换为实际的提示词内容
+      # speaker: jok老师
+      # speed: 1
+      # foo: bar
+      # testabc: 123456
+    headers: # 自定义请求头
+      # Authorization: Bearer xxxx
+    format: wav # 接口返回的音频格式
+    output_dir: tmp/
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
     - "你好，请介绍一下你自己"
     - "What's the weather like today?"
     - "请用100字概括量子计算的基本原理和应用前景"
-
-# 本地音乐播放配置
-music:
-  music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
-  music_ext: # 音乐文件类型，p3格式效率最高
-    - ".mp3"
-    - ".wav"
-    - ".p3"
-  refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
-
-# 以下配置在小于等于0.0.9版本中的docker容器中可用
-# 0.0.9以后的新版本源码部署已经无法奏效
-manager:
-  enabled: false
-  ip: 0.0.0.0
-  port: 8002
-use_private_config: false
-
-# 唤醒词，用于识别唤醒词还是讲话内容
-wakeup_words:
-  - "你好小智"
-  - "你好小志"
-  - "小爱同学"
-  - "你好小鑫"
-  - "你好小新"
-  - "小美同学"
-  - "小龙小龙"
-  - "喵喵同学"
-  - "小滨小滨"
-  - "小冰小冰"

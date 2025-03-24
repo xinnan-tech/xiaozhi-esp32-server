@@ -46,11 +46,4 @@ public class SecurityUser {
     public static Long getUserId() {
         return getUser().getId();
     }
-
-    /**
-     * 获取部门ID
-     */
-    public static Long getDeptId() {
-        return getUser().getDeptId();
-    }
 }

@@ -12,17 +12,18 @@ class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
         self.url = config.get("url")
-        self.text_lang = config.get("text_lang", "audo")
-        self.ref_audio_path = config.get("ref_audio_path")
-        self.prompt_lang = config.get("prompt_lang")
+        self.refer_wav_path = config.get("refer_wav_path")
         self.prompt_text = config.get("prompt_text")
-        self.top_k = config.get("top_k", 5)
-        self.top_p = config.get("top_p", 1)
-        self.temperature = config.get("temperature", 1)
-        self.sample_steps = config.get("sample_steps", 16)
-        self.media_type = config.get("media_type", "wav")
-        self.streaming_mode = config.get("streaming_mode", False)
-        self.threshold = config.get("threshold", 30)
+        self.prompt_language = config.get("prompt_language")
+        self.text_language = config.get("text_language", "audo")
+        self.top_k = config.get("top_k", 15)
+        self.top_p = config.get("top_p", 1.0)
+        self.temperature = config.get("temperature", 1.0)
+        self.cut_punc = config.get("cut_punc","")
+        self.speed = config.get("speed", 1.0)
+        self.inp_refs = config.get("inp_refs",[])
+        self.sample_steps = config.get("sample_steps",32)
+        self.if_sr = config.get("if_sr",False)
 
 
     def generate_filename(self, extension=".wav"):
@@ -30,18 +31,19 @@ class TTSProvider(TTSProviderBase):
 
     async def text_to_speak(self, text, output_file):
         request_params = {
-            "text": text,
-            "text_lang": self.text_lang,
-            "ref_audio_path": self.ref_audio_path,
-            "prompt_lang": self.prompt_lang,
+            "refer_wav_path": self.refer_wav_path,
             "prompt_text": self.prompt_text,
+            "prompt_language": self.prompt_language,
+            "text": text,
+            "text_language": self.text_language,
             "top_k": self.top_k,
             "top_p": self.top_p,
             "temperature": self.temperature,
+            "cut_punc": self.cut_punc,
+            "speed": self.speed,
+            "inp_refs": self.inp_refs,
             "sample_steps": self.sample_steps,
-            "media_type": self.media_type,
-            "streaming_mode": self.streaming_mode,
-            "threshold": self.threshold,
+            "if_sr": self.if_sr,
         }
 
         resp = requests.get(self.url, params=request_params)

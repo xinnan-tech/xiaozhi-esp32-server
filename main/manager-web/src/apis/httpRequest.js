@@ -1,6 +1,7 @@
-import {goToPage, showDanger, showWarning} from '../utils/index'
+import {goToPage, showDanger, showWarning, isNotNull} from '../utils/index'
 import Constant from '../utils/constant'
 import Fly from 'flyio/dist/npm/fly';
+import store from '../store/index'
 
 const fly = new Fly()
 // 设置超时
@@ -23,21 +24,29 @@ function sendRequest() {
         _data: {},
         _header: {'content-type': 'application/json; charset=utf-8'},
         _url: '',
+        _responseType: undefined, // 新增响应类型字段
         'send'() {
-            this._header.token = localStorage.getItem(Constant.STORAGE_KEY.TOKEN)
+            if(isNotNull(store.getters.getToken)){
+                this._header.Authorization = 'Bearer ' + (JSON.parse(store.getters.getToken)).token
+            }
+
+            // 打印请求信息
             fly.request(this._url, this._data, {
                 method: this._method,
-                headers: this._header
+                headers: this._header,
+                responseType: this._responseType
             }).then((res) => {
-                const error = httpHandlerError(res, this._failCallback)
+                const error = httpHandlerError(res, this._failCallback);
                 if (error) {
                     return
                 }
+                
                 if (this._sucCallback) {
                     this._sucCallback(res)
                 }
             }).catch((res) => {
-                console.log(1111, res)
+                // 打印失败响应
+                console.log('catch', res)
                 httpHandlerError(res, this._failCallback)
             })
             return this
@@ -75,6 +84,11 @@ function sendRequest() {
         },
         'async'(flag) {
             this.async = flag
+        },
+        // 新增类型设置方法
+        'type'(responseType) {
+            this._responseType = responseType;
+            return this;
         }
     }
 }
@@ -84,13 +98,17 @@ function sendRequest() {
  * callBack 回调函数
  * errTip 自定义错误信息
  */
+// 在错误处理函数中添加日志
 function httpHandlerError(info, callBack) {
+    console.log('httpHandlerError', info)
+    
     /** 请求成功，退出该函数 可以根据项目需求来判断是否请求成功。这里判断的是status为200的时候是成功 */
     let networkError = false
     if (info.status === 200) {
-        if (info.data.code === 'success' || info.data.code === 0) {
+
+        if (info.data.code === 'success' || info.data.code === 0 || info.data.code === undefined) {
             return networkError
-        } else if (info.data.code === 401) {
+        }else if (info.data.code === 401) {
             goToPage(Constant.PAGE.LOGIN, true)
             return true
         } else {

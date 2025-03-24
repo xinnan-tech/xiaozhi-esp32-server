@@ -17,7 +17,7 @@ class TTSProvider(TTSProviderBase):
         self.volume_change_dB = config.get("volume_change_dB", 0)
         self.speed_factor = config.get("speed_factor", 1)
         self.stream = config.get("stream", False)
-        self.output_file = config.get("output_file")
+        self.output_file = config.get("output_dir")
         self.pitch_factor = config.get("pitch_factor", 0)
         self.format = config.get("format", "mp3")
         self.emotion = config.get("emotion", 1)

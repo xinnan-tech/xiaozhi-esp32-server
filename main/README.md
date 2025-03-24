@@ -3,7 +3,7 @@
 # 项目目录介绍
 当你看到这份文件的时候，这个这个项目还没完善好。我们还有很多东西要做。
 
-如果你会开发，我们非常欢迎您的加入。
+如果你是一名软件开发者，这里有一份[《致开发者的公开信》](../docs/contributor_open_letter.md)，欢迎归队！
 
 ```
 xiaozhi-esp32-server
@@ -18,6 +18,6 @@ xiaozhi-esp32-server
 
 # manager-web 、manager-api接口协议
 
-[manager前后端接口协议](https://app.apifox.com/invite/project?token=H_8qhgfjUeaAL0wybghgU)
+[manager前后端接口协议](https://app.apifox.com/invite/project?token=eXg2_tUv85q-gc3ZRowmn)
 
 [前端页面设计图](https://codesign.qq.com/app/s/526108506410828)

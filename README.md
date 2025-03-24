@@ -51,9 +51,16 @@
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/av114036381327149" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
          <picture>
            <img alt="控制家电开关" src="docs/images/demo5.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
+         <picture>
+           <img alt="成本最低配置" src="docs/images/demo4.png" />
          </picture>
         </a>
     </td>
@@ -74,13 +81,25 @@
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1Z8XuYZEAS" target="_blank">
          <picture>
-           <img alt="成本最低配置" src="docs/images/demo4.png" />
+           <img alt="天气插件" src="docs/images/demo8.png" />
          </picture>
         </a>
     </td>
     <td>
+        <a href="https://www.bilibili.com/video/BV178XuYfEpi" target="_blank">
+         <picture>
+           <img alt="IOT指令控制设备" src="docs/images/demo9.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
+         <picture>
+           <img alt="播报新闻" src="docs/images/demo0.png" />
+         </picture>
+        </a>
     </td>
   </tr>
 </table>
@@ -92,13 +111,17 @@
 - **硬件**：一套兼容 `xiaozhi-esp32`
   的硬件设备（具体型号请参考 [此处](https://rcnv1t9vps13.feishu.cn/wiki/DdgIw4BUgivWDPkhMj1cGIYCnRf)）。
 
-- **电脑或服务器**：至少 4 核 CPU、8G 内存的电脑。
+- **电脑或服务器**：建议 4 核 CPU、8G 内存的电脑。如果开启ASR也使用API，可运行在2核CPU、2G内存的服务器中。
 - **固件编译**：请将本后端服务的接口地址更新至 `xiaozhi-esp32` 项目中，再重新编译`xiaozhi-esp32`固件并烧录到设备上。
+
+![图片](docs/images/deploy.png)
 
 如果你没有esp32相关的硬件设备，但是非常想体验该项目，可以使用以下的项目让你的电脑、手机模拟成esp32设备。
 
 - [小智安卓端](https://github.com/TOM88812/xiaozhi-android-client)
 - [小智电脑端](https://github.com/Huang-junsen/py-xiaozhi)
+
+如果你是一名软件开发者，这里有一份[《致开发者的公开信》](docs/contributor_open_letter.md)，欢迎加入！
 
 ---
 
@@ -139,12 +162,15 @@ server:
   支持 EdgeTTS（默认）、火山引擎豆包 TTS 等多种 TTS 接口，满足语音合成需求。
 - **记忆功能**  
   支持超长记忆、本地总结记忆、无记忆三种模式，满足不同场景需求。
+- **IOT功能**  
+  支持管理注册设备IOT功能，支持基于对话上下文语境下的智能物联网控制。
 
 ### 正在开发 🚧
 
 - 多种心情模式
 - 智控台webui
-- iot功能
+
+想了解具体开发进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
 
 ![图片](docs/images/webui.png)
 ---
@@ -164,7 +190,6 @@ server:
 | LLM |     FastgptLLM     |     fastgpt 接口调用      | 免费/消耗 token |                                              本地化部署，注意配置提示词需在 Fastgpt 控制台设置                                              |
 | LLM |     GeminiLLM      |      gemini 接口调用      |     免费      |                                      [点击申请密钥](https://aistudio.google.com/apikey)                                       |
 | LLM |      CozeLLM       |       coze 接口调用       |  消耗 token   |                                                需提供 bot_id、user_id 及个人令牌                                                 |
-| LLM |   Home Assistant   | homeassistant语音助手接口调用 |     免费      |                                                   需提供home assistant令牌                                                   |
 
 实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
 
@@ -180,6 +205,7 @@ server:
 | TTS |  CosyVoiceSiliconflow  | 接口调用 | 消耗 token |                         需申请硅基流动 API 密钥；输出格式为 wav                          |
 | TTS |        TTS302AI        | 接口调用 | 消耗 token |                  [点击创建密钥](https://dash.302.ai/apis/list)                  |
 | TTS |       CozeCnTTS        | 接口调用 | 消耗 token |                        需提供 Coze API key；输出格式为 wav                         |
+| TTS |       GizwitsTTS       | 接口调用 | 消耗 token |                  [点击创建密钥](https://agentrouter.gizwitsapi.com)                  |
 | TTS |        ACGNTTS         | 接口调用 | 消耗 token |                        [联系网站管理员购买密钥](www.ttson.cn)                        |
 | TTS |       OpenAITTS        | 接口调用 | 消耗 token |                                 境外使用，境外购买                                 |
 | TTS |       FishSpeech       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务；启动方法见配置文件内说明                          |
@@ -202,16 +228,18 @@ server:
 | 类型  |   平台名称    | 使用方式 | 收费模式 | 备注 |
 |:---:|:---------:|:----:|:----:|:--:|
 | ASR |  FunASR   | 本地使用 |  免费  |    |
+| ASR | SherpaASR | 本地使用 |  免费  |    |
 | ASR | DoubaoASR | 接口调用 |  收费  |    |
+
 
 ---
 
 ### Memory 记忆存储
 
-|   类型   |      平台名称       | 使用方式 |   收费模式   | 备注 |
-|:------:|:---------------:|:----:|:--------:|:--:|
-| Memory |     mem0ai      | 接口调用 | 100次/月额度 |    |
-| Memory | mem_local_short | 本地总结 |    免费    |    |
+|   类型   |      平台名称       | 使用方式 |   收费模式    | 备注 |
+|:------:|:---------------:|:----:|:---------:|:--:|
+| Memory |     mem0ai      | 接口调用 | 1000次/月额度 |    |
+| Memory | mem_local_short | 本地总结 |    免费     |    |
 
 ---
 
@@ -230,14 +258,9 @@ server:
 
 本项目支持以下三种部署方式，您可根据实际需求选择。
 
-本项目的文档主要是`文字版本`的教程，如果你想要`视频版本`
-的教程，您可以学习一下[这个大佬的手把手教程](https://www.bilibili.com/video/BV1gePuejEvT)。
-
-如果你能把`文字版本的教程`和`视频版本的教程`结合起来一起看，可以让你更快上手。
-
 1. [Docker 快速部署](./docs/Deployment.md)
 
-适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。
+适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。视频教程可参考[美女大佬教你Docker部署](https://www.bilibili.com/video/BV1RNQnYDE5t)
 
 2. [借助 Docker 环境运行部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)
 
@@ -247,7 +270,7 @@ server:
 
 适合熟悉`Conda` 环境或希望从零搭建运行环境的用户。
 
-对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。
+对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。视频教程可参考[帅哥大佬教你源码部署](https://www.bilibili.com/video/BV1GvQWYZEd2)
 
 ### 二、[固件编译](./docs/firmware-build.md)
 
@@ -351,7 +374,41 @@ VAD:
 
 ### 6、我想通过小智控制电灯、空调、远程开关机等操作 💡
 
-建议：在配置文件中将 `LLM` 设置为 `HomeAssistant`，通过 调用`HomeAssistant`接口实现相关控制。
+本项目，支持以工具调用的方式控制HomeAssistant设备
+
+1、首先选择一款支持function call支持的LLM，例如`ChatGLMLLM`。
+
+2、在配置文件中，将 `selected_module.Intent` 设置为 `function_call`。
+
+3、登录`HomeAssistant`，点击`左下角个人`，切换`安全`导航栏，划到底部`长期访问令牌`生成api_key。
+
+在配置文件中，配置好你的home assistant的`devices`（被控制的设备）和`api_key`和`base_url`等信息。例如：
+
+``` yaml 
+plugins
+  home_assistant:
+    devices:
+      - 客厅,玩具灯,switch.cuco_cn_460494544_cp1_on_p_2_1
+      - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
+    base_url: http://你的homeassistant地址:8123
+    api_key: 你的home assistant api访问令牌
+```
+
+最后，允许function_call 插件在配置文件中启用`hass_get_state`(必须)、`hass_set_state`(必须)、`hass_play_music`(不想用ha听音乐可以不启动)，例如：
+
+``` yaml 
+Intent:
+  ...
+  function_call:
+    type: nointent
+    functions:
+      - change_role
+      - get_weather
+      - get_news
+      - hass_get_state
+      - hass_set_state
+      - hass_play_music
+```
 
 ### 7、更多问题，可联系我们反馈 💬
 

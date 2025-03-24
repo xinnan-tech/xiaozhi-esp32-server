@@ -4,10 +4,12 @@ from datetime import datetime
 
 
 class Message:
-    def __init__(self, role: str, content: str = None, uniq_id: str = None):
+    def __init__(self, role: str, content: str = None, uniq_id: str = None, tool_calls = None, tool_call_id=None):
         self.uniq_id = uniq_id if uniq_id is not None else str(uuid.uuid4())
         self.role = role
         self.content = content
+        self.tool_calls = tool_calls
+        self.tool_call_id = tool_call_id
 
 
 class Dialogue:
@@ -19,11 +21,28 @@ class Dialogue:
     def put(self, message: Message):
         self.dialogue.append(message)
 
+    def getMessages(self, m, dialogue):
+        if m.tool_calls is not None:
+            dialogue.append({"role": m.role, "tool_calls": m.tool_calls})
+        elif m.role == "tool":
+            dialogue.append({"role": m.role, "tool_call_id": m.tool_call_id, "content": m.content})
+        else:
+            dialogue.append({"role": m.role, "content": m.content})
+
     def get_llm_dialogue(self) -> List[Dict[str, str]]:
         dialogue = []
         for m in self.dialogue:
-            dialogue.append({"role": m.role, "content": m.content})
+            self.getMessages(m, dialogue)
         return dialogue
+
+    def update_system_message(self, new_content: str):
+        """更新或添加系统消息"""
+        # 查找第一个系统消息
+        system_msg = next((msg for msg in self.dialogue if msg.role == "system"), None)
+        if system_msg:
+            system_msg.content = new_content
+        else:
+            self.put(Message(role="system", content=new_content))
 
     def get_llm_dialogue_with_memory(self, memory_str: str = None) -> List[Dict[str, str]]:
         if memory_str is None or len(memory_str) == 0:
@@ -46,8 +65,8 @@ class Dialogue:
             dialogue.append({"role": "system", "content": enhanced_system_prompt})
 
         # 添加用户和助手的对话
-        for msg in self.dialogue:
-            if msg.role != "system":  # 跳过原始的系统消息
-                dialogue.append({"role": msg.role, "content": msg.content})
+        for m in self.dialogue:
+            if m.role != "system":  # 跳过原始的系统消息
+                self.getMessages(m, dialogue)
 
         return dialogue

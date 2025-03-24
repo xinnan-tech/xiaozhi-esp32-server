@@ -89,12 +89,11 @@ public class Oauth2Filter extends AuthenticatingFilter {
      * 获取请求的token
      */
     private String getRequestToken(HttpServletRequest httpRequest) {
+        String token = null;
         //从header中获取token
-        String token = httpRequest.getHeader(Constant.TOKEN_HEADER);
-
-        //如果header中不存在token，则从参数中获取token
-        if (StringUtils.isBlank(token)) {
-            token = httpRequest.getParameter(Constant.TOKEN_HEADER);
+        String authorization = httpRequest.getHeader(Constant.AUTHORIZATION);
+        if (StringUtils.isNotBlank(authorization) && authorization.startsWith("Bearer ")) {
+            token = authorization.replace("Bearer ", "");
         }
         return token;
     }

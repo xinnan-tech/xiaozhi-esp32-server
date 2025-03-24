@@ -3,9 +3,9 @@ package xiaozhi.modules.sys.entity;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import xiaozhi.common.entity.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import xiaozhi.common.entity.BaseEntity;
 
 import java.util.Date;
 
@@ -25,30 +25,6 @@ public class SysUserEntity extends BaseEntity {
      */
     private String password;
     /**
-     * 姓名
-     */
-    private String realName;
-    /**
-     * 头像
-     */
-    private String headUrl;
-    /**
-     * 性别   0：男   1：女    2：保密
-     */
-    private Integer gender;
-    /**
-     * 邮箱
-     */
-    private String email;
-    /**
-     * 手机号
-     */
-    private String mobile;
-    /**
-     * 部门ID
-     */
-    private Long deptId;
-    /**
      * 超级管理员   0：否   1：是
      */
     private Integer superAdmin;
@@ -66,10 +42,5 @@ public class SysUserEntity extends BaseEntity {
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateDate;
-    /**
-     * 部门名称
-     */
-    @TableField(exist = false)
-    private String deptName;
 
 }
