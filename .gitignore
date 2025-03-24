@@ -145,6 +145,7 @@ tmp
 .history
 .DS_Store
 main/xiaozhi-server/data
+main/xiaozhi-server/config/assets/wakeup_words.*
 main/manager-web/node_modules
 .config.yaml
 .secrets.yaml

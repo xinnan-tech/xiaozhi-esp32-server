@@ -9,7 +9,7 @@ import traceback
 import threading
 import websockets
 from typing import Dict, Any
-import plugins_func.loadplugins
+from plugins_func.loadplugins import auto_import_modules
 from config.logger import setup_logging
 from core.utils.dialogue import Message, Dialogue
 from core.handle.textHandle import handleTextMessage
@@ -24,6 +24,8 @@ from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator
 
 TAG = __name__
+
+auto_import_modules('plugins_func.functions')
 
 
 class TTSException(RuntimeError):
@@ -109,11 +111,15 @@ class ConnectionHandler:
 
             # 进行认证
             await self.auth.authenticate(self.headers)
-
             device_id = self.headers.get("device-id", None)
-            self.memory.init_memory(device_id, self.llm)
-            self.intent.set_llm(self.llm)
 
+            # 认证通过,继续处理
+            self.websocket = ws
+            self.session_id = str(uuid.uuid4())
+
+            self.welcome_msg = self.config["xiaozhi"]
+            self.welcome_msg["session_id"] = self.session_id
+            await self.websocket.send(json.dumps(self.welcome_msg))
             # Load private configuration if device_id is provided
             bUsePrivateConfig = self.config.get("use_private_config", False)
             self.logger.bind(tag=TAG).info(f"bUsePrivateConfig: {bUsePrivateConfig}, device_id: {device_id}")
@@ -141,17 +147,8 @@ class ConnectionHandler:
                     self.private_config = None
                     raise
 
-            # 认证通过,继续处理
-            self.websocket = ws
-            self.session_id = str(uuid.uuid4())
-
-            self.welcome_msg = self.config["xiaozhi"]
-            self.welcome_msg["session_id"] = self.session_id
-            await self.websocket.send(json.dumps(self.welcome_msg))
-
             # 异步初始化
-            await self.loop.run_in_executor(None, self._initialize_components)
-
+            self.executor.submit(self._initialize_components)
             # tts 消化线程
             tts_priority = threading.Thread(target=self._tts_priority_thread, daemon=True)
             tts_priority.start()
@@ -187,16 +184,26 @@ class ConnectionHandler:
             await handleAudioMessage(self, message)
 
     def _initialize_components(self):
+        """加载插件"""
+        self.func_handler = FunctionHandler(self)
+
+        """加载提示词"""
         self.prompt = self.config["prompt"]
         if self.private_config:
             self.prompt = self.private_config.private_config.get("prompt", self.prompt)
-
-        self.client_ip_info = get_ip_info(self.client_ip)
-        self.logger.bind(tag=TAG).info(f"Client ip info: {self.client_ip_info}")
-        self.prompt = self.prompt + f"\n我在:{self.client_ip_info}"
         self.dialogue.put(Message(role="system", content=self.prompt))
 
-        self.func_handler = FunctionHandler(self.config)
+        """加载记忆"""
+        device_id = self.headers.get("device-id", None)
+        self.memory.init_memory(device_id, self.llm)
+        self.intent.set_llm(self.llm)
+
+        """加载位置信息"""
+        self.client_ip_info = get_ip_info(self.client_ip)
+        if self.client_ip_info is not None and "city" in self.client_ip_info:
+            self.logger.bind(tag=TAG).info(f"Client ip info: {self.client_ip_info}")
+            self.prompt = self.prompt + f"\nuser location:{self.client_ip_info}"
+            self.dialogue.update_system_message(self.prompt)
 
     def change_system_prompt(self, prompt):
         self.prompt = prompt

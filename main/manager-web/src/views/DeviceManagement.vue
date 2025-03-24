@@ -9,11 +9,11 @@
         </el-button>
         <el-table :data="deviceList" style="width: 100%; margin-top: 20px" border stripe>
           <el-table-column label="设备型号" prop="model" flex></el-table-column>
-          <el-table-column label="固件版本" prop="firmwareVersion" width="140"></el-table-column>
-          <el-table-column label="Mac地址" prop="macAddress" width="220"></el-table-column>
-          <el-table-column label="绑定时间" prop="bindTime" width="260"></el-table-column>
-          <el-table-column label="最近对话" prop="lastConversation" width="100"></el-table-column>
-          <el-table-column label="备注" width="220">
+          <el-table-column label="固件版本" prop="firmwareVersion" width="120"></el-table-column>
+          <el-table-column label="Mac地址" prop="macAddress"></el-table-column>
+          <el-table-column label="绑定时间" prop="bindTime" width="200"></el-table-column>
+          <el-table-column label="最近对话" prop="lastConversation" width="140"></el-table-column>
+          <el-table-column label="备注" width="180">
              <template slot-scope="scope">
               <el-input v-if="scope.row.isEdit" v-model="scope.row.remark" size="mini" @blur="stopEditRemark(scope.$index)"></el-input>
               <span v-else>
@@ -85,7 +85,7 @@ export default {
         remark: '生产环境设备',
         isEdit: false,
         otaSwitch: false
-      }
+      },
       ]
     };
   },

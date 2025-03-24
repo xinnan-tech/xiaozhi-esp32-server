@@ -7,12 +7,26 @@ from core.utils.util import remove_punctuation_and_length, get_string_no_punctua
 TAG = __name__
 logger = setup_logging()
 
+
 async def sendAudioMessage(conn, audios, text, text_index=0):
     # 发送句子开始消息
     if text_index == conn.tts_first_text_index:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
     await send_tts_message(conn, "sentence_start", text)
 
+    # 播放音频
+    await sendAudio(conn, audios)
+
+    await send_tts_message(conn, "sentence_end", text)
+
+    # 发送结束消息（如果是最后一个文本）
+    if conn.llm_finish_task and text_index == conn.tts_last_text_index:
+        await send_tts_message(conn, 'stop', None)
+        if conn.close_after_chat:
+            await conn.close()
+
+# 播放音频
+async def sendAudio(conn, audios):
     # 流控参数优化
     original_frame_duration = 60  # 原始帧时长（毫秒）
     adjusted_frame_duration = int(original_frame_duration * 0.8)  # 缩短20%
@@ -42,13 +56,6 @@ async def sendAudioMessage(conn, audios, text, text_index=0):
     if compensation > 0:
         await asyncio.sleep(compensation)
 
-    await send_tts_message(conn, "sentence_end", text)
-
-    # 发送结束消息（如果是最后一个文本）
-    if conn.llm_finish_task and text_index == conn.tts_last_text_index:
-        await send_tts_message(conn, 'stop', None)
-        if conn.close_after_chat:
-            await conn.close()
 
 async def send_tts_message(conn, state, text=None):
     """发送 TTS 状态消息"""
@@ -60,9 +67,19 @@ async def send_tts_message(conn, state, text=None):
     if text is not None:
         message["text"] = text
 
-    await conn.websocket.send(json.dumps(message))
+    # TTS播放结束
     if state == "stop":
+        # 播放提示音
+        tts_notify = conn.config.get("enable_stop_tts_notify", False)
+        if tts_notify:
+            stop_tts_notify_voice = conn.config.get("stop_tts_notify_voice", "config/assets/tts_notify.mp3")
+            audios, duration = conn.tts.audio_to_opus_data(stop_tts_notify_voice)
+            await sendAudio(conn, audios)
+        # 清除服务端讲话状态
         conn.clearSpeakStatus()
+
+    # 发送消息到客户端
+    await conn.websocket.send(json.dumps(message))
 
 
 async def send_stt_message(conn, text):
