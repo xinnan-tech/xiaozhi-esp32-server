@@ -28,7 +28,7 @@ log:
   # 设置日志文件输出的格式，时间、日志级别、标签、消息
   log_format_simple: "{time:YYYY-MM-DD HH:mm:ss} - {name} - {level} - {extra[tag]} - {message}"
   # 设置日志等级：INFO、DEBUG
-  log_level: INFO
+  log_level: DEBUG
   # 设置日志路径
   log_dir: tmp
   # 设置日志文件
@@ -67,18 +67,18 @@ selected_module:
   # 语音活动检测模块，默认使用SileroVAD模型
   VAD: SileroVAD
   # 语音识别模块，默认使用FunASR本地模型
-  ASR: FunASR
+  ASR: DoubaoASR
   # 将根据配置名称对应的type调用实际的LLM适配器
-  LLM: ChatGLMLLM
+  LLM: DifyLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
-  TTS: EdgeTTS
+  TTS: DoubaoTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
-  Memory: nomem
-  # 意图识别模块，默认使用function_call。开启后，可以播放音乐、控制音量、识别退出指令
+  Memory: mem_local_short
+  # 意图识别模块，默认不开启。开启后，可以播放音乐、控制音量、识别退出指令
   # 意图识别使用intent_llm，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
   # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
-  # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
-  Intent: function_call
+  # 如果意图识别设置成 function_call，建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
+  Intent: nointent
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
@@ -94,7 +94,7 @@ Intent:
     type: nointent
     # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
     # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
-    # 下面是加载查天气、角色切换、加载查新闻的插件示例
+    # 下面是加载查天气、角色切换的插件示例
     functions:
       - change_role
       - get_weather
@@ -106,7 +106,7 @@ plugins:
   # 这个密钥是项目共用的key，用多了可能会被限制
   # 想稳定一点就自行申请替换，每天有1000次免费调用
   # 申请地址：https://console.qweather.com/#/apps/create-key/over
-  get_weather: { "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
+  get_weather: { "api_key": "e68b0f64ce0847eba4d5010785b9ce5c", "default_location": "上海" }
   # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
   # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
   get_news:
@@ -121,7 +121,7 @@ Memory:
     type: mem0ai
     # https://app.mem0.ai/dashboard/api-keys
     # 每月有1000次免费调用
-    api_key: 你的mem0ai api key
+    api_key: m0-fgxh51zU2fUka19bd6Ee5q3McNpT0MGqgQudAfzH
   nomem:
     # 不想使用记忆功能，可以使用nomem
     type: nomem
@@ -140,9 +140,9 @@ ASR:
     output_dir: tmp/
   DoubaoASR:
     type: doubao
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
-    cluster: volcengine_input_common
+    appid: 2938054985
+    access_token: f4sO-W8gosASH6bflRseDMe88aUjtZKH
+    cluster: volcengine_streaming_common
     output_dir: tmp/
 VAD:
   SileroVAD:
@@ -158,8 +158,8 @@ LLM:
     type: openai
     # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    model_name: qwen-turbo
-    api_key: 你的deepseek web key
+    model_name: qwen-plus
+    api_key: sk-eeebc72f6404495d97966473586e8669
     temperature: 0.7  # 温度值
     max_tokens: 500   # 最大生成token数
     top_p: 1         
@@ -189,7 +189,7 @@ LLM:
     # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你的chat-glm web key
+    api_key: 40bd8ecca836bdfaeadf0568931d422c.B9k5ASggmy8gmCXf
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -200,8 +200,8 @@ LLM:
     type: dify
     # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
     # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
-    base_url: https://api.dify.ai/v1
-    api_key: 你的DifyLLM web key
+    base_url: http://dify.zuizhenshi.cn/v1
+    api_key: app-cWTgaxaWgzWcvIyzc8yvyQrZ
     # 使用的对话模式 可以选择工作流 workflows/run 对话模式 chat-messages  文本生成 completion-messages
     # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
     # 文本生成的默认输入参数也是query
@@ -260,11 +260,11 @@ TTS:
     # 普通音色在这里开通：https://console.volcengine.com/speech/service/8
     # 湾湾小何音色在这里开通：https://console.volcengine.com/speech/service/10007，开通后将下面的voice设置成zh_female_wanwanxiaohe_moon_bigtts
     api_url: https://openspeech.bytedance.com/api/v1/tts
-    voice: BV001_streaming
+    voice: zh_female_wanwanxiaohe_moon_bigtts
     output_dir: tmp/
     authorization: "Bearer;"
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: 2938054985
+    access_token: f4sO-W8gosASH6bflRseDMe88aUjtZKH
     cluster: volcano_tts
   CosyVoiceSiliconflow:
     type: siliconflow
