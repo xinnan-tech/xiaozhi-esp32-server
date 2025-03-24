@@ -25,7 +25,7 @@
         <img alt="" src="@/assets/home/avatar.png" style="width: 21px;height: 21px;"/>
         <el-dropdown trigger="click">
           <span class="el-dropdown-link">
-             {{ userInfo.username || '加载中...' }}<i class="el-icon-arrow-down el-icon--right"></i>
+             {{ userInfo.username }}<i class="el-icon-arrow-down el-icon--right"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item icon="el-icon-plus" @click.native="">个人中心</el-dropdown-item>
@@ -71,7 +71,10 @@ export default {
     // 获取用户信息
     fetchUserInfo() {
       userApi.getUserInfo(({data}) => {
-        this.userInfo = data.data
+        this.userInfo = {
+          username: data.data.mobile, // 暂时先使用手机号作为用户名
+          mobile: data.data.mobile
+        }
       })
     },
 

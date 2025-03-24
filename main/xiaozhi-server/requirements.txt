@@ -22,3 +22,4 @@ mem0ai==0.1.62
 bs4==0.0.2
 modelscope==1.23.2
 sherpa_onnx==1.11.0
+cnlunar==0.2.0

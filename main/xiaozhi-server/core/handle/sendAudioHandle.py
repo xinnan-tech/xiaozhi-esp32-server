@@ -28,33 +28,33 @@ async def sendAudioMessage(conn, audios, text, text_index=0):
 # 播放音频
 async def sendAudio(conn, audios):
     # 流控参数优化
-    original_frame_duration = 60  # 原始帧时长（毫秒）
-    adjusted_frame_duration = int(original_frame_duration * 0.8)  # 缩短20%
-    total_frames = len(audios)  # 获取总帧数
-    compensation = total_frames * (original_frame_duration - adjusted_frame_duration) / 1000  # 补偿时间（秒）
-
+    frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
     start_time = time.perf_counter()
-    play_position = 0  # 已播放时长（毫秒）
+    play_position = 0
 
-    for opus_packet in audios:
+    # 预缓冲：发送前 3 帧
+    pre_buffer = min(3, len(audios))
+    for i in range(pre_buffer):
+        await conn.websocket.send(audios[i])
+        conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {i}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
+
+    # 正常播放剩余帧
+    for opus_packet in audios[pre_buffer:]:
         if conn.client_abort:
             return
-
-        # 计算带加速因子的预期时间
+        
+        # 计算预期发送时间
         expected_time = start_time + (play_position / 1000)
         current_time = time.perf_counter()
-
-        # 流控等待（使用加速后的帧时长）
         delay = expected_time - current_time
         if delay > 0:
             await asyncio.sleep(delay)
 
         await conn.websocket.send(opus_packet)
-        play_position += adjusted_frame_duration  # 使用调整后的帧时长
+        conn.logger.bind(tag=TAG).debug(f"发送帧，位置: {play_position}ms, 实际间隔: {(time.perf_counter() - current_time) * 1000:.2f}ms")
 
-    # 补偿因加速损失的时长
-    if compensation > 0:
-        await asyncio.sleep(compensation)
+        play_position += frame_duration
+
 
 
 async def send_tts_message(conn, state, text=None):

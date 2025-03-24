@@ -206,5 +206,20 @@ export default {
                 });
             }).send();
     },
+    // 删除智能体
+    deleteAgent(agentId, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/api/v1/user/agent/${agentId}`)
+            .method('DELETE')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .fail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.deleteAgent(agentId, callback);
+                });
+            }).send();
+    },
 
 }
