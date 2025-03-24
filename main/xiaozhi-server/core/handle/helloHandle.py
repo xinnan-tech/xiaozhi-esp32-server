@@ -44,11 +44,20 @@ async def checkWakeupWords(conn, text):
 
 
 def getWakeupWordFile(file_name):
+    # 检查用户自定义唤醒词音频
     for file in os.listdir(WAKEUP_CONFIG["dir"]):
         if "my_"+file_name in file:
             return f"config/assets/{file}"
 
-    """查找config/assets/目录下名称为wakeup_words的文件"""
+    # 从hello目录随机选择一个文件
+    hello_dir = os.path.join(WAKEUP_CONFIG["dir"], "hello")
+    if os.path.exists(hello_dir) and os.path.isdir(hello_dir):
+        hello_files = os.listdir(hello_dir)
+        if hello_files:
+            random_file = random.choice(hello_files)
+            return os.path.join(hello_dir, random_file)
+    
+    # 如果hello目录不存在或为空，使用原有逻辑
     for file in os.listdir(WAKEUP_CONFIG["dir"]):
         if file_name in file:
             return f"config/assets/{file}"
