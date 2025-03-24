@@ -31,7 +31,11 @@
             </div>
           </div>
           <div style="display: flex;flex-wrap: wrap;margin-top: 20px;gap: 20px;justify-content: flex-start;box-sizing: border-box;">
-            <DeviceItem v-for="(item,index) in devices" :key="index" :device="item" @configure="goToRoleConfig" @deviceManage="handleDeviceManage" />
+            <DeviceItem v-for="(item,index) in devices" :key="index" :device="item"
+                        @configure="goToRoleConfig"
+                        @deviceManage="handleDeviceManage"
+                        @delete="handleDeleteAgent"
+            />
           </div>
         </div>
         <div style="font-size: 12px;font-weight: 400;margin-top: auto;padding-top: 30px;color: #979db1;">
@@ -83,16 +87,37 @@ export default {
     fetchAgentList() {
       import('@/apis/module/user').then(({ default: userApi }) => {
         userApi.getAgentList(({data}) => {
-          this.originalDevices = data.data;
-          this.devices = data.data;
+        this.originalDevices = data.data.map(item => ({
+          ...item,
+          agentId: item.id // 字段映射
+        }));
+        this.devices = this.originalDevices;
         });
       });
     },
     // 搜索更新智能体列表
     handleSearchResult(filteredList) {
       this.devices = filteredList; // 更新设备列表
+    },
+    // 删除智能体
+    handleDeleteAgent(agentId) {
+      this.$confirm('确定要删除该智能体吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        import('@/apis/module/user').then(({ default: userApi }) => {
+          userApi.deleteAgent(agentId, (res) => {
+            if (res.data.code === 0) {
+              this.$message.success('删除成功');
+              this.fetchAgentList(); // 刷新列表
+            } else {
+              this.$message.error(res.data.msg || '删除失败');
+            }
+          });
+        });
+      }).catch(() => {});
     }
-
   }
 }
 </script>

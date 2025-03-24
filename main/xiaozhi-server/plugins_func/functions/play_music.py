@@ -21,13 +21,13 @@ play_music_function_desc = {
                 "type": "function",
                 "function": {
                     "name": "play_music",
-                    "description": "唱歌、听歌、播放音乐方法。比如用户说播放音乐，参数为：random，比如用户说播放两只老虎，参数为：两只老虎",
+                    "description": "唱歌、听歌、播放音乐的方法。",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "song_name": {
                                 "type": "string",
-                                "description": "歌曲名称，如果没有指定具体歌名则为'random'"
+                                "description": "歌曲名称，如果用户没有指定具体歌名则为'random', 明确指定的时返回音乐的名字 示例: ```用户:播放两只老虎\n参数：两只老虎``` ```用户:播放音乐 \n参数：random ```"
                             }
                         },
                         "required": ["song_name"]
@@ -112,8 +112,8 @@ def get_music_files(music_dir, music_ext):
 def initialize_music_handler(conn):
     global MUSIC_CACHE
     if MUSIC_CACHE == {}:
-        if "music" in conn.config:
-            MUSIC_CACHE["music_config"] = conn.config["music"]
+        if "play_music" in conn.config["plugins"]:
+            MUSIC_CACHE["music_config"] = conn.config["plugins"]["play_music"]
             MUSIC_CACHE["music_dir"] = os.path.abspath(
                 MUSIC_CACHE["music_config"].get("music_dir", "./music")  # 默认路径修改
             )

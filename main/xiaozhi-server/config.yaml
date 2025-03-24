@@ -57,6 +57,14 @@ delete_audio: true
 close_connection_no_voice_time: 120
 # TTS请求超时时间(秒)
 tts_timeout: 10
+# 开启唤醒词加速
+enable_wakeup_words_response_cache: true
+# 开场是否回复唤醒词
+enable_greeting: true
+# 说完话是否开启提示音
+enable_stop_tts_notify: false
+# 说完话是否开启提示音，音效地址
+stop_tts_notify_voice: "config/assets/tts_notify.mp3"
 
 CMD_exit:
   - "退出"
@@ -127,6 +135,13 @@ plugins:
       - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
     base_url: http://homeassistant.local:8123
     api_key: 你的home assistant api访问令牌
+  play_music:
+    music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
+    music_ext: # 音乐文件类型，p3格式效率最高
+      - ".mp3"
+      - ".wav"
+      - ".p3"
+    refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
 
 
 Memory:
@@ -507,3 +522,16 @@ module_test:
     - "你好，请介绍一下你自己"
     - "What's the weather like today?"
     - "请用100字概括量子计算的基本原理和应用前景"
+
+# 唤醒词，用于识别唤醒词还是讲话内容
+wakeup_words:
+  - "你好小智"
+  - "你好小志"
+  - "小爱同学"
+  - "你好小鑫"
+  - "你好小新"
+  - "小美同学"
+  - "小龙小龙"
+  - "喵喵同学"
+  - "小滨小滨"
+  - "小冰小冰"

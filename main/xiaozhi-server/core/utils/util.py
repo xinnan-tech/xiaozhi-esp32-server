@@ -73,9 +73,7 @@ def get_ip_info(ip_addr):
         resp = requests.get(url).json()
 
         ip_info = {
-            "city": resp.get("cityName"),
-            "region": resp.get("regionName"), 
-            "country": resp.get("countryName")
+            "city": resp.get("cityName")
         }
         return ip_info
     except Exception as e:

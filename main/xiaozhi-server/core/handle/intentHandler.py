@@ -2,6 +2,7 @@ from config.logger import setup_logging
 import json
 import uuid
 from core.handle.sendAudioHandle import send_stt_message
+from core.handle.helloHandle import checkWakeupWords
 from core.utils.util import remove_punctuation_and_length
 
 TAG = __name__
@@ -12,6 +13,10 @@ async def handle_user_intent(conn, text):
     # 检查是否有明确的退出命令
     if await check_direct_exit(conn, text):
         return True
+    # 检查是否是唤醒词
+    if await checkWakeupWords(conn, text):
+        return True
+
     if conn.use_function_call_mode:
         # 使用支持function calling的聊天方法,不再进行意图分析
         return False
@@ -33,6 +38,7 @@ async def check_direct_exit(conn, text):
             await conn.close()
             return True
     return False
+
 
 
 async def analyze_intent_with_llm(conn, text):

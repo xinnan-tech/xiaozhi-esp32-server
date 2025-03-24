@@ -36,7 +36,7 @@ class TTSProviderBase(ABC):
 
             return tmp_file
         except Exception as e:
-            logger.bind(tag=TAG).info(f"Failed to generate TTS file: {e}")
+            logger.bind(tag=TAG).error(f"Failed to generate TTS file: {e}")
             return None
 
     @abstractmethod

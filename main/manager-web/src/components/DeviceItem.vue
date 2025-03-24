@@ -6,7 +6,7 @@
       </div>
       <div>
         <img src="@/assets/home/delete.png" alt=""
-             style="width: 18px;height: 18px;margin-right: 10px;" />
+             style="width: 18px;height: 18px;margin-right: 10px;" @click.stop="handleDelete" />
         <img src="@/assets/home/info.png" alt="" style="width: 18px;height: 18px;" />
       </div>
     </div>
@@ -44,6 +44,11 @@ export default {
   },
   data() {
     return { switchValue: false }
+  },
+  methods: {
+    handleDelete() {
+      this.$emit('delete', this.device.agentId)
+    }
   }
 }
 </script>
