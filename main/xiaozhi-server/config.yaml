@@ -269,6 +269,12 @@ LLM:
     model_name: deepseek-r1-distill-llama-8b@q4_k_m # 使用的模型名称，需要预先在社区下载
     url: http://localhost:1234/v1 # LM Studio服务地址
     api_key: lm-studio # LM Studio服务的固定API Key
+  HomeAssistant:
+    # 定义LLM API类型
+    type: homeassistant
+    base_url: http://homeassistant.local:8123
+    agent_id: conversation.chatgpt
+    api_key: 你的home assistant api访问令牌
   FastgptLLM:
     # 定义LLM API类型
     type: fastgpt
