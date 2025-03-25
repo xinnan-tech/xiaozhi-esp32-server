@@ -43,7 +43,6 @@ class TTSProvider(TTSProviderBase):
     def yield_data(self,params,headers):   
         response = requests.get(self.api_url, headers=headers, params=params, stream=True)
         if response.status_code == 200:
-
             for chunk in response.iter_content(chunk_size=None):
                 if chunk:  
                     yield chunk
