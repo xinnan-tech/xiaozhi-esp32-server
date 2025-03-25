@@ -18,7 +18,7 @@ class TTSProvider(TTSProviderBase):
         self.sample_rate = config.get("sample_rate")
 
         self.host = "tts.linkerai.top"
-        self.api_url = f"https://{self.host}/tts"
+        self.api_url = 'http://47.243.172.147:24003/tts'
 
     def generate_filename(self, extension=".wav"):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
