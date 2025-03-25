@@ -300,6 +300,17 @@ TTS:
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
     cluster: volcano_tts
+  LinkeraiTTS:
+    # 定义TTS API类型, 免费
+    # 支持克隆音色，文档地址：https://tts.linkerai.top/docs#/
+    type: linkerai
+    api_url: https://tts.linkerai.top/tts
+    voice: OUeAo1mhq6IBExi
+    output_dir: tmp/
+    authorization: "Bearer;"
+    response_format: 'opus'
+    access_token: '123'
+    sample_rate: 16000
   CosyVoiceSiliconflow:
     type: siliconflow
     # 硅基流动TTS

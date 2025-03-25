@@ -8,13 +8,10 @@ import json
 class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
-        self.model = config.get("model")
         self.access_token = config.get("access_token")
         self.voice = config.get("voice")
         self.response_format = config.get("response_format")
         self.sample_rate = config.get("sample_rate")
-        self.speed = config.get("speed")
-        self.gain = config.get("gain")
 
         self.host = "tts.linkerai.top"
         self.api_url = f"https://{self.host}/tts"
