@@ -37,9 +37,12 @@ class TTSProvider(TTSProviderBase):
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json"
         }
+        
         with open(output_file,'w',encoding='utf-8') as f:
             f.write('%s\n'%(json.dumps(params,ensure_ascii=False)))
             f.write('%s'%(json.dumps(headers,ensure_ascii=False)))
+        with open('%s.linkerai'%output_file,'w',encoding='utf-8') as f:
+            f.write('linkerai\n')
 
     def yield_data(self,params,headers):   
         response = requests.get(self.api_url, headers=headers, params=params, stream=True)
@@ -52,13 +55,7 @@ class TTSProvider(TTSProviderBase):
             print(f"错误信息: {response.text}")
 
     def audio_to_opus_data(self, audio_file_path):
-        fsize = 0
-        if os.path.exists(audio_file_path):
-            fsize  = os.path.getsize(audio_file_path)
-        else:
-            return None,None
-        
-        if fsize < 1000:
+        if os.path.exists('%s.linkerai'%audio_file_path):
             duration = 100
             code = []
             with open(audio_file_path,encoding='utf-8') as f:
@@ -66,7 +63,7 @@ class TTSProvider(TTSProviderBase):
                     code.append(json.loads(line.strip()))
             params = code[0]
             headers = code[1]
-
+            os.remove('%s.linkerai'%audio_file_path)
             return self.yield_data(params=params,headers=headers),duration
         else:
             """音频文件转换为Opus编码"""

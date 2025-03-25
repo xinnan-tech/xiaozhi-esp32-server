@@ -302,7 +302,15 @@ TTS:
     cluster: volcano_tts
   LinkeraiTTS:
     # 定义TTS API类型
-    # 支持克隆音色，文档地址：https://tts.linkerai.top/docs#/
+    # 支持克隆音色、方言：
+    # 四川话
+    # 粤语
+    # 上海话
+    # 郑州话
+    # 长沙话
+    # 天津话
+    # 普通话
+    # 文档地址：https://tts.linkerai.top/docs#/
     type: linkerai
     api_url: https://tts.linkerai.top/tts
     voice: OUeAo1mhq6IBExi
