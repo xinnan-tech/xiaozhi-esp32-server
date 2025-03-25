@@ -44,6 +44,7 @@ class TTSProvider(TTSProviderBase):
             f.write('%s\n'%(json.dumps(params,ensure_ascii=False)))
             f.write('%s'%(json.dumps(headers,ensure_ascii=False)))
         self.cache_queue.append(output_file)
+        
 
     def yield_data(self,params,headers):   
         response = requests.get(self.api_url, headers=headers, params=params, stream=True)
@@ -65,7 +66,7 @@ class TTSProvider(TTSProviderBase):
             params = code[0]
             headers = code[1]
             return self.yield_data(params=params,headers=headers),duration
-        else: # 兼容原始音频播放
+        else: # 兼容非流式音频播放
             file_type = os.path.splitext(audio_file_path)[1]
             if file_type:
                 file_type = file_type.lstrip('.')
