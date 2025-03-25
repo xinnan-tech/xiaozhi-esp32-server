@@ -38,7 +38,7 @@ async def sendAudio(conn, audios):
         for opus_packet in audios:
             if count < 3:
                 await conn.websocket.send(opus_packet)
-                conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {i}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
+                conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {count}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
             else:
                 if conn.client_abort:
                     return
