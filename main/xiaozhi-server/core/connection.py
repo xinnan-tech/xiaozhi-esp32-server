@@ -323,7 +323,9 @@ class ConnectionHandler:
             self.dialogue.put(Message(role="user", content=query))
 
         # Define intent functions
-        functions = self.func_handler.get_functions()
+        functions = None
+        if hasattr(self, 'func_handler'):
+            functions = self.func_handler.get_functions()
 
         response_message = []
         processed_chars = 0  # 跟踪已处理的字符位置
