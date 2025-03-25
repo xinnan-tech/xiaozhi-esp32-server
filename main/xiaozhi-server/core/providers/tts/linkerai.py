@@ -56,7 +56,7 @@ class TTSProvider(TTSProviderBase):
         if os.path.exists(audio_file_path):
             fsize  = os.path.getsize(audio_file_path)
         else:
-            return 
+            return None,None
         
         if fsize < 1000:
             duration = 100

@@ -311,7 +311,7 @@ TTS:
     response_format: 'opus'
     access_token: '123'
     sample_rate: 16000
-    instruct_text: "普通话"
+    instruct_text: 普通话
   CosyVoiceSiliconflow:
     type: siliconflow
     # 硅基流动TTS
