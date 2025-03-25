@@ -111,5 +111,17 @@ class TTSProvider(TTSProviderBase):
                 opus_datas.append(opus_data)
 
             return opus_datas, duration
+        
+if __name__ == "__main__":
+    config = {'access_token':'123',
+              'voice':'OUeAo1mhq6IBExi',
+              'response_format':'opus',
+              'sample_rate':16000
+              }
+    tts_provider = TTSProvider(config=config,delete_audio_file=True)
+    tts_provider.text_to_speak('你好呀，你是谁','asdf.txt')
+    data,dur = tts_provider.audio_to_opus_data('asdf.txt')
+    for x in data:
+        print(len(x))
 
 
