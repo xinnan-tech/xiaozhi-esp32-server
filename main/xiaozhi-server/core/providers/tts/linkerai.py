@@ -8,6 +8,7 @@ import os
 from pydub import AudioSegment
 import opuslib_next
 import numpy as np
+from collections import deque
 
 class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
@@ -19,6 +20,7 @@ class TTSProvider(TTSProviderBase):
         self.instruct_text = config.get("instruct_text")
         self.host = "tts.linkerai.top"
         self.api_url = 'http://47.243.172.147:24003/tts'
+        self.cache_queue = deque(maxlen=30)
 
     def generate_filename(self, extension=".wav"):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
@@ -41,8 +43,7 @@ class TTSProvider(TTSProviderBase):
         with open(output_file,'w',encoding='utf-8') as f:
             f.write('%s\n'%(json.dumps(params,ensure_ascii=False)))
             f.write('%s'%(json.dumps(headers,ensure_ascii=False)))
-        with open('%s.linkerai'%output_file,'w',encoding='utf-8') as f:
-            f.write('linkerai\n')
+        self.cache_queue.append(output_file)
 
     def yield_data(self,params,headers):   
         response = requests.get(self.api_url, headers=headers, params=params, stream=True)
@@ -55,7 +56,7 @@ class TTSProvider(TTSProviderBase):
             print(f"错误信息: {response.text}")
 
     def audio_to_opus_data(self, audio_file_path):
-        if os.path.exists('%s.linkerai'%audio_file_path):
+        if audio_file_path in self.cache_queue:# os.path.exists('%s.linkerai'%audio_file_path):
             duration = 100
             code = []
             with open(audio_file_path,encoding='utf-8') as f:
@@ -63,50 +64,28 @@ class TTSProvider(TTSProviderBase):
                     code.append(json.loads(line.strip()))
             params = code[0]
             headers = code[1]
-            os.remove('%s.linkerai'%audio_file_path)
             return self.yield_data(params=params,headers=headers),duration
-        else:
-            """音频文件转换为Opus编码"""
-            # 获取文件后缀名
+        else: # 兼容原始音频播放
             file_type = os.path.splitext(audio_file_path)[1]
             if file_type:
                 file_type = file_type.lstrip('.')
-            # 读取音频文件，-nostdin 参数：不要从标准输入读取数据，否则FFmpeg会阻塞
             audio = AudioSegment.from_file(audio_file_path, format=file_type, parameters=["-nostdin"])
 
-            # 转换为单声道/16kHz采样率/16位小端编码（确保与编码器匹配）
             audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
-
-            # 音频时长(秒)
             duration = len(audio) / 1000.0
-
-            # 获取原始PCM数据（16位小端）
             raw_data = audio.raw_data
-
-            # 初始化Opus编码器
             encoder = opuslib_next.Encoder(16000, 1, opuslib_next.APPLICATION_AUDIO)
-
-            # 编码参数
             frame_duration = 60  # 60ms per frame
             frame_size = int(16000 * frame_duration / 1000)  # 960 samples/frame
 
             opus_datas = []
-            # 按帧处理所有音频数据（包括最后一帧可能补零）
             for i in range(0, len(raw_data), frame_size * 2):  # 16bit=2bytes/sample
-                # 获取当前帧的二进制数据
                 chunk = raw_data[i:i + frame_size * 2]
-
-                # 如果最后一帧不足，补零
                 if len(chunk) < frame_size * 2:
                     chunk += b'\x00' * (frame_size * 2 - len(chunk))
-
-                # 转换为numpy数组处理
                 np_frame = np.frombuffer(chunk, dtype=np.int16)
-
-                # 编码Opus数据
                 opus_data = encoder.encode(np_frame.tobytes(), frame_size)
                 opus_datas.append(opus_data)
-
             return opus_datas, duration
         
 if __name__ == "__main__":
