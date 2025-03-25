@@ -55,7 +55,7 @@ class TTSProvider(TTSProviderBase):
         code = []
         with open(audio_file_path,encoding='utf-8') as f:
             for line in f.readlines():
-                code.append(json.loads(line))
+                code.append(json.loads(line.strip()))
         params = code[0]
         headers = code[1]
 
