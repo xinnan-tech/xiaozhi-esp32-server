@@ -3,6 +3,7 @@ import json
 import asyncio
 import time
 from core.utils.util import remove_punctuation_and_length, get_string_no_punctuation_or_emoji
+import types 
 
 TAG = __name__
 logger = setup_logging()
@@ -31,29 +32,51 @@ async def sendAudio(conn, audios):
     frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
     start_time = time.perf_counter()
     play_position = 0
+    
+    if isinstance(audios,types.GeneratorType):
+        count = 0 
+        for opus_packet in audios:
+            if count < 3:
+                await conn.websocket.send(opus_packet)
+                conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {i}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
+            else:
+                if conn.client_abort:
+                    return
+                expected_time = start_time + (play_position / 1000)
+                current_time = time.perf_counter()
+                delay = expected_time - current_time
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                await conn.websocket.send(opus_packet)
+                conn.logger.bind(tag=TAG).debug(f"发送帧，位置: {play_position}ms, 实际间隔: {(time.perf_counter() - current_time) * 1000:.2f}ms")
+                play_position += frame_duration
 
-    # 预缓冲：发送前 3 帧
-    pre_buffer = min(3, len(audios))
-    for i in range(pre_buffer):
-        await conn.websocket.send(audios[i])
-        conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {i}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
+            count += 1
 
-    # 正常播放剩余帧
-    for opus_packet in audios[pre_buffer:]:
-        if conn.client_abort:
-            return
-        
-        # 计算预期发送时间
-        expected_time = start_time + (play_position / 1000)
-        current_time = time.perf_counter()
-        delay = expected_time - current_time
-        if delay > 0:
-            await asyncio.sleep(delay)
+    else:
 
-        await conn.websocket.send(opus_packet)
-        conn.logger.bind(tag=TAG).debug(f"发送帧，位置: {play_position}ms, 实际间隔: {(time.perf_counter() - current_time) * 1000:.2f}ms")
+        # 预缓冲：发送前 3 帧
+        pre_buffer = min(3, len(audios))
+        for i in range(pre_buffer):
+            await conn.websocket.send(audios[i])
+            conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {i}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
 
-        play_position += frame_duration
+        # 正常播放剩余帧
+        for opus_packet in audios[pre_buffer:]:
+            if conn.client_abort:
+                return
+            
+            # 计算预期发送时间
+            expected_time = start_time + (play_position / 1000)
+            current_time = time.perf_counter()
+            delay = expected_time - current_time
+            if delay > 0:
+                await asyncio.sleep(delay)
+
+            await conn.websocket.send(opus_packet)
+            conn.logger.bind(tag=TAG).debug(f"发送帧，位置: {play_position}ms, 实际间隔: {(time.perf_counter() - current_time) * 1000:.2f}ms")
+
+            play_position += frame_duration
 
 
 
