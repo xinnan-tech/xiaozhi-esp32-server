@@ -301,7 +301,7 @@ TTS:
     access_token: 你的火山引擎语音合成服务access_token
     cluster: volcano_tts
   LinkeraiTTS:
-    # 定义TTS API类型, 免费
+    # 定义TTS API类型
     # 支持克隆音色，文档地址：https://tts.linkerai.top/docs#/
     type: linkerai
     api_url: https://tts.linkerai.top/tts
