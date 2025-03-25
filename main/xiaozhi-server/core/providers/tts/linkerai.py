@@ -19,7 +19,7 @@ class TTSProvider(TTSProviderBase):
         self.sample_rate = config.get("sample_rate")
         self.instruct_text = config.get("instruct_text")
         self.host = "tts.linkerai.top"
-        self.api_url = 'http://47.243.172.147:24003/tts'
+        self.api_url = 'http://tts.linkerai.top:24003/tts'
         self.cache_queue = deque(maxlen=30)
 
     def generate_filename(self, extension=".wav"):
