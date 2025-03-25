@@ -33,9 +33,9 @@ class TTSProvider(TTSProviderBase):
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json"
         }
-        with open(output_file,'w') as f:
-            f.write('%s\n'%(json.dumps(params)))
-            f.write('%s'%(json.dumps(headers)))
+        with open(output_file,'w',encoding='utf-8') as f:
+            f.write('%s\n'%(json.dumps(params,ensure_ascii=False)))
+            f.write('%s'%(json.dumps(headers,ensure_ascii=False)))
 
     def yield_data(self,params,headers):   
         response = requests.get(self.api_url, headers=headers, params=params, stream=True)
