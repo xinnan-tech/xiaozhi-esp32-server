@@ -16,7 +16,7 @@ class TTSProvider(TTSProviderBase):
         self.voice = config.get("voice")
         self.response_format = config.get("response_format")
         self.sample_rate = config.get("sample_rate")
-
+        self.instruct_text = config.get("instruct_text")
         self.host = "tts.linkerai.top"
         self.api_url = 'http://47.243.172.147:24003/tts'
 
@@ -31,7 +31,7 @@ class TTSProvider(TTSProviderBase):
             "stream": True,  
             "target_sr": self.sample_rate,
             "audio_format":"opus",
-            "instruct_text":""
+            "instruct_text":self.instruct_text
         }
         headers = {
             "Authorization": f"Bearer {self.access_token}",
