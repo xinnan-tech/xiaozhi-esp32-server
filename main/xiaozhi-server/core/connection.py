@@ -310,85 +310,6 @@ class ConnectionHandler:
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
         return True
     
-    
-    def chat_stream(self, query):
-        if self.isNeedAuth():
-            self.llm_finish_task = True
-            future = asyncio.run_coroutine_threadsafe(self._check_and_broadcast_auth_code(), self.loop)
-            future.result()
-            return True
-
-        self.dialogue.put(Message(role="user", content=query))
-
-        response_message = []
-        processed_chars = 0  # 跟踪已处理的字符位置
-        try:
-            start_time = time.time()
-            # 使用带记忆的对话
-            future = asyncio.run_coroutine_threadsafe(self.memory.query_memory(query), self.loop)
-            memory_str = future.result()
-
-            self.logger.bind(tag=TAG).debug(f"记忆内容: {memory_str}")
-            llm_responses = self.llm.response(
-                self.session_id,
-                self.dialogue.get_llm_dialogue_with_memory(memory_str)
-            )
-        except Exception as e:
-            self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
-            return None
-
-        self.llm_finish_task = False
-        text_index = 0
-        for content in llm_responses:
-            response_message.append(content)
-            if self.client_abort:
-                break
-
-            end_time = time.time()
-            self.logger.bind(tag=TAG).debug(f"大模型返回时间: {end_time - start_time} 秒, 生成token={content}")
-
-            # 合并当前全部文本并处理未分割部分
-            full_text = "".join(response_message)
-            current_text = full_text[processed_chars:]  # 从未处理的位置开始
-
-            # 查找最后一个有效标点
-            punctuations = ("。", "？", "！", "；", "：")
-            last_punct_pos = -1
-            for punct in punctuations:
-                pos = current_text.rfind(punct)
-                if pos > last_punct_pos:
-                    last_punct_pos = pos
-
-            # 找到分割点则处理
-            if last_punct_pos != -1:
-                segment_text_raw = current_text[:last_punct_pos + 1]
-                segment_text = get_string_no_punctuation_or_emoji(segment_text_raw)
-                if segment_text:
-                    # 强制设置空字符，测试TTS出错返回语音的健壮性
-                    # if text_index % 2 == 0:
-                    #     segment_text = " "
-                    text_index += 1
-                    self.recode_first_last_text(segment_text, text_index)
-                    future = self.executor.submit(self.speak_and_play, segment_text, text_index)
-                    self.tts_queue.put(future)
-                    processed_chars += len(segment_text_raw)  # 更新已处理字符位置
-
-        # 处理最后剩余的文本
-        full_text = "".join(response_message)
-        remaining_text = full_text[processed_chars:]
-        if remaining_text:
-            segment_text = get_string_no_punctuation_or_emoji(remaining_text)
-            if segment_text:
-                text_index += 1
-                self.recode_first_last_text(segment_text, text_index)
-                future = self.executor.submit(self.speak_and_play, segment_text, text_index)
-                self.tts_queue.put(future)
-
-        self.llm_finish_task = True
-        self.dialogue.put(Message(role="assistant", content="".join(response_message)))
-        self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
-        return True
-
     def chat_with_function_calling(self, query, tool_call=False):
         self.logger.bind(tag=TAG).debug(f"Chat with function calling start: {query}")
         """Chat with function calling for intent detection using streaming"""
@@ -677,14 +598,3 @@ class ConnectionHandler:
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"Chat and close error: {str(e)}")
 
-
-    def chat_and_close_stream(self, text):
-        """Chat with the user and then close the connection"""
-        try:
-            # Use the existing chat method
-            self.chat_stream(text)
-
-            # After chat is complete, close the connection
-            self.close_after_chat = True
-        except Exception as e:
-            self.logger.bind(tag=TAG).error(f"Chat and close error: {str(e)}")
