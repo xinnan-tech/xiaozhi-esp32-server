@@ -83,26 +83,37 @@ export default {
     }
   },
   mounted() {
+    this.captchaUuid = getUUID();
     this.fetchCaptcha();
   },
   methods: {
     fetchCaptcha() {
-      if (this.$store.getters.getToken) {
-        goToPage('/home')
-      } else {
-        this.captchaUuid = getUUID();
+      Api.user.getCaptcha(this.captchaUuid, (res) => {
+        if (res.status === 200) {
+          const blob = new Blob([res.data], {type: res.data.type});
+          this.captchaUrl = URL.createObjectURL(blob);
 
-        Api.user.getCaptcha(this.captchaUuid, (res) => {
-          if (res.status === 200) {
-            const blob = new Blob([res.data], {type: res.data.type});
-            this.captchaUrl = URL.createObjectURL(blob);
+        } else {
+          console.error('验证码加载异常:', error);
+          showDanger('验证码加载失败，点击刷新')
+        }
+      });
+      // if (this.$store.getters.getToken) {
+      //   // goToPage('/home')
+      // } else {
+      //   this.captchaUuid = getUUID();
 
-          } else {
-            console.error('验证码加载异常:', error);
-            showDanger('验证码加载失败，点击刷新')
-          }
-        });
-      }
+      //   Api.user.getCaptcha(this.captchaUuid, (res) => {
+      //     if (res.status === 200) {
+      //       const blob = new Blob([res.data], {type: res.data.type});
+      //       this.captchaUrl = URL.createObjectURL(blob);
+
+      //     } else {
+      //       console.error('验证码加载异常:', error);
+      //       showDanger('验证码加载失败，点击刷新')
+      //     }
+      //   });
+      // }
     },
 
     // 封装输入验证逻辑
