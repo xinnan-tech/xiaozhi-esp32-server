@@ -57,9 +57,9 @@ async def startToChat(conn, text):
     await send_stt_message(conn, text)
     if conn.use_function_call_mode:
         # 使用支持function calling的聊天方法
-        conn.executor.submit(conn.chat_with_function_calling, text)
+        conn.create_chat_with_function_calling_task(text)
     else:
-        conn.executor.submit(conn.chat, text)
+        conn.create_chat_task(text)
 
 
 async def no_voice_close_connect(conn):
