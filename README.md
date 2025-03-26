@@ -212,7 +212,7 @@ server:
 | TTS |     GPT_SOVITS_V2      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
 | TTS |     GPT_SOVITS_V3      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
 | TTS |       MinimaxTTS       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
-
+| TTS |       LinkeraiTTS      | 接口调用 |  免费/自定义  |                        响应速度接近虾哥服务，支持音色克隆和方言 [音色克隆入口](https://tts.linkerai.top/docs#/)  [创建密钥](https://linkerai.top/)                          |
 ---
 
 ### VAD 语音活动检测
