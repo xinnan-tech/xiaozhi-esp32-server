@@ -67,37 +67,6 @@ export default {
                 });
             }).send();
     },
-    // 获取所有模型名称
-    getModelNames(callback) {
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/models/names`)
-            .method('GET')
-            .success((res) => {
-                RequestService.clearRequestTime();
-                callback(res);
-            })
-            .fail(() => {
-                RequestService.reAjaxFun(() => {
-                    this.getModelNames(callback);
-                });
-            }).send();
-    },
-
-    // 获取模型音色
-    getModelVoices(modelName, callback) {
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/models/${modelName}/voices`)
-            .method('GET')
-            .success((res) => {
-                RequestService.clearRequestTime();
-                callback(res);
-            })
-            .fail(() => {
-                RequestService.reAjaxFun(() => {
-                    this.getModelVoices(modelName, callback);
-                });
-            }).send();
-    },
     // 获取智能体列表
     getAgentList(callback) {
         RequestService.sendRequest()
@@ -160,7 +129,7 @@ export default {
                 });
             }).send();
     },
-    // API接口代码修改
+    // 修改用户密码
     changePassword(oldPassword, newPassword, successCallback, errorCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/api/v1/user/change-password`)  // 修改URL
