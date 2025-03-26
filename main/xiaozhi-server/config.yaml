@@ -24,9 +24,9 @@ server:
     #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
-  log_format: "<green>{time:YY-MM-DD HH:mm:ss}</green>[<light-blue>{extra[tag]}</light-blue>] - <level>{level}</level> - <light-green>{message}</light-green>"
+  log_format: "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{selected_module}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>"
   # 设置日志文件输出的格式，时间、日志级别、标签、消息
-  log_format_simple: "{time:YYYY-MM-DD HH:mm:ss} - {name} - {level} - {extra[tag]} - {message}"
+  log_format_file: "{time:YYYY-MM-DD HH:mm:ss} - {version}_{selected_module} - {name} - {level} - {extra[tag]} - {message}"
   # 设置日志等级：INFO、DEBUG
   log_level: INFO
   # 设置日志路径
