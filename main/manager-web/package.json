@@ -15,7 +15,8 @@
     "vue-axios": "^3.5.2",
     "vue-router": "^3.6.5",
     "vuex": "^3.6.2",
-    "xiaozhi": "file:"
+    "xiaozhi": "file:",
+    "js-cookie": "3.0.1"
   },
   "devDependencies": {
     "@vue/cli-plugin-router": "~5.0.0",

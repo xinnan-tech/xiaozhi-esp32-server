@@ -65,7 +65,7 @@
 <script>
 import {getUUID, goToPage, showDanger, showSuccess} from '@/utils'
 import Api from '@/apis/api';
-
+import { getToken, setToken, removeToken } from '@/utils/auth'
 
 export default {
   name: 'login',
@@ -83,37 +83,26 @@ export default {
     }
   },
   mounted() {
-    this.captchaUuid = getUUID();
     this.fetchCaptcha();
   },
   methods: {
     fetchCaptcha() {
-      Api.user.getCaptcha(this.captchaUuid, (res) => {
-        if (res.status === 200) {
-          const blob = new Blob([res.data], {type: res.data.type});
-          this.captchaUrl = URL.createObjectURL(blob);
+      //如果有token，直接跳转到首页
+      if (getToken()) {
+        goToPage('/home')
+      } else {
+          this.captchaUuid = getUUID();
+          Api.user.getCaptcha(this.captchaUuid, (res) => {
+          if (res.status === 200) {
+            const blob = new Blob([res.data], {type: res.data.type});
+            this.captchaUrl = URL.createObjectURL(blob);
 
-        } else {
-          console.error('验证码加载异常:', error);
-          showDanger('验证码加载失败，点击刷新')
-        }
-      });
-      // if (this.$store.getters.getToken) {
-      //   // goToPage('/home')
-      // } else {
-      //   this.captchaUuid = getUUID();
-
-      //   Api.user.getCaptcha(this.captchaUuid, (res) => {
-      //     if (res.status === 200) {
-      //       const blob = new Blob([res.data], {type: res.data.type});
-      //       this.captchaUrl = URL.createObjectURL(blob);
-
-      //     } else {
-      //       console.error('验证码加载异常:', error);
-      //       showDanger('验证码加载失败，点击刷新')
-      //     }
-      //   });
-      // }
+          } else {
+            console.error('验证码加载异常:', error);
+            showDanger('验证码加载失败，点击刷新')
+          }
+        });
+      }
     },
 
     // 封装输入验证逻辑
@@ -141,11 +130,9 @@ export default {
 
       this.form.captchaId = this.captchaUuid
       Api.user.login(this.form, ({data}) => {
-        console.log(data)
         showSuccess('登陆成功！')
-        // 将令牌存储到 Vuex 中
-        this.$store.commit('setToken', JSON.stringify(data.data))
-
+        // 保存token
+        setToken(data.data.token)
         goToPage('/home')
       })
 
