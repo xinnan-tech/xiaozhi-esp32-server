@@ -303,9 +303,16 @@ class ConnectionHandler:
                 future = self.executor.submit(self.speak_and_play, segment_text, text_index)
                 self.tts_queue.put(future)
 
+        # 存储对话内容
+        if len(response_message) > 0:
+            self.dialogue.put(Message(role="assistant", content="".join(response_message)))
+
+        # 异步保存记忆
+        asyncio.create_task(self.memory.save_memory(self.dialogue.dialogue))
+
         self.llm_finish_task = True
-        self.dialogue.put(Message(role="assistant", content="".join(response_message)))
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
+
         return True
 
     def chat_with_function_calling(self, query, tool_call=False):
@@ -580,26 +587,16 @@ class ConnectionHandler:
             self.tts_first_text_index = text_index
         self.tts_last_text_index = text_index
 
-    async def close(self, ws=None):
-        """资源清理方法"""
-
-        # 触发停止事件并清理资源
-        if self.stop_event:
-            self.stop_event.set()
-        
-        # 立即关闭线程池
-        if self.executor:
-            self.executor.shutdown(wait=False, cancel_futures=True)
-            self.executor = None
-        
-        # 清空任务队列
-        self._clear_queues()
-        
-        if ws:
+    async def close(self, ws):
+        """关闭连接"""
+        try:
             await ws.close()
-        elif self.websocket:
-            await self.websocket.close()
-        self.logger.bind(tag=TAG).info("连接资源已释放")
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"关闭连接失败: {str(e)}")
+        finally:
+            if ws in self.active_connections:
+                self.active_connections.remove(ws)
+            self.logger.bind(tag=TAG).info(f"连接已关闭 - Session: {self.session_id}")
 
     def _clear_queues(self):
         # 清空所有任务队列
