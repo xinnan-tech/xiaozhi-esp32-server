@@ -48,7 +48,7 @@
             <div class="title-wrapper">
             <h2 class="model-title">大语言模型（LLM）</h2>
             <el-button type="primary" size="small" @click="addModel" class="add-btn">
-                <i class="el-icon-plus"></i>添加
+               添加
             </el-button>
             </div>
             <div class="action-group">
@@ -61,7 +61,7 @@
             </div>
           </div>
 
-          <el-table :data="modelList" border class="data-table" header-row-class-name="table-header" >
+          <el-table :header-cell-style="{background: 'transparent'}" :data="modelList" border class="data-table" header-row-class-name="table-header" >
             <el-table-column type="selection" width="55" align="center"></el-table-column>
             <el-table-column label="模型名称" prop="candidateName" align="center"></el-table-column>
             <el-table-column label="模型编码" prop="code" align="center"></el-table-column>
@@ -90,13 +90,16 @@
                 删除
               </el-button>
             </div>
-            <el-pagination small background :current-page="currentPage" :page-size="pageSize" layout="prev, pager, next" :total="total"/>
+            <div class="pagination-container">
+            <el-pagination @current-change="handleCurrentChange" background :current-page="currentPage" :page-size="pageSize" layout="prev, pager, next" :total="total"/>
+            </div>
           </div>
         </div>
       </div>
 
       <ModelEditDialog :visible.sync="editDialogVisible" :modelData="editModelData" @save="handleModelSave"/>
       <TtsModel :visible.sync="ttsDialogVisible" />
+      <AddModelDialog :visible.sync="addDialogVisible" @confirm="handleAddConfirm"/>
     </div>
 
     <div class="copyright">
@@ -109,11 +112,13 @@
 import HeaderBar from "@/components/HeaderBar.vue";
 import ModelEditDialog from "@/components/ModelEditDialog.vue";
 import TtsModel from "@/components/TtsModel.vue";
+import AddModelDialog from "@/components/AddModelDialog.vue";
 
 export default {
-  components: { HeaderBar, ModelEditDialog, TtsModel },
+  components: { HeaderBar, ModelEditDialog, TtsModel, AddModelDialog },
   data() {
     return {
+      addDialogVisible: false,
       activeTab: 'llm',
       search: '',
       editDialogVisible: false,
@@ -140,7 +145,7 @@ export default {
       console.log('批量删除');
     },
     addModel() {
-      console.log('增加模型');
+      this.addDialogVisible = true;
     },
     editModel(model) {
       this.editModelData = {
@@ -168,12 +173,18 @@ export default {
     },
     selectAll() {
       console.log('全选');
+    },
+    handleAddConfirm(newModel) {
+      console.log('新增模型数据:', newModel);
     }
-  }
+  },
 };
 </script>
 
 <style scoped>
+::v-deep .el-table tr{
+  background: transparent;
+}
 .welcome {
   min-width: 900px;
   min-height: 506px;
@@ -188,10 +199,10 @@ export default {
 }
 
 .main-wrapper {
-  margin: 5px 50px;
+  margin: 5px 60px;
   background-image: url("@/assets/home/background.png");
   border-radius: 15px;
-  min-height: 580px;
+  min-height: 600px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: relative;
 }
@@ -321,6 +332,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px 0;
+  width: 100%;
 }
 
 .batch-actions {
@@ -369,6 +381,19 @@ export default {
 
 .batch-actions .el-button:first-child:hover {
   background: linear-gradient(135deg, #3A8EE6, #5A7CFF);
+}
+
+.el-table th /deep/ .el-table__cell {
+  overflow: hidden;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  background-color: transparent !important;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
 }
 
 

@@ -46,7 +46,7 @@ get_lunar_function_desc = {
     }
 }
 @register_function('get_lunar', get_lunar_function_desc, ToolType.WAIT)
-def get_lunar(query):
+def get_lunar(query=None):
     """
     用于获取当前的阴历/农历，和天干地支、节气、生肖、星座、八字、宜忌等黄历信息
     """
@@ -54,6 +54,10 @@ def get_lunar(query):
     current_time = now.strftime("%H:%M:%S")
     current_date = now.strftime("%Y-%m-%d")
     current_weekday = now.strftime("%A")
+
+    # 如果 query 为 None，则使用默认文本
+    if query is None:
+        query = "默认查询干支年和农历日期"
     response_text = f"根据以下信息回应用户的查询请求，并提供与{query}相关的信息：\n"
 
     lunar = cnlunar.Lunar(now, godType='8char')
