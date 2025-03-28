@@ -12,6 +12,7 @@ import numpy as np
 class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
+        self.provider_name ='linkerai'
         self.access_token = config.get("access_token")
         self.voice = config.get("voice")
         self.response_format = config.get("response_format")
@@ -43,9 +44,7 @@ class TTSProvider(TTSProviderBase):
             f.write('http_post\n')
             f.write('%s\n'%(json.dumps(params,ensure_ascii=False)))
             f.write('%s'%(json.dumps(headers,ensure_ascii=False)))
-        self.cache_queue.append(output_file)
         
-
     def yield_data(self,params,headers):   
         response = requests.get(self.api_url, headers=headers, params=params, stream=True)
         if response.status_code == 200:
@@ -55,6 +54,19 @@ class TTSProvider(TTSProviderBase):
         else:
             print(f"请求失败，状态码: {response.status_code}")
             print(f"错误信息: {response.text}")
+    def double_stream(self,question:str='',device_id:str=''):
+        params = {
+            "question": question,
+            "device_id": device_id,
+            "instruct_text": self.instruct_text,
+            "audio_format": 'opus'
+        }
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
+        return self.yield_data(params=params,headers=headers)
+
 
     def audio_to_opus_data(self, audio_file_path):
         data = b''
