@@ -88,7 +88,6 @@ class TTSProvider(TTSProviderBase):
                     return self.yield_data(self.api_url,params=params,headers=headers),duration
                 
             else: #兼容非流式音频播放
-                f.seek(0)
                 file_type = os.path.splitext(audio_file_path)[1]
                 if file_type:
                     file_type = file_type.lstrip('.')
