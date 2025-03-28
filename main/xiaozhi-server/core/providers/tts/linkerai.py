@@ -77,9 +77,9 @@ class TTSProvider(TTSProviderBase):
             with open(audio_file_path,'rb') as f:
                 data = f.read(10)
             if data.startswith(b'http_post'):
+                duration = 100
                 with open(audio_file_path,encoding='utf-8') as f:
                     _ = f.read(10)
-                    duration = 100
                     code = []
                     for line in f.readlines():
                         code.append(json.loads(line.strip()))
