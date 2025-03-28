@@ -74,9 +74,11 @@ class TTSProvider(TTSProviderBase):
     def audio_to_opus_data(self, audio_file_path):
         data = b''
         if os.path.exists(audio_file_path):
-            with open(audio_file_path,encoding='utf-8') as f:
+            with open(audio_file_path,'rb') as f:
                 data = f.read(10)
-                if data.startswith('http_post'):
+            if data.startswith(b'http_post'):
+                with open(audio_file_path,encoding='utf-8') as f:
+                    _ = f.read(10)
                     duration = 100
                     code = []
                     for line in f.readlines():
@@ -85,7 +87,7 @@ class TTSProvider(TTSProviderBase):
                     headers = code[1]
                     return self.yield_data(self.api_url,params=params,headers=headers),duration
                 
-            if not data.startswith('http_post'):# 兼容非流式音频播放
+            else: #兼容非流式音频播放
                 f.seek(0)
                 file_type = os.path.splitext(audio_file_path)[1]
                 if file_type:
