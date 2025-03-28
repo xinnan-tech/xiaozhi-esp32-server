@@ -73,7 +73,7 @@ class TTSProvider(TTSProviderBase):
 
     def audio_to_opus_data(self, audio_file_path):
         data = b''
-        if os.path.exists('%s.linkerai'%audio_file_path):
+        if os.path.exists(audio_file_path):
             with open(audio_file_path,encoding='utf-8') as f:
                 data = f.read(10)
                 if data.startswith('http_post'):
