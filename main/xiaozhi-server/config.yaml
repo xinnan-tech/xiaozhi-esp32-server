@@ -311,6 +311,7 @@ TTS:
     # 天津话
     # 普通话
     # 文档地址：https://tts.linkerai.top/docs#/
+    # 密匙获取：https://linkerai.top/
     type: linkerai
     api_url: https://tts.linkerai.top/tts
     voice: OUeAo1mhq6IBExi
