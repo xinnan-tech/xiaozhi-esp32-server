@@ -109,6 +109,8 @@ class TTSProvider(TTSProviderBase):
                     opus_data = encoder.encode(np_frame.tobytes(), frame_size)
                     opus_datas.append(opus_data)
                 return opus_datas, duration
+        else:
+            return None,None
         
 if __name__ == "__main__":
     config = {'access_token':'123',
