@@ -608,9 +608,11 @@ class ConnectionHandler:
         """Chat with the user and then close the connection"""
         try:
             # Use the existing chat method
-            self.chat(text)
+            
             if hasattr(self.tts, 'provider_name') and self.tts.provider_name == 'linkerai' and self.tts.stream_mode == 'double_stream':
                 self.chat_double_stream(text)
+            else:
+                self.chat(text)
 
             # After chat is complete, close the connection
             self.close_after_chat = True
