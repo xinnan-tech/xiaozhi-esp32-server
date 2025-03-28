@@ -232,6 +232,23 @@ class ConnectionHandler:
             return False
         return not self.is_device_verified
 
+    def chat_double_stream(self, query):
+        if self.isNeedAuth():
+            self.llm_finish_task = True
+            future = asyncio.run_coroutine_threadsafe(self._check_and_broadcast_auth_code(), self.loop)
+            future.result()
+            return True
+
+        device_id = self.headers.get("device-id", None)
+        text_index = -1
+        text = None
+        try:
+            future = asyncio.run_coroutine_threadsafe(sendAudioMessage(self, self.tts.double_stream(question=query,device_id=device_id), text, text_index),self.loop)
+            future.result()
+        except Exception as e:
+                self.logger.bind(tag=TAG).error(f"audio_play_priority priority_thread:  {e}")
+        return True
+
     def chat(self, query):
         if self.isNeedAuth():
             self.llm_finish_task = True
@@ -592,6 +609,8 @@ class ConnectionHandler:
         try:
             # Use the existing chat method
             self.chat(text)
+            if hasattr(self.tts, 'provider_name') and self.tts.provider_name == 'linkerai' and self.tts.stream_mode == 'double_stream':
+                self.chat_double_stream(text)
 
             # After chat is complete, close the connection
             self.close_after_chat = True
