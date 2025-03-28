@@ -10,6 +10,9 @@ logger = setup_logging()
 
 
 async def sendAudioMessage(conn, audios, text, text_index=0):
+    if text_index == -1:
+        await sendAudioStream(conn=conn,audios=audios)
+        return 
     # 发送句子开始消息
     if text_index == conn.tts_first_text_index:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
@@ -22,6 +25,41 @@ async def sendAudioMessage(conn, audios, text, text_index=0):
 
     # 发送结束消息（如果是最后一个文本）
     if conn.llm_finish_task and text_index == conn.tts_last_text_index:
+        await send_tts_message(conn, 'stop', None)
+        if conn.close_after_chat:
+            await conn.close()
+
+async def sendAudioStream(conn, audios):
+    # 流控参数优化
+    frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
+    start_time = time.perf_counter()
+    play_position = 0
+    
+    if isinstance(audios,types.GeneratorType):
+        count = 0 
+        for opus_packet in audios:
+            if opus_packet.startswith(b'text:'):
+                await send_tts_message(conn, "sentence_start", opus_packet.replace(b'text:','').decode('utf-8'))
+                continue
+            if len(opus_packet) < 1:
+                continue
+            if count < 3:
+                await conn.websocket.send(opus_packet)
+                conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {count}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
+            else:
+                if conn.client_abort:
+                    return
+                expected_time = start_time + (play_position / 1000)
+                current_time = time.perf_counter()
+                delay = expected_time - current_time
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                await conn.websocket.send(opus_packet)
+                conn.logger.bind(tag=TAG).debug(f"发送帧，位置: {play_position}ms, 实际间隔: {(time.perf_counter() - current_time) * 1000:.2f}ms")
+                play_position += frame_duration
+
+            count += 1
+
         await send_tts_message(conn, 'stop', None)
         if conn.close_after_chat:
             await conn.close()

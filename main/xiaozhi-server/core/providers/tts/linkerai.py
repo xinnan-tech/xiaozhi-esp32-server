@@ -21,6 +21,7 @@ class TTSProvider(TTSProviderBase):
         self.stream_mode = config.get('stream_mode') # stream or double_stream
         self.host = "tts.linkerai.top"
         self.api_url = 'http://tts.linkerai.top:24003/tts'
+        self.double_stream_url = 'http://tts.linkerai.top:24003/double_stream_chat'
         
     def generate_filename(self, extension=".wav"):
         return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
@@ -45,8 +46,8 @@ class TTSProvider(TTSProviderBase):
             f.write('%s\n'%(json.dumps(params,ensure_ascii=False)))
             f.write('%s'%(json.dumps(headers,ensure_ascii=False)))
         
-    def yield_data(self,params,headers):   
-        response = requests.get(self.api_url, headers=headers, params=params, stream=True)
+    def yield_data(self,url,params,headers):   
+        response = requests.get(url, headers=headers, params=params, stream=True)
         if response.status_code == 200:
             for chunk in response.iter_content(chunk_size=None):
                 if chunk:  
@@ -54,6 +55,7 @@ class TTSProvider(TTSProviderBase):
         else:
             print(f"请求失败，状态码: {response.status_code}")
             print(f"错误信息: {response.text}")
+
     def double_stream(self,question:str='',device_id:str=''):
         params = {
             "question": question,
@@ -65,7 +67,7 @@ class TTSProvider(TTSProviderBase):
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json"
         }
-        return self.yield_data(params=params,headers=headers)
+        return self.yield_data(url=self.double_stream_url,params=params,headers=headers)
 
 
     def audio_to_opus_data(self, audio_file_path):
@@ -80,7 +82,7 @@ class TTSProvider(TTSProviderBase):
                         code.append(json.loads(line.strip()))
                     params = code[0]
                     headers = code[1]
-                    return self.yield_data(params=params,headers=headers),duration
+                    return self.yield_data(self.api_url,params=params,headers=headers),duration
                 
             if not data.startswith('http_post'):# 兼容非流式音频播放
                 f.seek(0)
