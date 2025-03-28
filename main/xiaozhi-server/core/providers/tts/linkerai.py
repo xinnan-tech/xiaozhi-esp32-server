@@ -61,7 +61,8 @@ class TTSProvider(TTSProviderBase):
             "question": question,
             "device_id": device_id,
             "instruct_text": self.instruct_text,
-            "audio_format": 'opus'
+            "audio_format": 'opus',
+            "spk_id":self.voice
         }
         headers = {
             "Authorization": f"Bearer {self.access_token}",
