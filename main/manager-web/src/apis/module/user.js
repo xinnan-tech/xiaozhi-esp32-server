@@ -5,7 +5,8 @@ import {getServiceUrl} from '../api'
 export default {
     // 登录
     login(loginForm, callback) {
-        RequestService.sendRequest().url(`${getServiceUrl()}/api/v1/user/login`)
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/api/v1/user/login`)
             .method('POST')
             .data(loginForm)
             .success((res) => {
@@ -40,7 +41,9 @@ export default {
     },
     // 注册账号
     register(registerForm, callback) {
-        RequestService.sendRequest().url(`${getServiceUrl()}/api/v1/user/register`).method('POST')
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/api/v1/user/register`)
+            .method('POST')
             .data(registerForm)
             .success((res) => {
                 RequestService.clearRequestTime()
@@ -132,11 +135,11 @@ export default {
     // 修改用户密码
     changePassword(oldPassword, newPassword, successCallback, errorCallback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/change-password`)  // 修改URL
-            .method('PUT')  // 修改方法为PUT
+            .url(`${getServiceUrl()}/api/v1/user/change-password`)
+            .method('PUT')
             .data({
-                old_password: oldPassword,  // 修改参数名
-                new_password: newPassword   // 修改参数名
+                old_password: oldPassword,
+                new_password: newPassword,
             })
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -183,6 +186,7 @@ export default {
     },
     // 已绑设备
      getAgentBindDevices(agentId, callback) {
+        console.log("77777777777777777777777")
          RequestService.sendRequest()
              .url(`${getServiceUrl()}/api/v1/user/agent/device/bind/${agentId}`)
              .method('GET')
@@ -197,4 +201,38 @@ export default {
                  });
              }).send();
      },
+    // 解绑设备
+    unbindDevice(device_id, callback) {
+          RequestService.sendRequest()
+            .url(`${getServiceUrl()}/api/v1/user/device/unbind/${device_id}`)
+            .method('PUT')
+            .success((res) => {
+              RequestService.clearRequestTime();
+              callback(res);
+            })
+            .fail((err) => {
+              console.error('解绑设备失败:', err);
+              RequestService.reAjaxFun(() => {
+                this.unbindDevice(device_id, callback);
+              });
+            }).send();
+    },
+    // 绑定设备
+    bindDevice(agentId, code, callback) {
+        console.log("32323234343434344340000")
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/api/v1/user/agent/device/bind/${agentId}`)
+            .method('POST')
+            .data({ code })
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .fail((err) => {
+                // console.error('绑定设备失败:', err);
+                // RequestService.reAjaxFun(() => {
+                //     this.bindDevice(agentId, code, callback);
+                // });
+            }).send();
+    },
 }
