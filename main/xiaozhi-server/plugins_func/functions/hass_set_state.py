@@ -23,7 +23,7 @@ hass_set_state_function_desc = {
                             "description": "需要操作的动作,打开设备:turn_on,关闭设备:turn_off,增加亮度:brightness_up,降低亮度:brightness_down,设置亮度:brightness_value,增加>音量:,volume_up降低音量:volume_down,设置音量:volume_set,设备暂停:pause,设备继续:continue,静音/取消静音:volume_mute"
                         },
                         "input": {
-                            "type": "int",
+                            "type": "integer",
                             "description": "只有在设置音量,设置亮度时候才需要,有效值为1-100,对应音量和亮度的1%-100%"
                         },
                         "is_muted": {
