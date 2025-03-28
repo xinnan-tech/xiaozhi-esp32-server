@@ -47,7 +47,7 @@ class TTSProvider(TTSProviderBase):
             f.write('%s'%(json.dumps(headers,ensure_ascii=False)))
         
     def yield_data(self,url,params,headers):   
-        response = requests.get(url, headers=headers, params=params, stream=True)
+        response = requests.get(url=url, headers=headers, params=params, stream=True)
         if response.status_code == 200:
             for chunk in response.iter_content(chunk_size=None):
                 if chunk:  
