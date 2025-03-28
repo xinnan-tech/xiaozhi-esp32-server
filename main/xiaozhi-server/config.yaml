@@ -320,7 +320,7 @@ TTS:
     response_format: 'opus'
     access_token: '123'
     sample_rate: 16000
-    stream_mode: 'stream'  # stream or double_stream
+    stream_mode: 'double_stream'  # stream or double_stream
     instruct_text: ''
   CosyVoiceSiliconflow:
     type: siliconflow
