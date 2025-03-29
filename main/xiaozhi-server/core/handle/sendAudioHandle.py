@@ -38,6 +38,7 @@ async def sendAudioStream(conn, audios):
     
     # if isinstance(audios,types.GeneratorType):
     if inspect.isasyncgen(audios):
+        conn.logger.bind(tag=TAG).info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
         count = 0 
         async for opus_packet in audios:
             if opus_packet.startswith(b'text:'):
