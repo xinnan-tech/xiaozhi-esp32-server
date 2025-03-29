@@ -23,5 +23,6 @@ bs4==0.0.2
 modelscope==1.23.2
 sherpa_onnx==1.11.0
 mcp==1.4.1
-
 cnlunar==0.2.0
+# windows use `conda install -y -c conda-forge pynini=2.1.5 && pip install WeTextProcessing==1.0.3`
+WeTextProcessing==1.0.3; sys_platform != "win32"
