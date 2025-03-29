@@ -11,5 +11,5 @@ import xiaozhi.modules.model.entity.ModelProviderEntity;
 @Mapper
 public interface ModelProviderDao extends BaseDao<ModelProviderEntity> {
 
-    List<String> getFieldList(@Param("modelType") String modelType, @Param("provideCode") String provideCode);
+    List<String> getFieldList(@Param("modelType") String modelType, @Param("providerCode") String providerCode);
 }

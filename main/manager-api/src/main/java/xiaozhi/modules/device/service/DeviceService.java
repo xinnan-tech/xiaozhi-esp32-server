@@ -1,9 +1,7 @@
 package xiaozhi.modules.device.service;
 
 import java.util.List;
-import java.util.Map;
 
-import xiaozhi.common.page.PageData;
 import xiaozhi.modules.device.dto.DeviceBindDTO;
 import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
@@ -36,11 +34,6 @@ public interface DeviceService {
      * 解绑设备
      */
     void unbindDevice(Long userId, String deviceId);
-
-    /**
-     * 管理员设备列表
-     */
-    PageData<DeviceEntity> adminDeviceList(Map<String, Object> params);
 
     /**
      * 设备激活

@@ -16,11 +16,9 @@ import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import cn.hutool.core.util.RandomUtil;
 import xiaozhi.common.exception.RenException;
-import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
@@ -197,14 +195,6 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         wrapper.eq("user_id", userId);
         wrapper.eq("id", deviceId);
         baseDao.delete(wrapper);
-    }
-
-    @Override
-    public PageData<DeviceEntity> adminDeviceList(Map<String, Object> params) {
-        IPage<DeviceEntity> page = baseDao.selectPage(
-                getPage(params, "sort", true),
-                new QueryWrapper<>());
-        return new PageData<>(page.getRecords(), page.getTotal());
     }
 
     private DeviceReportRespDTO.ServerTime buildServerTime() {

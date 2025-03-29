@@ -41,7 +41,7 @@ public class AdminController {
     @Operation(summary = "分页查找用户")
     @RequiresPermissions("sys:role:superAdmin")
     @Parameters({
-            @Parameter(name = "mobile", description = "用户手机号码", required = true),
+            @Parameter(name = "mobile", description = "用户手机号码", required = false),
             @Parameter(name = Constant.PAGE, description = "当前页码，从1开始", required = true),
             @Parameter(name = Constant.LIMIT, description = "每页显示记录数", required = true),
     })
@@ -78,7 +78,7 @@ public class AdminController {
     @Operation(summary = "分页查找设备")
     @RequiresPermissions("sys:role:superAdmin")
     @Parameters({
-            @Parameter(name = "keywords", description = "用户手机号码", required = true),
+            @Parameter(name = "keywords", description = "设备关键词", required = false),
             @Parameter(name = Constant.PAGE, description = "当前页码，从1开始", required = true),
             @Parameter(name = Constant.LIMIT, description = "每页显示记录数", required = true),
     })

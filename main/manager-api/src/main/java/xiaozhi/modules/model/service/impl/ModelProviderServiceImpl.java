@@ -57,6 +57,7 @@ public class ModelProviderServiceImpl extends BaseServiceImpl<ModelProviderDao, 
 
     @Override
     public List<String> getFieldList(String modelType, String provideCode) {
+        // TODO: 获取模型供应器字段
         return modelProviderDao.getFieldList(modelType, provideCode);
     }
 }
