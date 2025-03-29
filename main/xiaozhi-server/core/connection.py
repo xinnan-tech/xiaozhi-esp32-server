@@ -556,13 +556,13 @@ class ConnectionHandler:
     def _audio_play_priority_thread(self):
         while not self.stop_event.is_set():
             text = None
-            try:
+            if 1:#try:
                 opus_datas, text, text_index = self.audio_play_queue.get()
                 future = asyncio.run_coroutine_threadsafe(sendAudioMessage(self, opus_datas, text, text_index),
                                                           self.loop)
                 future.result()
-            except Exception as e:
-                self.logger.bind(tag=TAG).error(f"audio_play_priority priority_thread: {text} {e}")
+            # except Exception as e:
+            #     self.logger.bind(tag=TAG).error(f"audio_play_priority priority_thread: {text} {e}")
 
     def speak_and_play(self, text, text_index=0):
         if text is None or len(text) <= 0:
