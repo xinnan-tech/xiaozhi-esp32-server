@@ -38,10 +38,8 @@ async def sendAudioStream(conn, audios):
     
     # if isinstance(audios,types.GeneratorType):
     if inspect.isasyncgen(audios):
-        conn.logger.bind(tag=TAG).info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
         count = 0 
         async for opus_packet in audios:
-            conn.logger.bind(tag=TAG).info(f'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx,{type(opus_packet)},{opus_packet}')
             if isinstance(opus_packet,bytes) and opus_packet.startswith(b'text:'):
                 await send_tts_message(conn, "sentence_start", opus_packet.replace(b'text:',b'').decode('utf-8'))
                 continue
