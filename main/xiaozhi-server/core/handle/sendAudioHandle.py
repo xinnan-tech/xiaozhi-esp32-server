@@ -37,7 +37,7 @@ async def sendAudioStream(conn, audios):
     play_position = 0
     
     # if isinstance(audios,types.GeneratorType):
-    if inspect.isasyncgen(audios):
+    if 1:#inspect.isasyncgen(audios):
         count = 0 
         async for opus_packet in audios:
             if opus_packet.startswith(b'text:'):
