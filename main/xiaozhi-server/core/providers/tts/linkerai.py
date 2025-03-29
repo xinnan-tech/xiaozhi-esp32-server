@@ -52,6 +52,7 @@ class TTSProvider(TTSProviderBase):
         if response.status_code == 200:
             for chunk in response.iter_content(chunk_size=None):
                 if chunk:  
+                    print(len(chunk))
                     yield chunk
         else:
             print(f"请求失败，状态码: {response.status_code}")
