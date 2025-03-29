@@ -7,6 +7,8 @@ import xiaozhi.modules.timbre.dto.TimbrePageDTO;
 import xiaozhi.modules.timbre.entity.TimbreEntity;
 import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
 
+import java.util.List;
+
 
 /**
  * 音色的业务层的定义
@@ -46,4 +48,6 @@ public interface TimbreService extends BaseService<TimbreEntity> {
      * @param ids 需要被删除的音色id列表
      */
     void delete(Long[] ids);
+
+    List<String> getVoiceNames(String ttsModelId, String voiceName);
 }

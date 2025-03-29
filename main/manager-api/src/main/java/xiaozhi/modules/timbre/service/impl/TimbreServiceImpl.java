@@ -1,7 +1,9 @@
 package xiaozhi.modules.timbre.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,12 +14,13 @@ import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.modules.timbre.dao.TimbreDao;
 import xiaozhi.modules.timbre.dto.TimbreDataDTO;
 import xiaozhi.modules.timbre.dto.TimbrePageDTO;
-import xiaozhi.modules.timbre.service.TimbreService;
 import xiaozhi.modules.timbre.entity.TimbreEntity;
+import xiaozhi.modules.timbre.service.TimbreService;
 import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,9 +28,11 @@ import java.util.Map;
  * @author zjy
  * @since 2025-3-21
  */
+@AllArgsConstructor
 @Service
 public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> implements TimbreService {
 
+    private final TimbreDao timbreDao;
 
     @Override
     public PageData<TimbreDetailsVO> page(TimbrePageDTO dto) {
@@ -74,6 +79,21 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long[] ids) {
         baseDao.deleteBatchIds(Arrays.asList(ids));
+    }
+
+    @Override
+    public List<String> getVoiceNames(String ttsModelId, String voiceName) {
+        QueryWrapper<TimbreEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("ttsModelId", StringUtils.isBlank(ttsModelId) ? "" : ttsModelId);
+        if (StringUtils.isNotBlank(voiceName)) {
+            queryWrapper.like("name", voiceName);
+        }
+        List<TimbreEntity> timbreEntities = timbreDao.selectList(queryWrapper);
+        if (CollectionUtil.isEmpty(timbreEntities)) {
+            return null;
+        }
+
+        return timbreEntities.stream().map(TimbreEntity::getName).toList();
     }
 
     /**

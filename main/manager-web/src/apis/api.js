@@ -1,6 +1,6 @@
 // 引入各个模块的请求
 import user from './module/user.js'
-
+import admin from './module/admin.js'
 /**
  * 接口地址
  * 当前8002端口接口还没开发完成，暂时用 apifoxmock 接口代替

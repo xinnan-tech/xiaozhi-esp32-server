@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="xiaozhi.modules.model.dao.ModelProviderDao">
+    <!-- 获取模型供应器字段 -->
+    <select id="getFieldList" resultType="string">
+        select fields from ai_model_provider where model_type = #{modelType} and provider_code = #{providerCode};
+    </select>
+</mapper>

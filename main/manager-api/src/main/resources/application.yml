@@ -29,7 +29,7 @@ spring:
       database: 0
       host: 127.0.0.1
       port: 6379
-      password:    # 密码（默认为空）
+      password:  # 密码（默认为空）
       timeout: 6000ms  # 连接超时时长（毫秒）
       lettuce:
         pool:
@@ -39,7 +39,6 @@ spring:
           min-idle: 5       # 连接池中的最小空闲连接
   main:
     allow-bean-definition-overriding: true
-
 knife4j:
   enable: true
   basic:

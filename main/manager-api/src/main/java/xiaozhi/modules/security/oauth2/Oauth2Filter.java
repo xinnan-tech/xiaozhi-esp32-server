@@ -8,6 +8,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMethod;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
@@ -24,12 +26,15 @@ import java.io.IOException;
  */
 public class Oauth2Filter extends AuthenticatingFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(Oauth2Filter.class);
+
     @Override
     protected AuthenticationToken createToken(ServletRequest request, ServletResponse response) throws Exception {
         //获取请求token
         String token = getRequestToken((HttpServletRequest) request);
 
         if (StringUtils.isBlank(token)) {
+            logger.warn("createToken:token is empty");
             return null;
         }
 
@@ -49,7 +54,15 @@ public class Oauth2Filter extends AuthenticatingFilter {
     protected boolean onAccessDenied(ServletRequest request, ServletResponse response) throws Exception {
         //获取请求token，如果token不存在，直接返回401
         String token = getRequestToken((HttpServletRequest) request);
+
+        // TODO 调试接口，临时取消登录限制，需要 token 参数的除外
+        if (true) {
+            return true;
+        }
+
         if (StringUtils.isBlank(token)) {
+            logger.warn("onAccessDenied:token is empty");
+
             HttpServletResponse httpResponse = (HttpServletResponse) response;
             httpResponse.setContentType("application/json;charset=utf-8");
             httpResponse.setHeader("Access-Control-Allow-Credentials", "true");
@@ -73,13 +86,14 @@ public class Oauth2Filter extends AuthenticatingFilter {
         httpResponse.setHeader("Access-Control-Allow-Origin", HttpContextUtils.getOrigin());
         try {
             //处理登录失败的异常
+            logger.error("onLoginFailure:登录失败!", e);
             Throwable throwable = e.getCause() == null ? e : e.getCause();
             Result r = new Result().error(ErrorCode.UNAUTHORIZED, throwable.getMessage());
 
             String json = JsonUtils.toJsonString(r);
             httpResponse.getWriter().print(json);
         } catch (IOException e1) {
-
+            logger.error("onLoginFailure:登录失败! msg:{}", e1.getMessage(), e1);
         }
 
         return false;

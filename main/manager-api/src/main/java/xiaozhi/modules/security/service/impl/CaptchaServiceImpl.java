@@ -4,8 +4,11 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.wf.captcha.SpecCaptcha;
 import com.wf.captcha.base.Captcha;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
+import xiaozhi.modules.security.oauth2.Oauth2Realm;
 import xiaozhi.modules.security.service.CaptchaService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +32,7 @@ public class CaptchaServiceImpl implements CaptchaService {
      * Local Cache  5分钟过期
      */
     Cache<String, String> localCache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
+    private static final Logger logger = LoggerFactory.getLogger(Oauth2Realm.class);
 
     @Override
     public void create(HttpServletResponse response, String uuid) throws IOException {

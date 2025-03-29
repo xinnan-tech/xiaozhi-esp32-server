@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="xiaozhi.modules.model.dao.ModelConfigDao">
+    <!-- 获取模型供应器字段 -->
+    <select id="getModelCodeList" resultType="String">
+        select model_name from ai_model_config where model_type = #{modelType}
+            <if test="modelName != null">and model_name = #{modelName}</if>
+    </select>
+</mapper>
