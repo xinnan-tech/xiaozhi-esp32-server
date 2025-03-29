@@ -59,10 +59,10 @@ class TTSProvider(TTSProviderBase):
     #         print(f"错误信息: {response.text}")
 
 
-    async def yield_data(self,base_url:str='',params:dict={},headers:dict={}):
+    async def yield_data(self,url:str='',params:dict={},headers:dict={}):
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get(base_url, params=params, headers=headers,timeout=10) as response:
+                async with session.get(url, params=params, headers=headers,timeout=10) as response:
                     if response.status == 200:
                         async for r in response.content.iter_chunks():
                             yield r[0]
