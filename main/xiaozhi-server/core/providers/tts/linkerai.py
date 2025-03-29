@@ -32,7 +32,7 @@ class TTSProvider(TTSProviderBase):
             "tts_text": text,
             "spk_id": self.voice,
             "frame_durition": 60,
-            "stream": True,  
+            "stream": str(True).lower(),  
             "target_sr": self.sample_rate,
             "audio_format":"opus",
             "instruct_text":self.instruct_text
@@ -47,27 +47,27 @@ class TTSProvider(TTSProviderBase):
             f.write('%s\n'%(json.dumps(params,ensure_ascii=False)))
             f.write('%s'%(json.dumps(headers,ensure_ascii=False)))
         
-    def yield_data(self,url,params,headers):   
-        response = requests.get(url=url, headers=headers, params=params, stream=True)
-        if response.status_code == 200:
-            for chunk in response.iter_content(chunk_size=None):
-                if chunk:  
-                    print(len(chunk))
-                    yield chunk
-        else:
-            print(f"请求失败，状态码: {response.status_code}")
-            print(f"错误信息: {response.text}")
+    # def yield_data(self,url,params,headers):   
+    #     response = requests.get(url=url, headers=headers, params=params, stream=True)
+    #     if response.status_code == 200:
+    #         for chunk in response.iter_content(chunk_size=None):
+    #             if chunk:  
+    #                 print(len(chunk))
+    #                 yield chunk
+    #     else:
+    #         print(f"请求失败，状态码: {response.status_code}")
+    #         print(f"错误信息: {response.text}")
 
 
-    # async def yield_data(self,base_url:str='',params:dict={},headers:dict={}):
-    #     async with aiohttp.ClientSession() as session:
-    #         try:
-    #             async with session.get(base_url, params=params, headers=headers,timeout=10) as response:
-    #                 if response.status == 200:
-    #                     async for r in response.content.iter_chunks():
-    #                         yield r[0]
-    #         except aiohttp.ClientError as e:
-    #             pass
+    async def yield_data(self,base_url:str='',params:dict={},headers:dict={}):
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(base_url, params=params, headers=headers,timeout=10) as response:
+                    if response.status == 200:
+                        async for r in response.content.iter_chunks():
+                            yield r[0]
+            except aiohttp.ClientError as e:
+                pass
 
     def double_stream(self,question:str='',device_id:str=''):
         params = {
