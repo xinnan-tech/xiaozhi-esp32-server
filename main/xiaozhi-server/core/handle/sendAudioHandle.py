@@ -41,7 +41,7 @@ async def sendAudioStream(conn, audios):
         conn.logger.bind(tag=TAG).info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
         count = 0 
         async for opus_packet in audios:
-            if opus_packet.startswith(b'text:'):
+            if isinstance(opus_packet,bytes) and opus_packet.startswith(b'text:'):
                 await send_tts_message(conn, "sentence_start", opus_packet.replace(b'text:','').decode('utf-8'))
                 continue
             if len(opus_packet) < 1:
