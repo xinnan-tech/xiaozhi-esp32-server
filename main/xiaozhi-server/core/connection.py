@@ -609,7 +609,7 @@ class ConnectionHandler:
         try:
             # Use the existing chat method
             
-            if hasattr(self.tts, 'provider_name') and self.tts.provider_name == 'linkerai' and 'double_stream' in self.tts.stream_mode:
+            if 1:#hasattr(self.tts, 'provider_name') and self.tts.provider_name == 'linkerai' and 'double_stream' in self.tts.stream_mode:
                 self.logger.bind(tag=TAG).info(f"self.tts.provider_name: { self.tts.provider_name} {self.tts.stream_mode}")
                 self.chat_double_stream('你好')
             else:
