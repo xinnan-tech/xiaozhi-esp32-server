@@ -87,7 +87,7 @@ selected_module:
   # 意图识别可使用intent_llm，如果你的LLM是DifyLLM或CozeLLM，建议使用这个。优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间，这个意图识别暂时不支持控制音量大小等iot操作
   # 意图识别可使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快，理论上能全部操作所有iot指令
   # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
-  Intent: function_call
+  Intent: nointent
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
@@ -317,6 +317,28 @@ TTS:
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
     cluster: volcano_tts
+  LinkeraiTTS:
+    # 定义TTS API类型
+    # 支持克隆音色、方言：
+    # 四川话
+    # 粤语
+    # 上海话
+    # 郑州话
+    # 长沙话
+    # 天津话
+    # 普通话
+    # 文档地址：https://tts.linkerai.top/docs#/
+    # 密匙获取：https://linkerai.top/
+    type: linkerai
+    api_url: https://tts.linkerai.top/tts
+    voice: OUeAo1mhq6IBExi
+    output_dir: tmp/
+    authorization: "Bearer;"
+    response_format: 'opus'
+    access_token: '123'
+    sample_rate: 16000
+    stream_mode: 'double_stream'  # stream or double_stream
+    instruct_text: ''
   CosyVoiceSiliconflow:
     type: siliconflow
     # 硅基流动TTS
