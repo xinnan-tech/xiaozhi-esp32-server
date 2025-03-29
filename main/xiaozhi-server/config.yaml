@@ -82,9 +82,10 @@ selected_module:
   TTS: EdgeTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
   Memory: nomem
-  # 意图识别模块，默认使用function_call。开启后，可以播放音乐、控制音量、识别退出指令
-  # 意图识别使用intent_llm，优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间
-  # 意图识别使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快
+  # 意图识别模块开启后，可以播放音乐、控制音量、识别退出指令。
+  # 不想开通意图识别，就设置成：nointent
+  # 意图识别可使用intent_llm，如果你的LLM是DifyLLM或CozeLLM，建议使用这个。优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间，这个意图识别暂时不支持控制音量大小等iot操作
+  # 意图识别可使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快，理论上能全部操作所有iot指令
   # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-pro-32k-functioncall-241028
   Intent: function_call
 
@@ -97,9 +98,13 @@ Intent:
   intent_llm:
     # 不需要动type
     type: intent_llm
+    # 配备意图识别独立的思考模型
+    # 如果这里不填，则会默认使用selected_module.LLM的模型作为意图识别的思考模型
+    # 如果你的selected_module.LLM选择了DifyLLM或CozeLLM，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
+    llm: ChatGLMLLM
   function_call:
     # 不需要动type
-    type: nointent
+    type: function_call
     # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
     # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
     # 下面是加载查天气、角色切换、加载查新闻的插件示例
@@ -278,6 +283,18 @@ LLM:
     variables:
       k: "v"
       k2: "v2"
+  XinferenceLLM:
+    # 定义LLM API类型
+    type: xinference
+    # Xinference服务地址和模型名称
+    model_name: qwen2.5:72b-AWQ  # 使用的模型名称，需要预先在Xinference启动对应模型
+    base_url: http://localhost:9997  # Xinference服务地址
+  XinferenceSmallLLM:
+    # 定义轻量级LLM API类型，用于意图识别
+    type: xinference
+    # Xinference服务地址和模型名称
+    model_name: qwen2.5:3b-AWQ  # 使用的小模型名称，用于意图识别
+    base_url: http://localhost:9997  # Xinference服务地址
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:

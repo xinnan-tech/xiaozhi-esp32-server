@@ -186,7 +186,6 @@ export default {
     },
     // 已绑设备
      getAgentBindDevices(agentId, callback) {
-        console.log("77777777777777777777777")
          RequestService.sendRequest()
              .url(`${getServiceUrl()}/api/v1/user/agent/device/bind/${agentId}`)
              .method('GET')
@@ -219,7 +218,6 @@ export default {
     },
     // 绑定设备
     bindDevice(agentId, code, callback) {
-        console.log("32323234343434344340000")
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/api/v1/user/agent/device/bind/${agentId}`)
             .method('POST')
@@ -229,10 +227,26 @@ export default {
                 callback(res);
             })
             .fail((err) => {
-                // console.error('绑定设备失败:', err);
-                // RequestService.reAjaxFun(() => {
-                //     this.bindDevice(agentId, code, callback);
-                // });
+                console.error('绑定设备失败:', err);
+                RequestService.reAjaxFun(() => {
+                    this.bindDevice(agentId, code, callback);
+                });
             }).send();
     },
+    // 新增方法：获取智能体模板
+    getAgentTemplate(templateName, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/api/v1/user/agent/templateId`)
+            .method('GET')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .fail((err) => {
+                console.error('获取模板失败:', err);
+                RequestService.reAjaxFun(() => {
+                this.getAgentTemplate(templateName, callback);
+                });
+            }).send();
+        },
 }

@@ -44,9 +44,6 @@ export default {
   },
   methods: {
     confirm() {
-      // console.log(this.agentId)
-      //  console.log("=========")
-      // console.log(this.$route.query.agentId)
       if (!/^\d{6}$/.test(this.deviceCode)) {
         this.$message.error('请输入6位数字验证码');
         return;

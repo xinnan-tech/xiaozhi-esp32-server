@@ -9,7 +9,7 @@
               style="width: 37px;height: 37px;background: #5778ff;border-radius: 50%;display: flex;align-items: center;justify-content: center;">
             <img src="@/assets/home/setting-user.png" alt="" style="width: 19px;height: 19px;"/>
           </div>
-          {{ deviceMac }}
+          {{ form.agentName }}
         </div>
         <div style="height: 1px;background: #e8f0ff;"/>
         <el-form ref="form" :model="form" label-width="72px">
@@ -21,7 +21,7 @@
             </el-form-item>
             <el-form-item label="角色模版：">
               <div style="display: flex;gap: 8px;">
-                <div v-for="template in templates" :key="template" class="template-item" @click="selectTemplate(template)">
+                <div v-for="template in templates" :key="template" class="template-item" :class="{ 'template-loading': loadingTemplate }" @click="selectTemplate(template)">
                   {{ template }}
                 </div>
               </div>
@@ -103,65 +103,65 @@ export default {
   components: {HeaderBar},
   data() {
     return {
-      deviceMac: 'CC:ba:97:11:a6:ac',
       form: {
-        agentCode:"",
+        agentCode: "",
         agentName: "",
         ttsVoiceId: "",
         systemPrompt: "",
-        langCode:"",
-        language:"",
-        sort:"",
+        langCode: "",
+        language: "",
+        sort: "",
         model: {
           ttsModelId: "",
           vadModelId: "",
-          asrModelId:"",
+          asrModelId: "",
           llmModelId: "",
           memModelId: "",
           intentModelId: "",
         }
       },
       options: [
-        { value: '选项1', label: '黄金糕' },
-        { value: '选项2', label: '双皮奶' }
+        {value: '选项1', label: '黄金糕'},
+        {value: '选项2', label: '双皮奶'}
       ],
       models: [
-        { label: '大语言模型(LLM)', key: 'llmModelId' },
-        { label: '语音识别(ASR)', key: 'asrModelId' },
-        { label: '语音活动检测模型(VAD)', key: 'vadModelId' },
-        { label: '语音合成模型(TTS)', key: 'ttsModelId' },
-        { label: '意图识别模型(Intent)', key: 'intentModelId' },
-        { label: '记忆模型(Memory)', key: 'memModelId' }
+        {label: '大语言模型(LLM)', key: 'llmModelId'},
+        {label: '语音识别(ASR)', key: 'asrModelId'},
+        {label: '语音活动检测模型(VAD)', key: 'vadModelId'},
+        {label: '语音合成模型(TTS)', key: 'ttsModelId'},
+        {label: '意图识别模型(Intent)', key: 'intentModelId'},
+        {label: '记忆模型(Memory)', key: 'memModelId'}
       ],
-      templates: ['台湾女友', '土豆子', '英语老师', '好奇小男孩', '汪汪队队长']
+      templates: ['台湾女友', '土豆子', '英语老师', '好奇小男孩', '汪汪队队长'],
+      loadingTemplate: false
     }
   },
   methods: {
     saveConfig() {
-        const configData = {
-            agentCode: this.form.agentCode,
-            agentName: this.form.agentName,
-            asrModelId: this.form.model.asrModelId,
-            vadModelId: this.form.model.vadModelId,
-            llmModelId: this.form.model.llmModelId,
-            ttsModelId: this.form.model.ttsModelId,
-            ttsVoiceId: this.form.ttsVoiceId,
-            memModelId: this.form.model.memModelId,
-            intentModelId: this.form.model.intentModelId,
-            systemPrompt: this.form.systemPrompt,
-            langCode: this.form.langCode,
-            language: this.form.language,
-            sort: this.form.sort
-        };
-        import('@/apis/module/user').then(({ default: userApi }) => {
-            userApi.updateAgentConfig(this.$route.query.agentId, configData, ({data}) => {
-                if (data.code === 0) {
-                    this.$message.success('配置保存成功');
-                } else {
-                    this.$message.error(data.msg || '配置保存失败');
-                }
-            });
+      const configData = {
+        agentCode: this.form.agentCode,
+        agentName: this.form.agentName,
+        asrModelId: this.form.model.asrModelId,
+        vadModelId: this.form.model.vadModelId,
+        llmModelId: this.form.model.llmModelId,
+        ttsModelId: this.form.model.ttsModelId,
+        ttsVoiceId: this.form.ttsVoiceId,
+        memModelId: this.form.model.memModelId,
+        intentModelId: this.form.model.intentModelId,
+        systemPrompt: this.form.systemPrompt,
+        langCode: this.form.langCode,
+        language: this.form.language,
+        sort: this.form.sort
+      };
+      import('@/apis/module/user').then(({default: userApi}) => {
+        userApi.updateAgentConfig(this.$route.query.agentId, configData, ({data}) => {
+          if (data.code === 0) {
+            this.$message.success('配置保存成功');
+          } else {
+            this.$message.error(data.msg || '配置保存失败');
+          }
         });
+      });
     },
     resetConfig() {
       this.$confirm('确定要重置配置吗？', '提示', {
@@ -171,17 +171,17 @@ export default {
       }).then(() => {
         // 重置表单
         this.form = {
-          agentCode:"",
+          agentCode: "",
           agentName: "",
           ttsVoiceId: "",
           systemPrompt: "",
-          langCode:"",
-          language:"",
-          sort:"",
+          langCode: "",
+          language: "",
+          sort: "",
           model: {
             ttsModelId: "",
             vadModelId: "",
-            asrModelId:"",
+            asrModelId: "",
             llmModelId: "",
             memModelId: "",
             intentModelId: "",
@@ -191,37 +191,73 @@ export default {
       }).catch(() => {
       })
     },
-    selectTemplate(template) {
-      this.form.name = template;
-      this.$message.success(`已选择模板：${template}`);
-    },
-    fetchAgentConfig(agentId) {
-      import('@/apis/module/user').then(({ default: userApi }) => {
-        userApi.getDeviceConfig(agentId, ({ data }) => {
-          if (data.code === 0) {
-            this.form = {
-              ...this.form,
-              ...data.data,
-              model: {
-                ttsModelId: data.data.ttsModelId,
-                vadModelId: data.data.vadModelId,
-                asrModelId: data.data.asrModelId,
-                llmModelId: data.data.llmModelId,
-                memModelId: data.data.memModelId,
-                intentModelId: data.data.intentModelId
+    selectTemplate(templateName) {
+      if (this.loadingTemplate) return;
+
+      this.loadingTemplate = true;
+      import('@/apis/module/user').then(({default: userApi}) => {
+        userApi.getAgentTemplate(
+            {templateName},
+            (response) => {
+              this.loadingTemplate = false;
+              if (response.data.code === 0 && response.data.data.length > 0) {
+                this.applyTemplateData(response.data.data[0]);
+                this.$message.success(`「${templateName}」模板已应用`);
+              } else {
+                this.$message.warning(`未找到「${templateName}」模板`);
               }
-            };
-          } else {
-            this.$message.error(data.msg || '获取配置失败');
-          }
-        });
+            }
+        );
+      }).catch((error) => {
+        this.loadingTemplate = false;
+        this.$message.error('模板加载失败');
+        console.error('接口异常:', error);
       });
     },
-    // 清空记忆体内容
-    clearMemory() {
-      this.form.langCode = "";
-      this.$message.success("记忆体已清空");
+    applyTemplateData(templateData) {
+      this.form = {
+        ...this.form,
+        agentName: templateData.agentName || this.form.agentName,
+        ttsVoiceId: templateData.ttsVoiceId || this.form.ttsVoiceId,
+        systemPrompt: templateData.systemPrompt || this.form.systemPrompt,
+        langCode: templateData.langCode || this.form.langCode,
+        model: {
+          ttsModelId: templateData.ttsModelId || this.form.model.ttsModelId,
+          vadModelId: templateData.vadModelId || this.form.model.vadModelId,
+          asrModelId: templateData.asrModelId || this.form.model.asrModelId,
+          llmModelId: templateData.llmModelId || this.form.model.llmModelId,
+          memModelId: templateData.memModelId || this.form.model.memModelId,
+          intentModelId: templateData.intentModelId || this.form.model.intentModelId
+        }
+      };
     },
+  fetchAgentConfig(agentId) {
+    import('@/apis/module/user').then(({default: userApi}) => {
+      userApi.getDeviceConfig(agentId, ({data}) => {
+        if (data.code === 0) {
+          this.form = {
+            ...this.form,
+            ...data.data,
+            model: {
+              ttsModelId: data.data.ttsModelId,
+              vadModelId: data.data.vadModelId,
+              asrModelId: data.data.asrModelId,
+              llmModelId: data.data.llmModelId,
+              memModelId: data.data.memModelId,
+              intentModelId: data.data.intentModelId
+            }
+          };
+        } else {
+          this.$message.error(data.msg || '获取配置失败');
+        }
+      });
+    });
+  },
+  // 清空记忆体内容
+  clearMemory() {
+    this.form.langCode = "";
+    this.$message.success("记忆体已清空");
+  },
 },
   mounted() {
     const agentId = this.$route.query.agentId;

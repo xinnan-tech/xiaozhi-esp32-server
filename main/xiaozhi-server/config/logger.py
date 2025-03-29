@@ -3,7 +3,7 @@ import sys
 from loguru import logger
 from config.settings import load_config
 
-SERVER_VERSION = "0.1.15"
+SERVER_VERSION = "0.1.16"
 
 def setup_logging():
     """从配置文件中读取日志配置，并设置日志输出格式和级别"""
@@ -13,7 +13,7 @@ def setup_logging():
     log_format_file = log_config.get("log_format_file", "{time:YYYY-MM-DD HH:mm:ss} - {version_{selected_module}} - {name} - {level} - {extra[tag]} - {message}")
 
     selected_module = config.get("selected_module")
-    selected_module_str = ''.join([key[0] + value[0] for key, value in selected_module.items()])
+    selected_module_str = ''.join([value[0] + value[1] for key, value in selected_module.items()])
 
     log_format = log_format.replace("{version}", SERVER_VERSION)
     log_format = log_format.replace("{selected_module}", selected_module_str)
