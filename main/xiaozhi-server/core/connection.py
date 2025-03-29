@@ -255,6 +255,8 @@ class ConnectionHandler:
             future = asyncio.run_coroutine_threadsafe(self._check_and_broadcast_auth_code(), self.loop)
             future.result()
             return True
+        if hasattr(self.tts, 'provider_name') and self.tts.provider_name == 'linkerai' and self.tts.stream_mode == 'double_stream':
+            return self.chat_double_stream(query)
 
         self.dialogue.put(Message(role="user", content=query))
 
@@ -608,13 +610,7 @@ class ConnectionHandler:
         """Chat with the user and then close the connection"""
         try:
             # Use the existing chat method
-            
-            if 1:#hasattr(self.tts, 'provider_name') and self.tts.provider_name == 'linkerai' and 'double_stream' in self.tts.stream_mode:
-                self.logger.bind(tag=TAG).info(f"self.tts.provider_name: { self.tts.provider_name} {self.tts.stream_mode}")
-                self.chat_double_stream('你好')
-            else:
-                self.logger.bind(tag=TAG).info(f"self.tts.provider_name: single_stream")
-                self.chat('你好')
+            self.chat(text)
 
             # After chat is complete, close the connection
             self.close_after_chat = True
