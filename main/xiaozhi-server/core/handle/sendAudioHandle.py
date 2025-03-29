@@ -36,10 +36,10 @@ async def sendAudioStream(conn, audios):
     start_time = time.perf_counter()
     play_position = 0
     
-    # if isinstance(audios,types.GeneratorType):
-    if 1:#inspect.isasyncgen(audios):
+    if isinstance(audios,types.GeneratorType):
+    # if 1:#inspect.isasyncgen(audios):
         count = 0 
-        async for opus_packet in audios:
+        for opus_packet in audios:
             if opus_packet.startswith(b'text:'):
                 await send_tts_message(conn, "sentence_start", opus_packet.replace(b'text:','').decode('utf-8'))
                 continue
@@ -73,10 +73,10 @@ async def sendAudio(conn, audios):
     start_time = time.perf_counter()
     play_position = 0
     
-    # if isinstance(audios,types.GeneratorType):
-    if inspect.isasyncgen(audios):
+    if isinstance(audios,types.GeneratorType):
+    # if inspect.isasyncgen(audios):
         count = 0 
-        async for opus_packet in audios:
+        for opus_packet in audios:
             if len(opus_packet) < 1:
                 continue
             if count < 3:
