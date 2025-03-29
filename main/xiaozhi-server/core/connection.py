@@ -611,10 +611,10 @@ class ConnectionHandler:
             
             if hasattr(self.tts, 'provider_name') and self.tts.provider_name == 'linkerai' and 'double_stream' in self.tts.stream_mode:
                 self.logger.bind(tag=TAG).info(f"self.tts.provider_name: { self.tts.provider_name} {self.tts.stream_mode}")
-                self.chat_double_stream(text)
+                self.chat_double_stream('你好')
             else:
                 self.logger.bind(tag=TAG).info(f"self.tts.provider_name: single_stream")
-                self.chat(text)
+                self.chat('你好')
 
             # After chat is complete, close the connection
             self.close_after_chat = True
