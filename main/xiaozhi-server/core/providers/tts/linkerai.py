@@ -32,7 +32,7 @@ class TTSProvider(TTSProviderBase):
             "tts_text": text,
             "spk_id": self.voice,
             "frame_durition": 60,
-            "stream": str(True).lower(),  
+            "stream": 'true',#str(True).lower(),  
             "target_sr": self.sample_rate,
             "audio_format":"opus",
             "instruct_text":self.instruct_text
