@@ -155,5 +155,9 @@ main/manager-web/node_modules
 # model files
 main/xiaozhi-server/models/SenseVoiceSmall/model.pt
 main/xiaozhi-server/models/sherpa-onnx*
+main/xiaozhi-server/models/paraformer-zh
+main/xiaozhi-server/models/fsmn-vad
+main/xiaozhi-server/models/ct-punc-c
+
 my_wakeup_words.mp3
 main/manager-api/.vscode
