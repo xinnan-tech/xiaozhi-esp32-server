@@ -1,0 +1,31 @@
+{
+  "des": [
+    "在data目录下创建.mcp_server_settings.json文件，可以选择下面的MCP服务，也可以自行添加新的MCP服务。",
+    "后面不断测试补充好用的mcp服务，欢迎大家一起补充。",
+    "记得删除注释行,des属性仅为说明,不会被解析。",
+    "des和link属性，仅为说明安装方式，方便大家查看原始链接，不是必须项。"
+  ],
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Desktop",
+        "/path/to/other/allowed/dir"
+      ],
+      "link":"https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@executeautomation/playwright-mcp-server"],
+      "des" : "run 'npx playwright install' first",
+      "link": "https://github.com/executeautomation/mcp-playwright"
+    },
+    "windows-cli": {
+      "command": "npx",
+      "args": ["-y", "@simonb97/server-win-cli"],
+      "link": "https://github.com/SimonB97/win-cli-mcp-server"
+    }
+  }
+}

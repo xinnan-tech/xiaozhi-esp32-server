@@ -1,6 +1,5 @@
 package xiaozhi.common.exception;
 
-
 import xiaozhi.common.utils.MessageUtils;
 
 /**
@@ -9,7 +8,6 @@ import xiaozhi.common.utils.MessageUtils;
  * Website: https://www.renren.io
  */
 public class RenException extends RuntimeException {
-
 
     private int code;
     private String msg;

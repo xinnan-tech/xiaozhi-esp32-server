@@ -18,10 +18,11 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.sendAudioHandle import sendAudioMessage
 from core.handle.receiveAudioHandle import handleAudioMessage
 from core.handle.functionHandler import FunctionHandler
-from plugins_func.register import Action
+from plugins_func.register import Action, ActionResponse
 from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator
+from core.mcp.manager import MCPManager
 
 TAG = __name__
 
@@ -100,6 +101,8 @@ class ConnectionHandler:
         self.use_function_call_mode = False
         if self.config["selected_module"]["Intent"] == 'function_call':
             self.use_function_call_mode = True
+        
+        self.mcp_manager = MCPManager(self)
 
     async def handle_connection(self, ws):
         try:
@@ -194,7 +197,31 @@ class ConnectionHandler:
         """加载记忆"""
         device_id = self.headers.get("device-id", None)
         self.memory.init_memory(device_id, self.llm)
-        self.intent.set_llm(self.llm)
+        
+        """为意图识别设置LLM，优先使用专用LLM"""
+        # 检查是否配置了专用的意图识别LLM
+        intent_llm_name = self.config["Intent"]["intent_llm"]["llm"]
+        
+        # 记录开始初始化意图识别LLM的时间
+        intent_llm_init_start = time.time()
+        
+        if not self.use_function_call_mode and intent_llm_name and intent_llm_name in self.config["LLM"]:
+            # 如果配置了专用LLM，则创建独立的LLM实例
+            from core.utils import llm as llm_utils
+            intent_llm_config = self.config["LLM"][intent_llm_name]
+            intent_llm_type = intent_llm_config.get("type", intent_llm_name)
+            intent_llm = llm_utils.create_instance(intent_llm_type, intent_llm_config)
+            self.logger.bind(tag=TAG).info(f"为意图识别创建了专用LLM: {intent_llm_name}, 类型: {intent_llm_type}")
+            
+            self.intent.set_llm(intent_llm)
+        else:
+            # 否则使用主LLM
+            self.intent.set_llm(self.llm)
+            self.logger.bind(tag=TAG).info("意图识别使用主LLM")
+            
+        # 记录意图识别LLM初始化耗时
+        intent_llm_init_time = time.time() - intent_llm_init_start
+        self.logger.bind(tag=TAG).info(f"意图识别LLM初始化完成，耗时: {intent_llm_init_time:.4f}秒")
 
         """加载位置信息"""
         self.client_ip_info = get_ip_info(self.client_ip)
@@ -202,6 +229,9 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).info(f"Client ip info: {self.client_ip_info}")
             self.prompt = self.prompt + f"\nuser location:{self.client_ip_info}"
             self.dialogue.update_system_message(self.prompt)
+
+        """加载MCP工具"""
+        asyncio.run_coroutine_threadsafe(self.mcp_manager.initialize_servers(), self.loop)
 
     def change_system_prompt(self, prompt):
         self.prompt = prompt
@@ -324,7 +354,6 @@ class ConnectionHandler:
         functions = None
         if hasattr(self, 'func_handler'):
             functions = self.func_handler.get_functions()
-
         response_message = []
         processed_chars = 0  # 跟踪已处理的字符位置
 
@@ -358,6 +387,9 @@ class ConnectionHandler:
         content_arguments = ""
         for response in llm_responses:
             content, tools_call = response
+            if "content" in response:
+                content = response["content"]
+                tools_call = None
             if content is not None and len(content) > 0:
                 if len(response_message) <= 0 and (content == "```" or "<tool_call>" in content):
                     tool_call_flag = True
@@ -436,8 +468,14 @@ class ConnectionHandler:
                     "id": function_id,
                     "arguments": function_arguments
                 }
-                result = self.func_handler.handle_llm_function_call(self, function_call_data)
-                self._handle_function_result(result, function_call_data, text_index + 1)
+
+                # 处理MCP工具调用
+                if self.mcp_manager.is_mcp_tool(function_name):
+                    result = self._handle_mcp_tool_call(function_call_data)
+                else:
+                    # 处理系统函数
+                    result = self.func_handler.handle_llm_function_call(self, function_call_data)
+                self._handle_function_result(result, function_call_data, text_index+1)
 
         # 处理最后剩余的文本
         full_text = "".join(response_message)
@@ -458,6 +496,42 @@ class ConnectionHandler:
         self.logger.bind(tag=TAG).debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
 
         return True
+
+    def _handle_mcp_tool_call(self, function_call_data):
+        function_arguments = function_call_data["arguments"]
+        function_name = function_call_data["name"]
+        try:
+            args_dict = function_arguments
+            if isinstance(function_arguments, str):
+                try:
+                    args_dict = json.loads(function_arguments)
+                except json.JSONDecodeError:
+                    self.logger.bind(tag=TAG).error(f"无法解析 function_arguments: {function_arguments}")
+                    return ActionResponse(action=Action.REQLLM, result="参数解析失败", response="")
+                    
+            tool_result = asyncio.run_coroutine_threadsafe(self.mcp_manager.execute_tool(
+                function_name,
+                args_dict
+            ), self.loop).result()
+            # meta=None content=[TextContent(type='text', text='北京当前天气:\n温度: 21°C\n天气: 晴\n湿度: 6%\n风向: 西北 风\n风力等级: 5级', annotations=None)] isError=False
+            content_text = ""
+            if tool_result is not None and tool_result.content is not None:
+                for content in tool_result.content:
+                    content_type = content.type
+                    if content_type == "text":
+                        content_text = content.text
+                    elif content_type == "image":
+                        pass
+            
+            if len(content_text) > 0:
+                return ActionResponse(action=Action.REQLLM, result=content_text, response="")
+            
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"MCP工具调用错误: {e}")
+            return ActionResponse(action=Action.REQLLM, result="工具调用出错", response="")
+
+        return ActionResponse(action=Action.REQLLM, result="工具调用出错", response="")
+            
 
     def _handle_function_result(self, result, function_call_data, text_index):
         if result.action == Action.RESPONSE:  # 直接回复前端
@@ -582,6 +656,8 @@ class ConnectionHandler:
 
     async def close(self, ws=None):
         """资源清理方法"""
+        # 清理MCP资源
+        await self.mcp_manager.cleanup_all()
 
         # 触发停止事件并清理资源
         if self.stop_event:

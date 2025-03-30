@@ -11,6 +11,7 @@ manager-api 该项目基于SpringBoot框架开发。
 JDK 21
 Maven 3.8+
 MySQL 8.0+
+Redis 5.0+
 Vue 3.x
 
 # 创建数据库
@@ -42,6 +43,30 @@ spring:
     username: root
     password: 123456
 ```
+
+
+# 连接Redis
+
+如果还没有Redis，你可以通过docker安装redis
+
+```
+docker run --name xiaozhi-esp32-server-redis -d -p 6379:6379 redis
+```
+
+# 确认项目Redis连接信息
+
+在`src/main/resources/application-dev.yml`中配置Redis连接信息
+
+```
+spring:
+    data:
+      redis:
+        host: localhost
+        port: 6379
+        password:
+        database: 0
+```
+
 
 # 测试启动
 

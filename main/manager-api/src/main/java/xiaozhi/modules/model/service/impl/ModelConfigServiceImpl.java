@@ -1,13 +1,19 @@
 package xiaozhi.modules.model.service.impl;
 
-import cn.hutool.core.collection.CollectionUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import lombok.AllArgsConstructor;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+
+import cn.hutool.core.collection.CollectionUtil;
+import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
@@ -22,13 +28,10 @@ import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.model.service.ModelProviderService;
 import xiaozhi.modules.timbre.service.TimbreService;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 @Service
 @AllArgsConstructor
-public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, ModelConfigEntity> implements ModelConfigService {
+public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, ModelConfigEntity>
+        implements ModelConfigService {
 
     private final ModelConfigDao modelConfigDao;
     private final ModelProviderService modelProviderService;
@@ -50,8 +53,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
                 getPage(params, "sort", true),
                 new QueryWrapper<ModelConfigEntity>()
                         .eq("model_type", modelType)
-                        .like(StringUtils.isNotBlank(modelName), "model_name", modelName)
-        );
+                        .like(StringUtils.isNotBlank(modelName), "model_name", modelName));
         return getPageData(modelConfigEntityIPage, ModelConfigDTO.class);
     }
 
@@ -119,6 +121,6 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         ModelConfigEntity modelConfigEntity = modelConfigEntities.get(0);
         String id = modelConfigEntity.getId();
 
-       return timbreService.getVoiceNames(id, voiceName);
+        return timbreService.getVoiceNames(id, voiceName);
     }
 }

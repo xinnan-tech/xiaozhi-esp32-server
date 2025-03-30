@@ -1,12 +1,13 @@
 package xiaozhi.common.xss;
 
-import jakarta.servlet.DispatcherType;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.PathMatcher;
+
+import jakarta.servlet.DispatcherType;
 
 /**
  * XSS 配置文件

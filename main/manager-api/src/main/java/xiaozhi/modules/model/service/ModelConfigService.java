@@ -1,10 +1,10 @@
 package xiaozhi.modules.model.service;
 
+import java.util.List;
+
 import xiaozhi.common.page.PageData;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
 import xiaozhi.modules.model.dto.ModelConfigDTO;
-
-import java.util.List;
 
 public interface ModelConfigService {
 

@@ -1,11 +1,17 @@
 package xiaozhi.common.xss;
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.AllArgsConstructor;
+import java.io.IOException;
+
 import org.springframework.util.PathMatcher;
 
-import java.io.IOException;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.AllArgsConstructor;
 
 /**
  * XSS过滤
@@ -38,7 +44,8 @@ public class XssFilter implements Filter {
 
     private boolean shouldNotFilter(HttpServletRequest request) {
         // 放行不过滤的URL
-        return properties.getExcludeUrls().stream().anyMatch(excludeUrl -> pathMatcher.match(excludeUrl, request.getServletPath()));
+        return properties.getExcludeUrls().stream()
+                .anyMatch(excludeUrl -> pathMatcher.match(excludeUrl, request.getServletPath()));
     }
 
     @Override

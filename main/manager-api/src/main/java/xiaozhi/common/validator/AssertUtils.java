@@ -1,14 +1,15 @@
 package xiaozhi.common.validator;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.ArrayUtil;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 校验工具类
@@ -73,11 +74,11 @@ public class AssertUtils {
         }
     }
 
-    public static void isMapEmpty(Map map, String... params) {
+    public static void isMapEmpty(Map<?, ?> map, String... params) {
         isMapEmpty(map, ErrorCode.NOT_NULL, params);
     }
 
-    public static void isMapEmpty(Map map, Integer code, String... params) {
+    public static void isMapEmpty(Map<?, ?> map, Integer code, String... params) {
         if (code == null) {
             throw new RenException(ErrorCode.NOT_NULL, "code");
         }

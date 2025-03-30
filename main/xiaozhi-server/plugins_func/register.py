@@ -12,6 +12,7 @@ class ToolType(Enum):
     CHANGE_SYS_PROMPT = (3, "修改系统提示词，切换角色性格或职责")
     SYSTEM_CTL = (4, "系统控制，影响正常的对话流程，如退出、播放音乐等，需要传递conn参数")
     IOT_CTL = (5, "IOT设备控制，需要传递conn参数")
+    MCP_CLIENT = (6, "MCP客户端")
 
     def __init__(self, code, message):
         self.code = code

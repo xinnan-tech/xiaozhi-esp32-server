@@ -1,15 +1,19 @@
 package xiaozhi.modules.timbre.entity;
 
+import java.util.Date;
+
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import xiaozhi.common.entity.BaseEntity;
 
-import java.util.Date;
-
 /**
  * 音色表实体类
+ * 
  * @author zjy
  * @since 2025-3-21
  */
@@ -41,8 +45,10 @@ public class TimbreEntity extends BaseEntity {
     private String voiceDemo;
 
     @Schema(description = "更新者")
+    @TableField(fill = FieldFill.UPDATE)
     private Long updater;
 
     @Schema(description = "更新时间")
+    @TableField(fill = FieldFill.UPDATE)
     private Date updateDate;
 }

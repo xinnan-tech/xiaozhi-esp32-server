@@ -1,11 +1,12 @@
 package xiaozhi.common.utils;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import org.springframework.beans.BeanUtils;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 转换工具类
@@ -20,7 +21,7 @@ public class ConvertUtils {
         }
         T targetObject = null;
         try {
-            targetObject = target.newInstance();
+            targetObject = target.getDeclaredConstructor().newInstance();
             BeanUtils.copyProperties(source, targetObject);
         } catch (Exception e) {
             log.error("convert error ", e);
@@ -34,10 +35,10 @@ public class ConvertUtils {
             return null;
         }
 
-        List targetList = new ArrayList<>(sourceList.size());
+        List<T> targetList = new ArrayList<>(sourceList.size());
         try {
             for (Object source : sourceList) {
-                T targetObject = target.newInstance();
+                T targetObject = target.getDeclaredConstructor().newInstance();
                 BeanUtils.copyProperties(source, targetObject);
                 targetList.add(targetObject);
             }

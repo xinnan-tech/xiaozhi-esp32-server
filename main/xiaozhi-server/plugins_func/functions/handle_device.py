@@ -69,7 +69,7 @@ handle_device_function_desc = {
                     "description": "动作名称，可选值：get(获取),set(设置),raise(提高),lower(降低)"
                 },
                 "value": {
-                    "type": "int",
+                    "type": "integer",
                     "description": "值大小，可选值：0-100之间的整数"
                 }
             },

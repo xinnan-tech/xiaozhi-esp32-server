@@ -1,9 +1,10 @@
 package xiaozhi.modules.sys.redis;
 
+import org.springframework.stereotype.Component;
+
+import lombok.AllArgsConstructor;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
-import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Component;
 
 /**
  * 参数管理

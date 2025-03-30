@@ -1,15 +1,16 @@
 package xiaozhi.modules.model.entity;
 
+import java.util.Date;
+
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
-import java.util.Date;
-
 
 @Data
 @TableName("ai_model_config")
@@ -48,15 +49,19 @@ public class ModelConfigEntity {
     @Schema(description = "排序")
     private Integer sort;
 
-    @Schema(description = "创建者")
-    private Long creator;
-
-    @Schema(description = "创建时间")
-    private Date createDate;
-
     @Schema(description = "更新者")
+    @TableField(fill = FieldFill.UPDATE)
     private Long updater;
 
     @Schema(description = "更新时间")
+    @TableField(fill = FieldFill.UPDATE)
     private Date updateDate;
+
+    @Schema(description = "创建者")
+    @TableField(fill = FieldFill.INSERT)
+    private Long creator;
+
+    @Schema(description = "创建时间")
+    @TableField(fill = FieldFill.INSERT)
+    private Date createDate;
 }

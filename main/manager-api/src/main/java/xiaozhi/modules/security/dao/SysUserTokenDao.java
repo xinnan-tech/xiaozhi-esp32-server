@@ -1,11 +1,12 @@
 package xiaozhi.modules.security.dao;
 
+import java.util.Date;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
 import xiaozhi.common.dao.BaseDao;
 import xiaozhi.modules.security.entity.SysUserTokenEntity;
-
-import java.util.Date;
 
 /**
  * 系统用户Token

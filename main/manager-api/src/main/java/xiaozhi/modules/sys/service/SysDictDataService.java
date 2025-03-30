@@ -1,11 +1,11 @@
 package xiaozhi.modules.sys.service;
 
+import java.util.Map;
+
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.BaseService;
 import xiaozhi.modules.sys.dto.SysDictDataDTO;
 import xiaozhi.modules.sys.entity.SysDictDataEntity;
-
-import java.util.Map;
 
 /**
  * 数据字典

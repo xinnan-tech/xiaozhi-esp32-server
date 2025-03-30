@@ -1,10 +1,10 @@
 package xiaozhi.common.utils;
 
+import java.io.Serializable;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import xiaozhi.common.exception.ErrorCode;
-
-import java.io.Serializable;
 
 /**
  * 响应数据
@@ -35,7 +35,6 @@ public class Result<T> implements Serializable {
         this.setData(data);
         return this;
     }
-
 
     public Result<T> error() {
         this.code = ErrorCode.INTERNAL_SERVER_ERROR;

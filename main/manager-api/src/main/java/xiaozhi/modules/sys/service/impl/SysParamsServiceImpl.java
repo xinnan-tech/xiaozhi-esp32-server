@@ -1,7 +1,17 @@
 package xiaozhi.modules.sys.service.impl;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+
+import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
@@ -14,14 +24,6 @@ import xiaozhi.modules.sys.dto.SysParamsDTO;
 import xiaozhi.modules.sys.entity.SysParamsEntity;
 import xiaozhi.modules.sys.redis.SysParamsRedis;
 import xiaozhi.modules.sys.service.SysParamsService;
-import lombok.AllArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 参数管理
@@ -35,8 +37,7 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
     public PageData<SysParamsDTO> page(Map<String, Object> params) {
         IPage<SysParamsEntity> page = baseDao.selectPage(
                 getPage(params, Constant.CREATE_DATE, false),
-                getWrapper(params)
-        );
+                getWrapper(params));
 
         return getPageData(page, SysParamsDTO.class);
     }
@@ -86,12 +87,12 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long[] ids) {
-        //删除Redis数据
+        // 删除Redis数据
         List<String> paramCodeList = baseDao.getParamCodeList(ids);
         String[] paramCodes = paramCodeList.toArray(new String[paramCodeList.size()]);
         sysParamsRedis.delete(paramCodes);
 
-        //删除
+        // 删除
         deleteBatchIds(Arrays.asList(ids));
     }
 
@@ -114,7 +115,7 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
         }
 
         try {
-            return clazz.newInstance();
+            return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             throw new RenException(ErrorCode.PARAMS_GET_ERROR);
         }

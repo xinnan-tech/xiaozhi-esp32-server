@@ -1,22 +1,24 @@
 package xiaozhi.modules.sys.dto;
 
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
+
+import org.hibernate.validator.constraints.Range;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import xiaozhi.common.utils.DateUtils;
-import xiaozhi.common.validator.group.AddGroup;
-import xiaozhi.common.validator.group.DefaultGroup;
-import xiaozhi.common.validator.group.UpdateGroup;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import lombok.Data;
-import org.hibernate.validator.constraints.Range;
-
-import java.io.Serializable;
-import java.util.Date;
-import java.util.List;
+import xiaozhi.common.utils.DateUtils;
+import xiaozhi.common.validator.group.AddGroup;
+import xiaozhi.common.validator.group.DefaultGroup;
+import xiaozhi.common.validator.group.UpdateGroup;
 
 /**
  * 用户管理

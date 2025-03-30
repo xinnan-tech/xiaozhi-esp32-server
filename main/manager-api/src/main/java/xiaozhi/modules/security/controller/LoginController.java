@@ -1,12 +1,18 @@
 package xiaozhi.modules.security.controller;
 
+import java.io.IOException;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.*;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.TokenDTO;
@@ -22,8 +28,6 @@ import xiaozhi.modules.sys.dto.PasswordDTO;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.service.SysUserService;
 
-import java.io.IOException;
-
 /**
  * 登录控制层
  */
@@ -36,14 +40,13 @@ public class LoginController {
     private final SysUserTokenService sysUserTokenService;
     private final CaptchaService captchaService;
 
-
     @GetMapping("/captcha")
     @Operation(summary = "验证码")
     public void captcha(HttpServletResponse response, String uuid) throws IOException {
-        //uuid不能为空
+        // uuid不能为空
         AssertUtils.isBlank(uuid, ErrorCode.IDENTIFIER_NOT_NULL);
 
-        //生成验证码
+        // 生成验证码
         captchaService.create(response, uuid);
     }
 

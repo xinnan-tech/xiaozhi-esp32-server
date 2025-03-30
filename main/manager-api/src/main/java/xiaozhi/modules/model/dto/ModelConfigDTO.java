@@ -1,10 +1,10 @@
 package xiaozhi.modules.model.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-
 import java.io.Serial;
 import java.io.Serializable;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 
 @Data
 @Schema(description = "模型供应器/商")
