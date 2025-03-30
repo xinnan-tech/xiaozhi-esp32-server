@@ -10,7 +10,7 @@ public interface ModelConfigService {
 
     List<String> getModelCodeList(String modelType, String modelName);
 
-    PageData<ModelConfigDTO> getPageList(String modelType, String modelName, Integer page, Integer limit);
+    PageData<ModelConfigDTO> getPageList(String modelType, String modelName, String page, String limit);
 
     ModelConfigDTO add(String modelType, String provideCode, ModelConfigBodyDTO modelConfigBodyDTO);
 

@@ -52,5 +52,3 @@ spring:
           max-idle: 8        # 连接池中的最大空闲连接
           min-idle: 0        # 连接池中的最小空闲连接
         shutdown-timeout: 100ms  # 客户端优雅关闭的等待时间
-  liquibase:
-    enabled: false  # 开发环境禁用Liquibase自动检查

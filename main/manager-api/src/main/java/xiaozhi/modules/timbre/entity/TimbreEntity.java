@@ -9,7 +9,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import xiaozhi.common.entity.BaseEntity;
 
 /**
  * 音色表实体类
@@ -21,7 +20,10 @@ import xiaozhi.common.entity.BaseEntity;
 @EqualsAndHashCode(callSuper = false)
 @TableName("ai_tts_voice")
 @Schema(description = "音色信息")
-public class TimbreEntity extends BaseEntity {
+public class TimbreEntity {
+
+    @Schema(description = "id")
+    private String id;
 
     @Schema(description = "语言")
     private String languages;
@@ -51,4 +53,13 @@ public class TimbreEntity extends BaseEntity {
     @Schema(description = "更新时间")
     @TableField(fill = FieldFill.UPDATE)
     private Date updateDate;
+
+    @Schema(description = "创建者")
+    @TableField(fill = FieldFill.INSERT)
+    private Long creator;
+
+    @Schema(description = "创建时间")
+    @TableField(fill = FieldFill.INSERT)
+    private Date createDate;
+
 }

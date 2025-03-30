@@ -14,7 +14,7 @@ public class ModelConfigDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "主键")
-    private Long id;
+    private String id;
 
     @Schema(description = "模型类型(Memory/ASR/VAD/LLM/TTS)")
     private String modelType;

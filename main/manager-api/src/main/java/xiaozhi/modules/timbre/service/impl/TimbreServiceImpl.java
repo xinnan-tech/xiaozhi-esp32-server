@@ -86,7 +86,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     @Override
     public List<String> getVoiceNames(String ttsModelId, String voiceName) {
         QueryWrapper<TimbreEntity> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("ttsModelId", StringUtils.isBlank(ttsModelId) ? "" : ttsModelId);
+        queryWrapper.eq("tts_model_id", StringUtils.isBlank(ttsModelId) ? "" : ttsModelId);
         if (StringUtils.isNotBlank(voiceName)) {
             queryWrapper.like("name", voiceName);
         }

@@ -1,4 +1,4 @@
-package xiaozhi.modules.admin.contrloler;
+package xiaozhi.modules.sys.controller;
 
 import java.util.Map;
 

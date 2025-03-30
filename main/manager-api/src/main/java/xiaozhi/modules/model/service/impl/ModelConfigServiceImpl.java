@@ -45,7 +45,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     }
 
     @Override
-    public PageData<ModelConfigDTO> getPageList(String modelType, String modelName, Integer page, Integer limit) {
+    public PageData<ModelConfigDTO> getPageList(String modelType, String modelName, String page, String limit) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put(Constant.PAGE, page);
         params.put(Constant.LIMIT, limit);
@@ -53,7 +53,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
                 getPage(params, "sort", true),
                 new QueryWrapper<ModelConfigEntity>()
                         .eq("model_type", modelType)
-                        .like(StringUtils.isNotBlank(modelName), "model_name", modelName));
+                        .like(StringUtils.isNotBlank(modelName), "model_name", "%" + modelName + "%"));
         return getPageData(modelConfigEntityIPage, ModelConfigDTO.class);
     }
 
@@ -105,22 +105,11 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
             throw new RenException("供应器不存在");
         }
 
-        modelConfigDao.deleteById(Long.getLong(id));
+        modelConfigDao.deleteById(id);
     }
 
     @Override
-    public List<String> getVoiceList(String modelName, String voiceName) {
-        QueryWrapper<ModelConfigEntity> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("model_name", StringUtils.isBlank(modelName) ? "" : modelName);
-        queryWrapper.eq("model_type", "TTS");
-        List<ModelConfigEntity> modelConfigEntities = modelConfigDao.selectList(queryWrapper);
-        if (CollectionUtil.isEmpty(modelConfigEntities)) {
-            logger.warn("没有找到模型配置信息");
-            return null;
-        }
-        ModelConfigEntity modelConfigEntity = modelConfigEntities.get(0);
-        String id = modelConfigEntity.getId();
-
-        return timbreService.getVoiceNames(id, voiceName);
+    public List<String> getVoiceList(String modelId, String voiceName) {
+        return timbreService.getVoiceNames(modelId, voiceName);
     }
 }
