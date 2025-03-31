@@ -195,7 +195,7 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"Connection error: {str(e)}-{stack_trace}")
             return
         finally:
-            self._save_and_close(ws)
+            await self._save_and_close(ws)
 
     async def _save_and_close(self, ws):
         """保存记忆并关闭连接"""
@@ -253,13 +253,9 @@ class ConnectionHandler:
         else:
             # 否则使用主LLM
             self.intent.set_llm(self.llm)
-            self.logger.bind(tag=TAG).info("意图识别使用主LLM")
 
         # 记录意图识别LLM初始化耗时
         intent_llm_init_time = time.time() - intent_llm_init_start
-        self.logger.bind(tag=TAG).info(
-            f"意图识别LLM初始化完成，耗时: {intent_llm_init_time:.4f}秒"
-        )
 
         """加载位置信息"""
         self.client_ip_info = get_ip_info(self.client_ip)
