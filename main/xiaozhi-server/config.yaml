@@ -167,10 +167,6 @@ ASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
-  VoskASR:
-    type: vosk_local
-    model_dir: models/vosk-model
-    output_dir: tmp/
   SherpaASR:
     type: sherpa_onnx_local
     model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
