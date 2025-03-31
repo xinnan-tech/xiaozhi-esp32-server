@@ -70,7 +70,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void update(Long timbreId, TimbreDataDTO dto) {
+    public void update(String timbreId, TimbreDataDTO dto) {
         isTtsModelId(dto.getTtsModelId());
         TimbreEntity timbreEntity = ConvertUtils.sourceToTarget(dto, TimbreEntity.class);
         timbreEntity.setId(timbreId);
@@ -79,7 +79,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void delete(Long[] ids) {
+    public void delete(String[] ids) {
         baseDao.deleteBatchIds(Arrays.asList(ids));
     }
 

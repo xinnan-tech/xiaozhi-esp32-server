@@ -75,7 +75,7 @@ public class TimbreController {
     @Operation(summary = "音色修改")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> update(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody TimbreDataDTO dto) {
         ValidatorUtils.validateEntity(dto);
         timbreService.update(id, dto);
