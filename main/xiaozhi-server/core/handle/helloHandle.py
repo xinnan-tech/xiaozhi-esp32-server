@@ -47,7 +47,7 @@ def getWakeupWordFile(file_name):
     for file in os.listdir(WAKEUP_CONFIG["dir"]):
         if file.startswith("my_" + file_name):
             """避免缓存文件是一个空文件"""
-            if os.stat(f"config/assets/{file}").st_size > (5 * 1024):
+            if os.stat(f"config/assets/{file}").st_size > (15 * 1024):
                 return f"config/assets/{file}"
 
     """查找config/assets/目录下名称为wakeup_words的文件"""
@@ -70,5 +70,6 @@ async def wakeupWordsResponse(conn):
         if old_file is not None:
             os.remove(old_file)
         """将文件挪到"wakeup_words.mp3"""
-        shutil.move(tts_file, WAKEUP_CONFIG["dir"] + "my_" + WAKEUP_CONFIG["file_name"] + "." + file_type)
+        shutil.move(tts_file, WAKEUP_CONFIG["dir"] + "my_" +
+                    WAKEUP_CONFIG["file_name"] + "." + file_type)
         WAKEUP_CONFIG["create_time"] = time.time()
