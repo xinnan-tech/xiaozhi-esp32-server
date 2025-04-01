@@ -33,16 +33,46 @@
 export default {
   name: 'AddDeviceDialog',
   props: {
-    visible: { type: Boolean, required: true }
+    visible: { type: Boolean, required: true },
+    agentId: { type: String, required: true }
   },
   data() {
-    return { deviceCode: "" }
+    return {
+      deviceCode: "",
+      loading: false,
+    }
   },
   methods: {
     confirm() {
-      this.$emit('update:visible', false)
-      this.$emit('added', this.deviceCode)
-      this.deviceCode = ""
+      if (!/^\d{6}$/.test(this.deviceCode)) {
+        this.$message.error('请输入6位数字验证码');
+        return;
+      }
+      this.loading = true;
+      import('@/apis/module/user').then(({ default: userApi }) => {
+        userApi.bindDevice(
+            this.agentId,
+            this.deviceCode, ({data}) => {
+              this.loading = false;
+              if (data.code === 0) {
+                this.$emit('refresh');
+                this.$message.success('设备绑定成功');
+                this.closeDialog();
+              } else {
+                this.$message.error(data.msg || '绑定失败');
+              }
+            }
+          );
+        }).catch((err) => {
+          this.loading = false;
+          console.error('API模块加载失败:', err);
+          this.$message.error('绑定服务不可用');
+        });
+    },
+    closeDialog() {
+      this.$emit('update:visible', false);
+      this.deviceCode = '';
+
     },
     cancel() {
       this.$emit('update:visible', false)

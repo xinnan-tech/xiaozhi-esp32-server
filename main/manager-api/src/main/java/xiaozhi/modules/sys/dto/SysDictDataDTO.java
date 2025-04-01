@@ -1,20 +1,21 @@
 package xiaozhi.modules.sys.dto;
 
+import java.io.Serializable;
+import java.util.Date;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import xiaozhi.common.utils.DateUtils;
-import xiaozhi.common.validator.group.AddGroup;
-import xiaozhi.common.validator.group.DefaultGroup;
-import xiaozhi.common.validator.group.UpdateGroup;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import lombok.Data;
-
-import java.io.Serializable;
-import java.util.Date;
+import xiaozhi.common.utils.DateUtils;
+import xiaozhi.common.validator.group.AddGroup;
+import xiaozhi.common.validator.group.DefaultGroup;
+import xiaozhi.common.validator.group.UpdateGroup;
 
 /**
  * 字典数据
@@ -22,7 +23,6 @@ import java.util.Date;
 @Data
 @Schema(description = "字典数据")
 public class SysDictDataDTO implements Serializable {
-
 
     @Schema(description = "id")
     @Null(message = "{id.null}", groups = AddGroup.class)

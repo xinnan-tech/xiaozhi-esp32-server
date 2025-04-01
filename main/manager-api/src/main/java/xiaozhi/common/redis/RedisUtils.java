@@ -1,13 +1,14 @@
 package xiaozhi.common.redis;
 
-import jakarta.annotation.Resource;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import jakarta.annotation.Resource;
 
 /**
  * Redis工具类

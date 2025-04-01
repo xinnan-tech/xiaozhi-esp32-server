@@ -1,11 +1,12 @@
 package xiaozhi.modules.sys.dao;
 
-import xiaozhi.common.dao.BaseDao;
-import xiaozhi.modules.sys.entity.SysParamsEntity;
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.List;
+import xiaozhi.common.dao.BaseDao;
+import xiaozhi.modules.sys.entity.SysParamsEntity;
 
 /**
  * 参数管理

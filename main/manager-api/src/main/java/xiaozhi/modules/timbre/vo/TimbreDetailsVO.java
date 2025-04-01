@@ -1,12 +1,13 @@
 package xiaozhi.modules.timbre.vo;
 
+import java.io.Serializable;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-import java.io.Serializable;
-
 /**
  * 音色详情展示VO
+ * 
  * @author zjy
  * @since 2025-3-21
  */

@@ -26,7 +26,7 @@
       <div class="settings-btn">
         历史对话
       </div>
-      <div class="settings-btn"  @click="$emit('deviceManage')">
+      <div class="settings-btn"  @click="handleDeviceManage">
         设备管理
       </div>
     </div>
@@ -51,6 +51,9 @@ export default {
     },
     handleConfigure() {
       this.$router.push({ path: '/role-config', query: { agentId: this.device.agentId } });
+    },
+    handleDeviceManage() {
+      this.$router.push({ path: '/device-management', query: { agentId: this.device.agentId } });
     }
   }
 }

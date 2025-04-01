@@ -62,11 +62,36 @@ const routes = [
      return import('../views/ModelConfig.vue')
    }
   },
+  {
+    path: '/test',
+    name: 'TestServer',
+    component: function () {
+      return import('../views/test.vue')
+    }
+  },
 
 ]
 
 const router = new VueRouter({
   routes
+})
+
+// 需要登录才能访问的路由
+const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig']
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+  // 检查是否是需要保护的路由
+  if (protectedRoutes.includes(to.name)) {
+    // 从localStorage获取token
+    const token = localStorage.getItem('token')
+    if (!token) {
+      // 未登录，跳转到登录页
+      next({ name: 'login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+  next()
 })
 
 export default router

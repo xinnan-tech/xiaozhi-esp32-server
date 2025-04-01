@@ -1,19 +1,20 @@
 package xiaozhi.common.utils;
 
-import jakarta.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import jakarta.servlet.http.HttpServletRequest;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
-
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Http
@@ -70,15 +71,15 @@ public class HttpContextUtils {
     }
 
     public static String getLanguage() {
-        //默认语言
+        // 默认语言
         String defaultLanguage = "zh-CN";
-        //request
+        // request
         HttpServletRequest request = getHttpServletRequest();
         if (request == null) {
             return defaultLanguage;
         }
 
-        //请求语言
+        // 请求语言
         defaultLanguage = request.getHeader(HttpHeaders.ACCEPT_LANGUAGE);
 
         return defaultLanguage;

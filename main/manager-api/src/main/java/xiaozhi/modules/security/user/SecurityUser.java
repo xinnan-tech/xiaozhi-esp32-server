@@ -1,8 +1,9 @@
 package xiaozhi.modules.security.user;
 
-import xiaozhi.common.user.UserDetail;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
+
+import xiaozhi.common.user.UserDetail;
 
 /**
  * Shiro工具类

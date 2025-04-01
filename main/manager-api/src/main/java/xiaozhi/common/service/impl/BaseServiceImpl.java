@@ -1,5 +1,18 @@
 package xiaozhi.common.service.impl;
 
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+
+import org.apache.ibatis.binding.MapperMethod;
+import org.apache.ibatis.logging.Log;
+import org.apache.ibatis.logging.LogFactory;
+import org.apache.ibatis.session.SqlSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.enums.SqlMethod;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -10,22 +23,11 @@ import com.baomidou.mybatisplus.core.toolkit.ReflectionKit;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
+
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.BaseService;
 import xiaozhi.common.utils.ConvertUtils;
-import org.apache.ibatis.binding.MapperMethod;
-import org.apache.ibatis.logging.Log;
-import org.apache.ibatis.logging.LogFactory;
-import org.apache.ibatis.session.SqlSession;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiConsumer;
 
 /**
  * 基础服务类，所有Service都要继承
@@ -45,7 +47,7 @@ public abstract class BaseServiceImpl<M extends BaseMapper<T>, T> implements Bas
      * @param isAsc             排序方式
      */
     protected IPage<T> getPage(Map<String, Object> params, String defaultOrderField, boolean isAsc) {
-        //分页参数
+        // 分页参数
         long curPage = 1;
         long limit = 10;
 
@@ -56,17 +58,17 @@ public abstract class BaseServiceImpl<M extends BaseMapper<T>, T> implements Bas
             limit = Long.parseLong((String) params.get(Constant.LIMIT));
         }
 
-        //分页对象
+        // 分页对象
         Page<T> page = new Page<>(curPage, limit);
 
-        //分页参数
+        // 分页参数
         params.put(Constant.PAGE, page);
 
-        //排序字段
+        // 排序字段
         String orderField = (String) params.get(Constant.ORDER_FIELD);
         String order = (String) params.get(Constant.ORDER);
 
-        //前端字段排序
+        // 前端字段排序
         if (StringUtils.isNotBlank(orderField) && StringUtils.isNotBlank(order)) {
             if (Constant.ASC.equalsIgnoreCase(order)) {
                 return page.addOrder(OrderItem.asc(orderField));
@@ -75,12 +77,12 @@ public abstract class BaseServiceImpl<M extends BaseMapper<T>, T> implements Bas
             }
         }
 
-        //没有排序字段，则不排序
+        // 没有排序字段，则不排序
         if (StringUtils.isBlank(defaultOrderField)) {
             return page;
         }
 
-        //默认排序
+        // 默认排序
         if (isAsc) {
             page.addOrder(OrderItem.asc(defaultOrderField));
         } else {
@@ -90,13 +92,13 @@ public abstract class BaseServiceImpl<M extends BaseMapper<T>, T> implements Bas
         return page;
     }
 
-    protected <T> PageData<T> getPageData(List<?> list, long total, Class<T> target) {
-        List<T> targetList = ConvertUtils.sourceToTarget(list, target);
+    protected <D> PageData<D> getPageData(List<?> list, long total, Class<D> target) {
+        List<D> targetList = ConvertUtils.sourceToTarget(list, target);
 
         return new PageData<>(targetList, total);
     }
 
-    protected <T> PageData<T> getPageData(IPage page, Class<T> target) {
+    protected <D> PageData<D> getPageData(IPage<?> page, Class<D> target) {
         return getPageData(page.getRecords(), page.getTotal(), target);
     }
 
@@ -126,10 +128,12 @@ public abstract class BaseServiceImpl<M extends BaseMapper<T>, T> implements Bas
         return SqlHelper.retBool(result);
     }
 
+    @SuppressWarnings("unchecked")
     protected Class<M> currentMapperClass() {
         return (Class<M>) ReflectionKit.getSuperClassGenericType(this.getClass(), BaseServiceImpl.class, 0);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Class<T> currentModelClass() {
         return (Class<T>) ReflectionKit.getSuperClassGenericType(this.getClass(), BaseServiceImpl.class, 1);
@@ -164,10 +168,10 @@ public abstract class BaseServiceImpl<M extends BaseMapper<T>, T> implements Bas
     /**
      * 执行批量操作
      */
+    @SuppressWarnings("deprecation")
     protected <E> boolean executeBatch(Collection<E> list, int batchSize, BiConsumer<SqlSession, E> consumer) {
         return SqlHelper.executeBatch(this.currentModelClass(), this.log, list, batchSize, consumer);
     }
-
 
     @Override
     @Transactional(rollbackFor = Exception.class)

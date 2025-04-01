@@ -1,20 +1,20 @@
 <template>
   <div class="welcome">
-        <HeaderBar />
+    <HeaderBar />
     <el-main style="padding: 20px; display: flex; flex-direction: column;">
       <div class="table-container">
-         <h3 class="device-list-title">设备列表</h3>
+        <h3 class="device-list-title">设备列表</h3>
         <el-button type="primary" class="add-device-btn" @click="handleAddDevice">
           + 添加设备
         </el-button>
-        <el-table :data="deviceList" style="width: 100%; margin-top: 20px" border stripe>
+        <el-table :data="paginatedDeviceList" style="width: 100%; margin-top: 20px" border stripe>
           <el-table-column label="设备型号" prop="model" flex></el-table-column>
           <el-table-column label="固件版本" prop="firmwareVersion" width="120"></el-table-column>
           <el-table-column label="Mac地址" prop="macAddress"></el-table-column>
           <el-table-column label="绑定时间" prop="bindTime" width="200"></el-table-column>
           <el-table-column label="最近对话" prop="lastConversation" width="140"></el-table-column>
           <el-table-column label="备注" width="180">
-             <template slot-scope="scope">
+            <template slot-scope="scope">
               <el-input v-if="scope.row.isEdit" v-model="scope.row.remark" size="mini" @blur="stopEditRemark(scope.$index)"></el-input>
               <span v-else>
                 <i v-if="!scope.row.remark" class="el-icon-edit" @click="startEditRemark(scope.$index, scope.row)"></i>
@@ -31,17 +31,27 @@
           </el-table-column>
           <el-table-column label="操作" width="80">
             <template slot-scope="scope">
-              <el-button size="mini" type="text" @click="handleUnbind(scope.row)" style="color: #ff4949">
+              <el-button size="mini" type="text" @click="handleUnbind(scope.row.device_id)" style="color: #ff4949">
                 解绑
               </el-button>
             </template>
           </el-table-column>
         </el-table>
+        <el-pagination
+          class="pagination"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="currentPage"
+          :page-sizes="[5, 10, 20, 50]"
+          :page-size="pageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="deviceList.length"
+        ></el-pagination>
       </div>
       <div style="font-size: 12px; font-weight: 400; margin-top: auto; padding-top: 30px; color: #979db1;">
         ©2025 xiaozhi-esp32-server
       </div>
-      <AddDeviceDialog :visible.sync="addDeviceDialogVisible" @added="handleDeviceAdded" />
+      <AddDeviceDialog :visible.sync="addDeviceDialogVisible" :agent-id="currentAgentId" @refresh="fetchBindDevices(currentAgentId)"  />
     </el-main>
   </div>
 </template>
@@ -49,49 +59,37 @@
 <script>
 import HeaderBar from "@/components/HeaderBar.vue";
 import AddDeviceDialog from "@/components/AddDeviceDialog.vue";
-
 export default {
   components: {HeaderBar, AddDeviceDialog },
   data() {
     return {
       addDeviceDialogVisible: false,
-      deviceList: [
-        {
-          model: 'xingzhi-cube-0.96oled-wifi',
-          firmwareVersion: '1.4.6',
-          macAddress: 'fc:01:2c:c5:d5:7c',
-          bindTime: '2025-03-10 18:16:21',
-          lastConversation: '6 天前',
-          remark: '',
-          isEdit: false,
-          otaSwitch: false
-        },
-        {
-          model: 'xingzhi-board-1.3tft-ble',
-          firmwareVersion: '2.1.0',
-          macAddress: 'ac:12:3d:e7:f8:9a',
-          bindTime: '2025-03-12 09:30:15',
-          lastConversation: '4 天前',
-          remark: '测试设备',
-          isEdit: false,
-          otaSwitch: true
-      },
-      {
-        model: 'xingzhi-kit-0.91oled-4g',
-        firmwareVersion: '1.8.3',
-        macAddress: 'bc:45:6f:1e:2d:3c',
-        bindTime: '2025-03-15 14:22:08',
-        lastConversation: '2 天前',
-        remark: '生产环境设备',
-        isEdit: false,
-        otaSwitch: false
-      },
-      ]
+      currentAgentId: this.$route.query.agentId || '',
+      currentPage: 1,
+      pageSize: 5,
+      deviceList: [],
+      loading: false,
+      userApi: null,
     };
+  },
+  computed: {
+    paginatedDeviceList() {
+      const start = (this.currentPage - 1) * this.pageSize;
+      const end = start + this.pageSize;
+      return this.deviceList.slice(start, end);
+    }
+  },
+  mounted() {
+    const agentId = this.$route.query.agentId;
+    import('@/apis/module/user').then(({ default: userApi }) => {
+      this.userApi = userApi;
+      if (agentId) {
+        this.fetchBindDevices(agentId);
+      }
+    });
   },
   methods: {
     handleAddDevice() {
-      // 添加设备逻辑
       this.addDeviceDialogVisible = true;
     },
     startEditRemark(index, row) {
@@ -100,13 +98,57 @@ export default {
     stopEditRemark(index) {
       this.deviceList[index].isEdit = false;
     },
-    handleUnbind(device) {
-      // 解绑逻辑
-      console.log('解绑设备', device);
+    handleUnbind(device_id) {
+      if (!this.userApi) {
+        this.$message.error('功能模块加载失败');
+        return;
+      }
+      this.$confirm('确认要解绑该设备吗？', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.userApi.unbindDevice(device_id, ({ data }) => {
+          if (data.code === 0) {
+            this.$message.success('设备解绑成功');
+            this.fetchBindDevices(this.$route.query.agentId);
+          } else {
+            this.$message.error(data.msg || '设备解绑失败');
+          }
+        });
+      });
     },
-    handleDeviceAdded(deviceCode) {
-      console.log('添加的智慧体名称：', deviceCode);
+    handleSizeChange(val) {
+      this.pageSize = val;
     },
+    handleCurrentChange(val) {
+      this.currentPage = val;
+    },
+     fetchBindDevices(agentId) {
+        this.loading = true;
+        import('@/apis/module/user').then(({ default: userApi }) => {
+          userApi.getAgentBindDevices(agentId, ({ data }) => {
+            this.loading = false;
+            if (data.code === 0) {
+              this.deviceList = data.data[0].list.map(device => ({
+                device_id: device.id,
+                model: device.device_type,
+                firmwareVersion: device.app_version,
+                macAddress: device.mac_address,
+                lastConversation: device.recent_chat_time,
+                remark: '',
+                isEdit: false,
+                otaSwitch: device.ota_upgrade === 1
+              }));
+            } else {
+              this.$message.error(data.msg || '获取设备列表失败');
+            }
+          });
+        }).catch(error => {
+          console.error('模块加载失败:', error);
+          this.$message.error('功能模块加载失败');
+        });
+     },
   }
 };
 </script>
@@ -166,4 +208,8 @@ export default {
   vertical-align: middle;
 }
 
+.pagination {
+  margin-top: 20px;
+  text-align: right;
+}
 </style>

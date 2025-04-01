@@ -1,12 +1,13 @@
 package xiaozhi.common.utils;
 
-import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.StrUtil;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.List;
+import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.StrUtil;
 
 /**
  * JSON 工具类
@@ -59,7 +60,8 @@ public class JsonUtils {
             return new ArrayList<>();
         }
         try {
-            return objectMapper.readValue(text, objectMapper.getTypeFactory().constructCollectionType(List.class, clazz));
+            return objectMapper.readValue(text,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, clazz));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

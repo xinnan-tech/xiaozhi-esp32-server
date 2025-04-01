@@ -1,20 +1,22 @@
 package xiaozhi.modules.security.service.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.wf.captcha.SpecCaptcha;
-import com.wf.captcha.base.Captcha;
-import xiaozhi.common.redis.RedisKeys;
-import xiaozhi.common.redis.RedisUtils;
-import xiaozhi.modules.security.service.CaptchaService;
-import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.wf.captcha.SpecCaptcha;
+import com.wf.captcha.base.Captcha;
+
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
+import xiaozhi.common.redis.RedisKeys;
+import xiaozhi.common.redis.RedisUtils;
+import xiaozhi.modules.security.service.CaptchaService;
 
 /**
  * 验证码
@@ -26,9 +28,10 @@ public class CaptchaServiceImpl implements CaptchaService {
     @Value("${renren.redis.open}")
     private boolean open;
     /**
-     * Local Cache  5分钟过期
+     * Local Cache 5分钟过期
      */
-    Cache<String, String> localCache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
+    Cache<String, String> localCache = CacheBuilder.newBuilder().maximumSize(1000)
+            .expireAfterAccess(5, TimeUnit.MINUTES).build();
 
     @Override
     public void create(HttpServletResponse response, String uuid) throws IOException {
@@ -37,13 +40,13 @@ public class CaptchaServiceImpl implements CaptchaService {
         response.setHeader("Cache-Control", "no-cache");
         response.setDateHeader("Expires", 0);
 
-        //生成验证码
+        // 生成验证码
         SpecCaptcha captcha = new SpecCaptcha(150, 40);
         captcha.setLen(5);
         captcha.setCharType(Captcha.TYPE_DEFAULT);
         captcha.out(response.getOutputStream());
 
-        //保存到缓存
+        // 保存到缓存
         setCache(uuid, captcha.text());
     }
 
@@ -52,10 +55,10 @@ public class CaptchaServiceImpl implements CaptchaService {
         if (StringUtils.isBlank(code)) {
             return false;
         }
-        //获取验证码
+        // 获取验证码
         String captcha = getCache(uuid);
 
-        //效验成功
+        // 效验成功
         if (code.equalsIgnoreCase(captcha)) {
             return true;
         }
@@ -76,7 +79,7 @@ public class CaptchaServiceImpl implements CaptchaService {
         if (open) {
             key = RedisKeys.getCaptchaKey(key);
             String captcha = (String) redisUtils.get(key);
-            //删除验证码
+            // 删除验证码
             if (captcha != null) {
                 redisUtils.delete(key);
             }
@@ -85,7 +88,7 @@ public class CaptchaServiceImpl implements CaptchaService {
         }
 
         String captcha = localCache.getIfPresent(key);
-        //删除验证码
+        // 删除验证码
         if (captcha != null) {
             localCache.invalidate(key);
         }

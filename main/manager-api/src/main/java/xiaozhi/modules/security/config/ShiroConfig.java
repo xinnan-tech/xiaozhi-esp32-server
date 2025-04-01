@@ -1,8 +1,9 @@
 package xiaozhi.modules.security.config;
 
-import xiaozhi.modules.security.oauth2.Oauth2Filter;
-import xiaozhi.modules.security.oauth2.Oauth2Realm;
-import jakarta.servlet.Filter;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.session.mgt.SessionManager;
 import org.apache.shiro.spring.LifecycleBeanPostProcessor;
@@ -14,9 +15,9 @@ import org.apache.shiro.web.session.mgt.DefaultWebSessionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import jakarta.servlet.Filter;
+import xiaozhi.modules.security.oauth2.Oauth2Filter;
+import xiaozhi.modules.security.oauth2.Oauth2Realm;
 
 /**
  * Shiro的配置文件
@@ -53,18 +54,21 @@ public class ShiroConfig {
         shiroFilter.setSecurityManager(securityManager);
         shiroFilter.setShiroFilterConfiguration(config);
 
-        //oauth过滤
+        // oauth过滤
         Map<String, Filter> filters = new HashMap<>();
         filters.put("oauth2", new Oauth2Filter());
         shiroFilter.setFilters(filters);
 
-        //添加Shiro的内置过滤器
-        /*anon：无需认证就可以访问
-        authc：必须认证了才能让问
-        user：必须拥有，记住我功能，才能访问
-        perms：拥有对某个资源的权限才能访问
-        role：拥有某个角色权限才能访问*/
+        // 添加Shiro的内置过滤器
+        /*
+         * anon：无需认证就可以访问
+         * authc：必须认证了才能让问
+         * user：必须拥有，记住我功能，才能访问
+         * perms：拥有对某个资源的权限才能访问
+         * role：拥有某个角色权限才能访问
+         */
         Map<String, String> filterMap = new LinkedHashMap<>();
+        filterMap.put("/ota/**", "anon");
         filterMap.put("/webjars/**", "anon");
         filterMap.put("/druid/**", "anon");
         filterMap.put("/v3/api-docs/**", "anon");

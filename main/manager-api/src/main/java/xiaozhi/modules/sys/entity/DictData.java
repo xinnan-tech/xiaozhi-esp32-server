@@ -1,6 +1,7 @@
 package xiaozhi.modules.sys.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.Data;
 
 /**

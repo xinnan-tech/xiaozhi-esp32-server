@@ -1,0 +1,22 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 10s
+      lettuce:
+        pool:
+          min-idle: 0
+          max-idle: 8
+          max-active: 8
+          max-wait: -1ms
+
+renren:
+  redis:
+    open: true
+
+logging:
+  level:
+    xiaozhi.modules.device: DEBUG
+    org.springframework.data.redis: DEBUG 

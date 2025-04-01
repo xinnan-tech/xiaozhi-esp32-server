@@ -4,15 +4,15 @@
       <el-header>
         <div
             style="display: flex;align-items: center;margin-top: 15px;margin-left: 10px;gap: 10px;">
-          <img alt="" src="@/assets/xiaozhi-logo.png" style="width: 45px;height: 45px;"/>
-          <img alt="" src="@/assets/xiaozhi-ai.png" style="width: 70px;height: 13px;"/>
+          <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.png" style="width: 45px;height: 45px;"/>
+          <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" style="width: 70px;height: 13px;"/>
         </div>
       </el-header>
       <el-main style="position: relative;">
-        <div class="login-box">
+        <div class="login-box" @keyup.enter="login">
           <div
               style="display: flex;align-items: center;gap: 20px;margin-bottom: 39px;padding: 0 30px;">
-            <img alt="" src="@/assets/login/hi.png" style="width: 34px;height: 34px;"/>
+            <img loading="lazy" alt="" src="@/assets/login/hi.png" style="width: 34px;height: 34px;"/>
             <div class="login-text">登录</div>
             <div class="login-welcome">
               WELCOME TO LOGIN
@@ -20,19 +20,19 @@
           </div>
           <div style="padding: 0 30px;">
             <div class="input-box">
-              <img alt="" class="input-icon" src="@/assets/login/username.png"/>
+              <img loading="lazy" alt="" class="input-icon" src="@/assets/login/username.png"/>
               <el-input v-model="form.username" placeholder="请输入用户名"/>
             </div>
             <div class="input-box">
-              <img alt="" class="input-icon" src="@/assets/login/password.png"/>
+              <img loading="lazy" alt="" class="input-icon" src="@/assets/login/password.png"/>
               <el-input v-model="form.password" placeholder="请输入密码" type="password"/>
             </div>
             <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
               <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
-                <img alt="" class="input-icon" src="@/assets/login/shield.png"/>
+                <img loading="lazy" alt="" class="input-icon" src="@/assets/login/shield.png"/>
                 <el-input v-model="form.captcha" placeholder="请输入验证码" style="flex: 1;"/>
               </div>
-              <img v-if="captchaUrl"
+              <img loading="lazy" v-if="captchaUrl"
                    :src="captchaUrl"
                    alt="验证码"
                    style="width: 150px; height: 40px; cursor: pointer;"
@@ -87,8 +87,11 @@ export default {
   },
   methods: {
     fetchCaptcha() {
+      console.log(this.$store.getters.getToken)
       if (this.$store.getters.getToken) {
-        goToPage('/home')
+        if (this.$route.path !== '/home'){
+          this.$router.push('/home')
+        }
       } else {
         this.captchaUuid = getUUID();
 
@@ -96,10 +99,8 @@ export default {
           if (res.status === 200) {
             const blob = new Blob([res.data], {type: res.data.type});
             this.captchaUrl = URL.createObjectURL(blob);
-
           } else {
-            console.error('验证码加载异常:', error);
-            showDanger('验证码加载失败，点击刷新')
+            showDanger('验证码加载失败，点击刷新');
           }
         });
       }
@@ -130,12 +131,13 @@ export default {
 
       this.form.captchaId = this.captchaUuid
       Api.user.login(this.form, ({data}) => {
-        console.log(data)
-        showSuccess('登陆成功！')
-        // 将令牌存储到 Vuex 中
-        this.$store.commit('setToken', JSON.stringify(data.data))
-
-        goToPage('/home')
+        if (data.code === 0) {
+          showSuccess('登录成功！');
+          this.$store.commit('setToken', JSON.stringify(data.data));
+          goToPage('/home');
+        } else {
+          showDanger(data.msg || '登录失败');
+        }
       })
 
       // 重新获取验证码
