@@ -6,6 +6,11 @@ from config.settings import load_config
 SERVER_VERSION = "0.1.17"
 
 
+def get_logger(tag):
+    """获取预配置的日志记录器，避免循环导入"""
+    # 基本配置，不依赖config
+    return logger.bind(tag=tag)
+
 def setup_logging():
     """从配置文件中读取日志配置，并设置日志输出格式和级别"""
     config = load_config()

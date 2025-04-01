@@ -39,7 +39,7 @@ export default new Vuex.Store({
     logout({ commit }) {
       return new Promise((resolve) => {
         commit('clearAuth')
-        resolve()
+        window.location.href = '/login';
       })
     }
   },

@@ -6,10 +6,10 @@ import opuslib_next
 from pydub import AudioSegment
 from abc import ABC, abstractmethod
 from core.utils.tts import MarkdownCleaner
+from config.logger import get_logger
 
 TAG = __name__
-logger = setup_logging()
-
+logger = get_logger(TAG)
 
 class TTSProviderBase(ABC):
     def __init__(self, config, delete_audio_file):
@@ -27,6 +27,7 @@ class TTSProviderBase(ABC):
             text = MarkdownCleaner.clean_markdown(text)
             while not os.path.exists(tmp_file) and max_repeat_time > 0:
                 asyncio.run(self.text_to_speak(text, tmp_file))
+
                 if not os.path.exists(tmp_file):
                     max_repeat_time = max_repeat_time - 1
                     logger.bind(tag=TAG).error(f"语音生成失败: {text}:{tmp_file}，再试{max_repeat_time}次")

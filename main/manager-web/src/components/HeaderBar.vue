@@ -10,7 +10,9 @@
       <!-- 中间导航菜单 -->
       <div class="header-center">
         <div class="equipment-management" :class="{ 'active-tab': $route.path === '/home' }" @click="goHome">
-          <img loading="lazy" alt="" src="@/assets/header/roboot.png" :style="{ filter: $route.path === '/home' ? 'brightness(0) invert(1)' : 'None' }"/>
+
+          <img loading="lazy" alt="" src="@/assets/header/robot.png" :style="{ filter: $route.path === '/home' ? 'brightness(0) invert(1)' : 'None' }"/>
+
           智能体管理
         </div>
         <div class="equipment-management" :class="{ 'active-tab': $route.path === '/user-management' }" @click="goUserManagement">
@@ -27,7 +29,7 @@
       <div class="header-right">
         <div class="search-container">
           <el-input
-            v-model="serach"
+            v-model="search"
             placeholder="输入名称搜索.."
             class="custom-search-input"
             @keyup.enter.native="handleSearch"
@@ -38,7 +40,7 @@
         <img loading="lazy" alt="" src="@/assets/home/avatar.png" class="avatar-img"/>
         <el-dropdown trigger="click" class="user-dropdown">
           <span class="el-dropdown-link">
-             {{ userInfo.mobile || '加载中...' }}<i class="el-icon-arrow-down el-icon--right"></i>
+             {{ userInfo.username || '加载中...' }}<i class="el-icon-arrow-down el-icon--right"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item icon="el-icon-plus" @click.native="">个人中心</el-dropdown-item>
@@ -50,7 +52,7 @@
     </div>
 
     <!-- 修改密码弹窗 -->
-    <ChangePasswordDialog :visible.sync="isChangePasswordDialogVisible"/>
+    <ChangePasswordDialog v-model="isChangePasswordDialogVisible"/>
   </el-header>
 </template>
 
@@ -68,7 +70,7 @@ export default {
   props: ['devices'],  // 接收父组件设备列表
   data() {
     return {
-      serach: '',
+      search: '',
       userInfo: {
         username: '',
         mobile: ''
@@ -99,7 +101,7 @@ export default {
 
     // 处理搜索
     handleSearch() {
-      const searchValue = this.serach.trim();
+      const searchValue = this.search.trim();
       let filteredDevices;
 
       if (!searchValue) {

@@ -1,0 +1,14 @@
+HyperPyYAML==1.2.2
+openai-whisper==20231117
+inflect==7.3.1
+transformers==4.40.1
+conformer==0.3.2
+diffusers==0.29.0
+lightning==2.2.4
+rich==13.7.1
+gdown==5.1.0
+matplotlib==3.7.5
+wget==3.2
+pyarrow==19.0.1
+pyworld==0.3.4
+onnxruntime-gpu==1.21.0

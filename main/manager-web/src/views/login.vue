@@ -9,7 +9,7 @@
         </div>
       </el-header>
       <el-main style="position: relative;">
-        <div class="login-box">
+        <div class="login-box" @keyup.enter="login">
           <div
               style="display: flex;align-items: center;gap: 20px;margin-bottom: 39px;padding: 0 30px;">
             <img loading="lazy" alt="" src="@/assets/login/hi.png" style="width: 34px;height: 34px;"/>
@@ -87,8 +87,11 @@ export default {
   },
   methods: {
     fetchCaptcha() {
+      console.log(this.$store.getters.getToken)
       if (this.$store.getters.getToken) {
-        goToPage('/home')
+        if (this.$route.path !== '/home'){
+          this.$router.push('/home')
+        }
       } else {
         this.captchaUuid = getUUID();
 
@@ -96,10 +99,8 @@ export default {
           if (res.status === 200) {
             const blob = new Blob([res.data], {type: res.data.type});
             this.captchaUrl = URL.createObjectURL(blob);
-
           } else {
-            console.error('验证码加载异常:', error);
-            showDanger('验证码加载失败，点击刷新')
+            showDanger('验证码加载失败，点击刷新');
           }
         });
       }
@@ -130,12 +131,13 @@ export default {
 
       this.form.captchaId = this.captchaUuid
       Api.user.login(this.form, ({data}) => {
-        console.log(data)
-        showSuccess('登陆成功！')
-        // 将令牌存储到 Vuex 中
-        this.$store.commit('setToken', JSON.stringify(data.data))
-
-        goToPage('/home')
+        if (data.code === 0) {
+          showSuccess('登录成功！');
+          this.$store.commit('setToken', JSON.stringify(data.data));
+          goToPage('/home');
+        } else {
+          showDanger(data.msg || '登录失败');
+        }
       })
 
       // 重新获取验证码
