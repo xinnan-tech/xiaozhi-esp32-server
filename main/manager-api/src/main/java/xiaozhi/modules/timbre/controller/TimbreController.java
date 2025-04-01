@@ -75,7 +75,7 @@ public class TimbreController {
     @Operation(summary = "音色修改")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> update(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody TimbreDataDTO dto) {
         ValidatorUtils.validateEntity(dto);
         timbreService.update(id, dto);
@@ -85,8 +85,8 @@ public class TimbreController {
     @DeleteMapping("/{id}")
     @Operation(summary = "音色删除")
     @RequiresPermissions("sys:role:superAdmin")
-    public Result<Void> delete(@PathVariable Long id) {
-        timbreService.delete(new Long[] { id });
+    public Result<Void> delete(@PathVariable String id) {
+        timbreService.delete(new String[] { id });
         return new Result<>();
     }
 

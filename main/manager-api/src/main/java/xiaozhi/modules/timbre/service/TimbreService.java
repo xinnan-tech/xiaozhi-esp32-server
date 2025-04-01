@@ -45,14 +45,14 @@ public interface TimbreService extends BaseService<TimbreEntity> {
      * @param timbreId 需要修改的id
      * @param dto      需要修改的数据
      */
-    void update(Long timbreId, TimbreDataDTO dto);
+    void update(String timbreId, TimbreDataDTO dto);
 
     /**
      * 批量删除音色
      * 
      * @param ids 需要被删除的音色id列表
      */
-    void delete(Long[] ids);
+    void delete(String[] ids);
 
     List<String> getVoiceNames(String ttsModelId, String voiceName);
 }

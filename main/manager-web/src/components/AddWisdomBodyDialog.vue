@@ -2,7 +2,7 @@
   <el-dialog :visible.sync="visible" width="400px" center>
     <div style="margin: 0 10px 10px;display: flex;align-items: center;gap: 10px;font-weight: 700;font-size: 20px;text-align: left;color: #3d4566;">
       <div style="width: 40px;height: 40px;border-radius: 50%;background: #5778ff;display: flex;align-items: center;justify-content: center;">
-        <img src="@/assets/home/equipment.png" alt="" style="width: 18px;height: 15px;" />
+        <img loading="lazy" src="@/assets/home/equipment.png" alt="" style="width: 18px;height: 15px;" />
       </div>
       添加智慧体
     </div>

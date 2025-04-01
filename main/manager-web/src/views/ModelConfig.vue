@@ -3,19 +3,22 @@
     <HeaderBar />
 
       <div class="operation-bar">
-
+          <h2 class="page-title">模型配置</h2>
         <div class="right-operations">
-          <el-button v-if="activeTab === 'tts'" type="primary" plain size="small" @click="ttsDialogVisible = true">
+          <el-button v-if="activeTab === 'tts'" type="primary" plain size="small" @click="ttsDialogVisible = true" style="">
             语音设置
           </el-button>
-          <el-button type="primary" plain size="small" @click="handleImport">
+          <el-button plain size="small" @click="handleImport" style="background: #7b9de5; color: white;">
+            <img loading="lazy" alt="" src="@/assets/model/inner_conf.png">
             导入配置
           </el-button>
-          <el-button type="success" plain size="small" @click="handleExport">
+          <el-button plain size="small" @click="handleExport" style="background: #71c9d1; color: white;">
+            <img loading="lazy" alt="" src="@/assets/model/output_conf.png">
             导出配置
           </el-button>
         </div>
       </div>
+
     <!-- 主体内容 -->
     <div class="main-wrapper">
       <div class="content-panel">
@@ -61,12 +64,12 @@
             </div>
           </div>
 
-          <el-table :header-cell-style="{background: 'transparent'}" :data="modelList" border class="data-table" header-row-class-name="table-header" >
+          <el-table ref="modelTable" style="width: 100%" :header-cell-style="{background: 'transparent'}" :data="modelList"  class="data-table" header-row-class-name="table-header" :header-cell-class-name="headerCellClassName" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center"></el-table-column>
             <el-table-column label="模型名称" prop="candidateName" align="center"></el-table-column>
             <el-table-column label="模型编码" prop="code" align="center"></el-table-column>
             <el-table-column label="提供商" prop="supplier" align="center"></el-table-column>
-            <el-table-column label="是否启用" align="center" width="120">
+            <el-table-column label="是否启用" align="center">
               <template slot-scope="scope">
                 <el-switch v-model="scope.row.isApplied" class="custom-switch" :active-color="null" :inactive-color="null"/>
               </template>
@@ -82,10 +85,10 @@
               </template>
             </el-table-column>
           </el-table>
-          
+
           <div class="table-footer">
             <div class="batch-actions">
-              <el-button size="mini" @click="selectAll">全选</el-button>
+              <el-button size="mini" @click="selectAll" style="width: 75px; background: #606ff3">{{ isAllSelected ? '取消全选' : '全选' }}</el-button>
               <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">
                 删除
               </el-button>
@@ -131,10 +134,18 @@ export default {
       ],
       currentPage: 1,
       pageSize: 4,
-      total: 20
+      total: 20,
+      selectedModels: [],
+      isAllSelected: false
     };
   },
   methods: {
+    headerCellClassName({ column, columnIndex }) {
+      if (columnIndex === 0) {
+        return 'custom-selection-header';
+      }
+      return '';
+    },
     handleMenuSelect(index) {
       this.activeTab = index;
     },
@@ -142,8 +153,24 @@ export default {
       console.log('查询：', this.search);
     },
     batchDelete() {
-      console.log('批量删除');
-    },
+      if (this.selectedModels.length === 0) {
+        this.$message.warning('请先选择要删除的模型');
+        return;
+      }
+      this.$confirm('确定要删除选中的模型吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        const selectedIds = this.selectedModels.map(model => model.code);
+        this.modelList = this.modelList.filter(model => !selectedIds.includes(model.code));
+        this.$message.success('删除成功');
+        this.selectedModels = [];
+        this.isAllSelected = false;
+      }).catch(() => {
+        this.$message.info('已取消删除');
+        });
+      },
     addModel() {
       this.addDialogVisible = true;
     },
@@ -156,10 +183,20 @@ export default {
       this.editDialogVisible = true;
     },
     deleteModel(model) {
-      console.log('删除：', model);
+      this.$confirm(`确定要删除模型 ${model.candidateName} 吗?`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.modelList = this.modelList.filter(item => item.code !== model.code);
+        this.$message.success('删除成功');
+      }).catch(() => {
+        this.$message.info('已取消删除');
+      });
     },
     handleCurrentChange(page) {
       this.currentPage = page;
+      this.$refs.modelTable.clearSelection();
       console.log('当前页码：', page);
     },
     handleImport() {
@@ -172,7 +209,18 @@ export default {
       console.log('保存的模型数据：', formData);
     },
     selectAll() {
-      console.log('全选');
+      if (this.isAllSelected) {
+        this.$refs.modelTable.clearSelection();
+      } else {
+        this.$refs.modelTable.toggleAllSelection();
+      }
+    },
+    handleSelectionChange(val) {
+      this.selectedModels = val;
+      this.isAllSelected = val.length === this.modelList.length;
+      if (val.length === 0) {
+        this.isAllSelected = false;
+      }
     },
     handleAddConfirm(newModel) {
       console.log('新增模型数据:', newModel);
@@ -185,6 +233,7 @@ export default {
 ::v-deep .el-table tr{
   background: transparent;
 }
+
 .welcome {
   min-width: 900px;
   min-height: 506px;
@@ -200,19 +249,30 @@ export default {
 
 .main-wrapper {
   margin: 5px 60px;
-  background-image: url("@/assets/home/background.png");
   border-radius: 15px;
   min-height: 600px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: relative;
+  background: rgba(237,242,255,0.5);
 }
 
 .operation-bar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
   border-bottom: 1px solid #ebeef5;
+}
+
+.page-title {
+  font-size: 24px;
+  margin: 0;
+}
+
+.right-operations {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
 }
 
 .content-panel {
@@ -225,12 +285,17 @@ export default {
 }
 
 .nav-panel {
-  width: 18%;
-  min-width: 200px;
+  min-width: 242px;
   height: 100%;
   border-right: 1px solid #ebeef5;
-  background-size: cover;
-  background: url("../assets/model/model.png") no-repeat center;
+  background:
+    linear-gradient(
+      120deg,
+      rgba(107, 140, 255, 0.3) 0%,
+      rgba(169, 102, 255, 0.3) 25%,
+      transparent 60%
+    ),
+    url("../assets/model/model.png") no-repeat center / cover;
   padding: 16px 0;
   flex-shrink: 0;
   display: flex;
@@ -238,22 +303,36 @@ export default {
 }
 
 .nav-panel .el-menu-item {
-  height: 48px;
-  line-height: 40px;
+  height: 50px;
+  line-height: 50px;
   border-radius: 4px;
   transition: all 0.3s;
   display: flex !important;
   justify-content: flex-end;
   padding-right: 12px !important;
   width: fit-content;
-  margin: 8px 12px 8px auto;
+  margin: 8px 0px 8px auto;
   min-width: unset;
 }
 
 .nav-panel .el-menu-item.is-active {
-  background: #ecf5ff;
-  color: #409EFF;
-  border-right: 3px solid #409EFF;
+  background: #e9f0ff;
+  color: #0ba6f4 !important;
+  position: relative;
+  padding-left: 40px !important;
+}
+
+.nav-panel .el-menu-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  background: #409EFF;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(64, 158, 255, 0.5);
 }
 
 .menu-text {
@@ -264,14 +343,12 @@ export default {
   padding-right: 8px;
 }
 
-
 .content-area {
   flex: 1;
   padding: 24px;
   height: 100%;
   min-width: 600px;
   overflow-x: auto;
-
 }
 
 .title-bar {
@@ -303,6 +380,15 @@ export default {
   width: 240px;
 }
 
+::v-deep .search-input .el-input__inner::placeholder {
+  color: black;
+  opacity: 0.6;
+}
+
+::v-deep .search-input .el-input__inner {
+  background: transparent;
+}
+
 .search-btn {
   background: linear-gradient(135deg, #6B8CFF, #A966FF);
   border: none;
@@ -313,7 +399,6 @@ export default {
   border-radius: 6px;
   overflow: hidden;
   background-color: transparent !important;
-
 }
 
 .data-table /deep/ .el-table__row {
@@ -355,24 +440,27 @@ export default {
 }
 
 .edit-btn {
-  color: #409EFF !important;
+  color: #7079aa !important;
 }
 
 .delete-btn {
-  color: #F56C6C !important;
+  color: #7079aa !important;
 }
 
 .add-btn {
-  background: #87CEFA;
+  background: #cce5f9;
+  width: 75px;
   border: none;
-  color: white;
+  color: black;
   padding: 8px 16px;
 }
+
 .title-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .batch-actions .el-button:first-child {
   background: linear-gradient(135deg, #409EFF, #6B8CFF);
   border: none;
@@ -396,6 +484,64 @@ export default {
   justify-content: flex-end;
 }
 
+::v-deep .el-table .custom-selection-header .cell .el-checkbox__inner {
+  display: none !important; /* 使表头复选框不可见 */
+}
+
+::v-deep .el-table .custom-selection-header .cell::before {
+  content: '选择';
+  display: block;
+  text-align: center;
+  line-height: 0;
+  color: black;
+  margin-top: 23px;
+}
+
+::v-deep .el-table__body .el-checkbox__inner {
+  display: inline-block !important;
+  background: #e6edfa;
+}
+
+::v-deep .el-table thead th:not(:first-child) .cell {
+  color: #303133 !important;
+}
+
+::v-deep .nav-panel .el-menu-item.is-active .menu-text {
+  color: #409EFF !important;
+}
+
+::v-deep .data-table {
+  &.el-table::before,
+  &.el-table::after,
+  &.el-table__inner-wrapper::before {
+    display: none !important;
+  }
+}
+
+::v-deep .data-table .el-table__header-wrapper {
+  border-bottom: 1px solid rgb(224,227,237);
+}
+
+::v-deep .data-table .el-table__body td {
+  border-bottom: 1px solid rgb(224,227,237) !important;
+}
+
+.el-button img{
+  height: 1em;
+  vertical-align: middle;
+  padding-right: 2px;
+  padding-bottom: 2px;
+}
+
+::v-deep .el-checkbox__inner {
+  border-color: #cfcfcf !important;
+  transition: all 0.2s ease-in-out;
+}
+
+::v-deep .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #409EFF !important;
+  border-color: #409EFF !important;
+}
 
 </style>
 

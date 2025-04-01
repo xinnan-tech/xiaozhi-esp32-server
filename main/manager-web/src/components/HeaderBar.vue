@@ -3,22 +3,24 @@
     <div class="header-container">
       <!-- 左侧元素 -->
       <div class="header-left">
-        <img alt="" src="@/assets/xiaozhi-logo.png" class="logo-img"/>
-        <img alt="" src="@/assets/xiaozhi-ai.png" class="brand-img"/>
+        <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.png" class="logo-img"/>
+        <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" class="brand-img"/>
       </div>
 
       <!-- 中间导航菜单 -->
       <div class="header-center">
         <div class="equipment-management" :class="{ 'active-tab': $route.path === '/home' }" @click="goHome">
-          <img alt="" src="@/assets/header/roboot.png" :style="{ filter: $route.path === '/home' ? 'brightness(0) invert(1)' : 'None' }"/>
+
+          <img loading="lazy" alt="" src="@/assets/header/robot.png" :style="{ filter: $route.path === '/home' ? 'brightness(0) invert(1)' : 'None' }"/>
+
           智能体管理
         </div>
         <div class="equipment-management" :class="{ 'active-tab': $route.path === '/user-management' }" @click="goUserManagement">
-          <img alt="" src="@/assets/header/user_management.png" :style="{ filter: $route.path === '/user-management' ? 'brightness(0) invert(1)' : 'None' }"/>
+          <img loading="lazy" alt="" src="@/assets/header/user_management.png" :style="{ filter: $route.path === '/user-management' ? 'brightness(0) invert(1)' : 'None' }"/>
           用户管理
         </div>
         <div class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }" @click="goModelConfig">
-          <img alt="" src="@/assets/header/model_config.png" :style="{ filter: $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None' }"/>
+          <img loading="lazy" alt="" src="@/assets/header/model_config.png" :style="{ filter: $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None' }"/>
           模型配置
         </div>
       </div>
@@ -27,7 +29,7 @@
       <div class="header-right">
         <div class="search-container">
           <el-input
-            v-model="serach"
+            v-model="search"
             placeholder="输入名称搜索.."
             class="custom-search-input"
             @keyup.enter.native="handleSearch"
@@ -35,28 +37,30 @@
             <i slot="suffix" class="el-icon-search search-icon" @click="handleSearch"></i>
           </el-input>
         </div>
-        <img alt="" src="@/assets/home/avatar.png" class="avatar-img"/>
+        <img loading="lazy" alt="" src="@/assets/home/avatar.png" class="avatar-img"/>
         <el-dropdown trigger="click" class="user-dropdown">
           <span class="el-dropdown-link">
-             {{ userInfo.mobile || '加载中...' }}<i class="el-icon-arrow-down el-icon--right"></i>
+             {{ userInfo.username || '加载中...' }}<i class="el-icon-arrow-down el-icon--right"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item icon="el-icon-plus" @click.native="">个人中心</el-dropdown-item>
             <el-dropdown-item icon="el-icon-circle-plus" @click.native="showChangePasswordDialog">修改密码</el-dropdown-item>
-            <el-dropdown-item icon="el-icon-circle-plus-outline" @click.native="">退出登录</el-dropdown-item>
+            <el-dropdown-item icon="el-icon-circle-plus-outline" @click.native="handleLogout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </div>
     </div>
 
     <!-- 修改密码弹窗 -->
-    <ChangePasswordDialog :visible.sync="isChangePasswordDialogVisible"/>
+    <ChangePasswordDialog v-model="isChangePasswordDialogVisible"/>
   </el-header>
 </template>
 
 <script>
 import userApi from '@/apis/module/user';
 import ChangePasswordDialog from './ChangePasswordDialog.vue'; // 引入修改密码弹窗组件
+import { mapActions } from 'vuex'; // 导入 mapActions
+
 
 export default {
   name: 'HeaderBar',
@@ -66,7 +70,7 @@ export default {
   props: ['devices'],  // 接收父组件设备列表
   data() {
     return {
-      serach: '',
+      search: '',
       userInfo: {
         username: '',
         mobile: ''
@@ -97,7 +101,7 @@ export default {
 
     // 处理搜索
     handleSearch() {
-      const searchValue = this.serach.trim();
+      const searchValue = this.search.trim();
       let filteredDevices;
 
       if (!searchValue) {
@@ -118,7 +122,24 @@ export default {
     // 显示修改密码弹窗
     showChangePasswordDialog() {
       this.isChangePasswordDialogVisible = true;
-    }
+    },
+    // 退出登录
+    async handleLogout() {
+      try {
+        // 调用 Vuex 的 logout action
+        await this.logout();
+
+        this.$message.success('退出登录成功');
+
+        this.$router.push('/login');
+      } catch (error) {
+        console.error('退出登录失败:', error);
+        this.$message.error('退出登录失败，请重试');
+      }
+    },
+
+    // 使用 mapActions 引入 Vuex 的 logout action
+    ...mapActions(['logout'])
   }
 }
 </script>

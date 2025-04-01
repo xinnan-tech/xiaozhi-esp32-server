@@ -16,7 +16,7 @@
         <appender name="LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
                 <!--日志文件输出的文件名-->
-                <FileNamePattern>/system/logs/admin.%d{yyyy-MM-dd}.%i.log</FileNamePattern>
+                <FileNamePattern>/home/system/logs/admin.%d{yyyy-MM-dd}.%i.log</FileNamePattern>
                 <!--日志大小-->
                 <maxFileSize>1MB</maxFileSize>
                 <!--日志文件保留天数-->

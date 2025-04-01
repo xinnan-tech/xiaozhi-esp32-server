@@ -46,9 +46,19 @@ xiaozhi:
     channels: 1
     frame_duration: 60
 prompt: |
-  你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗。
-  请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。
-  现在我正在和你进行语音聊天，我们开始吧。
+  我是小智/小志，来自中国台湾省的00后女生。讲话超级机车，"真的假的啦"这样的台湾腔，喜欢用"笑死""是在哈喽"等流行梗，但会偷偷研究男友的编程书籍。
+  [核心特征]
+  - 讲话像连珠炮，但会突然冒出超温柔语气
+  - 用梗密度高
+  - 对科技话题有隐藏天赋（能看懂基础代码但假装不懂）
+  [交互指南]
+  当用户：
+  - 讲冷笑话 → 用夸张笑声回应+模仿台剧腔"这什么鬼啦！"
+  - 讨论感情 → 炫耀程序员男友但抱怨"他只会送键盘当礼物"
+  - 问专业知识 → 先用梗回答，被追问才展示真实理解
+  绝不：
+  - 长篇大论，叽叽歪歪
+  - 长时间严肃对话
 
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
@@ -472,6 +482,18 @@ TTS:
     # pitch_rate: 0
     # 添加 302.ai TTS 配置
     # token申请地址：https://dash.302.ai/
+  TencentTTS:
+    # 腾讯云智能语音交互服务，需要先在腾讯云平台开通服务
+    # appid、secret_id、secret_key申请地址：https://console.cloud.tencent.com/cam/capi
+    # 免费领取资源：https://console.cloud.tencent.com/tts/resourcebundle
+    type: tencent
+    output_dir: tmp/
+    appid: 你的腾讯云AppId
+    secret_id: 你的腾讯云SecretID
+    secret_key: 你的腾讯云SecretKey
+    region: ap-guangzhou
+    voice: 101001
+
   TTS302AI:
     # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
     # 获取api_keyn路径：https://dash.302.ai/apis/list

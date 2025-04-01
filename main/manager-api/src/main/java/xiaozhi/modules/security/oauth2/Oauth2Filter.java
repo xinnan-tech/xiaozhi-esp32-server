@@ -90,7 +90,6 @@ public class Oauth2Filter extends AuthenticatingFilter {
             String json = JsonUtils.toJsonString(r);
             httpResponse.getWriter().print(json);
         } catch (IOException e1) {
-            logger.error("onLoginFailure:登录失败! msg:{}", e1.getMessage(), e1);
         }
 
         return false;
