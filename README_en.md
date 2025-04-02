@@ -34,8 +34,8 @@ Helping you quickly set up your Xiaozhi server
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/pulls">
     <img alt="GitHub pull requests" src="https://img.shields.io/badge/license-MIT-white?labelColor=black" />
   </a>
-  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/network/stargazers">
-    <img alt="GitHub pull requests" src=" https://img.shields.io/github/stars/xinnan-tech/xiaozhi-esp32-server?color=ffcb47&labelColor=black" />
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server">
+    <img alt="GitHub pull requests" src="https://img.shields.io/github/stars/xinnan-tech/xiaozhi-esp32-server?color=ffcb47&labelColor=black" />
   </a>
 </p>
 
