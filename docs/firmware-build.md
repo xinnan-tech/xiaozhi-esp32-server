@@ -92,14 +92,14 @@ https://espressif.github.io/esp-launchpad/
 
 以下是一些常见问题，供参考：
 
-[1、为什么我说的话，小智识别出来很多韩文、日文、英文](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[1、为什么我说的话，小智识别出来很多韩文、日文、英文](./FAQ.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
 
-[2、为什么会出现“TTS 任务出错 文件不存在”？](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[2、为什么会出现“TTS 任务出错 文件不存在”？](./FAQ.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
 
-[3、TTS 经常失败，经常超时](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[3、TTS 经常失败，经常超时](./FAQ.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
 
-[4、如何提高小智对话响应速度？](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[4、如何提高小智对话响应速度？](./FAQ.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
 
-[5、我说话很慢，停顿时小智老是抢话](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[5、我说话很慢，停顿时小智老是抢话](./FAQ.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
 
-[6、我想通过小智控制电灯、空调、远程开关机等操作](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[6、我想通过小智控制电灯、空调、远程开关机等操作](./FAQ.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
