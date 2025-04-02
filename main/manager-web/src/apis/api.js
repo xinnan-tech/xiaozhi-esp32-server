@@ -7,7 +7,7 @@ import admin from './module/admin.js'
  * 如果你想调用8002端口，就用'/xiaozhi-esp32-api/api/v1'，请与vue.config.js的devServer配置相结合，方便跨域请求
  *
  */
-// const DEV_API_SERVICE = 'https://2662r3426b.vicp.fun/xiaozhi-esp32-api'
+const DEV_API_SERVICE = 'https://2662r3426b.vicp.fun/xiaozhi-esp32-api'
 // 8002开发完成完成后使用这个
 // const DEV_API_SERVICE = '/xiaozhi-esp32-api'
 
@@ -16,7 +16,8 @@ import admin from './module/admin.js'
  * @returns {string}
  */
 export function getServiceUrl() {
-    return '/xiaozhi-esp32-api'
+    // return '/xiaozhi-esp32-api'
+    return DEV_API_SERVICE
 }
 
 

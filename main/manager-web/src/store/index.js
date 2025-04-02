@@ -7,7 +7,8 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     token: '',
-    userInfo: {} // 添加用户信息存储
+    userInfo: {}, // 添加用户信息存储
+    isSuperAdmin: false // 添加superAdmin状态
   },
   getters: {
     getToken(state) {
@@ -18,6 +19,12 @@ export default new Vuex.Store({
     },
     getUserInfo(state) {
       return state.userInfo
+    },
+    getIsSuperAdmin(state) {
+      if (localStorage.getItem('isSuperAdmin') === null) {
+        return state.isSuperAdmin
+      }
+      return localStorage.getItem('isSuperAdmin') === 'true'
     }
   },
   mutations: {
@@ -27,11 +34,16 @@ export default new Vuex.Store({
     },
     setUserInfo(state, userInfo) {
       state.userInfo = userInfo
+      const isSuperAdmin = userInfo.superAdmin === 1
+      state.isSuperAdmin = isSuperAdmin
+      localStorage.setItem('isSuperAdmin', isSuperAdmin)
     },
     clearAuth(state) {
       state.token = ''
       state.userInfo = {}
+      state.isSuperAdmin = false
       localStorage.removeItem('token')
+      localStorage.removeItem('isSuperAdmin')
     }
   },
   actions: {

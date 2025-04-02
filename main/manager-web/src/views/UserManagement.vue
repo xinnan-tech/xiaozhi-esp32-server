@@ -231,7 +231,7 @@ export default {
       row.status = '正常';
       console.log('恢复用户：', row);
     },
-    
+
     // 用户删除
     deleteUser(row) {
         this.$confirm('确定要删除该用户吗？', '警告', {
@@ -346,9 +346,9 @@ $table-bg-color: #ecf1fd;
 }
 
 .user-card {
-  background: $table-bg-color;
+  background: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 15px;
   margin: 15px;
 }
 
@@ -498,11 +498,11 @@ $table-bg-color: #ecf1fd;
   }
 
   :deep(.el-table) {
-    background: $table-bg-color;
+    background: white;
 
     &.transparent-table {
       .el-table__header th {
-        background: $table-bg-color !important;
+        background: white !important;
         color: black;
       }
 
@@ -515,7 +515,7 @@ $table-bg-color: #ecf1fd;
       }
 
       .el-table__body tr {
-        background-color: $table-bg-color;
+        background-color: white;
         td {
           border: {
             top: 1px solid rgba(0, 0, 0, 0.04);
