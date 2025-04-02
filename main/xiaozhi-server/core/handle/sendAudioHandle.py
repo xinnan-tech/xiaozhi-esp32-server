@@ -6,12 +6,17 @@ from core.utils.util import (
     remove_punctuation_and_length,
     get_string_no_punctuation_or_emoji,
 )
+import types 
+import inspect
 
 TAG = __name__
 logger = setup_logging()
 
 
 async def sendAudioMessage(conn, audios, text, text_index=0):
+    if text_index == -1:
+        await sendAudioStream(conn=conn,audios=audios)
+        return 
     # 发送句子开始消息
     if text_index == conn.tts_first_text_index:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
@@ -28,6 +33,41 @@ async def sendAudioMessage(conn, audios, text, text_index=0):
         if conn.close_after_chat:
             await conn.close()
 
+async def sendAudioStream(conn, audios):
+    # 流控参数优化
+    frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
+    start_time = time.perf_counter()
+    play_position = 0
+    
+    # if isinstance(audios,types.GeneratorType):
+    if inspect.isasyncgen(audios):
+        count = 0 
+        async for opus_packet in audios:
+            if isinstance(opus_packet,bytes) and opus_packet.startswith(b'text:'):
+                await send_tts_message(conn, "sentence_start", opus_packet.replace(b'text:',b'').decode('utf-8'))
+                continue
+            if len(opus_packet) < 1:
+                continue
+            if count < 3:
+                await conn.websocket.send(opus_packet)
+                conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {count}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
+            else:
+                if conn.client_abort:
+                    return
+                expected_time = start_time + (play_position / 1000)
+                current_time = time.perf_counter()
+                delay = expected_time - current_time
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                await conn.websocket.send(opus_packet)
+                conn.logger.bind(tag=TAG).debug(f"发送帧，位置: {play_position}ms, 实际间隔: {(time.perf_counter() - current_time) * 1000:.2f}ms")
+                play_position += frame_duration
+
+            count += 1
+
+        await send_tts_message(conn, 'stop', None)
+        if conn.close_after_chat:
+            await conn.close()
 
 # 播放音频
 async def sendAudio(conn, audios):
@@ -35,27 +75,54 @@ async def sendAudio(conn, audios):
     frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
     start_time = time.perf_counter()
     play_position = 0
+    
+    # if isinstance(audios,types.GeneratorType):
+    if inspect.isasyncgen(audios):
+        count = 0 
+        async for opus_packet in audios:
+            if len(opus_packet) < 1:
+                continue
+            if count < 3:
+                await conn.websocket.send(opus_packet)
+                conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {count}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
+            else:
+                if conn.client_abort:
+                    return
+                expected_time = start_time + (play_position / 1000)
+                current_time = time.perf_counter()
+                delay = expected_time - current_time
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                await conn.websocket.send(opus_packet)
+                conn.logger.bind(tag=TAG).debug(f"发送帧，位置: {play_position}ms, 实际间隔: {(time.perf_counter() - current_time) * 1000:.2f}ms")
+                play_position += frame_duration
 
-    # 预缓冲：发送前 3 帧
-    pre_buffer = min(3, len(audios))
-    for i in range(pre_buffer):
-        await conn.websocket.send(audios[i])
+            count += 1
 
-    # 正常播放剩余帧
-    for opus_packet in audios[pre_buffer:]:
-        if conn.client_abort:
-            return
+    else:
 
-        # 计算预期发送时间
-        expected_time = start_time + (play_position / 1000)
-        current_time = time.perf_counter()
-        delay = expected_time - current_time
-        if delay > 0:
-            await asyncio.sleep(delay)
+        # 预缓冲：发送前 3 帧
+        pre_buffer = min(3, len(audios))
+        for i in range(pre_buffer):
+            await conn.websocket.send(audios[i])
+            conn.logger.bind(tag=TAG).debug(f"预缓冲帧 {i}, 时间: {(time.perf_counter() - start_time) * 1000:.2f}ms")
 
-        await conn.websocket.send(opus_packet)
+        # 正常播放剩余帧
+        for opus_packet in audios[pre_buffer:]:
+            if conn.client_abort:
+                return
+            
+            # 计算预期发送时间
+            expected_time = start_time + (play_position / 1000)
+            current_time = time.perf_counter()
+            delay = expected_time - current_time
+            if delay > 0:
+                await asyncio.sleep(delay)
 
-        play_position += frame_duration
+            await conn.websocket.send(opus_packet)
+            conn.logger.bind(tag=TAG).debug(f"发送帧，位置: {play_position}ms, 实际间隔: {(time.perf_counter() - current_time) * 1000:.2f}ms")
+
+            play_position += frame_duration
 
 
 async def send_tts_message(conn, state, text=None):
