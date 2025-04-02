@@ -156,6 +156,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
             AdminPageUserVO adminPageUserVO = new AdminPageUserVO();
             adminPageUserVO.setUserid(user.getId().toString());
             adminPageUserVO.setMobile(user.getUsername());
+            adminPageUserVO.setStatus(user.getStatus());
             // TODO 2. 等设备功能写好，获取对应数据
             adminPageUserVO.setDeviceCount("0");
             return adminPageUserVO;

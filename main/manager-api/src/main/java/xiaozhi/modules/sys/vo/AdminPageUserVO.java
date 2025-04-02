@@ -18,6 +18,9 @@ public class AdminPageUserVO {
     @Schema(description = "手机号码")
     private String mobile;
 
+    @Schema(description = "状态")
+    private Integer status;
+
     @Schema(description = "用户id")
     private String userid;
 }
