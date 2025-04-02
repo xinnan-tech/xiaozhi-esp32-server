@@ -1,13 +1,13 @@
 package xiaozhi.modules.sys.service;
 
+import java.util.List;
+import java.util.Map;
+
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.BaseService;
 import xiaozhi.modules.sys.dto.SysDictTypeDTO;
 import xiaozhi.modules.sys.entity.DictType;
 import xiaozhi.modules.sys.entity.SysDictTypeEntity;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 数据字典

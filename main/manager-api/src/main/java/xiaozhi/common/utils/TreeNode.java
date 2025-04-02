@@ -1,10 +1,10 @@
 package xiaozhi.common.utils;
 
-import lombok.Data;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+
+import lombok.Data;
 
 /**
  * 树节点，所有需要实现树节点的，都需要继承该类

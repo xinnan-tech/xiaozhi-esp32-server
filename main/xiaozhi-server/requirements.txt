@@ -23,5 +23,4 @@ bs4==0.0.2
 modelscope==1.23.2
 sherpa_onnx==1.11.0
 mcp==1.4.1
-
 cnlunar==0.2.0

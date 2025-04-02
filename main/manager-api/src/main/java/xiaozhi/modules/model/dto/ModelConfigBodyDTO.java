@@ -1,9 +1,9 @@
 package xiaozhi.modules.model.dto;
 
+import java.io.Serial;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
-import java.io.Serial;
 
 @Data
 @Schema(description = "模型供应器/商")
@@ -12,9 +12,9 @@ public class ModelConfigBodyDTO {
     @Serial
     private static final long serialVersionUID = 1L;
 
-//    @Schema(description = "模型类型(Memory/ASR/VAD/LLM/TTS)")
-//    private String modelType;
-//
+    // @Schema(description = "模型类型(Memory/ASR/VAD/LLM/TTS)")
+    // private String modelType;
+    //
     @Schema(description = "模型编码(如AliLLM、DoubaoTTS)")
     private String modelCode;
 

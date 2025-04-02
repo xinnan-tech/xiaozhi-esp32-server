@@ -1,10 +1,10 @@
 package xiaozhi.common.service;
 
-import xiaozhi.common.page.PageData;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+
+import xiaozhi.common.page.PageData;
 
 /**
  * CRUD基础服务接口

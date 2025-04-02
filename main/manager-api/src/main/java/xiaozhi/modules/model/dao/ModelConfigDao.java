@@ -1,11 +1,12 @@
 package xiaozhi.modules.model.dao;
 
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
 import xiaozhi.common.dao.BaseDao;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
-
-import java.util.List;
 
 @Mapper
 public interface ModelConfigDao extends BaseDao<ModelConfigEntity> {

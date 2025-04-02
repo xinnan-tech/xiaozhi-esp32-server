@@ -1,11 +1,17 @@
 package xiaozhi.modules.sys.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import lombok.AllArgsConstructor;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+
+import lombok.AllArgsConstructor;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
@@ -17,24 +23,20 @@ import xiaozhi.modules.sys.entity.DictType;
 import xiaozhi.modules.sys.entity.SysDictTypeEntity;
 import xiaozhi.modules.sys.service.SysDictTypeService;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
 /**
  * 字典类型
  */
 @AllArgsConstructor
 @Service
-public class SysDictTypeServiceImpl extends BaseServiceImpl<SysDictTypeDao, SysDictTypeEntity> implements SysDictTypeService {
+public class SysDictTypeServiceImpl extends BaseServiceImpl<SysDictTypeDao, SysDictTypeEntity>
+        implements SysDictTypeService {
     private final SysDictDataDao sysDictDataDao;
 
     @Override
     public PageData<SysDictTypeDTO> page(Map<String, Object> params) {
         IPage<SysDictTypeEntity> page = baseDao.selectPage(
                 getPage(params, "sort", true),
-                getWrapper(params)
-        );
+                getWrapper(params));
 
         return getPageData(page, SysDictTypeDTO.class);
     }
@@ -76,7 +78,7 @@ public class SysDictTypeServiceImpl extends BaseServiceImpl<SysDictTypeDao, SysD
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long[] ids) {
-        //删除
+        // 删除
         deleteBatchIds(Arrays.asList(ids));
     }
 

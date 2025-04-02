@@ -1,5 +1,5 @@
 # 规范约定：
-# id生成根据时间时分，文件名对应id
+# id生成根据时间时分，文件名对应id，常变数据可以根据模块命名自定义
 # 每次对数据表进行改动时，只允许新建新对changeSet，不允许对上一个changeSet配置及文件进行修改
 databaseChangeLog:
   - changeSet:
@@ -16,3 +16,24 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202503141346.sql
+  - changeSet:
+      id: 2025_model_provider
+      author: John
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/2025_model_provider.sql
+  - changeSet:
+      id: 2025_tts_voive
+      author: John
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/2025_tts_voive.sql
+  - changeSet:
+      id: 2025_model_config
+      author: John
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/2025_model_config.sql

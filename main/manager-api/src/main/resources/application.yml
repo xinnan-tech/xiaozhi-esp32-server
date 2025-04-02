@@ -24,21 +24,9 @@ spring:
       max-file-size: 100MB
       max-request-size: 100MB
       enabled: true
-  data:
-    redis:
-      database: 0
-      host: 127.0.0.1
-      port: 6379
-      password:  # 密码（默认为空）
-      timeout: 6000ms  # 连接超时时长（毫秒）
-      lettuce:
-        pool:
-          max-active: 1000  # 连接池最大连接数（使用负值表示没有限制）
-          max-wait: -1ms      # 连接池最大阻塞等待时间（使用负值表示没有限制）
-          max-idle: 10      # 连接池中的最大空闲连接
-          min-idle: 5       # 连接池中的最小空闲连接
   main:
     allow-bean-definition-overriding: true
+
 knife4j:
   enable: true
   basic:
@@ -50,7 +38,7 @@ knife4j:
 
 renren:
   redis:
-    open: false
+    open: true
   xss:
     enabled: true
     exclude-urls:
@@ -76,3 +64,6 @@ mybatis-plus:
     prefix:
     blobType: BLOB
     boolValue: TRUE
+
+app:
+  fronted-url: http://localhost:8001

@@ -1,10 +1,10 @@
 package xiaozhi.modules.model.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-
 import java.io.Serial;
 import java.io.Serializable;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 
 @Data
 @Schema(description = "模型供应器/商")
@@ -14,7 +14,7 @@ public class ModelConfigDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "主键")
-    private Long id;
+    private String id;
 
     @Schema(description = "模型类型(Memory/ASR/VAD/LLM/TTS)")
     private String modelType;

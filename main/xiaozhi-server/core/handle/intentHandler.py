@@ -37,6 +37,7 @@ async def check_direct_exit(conn, text):
     for cmd in cmd_exit:
         if text == cmd:
             logger.bind(tag=TAG).info(f"识别到明确的退出命令: {text}")
+            await send_stt_message(conn, text)
             await conn.close()
             return True
     return False
@@ -44,7 +45,7 @@ async def check_direct_exit(conn, text):
 
 async def analyze_intent_with_llm(conn, text):
     """使用LLM分析用户意图"""
-    if not hasattr(conn, 'intent') or not conn.intent:
+    if not hasattr(conn, "intent") or not conn.intent:
         logger.bind(tag=TAG).warning("意图识别服务未初始化")
         return None
 
@@ -68,7 +69,9 @@ async def process_intent_result(conn, intent_result, original_text):
         # 检查是否有function_call
         if "function_call" in intent_data:
             # 直接从意图识别获取了function_call
-            logger.bind(tag=TAG).info(f"检测到function_call格式的意图结果: {intent_data['function_call']['name']}")
+            logger.bind(tag=TAG).info(
+                f"检测到function_call格式的意图结果: {intent_data['function_call']['name']}"
+            )
             function_name = intent_data["function_call"]["name"]
             if function_name == "continue_chat":
                 return False
@@ -82,7 +85,7 @@ async def process_intent_result(conn, intent_result, original_text):
             function_call_data = {
                 "name": function_name,
                 "id": str(uuid.uuid4().hex),
-                "arguments": function_args
+                "arguments": function_args,
             }
 
             await send_stt_message(conn, original_text)
@@ -90,16 +93,24 @@ async def process_intent_result(conn, intent_result, original_text):
             # 使用executor执行函数调用和结果处理
             def process_function_call():
                 conn.dialogue.put(Message(role="user", content=original_text))
-                result = conn.func_handler.handle_llm_function_call(conn, function_call_data)
-                if result and function_name != 'play_music':
+                result = conn.func_handler.handle_llm_function_call(
+                    conn, function_call_data
+                )
+                if result and function_name != "play_music":
                     # 获取当前最新的文本索引
                     text = result.response
                     if text is None:
                         text = result.result
                     if text is not None:
-                        text_index = conn.tts_last_text_index + 1 if hasattr(conn, 'tts_last_text_index') else 0
+                        text_index = (
+                            conn.tts_last_text_index + 1
+                            if hasattr(conn, "tts_last_text_index")
+                            else 0
+                        )
                         conn.recode_first_last_text(text, text_index)
-                        future = conn.executor.submit(conn.speak_and_play, text, text_index)
+                        future = conn.executor.submit(
+                            conn.speak_and_play, text, text_index
+                        )
                         conn.llm_finish_task = True
                         conn.tts_queue.put(future)
                         conn.dialogue.put(Message(role="assistant", content=text))
@@ -120,10 +131,14 @@ def extract_text_in_brackets(s):
     :param s: 输入字符串
     :return: 中括号内的文字，如果不存在则返回空字符串
     """
-    left_bracket_index = s.find('[')
-    right_bracket_index = s.find(']')
+    left_bracket_index = s.find("[")
+    right_bracket_index = s.find("]")
 
-    if left_bracket_index != -1 and right_bracket_index != -1 and left_bracket_index < right_bracket_index:
-        return s[left_bracket_index + 1:right_bracket_index]
+    if (
+        left_bracket_index != -1
+        and right_bracket_index != -1
+        and left_bracket_index < right_bracket_index
+    ):
+        return s[left_bracket_index + 1 : right_bracket_index]
     else:
         return ""

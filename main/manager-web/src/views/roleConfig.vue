@@ -7,7 +7,7 @@
             style="padding: 15px 24px;font-weight: 700;font-size: 19px;text-align: left;color: #3d4566;display: flex;gap: 13px;align-items: center;">
           <div
               style="width: 37px;height: 37px;background: #5778ff;border-radius: 50%;display: flex;align-items: center;justify-content: center;">
-            <img src="@/assets/home/setting-user.png" alt="" style="width: 19px;height: 19px;"/>
+            <img loading="lazy" src="@/assets/home/setting-user.png" alt="" style="width: 19px;height: 19px;"/>
           </div>
           {{ form.agentName }}
         </div>
@@ -83,7 +83,7 @@
             重制
           </div>
           <div class="clear-text">
-            <img src="@/assets/home/red-info.png" alt="" style="width: 19px;height: 19px;"/>
+            <img loading="lazy" src="@/assets/home/red-info.png" alt="" style="width: 19px;height: 19px;"/>
             保存配置后，需要重启设备，新的配置才会生效。
           </div>
         </div>

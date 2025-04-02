@@ -6,12 +6,14 @@ import asyncio
 TAG = __name__
 logger = setup_logging()
 
+
 async def _get_device_status(conn, device_name, device_type, property_name):
     """获取设备状态"""
     status = await get_iot_status(conn, device_type, property_name)
     if status is None:
         raise Exception(f"你的设备不支持{device_name}控制")
     return status
+
 
 async def _set_device_property(conn, device_name, device_type, method_name, property_name, new_value=None, action=None, step=10):
     """设置设备属性"""
@@ -32,9 +34,11 @@ async def _set_device_property(conn, device_name, device_type, method_name, prop
     await send_iot_conn(conn, device_type, method_name, {property_name: current_value})
     return current_value
 
+
 def _handle_device_action(conn, func, success_message, error_message, *args, **kwargs):
     """处理设备操作的通用函数"""
-    future = asyncio.run_coroutine_threadsafe(func(conn, *args, **kwargs), conn.loop)
+    future = asyncio.run_coroutine_threadsafe(
+        func(conn, *args, **kwargs), conn.loop)
     try:
         result = future.result()
         logger.bind(tag=TAG).info(f"{success_message}: {result}")
@@ -45,6 +49,7 @@ def _handle_device_action(conn, func, success_message, error_message, *args, **k
         response = f"{error_message}: {e}"
         return ActionResponse(action=Action.RESPONSE, result=None, response=response)
 
+
 # 设备控制
 handle_device_function_desc = {
     "type": "function",
@@ -52,9 +57,9 @@ handle_device_function_desc = {
         "name": "handle_device",
         "description": (
             "用户想要获取或者设置设备的音量/亮度大小，或者用户觉得声音/亮度过高或过低，或者用户想提高或降低音量/亮度。"
-            "比如用户说现在亮度多少，参数为：device_type:Backlight,action:get。"
+            "比如用户说现在亮度多少，参数为：device_type:Screen,action:get。"
             "比如用户说设置音量为50，参数为：device_type:Speaker,action:set,value:50。"
-            "比如用户说亮度太高了，参数为：device_type:Backlight,action:lower。"
+            "比如用户说亮度太高了，参数为：device_type:Screen,action:lower。"
             "比如用户说调大音量，参数为：device_type:Speaker,action:raise。"
         ),
         "parameters": {
@@ -62,7 +67,7 @@ handle_device_function_desc = {
             "properties": {
                 "device_type": {
                     "type": "string",
-                    "description": "设备类型，可选值：Speaker(音量),Backlight(亮度)"
+                    "description": "设备类型，可选值：Speaker(音量),Screen(亮度)"
                 },
                 "action": {
                     "type": "string",
@@ -78,18 +83,19 @@ handle_device_function_desc = {
     }
 }
 
+
 @register_function('handle_device', handle_device_function_desc, ToolType.IOT_CTL)
 def handle_device(conn, device_type: str, action: str, value: int = None):
     if device_type == "Speaker":
         method_name, property_name, device_name = "SetVolume", "volume", "音量"
-    elif device_type == "Backlight":
+    elif device_type == "Screen":
         method_name, property_name, device_name = "SetBrightness", "brightness", "亮度"
     else:
         raise Exception(f"未识别的设备类型: {device_type}")
-    
+
     if action not in ["get", "set", "raise", "lower"]:
         raise Exception(f"未识别的动作名称: {action}")
-    
+
     if action == "get":
         # get
         return _handle_device_action(

@@ -1,11 +1,21 @@
 package xiaozhi.modules.sys.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import lombok.AllArgsConstructor;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+
+import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
@@ -21,11 +31,6 @@ import xiaozhi.modules.sys.entity.SysUserEntity;
 import xiaozhi.modules.sys.enums.SuperAdminEnum;
 import xiaozhi.modules.sys.service.SysUserService;
 import xiaozhi.modules.sys.vo.AdminPageUserVO;
-
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 
 /**
  * 系统用户
@@ -59,16 +64,16 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
     public void save(SysUserDTO dto) {
         SysUserEntity entity = ConvertUtils.sourceToTarget(dto, SysUserEntity.class);
 
-        //密码强度
+        // 密码强度
         if (!isStrongPassword(entity.getPassword())) {
             throw new RenException(ErrorCode.PASSWORD_WEAK_ERROR);
         }
 
-        //密码加密
+        // 密码加密
         String password = PasswordUtils.encode(entity.getPassword());
         entity.setPassword(password);
 
-        //保存用户
+        // 保存用户
         Long userCount = getUserCount();
         if (userCount == 0) {
             entity.setSuperAdmin(SuperAdminEnum.YES.value());
@@ -83,9 +88,9 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long[] ids) {
-        //删除用户
+        // 删除用户
         baseDao.deleteBatchIds(Arrays.asList(ids));
-        //TODO 除了要删除用户还要删除用户关联的设备，对话，智能体。等此3个功能完善在添加
+        // TODO 除了要删除用户还要删除用户关联的设备，对话，智能体。等此3个功能完善在添加
     }
 
     @Override
@@ -102,18 +107,17 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
             throw new RenException("旧密码输入错误");
         }
 
-        //新密码强度
+        // 新密码强度
         if (!isStrongPassword(passwordDTO.getNewPassword())) {
             throw new RenException(ErrorCode.PASSWORD_WEAK_ERROR);
         }
 
-        //密码加密
+        // 密码加密
         String password = PasswordUtils.encode(passwordDTO.getNewPassword());
         sysUserEntity.setPassword(password);
 
         updateById(sysUserEntity);
     }
-
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -128,7 +132,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
     @Transactional(rollbackFor = Exception.class)
     public String resetPassword(Long userId) {
         String password = generatePassword();
-        changePasswordDirectly(userId,password);
+        changePasswordDirectly(userId, password);
         return password;
     }
 
@@ -141,18 +145,18 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
     public PageData<AdminPageUserVO> page(AdminPageUserDTO dto) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put(Constant.PAGE, dto.getPage());
-        params.put(Constant.LIMIT,dto.getLimit());
+        params.put(Constant.LIMIT, dto.getLimit());
         IPage<SysUserEntity> page = baseDao.selectPage(
                 getPage(params, "id", true),
-                //定义查询条件
+                // 定义查询条件
                 new QueryWrapper<SysUserEntity>()
-                        //必须按照手机号码查找
-                        .eq(StringUtils.isNotBlank(dto.getMobile()),"username",dto.getMobile()));
+                        // 必须按照手机号码查找
+                        .eq(StringUtils.isNotBlank(dto.getMobile()), "username", dto.getMobile()));
         List<AdminPageUserVO> list = page.getRecords().stream().map(user -> {
             AdminPageUserVO adminPageUserVO = new AdminPageUserVO();
             adminPageUserVO.setUserid(user.getId().toString());
             adminPageUserVO.setMobile(user.getUsername());
-            //TODO 2. 等设备功能写好，获取对应数据
+            // TODO 2. 等设备功能写好，获取对应数据
             adminPageUserVO.setDeviceCount("0");
             return adminPageUserVO;
         }).toList();
@@ -169,11 +173,13 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
     private static final Random random = new Random();
+
     /**
      * 生成随机密码
+     * 
      * @return 随机生成的密码
      */
-    private String generatePassword(){
+    private String generatePassword() {
         StringBuilder password = new StringBuilder();
         for (int i = 0; i < 10; i++) {
             int randomIndex = random.nextInt(CHARACTERS.length());
