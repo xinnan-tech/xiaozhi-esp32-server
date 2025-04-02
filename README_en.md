@@ -192,7 +192,7 @@ Xiaozhi is an ecosystem. When using this product, you might want to check out ot
   A voice dialogue application based on xiaozhi-server for Android and iOS, supporting real-time voice interaction and text dialogue. Now in Flutter version, supporting both iOS and Android.
 - [Xiaozhi PC Client](https://github.com/Huang-junsen/py-xiaozhi)
   This project provides a Python-based Xiaobai AI client, allowing you to experience Xiaozhi AI features through code even without physical hardware. Main features include AI voice interaction, visual multimodal recognition, IoT device integration, online music playback, voice wake-up, automatic dialogue mode, graphical interface, command-line mode, cross-platform support, volume control, session management, encrypted audio transmission, automatic verification code processing, etc.
-- [Xiaozhi Java Server](https://github.com/Huang-junsen/xiaozhi-java) 
+- [Xiaozhi Java Server](https://github.com/joey-zhou/xiaozhi-esp32-server-java) 
   The Xiaozhi open-source backend service Java version is a Java-based open-source project that includes both frontend and backend services, aiming to provide users with a complete backend service solution.
 ---
 ## Feature List ✨

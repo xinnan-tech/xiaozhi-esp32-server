@@ -195,7 +195,7 @@ server:
 - [小智电脑客户端](https://github.com/Huang-junsen/py-xiaozhi)
 
   该项目提供了一个基于 Python 实现的小白 AI 客户端，使得在不具备实体硬件条件的情况下，依然能够体过代码体验小智 AI 的功能。主要功能包括 AI 语音交互、视觉多模态识别、IoT 设备集成、联网音乐播放、语音唤醒、自动对话模式、图形化界面、命令行模式、跨平台支持、音量控制、会话管理、加密音频传输、自动验证码处理等。
-- [小智Java服务端](https://github.com/Huang-junsen/xiaozhi-java) 
+- [小智Java服务端](https://github.com/joey-zhou/xiaozhi-esp32-server-java) 
 
   小智开源后端服务 Java 版本是一个基于 Java 的开源项目，它包括前后端的服务，旨在为用户提供一个完整的后端服务解决方案。
 ---
