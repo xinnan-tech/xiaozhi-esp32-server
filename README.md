@@ -1,8 +1,7 @@
 [![Banners](docs/images/banner1.png)](https://github.com/xinnan-tech/xiaozhi-esp32-server)
 
-<center>
-<h1>小智后端服务xiaozhi-esp32-server</h1>
-</center>
+
+<h1 align="center">小智后端服务xiaozhi-esp32-server</h1>
 
 <p align="center">
 本项目为开源智能硬件项目
@@ -31,11 +30,11 @@
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/pulls">
     <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
   </a>
-  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/pulls">
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/LICENSE">
     <img alt="GitHub pull requests" src="https://img.shields.io/badge/license-MIT-white?labelColor=black" />
   </a>
-  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/network/stargazers">
-    <img alt="GitHub pull requests" src=" https://img.shields.io/github/stars/xinnan-tech/xiaozhi-esp32-server?color=ffcb47&labelColor=black" />
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server">
+    <img alt="stars" src="https://img.shields.io/github/stars/xinnan-tech/xiaozhi-esp32-server?color=ffcb47&labelColor=black" />
   </a>
 </p>
 
