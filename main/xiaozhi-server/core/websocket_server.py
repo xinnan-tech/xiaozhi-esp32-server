@@ -1,5 +1,7 @@
 import asyncio
 import websockets
+import ssl
+import os
 from config.logger import setup_logging
 from core.connection import ConnectionHandler
 from core.utils.util import get_local_ip
@@ -86,9 +88,36 @@ class WebSocketServer:
         host = server_config["ip"]
         port = server_config["port"]
 
-        self.logger.bind(tag=TAG).info(
-            "Server is running at ws://{}:{}/xiaozhi/v1/", get_local_ip(), port
-        )
+        # 检查是否启用SSL
+        use_ssl = server_config.get("use_ssl", False)
+        ssl_context = None
+        
+        if use_ssl:
+            # 创建SSL上下文
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            
+            # 配置证书和密钥路径
+            cert_path = server_config.get("ssl_cert", "cert.pem")
+            key_path = server_config.get("ssl_key", "key.pem")
+            
+            # 确保证书文件存在
+            if not os.path.exists(cert_path) or not os.path.exists(key_path):
+                self.logger.bind(tag=TAG).error(
+                    "SSL证书文件不存在: {} 或 {}", cert_path, key_path
+                )
+                self.logger.bind(tag=TAG).info("使用非加密WebSocket连接继续...")
+            else:
+                # 加载证书和密钥
+                ssl_context.load_cert_chain(cert_path, key_path)
+                
+                self.logger.bind(tag=TAG).info(
+                    "Server is running at wss://{}:{}/xiaozhi/v1/", get_local_ip(), port
+                )
+        else:
+            self.logger.bind(tag=TAG).info(
+                "Server is running at ws://{}:{}/xiaozhi/v1/", get_local_ip(), port
+            )
+
         self.logger.bind(tag=TAG).info(
             "=======上面的地址是websocket协议地址，请勿用浏览器访问======="
         )
@@ -98,7 +127,9 @@ class WebSocketServer:
         self.logger.bind(tag=TAG).info(
             "=============================================================\n"
         )
-        async with websockets.serve(self._handle_connection, host, port):
+        
+        # 使用SSL上下文启动服务器
+        async with websockets.serve(self._handle_connection, host, port, ssl=ssl_context):
             await asyncio.Future()
 
     async def _handle_connection(self, websocket):

@@ -8,6 +8,10 @@ server:
   # 服务器监听地址和端口(Server listening address and port)
   ip: 0.0.0.0
   port: 8000
+  # SSL
+  use_ssl: false
+  ssl_cert: "ssl/cert.pem"
+  ssl_key: "ssl/key.pem"
   # 认证配置
   auth:
     # 是否启用认证

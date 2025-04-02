@@ -159,3 +159,6 @@ main/manager-api/.vscode
 
 # Ignore webpack cache directory
 main/manager-web/.webpack_cache/
+
+# SSL
+main/xiaozhi-server/ssl/
