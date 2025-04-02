@@ -49,17 +49,23 @@ export default {
         return;
       }
       this.loading = true;
-      import('@/apis/module/user').then(({ default: userApi }) => {
-        userApi.bindDevice(
+      import('@/apis/module/device').then(({ default: deviceApi }) => {
+        deviceApi.bindDevice(
             this.agentId,
             this.deviceCode, ({data}) => {
               this.loading = false;
               if (data.code === 0) {
                 this.$emit('refresh');
-                this.$message.success('设备绑定成功');
+                    this.$message.success({
+                    message: '设备绑定成功',
+                    showClose: true
+                });
                 this.closeDialog();
               } else {
-                this.$message.error(data.msg || '绑定失败');
+                    this.$message.error({
+                    message: data.msg || '绑定失败',
+                    showClose: true
+                });
               }
             }
           );

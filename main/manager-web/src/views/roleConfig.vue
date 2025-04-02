@@ -59,7 +59,7 @@
                       清除
                     </div>
                   </div>
-                  <div style="color: #979db1;font-size:11px;">{{ form.langCode.length }}/1000</div>
+                  <div style="color: #979db1;font-size:11px;">{{ (form.langCode || '').length }}/1000</div>
                 </div>
               </div>
             </el-form-item>
@@ -132,7 +132,7 @@ export default {
         {label: '意图识别模型(Intent)', key: 'intentModelId'},
         {label: '记忆模型(Memory)', key: 'memModelId'}
       ],
-      templates: ['台湾女友', '土豆子', '英语老师', '好奇小男孩', '汪汪队队长'],
+      templates: ['湾湾小何', '星际游子', '英语老师', '好奇男孩', '汪汪队长'],
       loadingTemplate: false
     }
   },
@@ -153,8 +153,8 @@ export default {
         language: this.form.language,
         sort: this.form.sort
       };
-      import('@/apis/module/user').then(({default: userApi}) => {
-        userApi.updateAgentConfig(this.$route.query.agentId, configData, ({data}) => {
+      import('@/apis/module/agent').then(({default: agentApi}) => {
+        agentApi.updateAgentConfig(this.$route.query.agentId, configData, ({data}) => {
           if (data.code === 0) {
             this.$message.success('配置保存成功');
           } else {
@@ -192,27 +192,31 @@ export default {
       })
     },
     selectTemplate(templateName) {
-      if (this.loadingTemplate) return;
-
-      this.loadingTemplate = true;
-      import('@/apis/module/user').then(({default: userApi}) => {
-        userApi.getAgentTemplate(
-            {templateName},
-            (response) => {
-              this.loadingTemplate = false;
-              if (response.data.code === 0 && response.data.data.length > 0) {
-                this.applyTemplateData(response.data.data[0]);
-                this.$message.success(`「${templateName}」模板已应用`);
-              } else {
-                this.$message.warning(`未找到「${templateName}」模板`);
-              }
-            }
-        );
-      }).catch((error) => {
-        this.loadingTemplate = false;
-        this.$message.error('模板加载失败');
-        console.error('接口异常:', error);
-      });
+        if (this.loadingTemplate) return;
+        this.loadingTemplate = true;
+        import('@/apis/module/agent').then(({default: agentApi}) => {
+            agentApi.getAgentTemplate((response) => {  // 移除参数传递
+                this.loadingTemplate = false;
+                if (response.data.code === 0) {
+                    // 在客户端过滤匹配的模板
+                    const matchedTemplate = response.data.data.find(
+                        t => t.agentName === templateName
+                    );
+                    if (matchedTemplate) {
+                        this.applyTemplateData(matchedTemplate);
+                        this.$message.success(`「${templateName}」模板已应用`);
+                    } else {
+                        this.$message.warning(`未找到「${templateName}」模板`);
+                    }
+                } else {
+                    this.$message.error(response.data.msg || '获取模板失败');
+                }
+            });
+        }).catch((error) => {
+            this.loadingTemplate = false;
+            this.$message.error('模板加载失败');
+            console.error('接口异常:', error);
+        });
     },
     applyTemplateData(templateData) {
       this.form = {
@@ -232,8 +236,8 @@ export default {
       };
     },
   fetchAgentConfig(agentId) {
-    import('@/apis/module/user').then(({default: userApi}) => {
-      userApi.getDeviceConfig(agentId, ({data}) => {
+    import('@/apis/module/agent').then(({default: agentApi}) => {
+      agentApi.getDeviceConfig(agentId, ({data}) => {
         if (data.code === 0) {
           this.form = {
             ...this.form,

@@ -82,8 +82,6 @@ public class Oauth2Filter extends AuthenticatingFilter {
         httpResponse.setHeader("Access-Control-Allow-Credentials", "true");
         httpResponse.setHeader("Access-Control-Allow-Origin", HttpContextUtils.getOrigin());
         try {
-            // 处理登录失败的异常
-            logger.error("onLoginFailure:登录失败!", e);
             Throwable throwable = e.getCause() == null ? e : e.getCause();
             Result<Void> r = new Result<Void>().error(ErrorCode.UNAUTHORIZED, throwable.getMessage());
 

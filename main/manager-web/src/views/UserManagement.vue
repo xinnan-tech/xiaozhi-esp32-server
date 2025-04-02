@@ -11,11 +11,11 @@
       </div>
 
       <el-card class="user-card" shadow="never">
-        <el-table :data="userList" class="transparent-table" :header-cell-class-name="headerCellClassName">
+        <el-table ref="userTable" :data="userList" class="transparent-table" :header-cell-class-name="headerCellClassName">
           <el-table-column label="选择" type="selection" align="center" width="120"></el-table-column>
-          <el-table-column label="用户Id" prop="user_id" align="center"></el-table-column>
+          <el-table-column label="用户Id" prop="userid" align="center"></el-table-column>
           <el-table-column label="手机号码" prop="mobile" align="center"></el-table-column>
-          <el-table-column label="设备数量" prop="device_count" align="center"></el-table-column>
+          <el-table-column label="设备数量" prop="deviceCount" align="center"></el-table-column>
           <el-table-column label="状态" prop="status" align="center"></el-table-column>
           <el-table-column label="操作" align="center">
             <template slot-scope="scope">
@@ -33,22 +33,16 @@
 
         <div class="table_bottom">
           <div class="ctrl_btn">
-            <el-button size="mini" type="primary" style="width: 72px; background: #5f70f3">全选</el-button>
-            <el-button size="mini" type="success" icon="el-icon-circle-check" style="background: #5bc98c">启用</el-button>
-            <el-button size="mini" type="warning" style="color: black; background: #f6d075"><i class="el-icon-remove-outline rotated-icon"></i>禁用</el-button>
-            <el-button size="mini" type="danger" icon="el-icon-delete" style="background: #fd5b63">删除</el-button>
+            <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">全选</el-button>
+            <el-button size="mini" type="success" icon="el-icon-circle-check" @click="batchEnable">启用</el-button>
+            <el-button size="mini" type="warning" @click="batchDisable"><i class="el-icon-remove-outline rotated-icon"></i>禁用</el-button>
+            <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">删除</el-button>
           </div>
           <div class="custom-pagination">
             <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">首页</button>
             <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">上一页</button>
 
-            <button
-              v-for="page in visiblePages"
-              :key="page"
-              class="pagination-btn"
-              :class="{ active: page === currentPage }"
-              @click="goToPage(page)"
-            >
+            <button v-for="page in visiblePages" :key="page" class="pagination-btn" :class="{ active: page === currentPage }" @click="goToPage(page)">
               {{ page }}
             </button>
 
@@ -61,6 +55,7 @@
       <div style="font-size: 12px; font-weight: 400; margin-top: auto; padding-top: 30px; color: #979db1;">
         ©2025 xiaozhi-esp32-server
       </div>
+        <view-password-dialog :visible.sync="showViewPassword" :password="currentPassword"/>
     </el-main>
   </div>
 </template>
@@ -68,18 +63,19 @@
 <script>
 import HeaderBar from "@/components/HeaderBar.vue";
 import adminApi from '@/apis/module/admin';
-
+import ViewPasswordDialog from '@/components/ViewPasswordDialog.vue'
 
 export default {
-  components: { HeaderBar },
+  components: { HeaderBar, ViewPasswordDialog },
   data() {
     return {
+      showViewPassword: false,
+      currentPassword: '', // 存储获取到的密码
       searchPhone: '',
       userList: [],
-      originalUserList: [], // 原始数据
       currentPage: 1,
       pageSize: 5,
-      total: 20
+      total: 0
     };
   },
   created() {
@@ -108,42 +104,124 @@ export default {
   methods: {
     // 获取用户列表
     fetchUsers() {
-      adminApi.getUserList(({data}) => {
-        if (data.code === 0) {
-          const responseData = data.data[0] || data.data;
-          this.originalUserList = responseData.list.map(user => ({
-            ...user,
-            status: user.status === '1' ? '正常' : '禁用'
-          }));
-          this.userList = [...this.originalUserList];
-          this.total = responseData.totalCount || 0;
-        }
-      });
-    },
-
-    // 分页变化
-    handleCurrentChange(page) {
-      this.currentPage = page;
-      this.fetchUsers();
+        adminApi.getUserList({
+            page: this.currentPage,
+            limit: this.pageSize,
+            mobile: this.searchPhone
+        }, ({ data }) => {
+            if (data.code === 0) {
+                this.userList = data.data.list.map(user => ({
+                    ...user,
+                    status: user.status === '1' ? '正常' : '禁用'
+                }));
+                this.total = data.data.total;
+            }
+        });
     },
 
     // 搜索
     handleSearch() {
-      if (!this.searchPhone) {
-        this.userList = [...this.originalUserList];
+        this.currentPage = 1;
+        this.fetchUsers();
+    },
+
+    // 全选
+    handleSelectAll() {
+      this.$refs.userTable.toggleAllSelection();
+    },
+
+    // 批量删除用户
+    batchDelete() {
+      const selectedUsers = this.$refs.userTable.selection;
+      if (selectedUsers.length === 0) {
+        this.$message.warning('请先选择需要删除的用户');
         return;
       }
-      this.userList = this.originalUserList.filter(user =>
-        user.mobile.includes(this.searchPhone)
-      )},
-    batchDelete() {
-      console.log('执行批量删除操作');
+
+      this.$confirm(`确定要删除选中的${selectedUsers.length}个用户吗？`, '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        const loading = this.$loading({
+          lock: true,
+          text: '正在删除中...',
+          spinner: 'el-icon-loading',
+          background: 'rgba(0, 0, 0, 0.7)'
+        });
+
+        try {
+          const results = await Promise.all(
+            selectedUsers.map(user => {
+              return new Promise((resolve) => {
+                adminApi.deleteUser(user.userid, ({data}) => {
+                  if (data.code === 0) {
+                    resolve({success: true, userid: user.userid});
+                  } else {
+                    resolve({success: false, userid: user.userid, msg: data.msg});
+                  }
+                });
+              });
+            })
+          );
+
+          const successCount = results.filter(r => r.success).length;
+          const failCount = results.length - successCount;
+
+          if (failCount === 0) {
+            this.$message.success(`成功删除${successCount}个用户`);
+          } else if (successCount === 0) {
+            this.$message.error(`删除失败，请重试`);
+          } else {
+            this.$message.warning(`成功删除${successCount}个用户，${failCount}个删除失败`);
+          }
+
+          this.fetchUsers();
+        } catch (error) {
+          this.$message.error('删除过程中发生错误');
+        } finally {
+          loading.close();
+        }
+      }).catch(() => {
+        this.$message.info('已取消删除');
+      });
     },
+
+    // 批量启用用户
+    batchEnable() {
+      const selectedUsers = this.$refs.userTable.selection;
+      if (selectedUsers.length === 0) {
+        this.$message.warning('请先选择需要启用的用户');
+        return;
+      }
+      selectedUsers.forEach(user => {
+        user.status = '正常';
+      });
+      this.$message.success('启用操作成功');
+    },
+
+    // 批量禁用用户
     batchDisable() {
-      console.log('执行批量禁用操作');
+      this.userList.forEach(user => {
+      user.status = '禁用';
+      });
+      this.$message.success('状态已更新为禁用');
     },
+
+    // 重置密码
     resetPassword(row) {
-      console.log('重置用户密码，用户：', row);
+      this.$confirm('重置后将会生成新密码，是否继续？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消'
+      }).then(() => {
+        adminApi.resetUserPassword(row.userid, ({ data }) => {
+          if (data.code === 0) {
+            this.currentPassword = data.data
+            this.showViewPassword = true
+            this.$message.success('密码已重置，请通知用户使用新密码登录')
+          }
+        })
+      })
     },
     disableUser(row) {
       row.status = '禁用';
@@ -153,14 +231,25 @@ export default {
       row.status = '正常';
       console.log('恢复用户：', row);
     },
+
+    // 用户删除
     deleteUser(row) {
-      console.log('删除用户：', row);
+        this.$confirm('确定要删除该用户吗？', '警告', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+        }).then(() => {
+            adminApi.deleteUser(row.userid, ({data}) => {
+                if (data.code === 0) {
+                    this.$message.success('删除成功')
+                    this.fetchUsers()
+                } else {
+                    this.$message.error(data.msg || '删除失败')
+                }
+            })
+        }).catch(() => {})
     },
-    handleSizeChange(val) {
-      this.pageSize = val;
-      console.log('每页条数：', val);
-    },
-    headerCellClassName({column, columnIndex}) {
+    headerCellClassName({columnIndex}) {
       if (columnIndex === 0) {
         return 'custom-selection-header'
       }
@@ -168,24 +257,25 @@ export default {
     },
     goFirst() {
       this.currentPage = 1;
-      this.handleCurrentChange(1);
+      this.fetchUsers();
     },
     goPrev() {
       if (this.currentPage > 1) {
         this.currentPage--;
-        this.handleCurrentChange(this.currentPage);
+         this.fetchUsers();
       }
     },
     goNext() {
       if (this.currentPage < this.pageCount) {
         this.currentPage++;
-        this.handleCurrentChange(this.currentPage);
+         this.fetchUsers();
       }
     },
     goToPage(page) {
       this.currentPage = page;
-      this.handleCurrentChange(page);
+      this.fetchUsers();
     },
+
   }
 };
 </script>
@@ -256,9 +346,9 @@ $table-bg-color: #ecf1fd;
 }
 
 .user-card {
-  background: $table-bg-color;
+  background: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 15px;
   margin: 15px;
 }
 
@@ -271,78 +361,203 @@ $table-bg-color: #ecf1fd;
   .ctrl_btn {
     display: flex;
     align-items: center;
-    margin-left: 25px;
-  }
-}
+    margin-left: 30px;
+    .el-button {
+      min-width: 72px;
+      height: 32px;
+      padding: 7px 12px;
+      font-size: 12px;
+      border-radius: 4px;
+      line-height: 1;
+      font-weight: 500;
+      border: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
 
-.rotated-icon {
-  display: inline-block;
-  transform: rotate(45deg);
-  margin-right: 4px;
-  color: black;
-}
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
 
-:deep(.el-table) {
-  background: $table-bg-color;
+      &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
 
-  &.transparent-table {
-    .el-table__header th {
-      background: $table-bg-color !important;
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%, -50%);
+        transform-origin: 50% 50%;
+      }
+
+      &:focus:not(:active)::after {
+        animation: ripple 0.6s ease-out;
+      }
+    }
+
+    /* 全选按钮 */
+    .el-button--primary {
+      background: #5f70f3;
+      box-shadow: 0 2px 6px rgba(95, 112, 243, 0.3);
+
+      &:hover {
+        background: #4d5fe1;
+        box-shadow: 0 4px 8px rgba(95, 112, 243, 0.4);
+      }
+
+      &:active {
+        background: #3a4bcf;
+        box-shadow: 0 2px 4px rgba(95, 112, 243, 0.2);
+      }
+    }
+
+    /* 启用按钮 */
+    .el-button--success {
+      background: #5bc98c;
+      box-shadow: 0 2px 6px rgba(91, 201, 140, 0.3);
+
+      &:hover {
+        background: #4ab57d;
+        box-shadow: 0 4px 8px rgba(91, 201, 140, 0.4);
+      }
+
+      &:active {
+        background: #3aa16e;
+        box-shadow: 0 2px 4px rgba(91, 201, 140, 0.2);
+      }
+    }
+
+    /* 禁用按钮 */
+    .el-button--warning {
+      background: #f6d075;
       color: black;
+      box-shadow: 0 2px 6px rgba(246, 208, 117, 0.3);
+
+      &:hover {
+        background: #e4c068;
+        box-shadow: 0 4px 8px rgba(246, 208, 117, 0.4);
+      }
+
+      &:active {
+        background: #d2b05b;
+        box-shadow: 0 2px 4px rgba(246, 208, 117, 0.2);
+      }
+
+      .rotated-icon {
+        display: inline-block;
+        transform: rotate(45deg);
+        margin-right: 4px;
+        color: black;
+      }
     }
 
-    &::before {
-      display: none;
-    }
+    /* 删除按钮 */
+    .el-button--danger {
+      background: #fd5b63;
+      box-shadow: 0 2px 6px rgba(253, 91, 99, 0.3);
 
-    &:last-child td {
-        border-bottom: none !important;
-    }
+      &:hover {
+        background: #e44a52;
+        box-shadow: 0 4px 8px rgba(253, 91, 99, 0.4);
+      }
 
-    .el-table__body tr {
-      background-color: $table-bg-color;
-      td {
-        border: {
-          top: 1px solid rgba(0, 0, 0, 0.04);
-          bottom: 1px solid rgba(0, 0, 0, 0.04);
+      &:active {
+        background: #cb3941;
+        box-shadow: 0 2px 4px rgba(253, 91, 99, 0.2);
+      }
+    }
+  }
+
+  @keyframes ripple {
+    0% {
+      transform: scale(0, 0);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(20, 20);
+      opacity: 0;
+    }
+  }
+  }
+
+  .rotated-icon {
+    display: inline-block;
+    transform: rotate(45deg);
+    margin-right: 4px;
+    color: black;
+  }
+
+  :deep(.el-table) {
+    background: white;
+
+    &.transparent-table {
+      .el-table__header th {
+        background: white !important;
+        color: black;
+      }
+
+      &::before {
+        display: none;
+      }
+
+      &:last-child td {
+          border-bottom: none !important;
+      }
+
+      .el-table__body tr {
+        background-color: white;
+        td {
+          border: {
+            top: 1px solid rgba(0, 0, 0, 0.04);
+            bottom: 1px solid rgba(0, 0, 0, 0.04);
+          }
         }
       }
     }
   }
-}
 
-.search-input {
-  width: 300px;
-  margin-right: 10px;
+  .search-input {
+    width: 300px;
+    margin-right: 10px;
 
-  :deep(.el-input__inner) {
-    background-color: transparent;
-    border-color: #d3d6dc;
+    :deep(.el-input__inner) {
+      background-color: transparent;
+      border-color: #d3d6dc;
 
-    &:focus {
-      border-color: #409eff;
+      &:focus {
+        border-color: #409eff;
+      }
+
+      &::placeholder {
+        color: #606266;
+        opacity: 0.7;
+      }
+    }
+  }
+
+  :deep(.custom-selection-header) {
+    .el-checkbox {
+      display: none !important;
     }
 
-    &::placeholder {
-      color: #606266;
-      opacity: 0.7;
+    &::after {
+      content: '选择';
+      display: inline-block;
+      color: black;
+      font-weight: bold;
+      padding-bottom: 18px;
     }
   }
-}
-
-:deep(.custom-selection-header) {
-  .el-checkbox {
-    display: none !important;
-  }
-
-  &::after {
-    content: '选择';
-    display: inline-block;
-    color: black;
-    font-weight: bold;
-    padding-bottom: 18px;
-  }
-}
 
 .custom-pagination {
   display: flex;

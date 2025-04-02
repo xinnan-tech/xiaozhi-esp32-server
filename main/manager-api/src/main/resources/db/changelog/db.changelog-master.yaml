@@ -37,3 +37,10 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/2025_model_config.sql
+  - changeSet:
+      id: 2025_model_temp
+      author: John
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/2025_model_temp.sql

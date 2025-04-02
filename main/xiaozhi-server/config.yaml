@@ -182,10 +182,20 @@ ASR:
     model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
     output_dir: tmp/
   DoubaoASR:
+    # 可以在这里申请相关Key等信息
+    # https://console.volcengine.com/speech/app
     type: doubao
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
     cluster: volcengine_input_common
+    output_dir: tmp/
+  TencentASR:
+    # token申请地址：https://console.cloud.tencent.com/cam/capi
+    # 免费领取资源：https://console.cloud.tencent.com/asr/resourcebundle
+    type: tencent
+    appid: 你的腾讯语音合成服务appid
+    secret_id: 你的腾讯语音合成服务secret_id
+    secret_key: 你的腾讯语音合成服务secret_key
     output_dir: tmp/
 VAD:
   SileroVAD:
@@ -274,6 +284,8 @@ LLM:
   CozeLLM:
     # 定义LLM API类型
     type: coze
+    # 你可以在这里找到个人令牌
+    # https://www.coze.cn/open/oauth/pats
     # bot_id和user_id的内容写在引号之内
     bot_id: "你的bot_id"
     user_id: "你的user_id"
@@ -289,6 +301,8 @@ LLM:
     type: fastgpt
     # 如果使用fastgpt，配置文件里prompt(提示词)是无效的，需要在fastgpt控制台设置提示词
     base_url: https://host/api/v1
+    # 你可以在这里找到你的api_key
+    # https://cloud.tryfastgpt.ai/account/apikey
     api_key: fastgpt-xxx
     variables:
       k: "v"
@@ -530,6 +544,8 @@ TTS:
   OpenAITTS:
     # openai官方文本转语音服务，可支持全球大多数语种
     type: openai
+    # 你可以在这里获取到 api key
+    # https://platform.openai.com/api-keys
     api_key: 你的openai api key
     # 国内需要使用代理
     api_url: https://api.openai.com/v1/audio/speech

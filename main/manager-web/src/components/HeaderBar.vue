@@ -10,16 +10,14 @@
       <!-- 中间导航菜单 -->
       <div class="header-center">
         <div class="equipment-management" :class="{ 'active-tab': $route.path === '/home' }" @click="goHome">
-
           <img loading="lazy" alt="" src="@/assets/header/robot.png" :style="{ filter: $route.path === '/home' ? 'brightness(0) invert(1)' : 'None' }"/>
-
           智能体管理
         </div>
-        <div class="equipment-management" :class="{ 'active-tab': $route.path === '/user-management' }" @click="goUserManagement">
+        <div v-if="isSuperAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/user-management' }" @click="goUserManagement">
           <img loading="lazy" alt="" src="@/assets/header/user_management.png" :style="{ filter: $route.path === '/user-management' ? 'brightness(0) invert(1)' : 'None' }"/>
           用户管理
         </div>
-        <div class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }" @click="goModelConfig">
+        <div v-if="isSuperAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }" @click="goModelConfig">
           <img loading="lazy" alt="" src="@/assets/header/model_config.png" :style="{ filter: $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None' }"/>
           模型配置
         </div>
@@ -59,7 +57,7 @@
 <script>
 import userApi from '@/apis/module/user';
 import ChangePasswordDialog from './ChangePasswordDialog.vue'; // 引入修改密码弹窗组件
-import { mapActions } from 'vuex'; // 导入 mapActions
+import { mapActions, mapGetters } from 'vuex';
 
 
 export default {
@@ -76,6 +74,12 @@ export default {
         mobile: ''
       },
       isChangePasswordDialogVisible: false // 控制修改密码弹窗的显示
+    }
+  },
+  computed: {
+    ...mapGetters(['getIsSuperAdmin']),
+    isSuperAdmin() {
+      return this.getIsSuperAdmin;
     }
   },
   mounted() {
@@ -96,6 +100,9 @@ export default {
     fetchUserInfo() {
       userApi.getUserInfo(({data}) => {
         this.userInfo = data.data
+        if (data.data.superAdmin !== undefined) {
+          this.$store.commit('setUserInfo', data.data);
+        }
       })
     },
 

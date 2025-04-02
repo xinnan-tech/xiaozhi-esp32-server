@@ -59,6 +59,7 @@
 <script>
 import HeaderBar from "@/components/HeaderBar.vue";
 import AddDeviceDialog from "@/components/AddDeviceDialog.vue";
+
 export default {
   components: {HeaderBar, AddDeviceDialog },
   data() {
@@ -81,8 +82,8 @@ export default {
   },
   mounted() {
     const agentId = this.$route.query.agentId;
-    import('@/apis/module/user').then(({ default: userApi }) => {
-      this.userApi = userApi;
+    import('@/apis/module/device').then(({ default: deviceApi }) => {
+      this.deviceApi = deviceApi;
       if (agentId) {
         this.fetchBindDevices(agentId);
       }
@@ -99,7 +100,7 @@ export default {
       this.deviceList[index].isEdit = false;
     },
     handleUnbind(device_id) {
-      if (!this.userApi) {
+      if (!this.deviceApi) {
         this.$message.error('功能模块加载失败');
         return;
       }
@@ -108,12 +109,18 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.userApi.unbindDevice(device_id, ({ data }) => {
+        this.deviceApi.unbindDevice(device_id, ({ data }) => {
           if (data.code === 0) {
-            this.$message.success('设备解绑成功');
+            this.$message.success({
+                message: '设备解绑成功',
+                showClose: true
+            });
             this.fetchBindDevices(this.$route.query.agentId);
           } else {
-            this.$message.error(data.msg || '设备解绑失败');
+            this.$message.error({
+            message: data.msg || '设备解绑失败',
+            showClose: true
+            });
           }
         });
       });
@@ -124,33 +131,45 @@ export default {
     handleCurrentChange(val) {
       this.currentPage = val;
     },
-     fetchBindDevices(agentId) {
-        this.loading = true;
-        import('@/apis/module/user').then(({ default: userApi }) => {
-          userApi.getAgentBindDevices(agentId, ({ data }) => {
-            this.loading = false;
-            if (data.code === 0) {
-              this.deviceList = data.data[0].list.map(device => ({
+    fetchBindDevices(agentId) {
+      this.loading = true;
+      import('@/apis/module/device').then(({ default: deviceApi }) => {
+        deviceApi.getAgentBindDevices(agentId, ({ data }) => {
+          this.loading = false;
+          if (data.code === 0) {
+            // 格式化日期并按照绑定时间降序排列
+            this.deviceList = data.data.map(device => {
+              // 格式化绑定时间
+              const bindDate = new Date(device.createDate);
+              const formattedBindTime = `${bindDate.getFullYear()}-${(bindDate.getMonth()+1).toString().padStart(2, '0')}-${bindDate.getDate().toString().padStart(2, '0')} ${bindDate.getHours().toString().padStart(2, '0')}:${bindDate.getMinutes().toString().padStart(2, '0')}:${bindDate.getSeconds().toString().padStart(2, '0')}`;
+              return {
                 device_id: device.id,
-                model: device.device_type,
-                firmwareVersion: device.app_version,
-                macAddress: device.mac_address,
-                lastConversation: device.recent_chat_time,
-                remark: '',
+                model: device.board,
+                firmwareVersion: device.appVersion,
+                macAddress: device.macAddress,
+                bindTime: formattedBindTime, // 使用格式化后的时间
+                lastConversation: device.lastConnectedAt,
+                remark: device.alias,
                 isEdit: false,
-                otaSwitch: device.ota_upgrade === 1
-              }));
-            } else {
-              this.$message.error(data.msg || '获取设备列表失败');
-            }
-          });
-        }).catch(error => {
-          console.error('模块加载失败:', error);
-          this.$message.error('功能模块加载失败');
+                otaSwitch: device.autoUpdate === 1,
+                // 添加原始时间用于排序
+                rawBindTime: new Date(device.createDate).getTime()
+              };
+            })
+            // 按照绑定时间降序排序
+            .sort((a, b) => a.rawBindTime - b.rawBindTime);
+          } else {
+            this.$message.error(data.msg || '获取设备列表失败');
+          }
         });
-     },
+      }).catch(error => {
+        console.error('模块加载失败:', error);
+        this.$message.error('功能模块加载失败');
+      });
+    },
   }
 };
+
 </script>
 
 <style scoped>

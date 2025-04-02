@@ -5,9 +5,6 @@
       <div class="operation-bar">
           <h2 class="page-title">模型配置</h2>
         <div class="right-operations">
-          <el-button v-if="activeTab === 'tts'" type="primary" plain size="small" @click="ttsDialogVisible = true" style="">
-            语音设置
-          </el-button>
           <el-button plain size="small" @click="handleImport" style="background: #7b9de5; color: white;">
             <img loading="lazy" alt="" src="@/assets/model/inner_conf.png">
             导入配置
@@ -74,7 +71,14 @@
                 <el-switch v-model="scope.row.isApplied" class="custom-switch" :active-color="null" :inactive-color="null"/>
               </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" width="180">
+            <el-table-column v-if="activeTab === 'tts'" label="音色管理" align="center">
+              <template slot-scope="scope">
+                <el-button type="text" size="mini" @click="ttsDialogVisible = true" class="voice-management-btn">
+                  音色管理
+                </el-button>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" align="center" width="150px">
               <template slot-scope="scope">
                 <el-button type="text" size="mini" @click="editModel(scope.row)" class="edit-btn">
                   修改
@@ -93,8 +97,16 @@
                 删除
               </el-button>
             </div>
-            <div class="pagination-container">
-            <el-pagination @current-change="handleCurrentChange" background :current-page="currentPage" :page-size="pageSize" layout="prev, pager, next" :total="total"/>
+            <div class="custom-pagination">
+              <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">首页</button>
+              <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">上一页</button>
+
+              <button v-for="page in visiblePages" :key="page" class="pagination-btn" :class="{ active: page === currentPage }" @click="goToPage(page)">
+                {{ page }}
+              </button>
+
+              <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">下一页</button>
+              <span class="total-text">共{{ total }}条记录</span>
             </div>
           </div>
         </div>
@@ -102,7 +114,7 @@
 
       <ModelEditDialog :visible.sync="editDialogVisible" :modelData="editModelData" @save="handleModelSave"/>
       <TtsModel :visible.sync="ttsDialogVisible" />
-      <AddModelDialog :visible.sync="addDialogVisible" @confirm="handleAddConfirm"/>
+      <AddModelDialog  :modelType="activeTab" :visible.sync="addDialogVisible" @confirm="handleAddConfirm"/>
     </div>
 
     <div class="copyright">
@@ -139,6 +151,28 @@ export default {
       isAllSelected: false
     };
   },
+
+  computed: {
+    pageCount() {
+      return Math.ceil(this.total / this.pageSize);
+    },
+    visiblePages() {
+      const pages = [];
+      const maxVisible = 3;
+      let start = Math.max(1, this.currentPage - 1);
+      let end = Math.min(this.pageCount, start + maxVisible - 1);
+
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    }
+  },
+
   methods: {
     headerCellClassName({ column, columnIndex }) {
       if (columnIndex === 0) {
@@ -224,6 +258,31 @@ export default {
     },
     handleAddConfirm(newModel) {
       console.log('新增模型数据:', newModel);
+    },
+
+    // 分页器
+    goFirst() {
+    this.currentPage = 1;
+    this.loadData();
+    },
+    goPrev() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+        this.loadData();
+      }
+    },
+    goNext() {
+      if (this.currentPage < this.pageCount) {
+        this.currentPage++;
+        this.loadData();
+      }
+    },
+    goToPage(page) {
+      this.currentPage = page;
+      this.loadData();
+    },
+    loadData() {
+      console.log('加载数据，当前页:', this.currentPage);
     }
   },
 };
@@ -349,6 +408,8 @@ export default {
   height: 100%;
   min-width: 600px;
   overflow-x: auto;
+  background-color: white;
+
 }
 
 .title-bar {
@@ -437,14 +498,6 @@ export default {
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-}
-
-.edit-btn {
-  color: #7079aa !important;
-}
-
-.delete-btn {
-  color: #7079aa !important;
 }
 
 .add-btn {
@@ -541,6 +594,108 @@ export default {
 ::v-deep .el-checkbox__input.is-checked .el-checkbox__inner {
   background-color: #409EFF !important;
   border-color: #409EFF !important;
+}
+
+.voice-management-btn {
+  background: #9db3ea;
+  color: white;
+  min-width: 68px;
+  line-height: 14px;
+  white-space: nowrap;
+  transition: all 0.3s;
+  border-radius: 10px;
+}
+
+.voice-management-btn:hover {
+    background: #8aa2e0; /* 悬停时颜色加深 */
+  transform: scale(1.05);
+}
+
+::v-deep .el-table .el-table-column--selection .cell {
+  padding-left: 15px !important;
+}
+
+::v-deep .el-table .el-table__fixed-right .cell {
+  padding-right: 15px !important;
+}
+
+.edit-btn, .delete-btn {
+  margin: 0 8px;
+  color: #7079aa !important;
+}
+
+::v-deep .el-table .cell {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* 分页器 */
+.custom-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+
+  /* 导航按钮样式 (首页、上一页、下一页) */
+
+  .pagination-btn:first-child,
+  .pagination-btn:nth-child(2),
+  .pagination-btn:nth-last-child(2) {
+    min-width: 60px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 4px;
+    border: 1px solid #e4e7ed;
+    background: #DEE7FF;
+    color: #606266;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #d7dce6;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  /* 数字按钮样式 */
+
+  .pagination-btn:not(:first-child):not(:nth-child(2)):not(:nth-last-child(2)) {
+    min-width: 28px;
+    height: 32px;
+    padding: 0;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #606266;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(245, 247, 250, 0.3);
+    }
+  }
+
+  .pagination-btn.active {
+    background: #5f70f3 !important;
+    color: #ffffff !important;
+    border-color: #5f70f3 !important;
+
+    &:hover {
+      background: #6d7cf5 !important;
+    }
+  }
+
+  .total-text {
+    color: #909399;
+    font-size: 14px;
+    margin-left: 10px;
+  }
 }
 
 </style>

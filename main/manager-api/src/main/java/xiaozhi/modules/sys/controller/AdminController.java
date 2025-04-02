@@ -50,7 +50,7 @@ public class AdminController {
         AdminPageUserDTO dto = new AdminPageUserDTO();
         dto.setMobile((String) params.get("mobile"));
         dto.setLimit((String) params.get(Constant.LIMIT));
-        dto.setPage((String) params.get("pages"));
+        dto.setPage((String) params.get(Constant.PAGE));
 
         ValidatorUtils.validateEntity(dto);
         PageData<AdminPageUserVO> page = sysUserService.page(dto);
