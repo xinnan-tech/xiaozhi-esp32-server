@@ -128,8 +128,7 @@
 
 ## 系统要求与部署前提 🖥️
 
-- **电脑或服务器**：建议 4 核 CPU、8G 内存的电脑。如果开启ASR也使用API，可运行在2核CPU、2G内存的服务器中。
-- **修改客户端接口**：请将本后端服务的接口地址更新至 客户端中。
+建议 4 核 CPU、8G 内存的电脑。如果开启ASR也使用API，可运行在2核CPU、2G内存的服务器中。[请参考部署架构图](./docs/images/deploy.png)
 
 ---
 
@@ -153,6 +152,8 @@ server:
 ---
 
 ## 部署方式 🚀
+
+[![Banners](docs/images/banner2.png)](./docs/Deployment.md)
 
 ### 一、[部署文档](./docs/Deployment.md)
 
