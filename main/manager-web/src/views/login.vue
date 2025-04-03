@@ -8,6 +8,9 @@
           <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" style="width: 70px;height: 13px;"/>
         </div>
       </el-header>
+      <div class="login-person">
+        <img loading="lazy" alt="" src="@/assets/login/login-person.png" style="width: 100%;"/>
+      </div>
       <el-main style="position: relative;">
         <div class="login-box" @keyup.enter="login">
           <div
@@ -54,7 +57,7 @@
         </div>
       </el-main>
       <el-footer>
-        <div style="font-size: 12px;font-weight: 400;color: #979db1;">
+        <div class="copyright">
           ©2025 xiaozhi-esp32-server
         </div>
       </el-footer>

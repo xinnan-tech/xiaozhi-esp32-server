@@ -27,6 +27,19 @@ nav {
   }
 }
 
+.copyright {
+  text-align: center;
+  color:rgb(0, 0, 0);
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: auto;
+  padding: 30px 0 20px;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+}
 .el-message {
   top: 45px !important;
 }

@@ -38,7 +38,7 @@
             />
           </div>
         </div>
-        <div style="font-size: 12px;font-weight: 400;margin-top: auto;padding-top: 30px;color: #979db1;">
+        <div class="copyright">
           ©2025 xiaozhi-esp32-server
         </div>
         <AddWisdomBodyDialog :visible.sync="addDeviceDialogVisible" @confirm="handleWisdomBodyAdded" />

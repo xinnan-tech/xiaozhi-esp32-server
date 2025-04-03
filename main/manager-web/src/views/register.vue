@@ -74,7 +74,7 @@
 
       <!-- 保持相同的页脚 -->
       <el-footer>
-        <div style="font-size: 12px;font-weight: 400;color: #979db1;">
+        <div class="copyright">
           ©2025 xiaozhi-esp32-server
         </div>
       </el-footer>
