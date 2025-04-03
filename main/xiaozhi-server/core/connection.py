@@ -108,17 +108,28 @@ class ConnectionHandler:
         self.use_function_call_mode = False
         if self.config["selected_module"]["Intent"] == "function_call":
             self.use_function_call_mode = True
+        # 初始化 mcp_manager，防止后续引用报错
+        self.mcp_manager = None
 
     async def handle_connection(self, ws):
         try:
-            # 获取并验证headers
-            self.headers = dict(ws.request_headers)
+            # 获取并验证 headers
+            try:
+                if hasattr(ws, 'request_headers'):
+                    self.headers = dict(ws.request_headers)
+                elif hasattr(ws, 'headers'):
+                    self.headers = dict(ws.headers)
+                else:
+                    self.headers = {}
+                    self.logger.bind(tag=TAG).warning("ws对象没有 headers 属性")
+            except Exception as e:
+                self.logger.bind(tag=TAG).error(f"获取 headers 失败: {e}")
+                self.headers = {}
             # 获取客户端ip地址
             self.client_ip = ws.remote_address[0]
             self.logger.bind(tag=TAG).info(
                 f"{self.client_ip} conn - Headers: {self.headers}"
             )
-
             # 进行认证
             await self.auth.authenticate(self.headers)
             device_id = self.headers.get("device-id", None)
@@ -768,8 +779,9 @@ class ConnectionHandler:
 
     async def close(self, ws=None):
         """资源清理方法"""
-        # 清理MCP资源
-        await self.mcp_manager.cleanup_all()
+        # 清理MCP资源（如果有初始化）
+        if self.mcp_manager is not None:
+            await self.mcp_manager.cleanup_all()
 
         # 触发停止事件并清理资源
         if self.stop_event:
