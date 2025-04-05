@@ -27,7 +27,6 @@ import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.DateUtils;
 import xiaozhi.modules.device.dao.DeviceDao;
-import xiaozhi.modules.device.dto.DeviceBindDTO;
 import xiaozhi.modules.device.dto.DevicePageUserDTO;
 import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
@@ -66,7 +65,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
     }
 
     @Override
-    public Boolean deviceActivation(String activationCode) {
+    public Boolean deviceActivation(String agentId, String activationCode) {
         if (StringUtils.isBlank(activationCode)) {
             throw new RenException("激活码不能为空");
         }
@@ -103,6 +102,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         DeviceEntity deviceEntity = new DeviceEntity();
         deviceEntity.setId(deviceId);
         deviceEntity.setBoard(board);
+        deviceEntity.setAgentId(agentId);
         deviceEntity.setAppVersion(appVersion);
         deviceEntity.setMacAddress(macAddress);
         deviceEntity.setUserId(user.getId());
@@ -123,13 +123,13 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
     public DeviceReportRespDTO checkDeviceActive(String macAddress, String deviceId, String clientId,
             DeviceReportReqDTO deviceReport) {
         DeviceReportRespDTO response = new DeviceReportRespDTO();
-        response.setServerTime(buildServerTime());
+        response.setServer_time(buildServerTime());
         // todo: 此处是固件信息，目前是针对固件上传上来的版本号再返回回去
         // 在未来开发了固件更新功能，需要更换此处代码，
         // 或写定时任务定期请求虾哥的OTA，获取最新的版本讯息保存到服务内
         DeviceReportRespDTO.Firmware firmware = new DeviceReportRespDTO.Firmware();
         firmware.setVersion(deviceReport.getApplication().getVersion());
-        firmware.setUrl("http://localhost:8002/xiaozhi-esp32-api/api/v1/ota/download");
+        firmware.setUrl("http://localhost:8002/xiaozhi/ota/download");
         response.setFirmware(firmware);
 
         DeviceEntity deviceById = getDeviceById(deviceId);
@@ -176,19 +176,6 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         }
 
         return response;
-    }
-
-    @Override
-    public DeviceEntity bindDevice(DeviceBindDTO dto) {
-        // 查看是否已经被绑定
-        DeviceEntity deviceEntity = baseDao
-                .selectOne(new LambdaQueryWrapper<DeviceEntity>().eq(DeviceEntity::getMacAddress, dto.getMacAddress()));
-        if (deviceEntity != null) {
-            throw new RenException("设备已绑定");
-        }
-        deviceEntity = ConvertUtils.sourceToTarget(dto, DeviceEntity.class);
-        baseDao.insert(deviceEntity);
-        return deviceEntity;
     }
 
     @Override
@@ -251,7 +238,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         TimeZone tz = TimeZone.getDefault();
         serverTime.setTimestamp(Instant.now().toEpochMilli());
         serverTime.setTimeZone(tz.getID());
-        serverTime.setTimezoneOffset(tz.getOffset(System.currentTimeMillis()) / (60 * 1000));
+        serverTime.setTimezone_offset(tz.getOffset(System.currentTimeMillis()) / (60 * 1000));
         return serverTime;
     }
 }

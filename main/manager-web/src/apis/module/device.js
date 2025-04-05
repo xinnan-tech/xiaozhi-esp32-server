@@ -5,7 +5,7 @@ export default {
     // 已绑设备
     getAgentBindDevices(agentId, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/device/bind/${agentId}`)
+            .url(`${getServiceUrl()}/device/bind/${agentId}`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -21,7 +21,7 @@ export default {
     // 解绑设备
     unbindDevice(device_id, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/device/unbind`)
+            .url(`${getServiceUrl()}/device/unbind`)
             .method('POST')
             .data({ deviceId: device_id })
             .success((res) => {
@@ -38,7 +38,7 @@ export default {
     // 绑定设备
     bindDevice(agentId, deviceCode, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/device/bind/${agentId}/${deviceCode}`)
+            .url(`${getServiceUrl()}/device/bind/${agentId}/${deviceCode}`)
             .method('POST')
             .success((res) => {
                 RequestService.clearRequestTime();

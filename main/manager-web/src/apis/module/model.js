@@ -13,7 +13,7 @@ export default {
     }).toString();
 
     RequestService.sendRequest()
-      .url(`${getServiceUrl()}/api/v1/models/models/list?${queryParams}`)
+      .url(`${getServiceUrl()}/models/models/list?${queryParams}`)
       .method('GET')
       .success((res) => {
         RequestService.clearRequestTime()
@@ -29,7 +29,7 @@ export default {
   // 获取模型供应器列表
   getModelProviders(modelType, callback) {
     RequestService.sendRequest()
-      .url(`${getServiceUrl()}/api/v1/models/${modelType}/provideTypes`)
+      .url(`${getServiceUrl()}/models/${modelType}/provideTypes`)
       .method('GET')
       .success((res) => {
         RequestService.clearRequestTime()
@@ -59,7 +59,7 @@ export default {
     };
 
     RequestService.sendRequest()
-      .url(`${getServiceUrl()}/api/v1/models/models/${modelType}/${provideCode}`)
+      .url(`${getServiceUrl()}/models/models/${modelType}/${provideCode}`)
       .method('POST')
       .data(postData)
       .success((res) => {
@@ -77,7 +77,7 @@ export default {
   // 删除模型配置
   deleteModel(id, callback) {
     RequestService.sendRequest()
-      .url(`${getServiceUrl()}/api/v1/models/models/${id}`)
+      .url(`${getServiceUrl()}/models/models/${id}`)
       .method('DELETE')
       .success((res) => {
         RequestService.clearRequestTime()

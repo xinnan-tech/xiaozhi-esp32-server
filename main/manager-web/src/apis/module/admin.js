@@ -12,7 +12,7 @@ export default {
         }).toString();
 
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/admin/users?${queryParams}`)
+            .url(`${getServiceUrl()}/admin/users?${queryParams}`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime()
@@ -28,7 +28,7 @@ export default {
     // 删除用户
     deleteUser(id, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/admin/users/${id}`)
+            .url(`${getServiceUrl()}/admin/users/${id}`)
             .method('DELETE')
             .success((res) => {
                 RequestService.clearRequestTime()
@@ -44,7 +44,7 @@ export default {
     // 重置用户密码
     resetUserPassword(id, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/admin/users/${id}`)
+            .url(`${getServiceUrl()}/admin/users/${id}`)
             .method('PUT')
             .success((res) => {
                 RequestService.clearRequestTime()

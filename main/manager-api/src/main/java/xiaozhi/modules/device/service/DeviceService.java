@@ -3,7 +3,6 @@ package xiaozhi.modules.device.service;
 import java.util.List;
 
 import xiaozhi.common.page.PageData;
-import xiaozhi.modules.device.dto.DeviceBindDTO;
 import xiaozhi.modules.device.dto.DevicePageUserDTO;
 import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
@@ -24,11 +23,6 @@ public interface DeviceService {
             DeviceReportReqDTO deviceReport);
 
     /**
-     * 绑定设备
-     */
-    DeviceEntity bindDevice(DeviceBindDTO deviceHeader);
-
-    /**
      * 获取用户指定智能体的设备列表，
      */
     List<DeviceEntity> getUserDevices(Long userId, String agentId);
@@ -41,7 +35,7 @@ public interface DeviceService {
     /**
      * 设备激活
      */
-    Boolean deviceActivation(String activationCode);
+    Boolean deviceActivation(String agentId, String activationCode);
 
     /**
      * 删除此用户的所有设备

@@ -92,5 +92,5 @@ nohup java -jar xiaozhi-esp32-api.jar --spring.profiles.activate=dev
 
 
 # 接口文档
-启动后打开：http://localhost:8002/xiaozhi-esp32-api/doc.html
+启动后打开：http://localhost:8002/xiaozhi/doc.html
 

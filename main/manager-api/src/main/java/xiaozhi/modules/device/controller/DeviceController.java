@@ -19,7 +19,6 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.Result;
-import xiaozhi.modules.device.dto.DeviceBindDTO;
 import xiaozhi.modules.device.dto.DeviceRegisterDTO;
 import xiaozhi.modules.device.dto.DeviceUnBindDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
@@ -39,13 +38,7 @@ public class DeviceController {
     @Operation(summary = "绑定设备")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> bindDevice(@PathVariable String agentId, @PathVariable String deviceCode) {
-        String macAddress = (String) redisUtils.get(RedisKeys.getDeviceCaptchaKey(deviceCode));
-        if (StringUtils.isBlank(macAddress)) {
-            return new Result<Void>().error(ErrorCode.DEVICE_CAPTCHA_ERROR);
-        }
-        Long user = SecurityUser.getUser().getId();
-        DeviceBindDTO deviceBindDTO = new DeviceBindDTO(macAddress, user, agentId);
-        deviceService.bindDevice(deviceBindDTO);
+        deviceService.deviceActivation(agentId, deviceCode);
         return new Result<>();
     }
 

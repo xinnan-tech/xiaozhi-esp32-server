@@ -18,4 +18,4 @@ xiaozhi-esp32-server
 
 # manager-web 、manager-api接口协议
 
-https://2662r3426b.vicp.fun/xiaozhi-esp32-api/api/v1/doc.html
+https://2662r3426b.vicp.fun/xiaozhi/v1/doc.html
