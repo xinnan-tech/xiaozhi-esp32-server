@@ -87,7 +87,8 @@ selected_module:
   # 语音识别模块，默认使用FunASR本地模型
   ASR: FunASR
   # 将根据配置名称对应的type调用实际的LLM适配器
-  LLM: ChatGLMLLM
+  # LLM: ChatGLMLLM
+  LLM: AiStudio
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
@@ -319,6 +320,12 @@ LLM:
     # Xinference服务地址和模型名称
     model_name: qwen2.5:3b-AWQ  # 使用的小模型名称，用于意图识别
     base_url: http://localhost:9997  # Xinference服务地址
+  AiStudio:
+    # 定义LLM API类型
+    type: openai
+    model_name: ernie-speed-8k
+    url: https://aistudio.baidu.com/llm/lmapi/v3
+    api_key: 你的Aistudio账户令牌
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
