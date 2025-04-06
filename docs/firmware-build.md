@@ -1,9 +1,9 @@
 # 编译esp32固件
 
 1. 下载`xiaozhi-esp32`
-   项目，按照这个教程配置项目环境[《Windows搭建 ESP IDF 5.3.2开发环境以及编译小智》](https://icnynnzcwou8.feishu.cn/wiki/JEYDwTTALi5s2zkGlFGcDiRknXf)
+   项目([虾哥固件项目](https://github.com/78/xiaozhi-esp32))，按照这个教程配置项目环境[《Windows搭建 ESP IDF 5.3.2开发环境以及编译小智》](https://icnynnzcwou8.feishu.cn/wiki/JEYDwTTALi5s2zkGlFGcDiRknXf)
 
-2. 打开`xiaozhi-esp32/main/Kconfig.projbuild`文件，找到`WEBSOCKET_URL`的`default`的内容，把`wss://api.tenclass.net`
+2. 打开`xiaozhi-esp32/main/Kconfig.projbuild`文件(注意`xiaozhi-esp32`目录是虾哥固件项目根目录)，找到`WEBSOCKET_URL`的`default`的内容，把`wss://api.tenclass.net`
    改成你自己的地址，例如，我的接口地址是`ws://192.168.1.25:8000/xiaozhi/v1/`，就把内容改成这个。
 
 修改前：
