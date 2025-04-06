@@ -26,8 +26,6 @@ spring:
       enabled: true
   main:
     allow-bean-definition-overriding: true
-  liquibase:
-    enabled: false
 
 knife4j:
   enable: true

@@ -3,7 +3,7 @@ import sys
 from loguru import logger
 from config.settings import load_config
 
-SERVER_VERSION = "0.1.17"
+SERVER_VERSION = "0.2.1"
 
 
 def setup_logging():
