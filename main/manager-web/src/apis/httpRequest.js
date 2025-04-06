@@ -137,7 +137,7 @@ function reAjaxFun(fn) {
     } else {
         showWarning('正在连接服务器(' + ajaxIndex + ')')
     }
-    if (fn) {
+    if (ajaxIndex < 10 && fn) {
         setTimeout(() => {
             fn()
         }, reAjaxSec * 1000)
