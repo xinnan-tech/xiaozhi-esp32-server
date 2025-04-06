@@ -9,7 +9,7 @@
         </div>
       </el-header>
       <div class="login-person">
-        <img loading="lazy" alt="" src="@/assets/login/login-person.png" style="width: 100%;" />
+        <img loading="lazy" alt="" src="@/assets/login/register-person.png" style="width: 100%;" />
       </div>
       <el-main style="position: relative;">
         <div class="login-box">
