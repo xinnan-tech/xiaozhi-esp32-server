@@ -29,6 +29,7 @@ import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.agent.dto.AgentCreateDTO;
+import xiaozhi.modules.agent.dto.AgentDTO;
 import xiaozhi.modules.agent.dto.AgentUpdateDTO;
 import xiaozhi.modules.agent.entity.AgentEntity;
 import xiaozhi.modules.agent.entity.AgentTemplateEntity;
@@ -47,10 +48,10 @@ public class AgentController {
     @GetMapping("/list")
     @Operation(summary = "获取用户智能体列表")
     @RequiresPermissions("sys:role:normal")
-    public Result<List<AgentEntity>> getUserAgents() {
+    public Result<List<AgentDTO>> getUserAgents() {
         UserDetail user = SecurityUser.getUser();
-        List<AgentEntity> agents = agentService.getUserAgents(user.getId());
-        return new Result<List<AgentEntity>>().ok(agents);
+        List<AgentDTO> agents = agentService.getUserAgents(user.getId());
+        return new Result<List<AgentDTO>>().ok(agents);
     }
 
     @GetMapping("/all")

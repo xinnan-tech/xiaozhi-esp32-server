@@ -5,13 +5,10 @@ import java.util.Map;
 
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.BaseService;
+import xiaozhi.modules.agent.dto.AgentDTO;
 import xiaozhi.modules.agent.entity.AgentEntity;
 
 public interface AgentService extends BaseService<AgentEntity> {
-    /**
-     * 根据用户ID获取智能体列表
-     */
-    List<AgentEntity> getUserAgents(Long userId);
 
     /**
      * 管理员获取所有智能体列表（分页）
@@ -29,4 +26,20 @@ public interface AgentService extends BaseService<AgentEntity> {
      * @param userId
      */
     void deleteAgentByUserId(Long userId);
+
+    /**
+     * 获取用户智能体列表
+     * 
+     * @param userId
+     * @return
+     */
+    List<AgentDTO> getUserAgents(Long userId);
+
+    /**
+     * 获取智能体的设备数量
+     * 
+     * @param agentId 智能体ID
+     * @return 设备数量
+     */
+    Integer getDeviceCountByAgentId(String agentId);
 }

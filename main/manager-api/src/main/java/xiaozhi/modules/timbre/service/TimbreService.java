@@ -56,4 +56,12 @@ public interface TimbreService extends BaseService<TimbreEntity> {
     void delete(String[] ids);
 
     List<VoiceDTO> getVoiceNames(String ttsModelId, String voiceName);
+
+    /**
+     * 根据ID获取音色名称
+     * 
+     * @param id 音色ID
+     * @return 音色名称
+     */
+    String getTimbreNameById(String id);
 }

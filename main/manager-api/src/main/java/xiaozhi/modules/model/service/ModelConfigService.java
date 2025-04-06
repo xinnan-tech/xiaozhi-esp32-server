@@ -20,4 +20,12 @@ public interface ModelConfigService extends BaseService<ModelConfigEntity> {
     ModelConfigDTO edit(String modelType, String provideCode, String id, ModelConfigBodyDTO modelConfigBodyDTO);
 
     void delete(String id);
+
+    /**
+     * 根据ID获取模型名称
+     * 
+     * @param id 模型ID
+     * @return 模型名称
+     */
+    String getModelNameById(String id);
 }
