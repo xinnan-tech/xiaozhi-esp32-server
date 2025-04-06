@@ -18,6 +18,7 @@ import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.modules.model.dao.ModelConfigDao;
+import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
 import xiaozhi.modules.model.dto.ModelConfigDTO;
 import xiaozhi.modules.model.dto.ModelProviderDTO;
@@ -36,8 +37,13 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     private final TimbreService timbreService;
 
     @Override
-    public List<String> getModelCodeList(String modelType, String modelName) {
-        return modelConfigDao.getModelCodeList(modelType, modelName);
+    public List<ModelBasicInfoDTO> getModelCodeList(String modelType, String modelName) {
+        List<ModelConfigEntity> entities = modelConfigDao.selectList(
+                new QueryWrapper<ModelConfigEntity>()
+                        .eq("model_type", modelType)
+                        .like(StringUtils.isNotBlank(modelName), "model_name", "%" + modelName + "%")
+                        .select("id", "model_name"));
+        return ConvertUtils.sourceToTarget(entities, ModelBasicInfoDTO.class);
     }
 
     @Override
@@ -93,10 +99,5 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     @Override
     public void delete(String id) {
         modelConfigDao.deleteById(id);
-    }
-
-    @Override
-    public List<String> getVoiceList(String modelId, String voiceName) {
-        return timbreService.getVoiceNames(modelId, voiceName);
     }
 }

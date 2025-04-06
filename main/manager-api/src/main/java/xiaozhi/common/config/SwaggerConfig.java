@@ -51,7 +51,7 @@ public class SwaggerConfig {
     public GroupedOpenApi timbreApi() {
         return GroupedOpenApi.builder()
                 .group("timbre")
-                .pathsToMatch("/timbre/**")
+                .pathsToMatch("/ttsVoice/**")
                 .build();
     }
 

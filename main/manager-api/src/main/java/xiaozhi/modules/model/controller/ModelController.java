@@ -19,12 +19,15 @@ import lombok.AllArgsConstructor;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.Result;
+import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
 import xiaozhi.modules.model.dto.ModelConfigDTO;
 import xiaozhi.modules.model.dto.ModelProviderDTO;
+import xiaozhi.modules.model.dto.VoiceDTO;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.model.service.ModelProviderService;
+import xiaozhi.modules.timbre.service.TimbreService;
 
 @AllArgsConstructor
 @RestController
@@ -33,16 +36,16 @@ import xiaozhi.modules.model.service.ModelProviderService;
 public class ModelController {
 
     private final ModelProviderService modelProviderService;
-
+    private final TimbreService timbreService;
     private final ModelConfigService modelConfigService;
 
     @GetMapping("/names")
     @Operation(summary = "获取所有模型名称")
     @RequiresPermissions("sys:role:superAdmin")
-    public Result<List<String>> getModelNames(@RequestParam String modelType,
+    public Result<List<ModelBasicInfoDTO>> getModelNames(@RequestParam String modelType,
             @RequestParam(required = false) String modelName) {
-        List<String> modelNameList = modelConfigService.getModelCodeList(modelType, modelName);
-        return new Result<List<String>>().ok(modelNameList);
+        List<ModelBasicInfoDTO> modelList = modelConfigService.getModelCodeList(modelType, modelName);
+        return new Result<List<ModelBasicInfoDTO>>().ok(modelList);
     }
 
     @GetMapping("/{modelType}/provideTypes")
@@ -119,10 +122,9 @@ public class ModelController {
     @GetMapping("/{modelId}/voices")
     @Operation(summary = "获取模型音色")
     @RequiresPermissions("sys:role:normal")
-    public Result<List<String>> getVoiceList(@PathVariable String modelId,
+    public Result<List<VoiceDTO>> getVoiceList(@PathVariable String modelId,
             @RequestParam(required = false) String voiceName) {
-
-        List<String> voiceList = modelConfigService.getVoiceList(modelId, voiceName);
-        return new Result<List<String>>().ok(voiceList);
+        List<VoiceDTO> voiceList = timbreService.getVoiceNames(modelId, voiceName);
+        return new Result<List<VoiceDTO>>().ok(voiceList);
     }
 }

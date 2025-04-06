@@ -18,6 +18,7 @@ import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.modules.model.dto.VoiceDTO;
 import xiaozhi.modules.timbre.dao.TimbreDao;
 import xiaozhi.modules.timbre.dto.TimbreDataDTO;
 import xiaozhi.modules.timbre.dto.TimbrePageDTO;
@@ -84,7 +85,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     }
 
     @Override
-    public List<String> getVoiceNames(String ttsModelId, String voiceName) {
+    public List<VoiceDTO> getVoiceNames(String ttsModelId, String voiceName) {
         QueryWrapper<TimbreEntity> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("tts_model_id", StringUtils.isBlank(ttsModelId) ? "" : ttsModelId);
         if (StringUtils.isNotBlank(voiceName)) {
@@ -95,7 +96,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
             return null;
         }
 
-        return timbreEntities.stream().map(TimbreEntity::getName).toList();
+        return ConvertUtils.sourceToTarget(timbreEntities, VoiceDTO.class);
     }
 
     /**

@@ -4,13 +4,14 @@ import java.util.List;
 
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.BaseService;
+import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
 import xiaozhi.modules.model.dto.ModelConfigDTO;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 
 public interface ModelConfigService extends BaseService<ModelConfigEntity> {
 
-    List<String> getModelCodeList(String modelType, String modelName);
+    List<ModelBasicInfoDTO> getModelCodeList(String modelType, String modelName);
 
     PageData<ModelConfigDTO> getPageList(String modelType, String modelName, String page, String limit);
 
@@ -19,6 +20,4 @@ public interface ModelConfigService extends BaseService<ModelConfigEntity> {
     ModelConfigDTO edit(String modelType, String provideCode, String id, ModelConfigBodyDTO modelConfigBodyDTO);
 
     void delete(String id);
-
-    List<String> getVoiceList(String modelName, String voiceName);
 }

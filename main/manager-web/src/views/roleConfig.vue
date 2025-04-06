@@ -13,66 +13,59 @@
         </div>
         <div style="height: 1px;background: #e8f0ff;" />
         <el-form ref="form" :model="form" label-width="72px">
-          <div style="padding: 16px 24px;max-width: 792px;">
-            <el-form-item label="助手昵称：">
-              <div class="input-46" style="width: 100%; max-width: 412px;">
-                <el-input v-model="form.agentName" />
-              </div>
-            </el-form-item>
-            <el-form-item label="角色模版：">
-              <div style="display: flex;gap: 8px;">
-                <div v-for="template in templates" :key="template" class="template-item"
-                  :class="{ 'template-loading': loadingTemplate }" @click="selectTemplate(template)">
-                  {{ template }}
-                </div>
-              </div>
-            </el-form-item>
-            <el-form-item label="角色音色：">
-              <div style="display: flex;gap: 8px;align-items: center;">
-                <div class="input-46" style="flex:1.4;">
-                  <el-select v-model="form.ttsVoiceId" placeholder="请选择" style="width: 100%;">
-                    <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value">
-                    </el-option>
-                  </el-select>
-                </div>
-                <div class="audio-box">
-                  <audio src="http://music.163.com/song/media/outer/url?id=447925558.mp3" controls
-                    style="height: 100%;width: 100%;" />
-                </div>
-              </div>
-            </el-form-item>
-            <el-form-item label="角色介绍：">
-              <div class="textarea-box">
-                <el-input type="textarea" rows="5" resize="none" placeholder="请输入内容" v-model="form.systemPrompt"
-                  maxlength="2000" show-word-limit />
-              </div>
-            </el-form-item>
-            <el-form-item label="记忆体：">
-              <div class="textarea-box">
-                <el-input type="textarea" rows="5" resize="none" placeholder="请输入内容" v-model="form.langCode"
-                  maxlength="1000" />
-                <div class="prompt-bottom" @click="clearMemory">
-                  <div style="display: flex;gap: 8px;align-items: center;">
-                    <div style="color: #979db1;font-size: 11px;">当前记忆（每次对话后重新生成）</div>
-                    <div class="clear-btn">
-                      <i class="el-icon-delete-solid" style="font-size: 11px;" />
-                      清除
+          <div style="padding: 16px 24px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+              <div>
+                <el-form-item label="助手昵称：">
+                  <div class="input-46" style="width: 100%;">
+                    <el-input v-model="form.agentName" />
+                  </div>
+                </el-form-item>
+                <el-form-item label="角色模版：">
+                  <div style="display: flex;gap: 8px;flex-wrap: wrap;">
+                    <div v-for="(template, index) in templates" :key="`template-${index}`" class="template-item"
+                      :class="{ 'template-loading': loadingTemplate }" @click="selectTemplate(template)">
+                      {{ template.agentName }}
                     </div>
                   </div>
-                  <div style="color: #979db1;font-size:11px;">{{ (form.langCode || '').length }}/1000</div>
-                </div>
+                </el-form-item>
+                <el-form-item label="角色介绍：">
+                  <div class="textarea-box">
+                    <el-input type="textarea" rows="5" resize="none" placeholder="请输入内容" v-model="form.systemPrompt"
+                      maxlength="2000" show-word-limit />
+                  </div>
+                </el-form-item>
+                <el-form-item label="语言编码：">
+                  <div class="input-46" style="width: 100%;">
+                    <el-input v-model="form.langCode" placeholder="请输入语言编码，如：zh_CN" maxlength="10" show-word-limit />
+                  </div>
+                </el-form-item>
+                <el-form-item label="交互语种：">
+                  <div class="input-46" style="width: 100%;">
+                    <el-input v-model="form.language" placeholder="请输入交互语种，如：中文" maxlength="10" show-word-limit />
+                  </div>
+                </el-form-item>
               </div>
-            </el-form-item>
-            <el-form-item v-for="model in models" :key="model.label" :label="model.label" class="model-item">
-              <el-select v-model="form.model[model.key]" filterable placeholder="请选择" class="select-field">
-                <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="" class="lh-form-item" style="margin-top: -25px;">
-              <div style="color: #979db1;text-align: left;">除了“Qwen
-                实时”，其他模型通常会增加约1秒的延迟。改变模型后，建议清空记忆体，以免影响体验。
+              <div>
+                <el-form-item v-for="(model, index) in models" :key="`model-${index}`" :label="model.label"
+                  class="model-item">
+                  <el-select v-model="form.model[model.key]" filterable placeholder="请选择" class="select-field">
+                    <el-option v-for="(item, optionIndex) in modelOptions[model.type]"
+                      :key="`option-${index}-${optionIndex}`" :label="item.label" :value="item.value" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="角色音色：">
+                  <div style="display: flex;gap: 8px;align-items: center;">
+                    <div class="input-46" style="width: 100%;">
+                      <el-select v-model="form.ttsVoiceId" placeholder="请选择" style="width: 100%;">
+                        <el-option v-for="(item, index) in voiceOptions" :key="`voice-${index}`" :label="item.label"
+                          :value="item.value" />
+                      </el-select>
+                    </div>
+                  </div>
+                </el-form-item>
               </div>
-            </el-form-item>
+            </div>
           </div>
         </el-form>
         <div style="display: flex;padding: 16px;gap: 8px;align-items: center;">
@@ -122,20 +115,18 @@ export default {
           intentModelId: "",
         }
       },
-      options: [
-        { value: '选项1', label: '黄金糕' },
-        { value: '选项2', label: '双皮奶' }
-      ],
       models: [
-        { label: '大语言模型(LLM)', key: 'llmModelId' },
-        { label: '语音识别(ASR)', key: 'asrModelId' },
-        { label: '语音活动检测(VAD)', key: 'vadModelId' },
-        { label: '语音合成(TTS)', key: 'ttsModelId' },
-        { label: '意图识别(Intent)', key: 'intentModelId' },
-        { label: '记忆(Memory)', key: 'memModelId' }
+        { label: '语音活动检测(VAD)', key: 'vadModelId', type: 'VAD' },
+        { label: '语音识别(ASR)', key: 'asrModelId', type: 'ASR' },
+        { label: '大语言模型(LLM)', key: 'llmModelId', type: 'LLM' },
+        { label: '意图识别(Intent)', key: 'intentModelId', type: 'Intent' },
+        { label: '记忆(Memory)', key: 'memModelId', type: 'Memory' },
+        { label: '语音合成(TTS)', key: 'ttsModelId', type: 'TTS' },
       ],
-      templates: ['湾湾小何', '星际游子', '英语老师', '好奇男孩', '汪汪队长'],
-      loadingTemplate: false
+      modelOptions: {},
+      templates: [],
+      loadingTemplate: false,
+      voiceOptions: [],
     }
   },
   methods: {
@@ -191,30 +182,27 @@ export default {
       }).catch(() => {
       })
     },
-    selectTemplate(templateName) {
+    fetchTemplates() {
+      Api.agent.getAgentTemplate(({ data }) => {
+        if (data.code === 0) {
+          this.templates = data.data;
+        } else {
+          this.$message.error(data.msg || '获取模板列表失败');
+        }
+      });
+    },
+    selectTemplate(template) {
       if (this.loadingTemplate) return;
       this.loadingTemplate = true;
-      Api.agent.getAgentTemplate((response) => {  // 移除参数传递
+      try {
+        this.applyTemplateData(template);
+        this.$message.success(`「${template.agentName}」模板已应用`);
+      } catch (error) {
+        this.$message.error('应用模板失败');
+        console.error('应用模板失败:', error);
+      } finally {
         this.loadingTemplate = false;
-        if (response.data.code === 0) {
-          // 在客户端过滤匹配的模板
-          const matchedTemplate = response.data.data.find(
-            t => t.agentName === templateName
-          );
-          if (matchedTemplate) {
-            this.applyTemplateData(matchedTemplate);
-            this.$message.success(`「${templateName}」模板已应用`);
-          } else {
-            this.$message.warning(`未找到「${templateName}」模板`);
-          }
-        } else {
-          this.$message.error(response.data.msg || '获取模板失败');
-        }
-      }).catch((error) => {
-        this.loadingTemplate = false;
-        this.$message.error('模板加载失败');
-        console.error('接口异常:', error);
-      });
+      }
     },
     applyTemplateData(templateData) {
       this.form = {
@@ -253,17 +241,67 @@ export default {
         }
       });
     },
-    // 清空记忆体内容
-    clearMemory() {
-      this.form.langCode = "";
-      this.$message.success("记忆体已清空");
+    fetchModelOptions() {
+      // 为每个模型类型获取选项
+      this.models.forEach(model => {
+        Api.model.getModelNames(model.type, '', ({ data }) => {
+          if (data.code === 0) {
+            this.$set(this.modelOptions, model.type, data.data.map(item => ({
+              value: item.id,
+              label: item.modelName
+            })));
+          } else {
+            this.$message.error(data.msg || '获取模型列表失败');
+          }
+        });
+      });
     },
+    fetchVoiceOptions(modelId) {
+      if (!modelId) {
+        this.voiceOptions = [];
+        return;
+      }
+      Api.model.getModelVoices(modelId, '', ({ data }) => {
+        if (data.code === 0 && data.data) {
+          this.voiceOptions = data.data.map(voice => ({
+            value: voice.id,
+            label: voice.name
+          }));
+        } else {
+          this.voiceOptions = [];
+        }
+      });
+    }
+  },
+  watch: {
+    'form.model.ttsModelId': {
+      handler(newVal, oldVal) {
+        console.log('TTS模型变化:', newVal);
+        if (oldVal && newVal !== oldVal) {
+          this.form.ttsVoiceId = '';
+          this.fetchVoiceOptions(newVal);
+        } else {
+          this.fetchVoiceOptions(newVal);
+        }
+      },
+      immediate: true
+    },
+    voiceOptions: {
+      handler(newVal) {
+        if (newVal && newVal.length > 0 && !this.form.ttsVoiceId) {
+          this.form.ttsVoiceId = newVal[0].value;
+        }
+      },
+      immediate: true
+    }
   },
   mounted() {
     const agentId = this.$route.query.agentId;
     if (agentId) {
       this.fetchAgentConfig(agentId);
     }
+    this.fetchModelOptions();
+    this.fetchTemplates();
   }
 }
 </script>

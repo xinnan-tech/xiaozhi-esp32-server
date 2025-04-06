@@ -4,6 +4,7 @@ import java.util.List;
 
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.BaseService;
+import xiaozhi.modules.model.dto.VoiceDTO;
 import xiaozhi.modules.timbre.dto.TimbreDataDTO;
 import xiaozhi.modules.timbre.dto.TimbrePageDTO;
 import xiaozhi.modules.timbre.entity.TimbreEntity;
@@ -54,5 +55,5 @@ public interface TimbreService extends BaseService<TimbreEntity> {
      */
     void delete(String[] ids);
 
-    List<String> getVoiceNames(String ttsModelId, String voiceName);
+    List<VoiceDTO> getVoiceNames(String ttsModelId, String voiceName);
 }

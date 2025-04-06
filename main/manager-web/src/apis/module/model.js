@@ -91,6 +91,38 @@ export default {
         })
       }).send()
   },
-
-
+  // 获取模型名称列表
+  getModelNames(modelType, modelName, callback) {
+    RequestService.sendRequest()
+      .url(`${getServiceUrl()}/models/names`)
+      .method('GET')
+      .data({ modelType, modelName })
+      .success((res) => {
+        RequestService.clearRequestTime();
+        callback(res);
+      })
+      .fail(() => {
+        RequestService.reAjaxFun(() => {
+          this.getModelNames(modelType, modelName, callback);
+        });
+      }).send();
+  },
+  // 获取模型音色列表
+  getModelVoices(modelId, voiceName, callback) {
+    const queryParams = new URLSearchParams({
+      voiceName: voiceName || ''
+    }).toString();
+    RequestService.sendRequest()
+      .url(`${getServiceUrl()}/models/${modelId}/voices?${queryParams}`)
+      .method('GET')
+      .success((res) => {
+        RequestService.clearRequestTime();
+        callback(res);
+      })
+      .fail(() => {
+        RequestService.reAjaxFun(() => {
+          this.getModelVoices(modelId, voiceName, callback);
+        });
+      }).send();
+  },
 }
