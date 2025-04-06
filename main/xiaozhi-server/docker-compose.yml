@@ -1,8 +1,17 @@
-# 如果本机已经安装了MySQL，可以直接在数据库中创建名为`xiaozhi_esp32_server`的数据库。
-# 如果还没有MySQL，你可以通过docker安装mysql,执行以下一句话
-# docker run --name xiaozhi-esp32-server-db -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -e MYSQL_DATABASE=xiaozhi_esp32_server -e MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci" -d mysql:latest
-# 如果你的mysql账号和密码有修改过，记得修改下方数据库的账号和密码
-# 记得修改下方数据库的IP，ip不能写127.0.0.1或localhost，否则容器无法访问，要写你电脑局域网ip
+# 1、安装mysql
+# |- 如果本机已经安装了MySQL，可以直接在数据库中创建名为`xiaozhi_esp32_server`的数据库。
+# |- 如果还没有MySQL，你可以通过docker安装mysql,执行以下一句话
+# |- docker run --name xiaozhi-esp32-server-db -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -e MYSQL_DATABASE=xiaozhi_esp32_server -e MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci" -d mysql:latest
+# |- 如果你的mysql账号和密码有修改过，记得修改下方数据库的账号和密码
+# |- 记得修改下方SPRING_DATASOURCE_DRUID_URL的IP，ip不能写127.0.0.1或localhost，否则容器无法访问，要写你电脑局域网ip
+
+# 2、安装redis
+# |- 如果本机已经安装了Redis，看一下你安装的redis端口、密码，然后修改下方redis的地址和端口
+# |- 如果还没有Redis，你可以通过docker安装redis,执行以下一句话
+# |- docker run --name xiaozhi-esp32-server-redis -d -p 6379:6379 redis
+# |- 记得修改SPRING_DATA_REDIS_HOST的IP，ip不能写127.0.0.1或localhost，否则容器无法访问，要写你电脑局域网ip
+
+
 version: '3'
 services:
   xiaozhi-esp32-server:
