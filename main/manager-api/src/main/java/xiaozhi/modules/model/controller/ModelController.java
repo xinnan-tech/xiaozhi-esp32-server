@@ -36,7 +36,7 @@ public class ModelController {
 
     private final ModelConfigService modelConfigService;
 
-    @GetMapping("/models/names")
+    @GetMapping("/names")
     @Operation(summary = "获取所有模型名称")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<List<String>> getModelNames(@RequestParam String modelType,
@@ -53,7 +53,7 @@ public class ModelController {
         return new Result<List<ModelProviderDTO>>().ok(modelProviderDTOS);
     }
 
-    @GetMapping("/models/list")
+    @GetMapping("/list")
     @Operation(summary = "获取模型配置列表")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<PageData<ModelConfigDTO>> getModelConfigList(
@@ -65,7 +65,7 @@ public class ModelController {
         return new Result<PageData<ModelConfigDTO>>().ok(pageList);
     }
 
-    @PostMapping("/models/{modelType}/{provideCode}")
+    @PostMapping("/{modelType}/{provideCode}")
     @Operation(summary = "新增模型配置")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<ModelConfigDTO> addModelConfig(@PathVariable String modelType,
@@ -75,7 +75,7 @@ public class ModelController {
         return new Result<ModelConfigDTO>().ok(modelConfigDTO);
     }
 
-    @PutMapping("/models/{modelType}/{provideCode}/{id}")
+    @PutMapping("/{modelType}/{provideCode}/{id}")
     @Operation(summary = "编辑模型配置")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<ModelConfigDTO> editModelConfig(@PathVariable String modelType,
@@ -86,7 +86,7 @@ public class ModelController {
         return new Result<ModelConfigDTO>().ok(modelConfigDTO);
     }
 
-    @DeleteMapping("/models/{id}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "删除模型配置")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> deleteModelConfig(@PathVariable String id) {
@@ -94,7 +94,7 @@ public class ModelController {
         return new Result<>();
     }
 
-    @GetMapping("/models/{id}")
+    @GetMapping("/{id}")
     @Operation(summary = "获取模型配置")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<ModelConfigDTO> getModelConfig(@PathVariable String id) {
@@ -103,7 +103,20 @@ public class ModelController {
         return new Result<ModelConfigDTO>().ok(modelConfigDTO);
     }
 
-    @GetMapping("/models/{modelId}/voices")
+    @PutMapping("/enable/{id}/{status}")
+    @Operation(summary = "启用/关闭模型配置")
+    @RequiresPermissions("sys:role:superAdmin")
+    public Result<Void> enableModelConfig(@PathVariable String id, @PathVariable Integer status) {
+        ModelConfigEntity entity = modelConfigService.selectById(id);
+        if (entity == null) {
+            return new Result<Void>().error("模型配置不存在");
+        }
+        entity.setIsEnabled(status);
+        modelConfigService.updateById(entity);
+        return new Result<Void>();
+    }
+
+    @GetMapping("/{modelId}/voices")
     @Operation(summary = "获取模型音色")
     @RequiresPermissions("sys:role:normal")
     public Result<List<String>> getVoiceList(@PathVariable String modelId,
