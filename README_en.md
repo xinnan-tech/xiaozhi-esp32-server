@@ -15,7 +15,7 @@ Helping you quickly set up your Xiaozhi server
 <a href="./README.md">简体中文</a>
 · English
 · <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">Changelog</a>
-· <a href="./docs/Deployment.md">Deployment Guide</a>
+· <a href="./docs/Deployment_en.md">Deployment Guide</a>
 · <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/issues">Report Issues</a>
 </p>
 <p align="center">
@@ -153,19 +153,19 @@ After enabling protection, you need to verify the machine's token or MAC address
 
 ## Deployment Methods 🚀
 
-### I. [Deployment Guide](./docs/Deployment.md)
+### I. [Deployment Guide](./docs/Deployment_en.md)
 
 This project supports three deployment methods. You can choose based on your actual needs.
 
-1. [Quick Docker Deployment](./docs/Deployment.md)
+1. [Quick Docker Deployment](./docs/Deployment_en.md)
 
 Suitable for regular users who want to quickly experience without much environment configuration. The downside is that pulling the image can be slow. Video tutorial available: [Beautiful expert teaches Docker deployment](https://www.bilibili.com/video/BV1RNQnYDE5t)
 
-2. [Deploy Using Docker Environment](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)
+2. [Deploy Using Docker Environment](./docs/Deployment_en.md#method-2-deployment-using-docker-environment)
 
 For software engineers who have Docker installed and want to make custom code modifications.
 
-3. [Local Source Code Run](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)
+3. [Local Source Code Run](./docs/Deployment_en.md#method-3-local-source-code-deployment)
 
 Suitable for users familiar with `Conda` environment or who want to build the running environment from scratch.
 
