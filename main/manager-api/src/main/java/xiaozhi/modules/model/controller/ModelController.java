@@ -41,7 +41,7 @@ public class ModelController {
 
     @GetMapping("/names")
     @Operation(summary = "获取所有模型名称")
-    @RequiresPermissions("sys:role:superAdmin")
+    @RequiresPermissions("sys:role:normal")
     public Result<List<ModelBasicInfoDTO>> getModelNames(@RequestParam String modelType,
             @RequestParam(required = false) String modelName) {
         List<ModelBasicInfoDTO> modelList = modelConfigService.getModelCodeList(modelType, modelName);

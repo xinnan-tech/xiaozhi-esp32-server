@@ -11,4 +11,10 @@ import xiaozhi.modules.agent.entity.AgentTemplateEntity;
  */
 public interface AgentTemplateService extends IService<AgentTemplateEntity> {
 
+    /**
+     * 获取默认模板
+     * 
+     * @return 默认模板实体
+     */
+    AgentTemplateEntity getDefaultTemplate();
 }

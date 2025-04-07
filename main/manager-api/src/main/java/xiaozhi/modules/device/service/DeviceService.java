@@ -45,6 +45,13 @@ public interface DeviceService {
     void deleteByUserId(Long userId);
 
     /**
+     * 删除指定智能体关联的所有设备
+     * 
+     * @param agentId 智能体id
+     */
+    void deleteByAgentId(String agentId);
+
+    /**
      * 获取指定用户的设备数量
      * 
      * @param userId 用户id

@@ -209,6 +209,13 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
     }
 
     @Override
+    public void deleteByAgentId(String agentId) {
+        UpdateWrapper<DeviceEntity> wrapper = new UpdateWrapper<>();
+        wrapper.eq("agent_id", agentId);
+        baseDao.delete(wrapper);
+    }
+
+    @Override
     public PageData<UserShowDeviceListVO> page(DevicePageUserDTO dto) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put(Constant.PAGE, dto.getPage());
