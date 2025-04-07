@@ -1,10 +1,9 @@
 # 编译esp32固件
 
-1. 下载`xiaozhi-esp32`
-   项目，按照这个教程配置项目环境[《Windows搭建 ESP IDF 5.3.2开发环境以及编译小智》](https://icnynnzcwou8.feishu.cn/wiki/JEYDwTTALi5s2zkGlFGcDiRknXf)
+1. 先按照这个教程配置项目环境[《Windows搭建 ESP IDF 5.3.2开发环境以及编译小智》](https://icnynnzcwou8.feishu.cn/wiki/JEYDwTTALi5s2zkGlFGcDiRknXf)
 
-2. 打开`xiaozhi-esp32/main/Kconfig.projbuild`文件，找到`WEBSOCKET_URL`的`default`的内容，把`wss://api.tenclass.net`
-   改成你自己的地址，例如，我的接口地址是`ws://192.168.1.25:8000`，就把内容改成这个。
+2. 配置好编译环境后，下载虾哥[xiaozhi-esp32](https://github.com/78/xiaozhi-esp32)项目源码，进入虾哥项目，打开`xiaozhi-esp32/main/Kconfig.projbuild`文件，找到`WEBSOCKET_URL`的`default`的内容，把`wss://api.tenclass.net`
+   改成你自己的地址，例如，我的接口地址是`ws://192.168.1.25:8000/xiaozhi/v1/`，就把内容改成这个。
 
 修改前：
 
@@ -92,14 +91,16 @@ https://espressif.github.io/esp-launchpad/
 
 以下是一些常见问题，供参考：
 
-[1、为什么我说的话，小智识别出来很多韩文、日文、英文](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[1、为什么我说的话，小智识别出来很多韩文、日文、英文](./FAQ.md)
 
-[2、为什么会出现“TTS 任务出错 文件不存在”？](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[2、为什么会出现“TTS 任务出错 文件不存在”？](./FAQ.md)
 
-[3、TTS 经常失败，经常超时](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[3、TTS 经常失败，经常超时](./FAQ.md)
 
-[4、如何提高小智对话响应速度？](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[4、使用Wifi能连接自建服务器，但是4G模式却接不上](./FAQ.md)
 
-[5、我说话很慢，停顿时小智老是抢话](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[5、如何提高小智对话响应速度？](./FAQ.md)
 
-[6、我想通过小智控制电灯、空调、远程开关机等操作](../README.md#1tts-%E7%BB%8F%E5%B8%B8%E5%A4%B1%E8%B4%A5%E7%BB%8F%E5%B8%B8%E8%B6%85%E6%97%B6-)
+[6、我说话很慢，停顿时小智老是抢话](./FAQ.md)
+
+[7、我想通过小智控制电灯、空调、远程开关机等操作](./FAQ.md)

@@ -29,11 +29,13 @@ import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.agent.dto.AgentCreateDTO;
+import xiaozhi.modules.agent.dto.AgentDTO;
 import xiaozhi.modules.agent.dto.AgentUpdateDTO;
 import xiaozhi.modules.agent.entity.AgentEntity;
 import xiaozhi.modules.agent.entity.AgentTemplateEntity;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
+import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.security.user.SecurityUser;
 
 @Tag(name = "智能体管理")
@@ -43,14 +45,15 @@ import xiaozhi.modules.security.user.SecurityUser;
 public class AgentController {
     private final AgentService agentService;
     private final AgentTemplateService agentTemplateService;
+    private final DeviceService deviceService;
 
     @GetMapping("/list")
     @Operation(summary = "获取用户智能体列表")
     @RequiresPermissions("sys:role:normal")
-    public Result<List<AgentEntity>> getUserAgents() {
+    public Result<List<AgentDTO>> getUserAgents() {
         UserDetail user = SecurityUser.getUser();
-        List<AgentEntity> agents = agentService.getUserAgents(user.getId());
-        return new Result<List<AgentEntity>>().ok(agents);
+        List<AgentDTO> agents = agentService.getUserAgents(user.getId());
+        return new Result<List<AgentDTO>>().ok(agents);
     }
 
     @GetMapping("/all")
@@ -79,6 +82,22 @@ public class AgentController {
     @RequiresPermissions("sys:role:normal")
     public Result<Void> save(@RequestBody @Valid AgentCreateDTO dto) {
         AgentEntity entity = ConvertUtils.sourceToTarget(dto, AgentEntity.class);
+
+        // 获取默认模板
+        AgentTemplateEntity template = agentTemplateService.getDefaultTemplate();
+        if (template != null) {
+            // 设置模板中的默认值
+            entity.setAsrModelId(template.getAsrModelId());
+            entity.setVadModelId(template.getVadModelId());
+            entity.setLlmModelId(template.getLlmModelId());
+            entity.setTtsModelId(template.getTtsModelId());
+            entity.setTtsVoiceId(template.getTtsVoiceId());
+            entity.setMemModelId(template.getMemModelId());
+            entity.setIntentModelId(template.getIntentModelId());
+            entity.setSystemPrompt(template.getSystemPrompt());
+            entity.setLangCode(template.getLangCode());
+            entity.setLanguage(template.getLanguage());
+        }
 
         // 设置用户ID和创建者信息
         UserDetail user = SecurityUser.getUser();
@@ -157,6 +176,9 @@ public class AgentController {
     @Operation(summary = "删除智能体")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> delete(@PathVariable String id) {
+        // 先删除关联的设备
+        deviceService.deleteByAgentId(id);
+        // 再删除智能体
         agentService.deleteById(id);
         return new Result<>();
     }

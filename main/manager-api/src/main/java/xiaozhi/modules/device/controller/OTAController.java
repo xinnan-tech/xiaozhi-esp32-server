@@ -5,12 +5,10 @@ import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -22,7 +20,6 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import xiaozhi.common.utils.Result;
 import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
 import xiaozhi.modules.device.service.DeviceService;
@@ -31,7 +28,7 @@ import xiaozhi.modules.device.utils.NetworkUtil;
 @Tag(name = "设备管理", description = "OTA 相关接口")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/ota")
+@RequestMapping("/ota/")
 public class OTAController {
     private final DeviceService deviceService;
 
@@ -53,12 +50,6 @@ public class OTAController {
             return createResponse(DeviceReportRespDTO.createError("Invalid OTA request"));
         }
         return createResponse(deviceService.checkDeviceActive(macAddress, deviceId, clientId, deviceReportReqDTO));
-    }
-
-    @Operation(summary = "设备激活")
-    @GetMapping("/activation")
-    public Result<Boolean> deviceActivation(@RequestParam String code) {
-        return new Result<Boolean>().ok(deviceService.deviceActivation(code));
     }
 
     @SneakyThrows

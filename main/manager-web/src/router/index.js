@@ -56,11 +56,11 @@ const routes = [
     }
   },
   {
-   path: '/model-config',
-   name: 'ModelConfig',
-   component: function () {
-     return import('../views/ModelConfig.vue')
-   }
+    path: '/model-config',
+    name: 'ModelConfig',
+    component: function () {
+      return import('../views/ModelConfig.vue')
+    }
   },
   {
     path: '/test',
@@ -75,6 +75,20 @@ const routes = [
 const router = new VueRouter({
   routes
 })
+
+// 全局处理重复导航，改为刷新页面
+const originalPush = VueRouter.prototype.push
+VueRouter.prototype.push = function push(location) {
+  return originalPush.call(this, location).catch(err => {
+    if (err.name === 'NavigationDuplicated') {
+      // 如果是重复导航，刷新页面
+      window.location.reload()
+    } else {
+      // 其他错误正常抛出
+      throw err
+    }
+  })
+}
 
 // 需要登录才能访问的路由
 const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig']

@@ -2,6 +2,7 @@ package xiaozhi.modules.agent.service.impl;
 
 import org.springframework.stereotype.Service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 import xiaozhi.modules.agent.dao.AgentTemplateDao;
@@ -15,6 +16,17 @@ import xiaozhi.modules.agent.service.AgentTemplateService;
  */
 @Service
 public class AgentTemplateServiceImpl extends ServiceImpl<AgentTemplateDao, AgentTemplateEntity>
-                implements AgentTemplateService {
+        implements AgentTemplateService {
 
+    /**
+     * 获取默认模板
+     * 
+     * @return 默认模板实体
+     */
+    public AgentTemplateEntity getDefaultTemplate() {
+        LambdaQueryWrapper<AgentTemplateEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByAsc(AgentTemplateEntity::getSort)
+                .last("LIMIT 1");
+        return this.getOne(wrapper);
+    }
 }

@@ -26,4 +26,32 @@ public class RedisKeys {
     public static String getDeviceCaptchaKey(String captcha) {
         return "sys:device:captcha:" + captcha;
     }
+
+    /**
+     * 用户id的Key
+     */
+    public static String getUserIdKey(Long userid) {
+        return "sys:username:id:" + userid;
+    }
+
+    /**
+     * 模型名称的Key
+     */
+    public static String getModelNameById(String id) {
+        return "sys:model:name:" + id;
+    }
+
+    /**
+     * 获取音色名称缓存key
+     */
+    public static String getTimbreNameById(String id) {
+        return "timbre:name:" + id;
+    }
+
+    /**
+     * 获取设备数量缓存key
+     */
+    public static String getAgentDeviceCountById(String id) {
+        return "agent:device:count:" + id;
+    }
 }

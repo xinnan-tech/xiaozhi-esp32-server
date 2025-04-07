@@ -31,7 +31,7 @@ class SileroVAD(VAD):
     def is_vad(self, conn, opus_packet):
         try:
             pcm_frame = self.decoder.decode(opus_packet, 960)
-            conn.client_audio_buffer += pcm_frame  # 将新数据加入缓冲区
+            conn.client_audio_buffer.extend(pcm_frame)  # 将新数据加入缓冲区
 
             # 处理缓冲区中的完整帧（每次处理512采样点）
             client_have_voice = False

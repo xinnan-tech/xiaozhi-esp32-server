@@ -19,7 +19,7 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.Result;
-import xiaozhi.modules.device.dto.DeviceBindDTO;
+import xiaozhi.modules.device.dto.DeviceRegisterDTO;
 import xiaozhi.modules.device.dto.DeviceUnBindDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
@@ -38,14 +38,27 @@ public class DeviceController {
     @Operation(summary = "绑定设备")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> bindDevice(@PathVariable String agentId, @PathVariable String deviceCode) {
-        String macAddress = (String) redisUtils.get(RedisKeys.getDeviceCaptchaKey(deviceCode));
-        if (StringUtils.isBlank(macAddress)) {
-            return new Result<Void>().error(ErrorCode.DEVICE_CAPTCHA_ERROR);
-        }
-        Long user = SecurityUser.getUser().getId();
-        DeviceBindDTO deviceBindDTO = new DeviceBindDTO(macAddress, user, agentId);
-        deviceService.bindDevice(deviceBindDTO);
+        deviceService.deviceActivation(agentId, deviceCode);
         return new Result<>();
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "注册设备")
+    public Result<String> registerDevice(@RequestBody DeviceRegisterDTO deviceRegisterDTO) {
+        String macAddress = deviceRegisterDTO.getMacAddress();
+        if (StringUtils.isBlank(macAddress)) {
+            return new Result<String>().error(ErrorCode.NOT_NULL, "mac地址不能为空");
+        }
+        // 生成六位验证码
+        String code = String.valueOf(Math.random()).substring(2, 8);
+        String key = RedisKeys.getDeviceCaptchaKey(code);
+        String existsMac = null;
+        do {
+            existsMac = (String) redisUtils.get(key);
+        } while (StringUtils.isNotBlank(existsMac));
+
+        redisUtils.set(key, macAddress);
+        return new Result<String>().ok(code);
     }
 
     @GetMapping("/bind/{agentId}")

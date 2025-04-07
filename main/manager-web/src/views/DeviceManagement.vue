@@ -15,7 +15,8 @@
           <el-table-column label="最近对话" prop="lastConversation" width="140"></el-table-column>
           <el-table-column label="备注" width="180">
             <template slot-scope="scope">
-              <el-input v-if="scope.row.isEdit" v-model="scope.row.remark" size="mini" @blur="stopEditRemark(scope.$index)"></el-input>
+              <el-input v-if="scope.row.isEdit" v-model="scope.row.remark" size="mini"
+                @blur="stopEditRemark(scope.$index)"></el-input>
               <span v-else>
                 <i v-if="!scope.row.remark" class="el-icon-edit" @click="startEditRemark(scope.$index, scope.row)"></i>
                 <span v-else @click="startEditRemark(scope.$index, scope.row)">
@@ -26,7 +27,8 @@
           </el-table-column>
           <el-table-column label="OTA升级" width="120">
             <template slot-scope="scope">
-              <el-switch v-model="scope.row.otaSwitch" size="mini" active-color="#13ce66" inactive-color="#ff4949"></el-switch>
+              <el-switch v-model="scope.row.otaSwitch" size="mini" active-color="#13ce66"
+                inactive-color="#ff4949"></el-switch>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="80">
@@ -37,30 +39,26 @@
             </template>
           </el-table-column>
         </el-table>
-        <el-pagination
-          class="pagination"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-          :current-page="currentPage"
-          :page-sizes="[5, 10, 20, 50]"
-          :page-size="pageSize"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="deviceList.length"
-        ></el-pagination>
+        <el-pagination class="pagination" @size-change="handleSizeChange" @current-change="handleCurrentChange"
+          :current-page="currentPage" :page-sizes="[5, 10, 20, 50]" :page-size="pageSize"
+          layout="total, sizes, prev, pager, next, jumper" :total="deviceList.length"></el-pagination>
       </div>
-      <div style="font-size: 12px; font-weight: 400; margin-top: auto; padding-top: 30px; color: #979db1;">
+      <div class="copyright">
         ©2025 xiaozhi-esp32-server
       </div>
-      <AddDeviceDialog :visible.sync="addDeviceDialogVisible" :agent-id="currentAgentId" @refresh="fetchBindDevices(currentAgentId)"  />
+      <AddDeviceDialog :visible.sync="addDeviceDialogVisible" :agent-id="currentAgentId"
+        @refresh="fetchBindDevices(currentAgentId)" />
     </el-main>
   </div>
 </template>
 
 <script>
-import HeaderBar from "@/components/HeaderBar.vue";
+import Api from '@/apis/api';
 import AddDeviceDialog from "@/components/AddDeviceDialog.vue";
+import HeaderBar from "@/components/HeaderBar.vue";
+
 export default {
-  components: {HeaderBar, AddDeviceDialog },
+  components: { HeaderBar, AddDeviceDialog },
   data() {
     return {
       addDeviceDialogVisible: false,
@@ -81,12 +79,9 @@ export default {
   },
   mounted() {
     const agentId = this.$route.query.agentId;
-    import('@/apis/module/user').then(({ default: userApi }) => {
-      this.userApi = userApi;
-      if (agentId) {
-        this.fetchBindDevices(agentId);
-      }
-    });
+    if (agentId) {
+      this.fetchBindDevices(agentId);
+    }
   },
   methods: {
     handleAddDevice() {
@@ -99,21 +94,23 @@ export default {
       this.deviceList[index].isEdit = false;
     },
     handleUnbind(device_id) {
-      if (!this.userApi) {
-        this.$message.error('功能模块加载失败');
-        return;
-      }
       this.$confirm('确认要解绑该设备吗？', '警告', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.userApi.unbindDevice(device_id, ({ data }) => {
+        Api.device.unbindDevice(device_id, ({ data }) => {
           if (data.code === 0) {
-            this.$message.success('设备解绑成功');
+            this.$message.success({
+              message: '设备解绑成功',
+              showClose: true
+            });
             this.fetchBindDevices(this.$route.query.agentId);
           } else {
-            this.$message.error(data.msg || '设备解绑失败');
+            this.$message.error({
+              message: data.msg || '设备解绑失败',
+              showClose: true
+            });
           }
         });
       });
@@ -124,33 +121,40 @@ export default {
     handleCurrentChange(val) {
       this.currentPage = val;
     },
-     fetchBindDevices(agentId) {
-        this.loading = true;
-        import('@/apis/module/user').then(({ default: userApi }) => {
-          userApi.getAgentBindDevices(agentId, ({ data }) => {
-            this.loading = false;
-            if (data.code === 0) {
-              this.deviceList = data.data[0].list.map(device => ({
-                device_id: device.id,
-                model: device.device_type,
-                firmwareVersion: device.app_version,
-                macAddress: device.mac_address,
-                lastConversation: device.recent_chat_time,
-                remark: '',
-                isEdit: false,
-                otaSwitch: device.ota_upgrade === 1
-              }));
-            } else {
-              this.$message.error(data.msg || '获取设备列表失败');
-            }
-          });
-        }).catch(error => {
-          console.error('模块加载失败:', error);
-          this.$message.error('功能模块加载失败');
-        });
-     },
+    fetchBindDevices(agentId) {
+      this.loading = true;
+      Api.device.getAgentBindDevices(agentId, ({ data }) => {
+        this.loading = false;
+        if (data.code === 0) {
+          // 格式化日期并按照绑定时间降序排列
+          this.deviceList = data.data.map(device => {
+            // 格式化绑定时间
+            const bindDate = new Date(device.createDate);
+            const formattedBindTime = `${bindDate.getFullYear()}-${(bindDate.getMonth() + 1).toString().padStart(2, '0')}-${bindDate.getDate().toString().padStart(2, '0')} ${bindDate.getHours().toString().padStart(2, '0')}:${bindDate.getMinutes().toString().padStart(2, '0')}:${bindDate.getSeconds().toString().padStart(2, '0')}`;
+            return {
+              device_id: device.id,
+              model: device.board,
+              firmwareVersion: device.appVersion,
+              macAddress: device.macAddress,
+              bindTime: formattedBindTime, // 使用格式化后的时间
+              lastConversation: device.lastConnectedAt,
+              remark: device.alias,
+              isEdit: false,
+              otaSwitch: device.autoUpdate === 1,
+              // 添加原始时间用于排序
+              rawBindTime: new Date(device.createDate).getTime()
+            };
+          })
+            // 按照绑定时间降序排序
+            .sort((a, b) => a.rawBindTime - b.rawBindTime);
+        } else {
+          this.$message.error(data.msg || '获取设备列表失败');
+        }
+      });
+    },
   }
 };
+
 </script>
 
 <style scoped>
@@ -160,7 +164,7 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-image: url("@/assets/home/background.png");
+  background: linear-gradient(145deg, #e6eeff, #eff0ff);
   background-size: cover;
   background-position: center;
   -webkit-background-size: cover;
@@ -188,6 +192,7 @@ export default {
   font-size: 14px;
   gap: 8px;
   margin-bottom: 15px;
+
   &:hover {
     background: #3a8ee6;
   }

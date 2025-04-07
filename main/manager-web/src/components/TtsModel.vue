@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :visible.sync="visible" width="80%" @close="handleClose">
+  <el-dialog :visible.sync="localVisible" width="80%" @close="handleClose">
     <el-row class="main-container">
       <el-col :span="4">
         <el-menu class="model-menu" :default-active="activeModel" mode="vertical" @select="handleModelSelect">
@@ -57,6 +57,7 @@ export default {
   },
   data() {
     return {
+      localVisible: this.visible,
       activeModel: 'EdgeTTS',
       searchQuery: '',
       editDialogVisible: false,
@@ -72,6 +73,11 @@ export default {
       total: 20
     };
   },
+  watch: {
+    visible(newVal) {
+      this.localVisible = newVal;
+    }
+  },
   computed: {
     filteredTtsModels() {
       return this.ttsModels.filter(model =>
@@ -81,6 +87,7 @@ export default {
   },
   methods: {
     handleClose() {
+      this.localVisible = false;
       this.$emit('update:visible', false);
     },
     handleModelSelect(index) {

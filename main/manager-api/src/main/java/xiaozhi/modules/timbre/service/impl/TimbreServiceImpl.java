@@ -16,8 +16,11 @@ import cn.hutool.core.collection.CollectionUtil;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
+import xiaozhi.common.redis.RedisKeys;
+import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.modules.model.dto.VoiceDTO;
 import xiaozhi.modules.timbre.dao.TimbreDao;
 import xiaozhi.modules.timbre.dto.TimbreDataDTO;
 import xiaozhi.modules.timbre.dto.TimbrePageDTO;
@@ -36,6 +39,7 @@ import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
 public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> implements TimbreService {
 
     private final TimbreDao timbreDao;
+    private final RedisUtils redisUtils;
 
     @Override
     public PageData<TimbreDetailsVO> page(TimbrePageDTO dto) {
@@ -84,7 +88,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     }
 
     @Override
-    public List<String> getVoiceNames(String ttsModelId, String voiceName) {
+    public List<VoiceDTO> getVoiceNames(String ttsModelId, String voiceName) {
         QueryWrapper<TimbreEntity> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("tts_model_id", StringUtils.isBlank(ttsModelId) ? "" : ttsModelId);
         if (StringUtils.isNotBlank(voiceName)) {
@@ -95,7 +99,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
             return null;
         }
 
-        return timbreEntities.stream().map(TimbreEntity::getName).toList();
+        return ConvertUtils.sourceToTarget(timbreEntities, VoiceDTO.class);
     }
 
     /**
@@ -103,5 +107,29 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
      */
     private void isTtsModelId(String ttsModelId) {
         // 等模型配置那边写好调用方法判断
+    }
+
+    @Override
+    public String getTimbreNameById(String id) {
+        if (StringUtils.isBlank(id)) {
+            return null;
+        }
+
+        String cachedName = (String) redisUtils.get(RedisKeys.getTimbreNameById(id));
+
+        if (StringUtils.isNotBlank(cachedName)) {
+            return cachedName;
+        }
+
+        TimbreEntity entity = timbreDao.selectById(id);
+        if (entity != null) {
+            String name = entity.getName();
+            if (StringUtils.isNotBlank(name)) {
+                redisUtils.set(RedisKeys.getTimbreNameById(id), name);
+            }
+            return name;
+        }
+
+        return null;
     }
 }

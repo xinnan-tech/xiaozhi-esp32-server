@@ -1,4 +1,4 @@
-本文档是开发类文档，如需部署小智服务端，[点击这里查看部署教程](../../README.md#%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F-)
+本文档是开发类文档，如需部署小智服务端，[点击这里查看部署教程](../../../docs/Deployment.md)
 # 项目介绍
 
 manager-api 该项目基于SpringBoot框架开发。
@@ -23,12 +23,7 @@ CREATE DATABASE xiaozhi_esp32_server CHARACTER SET utf8mb4 COLLATE utf8mb4_unico
 如果还没有MySQL，你可以通过docker安装mysql
 
 ```
-docker run --name xiaozhi-esp32-server-db \
--e MYSQL_ROOT_PASSWORD=123456 \
--p 3306:3306 \
--e MYSQL_DATABASE=xiaozhi_esp32_server \
--e MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci" \
--d mysql:latest
+docker run --name xiaozhi-esp32-server-db -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -e MYSQL_DATABASE=xiaozhi_esp32_server -e MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci" -d mysql:latest
 ```
 
 # 确认项目数据库连接信息
@@ -81,15 +76,16 @@ src/main/java/xiaozhi/AdminApplication.java
 执行以下命令生产jar包
 
 ```
-mvn install
+mvn clean install
 ```
 
 把jar包放在服务器上，执行
 
 ```
-nohup java -jar xiaozhi-esp32-api.jar --spring.profiles.active=dev >/dev/null &
+nohup java -jar xiaozhi-esp32-api.jar --spring.profiles.activate=dev
 ```
 
+
 # 接口文档
-启动后打开：http://localhost:8002/xiaozhi-esp32-api/doc.html
+启动后打开：http://localhost:8002/xiaozhi/doc.html
 

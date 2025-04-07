@@ -3,13 +3,12 @@
     <h1 class="title">XiaoZhi ESP32 Server 测试助手</h1>
     <div class="chat-container" ref="chatContainer">
       <div v-for="(message, index) in messages" :key="index"
-           :class="['message', message.role === 'user' ? 'user' : 'assistant']">
+        :class="['message', message.role === 'user' ? 'user' : 'assistant']">
         <span>{{ message.content }}</span>
       </div>
     </div>
     <div class="controls">
-      <button @click="toggleRecording" :disabled="wsStatus !== 'connected'"
-              :class="{ recording: isRecording }">
+      <button @click="toggleRecording" :disabled="wsStatus !== 'connected'" :class="{ recording: isRecording }">
         {{ isRecording ? '停止录音' : '开始录音' }}
       </button>
       <p>WebSocket: {{ wsStatus }}</p>
@@ -18,8 +17,8 @@
 </template>
 
 <script>
-import Recorder from 'opus-recorder';
 import { OpusDecoder } from 'opus-decoder';
+import Recorder from 'opus-recorder';
 
 export default {
   name: 'TestPage',
@@ -89,8 +88,8 @@ export default {
           console.log('收到音频帧，大小:', event.data.byteLength, '字节');
           const opusFrame = new Uint8Array(event.data);
           const frameHead = Array.from(opusFrame.slice(0, 8))
-              .map(b => b.toString(16).padStart(2, '0'))
-              .join(' ');
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join(' ');
           console.log('音频帧前8字节:', frameHead);
 
           try {
@@ -258,8 +257,8 @@ export default {
           const frames = this.stripOggContainer(data);
           frames.forEach((frame, index) => {
             const frameHead = Array.from(new Uint8Array(frame.slice(0, 8)))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join(' ');
+              .map(b => b.toString(16).padStart(2, '0'))
+              .join(' ');
             console.log(`帧 ${index} 大小: ${frame.byteLength} 字节，前8字节: ${frameHead}`);
 
             if (frame.byteLength < 50 || frame.byteLength > 300) {
