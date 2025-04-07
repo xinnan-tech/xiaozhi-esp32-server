@@ -69,12 +69,13 @@ async def process_intent_result(conn, intent_result, original_text):
         # 检查是否有function_call
         if "function_call" in intent_data:
             # 直接从意图识别获取了function_call
-            logger.bind(tag=TAG).info(
+            logger.bind(tag=TAG).debug(
                 f"检测到function_call格式的意图结果: {intent_data['function_call']['name']}"
             )
             function_name = intent_data["function_call"]["name"]
             if function_name == "continue_chat":
                 return False
+
             function_args = None
             if "arguments" in intent_data["function_call"]:
                 function_args = intent_data["function_call"]["arguments"]
