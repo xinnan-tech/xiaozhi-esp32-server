@@ -16,6 +16,7 @@ class ASRProvider(ASRProviderBase):
         self.scope = config.get("scope")
         self.dev_pid = config.get("dev_pid")
         self.output_dir = config.get("output_dir")
+        self.cuid = "123456PYTHON"
 
         self.asr_url = "http://vop.baidu.com/server_api"
         self.token = self.fetch_token(config.get("api_key"), config.get("secret_key"))
@@ -82,7 +83,7 @@ class ASRProvider(ASRProviderBase):
 
         return b"".join(pcm_data)
 
-    def _build_request_body(self, file_format: str = "wav") -> tuple[dict, dict]:
+    def _build_request_body(self, file_format: str = "wav", rate: int = 16000) -> tuple[dict, dict]:
         params = {
             'cuid': self.cuid,
             'token': self.token,
@@ -90,7 +91,7 @@ class ASRProvider(ASRProviderBase):
         }
 
         headers = {
-            'Content-Type': f'audio/{file_format}; rate={self.rate}'
+            'Content-Type': f'audio/{file_format}; rate={rate}'
         }
         return params, headers
 
@@ -103,7 +104,9 @@ class ASRProvider(ASRProviderBase):
             timeout=10  # 设置超时时间
         )
         response.raise_for_status()  # 检查HTTP错误
-        return response.json()
+        if response.json().get("result", None) is None:
+            raise RuntimeError("语音识别失败，结果为空！")
+        return "".join(response.json().get("result", None))
 
     async def speech_to_text(self, opus_data: list[bytes], session_id: str) -> list[str | None, str | None]:
         """将语音数据转换为文本"""

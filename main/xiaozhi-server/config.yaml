@@ -179,6 +179,7 @@ ASR:
     dev_pid: 1536
     api_key: 你的星河社区账户令牌
     secret_key: 你的星河社区账户令牌
+    output_dir: tmp/
   FunASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
@@ -583,6 +584,12 @@ TTS:
       # Authorization: Bearer xxxx
     format: wav # 接口返回的音频格式
     output_dir: tmp/
+  AistudioTTS:
+    # 自定义的音频文件路径
+    type: aistudio
+    output_dir: tmp/
+    api_key: 你的星河社区账户令牌
+    secret_key: 你的星河社区账户令牌
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句
