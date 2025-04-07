@@ -50,6 +50,12 @@ def create_iot_function(device_name, method_name, method_info):
         conn, response_success=None, response_failure=None, **params
     ):
         try:
+            # 设置默认响应消息
+            if not response_success:
+                response_success = "操作成功"
+            if not response_failure:
+                response_failure = "操作失败"
+
             # 打印响应参数
             logger.bind(tag=TAG).info(
                 f"控制函数接收到的响应参数: success='{response_success}', failure='{response_failure}'"
