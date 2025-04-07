@@ -148,9 +148,15 @@ export default {
       };
       Api.agent.updateAgentConfig(this.$route.query.agentId, configData, ({ data }) => {
         if (data.code === 0) {
-          this.$message.success('配置保存成功');
+          this.$message.success({
+            message: '配置保存成功',
+            showClose: true
+          });
         } else {
-          this.$message.error(data.msg || '配置保存失败');
+          this.$message.error({
+            message: data.msg || '配置保存失败',
+            showClose: true
+          });
         }
       });
     },
@@ -178,7 +184,10 @@ export default {
             intentModelId: "",
           }
         }
-        this.$message.success('配置已重置')
+        this.$message.success({
+          message: '配置已重置',
+          showClose: true
+        })
       }).catch(() => {
       })
     },
@@ -196,9 +205,15 @@ export default {
       this.loadingTemplate = true;
       try {
         this.applyTemplateData(template);
-        this.$message.success(`「${template.agentName}」模板已应用`);
+        this.$message.success({
+          message: `「${template.agentName}」模板已应用`,
+          showClose: true
+        });
       } catch (error) {
-        this.$message.error('应用模板失败');
+        this.$message.error({
+          message: '应用模板失败',
+          showClose: true
+        });
         console.error('应用模板失败:', error);
       } finally {
         this.loadingTemplate = false;

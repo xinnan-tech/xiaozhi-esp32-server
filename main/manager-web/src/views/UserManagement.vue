@@ -21,14 +21,19 @@
               <el-table-column label="用户Id" prop="userid" align="center"></el-table-column>
               <el-table-column label="手机号码" prop="mobile" align="center"></el-table-column>
               <el-table-column label="设备数量" prop="deviceCount" align="center"></el-table-column>
-              <el-table-column label="状态" prop="status" align="center"></el-table-column>
+              <el-table-column label="状态" prop="status" align="center">
+                <template slot-scope="scope">
+                  <el-tag v-if="scope.row.status === 1" type="success">正常</el-tag>
+                  <el-tag v-else type="danger">禁用</el-tag>
+                </template>
+              </el-table-column>
               <el-table-column label="操作" align="center">
                 <template slot-scope="scope">
                   <el-button size="mini" type="text" @click="resetPassword(scope.row)">重置密码</el-button>
-                  <el-button size="mini" type="text" v-if="scope.row.status === '正常'"
-                    @click="disableUser(scope.row)">禁用账户</el-button>
-                  <el-button size="mini" type="text" v-if="scope.row.status === '禁用'"
-                    @click="restoreUser(scope.row)">恢复账号</el-button>
+                  <el-button size="mini" type="text" v-if="scope.row.status === 1"
+                    @click="handleChangeStatus(scope.row, 0)">禁用账户</el-button>
+                  <el-button size="mini" type="text" v-if="scope.row.status === 0"
+                    @click="handleChangeStatus(scope.row, 1)">恢复账号</el-button>
                   <el-button size="mini" type="text" @click="deleteUser(scope.row)">删除用户</el-button>
                 </template>
               </el-table-column>
@@ -49,7 +54,6 @@
                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
                   上一页
                 </button>
-
                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                   :class="{ active: page === currentPage }" @click="goToPage(page)">
                   {{ page }}
@@ -120,10 +124,7 @@ export default {
         },
         ({ data }) => {
           if (data.code === 0) {
-            this.userList = data.data.list.map((user) => ({
-              ...user,
-              status: user.status === "1" ? "正常" : "禁用",
-            }));
+            this.userList = data.data.list
             this.total = data.data.total;
           }
         }
@@ -175,9 +176,15 @@ export default {
             const failCount = results.length - successCount;
 
             if (failCount === 0) {
-              this.$message.success(`成功删除${successCount}个用户`);
+              this.$message.success({
+                message: `成功删除${successCount}个用户`,
+                showClose: true
+              });
             } else if (successCount === 0) {
-              this.$message.error(`删除失败，请重试`);
+              this.$message.error({
+                message: '删除失败，请重试',
+                showClose: true
+              });
             } else {
               this.$message.warning(
                 `成功删除${successCount}个用户，${failCount}个删除失败`
@@ -201,16 +208,15 @@ export default {
         this.$message.warning("请先选择需要启用的用户");
         return;
       }
-      selectedUsers.forEach((user) => {
-        user.status = "正常";
-      });
-      this.$message.success("启用操作成功");
+      this.handleChangeStatus(selectedUsers, 1);
     },
     batchDisable() {
-      this.userList.forEach((user) => {
-        user.status = "禁用";
-      });
-      this.$message.success("状态已更新为禁用");
+      const selectedUsers = this.$refs.userTable.selection;
+      if (selectedUsers.length === 0) {
+        this.$message.warning("请先选择需要禁用的用户");
+        return;
+      }
+      this.handleChangeStatus(selectedUsers, 0);
     },
     resetPassword(row) {
       this.$confirm("重置后将会生成新密码，是否继续？", "提示", {
@@ -221,16 +227,13 @@ export default {
           if (data.code === 0) {
             this.currentPassword = data.data;
             this.showViewPassword = true;
-            this.$message.success("密码已重置，请通知用户使用新密码登录");
+            this.$message.success({
+              message: "密码已重置，请通知用户使用新密码登录",
+              showClose: true
+            });
           }
         });
       });
-    },
-    disableUser(row) {
-      row.status = "禁用";
-    },
-    restoreUser(row) {
-      row.status = "正常";
     },
     deleteUser(row) {
       this.$confirm("确定要删除该用户吗？", "警告", {
@@ -241,10 +244,16 @@ export default {
         .then(() => {
           Api.admin.deleteUser(row.userid, ({ data }) => {
             if (data.code === 0) {
-              this.$message.success("删除成功");
+              this.$message.success({
+                message: "删除成功",
+                showClose: true
+              });
               this.fetchUsers();
             } else {
-              this.$message.error(data.msg || "删除失败");
+              this.$message.error({
+                message: data.msg || "删除失败",
+                showClose: true
+              });
             }
           });
         })
@@ -276,6 +285,41 @@ export default {
       this.currentPage = page;
       this.fetchUsers();
     },
+    handleChangeStatus(row, status) {
+      // 处理单个用户或用户数组
+      const users = Array.isArray(row) ? row : [row];
+      const confirmText = status === 0 ? '禁用' : '启用';
+      const userCount = users.length;
+
+      this.$confirm(`确定要${confirmText}选中的${userCount}个用户吗？`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        const userIds = users.map(user => Number(user.userid));
+        if (userIds.some(id => isNaN(id))) {
+          this.$message.error('存在无效的用户ID');
+          return;
+        }
+
+        Api.user.changeUserStatus(status, userIds, ({ data }) => {
+          if (data.code === 0) {
+            this.$message.success({
+              message: `成功${confirmText}${userCount}个用户`,
+              showClose: true
+            });
+            this.fetchUsers(); // 刷新用户列表
+          } else {
+            this.$message.error({
+              message: '操作失败，请重试',
+              showClose: true
+            });
+          }
+        });
+      }).catch(() => {
+        // 用户取消操作
+      });
+    }
   },
 };
 </script>

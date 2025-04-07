@@ -101,7 +101,7 @@
             <div class="batch-actions">
               <el-button size="mini" @click="selectAll" style="width: 75px; background: #606ff3">{{ isAllSelected ?
                 '取消全选' : '全选'
-              }}</el-button>
+                }}</el-button>
               <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">
                 删除
               </el-button>
@@ -239,10 +239,16 @@ export default {
 
         Promise.all(deletePromises).then(results => {
           if (results.every(Boolean)) {
-            this.$message.success('批量删除成功')
+            this.$message.success({
+              message: '批量删除成功',
+              showClose: true
+            })
             this.loadData()
           } else {
-            this.$message.error('部分删除失败')
+            this.$message.error({
+              message: '部分删除失败',
+              showClose: true
+            })
           }
         })
       }).catch(() => {
@@ -269,10 +275,16 @@ export default {
           model.id,
           ({ data }) => {
             if (data.code === 0) {
-              this.$message.success('删除成功')
+              this.$message.success({
+                message: '删除成功',
+                showClose: true
+              })
               this.loadData()
             } else {
-              this.$message.error(data.msg || '删除失败')
+              this.$message.error({
+                message: data.msg || '删除失败',
+                showClose: true
+              })
             }
           }
         )
@@ -325,10 +337,16 @@ export default {
 
       Api.model.addModel(params, ({ data }) => {
         if (data.code === 0) {
-          this.$message.success('新增成功');
+          this.$message.success({
+            message: '新增成功',
+            showClose: true
+          });
           this.loadData();
         } else {
-          this.$message.error(data.msg || '新增失败');
+          this.$message.error({
+            message: data.msg || '新增失败',
+            showClose: true
+          });
         }
       });
     },
