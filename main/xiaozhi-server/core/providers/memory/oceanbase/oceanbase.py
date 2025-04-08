@@ -27,6 +27,7 @@ class MemoryProvider(MemoryProviderBase):
         self.db_name = config.get("database", "xiaozhi")
         self.table_name = config.get("table_name", "xiaozhi")
         self.model_path = config.get("model_path", "models/all-MiniLM-L6-v2")
+        self.model_path = os.path.abspath(self.model_path)
         if not os.path.exists(self.model_path):
             raise Exception(f"模型路径不存在,请下载到: {self.model_path}")
         print(f"连接到 oceanbase 服务: {self.uri}")
