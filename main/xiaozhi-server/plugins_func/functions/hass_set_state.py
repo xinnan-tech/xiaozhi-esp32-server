@@ -11,7 +11,7 @@ hass_set_state_function_desc = {
     "type": "function",
     "function": {
         "name": "hass_set_state",
-        "description": "设置homeassistant里设备的状态,包括开、关,调整灯光亮度,调整播放器的音量,设备的暂停、继续、静音操作",
+        "description": "设置homeassistant里设备的状态,包括开、关,调整灯光亮度、颜色、色温,调整播放器的音量,设备的暂停、继续、静音操作",
         "parameters": {
             "type": "object",
             "properties": {
@@ -20,7 +20,7 @@ hass_set_state_function_desc = {
                     "properties": {
                         "type": {
                             "type": "string",
-                            "description": "需要操作的动作,打开设备:turn_on,关闭设备:turn_off,增加亮度:brightness_up,降低亮度:brightness_down,设置亮度:brightness_value,增加>音量:,volume_up降低音量:volume_down,设置音量:volume_set,设备暂停:pause,设备继续:continue,静音/取消静音:volume_mute"
+                            "description": "需要操作的动作,打开设备:turn_on,关闭设备:turn_off,增加亮度:brightness_up,降低亮度:brightness_down,设置亮度:brightness_value,增加音量:volume_up,降低音量:volume_down,设置音量:volume_set,设置色温:set_kelvin,设置颜色:set_color,设备暂停:pause,设备继续:continue,静音/取消静音:volume_mute"
                         },
                         "input": {
                             "type": "integer",
@@ -29,6 +29,10 @@ hass_set_state_function_desc = {
                         "is_muted": {
                             "type": "string",
                             "description": "只有在设置静音操作时才需要,设置静音的时候该值为true,取消静音时该值为false"
+                        },
+                        "rgb_color":{
+                            "type":"list",
+                            "description": "只有在设置颜色时需要,这里填目标颜色的rgb值"
                         }
                     },
                     "required": ["type"]
