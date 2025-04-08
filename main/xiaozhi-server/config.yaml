@@ -580,6 +580,14 @@ TTS:
     # 语速范围0.25-4.0
     speed: 1
     output_dir: tmp/
+  AzureTTS:
+    type: azure
+    # 微软Azure 语音服务，需要先在微软Azure控制台创建应用并获取subscription_key和region
+    # 申请地址 https://speech.microsoft.com/
+    subscription_key: 你的微软Azure语音服务subscription_key
+    region: 你的微软Azure语音服务region
+    voice_name: zh-CN-Xiaochen:DragonHDLatestNeural
+    output_dir: tmp/
   CustomTTS:
     # 自定义的TTS接口服务，请求参数可自定义
     # 要求接口使用GET方式请求，并返回音频文件
