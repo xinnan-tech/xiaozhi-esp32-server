@@ -11,7 +11,7 @@ hass_get_state_function_desc = {
     "type": "function",
     "function": {
         "name": "hass_get_state",
-        "description": "获取homeassistant里设备的状态,包括灯光亮度,媒体播放器的音量,设备的暂停、继续操作",
+        "description": "获取homeassistant里设备的状态,包括灯光亮度、颜色、色温,媒体播放器的音量,设备的暂停、继续操作",
         "parameters": {
             "type": "object",
             "properties": {
@@ -51,6 +51,14 @@ async def handle_hass_get_state(conn, entity_id):
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        return response.json()['state']
+        responsetext = '设备状态:' + response.json()['state'] + ''
+        if 'kelvin' in response.json()['attributes']:
+            responsetext = responsetext+ '色温是:'+response.json()['attributes']['kelvin']+' '
+        if 'rgb_clolr' in response.json()['attributes']:
+            responsetext = responsetext+ 'rgb颜色是:'+response.json()['attributes']['rgb_color']+' '
+        return responsetext
+        #return response.json()['attributes']
+        #response.attributes
+
     else:
         return f"切换失败，错误码: {response.status_code}"
