@@ -26,3 +26,5 @@ mcp==1.4.1
 pyobvector==0.2.4
 cnlunar==0.2.0
 PySocks==1.7.1
+sentence-transformers==4.0.1
+transformers==4.50.3

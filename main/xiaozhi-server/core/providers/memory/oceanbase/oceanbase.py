@@ -11,7 +11,7 @@ create_table_sql = """
 CREATE TABLE xiaozhi(
     id INT AUTO_INCREMENT PRIMARY KEY, 
     role VARCHAR(200),
-    content VARCHAR(200),
+    content text,
     embedding VECTOR(384),
     VECTOR INDEX idx1(embedding) WITH (distance=L2, type=hnsw)
     );
@@ -26,7 +26,7 @@ class MemoryProvider(MemoryProviderBase):
         self.password = config.get("password", "")
         self.db_name = config.get("database", "xiaozhi")
         self.table_name = config.get("table_name", "xiaozhi")
-        self.model_path = config.get("model_path", "model/all-MiniLM-L6-v2")
+        self.model_path = config.get("model_path", "models/all-MiniLM-L6-v2")
         if not os.path.exists(self.model_path):
             raise Exception(f"模型路径不存在,请下载到: {self.model_path}")
         print(f"连接到 oceanbase 服务: {self.uri}")
@@ -56,12 +56,20 @@ class MemoryProvider(MemoryProviderBase):
             return None
 
         try:
-            messages = [{"role": message.role, "content": message.content,
-                         "embedding": self._string_to_embeddings(message.content)} for message in msgs if message.role != "system"]
+
+            messages =[]
+            for message in msgs:
+                if message.role != "system":
+                    if message.content:
+                        messages.append({"role": message.role, "content": message.content,
+                                        "embedding": self._string_to_embeddings(message.content)})
+
             for i in range(0, len(messages), 1):
                 self.client.insert(collection_name=self.table_name, data=messages[i:i+1])
             print(f"Save memory")
         except Exception as e:
+            import traceback
+            print(traceback.format_exc())
             print(f"保存记忆失败: {str(e)}")
             return None
 
