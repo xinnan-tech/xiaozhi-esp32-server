@@ -107,6 +107,16 @@ async def handle_hass_set_state(conn, entity_id, state):
         action = 'turn_on'
         arg = 'brightness_pct'
         value = state['input']
+    elif state['type'] == 'set_color':
+        description = f"颜色已调整到{state['rgb_color']}"
+        action = 'turn_on'
+        arg = 'rgb_color'
+        value = state['rgb_color']
+    elif state['type'] == 'set_kelvin':
+        description = f"色温已调整到{state['input']}K"
+        action = 'turn_on'
+        arg = 'kelvin'
+        value = state['input']
     elif state['type'] == 'volume_up':
         description = "音量已调大"
         action = state['type']
@@ -118,6 +128,8 @@ async def handle_hass_set_state(conn, entity_id, state):
         action = state['type']
         arg = 'volume_level'
         value = state['input']
+        if state['input'] >= 1:
+            value = state['input']/100
     elif state['type'] == 'volume_mute':
         description = f"设备已静音"
         action = state['type']
@@ -156,7 +168,7 @@ async def handle_hass_set_state(conn, entity_id, state):
         "Content-Type": "application/json"
     }
     response = requests.post(url, headers=headers, json=data)
-    logger.bind(tag=TAG).info(f"设置状态:url:{url},return_code:{response.status_code}")
+    logger.bind(tag=TAG).info(f"设置状态:{description},url:{url},return_code:{response.status_code}")
     if response.status_code == 200:
         return description
     else:
