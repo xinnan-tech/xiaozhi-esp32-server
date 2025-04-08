@@ -56,7 +56,7 @@ def hass_set_state(conn, entity_id='', state={}):
             conn.loop
         )
         ha_response = future.result()
-        return ActionResponse(action=Action.REQLLM, result="执行成功", response=ha_response)
+        return ActionResponse(Action.REQLLM, ha_response, None)
     except Exception as e:
         logger.bind(tag=TAG).error(f"处理设置属性意图错误: {e}")
 
