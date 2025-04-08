@@ -27,10 +27,7 @@ spring:
       test-on-borrow: false
       test-on-return: false
       stat-view-servlet:
-        enabled: true
-        url-pattern: /druid/*
-        login-username: admin
-        login-password: D7Xj810i1C
+        enabled: false
       filter:
         stat:
           log-slow-sql: true
