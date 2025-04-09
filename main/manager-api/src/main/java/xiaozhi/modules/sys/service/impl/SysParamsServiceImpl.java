@@ -3,6 +3,7 @@ package xiaozhi.modules.sys.service.impl;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -97,19 +98,24 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
     }
 
     @Override
-    public String getValue(String paramCode) {
-        String paramValue = sysParamsRedis.get(paramCode);
-        if (paramValue == null) {
-            paramValue = baseDao.getValueByCode(paramCode);
+    public String getValue(String paramCode, Boolean fromCache) {
+        String paramValue = null;
+        if (fromCache) {
+            paramValue = sysParamsRedis.get(paramCode);
+            if (paramValue == null) {
+                paramValue = baseDao.getValueByCode(paramCode);
 
-            sysParamsRedis.set(paramCode, paramValue);
+                sysParamsRedis.set(paramCode, paramValue);
+            }
+        } else {
+            paramValue = baseDao.getValueByCode(paramCode);
         }
         return paramValue;
     }
 
     @Override
     public <T> T getValueObject(String paramCode, Class<T> clazz) {
-        String paramValue = getValue(paramCode);
+        String paramValue = getValue(paramCode, true);
         if (StringUtils.isNotBlank(paramValue)) {
             return JsonUtils.parseObject(paramValue, clazz);
         }
@@ -129,4 +135,13 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
         return count;
     }
 
+    @Override
+    public void initServerSecret() {
+        // 获取服务器密钥
+        String secretParam = getValue(Constant.SERVER_SECRET, false);
+        if (StringUtils.isBlank(secretParam) || "null".equals(secretParam)) {
+            String newSecret = UUID.randomUUID().toString();
+            updateValueByCode(Constant.SERVER_SECRET, newSecret);
+        }
+    }
 }
