@@ -173,6 +173,13 @@ Memory:
     type: mem_local_short
 
 ASR:
+  AistudioASR:
+    type: aistudio
+    scope: audio_voice_assistant_get
+    dev_pid: 1536
+    api_key: 你的星河社区账户令牌
+    secret_key: 你的星河社区账户令牌
+    output_dir: tmp/
   FunASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
@@ -321,10 +328,10 @@ LLM:
     base_url: http://localhost:9997  # Xinference服务地址
   AiStudioLLM:
     # 定义LLM API类型
-    type: openai
-    model_name: ernie-speed-8k
-    url: https://aistudio.baidu.com/llm/lmapi/v3
-    api_key: 你的星河社区账户令牌 # 可在这里找到你的api key https://aistudio.baidu.com/account/accessToken
+    type: aistudio
+    app_id: 你的星河社区账户令牌
+    base_url: https://aistudio.baidu.com/llm/lmapi/v3
+    secret_key: 你的星河社区账户令牌 # 可在这里找到你的api key https://aistudio.baidu.com/account/accessToken
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
@@ -577,6 +584,12 @@ TTS:
       # Authorization: Bearer xxxx
     format: wav # 接口返回的音频格式
     output_dir: tmp/
+  AistudioTTS:
+    # 自定义的音频文件路径
+    type: aistudio
+    output_dir: tmp/
+    api_key: 你的星河社区账户令牌
+    secret_key: 你的星河社区账户令牌
 # 模块测试配置
 module_test:
   test_sentences:  # 自定义测试语句

@@ -18,6 +18,15 @@ class Dialogue:
         # 获取当前时间
         self.current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+    def pop_top(self):
+        """删除对话的顶部消息"""
+        if len(self.dialogue) > 0:
+            self.dialogue.pop(0)
+
+    def put_top(self, message: Message):
+        """将消息放在对话的顶部"""
+        self.dialogue.insert(0, message)
+
     def put(self, message: Message):
         self.dialogue.append(message)
 
