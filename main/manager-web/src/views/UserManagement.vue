@@ -296,7 +296,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        const userIds = users.map(user => Number(user.userid));
+        const userIds = users.map(user => user.userid);
         if (userIds.some(id => isNaN(id))) {
           this.$message.error('存在无效的用户ID');
           return;

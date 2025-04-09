@@ -64,5 +64,5 @@ public interface SysUserService extends BaseService<SysUserEntity> {
      * @param status  用户状态
      * @param userIds 用户ID数组
      */
-    void changeStatus(Integer status, Long[] userIds);
+    void changeStatus(Integer status, String[] userIds);
 }
