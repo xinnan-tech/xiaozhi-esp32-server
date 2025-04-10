@@ -3,7 +3,7 @@ import time
 from core.utils.util import remove_punctuation_and_length
 from core.handle.sendAudioHandle import send_stt_message
 from core.handle.intentHandler import handle_user_intent
-
+from datetime import datetime
 TAG = __name__
 logger = setup_logging()
 
@@ -38,7 +38,7 @@ async def handleAudioMessage(conn, audio):
             text, file_path = await conn.asr.speech_to_text(
                 conn.asr_audio, conn.session_id
             )
-            logger.bind(tag=TAG).info(f"识别文本: {text}")
+            logger.bind(tag=TAG).info(f"deviceId: {conn.private_config.device_id},datetime: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")},用户说: {text}")
             text_len, _ = remove_punctuation_and_length(text)
             if text_len > 0:
                 await startToChat(conn, text)
