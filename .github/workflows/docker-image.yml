@@ -1,6 +1,5 @@
 name: Docker Image CI
 on:
-  push:
   workflow_dispatch:
 jobs:
   release:

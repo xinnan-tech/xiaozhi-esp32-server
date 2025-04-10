@@ -29,7 +29,6 @@ from core.utils.auth_code_gen import AuthCodeGenerator
 from core.mcp.manager import MCPManager
 from datetime import datetime
 TAG = __name__
-logger = setup_logging()
 auto_import_modules("plugins_func.functions")
 
 
@@ -370,8 +369,9 @@ class ConnectionHandler:
 
         # 处理最后剩余的文本
         full_text = "".join(response_message)
-
-        logger.bind(tag=TAG).info(f"deviceId: {self.conn.private_config.device_id},datetime: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")},模型回复: {full_text}")
+        self.logger.bind(tag=TAG).info(
+            f"deviceId: {self.conn.private_config.device_id},datetime: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")},模型回复: {full_text}"
+        )
         remaining_text = full_text[processed_chars:]
         if remaining_text:
             segment_text = get_string_no_punctuation_or_emoji(remaining_text)
