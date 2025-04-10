@@ -1,4 +1,5 @@
 import os
+import copy
 import json
 import uuid
 import time
@@ -20,6 +21,7 @@ from core.utils.util import (
 )
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.sendAudioHandle import sendAudioMessage
+from core.utils import llm, tts, memory, intent
 from core.handle.receiveAudioHandle import handleAudioMessage
 from core.handle.functionHandler import FunctionHandler
 from plugins_func.register import Action, ActionResponse
@@ -38,10 +40,8 @@ class TTSException(RuntimeError):
 
 
 class ConnectionHandler:
-    def __init__(
-        self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _memory, _intent
-    ):
-        self.config = config
+    def __init__(self, config: Dict[str, Any], _vad, _asr):
+        self.config = copy.deepcopy(config)
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
 
@@ -67,10 +67,10 @@ class ConnectionHandler:
         # 依赖的组件
         self.vad = _vad
         self.asr = _asr
-        self.llm = _llm
-        self.tts = _tts
-        self.memory = _memory
-        self.intent = _intent
+        self.llm = None
+        self.tts = None
+        self.memory = None
+        self.intent = None
 
         # vad相关变量
         self.client_audio_buffer = bytearray()
@@ -95,7 +95,7 @@ class ConnectionHandler:
         self.iot_descriptors = {}
         self.func_handler = None
 
-        self.cmd_exit = self.config["CMD_exit"]
+        self.cmd_exit = self.config["exit_commands"]
         self.max_cmd_length = 0
         for cmd in self.cmd_exit:
             if len(cmd) > self.max_cmd_length:
@@ -121,7 +121,6 @@ class ConnectionHandler:
 
             # 进行认证
             await self.auth.authenticate(self.headers)
-            device_id = self.headers.get("device-id", None)
 
             # 认证通过,继续处理
             self.websocket = ws
@@ -130,39 +129,6 @@ class ConnectionHandler:
             self.welcome_msg = self.config["xiaozhi"]
             self.welcome_msg["session_id"] = self.session_id
             await self.websocket.send(json.dumps(self.welcome_msg))
-            # Load private configuration if device_id is provided
-            bUsePrivateConfig = self.config.get("use_private_config", False)
-            if bUsePrivateConfig and device_id:
-                try:
-                    self.private_config = PrivateConfig(
-                        device_id, self.config, self.auth_code_gen
-                    )
-                    await self.private_config.load_or_create()
-                    # 判断是否已经绑定
-                    owner = self.private_config.get_owner()
-                    self.is_device_verified = owner is not None
-
-                    if self.is_device_verified:
-                        await self.private_config.update_last_chat_time()
-
-                    llm, tts = self.private_config.create_private_instances()
-                    if all([llm, tts]):
-                        self.llm = llm
-                        self.tts = tts
-                        self.logger.bind(tag=TAG).info(
-                            f"Loaded private config and instances for device {device_id}"
-                        )
-                    else:
-                        self.logger.bind(tag=TAG).error(
-                            f"Failed to create instances for device {device_id}"
-                        )
-                        self.private_config = None
-                except Exception as e:
-                    self.logger.bind(tag=TAG).error(
-                        f"Error initializing private config: {e}"
-                    )
-                    self.private_config = None
-                    raise
 
             # 异步初始化
             self.executor.submit(self._initialize_components)
@@ -210,7 +176,62 @@ class ConnectionHandler:
         elif isinstance(message, bytes):
             await handleAudioMessage(self, message)
 
+    def _initialize_modules(self):
+        """初始化组件"""
+        _tts = tts.create_instance(
+            (
+                self.config["selected_module"]["TTS"]
+                if not "type"
+                in self.config["TTS"][self.config["selected_module"]["TTS"]]
+                else self.config["TTS"][self.config["selected_module"]["TTS"]]["type"]
+            ),
+            self.config["TTS"][self.config["selected_module"]["TTS"]],
+            self.config["delete_audio"],
+        )
+        self.tts = _tts
+        print("初始化组件_tts")
+        _llm = llm.create_instance(
+            (
+                self.config["selected_module"]["LLM"]
+                if not "type"
+                in self.config["LLM"][self.config["selected_module"]["LLM"]]
+                else self.config["LLM"][self.config["selected_module"]["LLM"]]["type"]
+            ),
+            self.config["LLM"][self.config["selected_module"]["LLM"]],
+        )
+        self.llm = _llm
+        print("初始化组件_llm")
+        _intent = intent.create_instance(
+            (
+                self.config["selected_module"]["Intent"]
+                if not "type"
+                in self.config["Intent"][self.config["selected_module"]["Intent"]]
+                else self.config["Intent"][self.config["selected_module"]["Intent"]][
+                    "type"
+                ]
+            ),
+            self.config["Intent"][self.config["selected_module"]["Intent"]],
+        )
+        self.intent = _intent
+        print("初始化组件_intent")
+        _memory = memory.create_instance(
+            (
+                self.config["selected_module"]["Memory"]
+                if not "type"
+                in self.config["Memory"][self.config["selected_module"]["Memory"]]
+                else self.config["Memory"][self.config["selected_module"]["Memory"]][
+                    "type"
+                ]
+            ),
+            self.config["Memory"][self.config["selected_module"]["Memory"]],
+        )
+        self.memory = _memory
+        print("初始化组件_memory")
+
     def _initialize_components(self):
+        print("初始化组件11")
+        self._initialize_modules()
+        print("初始化组件22")
         """加载提示词"""
         self.prompt = self.config["prompt"]
         if self.private_config:

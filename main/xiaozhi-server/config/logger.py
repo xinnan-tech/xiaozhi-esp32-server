@@ -19,7 +19,7 @@ def setup_logging():
         "{time:YYYY-MM-DD HH:mm:ss} - {version_{selected_module}} - {name} - {level} - {extra[tag]} - {message}",
     )
 
-    selected_module = config.get("selected_module")
+    selected_module = config.get("selected_module", {})
     selected_module_str = "".join(
         [value[0] + value[1] for key, value in selected_module.items()]
     )

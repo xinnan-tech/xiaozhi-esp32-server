@@ -52,7 +52,7 @@ enable_stop_tts_notify: false
 # 说完话是否开启提示音，音效地址
 stop_tts_notify_voice: "config/assets/tts_notify.mp3"
 
-CMD_exit:
+exit_commands:
   - "退出"
   - "关闭"
 

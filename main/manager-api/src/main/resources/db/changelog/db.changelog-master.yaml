@@ -38,16 +38,16 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202504082211.sql
   - changeSet:
-      id: 202504092313
-      author: John
-      changes:
-        - sqlFile:
-            encoding: utf8
-            path: classpath:db/changelog/202504092313.sql
-  - changeSet:
       id: 202504092335
       author: John
       changes:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202504092335.sql
+  - changeSet:
+      id: 202504101506
+      author: John
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202504101506.sql

@@ -51,4 +51,5 @@ public interface ErrorCode {
     int PARAM_NUMBER_INVALID = 10037;
     int PARAM_BOOLEAN_INVALID = 10038;
     int PARAM_ARRAY_INVALID = 10039;
+    int PARAM_JSON_INVALID = 10040;
 }

@@ -53,4 +53,12 @@ public interface SysParamsService extends BaseService<SysParamsEntity> {
      * 初始化服务器密钥
      */
     void initServerSecret();
+
+    /**
+     * 获取配置
+     * 
+     * @param secret 密钥
+     * @return 配置信息
+     */
+    Object getConfig(String secret);
 }

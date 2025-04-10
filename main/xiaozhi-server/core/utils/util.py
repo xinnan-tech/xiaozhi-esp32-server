@@ -88,6 +88,24 @@ def get_ip_info(ip_addr):
 def read_config(config_path):
     with open(config_path, "r", encoding="utf-8") as file:
         config = yaml.safe_load(file)
+    if config.get("manager-api", {}).get("url"):
+        # 从Java API获取配置
+        api_url = config["manager-api"].get("url", "")
+        secret = config["manager-api"].get("secret", "")
+        if not api_url or not secret:
+            raise Exception("manager-api的url或secret配置错误")
+
+        if "你" in secret:
+            raise Exception("请先配置manager-api的secret")
+        response = requests.post(
+            f"{api_url}/admin/params/config", json={"secret": secret}
+        )
+        if response.status_code == 200:
+            config = response.json()["data"]
+            config["manager-api"] = {"url": api_url, "secret": secret}
+            return config
+        else:
+            raise Exception(f"从Java API获取配置失败，网络错误: {response.text}")
     return config
 
 

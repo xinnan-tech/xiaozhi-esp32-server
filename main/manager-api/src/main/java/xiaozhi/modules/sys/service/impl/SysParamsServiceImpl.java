@@ -1,6 +1,8 @@
 package xiaozhi.modules.sys.service.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -125,6 +127,13 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
                     throw new RenException(ErrorCode.PARAM_BOOLEAN_INVALID);
                 }
                 break;
+            case "json":
+                try {
+                    JsonUtils.parseObject(paramValue, Object.class);
+                } catch (Exception e) {
+                    throw new RenException(ErrorCode.PARAM_JSON_INVALID);
+                }
+                break;
             default:
                 throw new RenException(ErrorCode.PARAM_TYPE_INVALID);
         }
@@ -188,5 +197,76 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
             String newSecret = UUID.randomUUID().toString();
             updateValueByCode(Constant.SERVER_SECRET, newSecret);
         }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Object getConfig(String secret) {
+        String secretParam = getValue(Constant.SERVER_SECRET, true);
+        // 验证密钥
+        if (StringUtils.isBlank(secret) || !secret.equals(secretParam)) {
+            throw new RenException("密钥错误");
+        }
+
+        // 查询所有非系统参数
+        QueryWrapper<SysParamsEntity> wrapper = new QueryWrapper<>();
+        wrapper.eq("param_type", 1);
+        List<SysParamsEntity> paramsList = baseDao.selectList(wrapper);
+
+        // 构建配置信息
+        Map<String, Object> config = new HashMap<>();
+
+        for (SysParamsEntity param : paramsList) {
+            String[] keys = param.getParamCode().split("\\.");
+            Map<String, Object> current = config;
+
+            // 遍历除最后一个key之外的所有key
+            for (int i = 0; i < keys.length - 1; i++) {
+                String key = keys[i];
+                if (!current.containsKey(key)) {
+                    current.put(key, new HashMap<String, Object>());
+                }
+                current = (Map<String, Object>) current.get(key);
+            }
+
+            // 处理最后一个key
+            String lastKey = keys[keys.length - 1];
+            String value = param.getParamValue();
+
+            // 根据valueType转换值
+            switch (param.getValueType().toLowerCase()) {
+                case "number":
+                    try {
+                        current.put(lastKey, Double.parseDouble(value));
+                    } catch (NumberFormatException e) {
+                        current.put(lastKey, value);
+                    }
+                    break;
+                case "boolean":
+                    current.put(lastKey, Boolean.parseBoolean(value));
+                    break;
+                case "array":
+                    // 将分号分隔的字符串转换为数字数组
+                    List<String> list = new ArrayList<>();
+                    for (String num : value.split(";")) {
+                        if (StringUtils.isNotBlank(num)) {
+                            list.add(num.trim());
+                        }
+                    }
+                    current.put(lastKey, list);
+                    break;
+                case "json":
+                    try {
+                        current.put(lastKey, JsonUtils.parseObject(value, Object.class));
+                    } catch (Exception e) {
+                        current.put(lastKey, value);
+                    }
+                    break;
+                default:
+                    current.put(lastKey, value);
+            }
+        }
+
+        return config;
     }
 }
