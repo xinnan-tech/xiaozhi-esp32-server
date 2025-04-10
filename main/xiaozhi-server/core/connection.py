@@ -28,6 +28,8 @@ from core.auth import AuthMiddleware, AuthenticationError
 from core.utils.auth_code_gen import AuthCodeGenerator
 from core.mcp.manager import MCPManager
 from datetime import datetime
+from core.utils.util import get_project_dir
+
 TAG = __name__
 auto_import_modules("plugins_func.functions")
 
@@ -40,6 +42,7 @@ class ConnectionHandler:
     def __init__(
         self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _memory, _intent
     ):
+        self.device_id = "nobody"
         self.config = config
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
@@ -369,9 +372,7 @@ class ConnectionHandler:
 
         # 处理最后剩余的文本
         full_text = "".join(response_message)
-        self.logger.bind(tag=TAG).info(
-            f"deviceId: {self.conn.private_config.device_id},datetime: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")},模型回复: {full_text}"
-        )
+
         remaining_text = full_text[processed_chars:]
         if remaining_text:
             segment_text = get_string_no_punctuation_or_emoji(remaining_text)
@@ -751,6 +752,11 @@ class ConnectionHandler:
                 )
 
     def speak_and_play(self, text, text_index=0):
+        log_content = f'deviceId: {self.device_id}, datetime: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, 模型回复: {text}, text_index: {text_index}'
+        self.logger.bind(tag=TAG).info(log_content)
+        log_path = get_project_dir() + 'data/'+self.device_id+'-log.log'
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(log_content + '\n')
         if text is None or len(text) <= 0:
             self.logger.bind(tag=TAG).info(f"无需tts转换，query为空，{text}")
             return None, text, text_index
