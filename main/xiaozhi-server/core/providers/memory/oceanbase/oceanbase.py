@@ -2,8 +2,7 @@ import os.path
 import traceback
 from pyobvector import MilvusLikeClient
 from sentence_transformers import SentenceTransformer
-
-from core.providers.memory.base import MemoryProviderBase
+from core.providers.memory.base import MemoryProviderBase ,logger
 
 TAG = __name__
 
@@ -30,16 +29,16 @@ class MemoryProvider(MemoryProviderBase):
         self.model_path = os.path.abspath(self.model_path)
         if not os.path.exists(self.model_path):
             raise Exception(f"模型路径不存在,请下载量化模型 https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/all-MiniLM-L6-v2.zip 并解压到: {self.model_path}")
-        print(f"连接到 oceanbase 服务: {self.uri}")
+        logger.bind(tag=TAG).info(f"连接到 oceanbase 服务: {self.uri}")
         self.client = self.connect_to_client()
 
     def connect_to_client(self):
         try:
             return MilvusLikeClient(uri=self.uri, user=self.user,password=self.password, db_name=self.db_name)
         except Exception as e:
-            print(f"连接到 oceanbase 服务时发生错误: {str(e)}")
-            print(f"请检查配置并确认表是否存在: 初始化sql: {create_table_sql}")
-            print(f"详细错误: {traceback.format_exc()}")
+            logger.bind(tag=TAG).error(f"连接到 oceanbase 服务时发生错误: {str(e)}")
+            logger.bind(tag=TAG).error(f"请检查配置并确认表是否存在: 初始化sql: {create_table_sql}")
+            logger.bind(tag=TAG).error(f"详细错误: {traceback.format_exc()}")
             return None
 
     def _string_to_embeddings(self, sentences):
@@ -67,11 +66,9 @@ class MemoryProvider(MemoryProviderBase):
 
             for i in range(0, len(messages), 1):
                 self.client.insert(collection_name=self.table_name, data=messages[i:i+1])
-            print(f"Save memory")
+            logger.bind(tag=TAG).info(f"Save memory")
         except Exception as e:
-            import traceback
-            print(traceback.format_exc())
-            print(f"保存记忆失败: {str(e)}")
+            logger.bind(tag=TAG).error(f"保存记忆失败: {traceback.format_exc()}")
             return None
 
     async def query_memory(self, query: str) -> str:
@@ -90,24 +87,6 @@ class MemoryProvider(MemoryProviderBase):
                 output_fields=["role", "content"]
             )
             return results
-            memories = self.format_memories(results)
-            return "\n".join(f"- {memory[1]}" for memory in memories)
         except Exception as e:
-            print(f"查询记忆失败: {str(e)}")
+            logger.bind(tag=TAG).error(f"查询记忆失败: {traceback.format_exc()}")
             return ""
-
-    def format_memories(self, results):
-        memories = []
-        for entry in results['results']:
-            timestamp = entry.get('updated_at', '')
-            if timestamp:
-                try:
-                    dt = timestamp.split('.')[0]
-                    formatted_time = dt.replace('T', ' ')
-                except:
-                    formatted_time = timestamp
-            memory = entry.get('memory', '')
-            if timestamp and memory:
-                memories.append((timestamp, f"[{formatted_time}] {memory}"))
-        memories.sort(key=lambda x: x[0], reverse=True)
-        return memories
