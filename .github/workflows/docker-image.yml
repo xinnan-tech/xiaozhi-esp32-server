@@ -29,7 +29,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
