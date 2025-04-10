@@ -29,7 +29,7 @@ class MemoryProvider(MemoryProviderBase):
         self.model_path = config.get("model_path", "models/all-MiniLM-L6-v2")
         self.model_path = os.path.abspath(self.model_path)
         if not os.path.exists(self.model_path):
-            raise Exception(f"模型路径不存在,请下载到: {self.model_path}")
+            raise Exception(f"模型路径不存在,请下载量化模型 https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/all-MiniLM-L6-v2.zip 并解压到: {self.model_path}")
         print(f"连接到 oceanbase 服务: {self.uri}")
         self.client = self.connect_to_client()
 
