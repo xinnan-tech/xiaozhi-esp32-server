@@ -69,7 +69,17 @@ const routes = [
       return import('../views/test.vue')
     }
   },
-
+  {
+    path: '/params-management',
+    name: 'ParamsManagement',
+    component: function () {
+      return import('../views/ParamsManagement.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: '参数管理'
+    }
+  },
 ]
 
 const router = new VueRouter({

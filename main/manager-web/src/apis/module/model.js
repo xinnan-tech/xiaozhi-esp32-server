@@ -159,5 +159,23 @@ export default {
           })
         }).send()
     },
-
+    // 更新模型配置
+    updateModel(params, callback) {
+      const { modelType, provideCode, id, formData } = params;
+      RequestService.sendRequest()
+        .url(`${getServiceUrl()}/models/${modelType}/${provideCode}/${id}`)
+        .method('PUT')
+        .data(formData)
+        .success((res) => {
+          RequestService.clearRequestTime();
+          callback(res);
+        })
+        .fail((err) => {
+          console.error('更新模型失败:', err);
+          this.$message.error(err.msg || '更新模型失败');
+          RequestService.reAjaxFun(() => {
+            this.updateModel(params, callback);
+          });
+        }).send();
+    },
 }

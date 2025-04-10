@@ -82,11 +82,11 @@ public class TimbreController {
         return new Result<>();
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping
     @Operation(summary = "音色删除")
     @RequiresPermissions("sys:role:superAdmin")
-    public Result<Void> delete(@PathVariable String id) {
-        timbreService.delete(new String[] { id });
+    public Result<Void> delete(@RequestBody String[] ids) {
+        timbreService.delete(ids);
         return new Result<>();
     }
 

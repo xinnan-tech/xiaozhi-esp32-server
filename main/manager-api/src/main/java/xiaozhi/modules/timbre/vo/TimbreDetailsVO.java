@@ -14,7 +14,7 @@ import lombok.Data;
 @Data
 public class TimbreDetailsVO implements Serializable {
     @Schema(description = "音色id")
-    private Long id;
+    private String id;
 
     @Schema(description = "语言")
     private String languages;

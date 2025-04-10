@@ -197,10 +197,10 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void changeStatus(Integer status, Long[] userIds) {
-        for (Long userId : userIds) {
+    public void changeStatus(Integer status, String[] userIds) {
+        for (String userId : userIds) {
             SysUserEntity entity = new SysUserEntity();
-            entity.setId(userId);
+            entity.setId(Long.parseLong(userId));
             entity.setStatus(status);
             updateById(entity);
         }

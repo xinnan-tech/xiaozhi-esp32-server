@@ -3,6 +3,7 @@ import admin from './module/admin.js'
 import agent from './module/agent.js'
 import device from './module/device.js'
 import model from './module/model.js'
+import timbre from "./module/timbre.js"
 import user from './module/user.js'
 
 /**
@@ -29,4 +30,5 @@ export default {
     agent,
     device,
     model,
+    timbre,
 }
