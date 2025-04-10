@@ -31,7 +31,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Get current date
         id: date
-        run: echo "date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+        run: |
+         export TZ='Asia/Shanghai'
+         echo "date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
       - name: Build and push xiaozhi-server
         uses: docker/build-push-action@v6
         with:
