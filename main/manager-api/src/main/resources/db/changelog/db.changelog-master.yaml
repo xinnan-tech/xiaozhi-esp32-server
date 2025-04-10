@@ -38,12 +38,12 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202504082211.sql
   - changeSet:
-      id: 202504092312
+      id: 202504092313
       author: John
       changes:
         - sqlFile:
             encoding: utf8
-            path: classpath:db/changelog/202504092312.sql
+            path: classpath:db/changelog/202504092313.sql
   - changeSet:
       id: 202504092335
       author: John

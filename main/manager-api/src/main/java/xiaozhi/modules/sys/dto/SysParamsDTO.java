@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import xiaozhi.common.utils.DateUtils;
 import xiaozhi.common.validator.group.AddGroup;
@@ -35,6 +36,11 @@ public class SysParamsDTO implements Serializable {
     @Schema(description = "参数值")
     @NotBlank(message = "{sysparams.paramvalue.require}", groups = DefaultGroup.class)
     private String paramValue;
+
+    @Schema(description = "值类型")
+    @NotBlank(message = "{sysparams.valuetype.require}", groups = DefaultGroup.class)
+    @Pattern(regexp = "^(string|number|boolean|array)$", message = "{sysparams.valuetype.pattern}", groups = DefaultGroup.class)
+    private String valueType;
 
     @Schema(description = "备注")
     private String remark;

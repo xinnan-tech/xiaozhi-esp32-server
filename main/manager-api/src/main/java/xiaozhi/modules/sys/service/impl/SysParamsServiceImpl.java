@@ -70,6 +70,8 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void save(SysParamsDTO dto) {
+        validateParamValue(dto);
+
         SysParamsEntity entity = ConvertUtils.sourceToTarget(dto, SysParamsEntity.class);
         insert(entity);
 
@@ -79,10 +81,53 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void update(SysParamsDTO dto) {
+        validateParamValue(dto);
+
         SysParamsEntity entity = ConvertUtils.sourceToTarget(dto, SysParamsEntity.class);
         updateById(entity);
 
         sysParamsRedis.set(entity.getParamCode(), entity.getParamValue());
+    }
+
+    /**
+     * 校验参数值类型
+     */
+    private void validateParamValue(SysParamsDTO dto) {
+        if (dto == null) {
+            throw new RenException(ErrorCode.PARAM_VALUE_NULL);
+        }
+
+        if (StringUtils.isBlank(dto.getParamValue())) {
+            throw new RenException(ErrorCode.PARAM_VALUE_NULL);
+        }
+
+        if (StringUtils.isBlank(dto.getValueType())) {
+            throw new RenException(ErrorCode.PARAM_TYPE_NULL);
+        }
+
+        String valueType = dto.getValueType().toLowerCase();
+        String paramValue = dto.getParamValue();
+
+        switch (valueType) {
+            case "string":
+                break;
+            case "array":
+                break;
+            case "number":
+                try {
+                    Double.parseDouble(paramValue);
+                } catch (NumberFormatException e) {
+                    throw new RenException(ErrorCode.PARAM_NUMBER_INVALID);
+                }
+                break;
+            case "boolean":
+                if (!"true".equalsIgnoreCase(paramValue) && !"false".equalsIgnoreCase(paramValue)) {
+                    throw new RenException(ErrorCode.PARAM_BOOLEAN_INVALID);
+                }
+                break;
+            default:
+                throw new RenException(ErrorCode.PARAM_TYPE_INVALID);
+        }
     }
 
     @Override
