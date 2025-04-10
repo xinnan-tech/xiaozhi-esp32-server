@@ -43,4 +43,12 @@ public interface ErrorCode {
     int PASSWORD_WEAK_ERROR = 10031;
     int DEL_MYSELF_ERROR = 10032;
     int DEVICE_CAPTCHA_ERROR = 10033;
+
+    // 参数校验相关错误码
+    int PARAM_VALUE_NULL = 10034;
+    int PARAM_TYPE_NULL = 10035;
+    int PARAM_TYPE_INVALID = 10036;
+    int PARAM_NUMBER_INVALID = 10037;
+    int PARAM_BOOLEAN_INVALID = 10038;
+    int PARAM_ARRAY_INVALID = 10039;
 }

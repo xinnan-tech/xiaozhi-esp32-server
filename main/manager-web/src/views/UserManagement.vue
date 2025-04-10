@@ -5,7 +5,7 @@
     <div class="operation-bar">
       <h2 class="page-title">用户管理</h2>
       <div class="right-operations">
-        <el-input placeholder="请输入手机号码查询" v-model="searchPhone" class="search-input"
+        <el-input placeholder="请输入手机号码查询" v-model="searchPhone" class="search-input" clearable
           @keyup.enter.native="handleSearch" />
         <el-button class="btn-search" @click="handleSearch">搜索</el-button>
       </div>
@@ -296,7 +296,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        const userIds = users.map(user => Number(user.userid));
+        const userIds = users.map(user => user.userid);
         if (userIds.some(id => isNaN(id))) {
           this.$message.error('存在无效的用户ID');
           return;
@@ -555,6 +555,13 @@ export default {
       border-bottom: 1px solid rgba(0, 0, 0, 0.04);
     }
   }
+}
+:deep(.el-table .el-button--text) {
+  color: #7079aa !important;
+}
+
+:deep(.el-table .el-button--text:hover) {
+  color: #5a64b5 !important;
 }
 
 :deep(.custom-selection-header) {

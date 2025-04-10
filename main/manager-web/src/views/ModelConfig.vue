@@ -4,16 +4,16 @@
 
     <div class="operation-bar">
       <h2 class="page-title">模型配置</h2>
-      <div class="right-operations">
-        <el-button plain size="small" @click="handleImport" style="background: #7b9de5; color: white;">
-          <img loading="lazy" alt="" src="@/assets/model/inner_conf.png">
-          导入配置
-        </el-button>
-        <el-button plain size="small" @click="handleExport" style="background: #71c9d1; color: white;">
-          <img loading="lazy" alt="" src="@/assets/model/output_conf.png">
-          导出配置
-        </el-button>
-      </div>
+<!--      <div class="right-operations">-->
+<!--        <el-button plain size="small" @click="handleImport" style="background: #7b9de5; color: white;">-->
+<!--          <img loading="lazy" alt="" src="@/assets/model/inner_conf.png">-->
+<!--          导入配置-->
+<!--        </el-button>-->
+<!--        <el-button plain size="small" @click="handleExport" style="background: #71c9d1; color: white;">-->
+<!--          <img loading="lazy" alt="" src="@/assets/model/output_conf.png">-->
+<!--          导出配置-->
+<!--        </el-button>-->
+<!--      </div>-->
     </div>
 
     <!-- 主体内容 -->
@@ -53,7 +53,7 @@
             </div>
             <div class="action-group">
               <div class="search-group">
-                <el-input placeholder="请输入模型名称查询" v-model="search" size="small" class="search-input" clearable />
+                <el-input placeholder="请输入模型名称查询" v-model="search" size="small" class="search-input" clearable @keyup.enter.native="handleSearch" />
                 <el-button type="primary" size="small" class="search-btn" @click="handleSearch">
                   查询
                 </el-button>
@@ -69,7 +69,7 @@
             <el-table-column label="模型编码" prop="modelCode" align="center"></el-table-column>
             <el-table-column label="提供商" align="center">
               <template slot-scope="scope">
-                {{ scope.row.configJson?.provider || '未知' }}
+                {{ scope.row.configJson.type || '未知' }}
               </template>
             </el-table-column>
             <el-table-column label="是否启用" align="center">
@@ -80,7 +80,11 @@
             </el-table-column>
             <el-table-column v-if="activeTab === 'tts'" label="音色管理" align="center">
               <template slot-scope="scope">
-                <el-button type="text" size="mini" @click="ttsDialogVisible = true" class="voice-management-btn">
+                <el-button
+                  type="text"
+                  size="mini"
+                  @click="openTtsDialog(scope.row)"
+                  class="voice-management-btn">
                   音色管理
                 </el-button>
               </template>
@@ -124,7 +128,7 @@
 
       <ModelEditDialog :modelType="activeTab" :visible.sync="editDialogVisible" :modelData="editModelData"
         @save="handleModelSave" />
-      <TtsModel :visible.sync="ttsDialogVisible" />
+        <TtsModel :visible.sync="ttsDialogVisible" :ttsModelId="selectedTtsModelId"/>
       <AddModelDialog :modelType="activeTab" :visible.sync="addDialogVisible" @confirm="handleAddConfirm" />
     </div>
 
@@ -151,6 +155,7 @@ export default {
       editDialogVisible: false,
       editModelData: {},
       ttsDialogVisible: false,
+      selectedTtsModelId: '',
       modelList: [],
       currentPage: 1,
       pageSize: 5,
@@ -200,6 +205,10 @@ export default {
   },
 
   methods: {
+    openTtsDialog(row) {
+      this.selectedTtsModelId = row.id;
+      this.ttsDialogVisible = true;
+    },
     headerCellClassName({ column, columnIndex }) {
       if (columnIndex === 0) {
         return 'custom-selection-header';
@@ -212,8 +221,8 @@ export default {
       this.loadData();
     },
     handleSearch() {
-      // TODO: 查询
-      console.log('查询：', this.search);
+      this.currentPage = 1;
+      this.loadData();
     },
     // 批量删除
     batchDelete() {
@@ -301,9 +310,21 @@ export default {
       // TODO: 导出配置
       console.log('导出配置');
     },
-    handleModelSave(formData) {
-      // TODO: 保存模型数据
-      console.log('保存的模型数据：', formData);
+    handleModelSave({ provideCode, formData }) {
+      const modelType = this.activeTab;
+      const id = formData.id;
+      Api.model.updateModel(
+        { modelType, provideCode, id, formData },
+        ({ data }) => {
+          if (data.code === 0) {
+            this.$message.success('保存成功');
+            this.loadData();
+            this.editDialogVisible = false;
+          } else {
+            this.$message.error(data.msg || '保存失败');
+          }
+        }
+      );
     },
     selectAll() {
       if (this.isAllSelected) {

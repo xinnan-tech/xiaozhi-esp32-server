@@ -41,7 +41,7 @@
               <div style="cursor: pointer;" @click="goToRegister">新用户注册</div>
             </div>
           </div>
-          <div class="login-btn" @click="login">登陆</div>
+          <div class="login-btn" @click="login">登录</div>
           <div style="font-size: 14px;color: #979db1;">
             登录即同意
             <div style="display: inline-block;color: #5778FF;cursor: pointer;">《用户协议》</div>

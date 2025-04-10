@@ -1,12 +1,12 @@
 <template>
-  <el-dialog :visible.sync="visible" width="975px" center custom-class="custom-dialog" :show-close="false"
+  <el-dialog :visible="dialogVisible" @update:visible="handleVisibleChange" width="975px" center custom-class="custom-dialog" :show-close="false"
     class="center-dialog">
     <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
       <div style="font-size: 30px; color: #3d4566; margin-top: -10px; margin-bottom: 10px; text-align: center;">
         添加模型
       </div>
 
-      <!-- 关闭按钮 -->
+
       <button class="custom-close-btn" @click="handleClose">
         ×
       </button>
@@ -61,23 +61,27 @@
       </el-form>
 
       <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px;">调用信息</div>
-      <div style="height: 2px; background: #e9e9e9; margin-bottom: 15px;"></div>
+      <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
 
-      <el-form :model="formData" label-width="100px" label-position="left" class="custom-form">
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-          <el-form-item label="模型名称" prop="param1" style="flex: 0.5; margin-bottom: 0;">
-            <el-input v-model="formData.configJson.param1" placeholder="请输入model_name"
-              class="custom-input-bg"></el-input>
-          </el-form-item>
-          <el-form-item label="接口地址" prop="param2" style="flex: 1; margin-bottom: 0;">
-            <el-input v-model="formData.configJson.param2" placeholder="请输入base_url" class="custom-input-bg"></el-input>
-          </el-form-item>
-        </div>
-
-        <el-form-item label="秘钥信息" prop="apiKey">
-          <el-input v-model="formData.configJson.apiKey" placeholder="请输入api_key" show-password
-            class="custom-input-bg"></el-input>
-        </el-form-item>
+      <el-form :model="formData.configJson" label-width="auto" label-position="left" class="custom-form">
+        <template v-for="(row, rowIndex) in chunkedCallInfoFields">
+          <div :key="rowIndex" style="display: flex; gap: 20px; margin-bottom: 0;">
+            <el-form-item
+              v-for="field in row"
+              :key="field.prop"
+              :label="field.label"
+              :prop="field.prop"
+              style="flex: 1;">
+              <el-input
+                v-model="formData.configJson[field.prop]"
+                :placeholder="field.placeholder"
+                :type="field.type || 'text'"
+                class="custom-input-bg"
+                :show-password="field.type === 'password'">
+              </el-input>
+            </el-form-item>
+          </div>
+        </template>
       </el-form>
     </div>
 
@@ -100,7 +104,10 @@ export default {
   data() {
     return {
       providers: [],
+      dialogVisible: false,
       providersLoaded: false,
+      providerFields: [],
+      currentProvider: null,
       formData: {
         modelName: '',
         modelCode: '',
@@ -110,12 +117,36 @@ export default {
         remark: '',
         isEnabled: true,
         isDefault: true,
-        configJson: {
-          param1: '',
-          param2: '',
-          apiKey: ''
-        }
+        configJson: {}
       }
+    }
+  },
+  watch: {
+    visible(val) {
+      this.dialogVisible = val;
+      if(val) {
+        this.initConfigJson();
+      } else {
+        this.resetForm();
+      }
+    },
+    'formData.supplier'(newVal) {
+      this.currentProvider = this.providers.find(p => p.value === newVal);
+      this.providerFields = this.currentProvider?.fields || [];
+      this.initDynamicConfig();
+    }
+  },
+  computed: {
+    dynamicCallInfoFields() {
+      return this.providerFields;
+    },
+    chunkedCallInfoFields() {
+      const chunkSize = 2;
+      const result = [];
+      for (let i = 0; i < this.dynamicCallInfoFields.length; i += chunkSize) {
+        result.push(this.dynamicCallInfoFields.slice(i, i + chunkSize));
+      }
+      return result;
     }
   },
   methods: {
@@ -126,23 +157,65 @@ export default {
       Api.model.getModelProviders(this.modelType, (data) => {
         this.providers = data.map(item => ({
           label: item.name,
-          value: item.providerCode
+          value: item.providerCode,
+          fields: JSON.parse(item.fields || '[]').map(f => ({
+            label: f.label,
+            prop: f.key,
+            type: f.type === 'password' ? 'password' : 'text',
+            placeholder: `请输入${f.label}`
+          }))
         }))
         this.providersLoaded = true
       })
     },
+    initConfigJson() {
+      const defaultConfig = {};
+      this.providerFields.forEach(field => {
+        defaultConfig[field.prop] = '';
+      });
+      this.formData.configJson = { ...defaultConfig };
+    },
+    handleVisibleChange(val) {
+      this.dialogVisible = val;
+      this.$emit('update:visible', val);
+      if (!val) {
+        this.resetForm();
+      }
+    },
+
+    handleClose() {
+      this.$emit('update:visible', false);
+    },
+    initDynamicConfig() {
+      const newConfig = {};
+      this.providerFields.forEach(field => {
+        newConfig[field.prop] = this.formData.configJson[field.prop] || '';
+      });
+      this.formData.configJson = newConfig;
+    },
     confirm() {
-      if (!this.formData.modelName || !this.formData.modelCode || !this.formData.supplier ||
-        !this.formData.configJson.param1 || !this.formData.configJson.param2 || !this.formData.configJson.apiKey) {
-        this.$message.error('请填写所有必填字段');
+      if (!this.formData.supplier) {
+        this.$message.error('请选择供应器');
         return;
       }
 
-      this.$emit('confirm', {
-        ...this.formData,
+      const submitData = {
+        modelName: this.formData.modelName || '',
+        modelCode: this.formData.modelCode || '',
+        supplier: this.formData.supplier,
+        sort: this.formData.sort || 1,
+        docLink: this.formData.docLink || '',
+        remark: this.formData.remark || '',
+        isEnabled: this.formData.isEnabled ? 1 : 0,
+        isDefault: this.formData.isDefault ? 1 : 0,
         provideCode: this.formData.supplier,
-        configJson: this.formData.configJson
-      });
+        configJson: {
+          ...this.formData.configJson,
+          type: this.formData.supplier
+        }
+      };
+
+      this.$emit('confirm', submitData);
       this.$emit('update:visible', false);
       this.resetForm();
     },
@@ -156,20 +229,15 @@ export default {
         remark: '',
         isEnabled: true,
         isDefault: true,
-        configJson: {
-          param1: '',
-          param2: '',
-          apiKey: ''
-        }
+        configJson: {}
       };
       // 重置加载状态
       this.providers = [];
       this.providersLoaded = false;
+      // 重置字段配置
+      this.providerFields = [];
+      this.currentProvider = null;
     },
-    handleClose() {
-      this.resetForm();
-      this.$emit('update:visible', false);
-    }
   }
 }
 </script>

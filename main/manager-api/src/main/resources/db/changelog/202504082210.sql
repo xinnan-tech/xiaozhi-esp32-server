@@ -4,12 +4,12 @@
 DELETE FROM `ai_model_config`;
 
 -- VAD模型配置
-INSERT INTO `ai_model_config` VALUES ('VAD_SileroVAD', 'VAD', 'SileroVAD', '语音活动检测', 1, 1, '{\"model_dir\": \"models/snakers4_silero-vad\", \"threshold\": 0.5, \"min_silence_duration_ms\": 700}', NULL, NULL, 0, NULL, NULL, NULL, NULL);
+INSERT INTO `ai_model_config` VALUES ('VAD_SileroVAD', 'VAD', 'SileroVAD', '语音活动检测', 1, 1, '{\"type\": \"silero\", \"model_dir\": \"models/snakers4_silero-vad\", \"threshold\": 0.5, \"min_silence_duration_ms\": 700}', NULL, NULL, 0, NULL, NULL, NULL, NULL);
 
 -- ASR模型配置
-INSERT INTO `ai_model_config` VALUES ('ASR_FunASR', 'ASR', 'FunASR', 'FunASR语音识别', 1, 1, '{\"model_dir\": \"models/SenseVoiceSmall\", \"output_dir\": \"tmp/\"}', NULL, NULL, 0, NULL, NULL, NULL, NULL);
-INSERT INTO `ai_model_config` VALUES ('ASR_SherpaASR', 'ASR', 'SherpaASR', 'Sherpa语音识别', 1, 0, '{\"model_dir\": \"models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17\", \"output_dir\": \"tmp/\"}', NULL, NULL, 0, NULL, NULL, NULL, NULL);
-INSERT INTO `ai_model_config` VALUES ('ASR_DoubaoASR', 'ASR', 'DoubaoASR', '豆包语音识别', 1, 0, '{\"appid\": \"\", \"access_token\": \"\", \"cluster\": \"volcengine_input_common\", \"output_dir\": \"tmp/\"}', NULL, NULL, 0, NULL, NULL, NULL, NULL);
+INSERT INTO `ai_model_config` VALUES ('ASR_FunASR', 'ASR', 'FunASR', 'FunASR语音识别', 1, 1, '{\"type\": \"fun_local\", \"model_dir\": \"models/SenseVoiceSmall\", \"output_dir\": \"tmp/\"}', NULL, NULL, 0, NULL, NULL, NULL, NULL);
+INSERT INTO `ai_model_config` VALUES ('ASR_SherpaASR', 'ASR', 'SherpaASR', 'Sherpa语音识别', 1, 0, '{\"type\": \"sherpa_onnx_local\", \"model_dir\": \"models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17\", \"output_dir\": \"tmp/\"}', NULL, NULL, 0, NULL, NULL, NULL, NULL);
+INSERT INTO `ai_model_config` VALUES ('ASR_DoubaoASR', 'ASR', 'DoubaoASR', '豆包语音识别', 1, 0, '{\"type\": \"doubao\", \"appid\": \"\", \"access_token\": \"\", \"cluster\": \"volcengine_input_common\", \"output_dir\": \"tmp/\"}', NULL, NULL, 0, NULL, NULL, NULL, NULL);
 
 -- LLM模型配置
 INSERT INTO `ai_model_config` VALUES ('LLM_AliLLM', 'LLM', 'AliLLM', '通义千问', 1, 0, '{\"type\": \"openai\", \"base_url\": \"https://dashscope.aliyuncs.com/compatible-mode/v1\", \"model_name\": \"qwen-turbo\", \"api_key\": \"\", \"temperature\": 0.7, \"max_tokens\": 500, \"top_p\": 1, \"top_k\": 50, \"frequency_penalty\": 0}', NULL, NULL, 0, NULL, NULL, NULL, NULL);

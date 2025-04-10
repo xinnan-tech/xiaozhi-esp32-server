@@ -26,6 +26,10 @@ public class SysParamsEntity extends BaseEntity {
      */
     private String paramValue;
     /**
+     * 值类型：string-字符串，number-数字，boolean-布尔，array-数组
+     */
+    private String valueType;
+    /**
      * 类型 0：系统参数 1：非系统参数
      */
     private Integer paramType;
