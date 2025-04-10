@@ -3,7 +3,6 @@ package xiaozhi.modules.sys.controller;
 import java.util.Map;
 
 import org.apache.shiro.authz.annotation.RequiresPermissions;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -95,11 +94,11 @@ public class SysParamsController {
         return new Result<Void>();
     }
 
-    @DeleteMapping
+    @PostMapping("/delete")
     @Operation(summary = "删除")
     @LogOperation("删除")
     @RequiresPermissions("sys:role:superAdmin")
-    public Result<Void> delete(@RequestBody Long[] ids) {
+    public Result<Void> delete(@RequestBody String[] ids) {
         // 效验数据
         AssertUtils.isArrayEmpty(ids, "id");
 

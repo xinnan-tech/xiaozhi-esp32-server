@@ -132,11 +132,13 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void delete(Long[] ids) {
+    public void delete(String[] ids) {
         // 删除Redis数据
         List<String> paramCodeList = baseDao.getParamCodeList(ids);
         String[] paramCodes = paramCodeList.toArray(new String[paramCodeList.size()]);
-        sysParamsRedis.delete(paramCodes);
+        if (paramCodes.length > 0) {
+            sysParamsRedis.delete(paramCodes);
+        }
 
         // 删除
         deleteBatchIds(Arrays.asList(ids));
