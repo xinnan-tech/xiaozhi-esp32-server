@@ -42,12 +42,4 @@ public interface AgentService extends BaseService<AgentEntity> {
      * @return 设备数量
      */
     Integer getDeviceCountByAgentId(String agentId);
-
-    /**
-     * 根据设备MAC地址获取智能体模型配置
-     * 
-     * @param macAddress 设备MAC地址
-     * @return 模型配置信息
-     */
-    Map<String, Object> getAgentModelsByMac(String macAddress);
 }

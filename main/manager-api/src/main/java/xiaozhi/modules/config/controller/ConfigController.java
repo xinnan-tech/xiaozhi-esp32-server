@@ -1,7 +1,5 @@
 package xiaozhi.modules.config.controller;
 
-import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,8 +13,8 @@ import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.validator.ValidatorUtils;
-import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.config.dto.AgentModelsDTO;
+import xiaozhi.modules.config.service.ConfigService;
 import xiaozhi.modules.sys.dto.ConfigSecretDTO;
 import xiaozhi.modules.sys.service.SysParamsService;
 
@@ -30,8 +28,8 @@ import xiaozhi.modules.sys.service.SysParamsService;
 @Tag(name = "参数管理")
 @AllArgsConstructor
 public class ConfigController {
+    private final ConfigService configService;
     private final SysParamsService sysParamsService;
-    private final AgentService agentService;
 
     @PostMapping("server-base")
     @Operation(summary = "获取配置")
@@ -39,7 +37,7 @@ public class ConfigController {
         // 效验数据
         ValidatorUtils.validateEntity(dto);
         checkSecret(dto.getSecret());
-        Object config = sysParamsService.getConfig();
+        Object config = configService.getConfig(true);
         return new Result<Object>().ok(config);
     }
 
@@ -49,7 +47,7 @@ public class ConfigController {
         // 效验数据
         ValidatorUtils.validateEntity(dto);
         checkSecret(dto.getSecret());
-        Map<String, Object> models = agentService.getAgentModelsByMac(dto.getMacAddress());
+        Object models = configService.getAgentModels(dto.getMacAddress());
         return new Result<Object>().ok(models);
     }
 

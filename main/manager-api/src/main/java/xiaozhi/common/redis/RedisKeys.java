@@ -62,4 +62,10 @@ public class RedisKeys {
         return "agent:device:count:" + id;
     }
 
+    /**
+     * 获取系统配置缓存key
+     */
+    public static String getServerConfigKey() {
+        return "server:config";
+    }
 }
