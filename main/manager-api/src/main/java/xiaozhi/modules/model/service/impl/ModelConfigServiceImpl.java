@@ -141,4 +141,12 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         }
         return entity;
     }
+
+    @Override
+    public void setDefaultModel(String modelType, int isDefault) {
+        ModelConfigEntity entity = new ModelConfigEntity();
+        entity.setIsDefault(isDefault);
+        modelConfigDao.update(entity, new QueryWrapper<ModelConfigEntity>()
+                .eq("model_type", modelType));
+    }
 }

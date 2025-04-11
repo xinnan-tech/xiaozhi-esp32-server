@@ -142,40 +142,57 @@ export default {
         })
       }).send()
   },
-    // 启用/禁用模型状态
-    updateModelStatus(id, status, callback) {
-      RequestService.sendRequest()
-        .url(`${getServiceUrl()}/models/enable/${id}/${status}`)
-        .method('PUT')
-        .success((res) => {
-          RequestService.clearRequestTime()
-          callback(res)
+  // 启用/禁用模型状态
+  updateModelStatus(id, status, callback) {
+    RequestService.sendRequest()
+      .url(`${getServiceUrl()}/models/enable/${id}/${status}`)
+      .method('PUT')
+      .success((res) => {
+        RequestService.clearRequestTime()
+        callback(res)
+      })
+      .fail((err) => {
+        console.error('更新模型状态失败:', err)
+        this.$message.error(err.msg || '更新模型状态失败')
+        RequestService.reAjaxFun(() => {
+          this.updateModelStatus(id, status, callback)
         })
-        .fail((err) => {
-          console.error('更新模型状态失败:', err)
-          this.$message.error(err.msg || '更新模型状态失败')
-          RequestService.reAjaxFun(() => {
-            this.updateModelStatus(id, status, callback)
-          })
-        }).send()
-    },
-    // 更新模型配置
-    updateModel(params, callback) {
-      const { modelType, provideCode, id, formData } = params;
-      RequestService.sendRequest()
-        .url(`${getServiceUrl()}/models/${modelType}/${provideCode}/${id}`)
-        .method('PUT')
-        .data(formData)
-        .success((res) => {
-          RequestService.clearRequestTime();
-          callback(res);
+      }).send()
+  },
+  // 更新模型配置
+  updateModel(params, callback) {
+    const { modelType, provideCode, id, formData } = params;
+    RequestService.sendRequest()
+      .url(`${getServiceUrl()}/models/${modelType}/${provideCode}/${id}`)
+      .method('PUT')
+      .data(formData)
+      .success((res) => {
+        RequestService.clearRequestTime();
+        callback(res);
+      })
+      .fail((err) => {
+        console.error('更新模型失败:', err);
+        this.$message.error(err.msg || '更新模型失败');
+        RequestService.reAjaxFun(() => {
+          this.updateModel(params, callback);
+        });
+      }).send();
+  },
+  // 设置默认模型
+  setDefaultModel(id, callback) {
+    RequestService.sendRequest()
+      .url(`${getServiceUrl()}/models/default/${id}`)
+      .method('PUT')
+      .success((res) => {
+        RequestService.clearRequestTime()
+        callback(res)
+      })
+      .fail((err) => {
+        console.error('设置默认模型失败:', err)
+        this.$message.error(err.msg || '设置默认模型失败')
+        RequestService.reAjaxFun(() => {
+          this.setDefaultModel(id, callback)
         })
-        .fail((err) => {
-          console.error('更新模型失败:', err);
-          this.$message.error(err.msg || '更新模型失败');
-          RequestService.reAjaxFun(() => {
-            this.updateModel(params, callback);
-          });
-        }).send();
-    },
+      }).send()
+  }
 }

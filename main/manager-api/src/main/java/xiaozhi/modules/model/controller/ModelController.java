@@ -119,6 +119,21 @@ public class ModelController {
         return new Result<Void>();
     }
 
+    @PutMapping("/default/{id}")
+    @Operation(summary = "设置默认模型")
+    @RequiresPermissions("sys:role:superAdmin")
+    public Result<Void> setDefaultModel(@PathVariable String id) {
+        ModelConfigEntity entity = modelConfigService.selectById(id);
+        if (entity == null) {
+            return new Result<Void>().error("模型配置不存在");
+        }
+        // 将其他模型设置为非默认
+        modelConfigService.setDefaultModel(entity.getModelType(), 0);
+        entity.setIsDefault(1);
+        modelConfigService.updateById(entity);
+        return new Result<Void>();
+    }
+
     @GetMapping("/{modelId}/voices")
     @Operation(summary = "获取模型音色")
     @RequiresPermissions("sys:role:normal")
