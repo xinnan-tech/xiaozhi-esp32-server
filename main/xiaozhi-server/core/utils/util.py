@@ -1,19 +1,12 @@
 import os
 import json
-import yaml
 import socket
 import subprocess
 import logging
 import re
 import requests
-
-
-def get_project_dir():
-    """获取项目根目录"""
-    return (
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        + "/"
-    )
+from typing import Dict, Any
+from core.utils import tts, llm, intent, memory, vad, asr
 
 
 def get_local_ip():
@@ -83,30 +76,6 @@ def get_ip_info(ip_addr):
     except Exception as e:
         logging.error(f"Error getting client ip info: {e}")
         return {}
-
-
-def read_config(config_path):
-    with open(config_path, "r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
-    if config.get("manager-api", {}).get("url"):
-        # 从Java API获取配置
-        api_url = config["manager-api"].get("url", "")
-        secret = config["manager-api"].get("secret", "")
-        if not api_url or not secret:
-            raise Exception("manager-api的url或secret配置错误")
-
-        if "你" in secret:
-            raise Exception("请先配置manager-api的secret")
-        response = requests.post(
-            f"{api_url}/config/server-base", json={"secret": secret}
-        )
-        if response.status_code == 200:
-            config = response.json()["data"]
-            config["manager-api"] = {"url": api_url, "secret": secret}
-            return config
-        else:
-            raise Exception(f"从Java API获取配置失败，网络错误: {response.text}")
-    return config
 
 
 def write_json_file(file_path, data):
@@ -230,3 +199,100 @@ def extract_json_from_string(input_string):
     if match:
         return match.group(1)  # 返回提取的 JSON 字符串
     return None
+
+
+def initialize_modules(
+    config: Dict[str, Any],
+    init_vad=True,
+    init_asr=True,
+    init_llm=True,
+    init_tts=True,
+    init_memory=True,
+    init_intent=True,
+) -> Dict[str, Any]:
+    """
+    初始化所有模块组件
+
+    Args:
+        config: 配置字典
+
+    Returns:
+        Dict[str, Any]: 包含所有初始化后的模块的字典
+    """
+    modules = {}
+
+    # 初始化TTS模块
+    if init_tts:
+        tts_type = (
+            config["selected_module"]["TTS"]
+            if "type" not in config["TTS"][config["selected_module"]["TTS"]]
+            else config["TTS"][config["selected_module"]["TTS"]]["type"]
+        )
+        modules["tts"] = tts.create_instance(
+            tts_type,
+            config["TTS"][config["selected_module"]["TTS"]],
+            config["delete_audio"],
+        )
+
+    # 初始化LLM模块
+    if init_llm:
+        llm_type = (
+            config["selected_module"]["LLM"]
+            if "type" not in config["LLM"][config["selected_module"]["LLM"]]
+            else config["LLM"][config["selected_module"]["LLM"]]["type"]
+        )
+        modules["llm"] = llm.create_instance(
+            llm_type,
+            config["LLM"][config["selected_module"]["LLM"]],
+        )
+
+    # 初始化Intent模块
+    if init_intent:
+        intent_type = (
+            config["selected_module"]["Intent"]
+            if "type" not in config["Intent"][config["selected_module"]["Intent"]]
+            else config["Intent"][config["selected_module"]["Intent"]]["type"]
+        )
+        modules["intent"] = intent.create_instance(
+            intent_type,
+            config["Intent"][config["selected_module"]["Intent"]],
+        )
+
+    # 初始化Memory模块
+    if init_memory:
+        memory_type = (
+            config["selected_module"]["Memory"]
+            if "type" not in config["Memory"][config["selected_module"]["Memory"]]
+            else config["Memory"][config["selected_module"]["Memory"]]["type"]
+        )
+        modules["memory"] = memory.create_instance(
+            memory_type,
+            config["Memory"][config["selected_module"]["Memory"]],
+        )
+
+    # 初始化VAD模块
+    if init_vad:
+        vad_type = (
+            config["selected_module"]["VAD"]
+            if "type" not in config["VAD"][config["selected_module"]["VAD"]]
+            else config["VAD"][config["selected_module"]["VAD"]]["type"]
+        )
+        modules["vad"] = vad.create_instance(
+            vad_type,
+            config["VAD"][config["selected_module"]["VAD"]],
+        )
+
+    # 初始化ASR模块
+    if init_asr:
+        asr_type = (
+            config["selected_module"]["ASR"]
+            if "type" not in config["ASR"][config["selected_module"]["ASR"]]
+            else config["ASR"][config["selected_module"]["ASR"]]["type"]
+        )
+        modules["asr"] = asr.create_instance(
+            asr_type,
+            config["ASR"][config["selected_module"]["ASR"]],
+            config["delete_audio"],
+        )
+
+    return modules

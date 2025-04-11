@@ -18,16 +18,14 @@ from core.utils.util import (
     get_string_no_punctuation_or_emoji,
     extract_json_from_string,
     get_ip_info,
+    initialize_modules,
 )
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.sendAudioHandle import sendAudioMessage
-from core.utils import llm, tts, memory, intent
 from core.handle.receiveAudioHandle import handleAudioMessage
 from core.handle.functionHandler import FunctionHandler
 from plugins_func.register import Action, ActionResponse
-from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
-from core.utils.auth_code_gen import AuthCodeGenerator
 from core.mcp.manager import MCPManager
 
 TAG = __name__
@@ -40,7 +38,9 @@ class TTSException(RuntimeError):
 
 
 class ConnectionHandler:
-    def __init__(self, config: Dict[str, Any], _vad, _asr):
+    def __init__(
+        self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _memory, _intent
+    ):
         self.config = copy.deepcopy(config)
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
@@ -67,10 +67,10 @@ class ConnectionHandler:
         # 依赖的组件
         self.vad = _vad
         self.asr = _asr
-        self.llm = None
-        self.tts = None
-        self.memory = None
-        self.intent = None
+        self.llm = _llm
+        self.tts = _tts
+        self.memory = _memory
+        self.intent = _intent
 
         # vad相关变量
         self.client_audio_buffer = bytearray()
@@ -101,9 +101,6 @@ class ConnectionHandler:
             if len(cmd) > self.max_cmd_length:
                 self.max_cmd_length = len(cmd)
 
-        self.private_config = None
-        self.auth_code_gen = AuthCodeGenerator.get_instance()
-        self.is_device_verified = False  # 添加设备验证状态标志
         self.close_after_chat = False  # 是否在聊天结束后关闭连接
         self.use_function_call_mode = False
         if self.config["selected_module"]["Intent"] == "function_call":
@@ -176,60 +173,12 @@ class ConnectionHandler:
         elif isinstance(message, bytes):
             await handleAudioMessage(self, message)
 
-    def _initialize_modules(self):
-        """初始化组件"""
-        _tts = tts.create_instance(
-            (
-                self.config["selected_module"]["TTS"]
-                if not "type"
-                in self.config["TTS"][self.config["selected_module"]["TTS"]]
-                else self.config["TTS"][self.config["selected_module"]["TTS"]]["type"]
-            ),
-            self.config["TTS"][self.config["selected_module"]["TTS"]],
-            self.config["delete_audio"],
-        )
-        self.tts = _tts
-        _llm = llm.create_instance(
-            (
-                self.config["selected_module"]["LLM"]
-                if not "type"
-                in self.config["LLM"][self.config["selected_module"]["LLM"]]
-                else self.config["LLM"][self.config["selected_module"]["LLM"]]["type"]
-            ),
-            self.config["LLM"][self.config["selected_module"]["LLM"]],
-        )
-        self.llm = _llm
-        _intent = intent.create_instance(
-            (
-                self.config["selected_module"]["Intent"]
-                if not "type"
-                in self.config["Intent"][self.config["selected_module"]["Intent"]]
-                else self.config["Intent"][self.config["selected_module"]["Intent"]][
-                    "type"
-                ]
-            ),
-            self.config["Intent"][self.config["selected_module"]["Intent"]],
-        )
-        self.intent = _intent
-        _memory = memory.create_instance(
-            (
-                self.config["selected_module"]["Memory"]
-                if not "type"
-                in self.config["Memory"][self.config["selected_module"]["Memory"]]
-                else self.config["Memory"][self.config["selected_module"]["Memory"]][
-                    "type"
-                ]
-            ),
-            self.config["Memory"][self.config["selected_module"]["Memory"]],
-        )
-        self.memory = _memory
-
     def _initialize_components(self):
-        self._initialize_modules()
+        """初始化组件"""
+        self._initialize_models()
+
         """加载提示词"""
         self.prompt = self.config["prompt"]
-        if self.private_config:
-            self.prompt = self.private_config.private_config.get("prompt", self.prompt)
         self.dialogue.put(Message(role="system", content=self.prompt))
 
         """加载记忆"""
@@ -243,6 +192,23 @@ class ConnectionHandler:
             self.prompt = self.prompt + f"\nuser location:{self.client_ip_info}"
 
             self.dialogue.update_system_message(self.prompt)
+
+    def _initialize_models(self):
+        read_config_from_api = self.config.get("read_config_from_api", False)
+        """如果是从配置文件获取，则进行二次实例化"""
+        if not read_config_from_api:
+            return
+        """从接口获取和默认模型差异化配置进行二次实例化"""
+
+        modules = initialize_modules(self.config)
+        if modules.get("tts", None) is not None:
+            self.tts = modules["tts"]
+        if modules.get("llm", None) is not None:
+            self.llm = modules["llm"]
+        if modules.get("intent", None) is not None:
+            self.intent = modules["intent"]
+        if modules.get("memory", None) is not None:
+            self.memory = modules["memory"]
 
     def _initialize_memory(self):
         """初始化记忆模块"""
@@ -296,34 +262,7 @@ class ConnectionHandler:
             if m.role == "system":
                 m.content = prompt
 
-    async def _check_and_broadcast_auth_code(self):
-        """检查设备绑定状态并广播认证码"""
-        if not self.private_config.get_owner():
-            auth_code = self.private_config.get_auth_code()
-            if auth_code:
-                # 发送验证码语音提示
-                text = f"请在后台输入验证码：{' '.join(auth_code)}"
-                self.recode_first_last_text(text)
-                future = self.executor.submit(self.speak_and_play, text)
-                self.tts_queue.put(future)
-            return False
-        return True
-
-    def isNeedAuth(self):
-        bUsePrivateConfig = self.config.get("use_private_config", False)
-        if not bUsePrivateConfig:
-            # 如果不使用私有配置，就不需要验证
-            return False
-        return not self.is_device_verified
-
     def chat(self, query):
-        if self.isNeedAuth():
-            self.llm_finish_task = True
-            future = asyncio.run_coroutine_threadsafe(
-                self._check_and_broadcast_auth_code(), self.loop
-            )
-            future.result()
-            return True
 
         self.dialogue.put(Message(role="user", content=query))
 
@@ -406,13 +345,6 @@ class ConnectionHandler:
     def chat_with_function_calling(self, query, tool_call=False):
         self.logger.bind(tag=TAG).debug(f"Chat with function calling start: {query}")
         """Chat with function calling for intent detection using streaming"""
-        if self.isNeedAuth():
-            self.llm_finish_task = True
-            future = asyncio.run_coroutine_threadsafe(
-                self._check_and_broadcast_auth_code(), self.loop
-            )
-            future.result()
-            return True
 
         if not tool_call:
             self.dialogue.put(Message(role="user", content=query))

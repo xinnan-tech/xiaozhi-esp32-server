@@ -2,8 +2,7 @@ import asyncio
 import websockets
 from config.logger import setup_logging
 from core.connection import ConnectionHandler
-from core.utils.util import get_local_ip
-from core.utils import asr, vad
+from core.utils.util import get_local_ip, initialize_modules
 
 TAG = __name__
 
@@ -12,29 +11,14 @@ class WebSocketServer:
     def __init__(self, config: dict):
         self.config = config
         self.logger = setup_logging()
-        self._vad, self._asr = self._create_processing_instances()
+        modules = initialize_modules(self.config)
+        self._vad = modules["vad"]
+        self._asr = modules["asr"]
+        self._tts = modules["tts"]
+        self._llm = modules["llm"]
+        self._intent = modules["intent"]
+        self._memory = modules["memory"]
         self.active_connections = set()
-
-    def _create_processing_instances(self):
-        """创建处理模块实例"""
-        return (
-            vad.create_instance(
-                self.config["selected_module"]["VAD"],
-                self.config["VAD"][self.config["selected_module"]["VAD"]],
-            ),
-            asr.create_instance(
-                (
-                    self.config["selected_module"]["ASR"]
-                    if not "type"
-                    in self.config["ASR"][self.config["selected_module"]["ASR"]]
-                    else self.config["ASR"][self.config["selected_module"]["ASR"]][
-                        "type"
-                    ]
-                ),
-                self.config["ASR"][self.config["selected_module"]["ASR"]],
-                self.config["delete_audio"],
-            ),
-        )
 
     async def start(self):
         server_config = self.config["server"]
@@ -59,7 +43,15 @@ class WebSocketServer:
     async def _handle_connection(self, websocket):
         """处理新连接，每次创建独立的ConnectionHandler"""
         # 创建ConnectionHandler时传入当前server实例
-        handler = ConnectionHandler(self.config, self._vad, self._asr)
+        handler = ConnectionHandler(
+            self.config,
+            self._vad,
+            self._asr,
+            self._llm,
+            self._tts,
+            self._memory,
+            self._intent,
+        )
         self.active_connections.add(handler)
         try:
             await handler.handle_connection(websocket)

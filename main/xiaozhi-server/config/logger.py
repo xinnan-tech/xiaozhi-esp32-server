@@ -1,9 +1,28 @@
 import os
 import sys
 from loguru import logger
-from config.settings import load_config
+from config.config_loader import load_config
 
 SERVER_VERSION = "0.2.1"
+
+
+def get_module_abbreviation(module_name, module_dict):
+    """获取模块名称的缩写，如果为空则返回00"""
+    return (
+        module_dict.get(module_name, "")[:2] if module_dict.get(module_name) else "00"
+    )
+
+
+def build_module_string(selected_module):
+    """构建模块字符串"""
+    return (
+        get_module_abbreviation("VAD", selected_module)
+        + get_module_abbreviation("ASR", selected_module)
+        + get_module_abbreviation("LLM", selected_module)
+        + get_module_abbreviation("TTS", selected_module)
+        + get_module_abbreviation("Memory", selected_module)
+        + get_module_abbreviation("Intent", selected_module)
+    )
 
 
 def setup_logging():
@@ -18,11 +37,7 @@ def setup_logging():
         "log_format_file",
         "{time:YYYY-MM-DD HH:mm:ss} - {version_{selected_module}} - {name} - {level} - {extra[tag]} - {message}",
     )
-
-    selected_module = config.get("selected_module", {})
-    selected_module_str = "".join(
-        [value[0] + value[1] for key, value in selected_module.items()]
-    )
+    selected_module_str = build_module_string(config.get("selected_module", {}))
 
     log_format = log_format.replace("{version}", SERVER_VERSION)
     log_format = log_format.replace("{selected_module}", selected_module_str)

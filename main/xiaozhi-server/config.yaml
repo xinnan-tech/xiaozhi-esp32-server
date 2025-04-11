@@ -222,6 +222,7 @@ ASR:
     output_dir: tmp/
 VAD:
   SileroVAD:
+    type: silero
     threshold: 0.5
     model_dir: models/snakers4_silero-vad
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些

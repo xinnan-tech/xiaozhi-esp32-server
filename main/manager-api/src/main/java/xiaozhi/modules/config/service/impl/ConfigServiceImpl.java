@@ -57,6 +57,7 @@ public class ConfigServiceImpl implements ConfigService {
 
         // 构建模块配置
         buildModuleConfig(
+                agent.getSystemPrompt(),
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
                 agent.getLlmModelId(),
@@ -85,10 +86,10 @@ public class ConfigServiceImpl implements ConfigService {
         }
         // 构建返回数据
         Map<String, Object> result = new HashMap<>();
-        result.put("prompt", agent.getSystemPrompt());
 
         // 构建模块配置
         buildModuleConfig(
+                agent.getSystemPrompt(),
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
                 agent.getLlmModelId(),
@@ -178,6 +179,7 @@ public class ConfigServiceImpl implements ConfigService {
      * @param result        结果Map
      */
     private void buildModuleConfig(
+            String prompt,
             String vadModelId,
             String asrModelId,
             String llmModelId,
@@ -198,5 +200,6 @@ public class ConfigServiceImpl implements ConfigService {
             selectedModule.put(modelTypes[i], model.getModelCode());
         }
         result.put("selected_module", selectedModule);
+        result.put("prompt", prompt);
     }
 }
