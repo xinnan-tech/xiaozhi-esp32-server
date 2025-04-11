@@ -95,23 +95,11 @@
 import Api from '@/apis/api';
 
 const DEFAULT_CONFIG_JSON = {
-  type: "",
-  base_url: "",
-  model_name: "",
-  api_key: "",
-  raw: {},
-  config: {
-    keyComparator: {},
-    ignoreError: false,
-    ignoreCase: false,
-    dateFormat: "",
-    ignoreNullValue: false,
-    transientSupport: false,
-    stripTrailingZeros: false,
-    checkDuplicate: false,
-    order: false
-  },
-  empty: false
+    type: "",
+    base_url: "",
+    model_name: "",
+    api_key: "",
+    empty: false
 };
 
 export default {
@@ -185,60 +173,54 @@ export default {
   },
   methods: {
     resetForm() {
-      this.form = {
-        id: "",
-        modelType: "",
-        modelCode: "",
-        modelName: "",
-        isDefault: false,
-        isEnabled: false,
-        docLink: "",
-        remark: "",
-        sort: "",
-        configJson: JSON.parse(JSON.stringify(DEFAULT_CONFIG_JSON))
-      };
+        this.form = {
+            id: "",
+            modelType: "",
+            modelCode: "",
+            modelName: "",
+            isDefault: false,
+            isEnabled: false,
+            docLink: "",
+            remark: "",
+            sort: 0,
+            configJson: JSON.parse(JSON.stringify(DEFAULT_CONFIG_JSON))
+        };
     },
     resetProviders() {
       this.providers = [];
       this.providersLoaded = false;
     },
     loadModelData() {
-      if (this.modelData.id) {
-        Api.model.getModelConfig(this.modelData.id, ({ data }) => {
-          if (data.code === 0 && data.data) {
-            const model = data.data;
-            this.pendingProviderType = model.configJson.type;
-            this.pendingModelData = model;
+        if (this.modelData.id) {
+            Api.model.getModelConfig(this.modelData.id, ({ data }) => {
+                if (data.code === 0 && data.data) {
+                    const model = data.data;
+                    this.pendingProviderType = model.configJson.type;
+                    this.pendingModelData = model;
 
-            if (this.providersLoaded) {
-              this.loadProviderFields(model.configJson.type);
-            } else {
-              this.loadProviders();
-            }
-          }
-        });
-      }
+                    if (this.providersLoaded) {
+                      this.loadProviderFields(model.configJson.type);
+                    } else {
+                      this.loadProviders();
+                    }
+                }
+            });
+        }
     },
     handleSave() {
-      const provideCode = this.form.configJson.type;
-      const { provider, ...restConfigJson } = this.form.configJson;
-      const formData = {
-        id: this.form.id,
-        modelCode: this.form.modelCode,
-        modelName: this.form.modelName,
-        isDefault: this.form.isDefault ? 1 : 0,
-        isEnabled: this.form.isEnabled ? 1 : 0,
-        docLink: this.form.docLink,
-        remark: this.form.remark,
-        sort: this.form.sort || 0,
-        configJson: {
-          ...restConfigJson,
-          config: {
-            ...restConfigJson.config,
-            ignoreError: !!restConfigJson.config?.ignoreError,
-            ignoreCase: !!restConfigJson.config?.ignoreCase,
+        const provideCode = this.form.configJson.type;
+        const formData = {
+            id: this.modelData.id,
+            modelCode: this.form.modelCode,
+            modelName: this.form.modelName,
+            isDefault: this.form.isDefault ? 1 : 0,
+            isEnabled: this.form.isEnabled ? 1 : 0,
+            docLink: this.form.docLink,
+            remark: this.form.remark,
+            sort: this.form.sort || 0,
+            configJson: {
+              ...this.form.configJson,
           }
-        }
       };
       this.$emit("save", { provideCode, formData });
       this.dialogVisible = false;
@@ -249,7 +231,7 @@ export default {
       Api.model.getModelProviders(this.modelType, (data) => {
         this.providers = data.map(item => ({
           label: item.name,
-          value: item.providerCode
+          value: String(item.providerCode)
         }));
         this.providersLoaded = true;
 
@@ -288,26 +270,21 @@ export default {
       });
 
       this.form = {
-        id: model.id || "",
-        modelType: model.modelType || "",
-        modelCode: model.modelCode || "",
-        modelName: model.modelName || "",
-        isDefault: model.isDefault || 0,
-        isEnabled: model.isEnabled || 0,
-        docLink: model.docLink || "",
-        remark: model.remark || "",
+        id: model.id,
+        modelType: model.modelType,
+        modelCode: model.modelCode,
+        modelName: model.modelName,
+        isDefault: model.isDefault,
+        isEnabled: model.isEnabled,
+        docLink: model.docLink,
+        remark: model.remark,
         sort: Number(model.sort) || 0,
         configJson: {
-          ...JSON.parse(JSON.stringify(DEFAULT_CONFIG_JSON)),
-          ...configJson,
-          config: {
-            ...DEFAULT_CONFIG_JSON.config,
-            ...(configJson.config || {})
-          }
+          ...DEFAULT_CONFIG_JSON,
+          ...configJson
         }
       };
     }
-
   }
 };
 </script>
