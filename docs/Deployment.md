@@ -306,6 +306,17 @@ LLM:
 - 线路二：百度网盘下载[SenseVoiceSmall](https://pan.baidu.com/share/init?surl=QlgM58FHhYv1tFnUT_A8Sg&pwd=qvna) 提取码:
   `qvna`
 
+如果需要使用 oceanbase 的长期记忆向量化能力需要额外下载量化模型，用于把历史对话向量化到成向量化数据。目前支持 `all-MiniLM-L6-v2` 模型。因为模型较大，需要独立下载，
+
+```
+wget https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/all-MiniLM-L6-v2.zip
+mkdir models/all-MiniLM-L6-v2
+```
+解压后放在`models/all-MiniLM-L6-v2`目录下。
+
+
+```
+
 ## 运行状态确认
 
 如果你能看到，类似以下日志,则是本项目服务启动成功的标志。

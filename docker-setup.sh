@@ -74,6 +74,17 @@ else
     $DOWNLOAD_CMD "data/.config.yaml" "https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/main/xiaozhi-server/config.yaml"
 fi
 
+# 下载量化模型
+echo "下载量化模型..."
+mkdir -p models/all-MiniLM-L6-v2
+if [ "$DOWNLOAD_CMD" = "powershell -Command Invoke-WebRequest -Uri" ]; then
+    $DOWNLOAD_CMD "https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/all-MiniLM-L6-v2.zip" $DOWNLOAD_CMD_SUFFIX "models/all-MiniLM-L6-v2/all-MiniLM-L6-v2.zip"
+
+else
+    $DOWNLOAD_CMD "models/all-MiniLM-L6-v2.zip" "https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/all-MiniLM-L6-v2.zip"
+fi
+unzip models/all-MiniLM-L6-v2.zip -d models/all-MiniLM-L6-v2
+
 # 检查文件是否存在
 echo "检查文件完整性..."
 FILES_TO_CHECK="docker-compose.yml data/.config.yaml models/SenseVoiceSmall/model.pt"
