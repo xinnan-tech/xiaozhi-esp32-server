@@ -127,13 +127,15 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     }
 
     @Override
-    public ModelConfigEntity getModelById(String id) {
+    public ModelConfigEntity getModelById(String id, boolean isCache) {
         if (StringUtils.isBlank(id)) {
             return null;
         }
-        ModelConfigEntity cachedConfig = (ModelConfigEntity) redisUtils.get(RedisKeys.getModelConfigById(id));
-        if (cachedConfig != null) {
-            return ConvertUtils.sourceToTarget(cachedConfig, ModelConfigEntity.class);
+        if (isCache) {
+            ModelConfigEntity cachedConfig = (ModelConfigEntity) redisUtils.get(RedisKeys.getModelConfigById(id));
+            if (cachedConfig != null) {
+                return ConvertUtils.sourceToTarget(cachedConfig, ModelConfigEntity.class);
+            }
         }
         ModelConfigEntity entity = modelConfigDao.selectById(id);
         if (entity != null) {

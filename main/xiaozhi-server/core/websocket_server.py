@@ -11,7 +11,9 @@ class WebSocketServer:
     def __init__(self, config: dict):
         self.config = config
         self.logger = setup_logging()
-        modules = initialize_modules(self.config)
+        modules = initialize_modules(
+            self.logger, self.config, True, True, True, True, True, True
+        )
         self._vad = modules["vad"]
         self._asr = modules["asr"]
         self._tts = modules["tts"]

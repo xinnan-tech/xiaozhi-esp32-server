@@ -64,7 +64,8 @@ public class ConfigServiceImpl implements ConfigService {
                 agent.getTtsModelId(),
                 agent.getMemModelId(),
                 agent.getIntentModelId(),
-                result);
+                result,
+                isCache);
 
         // 将配置存入Redis
         redisUtils.set(RedisKeys.getServerConfigKey(), result);
@@ -96,7 +97,8 @@ public class ConfigServiceImpl implements ConfigService {
                 agent.getTtsModelId(),
                 agent.getMemModelId(),
                 agent.getIntentModelId(),
-                result);
+                result,
+                true);
 
         return result;
     }
@@ -186,14 +188,15 @@ public class ConfigServiceImpl implements ConfigService {
             String ttsModelId,
             String memModelId,
             String intentModelId,
-            Map<String, Object> result) {
+            Map<String, Object> result,
+            boolean isCache) {
         Map<String, String> selectedModule = new HashMap<>();
 
         String[] modelTypes = { "VAD", "ASR", "LLM", "TTS", "Memory", "Intent" };
         String[] modelIds = { vadModelId, asrModelId, llmModelId, ttsModelId, memModelId, intentModelId };
 
         for (int i = 0; i < modelIds.length; i++) {
-            ModelConfigEntity model = modelConfigService.getModelById(modelIds[i]);
+            ModelConfigEntity model = modelConfigService.getModelById(modelIds[i], isCache);
             Map<String, Object> typeConfig = new HashMap<>();
             typeConfig.put(model.getModelCode(), model.getConfigJson());
             result.put(modelTypes[i], typeConfig);

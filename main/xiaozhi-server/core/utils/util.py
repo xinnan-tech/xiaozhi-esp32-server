@@ -1,12 +1,12 @@
-import os
 import json
 import socket
 import subprocess
-import logging
 import re
 import requests
 from typing import Dict, Any
 from core.utils import tts, llm, intent, memory, vad, asr
+
+TAG = __name__
 
 
 def get_local_ip():
@@ -65,7 +65,7 @@ def is_private_ip(ip_addr):
         return False  # IP address format error or insufficient segments
 
 
-def get_ip_info(ip_addr):
+def get_ip_info(ip_addr, logger):
     try:
         if is_private_ip(ip_addr):
             ip_addr = ""
@@ -74,7 +74,7 @@ def get_ip_info(ip_addr):
         ip_info = {"city": resp.get("city")}
         return ip_info
     except Exception as e:
-        logging.error(f"Error getting client ip info: {e}")
+        logger.bind(tag=TAG).error(f"Error getting client ip info: {e}")
         return {}
 
 
@@ -156,10 +156,8 @@ def remove_punctuation_and_length(text):
 
 def check_model_key(modelType, modelKey):
     if "你" in modelKey:
-        logging.error(
-            "你还没配置"
-            + modelType
-            + "的密钥，请在配置文件中配置密钥，否则无法正常工作"
+        raise ValueError(
+            "你还没配置" + modelType + "的密钥，请检查一下所使用的LLM是否配置了密钥"
         )
         return False
     return True
@@ -202,13 +200,14 @@ def extract_json_from_string(input_string):
 
 
 def initialize_modules(
+    logger,
     config: Dict[str, Any],
-    init_vad=True,
-    init_asr=True,
-    init_llm=True,
-    init_tts=True,
-    init_memory=True,
-    init_intent=True,
+    init_vad=False,
+    init_asr=False,
+    init_llm=False,
+    init_tts=False,
+    init_memory=False,
+    init_intent=False,
 ) -> Dict[str, Any]:
     """
     初始化所有模块组件
@@ -233,6 +232,7 @@ def initialize_modules(
             config["TTS"][config["selected_module"]["TTS"]],
             config["delete_audio"],
         )
+        logger.bind(tag=TAG).info(f"初始化组件: tts成功")
 
     # 初始化LLM模块
     if init_llm:
@@ -245,6 +245,7 @@ def initialize_modules(
             llm_type,
             config["LLM"][config["selected_module"]["LLM"]],
         )
+        logger.bind(tag=TAG).info(f"初始化组件: llm成功")
 
     # 初始化Intent模块
     if init_intent:
@@ -257,7 +258,7 @@ def initialize_modules(
             intent_type,
             config["Intent"][config["selected_module"]["Intent"]],
         )
-
+        logger.bind(tag=TAG).info(f"初始化组件: intent成功")
     # 初始化Memory模块
     if init_memory:
         memory_type = (
@@ -269,6 +270,7 @@ def initialize_modules(
             memory_type,
             config["Memory"][config["selected_module"]["Memory"]],
         )
+        logger.bind(tag=TAG).info(f"初始化组件: memory成功")
 
     # 初始化VAD模块
     if init_vad:
@@ -281,7 +283,7 @@ def initialize_modules(
             vad_type,
             config["VAD"][config["selected_module"]["VAD"]],
         )
-
+        logger.bind(tag=TAG).info(f"初始化组件: vad成功")
     # 初始化ASR模块
     if init_asr:
         asr_type = (
@@ -294,5 +296,6 @@ def initialize_modules(
             config["ASR"][config["selected_module"]["ASR"]],
             config["delete_audio"],
         )
+        logger.bind(tag=TAG).info(f"初始化组件: asr成功")
 
     return modules

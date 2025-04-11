@@ -117,7 +117,7 @@ def get_private_config_from_api(config, device_id, client_id):
         api_url,
         secret,
         "/config/agent-models",
-        {"secret": secret, "device_id": device_id, "client_id": client_id},
+        {"secret": secret, "macAddress": device_id, "clientId": client_id},
     )
 
 

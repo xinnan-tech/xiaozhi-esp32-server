@@ -27,6 +27,7 @@ from core.handle.functionHandler import FunctionHandler
 from plugins_func.register import Action, ActionResponse
 from core.auth import AuthMiddleware, AuthenticationError
 from core.mcp.manager import MCPManager
+from config.config_loader import get_private_config_from_api
 
 TAG = __name__
 
@@ -186,7 +187,7 @@ class ConnectionHandler:
         """加载意图识别"""
         self._initialize_intent()
         """加载位置信息"""
-        self.client_ip_info = get_ip_info(self.client_ip)
+        self.client_ip_info = get_ip_info(self.client_ip, self.logger)
         if self.client_ip_info is not None and "city" in self.client_ip_info:
             self.logger.bind(tag=TAG).info(f"Client ip info: {self.client_ip_info}")
             self.prompt = self.prompt + f"\nuser location:{self.client_ip_info}"
@@ -198,9 +199,48 @@ class ConnectionHandler:
         """如果是从配置文件获取，则进行二次实例化"""
         if not read_config_from_api:
             return
-        """从接口获取和默认模型差异化配置进行二次实例化"""
+        """从接口获取差异化的配置进行二次实例化，非全量重新实例化"""
+        try:
+            private_config = get_private_config_from_api(
+                self.config,
+                self.headers.get("device-id", None),
+                self.headers.get("client-id", None),
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"获取差异化配置失败: {e}")
+            private_config = {}
 
-        modules = initialize_modules(self.config)
+        init_vad, init_asr, init_llm, init_tts, init_memory, init_intent = (
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        )
+        if private_config.get("vad", None) is not None:
+            init_vad = True
+        if private_config.get("asr", None) is not None:
+            init_asr = True
+        if private_config.get("llm", None) is not None:
+            init_llm = True
+        if private_config.get("tts", None) is not None:
+            init_tts = True
+        if private_config.get("memory", None) is not None:
+            init_memory = True
+        if private_config.get("intent", None) is not None:
+            init_intent = True
+
+        modules = initialize_modules(
+            self.logger,
+            private_config,
+            init_vad,
+            init_asr,
+            init_llm,
+            init_tts,
+            init_memory,
+            init_intent,
+        )
         if modules.get("tts", None) is not None:
             self.tts = modules["tts"]
         if modules.get("llm", None) is not None:

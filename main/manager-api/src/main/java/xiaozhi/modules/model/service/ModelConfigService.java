@@ -32,10 +32,11 @@ public interface ModelConfigService extends BaseService<ModelConfigEntity> {
     /**
      * 根据ID获取模型配置
      * 
-     * @param id 模型ID
+     * @param id      模型ID
+     * @param isCache 是否缓存
      * @return 模型配置实体
      */
-    ModelConfigEntity getModelById(String id);
+    ModelConfigEntity getModelById(String id, boolean isCache);
 
     /**
      * 设置默认模型

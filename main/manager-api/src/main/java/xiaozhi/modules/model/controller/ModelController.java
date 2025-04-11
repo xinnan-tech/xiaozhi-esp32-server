@@ -19,6 +19,8 @@ import lombok.AllArgsConstructor;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.Result;
+import xiaozhi.modules.agent.service.AgentTemplateService;
+import xiaozhi.modules.config.service.ConfigService;
 import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
 import xiaozhi.modules.model.dto.ModelConfigDTO;
@@ -38,6 +40,8 @@ public class ModelController {
     private final ModelProviderService modelProviderService;
     private final TimbreService timbreService;
     private final ModelConfigService modelConfigService;
+    private final ConfigService configService;
+    private final AgentTemplateService agentTemplateService;
 
     @GetMapping("/names")
     @Operation(summary = "获取所有模型名称")
@@ -75,6 +79,7 @@ public class ModelController {
             @PathVariable String provideCode,
             @RequestBody ModelConfigBodyDTO modelConfigBodyDTO) {
         ModelConfigDTO modelConfigDTO = modelConfigService.add(modelType, provideCode, modelConfigBodyDTO);
+        configService.getConfig(false);
         return new Result<ModelConfigDTO>().ok(modelConfigDTO);
     }
 
@@ -86,6 +91,7 @@ public class ModelController {
             @PathVariable String id,
             @RequestBody ModelConfigBodyDTO modelConfigBodyDTO) {
         ModelConfigDTO modelConfigDTO = modelConfigService.edit(modelType, provideCode, id, modelConfigBodyDTO);
+        configService.getConfig(false);
         return new Result<ModelConfigDTO>().ok(modelConfigDTO);
     }
 
@@ -131,6 +137,11 @@ public class ModelController {
         modelConfigService.setDefaultModel(entity.getModelType(), 0);
         entity.setIsDefault(1);
         modelConfigService.updateById(entity);
+
+        // 更新模板表中对应的模型ID
+        agentTemplateService.updateDefaultTemplateModelId(entity.getModelType(), entity.getId());
+
+        configService.getConfig(false);
         return new Result<Void>();
     }
 

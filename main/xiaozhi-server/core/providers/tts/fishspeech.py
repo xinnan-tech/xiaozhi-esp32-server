@@ -24,7 +24,7 @@ class ServeReferenceAudio(BaseModel):
     def decode_audio(cls, values):
         audio = values.get("audio")
         if (
-                isinstance(audio, str) and len(audio) > 255
+            isinstance(audio, str) and len(audio) > 255
         ):  # Check if audio is a string (Base64)
             try:
                 values["audio"] = base64.b64decode(audio)
@@ -107,7 +107,10 @@ class TTSProvider(TTSProviderBase):
         self.api_url = config.get("api_url", "http://127.0.0.1:8080/v1/tts")
 
     def generate_filename(self, extension=".wav"):
-        return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
+        return os.path.join(
+            self.output_file,
+            f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
+        )
 
     async def text_to_speak(self, text, output_file):
         # Prepare reference data
@@ -117,9 +120,7 @@ class TTSProvider(TTSProviderBase):
         data = {
             "text": text,
             "references": [
-                ServeReferenceAudio(
-                    audio=audio if audio else b"", text=text
-                )
+                ServeReferenceAudio(audio=audio if audio else b"", text=text)
                 for text, audio in zip(ref_texts, byte_audios)
             ],
             "reference_id": self.reference_id,
@@ -139,7 +140,9 @@ class TTSProvider(TTSProviderBase):
 
         response = requests.post(
             self.api_url,
-            data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
+            data=ormsgpack.packb(
+                pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC
+            ),
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/msgpack",
@@ -151,8 +154,6 @@ class TTSProvider(TTSProviderBase):
 
             with open(output_file, "wb") as audio_file:
                 audio_file.write(audio_content)
-
-
 
         else:
             print(f"Request failed with status code {response.status_code}")

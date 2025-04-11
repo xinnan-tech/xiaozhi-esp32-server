@@ -29,4 +29,39 @@ public class AgentTemplateServiceImpl extends ServiceImpl<AgentTemplateDao, Agen
                 .last("LIMIT 1");
         return this.getOne(wrapper);
     }
+
+    /**
+     * 更新默认模板中的模型ID
+     * 
+     * @param modelType 模型类型
+     * @param modelId   模型ID
+     */
+    @Override
+    public void updateDefaultTemplateModelId(String modelType, String modelId) {
+        modelType = modelType.toUpperCase();
+        AgentTemplateEntity defaultTemplate = getDefaultTemplate();
+        if (defaultTemplate != null) {
+            switch (modelType) {
+                case "ASR":
+                    defaultTemplate.setAsrModelId(modelId);
+                    break;
+                case "VAD":
+                    defaultTemplate.setVadModelId(modelId);
+                    break;
+                case "LLM":
+                    defaultTemplate.setLlmModelId(modelId);
+                    break;
+                case "TTS":
+                    defaultTemplate.setTtsModelId(modelId);
+                    break;
+                case "Memory":
+                    defaultTemplate.setMemModelId(modelId);
+                    break;
+                case "Intent":
+                    defaultTemplate.setIntentModelId(modelId);
+                    break;
+            }
+            this.updateById(defaultTemplate);
+        }
+    }
 }
