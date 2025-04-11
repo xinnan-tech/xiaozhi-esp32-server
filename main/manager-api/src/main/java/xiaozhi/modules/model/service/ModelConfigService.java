@@ -28,4 +28,12 @@ public interface ModelConfigService extends BaseService<ModelConfigEntity> {
      * @return 模型名称
      */
     String getModelNameById(String id);
+
+    /**
+     * 根据ID获取模型配置
+     * 
+     * @param id 模型ID
+     * @return 模型配置实体
+     */
+    ModelConfigEntity getModelById(String id);
 }

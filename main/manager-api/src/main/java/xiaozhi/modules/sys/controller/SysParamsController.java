@@ -28,7 +28,6 @@ import xiaozhi.common.validator.ValidatorUtils;
 import xiaozhi.common.validator.group.AddGroup;
 import xiaozhi.common.validator.group.DefaultGroup;
 import xiaozhi.common.validator.group.UpdateGroup;
-import xiaozhi.modules.sys.dto.ConfigSecretDTO;
 import xiaozhi.modules.sys.dto.SysParamsDTO;
 import xiaozhi.modules.sys.service.SysParamsService;
 
@@ -107,12 +106,5 @@ public class SysParamsController {
         sysParamsService.delete(ids);
 
         return new Result<Void>();
-    }
-
-    @PostMapping("config")
-    @Operation(summary = "获取配置")
-    public Result<Object> getConfig(@RequestBody ConfigSecretDTO dto) {
-        Object config = sysParamsService.getConfig(dto.getSecret());
-        return new Result<Object>().ok(config);
     }
 }

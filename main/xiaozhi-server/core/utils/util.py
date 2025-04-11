@@ -98,7 +98,7 @@ def read_config(config_path):
         if "你" in secret:
             raise Exception("请先配置manager-api的secret")
         response = requests.post(
-            f"{api_url}/admin/params/config", json={"secret": secret}
+            f"{api_url}/config/server-base", json={"secret": secret}
         )
         if response.status_code == 200:
             config = response.json()["data"]

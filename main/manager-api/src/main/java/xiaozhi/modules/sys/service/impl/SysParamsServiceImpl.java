@@ -201,14 +201,8 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
 
     @Override
     @SuppressWarnings("unchecked")
-    public Object getConfig(String secret) {
-        String secretParam = getValue(Constant.SERVER_SECRET, true);
-        // 验证密钥
-        if (StringUtils.isBlank(secret) || !secret.equals(secretParam)) {
-            throw new RenException("密钥错误");
-        }
-
-        // 查询所有非系统参数
+    public Object getConfig() {
+        // 查询所有系统参数
         QueryWrapper<SysParamsEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("param_type", 1);
         List<SysParamsEntity> paramsList = baseDao.selectList(wrapper);

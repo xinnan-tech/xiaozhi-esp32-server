@@ -240,6 +240,16 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         return new PageData<>(list, page.getTotal());
     }
 
+    @Override
+    public DeviceEntity getDeviceByMacAddress(String macAddress) {
+        if (StringUtils.isBlank(macAddress)) {
+            return null;
+        }
+        QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
+        wrapper.eq("mac_address", macAddress);
+        return baseDao.selectOne(wrapper);
+    }
+
     private DeviceReportRespDTO.ServerTime buildServerTime() {
         DeviceReportRespDTO.ServerTime serverTime = new DeviceReportRespDTO.ServerTime();
         TimeZone tz = TimeZone.getDefault();

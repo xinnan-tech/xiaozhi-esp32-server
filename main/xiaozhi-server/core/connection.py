@@ -189,7 +189,6 @@ class ConnectionHandler:
             self.config["delete_audio"],
         )
         self.tts = _tts
-        print("初始化组件_tts")
         _llm = llm.create_instance(
             (
                 self.config["selected_module"]["LLM"]
@@ -200,7 +199,6 @@ class ConnectionHandler:
             self.config["LLM"][self.config["selected_module"]["LLM"]],
         )
         self.llm = _llm
-        print("初始化组件_llm")
         _intent = intent.create_instance(
             (
                 self.config["selected_module"]["Intent"]
@@ -213,7 +211,6 @@ class ConnectionHandler:
             self.config["Intent"][self.config["selected_module"]["Intent"]],
         )
         self.intent = _intent
-        print("初始化组件_intent")
         _memory = memory.create_instance(
             (
                 self.config["selected_module"]["Memory"]
@@ -226,12 +223,9 @@ class ConnectionHandler:
             self.config["Memory"][self.config["selected_module"]["Memory"]],
         )
         self.memory = _memory
-        print("初始化组件_memory")
 
     def _initialize_components(self):
-        print("初始化组件11")
         self._initialize_modules()
-        print("初始化组件22")
         """加载提示词"""
         self.prompt = self.config["prompt"]
         if self.private_config:

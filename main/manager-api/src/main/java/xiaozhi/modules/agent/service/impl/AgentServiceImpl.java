@@ -1,5 +1,6 @@
 package xiaozhi.modules.agent.service.impl;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
+import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
@@ -21,6 +23,9 @@ import xiaozhi.modules.agent.dao.AgentDao;
 import xiaozhi.modules.agent.dto.AgentDTO;
 import xiaozhi.modules.agent.entity.AgentEntity;
 import xiaozhi.modules.agent.service.AgentService;
+import xiaozhi.modules.device.entity.DeviceEntity;
+import xiaozhi.modules.device.service.DeviceService;
+import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.timbre.service.TimbreService;
 
@@ -36,6 +41,9 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
 
     @Autowired
     private RedisUtils redisUtils;
+
+    @Autowired
+    private DeviceService deviceService;
 
     public AgentServiceImpl(AgentDao agentDao) {
         this.agentDao = agentDao;
@@ -129,5 +137,43 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         }
 
         return deviceCount != null ? deviceCount : 0;
+    }
+
+    @Override
+    public Map<String, Object> getAgentModelsByMac(String macAddress) {
+
+        // 根据MAC地址查找设备
+        DeviceEntity device = deviceService.getDeviceByMacAddress(macAddress);
+        if (device == null) {
+            throw new RenException("设备未找到");
+        }
+
+        // 获取智能体信息
+        AgentEntity agent = getAgentById(device.getAgentId());
+        if (agent == null) {
+            throw new RenException("智能体未找到");
+        }
+
+        // 构建模块选择
+        Map<String, String> selectedModule = new HashMap<>();
+
+        // 构建返回数据
+        Map<String, Object> result = new HashMap<>();
+        result.put("prompt", agent.getSystemPrompt());
+
+        String[] modelTypes = { "VAD", "Intent", "Memory", "ASR", "LLM", "TTS" };
+        String[] modelIds = { agent.getVadModelId(), agent.getIntentModelId(), agent.getMemModelId(),
+                agent.getAsrModelId(), agent.getLlmModelId(), agent.getTtsModelId() };
+
+        for (int i = 0; i < modelIds.length; i++) {
+            ModelConfigEntity model = modelConfigService.getModelById(modelIds[i]);
+            Map<String, Object> typeConfig = new HashMap<>();
+            typeConfig.put(model.getModelCode(), model.getConfigJson());
+            result.put(modelTypes[i], typeConfig);
+            selectedModule.put(modelTypes[i], model.getModelCode());
+        }
+        result.put("selected_module", selectedModule);
+
+        return result;
     }
 }

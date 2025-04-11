@@ -66,4 +66,12 @@ public interface DeviceService {
      * @return 用户列表分页数据
      */
     PageData<UserShowDeviceListVO> page(DevicePageUserDTO dto);
+
+    /**
+     * 根据MAC地址获取设备信息
+     * 
+     * @param macAddress MAC地址
+     * @return 设备信息
+     */
+    DeviceEntity getDeviceByMacAddress(String macAddress);
 }

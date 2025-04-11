@@ -8,6 +8,7 @@ import os
 import random
 import time
 
+TAG = __name__
 logger = setup_logging()
 
 WAKEUP_CONFIG = {
@@ -69,6 +70,14 @@ def getWakeupWordFile(file_name):
 
 
 async def wakeupWordsResponse(conn):
+    wait_max_time = 5
+    while conn.llm is None or not conn.llm.response_no_stream:
+        await asyncio.sleep(1)
+        wait_max_time -= 1
+        if wait_max_time <= 0:
+            logger.bind(tag=TAG).error("连接对象没有llm")
+            return
+
     """唤醒词响应"""
     wakeup_word = random.choice(WAKEUP_CONFIG["words"])
     result = conn.llm.response_no_stream(conn.config["prompt"], wakeup_word)

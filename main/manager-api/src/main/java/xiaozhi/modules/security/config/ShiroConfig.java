@@ -77,7 +77,8 @@ public class ShiroConfig {
         filterMap.put("/user/captcha", "anon");
         filterMap.put("/user/login", "anon");
         filterMap.put("/user/register", "anon");
-        filterMap.put("/admin/params/config", "anon");
+        filterMap.put("/config/server-base", "anon");
+        filterMap.put("/config/agent-models", "anon");
         filterMap.put("/**", "oauth2");
         shiroFilter.setFilterChainDefinitionMap(filterMap);
 
