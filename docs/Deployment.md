@@ -1,3 +1,5 @@
+# 部署架构图
+![请参考-最简化架构图](../docs/images/deploy1.png)
 # 方式一：Docker只运行Server
 
 docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统上运行。

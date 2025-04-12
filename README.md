@@ -14,7 +14,7 @@
 <a href="./README.md">English</a>
 · 简体中文
 · <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">更新日志</a>
-· <a href="./docs/Deployment.md">部署文档</a>
+· <a href="./README.md#%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3">部署文档</a>
 · <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/issues ">反馈问题</a>
 </p>
 <p align="center">
@@ -126,12 +126,6 @@
 
 ---
 
-## 系统要求与部署前提 🖥️
-
-建议 4 核 CPU、8G 内存的电脑。如果开启ASR也使用API，可运行在2核CPU、2G内存的服务器中。[请参考部署架构图](./docs/images/deploy.png)
-
----
-
 ## 警告 ⚠️
 
 1、本项目为开源软件，本软件与对接的任何第三方API服务商（包括但不限于语音识别、大模型、语音合成等平台）均不存在商业合作关系，不为其服务质量及资金安全提供任何形式的担保。
@@ -158,32 +152,35 @@ server:
 ### 部署文档
 
 本项目支持`最简化`安装和`全模块`。
-`最简化`适合在较低资源配置中运行，无需数据库。
-`全模块`适合想体验完整功能，请根据具体需求选择安装方式。
+
+`最简化`适合在较低资源配置中运行，无需数据库。[请参考-最简化架构图](./docs/images/deploy1.png)
+
+`全模块`适合想体验完整功能，请根据具体需求选择安装方式。[请参考-全模块安装架构图](./docs/images/deploy2.png)
+
 
 #### 1、 最简化安装
 
 `最简化`安装包含：智能对话、IOT等功能，数据存储在`配置文件`。
 
-1.1. Docker只运行Server
+##### 1.1. Docker只运行Server
 
-你可以使用编译好的docker镜像安装，[点击Docker只运行Server](./docs/Deployment.md)。优点：减少环境配置的烦恼；缺点：版本可能有点旧，镜像文件较大。
+你可以使用编译好的docker镜像安装，[点击Docker只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)。优点：减少环境配置的烦恼；缺点：版本可能有点旧，镜像文件较大。
 
-2.2. 本地源码只运行Server
+##### 2.2. 本地源码只运行Server
 
-你可以以本地源码的方式运行，[点击本地源码只运行Server](./docs/Deployment.md)。优点：可以随时更新最新代码；缺点：安装Conda环境较为复杂。
+你可以以本地源码的方式运行，[点击本地源码只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)。优点：可以随时更新最新代码；缺点：安装Conda环境较为复杂。
 
-##### 2、 全模块安装
+#### 2、 全模块安装
 
 `全模块`安装包含：智能对话、IOT、OTA、智控台，数据存储在`数据库`中。
 
-2.1. Docker运行全模块
+##### 2.1. Docker运行全模块
 
-你可以使用编译好的docker镜像安装，[点击Docker运行全模块](./docs/Deployment_all.md)。优点：减少环境配置的烦恼；缺点：版本可能有点旧，镜像文件较大。
+你可以使用编译好的docker镜像安装，[点击Docker运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97)。优点：减少环境配置的烦恼；缺点：版本可能有点旧，镜像文件较大。
 
-2.2. 本地源码运行全模块
+##### 2.2. 本地源码运行全模块
 
-你可以以本地源码的方式运行，[点击本地源码运行全模块](./docs/Deployment_all.md)。优点：可以随时更新最新代码；缺点：安装Java、Node.js、Conda环境较为复杂。
+你可以以本地源码的方式运行，[点击本地源码运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97)。优点：可以随时更新最新代码；缺点：安装Java、Node.js、Conda环境较为复杂。
 
 ---
 
