@@ -68,4 +68,11 @@ public class RedisKeys {
     public static String getServerConfigKey() {
         return "server:config";
     }
+
+    /**
+     * 获取音色详情缓存key
+     */
+    public static String getTimbreDetailsKey(String id) {
+        return "timbre:details:" + id;
+    }
 }

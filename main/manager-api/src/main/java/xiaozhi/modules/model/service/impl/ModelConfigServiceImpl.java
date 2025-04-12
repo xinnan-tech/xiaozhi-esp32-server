@@ -94,6 +94,8 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         modelConfigEntity.setId(id);
         modelConfigEntity.setModelType(modelType);
         modelConfigDao.updateById(modelConfigEntity);
+        // 清除缓存
+        redisUtils.delete(RedisKeys.getModelConfigById(modelConfigEntity.getId()));
         return ConvertUtils.sourceToTarget(modelConfigEntity, ModelConfigDTO.class);
     }
 

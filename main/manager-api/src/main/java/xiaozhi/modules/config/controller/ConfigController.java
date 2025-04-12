@@ -47,7 +47,7 @@ public class ConfigController {
         // 效验数据
         ValidatorUtils.validateEntity(dto);
         checkSecret(dto.getSecret());
-        Object models = configService.getAgentModels(dto.getMacAddress());
+        Object models = configService.getAgentModels(dto.getMacAddress(), dto.getSelectedModule());
         return new Result<Object>().ok(models);
     }
 

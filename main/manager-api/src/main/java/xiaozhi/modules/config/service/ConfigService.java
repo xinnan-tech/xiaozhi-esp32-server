@@ -14,8 +14,9 @@ public interface ConfigService {
     /**
      * 获取智能体模型配置
      * 
-     * @param macAddress MAC地址
+     * @param macAddress     MAC地址
+     * @param selectedModule 客户端已实例化的模型
      * @return 模型配置信息
      */
-    Map<String, Object> getAgentModels(String macAddress);
+    Map<String, Object> getAgentModels(String macAddress, Map<String, String> selectedModule);
 }

@@ -2,6 +2,7 @@ import os
 import argparse
 import requests
 import yaml
+import time
 
 # 添加全局配置缓存
 _config_cache = None
@@ -74,22 +75,38 @@ def _make_api_request(api_url, secret, endpoint, json_data=None):
     if "你" in secret:
         raise Exception("请先配置manager-api的secret")
 
-    response = requests.post(f"{api_url}{endpoint}", json=json_data)
-    if response.status_code != 200:
-        error_msg = f"API请求失败，状态码: {response.status_code}"
+    max_retries = 10
+    retry_delay = 2  # 秒
+
+    for attempt in range(max_retries):
         try:
-            error_data = response.json()
-            if "msg" in error_data:
-                error_msg = f"{error_msg}, 错误信息: {error_data['msg']}"
-        except:
-            error_msg = f"{error_msg}, 响应内容: {response.text}"
-        raise Exception(error_msg)
+            response = requests.post(f"{api_url}{endpoint}", json=json_data)
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("code") != 0:
+                    raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
+                return result.get("data")
 
-    result = response.json()
-    if result.get("code") != 0:
-        raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
+            error_msg = f"manager-api请求失败，状态码: {response.status_code}"
+            try:
+                error_data = response.json()
+                if "msg" in error_data:
+                    error_msg = f"{error_msg}, 错误信息: {error_data['msg']}"
+            except:
+                error_msg = f"{error_msg}, 响应内容: {response.text}"
 
-    return result.get("data")
+            if attempt < max_retries - 1:
+                print(f"请求manager-api失败，正在重试 ({attempt + 1}/{max_retries})...")
+                time.sleep(retry_delay)
+            else:
+                raise Exception(error_msg)
+
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries - 1:
+                print(f"请求manager-api异常，正在重试 ({attempt + 1}/{max_retries})...")
+                time.sleep(retry_delay)
+            else:
+                raise Exception(f"manager-api请求异常: {str(e)}")
 
 
 def get_config_from_api(config):
@@ -117,7 +134,12 @@ def get_private_config_from_api(config, device_id, client_id):
         api_url,
         secret,
         "/config/agent-models",
-        {"secret": secret, "macAddress": device_id, "clientId": client_id},
+        {
+            "secret": secret,
+            "macAddress": device_id,
+            "clientId": client_id,
+            "selectedModule": config["selected_module"],
+        },
     )
 
 

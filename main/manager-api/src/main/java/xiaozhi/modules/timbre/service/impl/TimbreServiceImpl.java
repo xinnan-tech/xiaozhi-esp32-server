@@ -59,9 +59,33 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     }
 
     @Override
-    public TimbreDetailsVO get(Long timbreId) {
+    public TimbreDetailsVO get(String timbreId) {
+        if (StringUtils.isBlank(timbreId)) {
+            return null;
+        }
+
+        // 先从Redis获取缓存
+        String key = RedisKeys.getTimbreDetailsKey(timbreId);
+        TimbreDetailsVO cachedDetails = (TimbreDetailsVO) redisUtils.get(key);
+        if (cachedDetails != null) {
+            return cachedDetails;
+        }
+
+        // 如果缓存中没有，则从数据库获取
         TimbreEntity entity = baseDao.selectById(timbreId);
-        return ConvertUtils.sourceToTarget(entity, TimbreDetailsVO.class);
+        if (entity == null) {
+            return null;
+        }
+
+        // 转换为VO对象
+        TimbreDetailsVO details = ConvertUtils.sourceToTarget(entity, TimbreDetailsVO.class);
+
+        // 存入Redis缓存
+        if (details != null) {
+            redisUtils.set(key, details);
+        }
+
+        return details;
     }
 
     @Override
@@ -79,6 +103,8 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
         TimbreEntity timbreEntity = ConvertUtils.sourceToTarget(dto, TimbreEntity.class);
         timbreEntity.setId(timbreId);
         baseDao.updateById(timbreEntity);
+        // 删除缓存
+        redisUtils.delete(RedisKeys.getTimbreDetailsKey(timbreId));
     }
 
     @Override

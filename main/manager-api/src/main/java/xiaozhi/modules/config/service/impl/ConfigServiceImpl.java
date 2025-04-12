@@ -24,6 +24,8 @@ import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.sys.dto.SysParamsDTO;
 import xiaozhi.modules.sys.service.SysParamsService;
+import xiaozhi.modules.timbre.service.TimbreService;
+import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
 
 @Service
 @AllArgsConstructor
@@ -34,6 +36,7 @@ public class ConfigServiceImpl implements ConfigService {
     private final AgentService agentService;
     private final AgentTemplateService agentTemplateService;
     private final RedisUtils redisUtils;
+    private final TimbreService timbreService;
 
     @Override
     public Object getConfig(Boolean isCache) {
@@ -58,6 +61,7 @@ public class ConfigServiceImpl implements ConfigService {
         // 构建模块配置
         buildModuleConfig(
                 agent.getSystemPrompt(),
+                null,
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
                 agent.getLlmModelId(),
@@ -74,7 +78,7 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     @Override
-    public Map<String, Object> getAgentModels(String macAddress) {
+    public Map<String, Object> getAgentModels(String macAddress, Map<String, String> selectedModule) {
         // 根据MAC地址查找设备
         DeviceEntity device = deviceService.getDeviceByMacAddress(macAddress);
         if (device == null) {
@@ -85,12 +89,41 @@ public class ConfigServiceImpl implements ConfigService {
         if (agent == null) {
             throw new RenException("智能体未找到");
         }
+        // 获取音色信息
+        String voice = null;
+        TimbreDetailsVO timbre = timbreService.get(agent.getTtsVoiceId());
+        if (timbre != null) {
+            voice = timbre.getTtsVoice();
+        }
         // 构建返回数据
         Map<String, Object> result = new HashMap<>();
+
+        // 如果客户端已实例化模型，则不返回
+        String alreadySelectedVadModelId = (String) selectedModule.get("VAD");
+        if (alreadySelectedVadModelId != null && alreadySelectedVadModelId.equals(agent.getVadModelId())) {
+            agent.setVadModelId(null);
+        }
+        String alreadySelectedAsrModelId = (String) selectedModule.get("ASR");
+        if (alreadySelectedAsrModelId != null && alreadySelectedAsrModelId.equals(agent.getAsrModelId())) {
+            agent.setAsrModelId(null);
+        }
+        String alreadySelectedLlmModelId = (String) selectedModule.get("LLM");
+        if (alreadySelectedLlmModelId != null && alreadySelectedLlmModelId.equals(agent.getLlmModelId())) {
+            agent.setLlmModelId(null);
+        }
+        String alreadySelectedMemModelId = (String) selectedModule.get("Memory");
+        if (alreadySelectedMemModelId != null && alreadySelectedMemModelId.equals(agent.getMemModelId())) {
+            agent.setMemModelId(null);
+        }
+        String alreadySelectedIntentModelId = (String) selectedModule.get("Intent");
+        if (alreadySelectedIntentModelId != null && alreadySelectedIntentModelId.equals(agent.getIntentModelId())) {
+            agent.setIntentModelId(null);
+        }
 
         // 构建模块配置
         buildModuleConfig(
                 agent.getSystemPrompt(),
+                voice,
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
                 agent.getLlmModelId(),
@@ -172,6 +205,8 @@ public class ConfigServiceImpl implements ConfigService {
     /**
      * 构建模块配置
      * 
+     * @param prompt        提示词
+     * @param voice         音色
      * @param vadModelId    VAD模型ID
      * @param asrModelId    ASR模型ID
      * @param llmModelId    LLM模型ID
@@ -182,6 +217,7 @@ public class ConfigServiceImpl implements ConfigService {
      */
     private void buildModuleConfig(
             String prompt,
+            String voice,
             String vadModelId,
             String asrModelId,
             String llmModelId,
@@ -196,11 +232,20 @@ public class ConfigServiceImpl implements ConfigService {
         String[] modelIds = { vadModelId, asrModelId, llmModelId, ttsModelId, memModelId, intentModelId };
 
         for (int i = 0; i < modelIds.length; i++) {
+            if (modelIds[i] == null) {
+                continue;
+            }
             ModelConfigEntity model = modelConfigService.getModelById(modelIds[i], isCache);
             Map<String, Object> typeConfig = new HashMap<>();
-            typeConfig.put(model.getModelCode(), model.getConfigJson());
+            if (model.getConfigJson() != null) {
+                typeConfig.put(model.getId(), model.getConfigJson());
+                // 如果是TTS类型，添加private_voice属性
+                if ("TTS".equals(modelTypes[i]) && voice != null) {
+                    ((Map<String, Object>) model.getConfigJson()).put("private_voice", voice);
+                }
+            }
             result.put(modelTypes[i], typeConfig);
-            selectedModule.put(modelTypes[i], model.getModelCode());
+            selectedModule.put(modelTypes[i], model.getId());
         }
         result.put("selected_module", selectedModule);
         result.put("prompt", prompt);

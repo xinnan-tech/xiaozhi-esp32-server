@@ -206,6 +206,8 @@ class ConnectionHandler:
                 self.headers.get("device-id", None),
                 self.headers.get("client-id", None),
             )
+            private_config["delete_audio"] = self.config["delete_audio"]
+            self.logger.bind(tag=TAG).info(f"获取差异化配置成功: {private_config}")
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"获取差异化配置失败: {e}")
             private_config = {}
@@ -218,29 +220,58 @@ class ConnectionHandler:
             False,
             False,
         )
-        if private_config.get("vad", None) is not None:
+        if private_config.get("VAD", None) is not None:
             init_vad = True
-        if private_config.get("asr", None) is not None:
+            self.config["vad"] = private_config["VAD"]
+            self.config["selected_module"]["VAD"] = private_config["selected_module"][
+                "VAD"
+            ]
+        if private_config.get("ASR", None) is not None:
             init_asr = True
-        if private_config.get("llm", None) is not None:
+            self.config["asr"] = private_config["ASR"]
+            self.config["selected_module"]["ASR"] = private_config["selected_module"][
+                "ASR"
+            ]
+        if private_config.get("LLM", None) is not None:
             init_llm = True
-        if private_config.get("tts", None) is not None:
+            self.config["llm"] = private_config["LLM"]
+            self.config["selected_module"]["LLM"] = private_config["selected_module"][
+                "LLM"
+            ]
+        if private_config.get("TTS", None) is not None:
             init_tts = True
-        if private_config.get("memory", None) is not None:
+            self.config["tts"] = private_config["TTS"]
+            self.config["selected_module"]["TTS"] = private_config["selected_module"][
+                "TTS"
+            ]
+        if private_config.get("Memory", None) is not None:
             init_memory = True
-        if private_config.get("intent", None) is not None:
+            self.config["memory"] = private_config["Memory"]
+            self.config["selected_module"]["Memory"] = private_config[
+                "selected_module"
+            ]["Memory"]
+        if private_config.get("Intent", None) is not None:
             init_intent = True
-
-        modules = initialize_modules(
-            self.logger,
-            private_config,
-            init_vad,
-            init_asr,
-            init_llm,
-            init_tts,
-            init_memory,
-            init_intent,
-        )
+            self.config["intent"] = private_config["Intent"]
+            self.config["selected_module"]["Intent"] = private_config[
+                "selected_module"
+            ]["Intent"]
+        if private_config.get("prompt", None) is not None:
+            self.config["prompt"] = private_config["prompt"]
+        try:
+            modules = initialize_modules(
+                self.logger,
+                private_config,
+                init_vad,
+                init_asr,
+                init_llm,
+                init_tts,
+                init_memory,
+                init_intent,
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"初始化组件失败: {e}")
+            modules = {}
         if modules.get("tts", None) is not None:
             self.tts = modules["tts"]
         if modules.get("llm", None) is not None:
