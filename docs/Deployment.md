@@ -1,6 +1,4 @@
-# 部署方案参考
-![图片](images/deploy.png)
-# 方式一：docker快速部署
+# 方式一：Docker只运行Server
 
 docker镜像已支持x86架构、arm64架构的CPU，支持在国产操作系统上运行。
 
@@ -40,7 +38,7 @@ chmod +x docker-setup.sh
 >
 > 执行完成后，请按照提示配置 API 密钥。
 
-当你一切顺利完成以上操作后，继续操作[配置项目文件](#3-配置项目文件)
+当你一切顺利完成以上操作后，继续操作[配置项目文件](#2-配置项目文件)
 
 ### 1.2 手动部署
 
@@ -102,14 +100,14 @@ xiaozhi-server
 
 如果你的文件目录结构也是上面的，就继续往下。如果不是，你就再仔细看看是不是漏操作了什么。
 
-## 3. 配置项目文件
+## 2. 配置项目文件
 
 接下里，程序还不能直接运行，你需要配置一下，你到底使用的是什么模型。你可以看这个教程：
 [跳转到配置项目文件](#配置项目)
 
 配置完项目文件后，回到本教程继续往下。
 
-## 4. 执行docker命令
+## 3. 执行docker命令
 
 打开命令行工具，使用`终端`或`命令行`工具 进入到你的`xiaozhi-server`，执行以下命令
 
@@ -142,45 +140,7 @@ docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
 
 5.3、重新按docker方式部署
 
-# 方式二：借助Docker环境运行部署
-
-开发人员如果不想安装`conda`环境，可以使用这种方法管理好依赖。
-
-## 1.克隆项目
-
-## 2.[跳转到下载语音识别模型文件](#模型文件)
-
-## 3.[跳转到配置项目文件](#配置项目)
-
-## 4.运行docker
-
-修改完配置后，打开命令行工具，`cd`进入到你的`main/xiaozhi-server`下，执行以下命令
-
-```sh
-docker run -it --name xiaozhi-env --restart always --security-opt seccomp:unconfined \
-  -p 8000:8000 \
-  -p 8002:8002 \
-  -v ./:/app \
-  kalicyh/python:xiaozhi
-```
-
-然后就和正常开发一样了
-
-## 5.安装依赖
-
-在刚刚的打开的终端运行
-
-```sh
-pip install -r requirements.txt
-```
-
-## 6.运行项目
-
-```sh
-python app.py
-```
-
-# 方式三：本地源码运行
+# 方式二：本地源码只运行Server
 
 ## 1.安装基础环境
 

@@ -1,8 +1,13 @@
 # 编译esp32固件
 
-1. 先按照这个教程配置项目环境[《Windows搭建 ESP IDF 5.3.2开发环境以及编译小智》](https://icnynnzcwou8.feishu.cn/wiki/JEYDwTTALi5s2zkGlFGcDiRknXf)
+## 第1步 配置环境
+先按照这个教程配置项目环境[《Windows搭建 ESP IDF 5.3.2开发环境以及编译小智》](https://icnynnzcwou8.feishu.cn/wiki/JEYDwTTALi5s2zkGlFGcDiRknXf)
 
-2. 配置好编译环境后，下载虾哥[xiaozhi-esp32](https://github.com/78/xiaozhi-esp32)项目源码，进入虾哥项目，打开`xiaozhi-esp32/main/Kconfig.projbuild`文件，找到`WEBSOCKET_URL`的`default`的内容，把`wss://api.tenclass.net`
+## 第2步 打开配置文件
+配置好编译环境后，下载虾哥[xiaozhi-esp32](https://github.com/78/xiaozhi-esp32)项目源码，进入虾哥项目，打开`xiaozhi-esp32/main/Kconfig.projbuild`文件。
+
+## 第3步 修改WEBSOCKET地址
+找到`WEBSOCKET_URL`的`default`的内容，把`wss://api.tenclass.net/xiaozhi/v1/`
    改成你自己的地址，例如，我的接口地址是`ws://192.168.1.25:8000/xiaozhi/v1/`，就把内容改成这个。
 
 修改前：
@@ -33,7 +38,32 @@ config WEBSOCKET_URL
 
 注意：你的地址是`ws://`开头，不是`wss://`开头，一定不要写错了。
 
-3. 设置编译参数
+## 第4步 修改OTA地址
+如果你是全模块部署本项目，就修改OTA接口，如果你只是部署了8000端口的xiaozhi-server，可以继续沿用虾哥团队的OTA接口。如果你不修改OTA接口，请直接忽略本第4步，直接看第5步
+
+找到`OTA_VERSION_URL`的`default`的内容，把`https://api.tenclass.net/xiaozhi/ota/`
+   改成你自己的地址，例如，我的接口地址是`http://192.168.1.25:8000/xiaozhi/ota/`，就把内容改成这个。
+
+修改前：
+```
+config OTA_VERSION_URL
+    string "OTA Version URL"
+    default "https://api.tenclass.net/xiaozhi/ota/"
+    help
+        The application will access this URL to check for updates.
+```
+修改后：
+```
+config OTA_VERSION_URL
+    string "OTA Version URL"
+    default "http://192.168.1.25:8000/xiaozhi/ota/"
+    help
+        The application will access this URL to check for updates.
+```
+
+## 第5步 设置编译参数
+
+设置编译参数
 
 ```
 # 终端命令行进入xiaozhi-esp32的根目录
@@ -52,7 +82,7 @@ idf.py menuconfig
 
 ![图片](images/build_setting02.png)
 
-4. 编译固件
+## 第6步 编译固件
 
 ```
 idf.py build
@@ -64,7 +94,7 @@ idf.py build
 
 <img src="./images/vscode_idf.png" width="500px"/>
 
-5. 打包bin固件
+## 第7步 打包bin固件
 
 ```
 cd scripts
@@ -77,7 +107,7 @@ python release.py
 注意：如果执行到第二命令后，报了“zip”相关的错误，请忽略这个错误，只要`build`目录下生成固件文件`merged-binary.bin`
 ，对你没有太大影响，请继续。
 
-6. 烧录固件
+## 第8步 烧录固件
    将esp32设备连接电脑，使用chrome浏览器，打开以下网址
 
 ```
@@ -89,6 +119,7 @@ https://espressif.github.io/esp-launchpad/
 
 烧录成功且联网成功后，通过唤醒词唤醒小智，留意server端输出的控制台信息。
 
+## 常见问题
 以下是一些常见问题，供参考：
 
 [1、为什么我说的话，小智识别出来很多韩文、日文、英文](./FAQ.md)

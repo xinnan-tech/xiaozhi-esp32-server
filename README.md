@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-<a href="./README_en.md">English</a>
+<a href="./README.md">English</a>
 · 简体中文
 · <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">更新日志</a>
 · <a href="./docs/Deployment.md">部署文档</a>
@@ -155,29 +155,35 @@ server:
 
 [![Banners](docs/images/banner2.png)](./docs/Deployment.md)
 
-### 一、[部署文档](./docs/Deployment.md)
+### 部署文档
 
-本项目支持以下三种部署方式，您可根据实际需求选择。
+本项目支持`最简化`安装和`全模块`。
+`最简化`适合在较低资源配置中运行，无需数据库。
+`全模块`适合想体验完整功能，请根据具体需求选择安装方式。
 
-1. [Docker 快速部署](./docs/Deployment.md)
+#### 1、 最简化安装
 
-适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。视频教程可参考[美女大佬教你Docker部署](https://www.bilibili.com/video/BV1RNQnYDE5t)
+`最简化`安装包含：智能对话、IOT等功能，数据存储在`配置文件`。
 
-2. [借助 Docker 环境运行部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)
+1.1. Docker只运行Server
 
-适用于已安装 Docker 且希望对代码进行自定义修改的软件工程师。
+你可以使用编译好的docker镜像安装，[点击Docker只运行Server](./docs/Deployment.md)。优点：减少环境配置的烦恼；缺点：版本可能有点旧，镜像文件较大。
 
-3. [本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)
+2.2. 本地源码只运行Server
 
-适合熟悉`Conda` 环境或希望从零搭建运行环境的用户。
+你可以以本地源码的方式运行，[点击本地源码只运行Server](./docs/Deployment.md)。优点：可以随时更新最新代码；缺点：安装Conda环境较为复杂。
 
-对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。视频教程可参考[帅哥大佬教你源码部署](https://www.bilibili.com/video/BV1GvQWYZEd2)
+##### 2、 全模块安装
 
-### 二、[固件编译](./docs/firmware-build.md)
+`全模块`安装包含：智能对话、IOT、OTA、智控台，数据存储在`数据库`中。
 
-点这里查看[固件编译](./docs/firmware-build.md)的详细过程。
+2.1. Docker运行全模块
 
-烧录成功且联网成功后，通过唤醒词唤醒小智，留意server端输出的控制台信息。
+你可以使用编译好的docker镜像安装，[点击Docker运行全模块](./docs/Deployment_all.md)。优点：减少环境配置的烦恼；缺点：版本可能有点旧，镜像文件较大。
+
+2.2. 本地源码运行全模块
+
+你可以以本地源码的方式运行，[点击本地源码运行全模块](./docs/Deployment_all.md)。优点：可以随时更新最新代码；缺点：安装Java、Node.js、Conda环境较为复杂。
 
 ---
 
@@ -220,11 +226,13 @@ server:
   支持超长记忆、本地总结记忆、无记忆三种模式，满足不同场景需求。
 - **IOT功能**  
   支持管理注册设备IOT功能，支持基于对话上下文语境下的智能物联网控制。
+- **智控台**
+  提供Web管理界面，支持智能体管理、用户管理、系统配置等功能，方便管理员和用户进行管理。
+
 
 ### 正在开发 🚧
 
 - 多种心情模式
-- 智控台webui
 
 想了解具体开发进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
 
