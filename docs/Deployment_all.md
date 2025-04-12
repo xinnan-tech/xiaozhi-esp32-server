@@ -189,9 +189,15 @@ docker logs -f xiaozhi-esp32-server
 
 由于你是全模块部署，因此你有两个重要的接口需要写入到esp32中。
 
-OTA接口：http://你电脑局域网的ip:8002/xiaozhi/ota/
+OTA接口：
+```
+http://你电脑局域网的ip:8002/xiaozhi/ota/
+```
 
-Websocket接口：ws://你电脑局域网的ip:8000/xiaozhi/v1/
+Websocket接口：
+```
+ws://你电脑局域网的ip:8000/xiaozhi/v1/
+```
 
 接下来，你就可以开始 [编译esp32固件](firmware-build.md)了。
 
@@ -378,7 +384,7 @@ pip install -r requirements.txt
 
 ## 8.配置项目文件
 
-使用超级管理员账号，登录智控台http://127.0.0.1:8001，在顶部菜单找到`参数管理`，找到列表中第三条数据，参数编码是`server.secret`，复制它到`参数值`。
+使用超级管理员账号，登录智控台 http://127.0.0.1:8001 ，在顶部菜单找到`参数管理`，找到列表中第三条数据，参数编码是`server.secret`，复制它到`参数值`。
 
 `server.secret`需要说明一下，这个`参数值`很重要，作用是让我们的`Server`端连接`manager-api`。`server.secret`是每次从零部署manager模块时，会自动随机生成的密钥。
 
@@ -418,9 +424,15 @@ python app.py
 
 由于你是全模块部署，因此你有两个重要的接口需要写入到esp32中。
 
-OTA接口：http://你电脑局域网的ip:8002/xiaozhi/ota/
+OTA接口：
+```
+http://你电脑局域网的ip:8002/xiaozhi/ota/
+```
 
-Websocket接口：ws://你电脑局域网的ip:8000/xiaozhi/v1/
+Websocket接口：
+```
+ws://你电脑局域网的ip:8000/xiaozhi/v1/
+```
 
 接下来，你就可以开始 [编译esp32固件](firmware-build.md)了。
 
