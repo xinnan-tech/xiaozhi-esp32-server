@@ -57,10 +57,12 @@ export default {
                 })
             }).send()
     },
+    // 获取参数列表
     getParamsList(params, callback) {
         const queryParams = new URLSearchParams({
             page: params.page,
-            limit: params.limit
+            limit: params.limit,
+            paramCode: params.paramCode || ''
         }).toString();
 
         RequestService.sendRequest()
@@ -77,6 +79,7 @@ export default {
                 })
             }).send()
     },
+    // 保存
     addParam(data, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/params`)
@@ -93,6 +96,7 @@ export default {
                 })
             }).send()
     },
+    // 修改
     updateParam(data, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/params`)
@@ -109,36 +113,22 @@ export default {
                 })
             }).send()
     },
-    deleteParam(id, callback) {
+    // 删除
+    deleteParam(ids, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/admin/params`)
-            .method('DELETE')
-            .data({ ids: [id] })
+            .url(`${getServiceUrl()}/admin/params/delete`)
+            .method('POST')
+            .data(ids)
             .success((res) => {
                 RequestService.clearRequestTime()
-                callback(res)
+                callback(res);
             })
             .fail((err) => {
                 console.error('删除参数失败:', err)
                 RequestService.reAjaxFun(() => {
-                    this.deleteParam(id, callback)
+                    this.deleteParam(ids, callback)
                 })
             }).send()
     },
-    batchDeleteParams(ids, callback) {
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/admin/params`)
-            .method('DELETE')
-            .data({ ids })
-            .success((res) => {
-                RequestService.clearRequestTime()
-                callback(res)
-            })
-            .fail((err) => {
-                console.error('批量删除参数失败:', err)
-                RequestService.reAjaxFun(() => {
-                    this.batchDeleteParams(ids, callback)
-                })
-            }).send()
-    }
+
 }

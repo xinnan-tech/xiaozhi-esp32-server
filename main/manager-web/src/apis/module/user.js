@@ -106,7 +106,8 @@ export default {
     },
     // 修改用户状态
     changeUserStatus(status, userIds, successCallback) {
-        return RequestService.sendRequest()
+        console.log(555,userIds)
+        RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/users/changeStatus/${status}`)
             .method('put')
             .data(userIds)

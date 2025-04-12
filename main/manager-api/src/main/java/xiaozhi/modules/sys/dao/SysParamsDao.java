@@ -27,7 +27,7 @@ public interface SysParamsDao extends BaseDao<SysParamsEntity> {
      * @param ids ids
      * @return 返回参数编码列表
      */
-    List<String> getParamCodeList(Long[] ids);
+    List<String> getParamCodeList(String[] ids);
 
     /**
      * 根据参数编码，更新value

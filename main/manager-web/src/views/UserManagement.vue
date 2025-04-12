@@ -41,7 +41,9 @@
 
             <div class="table_bottom">
               <div class="ctrl_btn">
-                <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">全选</el-button>
+                <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
+                    {{ isAllSelected ? '取消全选' : '全选' }}
+                </el-button>
                 <el-button size="mini" type="success" icon="el-icon-circle-check" @click="batchEnable">启用</el-button>
                 <el-button size="mini" type="warning" @click="batchDisable"><i
                     class="el-icon-remove-outline rotated-icon"></i>禁用</el-button>
@@ -89,6 +91,7 @@ export default {
       currentPage: 1,
       pageSize: 5,
       total: 0,
+      isAllSelected: false
     };
   },
   created() {
@@ -135,7 +138,12 @@ export default {
       this.fetchUsers();
     },
     handleSelectAll() {
-      this.$refs.userTable.toggleAllSelection();
+      if (this.isAllSelected) {
+        this.$refs.userTable.clearSelection();
+      } else {
+        this.$refs.userTable.toggleAllSelection();
+      }
+      this.isAllSelected = !this.isAllSelected;
     },
     batchDelete() {
       const selectedUsers = this.$refs.userTable.selection;

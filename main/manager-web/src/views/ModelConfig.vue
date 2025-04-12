@@ -3,7 +3,22 @@
     <HeaderBar />
 
     <div class="operation-bar">
-      <h2 class="page-title">模型配置</h2>
+        <h2 class="page-title">{{ modelTypeText }}</h2>
+      <div class="action-group">
+            <div class="search-group">
+                <el-input
+                    placeholder="请输入模型名称查询"
+                    v-model="search"
+                    class="search-input"
+                    clearable
+                    @keyup.enter.native="handleSearch"
+                    style="width: 240px"
+                />
+                <el-button class="btn-search" @click="handleSearch">
+                  搜索
+                </el-button>
+            </div>
+      </div>
     </div>
 
     <!-- 主体内容 -->
@@ -34,24 +49,6 @@
 
         <!-- 右侧内容 -->
         <div class="content-area">
-          <div class="title-bar">
-            <div class="title-wrapper">
-              <h2 class="model-title">{{ modelTypeText }}</h2>
-              <el-button type="primary" size="small" @click="addModel" class="add-btn">
-                添加
-              </el-button>
-            </div>
-            <div class="action-group">
-              <div class="search-group">
-                <el-input placeholder="请输入模型名称查询" v-model="search" size="small" class="search-input" clearable
-                  @keyup.enter.native="handleSearch" />
-                <el-button type="primary" size="small" class="search-btn" @click="handleSearch">
-                  查询
-                </el-button>
-              </div>
-            </div>
-          </div>
-
           <el-table ref="modelTable" style="width: 100%" :header-cell-style="{ background: 'transparent' }"
             :data="modelList" class="data-table" header-row-class-name="table-header"
             :header-cell-class-name="headerCellClassName" @selection-change="handleSelectionChange">
@@ -96,9 +93,13 @@
 
           <div class="table-footer">
             <div class="batch-actions">
-              <el-button size="mini" @click="selectAll" style="width: 75px; background: #606ff3">{{ isAllSelected ?
-                '取消全选' : '全选'
-                }}</el-button>
+              <el-button size="mini" type="primary" @click="selectAll" >
+                {{ isAllSelected ?
+                '取消全选' : '全选' }}
+              </el-button>
+              <el-button type="success" size="mini" @click="addModel" class="add-btn">
+                新增
+              </el-button>
               <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">
                 删除
               </el-button>
@@ -453,7 +454,7 @@ export default {
 }
 
 .main-wrapper {
-  margin: 5px 20px;
+  margin: 5px 22px;
   border-radius: 15px;
   min-height: 600px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
@@ -514,7 +515,7 @@ export default {
   justify-content: flex-end;
   padding-right: 12px !important;
   width: fit-content;
-  margin: 8px 0px 8px auto;
+  margin: 8px 0 8px auto;
   min-width: unset;
 }
 
@@ -564,12 +565,6 @@ export default {
   flex-wrap: nowrap;
 }
 
-.model-title {
-  font-size: 18px;
-  color: #303133;
-  margin: 0;
-}
-
 .action-group {
   display: flex;
   align-items: center;
@@ -578,26 +573,40 @@ export default {
 
 .search-group {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .search-input {
   width: 240px;
 }
 
-::v-deep .search-input .el-input__inner::placeholder {
-  color: black;
-  opacity: 0.6;
+.btn-search {
+  background: linear-gradient(135deg, #6b8cff, #a966ff);
+  border: none;
+  color: white;
 }
 
 ::v-deep .search-input .el-input__inner {
-  background: transparent;
+  border-radius: 4px;
+  border: 1px solid #DCDFE6;
+  background-color: white;
+  transition: border-color 0.2s;
 }
 
-.search-btn {
-  background: linear-gradient(135deg, #6B8CFF, #A966FF);
+::v-deep .search-input .el-input__inner:focus {
+  border-color: #6b8cff;
+  outline: none;
+}
+
+.btn-search {
+  background: linear-gradient(135deg, #6b8cff, #a966ff);
   border: none;
   color: white;
+}
+
+.btn-search:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .data-table {
@@ -644,18 +653,43 @@ export default {
   width: 100%;
 }
 
-.add-btn {
-  background: #cce5f9;
-  width: 75px;
-  border: none;
-  color: black;
-  padding: 8px 16px;
-}
-
 .title-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.batch-actions .el-button {
+  min-width: 72px;
+  height: 32px;
+  padding: 7px 12px 7px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  line-height: 1;
+  font-weight: 500;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.batch-actions .el-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.batch-actions .el-button--primary {
+  background: #5f70f3 !important;
+  color: white;
+}
+
+.batch-actions .el-button--success {
+  background: #5bc98c;
+  color: white;
+}
+
+.batch-actions .el-button--danger {
+  background: #fd5b63;
+  color: white;
 }
 
 .batch-actions .el-button:first-child {
@@ -683,7 +717,6 @@ export default {
 
 ::v-deep .el-table .custom-selection-header .cell .el-checkbox__inner {
   display: none !important;
-  /* 使表头复选框不可见 */
 }
 
 ::v-deep .el-table .custom-selection-header .cell::before {
@@ -738,8 +771,8 @@ export default {
 }
 
 ::v-deep .el-checkbox__input.is-checked .el-checkbox__inner {
-  background-color: #409EFF !important;
-  border-color: #409EFF !important;
+  background-color: #5f70f3;
+  border-color: #5f70f3;
 }
 
 .voice-management-btn {
