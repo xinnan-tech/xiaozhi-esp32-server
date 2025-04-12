@@ -19,7 +19,8 @@
                             :header-cell-class-name="headerCellClassName">
                             <el-table-column label="选择" type="selection" align="center" width="120"></el-table-column>
                             <el-table-column label="参数编码" prop="paramCode" align="center"></el-table-column>
-                            <el-table-column label="参数值" prop="paramValue" align="center"></el-table-column>
+                            <el-table-column label="参数值" prop="paramValue" align="center"
+                                show-overflow-tooltip></el-table-column>
                             <el-table-column label="备注" prop="remark" align="center"></el-table-column>
                             <el-table-column label="操作" align="center">
                                 <template slot-scope="scope">
@@ -61,7 +62,8 @@
         </div>
 
         <!-- 新增/编辑参数对话框 -->
-        <param-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="paramForm" @submit="handleSubmit" @cancel="dialogVisible = false"/>
+        <param-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="paramForm" @submit="handleSubmit"
+            @cancel="dialogVisible = false" />
 
         <div class="copyright">©2025 xiaozhi-esp32-server</div>
     </div>
@@ -509,36 +511,43 @@ export default {
 }
 
 @media (min-width: 1144px) {
-  .table_bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 40px;
-  }
-
-  :deep(.transparent-table) {
-    .el-table__body tr {
-      td {
-        padding-top: 16px;
-        padding-bottom: 16px;
-      }
-
-      & + tr {
-        margin-top: 10px;
-      }
+    .table_bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 40px;
     }
-  }
+
+    :deep(.transparent-table) {
+        .el-table__body tr {
+            td {
+                padding-top: 16px;
+                padding-bottom: 16px;
+            }
+
+            &+tr {
+                margin-top: 10px;
+            }
+        }
+    }
 }
-  :deep(.el-table .el-button--text) {
-  color: #7079aa;
-  }
 
-  :deep(.el-table .el-button--text:hover) {
+:deep(.el-table .el-button--text) {
+    color: #7079aa;
+}
+
+:deep(.el-table .el-button--text:hover) {
     color: #5a64b5;
-  }
+}
 
-  .el-button--success {
+.el-button--success {
     background: #5bc98c;
     color: white;
-  }
+}
+
+:deep(.el-table .cell) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 </style>

@@ -60,6 +60,7 @@ public class ConfigServiceImpl implements ConfigService {
 
         // 构建模块配置
         buildModuleConfig(
+                agent.getAgentName(),
                 agent.getSystemPrompt(),
                 null,
                 agent.getVadModelId(),
@@ -122,6 +123,7 @@ public class ConfigServiceImpl implements ConfigService {
 
         // 构建模块配置
         buildModuleConfig(
+                agent.getAgentName(),
                 agent.getSystemPrompt(),
                 voice,
                 agent.getVadModelId(),
@@ -216,6 +218,7 @@ public class ConfigServiceImpl implements ConfigService {
      * @param result        结果Map
      */
     private void buildModuleConfig(
+            String assistantName,
             String prompt,
             String voice,
             String vadModelId,
@@ -248,6 +251,9 @@ public class ConfigServiceImpl implements ConfigService {
             selectedModule.put(modelTypes[i], model.getId());
         }
         result.put("selected_module", selectedModule);
+        if (StringUtils.isNotBlank(prompt)) {
+            prompt = prompt.replace("{{assistant_name}}", "小智");
+        }
         result.put("prompt", prompt);
     }
 }
