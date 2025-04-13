@@ -42,7 +42,8 @@ class VADProvider(VADProviderBase):
                 audio_tensor = torch.from_numpy(audio_float32)
 
                 # 检测语音活动
-                speech_prob = self.model(audio_tensor, 16000).item()
+                with torch.no_grad():
+                    speech_prob = self.model(audio_tensor, 16000).item()
                 client_have_voice = speech_prob >= self.vad_threshold
 
                 # 如果之前有声音，但本次没有声音，且与上次有声音的时间查已经超过了静默阈值，则认为已经说完一句话

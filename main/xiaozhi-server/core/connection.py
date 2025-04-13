@@ -104,8 +104,6 @@ class ConnectionHandler:
 
         self.close_after_chat = False  # 是否在聊天结束后关闭连接
         self.use_function_call_mode = False
-        if self.config["selected_module"]["Intent"] == "function_call":
-            self.use_function_call_mode = True
 
     async def handle_connection(self, ws):
         try:
@@ -287,10 +285,17 @@ class ConnectionHandler:
         self.memory.init_memory(device_id, self.llm)
 
     def _initialize_intent(self):
+        if (
+            self.config["Intent"][self.config["selected_module"]["Intent"]]["type"]
+            == "function_call"
+        ):
+            self.use_function_call_mode = True
         """初始化意图识别模块"""
         # 获取意图识别配置
         intent_config = self.config["Intent"]
-        intent_type = self.config["selected_module"]["Intent"]
+        intent_type = self.config["Intent"][self.config["selected_module"]["Intent"]][
+            "type"
+        ]
 
         # 如果使用 nointent，直接返回
         if intent_type == "nointent":
