@@ -269,14 +269,12 @@ def register_device_type(descriptor):
 
 # 用于接受前端设备推送的搜索iot描述
 async def handleIotDescriptors(conn, descriptors):
-    if not conn.use_function_call_mode:
-        return
     wait_max_time = 5
     while conn.func_handler is None or not conn.func_handler.finish_init:
         await asyncio.sleep(1)
         wait_max_time -= 1
         if wait_max_time <= 0:
-            logger.bind(tag=TAG).error("连接对象没有func_handler")
+            logger.bind(tag=TAG).debug("连接对象没有func_handler")
             return
     """处理物联网描述"""
     functions_changed = False
