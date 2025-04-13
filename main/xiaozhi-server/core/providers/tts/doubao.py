@@ -18,7 +18,12 @@ class TTSProvider(TTSProviderBase):
         self.appid = config.get("appid")
         self.access_token = config.get("access_token")
         self.cluster = config.get("cluster")
-        self.voice = config.get("voice")
+
+        if config.get("private_voice"):
+            self.voice = config.get("private_voice")
+        else:
+            self.voice = config.get("voice")
+
         self.api_url = config.get("api_url")
         self.authorization = config.get("authorization")
         self.header = {"Authorization": f"{self.authorization}{self.access_token}"}

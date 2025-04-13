@@ -16,7 +16,10 @@ class TTSProvider(TTSProviderBase):
         self.appid = config.get("appid")
         self.secret_id = config.get("secret_id")
         self.secret_key = config.get("secret_key")
-        self.voice = config.get("voice")
+        if config.get("private_voice"):
+            self.voice = config.get("private_voice")
+        else:
+            self.voice = config.get("voice")
         self.api_url = "https://tts.tencentcloudapi.com"  # 正确的API端点
         self.region = config.get("region")
         self.output_file = config.get("output_dir")
@@ -25,35 +28,36 @@ class TTSProvider(TTSProviderBase):
         """生成鉴权请求头"""
         # 获取当前UTC时间戳
         timestamp = int(time.time())
-        
+
         # 使用UTC时间计算日期
-        utc_date = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime('%Y-%m-%d')
-        
+        utc_date = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
+            "%Y-%m-%d"
+        )
+
         # 服务名称必须是 "tts"
         service = "tts"
-        
+
         # 拼接凭证范围
         credential_scope = f"{utc_date}/{service}/tc3_request"
-        
+
         # 使用TC3-HMAC-SHA256签名方法
         algorithm = "TC3-HMAC-SHA256"
-        
+
         # 构建规范请求字符串
         http_request_method = "POST"
         canonical_uri = "/"
         canonical_querystring = ""
-        
+
         # 请求头必须包含host和content-type，且按字典序排列
         canonical_headers = (
-            f"content-type:application/json\n"
-            f"host:tts.tencentcloudapi.com\n"
+            f"content-type:application/json\n" f"host:tts.tencentcloudapi.com\n"
         )
         signed_headers = "content-type;host"
-        
+
         # 请求体哈希值
         payload = json.dumps(request_body)
-        payload_hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
-        
+        payload_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
         # 构建规范请求字符串
         canonical_request = (
             f"{http_request_method}\n"
@@ -63,10 +67,12 @@ class TTSProvider(TTSProviderBase):
             f"{signed_headers}\n"
             f"{payload_hash}"
         )
-        
+
         # 计算规范请求的哈希值
-        hashed_canonical_request = hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
-        
+        hashed_canonical_request = hashlib.sha256(
+            canonical_request.encode("utf-8")
+        ).hexdigest()
+
         # 构建待签名字符串
         string_to_sign = (
             f"{algorithm}\n"
@@ -74,19 +80,19 @@ class TTSProvider(TTSProviderBase):
             f"{credential_scope}\n"
             f"{hashed_canonical_request}"
         )
-        
+
         # 计算签名密钥
-        secret_date = self._hmac_sha256(f"TC3{self.secret_key}".encode('utf-8'), utc_date)
+        secret_date = self._hmac_sha256(
+            f"TC3{self.secret_key}".encode("utf-8"), utc_date
+        )
         secret_service = self._hmac_sha256(secret_date, service)
         secret_signing = self._hmac_sha256(secret_service, "tc3_request")
-        
+
         # 计算签名
         signature = hmac.new(
-            secret_signing, 
-            string_to_sign.encode('utf-8'), 
-            hashlib.sha256
+            secret_signing, string_to_sign.encode("utf-8"), hashlib.sha256
         ).hexdigest()
-        
+
         # 构建授权头
         authorization = (
             f"{algorithm} "
@@ -94,7 +100,7 @@ class TTSProvider(TTSProviderBase):
             f"SignedHeaders={signed_headers}, "
             f"Signature={signature}"
         )
-        
+
         # 构建请求头
         headers = {
             "Content-Type": "application/json",
@@ -104,19 +110,22 @@ class TTSProvider(TTSProviderBase):
             "X-TC-Timestamp": str(timestamp),
             "X-TC-Version": "2019-08-23",
             "X-TC-Region": self.region,
-            "X-TC-Language": "zh-CN"
+            "X-TC-Language": "zh-CN",
         }
-        
+
         return headers
-    
+
     def _hmac_sha256(self, key, msg):
         """HMAC-SHA256加密"""
         if isinstance(msg, str):
-            msg = msg.encode('utf-8')
+            msg = msg.encode("utf-8")
         return hmac.new(key, msg, hashlib.sha256).digest()
 
     def generate_filename(self, extension=".wav"):
-        return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
+        return os.path.join(
+            self.output_file,
+            f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
+        )
 
     async def text_to_speak(self, text, output_file):
         # 构建请求体
@@ -129,19 +138,23 @@ class TTSProvider(TTSProviderBase):
         try:
             # 获取请求头（每次请求都重新生成，以确保时间戳和签名是最新的）
             headers = self._get_auth_headers(request_json)
-            
+
             # 发送请求
-            resp = requests.post(self.api_url, json.dumps(request_json), headers=headers)
-            
+            resp = requests.post(
+                self.api_url, json.dumps(request_json), headers=headers
+            )
+
             # 检查响应
             if resp.status_code == 200:
                 response_data = resp.json()
-                
+
                 # 检查是否成功
                 if response_data.get("Response", {}).get("Error") is not None:
                     error_info = response_data["Response"]["Error"]
-                    raise Exception(f"API返回错误: {error_info['Code']}: {error_info['Message']}")
-                
+                    raise Exception(
+                        f"API返回错误: {error_info['Code']}: {error_info['Message']}"
+                    )
+
                 # 提取音频数据
                 audio_data = response_data["Response"].get("Audio")
                 if audio_data:
@@ -151,6 +164,8 @@ class TTSProvider(TTSProviderBase):
                 else:
                     raise Exception(f"{__name__}: 没有返回音频数据: {response_data}")
             else:
-                raise Exception(f"{__name__} status_code: {resp.status_code} response: {resp.content}")
+                raise Exception(
+                    f"{__name__} status_code: {resp.status_code} response: {resp.content}"
+                )
         except Exception as e:
             raise Exception(f"{__name__} error: {e}")
