@@ -231,8 +231,9 @@ public class ConfigServiceImpl implements ConfigService {
             boolean isCache) {
         Map<String, String> selectedModule = new HashMap<>();
 
-        String[] modelTypes = { "VAD", "ASR", "LLM", "TTS", "Memory", "Intent" };
-        String[] modelIds = { vadModelId, asrModelId, llmModelId, ttsModelId, memModelId, intentModelId };
+        String[] modelTypes = { "VAD", "ASR", "TTS", "Memory", "Intent", "LLM" };
+        String[] modelIds = { vadModelId, asrModelId, ttsModelId, memModelId, intentModelId, llmModelId };
+        String intentLLMModelId = null;
 
         for (int i = 0; i < modelIds.length; i++) {
             if (modelIds[i] == null) {
@@ -246,10 +247,27 @@ public class ConfigServiceImpl implements ConfigService {
                 if ("TTS".equals(modelTypes[i]) && voice != null) {
                     ((Map<String, Object>) model.getConfigJson()).put("private_voice", voice);
                 }
+                // 如果是Intent类型，且type=intent_llm，则给他添加附加模型
+                if ("Intent".equals(modelTypes[i])) {
+                    Map<String, Object> map = (Map<String, Object>) model.getConfigJson();
+                    if ("intent_llm".equals(map.get("type"))) {
+                        intentLLMModelId = (String) map.get("llm");
+                        if (intentLLMModelId != null && intentLLMModelId.equals(llmModelId)) {
+                            intentLLMModelId = null;
+                        }
+                    }
+                }
+                // 如果是LLM类型，且intentLLMModelId不为空，则添加附加模型
+                if ("LLM".equals(modelTypes[i]) && intentLLMModelId != null) {
+                    ModelConfigEntity intentLLM = modelConfigService.getModelById(intentLLMModelId, isCache);
+                    typeConfig.put(intentLLM.getId(), intentLLM.getConfigJson());
+                }
             }
             result.put(modelTypes[i], typeConfig);
+
             selectedModule.put(modelTypes[i], model.getId());
         }
+
         result.put("selected_module", selectedModule);
         if (StringUtils.isNotBlank(prompt)) {
             prompt = prompt.replace("{{assistant_name}}", "小智");
