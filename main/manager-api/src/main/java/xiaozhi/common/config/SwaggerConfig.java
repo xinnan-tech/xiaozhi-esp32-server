@@ -51,7 +51,7 @@ public class SwaggerConfig {
     public GroupedOpenApi timbreApi() {
         return GroupedOpenApi.builder()
                 .group("timbre")
-                .pathsToMatch("/timbre/**")
+                .pathsToMatch("/ttsVoice/**")
                 .build();
     }
 
@@ -68,6 +68,14 @@ public class SwaggerConfig {
         return GroupedOpenApi.builder()
                 .group("user")
                 .pathsToMatch("/user/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi configApi() {
+        return GroupedOpenApi.builder()
+                .group("config")
+                .pathsToMatch("/config/**")
                 .build();
     }
 

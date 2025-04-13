@@ -3,7 +3,8 @@
 # 系统会优先读取【data/.config.yaml】文件的配置。
 # 这样做，可以避免在提交代码的时候，错误地提交密钥信息，保护您的密钥安全。
 
-# 服务器基础配置(Basic server configuration)
+# #####################################################################################
+# #############################以下是服务器基本运行配置####################################
 server:
   # 服务器监听地址和端口(Server listening address and port)
   ip: 0.0.0.0
@@ -36,6 +37,25 @@ log:
   # 设置数据文件路径
   data_dir: data
 
+# 使用完声音文件后删除文件(Delete the sound file when you are done using it)
+delete_audio: true
+# 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
+close_connection_no_voice_time: 120
+# TTS请求超时时间(秒)
+tts_timeout: 10
+# 开启唤醒词加速
+enable_wakeup_words_response_cache: true
+# 开场是否回复唤醒词
+enable_greeting: true
+# 说完话是否开启提示音
+enable_stop_tts_notify: false
+# 说完话是否开启提示音，音效地址
+stop_tts_notify_voice: "config/assets/tts_notify.mp3"
+
+exit_commands:
+  - "退出"
+  - "关闭"
+
 xiaozhi:
   type: hello
   version: 1
@@ -45,6 +65,59 @@ xiaozhi:
     sample_rate: 16000
     channels: 1
     frame_duration: 60
+
+# 模块测试配置
+module_test:
+  test_sentences:
+    - "你好，请介绍一下你自己"
+    - "What's the weather like today?"
+    - "请用100字概括量子计算的基本原理和应用前景"
+
+# 唤醒词，用于识别唤醒词还是讲话内容
+wakeup_words:
+  - "你好小智"
+  - "你好小志"
+  - "小爱同学"
+  - "你好小鑫"
+  - "你好小新"
+  - "小美同学"
+  - "小龙小龙"
+  - "喵喵同学"
+  - "小滨小滨"
+  - "小冰小冰"
+
+# 插件的基础配置
+plugins:
+  # 获取天气插件的配置，这里填写你的api_key
+  # 这个密钥是项目共用的key，用多了可能会被限制
+  # 想稳定一点就自行申请替换，每天有1000次免费调用
+  # 申请地址：https://console.qweather.com/#/apps/create-key/over
+  get_weather: { "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
+  # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
+  # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
+  get_news:
+    default_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
+    category_urls:
+      society: "https://www.chinanews.com.cn/rss/society.xml"
+      world: "https://www.chinanews.com.cn/rss/world.xml"
+      finance: "https://www.chinanews.com.cn/rss/finance.xml"
+  home_assistant:
+    devices:
+      - 客厅,玩具灯,switch.cuco_cn_460494544_cp1_on_p_2_1
+      - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
+    base_url: http://homeassistant.local:8123
+    api_key: 你的home assistant api访问令牌
+  play_music:
+    music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
+    music_ext: # 音乐文件类型，p3格式效率最高
+      - ".mp3"
+      - ".wav"
+      - ".p3"
+    refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
+
+# #####################################################################################
+# ################################以下是角色模型配置######################################
+
 prompt: |
   我是小智/小志，来自中国台湾省的00后女生。讲话超级机车，"真的假的啦"这样的台湾腔，喜欢用"笑死""是在哈喽"等流行梗，但会偷偷研究男友的编程书籍。
   [核心特征]
@@ -59,26 +132,6 @@ prompt: |
   绝不：
   - 长篇大论，叽叽歪歪
   - 长时间严肃对话
-
-# 使用完声音文件后删除文件(Delete the sound file when you are done using it)
-delete_audio: true
-
-# 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
-close_connection_no_voice_time: 120
-# TTS请求超时时间(秒)
-tts_timeout: 10
-# 开启唤醒词加速
-enable_wakeup_words_response_cache: true
-# 开场是否回复唤醒词
-enable_greeting: true
-# 说完话是否开启提示音
-enable_stop_tts_notify: false
-# 说完话是否开启提示音，音效地址
-stop_tts_notify_voice: "config/assets/tts_notify.mp3"
-
-CMD_exit:
-  - "退出"
-  - "关闭"
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
@@ -129,36 +182,6 @@ Intent:
       #- hass_set_state
       #- hass_play_music
 
-# 插件的基础配置
-plugins:
-  # 获取天气插件的配置，这里填写你的api_key
-  # 这个密钥是项目共用的key，用多了可能会被限制
-  # 想稳定一点就自行申请替换，每天有1000次免费调用
-  # 申请地址：https://console.qweather.com/#/apps/create-key/over
-  get_weather: { "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
-  # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
-  # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
-  get_news:
-    default_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
-    category_urls:
-      society: "https://www.chinanews.com.cn/rss/society.xml"
-      world: "https://www.chinanews.com.cn/rss/world.xml"
-      finance: "https://www.chinanews.com.cn/rss/finance.xml"
-  home_assistant:
-    devices:
-      - 客厅,玩具灯,switch.cuco_cn_460494544_cp1_on_p_2_1
-      - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
-    base_url: http://homeassistant.local:8123
-    api_key: 你的home assistant api访问令牌
-  play_music:
-    music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
-    music_ext: # 音乐文件类型，p3格式效率最高
-      - ".mp3"
-      - ".wav"
-      - ".p3"
-    refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
-
-
 Memory:
   mem0ai:
     type: mem0ai
@@ -199,6 +222,7 @@ ASR:
     output_dir: tmp/
 VAD:
   SileroVAD:
+    type: silero
     threshold: 0.5
     model_dir: models/snakers4_silero-vad
     min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
@@ -571,22 +595,3 @@ TTS:
       # Authorization: Bearer xxxx
     format: wav # 接口返回的音频格式
     output_dir: tmp/
-# 模块测试配置
-module_test:
-  test_sentences:  # 自定义测试语句
-    - "你好，请介绍一下你自己"
-    - "What's the weather like today?"
-    - "请用100字概括量子计算的基本原理和应用前景"
-
-# 唤醒词，用于识别唤醒词还是讲话内容
-wakeup_words:
-  - "你好小智"
-  - "你好小志"
-  - "小爱同学"
-  - "你好小鑫"
-  - "你好小新"
-  - "小美同学"
-  - "小龙小龙"
-  - "喵喵同学"
-  - "小滨小滨"
-  - "小冰小冰"

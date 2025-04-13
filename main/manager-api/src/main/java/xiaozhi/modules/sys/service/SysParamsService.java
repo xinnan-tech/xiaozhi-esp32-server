@@ -23,14 +23,15 @@ public interface SysParamsService extends BaseService<SysParamsEntity> {
 
     void update(SysParamsDTO dto);
 
-    void delete(Long[] ids);
+    void delete(String[] ids);
 
     /**
      * 根据参数编码，获取参数的value值
      *
      * @param paramCode 参数编码
+     * @param fromCache 是否从缓存中获取
      */
-    String getValue(String paramCode);
+    String getValue(String paramCode, Boolean fromCache);
 
     /**
      * 根据参数编码，获取value的Object对象
@@ -47,4 +48,9 @@ public interface SysParamsService extends BaseService<SysParamsEntity> {
      * @param paramValue 参数值
      */
     int updateValueByCode(String paramCode, String paramValue);
+
+    /**
+     * 初始化服务器密钥
+     */
+    void initServerSecret();
 }

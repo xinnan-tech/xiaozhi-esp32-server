@@ -11,7 +11,7 @@ hass_set_state_function_desc = {
     "type": "function",
     "function": {
         "name": "hass_set_state",
-        "description": "设置homeassistant里设备的状态,包括开、关,调整灯光亮度,调整播放器的音量,设备的暂停、继续、静音操作",
+        "description": "设置homeassistant里设备的状态,包括开、关,调整灯光亮度、颜色、色温,调整播放器的音量,设备的暂停、继续、静音操作",
         "parameters": {
             "type": "object",
             "properties": {
@@ -20,7 +20,7 @@ hass_set_state_function_desc = {
                     "properties": {
                         "type": {
                             "type": "string",
-                            "description": "需要操作的动作,打开设备:turn_on,关闭设备:turn_off,增加亮度:brightness_up,降低亮度:brightness_down,设置亮度:brightness_value,增加>音量:,volume_up降低音量:volume_down,设置音量:volume_set,设备暂停:pause,设备继续:continue,静音/取消静音:volume_mute"
+                            "description": "需要操作的动作,打开设备:turn_on,关闭设备:turn_off,增加亮度:brightness_up,降低亮度:brightness_down,设置亮度:brightness_value,增加音量:volume_up,降低音量:volume_down,设置音量:volume_set,设置色温:set_kelvin,设置颜色:set_color,设备暂停:pause,设备继续:continue,静音/取消静音:volume_mute"
                         },
                         "input": {
                             "type": "integer",
@@ -29,6 +29,10 @@ hass_set_state_function_desc = {
                         "is_muted": {
                             "type": "string",
                             "description": "只有在设置静音操作时才需要,设置静音的时候该值为true,取消静音时该值为false"
+                        },
+                        "rgb_color":{
+                            "type":"list",
+                            "description": "只有在设置颜色时需要,这里填目标颜色的rgb值"
                         }
                     },
                     "required": ["type"]
@@ -52,7 +56,7 @@ def hass_set_state(conn, entity_id='', state={}):
             conn.loop
         )
         ha_response = future.result()
-        return ActionResponse(action=Action.REQLLM, result="执行成功", response=ha_response)
+        return ActionResponse(Action.REQLLM, ha_response, None)
     except Exception as e:
         logger.bind(tag=TAG).error(f"处理设置属性意图错误: {e}")
 
@@ -103,6 +107,16 @@ async def handle_hass_set_state(conn, entity_id, state):
         action = 'turn_on'
         arg = 'brightness_pct'
         value = state['input']
+    elif state['type'] == 'set_color':
+        description = f"颜色已调整到{state['rgb_color']}"
+        action = 'turn_on'
+        arg = 'rgb_color'
+        value = state['rgb_color']
+    elif state['type'] == 'set_kelvin':
+        description = f"色温已调整到{state['input']}K"
+        action = 'turn_on'
+        arg = 'kelvin'
+        value = state['input']
     elif state['type'] == 'volume_up':
         description = "音量已调大"
         action = state['type']
@@ -114,6 +128,8 @@ async def handle_hass_set_state(conn, entity_id, state):
         action = state['type']
         arg = 'volume_level'
         value = state['input']
+        if state['input'] >= 1:
+            value = state['input']/100
     elif state['type'] == 'volume_mute':
         description = f"设备已静音"
         action = state['type']
@@ -152,7 +168,7 @@ async def handle_hass_set_state(conn, entity_id, state):
         "Content-Type": "application/json"
     }
     response = requests.post(url, headers=headers, json=data)
-    logger.bind(tag=TAG).info(f"设置状态:url:{url},return_code:{response.status_code}")
+    logger.bind(tag=TAG).info(f"设置状态:{description},url:{url},return_code:{response.status_code}")
     if response.status_code == 200:
         return description
     else:

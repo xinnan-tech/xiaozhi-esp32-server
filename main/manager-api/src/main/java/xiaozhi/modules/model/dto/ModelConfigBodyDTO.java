@@ -2,6 +2,7 @@ package xiaozhi.modules.model.dto;
 
 import java.io.Serial;
 
+import cn.hutool.json.JSONObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -28,7 +29,7 @@ public class ModelConfigBodyDTO {
     private Integer isEnabled;
 
     @Schema(description = "模型配置(JSON格式)")
-    private String configJson;
+    private JSONObject configJson;
 
     @Schema(description = "官方文档链接")
     private String docLink;

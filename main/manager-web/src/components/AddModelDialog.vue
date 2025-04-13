@@ -1,19 +1,12 @@
 <template>
-  <el-dialog
-      :visible.sync="visible"
-      width="975px"
-      center
-      custom-class="custom-dialog"
-      :show-close="false"
-      class="center-dialog"
-
-  >
+  <el-dialog :visible="dialogVisible" @update:visible="handleVisibleChange" width="975px" center custom-class="custom-dialog" :show-close="false"
+    class="center-dialog">
     <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
       <div style="font-size: 30px; color: #3d4566; margin-top: -10px; margin-bottom: 10px; text-align: center;">
         添加模型
       </div>
 
-      <!-- 关闭按钮 -->
+
       <button class="custom-close-btn" @click="handleClose">
         ×
       </button>
@@ -34,113 +27,66 @@
       </div>
 
       <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
-
       <el-form :model="formData" label-width="100px" label-position="left" class="custom-form">
-        <!-- 第一行：模型名称和模型编码 -->
         <div style="display: flex; gap: 20px; margin-bottom: 0;">
           <el-form-item label="模型名称" prop="modelName" style="flex: 1;">
-            <el-input
-                v-model="formData.modelName"
-                placeholder="请输入模型名称"
-                class="custom-input-bg"
-            ></el-input>
+            <el-input v-model="formData.modelName" placeholder="请输入模型名称" class="custom-input-bg"></el-input>
           </el-form-item>
           <el-form-item label="模型编码" prop="modelCode" style="flex: 1;">
-            <el-input
-                v-model="formData.modelCode"
-                placeholder="请输入模型编码"
-                class="custom-input-bg"
-            ></el-input>
+            <el-input v-model="formData.modelCode" placeholder="请输入模型编码" class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
 
-        <!-- 第二行：供应器和排序号 -->
         <div style="display: flex; gap: 20px; margin-bottom: 0;">
           <el-form-item label="供应器" prop="supplier" style="flex: 1;">
-            <el-select
-                v-model="formData.supplier"
-                placeholder="请选择"
-                class="custom-select custom-input-bg"
-                style="width: 100%;"
-            >
-              <el-option label="硅基流动" value="硅基流动"></el-option>
-              <el-option label="智脑科技" value="智脑科技"></el-option>
-              <el-option label="云智科技" value="云智科技"></el-option>
-              <el-option label="其他" value="其他"></el-option>
+            <el-select v-model="formData.supplier" placeholder="请选择" class="custom-select custom-input-bg"
+              style="width: 100%;" @focus="loadProviders" filterable>
+              <el-option v-for="item in providers" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="排序号" prop="sortOrder" style="flex: 1;">
-            <el-input
-                v-model="formData.sort"
-                placeholder="请输入排序号"
-                class="custom-input-bg"
-            ></el-input>
+            <el-input v-model="formData.sort" placeholder="请输入排序号" class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
 
-        <!-- 文档地址 -->
+
         <el-form-item label="文档地址" prop="docLink" style="margin-bottom: 27px;">
-          <el-input
-              v-model="formData.docLink"
-              placeholder="请输入文档地址"
-              class="custom-input-bg"
-          ></el-input>
+          <el-input v-model="formData.docLink" placeholder="请输入文档地址" class="custom-input-bg"></el-input>
         </el-form-item>
 
-        <!-- 备注 -->
         <el-form-item label="备注" prop="remark" class="prop-remark">
-          <el-input
-              v-model="formData.remark"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入模型备注"
-              class="custom-input-bg"
-          ></el-input>
+          <el-input v-model="formData.remark" type="textarea" :rows="3" placeholder="请输入模型备注"
+            class="custom-input-bg"></el-input>
         </el-form-item>
       </el-form>
 
-      <!-- 调用信息部分 -->
       <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px;">调用信息</div>
-      <div style="height: 2px; background: #e9e9e9; margin-bottom: 15px;"></div>
+      <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
 
-      <el-form :model="formData" label-width="100px" label-position="left" class="custom-form">
-        <!-- 第一行：模型名称和接口地址 -->
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-          <el-form-item label="模型名称" prop="param1" style="flex: 0.5; margin-bottom: 0;">
-            <el-input
-                v-model="formData.configJson.param1"
-                placeholder="请输入model_name"
+      <el-form :model="formData.configJson" label-width="auto" label-position="left" class="custom-form">
+        <template v-for="(row, rowIndex) in chunkedCallInfoFields">
+          <div :key="rowIndex" style="display: flex; gap: 20px; margin-bottom: 0;">
+            <el-form-item
+              v-for="field in row"
+              :key="field.prop"
+              :label="field.label"
+              :prop="field.prop"
+              style="flex: 1;">
+              <el-input
+                v-model="formData.configJson[field.prop]"
+                :placeholder="field.placeholder"
+                :type="field.type || 'text'"
                 class="custom-input-bg"
-            ></el-input>
-          </el-form-item>
-          <el-form-item label="接口地址" prop="param2" style="flex: 1; margin-bottom: 0;">
-            <el-input
-                v-model="formData.configJson.param2"
-                placeholder="请输入base_url"
-                class="custom-input-bg"
-            ></el-input>
-          </el-form-item>
-        </div>
-
-        <!-- 秘钥信息 -->
-        <el-form-item label="秘钥信息" prop="apiKey">
-          <el-input
-              v-model="formData.configJson.apiKey"
-              placeholder="请输入api_key"
-              show-password
-              class="custom-input-bg"
-          ></el-input>
-        </el-form-item>
+                :show-password="field.type === 'password'">
+              </el-input>
+            </el-form-item>
+          </div>
+        </template>
       </el-form>
     </div>
 
-    <!-- 保存按钮 -->
     <div style="display: flex;justify-content: center;">
-      <el-button
-          type="primary"
-          @click="confirm"
-          class="save-btn"
-      >
+      <el-button type="primary" @click="confirm" class="save-btn">
         保存
       </el-button>
     </div>
@@ -148,14 +94,20 @@
 </template>
 
 <script>
+import Api from '@/apis/api';
 export default {
   name: 'AddModelDialog',
   props: {
-    visible: {type: Boolean, required: true},
-    modelType: {type: String, required: true}
+    visible: { type: Boolean, required: true },
+    modelType: { type: String, required: true }
   },
   data() {
     return {
+      providers: [],
+      dialogVisible: false,
+      providersLoaded: false,
+      providerFields: [],
+      currentProvider: null,
       formData: {
         modelName: '',
         modelCode: '',
@@ -165,26 +117,105 @@ export default {
         remark: '',
         isEnabled: true,
         isDefault: true,
-        configJson: {
-          param1: '',
-          param2: '',
-          apiKey: ''
-        }
+        configJson: {}
       }
     }
   },
+  watch: {
+    visible(val) {
+      this.dialogVisible = val;
+      if(val) {
+        this.initConfigJson();
+      } else {
+        this.resetForm();
+      }
+    },
+    'formData.supplier'(newVal) {
+      this.currentProvider = this.providers.find(p => p.value === newVal);
+      this.providerFields = this.currentProvider?.fields || [];
+      this.initDynamicConfig();
+    }
+  },
+  computed: {
+    dynamicCallInfoFields() {
+      return this.providerFields;
+    },
+    chunkedCallInfoFields() {
+      const chunkSize = 2;
+      const result = [];
+      for (let i = 0; i < this.dynamicCallInfoFields.length; i += chunkSize) {
+        result.push(this.dynamicCallInfoFields.slice(i, i + chunkSize));
+      }
+      return result;
+    }
+  },
   methods: {
+    loadProviders() {
+      if (this.providersLoaded)
+        return
+
+      Api.model.getModelProviders(this.modelType, (data) => {
+        this.providers = data.map(item => ({
+          label: item.name,
+          value: item.providerCode,
+          fields: JSON.parse(item.fields || '[]').map(f => ({
+            label: f.label,
+            prop: f.key,
+            type: f.type === 'password' ? 'password' : 'text',
+            placeholder: `请输入${f.label}`
+          }))
+        }))
+        this.providersLoaded = true
+      })
+    },
+    initConfigJson() {
+      const defaultConfig = {};
+      this.providerFields.forEach(field => {
+        defaultConfig[field.prop] = '';
+      });
+      this.formData.configJson = { ...defaultConfig };
+    },
+    handleVisibleChange(val) {
+      this.dialogVisible = val;
+      this.$emit('update:visible', val);
+      if (!val) {
+        this.resetForm();
+      }
+    },
+
+    handleClose() {
+      this.$emit('update:visible', false);
+    },
+    initDynamicConfig() {
+      const newConfig = {};
+      this.providerFields.forEach(field => {
+        newConfig[field.prop] = this.formData.configJson[field.prop] || '';
+      });
+      this.formData.configJson = newConfig;
+    },
     confirm() {
-      if (!this.formData.modelName || !this.formData.modelCode || !this.formData.supplier ||
-          !this.formData.configJson.param1 || !this.formData.configJson.param2 || !this.formData.configJson.apiKey) {
-        this.$message.error('请填写所有必填字段');
+      if (!this.formData.supplier) {
+        this.$message.error('请选择供应器');
         return;
       }
 
-      this.$emit('confirm', {
-        ...this.formData,
-        provideType: this.formData.supplier
-      });
+      const submitData = {
+        modelName: this.formData.modelName || '',
+        modelCode: this.formData.modelCode || '',
+        supplier: this.formData.supplier,
+        sort: this.formData.sort || 1,
+        docLink: this.formData.docLink || '',
+        remark: this.formData.remark || '',
+        isEnabled: this.formData.isEnabled ? 1 : 0,
+        isDefault: this.formData.isDefault ? 1 : 0,
+        provideCode: this.formData.supplier,
+        configJson: {
+          ...this.formData.configJson,
+          type: this.formData.supplier
+        }
+      };
+
+      this.$emit('confirm', submitData);
       this.$emit('update:visible', false);
       this.resetForm();
     },
@@ -198,17 +229,15 @@ export default {
         remark: '',
         isEnabled: true,
         isDefault: true,
-        configJson: {
-          param1: '',
-          param2: '',
-          apiKey: ''
-        }
+        configJson: {}
       };
+      // 重置加载状态
+      this.providers = [];
+      this.providersLoaded = false;
+      // 重置字段配置
+      this.providerFields = [];
+      this.currentProvider = null;
     },
-    handleClose() {
-      this.resetForm();
-      this.$emit('update:visible', false);
-    }
   }
 }
 </script>
@@ -297,7 +326,7 @@ export default {
 }
 
 .custom-form .el-form-item {
-  margin-bottom: 20px; /* 统一设置所有表单项的间距 */
+  margin-bottom: 20px;
 }
 
 .custom-form .el-form-item__label {
@@ -312,13 +341,12 @@ export default {
   margin-top: -4px;
 }
 
-/* 修改placeholder颜色 */
 .custom-input-bg .el-input__inner::-webkit-input-placeholder,
 .custom-input-bg .el-textarea__inner::-webkit-input-placeholder {
   color: #9c9f9e;
 }
 
-/* 输入框背景色 */
+
 .custom-input-bg .el-input__inner,
 .custom-input-bg .el-textarea__inner {
   background-color: #f6f8fc;
@@ -342,13 +370,12 @@ export default {
 }
 
 
-/* 修改开关样式 */
 .custom-switch .el-switch__core {
   border-radius: 20px;
   height: 23px;
   background-color: #c0ccda;
   width: 35px;
-  padding: 0 20px; /* 调整左右内边距 */
+  padding: 0 20px;
 }
 
 .custom-switch .el-switch__core:after {
@@ -363,7 +390,7 @@ export default {
 .custom-switch.is-checked .el-switch__core {
   border-color: #b5bcf0;
   background-color: #cfd7fa;
-  padding: 0 20px; /* 确保启用状态也有相同的间隔 */
+  padding: 0 20px;
 }
 
 .custom-switch.is-checked .el-switch__core:after {
@@ -373,15 +400,11 @@ export default {
 }
 
 
-/* 调整flex布局的gap */
 [style*="display: flex"] {
-  gap: 20px; /* 扩大flex项间距 */
+  gap: 20px;
 }
 
-/* 调整输入框高度 */
 .custom-input-bg .el-input__inner {
-  height: 32px; /* 固定输入框高度 */
+  height: 32px;
 }
-
-
 </style>

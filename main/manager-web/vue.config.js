@@ -15,20 +15,13 @@ module.exports = defineConfig({
   devServer: {
     port: 8001, // 指定端口为 8001
     proxy: {
-      '/xiaozhi-esp32-api': {
-        target: process.env.VUE_APP_API_BASE_URL, // 后端 API 的基础 URL
-        changeOrigin: true, // 允许跨域
-        pathRewrite: {
-          '^/xiaozhi-esp32-api': '/xiaozhi-esp32-api',
-        },
-      },
     },
     client: {
       overlay: false, // 不显示 webpack 错误覆盖层
     },
   },
   chainWebpack: config => {
-  
+
     // 修改 HTML 插件配置，动态插入 CDN 链接
     config.plugin('html')
       .tap(args => {
@@ -50,7 +43,7 @@ module.exports = defineConfig({
         }
         return args;
       });
-  
+
     // 代码分割优化
     config.optimization.splitChunks({
       chunks: 'all',
@@ -72,12 +65,12 @@ module.exports = defineConfig({
         },
       }
     });
-    
+
     // 启用优化设置
     config.optimization.usedExports(true);
     config.optimization.concatenateModules(true);
     config.optimization.minimize(true);
-  },  
+  },
   configureWebpack: config => {
     if (process.env.NODE_ENV === 'production') {
       // 开启多线程编译

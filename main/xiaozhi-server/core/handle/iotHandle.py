@@ -50,6 +50,12 @@ def create_iot_function(device_name, method_name, method_info):
         conn, response_success=None, response_failure=None, **params
     ):
         try:
+            # 设置默认响应消息
+            if not response_success:
+                response_success = "操作成功"
+            if not response_failure:
+                response_failure = "操作失败"
+
             # 打印响应参数
             logger.bind(tag=TAG).info(
                 f"控制函数接收到的响应参数: success='{response_success}', failure='{response_failure}'"
@@ -263,6 +269,8 @@ def register_device_type(descriptor):
 
 # 用于接受前端设备推送的搜索iot描述
 async def handleIotDescriptors(conn, descriptors):
+    if not conn.use_function_call_mode:
+        return
     wait_max_time = 5
     while conn.func_handler is None or not conn.func_handler.finish_init:
         await asyncio.sleep(1)

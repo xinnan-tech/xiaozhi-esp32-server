@@ -1,6 +1,6 @@
+import { Message } from 'element-ui'
 import router from '../router'
 import Constant from '../utils/constant'
-import { Message } from 'element-ui'
 
 /**
  * 判断用户是否登录

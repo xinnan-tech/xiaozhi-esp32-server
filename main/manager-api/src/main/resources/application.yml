@@ -7,7 +7,7 @@ server:
       min-spare: 30
   port: 8002
   servlet:
-    context-path: /xiaozhi-esp32-api/api/v1
+    context-path: /xiaozhi
     session:
       cookie:
         http-only: true

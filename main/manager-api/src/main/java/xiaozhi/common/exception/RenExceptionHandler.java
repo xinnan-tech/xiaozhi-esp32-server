@@ -4,6 +4,7 @@ import org.apache.shiro.authz.UnauthorizedException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,12 @@ public class RenExceptionHandler {
         log.error(ex.getMessage(), ex);
 
         return new Result<Void>().error();
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public Result<Void> handleNoResourceFoundException(NoResourceFoundException ex) {
+        log.warn("Resource not found: {}", ex.getMessage());
+        return new Result<Void>().error(404, "资源不存在");
     }
 
 }

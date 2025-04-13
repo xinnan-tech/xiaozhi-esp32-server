@@ -1,12 +1,12 @@
-import RequestService from '../httpRequest'
-import {getServiceUrl} from '../api'
+import { getServiceUrl } from '../api';
+import RequestService from '../httpRequest';
 
 
 export default {
     // 获取智能体列表
     getAgentList(callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/agent/list`)
+            .url(`${getServiceUrl()}/agent/list`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -21,9 +21,9 @@ export default {
     // 添加智能体
     addAgent(agentName, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/agent`)
+            .url(`${getServiceUrl()}/agent`)
             .method('POST')
-            .data({agentName: agentName})
+            .data({ agentName: agentName })
             .success((res) => {
                 RequestService.clearRequestTime();
                 callback(res);
@@ -37,7 +37,7 @@ export default {
     // 删除智能体
     deleteAgent(agentId, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/agent/${agentId}`)
+            .url(`${getServiceUrl()}/agent/${agentId}`)
             .method('DELETE')
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -52,7 +52,7 @@ export default {
     // 获取智能体配置
     getDeviceConfig(deviceId, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/agent/${deviceId}`)
+            .url(`${getServiceUrl()}/agent/${deviceId}`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -68,7 +68,7 @@ export default {
     // 配置智能体
     updateAgentConfig(agentId, configData, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/agent/${agentId}`)
+            .url(`${getServiceUrl()}/agent/${agentId}`)
             .method('PUT')
             .data(configData)
             .success((res) => {
@@ -84,7 +84,7 @@ export default {
     // 新增方法：获取智能体模板
     getAgentTemplate(callback) {  // 移除templateName参数
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/agent/template`)
+            .url(`${getServiceUrl()}/agent/template`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime();

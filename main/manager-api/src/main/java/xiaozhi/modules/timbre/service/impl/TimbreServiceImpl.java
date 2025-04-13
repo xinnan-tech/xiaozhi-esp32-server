@@ -16,8 +16,11 @@ import cn.hutool.core.collection.CollectionUtil;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
+import xiaozhi.common.redis.RedisKeys;
+import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.modules.model.dto.VoiceDTO;
 import xiaozhi.modules.timbre.dao.TimbreDao;
 import xiaozhi.modules.timbre.dto.TimbreDataDTO;
 import xiaozhi.modules.timbre.dto.TimbrePageDTO;
@@ -36,6 +39,7 @@ import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
 public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> implements TimbreService {
 
     private final TimbreDao timbreDao;
+    private final RedisUtils redisUtils;
 
     @Override
     public PageData<TimbreDetailsVO> page(TimbrePageDTO dto) {
@@ -55,9 +59,33 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     }
 
     @Override
-    public TimbreDetailsVO get(Long timbreId) {
+    public TimbreDetailsVO get(String timbreId) {
+        if (StringUtils.isBlank(timbreId)) {
+            return null;
+        }
+
+        // 先从Redis获取缓存
+        String key = RedisKeys.getTimbreDetailsKey(timbreId);
+        TimbreDetailsVO cachedDetails = (TimbreDetailsVO) redisUtils.get(key);
+        if (cachedDetails != null) {
+            return cachedDetails;
+        }
+
+        // 如果缓存中没有，则从数据库获取
         TimbreEntity entity = baseDao.selectById(timbreId);
-        return ConvertUtils.sourceToTarget(entity, TimbreDetailsVO.class);
+        if (entity == null) {
+            return null;
+        }
+
+        // 转换为VO对象
+        TimbreDetailsVO details = ConvertUtils.sourceToTarget(entity, TimbreDetailsVO.class);
+
+        // 存入Redis缓存
+        if (details != null) {
+            redisUtils.set(key, details);
+        }
+
+        return details;
     }
 
     @Override
@@ -75,6 +103,8 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
         TimbreEntity timbreEntity = ConvertUtils.sourceToTarget(dto, TimbreEntity.class);
         timbreEntity.setId(timbreId);
         baseDao.updateById(timbreEntity);
+        // 删除缓存
+        redisUtils.delete(RedisKeys.getTimbreDetailsKey(timbreId));
     }
 
     @Override
@@ -84,7 +114,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     }
 
     @Override
-    public List<String> getVoiceNames(String ttsModelId, String voiceName) {
+    public List<VoiceDTO> getVoiceNames(String ttsModelId, String voiceName) {
         QueryWrapper<TimbreEntity> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("tts_model_id", StringUtils.isBlank(ttsModelId) ? "" : ttsModelId);
         if (StringUtils.isNotBlank(voiceName)) {
@@ -95,7 +125,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
             return null;
         }
 
-        return timbreEntities.stream().map(TimbreEntity::getName).toList();
+        return ConvertUtils.sourceToTarget(timbreEntities, VoiceDTO.class);
     }
 
     /**
@@ -103,5 +133,29 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
      */
     private void isTtsModelId(String ttsModelId) {
         // 等模型配置那边写好调用方法判断
+    }
+
+    @Override
+    public String getTimbreNameById(String id) {
+        if (StringUtils.isBlank(id)) {
+            return null;
+        }
+
+        String cachedName = (String) redisUtils.get(RedisKeys.getTimbreNameById(id));
+
+        if (StringUtils.isNotBlank(cachedName)) {
+            return cachedName;
+        }
+
+        TimbreEntity entity = timbreDao.selectById(id);
+        if (entity != null) {
+            String name = entity.getName();
+            if (StringUtils.isNotBlank(name)) {
+                redisUtils.set(RedisKeys.getTimbreNameById(id), name);
+            }
+            return name;
+        }
+
+        return null;
     }
 }

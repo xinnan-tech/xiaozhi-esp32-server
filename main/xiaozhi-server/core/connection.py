@@ -1,4 +1,5 @@
 import os
+import copy
 import json
 import uuid
 import time
@@ -17,16 +18,16 @@ from core.utils.util import (
     get_string_no_punctuation_or_emoji,
     extract_json_from_string,
     get_ip_info,
+    initialize_modules,
 )
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from core.handle.sendAudioHandle import sendAudioMessage
 from core.handle.receiveAudioHandle import handleAudioMessage
 from core.handle.functionHandler import FunctionHandler
 from plugins_func.register import Action, ActionResponse
-from config.private_config import PrivateConfig
 from core.auth import AuthMiddleware, AuthenticationError
-from core.utils.auth_code_gen import AuthCodeGenerator
 from core.mcp.manager import MCPManager
+from config.config_loader import get_private_config_from_api
 
 TAG = __name__
 
@@ -41,7 +42,7 @@ class ConnectionHandler:
     def __init__(
         self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _memory, _intent
     ):
-        self.config = config
+        self.config = copy.deepcopy(config)
         self.logger = setup_logging()
         self.auth = AuthMiddleware(config)
 
@@ -95,15 +96,12 @@ class ConnectionHandler:
         self.iot_descriptors = {}
         self.func_handler = None
 
-        self.cmd_exit = self.config["CMD_exit"]
+        self.cmd_exit = self.config["exit_commands"]
         self.max_cmd_length = 0
         for cmd in self.cmd_exit:
             if len(cmd) > self.max_cmd_length:
                 self.max_cmd_length = len(cmd)
 
-        self.private_config = None
-        self.auth_code_gen = AuthCodeGenerator.get_instance()
-        self.is_device_verified = False  # 添加设备验证状态标志
         self.close_after_chat = False  # 是否在聊天结束后关闭连接
         self.use_function_call_mode = False
         if self.config["selected_module"]["Intent"] == "function_call":
@@ -121,7 +119,6 @@ class ConnectionHandler:
 
             # 进行认证
             await self.auth.authenticate(self.headers)
-            device_id = self.headers.get("device-id", None)
 
             # 认证通过,继续处理
             self.websocket = ws
@@ -130,42 +127,6 @@ class ConnectionHandler:
             self.welcome_msg = self.config["xiaozhi"]
             self.welcome_msg["session_id"] = self.session_id
             await self.websocket.send(json.dumps(self.welcome_msg))
-            # Load private configuration if device_id is provided
-            bUsePrivateConfig = self.config.get("use_private_config", False)
-            self.logger.bind(tag=TAG).info(
-                f"bUsePrivateConfig: {bUsePrivateConfig}, device_id: {device_id}"
-            )
-            if bUsePrivateConfig and device_id:
-                try:
-                    self.private_config = PrivateConfig(
-                        device_id, self.config, self.auth_code_gen
-                    )
-                    await self.private_config.load_or_create()
-                    # 判断是否已经绑定
-                    owner = self.private_config.get_owner()
-                    self.is_device_verified = owner is not None
-
-                    if self.is_device_verified:
-                        await self.private_config.update_last_chat_time()
-
-                    llm, tts = self.private_config.create_private_instances()
-                    if all([llm, tts]):
-                        self.llm = llm
-                        self.tts = tts
-                        self.logger.bind(tag=TAG).info(
-                            f"Loaded private config and instances for device {device_id}"
-                        )
-                    else:
-                        self.logger.bind(tag=TAG).error(
-                            f"Failed to create instances for device {device_id}"
-                        )
-                        self.private_config = None
-                except Exception as e:
-                    self.logger.bind(tag=TAG).error(
-                        f"Error initializing private config: {e}"
-                    )
-                    self.private_config = None
-                    raise
 
             # 异步初始化
             self.executor.submit(self._initialize_components)
@@ -214,55 +175,151 @@ class ConnectionHandler:
             await handleAudioMessage(self, message)
 
     def _initialize_components(self):
+        """初始化组件"""
+        self._initialize_models()
+
         """加载提示词"""
         self.prompt = self.config["prompt"]
-        if self.private_config:
-            self.prompt = self.private_config.private_config.get("prompt", self.prompt)
         self.dialogue.put(Message(role="system", content=self.prompt))
+
+        """加载记忆"""
+        self._initialize_memory()
+        """加载意图识别"""
+        self._initialize_intent()
+        """加载位置信息"""
+        self.client_ip_info = get_ip_info(self.client_ip, self.logger)
+        if self.client_ip_info is not None and "city" in self.client_ip_info:
+            self.logger.bind(tag=TAG).info(f"Client ip info: {self.client_ip_info}")
+            self.prompt = self.prompt + f"\nuser location:{self.client_ip_info}"
+
+            self.dialogue.update_system_message(self.prompt)
+
+    def _initialize_models(self):
+        read_config_from_api = self.config.get("read_config_from_api", False)
+        """如果是从配置文件获取，则进行二次实例化"""
+        if not read_config_from_api:
+            return
+        """从接口获取差异化的配置进行二次实例化，非全量重新实例化"""
+        try:
+            private_config = get_private_config_from_api(
+                self.config,
+                self.headers.get("device-id", None),
+                self.headers.get("client-id", None),
+            )
+            private_config["delete_audio"] = self.config["delete_audio"]
+            self.logger.bind(tag=TAG).info(f"获取差异化配置成功: {private_config}")
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"获取差异化配置失败: {e}")
+            private_config = {}
+
+        init_vad, init_asr, init_llm, init_tts, init_memory, init_intent = (
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        )
+        if private_config.get("VAD", None) is not None:
+            init_vad = True
+            self.config["vad"] = private_config["VAD"]
+            self.config["selected_module"]["VAD"] = private_config["selected_module"][
+                "VAD"
+            ]
+        if private_config.get("ASR", None) is not None:
+            init_asr = True
+            self.config["asr"] = private_config["ASR"]
+            self.config["selected_module"]["ASR"] = private_config["selected_module"][
+                "ASR"
+            ]
+        if private_config.get("LLM", None) is not None:
+            init_llm = True
+            self.config["llm"] = private_config["LLM"]
+            self.config["selected_module"]["LLM"] = private_config["selected_module"][
+                "LLM"
+            ]
+        if private_config.get("TTS", None) is not None:
+            init_tts = True
+            self.config["tts"] = private_config["TTS"]
+            self.config["selected_module"]["TTS"] = private_config["selected_module"][
+                "TTS"
+            ]
+        if private_config.get("Memory", None) is not None:
+            init_memory = True
+            self.config["memory"] = private_config["Memory"]
+            self.config["selected_module"]["Memory"] = private_config[
+                "selected_module"
+            ]["Memory"]
+        if private_config.get("Intent", None) is not None:
+            init_intent = True
+            self.config["intent"] = private_config["Intent"]
+            self.config["selected_module"]["Intent"] = private_config[
+                "selected_module"
+            ]["Intent"]
+        if private_config.get("prompt", None) is not None:
+            self.config["prompt"] = private_config["prompt"]
+        try:
+            modules = initialize_modules(
+                self.logger,
+                private_config,
+                init_vad,
+                init_asr,
+                init_llm,
+                init_tts,
+                init_memory,
+                init_intent,
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"初始化组件失败: {e}")
+            modules = {}
+        if modules.get("tts", None) is not None:
+            self.tts = modules["tts"]
+        if modules.get("llm", None) is not None:
+            self.llm = modules["llm"]
+        if modules.get("intent", None) is not None:
+            self.intent = modules["intent"]
+        if modules.get("memory", None) is not None:
+            self.memory = modules["memory"]
+
+    def _initialize_memory(self):
+        """初始化记忆模块"""
+        device_id = self.headers.get("device-id", None)
+        self.memory.init_memory(device_id, self.llm)
+
+    def _initialize_intent(self):
+        """初始化意图识别模块"""
+        # 获取意图识别配置
+        intent_config = self.config["Intent"]
+        intent_type = self.config["selected_module"]["Intent"]
+
+        # 如果使用 nointent，直接返回
+        if intent_type == "nointent":
+            return
+        # 使用 intent_llm 模式
+        elif intent_type == "intent_llm":
+            intent_llm_name = intent_config["intent_llm"]["llm"]
+
+            if intent_llm_name and intent_llm_name in self.config["LLM"]:
+                # 如果配置了专用LLM，则创建独立的LLM实例
+                from core.utils import llm as llm_utils
+
+                intent_llm_config = self.config["LLM"][intent_llm_name]
+                intent_llm_type = intent_llm_config.get("type", intent_llm_name)
+                intent_llm = llm_utils.create_instance(
+                    intent_llm_type, intent_llm_config
+                )
+                self.logger.bind(tag=TAG).info(
+                    f"为意图识别创建了专用LLM: {intent_llm_name}, 类型: {intent_llm_type}"
+                )
+                self.intent.set_llm(intent_llm)
+            else:
+                # 否则使用主LLM
+                self.intent.set_llm(self.llm)
+                self.logger.bind(tag=TAG).info("使用主LLM作为意图识别模型")
 
         """加载插件"""
         self.func_handler = FunctionHandler(self)
         self.mcp_manager = MCPManager(self)
-        """加载记忆"""
-        device_id = self.headers.get("device-id", None)
-        self.memory.init_memory(device_id, self.llm)
-
-        """为意图识别设置LLM，优先使用专用LLM"""
-        # 检查是否配置了专用的意图识别LLM
-        intent_llm_name = self.config["Intent"]["intent_llm"]["llm"]
-
-        # 记录开始初始化意图识别LLM的时间
-        intent_llm_init_start = time.time()
-
-        if (
-            not self.use_function_call_mode
-            and intent_llm_name
-            and intent_llm_name in self.config["LLM"]
-        ):
-            # 如果配置了专用LLM，则创建独立的LLM实例
-            from core.utils import llm as llm_utils
-
-            intent_llm_config = self.config["LLM"][intent_llm_name]
-            intent_llm_type = intent_llm_config.get("type", intent_llm_name)
-            intent_llm = llm_utils.create_instance(intent_llm_type, intent_llm_config)
-            self.logger.bind(tag=TAG).info(
-                f"为意图识别创建了专用LLM: {intent_llm_name}, 类型: {intent_llm_type}"
-            )
-
-            self.intent.set_llm(intent_llm)
-        else:
-            # 否则使用主LLM
-            self.intent.set_llm(self.llm)
-
-        # 记录意图识别LLM初始化耗时
-        intent_llm_init_time = time.time() - intent_llm_init_start
-
-        """加载位置信息"""
-        self.client_ip_info = get_ip_info(self.client_ip)
-        if self.client_ip_info is not None and "city" in self.client_ip_info:
-            self.logger.bind(tag=TAG).info(f"Client ip info: {self.client_ip_info}")
-            self.prompt = self.prompt + f"\nuser location:{self.client_ip_info}"
-            self.dialogue.update_system_message(self.prompt)
 
         """加载MCP工具"""
         asyncio.run_coroutine_threadsafe(
@@ -276,34 +333,7 @@ class ConnectionHandler:
             if m.role == "system":
                 m.content = prompt
 
-    async def _check_and_broadcast_auth_code(self):
-        """检查设备绑定状态并广播认证码"""
-        if not self.private_config.get_owner():
-            auth_code = self.private_config.get_auth_code()
-            if auth_code:
-                # 发送验证码语音提示
-                text = f"请在后台输入验证码：{' '.join(auth_code)}"
-                self.recode_first_last_text(text)
-                future = self.executor.submit(self.speak_and_play, text)
-                self.tts_queue.put(future)
-            return False
-        return True
-
-    def isNeedAuth(self):
-        bUsePrivateConfig = self.config.get("use_private_config", False)
-        if not bUsePrivateConfig:
-            # 如果不使用私有配置，就不需要验证
-            return False
-        return not self.is_device_verified
-
     def chat(self, query):
-        if self.isNeedAuth():
-            self.llm_finish_task = True
-            future = asyncio.run_coroutine_threadsafe(
-                self._check_and_broadcast_auth_code(), self.loop
-            )
-            future.result()
-            return True
 
         self.dialogue.put(Message(role="user", content=query))
 
@@ -386,13 +416,6 @@ class ConnectionHandler:
     def chat_with_function_calling(self, query, tool_call=False):
         self.logger.bind(tag=TAG).debug(f"Chat with function calling start: {query}")
         """Chat with function calling for intent detection using streaming"""
-        if self.isNeedAuth():
-            self.llm_finish_task = True
-            future = asyncio.run_coroutine_threadsafe(
-                self._check_and_broadcast_auth_code(), self.loop
-            )
-            future.result()
-            return True
 
         if not tool_call:
             self.dialogue.put(Message(role="user", content=query))
@@ -769,7 +792,8 @@ class ConnectionHandler:
     async def close(self, ws=None):
         """资源清理方法"""
         # 清理MCP资源
-        await self.mcp_manager.cleanup_all()
+        if hasattr(self, "mcp_manager") and self.mcp_manager:
+            await self.mcp_manager.cleanup_all()
 
         # 触发停止事件并清理资源
         if self.stop_event:

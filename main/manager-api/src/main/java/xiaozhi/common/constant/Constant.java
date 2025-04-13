@@ -74,7 +74,15 @@ public interface Constant {
      */
     String ORDER = "order";
 
+    /**
+     * 请求头授权标识
+     */
     String AUTHORIZATION = "Authorization";
+
+    /**
+     * 服务器密钥
+     */
+    String SERVER_SECRET = "server.secret";
 
     /**
      * 路径分割符

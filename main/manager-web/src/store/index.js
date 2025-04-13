@@ -1,7 +1,7 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
-import Constant from '../utils/constant'
-import {goToPage} from "@/utils";
+import { goToPage } from "@/utils";
+import Vue from 'vue';
+import Vuex from 'vuex';
+import Constant from '../utils/constant';
 
 Vue.use(Vuex)
 
@@ -52,7 +52,7 @@ export default new Vuex.Store({
     logout({ commit }) {
       return new Promise((resolve) => {
         commit('clearAuth')
-        goToPage(Constant.PAGE.LOGIN,true);
+        goToPage(Constant.PAGE.LOGIN, true);
         window.location.reload(); // 彻底重置状态
       })
     }

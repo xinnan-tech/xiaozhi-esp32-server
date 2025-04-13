@@ -1,0 +1,51 @@
+# Docker安装全模块
+
+# 1、安装mysql
+# |- 如果本机已经安装了MySQL，可以直接在数据库中创建名为`xiaozhi_esp32_server`的数据库。
+# |- 如果还没有MySQL，你可以通过docker安装mysql,执行以下一句话
+# |- docker run --name xiaozhi-esp32-server-db -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -e MYSQL_DATABASE=xiaozhi_esp32_server -e MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci" -d mysql:latest
+# |- 记得修改下方SPRING_DATASOURCE_DRUID_URL的IP，ip不能写127.0.0.1或localhost，否则容器无法访问，要写你电脑局域网ip
+
+# 2、安装redis
+# |- 如果本机已经安装了Redis，看一下你安装的redis端口、密码，然后修改下方redis的地址和端口
+# |- 如果还没有Redis，你可以通过docker安装redis,执行以下一句话
+# |- docker run --name xiaozhi-esp32-server-redis -d -p 6379:6379 redis
+# |- 记得修改SPRING_DATA_REDIS_HOST的IP，ip不能写127.0.0.1或localhost，否则容器无法访问，要写你电脑局域网ip
+
+
+version: '3'
+services:
+  # Server模块
+  xiaozhi-esp32-server:
+    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+    container_name: xiaozhi-esp32-server
+    restart: always
+    ports:
+      # ws服务端
+      - "8000:8000"
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      # 配置文件目录
+      - ./data:/opt/xiaozhi-esp32-server/data
+      # 模型文件挂接，很重要
+      - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+
+  # manager-api和manager-web模块
+  xiaozhi-esp32-server-web:
+    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
+    container_name: xiaozhi-esp32-server-web
+    restart: always
+    ports:
+      # 智控台
+      - "8002:8002"
+    environment:
+      - TZ=Asia/Shanghai
+      ##记得改mysql和redis IP 密码
+      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://192.168.1.25:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_DRUID_USERNAME=root
+      - SPRING_DATASOURCE_DRUID_PASSWORD=123456
+      - SPRING_DATA_REDIS_HOST=192.168.1.25
+      - SPRING_DATA_REDIS_PORT=6379
