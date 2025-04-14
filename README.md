@@ -298,10 +298,15 @@ server:
 
 ## 鸣谢 🙏
 
-- 本项目受 [百聆语音对话机器人](https://github.com/wwbin2017/bailing) 启发，并在其基础上实现。
-- 感谢 [十方融海](https://www.tenclass.com/) 对小智通讯协议提供的详尽文档支持。
+| Logo | 项目/公司 | 说明 |
+|:---:|:---:|:---|
+| <img src="./docs/images/logo_bailing.png" height="50"> | [百聆语音对话机器人](https://github.com/wwbin2017/bailing) | 本项目受[百聆语音对话机器人](https://github.com/wwbin2017/bailing)启发，并在其基础上实现 |
+| <img src="./docs/images/logo_tenclass.png" height="50"> | [十方融海](https://www.tenclass.com/) | 感谢[十方融海](https://www.tenclass.com/)对小智通讯协议提供的详尽文档支持 |
+| <img src="./docs/images/logo_huiyuan.png" height="50"> | [汇远设计](http://ui.kwd988.net/) | 感谢[汇远设计](http://ui.kwd988.net/)为本项目提供专业视觉解决方案，用其服务超千家企业的设计实战经验，赋能本项目产品用户体验 |
+| <img src="./docs/images/logo_qinren.png" height="50"> | [西安勤人信息科技](https://www.029app.com/) | 感谢[西安勤人信息科技](https://www.029app.com/)深化本项目视觉体系，确保整体设计风格在多场景应用中的一致性和扩展性 |
 
 <a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
+
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
