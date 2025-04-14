@@ -169,16 +169,6 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 如遇到问题或产品建议反馈[点这里](docs/FAQ.md)。
 
----
-
-## 产品生态 👬
-小智是一个生态，当你使用这个产品时，也可以看看其他在这个生态圈的优秀项目
-
-| 项目名称  | 项目地址 | 项目描述 |
-|:---------------------|:--------|:--------|
-| 小智安卓客户端  | [xiaozhi-android-client](https://github.com/TOM88812/xiaozhi-android-client) | 一个基于xiaozhi-server的Android、IOS语音对话应用,支持实时语音交互和文字对话。<br/>现在是flutter版本，打通IOS、Android端。 |
-| 小智电脑客户端  | [py-xiaozhi](https://github.com/Huang-junsen/py-xiaozhi) | 该项目提供了一个基于 Python 实现的小白 AI 客户端，使得在不具备实体硬件条件的情况下，<br/>依然能够体过代码体验小智 AI 的功能。 |
-| 小智Java服务端  | [xiaozhi-esp32-server-java](https://github.com/joey-zhou/xiaozhi-esp32-server-java) | 小智开源后端服务 Java 版本是一个基于 Java 的开源项目。<br/>它包括前后端的服务，旨在为用户提供一个完整的后端服务解决方案。 |
 
 ---
 ## 功能清单 ✨
@@ -197,12 +187,22 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | IOT功能 | 支持管理注册设备IOT功能，支持基于对话上下文语境下的智能物联网控制 |
 | 智控台 | 提供Web管理界面，支持智能体管理、用户管理、系统配置等功能，方便管理员和用户进行管理 |
 
-
 ### 正在开发 🚧
 
 想了解具体开发计划进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
 
 如果你是一名软件开发者，这里有一份[《致开发者的公开信》](docs/contributor_open_letter.md)，欢迎加入！
+
+---
+
+## 产品生态 👬
+小智是一个生态，当你使用这个产品时，也可以看看其他在这个生态圈的优秀项目
+
+| 项目名称  | 项目地址 | 项目描述 |
+|:---------------------|:--------|:--------|
+| 小智安卓客户端  | [xiaozhi-android-client](https://github.com/TOM88812/xiaozhi-android-client) | 一个基于xiaozhi-server的Android、IOS语音对话应用,支持实时语音交互和文字对话。<br/>现在是flutter版本，打通IOS、Android端。 |
+| 小智电脑客户端  | [py-xiaozhi](https://github.com/Huang-junsen/py-xiaozhi) | 该项目提供了一个基于 Python 实现的小白 AI 客户端，使得在不具备实体硬件条件的情况下，<br/>依然能够体过代码体验小智 AI 的功能。 |
+| 小智Java服务端  | [xiaozhi-esp32-server-java](https://github.com/joey-zhou/xiaozhi-esp32-server-java) | 小智开源后端服务 Java 版本是一个基于 Java 的开源项目。<br/>它包括前后端的服务，旨在为用户提供一个完整的后端服务解决方案。 |
 
 ---
 
@@ -267,8 +267,6 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 ---
 
 ## 鸣谢 🙏
-
-本项目为群策群力项目
 
 | Logo | 项目/公司 | 说明 |
 |:---:|:---:|:---|
