@@ -316,9 +316,8 @@ LLM:
     personal_access_token: 你的coze个人令牌
   XaiLLM:
     # 定义LLM API类型
-    type: Xai
-    # Xai API，需要先在xAI平台创建API密钥并获取api_key
-    api_key: 你的Xai web key
+    type: openai
+    api_key: 你的Xai web key     # Xai API，需要先在xAI平台创建API密钥并获取api_key
     model_name: "grok-3-fast-beta"
     base_url: "https://api.x.ai/v1"
     max_tokens: 131072
