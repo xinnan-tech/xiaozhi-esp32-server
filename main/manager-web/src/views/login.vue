@@ -51,9 +51,7 @@
         </div>
       </el-main>
       <el-footer>
-        <div class="copyright">
-          ©2025 xiaozhi-esp32-server
-        </div>
+        <version-footer />
       </el-footer>
     </el-container>
   </div>
@@ -61,11 +59,14 @@
 
 <script>
 import Api from '@/apis/api';
+import VersionFooter from '@/components/VersionFooter.vue';
 import { getUUID, goToPage, showDanger, showSuccess } from '@/utils';
-
 
 export default {
   name: 'login',
+  components: {
+    VersionFooter
+  },
   data() {
     return {
       activeName: "username",
@@ -76,11 +77,13 @@ export default {
         captchaId: ''
       },
       captchaUuid: '',
-      captchaUrl: ''
+      captchaUrl: '',
+      version: ''
     }
   },
   mounted() {
     this.fetchCaptcha();
+    this.getSystemVersion();
   },
   methods: {
     fetchCaptcha() {
@@ -144,6 +147,21 @@ export default {
 
     goToRegister() {
       goToPage('/register')
+    },
+
+    getSystemVersion() {
+      const storedVersion = sessionStorage.getItem('systemVersion');
+      if (storedVersion) {
+        this.version = storedVersion;
+        return;
+      }
+
+      Api.user.getPubConfig(({ data }) => {
+        if (data.code === 0 && data.data.version) {
+          this.version = data.data.version;
+          sessionStorage.setItem('systemVersion', data.data.version);
+        }
+      });
     }
   }
 }

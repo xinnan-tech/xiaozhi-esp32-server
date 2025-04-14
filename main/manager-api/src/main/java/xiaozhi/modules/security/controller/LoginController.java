@@ -1,6 +1,8 @@
 package xiaozhi.modules.security.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -110,5 +112,13 @@ public class LoginController {
         Long userId = SecurityUser.getUserId();
         sysUserTokenService.changePassword(userId, passwordDTO);
         return new Result<>();
+    }
+
+    @GetMapping("/pub-config")
+    @Operation(summary = "公共配置")
+    public Result<Map<String, Object>> pubConfig() {
+        Map<String, Object> config = new HashMap<>();
+        config.put("version", "0.3.3");
+        return new Result<Map<String, Object>>().ok(config);
     }
 }

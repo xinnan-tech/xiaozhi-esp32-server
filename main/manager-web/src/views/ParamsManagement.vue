@@ -64,8 +64,6 @@
         <!-- 新增/编辑参数对话框 -->
         <param-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="paramForm" @submit="handleSubmit"
             @cancel="dialogVisible = false" />
-
-        <div class="copyright">©2025 xiaozhi-esp32-server</div>
     </div>
 </template>
 
@@ -380,20 +378,6 @@ export default {
         background: #fd5b63;
         color: white;
     }
-}
-
-.copyright {
-    text-align: center;
-    color: #979db1;
-    font-size: 12px;
-    font-weight: 400;
-    margin-top: auto;
-    padding: 30px 0 20px;
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
 }
 
 .custom-pagination {

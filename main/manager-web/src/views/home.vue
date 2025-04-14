@@ -35,11 +35,11 @@
             @deviceManage="handleDeviceManage" @delete="handleDeleteAgent" />
         </div>
       </div>
-      <div class="copyright">
-        ©2025 xiaozhi-esp32-server
-      </div>
       <AddWisdomBodyDialog :visible.sync="addDeviceDialogVisible" @confirm="handleWisdomBodyAdded" />
     </el-main>
+    <el-footer>
+      <version-footer />
+    </el-footer>
   </div>
 
 </template>
@@ -49,10 +49,11 @@ import Api from '@/apis/api';
 import AddWisdomBodyDialog from '@/components/AddWisdomBodyDialog.vue';
 import DeviceItem from '@/components/DeviceItem.vue';
 import HeaderBar from '@/components/HeaderBar.vue';
+import VersionFooter from '@/components/VersionFooter.vue';
 
 export default {
   name: 'HomePage',
-  components: { DeviceItem, AddWisdomBodyDialog, HeaderBar },
+  components: { DeviceItem, AddWisdomBodyDialog, HeaderBar, VersionFooter },
   data() {
     return {
       addDeviceDialogVisible: false,

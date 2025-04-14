@@ -3,21 +3,15 @@
     <HeaderBar />
 
     <div class="operation-bar">
-        <h2 class="page-title">{{ modelTypeText }}</h2>
+      <h2 class="page-title">{{ modelTypeText }}</h2>
       <div class="action-group">
-            <div class="search-group">
-                <el-input
-                    placeholder="请输入模型名称查询"
-                    v-model="search"
-                    class="search-input"
-                    clearable
-                    @keyup.enter.native="handleSearch"
-                    style="width: 240px"
-                />
-                <el-button class="btn-search" @click="handleSearch">
-                  搜索
-                </el-button>
-            </div>
+        <div class="search-group">
+          <el-input placeholder="请输入模型名称查询" v-model="search" class="search-input" clearable
+            @keyup.enter.native="handleSearch" style="width: 240px" />
+          <el-button class="btn-search" @click="handleSearch">
+            搜索
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -93,9 +87,9 @@
 
           <div class="table-footer">
             <div class="batch-actions">
-              <el-button size="mini" type="primary" @click="selectAll" >
+              <el-button size="mini" type="primary" @click="selectAll">
                 {{ isAllSelected ?
-                '取消全选' : '全选' }}
+                  '取消全选' : '全选' }}
               </el-button>
               <el-button type="success" size="mini" @click="addModel" class="add-btn">
                 新增
@@ -124,10 +118,6 @@
         @save="handleModelSave" />
       <TtsModel :visible.sync="ttsDialogVisible" :ttsModelId="selectedTtsModelId" />
       <AddModelDialog :modelType="activeTab" :visible.sync="addDialogVisible" @confirm="handleAddConfirm" />
-    </div>
-
-    <div class="copyright">
-      ©2025 xiaozhi-esp32-server
     </div>
   </div>
 </template>
@@ -637,20 +627,6 @@ export default {
 .batch-actions {
   display: flex;
   gap: 8px;
-}
-
-.copyright {
-  text-align: center;
-  color: #979db1;
-  font-size: 12px;
-  font-weight: 400;
-  margin-top: auto;
-  padding: 30px 0 20px;
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
 }
 
 .title-wrapper {

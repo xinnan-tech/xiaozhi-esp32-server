@@ -4,7 +4,8 @@
     <el-main style="padding: 20px; display: flex; flex-direction: column;">
       <div class="table-container">
         <h3 class="device-list-title">设备列表</h3>
-        <el-table ref="deviceTable" :data="paginatedDeviceList" @selection-change="handleSelectionChange" style="width: 100%; margin-top: 20px" border stripe>
+        <el-table ref="deviceTable" :data="paginatedDeviceList" @selection-change="handleSelectionChange"
+          style="width: 100%; margin-top: 20px" border stripe>
           <el-table-column type="selection" align="center" width="60"></el-table-column>
           <el-table-column label="设备型号" prop="model" flex></el-table-column>
           <el-table-column label="固件版本" prop="firmwareVersion" width="120"></el-table-column>
@@ -40,31 +41,23 @@
         <div class="table_bottom">
           <div class="ctrl_btn">
             <el-button size="mini" type="primary" class="select-all-btn" @click="toggleAllSelection">
-                {{ isAllSelected ? '取消全选' : '全选' }}
+              {{ isAllSelected ? '取消全选' : '全选' }}
             </el-button>
             <el-button type="primary" size="mini" class="add-device-btn" @click="handleAddDevice">
-                新增
+              新增
             </el-button>
           </div>
           <div class="custom-pagination">
             <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">首页</button>
             <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">上一页</button>
-            <button
-              v-for="page in visiblePages"
-              :key="page"
-              class="pagination-btn"
-              :class="{ active: page === currentPage }"
-              @click="goToPage(page)"
-            >
+            <button v-for="page in visiblePages" :key="page" class="pagination-btn"
+              :class="{ active: page === currentPage }" @click="goToPage(page)">
               {{ page }}
             </button>
             <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">下一页</button>
             <span class="total-text">共{{ deviceList.length }}条记录</span>
           </div>
         </div>
-      </div>
-      <div class="copyright">
-        ©2025 xiaozhi-esp32-server
       </div>
       <AddDeviceDialog :visible.sync="addDeviceDialogVisible" :agent-id="currentAgentId"
         @refresh="fetchBindDevices(currentAgentId)" />
@@ -82,7 +75,7 @@ export default {
   data() {
     return {
       addDeviceDialogVisible: false,
-       selectedDevices: [],
+      selectedDevices: [],
       isAllSelected: false,
       currentAgentId: this.$route.query.agentId || '',
       currentPage: 1,
@@ -99,7 +92,7 @@ export default {
       return this.deviceList.slice(start, end);
     },
     pageCount() {
-    return Math.ceil(this.deviceList.length / this.pageSize);
+      return Math.ceil(this.deviceList.length / this.pageSize);
     },
     visiblePages() {
       const pages = [];
@@ -346,6 +339,4 @@ export default {
     color: white;
   }
 }
-
-
 </style>

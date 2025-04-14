@@ -3,7 +3,7 @@ import sys
 from loguru import logger
 from config.config_loader import load_config
 
-SERVER_VERSION = "0.3.1"
+SERVER_VERSION = "0.3.3"
 
 
 def get_module_abbreviation(module_name, module_dict):
@@ -65,6 +65,11 @@ def setup_logging():
     logger.add(sys.stdout, format=log_format, level=log_level, filter=formatter)
 
     # 输出到文件
-    logger.add(os.path.join(log_dir, log_file), format=log_format_file, level=log_level, filter=formatter)
+    logger.add(
+        os.path.join(log_dir, log_file),
+        format=log_format_file,
+        level=log_level,
+        filter=formatter,
+    )
 
     return logger

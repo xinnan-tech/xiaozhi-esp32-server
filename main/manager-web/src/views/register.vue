@@ -72,9 +72,7 @@
 
       <!-- 保持相同的页脚 -->
       <el-footer>
-        <div class="copyright">
-          ©2025 xiaozhi-esp32-server
-        </div>
+        <version-footer />
       </el-footer>
     </el-container>
   </div>
@@ -82,10 +80,14 @@
 
 <script>
 import Api from '@/apis/api';
+import VersionFooter from '@/components/VersionFooter.vue';
 import { getUUID, goToPage, showDanger, showSuccess } from '@/utils';
 
 export default {
   name: 'register',
+  components: {
+    VersionFooter
+  },
   data() {
     return {
       form: {
