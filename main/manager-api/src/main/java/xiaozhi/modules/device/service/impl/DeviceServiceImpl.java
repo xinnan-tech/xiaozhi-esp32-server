@@ -120,7 +120,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
     }
 
     @Override
-    public DeviceReportRespDTO checkDeviceActive(String macAddress, String deviceId, String clientId,
+    public DeviceReportRespDTO checkDeviceActive(String macAddress, String clientId,
             DeviceReportReqDTO deviceReport) {
         DeviceReportRespDTO response = new DeviceReportRespDTO();
         response.setServer_time(buildServerTime());
@@ -132,46 +132,12 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         firmware.setUrl("http://localhost:8002/xiaozhi/ota/download");
         response.setFirmware(firmware);
 
-        DeviceEntity deviceById = getDeviceById(deviceId);
+        DeviceEntity deviceById = getDeviceById(macAddress);
         if (deviceById != null) { // 如果设备存在，则更新上次连接时间
             deviceById.setLastConnectedAt(new Date());
             deviceDao.updateById(deviceById);
         } else { // 如果设备不存在，则生成激活码
-            String safeDeviceId = deviceId.replace(":", "_").toLowerCase();
-            String dataKey = String.format("ota:activation:data:%s", safeDeviceId);
-
-            Map<Object, Object> cacheMap = redisTemplate.opsForHash().entries(dataKey);
-            DeviceReportRespDTO.Activation code = new DeviceReportRespDTO.Activation();
-
-            if (cacheMap != null && cacheMap.containsKey("activation_code")) {
-                String cachedCode = (String) cacheMap.get("activation_code");
-                code.setCode(cachedCode);
-                code.setMessage(frontedUrl + "\n" + cachedCode);
-            } else {
-                String newCode = RandomUtil.randomNumbers(6);
-                code.setCode(newCode);
-                code.setMessage(frontedUrl + "\n" + newCode);
-
-                Map<String, Object> dataMap = new HashMap<>();
-                dataMap.put("id", deviceId);
-                dataMap.put("mac_address", macAddress);
-                dataMap.put("board", (deviceReport.getChipModelName() != null) ? deviceReport.getChipModelName()
-                        : (deviceReport.getBoard() != null ? deviceReport.getBoard().getType() : "unknown"));
-                dataMap.put("app_version", (deviceReport.getApplication() != null)
-                        ? deviceReport.getApplication().getVersion()
-                        : null);
-                dataMap.put("deviceId", deviceId);
-                dataMap.put("activation_code", newCode);
-
-                // 写入主数据 key
-                redisTemplate.opsForHash().putAll(dataKey, dataMap);
-                redisTemplate.expire(dataKey, 24, TimeUnit.HOURS);
-
-                // 写入反查激活码 key
-                String codeKey = "ota:activation:code:" + newCode;
-                redisTemplate.opsForValue().set(codeKey, deviceId, 24, TimeUnit.HOURS);
-            }
-
+            DeviceReportRespDTO.Activation code = buildActivation(macAddress, deviceReport);
             response.setActivation(code);
         }
 
@@ -257,5 +223,61 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         serverTime.setTimeZone(tz.getID());
         serverTime.setTimezone_offset(tz.getOffset(System.currentTimeMillis()) / (60 * 1000));
         return serverTime;
+    }
+
+    @Override
+    public String geCodeByDeviceId(String deviceId) {
+        String dataKey = getDeviceCacheKey(deviceId);
+
+        Map<Object, Object> cacheMap = redisTemplate.opsForHash().entries(dataKey);
+        if (cacheMap != null && cacheMap.containsKey("activation_code")) {
+            String cachedCode = (String) cacheMap.get("activation_code");
+            return cachedCode;
+        }
+        return null;
+    }
+
+    private String getDeviceCacheKey(String deviceId) {
+        String safeDeviceId = deviceId.replace(":", "_").toLowerCase();
+        String dataKey = String.format("ota:activation:data:%s", safeDeviceId);
+        return dataKey;
+    }
+
+    public DeviceReportRespDTO.Activation buildActivation(String deviceId, DeviceReportReqDTO deviceReport) {
+        DeviceReportRespDTO.Activation code = new DeviceReportRespDTO.Activation();
+
+        String cachedCode = geCodeByDeviceId(deviceId);
+
+        if (StringUtils.isNotBlank(cachedCode)) {
+            code.setCode(cachedCode);
+            code.setMessage(frontedUrl + "\n" + cachedCode);
+        } else {
+            String newCode = RandomUtil.randomNumbers(6);
+            code.setCode(newCode);
+            code.setMessage(frontedUrl + "\n" + newCode);
+
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("id", deviceId);
+            dataMap.put("mac_address", deviceId);
+
+            dataMap.put("board", (deviceReport.getChipModelName() != null) ? deviceReport.getChipModelName()
+                    : (deviceReport.getBoard() != null ? deviceReport.getBoard().getType() : "unknown"));
+            dataMap.put("app_version", (deviceReport.getApplication() != null)
+                    ? deviceReport.getApplication().getVersion()
+                    : null);
+
+            dataMap.put("deviceId", deviceId);
+            dataMap.put("activation_code", newCode);
+
+            // 写入主数据 key
+            String dataKey = getDeviceCacheKey(deviceId);
+            redisTemplate.opsForHash().putAll(dataKey, dataMap);
+            redisTemplate.expire(dataKey, 24, TimeUnit.HOURS);
+
+            // 写入反查激活码 key
+            String codeKey = "ota:activation:code:" + newCode;
+            redisTemplate.opsForValue().set(codeKey, deviceId, 24, TimeUnit.HOURS);
+        }
+        return code;
     }
 }

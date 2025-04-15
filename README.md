@@ -160,7 +160,7 @@ server:
 
 ```
 智控台地址: https://2662r3426b.vicp.fun
-OTA接口地址: htts://2662r3426b.vicp.fun/xiaozhi/ota/
+OTA接口地址: https://2662r3426b.vicp.fun/xiaozhi/ota/
 Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 ```
 ---

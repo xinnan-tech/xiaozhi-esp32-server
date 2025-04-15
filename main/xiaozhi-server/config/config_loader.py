@@ -4,6 +4,17 @@ import requests
 import yaml
 import time
 
+
+class DeviceNotFoundException(Exception):
+    pass
+
+
+class DeviceBindException(Exception):
+    def __init__(self, bind_code):
+        self.bind_code = bind_code
+        super().__init__(f"设备绑定异常，绑定码: {bind_code}")
+
+
 # 添加全局配置缓存
 _config_cache = None
 
@@ -83,7 +94,11 @@ def _make_api_request(api_url, secret, endpoint, json_data=None):
             response = requests.post(f"{api_url}{endpoint}", json=json_data)
             if response.status_code == 200:
                 result = response.json()
-                if result.get("code") != 0:
+                if result.get("code") == 10041:
+                    raise DeviceNotFoundException(result.get("msg"))
+                elif result.get("code") == 10042:
+                    raise DeviceBindException(result.get("msg"))
+                elif result.get("code") != 0:
                     raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
                 return result.get("data")
 

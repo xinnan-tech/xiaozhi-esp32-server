@@ -16,7 +16,7 @@ class TTSProvider(TTSProviderBase):
             self.voice = config.get("voice")
         self.response_format = config.get("response_format")
         self.sample_rate = config.get("sample_rate")
-        self.speed = float(config.get("speed"))
+        self.speed = float(config.get("speed", 1.0))
         self.gain = config.get("gain")
 
         self.host = "api.siliconflow.cn"

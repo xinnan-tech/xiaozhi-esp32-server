@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
@@ -83,7 +84,12 @@ public class ConfigServiceImpl implements ConfigService {
         // 根据MAC地址查找设备
         DeviceEntity device = deviceService.getDeviceByMacAddress(macAddress);
         if (device == null) {
-            throw new RenException("设备未找到");
+            // 如果设备，去redis里看看有没有需要连接的设备
+            String cachedCode = deviceService.geCodeByDeviceId(macAddress);
+            if (StringUtils.isNotBlank(cachedCode)) {
+                throw new RenException(ErrorCode.OTA_DEVICE_NEED_BIND, cachedCode);
+            }
+            throw new RenException(ErrorCode.OTA_DEVICE_NOT_FOUND, "not found device");
         }
         // 获取智能体信息
         AgentEntity agent = agentService.getAgentById(device.getAgentId());

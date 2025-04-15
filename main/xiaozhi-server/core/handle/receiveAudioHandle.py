@@ -1,5 +1,6 @@
 from config.logger import setup_logging
 import time
+import asyncio
 from core.utils.util import remove_punctuation_and_length
 from core.handle.sendAudioHandle import send_stt_message
 from core.handle.intentHandler import handle_user_intent
@@ -35,9 +36,7 @@ async def handleAudioMessage(conn, audio):
         if len(conn.asr_audio) < 15:
             conn.asr_server_receive = True
         else:
-            text, file_path = await conn.asr.speech_to_text(
-                conn.asr_audio, conn.session_id
-            )
+            text, _ = await conn.asr.speech_to_text(conn.asr_audio, conn.session_id)
             logger.bind(tag=TAG).info(f"识别文本: {text}")
             text_len, _ = remove_punctuation_and_length(text)
             if text_len > 0:
@@ -49,6 +48,9 @@ async def handleAudioMessage(conn, audio):
 
 
 async def startToChat(conn, text):
+    if conn.need_bind:
+        await check_bind_device(conn)
+        return
     # 首先进行意图分析
     intent_handled = await handle_user_intent(conn, text)
 
@@ -85,3 +87,44 @@ async def no_voice_close_connect(conn):
                 "请你以“时间过得真快”未来头，用富有感情、依依不舍的话来结束这场对话吧。"
             )
             await startToChat(conn, prompt)
+
+
+async def check_bind_device(conn):
+    if conn.bind_code:
+        # 确保bind_code是6位数字
+        if len(conn.bind_code) != 6:
+            logger.bind(tag=TAG).error(f"无效的绑定码格式: {conn.bind_code}")
+            text = "绑定码格式错误，请检查配置。"
+            await send_stt_message(conn, text)
+            return
+
+        text = f"请登录控制面板，输入{conn.bind_code}，绑定设备。"
+        await send_stt_message(conn, text)
+        conn.tts_first_text_index = 0
+        conn.tts_last_text_index = 6
+        conn.llm_finish_task = True
+
+        # 播放提示音
+        music_path = "config/assets/bind_code.wav"
+        opus_packets, _ = conn.tts.audio_to_opus_data(music_path)
+        conn.audio_play_queue.put((opus_packets, text, 0))
+
+        # 逐个播放数字
+        for i in range(6):  # 确保只播放6位数字
+            try:
+                digit = conn.bind_code[i]
+                num_path = f"config/assets/bind_code/{digit}.wav"
+                num_packets, _ = conn.tts.audio_to_opus_data(num_path)
+                conn.audio_play_queue.put((num_packets, text, i + 1))
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"播放数字音频失败: {e}")
+                continue
+    else:
+        text = f"没有找到该设备的版本信息，请正确配置 OTA地址，然后重新编译固件。"
+        await send_stt_message(conn, text)
+        conn.tts_first_text_index = 0
+        conn.tts_last_text_index = 0
+        conn.llm_finish_task = True
+        music_path = "config/assets/bind_not_found.wav"
+        opus_packets, _ = conn.tts.audio_to_opus_data(music_path)
+        conn.audio_play_queue.put((opus_packets, text, 0))
