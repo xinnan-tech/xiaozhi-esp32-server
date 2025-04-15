@@ -82,11 +82,17 @@
 import Api from '@/apis/api';
 import VersionFooter from '@/components/VersionFooter.vue';
 import { getUUID, goToPage, showDanger, showSuccess } from '@/utils';
+import { mapState } from 'vuex';
 
 export default {
   name: 'register',
   components: {
     VersionFooter
+  },
+  computed: {
+    ...mapState({
+      allowUserRegister: state => state.pubConfig.allowUserRegister
+    })
   },
   data() {
     return {
@@ -101,6 +107,14 @@ export default {
     }
   },
   mounted() {
+    this.$store.dispatch('fetchPubConfig').then(() => {
+      if (!this.allowUserRegister) {
+        showDanger('当前不允许普通用户注册');
+        setTimeout(() => {
+          goToPage('/login');
+        }, 1500);
+      }
+    });
     this.fetchCaptcha();
   },
   methods: {

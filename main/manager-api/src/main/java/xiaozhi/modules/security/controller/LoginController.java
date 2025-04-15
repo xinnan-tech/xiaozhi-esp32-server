@@ -77,6 +77,9 @@ public class LoginController {
     @PostMapping("/register")
     @Operation(summary = "注册")
     public Result<Void> register(@RequestBody LoginDTO login) {
+        if (!sysUserService.getAllowUserRegister()) {
+            throw new RenException("当前不允许普通用户注册");
+        }
         // 验证是否正确输入验证码
         boolean validate = captchaService.validate(login.getCaptchaId(), login.getCaptcha());
         if (!validate) {
@@ -119,6 +122,7 @@ public class LoginController {
     public Result<Map<String, Object>> pubConfig() {
         Map<String, Object> config = new HashMap<>();
         config.put("version", "0.3.3");
+        config.put("allowUserRegister", sysUserService.getAllowUserRegister());
         return new Result<Map<String, Object>>().ok(config);
     }
 }

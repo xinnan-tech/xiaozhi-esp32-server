@@ -5,33 +5,17 @@
 </template>
 
 <script>
-import Api from '@/apis/api';
+import { mapState } from 'vuex';
 
 export default {
     name: 'VersionFooter',
-    data() {
-        return {
-            version: ''
-        }
+    computed: {
+        ...mapState({
+            version: state => state.pubConfig.version
+        })
     },
     mounted() {
-        this.getSystemVersion();
-    },
-    methods: {
-        getSystemVersion() {
-            const storedVersion = sessionStorage.getItem('systemVersion');
-            if (storedVersion) {
-                this.version = storedVersion;
-                return;
-            }
-
-            Api.user.getPubConfig(({ data }) => {
-                if (data.code === 0 && data.data.version) {
-                    this.version = data.data.version;
-                    sessionStorage.setItem('systemVersion', data.data.version);
-                }
-            });
-        }
+        this.$store.dispatch('fetchPubConfig');
     }
 }
 </script>

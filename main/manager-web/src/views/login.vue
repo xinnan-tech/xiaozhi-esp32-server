@@ -38,7 +38,7 @@
             </div>
             <div
               style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
-              <div style="cursor: pointer;" @click="goToRegister">新用户注册</div>
+              <div v-if="allowUserRegister" style="cursor: pointer;" @click="goToRegister">新用户注册</div>
             </div>
           </div>
           <div class="login-btn" @click="login">登录</div>
@@ -61,11 +61,17 @@
 import Api from '@/apis/api';
 import VersionFooter from '@/components/VersionFooter.vue';
 import { getUUID, goToPage, showDanger, showSuccess } from '@/utils';
+import { mapState } from 'vuex';
 
 export default {
   name: 'login',
   components: {
     VersionFooter
+  },
+  computed: {
+    ...mapState({
+      allowUserRegister: state => state.pubConfig.allowUserRegister
+    })
   },
   data() {
     return {
@@ -77,13 +83,12 @@ export default {
         captchaId: ''
       },
       captchaUuid: '',
-      captchaUrl: '',
-      version: ''
+      captchaUrl: ''
     }
   },
   mounted() {
     this.fetchCaptcha();
-    this.getSystemVersion();
+    this.$store.dispatch('fetchPubConfig');
   },
   methods: {
     fetchCaptcha() {
@@ -148,21 +153,6 @@ export default {
     goToRegister() {
       goToPage('/register')
     },
-
-    getSystemVersion() {
-      const storedVersion = sessionStorage.getItem('systemVersion');
-      if (storedVersion) {
-        this.version = storedVersion;
-        return;
-      }
-
-      Api.user.getPubConfig(({ data }) => {
-        if (data.code === 0 && data.data.version) {
-          this.version = data.data.version;
-          sessionStorage.setItem('systemVersion', data.data.version);
-        }
-      });
-    }
   }
 }
 </script>

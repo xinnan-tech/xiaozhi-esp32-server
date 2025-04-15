@@ -85,6 +85,16 @@ public interface Constant {
     String SERVER_SECRET = "server.secret";
 
     /**
+     * 是否允许用户注册
+     */
+    String SERVER_ALLOW_USER_REGISTER = "server.allow_user_register";
+
+    /**
+     * 下发六位验证码时显示的控制面板地址
+     */
+    String SERVER_FRONTED_URL = "server.fronted_url";
+
+    /**
      * 路径分割符
      */
     String FILE_EXTENSION_SEG = ".";
