@@ -1,6 +1,6 @@
 <template>
-  <el-dialog :visible="dialogVisible" @update:visible="handleVisibleChange" width="975px" center custom-class="custom-dialog" :show-close="false"
-    class="center-dialog">
+  <el-dialog :visible="dialogVisible" @update:visible="handleVisibleChange" width="975px" center
+    custom-class="custom-dialog" :show-close="false" class="center-dialog">
     <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
       <div style="font-size: 30px; color: #3d4566; margin-top: -10px; margin-bottom: 10px; text-align: center;">
         添加模型
@@ -18,7 +18,7 @@
             <span style="margin-right: 8px;">是否启用</span>
             <el-switch v-model="formData.isEnabled" class="custom-switch"></el-switch>
           </div>
-          <div style="display: flex; align-items: center;">
+          <div style="display: none; align-items: center;">
             <span style="margin-right: 8px;">设为默认</span>
             <el-switch v-model="formData.isDefault" class="custom-switch"></el-switch>
           </div>
@@ -65,18 +65,10 @@
       <el-form :model="formData.configJson" label-width="auto" label-position="left" class="custom-form">
         <template v-for="(row, rowIndex) in chunkedCallInfoFields">
           <div :key="rowIndex" style="display: flex; gap: 20px; margin-bottom: 0;">
-            <el-form-item
-              v-for="field in row"
-              :key="field.prop"
-              :label="field.label"
-              :prop="field.prop"
+            <el-form-item v-for="field in row" :key="field.prop" :label="field.label" :prop="field.prop"
               style="flex: 1;">
-              <el-input
-                v-model="formData.configJson[field.prop]"
-                :placeholder="field.placeholder"
-                :type="field.type || 'text'"
-                class="custom-input-bg"
-                :show-password="field.type === 'password'">
+              <el-input v-model="formData.configJson[field.prop]" :placeholder="field.placeholder"
+                :type="field.type || 'text'" class="custom-input-bg" :show-password="field.type === 'password'">
               </el-input>
             </el-form-item>
           </div>
@@ -123,7 +115,7 @@ export default {
   watch: {
     visible(val) {
       this.dialogVisible = val;
-      if(val) {
+      if (val) {
         this.initConfigJson();
       } else {
         this.resetForm();

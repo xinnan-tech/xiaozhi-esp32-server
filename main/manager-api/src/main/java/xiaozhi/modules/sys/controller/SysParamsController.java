@@ -27,6 +27,7 @@ import xiaozhi.common.validator.ValidatorUtils;
 import xiaozhi.common.validator.group.AddGroup;
 import xiaozhi.common.validator.group.DefaultGroup;
 import xiaozhi.common.validator.group.UpdateGroup;
+import xiaozhi.modules.config.service.ConfigService;
 import xiaozhi.modules.sys.dto.SysParamsDTO;
 import xiaozhi.modules.sys.service.SysParamsService;
 
@@ -42,6 +43,7 @@ import xiaozhi.modules.sys.service.SysParamsService;
 @AllArgsConstructor
 public class SysParamsController {
     private final SysParamsService sysParamsService;
+    private final ConfigService configService;
 
     @GetMapping("page")
     @Operation(summary = "分页")
@@ -77,7 +79,7 @@ public class SysParamsController {
         ValidatorUtils.validateEntity(dto, AddGroup.class, DefaultGroup.class);
 
         sysParamsService.save(dto);
-
+        configService.getConfig(false);
         return new Result<Void>();
     }
 
@@ -90,7 +92,7 @@ public class SysParamsController {
         ValidatorUtils.validateEntity(dto, UpdateGroup.class, DefaultGroup.class);
 
         sysParamsService.update(dto);
-
+        configService.getConfig(false);
         return new Result<Void>();
     }
 
@@ -103,7 +105,7 @@ public class SysParamsController {
         AssertUtils.isArrayEmpty(ids, "id");
 
         sysParamsService.delete(ids);
-
+        configService.getConfig(false);
         return new Result<Void>();
     }
 }

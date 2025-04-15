@@ -42,6 +42,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         List<ModelConfigEntity> entities = modelConfigDao.selectList(
                 new QueryWrapper<ModelConfigEntity>()
                         .eq("model_type", modelType)
+                        .eq("is_enabled", 1)
                         .like(StringUtils.isNotBlank(modelName), "model_name", "%" + modelName + "%")
                         .select("id", "model_name"));
         return ConvertUtils.sourceToTarget(entities, ModelBasicInfoDTO.class);
