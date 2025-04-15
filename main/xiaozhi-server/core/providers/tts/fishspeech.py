@@ -114,8 +114,8 @@ class TTSProvider(TTSProviderBase):
 
     async def text_to_speak(self, text, output_file):
         # Prepare reference data
-        byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
-        ref_texts = [read_ref_text(ref_text) for ref_text in self.reference_text]
+        byte_audios = [audio_to_bytes(ref_audio) for ref_audio in [self.reference_audio]]
+        ref_texts = [read_ref_text(ref_text) for ref_text in [self.reference_text]]
 
         data = {
             "text": text,
