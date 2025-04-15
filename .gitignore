@@ -155,6 +155,9 @@ main/manager-web/node_modules
 main/xiaozhi-server/models/SenseVoiceSmall/model.pt
 main/xiaozhi-server/models/sherpa-onnx*
 my_wakeup_words.mp3
+!main/xiaozhi-server/config/assets/bind_code.wav
+!main/xiaozhi-server/config/assets/bind_not_found.wav
+!main/xiaozhi-server/config/assets/bind_code/*.wav
 main/manager-api/.vscode
 
 # Ignore webpack cache directory
