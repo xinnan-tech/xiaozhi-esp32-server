@@ -42,7 +42,7 @@ config WEBSOCKET_URL
 如果你是全模块部署本项目，就修改OTA接口，如果你只是部署了8000端口的xiaozhi-server，可以继续沿用虾哥团队的OTA接口。如果你不修改OTA接口，请直接忽略本第4步，直接看第5步
 
 找到`OTA_VERSION_URL`的`default`的内容，把`https://api.tenclass.net/xiaozhi/ota/`
-   改成你自己的地址，例如，我的接口地址是`http://192.168.1.25:8000/xiaozhi/ota/`，就把内容改成这个。
+   改成你自己的地址，例如，我的接口地址是`http://192.168.1.25:8002/xiaozhi/ota/`，就把内容改成这个。
 
 修改前：
 ```
@@ -56,7 +56,7 @@ config OTA_VERSION_URL
 ```
 config OTA_VERSION_URL
     string "OTA Version URL"
-    default "http://192.168.1.25:8000/xiaozhi/ota/"
+    default "http://192.168.1.25:8002/xiaozhi/ota/"
     help
         The application will access this URL to check for updates.
 ```
