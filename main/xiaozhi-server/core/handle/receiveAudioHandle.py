@@ -115,7 +115,7 @@ async def check_bind_device(conn):
                 digit = conn.bind_code[i]
                 num_path = f"config/assets/bind_code/{digit}.wav"
                 num_packets, _ = conn.tts.audio_to_opus_data(num_path)
-                conn.audio_play_queue.put((num_packets, text, i + 1))
+                conn.audio_play_queue.put((num_packets, None, i + 1))
             except Exception as e:
                 logger.bind(tag=TAG).error(f"播放数字音频失败: {e}")
                 continue

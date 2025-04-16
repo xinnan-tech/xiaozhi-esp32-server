@@ -68,6 +68,14 @@
                           class="form-input"
                       />
                     </el-form-item>
+                    <div class="action-bar">
+              <el-button type="primary" class="save-btn" @click="saveConfig">保存配置</el-button>
+              <el-button class="reset-btn" @click="resetConfig">重置</el-button>
+              <div class="hint-text">
+                <img loading="lazy" src="@/assets/home/red-info.png" alt="">
+                <span>保存配置后，需要重启设备，新的配置才会生效。</span>
+              </div>
+</div>
                   </div>
                   <div class="form-column">
                     <el-form-item
@@ -109,14 +117,6 @@
               </div>
             </el-form>
 
-            <div class="action-bar">
-              <el-button type="primary" class="save-btn" @click="saveConfig">保存配置</el-button>
-              <el-button class="reset-btn" @click="resetConfig">重置</el-button>
-              <div class="hint-text">
-                <img loading="lazy" src="@/assets/home/red-info.png" alt="">
-                <span>保存配置后，需要重启设备，新的配置才会生效。</span>
-              </div>
-            </div>
           </el-card>
         </div>
       </div>
@@ -453,7 +453,7 @@ export default {
 }
 
 .form-content {
-  padding: 10px 0;
+  padding: 20px 0;
 }
 
 .form-grid {
@@ -465,6 +465,7 @@ export default {
 .form-column {
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 
 .form-input {
@@ -505,9 +506,10 @@ export default {
 
 .action-bar {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  padding: 0 0 5px 0;
+  margin-top: 20px;
+  align-items: center;
 }
 
 .save-btn {

@@ -38,9 +38,12 @@ public class OTAController {
     public ResponseEntity<String> checkOTAVersion(
             @RequestBody DeviceReportReqDTO deviceReportReqDTO,
             @Parameter(name = "Device-Id", description = "设备唯一标识", required = true, in = ParameterIn.HEADER) @RequestHeader("Device-Id") String deviceId,
-            @Parameter(name = "Client-Id", description = "客户端标识", required = true, in = ParameterIn.HEADER) @RequestHeader("Client-Id") String clientId) {
-        if (StringUtils.isAnyBlank(deviceId, clientId)) {
+            @Parameter(name = "Client-Id", description = "客户端标识", required = false, in = ParameterIn.HEADER) @RequestHeader(value = "Client-Id", required = false) String clientId) {
+        if (StringUtils.isBlank(deviceId)) {
             return createResponse(DeviceReportRespDTO.createError("Device ID is required"));
+        }
+        if (StringUtils.isBlank(clientId)) {
+            clientId = deviceId;
         }
         String macAddress = deviceReportReqDTO.getMacAddress();
         boolean macAddressValid = NetworkUtil.isMacAddressValid(macAddress);
