@@ -269,6 +269,11 @@ class ConnectionHandler:
             self.config["selected_module"]["Intent"] = private_config[
                 "selected_module"
             ]["Intent"]
+        if private_config.get("Prompt", None) is not None:
+            self.config["Prompt"] = private_config["Prompt"]
+            self.config["selected_module"]["Prompt"] = private_config[
+                "selected_module"
+            ]["Prompt"]
         try:
             modules = initialize_modules(
                 self.logger,
