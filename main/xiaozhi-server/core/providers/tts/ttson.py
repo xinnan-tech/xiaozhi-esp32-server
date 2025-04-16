@@ -22,7 +22,7 @@ class TTSProvider(TTSProviderBase):
         self.to_lang = config.get("to_lang")
         self.volume_change_dB = int(config.get("volume_change_dB", 0))
         self.speed_factor = int(config.get("speed_factor", 1))
-        self.stream = bool(config.get("stream", False))
+        self.stream = str(config.get("stream", False)).lower() in ("true", "1", "yes")
         self.output_file = config.get("output_dir")
         self.pitch_factor = int(config.get("pitch_factor", 0))
         self.format = config.get("format", "mp3")

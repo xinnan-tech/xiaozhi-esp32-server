@@ -6,6 +6,7 @@ import requests
 from config.logger import setup_logging
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
+from core.utils.util import parse_string_to_list
 
 TAG = __name__
 logger = setup_logging()
@@ -25,14 +26,33 @@ class TTSProvider(TTSProviderBase):
         self.text_split_method = config.get("text_split_method", "cut0")
         self.batch_size = int(config.get("batch_size", 1))
         self.batch_threshold = float(config.get("batch_threshold", 0.75))
-        self.split_bucket = bool(config.get("split_bucket", True))
-        self.return_fragment = bool(config.get("return_fragment", False))
+
+        self.split_bucket = str(config.get("split_bucket", True)).lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        self.return_fragment = str(config.get("return_fragment", False)).lower() in (
+            "true",
+            "1",
+            "yes",
+        )
         self.speed_factor = float(config.get("speed_factor", 1.0))
-        self.streaming_mode = bool(config.get("streaming_mode", False))
+        self.streaming_mode = str(config.get("streaming_mode", False)).lower() in (
+            "true",
+            "1",
+            "yes",
+        )
         self.seed = int(config.get("seed", -1))
-        self.parallel_infer = bool(config.get("parallel_infer", True))
+        self.parallel_infer = str(config.get("parallel_infer", True)).lower() in (
+            "true",
+            "1",
+            "yes",
+        )
         self.repetition_penalty = float(config.get("repetition_penalty", 1.35))
-        self.aux_ref_audio_paths = config.get("aux_ref_audio_paths", [])
+        self.aux_ref_audio_paths = parse_string_to_list(
+            config.get("aux_ref_audio_paths")
+        )
 
     def generate_filename(self, extension=".wav"):
         return os.path.join(

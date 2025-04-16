@@ -42,6 +42,50 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            padding: 10px 0;
+        }
+
+        .section h2 .toggle-button {
+            margin-left: auto;
+            padding: 4px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            height: 28px;
+            line-height: 20px;
+        }
+
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-left: 20px;
+            padding: 0 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            height: 28px;
+            line-height: 28px;
+        }
+
+        .device-info span {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .device-info strong {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .config-panel {
+            display: none;
+            transition: all 0.3s ease;
+            margin-top: 5px;
+            padding: 5px 0;
+        }
+
+        .config-panel.expanded {
+            display: block;
         }
 
         .control-panel {
@@ -70,7 +114,8 @@
             cursor: not-allowed;
         }
 
-        #serverUrl {
+        #serverUrl,
+        #otaUrl {
             flex-grow: 1;
             padding: 8px;
             border: 1px solid #ddd;
@@ -316,6 +361,76 @@
             gap: 20px;
             margin-top: 10px;
         }
+
+        .config-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+
+        .config-item label {
+            width: 100px;
+            text-align: right;
+            margin-right: 10px;
+            color: #666;
+        }
+
+        .config-item input {
+            flex-grow: 1;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .connection-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .connection-controls input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-width: 200px;
+        }
+
+        .connection-controls button {
+            white-space: nowrap;
+            padding: 8px 15px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-left: 20px;
+            padding: 0 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            height: 28px;
+            line-height: 28px;
+        }
+
+        .connection-status span {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .connection-status .status {
+            color: #333;
+            font-weight: 500;
+        }
     </style>
 </head>
 
@@ -326,17 +441,56 @@
         <div id="scriptStatus" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
             正在加载Opus库...</div>
 
+        <!-- 添加配置面板 -->
         <div class="section">
-            <h2>WebSocket连接 <span id="connectionStatus" class="status">未连接</span></h2>
-            <div class="control-panel">
-                <input type="text" id="serverUrl" value="ws://127.0.0.1:8000/xiaozhi/v1/" placeholder="WebSocket服务器地址">
+            <h2>
+                设备配置
+                <span class="device-info">
+                    <span>MAC: <strong id="displayMac">00:11:22:33:44:55</strong></span>
+                    <span>客户端: <strong id="displayClient">web_test_client</strong></span>
+                </span>
+                <button class="toggle-button" id="toggleConfig">编辑</button>
+            </h2>
+            <div class="config-panel" id="configPanel">
+                <div class="control-panel">
+                    <div class="config-item">
+                        <label for="deviceMac">设备MAC:</label>
+                        <input type="text" id="deviceMac" value="00:11:22:33:44:55" placeholder="设备MAC地址">
+                    </div>
+                    <div class="config-item">
+                        <label for="deviceName">设备名称:</label>
+                        <input type="text" id="deviceName" value="Web测试设备" placeholder="设备名称">
+                    </div>
+                    <div class="config-item">
+                        <label for="clientId">客户端ID:</label>
+                        <input type="text" id="clientId" value="web_test_client" placeholder="客户端ID">
+                    </div>
+                    <div class="config-item">
+                        <label for="token">认证Token:</label>
+                        <input type="text" id="token" value="your-token1" placeholder="认证Token">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>
+                连接信息
+                <span class="connection-status">
+                    <span>OTA: <span id="otaStatus" class="status">ota未连接</span></span>
+                    <span>WS: <span id="connectionStatus" class="status">ws未连接</span></span>
+                </span>
+            </h2>
+            <div class="connection-controls">
+                <input type="text" id="otaUrl" value="http://127.0.0.1:8002/xiaozhi/ota/" placeholder="OTA服务器地址" />
+                <input type="text" id="serverUrl" value="ws://127.0.0.1:8000/xiaozhi/v1/"
+                    placeholder="WebSocket服务器地址" />
                 <button id="connectButton">连接</button>
                 <button id="authTestButton">测试认证</button>
             </div>
         </div>
 
         <div class="section">
-            <h2>消息发送</h2>
             <div class="tabs">
                 <button class="tab active" data-tab="text">文本消息</button>
                 <button class="tab" data-tab="voice">语音消息</button>
@@ -554,16 +708,16 @@
         // 开始音频缓冲过程
         function startAudioBuffering() {
             if (isAudioBuffering || isAudioPlaying) return;
-            
+
             isAudioBuffering = true;
             log("开始音频缓冲...", 'info');
-            
+
             // 先尝试初始化解码器，以便在播放时已准备好
             initOpusDecoder().catch(error => {
                 log(`预初始化Opus解码器失败: ${error.message}`, 'warning');
                 // 继续缓冲，我们会在播放时再次尝试初始化
             });
-            
+
             // 设置超时，如果在一定时间内没有收集到足够的音频包，就开始播放
             setTimeout(() => {
                 if (isAudioBuffering && audioBufferQueue.length > 0) {
@@ -571,14 +725,14 @@
                     playBufferedAudio();
                 }
             }, 300); // 300ms超时
-            
+
             // 监控缓冲进度
             const bufferCheckInterval = setInterval(() => {
                 if (!isAudioBuffering) {
                     clearInterval(bufferCheckInterval);
                     return;
                 }
-                
+
                 // 当累积了足够的音频包，开始播放
                 if (audioBufferQueue.length >= BUFFER_THRESHOLD) {
                     clearInterval(bufferCheckInterval);
@@ -591,10 +745,10 @@
         // 播放已缓冲的音频
         function playBufferedAudio() {
             if (isAudioPlaying || audioBufferQueue.length === 0) return;
-            
+
             isAudioPlaying = true;
             isAudioBuffering = false;
-            
+
             // 确保Opus解码器已初始化
             const initDecoderAndPlay = async () => {
                 try {
@@ -605,7 +759,7 @@
                         });
                         log('创建音频上下文，采样率: ' + SAMPLE_RATE + 'Hz', 'debug');
                     }
-                    
+
                     // 确保解码器已初始化
                     if (!opusDecoder) {
                         log('初始化Opus解码器...', 'info');
@@ -621,7 +775,7 @@
                             return;
                         }
                     }
-                    
+
                     // 创建流式播放上下文
                     if (!streamingContext) {
                         streamingContext = {
@@ -631,16 +785,16 @@
                             source: null,       // 当前音频源
                             totalSamples: 0,    // 累积的总样本数
                             lastPlayTime: 0,    // 上次播放的时间戳
-                            
+
                             // 将Opus数据解码为PCM
-                            decodeOpusFrames: async function(opusFrames) {
+                            decodeOpusFrames: async function (opusFrames) {
                                 if (!opusDecoder) {
                                     log('Opus解码器未初始化，无法解码', 'error');
                                     return;
                                 }
-                                
+
                                 let decodedSamples = [];
-                                
+
                                 for (const frame of opusFrames) {
                                     try {
                                         // 使用Opus解码器解码
@@ -654,12 +808,12 @@
                                         log("Opus解码失败: " + error.message, 'error');
                                     }
                                 }
-                                
+
                                 if (decodedSamples.length > 0) {
                                     // 添加到解码队列
                                     this.queue.push(...decodedSamples);
                                     this.totalSamples += decodedSamples.length;
-                                    
+
                                     // 如果累积了至少0.2秒的音频，开始播放
                                     const minSamples = SAMPLE_RATE * MIN_AUDIO_DURATION;
                                     if (!this.playing && this.queue.length >= minSamples) {
@@ -669,50 +823,50 @@
                                     log('没有成功解码的样本', 'warning');
                                 }
                             },
-                            
+
                             // 开始播放音频
-                            startPlaying: function() {
+                            startPlaying: function () {
                                 if (this.playing || this.queue.length === 0) return;
-                                
+
                                 this.playing = true;
-                                
+
                                 // 创建新的音频缓冲区
                                 const minPlaySamples = Math.min(this.queue.length, SAMPLE_RATE); // 最多播放1秒
                                 const currentSamples = this.queue.splice(0, minPlaySamples);
-                                
+
                                 const audioBuffer = audioContext.createBuffer(CHANNELS, currentSamples.length, SAMPLE_RATE);
                                 audioBuffer.copyToChannel(new Float32Array(currentSamples), 0);
-                                
+
                                 // 创建音频源
                                 this.source = audioContext.createBufferSource();
                                 this.source.buffer = audioBuffer;
-                                
+
                                 // 创建增益节点用于平滑过渡
                                 const gainNode = audioContext.createGain();
-                                
+
                                 // 应用淡入淡出效果避免爆音
                                 const fadeDuration = 0.02; // 20毫秒
                                 gainNode.gain.setValueAtTime(0, audioContext.currentTime);
                                 gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + fadeDuration);
-                                
+
                                 const duration = audioBuffer.duration;
                                 if (duration > fadeDuration * 2) {
                                     gainNode.gain.setValueAtTime(1, audioContext.currentTime + duration - fadeDuration);
                                     gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
                                 }
-                                
+
                                 // 连接节点并开始播放
                                 this.source.connect(gainNode);
                                 gainNode.connect(audioContext.destination);
-                                
+
                                 this.lastPlayTime = audioContext.currentTime;
                                 log(`开始播放 ${currentSamples.length} 个样本，约 ${(currentSamples.length / SAMPLE_RATE).toFixed(2)} 秒`, 'info');
-                                
+
                                 // 播放结束后的处理
                                 this.source.onended = () => {
                                     this.source = null;
                                     this.playing = false;
-                                    
+
                                     // 如果队列中还有数据或者缓冲区有新数据，继续播放
                                     if (this.queue.length > 0) {
                                         setTimeout(() => this.startPlaying(), 10);
@@ -743,26 +897,26 @@
                                         }, 500); // 500ms超时
                                     }
                                 };
-                                
+
                                 this.source.start();
                             }
                         };
                     }
-                    
+
                     // 开始处理缓冲的数据
                     const frames = [...audioBufferQueue];
                     audioBufferQueue = []; // 清空缓冲队列
-                    
+
                     // 解码并播放
                     await streamingContext.decodeOpusFrames(frames);
-                    
+
                 } catch (error) {
                     log(`播放已缓冲的音频出错: ${error.message}`, 'error');
                     isAudioPlaying = false;
                     streamingContext = null;
                 }
             };
-            
+
             // 执行初始化和播放
             initDecoderAndPlay();
         }
@@ -780,7 +934,7 @@
         // 初始化Opus解码器 - 确保完全初始化完成后才返回
         async function initOpusDecoder() {
             if (opusDecoder) return opusDecoder; // 已经初始化
-            
+
             try {
                 // 检查ModuleInstance是否存在
                 if (typeof window.ModuleInstance === 'undefined') {
@@ -792,9 +946,9 @@
                         throw new Error('Opus库未加载，ModuleInstance和Module对象都不存在');
                     }
                 }
-                
+
                 const mod = window.ModuleInstance;
-                
+
                 // 创建解码器对象
                 opusDecoder = {
                     channels: CHANNELS,
@@ -802,55 +956,55 @@
                     frameSize: FRAME_SIZE,
                     module: mod,
                     decoderPtr: null, // 初始为null
-                    
+
                     // 初始化解码器
-                    init: function() {
+                    init: function () {
                         if (this.decoderPtr) return true; // 已经初始化
-                        
+
                         // 获取解码器大小
                         const decoderSize = mod._opus_decoder_get_size(this.channels);
                         log(`Opus解码器大小: ${decoderSize}字节`, 'debug');
-                        
+
                         // 分配内存
                         this.decoderPtr = mod._malloc(decoderSize);
                         if (!this.decoderPtr) {
                             throw new Error("无法分配解码器内存");
                         }
-                        
+
                         // 初始化解码器
                         const err = mod._opus_decoder_init(
                             this.decoderPtr,
                             this.rate,
                             this.channels
                         );
-                        
+
                         if (err < 0) {
                             this.destroy(); // 清理资源
                             throw new Error(`Opus解码器初始化失败: ${err}`);
                         }
-                        
+
                         log("Opus解码器初始化成功", 'success');
                         return true;
                     },
-                    
+
                     // 解码方法
-                    decode: function(opusData) {
+                    decode: function (opusData) {
                         if (!this.decoderPtr) {
                             if (!this.init()) {
                                 throw new Error("解码器未初始化且无法初始化");
                             }
                         }
-                        
+
                         try {
                             const mod = this.module;
-                            
+
                             // 为Opus数据分配内存
                             const opusPtr = mod._malloc(opusData.length);
                             mod.HEAPU8.set(opusData, opusPtr);
-                            
+
                             // 为PCM输出分配内存
                             const pcmPtr = mod._malloc(this.frameSize * 2); // Int16 = 2字节
-                            
+
                             // 解码
                             const decodedSamples = mod._opus_decode(
                                 this.decoderPtr,
@@ -860,46 +1014,46 @@
                                 this.frameSize,
                                 0 // 不使用FEC
                             );
-                            
+
                             if (decodedSamples < 0) {
                                 mod._free(opusPtr);
                                 mod._free(pcmPtr);
                                 throw new Error(`Opus解码失败: ${decodedSamples}`);
                             }
-                            
+
                             // 复制解码后的数据
                             const decodedData = new Int16Array(decodedSamples);
                             for (let i = 0; i < decodedSamples; i++) {
                                 decodedData[i] = mod.HEAP16[(pcmPtr >> 1) + i];
                             }
-                            
+
                             // 释放内存
                             mod._free(opusPtr);
                             mod._free(pcmPtr);
-                            
+
                             return decodedData;
                         } catch (error) {
                             log(`Opus解码错误: ${error.message}`, 'error');
                             return new Int16Array(0);
                         }
                     },
-                    
+
                     // 销毁方法
-                    destroy: function() {
+                    destroy: function () {
                         if (this.decoderPtr) {
                             this.module._free(this.decoderPtr);
                             this.decoderPtr = null;
                         }
                     }
                 };
-                
+
                 // 初始化解码器
                 if (!opusDecoder.init()) {
                     throw new Error("Opus解码器初始化失败");
                 }
-                
+
                 return opusDecoder;
-                
+
             } catch (error) {
                 log(`Opus解码器初始化失败: ${error.message}`, 'error');
                 opusDecoder = null; // 重置为null，以便下次重试
@@ -1132,25 +1286,100 @@
         }
 
         // 连接WebSocket服务器
-        function connectToServer() {
+        async function connectToServer() {
             const url = serverUrlInput.value.trim();
             if (url === '') return;
 
             try {
+                // 获取并验证配置
+                const config = getConfig();
+                if (!validateConfig(config)) {
+                    return;
+                }
+
                 // 检查URL格式
                 if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
                     log('URL格式错误，必须以ws://或wss://开头', 'error');
                     return;
                 }
 
+                // 先检查OTA状态
+                log('正在检查OTA状态...', 'info');
+                const otaUrl = document.getElementById('otaUrl').value.trim();
+
+                try {
+                    const otaResponse = await fetch(otaUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Device-Id': config.deviceId,
+                            'Client-Id': config.clientId
+                        },
+                        body: JSON.stringify({
+                            "version": 0,
+                            "uuid": "",
+                            "application": {
+                                "name": "xiaozhi-web-test",
+                                "version": "1.0.0",
+                                "compile_time": "2025-04-16 10:00:00",
+                                "idf_version": "4.4.3",
+                                "elf_sha256": "1234567890abcdef1234567890abcdef1234567890abcdef"
+                            },
+                            "ota": {
+                                "label": "xiaozhi-web-test",
+                            },
+                            "board": {
+                                "type": "xiaozhi-web-test",
+                                "ssid": "xiaozhi-web-test",
+                                "rssi": 0,
+                                "channel": 0,
+                                "ip": "192.168.1.1",
+                                "mac": config.deviceMac
+                            },
+                            "flash_size": 0,
+                            "minimum_free_heap_size": 0,
+                            "mac_address": config.deviceMac,
+                            "chip_model_name": "",
+                            "chip_info": {
+                                "model": 0,
+                                "cores": 0,
+                                "revision": 0,
+                                "features": 0
+                            },
+                            "partition_table": [
+                                {
+                                    "label": "",
+                                    "type": 0,
+                                    "subtype": 0,
+                                    "address": 0,
+                                    "size": 0
+                                }
+                            ]
+                        })
+                    });
+
+                    if (!otaResponse.ok) {
+                        throw new Error(`OTA检查失败: ${otaResponse.status} ${otaResponse.statusText}`);
+                    }
+
+                    const otaResult = await otaResponse.json();
+                    log(`OTA检查结果: ${JSON.stringify(otaResult)}`, 'info');
+
+                    log('OTA检查通过，开始连接WebSocket...', 'success');
+                    document.getElementById('otaStatus').textContent = 'ota已连接';
+                    document.getElementById('otaStatus').style.color = 'green';
+                } catch (error) {
+                    log(`OTA检查错误: ${error.message}`, 'error');
+                    document.getElementById('otaStatus').textContent = 'ota未连接';
+                    document.getElementById('otaStatus').style.color = 'red';
+                }
+
                 // 使用自定义WebSocket实现以添加认证头信息
-                // 注意：浏览器原生WebSocket不支持自定义头，需要通过服务器添加一个代理层
-                // 但我们可以通过URL参数模拟认证信息
                 let connUrl = new URL(url);
 
                 // 添加认证参数
-                connUrl.searchParams.append('device_id', 'web_test_device');
-                connUrl.searchParams.append('device_mac', '00:11:22:33:44:55');
+                connUrl.searchParams.append('device-id', config.deviceId);
+                connUrl.searchParams.append('client-id', config.clientId);
 
                 log(`正在连接: ${connUrl.toString()}`, 'info');
                 websocket = new WebSocket(connUrl.toString());
@@ -1160,7 +1389,7 @@
 
                 websocket.onopen = async () => {
                     log(`已连接到服务器: ${url}`, 'success');
-                    connectionStatus.textContent = '已连接';
+                    connectionStatus.textContent = 'ws已连接';
                     connectionStatus.style.color = 'green';
 
                     // 连接成功后发送hello消息
@@ -1181,7 +1410,7 @@
 
                 websocket.onclose = () => {
                     log('已断开连接', 'info');
-                    connectionStatus.textContent = '已断开';
+                    connectionStatus.textContent = 'ws已断开';
                     connectionStatus.style.color = 'red';
 
                     connectButton.textContent = '连接';
@@ -1196,7 +1425,7 @@
 
                 websocket.onerror = (error) => {
                     log(`WebSocket错误: ${error.message || '未知错误'}`, 'error');
-                    connectionStatus.textContent = '连接错误';
+                    connectionStatus.textContent = 'ws未连接';
                     connectionStatus.style.color = 'red';
                 };
 
@@ -1262,11 +1491,11 @@
                     }
                 };
 
-                connectionStatus.textContent = '正在连接...';
+                connectionStatus.textContent = 'ws未连接';
                 connectionStatus.style.color = 'orange';
             } catch (error) {
                 log(`连接错误: ${error.message}`, 'error');
-                connectionStatus.textContent = '连接失败';
+                connectionStatus.textContent = 'ws未连接';
             }
         }
 
@@ -1275,13 +1504,15 @@
             if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
 
             try {
+                const config = getConfig();
+
                 // 设置设备信息
                 const helloMessage = {
                     type: 'hello',
-                    device_id: 'web_test_device',
-                    device_name: 'Web测试设备',
-                    device_mac: '00:11:22:33:44:55',
-                    token: 'your-token1' // 使用config.yaml中配置的token
+                    device_id: config.deviceId,
+                    device_name: config.deviceName,
+                    device_mac: config.deviceMac,
+                    token: config.token
                 };
 
                 log('发送hello握手消息', 'info');
@@ -1356,6 +1587,34 @@
             connectButton.addEventListener('click', connectToServer);
             document.getElementById('authTestButton').addEventListener('click', testAuthentication);
 
+            // 设备配置面板折叠/展开
+            const toggleButton = document.getElementById('toggleConfig');
+            const configPanel = document.getElementById('configPanel');
+            const deviceMacInput = document.getElementById('deviceMac');
+            const clientIdInput = document.getElementById('clientId');
+            const displayMac = document.getElementById('displayMac');
+            const displayClient = document.getElementById('displayClient');
+
+            // 更新显示的值
+            function updateDisplayValues() {
+                displayMac.textContent = deviceMacInput.value;
+                displayClient.textContent = clientIdInput.value;
+            }
+
+            // 监听输入变化
+            deviceMacInput.addEventListener('input', updateDisplayValues);
+            clientIdInput.addEventListener('input', updateDisplayValues);
+
+            // 初始更新显示值
+            updateDisplayValues();
+
+            // 切换面板显示
+            toggleButton.addEventListener('click', () => {
+                const isExpanded = configPanel.classList.contains('expanded');
+                configPanel.classList.toggle('expanded');
+                toggleButton.textContent = isExpanded ? '编辑' : '收起';
+            });
+
             // 标签页切换
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => {
@@ -1390,12 +1649,14 @@
         async function testAuthentication() {
             log('开始测试认证...', 'info');
 
+            const config = getConfig();
+
             // 显示服务器配置
             log('-------- 服务器认证配置检查 --------', 'info');
             log('请确认config.yaml中的auth配置：', 'info');
             log('1. server.auth.enabled 为 false 或服务器已正确配置认证', 'info');
             log('2. 如果启用了认证，请确认使用了正确的token', 'info');
-            log('3. 或者在allowed_devices中添加了测试设备MAC：00:11:22:33:44:55', 'info');
+            log(`3. 或者在allowed_devices中添加了测试设备MAC：${config.deviceMac}`, 'info');
 
             const serverUrl = serverUrlInput.value.trim();
             if (!serverUrl) {
@@ -1436,9 +1697,9 @@
                     log('测试2: 尝试带token参数连接...', 'info');
 
                     let url = new URL(serverUrl);
-                    url.searchParams.append('token', 'your-token1');
-                    url.searchParams.append('device_id', 'web_test_device');
-                    url.searchParams.append('device_mac', '00:11:22:33:44:55');
+                    url.searchParams.append('token', config.token);
+                    url.searchParams.append('device_id', config.deviceId);
+                    url.searchParams.append('device_mac', config.deviceMac);
 
                     const ws2 = new WebSocket(url.toString());
 
@@ -1448,9 +1709,9 @@
                         // 尝试发送hello消息
                         const helloMsg = {
                             type: 'hello',
-                            device_id: 'web_test_device',
-                            device_mac: '00:11:22:33:44:55',
-                            token: 'your-token1'
+                            device_id: config.deviceId,
+                            device_mac: config.deviceMac,
+                            token: config.token
                         };
 
                         ws2.send(JSON.stringify(helloMsg));
@@ -2092,19 +2353,19 @@
                 if (opusData.length > 0) {
                     // 将数据添加到缓冲队列
                     audioBufferQueue.push(opusData);
-                    
+
                     // 如果收到的是第一个音频包，开始缓冲过程
                     if (audioBufferQueue.length === 1 && !isAudioBuffering && !isAudioPlaying) {
                         startAudioBuffering();
                     }
                 } else {
                     log('收到空音频数据帧，可能是结束标志', 'warning');
-                    
+
                     // 如果缓冲队列中有数据且没有在播放，立即开始播放
                     if (audioBufferQueue.length > 0 && !isAudioPlaying) {
                         playBufferedAudio();
                     }
-                    
+
                     // 如果正在播放，发送结束信号
                     if (isAudioPlaying && streamingContext) {
                         streamingContext.endOfStream = true;
@@ -2113,6 +2374,31 @@
             } catch (error) {
                 log(`处理二进制消息出错: ${error.message}`, 'error');
             }
+        }
+
+        // 获取配置值
+        function getConfig() {
+            const deviceMac = document.getElementById('deviceMac').value.trim();
+            return {
+                deviceId: deviceMac,  // 使用MAC地址作为deviceId
+                deviceName: document.getElementById('deviceName').value.trim(),
+                deviceMac: deviceMac,
+                clientId: document.getElementById('clientId').value.trim(),
+                token: document.getElementById('token').value.trim()
+            };
+        }
+
+        // 验证配置
+        function validateConfig(config) {
+            if (!config.deviceMac) {
+                log('设备MAC地址不能为空', 'error');
+                return false;
+            }
+            if (!config.clientId) {
+                log('客户端ID不能为空', 'error');
+                return false;
+            }
+            return true;
         }
 
         initApp();

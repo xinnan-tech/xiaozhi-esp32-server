@@ -121,7 +121,7 @@ public class LoginController {
     @Operation(summary = "公共配置")
     public Result<Map<String, Object>> pubConfig() {
         Map<String, Object> config = new HashMap<>();
-        config.put("version", "0.3.4");
+        config.put("version", "0.3.5");
         config.put("allowUserRegister", sysUserService.getAllowUserRegister());
         return new Result<Map<String, Object>>().ok(config);
     }

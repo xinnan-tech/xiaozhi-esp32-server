@@ -4,6 +4,7 @@ import json
 import requests
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
+from core.utils.util import parse_string_to_list
 
 
 class TTSProvider(TTSProviderBase):
@@ -40,7 +41,7 @@ class TTSProvider(TTSProviderBase):
             **config.get("pronunciation_dict", {}),
         }
         self.audio_setting = {**defult_audio_setting, **config.get("audio_setting", {})}
-        self.timber_weights = config.get("timber_weights", [])
+        self.timber_weights = parse_string_to_list(config.get("timber_weights"))
 
         if self.voice_id:
             self.voice_setting["voice_id"] = self.voice_id

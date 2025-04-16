@@ -163,6 +163,24 @@ def check_model_key(modelType, modelKey):
     return True
 
 
+def parse_string_to_list(value, separator=";"):
+    """
+    将输入值转换为列表
+    Args:
+        value: 输入值，可以是 None、字符串或列表
+        separator: 分隔符，默认为分号
+    Returns:
+        list: 处理后的列表
+    """
+    if value is None or value == "":
+        return []
+    elif isinstance(value, str):
+        return [item.strip() for item in value.split(separator) if item.strip()]
+    elif isinstance(value, list):
+        return value
+    return []
+
+
 def check_ffmpeg_installed():
     ffmpeg_installed = False
     try:
@@ -231,7 +249,7 @@ def initialize_modules(
         modules["tts"] = tts.create_instance(
             tts_type,
             config["TTS"][select_tts_module],
-            bool(config.get("delete_audio", True)),
+            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
         )
         logger.bind(tag=TAG).info(f"初始化组件: tts成功 {select_tts_module}")
 
@@ -302,7 +320,7 @@ def initialize_modules(
         modules["asr"] = asr.create_instance(
             asr_type,
             config["ASR"][select_asr_module],
-            bool(config.get("delete_audio", True)),
+            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
         )
         logger.bind(tag=TAG).info(f"初始化组件: asr成功 {select_asr_module}")
 
