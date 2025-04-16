@@ -1,5 +1,7 @@
 import os
+import time
 from typing import Optional, Dict
+
 import httpx
 
 TAG = __name__
@@ -42,6 +44,8 @@ class ManageApiClient:
             raise Exception("请先配置manager-api的secret")
 
         cls._secret = cls.config.get('secret')
+        cls.max_retries = cls.config.get('max_retries', 3)  # 最大重试次数
+        cls.retry_delay = cls.config.get('retry_delay', 1)  # 初始重试延迟(秒)
         # NOTE(goody): 2025/4/16 http相关资源统一管理，后续可以增加线程池或者超时
         # 后续也可以统一配置apiToken之类的走通用的Auth
         cls._client = httpx.Client(
@@ -50,30 +54,62 @@ class ManageApiClient:
                 "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
                 "Accept": "application/json"
             },
+            timeout=cls.config.get('timeout', 30),  # 默认超时时间30秒
         )
 
     @classmethod
+    def _request(cls, method: str, endpoint: str, **kwargs) -> Dict:
+        """发送单次HTTP请求并处理响应"""
+        endpoint = endpoint.lstrip("/")
+        response = cls._client.request(method, endpoint, **kwargs)
+        response.raise_for_status()
+
+        result = response.json()
+
+        # 处理API返回的业务错误
+        if result.get("code") == 10041:
+            raise DeviceNotFoundException(result.get("msg"))
+        elif result.get("code") == 10042:
+            raise DeviceBindException(result.get("msg"))
+        elif result.get("code") != 0:
+            raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
+
+        # 返回成功数据
+        return result.get("data") if result.get("code") == 0 else None
+
+    @classmethod
+    def _should_retry(cls, exception: Exception) -> bool:
+        """判断异常是否应该重试"""
+        # 网络连接相关错误
+        if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError)):
+            return True
+
+        # HTTP状态码错误
+        if isinstance(exception, httpx.HTTPStatusError):
+            status_code = exception.response.status_code
+            return status_code in [408, 429, 500, 502, 503, 504]
+
+        return False
+
+    @classmethod
     def _execute_request(cls, method: str, endpoint: str, **kwargs) -> Dict:
-        """增强型请求执行器"""
-        try:
-            response = cls._client.request(
-                method,
-                endpoint.lstrip("/"),
-                **kwargs
-            )
-            response.raise_for_status()
-            result = response.json()
-            if result.get("code") == 10041:
-                raise DeviceNotFoundException(result.get("msg"))
-            elif result.get("code") == 10042:
-                raise DeviceBindException(result.get("msg"))
-            elif result.get("code") != 0:
-                raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
-            if result.get("code") == 0:
-                return result["data"]
-            return None
-        except Exception as e:
-            raise
+        """带重试机制的请求执行器"""
+        retry_count = 0
+
+        while retry_count <= cls.max_retries:
+            try:
+                # 执行请求
+                return cls._request(method, endpoint, **kwargs)
+            except Exception as e:
+                # 判断是否应该重试
+                if retry_count < cls.max_retries and cls._should_retry(e):
+                    retry_count += 1
+                    print(f"{method} {endpoint} 请求失败，将在 {cls.retry_delay:.1f} 秒后进行第 {retry_count} 次重试")
+                    time.sleep(cls.retry_delay)
+                    continue
+                else:
+                    # 不重试，直接抛出异常
+                    raise
 
     @classmethod
     def safe_close(cls):
