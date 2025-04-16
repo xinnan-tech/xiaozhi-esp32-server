@@ -45,7 +45,7 @@ class ManageApiClient:
 
         cls._secret = cls.config.get('secret')
         cls.max_retries = cls.config.get('max_retries', 3)  # 最大重试次数
-        cls.retry_delay = cls.config.get('retry_delay', 1)  # 初始重试延迟(秒)
+        cls.retry_delay = cls.config.get('retry_delay', 10)  # 初始重试延迟(秒)
         # NOTE(goody): 2025/4/16 http相关资源统一管理，后续可以增加线程池或者超时
         # 后续也可以统一配置apiToken之类的走通用的Auth
         cls._client = httpx.Client(
