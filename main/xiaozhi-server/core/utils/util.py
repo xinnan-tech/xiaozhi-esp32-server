@@ -231,7 +231,7 @@ def initialize_modules(
         modules["tts"] = tts.create_instance(
             tts_type,
             config["TTS"][select_tts_module],
-            bool(config.get("delete_audio", True)),
+            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
         )
         logger.bind(tag=TAG).info(f"初始化组件: tts成功 {select_tts_module}")
 
@@ -302,7 +302,7 @@ def initialize_modules(
         modules["asr"] = asr.create_instance(
             asr_type,
             config["ASR"][select_asr_module],
-            bool(config.get("delete_audio", True)),
+            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
         )
         logger.bind(tag=TAG).info(f"初始化组件: asr成功 {select_asr_module}")
 

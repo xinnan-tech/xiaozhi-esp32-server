@@ -24,7 +24,7 @@ class TTSProvider(TTSProviderBase):
         self.speed = float(config.get("speed", 1.0))
         self.inp_refs = config.get("inp_refs", [])
         self.sample_steps = int(config.get("sample_steps", 32))
-        self.if_sr = bool(config.get("if_sr", False))
+        self.if_sr = str(config.get("if_sr", False)).lower() in ("true", "1", "yes")
 
     def generate_filename(self, extension=".wav"):
         return os.path.join(

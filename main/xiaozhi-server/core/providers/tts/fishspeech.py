@@ -101,9 +101,13 @@ class TTSProvider(TTSProviderBase):
         self.top_p = float(config.get("top_p", 0.7))
         self.repetition_penalty = float(config.get("repetition_penalty", 1.2))
         self.temperature = float(config.get("temperature", 0.7))
-        self.streaming = bool(config.get("streaming", False))
+        self.streaming = str(config.get("streaming", False)).lower() in (
+            "true",
+            "1",
+            "yes",
+        )
         self.use_memory_cache = config.get("use_memory_cache", "on")
-        self.seed = config.get("seed")
+        self.seed = config.get("seed") or None
         self.api_url = config.get("api_url", "http://127.0.0.1:8080/v1/tts")
 
     def generate_filename(self, extension=".wav"):
