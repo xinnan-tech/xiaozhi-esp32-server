@@ -163,6 +163,24 @@ def check_model_key(modelType, modelKey):
     return True
 
 
+def parse_string_to_list(value, separator=";"):
+    """
+    将输入值转换为列表
+    Args:
+        value: 输入值，可以是 None、字符串或列表
+        separator: 分隔符，默认为分号
+    Returns:
+        list: 处理后的列表
+    """
+    if value is None or value == "":
+        return []
+    elif isinstance(value, str):
+        return [item.strip() for item in value.split(separator) if item.strip()]
+    elif isinstance(value, list):
+        return value
+    return []
+
+
 def check_ffmpeg_installed():
     ffmpeg_installed = False
     try:

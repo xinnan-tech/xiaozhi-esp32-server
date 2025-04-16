@@ -6,6 +6,7 @@ import requests
 from config.logger import setup_logging
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
+from core.utils.util import parse_string_to_list
 
 TAG = __name__
 logger = setup_logging()
@@ -49,7 +50,9 @@ class TTSProvider(TTSProviderBase):
             "yes",
         )
         self.repetition_penalty = float(config.get("repetition_penalty", 1.35))
-        self.aux_ref_audio_paths = config.get("aux_ref_audio_paths", [])
+        self.aux_ref_audio_paths = parse_string_to_list(
+            config.get("aux_ref_audio_paths")
+        )
 
     def generate_filename(self, extension=".wav"):
         return os.path.join(

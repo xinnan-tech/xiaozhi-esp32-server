@@ -4,6 +4,7 @@ import requests
 from config.logger import setup_logging
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
+from core.utils.util import parse_string_to_list
 
 TAG = __name__
 logger = setup_logging()
@@ -22,7 +23,7 @@ class TTSProvider(TTSProviderBase):
         self.temperature = float(config.get("temperature", 1.0))
         self.cut_punc = config.get("cut_punc", "")
         self.speed = float(config.get("speed", 1.0))
-        self.inp_refs = config.get("inp_refs", [])
+        self.inp_refs = parse_string_to_list(config.get("inp_refs"))
         self.sample_steps = int(config.get("sample_steps", 32))
         self.if_sr = str(config.get("if_sr", False)).lower() in ("true", "1", "yes")
 

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, conint, model_validator
 from typing_extensions import Annotated
 from datetime import datetime
 from typing import Literal
-from core.utils.util import check_model_key
+from core.utils.util import check_model_key, parse_string_to_list
 from core.providers.tts.base import TTSProviderBase
 from config.logger import setup_logging
 
@@ -86,8 +86,8 @@ class TTSProvider(TTSProviderBase):
         super().__init__(config, delete_audio_file)
 
         self.reference_id = config.get("reference_id")
-        self.reference_audio = config.get("reference_audio", [])
-        self.reference_text = config.get("reference_text", [])
+        self.reference_audio = parse_string_to_list(config.get("reference_audio"))
+        self.reference_text = parse_string_to_list(config.get("reference_text"))
         self.format = config.get("format", "wav")
         self.channels = int(config.get("channels", 1))
         self.rate = int(config.get("rate", 44100))
