@@ -27,11 +27,8 @@ from core.handle.functionHandler import FunctionHandler
 from plugins_func.register import Action, ActionResponse
 from core.auth import AuthMiddleware, AuthenticationError
 from core.mcp.manager import MCPManager
-from config.config_loader import (
-    get_private_config_from_api,
-    DeviceNotFoundException,
-    DeviceBindException,
-)
+from config.config_loader import get_private_config_from_api
+from config.manage_api_client import DeviceNotFoundException, DeviceBindException
 
 TAG = __name__
 
@@ -112,6 +109,11 @@ class ConnectionHandler:
         self.close_after_chat = False  # 是否在聊天结束后关闭连接
         self.use_function_call_mode = False
 
+        self.timeout_task = None
+        self.timeout_seconds = (
+            int(self.config.get("close_connection_no_voice_time", 120)) + 60
+        )  # 在原来第一道关闭的基础上加60秒，进行二道关闭
+
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
@@ -149,6 +151,9 @@ class ConnectionHandler:
             # 认证通过,继续处理
             self.websocket = ws
             self.session_id = str(uuid.uuid4())
+
+            # 启动超时检查任务
+            self.timeout_task = asyncio.create_task(self._check_timeout())
 
             self.welcome_msg = self.config["xiaozhi"]
             self.welcome_msg["session_id"] = self.session_id
@@ -195,6 +200,11 @@ class ConnectionHandler:
 
     async def _route_message(self, message):
         """消息路由"""
+        # 重置超时计时器
+        if self.timeout_task:
+            self.timeout_task.cancel()
+            self.timeout_task = asyncio.create_task(self._check_timeout())
+
         if isinstance(message, str):
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
@@ -497,7 +507,7 @@ class ConnectionHandler:
         function_id = None
         function_arguments = ""
         content_arguments = ""
- 
+
         for response in llm_responses:
             content, tools_call = response
 
@@ -506,7 +516,7 @@ class ConnectionHandler:
                 tools_call = None
             if content is not None and len(content) > 0:
                 content_arguments += content
-          
+
             if not tool_call_flag and content_arguments.startswith("<tool_call>"):
                 # print("content_arguments", content_arguments)
                 tool_call_flag = True
@@ -679,7 +689,6 @@ class ConnectionHandler:
             self.tts_queue.put(future)
             self.dialogue.put(Message(role="assistant", content=text))
         elif result.action == Action.REQLLM:  # 调用函数后再请求llm生成回复
-
             text = result.result
             if text is not None and len(text) > 0:
                 function_id = function_call_data["id"]
@@ -706,18 +715,14 @@ class ConnectionHandler:
                     Message(role="tool", tool_call_id=function_id, content=text)
                 )
                 self.chat_with_function_calling(text, tool_call=True)
-        elif result.action == Action.NOTFOUND:
+        elif result.action == Action.NOTFOUND or result.action == Action.ERROR:
             text = result.result
             self.recode_first_last_text(text, text_index)
             future = self.executor.submit(self.speak_and_play, text, text_index)
             self.tts_queue.put(future)
             self.dialogue.put(Message(role="assistant", content=text))
         else:
-            text = result.result
-            self.recode_first_last_text(text, text_index)
-            future = self.executor.submit(self.speak_and_play, text, text_index)
-            self.tts_queue.put(future)
-            self.dialogue.put(Message(role="assistant", content=text))
+            pass
 
     def _tts_priority_thread(self):
         while not self.stop_event.is_set():
@@ -831,6 +836,11 @@ class ConnectionHandler:
 
     async def close(self, ws=None):
         """资源清理方法"""
+        # 取消超时任务
+        if self.timeout_task:
+            self.timeout_task.cancel()
+            self.timeout_task = None
+
         # 清理MCP资源
         if hasattr(self, "mcp_manager") and self.mcp_manager:
             await self.mcp_manager.cleanup_all()
@@ -884,3 +894,15 @@ class ConnectionHandler:
             self.close_after_chat = True
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"Chat and close error: {str(e)}")
+
+    async def _check_timeout(self):
+        """检查连接超时"""
+        try:
+            while not self.stop_event.is_set():
+                await asyncio.sleep(self.timeout_seconds)
+                if not self.stop_event.is_set():
+                    self.logger.bind(tag=TAG).info("连接超时，准备关闭")
+                    await self.close(self.websocket)
+                    break
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"超时检查任务出错: {e}")

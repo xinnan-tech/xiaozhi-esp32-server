@@ -32,29 +32,29 @@ class ManageApiClient:
     @classmethod
     def _init_client(cls, config):
         """初始化持久化连接池"""
-        cls.config = config.get('manager-api')
+        cls.config = config.get("manager-api")
 
         if not cls.config:
             raise Exception("manager-api配置错误")
 
-        if not cls.config.get('url') or not cls.config.get('secret'):
+        if not cls.config.get("url") or not cls.config.get("secret"):
             raise Exception("manager-api的url或secret配置错误")
 
-        if "你" in cls.config.get('secret'):
+        if "你" in cls.config.get("secret"):
             raise Exception("请先配置manager-api的secret")
 
-        cls._secret = cls.config.get('secret')
-        cls.max_retries = cls.config.get('max_retries', 3)  # 最大重试次数
-        cls.retry_delay = cls.config.get('retry_delay', 10)  # 初始重试延迟(秒)
+        cls._secret = cls.config.get("secret")
+        cls.max_retries = cls.config.get("max_retries", 6)  # 最大重试次数
+        cls.retry_delay = cls.config.get("retry_delay", 10)  # 初始重试延迟(秒)
         # NOTE(goody): 2025/4/16 http相关资源统一管理，后续可以增加线程池或者超时
         # 后续也可以统一配置apiToken之类的走通用的Auth
         cls._client = httpx.Client(
-            base_url=cls.config.get('url'),
+            base_url=cls.config.get("url"),
             headers={
                 "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
-                "Accept": "application/json"
+                "Accept": "application/json",
             },
-            timeout=cls.config.get('timeout', 30),  # 默认超时时间30秒
+            timeout=cls.config.get("timeout", 30),  # 默认超时时间30秒
         )
 
     @classmethod
@@ -81,7 +81,9 @@ class ManageApiClient:
     def _should_retry(cls, exception: Exception) -> bool:
         """判断异常是否应该重试"""
         # 网络连接相关错误
-        if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError)):
+        if isinstance(
+            exception, (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError)
+        ):
             return True
 
         # HTTP状态码错误
@@ -104,7 +106,9 @@ class ManageApiClient:
                 # 判断是否应该重试
                 if retry_count < cls.max_retries and cls._should_retry(e):
                     retry_count += 1
-                    print(f"{method} {endpoint} 请求失败，将在 {cls.retry_delay:.1f} 秒后进行第 {retry_count} 次重试")
+                    print(
+                        f"{method} {endpoint} 请求失败，将在 {cls.retry_delay:.1f} 秒后进行第 {retry_count} 次重试"
+                    )
                     time.sleep(cls.retry_delay)
                     continue
                 else:
@@ -122,15 +126,13 @@ class ManageApiClient:
 def get_server_config() -> Optional[Dict]:
     """获取服务器基础配置"""
     return ManageApiClient._instance._execute_request(
-        "POST",
-        "/config/server-base",
-        json={
-            "secret": ManageApiClient._secret
-        }
+        "POST", "/config/server-base", json={"secret": ManageApiClient._secret}
     )
 
 
-def get_agent_models(mac_address: str, client_id: str, selected_module: Dict) -> Optional[Dict]:
+def get_agent_models(
+    mac_address: str, client_id: str, selected_module: Dict
+) -> Optional[Dict]:
     """获取代理模型配置"""
     return ManageApiClient._instance._execute_request(
         "POST",
@@ -139,8 +141,8 @@ def get_agent_models(mac_address: str, client_id: str, selected_module: Dict) ->
             "secret": ManageApiClient._secret,
             "macAddress": mac_address,
             "clientId": client_id,
-            "selectedModule": selected_module
-        }
+            "selectedModule": selected_module,
+        },
     )
 
 
