@@ -159,8 +159,10 @@ class ConnectionHandler:
             self.welcome_msg["session_id"] = self.session_id
             await self.websocket.send(json.dumps(self.welcome_msg))
 
+            # 获取差异化配置
+            private_config = self._initialize_private_config()
             # 异步初始化
-            self.executor.submit(self._initialize_components)
+            self.executor.submit(self._initialize_components, private_config)
             # tts 消化线程
             self.tts_priority_thread = threading.Thread(
                 target=self._tts_priority_thread, daemon=True
@@ -210,12 +212,9 @@ class ConnectionHandler:
         elif isinstance(message, bytes):
             await handleAudioMessage(self, message)
 
-    def _initialize_components(self):
+    def _initialize_components(self, private_config):
         """初始化组件"""
-        self._initialize_models()
-
-        """加载提示词"""
-        self.dialogue.put(Message(role="system", content=self.prompt))
+        self._initialize_models(private_config)
 
         """加载记忆"""
         self._initialize_memory()
@@ -229,20 +228,23 @@ class ConnectionHandler:
 
             self.dialogue.update_system_message(self.prompt)
 
-    def _initialize_models(self):
+    def _initialize_private_config(self):
         read_config_from_api = self.config.get("read_config_from_api", False)
         """如果是从配置文件获取，则进行二次实例化"""
         if not read_config_from_api:
             return
         """从接口获取差异化的配置进行二次实例化，非全量重新实例化"""
         try:
+            begin_time = time.time()
             private_config = get_private_config_from_api(
                 self.config,
                 self.headers.get("device-id", None),
                 self.headers.get("client-id", None),
             )
             private_config["delete_audio"] = bool(self.config.get("delete_audio", True))
-            self.logger.bind(tag=TAG).info(f"获取差异化配置成功: {private_config}")
+            self.logger.bind(tag=TAG).info(
+                f"{time.time() - begin_time} 秒，获取差异化配置成功: {private_config}"
+            )
         except DeviceNotFoundException as e:
             self.need_bind = True
             private_config = {}
@@ -255,8 +257,37 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"获取差异化配置失败: {e}")
             private_config = {}
 
-        init_vad, init_asr, init_llm, init_tts, init_memory, init_intent = (
-            False,
+        init_tts = False
+        if private_config.get("TTS", None) is not None:
+            init_tts = True
+            self.config["TTS"] = private_config["TTS"]
+            self.config["selected_module"]["TTS"] = private_config["selected_module"][
+                "TTS"
+            ]
+
+        try:
+            modules = initialize_modules(
+                self.logger,
+                private_config,
+                False,
+                False,
+                False,
+                init_tts,
+                False,
+                False,
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"初始化组件失败: {e}")
+            modules = {}
+        if modules.get("tts", None) is not None:
+            self.tts = modules["tts"]
+        if modules.get("prompt", None) is not None:
+            self.change_system_prompt(modules["prompt"])
+            private_config["prompt"] = None
+        return private_config
+
+    def _initialize_models(self, private_config):
+        init_vad, init_asr, init_llm, init_memory, init_intent = (
             False,
             False,
             False,
@@ -281,12 +312,7 @@ class ConnectionHandler:
             self.config["selected_module"]["LLM"] = private_config["selected_module"][
                 "LLM"
             ]
-        if private_config.get("TTS", None) is not None:
-            init_tts = True
-            self.config["TTS"] = private_config["TTS"]
-            self.config["selected_module"]["TTS"] = private_config["selected_module"][
-                "TTS"
-            ]
+
         if private_config.get("Memory", None) is not None:
             init_memory = True
             self.config["Memory"] = private_config["Memory"]
@@ -306,7 +332,7 @@ class ConnectionHandler:
                 init_vad,
                 init_asr,
                 init_llm,
-                init_tts,
+                False,
                 init_memory,
                 init_intent,
             )
@@ -317,16 +343,12 @@ class ConnectionHandler:
             self.vad = modules["vad"]
         if modules.get("asr", None) is not None:
             self.asr = modules["asr"]
-        if modules.get("tts", None) is not None:
-            self.tts = modules["tts"]
         if modules.get("llm", None) is not None:
             self.llm = modules["llm"]
         if modules.get("intent", None) is not None:
             self.intent = modules["intent"]
         if modules.get("memory", None) is not None:
             self.memory = modules["memory"]
-        if modules.get("prompt", None) is not None:
-            self.change_system_prompt(modules["prompt"])
 
     def _initialize_memory(self):
         """初始化记忆模块"""
