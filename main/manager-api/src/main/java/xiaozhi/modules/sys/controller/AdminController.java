@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
+import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.validator.ValidatorUtils;
 import xiaozhi.modules.device.dto.DevicePageUserDTO;
@@ -42,6 +43,8 @@ public class AdminController {
     private final SysUserService sysUserService;
 
     private final DeviceService deviceService;
+
+    private final RedisUtils redisUtils;
 
     @GetMapping("/users")
     @Operation(summary = "分页查找用户")
@@ -106,5 +109,13 @@ public class AdminController {
         ValidatorUtils.validateEntity(dto);
         PageData<UserShowDeviceListVO> page = deviceService.page(dto);
         return new Result<PageData<UserShowDeviceListVO>>().ok(page);
+    }
+
+    @GetMapping("/emptyKey/all")
+    @Operation(summary = "清空所有key")
+    @RequiresPermissions("sys:role:superAdmin")
+    public Result<Void> emptyAll() {
+        redisUtils.emptyAll();
+        return new Result<Void>();
     }
 }
