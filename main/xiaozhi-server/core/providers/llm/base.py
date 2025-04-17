@@ -26,7 +26,7 @@ class LLMProviderBase(ABC):
             logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
             return "【LLM服务响应异常】"
     
-    def response_with_functions(self, session_id, dialogue, functions=None):
+    def response_with_functions(self, session_id, dialogue, functions=None, use_system_prompt=False):
         """
         Default implementation for function calling (streaming)
         This should be overridden by providers that support function calls

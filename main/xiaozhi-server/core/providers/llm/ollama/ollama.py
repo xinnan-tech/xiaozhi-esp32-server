@@ -49,7 +49,7 @@ class LLMProvider(LLMProviderBase):
             logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
             yield "【Ollama服务响应异常】"
 
-    def response_with_functions(self, session_id, dialogue, functions=None):
+    def response_with_functions(self, session_id, dialogue, functions=None, use_system_prompt=False):
         try:
             stream = self.client.chat.completions.create(
                 model=self.model_name,

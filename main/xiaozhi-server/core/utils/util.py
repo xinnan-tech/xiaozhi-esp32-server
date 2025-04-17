@@ -4,7 +4,7 @@ import subprocess
 import re
 import requests
 from typing import Dict, Any
-from core.utils import tts, llm, intent, memory, vad, asr
+from core.utils import tts, llm, memory, vad, asr
 
 TAG = __name__
 
@@ -266,20 +266,6 @@ def initialize_modules(
             config["LLM"][select_llm_module],
         )
         logger.bind(tag=TAG).info(f"初始化组件: llm成功 {select_llm_module}")
-
-    # 初始化Intent模块
-    if init_intent:
-        select_intent_module = config["selected_module"]["Intent"]
-        intent_type = (
-            select_intent_module
-            if "type" not in config["Intent"][select_intent_module]
-            else config["Intent"][select_intent_module]["type"]
-        )
-        modules["intent"] = intent.create_instance(
-            intent_type,
-            config["Intent"][select_intent_module],
-        )
-        logger.bind(tag=TAG).info(f"初始化组件: intent成功 {select_intent_module}")
 
     # 初始化Memory模块
     if init_memory:

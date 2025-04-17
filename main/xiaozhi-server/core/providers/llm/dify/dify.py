@@ -83,7 +83,7 @@ class LLMProvider(LLMProviderBase):
             logger.bind(tag=TAG).error(f"Error in response generation: {e}")
             yield "【服务响应异常】"
 
-    def response_with_functions(self, session_id, dialogue, functions=None):    
+    def response_with_functions(self, session_id, dialogue, functions=None, use_system_prompt=False):    
         if len(dialogue) == 2 and functions is not None and len(functions) > 0:
             # 第一次调用llm， 取最后一条用户消息，附加tool提示词
             last_msg = dialogue[-1]["content"]

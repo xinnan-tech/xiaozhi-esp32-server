@@ -48,7 +48,7 @@ class LLMProvider(LLMProviderBase):
                 print(event.message.content, end="", flush=True)
                 yield event.message.content
 
-    def response_with_functions(self, session_id, dialogue, functions=None):    
+    def response_with_functions(self, session_id, dialogue, functions=None, use_system_prompt=False):    
         if len(dialogue) == 2 and functions is not None and len(functions) > 0:
             # 第一次调用llm， 取最后一条用户消息，附加tool提示词
             last_msg = dialogue[-1]["content"]

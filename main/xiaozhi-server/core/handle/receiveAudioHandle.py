@@ -3,7 +3,7 @@ import time
 import asyncio
 from core.utils.util import remove_punctuation_and_length
 from core.handle.sendAudioHandle import send_stt_message
-from core.handle.intentHandler import handle_user_intent
+from core.handle.helloHandle import checkWakeupWords
 
 TAG = __name__
 logger = setup_logging()
@@ -47,6 +47,29 @@ async def handleAudioMessage(conn, audio):
         conn.reset_vad_states()
 
 
+async def handle_user_intent(conn, text):
+    # 检查是否有明确的退出命令
+    if await check_direct_exit(conn, text):
+        return True
+    # 检查是否是唤醒词
+    if await checkWakeupWords(conn, text):
+        return True
+    
+    return False
+
+
+async def check_direct_exit(conn, text):
+    """检查是否有明确的退出命令"""
+    _, text = remove_punctuation_and_length(text)
+    cmd_exit = conn.cmd_exit
+    for cmd in cmd_exit:
+        if text == cmd:
+            logger.bind(tag=TAG).info(f"识别到明确的退出命令: {text}")
+            await send_stt_message(conn, text)
+            await conn.close()
+            return True
+    return False
+
 async def startToChat(conn, text):
     if conn.need_bind:
         await check_bind_device(conn)
@@ -64,6 +87,8 @@ async def startToChat(conn, text):
     if conn.use_function_call_mode:
         # 使用支持function calling的聊天方法
         conn.executor.submit(conn.chat_with_function_calling, text)
+    elif conn.use_function_call_by_prompt:
+        conn.executor.submit(conn.chat_with_function_calling, text, False, True)
     else:
         conn.executor.submit(conn.chat, text)
 

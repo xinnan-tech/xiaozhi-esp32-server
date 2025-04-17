@@ -2,6 +2,8 @@ import openai
 from config.logger import setup_logging
 from core.utils.util import check_model_key
 from core.providers.llm.base import LLMProviderBase
+from core.providers.llm.system_prompt import get_system_prompt_for_function
+import json
 
 TAG = __name__
 logger = setup_logging()
@@ -63,11 +65,29 @@ class LLMProvider(LLMProviderBase):
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in response generation: {e}")
 
-    def response_with_functions(self, session_id, dialogue, functions=None):
+    def response_with_functions(self, session_id, dialogue, functions=None, use_system_prompt=False):
         try:
-            stream = self.client.chat.completions.create(
-                model=self.model_name, messages=dialogue, stream=True, tools=functions
-            )
+            if not use_system_prompt:
+                stream = self.client.chat.completions.create(
+                    model=self.model_name, messages=dialogue, stream=True, tools=functions
+                )
+            else:
+                print(dialogue)
+                # 使用系统提示词， 需要将functions添加到对话中
+                system_prompt = dialogue[0]["content"]
+                if system_prompt == None :
+                    system_prompt = ""
+                
+                # 将functions转换为字符串格式
+                function_str = json.dumps(functions, ensure_ascii=False)
+           
+                print (f"system_prompt: {system_prompt}..")
+                modify_msg = get_system_prompt_for_function(function_str) + system_prompt
+                dialogue[0]["content"] = modify_msg
+
+                stream = self.client.chat.completions.create(
+                    model=self.model_name, messages=dialogue, stream=True
+                )
 
             for chunk in stream:
                 yield chunk.choices[0].delta.content, chunk.choices[0].delta.tool_calls

@@ -18,7 +18,6 @@ class WebSocketServer:
         self._asr = modules["asr"]
         self._tts = modules["tts"]
         self._llm = modules["llm"]
-        self._intent = modules["intent"]
         self._memory = modules["memory"]
         self.active_connections = set()
 
@@ -52,7 +51,6 @@ class WebSocketServer:
             self._llm,
             self._tts,
             self._memory,
-            self._intent,
         )
         self.active_connections.add(handler)
         try:

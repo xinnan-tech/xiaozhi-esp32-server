@@ -44,7 +44,7 @@ class TTSException(RuntimeError):
 
 class ConnectionHandler:
     def __init__(
-        self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _memory, _intent
+        self, config: Dict[str, Any], _vad, _asr, _llm, _tts, _memory
     ):
         self.config = copy.deepcopy(config)
         self.logger = setup_logging()
@@ -78,7 +78,6 @@ class ConnectionHandler:
         self.llm = _llm
         self.tts = _tts
         self.memory = _memory
-        self.intent = _intent
 
         # vad相关变量
         self.client_audio_buffer = bytearray()
@@ -111,6 +110,7 @@ class ConnectionHandler:
 
         self.close_after_chat = False  # 是否在聊天结束后关闭连接
         self.use_function_call_mode = False
+        self.use_function_call_by_prompt = False
 
     async def handle_connection(self, ws):
         try:
@@ -209,8 +209,10 @@ class ConnectionHandler:
 
         """加载记忆"""
         self._initialize_memory()
+
         """加载意图识别"""
         self._initialize_intent()
+
         """加载位置信息"""
         self.client_ip_info = get_ip_info(self.client_ip, self.logger)
         if self.client_ip_info is not None and "city" in self.client_ip_info:
@@ -311,8 +313,6 @@ class ConnectionHandler:
             self.tts = modules["tts"]
         if modules.get("llm", None) is not None:
             self.llm = modules["llm"]
-        if modules.get("intent", None) is not None:
-            self.intent = modules["intent"]
         if modules.get("memory", None) is not None:
             self.memory = modules["memory"]
         if modules.get("prompt", None) is not None:
@@ -324,44 +324,13 @@ class ConnectionHandler:
         self.memory.init_memory(device_id, self.llm)
 
     def _initialize_intent(self):
-        if (
-            self.config["Intent"][self.config["selected_module"]["Intent"]]["type"]
-            == "function_call"
-        ):
+        intent_type = self.config["Intent"][self.config["selected_module"]["Intent"]]["type"]
+        if (intent_type == "function_call"):
             self.use_function_call_mode = True
-        """初始化意图识别模块"""
-        # 获取意图识别配置
-        intent_config = self.config["Intent"]
-        intent_type = self.config["Intent"][self.config["selected_module"]["Intent"]][
-            "type"
-        ]
-
-        # 如果使用 nointent，直接返回
-        if intent_type == "nointent":
+        elif (intent_type == "intent_llm"):
+            self.use_function_call_by_prompt = True
+        else:
             return
-        # 使用 intent_llm 模式
-        elif intent_type == "intent_llm":
-            intent_llm_name = intent_config[self.config["selected_module"]["Intent"]][
-                "llm"
-            ]
-
-            if intent_llm_name and intent_llm_name in self.config["LLM"]:
-                # 如果配置了专用LLM，则创建独立的LLM实例
-                from core.utils import llm as llm_utils
-
-                intent_llm_config = self.config["LLM"][intent_llm_name]
-                intent_llm_type = intent_llm_config.get("type", intent_llm_name)
-                intent_llm = llm_utils.create_instance(
-                    intent_llm_type, intent_llm_config
-                )
-                self.logger.bind(tag=TAG).info(
-                    f"为意图识别创建了专用LLM: {intent_llm_name}, 类型: {intent_llm_type}"
-                )
-                self.intent.set_llm(intent_llm)
-            else:
-                # 否则使用主LLM
-                self.intent.set_llm(self.llm)
-                self.logger.bind(tag=TAG).info("使用主LLM作为意图识别模型")
 
         """加载插件"""
         self.func_handler = FunctionHandler(self)
@@ -453,7 +422,11 @@ class ConnectionHandler:
         )
         return True
 
-    def chat_with_function_calling(self, query, tool_call=False):
+    # 处理函数调用的结果
+    # query: 用户输入的查询
+    # tool_call: 是否是工具调用
+    # use_system_prompt: 是否使用系统提示词，原则上只有不支持function calling的模型才会使用
+    def chat_with_function_calling(self, query, tool_call=False, use_system_prompt=False):
         self.logger.bind(tag=TAG).debug(f"Chat with function calling start: {query}")
         """Chat with function calling for intent detection using streaming"""
 
@@ -483,6 +456,7 @@ class ConnectionHandler:
                 self.session_id,
                 self.dialogue.get_llm_dialogue_with_memory(memory_str),
                 functions=functions,
+                use_system_prompt=use_system_prompt,
             )
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
@@ -601,7 +575,7 @@ class ConnectionHandler:
                     result = self.func_handler.handle_llm_function_call(
                         self, function_call_data
                     )
-                self._handle_function_result(result, function_call_data, text_index + 1)
+                self._handle_function_result(result, function_call_data, text_index + 1, use_system_prompt)
 
         # 处理最后剩余的文本
         full_text = "".join(response_message)
@@ -671,7 +645,7 @@ class ConnectionHandler:
 
         return ActionResponse(action=Action.REQLLM, result="工具调用出错", response="")
 
-    def _handle_function_result(self, result, function_call_data, text_index):
+    def _handle_function_result(self, result, function_call_data, text_index, use_system_prompt):
         if result.action == Action.RESPONSE:  # 直接回复前端
             text = result.response
             self.recode_first_last_text(text, text_index)
@@ -705,7 +679,7 @@ class ConnectionHandler:
                 self.dialogue.put(
                     Message(role="tool", tool_call_id=function_id, content=text)
                 )
-                self.chat_with_function_calling(text, tool_call=True)
+                self.chat_with_function_calling(text, tool_call=True, use_system_prompt=use_system_prompt)
         elif result.action == Action.NOTFOUND:
             text = result.result
             self.recode_first_last_text(text, text_index)
