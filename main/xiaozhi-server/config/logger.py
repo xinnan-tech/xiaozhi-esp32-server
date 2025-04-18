@@ -3,7 +3,7 @@ import sys
 from loguru import logger
 from config.config_loader import load_config
 
-SERVER_VERSION = "0.3.6"
+SERVER_VERSION = "0.3.7"
 
 
 def get_module_abbreviation(module_name, module_dict):
