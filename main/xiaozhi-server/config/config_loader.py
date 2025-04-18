@@ -1,18 +1,7 @@
 import os
 import argparse
-import requests
 import yaml
-import time
-
-
-class DeviceNotFoundException(Exception):
-    pass
-
-
-class DeviceBindException(Exception):
-    def __init__(self, bind_code):
-        self.bind_code = bind_code
-        super().__init__(f"设备绑定异常，绑定码: {bind_code}")
+from config.manage_api_client import init_service, get_server_config, get_agent_models
 
 
 # 添加全局配置缓存
@@ -65,97 +54,27 @@ def get_config_file():
     return config_file
 
 
-def _make_api_request(api_url, secret, endpoint, json_data=None):
-    """执行API请求的通用函数
-
-    Args:
-        api_url: API的基础URL
-        secret: API密钥
-        endpoint: API端点
-        json_data: 请求的JSON数据
-
-    Returns:
-        dict: API返回的数据
-
-    Raises:
-        Exception: 当请求失败时抛出异常
-    """
-    if not api_url or not secret:
-        raise Exception("manager-api的url或secret配置错误")
-
-    if "你" in secret:
-        raise Exception("请先配置manager-api的secret")
-
-    max_retries = 10
-    retry_delay = 2  # 秒
-
-    for attempt in range(max_retries):
-        try:
-            response = requests.post(f"{api_url}{endpoint}", json=json_data)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("code") == 10041:
-                    raise DeviceNotFoundException(result.get("msg"))
-                elif result.get("code") == 10042:
-                    raise DeviceBindException(result.get("msg"))
-                elif result.get("code") != 0:
-                    raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
-                return result.get("data")
-
-            error_msg = f"manager-api请求失败，状态码: {response.status_code}"
-            try:
-                error_data = response.json()
-                if "msg" in error_data:
-                    error_msg = f"{error_msg}, 错误信息: {error_data['msg']}"
-            except:
-                error_msg = f"{error_msg}, 响应内容: {response.text}"
-
-            if attempt < max_retries - 1:
-                print(f"请求manager-api失败，正在重试 ({attempt + 1}/{max_retries})...")
-                time.sleep(retry_delay)
-            else:
-                raise Exception(error_msg)
-
-        except requests.exceptions.RequestException as e:
-            if attempt < max_retries - 1:
-                print(f"请求manager-api异常，正在重试 ({attempt + 1}/{max_retries})...")
-                time.sleep(retry_delay)
-            else:
-                raise Exception(f"manager-api请求异常: {str(e)}")
-
-
 def get_config_from_api(config):
     """从Java API获取配置"""
-    api_url = config["manager-api"].get("url", "")
-    secret = config["manager-api"].get("secret", "")
+    # 初始化API客户端
+    init_service(config)
 
-    config_data = _make_api_request(
-        api_url, secret, "/config/server-base", {"secret": secret}
-    )
+    # 获取服务器配置
+    config_data = get_server_config()
+    if config_data is None:
+        raise Exception("Failed to fetch server config from API")
+
     config_data["read_config_from_api"] = True
     config_data["manager-api"] = {
-        "url": api_url,
-        "secret": secret,
+        "url": config["manager-api"].get("url", ""),
+        "secret": config["manager-api"].get("secret", ""),
     }
     return config_data
 
 
 def get_private_config_from_api(config, device_id, client_id):
     """从Java API获取私有配置"""
-    api_url = config["manager-api"].get("url", "")
-    secret = config["manager-api"].get("secret", "")
-
-    return _make_api_request(
-        api_url,
-        secret,
-        "/config/agent-models",
-        {
-            "secret": secret,
-            "macAddress": device_id,
-            "clientId": client_id,
-            "selectedModule": config["selected_module"],
-        },
-    )
+    return get_agent_models(device_id, client_id, config["selected_module"])
 
 
 def ensure_directories(config):

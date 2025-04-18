@@ -27,11 +27,8 @@ from core.handle.functionHandler import FunctionHandler
 from plugins_func.register import Action, ActionResponse
 from core.auth import AuthMiddleware, AuthenticationError
 from core.mcp.manager import MCPManager
-from config.config_loader import (
-    get_private_config_from_api,
-    DeviceNotFoundException,
-    DeviceBindException,
-)
+from config.config_loader import get_private_config_from_api
+from config.manage_api_client import DeviceNotFoundException, DeviceBindException
 
 TAG = __name__
 
@@ -112,6 +109,11 @@ class ConnectionHandler:
         self.use_function_call_mode = False
         self.use_function_call_by_prompt = False
 
+        self.timeout_task = None
+        self.timeout_seconds = (
+            int(self.config.get("close_connection_no_voice_time", 120)) + 60
+        )  # 在原来第一道关闭的基础上加60秒，进行二道关闭
+
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
@@ -150,12 +152,17 @@ class ConnectionHandler:
             self.websocket = ws
             self.session_id = str(uuid.uuid4())
 
+            # 启动超时检查任务
+            self.timeout_task = asyncio.create_task(self._check_timeout())
+
             self.welcome_msg = self.config["xiaozhi"]
             self.welcome_msg["session_id"] = self.session_id
             await self.websocket.send(json.dumps(self.welcome_msg))
 
+            # 获取差异化配置
+            private_config = self._initialize_private_config()
             # 异步初始化
-            self.executor.submit(self._initialize_components)
+            self.executor.submit(self._initialize_components, private_config)
             # tts 消化线程
             self.tts_priority_thread = threading.Thread(
                 target=self._tts_priority_thread, daemon=True
@@ -195,17 +202,19 @@ class ConnectionHandler:
 
     async def _route_message(self, message):
         """消息路由"""
+        # 重置超时计时器
+        if self.timeout_task:
+            self.timeout_task.cancel()
+            self.timeout_task = asyncio.create_task(self._check_timeout())
+
         if isinstance(message, str):
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
             await handleAudioMessage(self, message)
 
-    def _initialize_components(self):
+    def _initialize_components(self, private_config):
         """初始化组件"""
-        self._initialize_models()
-
-        """加载提示词"""
-        self.dialogue.put(Message(role="system", content=self.prompt))
+        self._initialize_models(private_config)
 
         """加载记忆"""
         self._initialize_memory()
@@ -221,20 +230,23 @@ class ConnectionHandler:
 
             self.dialogue.update_system_message(self.prompt)
 
-    def _initialize_models(self):
+    def _initialize_private_config(self):
         read_config_from_api = self.config.get("read_config_from_api", False)
         """如果是从配置文件获取，则进行二次实例化"""
         if not read_config_from_api:
             return
         """从接口获取差异化的配置进行二次实例化，非全量重新实例化"""
         try:
+            begin_time = time.time()
             private_config = get_private_config_from_api(
                 self.config,
                 self.headers.get("device-id", None),
                 self.headers.get("client-id", None),
             )
             private_config["delete_audio"] = bool(self.config.get("delete_audio", True))
-            self.logger.bind(tag=TAG).info(f"获取差异化配置成功: {private_config}")
+            self.logger.bind(tag=TAG).info(
+                f"{time.time() - begin_time} 秒，获取差异化配置成功: {private_config}"
+            )
         except DeviceNotFoundException as e:
             self.need_bind = True
             private_config = {}
@@ -247,8 +259,37 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"获取差异化配置失败: {e}")
             private_config = {}
 
-        init_vad, init_asr, init_llm, init_tts, init_memory, init_intent = (
-            False,
+        init_tts = False
+        if private_config.get("TTS", None) is not None:
+            init_tts = True
+            self.config["TTS"] = private_config["TTS"]
+            self.config["selected_module"]["TTS"] = private_config["selected_module"][
+                "TTS"
+            ]
+
+        try:
+            modules = initialize_modules(
+                self.logger,
+                private_config,
+                False,
+                False,
+                False,
+                init_tts,
+                False,
+                False,
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"初始化组件失败: {e}")
+            modules = {}
+        if modules.get("tts", None) is not None:
+            self.tts = modules["tts"]
+        if modules.get("prompt", None) is not None:
+            self.change_system_prompt(modules["prompt"])
+            private_config["prompt"] = None
+        return private_config
+
+    def _initialize_models(self, private_config):
+        init_vad, init_asr, init_llm, init_memory, init_intent = (
             False,
             False,
             False,
@@ -273,12 +314,7 @@ class ConnectionHandler:
             self.config["selected_module"]["LLM"] = private_config["selected_module"][
                 "LLM"
             ]
-        if private_config.get("TTS", None) is not None:
-            init_tts = True
-            self.config["TTS"] = private_config["TTS"]
-            self.config["selected_module"]["TTS"] = private_config["selected_module"][
-                "TTS"
-            ]
+
         if private_config.get("Memory", None) is not None:
             init_memory = True
             self.config["Memory"] = private_config["Memory"]
@@ -298,7 +334,7 @@ class ConnectionHandler:
                 init_vad,
                 init_asr,
                 init_llm,
-                init_tts,
+                False,
                 init_memory,
                 init_intent,
             )
@@ -309,14 +345,10 @@ class ConnectionHandler:
             self.vad = modules["vad"]
         if modules.get("asr", None) is not None:
             self.asr = modules["asr"]
-        if modules.get("tts", None) is not None:
-            self.tts = modules["tts"]
         if modules.get("llm", None) is not None:
             self.llm = modules["llm"]
         if modules.get("memory", None) is not None:
             self.memory = modules["memory"]
-        if modules.get("prompt", None) is not None:
-            self.change_system_prompt(modules["prompt"])
 
     def _initialize_memory(self):
         """初始化记忆模块"""
@@ -471,7 +503,7 @@ class ConnectionHandler:
         function_id = None
         function_arguments = ""
         content_arguments = ""
- 
+
         for response in llm_responses:
             content, tools_call = response
 
@@ -480,7 +512,7 @@ class ConnectionHandler:
                 tools_call = None
             if content is not None and len(content) > 0:
                 content_arguments += content
-          
+
             if not tool_call_flag and content_arguments.startswith("<tool_call>"):
                 # print("content_arguments", content_arguments)
                 tool_call_flag = True
@@ -653,7 +685,6 @@ class ConnectionHandler:
             self.tts_queue.put(future)
             self.dialogue.put(Message(role="assistant", content=text))
         elif result.action == Action.REQLLM:  # 调用函数后再请求llm生成回复
-
             text = result.result
             if text is not None and len(text) > 0:
                 function_id = function_call_data["id"]
@@ -680,18 +711,14 @@ class ConnectionHandler:
                     Message(role="tool", tool_call_id=function_id, content=text)
                 )
                 self.chat_with_function_calling(text, tool_call=True, use_system_prompt=use_system_prompt)
-        elif result.action == Action.NOTFOUND:
+        elif result.action == Action.NOTFOUND or result.action == Action.ERROR:
             text = result.result
             self.recode_first_last_text(text, text_index)
             future = self.executor.submit(self.speak_and_play, text, text_index)
             self.tts_queue.put(future)
             self.dialogue.put(Message(role="assistant", content=text))
         else:
-            text = result.result
-            self.recode_first_last_text(text, text_index)
-            future = self.executor.submit(self.speak_and_play, text, text_index)
-            self.tts_queue.put(future)
-            self.dialogue.put(Message(role="assistant", content=text))
+            pass
 
     def _tts_priority_thread(self):
         while not self.stop_event.is_set():
@@ -805,6 +832,11 @@ class ConnectionHandler:
 
     async def close(self, ws=None):
         """资源清理方法"""
+        # 取消超时任务
+        if self.timeout_task:
+            self.timeout_task.cancel()
+            self.timeout_task = None
+
         # 清理MCP资源
         if hasattr(self, "mcp_manager") and self.mcp_manager:
             await self.mcp_manager.cleanup_all()
@@ -858,3 +890,15 @@ class ConnectionHandler:
             self.close_after_chat = True
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"Chat and close error: {str(e)}")
+
+    async def _check_timeout(self):
+        """检查连接超时"""
+        try:
+            while not self.stop_event.is_set():
+                await asyncio.sleep(self.timeout_seconds)
+                if not self.stop_event.is_set():
+                    self.logger.bind(tag=TAG).info("连接超时，准备关闭")
+                    await self.close(self.websocket)
+                    break
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"超时检查任务出错: {e}")
