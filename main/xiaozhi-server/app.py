@@ -7,7 +7,6 @@ from core.utils.util import check_ffmpeg_installed
 
 TAG = __name__
 
-
 async def wait_for_exit():
     """Windows 和 Linux 兼容的退出监听"""
     loop = asyncio.get_running_loop()
@@ -20,11 +19,9 @@ async def wait_for_exit():
         # Linux/macOS: 用 signal 监听 Ctrl + C
         def stop():
             stop_event.set()
-
         loop.add_signal_handler(signal.SIGINT, stop)
         loop.add_signal_handler(signal.SIGTERM, stop)  # 支持 kill 进程
         await stop_event.wait()
-
 
 async def main():
     check_config_file()
@@ -46,7 +43,6 @@ async def main():
         except asyncio.CancelledError:
             pass
         print("服务器已关闭，程序退出。")
-
 
 if __name__ == "__main__":
     try:

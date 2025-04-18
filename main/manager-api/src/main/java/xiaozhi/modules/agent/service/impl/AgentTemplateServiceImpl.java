@@ -3,7 +3,6 @@ package xiaozhi.modules.agent.service.impl;
 import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 import xiaozhi.modules.agent.dao.AgentTemplateDao;
@@ -29,41 +28,5 @@ public class AgentTemplateServiceImpl extends ServiceImpl<AgentTemplateDao, Agen
         wrapper.orderByAsc(AgentTemplateEntity::getSort)
                 .last("LIMIT 1");
         return this.getOne(wrapper);
-    }
-
-    /**
-     * 更新默认模板中的模型ID
-     * 
-     * @param modelType 模型类型
-     * @param modelId   模型ID
-     */
-    @Override
-    public void updateDefaultTemplateModelId(String modelType, String modelId) {
-        modelType = modelType.toUpperCase();
-
-        UpdateWrapper<AgentTemplateEntity> wrapper = new UpdateWrapper<>();
-        switch (modelType) {
-            case "ASR":
-                wrapper.set("asr_model_id", modelId);
-                break;
-            case "VAD":
-                wrapper.set("vad_model_id", modelId);
-                break;
-            case "LLM":
-                wrapper.set("llm_model_id", modelId);
-                break;
-            case "TTS":
-                wrapper.set("tts_model_id", modelId);
-                wrapper.set("tts_voice_id", null);
-                break;
-            case "MEMORY":
-                wrapper.set("mem_model_id", modelId);
-                break;
-            case "INTENT":
-                wrapper.set("intent_model_id", modelId);
-                break;
-        }
-        wrapper.ge("sort", 0);
-        update(wrapper);
     }
 }

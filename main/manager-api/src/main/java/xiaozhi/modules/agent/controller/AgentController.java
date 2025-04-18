@@ -191,5 +191,4 @@ public class AgentController {
                 .list(new QueryWrapper<AgentTemplateEntity>().orderByAsc("sort"));
         return new Result<List<AgentTemplateEntity>>().ok(list);
     }
-
 }

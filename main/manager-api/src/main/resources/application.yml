@@ -64,3 +64,6 @@ mybatis-plus:
     prefix:
     blobType: BLOB
     boolValue: TRUE
+
+app:
+  fronted-url: http://localhost:8001

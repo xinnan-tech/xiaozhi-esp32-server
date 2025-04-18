@@ -30,7 +30,6 @@ import xiaozhi.modules.sys.dto.PasswordDTO;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.entity.SysUserEntity;
 import xiaozhi.modules.sys.enums.SuperAdminEnum;
-import xiaozhi.modules.sys.service.SysParamsService;
 import xiaozhi.modules.sys.service.SysUserService;
 import xiaozhi.modules.sys.vo.AdminPageUserVO;
 
@@ -45,8 +44,6 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
     private final DeviceService deviceService;
 
     private final AgentService agentService;
-
-    private final SysParamsService sysParamsService;
 
     @Override
     public SysUserDTO getByUsername(String username) {
@@ -207,18 +204,5 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
             entity.setStatus(status);
             updateById(entity);
         }
-    }
-
-    @Override
-    public boolean getAllowUserRegister() {
-        String allowUserRegister = sysParamsService.getValue(Constant.SERVER_ALLOW_USER_REGISTER, true);
-        if (allowUserRegister.equals("true")) {
-            return true;
-        }
-        Long userCount = baseDao.selectCount(new QueryWrapper<SysUserEntity>());
-        if (userCount == 0) {
-            return true;
-        }
-        return false;
     }
 }

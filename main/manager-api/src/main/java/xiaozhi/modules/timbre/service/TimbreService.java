@@ -31,7 +31,7 @@ public interface TimbreService extends BaseService<TimbreEntity> {
      * @param timbreId 音色表id
      * @return 音色信息
      */
-    TimbreDetailsVO get(String timbreId);
+    TimbreDetailsVO get(Long timbreId);
 
     /**
      * 保存音色信息

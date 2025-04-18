@@ -38,14 +38,7 @@ public class RedisKeys {
      * 模型名称的Key
      */
     public static String getModelNameById(String id) {
-        return "model:name:" + id;
-    }
-
-    /**
-     * 模型配置的Key
-     */
-    public static String getModelConfigById(String id) {
-        return "model:data:" + id;
+        return "sys:model:name:" + id;
     }
 
     /**
@@ -60,19 +53,5 @@ public class RedisKeys {
      */
     public static String getAgentDeviceCountById(String id) {
         return "agent:device:count:" + id;
-    }
-
-    /**
-     * 获取系统配置缓存key
-     */
-    public static String getServerConfigKey() {
-        return "server:config";
-    }
-
-    /**
-     * 获取音色详情缓存key
-     */
-    public static String getTimbreDetailsKey(String id) {
-        return "timbre:details:" + id;
     }
 }

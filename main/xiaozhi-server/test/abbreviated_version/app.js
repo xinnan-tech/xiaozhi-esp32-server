@@ -992,9 +992,7 @@ function connectToServer() {
 
             if(connectButton.id === "connectButton") {
                 connectButton.textContent = '断开';
-                // connectButton.onclick = disconnectFromServer;
-                connectButton.removeEventListener("click", connectToServer);
-                connectButton.addEventListener("click", disconnectFromServer);
+                connectButton.onclick = disconnectFromServer;
             }
             
             if(messageInput.id === "messageInput") {
@@ -1013,9 +1011,7 @@ function connectToServer() {
 
             if(connectButton.id === "connectButton") {
                 connectButton.textContent = '连接';
-                // connectButton.onclick = connectToServer;
-                connectButton.removeEventListener("click", disconnectFromServer);
-                connectButton.addEventListener("click", connectToServer);
+                connectButton.onclick = connectToServer;
             }
             
             if(messageInput.id === "messageInput") {
@@ -1179,7 +1175,7 @@ function updateStatus(message, type = 'info') {
 // 处理文本消息
 function handleTextMessage(message) {
     if (message.type === 'hello') {
-        console.log(`服务器回应：${JSON.stringify(message, null, 2)}`);
+        console.log(`服务器回应：${message.message}`);
     } else if (message.type === 'tts') {
         // TTS状态消息
         if (message.state === 'start') {

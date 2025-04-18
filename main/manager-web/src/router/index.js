@@ -80,6 +80,17 @@ const routes = [
       title: '参数管理'
     }
   },
+  {
+    path: '/ota-management',
+    name: 'OtaManagement',
+    component: function () {
+      return import('../views/OtaManagement.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: 'OTA管理'
+    }
+  },
 ]
 
 const router = new VueRouter({

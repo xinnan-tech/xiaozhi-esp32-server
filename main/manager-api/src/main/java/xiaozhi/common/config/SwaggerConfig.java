@@ -72,14 +72,6 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public GroupedOpenApi configApi() {
-        return GroupedOpenApi.builder()
-                .group("config")
-                .pathsToMatch("/config/**")
-                .build();
-    }
-
-    @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI().info(new Info()
                 .title("xiaozhi-esp32-manager-api")

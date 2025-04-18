@@ -19,7 +19,7 @@ public interface DeviceService {
     /**
      * 检查设备是否激活
      */
-    DeviceReportRespDTO checkDeviceActive(String macAddress, String clientId,
+    DeviceReportRespDTO checkDeviceActive(String macAddress, String deviceId, String clientId,
             DeviceReportReqDTO deviceReport);
 
     /**
@@ -66,20 +66,4 @@ public interface DeviceService {
      * @return 用户列表分页数据
      */
     PageData<UserShowDeviceListVO> page(DevicePageUserDTO dto);
-
-    /**
-     * 根据MAC地址获取设备信息
-     * 
-     * @param macAddress MAC地址
-     * @return 设备信息
-     */
-    DeviceEntity getDeviceByMacAddress(String macAddress);
-
-    /**
-     * 根据设备ID获取激活码
-     * 
-     * @param deviceId 设备ID
-     * @return 激活码
-     */
-    String geCodeByDeviceId(String deviceId);
 }

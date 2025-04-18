@@ -3,6 +3,7 @@ import json
 import asyncio
 import time
 from core.utils.util import (
+    remove_punctuation_and_length,
     get_string_no_punctuation_or_emoji,
 )
 

@@ -37,7 +37,7 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
     @Override
     public PageData<SysParamsDTO> page(Map<String, Object> params) {
         IPage<SysParamsEntity> page = baseDao.selectPage(
-                getPage(params, null, false),
+                getPage(params, Constant.CREATE_DATE, false),
                 getWrapper(params));
 
         return getPageData(page, SysParamsDTO.class);
@@ -123,13 +123,6 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
             case "boolean":
                 if (!"true".equalsIgnoreCase(paramValue) && !"false".equalsIgnoreCase(paramValue)) {
                     throw new RenException(ErrorCode.PARAM_BOOLEAN_INVALID);
-                }
-                break;
-            case "json":
-                try {
-                    JsonUtils.parseObject(paramValue, Object.class);
-                } catch (Exception e) {
-                    throw new RenException(ErrorCode.PARAM_JSON_INVALID);
                 }
                 break;
             default:

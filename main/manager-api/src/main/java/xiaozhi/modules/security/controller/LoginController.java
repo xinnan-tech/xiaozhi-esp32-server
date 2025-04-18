@@ -1,8 +1,6 @@
 package xiaozhi.modules.security.controller;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -77,9 +75,6 @@ public class LoginController {
     @PostMapping("/register")
     @Operation(summary = "注册")
     public Result<Void> register(@RequestBody LoginDTO login) {
-        if (!sysUserService.getAllowUserRegister()) {
-            throw new RenException("当前不允许普通用户注册");
-        }
         // 验证是否正确输入验证码
         boolean validate = captchaService.validate(login.getCaptchaId(), login.getCaptcha());
         if (!validate) {
@@ -115,14 +110,5 @@ public class LoginController {
         Long userId = SecurityUser.getUserId();
         sysUserTokenService.changePassword(userId, passwordDTO);
         return new Result<>();
-    }
-
-    @GetMapping("/pub-config")
-    @Operation(summary = "公共配置")
-    public Result<Map<String, Object>> pubConfig() {
-        Map<String, Object> config = new HashMap<>();
-        config.put("version", "0.3.6");
-        config.put("allowUserRegister", sysUserService.getAllowUserRegister());
-        return new Result<Map<String, Object>>().ok(config);
     }
 }
