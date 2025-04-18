@@ -214,8 +214,11 @@ class ConnectionHandler:
 
     def _initialize_components(self, private_config):
         """初始化组件"""
-        self._initialize_models(private_config)
-
+        if private_config is not None:
+            self._initialize_models(private_config)
+        else:
+            self.prompt = self.config["prompt"]
+            self.change_system_prompt(self.prompt)
         """加载记忆"""
         self._initialize_memory()
         """加载意图识别"""
