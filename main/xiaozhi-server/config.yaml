@@ -194,6 +194,13 @@ Memory:
   mem_local_short:
     # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器
     type: mem_local_short
+  oceanbase:
+    uri: "*****:**"
+    user: "***"
+    password: "***"
+    database: xiaozhi
+    table: xiaozhi
+    model_path: "models/all-MiniLM-L6-v2"
 
 ASR:
   FunASR:
