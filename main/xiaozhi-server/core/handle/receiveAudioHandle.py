@@ -1,9 +1,9 @@
 from config.logger import setup_logging
 import time
-import asyncio
 from core.utils.util import remove_punctuation_and_length
 from core.handle.sendAudioHandle import send_stt_message
 from core.handle.intentHandler import handle_user_intent
+from core.utils.output_counter import check_device_output_limit
 
 TAG = __name__
 logger = setup_logging()
@@ -51,6 +51,15 @@ async def startToChat(conn, text):
     if conn.need_bind:
         await check_bind_device(conn)
         return
+
+    # 如果当日的输出字数大于限定的字数
+    if conn.max_output_size > 0:
+        if check_device_output_limit(
+            conn.headers.get("device-id"), conn.max_output_size
+        ):
+            await max_out_size(conn)
+            return
+
     # 首先进行意图分析
     intent_handled = await handle_user_intent(conn, text)
 
@@ -87,6 +96,18 @@ async def no_voice_close_connect(conn):
                 "请你以“时间过得真快”未来头，用富有感情、依依不舍的话来结束这场对话吧。"
             )
             await startToChat(conn, prompt)
+
+
+async def max_out_size(conn):
+    text = "不好意思，我现在有点事情要忙，明天这个时候我们再聊，约好了哦！明天不见不散，拜拜！"
+    await send_stt_message(conn, text)
+    conn.tts_first_text_index = 0
+    conn.tts_last_text_index = 0
+    conn.llm_finish_task = True
+    file_path = "config/assets/max_output_size.wav"
+    opus_packets, _ = conn.tts.audio_to_opus_data(file_path)
+    conn.audio_play_queue.put((opus_packets, text, 0))
+    conn.close_after_chat = True
 
 
 async def check_bind_device(conn):

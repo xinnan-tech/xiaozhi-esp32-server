@@ -91,6 +91,7 @@ public class ConfigServiceImpl implements ConfigService {
             }
             throw new RenException(ErrorCode.OTA_DEVICE_NOT_FOUND, "not found device");
         }
+
         // 获取智能体信息
         AgentEntity agent = agentService.getAgentById(device.getAgentId());
         if (agent == null) {
@@ -104,7 +105,9 @@ public class ConfigServiceImpl implements ConfigService {
         }
         // 构建返回数据
         Map<String, Object> result = new HashMap<>();
-
+        // 获取单台设备每天最多输出字数
+        String deviceMaxOutputSize = sysParamsService.getValue("device_max_output_size", true);
+        result.put("device_max_output_size", deviceMaxOutputSize);
         // 如果客户端已实例化模型，则不返回
         String alreadySelectedVadModelId = (String) selectedModule.get("VAD");
         if (alreadySelectedVadModelId != null && alreadySelectedVadModelId.equals(agent.getVadModelId())) {
