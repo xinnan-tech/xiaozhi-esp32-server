@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
+import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.TokenDTO;
@@ -121,7 +122,7 @@ public class LoginController {
     @Operation(summary = "公共配置")
     public Result<Map<String, Object>> pubConfig() {
         Map<String, Object> config = new HashMap<>();
-        config.put("version", "0.3.6");
+        config.put("version", Constant.VERSION);
         config.put("allowUserRegister", sysUserService.getAllowUserRegister());
         return new Result<Map<String, Object>>().ok(config);
     }
