@@ -57,7 +57,7 @@ def create_iot_function(device_name, method_name, method_info):
                 response_failure = "操作失败"
 
             # 打印响应参数
-            logger.bind(tag=TAG).info(
+            logger.bind(tag=TAG).debug(
                 f"控制函数接收到的响应参数: success='{response_success}', failure='{response_failure}'"
             )
 
