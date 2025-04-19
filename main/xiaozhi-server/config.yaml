@@ -107,6 +107,10 @@ plugins:
       - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
     base_url: http://homeassistant.local:8123
     api_key: 你的home assistant api访问令牌
+  dlna_play_music:
+    dms_name: # 音乐服务器名称(支持模糊查询)，将从此服务器搜索音乐文件地址，留空将选择第搜索到的第一个设为服务器
+    dmr_name: # 音乐播放设备名称(支持模糊查询)，将音乐推送到此设备进行播放，留空将选择第搜索到的第一个设为播放设备
+    refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
   play_music:
     music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
     music_ext: # 音乐文件类型，p3格式效率最高
@@ -175,12 +179,15 @@ Intent:
       - change_role
       - get_weather
       - get_news
-      # play_music是服务器自带的音乐播放，hass_play_music是通过home assistant控制的独立外部程序音乐播放
-      # 如果用了hass_play_music，就不要开启play_music，两者只留一个
+      # 1. play_music 是服务器自带的音乐播放
+      # 2. hass_play_music 是通过 home assistant 控制的独立外部程序音乐播放
+      # 3. dlna_play_music 是通过 dlna dms 服务获取 music 推送到 dlna dmr 设备进行音乐播放
+      # 三种方式都可以播放音乐，只能选择一种方式
       - play_music
-      #- hass_get_state
-      #- hass_set_state
-      #- hass_play_music
+      # - dlna_play_music
+      # - hass_get_state
+      # - hass_set_state
+      # - hass_play_music
 
 Memory:
   mem0ai:
