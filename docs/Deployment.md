@@ -137,7 +137,10 @@ docker logs -f xiaozhi-esp32-server
 ```
 docker stop xiaozhi-esp32-server
 docker rm xiaozhi-esp32-server
+docker stop xiaozhi-esp32-server-web
+docker rm xiaozhi-esp32-server-web
 docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
 ```
 
 5.3、重新按docker方式部署
@@ -221,7 +224,7 @@ python app.py
 ## 配置项目
 
 如果你的`xiaozhi-server`目录没有`data`，你需要创建`data`目录。
-如果你的`data`下面没有`.config.yaml`文件，你可以把源码目录下的`config.yaml`文件复制一份，重命名为`.config.yaml`
+如果你的`data`下面没有`.config.yaml`文件，你可以把`xiaozhi-server`目录下的`config.yaml`文件复制到`data`，并重命名为`.config.yaml`
 
 修改`xiaozhi-server`下`data`目录下的`.config.yaml`文件，配置本项目必须的一个配置。
 

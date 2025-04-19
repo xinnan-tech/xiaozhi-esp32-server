@@ -1,25 +1,17 @@
 # Docker安装全模块
 
-# 1、安装mysql
-# |- 如果本机已经安装了MySQL，可以直接在数据库中创建名为`xiaozhi_esp32_server`的数据库。
-# |- 如果还没有MySQL，你可以通过docker安装mysql,执行以下一句话
-# |- docker run --name xiaozhi-esp32-server-db -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -e MYSQL_DATABASE=xiaozhi_esp32_server -e MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci" -d mysql:latest
-# |- 记得修改下方SPRING_DATASOURCE_DRUID_URL的IP，ip不能写127.0.0.1或localhost，否则容器无法访问，要写你电脑局域网ip
-
-# 2、安装redis
-# |- 如果本机已经安装了Redis，看一下你安装的redis端口、密码，然后修改下方redis的地址和端口
-# |- 如果还没有Redis，你可以通过docker安装redis,执行以下一句话
-# |- docker run --name xiaozhi-esp32-server-redis -d -p 6379:6379 redis
-# |- 记得修改SPRING_DATA_REDIS_HOST的IP，ip不能写127.0.0.1或localhost，否则容器无法访问，要写你电脑局域网ip
-
-
 version: '3'
 services:
   # Server模块
   xiaozhi-esp32-server:
     image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
     container_name: xiaozhi-esp32-server
+    depends_on:
+      - xiaozhi-esp32-server-db
+      - xiaozhi-esp32-server-redis
     restart: always
+    networks:
+      - default
     ports:
       # ws服务端
       - "8000:8000"
@@ -38,14 +30,54 @@ services:
     image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
     container_name: xiaozhi-esp32-server-web
     restart: always
+    networks:
+      - default
+    depends_on:
+      xiaozhi-esp32-server-db:
+        condition: service_healthy
+      xiaozhi-esp32-server-redis:
+        condition: service_healthy
     ports:
       # 智控台
       - "8002:8002"
     environment:
       - TZ=Asia/Shanghai
-      ##记得改mysql和redis IP 密码
-      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://192.168.1.25:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://xiaozhi-esp32-server-db:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&connectTimeout=30000&socketTimeout=30000&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
       - SPRING_DATASOURCE_DRUID_USERNAME=root
       - SPRING_DATASOURCE_DRUID_PASSWORD=123456
-      - SPRING_DATA_REDIS_HOST=192.168.1.25
+      - SPRING_DATA_REDIS_HOST=xiaozhi-esp32-server-redis
       - SPRING_DATA_REDIS_PORT=6379
+  xiaozhi-esp32-server-db:
+    image: mysql:latest
+    container_name: xiaozhi-esp32-server-db
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    restart: always
+    networks:
+      - default
+    expose:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=xiaozhi_esp32_server
+      - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+  xiaozhi-esp32-server-redis:
+    image: redis
+    expose:
+      - 6379
+    container_name: xiaozhi-esp32-server-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - default
+networks:
+  default:

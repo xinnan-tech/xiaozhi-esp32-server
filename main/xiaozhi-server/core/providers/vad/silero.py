@@ -21,8 +21,8 @@ class VADProvider(VADProviderBase):
         (get_speech_timestamps, _, _, _, _) = self.utils
 
         self.decoder = opuslib_next.Decoder(16000, 1)
-        self.vad_threshold = config.get("threshold")
-        self.silence_threshold_ms = config.get("min_silence_duration_ms")
+        self.vad_threshold = float(config.get("threshold", 0.5))
+        self.silence_threshold_ms = int(config.get("min_silence_duration_ms", 1000))
 
     def is_vad(self, conn, opus_packet):
         try:
@@ -42,7 +42,8 @@ class VADProvider(VADProviderBase):
                 audio_tensor = torch.from_numpy(audio_float32)
 
                 # 检测语音活动
-                speech_prob = self.model(audio_tensor, 16000).item()
+                with torch.no_grad():
+                    speech_prob = self.model(audio_tensor, 16000).item()
                 client_have_voice = speech_prob >= self.vad_threshold
 
                 # 如果之前有声音，但本次没有声音，且与上次有声音的时间查已经超过了静默阈值，则认为已经说完一句话

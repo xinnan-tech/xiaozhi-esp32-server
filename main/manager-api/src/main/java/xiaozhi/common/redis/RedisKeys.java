@@ -75,4 +75,11 @@ public class RedisKeys {
     public static String getTimbreDetailsKey(String id) {
         return "timbre:details:" + id;
     }
+
+    /**
+     * 获取版本号Key
+     */
+    public static String getVersionKey() {
+        return "system:version";
+    }
 }

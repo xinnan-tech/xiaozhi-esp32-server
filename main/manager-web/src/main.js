@@ -6,11 +6,16 @@ import App from './App.vue';
 import router from './router';
 import store from './store';
 import './styles/global.scss';
+import { register as registerServiceWorker } from './registerServiceWorker';
 
 Vue.use(ElementUI);
 
 Vue.config.productionTip = false
 
+// 注册Service Worker
+registerServiceWorker();
+
+// 创建Vue实例
 new Vue({
   router,
   store,

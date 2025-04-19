@@ -25,7 +25,7 @@ class WebSocketServer:
     async def start(self):
         server_config = self.config["server"]
         host = server_config["ip"]
-        port = server_config["port"]
+        port = int(server_config.get("port", 8000))
 
         self.logger.bind(tag=TAG).info(
             "Server is running at ws://{}:{}/xiaozhi/v1/", get_local_ip(), port

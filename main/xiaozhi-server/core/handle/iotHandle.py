@@ -144,33 +144,35 @@ class IotDescriptor:
         self.methods = []
 
         # 根据描述创建属性
-        for key, value in properties.items():
-            property_item = globals()[key] = {}
-            property_item["name"] = key
-            property_item["description"] = value["description"]
-            if value["type"] == "number":
-                property_item["value"] = 0
-            elif value["type"] == "boolean":
-                property_item["value"] = False
-            else:
-                property_item["value"] = ""
-            self.properties.append(property_item)
+        if properties is not None:
+            for key, value in properties.items():
+                property_item = globals()[key] = {}
+                property_item["name"] = key
+                property_item["description"] = value["description"]
+                if value["type"] == "number":
+                    property_item["value"] = 0
+                elif value["type"] == "boolean":
+                    property_item["value"] = False
+                else:
+                    property_item["value"] = ""
+                self.properties.append(property_item)
 
         # 根据描述创建方法
-        for key, value in methods.items():
-            method = globals()[key] = {}
-            method["description"] = value["description"]
-            method["name"] = key
-            for k, v in value["parameters"].items():
-                method[k] = {}
-                method[k]["description"] = v["description"]
-                if v["type"] == "number":
-                    method[k]["value"] = 0
-                elif v["type"] == "boolean":
-                    method[k]["value"] = False
-                else:
-                    method[k]["value"] = ""
-            self.methods.append(method)
+        if methods is not None:
+            for key, value in methods.items():
+                method = globals()[key] = {}
+                method["description"] = value["description"]
+                method["name"] = key
+                for k, v in value["parameters"].items():
+                    method[k] = {}
+                    method[k]["description"] = v["description"]
+                    if v["type"] == "number":
+                        method[k]["value"] = 0
+                    elif v["type"] == "boolean":
+                        method[k]["value"] = False
+                    else:
+                        method[k]["value"] = ""
+                self.methods.append(method)
 
 
 def register_device_type(descriptor):
@@ -269,14 +271,12 @@ def register_device_type(descriptor):
 
 # 用于接受前端设备推送的搜索iot描述
 async def handleIotDescriptors(conn, descriptors):
-    if not conn.use_function_call_mode:
-        return
     wait_max_time = 5
     while conn.func_handler is None or not conn.func_handler.finish_init:
         await asyncio.sleep(1)
         wait_max_time -= 1
         if wait_max_time <= 0:
-            logger.bind(tag=TAG).error("连接对象没有func_handler")
+            logger.bind(tag=TAG).debug("连接对象没有func_handler")
             return
     """处理物联网描述"""
     functions_changed = False

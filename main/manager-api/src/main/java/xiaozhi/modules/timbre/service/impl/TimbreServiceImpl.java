@@ -47,7 +47,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
         params.put(Constant.PAGE, dto.getPage());
         params.put(Constant.LIMIT, dto.getLimit());
         IPage<TimbreEntity> page = baseDao.selectPage(
-                getPage(params, "sort", true),
+                getPage(params, null, true),
                 // 定义查询条件
                 new QueryWrapper<TimbreEntity>()
                         // 必须按照ttsID查找

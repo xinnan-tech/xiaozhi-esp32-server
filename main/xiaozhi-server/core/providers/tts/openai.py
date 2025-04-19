@@ -16,9 +16,12 @@ class TTSProvider(TTSProviderBase):
         self.api_key = config.get("api_key")
         self.api_url = config.get("api_url", "https://api.openai.com/v1/audio/speech")
         self.model = config.get("model", "tts-1")
-        self.voice = config.get("voice", "alloy")
+        if config.get("private_voice"):
+            self.voice = config.get("private_voice")
+        else:
+            self.voice = config.get("voice", "alloy")
         self.response_format = "wav"
-        self.speed = config.get("speed", 1.0)
+        self.speed = float(config.get("speed", 1.0))
         self.output_file = config.get("output_dir", "tmp/")
         check_model_key("TTS", self.api_key)
 

@@ -551,27 +551,25 @@ export default {
 
 /* 备注文本 */
 ::v-deep .remark-input .el-textarea__inner {
-  background-color: #f5f5f5;
   border-radius: 4px;
   border: 1px solid #e6e6e6;
   padding: 8px 12px;
   resize: none;
   max-height: 40px !important;
   line-height: 1.5;
-}
-
-::v-deep .remark-input .el-textarea__inner::placeholder {
-  color: black !important;
-  opacity: 0.7;
-}
-
-::v-deep .remark-input .el-textarea__inner {
-  background-color: #f4f6fa;
+  background-color: transparent !important;
 }
 
 ::v-deep .remark-input .el-textarea__inner:focus {
-  background-color: #edeffb;
+  border-color: #409EFF !important;
+  outline: none;
 }
+
+::v-deep .remark-input .el-textarea__inner::placeholder {
+  color: #c0c4cc !important;
+  opacity: 1;
+}
+
 
 /* 滚动容器 */
 .scroll-wrapper {
@@ -582,7 +580,7 @@ export default {
 
 .table-container {
   flex: 1;
-  overflow-y: scroll;
+  overflow: auto;
   scrollbar-width: none;
   padding-right: 15px;
   width: calc(100% - 16px);
@@ -641,8 +639,8 @@ export default {
 
 /* 音频播放器容器样式 */
 .custom-audio-container {
-  width: 280px;
-  margin: auto;
+  width: 90%;
+  margin: 0 auto;
 }
 
 /* 新增按钮组样式 */
@@ -650,6 +648,12 @@ export default {
   bottom: 20px;
   padding-top: 10px;
 }
+
+.action-buttons .el-button {
+  padding: 8px 15px;
+  font-size: 11px;
+}
+
 .edit-btn,
 .delete-btn,
 .save-btn {
@@ -668,4 +672,40 @@ export default {
 .save-btn {
   color: #5cca8e !important;
 }
+
+/* 表格单元格自适应 */
+::v-deep .el-table__body-wrapper {
+  overflow-x: hidden !important;
+}
+
+::v-deep .el-table td {
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+}
+/* 按钮组定位调整 */
+.action-buttons {
+  position: static;
+  padding: 15px 0;
+  background: white;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.05);
+}
+
+/* 输入框自适应 */
+::v-deep .el-input__inner,
+::v-deep .el-textarea__inner {
+  width: 100% !important;
+  min-width: 120px;
+}
+
+/* 音频输入框特殊处理 */
+.audio-input ::v-deep .el-input__inner {
+  min-width: 200px;
+}
+
+/* 操作按钮弹性布局 */
+::v-deep .el-table__row .el-button {
+  flex-shrink: 0;
+  margin: 2px !important;
+}
+
 </style>

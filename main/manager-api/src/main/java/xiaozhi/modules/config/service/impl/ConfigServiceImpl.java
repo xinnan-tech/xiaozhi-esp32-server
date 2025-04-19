@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
@@ -83,8 +84,14 @@ public class ConfigServiceImpl implements ConfigService {
         // 根据MAC地址查找设备
         DeviceEntity device = deviceService.getDeviceByMacAddress(macAddress);
         if (device == null) {
-            throw new RenException("设备未找到");
+            // 如果设备，去redis里看看有没有需要连接的设备
+            String cachedCode = deviceService.geCodeByDeviceId(macAddress);
+            if (StringUtils.isNotBlank(cachedCode)) {
+                throw new RenException(ErrorCode.OTA_DEVICE_NEED_BIND, cachedCode);
+            }
+            throw new RenException(ErrorCode.OTA_DEVICE_NOT_FOUND, "not found device");
         }
+
         // 获取智能体信息
         AgentEntity agent = agentService.getAgentById(device.getAgentId());
         if (agent == null) {
@@ -98,7 +105,9 @@ public class ConfigServiceImpl implements ConfigService {
         }
         // 构建返回数据
         Map<String, Object> result = new HashMap<>();
-
+        // 获取单台设备每天最多输出字数
+        String deviceMaxOutputSize = sysParamsService.getValue("device_max_output_size", true);
+        result.put("device_max_output_size", deviceMaxOutputSize);
         // 如果客户端已实例化模型，则不返回
         String alreadySelectedVadModelId = (String) selectedModule.get("VAD");
         if (alreadySelectedVadModelId != null && alreadySelectedVadModelId.equals(agent.getVadModelId())) {
@@ -171,7 +180,13 @@ public class ConfigServiceImpl implements ConfigService {
             switch (param.getValueType().toLowerCase()) {
                 case "number":
                     try {
-                        current.put(lastKey, Double.parseDouble(value));
+                        double doubleValue = Double.parseDouble(value);
+                        // 如果数值是整数形式，则转换为Integer
+                        if (doubleValue == (int) doubleValue) {
+                            current.put(lastKey, (int) doubleValue);
+                        } else {
+                            current.put(lastKey, doubleValue);
+                        }
                     } catch (NumberFormatException e) {
                         current.put(lastKey, value);
                     }
@@ -231,8 +246,9 @@ public class ConfigServiceImpl implements ConfigService {
             boolean isCache) {
         Map<String, String> selectedModule = new HashMap<>();
 
-        String[] modelTypes = { "VAD", "ASR", "LLM", "TTS", "Memory", "Intent" };
-        String[] modelIds = { vadModelId, asrModelId, llmModelId, ttsModelId, memModelId, intentModelId };
+        String[] modelTypes = { "VAD", "ASR", "TTS", "Memory", "Intent", "LLM" };
+        String[] modelIds = { vadModelId, asrModelId, ttsModelId, memModelId, intentModelId, llmModelId };
+        String intentLLMModelId = null;
 
         for (int i = 0; i < modelIds.length; i++) {
             if (modelIds[i] == null) {
@@ -246,10 +262,33 @@ public class ConfigServiceImpl implements ConfigService {
                 if ("TTS".equals(modelTypes[i]) && voice != null) {
                     ((Map<String, Object>) model.getConfigJson()).put("private_voice", voice);
                 }
+                // 如果是Intent类型，且type=intent_llm，则给他添加附加模型
+                if ("Intent".equals(modelTypes[i])) {
+                    Map<String, Object> map = (Map<String, Object>) model.getConfigJson();
+                    if ("intent_llm".equals(map.get("type"))) {
+                        intentLLMModelId = (String) map.get("llm");
+                        if (intentLLMModelId != null && intentLLMModelId.equals(llmModelId)) {
+                            intentLLMModelId = null;
+                        }
+                    } else if ("function_call".equals(map.get("type"))) {
+                        String functionStr = (String) map.get("functions");
+                        if (StringUtils.isNotBlank(functionStr)) {
+                            String[] functions = functionStr.split("\\;");
+                            map.put("functions", functions);
+                        }
+                    }
+                }
+                // 如果是LLM类型，且intentLLMModelId不为空，则添加附加模型
+                if ("LLM".equals(modelTypes[i]) && intentLLMModelId != null) {
+                    ModelConfigEntity intentLLM = modelConfigService.getModelById(intentLLMModelId, isCache);
+                    typeConfig.put(intentLLM.getId(), intentLLM.getConfigJson());
+                }
             }
             result.put(modelTypes[i], typeConfig);
+
             selectedModule.put(modelTypes[i], model.getId());
         }
+
         result.put("selected_module", selectedModule);
         if (StringUtils.isNotBlank(prompt)) {
             prompt = prompt.replace("{{assistant_name}}", "小智");

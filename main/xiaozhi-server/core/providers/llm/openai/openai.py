@@ -15,7 +15,15 @@ class LLMProvider(LLMProviderBase):
             self.base_url = config.get("base_url")
         else:
             self.base_url = config.get("url")
-        self.max_tokens = config.get("max_tokens", 500)
+        max_tokens = config.get("max_tokens")
+        if max_tokens is None or max_tokens == "":
+            max_tokens = 500
+
+        try:
+            max_tokens = int(max_tokens)
+        except (ValueError, TypeError):
+            max_tokens = 500
+        self.max_tokens = max_tokens
 
         check_model_key("LLM", self.api_key)
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
@@ -66,4 +74,4 @@ class LLMProvider(LLMProviderBase):
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in function call streaming: {e}")
-            yield {"type": "content", "content": f"【OpenAI服务响应异常: {e}】"}
+            yield f"【OpenAI服务响应异常: {e}】", None

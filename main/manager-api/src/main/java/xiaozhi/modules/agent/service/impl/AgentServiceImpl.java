@@ -44,7 +44,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
     @Override
     public PageData<AgentEntity> adminAgentList(Map<String, Object> params) {
         IPage<AgentEntity> page = agentDao.selectPage(
-                getPage(params, "sort", true),
+                getPage(params, "agent_name", true),
                 new QueryWrapper<>());
         return new PageData<>(page.getRecords(), page.getTotal());
     }

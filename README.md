@@ -145,42 +145,24 @@ server:
 
 ---
 
-## 部署方式 🚀
+## 部署文档
 
-[![Banners](docs/images/banner2.png)](./docs/Deployment.md)
+本项目提供两种部署方式，请根据您的具体需求选择：
 
-### 部署文档
+#### 🚀 部署方式选择
 
-本项目支持`最简化`安装和`全模块`安装。请根据具体需求选择安装方式。
+| 部署方式 | 特点 | 适用场景 | Docker部署文档 | 源码部署文档 |
+|---------|------|---------|---------|---------|
+| **最简化安装** | 智能对话、IOT功能，数据存储在配置文件 | 低配置环境，无需数据库 | [Docker只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) | [本地源码只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)|
+| **全模块安装** | 智能对话、IOT、OTA、智控台，数据存储在数据库 | 完整功能体验 |[Docker运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) | [本地源码运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) |
 
-`最简化`适合在较低资源配置中运行，无需数据库。[请参考-最简化安装架构图](./docs/images/deploy1.png)
+> 💡 提示：以下是按最新代码部署后的测试平台，有需要可烧录测试，并发为6个，每天会清空数据
 
-`全模块`适合想体验完整功能，过程复杂。[请参考-全模块安装架构图](./docs/images/deploy2.png)
-
-#### 1、 最简化安装
-
-`最简化`安装包含：智能对话、IOT等功能，数据存储在`配置文件`。我们提供了两种安装教程，如果你决定使用最简化安装，可选择`Docker只运行Server`或`本地源码只运行Server`任意一种方式。
-
-##### 1.1. Docker只运行Server
-
-你可以使用编译好的docker镜像安装，[点击Docker只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)。优点：减少环境配置的烦恼；缺点：版本可能有点旧，镜像文件较大。
-
-##### 2.2. 本地源码只运行Server
-
-你可以以本地源码的方式运行，[点击本地源码只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)。优点：可以随时更新最新代码；缺点：安装Conda环境较为复杂。
-
-#### 2、 全模块安装
-
-`全模块`安装包含：智能对话、IOT、OTA、智控台，数据存储在`数据库`中。我们提供了两种安装教程，如果你决定使用全模块安装，可选择`Docker运行全模块`或`本地源码运行全模块`任意一种方式。
-
-##### 2.1. Docker运行全模块
-
-你可以使用编译好的docker镜像安装，[点击Docker运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97)。优点：减少环境配置的烦恼；缺点：版本可能有点旧，镜像文件较大。
-
-##### 2.2. 本地源码运行全模块
-
-你可以以本地源码的方式运行，[点击本地源码运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97)。优点：可以随时更新最新代码；缺点：安装Java、Node.js、Conda环境较为复杂。
-
+```
+智控台地址: https://2662r3426b.vicp.fun
+OTA接口地址: https://2662r3426b.vicp.fun/xiaozhi/ota/
+Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
+```
 ---
 
 ## 常见问题 ❓
@@ -188,51 +170,38 @@ server:
 如遇到问题或产品建议反馈[点这里](docs/FAQ.md)。
 
 ---
-
-## 产品生态 👬
-小智是一个生态，当你使用这个产品时，也可以看看其他在这个生态圈的优秀项目
-
-- [小智安卓客户端](https://github.com/TOM88812/xiaozhi-android-client)
-
-  一个基于xiaozhi-server的Android、IOS语音对话应用,支持实时语音交互和文字对话。现在是flutter版本，打通IOS、Android端。
-- [小智电脑客户端](https://github.com/Huang-junsen/py-xiaozhi)
-
-  该项目提供了一个基于 Python 实现的小白 AI 客户端，使得在不具备实体硬件条件的情况下，依然能够体过代码体验小智 AI 的功能。主要功能包括 AI 语音交互、视觉多模态识别、IoT 设备集成、联网音乐播放、语音唤醒、自动对话模式、图形化界面、命令行模式、跨平台支持、音量控制、会话管理、加密音频传输、自动验证码处理等。
-- [小智Java服务端](https://github.com/joey-zhou/xiaozhi-esp32-server-java) 
-
-  小智开源后端服务 Java 版本是一个基于 Java 的开源项目，它包括前后端的服务，旨在为用户提供一个完整的后端服务解决方案。
----
 ## 功能清单 ✨
 
 ### 已实现 ✅
 
-- **通信协议**  
-  基于 `xiaozhi-esp32` 协议，通过 WebSocket 实现数据交互。
-- **对话交互**  
-  支持唤醒对话、手动对话及实时打断。长时间无对话时自动休眠
-- **意图识别**  
-  支持使用LLM意图识别、function call函数调用，减少硬编码意图判断
-- **多语言识别**  
-  支持国语、粤语、英语、日语、韩语（默认使用 FunASR）。
-- **LLM 模块**  
-  支持灵活切换 LLM 模块，默认使用 ChatGLMLLM，也可选用阿里百炼、DeepSeek、Ollama 等接口。
-- **TTS 模块**  
-  支持 EdgeTTS（默认）、火山引擎豆包 TTS 等多种 TTS 接口，满足语音合成需求。
-- **记忆功能**  
-  支持超长记忆、本地总结记忆、无记忆三种模式，满足不同场景需求。
-- **IOT功能**  
-  支持管理注册设备IOT功能，支持基于对话上下文语境下的智能物联网控制。
-- **智控台**
-  提供Web管理界面，支持智能体管理、用户管理、系统配置等功能，方便管理员和用户进行管理。
-
+| 功能模块 | 描述 |
+|---------|------|
+| 通信协议 | 基于 `xiaozhi-esp32` 协议，通过 WebSocket 实现数据交互 |
+| 对话交互 | 支持唤醒对话、手动对话及实时打断。长时间无对话时自动休眠 |
+| 意图识别 | 支持使用LLM意图识别、function call函数调用，减少硬编码意图判断 |
+| 多语言识别 | 支持国语、粤语、英语、日语、韩语（默认使用 FunASR） |
+| LLM 模块 | 支持灵活切换 LLM 模块，默认使用 ChatGLMLLM，也可选用阿里百炼、DeepSeek、Ollama 等接口 |
+| TTS 模块 | 支持 EdgeTTS（默认）、火山引擎豆包 TTS 等多种 TTS 接口，满足语音合成需求 |
+| 记忆功能 | 支持超长记忆、本地总结记忆、无记忆三种模式，满足不同场景需求 |
+| IOT功能 | 支持管理注册设备IOT功能，支持基于对话上下文语境下的智能物联网控制 |
+| 智控台 | 提供Web管理界面，支持智能体管理、用户管理、系统配置等功能，方便管理员和用户进行管理 |
 
 ### 正在开发 🚧
 
-- 多种心情模式
-
-想了解具体开发进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
+想了解具体开发计划进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
 
 如果你是一名软件开发者，这里有一份[《致开发者的公开信》](docs/contributor_open_letter.md)，欢迎加入！
+
+---
+
+## 产品生态 👬
+小智是一个生态，当你使用这个产品时，也可以看看其他在这个生态圈的优秀项目
+
+| 项目名称  | 项目地址 | 项目描述 |
+|:---------------------|:--------|:--------|
+| 小智安卓客户端  | [xiaozhi-android-client](https://github.com/TOM88812/xiaozhi-android-client) | 一个基于xiaozhi-server的Android、IOS语音对话应用,支持实时语音交互和文字对话。<br/>现在是flutter版本，打通IOS、Android端。 |
+| 小智电脑客户端  | [py-xiaozhi](https://github.com/Huang-junsen/py-xiaozhi) | 该项目提供了一个基于 Python 实现的小白 AI 客户端，使得在不具备实体硬件条件的情况下，<br/>依然能够体过代码体验小智 AI 的功能。 |
+| 小智Java服务端  | [xiaozhi-esp32-server-java](https://github.com/joey-zhou/xiaozhi-esp32-server-java) | 小智开源后端服务 Java 版本是一个基于 Java 的开源项目。<br/>它包括前后端的服务，旨在为用户提供一个完整的后端服务解决方案。 |
 
 ---
 
@@ -298,10 +267,17 @@ server:
 
 ## 鸣谢 🙏
 
-- 本项目受 [百聆语音对话机器人](https://github.com/wwbin2017/bailing) 启发，并在其基础上实现。
-- 感谢 [十方融海](https://www.tenclass.com/) 对小智通讯协议提供的详尽文档支持。
+| Logo | 项目/公司 | 说明 |
+|:---:|:---:|:---|
+| <img src="./docs/images/logo_bailing.png" width="160"> | [百聆语音对话机器人](https://github.com/wwbin2017/bailing) | 本项目受[百聆语音对话机器人](https://github.com/wwbin2017/bailing)启发，并在其基础上实现 |
+| <img src="./docs/images/logo_tenclass.png" width="160"> | [十方融海](https://www.tenclass.com/) | 感谢[十方融海](https://www.tenclass.com/)为小智生态制定了标准的通讯协议、多设备兼容性方案及高并发场景实践示范；为本项目提供了全链路技术文档支持 |
+| <img src="./docs/images/logo_xuanfeng.png" width="160"> | [玄凤科技](https://github.com/Eric0308) | 感谢[玄凤科技](https://github.com/Eric0308)贡献函数调用框架、MCP通信协议及插件化调用机制的实现代码，通过标准化的指令调度体系与动态扩展能力，显著提升了前端设备(IoT)的交互效率和功能延展性 |
+| <img src="./docs/images/logo_huiyuan.png" width="160"> | [汇远设计](http://ui.kwd988.net/) | 感谢[汇远设计](http://ui.kwd988.net/)为本项目提供专业视觉解决方案，用其服务超千家企业的设计实战经验，赋能本项目产品用户体验 |
+| <img src="./docs/images/logo_qinren.png" width="160"> | [西安勤人信息科技](https://www.029app.com/) | 感谢[西安勤人信息科技](https://www.029app.com/)深化本项目视觉体系，确保整体设计风格在多场景应用中的一致性和扩展性 |
+
 
 <a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
+
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />

@@ -44,6 +44,8 @@ xiaozhi-server
 在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`docker-compose_all.yml`文件。 把文件下载到你的
 `xiaozhi-server`中。
 
+或者直接执行 `wget https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml` 下载。
+
 下载完后，回到本教程继续往下。
 
 ##### 1.3.2 下载 config_from_api.yaml
@@ -52,6 +54,8 @@ xiaozhi-server
 
 在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`config_from_api.yaml`文件。 把文件下载到你的
 `xiaozhi-server`下面的`data`文件夹中，然后把`config_from_api.yaml`文件重命名为`.config.yaml`。
+
+或者直接执行 `wget https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml` 下载保存。
 
 下载完配置文件后，我们确认一下整个`xiaozhi-server`里面的文件如下所示：
 
@@ -67,57 +71,37 @@ xiaozhi-server
 
 如果你的文件目录结构也是上面的，就继续往下。如果不是，你就再仔细看看是不是漏操作了什么。
 
-## 2. 安装Mysql和Redis
+## 2. 备份数据
 
-### 2.1 安装Mysql数据库
-如果本机已经安装了MySQL，可以直接在数据库中创建名为`xiaozhi_esp32_server`的数据库。
+如果你之前已经成功运行智控台，如果上面保存有你的密钥信息，请先从智控台上拷贝重要数据下来。因为升级过程中，有可能会覆盖原来的数据。
 
-```sql
-CREATE DATABASE xiaozhi_esp32_server CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-如果还没有MySQL，你可以通过docker安装mysql
-
-```
-docker run --name xiaozhi-esp32-server-db -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -e MYSQL_DATABASE=xiaozhi_esp32_server -e MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci" -d mysql:latest
-```
-
-### 2.2 安装Redis
-
-如果还没有Redis，你可以通过docker安装redis
-
-```
-docker run --name xiaozhi-esp32-server-redis -d -p 6379:6379 redis
-```
-
-## 3. 配置docker-compose_all.yml文件文件
-
-在`xiaozhi-server`目录，打开docker-compose_all.yml，
-
-1、修改`SPRING_DATASOURCE_DRUID_URL`里，把`192.168.1.25`修改成部署mysql的电脑局域网ip，如果是你本地，你要查看一下你本机的局域网ip是什么
-
-2、修改`SPRING_DATA_REDIS_HOST`里，把`192.168.1.25`修改成部署redis的电脑局域网ip，如果是你本地，你要查看一下你本机的局域网ip是什么
-
-3、确认一下mysql的用户名`SPRING_DATASOURCE_DRUID_USERNAME`和密码`SPRING_DATASOURCE_DRUID_PASSWORD`
-
-## 4. 运行程序
-
-确认mysql和redis是否运行正常，输入
-```
-docker ps
-```
-如果你能看到`xiaozhi-esp32-server-redis`和`xiaozhi-esp32-server-db`信息，就可以继续往下，如果看不到，说明你的`mysql`和`redis`没有安装或没有启动。需要继续回到上面的教程，看看哪一步漏了。
-
-```
-CONTAINER ID             IMAGE   COMMAND   CREATED  TATUS   PORTS               NAMES
-xxx       redis          "xx"   xxx   xxx   0.0.0.0:6379->6379/tcp              xiaozhi-esp32-server-redis
-xxx       mysql:latest   "xx"   xxx   xxx   0.0.0.0:3306->3306/tcp, 33060/tcp   xiaozhi-esp32-server-db
-```
-
+## 3. 清除历史版本镜像和容器
 接下来打开命令行工具，使用`终端`或`命令行`工具 进入到你的`xiaozhi-server`，执行以下命令
 
 ```
-docker-compose -f docker-compose_all.yml up -d
+docker compose -f docker-compose_all.yml down
+
+docker stop xiaozhi-esp32-server
+docker rm xiaozhi-esp32-server
+
+docker stop xiaozhi-esp32-server-web
+docker rm xiaozhi-esp32-server-web
+
+docker stop xiaozhi-esp32-server-db
+docker rm xiaozhi-esp32-server-db
+
+docker stop xiaozhi-esp32-server-redis
+docker rm xiaozhi-esp32-server-redis
+
+docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
+```
+
+## 4. 运行程序
+执行以下命令启动新版本容器
+
+```
+docker compose -f docker-compose_all.yml up -d
 ```
 
 执行完后，再执行以下命令，查看日志信息。
@@ -150,17 +134,16 @@ http://localhost:8002/xiaozhi/doc.html
 
 ```
 manager-api:
-  url: http://127.0.0.1:8002/xiaozhi
+  url:  http://127.0.0.1:8002/xiaozhi
   secret: 你的server.secret值
 ```
 1、把你刚才从`智控台`复制过来的`server.secret`的`参数值`复制到`.config.yaml`文件里的`secret`里。
-
-2、把`url`里的`127.0.0.1`改成你电脑局域网内的ip
+2、注意，把`url`改成下面的`http://xiaozhi-esp32-server-web:8002/xiaozhi`
 
 类似这样的效果
 ```
 manager-api:
-  url: http://192.168.1.25:8002/xiaozhi
+  url: http://xiaozhi-esp32-server-web:8002/xiaozhi
   secret: 12345678-xxxx-xxxx-xxxx-123456789000
 ```
 
@@ -201,24 +184,6 @@ ws://你电脑局域网的ip:8000/xiaozhi/v1/
 
 接下来，你就可以开始 [编译esp32固件](firmware-build.md)了。
 
-
-## 6. 版本升级操作
-
-如果后期想升级版本，先备份你的模型密钥。
-
-进入`xiaozhi-server`目录
-
-5.1、执行以下命令
-
-```
-docker-compose down
-docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
-docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
-```
-
-5.2、删掉`docker-compose_all.yaml`文件
-
-5.3、重新按1.1开始部署
 
 # 方式二：本地源码运行全模块
 
@@ -387,6 +352,9 @@ pip install -r requirements.txt
 使用超级管理员账号，登录智控台 http://127.0.0.1:8001 ，在顶部菜单找到`参数管理`，找到列表中第三条数据，参数编码是`server.secret`，复制它到`参数值`。
 
 `server.secret`需要说明一下，这个`参数值`很重要，作用是让我们的`Server`端连接`manager-api`。`server.secret`是每次从零部署manager模块时，会自动随机生成的密钥。
+
+如果你的`xiaozhi-server`目录没有`data`，你需要创建`data`目录。
+如果你的`data`下面没有`.config.yaml`文件，你可以把`xiaozhi-server`目录下的`config_from_api.yaml`文件复制到`data`，并重命名为`.config.yaml`
 
 复制`参数值`后，打开`xiaozhi-server`下的`data`目录的`.config.yaml`文件。此刻你的配置文件内容应该是这样的：
 

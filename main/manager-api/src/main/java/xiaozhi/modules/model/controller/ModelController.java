@@ -135,6 +135,7 @@ public class ModelController {
         }
         // 将其他模型设置为非默认
         modelConfigService.setDefaultModel(entity.getModelType(), 0);
+        entity.setIsEnabled(1);
         entity.setIsDefault(1);
         modelConfigService.updateById(entity);
 

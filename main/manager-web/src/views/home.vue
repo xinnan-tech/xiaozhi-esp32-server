@@ -19,13 +19,13 @@
             <div class="hi-hint">
               Hello, Let's have a wonderful day!
             </div>
-            <div class="add-device-btn" @click="showAddDialog">
-              <div class="left-add">
+            <div class="add-device-btn">
+              <div class="left-add" @click="showAddDialog">
                 添加智能体
               </div>
               <div style="width: 23px;height: 13px;background: #5778ff;margin-left: -10px;" />
               <div class="right-add">
-                <i class="el-icon-right" style="font-size: 20px;color: #fff;" />
+                <i class="el-icon-right" @click="showAddDialog" style="font-size: 20px;color: #fff;" />
               </div>
             </div>
           </div>
@@ -35,11 +35,11 @@
             @deviceManage="handleDeviceManage" @delete="handleDeleteAgent" />
         </div>
       </div>
-      <div class="copyright">
-        ©2025 xiaozhi-esp32-server
-      </div>
       <AddWisdomBodyDialog :visible.sync="addDeviceDialogVisible" @confirm="handleWisdomBodyAdded" />
     </el-main>
+    <el-footer>
+      <version-footer />
+    </el-footer>
   </div>
 
 </template>
@@ -49,10 +49,11 @@ import Api from '@/apis/api';
 import AddWisdomBodyDialog from '@/components/AddWisdomBodyDialog.vue';
 import DeviceItem from '@/components/DeviceItem.vue';
 import HeaderBar from '@/components/HeaderBar.vue';
+import VersionFooter from '@/components/VersionFooter.vue';
 
 export default {
   name: 'HomePage',
-  components: { DeviceItem, AddWisdomBodyDialog, HeaderBar },
+  components: { DeviceItem, AddWisdomBodyDialog, HeaderBar, VersionFooter },
   data() {
     return {
       addDeviceDialogVisible: false,
@@ -260,4 +261,7 @@ export default {
   text-align: center;
   /* 居中显示 */
 }
+
+
+
 </style>

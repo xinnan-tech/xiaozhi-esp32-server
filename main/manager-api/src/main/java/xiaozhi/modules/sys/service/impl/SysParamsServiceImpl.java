@@ -37,7 +37,7 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
     @Override
     public PageData<SysParamsDTO> page(Map<String, Object> params) {
         IPage<SysParamsEntity> page = baseDao.selectPage(
-                getPage(params, Constant.CREATE_DATE, false),
+                getPage(params, null, false),
                 getWrapper(params));
 
         return getPageData(page, SysParamsDTO.class);

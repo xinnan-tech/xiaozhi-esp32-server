@@ -63,4 +63,4 @@ class LLMProvider(LLMProviderBase):
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in Ollama function call: {e}")
-            yield {"type": "content", "content": f"【Ollama服务响应异常: {str(e)}】"}
+            yield f"【Ollama服务响应异常: {str(e)}】", None

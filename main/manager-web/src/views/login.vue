@@ -38,7 +38,7 @@
             </div>
             <div
               style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;display: flex;justify-content: space-between;margin-top: 20px;">
-              <div style="cursor: pointer;" @click="goToRegister">新用户注册</div>
+              <div v-if="allowUserRegister" style="cursor: pointer;" @click="goToRegister">新用户注册</div>
             </div>
           </div>
           <div class="login-btn" @click="login">登录</div>
@@ -51,9 +51,7 @@
         </div>
       </el-main>
       <el-footer>
-        <div class="copyright">
-          ©2025 xiaozhi-esp32-server
-        </div>
+        <version-footer />
       </el-footer>
     </el-container>
   </div>
@@ -61,11 +59,20 @@
 
 <script>
 import Api from '@/apis/api';
+import VersionFooter from '@/components/VersionFooter.vue';
 import { getUUID, goToPage, showDanger, showSuccess } from '@/utils';
-
+import { mapState } from 'vuex';
 
 export default {
   name: 'login',
+  components: {
+    VersionFooter
+  },
+  computed: {
+    ...mapState({
+      allowUserRegister: state => state.pubConfig.allowUserRegister
+    })
+  },
   data() {
     return {
       activeName: "username",
@@ -81,6 +88,7 @@ export default {
   },
   mounted() {
     this.fetchCaptcha();
+    this.$store.dispatch('fetchPubConfig');
   },
   methods: {
     fetchCaptcha() {
@@ -144,7 +152,7 @@ export default {
 
     goToRegister() {
       goToPage('/register')
-    }
+    },
   }
 }
 </script>

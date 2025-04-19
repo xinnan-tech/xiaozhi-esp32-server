@@ -1,5 +1,5 @@
 <template>
-  <div class="welcome">
+  <div class="welcome" @keyup.enter="register">
     <el-container style="height: 100%;">
       <!-- 保持相同的头部 -->
       <el-header>
@@ -72,9 +72,7 @@
 
       <!-- 保持相同的页脚 -->
       <el-footer>
-        <div class="copyright">
-          ©2025 xiaozhi-esp32-server
-        </div>
+        <version-footer />
       </el-footer>
     </el-container>
   </div>
@@ -82,10 +80,20 @@
 
 <script>
 import Api from '@/apis/api';
+import VersionFooter from '@/components/VersionFooter.vue';
 import { getUUID, goToPage, showDanger, showSuccess } from '@/utils';
+import { mapState } from 'vuex';
 
 export default {
   name: 'register',
+  components: {
+    VersionFooter
+  },
+  computed: {
+    ...mapState({
+      allowUserRegister: state => state.pubConfig.allowUserRegister
+    })
+  },
   data() {
     return {
       form: {
@@ -99,6 +107,14 @@ export default {
     }
   },
   mounted() {
+    this.$store.dispatch('fetchPubConfig').then(() => {
+      if (!this.allowUserRegister) {
+        showDanger('当前不允许普通用户注册');
+        setTimeout(() => {
+          goToPage('/login');
+        }, 1500);
+      }
+    });
     this.fetchCaptcha();
   },
   methods: {
