@@ -243,8 +243,8 @@ class ConnectionHandler:
             begin_time = time.time()
             private_config = get_private_config_from_api(
                 self.config,
-                self.headers.get("device-id", None),
-                self.headers.get("client-id", None),
+                self.headers.get("device-id"),
+                self.headers.get("client-id", self.headers.get("device-id")),
             )
             private_config["delete_audio"] = bool(self.config.get("delete_audio", True))
             self.logger.bind(tag=TAG).info(
