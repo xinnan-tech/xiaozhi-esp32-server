@@ -251,10 +251,12 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         if (StringUtils.isNotBlank(cachedCode)) {
             code.setCode(cachedCode);
             code.setMessage(frontedUrl + "\n" + cachedCode);
+            code.setChallenge(deviceId);
         } else {
             String newCode = RandomUtil.randomNumbers(6);
             code.setCode(newCode);
             code.setMessage(frontedUrl + "\n" + newCode);
+            code.setChallenge(deviceId);
 
             Map<String, Object> dataMap = new HashMap<>();
             dataMap.put("id", deviceId);

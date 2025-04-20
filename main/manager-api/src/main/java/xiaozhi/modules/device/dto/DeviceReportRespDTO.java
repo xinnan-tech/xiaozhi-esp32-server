@@ -44,6 +44,8 @@ public class DeviceReportRespDTO {
         @Schema(description = "激活码信息: 激活地址")
         private String message;
 
+        @Schema(description = "挑战码")
+        private String challenge;
     }
 
     @Getter

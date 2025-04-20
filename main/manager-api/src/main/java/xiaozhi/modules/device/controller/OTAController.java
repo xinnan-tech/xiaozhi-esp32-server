@@ -15,25 +15,29 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
+import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.device.utils.NetworkUtil;
 
 @Tag(name = "设备管理", description = "OTA 相关接口")
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/ota/")
 public class OTAController {
     private final DeviceService deviceService;
 
-    @Operation(summary = "检查 OTA 版本和设备激活状态")
+    @Operation(summary = "OTA版本和设备激活状态检查")
     @PostMapping
     public ResponseEntity<String> checkOTAVersion(
             @RequestBody DeviceReportReqDTO deviceReportReqDTO,
@@ -54,9 +58,25 @@ public class OTAController {
         return createResponse(deviceService.checkDeviceActive(macAddress, clientId, deviceReportReqDTO));
     }
 
+    @Operation(summary = "设备快速检查激活状态")
+    @PostMapping("activate")
+    public ResponseEntity<String> activateDevice(
+            @Parameter(name = "Device-Id", description = "设备唯一标识", required = true, in = ParameterIn.HEADER) @RequestHeader("Device-Id") String deviceId,
+            @Parameter(name = "Client-Id", description = "客户端标识", required = false, in = ParameterIn.HEADER) @RequestHeader(value = "Client-Id", required = false) String clientId) {
+        if (StringUtils.isBlank(deviceId)) {
+            return ResponseEntity.status(202).build();
+        }
+        DeviceEntity device = deviceService.getDeviceByMacAddress(deviceId);
+        if (device == null) {
+            return ResponseEntity.status(202).build();
+        }
+        return ResponseEntity.ok("success");
+    }
+
     @GetMapping
-    public ResponseEntity<String> getOTAPrompt() {
-        return createResponse(DeviceReportRespDTO.createError("请提交正确的ota参数"));
+    @Hidden
+    public ResponseEntity<String> getOTA() {
+        return ResponseEntity.ok("OTA接口运行正常");
     }
 
     @SneakyThrows
