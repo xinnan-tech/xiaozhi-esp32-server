@@ -47,6 +47,8 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
     private final RedisTemplate<String, Object> redisTemplate;
 
+    private final SysParamsService sysParamsService;
+
     // 添加构造函数来初始化 deviceMapper
     public DeviceServiceImpl(DeviceDao deviceDao, SysUserUtilService sysUserUtilService,
             SysParamsService sysParamsService,
@@ -55,6 +57,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         this.sysUserUtilService = sysUserUtilService;
         this.frontedUrl = sysParamsService.getValue(Constant.SERVER_FRONTED_URL, true);
         this.redisTemplate = redisTemplate;
+        this.sysParamsService = sysParamsService;
     }
 
     @Override
@@ -131,6 +134,16 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         firmware.setVersion(deviceReport.getApplication().getVersion());
         firmware.setUrl("http://localhost:8002/xiaozhi/ota/download");
         response.setFirmware(firmware);
+        
+        // 添加WebSocket配置
+        DeviceReportRespDTO.Websocket websocket = new DeviceReportRespDTO.Websocket();
+        // 从系统参数获取WebSocket URL，如果未配置则使用默认值
+        String wsUrl = sysParamsService.getValue("websocket_url", true);
+        if (StringUtils.isBlank(wsUrl)) {
+            wsUrl = "ws://localhost:8000/xiaozhi/v1/";
+        }
+        websocket.setUrl(wsUrl);
+        response.setWebsocket(websocket);
 
         DeviceEntity deviceById = getDeviceById(macAddress);
         if (deviceById != null) { // 如果设备存在，则更新上次连接时间
