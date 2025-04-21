@@ -199,7 +199,7 @@ export default {
 
   .hi-hint {
     font-weight: 400;
-    font-size: 10px;
+    font-size: 12px;
     text-align: left;
     color: #818cae;
     margin-left: 75px;
@@ -220,7 +220,7 @@ export default {
     border-radius: 17px;
     background: #5778ff;
     color: #fff;
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 500;
     text-align: center;
     line-height: 34px;
@@ -261,7 +261,4 @@ export default {
   text-align: center;
   /* 居中显示 */
 }
-
-
-
 </style>

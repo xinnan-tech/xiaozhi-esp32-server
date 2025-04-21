@@ -43,6 +43,14 @@ def check_config_file():
     missing_keys = find_missing_keys(new_config, old_config)
     read_config_from_api = old_config.get("read_config_from_api", False)
     if read_config_from_api:
+        old_config_origin = read_config(old_config_file)
+        if old_config_origin.get("selected_module") is not None:
+            missing_keys_str = "\n".join(f"- {key}" for key in missing_keys)
+            error_msg = "您的配置文件好像既包含智控台的配置又包含本地配置：\n"
+            error_msg += "\n建议您：\n"
+            error_msg += "1、将根目录的config_from_api.yaml文件复制到data下，重命名为.config.yaml\n"
+            error_msg += "2、按教程配置好接口地址和密钥\n"
+            raise ValueError(error_msg)
         return
 
     if missing_keys:

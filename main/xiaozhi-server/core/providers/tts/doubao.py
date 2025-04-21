@@ -15,7 +15,10 @@ logger = setup_logging()
 class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
-        self.appid = config.get("appid")
+        if config.get("appid"):
+            self.appid = int(config.get("appid"))
+        else:
+            self.appid = ""
         self.access_token = config.get("access_token")
         self.cluster = config.get("cluster")
 

@@ -5,6 +5,10 @@ import requests
 import shutil
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
+from config.logger import setup_logging
+
+TAG = __name__
+logger = setup_logging()
 
 
 class TTSProvider(TTSProviderBase):
@@ -54,6 +58,7 @@ class TTSProvider(TTSProviderBase):
 
         resp = requests.request("POST", url, data=payload)
         if resp.status_code != 200:
+            logger.bind(tag=TAG).error(f"TTS请求失败: {resp.text}")
             return None
         resp_json = resp.json()
         try:

@@ -48,8 +48,8 @@
               :data="modelList" class="data-table" header-row-class-name="table-header"
               :header-cell-class-name="headerCellClassName" @selection-change="handleSelectionChange">
               <el-table-column type="selection" width="55" align="center"></el-table-column>
+              <el-table-column label="模型ID" prop="id" align="center"></el-table-column>
               <el-table-column label="模型名称" prop="modelName" align="center"></el-table-column>
-              <el-table-column label="模型编码" prop="modelCode" align="center"></el-table-column>
               <el-table-column label="提供商" align="center">
                 <template slot-scope="scope">
                   {{ scope.row.configJson.type || '未知' }}
@@ -86,41 +86,37 @@
               </el-table-column>
             </el-table>
             <div class="table-footer">
-            <div class="batch-actions">
-              <el-button size="mini" type="primary" @click="selectAll">
-                {{ isAllSelected ?
-                  '取消全选' : '全选' }}
-              </el-button>
-              <el-button type="success" size="mini" @click="addModel" class="add-btn">
-                新增
-              </el-button>
-              <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">
-                删除
-              </el-button>
-            </div>
-            <div class="custom-pagination">
+              <div class="batch-actions">
+                <el-button size="mini" type="primary" @click="selectAll">
+                  {{ isAllSelected ?
+                    '取消全选' : '全选' }}
+                </el-button>
+                <el-button type="success" size="mini" @click="addModel" class="add-btn">
+                  新增
+                </el-button>
+                <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">
+                  删除
+                </el-button>
+              </div>
+              <div class="custom-pagination">
 
-              <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                  <el-option
-                    v-for="item in pageSizeOptions"
-                    :key="item"
-                    :label="`${item}条/页`"
-                    :value="item">
+                <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
+                  <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`" :value="item">
                   </el-option>
-              </el-select>
+                </el-select>
 
-              <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">首页</button>
-              <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">上一页</button>
+                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">首页</button>
+                <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">上一页</button>
 
-              <button v-for="page in visiblePages" :key="page" class="pagination-btn"
-                :class="{ active: page === currentPage }" @click="goToPage(page)">
-                {{ page }}
-              </button>
+                <button v-for="page in visiblePages" :key="page" class="pagination-btn"
+                  :class="{ active: page === currentPage }" @click="goToPage(page)">
+                  {{ page }}
+                </button>
 
-              <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">下一页</button>
-              <span class="total-text">共{{ total }}条记录</span>
+                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">下一页</button>
+                <span class="total-text">共{{ total }}条记录</span>
+              </div>
             </div>
-          </div>
           </el-card>
         </div>
       </div>
@@ -592,12 +588,12 @@ export default {
   transition: border-color 0.2s;
 }
 
-::v-deep .page-size-select{
+::v-deep .page-size-select {
   width: 100px;
   margin-right: 8px;
 }
 
-::v-deep .page-size-select .el-input__inner{
+::v-deep .page-size-select .el-input__inner {
   height: 32px;
   line-height: 32px;
   border-radius: 4px;
@@ -606,7 +602,8 @@ export default {
   color: #606266;
   font-size: 14px;
 }
-::v-deep .page-size-select .el-input__suffix{
+
+::v-deep .page-size-select .el-input__suffix {
   right: 6px;
   width: 15px;
   height: 20px;
@@ -617,13 +614,14 @@ export default {
   border-radius: 4px;
 }
 
-::v-deep .page-size-select .el-input__suffix-inner{
+::v-deep .page-size-select .el-input__suffix-inner {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
 }
-::v-deep .page-size-select .el-icon-arrow-up:before{
+
+::v-deep .page-size-select .el-icon-arrow-up:before {
   content: "";
   display: inline-block;
   border-left: 6px solid transparent;
@@ -884,7 +882,7 @@ export default {
   }
 }
 
-.model-card{
+.model-card {
   background: white;
   flex: 1;
   display: flex;
@@ -894,7 +892,7 @@ export default {
   overflow: hidden;
 }
 
-.model-card ::v-deep .el-card__body{
+.model-card ::v-deep .el-card__body {
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -911,5 +909,4 @@ export default {
   max-height: calc(var(--table-max-height) - 80px);
   overflow-y: auto;
 }
-
 </style>
