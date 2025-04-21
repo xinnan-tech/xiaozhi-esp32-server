@@ -13,6 +13,8 @@ services:
     ports:
       # ws服务端
       - "8000:8000"
+    # 使用 dlna_play_music 插件需要开启 host 网络模式，才可以搜索到局域网设备
+    # network_mode: host
     volumes:
       # 配置文件目录
       - ./data:/opt/xiaozhi-esp32-server/data
