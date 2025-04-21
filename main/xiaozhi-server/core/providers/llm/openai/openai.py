@@ -1,4 +1,5 @@
 import openai
+from openai.types import CompletionUsage
 from config.logger import setup_logging
 from core.utils.util import check_model_key
 from core.providers.llm.base import LLMProviderBase
@@ -70,7 +71,17 @@ class LLMProvider(LLMProviderBase):
             )
 
             for chunk in stream:
-                yield chunk.choices[0].delta.content, chunk.choices[0].delta.tool_calls
+                # 检查是否存在有效的choice且content不为空
+                if getattr(chunk, "choices", None):
+                    yield chunk.choices[0].delta.content, chunk.choices[0].delta.tool_calls
+                # 存在 CompletionUsage 消息时，生成 Token 消耗 log
+                elif isinstance(getattr(chunk, 'usage', None), CompletionUsage):
+                    usage_info = getattr(chunk, 'usage', None)
+                    logger.bind(tag=TAG).info(
+                        f"Token 消耗：输入 {getattr(usage_info, 'prompt_tokens', '未知')}，" 
+                        f"输出 {getattr(usage_info, 'completion_tokens', '未知')}，"
+                        f"共计 {getattr(usage_info, 'total_tokens', '未知')}"
+                    )
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in function call streaming: {e}")
