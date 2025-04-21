@@ -23,5 +23,8 @@ bs4==0.0.2
 modelscope==1.23.2
 sherpa_onnx==1.11.0
 mcp==1.4.1
+pyobvector==0.2.4
 cnlunar==0.2.0
 PySocks==1.7.1
+sentence-transformers==4.0.1
+transformers==4.50.3
