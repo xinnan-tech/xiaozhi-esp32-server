@@ -15,8 +15,15 @@
             <div class="content-panel">
                 <div class="content-area">
                     <el-card class="params-card" shadow="never">
-                        <el-table ref="paramsTable" :data="paramsList" class="transparent-table"
-                            :header-cell-class-name="headerCellClassName">
+                            <el-table
+                              ref="paramsTable"
+                              :data="paramsList"
+                              class="transparent-table"
+                              v-loading="loading"
+                              element-loading-text="拼命加载中"
+                              element-loading-spinner="el-icon-loading"
+                              element-loading-background="rgba(255, 255, 255, 0.7)"
+                              :header-cell-class-name="headerCellClassName">
                             <el-table-column label="选择" align="center" width="120">
                                 <template slot-scope="scope">
                                     <el-checkbox v-model="scope.row.selected"></el-checkbox>
@@ -92,6 +99,7 @@ export default {
             searchCode: "",
             paramsList: [],
             currentPage: 1,
+            loading: false,
             pageSize: 10,
             pageSizeOptions: [10, 20, 50, 100],
             total: 0,
@@ -138,27 +146,29 @@ export default {
             this.fetchParams();
         },
         fetchParams() {
-            Api.admin.getParamsList(
-                {
-                    page: this.currentPage,
-                    limit: this.pageSize,
-                    paramCode: this.searchCode,
-                },
-                ({ data }) => {
-                    if (data.code === 0) {
-                        this.paramsList = data.data.list.map(item => ({
-                            ...item,
-                            selected: false
-                        }));
-                        this.total = data.data.total;
-                    } else {
-                        this.$message.error({
-                            message: data.msg || '获取参数列表失败',
-                            showClose: true
-                        });
-                    }
-                }
-            );
+          this.loading = true;
+          Api.admin.getParamsList(
+            {
+              page: this.currentPage,
+              limit: this.pageSize,
+              paramCode: this.searchCode,
+            },
+            ({ data }) => {
+              this.loading = false;
+              if (data.code === 0) {
+                this.paramsList = data.data.list.map(item => ({
+                  ...item,
+                  selected: false
+                }));
+                this.total = data.data.total;
+              } else {
+                this.$message.error({
+                  message: data.msg || '获取参数列表失败',
+                  showClose: true
+                });
+              }
+            }
+          );
         },
         handleSearch() {
             this.currentPage = 1;
@@ -185,32 +195,35 @@ export default {
             this.paramForm = { ...row };
             this.dialogVisible = true;
         },
-        handleSubmit(form) {
-            if (form.id) {
-                // 编辑
-                Api.admin.updateParam(form, ({ data }) => {
-                    if (data.code === 0) {
-                        this.$message.success({
-                          message:"修改成功",
-                          showClose:true
-                        });
-                        this.dialogVisible = false;
-                        this.fetchParams();
-                    }
+
+        handleSubmit({ form, done }) {
+          if (form.id) {
+            // 编辑
+            Api.admin.updateParam(form, ({ data }) => {
+              if (data.code === 0) {
+                this.$message.success({
+                  message:"修改成功",
+                  showClose:true
                 });
-            } else {
-                // 新增
-                Api.admin.addParam(form, ({ data }) => {
-                    if (data.code === 0) {
-                        this.$message.success({
-                          message:"新增成功",
-                          showClose:true
-                        });
-                        this.dialogVisible = false;
-                        this.fetchParams();
-                    }
+                this.dialogVisible = false;
+                this.fetchParams();
+              }
+              done && done();
+            });
+          } else {
+            // 新增
+            Api.admin.addParam(form, ({ data }) => {
+              if (data.code === 0) {
+                this.$message.success({
+                  message:"新增成功",
+                  showClose:true
                 });
-            }
+                this.dialogVisible = false;
+                this.fetchParams();
+              }
+              done && done();
+            });
+          }
         },
 
         deleteSelectedParams() {
@@ -656,4 +669,25 @@ export default {
     max-height: calc(var(--table-max-height) - 40px);
   }
 }
+
+:deep(.el-loading-mask) {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(2px);
+}
+
+:deep(.el-loading-spinner .circular) {
+  width: 28px;
+  height: 28px;
+}
+
+:deep(.el-loading-spinner .path) {
+  stroke: #6b8cff;
+}
+
+:deep(.el-loading-text) {
+  color: #6b8cff !important;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
 </style>

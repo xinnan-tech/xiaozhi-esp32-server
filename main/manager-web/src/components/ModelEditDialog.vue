@@ -76,7 +76,12 @@
     </div>
 
     <div style="display: flex;justify-content: center;">
-      <el-button type="primary" @click="handleSave" class="save-btn">
+      <el-button
+        type="primary"
+        @click="handleSave"
+        class="save-btn"
+        :loading="saving"
+        :disabled="saving">
         保存
       </el-button>
     </div>
@@ -102,6 +107,7 @@ export default {
       dialogVisible: this.visible,
       providers: [],
       providersLoaded: false,
+      saving: false,
       allProvidersData: null,
       pendingProviderType: null,
       pendingModelData: null,
@@ -195,6 +201,8 @@ export default {
       }
     },
     handleSave() {
+      this.saving = true; // 开始保存加载
+
       const provideCode = this.form.configJson.type;
       const formData = {
         id: this.modelData.id,
@@ -209,8 +217,19 @@ export default {
           ...this.form.configJson,
         }
       };
-      this.$emit("save", { provideCode, formData });
-      this.dialogVisible = false;
+
+      this.$emit("save", {
+        provideCode,
+        formData,
+        done: () => {
+          this.saving = false; // 保存完成后回调
+        }
+      });
+
+      // 如果父组件不处理done回调，3秒后自动关闭加载状态
+      setTimeout(() => {
+        this.saving = false;
+      }, 3000);
     },
     loadProviders() {
       if (this.providersLoaded) return;

@@ -40,7 +40,12 @@
       </el-form>
 
       <div class="dialog-footer">
-        <el-button type="primary" @click="submit" class="save-btn">
+        <el-button
+          type="primary"
+          @click="submit"
+          class="save-btn"
+          :loading="saving"
+          :disabled="saving">
           保存
         </el-button>
         <el-button @click="cancel" class="cancel-btn">
@@ -76,6 +81,7 @@ export default {
   data() {
     return {
       dialogKey: Date.now(),
+      saving: false,
       valueTypeOptions: [
         { value: 'string', label: '字符串(string)' },
         { value: 'number', label: '数字(number)' },
@@ -100,11 +106,22 @@ export default {
     submit() {
       this.$refs.form.validate((valid) => {
         if (valid) {
-          this.$emit('submit', this.form);
+          this.saving = true; // 开始加载
+          this.$emit('submit', {
+            form: this.form,
+            done: () => {
+              this.saving = false; // 加载完成
+            }
+          });
+
+          setTimeout(() => {
+            this.saving = false;
+          }, 3000);
         }
       });
     },
     cancel() {
+      this.saving = false; // 取消时重置状态
       this.$emit('cancel');
     }
   },

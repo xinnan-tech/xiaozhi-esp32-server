@@ -77,7 +77,12 @@
     </div>
 
     <div style="display: flex;justify-content: center;">
-      <el-button type="primary" @click="confirm" class="save-btn">
+      <el-button
+        type="primary"
+        @click="confirm"
+        class="save-btn"
+        :loading="saving"
+        :disabled="saving">
         保存
       </el-button>
     </div>
@@ -94,6 +99,7 @@ export default {
   },
   data() {
     return {
+      saving: false,
       providers: [],
       dialogVisible: false,
       providersLoaded: false,
@@ -175,6 +181,7 @@ export default {
     },
 
     handleClose() {
+      this.saving = false;
       this.$emit('update:visible', false);
     },
     initDynamicConfig() {
@@ -185,8 +192,11 @@ export default {
       this.formData.configJson = newConfig;
     },
     confirm() {
+      this.saving = true;
+
       if (!this.formData.supplier) {
         this.$message.error('请选择供应器');
+        this.saving = false;
         return;
       }
 
@@ -206,11 +216,18 @@ export default {
         }
       };
 
-      this.$emit('confirm', submitData);
-      this.$emit('update:visible', false);
-      this.resetForm();
+      try {
+        this.$emit('confirm', submitData);
+        this.$emit('update:visible', false);
+        this.resetForm();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        this.saving = false;
+      }
     },
     resetForm() {
+      this.saving = false;
       this.formData = {
         modelName: '',
         modelCode: '',

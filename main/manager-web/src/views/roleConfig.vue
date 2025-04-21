@@ -15,6 +15,9 @@
                 <img loading="lazy" src="@/assets/home/setting-user.png" alt="">
               </div>
               <span class="header-title">{{ form.agentName }}</span>
+              <button class="custom-close-btn" @click="goToHome">
+                ×
+              </button>
             </div>
             <div class="divider"></div>
 
@@ -165,6 +168,9 @@ export default {
     }
   },
   methods: {
+    goToHome() {
+      this.$router.push('/home');
+    },
     saveConfig() {
       const configData = {
         agentCode: this.form.agentCode,
@@ -423,6 +429,7 @@ export default {
 }
 
 .config-header {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 13px;
@@ -560,8 +567,35 @@ export default {
   background: none;
   position: absolute;
   font-size: 12px;
-  bottom: -10px;
-  right: 21px;
+  bottom: -10%;
+  right: 3%;
+}
+
+.custom-close-btn {
+  position: absolute;
+  top: 25%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 2px solid #cfcfcf;
+  background: none;
+  font-size: 30px;
+  font-weight: lighter;
+  color: #cfcfcf;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  padding: 0;
+  outline: none;
+}
+
+.custom-close-btn:hover {
+  color: #409EFF;
+  border-color: #409EFF;
 }
 
 </style>

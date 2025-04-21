@@ -44,9 +44,19 @@
         <!-- 右侧内容 -->
         <div class="content-area">
           <el-card class="model-card" shadow="never">
-            <el-table ref="modelTable" style="width: 100%" :header-cell-style="{ background: 'transparent' }"
-              :data="modelList" class="data-table" header-row-class-name="table-header"
-              :header-cell-class-name="headerCellClassName" @selection-change="handleSelectionChange">
+              <el-table
+                ref="modelTable"
+                style="width: 100%"
+                v-loading="loading"
+                element-loading-text="拼命加载中"
+                element-loading-spinner="el-icon-loading"
+                element-loading-background="rgba(255, 255, 255, 0.7)"
+                :header-cell-style="{ background: 'transparent' }"
+                :data="modelList"
+                class="data-table"
+                header-row-class-name="table-header"
+                :header-cell-class-name="headerCellClassName"
+                @selection-change="handleSelectionChange">
               <el-table-column type="selection" width="55" align="center"></el-table-column>
               <el-table-column label="模型ID" prop="id" align="center"></el-table-column>
               <el-table-column label="模型名称" prop="modelName" align="center"></el-table-column>
@@ -153,7 +163,8 @@ export default {
       pageSize: 10,
       total: 0,
       selectedModels: [],
-      isAllSelected: false
+      isAllSelected: false,
+      loading: false
     };
   },
 
@@ -297,9 +308,10 @@ export default {
       this.currentPage = page;
       this.$refs.modelTable.clearSelection();
     },
-    handleModelSave({ provideCode, formData }) {
+    handleModelSave({ provideCode, formData, done }) {
       const modelType = this.activeTab;
       const id = formData.id;
+
       Api.model.updateModel(
         { modelType, provideCode, id, formData },
         ({ data }) => {
@@ -310,6 +322,7 @@ export default {
           } else {
             this.$message.error(data.msg || '保存失败');
           }
+          done && done(); // 调用done回调关闭加载状态
         }
       );
     },
@@ -381,6 +394,7 @@ export default {
 
     // 获取模型配置列表
     loadData() {
+      this.loading = true; // 开始加载
       const params = {
         modelType: this.activeTab,
         modelName: this.search,
@@ -389,6 +403,7 @@ export default {
       };
 
       Api.model.getModelList(params, ({ data }) => {
+        this.loading = false; // 结束加载
         if (data.code === 0) {
           this.modelList = data.data.list;
           this.total = data.data.total;
@@ -909,4 +924,22 @@ export default {
   max-height: calc(var(--table-max-height) - 80px);
   overflow-y: auto;
 }
+
+::v-deep .el-loading-mask {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(2px);
+}
+::v-deep .el-loading-spinner .circular {
+  width: 28px;
+  height: 28px;
+}
+::v-deep .el-loading-spinner .path {
+  stroke: #6b8cff;
+}
+::v-deep .el-loading-text {
+  color: #6b8cff !important;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
 </style>
