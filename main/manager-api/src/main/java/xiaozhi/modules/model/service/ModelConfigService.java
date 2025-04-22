@@ -28,4 +28,21 @@ public interface ModelConfigService extends BaseService<ModelConfigEntity> {
      * @return 模型名称
      */
     String getModelNameById(String id);
+
+    /**
+     * 根据ID获取模型配置
+     * 
+     * @param id      模型ID
+     * @param isCache 是否缓存
+     * @return 模型配置实体
+     */
+    ModelConfigEntity getModelById(String id, boolean isCache);
+
+    /**
+     * 设置默认模型
+     * 
+     * @param modelType 模型类型
+     * @param isDefault 是否默认
+     */
+    void setDefaultModel(String modelType, int isDefault);
 }

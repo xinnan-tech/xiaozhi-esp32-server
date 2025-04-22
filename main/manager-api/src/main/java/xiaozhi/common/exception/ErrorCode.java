@@ -51,4 +51,8 @@ public interface ErrorCode {
     int PARAM_NUMBER_INVALID = 10037;
     int PARAM_BOOLEAN_INVALID = 10038;
     int PARAM_ARRAY_INVALID = 10039;
+    int PARAM_JSON_INVALID = 10040;
+
+    int OTA_DEVICE_NOT_FOUND = 10041;
+    int OTA_DEVICE_NEED_BIND = 10042;
 }

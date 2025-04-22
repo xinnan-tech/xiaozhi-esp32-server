@@ -4,7 +4,16 @@
 先按照这个教程配置项目环境[《Windows搭建 ESP IDF 5.3.2开发环境以及编译小智》](https://icnynnzcwou8.feishu.cn/wiki/JEYDwTTALi5s2zkGlFGcDiRknXf)
 
 ## 第2步 打开配置文件
-配置好编译环境后，下载虾哥[xiaozhi-esp32](https://github.com/78/xiaozhi-esp32)项目源码，进入虾哥项目，打开`xiaozhi-esp32/main/Kconfig.projbuild`文件。
+配置好编译环境后，下载虾哥iaozhi-esp32项目源码，
+
+从这里下载虾哥[xiaozhi-esp32项目源码](https://github.com/78/xiaozhi-esp32/archive/refs/tags/v1.6.0.zip)。
+
+从这里下载虾哥[xiaozhi-esp32项目源码](https://github.com/78/xiaozhi-esp32/archive/refs/tags/v1.6.0.zip)。
+
+从这里下载虾哥[xiaozhi-esp32项目源码](https://github.com/78/xiaozhi-esp32/archive/refs/tags/v1.6.0.zip)。
+
+下载后，解压缩包，打开`xiaozhi-esp32/main/Kconfig.projbuild`文件。
+
 
 ## 第3步 修改WEBSOCKET地址
 找到`WEBSOCKET_URL`的`default`的内容，把`wss://api.tenclass.net/xiaozhi/v1/`

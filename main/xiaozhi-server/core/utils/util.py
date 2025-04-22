@@ -1,19 +1,12 @@
-import os
 import json
-import yaml
 import socket
 import subprocess
-import logging
 import re
 import requests
+from typing import Dict, Any
+from core.utils import tts, llm, intent, memory, vad, asr
 
-
-def get_project_dir():
-    """获取项目根目录"""
-    return (
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        + "/"
-    )
+TAG = __name__
 
 
 def get_local_ip():
@@ -72,7 +65,7 @@ def is_private_ip(ip_addr):
         return False  # IP address format error or insufficient segments
 
 
-def get_ip_info(ip_addr):
+def get_ip_info(ip_addr, logger):
     try:
         if is_private_ip(ip_addr):
             ip_addr = ""
@@ -81,14 +74,8 @@ def get_ip_info(ip_addr):
         ip_info = {"city": resp.get("city")}
         return ip_info
     except Exception as e:
-        logging.error(f"Error getting client ip info: {e}")
+        logger.bind(tag=TAG).error(f"Error getting client ip info: {e}")
         return {}
-
-
-def read_config(config_path):
-    with open(config_path, "r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
-    return config
 
 
 def write_json_file(file_path, data):
@@ -169,13 +156,29 @@ def remove_punctuation_and_length(text):
 
 def check_model_key(modelType, modelKey):
     if "你" in modelKey:
-        logging.error(
-            "你还没配置"
-            + modelType
-            + "的密钥，请在配置文件中配置密钥，否则无法正常工作"
+        raise ValueError(
+            "你还没配置" + modelType + "的密钥，请检查一下所使用的LLM是否配置了密钥"
         )
         return False
     return True
+
+
+def parse_string_to_list(value, separator=";"):
+    """
+    将输入值转换为列表
+    Args:
+        value: 输入值，可以是 None、字符串或列表
+        separator: 分隔符，默认为分号
+    Returns:
+        list: 处理后的列表
+    """
+    if value is None or value == "":
+        return []
+    elif isinstance(value, str):
+        return [item.strip() for item in value.split(separator) if item.strip()]
+    elif isinstance(value, list):
+        return value
+    return []
 
 
 def check_ffmpeg_installed():
@@ -208,7 +211,122 @@ def check_ffmpeg_installed():
 def extract_json_from_string(input_string):
     """提取字符串中的 JSON 部分"""
     pattern = r"(\{.*\})"
-    match = re.search(pattern, input_string)
+    match = re.search(pattern, input_string, re.DOTALL)  #添加 re.DOTALL
     if match:
         return match.group(1)  # 返回提取的 JSON 字符串
     return None
+
+
+def initialize_modules(
+    logger,
+    config: Dict[str, Any],
+    init_vad=False,
+    init_asr=False,
+    init_llm=False,
+    init_tts=False,
+    init_memory=False,
+    init_intent=False,
+) -> Dict[str, Any]:
+    """
+    初始化所有模块组件
+
+    Args:
+        config: 配置字典
+
+    Returns:
+        Dict[str, Any]: 包含所有初始化后的模块的字典
+    """
+    modules = {}
+
+    # 初始化TTS模块
+    if init_tts:
+        select_tts_module = config["selected_module"]["TTS"]
+        tts_type = (
+            select_tts_module
+            if "type" not in config["TTS"][select_tts_module]
+            else config["TTS"][select_tts_module]["type"]
+        )
+        modules["tts"] = tts.create_instance(
+            tts_type,
+            config["TTS"][select_tts_module],
+            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
+        )
+        logger.bind(tag=TAG).info(f"初始化组件: tts成功 {select_tts_module}")
+
+    # 初始化LLM模块
+    if init_llm:
+        select_llm_module = config["selected_module"]["LLM"]
+        llm_type = (
+            select_llm_module
+            if "type" not in config["LLM"][select_llm_module]
+            else config["LLM"][select_llm_module]["type"]
+        )
+        modules["llm"] = llm.create_instance(
+            llm_type,
+            config["LLM"][select_llm_module],
+        )
+        logger.bind(tag=TAG).info(f"初始化组件: llm成功 {select_llm_module}")
+
+    # 初始化Intent模块
+    if init_intent:
+        select_intent_module = config["selected_module"]["Intent"]
+        intent_type = (
+            select_intent_module
+            if "type" not in config["Intent"][select_intent_module]
+            else config["Intent"][select_intent_module]["type"]
+        )
+        modules["intent"] = intent.create_instance(
+            intent_type,
+            config["Intent"][select_intent_module],
+        )
+        logger.bind(tag=TAG).info(f"初始化组件: intent成功 {select_intent_module}")
+
+    # 初始化Memory模块
+    if init_memory:
+        select_memory_module = config["selected_module"]["Memory"]
+        memory_type = (
+            select_memory_module
+            if "type" not in config["Memory"][select_memory_module]
+            else config["Memory"][select_memory_module]["type"]
+        )
+        modules["memory"] = memory.create_instance(
+            memory_type,
+            config["Memory"][select_memory_module],
+        )
+        logger.bind(tag=TAG).info(f"初始化组件: memory成功 {select_memory_module}")
+
+    # 初始化VAD模块
+    if init_vad:
+        select_vad_module = config["selected_module"]["VAD"]
+        vad_type = (
+            select_vad_module
+            if "type" not in config["VAD"][select_vad_module]
+            else config["VAD"][select_vad_module]["type"]
+        )
+        modules["vad"] = vad.create_instance(
+            vad_type,
+            config["VAD"][select_vad_module],
+        )
+        logger.bind(tag=TAG).info(f"初始化组件: vad成功 {select_vad_module}")
+
+    # 初始化ASR模块
+    if init_asr:
+        select_asr_module = config["selected_module"]["ASR"]
+        asr_type = (
+            select_asr_module
+            if "type" not in config["ASR"][select_asr_module]
+            else config["ASR"][select_asr_module]["type"]
+        )
+        modules["asr"] = asr.create_instance(
+            asr_type,
+            config["ASR"][select_asr_module],
+            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
+        )
+        logger.bind(tag=TAG).info(f"初始化组件: asr成功 {select_asr_module}")
+
+    # 初始化自定义prompt
+    if config.get("prompt", None) is not None:
+        modules["prompt"] = config["prompt"]
+        logger.bind(tag=TAG).info(f"初始化组件: prompt成功 {modules['prompt'][:50]}...")
+
+    return modules

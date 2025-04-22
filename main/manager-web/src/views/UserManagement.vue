@@ -15,7 +15,14 @@
       <div class="content-panel">
         <div class="content-area">
           <el-card class="user-card" shadow="never">
-            <el-table ref="userTable" :data="userList" class="transparent-table">
+            <el-table
+                ref="userTable"
+                :data="userList"
+                class="transparent-table"
+                v-loading="loading"
+                element-loading-text="拼命加载中"
+                element-loading-spinner="el-icon-loading"
+                element-loading-background="rgba(255, 255, 255, 0.7)">
               <el-table-column label="选择" align="center" width="120">
                   <template slot-scope="scope">
                       <el-checkbox v-model="scope.row.selected"></el-checkbox>
@@ -103,7 +110,8 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      isAllSelected: false
+      isAllSelected: false,
+      loading: false,
     };
   },
   created() {
@@ -137,22 +145,24 @@ export default {
     },
 
     fetchUsers() {
-        Api.admin.getUserList(
-            {
-                page: this.currentPage,
-                limit: this.pageSize,
-                mobile: this.searchPhone,
-            },
-            ({ data }) => {
-                if (data.code === 0) {
-                    this.userList = data.data.list.map(item => ({
-                        ...item,
-                        selected: false
-                    }));
-                    this.total = data.data.total;
-                }
-            }
-        );
+      this.loading = true;
+      Api.admin.getUserList(
+        {
+          page: this.currentPage,
+          limit: this.pageSize,
+          mobile: this.searchPhone,
+        },
+        ({ data }) => {
+          this.loading = false; // 结束加载
+          if (data.code === 0) {
+            this.userList = data.data.list.map(item => ({
+              ...item,
+              selected: false
+            }));
+            this.total = data.data.total;
+          }
+        }
+      );
     },
     handleSearch() {
       this.currentPage = 1;
@@ -682,5 +692,21 @@ export default {
   }
 }
 
+:deep(.el-loading-mask) {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(2px);
+}
+:deep(.el-loading-spinner .circular) {
+  width: 28px;
+  height: 28px;
+}
+:deep(.el-loading-spinner .path) {
+  stroke: #6b8cff;
+}
+:deep(.el-loading-text) {
+  color: #6b8cff !important;
+  font-size: 14px;
+  margin-top: 8px;
+}
 
 </style>

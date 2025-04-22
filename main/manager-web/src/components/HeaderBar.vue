@@ -32,12 +32,6 @@
             :style="{ filter: $route.path === '/params-management' ? 'brightness(0) invert(1)' : 'None' }" />
           参数管理
         </div>
-        <div v-if="isSuperAdmin" class="equipment-management"
-          :class="{ 'active-tab': $route.path === '/ota-management' }" @click="goOtaManagement">
-          <img loading="lazy" alt="" src="@/assets/header/firmware_update.png"
-            :style="{ filter: $route.path === '/ota-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          OTA管理
-        </div>
       </div>
 
       <!-- 右侧元素 -->
@@ -111,9 +105,6 @@ export default {
     goParamManagement() {
       this.$router.push('/params-management')
     },
-    goOtaManagement() {
-      this.$router.push('/ota-management')
-    },
     // 获取用户信息
     fetchUserInfo() {
       userApi.getUserInfo(({ data }) => {
@@ -179,7 +170,7 @@ export default {
 .header {
   background: #f6fcfe66;
   border: 1px solid #fff;
-  height: 53px !important;
+  height: 63px !important;
   min-width: 900px;
   /* 设置最小宽度防止过度压缩 */
   overflow: hidden;
@@ -206,7 +197,7 @@ export default {
 }
 
 .brand-img {
-  height: 18px;
+  height: 20px;
 }
 
 .header-center {
@@ -228,13 +219,13 @@ export default {
 
 .equipment-management {
   padding: 0 9px;
-  width: 82px;
-  height: 24px;
-  border-radius: 12px;
+  width: px;
+  height: 30px;
+  border-radius: 15px;
   background: #deeafe;
   display: flex;
   justify-content: center;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 500;
   gap: 7px;
   color: #3d4566;
@@ -244,6 +235,7 @@ export default {
   cursor: pointer;
   flex-shrink: 0;
   /* 防止导航按钮被压缩 */
+  padding: 0px 15px;
 }
 
 .equipment-management.active-tab {

@@ -14,13 +14,16 @@
           class="table-container"
           ref="tableContainer"
           @scroll="handleScroll">
-        <el-table
-            v-loading="loading"
-            :data="filteredTtsModels"
-            style="width: 100%;"
-            class="data-table"
-            header-row-class-name="table-header"
-            :fit="true">
+          <el-table
+              v-loading="loading"
+              :data="filteredTtsModels"
+              style="width: 100%;"
+              class="data-table"
+              header-row-class-name="table-header"
+              :fit="true"
+              element-loading-text="拼命加载中"
+              element-loading-spinner="el-icon-loading"
+              element-loading-background="rgba(0, 0, 0, 0.8)">
           <el-table-column label="选择" width="50" align="center">
             <template slot-scope="scope">
               <el-checkbox v-model="scope.row.selected"></el-checkbox>
@@ -187,28 +190,28 @@ export default {
   },
   methods: {
     loadData() {
+      this.loading = true;
       const params = {
         ttsModelId: this.ttsModelId,
         page: this.currentPage,
         limit: this.pageSize,
         name: this.searchQuery
       };
-
       Api.timbre.getVoiceList(params, (data) => {
         if (data.code === 0) {
           this.ttsModels = data.data.list
-              .map(item => ({
-                id: item.id || '',
-                voiceCode: item.ttsVoice || '',
-                voiceName: item.name || '未命名音色',
-                languageType: item.languages || '',
-                remark: item.remark || '',
-                voiceDemo: item.voiceDemo || '',
-                selected: false,
-                editing: false,
-                sort: Number(item.sort)
-              }))
-              .sort((a, b) => a.sort - b.sort);
+            .map(item => ({
+              id: item.id || '',
+              voiceCode: item.ttsVoice || '',
+              voiceName: item.name || '未命名音色',
+              languageType: item.languages || '',
+              remark: item.remark || '',
+              voiceDemo: item.voiceDemo || '',
+              selected: false,
+              editing: false,
+              sort: Number(item.sort)
+            }))
+            .sort((a, b) => a.sort - b.sort);
           this.total = data.total;
         } else {
           this.$message.error({
@@ -216,12 +219,14 @@ export default {
             showClose: true
           });
         }
+        this.loading = false;
       }, (err) => {
         console.error('加载失败:', err);
         this.$message.error({
           message: '加载音色数据失败',
           showClose: true
         });
+        this.loading = false;
       });
     },
 

@@ -57,7 +57,7 @@ def create_iot_function(device_name, method_name, method_info):
                 response_failure = "操作失败"
 
             # 打印响应参数
-            logger.bind(tag=TAG).info(
+            logger.bind(tag=TAG).debug(
                 f"控制函数接收到的响应参数: success='{response_success}', failure='{response_failure}'"
             )
 
@@ -144,33 +144,34 @@ class IotDescriptor:
         self.methods = []
 
         # 根据描述创建属性
-        for key, value in properties.items():
-            property_item = globals()[key] = {}
-            property_item["name"] = key
-            property_item["description"] = value["description"]
-            if value["type"] == "number":
-                property_item["value"] = 0
-            elif value["type"] == "boolean":
-                property_item["value"] = False
-            else:
-                property_item["value"] = ""
-            self.properties.append(property_item)
+        if properties is not None:
+            for key, value in properties.items():
+                property_item = {}
+                property_item["name"] = key
+                property_item["description"] = value["description"]
+                if value["type"] == "number":
+                    property_item["value"] = 0
+                elif value["type"] == "boolean":
+                    property_item["value"] = False
+                else:
+                    property_item["value"] = ""
+                self.properties.append(property_item)
 
         # 根据描述创建方法
-        for key, value in methods.items():
-            method = globals()[key] = {}
-            method["description"] = value["description"]
-            method["name"] = key
-            for k, v in value["parameters"].items():
-                method[k] = {}
-                method[k]["description"] = v["description"]
-                if v["type"] == "number":
-                    method[k]["value"] = 0
-                elif v["type"] == "boolean":
-                    method[k]["value"] = False
-                else:
-                    method[k]["value"] = ""
-            self.methods.append(method)
+        if methods is not None:
+            for key, value in methods.items():
+                method = {}
+                method["description"] = value["description"]
+                method["name"] = key
+                # 检查方法是否有参数
+                if "parameters" in value:
+                    method["parameters"] = {}
+                    for k, v in value["parameters"].items():
+                        method["parameters"][k] = {
+                            "description": v["description"],
+                            "type": v["type"],
+                        }
+                self.methods.append(method)
 
 
 def register_device_type(descriptor):
@@ -219,13 +220,19 @@ def register_device_type(descriptor):
         func_name = f"{device_name.lower()}_{method_name.lower()}"
 
         # 创建参数字典，添加原有参数
-        parameters = {
-            param_name: {
-                "type": param_info["type"],
-                "description": param_info["description"],
+        parameters = {}
+        required_params = []
+
+        # 如果方法有参数，则添加参数信息
+        if "parameters" in method_info:
+            parameters = {
+                param_name: {
+                    "type": param_info["type"],
+                    "description": param_info["description"],
+                }
+                for param_name, param_info in method_info["parameters"].items()
             }
-            for param_name, param_info in method_info["parameters"].items()
-        }
+            required_params = list(method_info["parameters"].keys())
 
         # 添加响应参数
         parameters.update(
@@ -242,7 +249,6 @@ def register_device_type(descriptor):
         )
 
         # 构建必须参数列表（原有参数 + 响应参数）
-        required_params = list(method_info["parameters"].keys())
         required_params.extend(["response_success", "response_failure"])
 
         func_desc = {
@@ -269,19 +275,36 @@ def register_device_type(descriptor):
 
 # 用于接受前端设备推送的搜索iot描述
 async def handleIotDescriptors(conn, descriptors):
-    if not conn.use_function_call_mode:
-        return
     wait_max_time = 5
     while conn.func_handler is None or not conn.func_handler.finish_init:
         await asyncio.sleep(1)
         wait_max_time -= 1
         if wait_max_time <= 0:
-            logger.bind(tag=TAG).error("连接对象没有func_handler")
+            logger.bind(tag=TAG).debug("连接对象没有func_handler")
             return
     """处理物联网描述"""
     functions_changed = False
 
     for descriptor in descriptors:
+
+        # 如果descriptor没有properties和methods，则直接跳过
+        if "properties" not in descriptor and "methods" not in descriptor:
+            continue
+
+        # 处理缺失properties的情况
+        if "properties" not in descriptor:
+            descriptor["properties"] = {}
+            # 从methods中提取所有参数作为properties
+            if "methods" in descriptor:
+                for method_name, method_info in descriptor["methods"].items():
+                    if "parameters" in method_info:
+                        for param_name, param_info in method_info["parameters"].items():
+                            # 将参数信息转换为属性信息
+                            descriptor["properties"][param_name] = {
+                                "description": param_info["description"],
+                                "type": param_info["type"],
+                            }
+
         # 创建IOT设备描述符
         iot_descriptor = IotDescriptor(
             descriptor["name"],
@@ -375,19 +398,17 @@ async def send_iot_conn(conn, name, method_name, parameters):
             for method in value.methods:
                 # 找到了方法
                 if method["name"] == method_name:
-                    await conn.websocket.send(
-                        json.dumps(
-                            {
-                                "type": "iot",
-                                "commands": [
-                                    {
-                                        "name": name,
-                                        "method": method_name,
-                                        "parameters": parameters,
-                                    }
-                                ],
-                            }
-                        )
-                    )
+                    # 构建命令对象
+                    command = {
+                        "name": name,
+                        "method": method_name,
+                    }
+
+                    # 只有当参数不为空时才添加parameters字段
+                    if parameters:
+                        command["parameters"] = parameters
+                    send_message = json.dumps({"type": "iot", "commands": [command]})
+                    await conn.websocket.send(send_message)
+                    logger.bind(tag=TAG).info(f"发送物联网指令: {send_message}")
                     return
     logger.bind(tag=TAG).error(f"未找到方法{method_name}")

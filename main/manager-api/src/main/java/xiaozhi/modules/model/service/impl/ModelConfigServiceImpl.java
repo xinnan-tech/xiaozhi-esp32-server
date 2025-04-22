@@ -42,6 +42,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         List<ModelConfigEntity> entities = modelConfigDao.selectList(
                 new QueryWrapper<ModelConfigEntity>()
                         .eq("model_type", modelType)
+                        .eq("is_enabled", 1)
                         .like(StringUtils.isNotBlank(modelName), "model_name", "%" + modelName + "%")
                         .select("id", "model_name"));
         return ConvertUtils.sourceToTarget(entities, ModelBasicInfoDTO.class);
@@ -94,6 +95,8 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         modelConfigEntity.setId(id);
         modelConfigEntity.setModelType(modelType);
         modelConfigDao.updateById(modelConfigEntity);
+        // 清除缓存
+        redisUtils.delete(RedisKeys.getModelConfigById(modelConfigEntity.getId()));
         return ConvertUtils.sourceToTarget(modelConfigEntity, ModelConfigDTO.class);
     }
 
@@ -124,5 +127,31 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         }
 
         return null;
+    }
+
+    @Override
+    public ModelConfigEntity getModelById(String id, boolean isCache) {
+        if (StringUtils.isBlank(id)) {
+            return null;
+        }
+        if (isCache) {
+            ModelConfigEntity cachedConfig = (ModelConfigEntity) redisUtils.get(RedisKeys.getModelConfigById(id));
+            if (cachedConfig != null) {
+                return ConvertUtils.sourceToTarget(cachedConfig, ModelConfigEntity.class);
+            }
+        }
+        ModelConfigEntity entity = modelConfigDao.selectById(id);
+        if (entity != null) {
+            redisUtils.set(RedisKeys.getModelConfigById(id), entity);
+        }
+        return entity;
+    }
+
+    @Override
+    public void setDefaultModel(String modelType, int isDefault) {
+        ModelConfigEntity entity = new ModelConfigEntity();
+        entity.setIsDefault(isDefault);
+        modelConfigDao.update(entity, new QueryWrapper<ModelConfigEntity>()
+                .eq("model_type", modelType));
     }
 }

@@ -20,7 +20,11 @@
               :data="paginatedDeviceList"
               @selection-change="handleSelectionChange"
               class="transparent-table"
-              :header-cell-class-name="headerCellClassName">
+              :header-cell-class-name="headerCellClassName"
+              v-loading="loading"
+              element-loading-text="拼命加载中"
+              element-loading-spinner="el-icon-loading"
+              element-loading-background="rgba(255, 255, 255, 0.7)">
               <el-table-column type="selection" align="center" width="120"></el-table-column>
               <el-table-column label="设备型号" prop="model" align="center"></el-table-column>
               <el-table-column label="固件版本" prop="firmwareVersion" align="center" ></el-table-column>

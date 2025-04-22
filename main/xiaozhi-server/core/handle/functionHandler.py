@@ -57,7 +57,9 @@ class FunctionHandler:
 
     def register_config_functions(self):
         """注册配置中的函数,可以不同客户端使用不同的配置"""
-        for func in self.config["Intent"]["function_call"].get("functions", []):
+        for func in self.config["Intent"][self.config["selected_module"]["Intent"]].get(
+            "functions", []
+        ):
             self.function_registry.register_function(func)
 
         """home assistant需要初始化提示词"""
@@ -77,7 +79,7 @@ class FunctionHandler:
             func = funcItem.func
             arguments = function_call_data["arguments"]
             arguments = json.loads(arguments) if arguments else {}
-            logger.bind(tag=TAG).info(f"调用函数: {function_name}, 参数: {arguments}")
+            logger.bind(tag=TAG).debug(f"调用函数: {function_name}, 参数: {arguments}")
             if (
                 funcItem.type == ToolType.SYSTEM_CTL
                 or funcItem.type == ToolType.IOT_CTL

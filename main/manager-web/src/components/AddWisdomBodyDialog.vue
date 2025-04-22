@@ -11,7 +11,7 @@
     <div style="height: 1px;background: #e8f0ff;" />
     <div style="margin: 22px 15px;">
       <div style="font-weight: 400;font-size: 14px;text-align: left;color: #3d4566;">
-        <div style="color: red;display: inline-block;">*</div> 智慧体名称：
+        <div style="color: red;display: inline-block;">*</div> 智能体名称：
       </div>
       <div class="input-46" style="margin-top: 12px;">
         <el-input ref="inputRef" placeholder="请输入智能体名称.." v-model="wisdomBodyName" @keyup.enter.native="confirm" />
