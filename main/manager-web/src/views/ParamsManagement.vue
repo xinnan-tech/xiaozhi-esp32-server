@@ -402,13 +402,21 @@ export default {
 }
 
 .params-card {
-    background: white;
-    border: none;
-    box-shadow: none;
+  background: white;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+
+  ::v-deep .el-card__body {
+    padding: 15px;
     display: flex;
     flex-direction: column;
     flex: 1;
     overflow: hidden;
+  }
 }
 
 .table_bottom {

@@ -425,12 +425,20 @@ export default {
 
 .user-card {
   background: white;
-  border: none;
-  box-shadow: none;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  border: none;
+  box-shadow: none;
   overflow: hidden;
+
+  ::v-deep .el-card__body {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
 }
 
 .table_bottom {

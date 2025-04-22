@@ -15,17 +15,26 @@
       <div class="content-panel">
         <div class="content-area">
           <el-card class="device-card" shadow="never">
-            <el-table ref="deviceTable" :data="paginatedDeviceList" @selection-change="handleSelectionChange"
-              class="transparent-table" :header-cell-class-name="headerCellClassName" v-loading="loading"
-              element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
+            <el-table
+              ref="deviceTable"
+              :data="paginatedDeviceList"
+              class="transparent-table"
+              :header-cell-class-name="headerCellClassName"
+              v-loading="loading"
+              element-loading-text="拼命加载中"
+              element-loading-spinner="el-icon-loading"
               element-loading-background="rgba(255, 255, 255, 0.7)">
-              <el-table-column type="selection" align="center" width="120"></el-table-column>
+              <el-table-column label="选择" align="center" width="120">
+                <template slot-scope="scope">
+                  <el-checkbox v-model="scope.row.selected"></el-checkbox>
+                </template>
+              </el-table-column>
               <el-table-column label="设备型号" prop="model" align="center">
                 <template slot-scope="scope">
                   {{ getFirmwareTypeName(scope.row.model) }}
                 </template>
               </el-table-column>
-              <el-table-column label="固件版本" prop="firmwareVersion" align="center"></el-table-column>
+              <el-table-column label="固件版本" prop="firmwareVersion" align="center" ></el-table-column>
               <el-table-column label="Mac地址" prop="macAddress" align="center"></el-table-column>
               <el-table-column label="绑定时间" prop="bindTime" align="center"></el-table-column>
               <el-table-column label="最近对话" prop="lastConversation" align="center"></el-table-column>
@@ -59,7 +68,7 @@
 
             <div class="table_bottom">
               <div class="ctrl_btn">
-                <el-button size="mini" type="primary" class="select-all-btn" @click="toggleAllSelection">
+                <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
                   {{ isAllSelected ? '取消全选' : '全选' }}
                 </el-button>
                 <el-button type="success" size="mini" class="add-device-btn" @click="handleAddDevice">
@@ -115,7 +124,6 @@ export default {
       deviceList: [],
       loading: false,
       userApi: null,
-
     };
   },
   computed: {
@@ -131,7 +139,10 @@ export default {
     paginatedDeviceList() {
       const start = (this.currentPage - 1) * this.pageSize;
       const end = start + this.pageSize;
-      return this.filteredDeviceList.slice(start, end);
+      return this.filteredDeviceList.slice(start, end).map(item => ({
+        ...item,
+        selected: false
+      }));
     },
     pageCount() {
       return Math.ceil(this.filteredDeviceList.length / this.pageSize);
@@ -168,15 +179,16 @@ export default {
       this.currentPage = 1;
     },
 
-    handleSelectionChange(val) {
-      this.selectedDevices = val;
-      this.isAllSelected = val.length === this.paginatedDeviceList.length;
-    },
-    toggleAllSelection() {
-      this.$refs.deviceTable.toggleAllSelection();
+    handleSelectAll() {
+      this.isAllSelected = !this.isAllSelected;
+      this.paginatedDeviceList.forEach(row => {
+        row.selected = this.isAllSelected;
+      });
+      this.selectedDevices = this.paginatedDeviceList.filter(device => device.selected);
     },
 
     deleteSelected() {
+      this.selectedDevices = this.paginatedDeviceList.filter(device => device.selected);
       if (this.selectedDevices.length === 0) {
         this.$message.warning({
           message: '请至少选择一条记录',
@@ -460,6 +472,13 @@ export default {
   flex: 1;
   overflow: hidden;
 }
+  ::v-deep .el-card__body {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
 
 .table_bottom {
   display: flex;
@@ -468,6 +487,7 @@ export default {
   margin-top: 10px;
   padding-bottom: 10px;
 }
+
 
 .ctrl_btn {
   display: flex;
@@ -614,13 +634,7 @@ export default {
   display: none !important;
 }
 
-:deep(.custom-selection-header::after) {
-  content: "选择";
-  display: inline-block;
-  color: black;
-  font-weight: bold;
-  padding-bottom: 18px;
-}
+
 
 :deep(.el-table .el-button--text) {
   color: #7079aa;
@@ -657,4 +671,25 @@ export default {
     padding-bottom: 16px;
   }
 }
+
+:deep(.el-checkbox__inner) {
+  background-color: #eeeeee !important;
+  border-color: #cccccc !important;
+}
+
+:deep(.el-checkbox__inner:hover) {
+  border-color: #cccccc !important;
+}
+
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #5f70f3 !important;
+  border-color: #5f70f3 !important;
+}
+
+::v-deep .el-table--border::after,
+::v-deep .el-table--group::after,
+::v-deep .el-table::before {
+  display: none !important;
+}
+
 </style>
