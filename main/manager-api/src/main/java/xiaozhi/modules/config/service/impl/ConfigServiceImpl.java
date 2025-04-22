@@ -291,7 +291,7 @@ public class ConfigServiceImpl implements ConfigService {
 
         result.put("selected_module", selectedModule);
         if (StringUtils.isNotBlank(prompt)) {
-            prompt = prompt.replace("{{assistant_name}}", "小智");
+            prompt = prompt.replace("{{assistant_name}}", assistantName);
         }
         result.put("prompt", prompt);
     }
