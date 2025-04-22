@@ -5,6 +5,9 @@
 # 先启动manager-api和manager-web，注册一个账号，第一个注册的账号为管理员
 # 使用管理员，进入【参数管理】页面，找到【server.secret】，复制它到参数值，注意每次从零部署，server.secret都会变化
 # 打开本data目录下的.config.yaml文件，修改manager-api.secret为刚才复制出来的server.secret
+server:
+  ip: 0.0.0.0
+  port: 8000
 manager-api:
   # 你的manager-api的地址，最好使用局域网ip
   url: http://127.0.0.1:8002/xiaozhi

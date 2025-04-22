@@ -85,6 +85,11 @@ public interface Constant {
     String SERVER_SECRET = "server.secret";
 
     /**
+     * websocket地址
+     */
+    String SERVER_WEBSOCKET = "server.websocket";
+
+    /**
      * 是否允许用户注册
      */
     String SERVER_ALLOW_USER_REGISTER = "server.allow_user_register";

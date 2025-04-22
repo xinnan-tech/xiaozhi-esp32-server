@@ -69,6 +69,11 @@ def get_config_from_api(config):
         "url": config["manager-api"].get("url", ""),
         "secret": config["manager-api"].get("secret", ""),
     }
+    if config.get("server"):
+        config_data["server"] = {
+            "ip": config["server"].get("ip", ""),
+            "port": config["server"].get("port", ""),
+        }
     return config_data
 
 

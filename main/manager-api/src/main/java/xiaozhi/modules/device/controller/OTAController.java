@@ -23,11 +23,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import xiaozhi.common.constant.Constant;
 import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.device.utils.NetworkUtil;
+import xiaozhi.modules.sys.service.SysParamsService;
 
 @Tag(name = "设备管理", description = "OTA 相关接口")
 @Slf4j
@@ -36,6 +38,7 @@ import xiaozhi.modules.device.utils.NetworkUtil;
 @RequestMapping("/ota/")
 public class OTAController {
     private final DeviceService deviceService;
+    private final SysParamsService sysParamsService;
 
     @Operation(summary = "OTA版本和设备激活状态检查")
     @PostMapping
@@ -76,7 +79,11 @@ public class OTAController {
     @GetMapping
     @Hidden
     public ResponseEntity<String> getOTA() {
-        return ResponseEntity.ok("OTA接口运行正常");
+        String wsUrl = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
+        if (StringUtils.isBlank(wsUrl) || wsUrl.equals("null")) {
+            return ResponseEntity.ok("OTA接口不正常，缺少websocket地址");
+        }
+        return ResponseEntity.ok("OTA接口运行正常，websocket集群数量：" + wsUrl.split(";").length);
     }
 
     @SneakyThrows

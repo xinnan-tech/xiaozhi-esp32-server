@@ -2,6 +2,7 @@ package xiaozhi.modules.sys.controller;
 
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.annotation.LogOperation;
 import xiaozhi.common.constant.Constant;
+import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.validator.AssertUtils;
@@ -30,6 +32,7 @@ import xiaozhi.common.validator.group.UpdateGroup;
 import xiaozhi.modules.config.service.ConfigService;
 import xiaozhi.modules.sys.dto.SysParamsDTO;
 import xiaozhi.modules.sys.service.SysParamsService;
+import xiaozhi.modules.sys.utils.WebSocketValidator;
 
 /**
  * 参数管理
@@ -91,9 +94,41 @@ public class SysParamsController {
         // 效验数据
         ValidatorUtils.validateEntity(dto, UpdateGroup.class, DefaultGroup.class);
 
+        // 验证WebSocket地址列表
+        validateWebSocketUrls(dto.getParamCode(), dto.getParamValue());
+
         sysParamsService.update(dto);
         configService.getConfig(false);
         return new Result<Void>();
+    }
+
+    /**
+     * 验证WebSocket地址列表
+     * 
+     * @param urls WebSocket地址列表，以分号分隔
+     * @return 验证结果
+     */
+    private void validateWebSocketUrls(String paramCode, String urls) {
+        if (!paramCode.equals(Constant.SERVER_WEBSOCKET)) {
+            return;
+        }
+        String[] wsUrls = urls.split("\\;");
+        if (wsUrls.length == 0) {
+            throw new RenException("WebSocket地址列表不能为空");
+        }
+        for (String url : wsUrls) {
+            if (StringUtils.isNotBlank(url)) {
+                // 验证WebSocket地址格式
+                if (!WebSocketValidator.validateUrlFormat(url)) {
+                    throw new RenException("WebSocket地址格式不正确: " + url);
+                }
+
+                // 测试WebSocket连接
+                if (!WebSocketValidator.testConnection(url)) {
+                    throw new RenException("WebSocket连接测试失败: " + url);
+                }
+            }
+        }
     }
 
     @PostMapping("/delete")

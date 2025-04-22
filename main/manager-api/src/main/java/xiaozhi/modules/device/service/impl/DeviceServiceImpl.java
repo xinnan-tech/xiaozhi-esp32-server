@@ -18,6 +18,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import cn.hutool.core.util.RandomUtil;
+import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
@@ -36,14 +37,13 @@ import xiaozhi.modules.security.user.SecurityUser;
 import xiaozhi.modules.sys.service.SysParamsService;
 import xiaozhi.modules.sys.service.SysUserUtilService;
 
+@Slf4j
 @Service
 public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> implements DeviceService {
 
     private final DeviceDao deviceDao;
 
     private final SysUserUtilService sysUserUtilService;
-
-    private final String frontedUrl;
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -55,7 +55,6 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
             RedisTemplate<String, Object> redisTemplate) {
         this.deviceDao = deviceDao;
         this.sysUserUtilService = sysUserUtilService;
-        this.frontedUrl = sysParamsService.getValue(Constant.SERVER_FRONTED_URL, true);
         this.redisTemplate = redisTemplate;
         this.sysParamsService = sysParamsService;
     }
@@ -134,15 +133,26 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         firmware.setVersion(deviceReport.getApplication().getVersion());
         firmware.setUrl("http://localhost:8002/xiaozhi/ota/download");
         response.setFirmware(firmware);
-        
+
         // 添加WebSocket配置
         DeviceReportRespDTO.Websocket websocket = new DeviceReportRespDTO.Websocket();
         // 从系统参数获取WebSocket URL，如果未配置则使用默认值
-        String wsUrl = sysParamsService.getValue("websocket_url", true);
-        if (StringUtils.isBlank(wsUrl)) {
-            wsUrl = "ws://localhost:8000/xiaozhi/v1/";
+        String wsUrl = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
+        if (StringUtils.isBlank(wsUrl) || wsUrl.equals("null")) {
+            log.error("WebSocket URL is not configured");
+            wsUrl = "ws://xiaozhi.server.com:8000/xiaozhi/v1/";
+            websocket.setUrl(wsUrl);
+        } else {
+            String[] wsUrls = wsUrl.split("\\;");
+            if (wsUrls.length > 0) {
+                // 随机选择一个WebSocket URL
+                websocket.setUrl(wsUrls[RandomUtil.randomInt(0, wsUrls.length)]);
+            } else {
+                log.error("WebSocket URL list is empty");
+                websocket.setUrl("ws://xiaozhi.server.com:8000/xiaozhi/v1/");
+            }
         }
-        websocket.setUrl(wsUrl);
+
         response.setWebsocket(websocket);
 
         DeviceEntity deviceById = getDeviceById(macAddress);
@@ -263,11 +273,13 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
         if (StringUtils.isNotBlank(cachedCode)) {
             code.setCode(cachedCode);
+            String frontedUrl = sysParamsService.getValue(Constant.SERVER_FRONTED_URL, true);
             code.setMessage(frontedUrl + "\n" + cachedCode);
             code.setChallenge(deviceId);
         } else {
             String newCode = RandomUtil.randomNumbers(6);
             code.setCode(newCode);
+            String frontedUrl = sysParamsService.getValue(Constant.SERVER_FRONTED_URL, true);
             code.setMessage(frontedUrl + "\n" + newCode);
             code.setChallenge(deviceId);
 
