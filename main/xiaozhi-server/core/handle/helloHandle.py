@@ -80,6 +80,8 @@ async def wakeupWordsResponse(conn):
 
     """唤醒词响应"""
     wakeup_word = random.choice(WAKEUP_CONFIG["words"])
+    if conn.config["selected_module"]["TTS"]=="DidirectionalFlowTTS":
+        return
     result = conn.llm.response_no_stream(conn.config["prompt"], wakeup_word)
     if result is None or result == "":
         return

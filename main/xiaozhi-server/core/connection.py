@@ -10,6 +10,7 @@ import traceback
 import threading
 import websockets
 from typing import Dict, Any
+from core.websocket_client import WebSocketClient
 from plugins_func.loadplugins import auto_import_modules
 from config.logger import setup_logging
 from core.utils.dialogue import Message, Dialogue
@@ -85,6 +86,11 @@ class ConnectionHandler:
         self.client_have_voice_last_time = 0.0
         self.client_no_voice_last_time = 0.0
         self.client_voice_stop = False
+
+        # tts双向流
+        if self.config["selected_module"]["TTS"]=="DidirectionalFlowTTS":
+            self.ttsClient = WebSocketClient(self.config["TTS"]["DidirectionalFlowTTS"]["url"],self)
+            self.ttsClient.connect()
 
         # asr相关变量
         self.asr_audio = []
@@ -667,6 +673,156 @@ class ConnectionHandler:
 
         return True
 
+    def chat_with_tts_function_calling(self, query, tool_call=False):
+        self.logger.bind(tag=TAG).debug(f"Chat with function calling start: {query}")
+        """Chat with function calling for intent detection using streaming"""
+
+        if not tool_call:
+            self.dialogue.put(Message(role="user", content=query))
+            self.ttsClient.send(json.dumps( { "type":"start" }))
+            self.logger.bind(tag=TAG).info(f"双向流开始")
+
+        # Define intent functions
+        functions = None
+        if hasattr(self, "func_handler"):
+            functions = self.func_handler.get_functions()
+        response_message = []
+        processed_chars = 0  # 跟踪已处理的字符位置
+
+        try:
+            start_time = time.time()
+
+            # 使用带记忆的对话
+            future = asyncio.run_coroutine_threadsafe(
+                self.memory.query_memory(query), self.loop
+            )
+            memory_str = future.result()
+
+            # self.logger.bind(tag=TAG).info(f"对话记录: {self.dialogue.get_llm_dialogue_with_memory(memory_str)}")
+
+            # 使用支持functions的streaming接口
+            llm_responses = self.llm.response_with_functions(
+                self.session_id,
+                self.dialogue.get_llm_dialogue_with_memory(memory_str),
+                functions=functions,
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
+            return None
+
+        self.llm_finish_task = False
+        text_index = 0
+
+        # 处理流式响应
+        tool_call_flag = False
+        function_name = None
+        function_id = None
+        function_arguments = ""
+        content_arguments = ""
+
+        for response in llm_responses:
+            content, tools_call = response
+
+            if "content" in response:
+                content = response["content"]
+                tools_call = None
+            if content is not None and len(content) > 0:
+                content_arguments += content
+
+            if not tool_call_flag and content_arguments.startswith("<tool_call>"):
+                # print("content_arguments", content_arguments)
+                tool_call_flag = True
+
+            if tools_call is not None:
+                tool_call_flag = True
+                if tools_call[0].id is not None:
+                    function_id = tools_call[0].id
+                if tools_call[0].function.name is not None:
+                    function_name = tools_call[0].function.name
+                if tools_call[0].function.arguments is not None:
+                    function_arguments += tools_call[0].function.arguments
+
+            if content is not None and len(content) > 0:
+                if not tool_call_flag:
+                    response_message.append(content)
+
+                    if self.client_abort:
+                        break
+
+                    end_time = time.time()
+                    # self.logger.bind(tag=TAG).debug(f"大模型返回时间: {end_time - start_time} 秒, 生成token={content}")
+
+                    # 提取最后一个片段
+                    last_chunk = response_message[-1]
+
+                    json_data = {
+                        "type": "text",
+                        "text": last_chunk
+                    }
+                    self.logger.bind(tag=TAG).info(f"tts流文字: {last_chunk}")
+                    self.ttsClient.send(json.dumps(json_data))
+                    
+
+        # 处理function call
+        if tool_call_flag:
+            bHasError = False
+            if function_id is None:
+                a = extract_json_from_string(content_arguments)
+                if a is not None:
+                    try:
+                        content_arguments_json = json.loads(a)
+                        function_name = content_arguments_json["name"]
+                        function_arguments = json.dumps(
+                            content_arguments_json["arguments"], ensure_ascii=False
+                        )
+                        function_id = str(uuid.uuid4().hex)
+                    except Exception as e:
+                        bHasError = True
+                        response_message.append(a)
+                else:
+                    bHasError = True
+                    response_message.append(content_arguments)
+                if bHasError:
+                    self.logger.bind(tag=TAG).error(
+                        f"function call error: {content_arguments}"
+                    )
+            if not bHasError:
+                response_message.clear()
+                self.logger.bind(tag=TAG).debug(
+                    f"function_name={function_name}, function_id={function_id}, function_arguments={function_arguments}"
+                )
+                function_call_data = {
+                    "name": function_name,
+                    "id": function_id,
+                    "arguments": function_arguments,
+                }
+
+                # 处理MCP工具调用
+                if self.mcp_manager.is_mcp_tool(function_name):
+                    result = self._handle_mcp_tool_call(function_call_data)
+                else:
+                    # 处理系统函数
+                    result = self.func_handler.handle_llm_function_call(
+                        self, function_call_data
+                    )
+                self._handle_function_result(result, function_call_data, text_index + 1)
+
+
+        # 存储对话内容
+        if len(response_message) > 0:
+            self.dialogue.put(
+                Message(role="assistant", content="".join(response_message))
+            )
+
+        self.ttsClient.send(json.dumps( { "type": 'finish' }))
+        self.logger.bind(tag=TAG).info("TTS流结束")
+        self.llm_finish_task = True
+        self.logger.bind(tag=TAG).debug(
+            json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False)
+        )
+
+        return True
+
     def _handle_mcp_tool_call(self, function_call_data):
         function_arguments = function_call_data["arguments"]
         function_name = function_call_data["name"]
@@ -742,7 +898,10 @@ class ConnectionHandler:
                 self.dialogue.put(
                     Message(role="tool", tool_call_id=function_id, content=text)
                 )
-                self.chat_with_function_calling(text, tool_call=True)
+                if self.config["selected_module"]["TTS"]=="DidirectionalFlowTTS":
+                    self.chat_with_tts_function_calling(text, tool_call=True)
+                else:
+                    self.chat_with_function_calling(text, tool_call=True)
         elif result.action == Action.NOTFOUND or result.action == Action.ERROR:
             text = result.result
             self.recode_first_last_text(text, text_index)
@@ -886,6 +1045,8 @@ class ConnectionHandler:
 
         # 清空任务队列
         self._clear_queues()
+        if self.config["selected_module"]["TTS"]=="DidirectionalFlowTTS":
+            self.ttsClient.close()
 
         if ws:
             await ws.close()

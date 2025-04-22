@@ -595,3 +595,6 @@ TTS:
       # Authorization: Bearer xxxx
     format: wav # 接口返回的音频格式
     output_dir: tmp/
+  DidirectionalFlowTTS:
+    voice: longjielidou
+    url: ws://127.0.0.1:8083

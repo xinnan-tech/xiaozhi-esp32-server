@@ -70,6 +70,9 @@ async def startToChat(conn, text):
 
     # 意图未被处理，继续常规聊天流程
     await send_stt_message(conn, text)
+    if conn.config["selected_module"]["TTS"]=="DidirectionalFlowTTS":
+        conn.executor.submit(conn.chat_with_tts_function_calling, text)
+        return
     if conn.use_function_call_mode:
         # 使用支持function calling的聊天方法
         conn.executor.submit(conn.chat_with_function_calling, text)

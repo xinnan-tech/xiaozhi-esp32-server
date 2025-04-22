@@ -10,7 +10,7 @@ from pathlib import Path
 from core.utils import p3
 from core.handle.sendAudioHandle import send_stt_message
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
-
+import json
 
 TAG = __name__
 logger = setup_logging()
@@ -217,12 +217,16 @@ async def play_local_music(conn, specific_file=None):
         conn.tts_first_text_index = 0
         conn.tts_last_text_index = 0
 
-        tts_file = await asyncio.to_thread(conn.tts.to_tts, text)
-        if tts_file is not None and os.path.exists(tts_file):
-            conn.tts_last_text_index = 1
-            opus_packets, _ = conn.tts.audio_to_opus_data(tts_file)
-            conn.audio_play_queue.put((opus_packets, None, 0))
-            os.remove(tts_file)
+        if conn.config["selected_module"]["TTS"]!="DidirectionalFlowTTS":
+            tts_file = await asyncio.to_thread(conn.tts.to_tts, text)
+            if tts_file is not None and os.path.exists(tts_file):
+                conn.tts_last_text_index = 1
+                opus_packets, _ = conn.tts.audio_to_opus_data(tts_file)
+                conn.audio_play_queue.put((opus_packets, None, 0))
+                os.remove(tts_file)
+        # else:
+        #     conn.ttsClient.send(json.dumps({ "type": 'text',"text": text }))
+        #     conn.ttsClient.send(json.dumps( { "type": 'finish' }))
 
         conn.llm_finish_task = True
 
