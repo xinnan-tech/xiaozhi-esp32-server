@@ -63,13 +63,6 @@ const routes = [
     }
   },
   {
-    path: '/test',
-    name: 'TestServer',
-    component: function () {
-      return import('../views/test.vue')
-    }
-  },
-  {
     path: '/params-management',
     name: 'ParamsManagement',
     component: function () {

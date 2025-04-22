@@ -17,13 +17,6 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202503141346.sql
   - changeSet:
-      id: 2025_tts_voive
-      author: John
-      changes:
-        - sqlFile:
-            encoding: utf8
-            path: classpath:db/changelog/2025_tts_voive.sql
-  - changeSet:
       id: 202504082211
       author: John
       changes:
@@ -66,9 +59,16 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202504181536.sql
   - changeSet:
-      id: 202504211118
+      id: 202504180758
+      author: jiangkunyin
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202504180758.sql
+  - changeSet:
+      id: 202504221135
       author: John
       changes:
         - sqlFile:
             encoding: utf8
-            path: classpath:db/changelog/202504211118.sql
+            path: classpath:db/changelog/202504221135.sql

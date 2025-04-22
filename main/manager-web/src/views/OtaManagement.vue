@@ -23,14 +23,19 @@
                                 </template>
                             </el-table-column>
                             <el-table-column label="固件名称" prop="firmwareName" align="center"></el-table-column>
-                            <el-table-column label="固件类型" prop="type" align="center"></el-table-column>
+                            <el-table-column label="固件类型" prop="type" align="center">
+                                <template slot-scope="scope">
+                                    {{ getFirmwareTypeName(scope.row.type) }}
+                                </template>
+                            </el-table-column>
                             <el-table-column label="版本号" prop="version" align="center"></el-table-column>
                             <el-table-column label="文件大小" prop="size" align="center">
                                 <template slot-scope="scope">
                                     {{ formatFileSize(scope.row.size) }}
                                 </template>
                             </el-table-column>
-                            <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip></el-table-column>
+                            <el-table-column label="备注" prop="remark" align="center"
+                                show-overflow-tooltip></el-table-column>
                             <el-table-column label="创建时间" prop="createDate" align="center">
                                 <template slot-scope="scope">
                                     {{ formatDate(scope.row.createDate) }}
@@ -38,7 +43,8 @@
                             </el-table-column>
                             <el-table-column label="操作" align="center">
                                 <template slot-scope="scope">
-                                    <el-button size="mini" type="text" @click="downloadFirmware(scope.row)">下载</el-button>
+                                    <el-button size="mini" type="text"
+                                        @click="downloadFirmware(scope.row)">下载</el-button>
                                     <el-button size="mini" type="text" @click="editParam(scope.row)">编辑</el-button>
                                     <el-button size="mini" type="text" @click="deleteParam(scope.row)">删除</el-button>
                                 </template>
@@ -50,16 +56,14 @@
                                 <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
                                     {{ isAllSelected ? '取消全选' : '全选' }}
                                 </el-button>
-                                <el-button size="mini" type="success" @click="showAddDialog">新增</el-button>
+                                <el-button size="mini" type="success" @click="showAddDialog"
+                                    style="background: #5bc98c;border: None;">新增</el-button>
                                 <el-button size="mini" type="danger" icon="el-icon-delete"
-                                     @click="deleteSelectedParams">删除</el-button>
+                                    @click="deleteSelectedParams">删除</el-button>
                             </div>
                             <div class="custom-pagination">
                                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                                    <el-option
-                                        v-for="item in pageSizeOptions"
-                                        :key="item"
-                                        :label="`${item}条/页`"
+                                    <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`"
                                         :value="item">
                                     </el-option>
                                 </el-select>
@@ -93,8 +97,9 @@
 
 <script>
 import Api from "@/apis/api";
-import HeaderBar from "@/components/HeaderBar.vue";
 import FirmwareDialog from "@/components/FirmwareDialog.vue";
+import HeaderBar from "@/components/HeaderBar.vue";
+import { FIRMWARE_TYPES } from "@/utils";
 import { formatDate, formatFileSize } from "@/utils/format";
 
 export default {
@@ -156,7 +161,7 @@ export default {
             const params = {
                 pageNum: this.currentPage,
                 pageSize: this.pageSize,
-                firmwareName: this.searchName || undefined,
+                firmwareName: this.searchName || "",
                 orderField: "create_date",
                 order: "desc"
             };
@@ -371,7 +376,11 @@ export default {
             });
         },
         formatDate,
-        formatFileSize
+        formatFileSize,
+        getFirmwareTypeName(type) {
+            const firmwareType = FIRMWARE_TYPES.find(item => item.key === type);
+            return firmwareType ? firmwareType.name : type;
+        },
     },
 };
 </script>
@@ -392,16 +401,16 @@ export default {
 }
 
 .main-wrapper {
-  margin: 5px 22px;
-  border-radius: 15px;
-  min-height: calc(100vh - 24vh);
-  height: auto;
-  max-height: 80vh;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  position: relative;
-  background: rgba(237, 242, 255, 0.5);
-  display: flex;
-  flex-direction: column;
+    margin: 5px 22px;
+    border-radius: 15px;
+    min-height: calc(100vh - 24vh);
+    height: auto;
+    max-height: 80vh;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    position: relative;
+    background: rgba(237, 242, 255, 0.5);
+    display: flex;
+    flex-direction: column;
 }
 
 .operation-bar {
@@ -510,7 +519,7 @@ export default {
     gap: 10px;
 
     .el-select {
-      margin-right: 8px;
+        margin-right: 8px;
     }
 
     .pagination-btn:first-child,
@@ -586,7 +595,7 @@ export default {
     .el-table__header-wrapper {
         flex-shrink: 0;
     }
-    
+
     .el-table__header th {
         background-color: white !important;
         color: black;
@@ -608,7 +617,7 @@ export default {
         }
     }
 
-    .el-table__row:hover > td {
+    .el-table__row:hover>td {
         background-color: #f5f7fa !important;
     }
 }

@@ -1,15 +1,15 @@
 package xiaozhi.modules.device.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
-import xiaozhi.common.page.PageData;
-import xiaozhi.modules.device.entity.OtaEntity;
-
 import java.util.Map;
+
+import xiaozhi.common.page.PageData;
+import xiaozhi.common.service.BaseService;
+import xiaozhi.modules.device.entity.OtaEntity;
 
 /**
  * OTA固件管理
  */
-public interface OtaService extends IService<OtaEntity> {
+public interface OtaService extends BaseService<OtaEntity> {
     PageData<OtaEntity> page(Map<String, Object> params);
 
     boolean save(OtaEntity entity);

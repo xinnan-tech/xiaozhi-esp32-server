@@ -1,6 +1,7 @@
--- 本文件用于初始化模型模版数据，无需手动执行，在项目启动时会自动执行
+-- 本文件用于初始化固件信息表，无需手动执行，在项目启动时会自动执行
 -- -------------------------------------------------------
--- 初始化智能体模板数据
+-- 初始化固件信息表
+drop table if exists `ai_ota`;
 CREATE TABLE `ai_ota` (
   `id` varchar(32) NOT NULL COMMENT 'ID',
   `firmware_name` varchar(100) DEFAULT NULL COMMENT '固件名称',

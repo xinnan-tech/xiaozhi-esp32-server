@@ -5,7 +5,7 @@ export default {
     // 分页查询OTA固件信息
     getOtaList(params, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/ota/otas`)
+            .url(`${getServiceUrl()}/otaMag`)
             .method('GET')
             .data(params)
             .success((res) => {
@@ -22,7 +22,7 @@ export default {
     // 获取单个OTA固件信息
     getOtaInfo(id, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/ota/${id}`)
+            .url(`${getServiceUrl()}/otaMag/${id}`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -38,7 +38,7 @@ export default {
     // 保存OTA固件信息
     saveOta(entity, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/ota`)
+            .url(`${getServiceUrl()}/otaMag`)
             .method('POST')
             .data(entity)
             .success((res) => {
@@ -55,7 +55,7 @@ export default {
     // 更新OTA固件信息
     updateOta(id, entity, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/ota/${id}`)
+            .url(`${getServiceUrl()}/otaMag/${id}`)
             .method('PUT')
             .data(entity)
             .success((res) => {
@@ -72,7 +72,7 @@ export default {
     // 删除OTA固件
     deleteOta(id, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/ota/${id}`)
+            .url(`${getServiceUrl()}/otaMag/${id}`)
             .method('DELETE')
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -90,7 +90,7 @@ export default {
         const formData = new FormData();
         formData.append('file', file);
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/ota/upload`)
+            .url(`${getServiceUrl()}/otaMag/upload`)
             .method('POST')
             .data(formData)
             .success((res) => {

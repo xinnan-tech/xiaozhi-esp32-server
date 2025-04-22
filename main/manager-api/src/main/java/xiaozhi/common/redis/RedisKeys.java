@@ -80,6 +80,13 @@ public class RedisKeys {
      * 获取版本号Key
      */
     public static String getVersionKey() {
-        return "system:version";
+        return "sys:version";
+    }
+
+    /**
+     * OTA固件ID的Key
+     */
+    public static String getOtaIdKey(String uuid) {
+        return "ota:id:" + uuid;
     }
 }
