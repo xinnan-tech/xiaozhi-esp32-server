@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -107,6 +108,22 @@ public class OTAMagController {
         }
         otaService.delete(ids);
         return new Result<Void>();
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "修改 OTA 固件信息")
+    @RequiresPermissions("sys:role:superAdmin")
+    public Result<?> update(@PathVariable("id") String id, @RequestBody OtaEntity entity) {
+        if (entity == null) {
+            return new Result<>().error("固件信息不能为空");
+        }
+        entity.setId(id);
+        try {
+            otaService.update(entity);
+            return new Result<>();
+        } catch (RuntimeException e) {
+            return new Result<>().error(e.getMessage());
+        }
     }
 
     @GetMapping("/getDownloadUrl/{id}")
