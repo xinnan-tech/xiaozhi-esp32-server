@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
+import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.validator.ValidatorUtils;
@@ -97,22 +98,6 @@ public class OTAMagController {
         }
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "修改 OTA 固件信息")
-    @RequiresPermissions("sys:role:superAdmin")
-    public Result<?> update(@PathVariable("id") String id, @RequestBody OtaEntity entity) {
-        if (entity == null) {
-            return new Result<>().error("固件信息不能为空");
-        }
-        entity.setId(id);
-        try {
-            otaService.update(entity);
-            return new Result<>();
-        } catch (RuntimeException e) {
-            return new Result<>().error(e.getMessage());
-        }
-    }
-
     @DeleteMapping("/{id}")
     @Operation(summary = "OTA 删除")
     @RequiresPermissions("sys:role:superAdmin")
@@ -124,10 +109,40 @@ public class OTAMagController {
         return new Result<Void>();
     }
 
-    @GetMapping("/download/{id}")
-    @Operation(summary = "下载固件文件")
+    @GetMapping("/getDownloadUrl/{id}")
+    @Operation(summary = "获取 OTA 固件下载链接")
     @RequiresPermissions("sys:role:superAdmin")
-    public ResponseEntity<byte[]> downloadFirmware(@PathVariable("id") String id) {
+    public Result<String> getDownloadUrl(@PathVariable("id") String id) {
+        String uuid = UUID.randomUUID().toString();
+        redisUtils.set(RedisKeys.getOtaIdKey(uuid), id);
+        return new Result<String>().ok(uuid);
+    }
+
+    @GetMapping("/download/{uuid}")
+    @Operation(summary = "下载固件文件")
+    public ResponseEntity<byte[]> downloadFirmware(@PathVariable("uuid") String uuid) {
+        String id = (String) redisUtils.get(RedisKeys.getOtaIdKey(uuid));
+        if (StringUtils.isBlank(id)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // 检查下载次数
+        String downloadCountKey = RedisKeys.getOtaDownloadCountKey(uuid);
+        Integer downloadCount = (Integer) redisUtils.get(downloadCountKey);
+        if (downloadCount == null) {
+            downloadCount = 0;
+        }
+
+        // 如果下载次数超过3次，返回404
+        if (downloadCount >= 3) {
+            redisUtils.delete(downloadCountKey);
+            redisUtils.delete(RedisKeys.getOtaIdKey(uuid));
+            logger.warn("Download limit exceeded for UUID: {}", uuid);
+            return ResponseEntity.notFound().build();
+        }
+
+        redisUtils.set(downloadCountKey, downloadCount + 1);
+
         try {
             // 获取固件信息
             OtaEntity otaEntity = otaService.selectById(id);
@@ -171,7 +186,7 @@ public class OTAMagController {
             byte[] fileContent = Files.readAllBytes(path);
 
             // 设置响应头
-            String originalFilename = otaEntity.getFirmwareName() + "_" + otaEntity.getVersion();
+            String originalFilename = otaEntity.getType() + "_" + otaEntity.getVersion();
             if (firmwarePath.contains(".")) {
                 String extension = firmwarePath.substring(firmwarePath.lastIndexOf("."));
                 originalFilename += extension;

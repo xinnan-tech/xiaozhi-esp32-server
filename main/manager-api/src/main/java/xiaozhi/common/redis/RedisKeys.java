@@ -89,4 +89,11 @@ public class RedisKeys {
     public static String getOtaIdKey(String uuid) {
         return "ota:id:" + uuid;
     }
+
+    /**
+     * OTA固件下载次数的Key
+     */
+    public static String getOtaDownloadCountKey(String uuid) {
+        return "ota:download:count:" + uuid;
+    }
 }

@@ -361,18 +361,15 @@ export default {
                 this.$message.error('固件信息不完整');
                 return;
             }
-            // 使用正确的API基础URL变量
-            const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-            window.open(`${window.location.origin}${baseUrl}/ota/download/${firmware.id}`);
-        },
-        downloadSelectedFirmwares() {
-            const selectedFirmwares = this.firmwareList.filter(item => item.selected);
-            if (selectedFirmwares.length === 0) {
-                this.$message.warning('请先选择需要下载的固件');
-                return;
-            }
-            selectedFirmwares.forEach(firmware => {
-                this.downloadFirmware(firmware);
+            // 先获取下载链接
+            Api.ota.getDownloadUrl(firmware.id, (res) => {
+                if (res.data.code === 0) {
+                    const uuid = res.data.data;
+                    const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+                    window.open(`${window.location.origin}${baseUrl}/otaMag/download/${uuid}`);
+                } else {
+                    this.$message.error('获取下载链接失败');
+                }
             });
         },
         formatDate,

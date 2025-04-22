@@ -103,5 +103,21 @@ export default {
                     this.uploadFirmware(file, callback);
                 });
             }).send();
+    },
+    // 获取固件下载链接
+    getDownloadUrl(id, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/otaMag/getDownloadUrl/${id}`)
+            .method('GET')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .fail((err) => {
+                console.error('获取下载链接失败:', err);
+                RequestService.reAjaxFun(() => {
+                    this.getDownloadUrl(id, callback);
+                });
+            }).send();
     }
 }
