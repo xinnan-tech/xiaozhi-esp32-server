@@ -314,6 +314,13 @@ LLM:
     bot_id: "你的bot_id"
     user_id: "你的user_id"
     personal_access_token: 你的coze个人令牌
+  XaiLLM:
+    # 定义LLM API类型
+    type: openai
+    api_key: 你的Xai web key     # Xai API，需要先在xAI平台创建API密钥并获取api_key
+    model_name: "grok-3-fast-beta"
+    base_url: "https://api.x.ai/v1"
+    max_tokens: 131072
   LMStudioLLM:
     # 定义LLM API类型
     type: openai
@@ -344,7 +351,7 @@ LLM:
     model_name: qwen2.5:3b-AWQ  # 使用的小模型名称，用于意图识别
     base_url: http://localhost:9997  # Xinference服务地址
 TTS:
-  # 当前支持的type为edge、doubao，可自行适配
+  # 当前支持的type为edge、doubao、azure，可自行适配
   EdgeTTS:
     # 定义TTS API类型
     type: edge
@@ -365,6 +372,19 @@ TTS:
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
     cluster: volcano_tts
+  AzureTTS:
+    # 定义TTS API类型
+    type: azure
+    # Azure语音服务订阅密钥，可在Azure门户获取
+    # 创建资源地址：https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices
+    subscription_key: 你的Azure语音合成服务密钥
+    # 服务区域，如eastus、westus等
+    region: westus
+    # 语音名称，可选值参考：https://learn.microsoft.com/zh-cn/azure/cognitive-services/speech-service/language-support?tabs=tts
+    voice_name: zh-CN-XiaochenMultilingualNeural
+    # 输出格式，可选值参考：https://learn.microsoft.com/zh-cn/azure/cognitive-services/speech-service/rest-text-to-speech?tabs=streaming#audio-outputs
+    output_format: riff-16khz-16bit-mono-pcm
+    output_dir: tmp/
   CosyVoiceSiliconflow:
     type: siliconflow
     # 硅基流动TTS
