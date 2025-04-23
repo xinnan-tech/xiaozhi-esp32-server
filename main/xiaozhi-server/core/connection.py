@@ -722,7 +722,6 @@ class ConnectionHandler:
 
         for response in llm_responses:
             content, tools_call = response
-
             if "content" in response:
                 content = response["content"]
                 tools_call = None
@@ -813,8 +812,8 @@ class ConnectionHandler:
             self.dialogue.put(
                 Message(role="assistant", content="".join(response_message))
             )
+            self.ttsClient.send(json.dumps( { "type": 'finish' }))
 
-        self.ttsClient.send(json.dumps( { "type": 'finish' }))
         self.logger.bind(tag=TAG).info("TTS流结束")
         self.llm_finish_task = True
         self.logger.bind(tag=TAG).debug(

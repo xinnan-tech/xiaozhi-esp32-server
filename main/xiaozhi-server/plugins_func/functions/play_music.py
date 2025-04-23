@@ -8,6 +8,7 @@ import difflib
 import traceback
 from pathlib import Path
 from core.utils import p3
+from core.utils.dialogue import Message, Dialogue
 from core.handle.sendAudioHandle import send_stt_message
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
 import json
@@ -65,10 +66,16 @@ def play_music(conn, song_name: str):
 
         future.add_done_callback(handle_done)
 
+        conn.dialogue.put(
+                Message(role="assistant", content="".join("音乐播放成功"))
+            )
         return ActionResponse(
             action=Action.NONE, result="指令已接收", response="正在为您播放音乐"
         )
     except Exception as e:
+        conn.dialogue.put(
+                Message(role="assistant", content="".join("音乐播放失败"))
+        )
         logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
         return ActionResponse(
             action=Action.RESPONSE, result=str(e), response="播放音乐时出错了"
@@ -224,9 +231,9 @@ async def play_local_music(conn, specific_file=None):
                 opus_packets, _ = conn.tts.audio_to_opus_data(tts_file)
                 conn.audio_play_queue.put((opus_packets, None, 0))
                 os.remove(tts_file)
-        # else:
-        #     conn.ttsClient.send(json.dumps({ "type": 'text',"text": text }))
-        #     conn.ttsClient.send(json.dumps( { "type": 'finish' }))
+        else:
+            conn.ttsClient.send(json.dumps({ "type": 'text',"text": text }))
+            conn.ttsClient.send(json.dumps( { "type": 'finish' }))
 
         conn.llm_finish_task = True
 
