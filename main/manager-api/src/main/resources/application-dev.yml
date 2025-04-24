@@ -3,18 +3,18 @@ knife4j:
   enable: true
   basic:
     enable: false
-    username: renren
-    password: 2ZABCDEUgF
+    username: ${KNIFE4J_USERNAME}
+    password: ${KNIFE4J_PASSWORD}
   setting:
     enableFooter: false
 spring:
   datasource:
     druid:
       #MySQL
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://127.0.0.1:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
-      username: root
-      password: 123456
+      driver-class-name:  ${DB_DRIVER}
+      url:  ${DB_URL}
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
       initial-size: 10
       max-active: 100
       min-idle: 10
@@ -38,10 +38,10 @@ spring:
             multi-statement-allow: true
   data:
     redis:
-      host: 127.0.0.1         # Redis服务器地址
-      port: 6379              # Redis服务器连接端口
-      password:              # Redis服务器连接密码（默认为空）
-      database: 0            # Redis数据库索引（默认为0）
+      host: ${REDIS_HOST}        # Redis服务器地址
+      port:  ${REDIS_PORT}              # Redis服务器连接端口
+      password: ${REDIS_PASSWORD}              # Redis服务器连接密码（默认为空）
+      database: ${REDIS_DATABASE}           # Redis数据库索引（默认为0）
       timeout: 10000ms       # 连接超时时间（毫秒）
       lettuce:
         pool:
