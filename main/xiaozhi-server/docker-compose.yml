@@ -3,7 +3,7 @@
 version: '3'
 services:
   xiaozhi-esp32-server:
-    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+    image: ghcr.nju.edu.cn/callingai/xiaozhi-esp32-server:server_latest
     container_name: xiaozhi-esp32-server
     restart: always
     security_opt:
