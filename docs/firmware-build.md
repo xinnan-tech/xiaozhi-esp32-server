@@ -36,24 +36,24 @@ ws://192.168.1.25:8000/xiaozhi/v1/
 
 ## 第4步 修改OTA地址
 
-找到`OTA_VERSION_URL`的`default`的内容，把`https://api.tenclass.net/xiaozhi/ota/`
+找到`OTA_URL`的`default`的内容，把`https://api.tenclass.net/xiaozhi/ota/`
    改成你自己的地址，例如，我的接口地址是`http://192.168.1.25:8002/xiaozhi/ota/`，就把内容改成这个。
 
 修改前：
 ```
-config OTA_VERSION_URL
-    string "OTA Version URL"
+config OTA_URL
+    string "Default OTA URL"
     default "https://api.tenclass.net/xiaozhi/ota/"
     help
-        The application will access this URL to check for updates.
+        The application will access this URL to check for new firmwares and server address.
 ```
 修改后：
 ```
-config OTA_VERSION_URL
-    string "OTA Version URL"
+config OTA_URL
+    string "Default OTA URL"
     default "http://192.168.1.25:8002/xiaozhi/ota/"
     help
-        The application will access this URL to check for updates.
+        The application will access this URL to check for new firmwares and server address.
 ```
 
 ## 第4步 设置编译参数
