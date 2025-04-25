@@ -120,7 +120,8 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
         if (deviceById == null || deviceById.getAutoUpdate() != 0) {
             String type = deviceReport.getBoard() == null ? null : deviceReport.getBoard().getType();
-            DeviceReportRespDTO.Firmware firmware = buildFirmwareInfo(type);
+            DeviceReportRespDTO.Firmware firmware = buildFirmwareInfo(type,
+                    deviceReport.getApplication() == null ? null : deviceReport.getApplication().getVersion());
             response.setFirmware(firmware);
         } else {
             response.setFirmware(null);
@@ -147,10 +148,16 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
         response.setWebsocket(websocket);
 
-        if (deviceById != null) { // 如果设备存在，则更新上次连接时间
+        if (deviceById != null) {
+            // 如果设备存在，则更新上次连接时间
             deviceById.setLastConnectedAt(new Date());
+            if (deviceReport.getApplication() != null
+                    && StringUtils.isNotBlank(deviceReport.getApplication().getVersion())) {
+                deviceById.setAppVersion(deviceReport.getApplication().getVersion());
+            }
             deviceDao.updateById(deviceById);
-        } else { // 如果设备不存在，则生成激活码
+        } else {
+            // 如果设备不存在，则生成激活码
             DeviceReportRespDTO.Activation code = buildActivation(macAddress, deviceReport);
             response.setActivation(code);
         }
@@ -299,9 +306,12 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         return code;
     }
 
-    private DeviceReportRespDTO.Firmware buildFirmwareInfo(String type) {
+    private DeviceReportRespDTO.Firmware buildFirmwareInfo(String type, String currentVersion) {
         if (StringUtils.isBlank(type)) {
             return null;
+        }
+        if (StringUtils.isBlank(currentVersion)) {
+            currentVersion = "0.0.0";
         }
 
         OtaEntity ota = otaService.getLatestOta(type);
@@ -309,23 +319,55 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         String downloadUrl = null;
 
         if (ota != null) {
-
-            String otaUrl = sysParamsService.getValue(Constant.SERVER_OTA, true);
-            if (StringUtils.isBlank(otaUrl) || otaUrl.equals("null")) {
-                log.error("OTA地址未配置，请登录智控台，在参数管理找到【server.ota】配置");
-                // 尝试从请求中获取
-                HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
-                        .getRequest();
-                otaUrl = request.getRequestURL().toString();
+            // 如果设备没有版本信息，或者OTA版本比设备版本新，则返回下载地址
+            if (compareVersions(ota.getVersion(), currentVersion) > 0) {
+                String otaUrl = sysParamsService.getValue(Constant.SERVER_OTA, true);
+                if (StringUtils.isBlank(otaUrl) || otaUrl.equals("null")) {
+                    log.error("OTA地址未配置，请登录智控台，在参数管理找到【server.ota】配置");
+                    // 尝试从请求中获取
+                    HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder
+                            .getRequestAttributes())
+                            .getRequest();
+                    otaUrl = request.getRequestURL().toString();
+                }
+                // 将URL中的/ota/替换为/otaMag/download/
+                String uuid = UUID.randomUUID().toString();
+                redisUtils.set(RedisKeys.getOtaIdKey(uuid), ota.getId());
+                downloadUrl = otaUrl.replace("/ota/", "/otaMag/download/") + uuid;
             }
-            // 将URL中的/ota/替换为/otaMag/download/
-            String uuid = UUID.randomUUID().toString();
-            redisUtils.set(RedisKeys.getOtaIdKey(uuid), ota.getId());
-            downloadUrl = otaUrl.replace("/ota/", "/otaMag/download/") + uuid;
         }
 
-        firmware.setVersion(ota == null ? null : ota.getVersion());
-        firmware.setUrl(downloadUrl);
+        firmware.setVersion(ota == null ? currentVersion : ota.getVersion());
+        firmware.setUrl(downloadUrl == null ? "" : downloadUrl);
         return firmware;
+    }
+
+    /**
+     * 比较两个版本号
+     * 
+     * @param version1 版本1
+     * @param version2 版本2
+     * @return 如果version1 > version2返回1，version1 < version2返回-1，相等返回0
+     */
+    private static int compareVersions(String version1, String version2) {
+        if (version1 == null || version2 == null) {
+            return 0;
+        }
+
+        String[] v1Parts = version1.split("\\.");
+        String[] v2Parts = version2.split("\\.");
+
+        int length = Math.max(v1Parts.length, v2Parts.length);
+        for (int i = 0; i < length; i++) {
+            int v1 = i < v1Parts.length ? Integer.parseInt(v1Parts[i]) : 0;
+            int v2 = i < v2Parts.length ? Integer.parseInt(v2Parts[i]) : 0;
+
+            if (v1 > v2) {
+                return 1;
+            } else if (v1 < v2) {
+                return -1;
+            }
+        }
+        return 0;
     }
 }
