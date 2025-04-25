@@ -81,7 +81,11 @@ public class OTAController {
     public ResponseEntity<String> getOTA() {
         String wsUrl = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
         if (StringUtils.isBlank(wsUrl) || wsUrl.equals("null")) {
-            return ResponseEntity.ok("OTA接口不正常，缺少websocket地址");
+            return ResponseEntity.ok("OTA接口不正常，缺少websocket地址，请登录智控台，在参数管理找到【server.websocket】配置");
+        }
+        String otaUrl = sysParamsService.getValue(Constant.SERVER_OTA, true);
+        if (StringUtils.isBlank(otaUrl) || otaUrl.equals("null")) {
+            return ResponseEntity.ok("OTA接口不正常，缺少ota地址，请登录智控台，在参数管理找到【server.ota】配置");
         }
         return ResponseEntity.ok("OTA接口运行正常，websocket集群数量：" + wsUrl.split(";").length);
     }
