@@ -116,9 +116,15 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         DeviceReportRespDTO response = new DeviceReportRespDTO();
         response.setServer_time(buildServerTime());
 
-        String type = deviceReport.getBoard() == null ? null : deviceReport.getBoard().getType();
-        DeviceReportRespDTO.Firmware firmware = buildFirmwareInfo(type, macAddress);
-        response.setFirmware(firmware);
+        DeviceEntity deviceById = getDeviceByMacAddress(macAddress);
+
+        if (deviceById == null || deviceById.getAutoUpdate() != 0) {
+            String type = deviceReport.getBoard() == null ? null : deviceReport.getBoard().getType();
+            DeviceReportRespDTO.Firmware firmware = buildFirmwareInfo(type);
+            response.setFirmware(firmware);
+        } else {
+            response.setFirmware(null);
+        }
 
         // 添加WebSocket配置
         DeviceReportRespDTO.Websocket websocket = new DeviceReportRespDTO.Websocket();
@@ -141,7 +147,6 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
         response.setWebsocket(websocket);
 
-        DeviceEntity deviceById = getDeviceByMacAddress(macAddress);
         if (deviceById != null) { // 如果设备存在，则更新上次连接时间
             deviceById.setLastConnectedAt(new Date());
             deviceDao.updateById(deviceById);
@@ -294,7 +299,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         return code;
     }
 
-    private DeviceReportRespDTO.Firmware buildFirmwareInfo(String type, String macAddress) {
+    private DeviceReportRespDTO.Firmware buildFirmwareInfo(String type) {
         if (StringUtils.isBlank(type)) {
             return null;
         }
