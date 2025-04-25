@@ -105,6 +105,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         deviceEntity.setMacAddress(macAddress);
         deviceEntity.setUserId(user.getId());
         deviceEntity.setCreator(user.getId());
+        deviceEntity.setAutoUpdate(1);
         deviceEntity.setCreateDate(currentTime);
         deviceEntity.setUpdater(user.getId());
         deviceEntity.setUpdateDate(currentTime);

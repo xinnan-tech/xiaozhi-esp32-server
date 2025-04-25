@@ -18,3 +18,5 @@ CREATE TABLE IF NOT EXISTS `ai_ota` (
   `create_date` datetime DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='固件信息表';
+
+update ai_device set auto_update = 1;
