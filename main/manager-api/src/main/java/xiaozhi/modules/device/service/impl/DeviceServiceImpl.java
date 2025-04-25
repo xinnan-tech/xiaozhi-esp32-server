@@ -132,7 +132,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // 从系统参数获取WebSocket URL，如果未配置则使用默认值
         String wsUrl = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
         if (StringUtils.isBlank(wsUrl) || wsUrl.equals("null")) {
-            log.error("WebSocket URL is not configured");
+            log.error("WebSocket地址未配置，请登录智控台，在参数管理找到【server.websocket】配置");
             wsUrl = "ws://xiaozhi.server.com:8000/xiaozhi/v1/";
             websocket.setUrl(wsUrl);
         } else {
@@ -141,7 +141,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
                 // 随机选择一个WebSocket URL
                 websocket.setUrl(wsUrls[RandomUtil.randomInt(0, wsUrls.length)]);
             } else {
-                log.error("WebSocket URL list is empty");
+                log.error("WebSocket地址未配置，请登录智控台，在参数管理找到【server.websocket】配置");
                 websocket.setUrl("ws://xiaozhi.server.com:8000/xiaozhi/v1/");
             }
         }
@@ -311,14 +311,19 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         String downloadUrl = null;
 
         if (ota != null) {
-            // 获取当前请求的URL
-            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
-                    .getRequest();
-            String requestUrl = request.getRequestURL().toString();
+
+            String otaUrl = sysParamsService.getValue(Constant.SERVER_OTA, true);
+            if (StringUtils.isBlank(otaUrl) || otaUrl.equals("null")) {
+                log.error("OTA地址未配置，请登录智控台，在参数管理找到【server.ota】配置");
+                // 尝试从请求中获取
+                HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                        .getRequest();
+                otaUrl = request.getRequestURL().toString();
+            }
             // 将URL中的/ota/替换为/otaMag/download/
             String uuid = UUID.randomUUID().toString();
             redisUtils.set(RedisKeys.getOtaIdKey(uuid), ota.getId());
-            downloadUrl = requestUrl.replace("/ota/", "/otaMag/download/") + uuid;
+            downloadUrl = otaUrl.replace("/ota/", "/otaMag/download/") + uuid;
         }
 
         firmware.setVersion(ota == null ? null : ota.getVersion());

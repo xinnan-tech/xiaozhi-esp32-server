@@ -90,6 +90,11 @@ public interface Constant {
     String SERVER_WEBSOCKET = "server.websocket";
 
     /**
+     * ota地址
+     */
+    String SERVER_OTA = "server.ota";
+
+    /**
      * 是否允许用户注册
      */
     String SERVER_ALLOW_USER_REGISTER = "server.allow_user_register";
