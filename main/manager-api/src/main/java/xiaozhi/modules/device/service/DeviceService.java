@@ -3,18 +3,14 @@ package xiaozhi.modules.device.service;
 import java.util.List;
 
 import xiaozhi.common.page.PageData;
+import xiaozhi.common.service.BaseService;
 import xiaozhi.modules.device.dto.DevicePageUserDTO;
 import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.vo.UserShowDeviceListVO;
 
-public interface DeviceService {
-
-    /**
-     * 根据Mac地址获取设备信息
-     */
-    DeviceEntity getDeviceById(String macAddress);
+public interface DeviceService extends BaseService<DeviceEntity> {
 
     /**
      * 检查设备是否激活

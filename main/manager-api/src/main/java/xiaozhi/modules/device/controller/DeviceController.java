@@ -7,6 +7,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -79,4 +80,16 @@ public class DeviceController {
         return new Result<Void>();
     }
 
+    @PutMapping("/enableOta/{id}/{status}")
+    @Operation(summary = "启用/关闭OTA自动升级")
+    @RequiresPermissions("sys:role:normal")
+    public Result<Void> enableOtaUpgrade(@PathVariable String id, @PathVariable Integer status) {
+        DeviceEntity entity = deviceService.selectById(id);
+        if (entity == null) {
+            return new Result<Void>().error("设备不存在");
+        }
+        entity.setAutoUpdate(status);
+        deviceService.updateById(entity);
+        return new Result<Void>();
+    }
 }

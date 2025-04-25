@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -54,13 +53,6 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
     private final SysParamsService sysParamsService;
     private final RedisUtils redisUtils;
     private final OtaService otaService;
-
-    @Override
-    public DeviceEntity getDeviceById(String deviceId) {
-        LambdaQueryWrapper<DeviceEntity> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(DeviceEntity::getId, deviceId);
-        return deviceDao.selectOne(queryWrapper);
-    }
 
     @Override
     public Boolean deviceActivation(String agentId, String activationCode) {
@@ -149,7 +141,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
         response.setWebsocket(websocket);
 
-        DeviceEntity deviceById = getDeviceById(macAddress);
+        DeviceEntity deviceById = getDeviceByMacAddress(macAddress);
         if (deviceById != null) { // 如果设备存在，则更新上次连接时间
             deviceById.setLastConnectedAt(new Date());
             deviceDao.updateById(deviceById);

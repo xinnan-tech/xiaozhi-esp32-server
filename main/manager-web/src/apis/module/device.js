@@ -51,4 +51,20 @@ export default {
                 });
             }).send();
     },
+    enableOtaUpgrade(id, status, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/device/enableOta/${id}/${status}`)
+            .method('PUT')
+            .success((res) => {
+                RequestService.clearRequestTime()
+                callback(res)
+            })
+            .fail((err) => {
+                console.error('更新OTA状态失败:', err)
+                this.$message.error(err.msg || '更新OTA状态失败')
+                RequestService.reAjaxFun(() => {
+                    this.enableOtaUpgrade(id, status, callback)
+                })
+            }).send()
+    },
 }
