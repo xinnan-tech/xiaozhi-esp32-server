@@ -83,12 +83,6 @@ idf.py menuconfig
 idf.py build
 ```
 
-如果是vscode安装的idf可以使用`F1`或者`ctrl+shift+p`,输入idf然后直接选择进行编译
-
-还可以直接进行烧录不用接下来的操作
-
-<img src="./images/vscode_idf.png" width="500px"/>
-
 ## 第6步 打包bin固件
 
 ```
@@ -96,7 +90,7 @@ cd scripts
 python release.py
 ```
 
-编译成功后，会在项目根目录下的`build`目录下生成固件文件`merged-binary.bin`。
+上面的打包命令执行完成后，会在项目根目录下的`build`目录下生成固件文件`merged-binary.bin`。
 这个`merged-binary.bin`就是要烧录到硬件上的固件文件。
 
 注意：如果执行到第二命令后，报了“zip”相关的错误，请忽略这个错误，只要`build`目录下生成固件文件`merged-binary.bin`

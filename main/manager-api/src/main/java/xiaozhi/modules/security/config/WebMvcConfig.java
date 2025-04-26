@@ -33,11 +33,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        // 特殊用途的转换器
         converters.add(new ByteArrayHttpMessageConverter());
-        converters.add(new StringHttpMessageConverter());
         converters.add(new ResourceHttpMessageConverter());
-        converters.add(new AllEncompassingFormHttpMessageConverter());
+
+        // 通用转换器
         converters.add(new StringHttpMessageConverter());
+        converters.add(new AllEncompassingFormHttpMessageConverter());
+
+        // JSON 转换器
         converters.add(jackson2HttpMessageConverter());
     }
 
