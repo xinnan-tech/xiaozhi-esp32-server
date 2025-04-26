@@ -1,6 +1,14 @@
 -- 增加server.ota，用于配置ota地址
+
+delete from `sys_params` where id = 100;
+delete from `sys_params` where id = 101;
+
+delete from `sys_params` where id = 106;
+INSERT INTO `sys_params` (id, param_code, param_value, value_type, param_type, remark) VALUES (106, 'server.websocket', 'null', 'string', 1, 'websocket地址，多个用;分隔');
+
 delete from `sys_params` where id = 107;
 INSERT INTO `sys_params` (id, param_code, param_value, value_type, param_type, remark) VALUES (107, 'server.ota', 'null', 'string', 1, 'ota地址');
+
 
 -- 增加固件信息表
 CREATE TABLE IF NOT EXISTS `ai_ota` (
