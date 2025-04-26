@@ -61,5 +61,7 @@ async def handleTextMessage(conn, message):
                 asyncio.create_task(handleIotDescriptors(conn, msg_json["descriptors"]))
             if "states" in msg_json:
                 asyncio.create_task(handleIotStatus(conn, msg_json["states"]))
+        elif msg_json["type"] == "server":
+            await conn._handle_server_message(msg_json)
     except json.JSONDecodeError:
         await conn.websocket.send(message)

@@ -6,6 +6,8 @@ import time
 import queue
 import asyncio
 import traceback
+import subprocess
+import sys
 
 import threading
 import websockets
@@ -213,6 +215,53 @@ class ConnectionHandler:
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
             await handleAudioMessage(self, message)
+
+    async def _handle_server_message(self, msg_json):
+        """处理服务器控制消息"""
+        if msg_json.get("server_action") == "restart":
+            # 验证密钥
+            if msg_json.get("paramValue") == "43c716ae-37c4-49ba-84ab-2f0fbfcd7115":
+                self.logger.bind(tag=TAG).info("收到合法的服务器重启请求")
+                # 发送确认消息
+                await self.websocket.send(json.dumps({
+                    "type": "server",
+                    "status": "restarting",
+                    "message": "服务器即将重启"
+                }))
+                # 在子线程中执行重启
+                threading.Thread(target=self._restart_server).start()
+            else:
+                await self.websocket.send(json.dumps({
+                    "type": "server",
+                    "status": "error",
+                    "message": "无效的密钥"
+                }))
+
+    def _restart_server(self):
+        """重启方法"""
+
+        async def graceful_shutdown():
+            """关闭连接并停止事件循环"""
+            await self.close()  # 关闭连接
+            self.loop.stop()  # 停止事件循环
+
+        # 在事件循环中执行关闭操作
+        asyncio.run_coroutine_threadsafe(graceful_shutdown(), self.loop).result()
+
+        # 等待关闭操作完全执行后再重启服务
+        def start_new_process():
+            """启动新进程"""
+            time.sleep(3)
+            subprocess.Popen(
+                [sys.executable, "app.py"],
+                stdin=sys.stdin,
+                stdout=sys.stdout,
+                stderr=sys.stderr,
+                start_new_session=True
+            )
+
+        # 在新的线程中启动新进程
+        threading.Thread(target=start_new_process).start()
 
     def _initialize_components(self, private_config):
         """初始化组件"""
