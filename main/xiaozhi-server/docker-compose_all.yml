@@ -4,7 +4,7 @@ version: '3'
 services:
   # Server模块
   xiaozhi-esp32-server:
-    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+    image: sensetime.com/senseflow/senseflow-esp32-server:server_last
     container_name: xiaozhi-esp32-server
     depends_on:
       - xiaozhi-esp32-server-db
