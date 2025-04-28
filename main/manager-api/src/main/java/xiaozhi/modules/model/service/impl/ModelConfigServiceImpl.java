@@ -3,6 +3,7 @@ package xiaozhi.modules.model.service.impl;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,10 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.modules.agent.dao.AgentDao;
+import xiaozhi.modules.agent.dao.AgentTemplateDao;
+import xiaozhi.modules.agent.entity.AgentEntity;
+import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.model.dao.ModelConfigDao;
 import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
@@ -36,6 +41,9 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     private final ModelConfigDao modelConfigDao;
     private final ModelProviderService modelProviderService;
     private final RedisUtils redisUtils;
+    private final AgentTemplateDao agentTemplateDao;
+    private final AgentTemplateService agentTemplateService;
+    private final AgentDao agentDao;
 
     @Override
     public List<ModelBasicInfoDTO> getModelCodeList(String modelType, String modelName) {
@@ -75,6 +83,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         // 再保存供应器提供的模型
         ModelConfigEntity modelConfigEntity = ConvertUtils.sourceToTarget(modelConfigBodyDTO, ModelConfigEntity.class);
         modelConfigEntity.setModelType(modelType);
+        modelConfigEntity.setIsDefault(0);
         modelConfigDao.insert(modelConfigEntity);
         return ConvertUtils.sourceToTarget(modelConfigEntity, ModelConfigDTO.class);
     }
@@ -102,7 +111,62 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
 
     @Override
     public void delete(String id) {
+        // 查看是否是默认
+        ModelConfigEntity modelConfig = modelConfigDao.selectById(id);
+        if (modelConfig != null && modelConfig.getIsDefault() == 1) {
+            throw new RenException("该模型为默认模型，请先设置其他模型为默认模型");
+        }
+        // 验证是否有引用
+        checkAgentReference(id);
+        checkIntentConfigReference(id);
+
         modelConfigDao.deleteById(id);
+    }
+
+    /**
+     * 检查智能体配置是否有引用
+     * 
+     * @param modelId 模型ID
+     */
+    private void checkAgentReference(String modelId) {
+        List<AgentEntity> agents = agentDao.selectList(
+                new QueryWrapper<AgentEntity>()
+                        .eq("vad_model_id", modelId)
+                        .or()
+                        .eq("asr_model_id", modelId)
+                        .or()
+                        .eq("llm_model_id", modelId)
+                        .or()
+                        .eq("tts_model_id", modelId)
+                        .or()
+                        .eq("mem_model_id", modelId)
+                        .or()
+                        .eq("intent_model_id", modelId));
+        if (!agents.isEmpty()) {
+            String agentNames = agents.stream()
+                    .map(AgentEntity::getAgentName)
+                    .collect(Collectors.joining("、"));
+            throw new RenException(String.format("该模型配置已被智能体[%s]引用，无法删除", agentNames));
+        }
+    }
+
+    /**
+     * 检查意图识别配置是否有引用
+     * 
+     * @param modelId 模型ID
+     */
+    private void checkIntentConfigReference(String modelId) {
+        ModelConfigEntity modelConfig = modelConfigDao.selectById(modelId);
+        if (modelConfig != null
+                && "LLM".equals(modelConfig.getModelType() == null ? null : modelConfig.getModelType().toUpperCase())) {
+            List<ModelConfigEntity> intentConfigs = modelConfigDao.selectList(
+                    new QueryWrapper<ModelConfigEntity>()
+                            .eq("model_type", "Intent")
+                            .like("config_json", "%" + modelId + "%"));
+            if (!intentConfigs.isEmpty()) {
+                throw new RenException("该LLM模型已被意图识别配置引用，无法删除");
+            }
+        }
     }
 
     @Override

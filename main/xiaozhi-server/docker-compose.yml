@@ -13,6 +13,8 @@ services:
     ports:
       # ws服务端
       - "8000:8000"
+      # ota服务端
+      - "8002:8002"
     volumes:
       # 配置文件目录
       - ./data:/opt/xiaozhi-esp32-server/data

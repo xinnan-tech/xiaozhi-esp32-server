@@ -446,7 +446,7 @@
             <h2>
                 设备配置
                 <span class="device-info">
-                    <span>MAC: <strong id="displayMac">00:11:22:33:44:55</strong></span>
+                    <span>MAC: <strong id="displayMac"></strong></span>
                     <span>客户端: <strong id="displayClient">web_test_client</strong></span>
                 </span>
                 <button class="toggle-button" id="toggleConfig">编辑</button>
@@ -455,7 +455,7 @@
                 <div class="control-panel">
                     <div class="config-item">
                         <label for="deviceMac">设备MAC:</label>
-                        <input type="text" id="deviceMac" value="00:11:22:33:44:55" placeholder="设备MAC地址">
+                        <input type="text" id="deviceMac" placeholder="设备MAC地址">
                     </div>
                     <div class="config-item">
                         <label for="deviceName">设备名称:</label>
@@ -1582,6 +1582,19 @@
             }
         }
 
+        // 生成随机MAC地址
+        function generateRandomMac() {
+            const hexDigits = '0123456789ABCDEF';
+            let mac = '';
+            for (let i = 0; i < 6; i++) {
+                if (i > 0) mac += ':';
+                for (let j = 0; j < 2; j++) {
+                    mac += hexDigits.charAt(Math.floor(Math.random() * 16));
+                }
+            }
+            return mac;
+        }
+
         // 初始化事件监听器
         function initEventListeners() {
             connectButton.addEventListener('click', connectToServer);
@@ -1595,10 +1608,22 @@
             const displayMac = document.getElementById('displayMac');
             const displayClient = document.getElementById('displayClient');
 
+            // 从localStorage加载MAC地址，如果没有则生成新的
+            let savedMac = localStorage.getItem('deviceMac');
+            if (!savedMac) {
+                savedMac = generateRandomMac();
+                localStorage.setItem('deviceMac', savedMac);
+            }
+            deviceMacInput.value = savedMac;
+            displayMac.textContent = savedMac;
+
             // 更新显示的值
             function updateDisplayValues() {
-                displayMac.textContent = deviceMacInput.value;
+                const newMac = deviceMacInput.value;
+                displayMac.textContent = newMac;
                 displayClient.textContent = clientIdInput.value;
+                // 保存MAC地址到localStorage
+                localStorage.setItem('deviceMac', newMac);
             }
 
             // 监听输入变化

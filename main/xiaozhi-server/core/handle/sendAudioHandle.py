@@ -4,14 +4,49 @@ import asyncio
 import time
 from core.utils.util import (
     get_string_no_punctuation_or_emoji,
+    analyze_emotion
 )
 
 TAG = __name__
 logger = setup_logging()
 
+emoji_map = {
+    'neutral': '😶',
+    'happy': '🙂',
+    'laughing': '😆',
+    'funny': '😂',
+    'sad': '😔',
+    'angry': '😠',
+    'crying': '😭',
+    'loving': '😍',
+    'embarrassed': '😳',
+    'surprised': '😲',
+    'shocked': '😱',
+    'thinking': '🤔',
+    'winking': '😉',
+    'cool': '😎',
+    'relaxed': '😌',
+    'delicious': '🤤',
+    'kissy': '😘',
+    'confident': '😏',
+    'sleepy': '😴',
+    'silly': '😜',
+    'confused': '🙄'
+}
 
 async def sendAudioMessage(conn, audios, text, text_index=0):
     # 发送句子开始消息
+    emotion = analyze_emotion(text)
+    emoji = emoji_map.get(emotion, '🙂')  # 默认使用笑脸
+    await conn.websocket.send(json.dumps(
+            {
+                "type": "llm",
+                "text": emoji,
+                "emotion": emotion,
+                "session_id": conn.session_id,
+            }
+        )
+    )
     if text_index == conn.tts_first_text_index:
         logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
     await send_tts_message(conn, "sentence_start", text)
@@ -85,15 +120,5 @@ async def send_stt_message(conn, text):
     stt_text = get_string_no_punctuation_or_emoji(text)
     await conn.websocket.send(
         json.dumps({"type": "stt", "text": stt_text, "session_id": conn.session_id})
-    )
-    await conn.websocket.send(
-        json.dumps(
-            {
-                "type": "llm",
-                "text": "😊",
-                "emotion": "happy",
-                "session_id": conn.session_id,
-            }
-        )
     )
     await send_tts_message(conn, "start")

@@ -153,21 +153,17 @@ def parse_weather_info(soup):
 def get_weather(conn, location: str = None, lang: str = "zh_CN"):
     api_key = conn.config["plugins"]["get_weather"]["api_key"]
     default_location = conn.config["plugins"]["get_weather"]["default_location"]
-    print("用户设置的default_location为:", default_location)
     client_ip = conn.client_ip
-    print("用户提供的location为:", location)
     # 优先使用用户提供的location参数
     if not location:
         # 通过客户端IP解析城市
         if client_ip:
             # 动态解析IP对应的城市信息
             ip_info = get_ip_info(client_ip, logger)
-            print("解析用户IP后的城市为：", ip_info)
             location = ip_info.get("city") if ip_info and "city" in ip_info else None
         else:
             # 若IP解析失败或无IP，使用默认位置
             location = default_location
-            print("解析失败，将使用默认地址", location)
 
     city_info = fetch_city_info(location, api_key)
     if not city_info:
@@ -178,8 +174,6 @@ def get_weather(conn, location: str = None, lang: str = "zh_CN"):
     if not soup:
         return ActionResponse(Action.REQLLM, None, "请求失败")
     city_name, current_abstract, current_basic, temps_list = parse_weather_info(soup)
-
-    print(f"当前查询的城市名称是: {city_name}")
 
     weather_report = f"您查询的位置是：{city_name}\n\n当前天气: {current_abstract}\n"
 
