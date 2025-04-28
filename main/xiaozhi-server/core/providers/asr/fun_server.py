@@ -1,3 +1,4 @@
+import re
 from typing import Optional, Tuple, List
 import opuslib_next
 from core.providers.asr.base import ASRProviderBase
@@ -136,6 +137,9 @@ class ASRProvider(ASRProviderBase):
 
                 # Get the result from the receive task
                 result = receive_task.result()
+                match = re.match(r'<\|(.*?)\|><\|(.*?)\|><\|(.*?)\|>(.*)', result)
+                if match:
+                    result = match.group(4).strip()
                 return result, None  # Return the recognized text and timestamp (if any)
 
             except websockets.exceptions.ConnectionClosed as e:
