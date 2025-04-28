@@ -241,7 +241,7 @@ class ConnectionHandler:
             )
             private_config["delete_audio"] = bool(self.config.get("delete_audio", True))
             self.logger.bind(tag=TAG).info(
-                f"{time.time() - begin_time} 秒，获取差异化配置成功: {private_config}"
+                f"{time.time() - begin_time} 秒，获取差异化配置成功: {json.dumps(filter_sensitive_info(private_config), ensure_ascii=False)}"
             )
         except DeviceNotFoundException as e:
             self.need_bind = True
@@ -448,7 +448,7 @@ class ConnectionHandler:
                 pos = current_text.rfind(punct)
                 prev_char = current_text[pos - 1] if pos - 1 >= 0 else ""
                 # 如果.前面是数字统一判断为小数
-                if prev_char.isdigit() and punct == '.':
+                if prev_char.isdigit() and punct == ".":
                     number_flag = False
                 if pos > last_punct_pos and number_flag:
                     last_punct_pos = pos
@@ -579,7 +579,7 @@ class ConnectionHandler:
                         pos = current_text.rfind(punct)
                         prev_char = current_text[pos - 1] if pos - 1 >= 0 else ""
                         # 如果.前面是数字统一判断为小数
-                        if prev_char.isdigit() and punct == '.':
+                        if prev_char.isdigit() and punct == ".":
                             number_flag = False
                         if pos > last_punct_pos and number_flag:
                             last_punct_pos = pos
@@ -945,3 +945,36 @@ class ConnectionHandler:
                     break
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"超时检查任务出错: {e}")
+
+
+def filter_sensitive_info(config: dict) -> dict:
+    """
+    过滤配置中的敏感信息
+    Args:
+        config: 原始配置字典
+    Returns:
+        过滤后的配置字典
+    """
+    sensitive_keys = [
+        "api_key",
+        "personal_access_token",
+        "access_token",
+        "token",
+        "access_key_secret",
+        "secret_key",
+    ]
+
+    def _filter_dict(d: dict) -> dict:
+        filtered = {}
+        for k, v in d.items():
+            if any(sensitive in k.lower() for sensitive in sensitive_keys):
+                filtered[k] = "***"
+            elif isinstance(v, dict):
+                filtered[k] = _filter_dict(v)
+            elif isinstance(v, list):
+                filtered[k] = [_filter_dict(i) if isinstance(i, dict) else i for i in v]
+            else:
+                filtered[k] = v
+        return filtered
+
+    return _filter_dict(copy.deepcopy(config))

@@ -163,6 +163,8 @@ server:
 
 ```
 智控台地址: https://2662r3426b.vicp.fun
+
+服务测试工具： https://2662r3426b.vicp.fun/test/
 OTA接口地址: https://2662r3426b.vicp.fun/xiaozhi/ota/
 Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 ```

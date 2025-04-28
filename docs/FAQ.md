@@ -106,10 +106,6 @@ VAD:
 
 ### 8、更多问题，可联系我们反馈 💬
 
-我们的联系方式放在[百度网盘中,点击前往](https://pan.baidu.com/s/1x6USjvP1nTRsZ45XlJu65Q)，提取码是`223y`。
+可以在[issues](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues)提交您的问题。
 
-网盘里有"硬件烧录QQ群"、"开源服务端交流群"、"产品建议联系人" 三张图片，请根据需要选择加入。
-
-- 硬件烧录QQ群：适用于硬件烧录问题
-- 开源服务端交流群：适用于服务端问题
-- 产品建议联系人：适用于产品功能、产品设计等建议 
+也可以发邮件我们取得联系：huangrongzhuang@xin-nan.com
