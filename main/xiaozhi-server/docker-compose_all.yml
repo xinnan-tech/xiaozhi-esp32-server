@@ -52,7 +52,7 @@ services:
       - ./uploadfile:/app/uploadfile
 
   xiaozhi-esp32-server-db:
-    image: mysql:latest
+    image: mysql:8.4.5
     container_name: xiaozhi-esp32-server-db
     healthcheck:
       test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
