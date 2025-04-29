@@ -214,6 +214,30 @@ class ConnectionHandler:
         elif isinstance(message, bytes):
             await handleAudioMessage(self, message)
 
+    async def handle_config_update(self, message):
+        """处理配置更新请求"""
+        config_model = message.get("model")
+        new_content = message.get("content")
+
+        # 打印更新前的配置
+        old_value = self.config.get(config_model)
+        self.logger.bind(tag=TAG).info(f"配置更新: {config_model} 从 {old_value} 更新为 {new_content}")
+
+        # 更新配置
+        self.config[config_model] = new_content
+
+        # 如果是模型相关配置，重新初始化模型
+        if config_model in ["LLM", "TTS", "ASR", "VAD", "Intent", "Memory"]:
+            self._initialize_components(self.config)
+            self.logger.bind(tag=TAG).info(f"已使用新配置重新初始化 {config_model} 模块")
+
+        # 返回更新确认
+        await self.websocket.send(json.dumps({
+            "type": "config_update_response",
+            "status": "success",
+            "message": f"{config_model} 配置已更新"
+        }))
+
     def _initialize_components(self, private_config):
         """初始化组件"""
         if private_config is not None:
