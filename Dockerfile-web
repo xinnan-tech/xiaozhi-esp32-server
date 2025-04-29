@@ -16,6 +16,9 @@ RUN mvn clean package -Dmaven.test.skip=true
 # 第三阶段：构建最终镜像
 FROM eclipse-temurin:21-jdk-jammy
 
+# if you located in China, you can use aliyun mirror to speed up
+RUN sed -i 's@deb.debian.org@mirrors.aliyun.com@g' /etc/apt/sources.list.d/debian.sources
+
 # 安装Nginx并清理缓存
 RUN apt-get update && \
     apt-get install -y nginx && \
