@@ -1,13 +1,16 @@
+import re
 from typing import Optional, Tuple, List
 import opuslib_next
 from core.providers.asr.base import ASRProviderBase
-import  ssl
+import ssl
 import json
 import websockets
 from config.logger import setup_logging
 import asyncio
+
 TAG = __name__
 logger = setup_logging()
+
 
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
@@ -18,6 +21,7 @@ class ASRProvider(ASRProviderBase):
         '''
         self.host = config.get('host', 'localhost')
         self.port = config.get('port', 10095)
+        self.api_key = config.get('api_key', 'none')
         self.is_ssl = config.get('is_ssl', True)
         self.delete_audio_file = delete_audio_file
         self.uri = f"wss://{self.host}:{self.port}" if self.is_ssl else f"ws://{self.host}:{self.port}"
@@ -32,20 +36,18 @@ class ASRProvider(ASRProviderBase):
 
     @staticmethod
     def decode_opus(opus_data: List[bytes]) -> bytes:
-        """将Opus音频数据解码为PCM数据"""        
+        """将Opus音频数据解码为PCM数据"""
         decoder = opuslib_next.Decoder(16000, 1)  # 16kHz, 单声道
         pcm_data = []
-        
+
         for opus_packet in opus_data:
             try:
                 pcm_frame = decoder.decode(opus_packet, 960)  # 960 samples = 60ms
                 pcm_data.append(pcm_frame)
             except opuslib_next.OpusError as e:
                 logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
-        
-        return b"".join(pcm_data)
-    
 
+        return b"".join(pcm_data)
 
     async def _receive_responses(self, ws) -> None:
         '''
@@ -70,6 +72,7 @@ class ASRProvider(ASRProviderBase):
                 logger.bind(tag=TAG).error(f"WebSocket connection closed: {e}")
                 break
         return text
+
     async def _send_data(self, ws, pcm_data: bytes, session_id: str) -> tuple:
         '''
         Internal method to handle WebSocket communication.
@@ -90,16 +93,15 @@ class ASRProvider(ASRProviderBase):
         })
         await ws.send(config_message)
         logger.bind(tag=TAG).debug(f"Sent configuration message: {config_message}")
-        
+
         # Send PCM data
         await ws.send(pcm_data)
         logger.bind(tag=TAG).debug(f"Sent PCM data of length: {len(pcm_data)} bytes")
-        
+
         # Indicate end of speech
         end_message = json.dumps({"is_speaking": False})
         await ws.send(end_message)
-        logger.bind(tag=TAG).debug(f"Sent end message: {end_message}")    
-
+        logger.bind(tag=TAG).debug(f"Sent end message: {end_message}")
 
     async def speech_to_text(self, opus_data: List[bytes], session_id: str) -> Tuple[Optional[str], Optional[str]]:
         '''
@@ -110,8 +112,9 @@ class ASRProvider(ASRProviderBase):
         '''
 
         pcm_data = self.decode_opus(opus_data)
-
-        async with websockets.connect(self.uri, subprotocols=["binary"], ping_interval=None, ssl=self.ssl_context) as ws:
+        auth_header = {'Authorization': 'Bearer; {}'.format(self.api_key)}
+        async with websockets.connect(self.uri, additional_headers=auth_header, subprotocols=["binary"], ping_interval=None,
+                                      ssl=self.ssl_context) as ws:
             try:
                 # Use asyncio to handle WebSocket communication
                 send_task = asyncio.create_task(self._send_data(ws, pcm_data, session_id))
@@ -134,6 +137,9 @@ class ASRProvider(ASRProviderBase):
 
                 # Get the result from the receive task
                 result = receive_task.result()
+                match = re.match(r'<\|(.*?)\|><\|(.*?)\|><\|(.*?)\|>(.*)', result)
+                if match:
+                    result = match.group(4).strip()
                 return result, None  # Return the recognized text and timestamp (if any)
 
             except websockets.exceptions.ConnectionClosed as e:
