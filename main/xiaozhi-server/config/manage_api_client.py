@@ -127,7 +127,10 @@ class ManageApiClient:
 def get_server_config() -> Optional[Dict]:
     """获取服务器基础配置"""
     return ManageApiClient._instance._execute_request(
-        "POST", "/config/server-base"
+        "POST", "/config/server-base",
+        json={
+            "secret": ManageApiClient._secret  # 添加必要的secret字段到请求体
+        }
     )
 
 
