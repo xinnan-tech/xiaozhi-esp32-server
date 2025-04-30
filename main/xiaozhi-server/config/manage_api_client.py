@@ -145,6 +145,7 @@ def get_agent_models(
             "macAddress": mac_address,
             "clientId": client_id,
             "selectedModule": selected_module,
+            "secret": ManageApiClient._secret,  # 添加必要的secret字段到请求体
         },
     )
 
