@@ -20,6 +20,7 @@ class TTSProvider(TTSProviderBase):
             self.voice = config.get("private_voice")
         else:
             self.voice = int(config.get("voice"))
+        self.fast_voice_type = config.get("fast_voice_type")
         self.api_url = "https://tts.tencentcloudapi.com"  # 正确的API端点
         self.region = config.get("region")
         self.output_file = config.get("output_dir")
@@ -134,6 +135,9 @@ class TTSProvider(TTSProviderBase):
             "SessionId": str(uuid.uuid4()),  # 会话ID，随机生成
             "VoiceType": int(self.voice),  # 音色
         }
+
+        if self.fast_voice_type:  # 如果不为空则添加，在使用声音复刻时可能需要此参数
+            request_json["FastVoiceType"] = str(self.fast_voice_type)
 
         try:
             # 获取请求头（每次请求都重新生成，以确保时间戳和签名是最新的）
