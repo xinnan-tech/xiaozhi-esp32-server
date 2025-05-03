@@ -501,10 +501,34 @@ class ConnectionHandler:
         asyncio.run_coroutine_threadsafe(
             self.mcp_manager.initialize_servers(), self.loop
         )
-
+     # 添加对 qwen3 系列模型的支持启用no_think免推理模式
     def change_system_prompt(self, prompt):
-        self.prompt = prompt
-        # 更新系统prompt至上下文
+        """
+        更新系统提示词，并根据模型名称自动添加特定指令 (如 'no_think')。
+        """
+        final_prompt = prompt
+        try:
+            # 获取当前选择的LLM模块名称，例如 "OllamaLLM"
+            selected_llm_module = self.config.get("selected_module", {}).get("LLM")
+            if selected_llm_module:
+                # 获取该LLM模块的具体配置
+                llm_config = self.config.get("LLM", {}).get(selected_llm_module, {})
+                # 获取模型名称
+                model_name = llm_config.get("model_name", "")
+                
+                # 检查模型名称是否以 "qwen3" 开头
+                if model_name and isinstance(model_name, str) and model_name.startswith("qwen3"):
+                    # 如果是 qwen3 系列模型，在 prompt 前添加 "no_think" 指令
+                    final_prompt = f"no_think\\n\\n{prompt}"
+                    self.logger.bind(tag=TAG).info(f"检测到模型 {model_name}，已自动添加 'no_think' 指令到系统提示词。")
+
+        except Exception as e:
+            # 避免因配置读取错误影响核心功能
+            self.logger.bind(tag=TAG).warning(f"检查模型名称以添加 'no_think' 时出错: {e}")
+
+        # 设置最终的 prompt
+        self.prompt = final_prompt
+        # 更新系统 prompt至对话上下文
         self.dialogue.update_system_message(self.prompt)
 
     def chat(self, query):
@@ -530,43 +554,61 @@ class ConnectionHandler:
 
         self.llm_finish_task = False
         text_index = 0
-        for content in llm_responses:
-            response_message.append(content)
-            if self.client_abort:
-                break
+    # 添加对 qwen3 系列模型的支持启用no_think免推理模式后对think标签的过滤
+        # ---- 添加 <think> 过滤状态 ----
+        is_thinking = False
+        think_buffer = ""
+        # -------------------------------
 
-            # 合并当前全部文本并处理未分割部分
-            full_text = "".join(response_message)
-            current_text = full_text[processed_chars:]  # 从未处理的位置开始
+        # 处理流式响应
+        for response in llm_responses:
+            # ---- <think> 过滤逻辑开始 ----
+            raw_chunk = ""
+            if isinstance(response, str):
+                raw_chunk = response
+            else:
+                raw_chunk = response.get('content', '')
 
-            # 查找最后一个有效标点
-            punctuations = ("。", ".", "？", "?", "！", "!", "；", ";", "：")
-            last_punct_pos = -1
-            number_flag = True
-            for punct in punctuations:
-                pos = current_text.rfind(punct)
-                prev_char = current_text[pos - 1] if pos - 1 >= 0 else ""
-                # 如果.前面是数字统一判断为小数
-                if prev_char.isdigit() and punct == ".":
-                    number_flag = False
-                if pos > last_punct_pos and number_flag:
-                    last_punct_pos = pos
+            if not raw_chunk:
+                continue
 
-            # 找到分割点则处理
-            if last_punct_pos != -1:
-                segment_text_raw = current_text[: last_punct_pos + 1]
-                segment_text = get_string_no_punctuation_or_emoji(segment_text_raw)
-                if segment_text:
-                    # 强制设置空字符，测试TTS出错返回语音的健壮性
-                    # if text_index % 2 == 0:
-                    #     segment_text = " "
-                    text_index += 1
-                    self.recode_first_last_text(segment_text, text_index)
-                    future = self.executor.submit(
-                        self.speak_and_play, segment_text, text_index
-                    )
-                    self.tts_queue.put(future)
-                    processed_chars += len(segment_text_raw)  # 更新已处理字符位置
+            think_buffer += raw_chunk
+            content_to_process = ""
+
+            while True: # 处理 think_buffer 中的标签
+                if is_thinking:
+                    end_think_pos = think_buffer.find('</think>')
+                    if end_think_pos != -1:
+                        think_buffer = think_buffer[end_think_pos + len('</think>'):]
+                        is_thinking = False
+                        continue # 继续处理剩余 buffer
+                    else:
+                        think_buffer = "" # 标签未结束，丢弃 buffer
+                        break # 等待下一个 chunk
+                else: # not is_thinking
+                    start_think_pos = think_buffer.find('<think>')
+                    if start_think_pos != -1:
+                        content_to_process += think_buffer[:start_think_pos] # 添加 <think> 前的内容
+                        think_buffer = think_buffer[start_think_pos + len('<think>'):]
+                        is_thinking = True
+                        continue # 继续处理剩余 buffer
+                    else:
+                        content_to_process += think_buffer # 没有 <think> 标签，全部添加到待处理内容
+                        think_buffer = ""
+                        break # 处理完毕，跳出 while
+
+            if not content_to_process:
+                continue # 这个 chunk 被完全过滤掉了
+
+            content = content_to_process # 使用过滤后的内容进行后续处理
+            # ---- <think> 过滤逻辑结束 ----
+
+            # 原有的逻辑，现在使用过滤后的 content
+            if content is not None and len(content) > 0:
+                response_message.append(content)
+
+                if self.client_abort:
+                    break
 
         # 处理最后剩余的文本
         full_text = "".join(response_message)
@@ -626,6 +668,11 @@ class ConnectionHandler:
         self.llm_finish_task = False
         text_index = 0
 
+        # ---- 添加 <think> 过滤状态 ----
+        is_thinking = False
+        think_buffer = ""
+        # -------------------------------
+
         # 处理流式响应
         tool_call_flag = False
         function_name = None
@@ -634,70 +681,88 @@ class ConnectionHandler:
         content_arguments = ""
 
         for response in llm_responses:
-            content, tools_call = response
+            # ---- <think> 过滤逻辑开始 ----
+            # 注意：这里 llm_responses 返回的是 (content, tools_call) 元组
+            raw_chunk, tools_call = response
+            if raw_chunk is None:
+                raw_chunk = ""
 
-            if "content" in response:
-                content = response["content"]
-                tools_call = None
-            if content is not None and len(content) > 0:
-                content_arguments += content
-
-            if not tool_call_flag and content_arguments.startswith("<tool_call>"):
-                # print("content_arguments", content_arguments)
-                tool_call_flag = True
-
+            # 处理工具调用信息（如果存在）
             if tools_call is not None:
-                tool_call_flag = True
+                tool_call_flag = True # 标记有工具调用
                 if tools_call[0].id is not None:
                     function_id = tools_call[0].id
                 if tools_call[0].function.name is not None:
                     function_name = tools_call[0].function.name
                 if tools_call[0].function.arguments is not None:
                     function_arguments += tools_call[0].function.arguments
+                # 工具调用信息不参与 think 标签过滤，直接处理
+                # 如果工具调用块也包含 content，需要加入 buffer
 
+            if not raw_chunk:
+                 # 即使 raw_chunk 为空，也要检查 tool_call，然后可能跳过
+                 if tools_call is None: # 既没有 content 也没有 tool_call
+                    continue
+                 # 如果只有 tool_call 信息，则处理完后跳过 think 过滤
+                 # 但通常 tool_call 会伴随一些 content 或在 content 结束后出现
+                 # 谨慎起见，如果 raw_chunk 为空但有 tools_call，我们先不跳过，让 buffer 处理逻辑运行一次
+                 pass # 让下面的 buffer 逻辑处理空字符串，确保状态正确
+
+            think_buffer += raw_chunk
+            content_to_process = ""
+
+            while True: # 处理 think_buffer 中的标签
+                if is_thinking:
+                    end_think_pos = think_buffer.find('</think>')
+                    if end_think_pos != -1:
+                        think_buffer = think_buffer[end_think_pos + len('</think>'):]
+                        is_thinking = False
+                        continue # 继续处理剩余 buffer
+                    else:
+                        think_buffer = "" # 标签未结束，丢弃 buffer
+                        break # 等待下一个 chunk
+                else: # not is_thinking
+                    start_think_pos = think_buffer.find('<think>')
+                    if start_think_pos != -1:
+                        content_to_process += think_buffer[:start_think_pos] # 添加 <think> 前的内容
+                        think_buffer = think_buffer[start_think_pos + len('<think>'):]
+                        is_thinking = True
+                        continue # 继续处理剩余 buffer
+                    else:
+                        content_to_process += think_buffer # 没有 <think> 标签，全部添加到待处理内容
+                        think_buffer = ""
+                        break # 处理完毕，跳出 while
+
+            if not content_to_process:
+                # 即使 content 被过滤掉，也要检查是否有工具调用要处理
+                # (工具调用处理逻辑已在上面完成)
+                if tools_call is None: # 既没有可处理内容，也没有工具调用信息
+                    continue
+                # 如果有工具调用，即使 content 为空，也需要继续后面的逻辑（如果后面有处理工具调用的逻辑）
+                # 但在此循环中，我们只关心文本内容的处理
+                pass # content 为空，但可能有 tools_call 信息需要后续处理
+
+            content = content_to_process # 使用过滤后的内容进行后续处理
+            # ---- <think> 过滤逻辑结束 ----
+
+            # 累加过滤后的文本内容，用于后续可能的非工具调用文本处理或日志记录
             if content is not None and len(content) > 0:
-                if not tool_call_flag:
+                 content_arguments += content # 累加过滤后的文本，用于判断是否以 <tool_call> 开头等
+
+            # 检查累加的文本是否以 <tool_call> 开头 (这部分逻辑可能需要调整，因为它依赖原始流)
+            # 暂时保留，但注意 content_arguments 现在是过滤后的文本
+            if not tool_call_flag and content_arguments.startswith("<tool_call>"):
+                # print("content_arguments", content_arguments)
+                tool_call_flag = True
+
+            # 原有的处理逻辑，现在使用过滤后的 content
+            # 只有在非工具调用模式下，才将内容加入 response_message 并进行分段 TTS
+            if content is not None and len(content) > 0:
+                if not tool_call_flag: # 确保不是工具调用过程中的文本块
                     response_message.append(content)
 
                     if self.client_abort:
                         break
-
-                    end_time = time.time()
-                    # self.logger.bind(tag=TAG).debug(f"大模型返回时间: {end_time - start_time} 秒, 生成token={content}")
-
-                    # 处理文本分段和TTS逻辑
-                    # 合并当前全部文本并处理未分割部分
-                    full_text = "".join(response_message)
-                    current_text = full_text[processed_chars:]  # 从未处理的位置开始
-
-                    # 查找最后一个有效标点
-                    punctuations = ("。", ".", "？", "?", "！", "!", "；", ";", "：")
-                    last_punct_pos = -1
-                    number_flag = True
-                    for punct in punctuations:
-                        pos = current_text.rfind(punct)
-                        prev_char = current_text[pos - 1] if pos - 1 >= 0 else ""
-                        # 如果.前面是数字统一判断为小数
-                        if prev_char.isdigit() and punct == ".":
-                            number_flag = False
-                        if pos > last_punct_pos and number_flag:
-                            last_punct_pos = pos
-
-                    # 找到分割点则处理
-                    if last_punct_pos != -1:
-                        segment_text_raw = current_text[: last_punct_pos + 1]
-                        segment_text = get_string_no_punctuation_or_emoji(
-                            segment_text_raw
-                        )
-                        if segment_text:
-                            text_index += 1
-                            self.recode_first_last_text(segment_text, text_index)
-                            future = self.executor.submit(
-                                self.speak_and_play, segment_text, text_index
-                            )
-                            self.tts_queue.put(future)
-                            # 更新已处理字符位置
-                            processed_chars += len(segment_text_raw)
 
         # 处理function call
         if tool_call_flag:
