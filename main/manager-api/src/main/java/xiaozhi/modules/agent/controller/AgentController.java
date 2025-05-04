@@ -192,6 +192,8 @@ public class AgentController {
     public Result<Void> delete(@PathVariable String id) {
         // 先删除关联的设备
         deviceService.deleteByAgentId(id);
+        // 删除关联的聊天记录
+        agentChatHistoryService.deleteByAgentId(id);
         // 再删除智能体
         agentService.deleteById(id);
         return new Result<>();

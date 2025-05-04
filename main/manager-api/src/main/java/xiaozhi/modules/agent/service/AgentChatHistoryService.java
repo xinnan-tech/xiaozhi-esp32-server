@@ -35,4 +35,11 @@ public interface AgentChatHistoryService extends IService<AgentChatHistoryEntity
      * @return 聊天记录列表
      */
     List<AgentChatHistoryDTO> getChatHistoryBySessionId(String agentId, String sessionId);
+
+    /**
+     * 根据智能体ID删除聊天记录
+     *
+     * @param agentId 智能体ID
+     */
+    void deleteByAgentId(String agentId);
 }

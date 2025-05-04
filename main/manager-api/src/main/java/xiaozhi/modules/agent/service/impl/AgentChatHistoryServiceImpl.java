@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -73,5 +74,12 @@ public class AgentChatHistoryServiceImpl extends ServiceImpl<AiAgentChatHistoryD
 
         // 转换为DTO
         return ConvertUtils.sourceToTarget(historyList, AgentChatHistoryDTO.class);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteByAgentId(String agentId) {
+        baseMapper.deleteAudioByAgentId(agentId);
+        baseMapper.deleteHistoryByAgentId(agentId);
     }
 }
