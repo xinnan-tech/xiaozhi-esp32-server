@@ -1,5 +1,5 @@
 """MCP服务管理器"""
-import asyncio
+
 import os, json
 from typing import Dict, Any, List
 from .MCPClient import MCPClient
@@ -94,8 +94,8 @@ class MCPManager:
         """
         for tool in self.tools:
             if (
-                    tool.get("function") != None
-                    and tool["function"].get("name") == tool_name
+                tool.get("function") != None
+                and tool["function"].get("name") == tool_name
             ):
                 return True
         return False
@@ -120,13 +120,12 @@ class MCPManager:
         raise ValueError(f"Tool {tool_name} not found in any MCP server")
 
     async def cleanup_all(self) -> None:
-        """依次关闭所有 MCPClient，不让异常阻断整体流程。"""
-        for name, client in list(self.client.items()):
+        for name, client in self.client.items():
             try:
-                await asyncio.wait_for(client.cleanup(), timeout=20)
-                self.logger.bind(tag=TAG).info(f"MCP client closed: {name}")
-            except (asyncio.TimeoutError, Exception) as e:
+                await client.cleanup()
+                self.logger.bind(tag=TAG).info(f"Cleaned up MCP client: {name}")
+            except Exception as e:
                 self.logger.bind(tag=TAG).error(
-                    f"Error closing MCP client {name}: {e}"
+                    f"Error cleaning up MCP client {name}: {e}"
                 )
         self.client.clear()
