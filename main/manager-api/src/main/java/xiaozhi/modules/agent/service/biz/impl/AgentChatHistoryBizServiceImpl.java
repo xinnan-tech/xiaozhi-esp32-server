@@ -82,7 +82,7 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
         // 3. 保存数据
         agentChatHistoryService.save(entity);
         // 4. 更新设备最后对话时间
-        redisUtils.set(RedisKeys.getAgentDeviceLastConnectedAtById(agentId), new Date(), 60 * 2);
+        redisUtils.set(RedisKeys.getAgentDeviceLastConnectedAtById(agentId), new Date());
         return Boolean.TRUE;
     }
 }
