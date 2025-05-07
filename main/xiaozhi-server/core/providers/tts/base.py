@@ -2,7 +2,6 @@ import asyncio
 from config.logger import setup_logging
 import os
 from abc import ABC, abstractmethod
-from core.utils.tts import MarkdownCleaner
 from core.utils.util import audio_to_opus_data
 from core.utils.tts import TextFormater
 
