@@ -56,7 +56,7 @@ class ASRProvider(ASRProviderBase):
                 if not os.path.isfile(file_path):
                     logger.bind(tag=TAG).info(f"正在下载模型文件: {file_name}")
                     model_file_download(
-                        model_id="pengzhendong/sherpa-onnx-sense-voice-zh-en-ja-ko-yue",
+                        model_id="csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17",
                         file_path=file_name,
                         local_dir=self.model_dir,
                     )
