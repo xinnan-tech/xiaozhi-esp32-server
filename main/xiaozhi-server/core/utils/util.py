@@ -910,7 +910,10 @@ def audio_to_opus_data(audio_file_path):
 
 
 def check_vad_update(before_config, new_config):
-    if new_config["selected_module"].get("VAD") is None:
+    if (
+        new_config.get("selected_module") is None
+        or new_config["selected_module"].get("VAD") is None
+    ):
         return False
     update_vad = False
     current_vad_module = before_config["selected_module"]["VAD"]
@@ -931,7 +934,10 @@ def check_vad_update(before_config, new_config):
 
 
 def check_asr_update(before_config, new_config):
-    if new_config["selected_module"].get("ASR") is None:
+    if (
+        new_config.get("selected_module") is None
+        or new_config["selected_module"].get("ASR") is None
+    ):
         return False
     update_asr = False
     current_asr_module = before_config["selected_module"]["ASR"]
