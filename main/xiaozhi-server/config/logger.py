@@ -4,7 +4,7 @@ from loguru import logger
 from config.config_loader import load_config
 from config.settings import check_config_file
 
-SERVER_VERSION = "0.3.14"
+SERVER_VERSION = "0.4.2"
 
 
 def get_module_abbreviation(module_name, module_dict):

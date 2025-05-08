@@ -53,7 +53,9 @@ export default {
       const now = new Date();
       const diffMinutes = Math.floor((now - lastTime) / (1000 * 60));
 
-      if (diffMinutes < 60) {
+      if (diffMinutes <= 1) {
+        return '刚刚';
+      } else if (diffMinutes < 60) {
         return `${diffMinutes}分钟前`;
       } else if (diffMinutes < 24 * 60) {
         const hours = Math.floor(diffMinutes / 60);

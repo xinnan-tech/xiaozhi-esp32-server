@@ -862,8 +862,7 @@ def analyze_emotion(text):
     return top_emotions[0]  # 如果都不在优先级列表里，返回第一个
 
 
-def audio_to_opus_data(audio_file_path):
-    """音频文件转换为Opus编码"""
+def audio_to_data(audio_file_path, is_opus=True):
     # 获取文件后缀名
     file_type = os.path.splitext(audio_file_path)[1]
     if file_type:
@@ -889,7 +888,7 @@ def audio_to_opus_data(audio_file_path):
     frame_duration = 60  # 60ms per frame
     frame_size = int(16000 * frame_duration / 1000)  # 960 samples/frame
 
-    opus_datas = []
+    datas = []
     # 按帧处理所有音频数据（包括最后一帧可能补零）
     for i in range(0, len(raw_data), frame_size * 2):  # 16bit=2bytes/sample
         # 获取当前帧的二进制数据
@@ -899,18 +898,24 @@ def audio_to_opus_data(audio_file_path):
         if len(chunk) < frame_size * 2:
             chunk += b"\x00" * (frame_size * 2 - len(chunk))
 
-        # 转换为numpy数组处理
-        np_frame = np.frombuffer(chunk, dtype=np.int16)
+        if is_opus:
+            # 转换为numpy数组处理
+            np_frame = np.frombuffer(chunk, dtype=np.int16)
+            # 编码Opus数据
+            frame_data = encoder.encode(np_frame.tobytes(), frame_size)
+        else:
+            frame_data = chunk if isinstance(chunk, bytes) else bytes(chunk)
 
-        # 编码Opus数据
-        opus_data = encoder.encode(np_frame.tobytes(), frame_size)
-        opus_datas.append(opus_data)
+        datas.append(frame_data)
 
-    return opus_datas, duration
+    return datas, duration
 
 
 def check_vad_update(before_config, new_config):
-    if new_config["selected_module"].get("VAD") is None:
+    if (
+        new_config.get("selected_module") is None
+        or new_config["selected_module"].get("VAD") is None
+    ):
         return False
     update_vad = False
     current_vad_module = before_config["selected_module"]["VAD"]
@@ -931,7 +936,10 @@ def check_vad_update(before_config, new_config):
 
 
 def check_asr_update(before_config, new_config):
-    if new_config["selected_module"].get("ASR") is None:
+    if (
+        new_config.get("selected_module") is None
+        or new_config["selected_module"].get("ASR") is None
+    ):
         return False
     update_asr = False
     current_asr_module = before_config["selected_module"]["ASR"]

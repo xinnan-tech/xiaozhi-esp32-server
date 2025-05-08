@@ -20,7 +20,7 @@ async def handleTextMessage(conn, message):
             await conn.websocket.send(message)
             return
         if msg_json["type"] == "hello":
-            await handleHelloMessage(conn)
+            await handleHelloMessage(conn, msg_json)
         elif msg_json["type"] == "abort":
             await handleAbortMessage(conn)
         elif msg_json["type"] == "listen":

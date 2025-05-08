@@ -1,7 +1,12 @@
 package xiaozhi.modules.device.service.impl;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -262,7 +267,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         }
         Date maxDate = deviceDao.getAllLastConnectedAtByAgentId(agentId);
         if (maxDate != null) {
-            redisUtils.set(RedisKeys.getAgentDeviceLastConnectedAtById(agentId), maxDate, 60 * 2);
+            redisUtils.set(RedisKeys.getAgentDeviceLastConnectedAtById(agentId), maxDate);
         }
         return maxDate;
     }

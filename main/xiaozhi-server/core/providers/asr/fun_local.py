@@ -6,9 +6,7 @@ import io
 from config.logger import setup_logging
 from typing import Optional, Tuple, List
 import uuid
-import opuslib_next
 from core.providers.asr.base import ASRProviderBase
-
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 
@@ -35,6 +33,7 @@ class CaptureOutput:
 
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
+        super().__init__()
         self.model_dir = config.get("model_dir")
         self.output_dir = config.get("output_dir")  # 修正配置键名
         self.delete_audio_file = delete_audio_file
@@ -46,7 +45,7 @@ class ASRProvider(ASRProviderBase):
                 model=self.model_dir,
                 vad_kwargs={"max_single_segment_time": 30000},
                 disable_update=True,
-                hub="hf"
+                hub="hf",
                 # device="cuda:0",  # 启用GPU加速
             )
 
@@ -64,27 +63,18 @@ class ASRProvider(ASRProviderBase):
 
         return file_path
 
-    @staticmethod
-    def decode_opus(opus_data: List[bytes], session_id: str) -> List[bytes]:
-
-        decoder = opuslib_next.Decoder(16000, 1)  # 16kHz, 单声道
-        pcm_data = []
-
-        for opus_packet in opus_data:
-            try:
-                pcm_frame = decoder.decode(opus_packet, 960)  # 960 samples = 60ms
-                pcm_data.append(pcm_frame)
-            except opuslib_next.OpusError as e:
-                logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
-
-        return pcm_data
-
-    async def speech_to_text(self, opus_data: List[bytes], session_id: str) -> Tuple[Optional[str], Optional[str]]:
+    async def speech_to_text(
+        self, opus_data: List[bytes], session_id: str
+    ) -> Tuple[Optional[str], Optional[str]]:
         """语音转文本主处理逻辑"""
         file_path = None
         try:
             # 合并所有opus数据包
-            pcm_data = self.decode_opus(opus_data, session_id)
+            if self.audio_format == "pcm":
+                pcm_data = opus_data
+            else:
+                pcm_data = self.decode_opus(opus_data)
+
             combined_pcm_data = b"".join(pcm_data)
 
             # 判断是否保存为WAV文件
@@ -103,7 +93,9 @@ class ASRProvider(ASRProviderBase):
                 batch_size_s=60,
             )
             text = rich_transcription_postprocess(result[0]["text"])
-            logger.bind(tag=TAG).debug(f"语音识别耗时: {time.time() - start_time:.3f}s | 结果: {text}")
+            logger.bind(tag=TAG).debug(
+                f"语音识别耗时: {time.time() - start_time:.3f}s | 结果: {text}"
+            )
 
             return text, file_path
 

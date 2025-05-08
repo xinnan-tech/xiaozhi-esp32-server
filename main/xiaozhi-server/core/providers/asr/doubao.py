@@ -85,11 +85,12 @@ def parse_response(res):
 
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
+        super().__init__()
         self.appid = config.get("appid")
         self.cluster = config.get("cluster")
         self.access_token = config.get("access_token")
-        self.boosting_table_name = config.get("boosting_table_name")
-        self.correct_table_name = config.get("correct_table_name")
+        self.boosting_table_name = config.get("boosting_table_name", "")
+        self.correct_table_name = config.get("correct_table_name", "")
         self.output_dir = config.get("output_dir")
         self.delete_audio_file = delete_audio_file
 
@@ -227,21 +228,6 @@ class ASRProvider(ASRProviderBase):
             return None
 
     @staticmethod
-    def decode_opus(opus_data: List[bytes], session_id: str) -> List[bytes]:
-
-        decoder = opuslib_next.Decoder(16000, 1)  # 16kHz, 单声道
-        pcm_data = []
-
-        for opus_packet in opus_data:
-            try:
-                pcm_frame = decoder.decode(opus_packet, 960)  # 960 samples = 60ms
-                pcm_data.append(pcm_frame)
-            except opuslib_next.OpusError as e:
-                logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
-
-        return pcm_data
-
-    @staticmethod
     def slice_data(data: bytes, chunk_size: int) -> (list, bool):
         """
         slice data
@@ -265,7 +251,10 @@ class ASRProvider(ASRProviderBase):
         file_path = None
         try:
             # 合并所有opus数据包
-            pcm_data = self.decode_opus(opus_data, session_id)
+            if self.audio_format == "pcm":
+                pcm_data = opus_data
+            else:
+                pcm_data = self.decode_opus(opus_data)
             combined_pcm_data = b"".join(pcm_data)
 
             # 判断是否保存为WAV文件
