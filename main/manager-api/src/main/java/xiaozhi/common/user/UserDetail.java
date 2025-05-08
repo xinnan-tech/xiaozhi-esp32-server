@@ -1,8 +1,8 @@
 package xiaozhi.common.user;
 
-import lombok.Data;
-
 import java.io.Serializable;
+
+import lombok.Data;
 
 /**
  * 登录用户信息

@@ -18,18 +18,16 @@ public class PasswordUtils {
         return passwordEncoder.encode(str);
     }
 
-
     /**
      * 比较密码是否相等
      *
      * @param str      明文密码
      * @param password 加密后密码
-     * @return true：成功    false：失败
+     * @return true：成功 false：失败
      */
     public static boolean matches(String str, String password) {
         return passwordEncoder.matches(str, password);
     }
-
 
     public static void main(String[] args) {
         String str = "admin";

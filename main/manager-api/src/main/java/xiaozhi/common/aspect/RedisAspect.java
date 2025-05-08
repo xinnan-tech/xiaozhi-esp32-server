@@ -1,13 +1,14 @@
 package xiaozhi.common.aspect;
 
-import xiaozhi.common.exception.ErrorCode;
-import xiaozhi.common.exception.RenException;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+import xiaozhi.common.exception.ErrorCode;
+import xiaozhi.common.exception.RenException;
 
 /**
  * Redis切面处理类
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class RedisAspect {
     /**
-     * 是否开启redis缓存  true开启   false关闭
+     * 是否开启redis缓存 true开启 false关闭
      */
     @Value("${renren.redis.open}")
     private boolean open;

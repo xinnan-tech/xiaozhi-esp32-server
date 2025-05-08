@@ -3,8 +3,4 @@
 
 <mapper namespace="xiaozhi.modules.sys.dao.SysDictTypeDao">
 
-    <select id="getDictTypeList" resultType="xiaozhi.modules.sys.entity.DictType">
-        select id, dict_type from sys_dict_type order by dict_type, sort
-    </select>
-
 </mapper>

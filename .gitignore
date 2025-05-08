@@ -75,6 +75,7 @@ docs/_build/
 # PyBuilder
 .pybuilder/
 target/
+*.pid
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -106,7 +107,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -150,9 +150,19 @@ main/manager-web/node_modules
 .config.yaml
 .secrets.yaml
 .private_config.yaml
-.env.development
 
 # model files
 main/xiaozhi-server/models/SenseVoiceSmall/model.pt
 main/xiaozhi-server/models/sherpa-onnx*
 my_wakeup_words.mp3
+!main/xiaozhi-server/config/assets/bind_code.wav
+!main/xiaozhi-server/config/assets/bind_not_found.wav
+!main/xiaozhi-server/config/assets/bind_code/*.wav
+!main/xiaozhi-server/config/assets/max_output_size.wav
+main/manager-api/.vscode
+
+# Ignore webpack cache directory
+main/manager-web/.webpack_cache/
+main/xiaozhi-server/mysql
+uploadfile
+.vscode

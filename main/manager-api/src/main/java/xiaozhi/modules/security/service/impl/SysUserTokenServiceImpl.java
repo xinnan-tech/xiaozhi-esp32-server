@@ -1,8 +1,11 @@
 package xiaozhi.modules.security.service.impl;
 
+import java.util.Date;
+
+import org.springframework.stereotype.Service;
+
 import cn.hutool.core.date.DateUtil;
 import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Service;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.TokenDTO;
@@ -17,11 +20,10 @@ import xiaozhi.modules.sys.dto.PasswordDTO;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.service.SysUserService;
 
-import java.util.Date;
-
 @AllArgsConstructor
 @Service
-public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, SysUserTokenEntity> implements SysUserTokenService {
+public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, SysUserTokenEntity>
+        implements SysUserTokenService {
 
     private final SysUserService sysUserService;
     /**
@@ -31,18 +33,18 @@ public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, Sy
 
     @Override
     public Result<TokenDTO> createToken(Long userId) {
-        //用户token
+        // 用户token
         String token;
 
-        //当前时间
+        // 当前时间
         Date now = new Date();
-        //过期时间
+        // 过期时间
         Date expireTime = new Date(now.getTime() + EXPIRE * 1000);
 
-        //判断是否生成过token
+        // 判断是否生成过token
         SysUserTokenEntity tokenEntity = baseDao.getByUserId(userId);
         if (tokenEntity == null) {
-            //生成一个token
+            // 生成一个token
             token = TokenGenerator.generateValue();
 
             tokenEntity = new SysUserTokenEntity();
@@ -51,12 +53,12 @@ public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, Sy
             tokenEntity.setUpdateDate(now);
             tokenEntity.setExpireDate(expireTime);
 
-            //保存token
+            // 保存token
             this.insert(tokenEntity);
         } else {
-            //判断token是否过期
+            // 判断token是否过期
             if (tokenEntity.getExpireDate().getTime() < System.currentTimeMillis()) {
-                //token过期，重新生成token
+                // token过期，重新生成token
                 token = TokenGenerator.generateValue();
             } else {
                 token = tokenEntity.getToken();
@@ -66,7 +68,7 @@ public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, Sy
             tokenEntity.setUpdateDate(now);
             tokenEntity.setExpireDate(expireTime);
 
-            //更新token
+            // 更新token
             this.updateById(tokenEntity);
         }
 
@@ -76,7 +78,7 @@ public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, Sy
         tokenDTO.setToken(token);
         tokenDTO.setExpire(EXPIRE);
         tokenDTO.setClientHash(clientHash);
-        return new Result().ok(tokenDTO);
+        return new Result<TokenDTO>().ok(tokenDTO);
     }
 
     @Override

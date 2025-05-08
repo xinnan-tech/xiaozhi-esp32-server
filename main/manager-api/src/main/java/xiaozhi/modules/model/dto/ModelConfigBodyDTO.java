@@ -1,9 +1,10 @@
 package xiaozhi.modules.model.dto;
 
+import java.io.Serial;
+
+import cn.hutool.json.JSONObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
-import java.io.Serial;
 
 @Data
 @Schema(description = "模型供应器/商")
@@ -12,9 +13,9 @@ public class ModelConfigBodyDTO {
     @Serial
     private static final long serialVersionUID = 1L;
 
-//    @Schema(description = "模型类型(Memory/ASR/VAD/LLM/TTS)")
-//    private String modelType;
-//
+    // @Schema(description = "模型类型(Memory/ASR/VAD/LLM/TTS)")
+    // private String modelType;
+    //
     @Schema(description = "模型编码(如AliLLM、DoubaoTTS)")
     private String modelCode;
 
@@ -28,7 +29,7 @@ public class ModelConfigBodyDTO {
     private Integer isEnabled;
 
     @Schema(description = "模型配置(JSON格式)")
-    private String configJson;
+    private JSONObject configJson;
 
     @Schema(description = "官方文档链接")
     private String docLink;

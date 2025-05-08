@@ -1,35 +1,139 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <include resource="org/springframework/boot/logging/logback/base.xml" />
-    <logger name="org.springframework.web" level="INFO"/>
-    <logger name="org.springboot.sample" level="TRACE" />
-
-    <!-- 开发、测试环境 -->
+    <!-- 启用JansiConsoleAppender以确保控制台输出有颜色 -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    
+    <!-- 确保日志目录存在 -->
+    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+    
+    <!-- 定义日志文件存储位置 -->
+    <property name="LOG_HOME" value="./logs" />
+    
+    <!-- 使用自定义的初始化监听器确保日志目录存在 -->
+    <define name="LOGBACK_DIR_CHECK" class="ch.qos.logback.core.property.FileExistsPropertyDefiner">
+        <path>${LOG_HOME}</path>
+        <createIfMissing>true</createIfMissing>
+    </define>
+    
+    <!-- 引入Spring Boot默认配置 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    
+    <!-- 控制台输出配置 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{50}) - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+    
+    <!-- 文件输出配置 - 所有日志 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/xiaozhi-esp32-api.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/xiaozhi-esp32-api.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+    
+    <!-- 文件输出配置 - 仅错误日志 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+    
+    <!-- 开发环境配置 -->
     <springProfile name="dev">
-        <logger name="org.springframework.web" level="INFO"/>
-        <logger name="org.springboot.sample" level="INFO" />
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <!-- 开发环境也记录日志文件 -->
+            <appender-ref ref="FILE" />
+            <appender-ref ref="ERROR_FILE" />
+        </root>
         <logger name="xiaozhi" level="DEBUG" />
+        <logger name="org.springframework.web" level="INFO" />
+        <logger name="org.springboot.sample" level="INFO" />
     </springProfile>
-
-    <!-- 生产环境 -->
+    
+    <!-- 测试环境配置 -->
+    <springProfile name="test">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE" />
+            <appender-ref ref="ERROR_FILE" />
+        </root>
+        <logger name="xiaozhi" level="INFO" />
+        <logger name="org.springframework.web" level="INFO" />
+        <logger name="org.springboot.sample" level="INFO" />
+    </springProfile>
+    
+    <!-- 生产环境配置 - 合并两个版本的最佳实践 -->
     <springProfile name="prod">
-        <appender name="LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 使用本地日志路径 -->
+        <appender name="PROD_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_HOME}/xiaozhi-esp32-api.log</file>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-                <!--日志文件输出的文件名-->
-                <FileNamePattern>/system/logs/admin.%d{yyyy-MM-dd}.%i.log</FileNamePattern>
-                <!--日志大小-->
-                <maxFileSize>1MB</maxFileSize>
-                <!--日志文件保留天数-->
-                <maxHistory>7</maxHistory>
+                <fileNamePattern>${LOG_HOME}/xiaozhi-esp32-api.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>2GB</totalSizeCap>
             </rollingPolicy>
-            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-                <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <encoder>
                 <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+                <charset>UTF-8</charset>
             </encoder>
         </appender>
-        <logger name="org.springframework.web" level="ERROR"/>
-        <logger name="org.springboot.sample" level="ERROR"/>
-        <logger name="xiaozhi" level="INFO"/>
+        
+        <!-- 生产环境错误日志 -->
+        <appender name="PROD_ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_HOME}/error.log</file>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>ERROR</level>
+            </filter>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_HOME}/error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+        
+        <!-- 生产环境根日志配置 -->
+        <root level="INFO">
+            <appender-ref ref="PROD_FILE" />
+            <appender-ref ref="PROD_ERROR_FILE" />
+            <appender-ref ref="CONSOLE" />
+        </root>
+        
+        <!-- 特定包的日志级别 -->
+        <logger name="xiaozhi" level="INFO" />
+        <logger name="org.springframework.web" level="ERROR" />
+        <logger name="org.springboot.sample" level="ERROR" />
     </springProfile>
-
+    
+    <!-- 确保日志目录存在 -->
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
 </configuration>

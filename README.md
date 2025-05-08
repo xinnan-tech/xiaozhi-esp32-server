@@ -1,7 +1,27 @@
-[![SVG Banners](https://svg-banners.vercel.app/api?type=origin&text1=你好😃，小智📟&text2=开源小智ESP-32后端服务&width=830&height=210)](https://github.com/xinnan-tech/xiaozhi-esp32-server)
+[![Banners](docs/images/banner1.png)](https://github.com/xinnan-tech/xiaozhi-esp32-server)
+
+<h1 align="center">小智后端服务xiaozhi-esp32-server</h1>
+
 <p align="center">
+本项目为开源智能硬件项目
+<a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a>提供后端服务<br/>
+根据<a href="https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh">小智通信协议</a>使用Python、Java、Vue实现<br/>
+帮助您快速搭建小智服务器
+</p>
+
+<p align="center">
+<a href="./README.md">English</a>
+· <a href="./docs/FAQ.md">常见问题</a>
+· <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/issues">反馈问题</a>
+· <a href="./README.md#%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3">部署文档</a>
+· <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">更新日志</a>
+</p>
+<p align="center">
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">
+    <img alt="GitHub Contributors" src="https://img.shields.io/github/v/release/xinnan-tech/xiaozhi-esp32-server?logo=docker" />
+  </a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors">
-    <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/xinnan-tech/xiaozhi-esp32-server" />
+    <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/xinnan-tech/xiaozhi-esp32-server?logo=github" />
   </a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/issues">
     <img alt="Issues" src="https://img.shields.io/github/issues/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
@@ -9,14 +29,13 @@
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/pulls">
     <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
   </a>
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/LICENSE">
+    <img alt="GitHub pull requests" src="https://img.shields.io/badge/license-MIT-white?labelColor=black" />
+  </a>
+  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server">
+    <img alt="stars" src="https://img.shields.io/github/stars/xinnan-tech/xiaozhi-esp32-server?color=ffcb47&labelColor=black" />
+  </a>
 </p>
-
-# 小智 ESP-32 后端服务(xiaozhi-esp32-server)
-
-（中文 | [English](README_en.md)）
-
-本项目为开源智能硬件项目 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32)
-提供后端服务。根据 [小智通信协议](https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh) 使用 `Python` 实现。
 
 ---
 
@@ -106,90 +125,85 @@
 
 ---
 
-## 系统要求与部署前提 🖥️
-
-- **硬件**：一套兼容 `xiaozhi-esp32`
-  的硬件设备（具体型号请参考 [此处](https://rcnv1t9vps13.feishu.cn/wiki/DdgIw4BUgivWDPkhMj1cGIYCnRf)）。
-
-- **电脑或服务器**：建议 4 核 CPU、8G 内存的电脑。如果开启ASR也使用API，可运行在2核CPU、2G内存的服务器中。
-- **固件编译**：请将本后端服务的接口地址更新至 `xiaozhi-esp32` 项目中，再重新编译`xiaozhi-esp32`固件并烧录到设备上。
-
-![图片](docs/images/deploy.png)
-
-如果你没有esp32相关的硬件设备，但是非常想体验该项目，可以使用以下的项目让你的电脑、手机模拟成esp32设备。
-
-- [小智安卓端](https://github.com/TOM88812/xiaozhi-android-client)
-- [小智电脑端](https://github.com/Huang-junsen/py-xiaozhi)
-
-如果你是一名软件开发者，这里有一份[《致开发者的公开信》](docs/contributor_open_letter.md)，欢迎加入！
-
----
-
 ## 警告 ⚠️
 
 1、本项目为开源软件，本软件与对接的任何第三方API服务商（包括但不限于语音识别、大模型、语音合成等平台）均不存在商业合作关系，不为其服务质量及资金安全提供任何形式的担保。
 建议使用者优先选择持有相关业务牌照的服务商，并仔细阅读其服务协议及隐私政策。本软件不托管任何账户密钥、不参与资金流转、不承担充值资金损失风险。
 
-2、本项目成立时间较短，还未通过网络安全测评，请勿在生产环境中使用。 如果您在公网环境中部署学习本项目，请务必在配置文件
-`config.yaml` 中开启防护：
-
-```yaml
-server:
-  auth:
-    # 开启防护
-    enabled: true  
-```
-
-开启防护后，您需要根据实际情况校验机器的 token 或 mac 地址，详细请参见配置说明。
+2、本项目功能未完善，且未通过网络安全测评，请勿在生产环境中使用。 如果您在公网环境中部署学习本项目，请务必做好必要的防护。
 
 ---
 
+## 部署文档
+
+![Banners](docs/images/banner2.png)
+
+本项目提供两种部署方式，请根据您的具体需求选择：
+
+#### 🚀 部署方式选择
+
+| 部署方式 | 特点 | 适用场景 | Docker部署文档 | 源码部署文档 |
+|---------|------|---------|---------|---------|
+| **最简化安装** | 智能对话、IOT功能，数据存储在配置文件 | 低配置环境，无需数据库 | [Docker只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) | [本地源码只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)|
+| **全模块安装** | 智能对话、IOT、OTA、智控台，数据存储在数据库 | 完整功能体验 |[Docker运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) | [本地源码运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) |
+
+> 💡 提示：以下是按最新代码部署后的测试平台，有需要可烧录测试，并发为6个，每天会清空数据
+
+```
+智控台地址: https://2662r3426b.vicp.fun
+
+服务测试工具： https://2662r3426b.vicp.fun/test/
+OTA接口地址: https://2662r3426b.vicp.fun/xiaozhi/ota/
+Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
+```
+
+---
 ## 功能清单 ✨
 
 ### 已实现 ✅
 
-- **通信协议**  
-  基于 `xiaozhi-esp32` 协议，通过 WebSocket 实现数据交互。
-- **对话交互**  
-  支持唤醒对话、手动对话及实时打断。长时间无对话时自动休眠
-- **意图识别**  
-  支持使用LLM意图识别、function call函数调用，减少硬编码意图判断
-- **多语言识别**  
-  支持国语、粤语、英语、日语、韩语（默认使用 FunASR）。
-- **LLM 模块**  
-  支持灵活切换 LLM 模块，默认使用 ChatGLMLLM，也可选用阿里百炼、DeepSeek、Ollama 等接口。
-- **TTS 模块**  
-  支持 EdgeTTS（默认）、火山引擎豆包 TTS 等多种 TTS 接口，满足语音合成需求。
-- **记忆功能**  
-  支持超长记忆、本地总结记忆、无记忆三种模式，满足不同场景需求。
-- **IOT功能**  
-  支持管理注册设备IOT功能，支持基于对话上下文语境下的智能物联网控制。
+| 功能模块 | 描述 |
+|---------|------|
+| 通信协议 | 基于 `xiaozhi-esp32` 协议，通过 WebSocket 实现数据交互 |
+| 对话交互 | 支持唤醒对话、手动对话及实时打断。长时间无对话时自动休眠 |
+| 意图识别 | 支持使用LLM意图识别、function call函数调用，减少硬编码意图判断 |
+| 多语言识别 | 支持国语、粤语、英语、日语、韩语（默认使用 FunASR） |
+| LLM 模块 | 支持灵活切换 LLM 模块，默认使用 ChatGLMLLM，也可选用阿里百炼、DeepSeek、Ollama 等接口 |
+| TTS 模块 | 支持 EdgeTTS（默认）、火山引擎豆包 TTS 等多种 TTS 接口，满足语音合成需求 |
+| 记忆功能 | 支持超长记忆、本地总结记忆、无记忆三种模式，满足不同场景需求 |
+| IOT功能 | 支持管理注册设备IOT功能，支持基于对话上下文语境下的智能物联网控制 |
+| 智控台 | 提供Web管理界面，支持智能体管理、用户管理、系统配置等功能，方便管理员和用户进行管理 |
 
 ### 正在开发 🚧
 
-- 多种心情模式
-- 智控台webui
+想了解具体开发计划进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
 
-想了解具体开发进度，[请点击这里](https://github.com/users/xinnan-tech/projects/3)
+如果你是一名软件开发者，这里有一份[《致开发者的公开信》](docs/contributor_open_letter.md)，欢迎加入！
 
-![图片](docs/images/webui.png)
+---
+
+## 产品生态 👬
+小智是一个生态，当你使用这个产品时，也可以看看其他在这个生态圈的优秀项目
+
+| 项目名称  | 项目地址 | 项目描述 |
+|:---------------------|:--------|:--------|
+| 小智安卓客户端  | [xiaozhi-android-client](https://github.com/TOM88812/xiaozhi-android-client) | 一个基于xiaozhi-server的Android、IOS语音对话应用,支持实时语音交互和文字对话。<br/>现在是flutter版本，打通IOS、Android端。 |
+| 小智电脑客户端  | [py-xiaozhi](https://github.com/Huang-junsen/py-xiaozhi) | 该项目提供了一个基于 Python 实现的小白 AI 客户端，使得在不具备实体硬件条件的情况下，<br/>依然能够体过代码体验小智 AI 的功能。 |
+| 小智Java服务端  | [xiaozhi-esp32-server-java](https://github.com/joey-zhou/xiaozhi-esp32-server-java) | 小智开源后端服务 Java 版本是一个基于 Java 的开源项目。<br/>它包括前后端的服务，旨在为用户提供一个完整的后端服务解决方案。 |
+
 ---
 
 ## 本项目支持的平台/组件列表 📋
 
 ### LLM 语言模型
 
-| 类型  |        平台名称        |         使用方式          |    收费模式     |                                                           备注                                                            |
-|:---:|:------------------:|:---------------------:|:-----------:|:-----------------------------------------------------------------------------------------------------------------------:|
-| LLM |   阿里百炼 (AliLLM)    |      openai 接口调用      |  消耗 token   |                             [点击申请密钥](https://bailian.console.aliyun.com/?apiKey=1#/api-key)                             |
-| LLM |     DoubaoLLM      |      openai 接口调用      |  消耗 token   | [点击申请密钥](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-pro-32k&projectName=undefined) |
-| LLM | 深度求索 (DeepSeekLLM) |      openai 接口调用      |  消耗 token   |                                        [点击申请密钥](https://platform.deepseek.com/)                                         |
-| LLM |   智谱（ChatGLMLLM）   |      openai 接口调用      |     免费      |                            虽然免费，仍需[点击申请密钥](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)                            |
-| LLM |     OllamaLLM      |      ollama 接口调用      | 免费/消耗 token |                                  需预先下载模型（`ollama pull`），服务地址：`http://localhost:11434`                                   |
-| LLM |      DifyLLM       |       dify 接口调用       | 免费/消耗 token |                                               本地化部署，注意配置提示词需在 Dify 控制台设置                                                |
-| LLM |     FastgptLLM     |     fastgpt 接口调用      | 免费/消耗 token |                                              本地化部署，注意配置提示词需在 Fastgpt 控制台设置                                              |
-| LLM |     GeminiLLM      |      gemini 接口调用      |     免费      |                                      [点击申请密钥](https://aistudio.google.com/apikey)                                       |
-| LLM |      CozeLLM       |       coze 接口调用       |  消耗 token   |                                                需提供 bot_id、user_id 及个人令牌                                                 |
+| 使用方式 | 支持平台 | 免费平台 |
+|:---:|:---:|:---:|
+| openai 接口调用 | 阿里百炼、火山引擎豆包、深度求索、智谱ChatGLM、Gemini | 智谱ChatGLM、Gemini |
+| ollama 接口调用 | Ollama | - |
+| dify 接口调用 | Dify | - |
+| fastgpt 接口调用 | Fastgpt | - |
+| coze 接口调用 | Coze | - |
 
 实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
 
@@ -197,21 +211,10 @@ server:
 
 ### TTS 语音合成
 
-| 类型  |          平台名称          | 使用方式 |   收费模式   |                                    备注                                     |
-|:---:|:----------------------:|:----:|:--------:|:-------------------------------------------------------------------------:|
-| TTS |        EdgeTTS         | 接口调用 |    免费    |                             默认 TTS，基于微软语音合成技术                             |
-| TTS | 火山引擎豆包 TTS (DoubaoTTS) | 接口调用 | 消耗 token | [点击创建密钥](https://console.volcengine.com/speech/service/8)；建议使用付费版本以获得更高并发 |
-| TTS |       AliyunTTS        | 接口调用 | 消耗 token |          [点击创建密钥](https://nls-portal.console.aliyun.com/applist)          |
-| TTS |  CosyVoiceSiliconflow  | 接口调用 | 消耗 token |                         需申请硅基流动 API 密钥；输出格式为 wav                          |
-| TTS |        TTS302AI        | 接口调用 | 消耗 token |                  [点击创建密钥](https://dash.302.ai/apis/list)                  |
-| TTS |       CozeCnTTS        | 接口调用 | 消耗 token |                        需提供 Coze API key；输出格式为 wav                         |
-| TTS |       GizwitsTTS       | 接口调用 | 消耗 token |                  [点击创建密钥](https://agentrouter.gizwitsapi.com)                  |
-| TTS |        ACGNTTS         | 接口调用 | 消耗 token |                        [联系网站管理员购买密钥](www.ttson.cn)                        |
-| TTS |       OpenAITTS        | 接口调用 | 消耗 token |                                 境外使用，境外购买                                 |
-| TTS |       FishSpeech       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务；启动方法见配置文件内说明                          |
-| TTS |     GPT_SOVITS_V2      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
-| TTS |     GPT_SOVITS_V3      | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
-| TTS |       MinimaxTTS       | 接口调用 |  免费/自定义  |                         本地启动 TTS 服务，适用于个性化语音合成场景                          |
+| 使用方式 | 支持平台 | 免费平台 |
+|:---:|:---:|:---:|
+| 接口调用 | EdgeTTS、火山引擎豆包TTS、腾讯云、阿里云TTS、CosyVoiceSiliconflow、TTS302AI、CozeCnTTS、GizwitsTTS、ACGNTTS、OpenAITTS | EdgeTTS、CosyVoiceSiliconflow(部分) |
+| 本地服务 | FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3、MinimaxTTS | FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3、MinimaxTTS |
 
 ---
 
@@ -225,12 +228,10 @@ server:
 
 ### ASR 语音识别
 
-| 类型  |   平台名称    | 使用方式 | 收费模式 | 备注 |
-|:---:|:---------:|:----:|:----:|:--:|
-| ASR |  FunASR   | 本地使用 |  免费  |    |
-| ASR | SherpaASR | 本地使用 |  免费  |    |
-| ASR | DoubaoASR | 接口调用 |  收费  |    |
-
+| 使用方式 | 支持平台 | 免费平台 |
+|:---:|:---:|:---:|
+| 本地使用 | FunASR、SherpaASR | FunASR、SherpaASR |
+| 接口调用 | DoubaoASR、FunASRServer、TencentASR、AliyunASR | FunASRServer |
 
 ---
 
@@ -252,182 +253,19 @@ server:
 
 ---
 
-## 使用方式 🚀
-
-### 一、[部署文档](./docs/Deployment.md)
-
-本项目支持以下三种部署方式，您可根据实际需求选择。
-
-1. [Docker 快速部署](./docs/Deployment.md)
-
-适合快速体验的普通用户，不需过多环境配置。缺点是，拉取镜像有点慢。视频教程可参考[美女大佬教你Docker部署](https://www.bilibili.com/video/BV1RNQnYDE5t)
-
-2. [借助 Docker 环境运行部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E5%80%9F%E5%8A%A9docker%E7%8E%AF%E5%A2%83%E8%BF%90%E8%A1%8C%E9%83%A8%E7%BD%B2)
-
-适用于已安装 Docker 且希望对代码进行自定义修改的软件工程师。
-
-3. [本地源码运行](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%89%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C)
-
-适合熟悉`Conda` 环境或希望从零搭建运行环境的用户。
-
-对于对响应速度要求较高的场景，推荐使用本地源码运行方式以降低额外开销。视频教程可参考[帅哥大佬教你源码部署](https://www.bilibili.com/video/BV1GvQWYZEd2)
-
-### 二、[固件编译](./docs/firmware-build.md)
-
-点这里查看[固件编译](./docs/firmware-build.md)的详细过程。
-
-烧录成功且联网成功后，通过唤醒词唤醒小智，留意server端输出的控制台信息。
-
----
-
-## 常见问题 ❓
-
-### 1、为什么我说的话，小智识别出来很多韩文、日文、英文？🇰🇷
-
-建议：检查一下`models/SenseVoiceSmall`是否已经有`model.pt`
-文件，如果没有就要下载，查看这里[下载语音识别模型文件](docs/Deployment.md#模型文件)
-
-### 2、为什么会出现“TTS 任务出错 文件不存在”？📁
-
-建议：检查一下是否正确使用`conda` 安装了`libopus`和`ffmpeg`库。
-
-如果没有安装，就安装
-
-```
-conda install conda-forge::libopus
-conda install conda-forge::ffmpeg
-```
-
-### 3、TTS 经常失败，经常超时 ⏰
-
-建议：如果 `EdgeTTS` 经常失败，请先检查是否使用了代理（梯子）。如果使用了，请尝试关闭代理后再试；  
-如果用的是火山引擎的豆包 TTS，经常失败时建议使用付费版本，因为测试版本仅支持 2 个并发。
-
-### 4、如何提高小智对话响应速度？ ⚡
-
-本项目默认配置为低成本方案，建议初学者先使用默认免费模型，解决“跑得动”的问题，再优化“跑得快”。  
-如需提升响应速度，可尝试更换各组件。以下为各组件的响应速度测试数据（仅供参考，不构成承诺）：
-
-| 影响因素  |       因素值        | 
-|:-----:|:----------------:|
-| 测试地点  |    广东省广州市海珠区     |
-| 测试时间  | 2025年2月19日 12:52 |
-| 宽带运营商 |       中国联通       |
-
-测试方法：
-
-1、把各组件的密钥配置上去，只有配置了密钥的组件才参与测试。
-
-2、配置完密钥后，执行以下方法
-
-```
-# 进入项目根目录，执行以下命令：
-conda activate xiaozhi-esp32-server
-python performance_tester.py 
-```
-
-生成报告如下
-
-LLM 性能排行:
-
-| 模块名称       | 平均首Token时间 | 平均总响应时间 |
-|:-----------|:-----------|:--------|
-| AliLLM     | 0.547s     | 1.485s  |
-| ChatGLMLLM | 0.677s     | 3.057s  |
-
-TTS 性能排行:
-
-| 模块名称                 | 平均合成时间 |
-|----------------------|--------|
-| EdgeTTS              | 1.019s |
-| DoubaoTTS            | 0.503s |
-| CosyVoiceSiliconflow | 3.732s |
-
-推荐配置组合 (综合响应速度):
-
-| 组合方案                          | 综合得分  | LLM首Token | TTS合成  |
-|-------------------------------|-------|-----------|--------|
-| AliLLM + DoubaoTTS            | 0.539 | 0.547s    | 0.503s |
-| AliLLM + EdgeTTS              | 0.642 | 0.547s    | 1.019s |
-| ChatGLMLLM + DoubaoTTS        | 0.642 | 0.677s    | 0.503s |
-| ChatGLMLLM + EdgeTTS          | 0.745 | 0.677s    | 1.019s |
-| AliLLM + CosyVoiceSiliconflow | 1.184 | 0.547s    | 3.732s |
-
-### 结论 🔍
-
-`2025年2月19日`，如果我的电脑在`广东省广州市海珠区`，且使用的是`中国联通`网络，我会优先使用：
-
-- LLM：`AliLLM`
-- TTS：`DoubaoTTS`
-
-### 5、我说话很慢，停顿时小智老是抢话 🗣️
-
-建议：在配置文件中找到如下部分，将 `min_silence_duration_ms` 的值调大（例如改为 `1000`）：
-
-```yaml
-VAD:
-  SileroVAD:
-    threshold: 0.5
-    model_dir: models/snakers4_silero-vad
-    min_silence_duration_ms: 700  # 如果说话停顿较长，可将此值调大
-```
-
-### 6、我想通过小智控制电灯、空调、远程开关机等操作 💡
-
-本项目，支持以工具调用的方式控制HomeAssistant设备
-
-1、首先选择一款支持function call支持的LLM，例如`ChatGLMLLM`。
-
-2、在配置文件中，将 `selected_module.Intent` 设置为 `function_call`。
-
-3、登录`HomeAssistant`，点击`左下角个人`，切换`安全`导航栏，划到底部`长期访问令牌`生成api_key。
-
-在配置文件中，配置好你的home assistant的`devices`（被控制的设备）和`api_key`和`base_url`等信息。例如：
-
-``` yaml 
-plugins
-  home_assistant:
-    devices:
-      - 客厅,玩具灯,switch.cuco_cn_460494544_cp1_on_p_2_1
-      - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
-    base_url: http://你的homeassistant地址:8123
-    api_key: 你的home assistant api访问令牌
-```
-
-最后，允许function_call 插件在配置文件中启用`hass_get_state`(必须)、`hass_set_state`(必须)、`hass_play_music`(不想用ha听音乐可以不启动)，例如：
-
-``` yaml 
-Intent:
-  ...
-  function_call:
-    type: nointent
-    functions:
-      - change_role
-      - get_weather
-      - get_news
-      - hass_get_state
-      - hass_set_state
-      - hass_play_music
-```
-
-### 7、更多问题，可联系我们反馈 💬
-
-我们的联系方式放在[百度网盘中,点击前往](https://pan.baidu.com/s/1x6USjvP1nTRsZ45XlJu65Q)，提取码是`223y`。
-
-网盘里有“硬件烧录QQ群”、“开源服务端交流群”、“产品建议联系人” 三张图片，请根据需要选择加入。
-
-- 硬件烧录QQ群：适用于硬件烧录问题
-- 开源服务端交流群：适用于服务端问题
-- 产品建议联系人：适用于产品功能、产品设计等建议
-
----
-
 ## 鸣谢 🙏
 
-- 本项目受 [百聆语音对话机器人](https://github.com/wwbin2017/bailing) 启发，并在其基础上实现。
-- 感谢 [十方融海](https://www.tenclass.com/) 对小智通讯协议提供的详尽文档支持。
+| Logo | 项目/公司 | 说明 |
+|:---:|:---:|:---|
+| <img src="./docs/images/logo_bailing.png" width="160"> | [百聆语音对话机器人](https://github.com/wwbin2017/bailing) | 本项目受[百聆语音对话机器人](https://github.com/wwbin2017/bailing)启发，并在其基础上实现 |
+| <img src="./docs/images/logo_tenclass.png" width="160"> | [十方融海](https://www.tenclass.com/) | 感谢[十方融海](https://www.tenclass.com/)为小智生态制定了标准的通讯协议、多设备兼容性方案及高并发场景实践示范；为本项目提供了全链路技术文档支持 |
+| <img src="./docs/images/logo_xuanfeng.png" width="160"> | [玄凤科技](https://github.com/Eric0308) | 感谢[玄凤科技](https://github.com/Eric0308)贡献函数调用框架、MCP通信协议及插件化调用机制的实现代码，通过标准化的指令调度体系与动态扩展能力，显著提升了前端设备(IoT)的交互效率和功能延展性 |
+| <img src="./docs/images/logo_huiyuan.png" width="160"> | [汇远设计](http://ui.kwd988.net/) | 感谢[汇远设计](http://ui.kwd988.net/)为本项目提供专业视觉解决方案，用其服务超千家企业的设计实战经验，赋能本项目产品用户体验 |
+| <img src="./docs/images/logo_qinren.png" width="160"> | [西安勤人信息科技](https://www.029app.com/) | 感谢[西安勤人信息科技](https://www.029app.com/)深化本项目视觉体系，确保整体设计风格在多场景应用中的一致性和扩展性 |
+
 
 <a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
+
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />

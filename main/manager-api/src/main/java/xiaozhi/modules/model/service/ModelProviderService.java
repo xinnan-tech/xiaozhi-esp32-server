@@ -1,13 +1,13 @@
 package xiaozhi.modules.model.service;
 
+import java.util.List;
+
 import xiaozhi.modules.model.dto.ModelProviderDTO;
 import xiaozhi.modules.model.entity.ModelProviderEntity;
 
-import java.util.List;
-
 public interface ModelProviderService {
 
-//    List<String> getModelNames(String modelType, String modelName);
+    // List<String> getModelNames(String modelType, String modelName);
 
     List<ModelProviderDTO> getListByModelType(String modelType);
 
@@ -18,6 +18,4 @@ public interface ModelProviderService {
     void delete();
 
     List<ModelProviderDTO> getList(String modelType, String provideCode);
-
-    List<String> getFieldList(String modelType, String provideCode);
 }

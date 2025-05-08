@@ -1,13 +1,14 @@
 package xiaozhi.modules.sys.entity;
 
+import java.util.Date;
+
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import xiaozhi.common.entity.BaseEntity;
-
-import java.util.Date;
 
 /**
  * 系统用户
@@ -25,11 +26,11 @@ public class SysUserEntity extends BaseEntity {
      */
     private String password;
     /**
-     * 超级管理员   0：否   1：是
+     * 超级管理员 0：否 1：是
      */
     private Integer superAdmin;
     /**
-     * 状态  0：停用   1：正常
+     * 状态 0：停用 1：正常
      */
     private Integer status;
     /**

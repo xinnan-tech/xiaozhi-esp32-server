@@ -1,8 +1,8 @@
 package xiaozhi.modules.security.service;
 
-import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * 验证码
@@ -21,7 +21,7 @@ public interface CaptchaService {
      *
      * @param uuid uuid
      * @param code 验证码
-     * @return true：成功  false：失败
+     * @return true：成功 false：失败
      */
     boolean validate(String uuid, String code);
 }

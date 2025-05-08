@@ -4,12 +4,18 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "build": "vue-cli-service build",
+    "analyze": "cross-env ANALYZE=true vue-cli-service build"
   },
   "dependencies": {
+    "core-js": "^3.41.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.5.0",
     "element-ui": "^2.15.14",
     "flyio": "^0.6.14",
     "normalize.css": "^8.0.1",
+    "opus-decoder": "^0.7.7",
+    "opus-recorder": "^8.0.5",
     "vue": "^2.6.14",
     "vue-axios": "^3.5.2",
     "vue-router": "^3.6.5",
@@ -17,16 +23,26 @@
     "xiaozhi": "file:"
   },
   "devDependencies": {
+    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
+    "@babel/plugin-transform-runtime": "^7.26.10",
     "@vue/cli-plugin-router": "~5.0.0",
     "@vue/cli-plugin-vuex": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "compression-webpack-plugin": "^11.1.0",
     "sass": "^1.32.7",
     "sass-loader": "^12.0.0",
-    "vue-template-compiler": "^2.6.14"
+    "vue-template-compiler": "^2.6.14",
+    "webpack-bundle-analyzer": "^4.10.2",
+    "workbox-webpack-plugin": "^7.3.0"
   },
   "browserslist": [
     "> 1%",
     "last 2 versions",
     "not dead"
+  ],
+  "sideEffects": [
+    "*.css",
+    "*.scss",
+    "*.vue"
   ]
 }

@@ -1,12 +1,12 @@
+import { getServiceUrl } from '../api'
 import RequestService from '../httpRequest'
-import {getServiceUrl} from '../api'
 
 
 export default {
     // 登录
     login(loginForm, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/login`)
+            .url(`${getServiceUrl()}/user/login`)
             .method('POST')
             .data(loginForm)
             .success((res) => {
@@ -21,9 +21,8 @@ export default {
     },
     // 获取验证码
     getCaptcha(uuid, callback) {
-
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/captcha?uuid=${uuid}`)
+            .url(`${getServiceUrl()}/user/captcha?uuid=${uuid}`)
             .method('GET')
             .type('blob')
             .header({
@@ -42,7 +41,7 @@ export default {
     // 注册账号
     register(registerForm, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/register`)
+            .url(`${getServiceUrl()}/user/register`)
             .method('POST')
             .data(registerForm)
             .success((res) => {
@@ -52,11 +51,10 @@ export default {
             .fail(() => {
             }).send()
     },
-
     // 保存设备配置
     saveDeviceConfig(device_id, configData, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/configDevice/${device_id}`)
+            .url(`${getServiceUrl()}/user/configDevice/${device_id}`)
             .method('PUT')
             .data(configData)
             .success((res) => {
@@ -70,25 +68,10 @@ export default {
                 });
             }).send();
     },
-    // 获取智能体列表
-    getAgentList(callback) {
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/agent`)
-            .method('GET')
-            .success((res) => {
-                RequestService.clearRequestTime();
-                callback(res);
-            })
-            .fail(() => {
-                RequestService.reAjaxFun(() => {
-                    this.getAgentList(callback);
-                });
-            }).send();
-    },
     // 用户信息获取
     getUserInfo(callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/info`)
+            .url(`${getServiceUrl()}/user/info`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime()
@@ -101,45 +84,14 @@ export default {
                 })
             }).send()
     },
-    // 添加智能体
-    addAgent(agentName, callback) {
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/agent`)
-            .method('POST')
-            .data({name: agentName})
-            .success((res) => {
-                RequestService.clearRequestTime();
-                callback(res);
-            })
-            .fail(() => {
-                RequestService.reAjaxFun(() => {
-                    this.addAgent(agentName, callback);
-                });
-            }).send();
-    },
-    // 删除智能体
-    deleteAgent(agentId, callback) {
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/agent/${agentId}`)
-            .method('DELETE')
-            .success((res) => {
-                RequestService.clearRequestTime();
-                callback(res);
-            })
-            .fail(() => {
-                RequestService.reAjaxFun(() => {
-                    this.deleteAgent(agentId, callback);
-                });
-            }).send();
-    },
     // 修改用户密码
     changePassword(oldPassword, newPassword, successCallback, errorCallback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/change-password`)
+            .url(`${getServiceUrl()}/user/change-password`)
             .method('PUT')
             .data({
-                old_password: oldPassword,
-                new_password: newPassword,
+                password: oldPassword,
+                newPassword: newPassword,
             })
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -152,87 +104,38 @@ export default {
             })
             .send();
     },
-    // 获取智能体配置
-    getDeviceConfig(deviceId, callback) {
+    // 修改用户状态
+    changeUserStatus(status, userIds, successCallback) {
+        console.log(555, userIds)
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/agent/${deviceId}`)
+            .url(`${getServiceUrl()}/admin/users/changeStatus/${status}`)
+            .method('put')
+            .data(userIds)
+            .success((res) => {
+                RequestService.clearRequestTime()
+                successCallback(res);
+            })
+            .fail((err) => {
+                console.error('修改用户状态失败:', err)
+                RequestService.reAjaxFun(() => {
+                    this.changeUserStatus(status, userIds)
+                })
+            }).send()
+    },
+    // 获取公共配置
+    getPubConfig(callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/user/pub-config`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime();
                 callback(res);
             })
             .fail((err) => {
-                console.error('获取配置失败:', err);
+                console.error('获取公共配置失败:', err);
                 RequestService.reAjaxFun(() => {
-                    this.getDeviceConfig(deviceId, callback);
+                    this.getPubConfig(callback);
                 });
-            }).send();
-    },
-    // 配置智能体
-    updateAgentConfig(agentId, configData, callback) {
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/agent/${agentId}`)
-            .method('PUT')
-            .data(configData)
-            .success((res) => {
-                RequestService.clearRequestTime();
-                callback(res);
-            })
-            .fail(() => {
-                RequestService.reAjaxFun(() => {
-                    this.updateAgentConfig(agentId, configData, callback);
-                });
-            }).send();
-    },
-    // 已绑设备
-     getAgentBindDevices(agentId, callback) {
-        console.log("77777777777777777777777")
-         RequestService.sendRequest()
-             .url(`${getServiceUrl()}/api/v1/user/agent/device/bind/${agentId}`)
-             .method('GET')
-             .success((res) => {
-                 RequestService.clearRequestTime();
-                 callback(res);
-             })
-             .fail((err) => {
-                 console.error('获取设备列表失败:', err);
-                 RequestService.reAjaxFun(() => {
-                     this.getAgentBindDevices(agentId, callback);
-                 });
-             }).send();
-     },
-    // 解绑设备
-    unbindDevice(device_id, callback) {
-          RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/device/unbind/${device_id}`)
-            .method('PUT')
-            .success((res) => {
-              RequestService.clearRequestTime();
-              callback(res);
-            })
-            .fail((err) => {
-              console.error('解绑设备失败:', err);
-              RequestService.reAjaxFun(() => {
-                this.unbindDevice(device_id, callback);
-              });
-            }).send();
-    },
-    // 绑定设备
-    bindDevice(agentId, code, callback) {
-        console.log("32323234343434344340000")
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/api/v1/user/agent/device/bind/${agentId}`)
-            .method('POST')
-            .data({ code })
-            .success((res) => {
-                RequestService.clearRequestTime();
-                callback(res);
-            })
-            .fail((err) => {
-                // console.error('绑定设备失败:', err);
-                // RequestService.reAjaxFun(() => {
-                //     this.bindDevice(agentId, code, callback);
-                // });
             }).send();
     },
 }

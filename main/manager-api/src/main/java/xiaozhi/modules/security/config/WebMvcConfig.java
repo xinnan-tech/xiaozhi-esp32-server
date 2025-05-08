@@ -1,9 +1,9 @@
 package xiaozhi.modules.security.config;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.TimeZone;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
@@ -15,8 +15,19 @@ import org.springframework.http.converter.support.AllEncompassingFormHttpMessage
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.List;
-import java.util.TimeZone;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalTimeSerializer;
+
+import xiaozhi.common.utils.DateUtils;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -32,11 +43,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        // 特殊用途的转换器
         converters.add(new ByteArrayHttpMessageConverter());
-        converters.add(new StringHttpMessageConverter());
         converters.add(new ResourceHttpMessageConverter());
-        converters.add(new AllEncompassingFormHttpMessageConverter());
+
+        // 通用转换器
         converters.add(new StringHttpMessageConverter());
+        converters.add(new AllEncompassingFormHttpMessageConverter());
+
+        // JSON 转换器
         converters.add(jackson2HttpMessageConverter());
     }
 
@@ -45,14 +60,33 @@ public class WebMvcConfig implements WebMvcConfigurer {
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         ObjectMapper mapper = new ObjectMapper();
 
-        //忽略未知属性
+        // 忽略未知属性
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        //日期格式转换
-        //mapper.setDateFormat(new SimpleDateFormat(DateUtils.DATE_TIME_PATTERN));
+        // 设置时区
         mapper.setTimeZone(TimeZone.getTimeZone("GMT+8"));
 
-        //Long类型转String类型
+        // 配置Java8日期时间序列化
+        JavaTimeModule javaTimeModule = new JavaTimeModule();
+        javaTimeModule.addSerializer(java.time.LocalDateTime.class, new LocalDateTimeSerializer(
+                java.time.format.DateTimeFormatter.ofPattern(DateUtils.DATE_TIME_PATTERN)));
+        javaTimeModule.addSerializer(java.time.LocalDate.class, new LocalDateSerializer(
+                java.time.format.DateTimeFormatter.ofPattern(DateUtils.DATE_PATTERN)));
+        javaTimeModule.addSerializer(java.time.LocalTime.class,
+                new LocalTimeSerializer(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
+        javaTimeModule.addDeserializer(java.time.LocalDateTime.class, new LocalDateTimeDeserializer(
+                java.time.format.DateTimeFormatter.ofPattern(DateUtils.DATE_TIME_PATTERN)));
+        javaTimeModule.addDeserializer(java.time.LocalDate.class, new LocalDateDeserializer(
+                java.time.format.DateTimeFormatter.ofPattern(DateUtils.DATE_PATTERN)));
+        javaTimeModule.addDeserializer(java.time.LocalTime.class,
+                new LocalTimeDeserializer(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
+        mapper.registerModule(javaTimeModule);
+
+        // 配置java.util.Date的序列化和反序列化
+        SimpleDateFormat dateFormat = new SimpleDateFormat(DateUtils.DATE_TIME_PATTERN);
+        mapper.setDateFormat(dateFormat);
+
+        // Long类型转String类型
         SimpleModule simpleModule = new SimpleModule();
         simpleModule.addSerializer(Long.class, ToStringSerializer.instance);
         simpleModule.addSerializer(Long.TYPE, ToStringSerializer.instance);

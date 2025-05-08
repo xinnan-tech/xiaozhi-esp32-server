@@ -74,7 +74,35 @@ public interface Constant {
      */
     String ORDER = "order";
 
+    /**
+     * 请求头授权标识
+     */
     String AUTHORIZATION = "Authorization";
+
+    /**
+     * 服务器密钥
+     */
+    String SERVER_SECRET = "server.secret";
+
+    /**
+     * websocket地址
+     */
+    String SERVER_WEBSOCKET = "server.websocket";
+
+    /**
+     * ota地址
+     */
+    String SERVER_OTA = "server.ota";
+
+    /**
+     * 是否允许用户注册
+     */
+    String SERVER_ALLOW_USER_REGISTER = "server.allow_user_register";
+
+    /**
+     * 下发六位验证码时显示的控制面板地址
+     */
+    String SERVER_FRONTED_URL = "server.fronted_url";
 
     /**
      * 路径分割符
@@ -145,4 +173,9 @@ public interface Constant {
             return value;
         }
     }
+
+    /**
+     * 版本号
+     */
+    public static final String VERSION = "0.4.2";
 }

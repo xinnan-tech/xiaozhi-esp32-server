@@ -4,7 +4,6 @@ from plugins_func.register import FunctionRegistry, ActionResponse, Action, Tool
 from plugins_func.functions.hass_init import append_devices_to_prompt
 
 TAG = __name__
-logger = setup_logging()
 
 
 class FunctionHandler:
@@ -17,6 +16,7 @@ class FunctionHandler:
         self.functions_desc = self.function_registry.get_all_function_desc()
         func_names = self.current_support_functions()
         self.modify_plugin_loader_des(func_names)
+        self.finish_init = True
 
     def modify_plugin_loader_des(self, func_names):
         if "plugin_loader" not in func_names:
@@ -26,8 +26,9 @@ class FunctionHandler:
         func_names = ",".join(surport_plugins)
         for function_desc in self.functions_desc:
             if function_desc["function"]["name"] == "plugin_loader":
-                function_desc["function"]["description"] = function_desc["function"]["description"].replace("[plugins]",
-                                                                                                            func_names)
+                function_desc["function"]["description"] = function_desc["function"][
+                    "description"
+                ].replace("[plugins]", func_names)
                 break
 
     def upload_functions_desc(self):
@@ -38,7 +39,9 @@ class FunctionHandler:
         for func in self.functions_desc:
             func_names.append(func["function"]["name"])
         # 打印当前支持的函数列表
-        logger.bind(tag=TAG).info(f"当前支持的函数列表: {func_names}")
+        self.conn.logger.bind(tag=TAG, session_id=self.conn.session_id).info(
+            f"当前支持的函数列表: {func_names}"
+        )
         return func_names
 
     def get_functions(self):
@@ -55,7 +58,9 @@ class FunctionHandler:
 
     def register_config_functions(self):
         """注册配置中的函数,可以不同客户端使用不同的配置"""
-        for func in self.config["Intent"]["function_call"].get("functions", []):
+        for func in self.config["Intent"][self.config["selected_module"]["Intent"]].get(
+            "functions", []
+        ):
             self.function_registry.register_function(func)
 
         """home assistant需要初始化提示词"""
@@ -69,20 +74,29 @@ class FunctionHandler:
             function_name = function_call_data["name"]
             funcItem = self.get_function(function_name)
             if not funcItem:
-                return ActionResponse(action=Action.NOTFOUND, result="没有找到对应的函数", response="")
+                return ActionResponse(
+                    action=Action.NOTFOUND, result="没有找到对应的函数", response=""
+                )
             func = funcItem.func
             arguments = function_call_data["arguments"]
             arguments = json.loads(arguments) if arguments else {}
-            logger.bind(tag=TAG).info(f"调用函数: {function_name}, 参数: {arguments}")
-            if funcItem.type == ToolType.SYSTEM_CTL or funcItem.type == ToolType.IOT_CTL:
+            self.conn.logger.bind(tag=TAG).debug(
+                f"调用函数: {function_name}, 参数: {arguments}"
+            )
+            if (
+                funcItem.type == ToolType.SYSTEM_CTL
+                or funcItem.type == ToolType.IOT_CTL
+            ):
                 return func(conn, **arguments)
             elif funcItem.type == ToolType.WAIT:
                 return func(**arguments)
             elif funcItem.type == ToolType.CHANGE_SYS_PROMPT:
                 return func(conn, **arguments)
             else:
-                return ActionResponse(action=Action.NOTFOUND, result="没有找到对应的函数", response="")
+                return ActionResponse(
+                    action=Action.NOTFOUND, result="没有找到对应的函数", response=""
+                )
         except Exception as e:
-            logger.bind(tag=TAG).error(f"处理function call错误: {e}")
+            self.conn.logger.bind(tag=TAG).error(f"处理function call错误: {e}")
 
         return None

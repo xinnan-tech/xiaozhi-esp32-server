@@ -45,10 +45,10 @@ def fetch_news_from_rss(rss_url):
     try:
         response = requests.get(rss_url)
         response.raise_for_status()
-        
+
         # 解析XML
         root = ET.fromstring(response.content)
-        
+
         # 查找所有item元素（新闻条目）
         news_items = []
         for item in root.findall('.//item'):
@@ -56,14 +56,14 @@ def fetch_news_from_rss(rss_url):
             link = item.find('link').text if item.find('link') is not None else "#"
             description = item.find('description').text if item.find('description') is not None else "无描述"
             pubDate = item.find('pubDate').text if item.find('pubDate') is not None else "未知时间"
-            
+
             news_items.append({
                 'title': title,
                 'link': link,
                 'description': description,
                 'pubDate': pubDate
             })
-        
+
         return news_items
     except Exception as e:
         logger.bind(tag=TAG).error(f"获取RSS新闻失败: {e}")
@@ -75,9 +75,9 @@ def fetch_news_detail(url):
     try:
         response = requests.get(url)
         response.raise_for_status()
-        
+
         soup = BeautifulSoup(response.content, 'html.parser')
-        
+
         # 尝试提取正文内容 (这里的选择器需要根据实际网站结构调整)
         content_div = soup.select_one('.content_desc, .content, article, .article-content')
         if content_div:
@@ -98,7 +98,7 @@ def map_category(category_text):
     """将用户输入的中文类别映射到配置文件中的类别键"""
     if not category_text:
         return None
-        
+
     # 类别映射字典，目前支持社会、国际、财经新闻，如需更多类型，参见配置文件
     category_map = {
         # 社会新闻
@@ -113,10 +113,10 @@ def map_category(category_text):
         "金融": "finance",
         "经济": "finance"
     }
-    
+
     # 转换为小写并去除空格
     normalized_category = category_text.lower().strip()
-    
+
     # 返回映射结果，如果没有匹配项则返回原始输入
     return category_map.get(normalized_category, category_text)
 
@@ -129,21 +129,22 @@ def get_news(conn, category: str = None, detail: bool = False, lang: str = "zh_C
         if detail:
             if not hasattr(conn, 'last_news_link') or not conn.last_news_link or 'link' not in conn.last_news_link:
                 return ActionResponse(Action.REQLLM, "抱歉，没有找到最近查询的新闻，请先获取一条新闻。", None)
-            
+
             link = conn.last_news_link.get('link')
             title = conn.last_news_link.get('title', '未知标题')
-            
+
             if link == '#':
                 return ActionResponse(Action.REQLLM, "抱歉，该新闻没有可用的链接获取详细内容。", None)
-            
+
             logger.bind(tag=TAG).debug(f"获取新闻详情: {title}, URL={link}")
-            
+
             # 获取新闻详情
             detail_content = fetch_news_detail(link)
-            
+
             if not detail_content or detail_content == "无法获取详细内容":
-                return ActionResponse(Action.REQLLM, f"抱歉，无法获取《{title}》的详细内容，可能是链接已失效或网站结构发生变化。", None)
-            
+                return ActionResponse(Action.REQLLM,
+                                      f"抱歉，无法获取《{title}》的详细内容，可能是链接已失效或网站结构发生变化。", None)
+
             # 构建详情报告
             detail_report = (
                 f"根据下列数据，用{lang}回应用户的新闻详情查询请求：\n\n"
@@ -152,33 +153,33 @@ def get_news(conn, category: str = None, detail: bool = False, lang: str = "zh_C
                 f"(请对上述新闻内容进行总结，提取关键信息，以自然、流畅的方式向用户播报，"
                 f"不要提及这是总结，就像是在讲述一个完整的新闻故事)"
             )
-            
+
             return ActionResponse(Action.REQLLM, detail_report, None)
-        
+
         # 否则，获取新闻列表并随机选择一条
         # 从配置中获取RSS URL
         rss_config = conn.config["plugins"]["get_news"]
         default_rss_url = rss_config.get("default_rss_url", "https://www.chinanews.com.cn/rss/society.xml")
-        
+
         # 将用户输入的类别映射到配置中的类别键
         mapped_category = map_category(category)
-        
+
         # 如果提供了类别，尝试从配置中获取对应的URL
         rss_url = default_rss_url
         if mapped_category and mapped_category in rss_config.get("category_urls", {}):
             rss_url = rss_config["category_urls"][mapped_category]
-        
+
         logger.bind(tag=TAG).info(f"获取新闻: 原始类别={category}, 映射类别={mapped_category}, URL={rss_url}")
-        
+
         # 获取新闻列表
         news_items = fetch_news_from_rss(rss_url)
-        
+
         if not news_items:
             return ActionResponse(Action.REQLLM, "抱歉，未能获取到新闻信息，请稍后再试。", None)
-        
+
         # 随机选择一条新闻
         selected_news = random.choice(news_items)
-        
+
         # 保存当前新闻链接到连接对象，以便后续查询详情
         if not hasattr(conn, 'last_news_link'):
             conn.last_news_link = {}
@@ -186,7 +187,7 @@ def get_news(conn, category: str = None, detail: bool = False, lang: str = "zh_C
             'link': selected_news.get('link', '#'),
             'title': selected_news.get('title', '未知标题')
         }
-        
+
         # 构建新闻报告
         news_report = (
             f"根据下列数据，用{lang}回应用户的新闻查询请求：\n\n"
@@ -197,9 +198,9 @@ def get_news(conn, category: str = None, detail: bool = False, lang: str = "zh_C
             f"直接读出新闻即可，不需要额外多余的内容。"
             f"如果用户询问更多详情，告知用户可以说'请详细介绍这条新闻'获取更多内容)"
         )
-        
+
         return ActionResponse(Action.REQLLM, news_report, None)
-    
+
     except Exception as e:
         logger.bind(tag=TAG).error(f"获取新闻出错: {e}")
         return ActionResponse(Action.REQLLM, "抱歉，获取新闻时发生错误，请稍后再试。", None)

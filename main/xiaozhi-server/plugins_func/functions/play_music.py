@@ -11,10 +11,9 @@ from pathlib import Path
 from core.utils import p3
 from core.handle.sendAudioHandle import send_stt_message
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
-
+from core.utils.dialogue import Message
 
 TAG = __name__
-logger = setup_logging()
 
 MUSIC_CACHE = {}
 
@@ -42,7 +41,11 @@ play_music_function_desc = {
                         "required": ["song_name"]
                     }
                 }
-            }
+            },
+            "required": ["song_name"],
+        },
+    },
+}
 
 
 @register_function('play_music', play_music_function_desc, ToolType.SYSTEM_CTL)
@@ -56,10 +59,13 @@ def play_music(conn, song_name: str, artist: str = None, use_api: bool = False):
         else:
             music_intent = f"播放音乐 {song_name}" if song_name != "random" else "随机播放音乐"
 
+
         # 检查事件循环状态
         if not conn.loop.is_running():
-            logger.bind(tag=TAG).error("事件循环未运行，无法提交任务")
-            return ActionResponse(action=Action.RESPONSE, result="系统繁忙", response="请稍后再试")
+            conn.logger.bind(tag=TAG).error("事件循环未运行，无法提交任务")
+            return ActionResponse(
+                action=Action.RESPONSE, result="系统繁忙", response="请稍后再试"
+            )
 
         # 提交异步任务
         future = asyncio.run_coroutine_threadsafe(
@@ -71,16 +77,20 @@ def play_music(conn, song_name: str, artist: str = None, use_api: bool = False):
         def handle_done(f):
             try:
                 f.result()  # 可在此处理成功逻辑
-                logger.bind(tag=TAG).info("播放完成")
+                conn.logger.bind(tag=TAG).info("播放完成")
             except Exception as e:
-                logger.bind(tag=TAG).error(f"播放失败: {e}")
+                conn.logger.bind(tag=TAG).error(f"播放失败: {e}")
 
         future.add_done_callback(handle_done)
 
-        return ActionResponse(action=Action.RESPONSE, result="指令已接收", response="正在为您播放音乐")
+        return ActionResponse(
+            action=Action.NONE, result="指令已接收", response="正在为您播放音乐"
+        )
     except Exception as e:
-        logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
-        return ActionResponse(action=Action.RESPONSE, result=str(e), response="播放音乐时出错了")
+        conn.logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
+        return ActionResponse(
+            action=Action.RESPONSE, result=str(e), response="播放音乐时出错了"
+        )
 
 
 def _extract_song_name(text):
@@ -120,7 +130,9 @@ def get_music_files(music_dir, music_ext):
             if ext in music_ext:
                 # 添加相对路径
                 music_files.append(str(file.relative_to(music_dir)))
-                music_file_names.append(os.path.splitext(str(file.relative_to(music_dir)))[0])
+                music_file_names.append(
+                    os.path.splitext(str(file.relative_to(music_dir)))[0]
+                )
     return music_files, music_file_names
 
 
@@ -148,8 +160,9 @@ def initialize_music_handler(conn):
         os.makedirs(MUSIC_CACHE["temp_dir"], exist_ok=True)
             
         # 获取音乐文件列表
-        MUSIC_CACHE["music_files"], MUSIC_CACHE["music_file_names"] = get_music_files(MUSIC_CACHE["music_dir"],
-                                                                                      MUSIC_CACHE["music_ext"])
+        MUSIC_CACHE["music_files"], MUSIC_CACHE["music_file_names"] = get_music_files(
+            MUSIC_CACHE["music_dir"], MUSIC_CACHE["music_ext"]
+        )
         MUSIC_CACHE["scan_time"] = time.time()
     return MUSIC_CACHE
 
@@ -159,8 +172,8 @@ async def handle_music_command(conn, text, song_name=None, artist=None, use_api=
     global MUSIC_CACHE
 
     """处理音乐播放指令"""
-    clean_text = re.sub(r'[^\w\s]', '', text).strip()
-    logger.bind(tag=TAG).debug(f"检查是否是音乐命令: {clean_text}")
+    clean_text = re.sub(r"[^\w\s]", "", text).strip()
+    conn.logger.bind(tag=TAG).debug(f"检查是否是音乐命令: {clean_text}")
 
     # 如果指定了歌手或明确使用API，则使用在线API播放
     if artist or use_api:
@@ -172,15 +185,16 @@ async def handle_music_command(conn, text, song_name=None, artist=None, use_api=
     if os.path.exists(MUSIC_CACHE["music_dir"]):
         if time.time() - MUSIC_CACHE["scan_time"] > MUSIC_CACHE["refresh_time"]:
             # 刷新音乐文件列表
-            MUSIC_CACHE["music_files"], MUSIC_CACHE["music_file_names"] = get_music_files(MUSIC_CACHE["music_dir"],
-                                                                                          MUSIC_CACHE["music_ext"])
+            MUSIC_CACHE["music_files"], MUSIC_CACHE["music_file_names"] = (
+                get_music_files(MUSIC_CACHE["music_dir"], MUSIC_CACHE["music_ext"])
+            )
             MUSIC_CACHE["scan_time"] = time.time()
 
         potential_song = _extract_song_name(clean_text)
         if potential_song:
             best_match = _find_best_match(potential_song, MUSIC_CACHE["music_files"])
             if best_match:
-                logger.bind(tag=TAG).info(f"找到最匹配的歌曲: {best_match}")
+                conn.logger.bind(tag=TAG).info(f"找到最匹配的歌曲: {best_match}")
                 await play_local_music(conn, specific_file=best_match)
                 return True
                 
@@ -194,6 +208,23 @@ async def handle_music_command(conn, text, song_name=None, artist=None, use_api=
     # 如果在线API也失败或song_name为random，则随机播放本地音乐
     await play_local_music(conn)
     return True
+
+
+def _get_random_play_prompt(song_name):
+    """生成随机播放引导语"""
+    # 移除文件扩展名
+    clean_name = os.path.splitext(song_name)[0]
+    prompts = [
+        f"正在为您播放，{clean_name}",
+        f"请欣赏歌曲，{clean_name}",
+        f"即将为您播放，{clean_name}",
+        f"为您带来，{clean_name}",
+        f"让我们聆听，{clean_name}",
+        f"接下来请欣赏，{clean_name}",
+        f"为您献上，{clean_name}",
+    ]
+    # 直接使用random.choice，不设置seed
+    return random.choice(prompts)
 
 
 async def play_local_music(conn, specific_file=None):
@@ -220,12 +251,23 @@ async def play_local_music(conn, specific_file=None):
             return False
             
         text = f"正在播放{selected_music}"
+
         await send_stt_message(conn, text)
+        conn.dialogue.put(Message(role="assistant", content=text))
         conn.tts_first_text_index = 0
         conn.tts_last_text_index = 0
+
+        tts_file = await asyncio.to_thread(conn.tts.to_tts, text)
+        if tts_file is not None and os.path.exists(tts_file):
+            conn.tts_last_text_index = 1
+            opus_packets, _ = conn.tts.audio_to_opus_data(tts_file)
+            conn.audio_play_queue.put((opus_packets, None, 0))
+            os.remove(tts_file)
+
         conn.llm_finish_task = True
+
         if music_path.endswith(".p3"):
-            opus_packets, duration = p3.decode_opus_from_file(music_path)
+            opus_packets, _ = p3.decode_opus_from_file(music_path)
         else:
             opus_packets, duration = conn.tts.audio_to_opus_data(music_path)
         conn.audio_play_queue.put((opus_packets, selected_music, 0))
@@ -355,3 +397,4 @@ async def download_file(file_url, output_path):
     except Exception as e:
         logger.bind(tag=TAG).error(f"下载文件时发生错误: {str(e)}")
         return False
+
