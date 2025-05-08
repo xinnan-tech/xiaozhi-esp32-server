@@ -241,9 +241,12 @@ class ConnectionHandler:
 
     def _initialize_components(self):
         """初始化组件"""
-        self.prompt = self.config["prompt"]
-        self.change_system_prompt(self.prompt)
-        self.logger.bind(tag=TAG).info(f"初始化组件: prompt成功 {self.prompt[:50]}...")
+        if self.config.get("prompt") is not None:
+            self.prompt = self.config["prompt"]
+            self.change_system_prompt(self.prompt)
+            self.logger.bind(tag=TAG).info(
+                f"初始化组件: prompt成功 {self.prompt[:50]}..."
+            )
 
         """初始化本地组件"""
         if self.vad is None:

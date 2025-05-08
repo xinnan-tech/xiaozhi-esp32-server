@@ -37,6 +37,7 @@ class CaptureOutput:
 
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
+        super().__init__()
         self.model_dir = config.get("model_dir")
         self.output_dir = config.get("output_dir")
         self.delete_audio_file = delete_audio_file

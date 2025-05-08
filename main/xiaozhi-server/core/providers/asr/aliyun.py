@@ -91,6 +91,7 @@ class AccessToken:
 
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
+        super().__init__()
         """阿里云ASR初始化"""
         # 新增空值判断逻辑
         self.access_key_id = config.get("access_key_id")

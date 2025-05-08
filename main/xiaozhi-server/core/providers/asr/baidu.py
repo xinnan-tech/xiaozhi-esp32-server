@@ -20,6 +20,7 @@ logger = setup_logging()
 
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool = True):
+        super().__init__()
         self.app_id = config.get("app_id")
         self.api_key = config.get("api_key")
         self.secret_key = config.get("secret_key")

@@ -8,16 +8,21 @@ logger = setup_logging()
 
 
 class ASRProviderBase(ABC):
+    def __init__(self):
+        self.audio_format = "opus"
+
     @abstractmethod
     def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:
         """PCM数据保存为WAV文件"""
         pass
 
     @abstractmethod
-    async def speech_to_text(self, opus_data: List[bytes], session_id: str) -> Tuple[Optional[str], Optional[str]]:
+    async def speech_to_text(
+        self, opus_data: List[bytes], session_id: str
+    ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         pass
-    
+
     def set_audio_format(self, format: str) -> None:
         """设置音频格式"""
         self.audio_format = format
