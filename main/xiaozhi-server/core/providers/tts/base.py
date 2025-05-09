@@ -2,8 +2,8 @@ import asyncio
 from config.logger import setup_logging
 import os
 from abc import ABC, abstractmethod
-from core.utils.tts import MarkdownCleaner
-from core.utils.util import audio_to_data
+from core.utils.util import audio_to_opus_data
+from core.utils.tts import TextFormater
 
 TAG = __name__
 logger = setup_logging()
@@ -22,7 +22,10 @@ class TTSProviderBase(ABC):
         tmp_file = self.generate_filename()
         try:
             max_repeat_time = 5
-            text = MarkdownCleaner.clean_markdown(text)
+            # 判断清理markdown标记并且判断文本是否是关键字，否则不生成tts
+            text = TextFormater.format_text(text)
+            if text is None or text == "":
+                return None
             while not os.path.exists(tmp_file) and max_repeat_time > 0:
                 try:
                     asyncio.run(self.text_to_speak(text, tmp_file))

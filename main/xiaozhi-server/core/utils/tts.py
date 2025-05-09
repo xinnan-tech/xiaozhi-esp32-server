@@ -18,12 +18,22 @@ def create_instance(class_name, *args, **kwargs):
     raise ValueError(f"不支持的TTS类型: {class_name}，请检查该配置的type是否设置正确")
 
 
-class MarkdownCleaner:
+class TextFormater:
     """
-    封装 Markdown 清理逻辑：直接用 MarkdownCleaner.clean_markdown(text) 即可
+    文本格式化类，用于封装Markdown清理逻辑，直接用 TextFormater.format_text(text)即可
     """
     # 公式字符
-    NORMAL_FORMULA_CHARS = re.compile(r'[a-zA-Z\\^_{}\+\-\(\)\[\]=]')
+    __NORMAL_FORMULA_CHARS = re.compile(r'[a-zA-Z\\^_{}\+\-\(\)\[\]=]')
+    # 需要排除的关键字列表
+    __EXCLUDED_KEYWORDS = {'<think>', '</think>'}
+
+    @classmethod
+    def NORMAL_FORMULA_CHARS(cls):
+        return cls.__NORMAL_FORMULA_CHARS
+
+    @classmethod
+    def EXCLUDED_KEYWORDS(cls):
+        return cls.__EXCLUDED_KEYWORDS
 
     @staticmethod
     def _replace_inline_dollar(m: re.Match) -> str:
@@ -33,7 +43,7 @@ class MarkdownCleaner:
           - 否则 (纯数字/货币等) => 保留 "$...$"
         """
         content = m.group(1)
-        if MarkdownCleaner.NORMAL_FORMULA_CHARS.search(content):
+        if TextFormater.NORMAL_FORMULA_CHARS().search(content):
             return content
         else:
             return m.group(0)
@@ -79,8 +89,7 @@ class MarkdownCleaner:
 
         return "\n".join(lines_for_tts) + "\n"
 
-    # 预编译所有正则表达式（按执行频率排序）
-    # 这里要把 replace_xxx 的静态方法放在最前定义，以便在列表里能正确引用它们。
+    # 预编译所有markdown正则表达式（按执行频率排序）
     REGEXES = [
         (re.compile(r'```.*?```', re.DOTALL), ''),  # 代码块
         (re.compile(r'^#+\s*', re.MULTILINE), ''),  # 标题
@@ -100,13 +109,26 @@ class MarkdownCleaner:
             _replace_inline_dollar
         ),
         (re.compile(r'\n{2,}'), '\n'),  # 多余空行
+        # 排除<think>标签
+        (re.compile(r'<think>.*?</think>', re.DOTALL), ''),
     ]
 
     @staticmethod
-    def clean_markdown(text: str) -> str:
+    def _clean_markdown(text: str) -> str:
         """
-        主入口方法：依序执行所有正则，移除或替换 Markdown 元素
+        依序执行所有正则，移除或替换 Markdown 元素
         """
-        for regex, replacement in MarkdownCleaner.REGEXES:
+        for regex, replacement in TextFormater.REGEXES:
             text = regex.sub(replacement, text)
         return text.strip()
+
+    @staticmethod
+    def format_text(text: str) -> str | None:
+        """
+        格式化文本，清理markdown标记
+        :param text: 待格式化的文本
+        :return: 格式化后的文本，如果文本为空或包含关键字，则返回None, 上层逻辑需要处理None的情况
+        """
+        if not text or text in TextFormater.EXCLUDED_KEYWORDS():
+            return None
+        return TextFormater._clean_markdown(text)
