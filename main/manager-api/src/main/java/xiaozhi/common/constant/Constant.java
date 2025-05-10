@@ -1,5 +1,7 @@
 package xiaozhi.common.constant;
 
+import lombok.Getter;
+
 /**
  * 常量
  * Copyright (c) 人人开源 All rights reserved.
@@ -171,6 +173,23 @@ public interface Constant {
 
         public String getValue() {
             return value;
+        }
+    }
+
+    @Getter
+    enum ChatHistoryConfEnum {
+        IGNORE(0, "不记录"),
+        RECORD_TEXT(1, "记录文本"),
+        RECORD_AUDIO(2, "记录音频"),
+        RECORD_TEXT_AUDIO(3, "文本音频都记录")
+        ;
+
+        private final int code;
+        private final String name;
+
+        ChatHistoryConfEnum(int code, String name) {
+            this.code = code;
+            this.name = name;
         }
     }
 

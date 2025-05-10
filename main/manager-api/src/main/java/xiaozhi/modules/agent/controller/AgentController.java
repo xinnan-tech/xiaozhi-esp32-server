@@ -109,6 +109,7 @@ public class AgentController {
             entity.setMemModelId(template.getMemModelId());
             entity.setIntentModelId(template.getIntentModelId());
             entity.setSystemPrompt(template.getSystemPrompt());
+            entity.setChatHistoryConf(template.getChatHistoryConf());
             entity.setLangCode(template.getLangCode());
             entity.setLanguage(template.getLanguage());
         }
@@ -165,6 +166,9 @@ public class AgentController {
         }
         if (dto.getSystemPrompt() != null) {
             existingEntity.setSystemPrompt(dto.getSystemPrompt());
+        }
+        if (dto.getChatHistoryConf() != null) {
+            existingEntity.setChatHistoryConf(dto.getChatHistoryConf());
         }
         if (dto.getLangCode() != null) {
             existingEntity.setLangCode(dto.getLangCode());

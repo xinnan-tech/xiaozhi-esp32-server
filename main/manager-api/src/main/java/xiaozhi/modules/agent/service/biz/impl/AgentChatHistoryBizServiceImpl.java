@@ -2,12 +2,14 @@ package xiaozhi.modules.agent.service.biz.impl;
 
 import java.util.Base64;
 import java.util.Date;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import xiaozhi.common.constant.Constant;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.agent.dto.AgentChatHistoryReportDTO;
@@ -47,8 +49,36 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
         Byte chatType = report.getChatType();
         log.info("小智设备聊天上报请求: macAddress={}, type={}", macAddress, chatType);
 
-        // 1. base64解码report.getOpusDataBase64(),存入ai_agent_chat_audio表
+        // 根据设备MAC地址查询对应的默认智能体，判断是否需要上报
+        AgentEntity agentEntity = agentService.getDefaultAgentByMacAddress(macAddress);
+        if (agentEntity == null) {
+            return Boolean.FALSE;
+        }
+
+        Integer chatHistoryConf = agentEntity.getChatHistoryConf();
+        String agentId = agentEntity.getId();
+
+        if (Objects.equals(chatHistoryConf, Constant.ChatHistoryConfEnum.RECORD_TEXT.getCode())) {
+            saveChatText(report, agentId, macAddress, null);
+        } else if (Objects.equals(chatHistoryConf, Constant.ChatHistoryConfEnum.RECORD_AUDIO.getCode())) {
+            saveChatAudio(report);
+        } else if (Objects.equals(chatHistoryConf, Constant.ChatHistoryConfEnum.RECORD_TEXT_AUDIO.getCode())) {
+            String audioId = saveChatAudio(report);
+            saveChatText(report, agentId, macAddress, audioId);
+        }
+
+        // 更新设备最后对话时间
+        redisUtils.set(RedisKeys.getAgentDeviceLastConnectedAtById(agentId), new Date());
+
+        return Boolean.TRUE;
+    }
+
+    /**
+     * base64解码report.getOpusDataBase64(),存入ai_agent_chat_audio表
+     */
+    private String saveChatAudio(AgentChatHistoryReportDTO report) {
         String audioId = null;
+
         if (report.getAudioBase64() != null && !report.getAudioBase64().isEmpty()) {
             try {
                 byte[] audioData = Base64.getDecoder().decode(report.getAudioBase64());
@@ -56,20 +86,18 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
                 log.info("音频数据保存成功，audioId={}", audioId);
             } catch (Exception e) {
                 log.error("音频数据保存失败", e);
-                return false;
+                return null;
             }
         }
+        return audioId;
+    }
 
-        // 2. 组装上报数据
-        // 2.1 根据设备MAC地址查询对应的默认智能体，判断是否需要上报
-        AgentEntity agentEntity = agentService.getDefaultAgentByMacAddress(macAddress);
-        if (agentEntity == null) {
-            return false;
-        }
-        String agentId = agentEntity.getId();
-        log.info("设备 {} 对应智能体 {} 上报", macAddress, agentEntity.getId());
+    /**
+     * 组装上报数据
+     */
+    private void saveChatText(AgentChatHistoryReportDTO report, String agentId, String macAddress, String audioId) {
 
-        // 2.2 构建聊天记录实体
+        // 构建聊天记录实体
         AgentChatHistoryEntity entity = AgentChatHistoryEntity.builder()
                 .macAddress(macAddress)
                 .agentId(agentId)
@@ -79,10 +107,9 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
                 .audioId(audioId)
                 .build();
 
-        // 3. 保存数据
+        // 保存数据
         agentChatHistoryService.save(entity);
-        // 4. 更新设备最后对话时间
-        redisUtils.set(RedisKeys.getAgentDeviceLastConnectedAtById(agentId), new Date());
-        return Boolean.TRUE;
+
+        log.info("设备 {} 对应智能体 {} 上报成功", macAddress, agentId);
     }
 }

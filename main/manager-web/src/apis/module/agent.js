@@ -50,9 +50,9 @@ export default {
             }).send();
     },
     // 获取智能体配置
-    getDeviceConfig(deviceId, callback) {
+    getDeviceConfig(agentId, callback) {
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/agent/${deviceId}`)
+            .url(`${getServiceUrl()}/agent/${agentId}`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -61,7 +61,7 @@ export default {
             .fail((err) => {
                 console.error('获取配置失败:', err);
                 RequestService.reAjaxFun(() => {
-                    this.getDeviceConfig(deviceId, callback);
+                    this.getDeviceConfig(agentId, callback);
                 });
             }).send();
     },

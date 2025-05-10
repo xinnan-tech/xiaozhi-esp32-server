@@ -65,9 +65,15 @@
                           :key="`option-${index}-${optionIndex}`" :label="item.label" :value="item.value" />
                       </el-select>
                     </el-form-item>
-                    <el-form-item label="角色音色：">
+                    <el-form-item label="角色音色">
                       <el-select v-model="form.ttsVoiceId" placeholder="请选择" class="form-select">
                         <el-option v-for="(item, index) in voiceOptions" :key="`voice-${index}`" :label="item.label"
+                          :value="item.value" />
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item label="聊天记录配置">
+                      <el-select v-model="form.chatHistoryConf" placeholder="请选择" class="form-select">
+                        <el-option v-for="(item, index) in chatHistoryOptions" :key="`chatHistoryConf-${index}`" :label="item.label"
                           :value="item.value" />
                       </el-select>
                     </el-form-item>
@@ -96,6 +102,7 @@ export default {
         agentCode: "",
         agentName: "",
         ttsVoiceId: "",
+        chatHistoryConf: "",
         systemPrompt: "",
         langCode: "",
         language: "",
@@ -121,6 +128,24 @@ export default {
       templates: [],
       loadingTemplate: false,
       voiceOptions: [],
+      chatHistoryOptions: [
+        {
+            "value": 0,
+            "label": "不记录"
+        },
+        {
+            "value": 1,
+            "label": "仅记录文本"
+        },
+        {
+            "value": 2,
+            "label": "仅记录语音"
+        },
+        {
+            "value": 3,
+            "label": "文本音频都记录"
+        }
+      ],
     }
   },
   methods: {
@@ -136,6 +161,7 @@ export default {
         llmModelId: this.form.model.llmModelId,
         ttsModelId: this.form.model.ttsModelId,
         ttsVoiceId: this.form.ttsVoiceId,
+        chatHistoryConf: this.form.chatHistoryConf,
         memModelId: this.form.model.memModelId,
         intentModelId: this.form.model.intentModelId,
         systemPrompt: this.form.systemPrompt,
@@ -167,6 +193,7 @@ export default {
           agentCode: "",
           agentName: "",
           ttsVoiceId: "",
+          chatHistoryConf: "",
           systemPrompt: "",
           langCode: "",
           language: "",
@@ -220,6 +247,7 @@ export default {
         ...this.form,
         agentName: templateData.agentName || this.form.agentName,
         ttsVoiceId: templateData.ttsVoiceId || this.form.ttsVoiceId,
+        chatHistoryConf: templateData.chatHistoryConf || this.form.chatHistoryConf,
         systemPrompt: templateData.systemPrompt || this.form.systemPrompt,
         langCode: templateData.langCode || this.form.langCode,
         model: {
