@@ -337,6 +337,11 @@ LLM:
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
     api_key: 你的chat-glm web key
+  OllamaLLMClient:
+    # 定义LLM API类型
+    type: ollama_client
+    model_name: qwen2.5:7b #  使用的模型名称，需要预先使用ollama pull下载
+    base_url: http://localhost:11434  # Ollama服务地址
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
