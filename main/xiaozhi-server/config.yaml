@@ -142,6 +142,13 @@ prompt: |
   - 长篇大论，叽叽歪歪
   - 长时间严肃对话
 
+# 结束语prompt
+end_prompt:
+  enable: true # 是否开启结束语
+  # 结束语
+  prompt: |
+    请你以“时间过得真快”未来头，用富有感情、依依不舍的话来结束这场对话吧。！
+
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
   # 语音活动检测模块，默认使用SileroVAD模型

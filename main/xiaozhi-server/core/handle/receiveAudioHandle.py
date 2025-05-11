@@ -98,9 +98,16 @@ async def no_voice_close_connect(conn):
             conn.close_after_chat = True
             conn.client_abort = False
             conn.asr_server_receive = False
-            prompt = (
-                "请你以“时间过得真快”未来头，用富有感情、依依不舍的话来结束这场对话吧。"
-            )
+            end_prompt = conn.config.get("end_prompt", {})
+            if end_prompt and end_prompt.get("enable", False) is False:
+                conn.logger.bind(tag=TAG).info("结束对话，无需发送结束提示语")
+                conn.asr_server_receive = True
+                await conn.close()
+                return
+            prompt = end_prompt.get("prompt")
+            if not prompt:
+                conn.logger.bind(tag=TAG).warn("开启结束对话提示词功能，但未配置结束提示语！请确认配置文件end_prompt字段下是否包含prompt属性！")
+                prompt = '请你以“时间过得真快”未来头，用富有感情、依依不舍的话来结束这场对话吧。！'
             await startToChat(conn, prompt)
 
 
