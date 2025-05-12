@@ -25,8 +25,7 @@ class LLMProvider(LLMProviderBase):
             # 初始化Gemini客户端
             # 配置代理（如果提供了代理配置）
             self.proxies = None
-            if self.http_proxy is not "" or self.https_proxy is not "":
-
+            if self.http_proxy or self.https_proxy:
                 self.proxies = {
                     "http": self.http_proxy,
                     "https": self.https_proxy,
