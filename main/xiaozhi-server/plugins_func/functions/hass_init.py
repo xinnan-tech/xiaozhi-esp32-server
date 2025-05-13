@@ -8,10 +8,12 @@ HASS_CACHE = {}
 
 
 def append_devices_to_prompt(conn):
-    if conn.use_function_call_mode:
-        funcs = conn.config["Intent"]["function_call"].get("functions", [])
-        if "hass_get_state" in funcs or "hass_get_state" in funcs:
-            prompt = "下面是我家智能设备，可以通过homeassistant控制\n"
+    if conn.intent_type == "function_call":
+        funcs = conn.config["Intent"][conn.config["selected_module"]["Intent"]].get(
+            "functions", []
+        )
+        if "hass_get_state" in funcs or "hass_set_state" in funcs:
+            prompt = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
             devices = conn.config["plugins"]["home_assistant"].get("devices", [])
             if len(devices) == 0:
                 return
@@ -25,11 +27,17 @@ def append_devices_to_prompt(conn):
 def initialize_hass_handler(conn):
     global HASS_CACHE
     if HASS_CACHE == {}:
-        if conn.use_function_call_mode:
-            funcs = conn.config["Intent"]["function_call"].get("functions", [])
-            if "hass_get_state" in funcs or "hass_get_state" in funcs:
-                HASS_CACHE['base_url'] = conn.config["plugins"]["home_assistant"].get("base_url")
-                HASS_CACHE['api_key'] = conn.config["plugins"]["home_assistant"].get("api_key")
+        if conn.load_function_plugin:
+            funcs = conn.config["Intent"][conn.config["selected_module"]["Intent"]].get(
+                "functions", []
+            )
+            if "hass_get_state" in funcs or "hass_set_state" in funcs:
+                HASS_CACHE["base_url"] = conn.config["plugins"]["home_assistant"].get(
+                    "base_url"
+                )
+                HASS_CACHE["api_key"] = conn.config["plugins"]["home_assistant"].get(
+                    "api_key"
+                )
 
-                check_model_key("home_assistant", HASS_CACHE['api_key'])
+                check_model_key("home_assistant", HASS_CACHE["api_key"])
     return HASS_CACHE

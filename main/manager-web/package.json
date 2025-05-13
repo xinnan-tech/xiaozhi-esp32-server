@@ -10,6 +10,7 @@
   "dependencies": {
     "core-js": "^3.41.0",
     "cross-env": "^7.0.3",
+    "dotenv": "^16.5.0",
     "element-ui": "^2.15.14",
     "flyio": "^0.6.14",
     "normalize.css": "^8.0.1",
@@ -31,7 +32,8 @@
     "sass": "^1.32.7",
     "sass-loader": "^12.0.0",
     "vue-template-compiler": "^2.6.14",
-    "webpack-bundle-analyzer": "^4.10.2"
+    "webpack-bundle-analyzer": "^4.10.2",
+    "workbox-webpack-plugin": "^7.3.0"
   },
   "browserslist": [
     "> 1%",

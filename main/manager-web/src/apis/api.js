@@ -1,22 +1,25 @@
 // 引入各个模块的请求
-import user from './module/user.js'
 import admin from './module/admin.js'
+import agent from './module/agent.js'
+import device from './module/device.js'
+import dict from './module/dict.js'
+import model from './module/model.js'
+import ota from './module/ota.js'
+import timbre from "./module/timbre.js"
+import user from './module/user.js'
 /**
  * 接口地址
- * 当前8002端口接口还没开发完成，暂时用 apifoxmock 接口代替
- * 如果你想调用8002端口，就用'/xiaozhi-esp32-api/api/v1'，请与vue.config.js的devServer配置相结合，方便跨域请求
- *
+ * 开发时自动读取使用.env.development文件
+ * 编译时自动读取使用.env.production文件
  */
-// const DEV_API_SERVICE = 'https://2662r3426b.vicp.fun/xiaozhi-esp32-api'
-// 8002开发完成完成后使用这个
-// const DEV_API_SERVICE = '/xiaozhi-esp32-api'
+const DEV_API_SERVICE = process.env.VUE_APP_API_BASE_URL
 
 /**
  * 根据开发环境返回接口url
  * @returns {string}
  */
 export function getServiceUrl() {
-    return '/xiaozhi-esp32-api'
+    return DEV_API_SERVICE
 }
 
 
@@ -24,4 +27,11 @@ export function getServiceUrl() {
 export default {
     getServiceUrl,
     user,
+    admin,
+    agent,
+    device,
+    model,
+    timbre,
+    ota,
+    dict
 }

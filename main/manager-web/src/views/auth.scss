@@ -1,9 +1,11 @@
-
 .welcome {
   min-width: 1200px;
   min-height: 675px;
   height: 100vh;
-  background-image: url("@/assets/login/background.png");
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #f5f8fd, #6baaff, #9ebbfc, #f5f8fd);
   background-size: cover;
   /* 确保背景图像覆盖整个元素 */
   background-position: center;
@@ -129,4 +131,14 @@
     height: 56px;
     padding: 0;
   }
+}
+
+.login-person {
+  width: 500px;
+  color: #fff;
+  position: absolute;
+  top: 50%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
 }

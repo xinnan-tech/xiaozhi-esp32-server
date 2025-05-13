@@ -9,7 +9,7 @@
   <title>
     <%= process.env.VUE_APP_TITLE %>
   </title>
-  <% if (htmlWebpackPlugin.options.cdn) { %>
+  <% if (htmlWebpackPlugin.options.cdn && htmlWebpackPlugin.options.cdn.css) { %>
     <% for (var i in htmlWebpackPlugin.options.cdn.css) { %>
       <link rel="stylesheet" href="<%= htmlWebpackPlugin.options.cdn.css[i] %>">
       <% } %>
@@ -23,7 +23,7 @@
   </noscript>
   <div id="app"></div>
   <!-- built files will be auto injected -->
-  <% if (htmlWebpackPlugin.options.cdn) { %>
+  <% if (htmlWebpackPlugin.options.cdn && htmlWebpackPlugin.options.cdn.js) { %>
     <% for (var i in htmlWebpackPlugin.options.cdn.js) { %>
       <script src="<%= htmlWebpackPlugin.options.cdn.js[i] %>"></script>
       <% } %>

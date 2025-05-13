@@ -48,6 +48,9 @@ public class AgentEntity {
     @Schema(description = "意图模型标识")
     private String intentModelId;
 
+    @Schema(description = "聊天记录配置（0不记录 1仅记录文本 2记录文本和语音）")
+    private Integer chatHistoryConf;
+
     @Schema(description = "角色设定参数")
     private String systemPrompt;
 

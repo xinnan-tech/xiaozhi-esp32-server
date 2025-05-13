@@ -128,12 +128,10 @@ public abstract class BaseServiceImpl<M extends BaseMapper<T>, T> implements Bas
         return SqlHelper.retBool(result);
     }
 
-    @SuppressWarnings("unchecked")
     protected Class<M> currentMapperClass() {
         return (Class<M>) ReflectionKit.getSuperClassGenericType(this.getClass(), BaseServiceImpl.class, 0);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Class<T> currentModelClass() {
         return (Class<T>) ReflectionKit.getSuperClassGenericType(this.getClass(), BaseServiceImpl.class, 1);

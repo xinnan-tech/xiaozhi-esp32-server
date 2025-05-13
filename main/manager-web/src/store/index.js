@@ -1,13 +1,20 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
-import Constant from '../utils/constant'
+import { goToPage } from "@/utils";
+import Vue from 'vue';
+import Vuex from 'vuex';
+import Api from '../apis/api';
+import Constant from '../utils/constant';
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
     token: '',
-    userInfo: {} // 添加用户信息存储
+    userInfo: {}, // 添加用户信息存储
+    isSuperAdmin: false, // 添加superAdmin状态
+    pubConfig: { // 添加公共配置存储
+      version: '',
+      allowUserRegister: false
+    }
   },
   getters: {
     getToken(state) {
@@ -18,6 +25,15 @@ export default new Vuex.Store({
     },
     getUserInfo(state) {
       return state.userInfo
+    },
+    getIsSuperAdmin(state) {
+      if (localStorage.getItem('isSuperAdmin') === null) {
+        return state.isSuperAdmin
+      }
+      return localStorage.getItem('isSuperAdmin') === 'true'
+    },
+    getPubConfig(state) {
+      return state.pubConfig
     }
   },
   mutations: {
@@ -27,11 +43,19 @@ export default new Vuex.Store({
     },
     setUserInfo(state, userInfo) {
       state.userInfo = userInfo
+      const isSuperAdmin = userInfo.superAdmin === 1
+      state.isSuperAdmin = isSuperAdmin
+      localStorage.setItem('isSuperAdmin', isSuperAdmin)
+    },
+    setPubConfig(state, config) {
+      state.pubConfig = config
     },
     clearAuth(state) {
       state.token = ''
       state.userInfo = {}
+      state.isSuperAdmin = false
       localStorage.removeItem('token')
+      localStorage.removeItem('isSuperAdmin')
     }
   },
   actions: {
@@ -39,8 +63,20 @@ export default new Vuex.Store({
     logout({ commit }) {
       return new Promise((resolve) => {
         commit('clearAuth')
-        window.location.href = '/login';
+        goToPage(Constant.PAGE.LOGIN, true);
+        window.location.reload(); // 彻底重置状态
       })
+    },
+    // 添加获取公共配置的 action
+    fetchPubConfig({ commit }) {
+      return new Promise((resolve) => {
+        Api.user.getPubConfig(({ data }) => {
+          if (data.code === 0) {
+            commit('setPubConfig', data.data);
+          }
+          resolve();
+        });
+      });
     }
   },
   modules: {

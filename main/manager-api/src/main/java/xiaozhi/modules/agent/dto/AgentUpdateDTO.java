@@ -45,6 +45,9 @@ public class AgentUpdateDTO implements Serializable {
     @Schema(description = "角色设定参数", example = "你是一个专业的客服助手，负责回答用户问题并提供帮助", required = false)
     private String systemPrompt;
 
+    @Schema(description = "聊天记录配置（0不记录 1仅记录文本 2记录文本和语音）", example = "3", required = false)
+    private Integer chatHistoryConf;
+
     @Schema(description = "语言编码", example = "zh_CN", required = false)
     private String langCode;
 

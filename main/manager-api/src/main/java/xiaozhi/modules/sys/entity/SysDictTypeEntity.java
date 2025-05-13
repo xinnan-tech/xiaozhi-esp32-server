@@ -18,7 +18,7 @@ import xiaozhi.common.entity.BaseEntity;
 @TableName("sys_dict_type")
 public class SysDictTypeEntity extends BaseEntity {
     /**
-     * 字典类型
+     * 字典类型编码
      */
     private String dictType;
     /**

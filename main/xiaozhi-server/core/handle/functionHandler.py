@@ -4,7 +4,6 @@ from plugins_func.register import FunctionRegistry, ActionResponse, Action, Tool
 from plugins_func.functions.hass_init import append_devices_to_prompt
 
 TAG = __name__
-logger = setup_logging()
 
 
 class FunctionHandler:
@@ -40,7 +39,9 @@ class FunctionHandler:
         for func in self.functions_desc:
             func_names.append(func["function"]["name"])
         # 打印当前支持的函数列表
-        logger.bind(tag=TAG).info(f"当前支持的函数列表: {func_names}")
+        self.conn.logger.bind(tag=TAG, session_id=self.conn.session_id).info(
+            f"当前支持的函数列表: {func_names}"
+        )
         return func_names
 
     def get_functions(self):
@@ -57,7 +58,9 @@ class FunctionHandler:
 
     def register_config_functions(self):
         """注册配置中的函数,可以不同客户端使用不同的配置"""
-        for func in self.config["Intent"]["function_call"].get("functions", []):
+        for func in self.config["Intent"][self.config["selected_module"]["Intent"]].get(
+            "functions", []
+        ):
             self.function_registry.register_function(func)
 
         """home assistant需要初始化提示词"""
@@ -77,7 +80,9 @@ class FunctionHandler:
             func = funcItem.func
             arguments = function_call_data["arguments"]
             arguments = json.loads(arguments) if arguments else {}
-            logger.bind(tag=TAG).info(f"调用函数: {function_name}, 参数: {arguments}")
+            self.conn.logger.bind(tag=TAG).debug(
+                f"调用函数: {function_name}, 参数: {arguments}"
+            )
             if (
                 funcItem.type == ToolType.SYSTEM_CTL
                 or funcItem.type == ToolType.IOT_CTL
@@ -92,6 +97,6 @@ class FunctionHandler:
                     action=Action.NOTFOUND, result="没有找到对应的函数", response=""
                 )
         except Exception as e:
-            logger.bind(tag=TAG).error(f"处理function call错误: {e}")
+            self.conn.logger.bind(tag=TAG).error(f"处理function call错误: {e}")
 
         return None

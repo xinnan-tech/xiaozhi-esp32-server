@@ -1,5 +1,4 @@
 import json
-from config.logger import setup_logging
 from core.handle.sendAudioHandle import send_stt_message
 from core.utils.util import remove_punctuation_and_length
 import shutil
@@ -8,7 +7,7 @@ import os
 import random
 import time
 
-logger = setup_logging()
+TAG = __name__
 
 WAKEUP_CONFIG = {
     "dir": "config/assets/",
@@ -20,7 +19,16 @@ WAKEUP_CONFIG = {
 }
 
 
-async def handleHelloMessage(conn):
+async def handleHelloMessage(conn, msg_json):
+    """处理hello消息"""
+    audio_params = msg_json.get("audio_params")
+    if audio_params:
+        format = audio_params.get("format")
+        conn.logger.bind(tag=TAG).info(f"客户端音频格式: {format}")
+        conn.audio_format = format
+        conn.asr.set_audio_format(format)
+        conn.welcome_msg["audio_params"] = audio_params
+
     await conn.websocket.send(json.dumps(conn.welcome_msg))
 
 
@@ -43,7 +51,7 @@ async def checkWakeupWords(conn, text):
         if file is None:
             asyncio.create_task(wakeupWordsResponse(conn))
             return False
-        opus_packets, duration = conn.tts.audio_to_opus_data(file)
+        opus_packets, _ = conn.tts.audio_to_opus_data(file)
         text_hello = WAKEUP_CONFIG["text"]
         if not text_hello:
             text_hello = text
@@ -69,9 +77,19 @@ def getWakeupWordFile(file_name):
 
 
 async def wakeupWordsResponse(conn):
+    wait_max_time = 5
+    while conn.llm is None or not conn.llm.response_no_stream:
+        await asyncio.sleep(1)
+        wait_max_time -= 1
+        if wait_max_time <= 0:
+            conn.logger.bind(tag=TAG).error("连接对象没有llm")
+            return
+
     """唤醒词响应"""
     wakeup_word = random.choice(WAKEUP_CONFIG["words"])
     result = conn.llm.response_no_stream(conn.config["prompt"], wakeup_word)
+    if result is None or result == "":
+        return
     tts_file = await asyncio.to_thread(conn.tts.to_tts, result)
 
     if tts_file is not None and os.path.exists(tts_file):

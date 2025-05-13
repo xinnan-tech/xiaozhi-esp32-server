@@ -1,0 +1,15 @@
+# 如果你只想轻量化安装xiaozhi-server，只使用本地的配置文件，不需要理会这个文件，不需要改动本文件任何东西
+# 如果你想从manager-api获取配置，请往下看：
+# 请将本文件复制到xiaozhi-server/data目录下，没有data目录，请创建一个，并将复制过去的文件命名为.config.yaml
+# 注意如果data目录有.config.yaml文件，请先删除它
+# 先启动manager-api和manager-web，注册一个账号，第一个注册的账号为管理员
+# 使用管理员，进入【参数管理】页面，找到【server.secret】，复制它到参数值，注意每次从零部署，server.secret都会变化
+# 打开本data目录下的.config.yaml文件，修改manager-api.secret为刚才复制出来的server.secret
+server:
+  ip: 0.0.0.0
+  port: 8000
+manager-api:
+  # 你的manager-api的地址，最好使用局域网ip
+  url: http://127.0.0.1:8002/xiaozhi
+  # 你的manager-api的token，就是刚才复制出来的server.secret
+  secret: 你的server.secret值
