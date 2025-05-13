@@ -35,4 +35,5 @@ class LLMProviderBase(ABC):
         """
         # For providers that don't support functions, just return regular response
         for token in self.response(session_id, dialogue):
-            yield {"type": "content", "content": token}
+            yield token, None
+

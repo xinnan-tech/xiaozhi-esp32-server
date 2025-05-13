@@ -23,7 +23,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # 配置Nginx
-COPY docs/docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docs/docker/nginx.conf /etc/nginx/nginx.conf
 
 # 复制前端构建产物
 COPY --from=web-builder /app/dist /usr/share/nginx/html

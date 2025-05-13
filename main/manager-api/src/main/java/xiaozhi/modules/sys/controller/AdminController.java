@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +21,9 @@ import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.validator.ValidatorUtils;
+import xiaozhi.modules.device.dto.DevicePageUserDTO;
+import xiaozhi.modules.device.service.DeviceService;
+import xiaozhi.modules.device.vo.UserShowDeviceListVO;
 import xiaozhi.modules.sys.dto.AdminPageUserDTO;
 import xiaozhi.modules.sys.service.SysUserService;
 import xiaozhi.modules.sys.vo.AdminPageUserVO;
@@ -37,6 +41,8 @@ import xiaozhi.modules.sys.vo.AdminPageUserVO;
 public class AdminController {
     private final SysUserService sysUserService;
 
+    private final DeviceService deviceService;
+
     @GetMapping("/users")
     @Operation(summary = "分页查找用户")
     @RequiresPermissions("sys:role:superAdmin")
@@ -50,8 +56,7 @@ public class AdminController {
         AdminPageUserDTO dto = new AdminPageUserDTO();
         dto.setMobile((String) params.get("mobile"));
         dto.setLimit((String) params.get(Constant.LIMIT));
-        dto.setPage((String) params.get("pages"));
-
+        dto.setPage((String) params.get(Constant.PAGE));
         ValidatorUtils.validateEntity(dto);
         PageData<AdminPageUserVO> page = sysUserService.page(dto);
         return new Result<PageData<AdminPageUserVO>>().ok(page);
@@ -70,8 +75,17 @@ public class AdminController {
     @Operation(summary = "用户删除")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> delete(@PathVariable Long id) {
-        sysUserService.delete(new Long[] { id });
+        sysUserService.deleteById(id);
         return new Result<>();
+    }
+
+    @PutMapping("/users/changeStatus/{status}")
+    @Operation(summary = "批量修改用户状态")
+    @RequiresPermissions("sys:role:superAdmin")
+    @Parameter(name = "status", description = "用户状态", required = true)
+    public Result<Void> changeStatus(@PathVariable Integer status, @RequestBody String[] userIds) {
+        sysUserService.changeStatus(status, userIds);
+        return new Result<Void>();
     }
 
     @GetMapping("/device/all")
@@ -82,9 +96,14 @@ public class AdminController {
             @Parameter(name = Constant.PAGE, description = "当前页码，从1开始", required = true),
             @Parameter(name = Constant.LIMIT, description = "每页显示记录数", required = true),
     })
-    public Result<Void> pageDevice(
+    public Result<PageData<UserShowDeviceListVO>> pageDevice(
             @Parameter(hidden = true) @RequestParam Map<String, Object> params) {
-        // TODO 等设备功能模块写好
-        return new Result<Void>().error(600, "等设备功能模块写好");
+        DevicePageUserDTO dto = new DevicePageUserDTO();
+        dto.setKeywords((String) params.get("keywords"));
+        dto.setLimit((String) params.get(Constant.LIMIT));
+        dto.setPage((String) params.get(Constant.PAGE));
+        ValidatorUtils.validateEntity(dto);
+        PageData<UserShowDeviceListVO> page = deviceService.page(dto);
+        return new Result<PageData<UserShowDeviceListVO>>().ok(page);
     }
 }

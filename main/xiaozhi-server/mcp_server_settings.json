@@ -3,9 +3,19 @@
     "在data目录下创建.mcp_server_settings.json文件，可以选择下面的MCP服务，也可以自行添加新的MCP服务。",
     "后面不断测试补充好用的mcp服务，欢迎大家一起补充。",
     "记得删除注释行,des属性仅为说明,不会被解析。",
-    "des和link属性，仅为说明安装方式，方便大家查看原始链接，不是必须项。"
+    "des和link属性，仅为说明安装方式，方便大家查看原始链接，不是必须项。",
+    "当前支持stdio/sse两种模式。"
   ],
   "mcpServers": {
+    "Home Assistant": {
+      "command": "mcp-proxy",
+      "args": [
+        "http://YOUR_HA_HOST/mcp_server/sse"
+      ],
+      "env": {
+        "API_ACCESS_TOKEN": "YOUR_API_ACCESS_TOKEN"
+      }
+    },
     "filesystem": {
       "command": "npx",
       "args": [

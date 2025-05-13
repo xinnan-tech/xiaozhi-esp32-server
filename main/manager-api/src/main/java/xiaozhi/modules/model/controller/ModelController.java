@@ -17,13 +17,19 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.page.PageData;
+import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.Result;
+import xiaozhi.modules.agent.service.AgentTemplateService;
+import xiaozhi.modules.config.service.ConfigService;
+import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
 import xiaozhi.modules.model.dto.ModelConfigDTO;
 import xiaozhi.modules.model.dto.ModelProviderDTO;
-import xiaozhi.modules.model.dto.ModelProviderFieldDTO;
+import xiaozhi.modules.model.dto.VoiceDTO;
+import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.model.service.ModelProviderService;
+import xiaozhi.modules.timbre.service.TimbreService;
 
 @AllArgsConstructor
 @RestController
@@ -32,16 +38,18 @@ import xiaozhi.modules.model.service.ModelProviderService;
 public class ModelController {
 
     private final ModelProviderService modelProviderService;
-
+    private final TimbreService timbreService;
     private final ModelConfigService modelConfigService;
+    private final ConfigService configService;
+    private final AgentTemplateService agentTemplateService;
 
-    @GetMapping("/models/names")
+    @GetMapping("/names")
     @Operation(summary = "获取所有模型名称")
-    @RequiresPermissions("sys:role:superAdmin")
-    public Result<List<String>> getModelNames(@RequestParam String modelType,
+    @RequiresPermissions("sys:role:normal")
+    public Result<List<ModelBasicInfoDTO>> getModelNames(@RequestParam String modelType,
             @RequestParam(required = false) String modelName) {
-        List<String> modelNameList = modelConfigService.getModelCodeList(modelType, modelName);
-        return new Result<List<String>>().ok(modelNameList);
+        List<ModelBasicInfoDTO> modelList = modelConfigService.getModelCodeList(modelType, modelName);
+        return new Result<List<ModelBasicInfoDTO>>().ok(modelList);
     }
 
     @GetMapping("/{modelType}/provideTypes")
@@ -52,16 +60,7 @@ public class ModelController {
         return new Result<List<ModelProviderDTO>>().ok(modelProviderDTOS);
     }
 
-    @GetMapping("/{modelType}/{provideCode}/fields")
-    @Operation(summary = "获取模型供应器字段")
-    @RequiresPermissions("sys:role:superAdmin")
-    public Result<List<ModelProviderFieldDTO>> getModelProviderFields(@PathVariable String modelType,
-            @PathVariable String provideCode) {
-        List<ModelProviderFieldDTO> fieldList = modelProviderService.getFieldList(modelType, provideCode);
-        return new Result<List<ModelProviderFieldDTO>>().ok(fieldList);
-    }
-
-    @GetMapping("/models/list")
+    @GetMapping("/list")
     @Operation(summary = "获取模型配置列表")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<PageData<ModelConfigDTO>> getModelConfigList(
@@ -73,17 +72,18 @@ public class ModelController {
         return new Result<PageData<ModelConfigDTO>>().ok(pageList);
     }
 
-    @PostMapping("/models/{modelType}/{provideCode}")
+    @PostMapping("/{modelType}/{provideCode}")
     @Operation(summary = "新增模型配置")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<ModelConfigDTO> addModelConfig(@PathVariable String modelType,
             @PathVariable String provideCode,
             @RequestBody ModelConfigBodyDTO modelConfigBodyDTO) {
         ModelConfigDTO modelConfigDTO = modelConfigService.add(modelType, provideCode, modelConfigBodyDTO);
+        configService.getConfig(false);
         return new Result<ModelConfigDTO>().ok(modelConfigDTO);
     }
 
-    @PutMapping("/models/{modelType}/{provideCode}/{id}")
+    @PutMapping("/{modelType}/{provideCode}/{id}")
     @Operation(summary = "编辑模型配置")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<ModelConfigDTO> editModelConfig(@PathVariable String modelType,
@@ -91,25 +91,67 @@ public class ModelController {
             @PathVariable String id,
             @RequestBody ModelConfigBodyDTO modelConfigBodyDTO) {
         ModelConfigDTO modelConfigDTO = modelConfigService.edit(modelType, provideCode, id, modelConfigBodyDTO);
+        configService.getConfig(false);
         return new Result<ModelConfigDTO>().ok(modelConfigDTO);
     }
 
-    @DeleteMapping("/models/{modelType}/{provideCode}/{id}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "删除模型配置")
     @RequiresPermissions("sys:role:superAdmin")
-    public Result<Void> deleteModelConfig(@PathVariable String modelType, @PathVariable String provideCode,
-            @PathVariable String id) {
-        modelConfigService.delete(modelType, provideCode, id);
+    public Result<Void> deleteModelConfig(@PathVariable String id) {
+        modelConfigService.delete(id);
         return new Result<>();
     }
 
-    @GetMapping("/models/{modelId}/voices")
+    @GetMapping("/{id}")
+    @Operation(summary = "获取模型配置")
+    @RequiresPermissions("sys:role:superAdmin")
+    public Result<ModelConfigDTO> getModelConfig(@PathVariable String id) {
+        ModelConfigEntity item = modelConfigService.selectById(id);
+        ModelConfigDTO modelConfigDTO = ConvertUtils.sourceToTarget(item, ModelConfigDTO.class);
+        return new Result<ModelConfigDTO>().ok(modelConfigDTO);
+    }
+
+    @PutMapping("/enable/{id}/{status}")
+    @Operation(summary = "启用/关闭模型配置")
+    @RequiresPermissions("sys:role:superAdmin")
+    public Result<Void> enableModelConfig(@PathVariable String id, @PathVariable Integer status) {
+        ModelConfigEntity entity = modelConfigService.selectById(id);
+        if (entity == null) {
+            return new Result<Void>().error("模型配置不存在");
+        }
+        entity.setIsEnabled(status);
+        modelConfigService.updateById(entity);
+        return new Result<Void>();
+    }
+
+    @PutMapping("/default/{id}")
+    @Operation(summary = "设置默认模型")
+    @RequiresPermissions("sys:role:superAdmin")
+    public Result<Void> setDefaultModel(@PathVariable String id) {
+        ModelConfigEntity entity = modelConfigService.selectById(id);
+        if (entity == null) {
+            return new Result<Void>().error("模型配置不存在");
+        }
+        // 将其他模型设置为非默认
+        modelConfigService.setDefaultModel(entity.getModelType(), 0);
+        entity.setIsEnabled(1);
+        entity.setIsDefault(1);
+        modelConfigService.updateById(entity);
+
+        // 更新模板表中对应的模型ID
+        agentTemplateService.updateDefaultTemplateModelId(entity.getModelType(), entity.getId());
+
+        configService.getConfig(false);
+        return new Result<Void>();
+    }
+
+    @GetMapping("/{modelId}/voices")
     @Operation(summary = "获取模型音色")
     @RequiresPermissions("sys:role:normal")
-    public Result<List<String>> getVoiceList(@PathVariable String modelId,
+    public Result<List<VoiceDTO>> getVoiceList(@PathVariable String modelId,
             @RequestParam(required = false) String voiceName) {
-
-        List<String> voiceList = modelConfigService.getVoiceList(modelId, voiceName);
-        return new Result<List<String>>().ok(voiceList);
+        List<VoiceDTO> voiceList = timbreService.getVoiceNames(modelId, voiceName);
+        return new Result<List<VoiceDTO>>().ok(voiceList);
     }
 }

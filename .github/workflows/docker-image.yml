@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'  # 只在以 v 开头的标签推送时触发，例如 v1.0.0
+  workflow_dispatch:
 
 jobs:
   release:
@@ -41,7 +42,13 @@ jobs:
       - name: Extract version from tag
         id: get_version
         run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          if [[ "$GITHUB_REF" =~ ^refs/tags/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "VERSION=${BASH_REMATCH[1]}" >> $GITHUB_ENV
+            echo "IS_VERSION=true" >> $GITHUB_ENV
+          else
+            echo "VERSION=latest" >> $GITHUB_ENV
+            echo "IS_VERSION=false" >> $GITHUB_ENV
+          fi
 
       # 构建 xiaozhi-server 镜像
       - name: Build and push xiaozhi-server
@@ -51,8 +58,7 @@ jobs:
           file: Dockerfile-server
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:server_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:server_latest
+            ${{ env.IS_VERSION == 'true' && format('ghcr.io/{0}:server_{1},ghcr.io/{0}:server_latest', github.repository, env.VERSION) || format('ghcr.io/{0}:server_latest', github.repository) }}
           platforms: linux/amd64,linux/arm64
 
       # 构建 manager-api 镜像
@@ -63,6 +69,5 @@ jobs:
           file: Dockerfile-web
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:web_${{ env.VERSION }}
-            ghcr.io/${{ github.repository }}:web_latest
+            ${{ env.IS_VERSION == 'true' && format('ghcr.io/{0}:web_{1},ghcr.io/{0}:web_latest', github.repository, env.VERSION) || format('ghcr.io/{0}:web_latest', github.repository) }}
           platforms: linux/amd64,linux/arm64

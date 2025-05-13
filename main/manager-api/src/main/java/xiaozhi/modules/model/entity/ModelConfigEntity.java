@@ -9,11 +9,12 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 
+import cn.hutool.json.JSONObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
-@TableName("ai_model_config")
+@TableName(value = "ai_model_config", autoResultMap = true)
 @Schema(description = "模型配置表")
 public class ModelConfigEntity {
 
@@ -38,7 +39,7 @@ public class ModelConfigEntity {
 
     @TableField(typeHandler = JacksonTypeHandler.class)
     @Schema(description = "模型配置(JSON格式)")
-    private String configJson;
+    private JSONObject configJson;
 
     @Schema(description = "官方文档链接")
     private String docLink;
