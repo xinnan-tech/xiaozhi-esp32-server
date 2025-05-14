@@ -88,7 +88,8 @@ class ConnectionHandler:
         self.audio_play_queue = queue.Queue()
         self.executor = ThreadPoolExecutor(max_workers=10)
 
-        # 上报线程
+        # 添加上报线程池
+        self.report_thread_pool = ThreadPoolExecutor(max_workers=5, thread_name_prefix="report_worker")
         self.report_queue = queue.Queue()
         self.report_thread = None
         # TODO(haotian): 2025/5/12 可以通过修改此处，调节asr的上报和tts的上报
@@ -944,19 +945,27 @@ class ConnectionHandler:
                 type, text, audio_data = item
 
                 try:
-                    # 执行上报（传入二进制数据）
-                    report(self, type, text, audio_data)
+                    # 提交任务到线程池
+                    self.report_thread_pool.submit(self._process_report, type, text, audio_data)
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"聊天记录上报线程异常: {e}")
-                finally:
-                    # 标记任务完成
-                    self.report_queue.task_done()
             except queue.Empty:
                 continue
             except Exception as e:
                 self.logger.bind(tag=TAG).error(f"聊天记录上报工作线程异常: {e}")
 
         self.logger.bind(tag=TAG).info("聊天记录上报线程已退出")
+
+    def _process_report(self, type, text, audio_data):
+        """处理上报任务"""
+        try:
+            # 执行上报（传入二进制数据）
+            report(self, type, text, audio_data)
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"上报处理异常: {e}")
+        finally:
+            # 标记任务完成
+            self.report_queue.task_done()
 
     def speak_and_play(self, text, text_index=0):
         if text is None or len(text) <= 0:
@@ -1005,6 +1014,11 @@ class ConnectionHandler:
 
         # 添加毒丸对象到上报队列确保线程退出
         self.report_queue.put(None)
+
+        # 关闭上报线程池
+        if hasattr(self, 'report_thread_pool'):
+            self.report_thread_pool.shutdown(wait=True)
+            self.logger.bind(tag=TAG).info("上报线程池已关闭")
 
         # 清空任务队列
         self.clear_queues()
