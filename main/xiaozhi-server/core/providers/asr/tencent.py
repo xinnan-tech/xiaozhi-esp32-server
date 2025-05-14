@@ -52,7 +52,7 @@ class ASRProvider(ASRProviderBase):
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         if not opus_data:
-            logger.bind(tag=TAG).warn("音频数据为空！")
+            logger.bind(tag=TAG).warning("音频数据为空！")
             return None, None
 
         file_path = None
@@ -230,7 +230,7 @@ class ASRProvider(ASRProviderBase):
             if "Response" in response_json and "Result" in response_json["Response"]:
                 return response_json["Response"]["Result"]
             else:
-                logger.bind(tag=TAG).warn(f"响应中没有识别结果: {response_json}")
+                logger.bind(tag=TAG).warning(f"响应中没有识别结果: {response_json}")
                 return ""
 
         except Exception as e:

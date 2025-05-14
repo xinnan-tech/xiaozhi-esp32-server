@@ -40,7 +40,7 @@ def setup_proxy_env(http_proxy: str | None, https_proxy: str | None):
             os.environ["HTTP_PROXY"] = http_proxy
             log.bind(tag=TAG).info(f"配置提供的Gemini HTTPS代理连通成功: {http_proxy}")
         else:
-            log.bind(tag=TAG).warn(f"配置提供的Gemini HTTP代理不可用: {http_proxy}")
+            log.bind(tag=TAG).warning(f"配置提供的Gemini HTTP代理不可用: {http_proxy}")
 
     if https_proxy:
         ok_https = test_proxy(https_proxy, test_https_url)
@@ -48,7 +48,9 @@ def setup_proxy_env(http_proxy: str | None, https_proxy: str | None):
             os.environ["HTTPS_PROXY"] = https_proxy
             log.bind(tag=TAG).info(f"配置提供的Gemini HTTPS代理连通成功: {https_proxy}")
         else:
-            log.bind(tag=TAG).warning(f"配置提供的Gemini HTTPS代理不可用: {https_proxy}")
+            log.bind(tag=TAG).warning(
+                f"配置提供的Gemini HTTPS代理不可用: {https_proxy}"
+            )
 
     # 如果https_proxy不可用，但http_proxy可用且能走通https，则复用http_proxy作为https_proxy
     if ok_http and not ok_https:
@@ -58,7 +60,9 @@ def setup_proxy_env(http_proxy: str | None, https_proxy: str | None):
             log.bind(tag=TAG).info(f"复用HTTP代理作为HTTPS代理: {http_proxy}")
 
     if not ok_http and not ok_https:
-        log.bind(tag=TAG).error(f"Gemini 代理设置失败: HTTP 和 HTTPS 代理都不可用，请检查配置")
+        log.bind(tag=TAG).error(
+            f"Gemini 代理设置失败: HTTP 和 HTTPS 代理都不可用，请检查配置"
+        )
         raise RuntimeError("HTTP 和 HTTPS 代理都不可用，请检查配置")
 
 
@@ -73,9 +77,13 @@ class LLMProvider(LLMProviderBase):
             raise ValueError("无效的Gemini API Key，请检查是否配置正确")
 
         if http_proxy or https_proxy:
-            log.bind(tag=TAG).info(f"检测到Gemini代理配置，开始测试代理连通性和设置代理环境...")
+            log.bind(tag=TAG).info(
+                f"检测到Gemini代理配置，开始测试代理连通性和设置代理环境..."
+            )
             setup_proxy_env(http_proxy, https_proxy)
-            log.bind(tag=TAG).info(f"Gemini 代理设置成功 - HTTP: {http_proxy}, HTTPS: {https_proxy}")
+            log.bind(tag=TAG).info(
+                f"Gemini 代理设置成功 - HTTP: {http_proxy}, HTTPS: {https_proxy}"
+            )
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel(self.model_name)
 
@@ -90,14 +98,18 @@ class LLMProvider(LLMProviderBase):
     def _build_tools(funcs: List[Dict[str, Any]] | None):
         if not funcs:
             return None
-        return [types.Tool(function_declarations=[
-            types.FunctionDeclaration(
-                name=f["function"]["name"],
-                description=f["function"]["description"],
-                parameters=f["function"]["parameters"],
+        return [
+            types.Tool(
+                function_declarations=[
+                    types.FunctionDeclaration(
+                        name=f["function"]["name"],
+                        description=f["function"]["description"],
+                        parameters=f["function"]["parameters"],
+                    )
+                    for f in funcs
+                ]
             )
-            for f in funcs
-        ])]
+        ]
 
     # Gemini文档提到，无需维护session-id，直接用dialogue拼接而成
     def response(self, session_id, dialogue):
@@ -115,26 +127,36 @@ class LLMProvider(LLMProviderBase):
 
             if r == "assistant" and "tool_calls" in m:
                 tc = m["tool_calls"][0]
-                contents.append({
-                    "role": "model",
-                    "parts": [{"function_call": {
-                        "name": tc["function"]["name"],
-                        "args": json.loads(tc["function"]["arguments"]),
-                    }}],
-                })
+                contents.append(
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "function_call": {
+                                    "name": tc["function"]["name"],
+                                    "args": json.loads(tc["function"]["arguments"]),
+                                }
+                            }
+                        ],
+                    }
+                )
                 continue
 
             if r == "tool":
-                contents.append({
-                    "role": "model",
-                    "parts": [{"text": str(m.get("content", ""))}],
-                })
+                contents.append(
+                    {
+                        "role": "model",
+                        "parts": [{"text": str(m.get("content", ""))}],
+                    }
+                )
                 continue
 
-            contents.append({
-                "role": role_map.get(r, "user"),
-                "parts": [{"text": str(m.get("content", ""))}],
-            })
+            contents.append(
+                {
+                    "role": role_map.get(r, "user"),
+                    "parts": [{"text": str(m.get("content", ""))}],
+                }
+            )
 
         stream: GenerateContentResponse = self.model.generate_content(
             contents=contents,
@@ -150,15 +172,18 @@ class LLMProvider(LLMProviderBase):
                     # a) 函数调用-通常是最后一段话才是函数调用
                     if getattr(part, "function_call", None):
                         fc = part.function_call
-                        yield None, [SimpleNamespace(
-                            id=uuid.uuid4().hex,
-                            type="function",
-                            function=SimpleNamespace(
-                                name=fc.name,
-                                arguments=json.dumps(dict(fc.args),
-                                                     ensure_ascii=False),
-                            ),
-                        )]
+                        yield None, [
+                            SimpleNamespace(
+                                id=uuid.uuid4().hex,
+                                type="function",
+                                function=SimpleNamespace(
+                                    name=fc.name,
+                                    arguments=json.dumps(
+                                        dict(fc.args), ensure_ascii=False
+                                    ),
+                                ),
+                            )
+                        ]
                         return
                     # b) 普通文本
                     if getattr(part, "text", None):
