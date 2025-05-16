@@ -193,6 +193,7 @@ Intent:
       - get_weather
       - get_news_from_newsnow
       - play_music
+      - get_place_info
   function_call:
     # 不需要动type
     type: function_call
