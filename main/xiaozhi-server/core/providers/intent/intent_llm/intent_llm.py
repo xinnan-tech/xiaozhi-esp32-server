@@ -218,6 +218,15 @@ class IntentProvider(IntentProviderBase):
                     f"llm 识别到意图: {function_name}, 参数: {function_args}"
                 )
 
+                # 如果是继续聊天，清理工具调用相关的历史消息
+                if function_name == "continue_chat":
+                    # 保留非工具相关的消息
+                    clean_history = [
+                        msg for msg in conn.dialogue.dialogue
+                        if msg.role not in ["tool", "function"]
+                    ]
+                    conn.dialogue.dialogue = clean_history
+
                 # 添加到缓存
                 self.intent_cache[cache_key] = {
                     "intent": intent,
