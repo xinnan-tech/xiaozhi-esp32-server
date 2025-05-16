@@ -5,9 +5,9 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-
 /**
  * 音色表数据DTO
+ * 
  * @author zjy
  * @since 2025-3-21
  */
@@ -24,7 +24,6 @@ public class TimbreDataDTO {
     private String name;
 
     @Schema(description = "备注")
-    @NotBlank(message = "{timbre.remark.require}")
     private String remark;
 
     @Schema(description = "排序")
@@ -40,6 +39,5 @@ public class TimbreDataDTO {
     private String ttsVoice;
 
     @Schema(description = "音频播放地址")
-    @NotBlank(message = "{timbre.voiceDemo.require}")
     private String voiceDemo;
 }

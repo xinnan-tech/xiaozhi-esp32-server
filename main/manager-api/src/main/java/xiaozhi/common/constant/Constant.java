@@ -1,5 +1,7 @@
 package xiaozhi.common.constant;
 
+import lombok.Getter;
+
 /**
  * 常量
  * Copyright (c) 人人开源 All rights reserved.
@@ -74,12 +76,45 @@ public interface Constant {
      */
     String ORDER = "order";
 
+    /**
+     * 请求头授权标识
+     */
     String AUTHORIZATION = "Authorization";
+
+    /**
+     * 服务器密钥
+     */
+    String SERVER_SECRET = "server.secret";
+
+    /**
+     * websocket地址
+     */
+    String SERVER_WEBSOCKET = "server.websocket";
+
+    /**
+     * ota地址
+     */
+    String SERVER_OTA = "server.ota";
+
+    /**
+     * 是否允许用户注册
+     */
+    String SERVER_ALLOW_USER_REGISTER = "server.allow_user_register";
+
+    /**
+     * 下发六位验证码时显示的控制面板地址
+     */
+    String SERVER_FRONTED_URL = "server.fronted_url";
 
     /**
      * 路径分割符
      */
     String FILE_EXTENSION_SEG = ".";
+
+    /**
+     * 无记忆
+     */
+    String MEMORY_NO_MEM = "Memory_nomem";
 
     enum SysBaseParam {
         /**
@@ -145,4 +180,29 @@ public interface Constant {
             return value;
         }
     }
+
+    @Getter
+    enum ChatHistoryConfEnum {
+        IGNORE(0, "不记录"),
+        RECORD_TEXT(1, "记录文本"),
+        RECORD_TEXT_AUDIO(2, "文本音频都记录");
+
+        private final int code;
+        private final String name;
+
+        ChatHistoryConfEnum(int code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+    }
+
+    /**
+     * 版本号
+     */
+    public static final String VERSION = "0.4.3";
+
+    /**
+     * 无效固件URL
+     */
+    String INVALID_FIRMWARE_URL = "http://xiaozhi.server.com:8002/xiaozhi/otaMag/download/NOT_ACTIVATED_FIRMWARE_THIS_IS_A_INVALID_URL";
 }

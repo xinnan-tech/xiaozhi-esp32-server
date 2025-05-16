@@ -1,11 +1,12 @@
 package xiaozhi.modules.sys.dao;
 
-import xiaozhi.common.dao.BaseDao;
-import xiaozhi.modules.sys.entity.SysParamsEntity;
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.List;
+import xiaozhi.common.dao.BaseDao;
+import xiaozhi.modules.sys.entity.SysParamsEntity;
 
 /**
  * 参数管理
@@ -26,7 +27,7 @@ public interface SysParamsDao extends BaseDao<SysParamsEntity> {
      * @param ids ids
      * @return 返回参数编码列表
      */
-    List<String> getParamCodeList(Long[] ids);
+    List<String> getParamCodeList(String[] ids);
 
     /**
      * 根据参数编码，更新value

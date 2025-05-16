@@ -1,9 +1,9 @@
 package xiaozhi.common.service;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
-
 import java.io.Serializable;
 import java.util.Collection;
+
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 
 /**
  * 基础服务接口，所有Service接口都要继承
@@ -56,7 +56,8 @@ public interface BaseService<T> {
      * </p>
      *
      * @param entity        实体对象
-     * @param updateWrapper 实体对象封装操作类 {@link com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper}
+     * @param updateWrapper 实体对象封装操作类
+     *                      {@link com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper}
      */
     boolean update(T entity, Wrapper<T> updateWrapper);
 

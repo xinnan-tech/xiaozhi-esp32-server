@@ -1,13 +1,14 @@
 package xiaozhi.modules.sys.entity;
 
+import java.util.Date;
+
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import xiaozhi.common.entity.BaseEntity;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import java.util.Date;
+import xiaozhi.common.entity.BaseEntity;
 
 /**
  * 参数管理
@@ -25,7 +26,11 @@ public class SysParamsEntity extends BaseEntity {
      */
     private String paramValue;
     /**
-     * 类型   0：系统参数   1：非系统参数
+     * 值类型：string-字符串，number-数字，boolean-布尔，array-数组
+     */
+    private String valueType;
+    /**
+     * 类型 0：系统参数 1：非系统参数
      */
     private Integer paramType;
     /**

@@ -1,10 +1,10 @@
 package xiaozhi.modules.sys.dto;
 
+import java.io.Serializable;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-
-import java.io.Serializable;
 
 /**
  * 修改密码

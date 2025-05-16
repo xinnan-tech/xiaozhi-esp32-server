@@ -1,6 +1,6 @@
+import { Message } from 'element-ui'
 import router from '../router'
 import Constant from '../utils/constant'
-import { Message } from 'element-ui'
 
 /**
  * 判断用户是否登录
@@ -54,7 +54,8 @@ export function showDanger(msg) {
     }
     Message({
         message: msg,
-        type: 'error'
+        type: 'error',
+        showClose: true
     })
 }
 
@@ -68,7 +69,8 @@ export function showWarning(msg) {
     }
     Message({
         message: msg,
-        type: 'warning'
+        type: 'warning',
+        showClose: true
     });
 }
 
@@ -81,7 +83,8 @@ export function showWarning(msg) {
 export function showSuccess(msg) {
     Message({
         message: msg,
-        type: 'success'
+        type: 'success',
+        showClose: true
     })
 }
 

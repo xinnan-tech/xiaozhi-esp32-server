@@ -1,13 +1,17 @@
 package xiaozhi.common.redis;
 
-import jakarta.annotation.Resource;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Component;
-
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.Resource;
 
 /**
  * Redis工具类
@@ -26,7 +30,7 @@ public class RedisUtils {
     /**
      * 过期时长为1小时，单位：秒
      */
-    public final static long HOUR_ONE_EXPIRE = 60 * 60 * 1L;
+    public final static long HOUR_ONE_EXPIRE = (long) 60 * 60;
     /**
      * 过期时长为6小时，单位：秒
      */
@@ -123,4 +127,24 @@ public class RedisUtils {
     public Object rightPop(String key) {
         return redisTemplate.opsForList().rightPop(key);
     }
+
+
+    /**
+     * 清空所有 Redis 数据库中的所有键
+     */
+    public void emptyAll() {
+        // Lua 脚本 FLUSHALL是redis清空所有库的命令
+        String luaScript ="redis.call('FLUSHALL')";
+
+        // 创建 DefaultRedisScript 对象
+        DefaultRedisScript<Void> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptText(luaScript); // 设置 Lua 脚本内容
+        redisScript.setResultType(Void.class); // 设置返回值类型
+
+        // 执行 Lua 脚本
+        List<String> keys = Collections.emptyList(); // 如果脚本不依赖 key，可以传入空列表
+        redisTemplate.execute(redisScript, keys);
+
+    }
+
 }

@@ -1,9 +1,9 @@
 package xiaozhi.modules.security.oauth2;
 
-import xiaozhi.common.exception.RenException;
-
 import java.security.MessageDigest;
 import java.util.UUID;
+
+import xiaozhi.common.exception.RenException;
 
 /**
  * 生成token

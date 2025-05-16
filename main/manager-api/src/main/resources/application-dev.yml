@@ -7,15 +7,12 @@ knife4j:
     password: 2ZABCDEUgF
   setting:
     enableFooter: false
-jasypt:
-  encryptor:
-    password: P9Hx718z8L
 spring:
   datasource:
     druid:
       #MySQL
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
+      url: jdbc:mysql://127.0.0.1:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
       username: root
       password: 123456
       initial-size: 10
@@ -30,10 +27,7 @@ spring:
       test-on-borrow: false
       test-on-return: false
       stat-view-servlet:
-        enabled: true
-        url-pattern: /druid/*
-        login-username: admin
-        login-password: D7Xj810i1C
+        enabled: false
       filter:
         stat:
           log-slow-sql: true
@@ -42,3 +36,16 @@ spring:
         wall:
           config:
             multi-statement-allow: true
+  data:
+    redis:
+      host: 127.0.0.1         # Redis服务器地址
+      port: 6379              # Redis服务器连接端口
+      password:              # Redis服务器连接密码（默认为空）
+      database: 0            # Redis数据库索引（默认为0）
+      timeout: 10000ms       # 连接超时时间（毫秒）
+      lettuce:
+        pool:
+          max-active: 8      # 连接池最大连接数（使用负值表示没有限制）
+          max-idle: 8        # 连接池中的最大空闲连接
+          min-idle: 0        # 连接池中的最小空闲连接
+        shutdown-timeout: 100ms  # 客户端优雅关闭的等待时间

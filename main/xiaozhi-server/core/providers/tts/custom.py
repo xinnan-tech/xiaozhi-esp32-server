@@ -32,4 +32,6 @@ class TTSProvider(TTSProviderBase):
             with open(output_file, "wb") as file:
                 file.write(resp.content)
         else:
-            logger.bind(tag=TAG).error(f"Custom TTS请求失败: {resp.status_code} - {resp.text}")
+            error_msg = f"Custom TTS请求失败: {resp.status_code} - {resp.text}"
+            logger.bind(tag=TAG).error(error_msg)
+            raise Exception(error_msg)  # 抛出异常，让调用方捕获

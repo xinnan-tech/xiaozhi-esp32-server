@@ -1,13 +1,14 @@
 package xiaozhi.modules.sys.entity;
 
+import java.util.Date;
+
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import xiaozhi.common.entity.BaseEntity;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import java.util.Date;
+import xiaozhi.common.entity.BaseEntity;
 
 /**
  * 字典类型
@@ -17,7 +18,7 @@ import java.util.Date;
 @TableName("sys_dict_type")
 public class SysDictTypeEntity extends BaseEntity {
     /**
-     * 字典类型
+     * 字典类型编码
      */
     private String dictType;
     /**

@@ -1,7 +1,7 @@
-import {goToPage, showDanger, showWarning, isNotNull} from '../utils/index'
-import Constant from '../utils/constant'
 import Fly from 'flyio/dist/npm/fly';
-import store from '../store/index'
+import store from '../store/index';
+import Constant from '../utils/constant';
+import { goToPage, isNotNull, showDanger, showWarning } from '../utils/index';
 
 const fly = new Fly()
 // 设置超时
@@ -22,11 +22,11 @@ function sendRequest() {
         _failCallback: null,
         _method: 'GET',
         _data: {},
-        _header: {'content-type': 'application/json; charset=utf-8'},
+        _header: { 'content-type': 'application/json; charset=utf-8' },
         _url: '',
         _responseType: undefined, // 新增响应类型字段
         'send'() {
-            if(isNotNull(store.getters.getToken)){
+            if (isNotNull(store.getters.getToken)) {
                 this._header.Authorization = 'Bearer ' + (JSON.parse(store.getters.getToken)).token
             }
 
@@ -40,7 +40,7 @@ function sendRequest() {
                 if (error) {
                     return
                 }
-                
+
                 if (this._sucCallback) {
                     this._sucCallback(res)
                 }
@@ -100,16 +100,15 @@ function sendRequest() {
  */
 // 在错误处理函数中添加日志
 function httpHandlerError(info, callBack) {
-    console.log('httpHandlerError', info)
-    
+
     /** 请求成功，退出该函数 可以根据项目需求来判断是否请求成功。这里判断的是status为200的时候是成功 */
     let networkError = false
     if (info.status === 200) {
-
         if (info.data.code === 'success' || info.data.code === 0 || info.data.code === undefined) {
             return networkError
-        }else if (info.data.code === 401) {
-            goToPage(Constant.PAGE.LOGIN, true)
+        } else if (info.data.code === 401) {
+            store.commit('clearAuth');
+            goToPage(Constant.PAGE.LOGIN, true);
             return true
         } else {
             showDanger(info.data.msg)
@@ -138,7 +137,7 @@ function reAjaxFun(fn) {
     } else {
         showWarning('正在连接服务器(' + ajaxIndex + ')')
     }
-    if (fn) {
+    if (ajaxIndex < 10 && fn) {
         setTimeout(() => {
             fn()
         }, reAjaxSec * 1000)

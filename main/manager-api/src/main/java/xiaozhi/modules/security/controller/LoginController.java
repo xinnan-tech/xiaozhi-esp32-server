@@ -1,18 +1,28 @@
 package xiaozhi.modules.security.controller;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.*;
+import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.TokenDTO;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.validator.AssertUtils;
+import xiaozhi.common.validator.ValidatorUtils;
 import xiaozhi.modules.security.dto.LoginDTO;
 import xiaozhi.modules.security.password.PasswordUtils;
 import xiaozhi.modules.security.service.CaptchaService;
@@ -21,8 +31,6 @@ import xiaozhi.modules.security.user.SecurityUser;
 import xiaozhi.modules.sys.dto.PasswordDTO;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.service.SysUserService;
-
-import java.io.IOException;
 
 /**
  * 登录控制层
@@ -36,14 +44,13 @@ public class LoginController {
     private final SysUserTokenService sysUserTokenService;
     private final CaptchaService captchaService;
 
-
     @GetMapping("/captcha")
     @Operation(summary = "验证码")
     public void captcha(HttpServletResponse response, String uuid) throws IOException {
-        //uuid不能为空
+        // uuid不能为空
         AssertUtils.isBlank(uuid, ErrorCode.IDENTIFIER_NOT_NULL);
 
-        //生成验证码
+        // 生成验证码
         captchaService.create(response, uuid);
     }
 
@@ -71,6 +78,9 @@ public class LoginController {
     @PostMapping("/register")
     @Operation(summary = "注册")
     public Result<Void> register(@RequestBody LoginDTO login) {
+        if (!sysUserService.getAllowUserRegister()) {
+            throw new RenException("当前不允许普通用户注册");
+        }
         // 验证是否正确输入验证码
         boolean validate = captchaService.validate(login.getCaptchaId(), login.getCaptcha());
         if (!validate) {
@@ -101,8 +111,19 @@ public class LoginController {
     @PutMapping("/change-password")
     @Operation(summary = "修改用户密码")
     public Result<?> changePassword(@RequestBody PasswordDTO passwordDTO) {
+        // 判断非空
+        ValidatorUtils.validateEntity(passwordDTO);
         Long userId = SecurityUser.getUserId();
         sysUserTokenService.changePassword(userId, passwordDTO);
         return new Result<>();
+    }
+
+    @GetMapping("/pub-config")
+    @Operation(summary = "公共配置")
+    public Result<Map<String, Object>> pubConfig() {
+        Map<String, Object> config = new HashMap<>();
+        config.put("version", Constant.VERSION);
+        config.put("allowUserRegister", sysUserService.getAllowUserRegister());
+        return new Result<Map<String, Object>>().ok(config);
     }
 }
