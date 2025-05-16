@@ -103,6 +103,9 @@ plugins:
   # 申请地址：https://console.qweather.com/#/apps/create-key/over
   # 申请后通过这个链接可以找到自己的apihost：https://console.qweather.com/setting?lang=zh
   get_weather: {"api_host":"mj7p3y7naa.re.qweatherapi.com", "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
+  # 获取附近场所信息插件配置，这里填写你的高德地图API密钥
+  # 申请地址：https://lbs.amap.com/dev/key/app
+  get_place_info: {"api_key": "1ba9b66a094a5a86b22e6c7425a4f33b", "default_city": "上海" }
   # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
   # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
   get_news_from_chinanews:
@@ -149,7 +152,7 @@ end_prompt:
   enable: true # 是否开启结束语
   # 结束语
   prompt: |
-    请你以“时间过得真快”未来头，用富有感情、依依不舍的话来结束这场对话吧！
+    请你以"时间过得真快"未来头，用富有感情、依依不舍的话来结束这场对话吧！
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
@@ -184,7 +187,7 @@ Intent:
     # 如果你的不想使用selected_module.LLM意图识别，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
     llm: ChatGLMLLM
     # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
+    # 系统默认已经记载"handle_exit_intent(退出识别)"、"play_music(音乐播放)"插件，请勿重复加载
     # 下面是加载查天气、角色切换、加载查新闻的插件示例
     functions:
       - get_weather
@@ -194,13 +197,13 @@ Intent:
     # 不需要动type
     type: function_call
     # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
+    # 系统默认已经记载"handle_exit_intent(退出识别)"、"play_music(音乐播放)"插件，请勿重复加载
     # 下面是加载查天气、角色切换、加载查新闻的插件示例
     functions:
       - change_role
       - get_weather
-      # - get_news_from_chinanews
       - get_news_from_newsnow
+      - get_place_info
       # play_music是服务器自带的音乐播放，hass_play_music是通过home assistant控制的独立外部程序音乐播放
       # 如果用了hass_play_music，就不要开启play_music，两者只留一个
       - play_music
