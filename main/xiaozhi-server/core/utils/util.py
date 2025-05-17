@@ -153,29 +153,29 @@ def get_string_no_punctuation_or_emoji(s):
     end = len(chars) - 1
     while end >= start and is_punctuation_or_emoji(chars[end]):
         end -= 1
-    return "".join(chars[start : end + 1])
+    return "".join(chars[start: end + 1])
 
 
 def remove_punctuation_and_length(text):
-    # 全角符号和半角符号的Unicode范围
-    full_width_punctuations = (
-        "！＂＃＄％＆＇（）＊＋，－。／：；＜＝＞？＠［＼］＾＿｀｛｜｝～"
-    )
-    half_width_punctuations = r'!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~'
+    # 定义需要保留的数学符号（全角+半角）
+    allowed_symbols = {'+', '-', '*', '/', '=', '＋', '－', '×', '÷', '＝'}
+
+    # 需要过滤的标点符号（排除保留的符号）
+    full_width_punctuations = "！＂＃＄％＆＇（），。／：；＜＞？＠［＼］＾＿｀｛｜｝～"
+    half_width_punctuations = r'!"#$%&\'(),./:;<>?@[\]^_`{|}~'
     space = " "  # 半角空格
     full_width_space = "　"  # 全角空格
 
-    # 去除全角和半角符号以及空格
-    result = "".join(
-        [
-            char
-            for char in text
-            if char not in full_width_punctuations
-            and char not in half_width_punctuations
-            and char not in space
-            and char not in full_width_space
-        ]
-    )
+    # 保留数学符号的过滤逻辑
+    result = "".join([
+        char
+        for char in text
+        if (char not in full_width_punctuations and
+            char not in half_width_punctuations and
+            char not in space and
+            char not in full_width_space)
+           or char in allowed_symbols
+    ])
 
     if result == "Yeah":
         return 0, ""
