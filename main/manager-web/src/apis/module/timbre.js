@@ -1,4 +1,4 @@
-import {getServiceUrl} from '../api';
+import { getServiceUrl } from '../api';
 import RequestService from '../httpRequest';
 
 export default {
@@ -18,7 +18,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res.data || []);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取音色列表失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getVoiceList(params, callback);
@@ -42,7 +42,7 @@ export default {
             .success((res) => {
                 callback(res.data);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('保存音色失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.saveVoice(params, callback);
@@ -59,7 +59,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('删除音色失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.deleteVoice(ids, callback);
@@ -82,7 +82,7 @@ export default {
             .success((res) => {
                 callback(res.data);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('修改音色失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.updateVoice(params, callback);

@@ -18,7 +18,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('请求失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.getUserList(callback)
@@ -34,7 +34,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('删除失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.deleteUser(id, callback)
@@ -50,7 +50,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('重置密码失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.resetUserPassword(id, callback)
@@ -72,7 +72,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取参数列表失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.getParamsList(params, callback)
@@ -89,7 +89,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('添加参数失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.addParam(data, callback)
@@ -106,7 +106,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('更新参数失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.updateParam(data, callback)
@@ -123,7 +123,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('删除参数失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.deleteParam(ids, callback)

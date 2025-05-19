@@ -28,6 +28,8 @@
         <captcha.version>1.6.2</captcha.version>
         <guava.version>33.0.0-jre</guava.version>
         <liquibase-core.version>4.20.0</liquibase-core.version>
+        <aliyun-sms-version>4.1.0</aliyun-sms-version>
+        <okio-version>3.4.0</okio-version>
     </properties>
 
     <dependencies>
@@ -37,6 +39,7 @@
             <classifier>jakarta</classifier>
             <version>${shiro.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.shiro</groupId>
             <artifactId>shiro-spring</artifactId>
@@ -200,6 +203,18 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+        <!-- 阿里云短信sdk -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>dysmsapi20170525</artifactId>
+            <version>${aliyun-sms-version}</version>
+        </dependency>
+        <!-- 阿里云短信sdk使用的okio:1.15.0版本有安全漏洞：GHSA-w33c-445m-f8w7 现在升级成3.4.0安全版本-->
+        <dependency>
+            <groupId>com.squareup.okio</groupId>
+            <artifactId>okio</artifactId>
+            <version>${okio-version}</version>
         </dependency>
     </dependencies>
 

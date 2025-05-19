@@ -117,4 +117,26 @@ public class RedisKeys {
     public static String getAgentAudioIdKey(String uuid) {
         return "agent:audio:id:" + uuid;
     }
+
+    /**
+     * 获取短信验证码的缓存key
+     */
+    public static String getSMSValidateCodeKey(String phone) {
+        return "sms:Validate:Code:" + phone;
+    }
+
+    /**
+     * 获取短信验证码最后发送时间的缓存key
+     */
+    public static String getSMSLastSendTimeKey(String phone) {
+        return "sms:Validate:Code:" + phone + ":last_send_time";
+    }
+
+    /**
+     * 获取短信验证码今日发送次数的缓存key
+     */
+    public static String getSMSTodayCountKey(String phone) {
+        return "sms:Validate:Code:" + phone + ":today_count";
+    }
+
 }

@@ -130,7 +130,7 @@ class TTSProvider(TTSProviderBase):
             "yes",
         )
         self.use_memory_cache = config.get("use_memory_cache", "on")
-        self.seed = config.get("seed") or None
+        self.seed = int(config.get("seed")) if config.get("seed") else None
         self.api_url = config.get("api_url", "http://127.0.0.1:8080/v1/tts")
 
     def generate_filename(self, extension=".wav"):

@@ -80,6 +80,7 @@ public class ShiroConfig {
         filterMap.put("/doc.html", "anon");
         filterMap.put("/favicon.ico", "anon");
         filterMap.put("/user/captcha", "anon");
+        filterMap.put("/user/smsVerification", "anon");
         filterMap.put("/user/login", "anon");
         filterMap.put("/user/pub-config", "anon");
         filterMap.put("/user/register", "anon");

@@ -20,10 +20,27 @@
             </div>
           </div>
           <div style="padding: 0 30px;">
-            <div class="input-box">
-              <img loading="lazy" alt="" class="input-icon" src="@/assets/login/username.png" />
-              <el-input v-model="form.username" placeholder="请输入用户名" />
-            </div>
+            <!-- 用户名登录 -->
+            <template v-if="!isMobileLogin">
+              <div class="input-box">
+                <img loading="lazy" alt="" class="input-icon" src="@/assets/login/username.png" />
+                <el-input v-model="form.username" placeholder="请输入用户名" />
+              </div>
+            </template>
+
+            <!-- 手机号登录 -->
+            <template v-else>
+              <div class="input-box">
+                <div style="display: flex; align-items: center; width: 100%;">
+                  <el-select v-model="form.areaCode" style="width: 220px; margin-right: 10px;">
+                    <el-option v-for="item in mobileAreaList" :key="item.key" :label="`${item.name} (${item.key})`"
+                      :value="item.key" />
+                  </el-select>
+                  <el-input v-model="form.mobile" placeholder="请输入手机号码" />
+                </div>
+              </div>
+            </template>
+
             <div class="input-box">
               <img loading="lazy" alt="" class="input-icon" src="@/assets/login/password.png" />
               <el-input v-model="form.password" placeholder="请输入密码" type="password" />
@@ -42,6 +59,19 @@
             </div>
           </div>
           <div class="login-btn" @click="login">登录</div>
+
+          <!-- 登录方式切换按钮 -->
+          <div class="login-type-container">
+            <el-tooltip content="手机号码登录" placement="bottom">
+              <el-button :type="isMobileLogin ? 'primary' : 'default'" icon="el-icon-mobile" circle
+                @click="switchLoginType('mobile')"></el-button>
+            </el-tooltip>
+            <el-tooltip content="用户名登录" placement="bottom">
+              <el-button :type="!isMobileLogin ? 'primary' : 'default'" icon="el-icon-user" circle
+                @click="switchLoginType('username')"></el-button>
+            </el-tooltip>
+          </div>
+
           <div style="font-size: 14px;color: #979db1;">
             登录即同意
             <div style="display: inline-block;color: #5778FF;cursor: pointer;">《用户协议》</div>
@@ -60,7 +90,7 @@
 <script>
 import Api from '@/apis/api';
 import VersionFooter from '@/components/VersionFooter.vue';
-import { getUUID, goToPage, showDanger, showSuccess } from '@/utils';
+import { getUUID, goToPage, showDanger, showSuccess, validateMobile } from '@/utils';
 import { mapState } from 'vuex';
 
 export default {
@@ -70,7 +100,9 @@ export default {
   },
   computed: {
     ...mapState({
-      allowUserRegister: state => state.pubConfig.allowUserRegister
+      allowUserRegister: state => state.pubConfig.allowUserRegister,
+      enableMobileRegister: state => state.pubConfig.enableMobileRegister,
+      mobileAreaList: state => state.pubConfig.mobileAreaList
     })
   },
   data() {
@@ -80,15 +112,21 @@ export default {
         username: '',
         password: '',
         captcha: '',
-        captchaId: ''
+        captchaId: '',
+        areaCode: '+86',
+        mobile: ''
       },
       captchaUuid: '',
-      captchaUrl: ''
+      captchaUrl: '',
+      isMobileLogin: false
     }
   },
   mounted() {
     this.fetchCaptcha();
-    this.$store.dispatch('fetchPubConfig');
+    this.$store.dispatch('fetchPubConfig').then(() => {
+      // 根据配置决定默认登录方式
+      this.isMobileLogin = this.enableMobileRegister;
+    });
   },
   methods: {
     fetchCaptcha() {
@@ -110,6 +148,17 @@ export default {
       }
     },
 
+    // 切换登录方式
+    switchLoginType(type) {
+      this.isMobileLogin = type === 'mobile';
+      // 清空表单
+      this.form.username = '';
+      this.form.mobile = '';
+      this.form.password = '';
+      this.form.captcha = '';
+      this.fetchCaptcha();
+    },
+
     // 封装输入验证逻辑
     validateInput(input, message) {
       if (!input.trim()) {
@@ -120,10 +169,21 @@ export default {
     },
 
     async login() {
-      // 验证用户名
-      if (!this.validateInput(this.form.username, '用户名不能为空')) {
-        return;
+      if (this.isMobileLogin) {
+        // 手机号登录验证
+        if (!validateMobile(this.form.mobile, this.form.areaCode)) {
+          showDanger('请输入正确的手机号码');
+          return;
+        }
+        // 拼接手机号作为用户名
+        this.form.username = this.form.areaCode + this.form.mobile;
+      } else {
+        // 用户名登录验证
+        if (!this.validateInput(this.form.username, '用户名不能为空')) {
+          return;
+        }
       }
+
       // 验证密码
       if (!this.validateInput(this.form.password, '密码不能为空')) {
         return;
@@ -135,12 +195,13 @@ export default {
 
       this.form.captchaId = this.captchaUuid
       Api.user.login(this.form, ({ data }) => {
-        if (data.code === 0) {
-          showSuccess('登录成功！');
-          this.$store.commit('setToken', JSON.stringify(data.data));
-          goToPage('/home');
-        } else {
-          showDanger(data.msg || '登录失败');
+        showSuccess('登录成功！');
+        this.$store.commit('setToken', JSON.stringify(data.data));
+        goToPage('/home');
+      }, (err) => {
+        showDanger(err.data.msg || '登录失败')
+        if (err.data != null && err.data.msg != null && err.data.msg.indexOf('图形验证码') > -1) {
+          this.fetchCaptcha()
         }
       })
 
@@ -157,4 +218,25 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-@import './auth.scss'; // 添加这行引用</style>
+@import './auth.scss';
+
+.login-type-container {
+  margin: 10px 20px;
+}
+
+:deep(.el-button--primary) {
+  background-color: #5778ff;
+  border-color: #5778ff;
+
+  &:hover,
+  &:focus {
+    background-color: #4a6ae8;
+    border-color: #4a6ae8;
+  }
+
+  &:active {
+    background-color: #3d5cd6;
+    border-color: #3d5cd6;
+  }
+}
+</style>

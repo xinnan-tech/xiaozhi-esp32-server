@@ -1,13 +1,14 @@
 <template>
   <div class="welcome">
-    <HeaderBar/>
+    <HeaderBar />
 
     <div class="operation-bar">
       <h2 class="page-title">供应器管理</h2>
       <div class="right-operations">
         <el-dropdown trigger="click" @command="handleSelectModelType" @visible-change="handleDropdownVisibleChange">
           <el-button class="category-btn">
-            类别筛选 {{ selectedModelTypeLabel }}<i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down':DropdownVisible }"></i>
+            类别筛选 {{ selectedModelTypeLabel }}<i class="el-icon-arrow-down el-icon--right"
+              :class="{ 'rotate-down': DropdownVisible }"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item command="">全部</el-dropdown-item>
@@ -16,7 +17,8 @@
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
-        <el-input placeholder="请输入供应器名称查询" v-model="searchName" class="search-input" @keyup.enter.native="handleSearch" clearable/>
+        <el-input placeholder="请输入供应器名称查询" v-model="searchName" class="search-input" @keyup.enter.native="handleSearch"
+          clearable />
         <el-button class="btn-search" @click="handleSearch">搜索</el-button>
       </div>
     </div>
@@ -26,35 +28,37 @@
         <div class="content-area">
           <el-card class="provider-card" shadow="never">
             <el-table ref="providersTable" :data="filteredProvidersList" class="transparent-table" v-loading="loading"
-                      element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
-                      element-loading-background="rgba(255, 255, 255, 0.7)"
-                      :header-cell-class-name="headerCellClassName">
+              element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
+              element-loading-background="rgba(255, 255, 255, 0.7)" :header-cell-class-name="headerCellClassName">
               <el-table-column label="选择" align="center" width="120">
                 <template slot-scope="scope">
                   <el-checkbox v-model="scope.row.selected"></el-checkbox>
                 </template>
               </el-table-column>
-              <el-table-column label="类别" prop="model_type" align="center" width="200">
+
+              <el-table-column label="类别" prop="modelType" align="center" width="200">
                 <template slot="header" slot-scope="scope">
-                  <el-dropdown trigger="click" @command="handleSelectModelType" @visible-change="isDropdownOpen = $event">
-                      <span class="dropdown-trigger" :class="{ 'active': isDropdownOpen }">
-                          类别{{ selectedModelTypeLabel }} <i class="dropdown-arrow" :class="{ 'is-active': isDropdownOpen }"></i>
-                      </span>
-                      <el-dropdown-menu slot="dropdown">
-                          <el-dropdown-item command="">全部</el-dropdown-item>
-                          <el-dropdown-item v-for="item in modelTypes" :key="item.value" :command="item.value">
-                              {{ item.label }}
-                          </el-dropdown-item>
-                      </el-dropdown-menu>
+                  <el-dropdown trigger="click" @command="handleSelectModelType"
+                    @visible-change="isDropdownOpen = $event">
+                    <span class="dropdown-trigger" :class="{ 'active': isDropdownOpen }">
+                      类别{{ selectedModelTypeLabel }} <i class="dropdown-arrow"
+                        :class="{ 'is-active': isDropdownOpen }"></i>
+                    </span>
+                    <el-dropdown-menu slot="dropdown">
+                      <el-dropdown-item command="">全部</el-dropdown-item>
+                      <el-dropdown-item v-for="item in modelTypes" :key="item.value" :command="item.value">
+                        {{ item.label }}
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
                   </el-dropdown>
                 </template>
                 <template slot-scope="scope">
-                  <el-tag :type="getModelTypeTag(scope.row.model_type)">
-                    {{ getModelTypeLabel(scope.row.model_type) }}
+                  <el-tag :type="getModelTypeTag(scope.row.modelType)">
+                    {{ getModelTypeLabel(scope.row.modelType) }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="供应器编码" prop="provider_code" align="center" width="150"></el-table-column>
+              <el-table-column label="供应器编码" prop="providerCode" align="center" width="150"></el-table-column>
               <el-table-column label="名称" prop="name" align="center"></el-table-column>
               <el-table-column label="字段配置" align="center">
                 <template slot-scope="scope">
@@ -97,7 +101,8 @@
                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
                   上一页
                 </button>
-                <button v-for="page in visiblePages" :key="page" class="pagination-btn" :class="{ active: page === currentPage }" @click="goToPage(page)">
+                <button v-for="page in visiblePages" :key="page" class="pagination-btn"
+                  :class="{ active: page === currentPage }" @click="goToPage(page)">
                   {{ page }}
                 </button>
                 <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
@@ -112,33 +117,35 @@
     </div>
 
     <!-- 新增/编辑供应器对话框 -->
-    <provider-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="providerForm" :model-types="modelTypes" @submit="handleSubmit" @cancel="dialogVisible = false"/>
+    <provider-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="providerForm" :model-types="modelTypes"
+      @submit="handleSubmit" @cancel="dialogVisible = false" />
 
     <el-footer>
-      <version-footer/>
+      <version-footer />
     </el-footer>
   </div>
 </template>
 
 <script>
+import Api from "@/apis/api";
 import HeaderBar from "@/components/HeaderBar.vue";
 import ProviderDialog from "@/components/ProviderDialog.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
 
 export default {
-  components: {HeaderBar, ProviderDialog, VersionFooter},
+  components: { HeaderBar, ProviderDialog, VersionFooter },
   data() {
     return {
       searchName: "",
       searchModelType: "",
       providersList: [],
       modelTypes: [
-        {value: "ASR", label: "语音识别"},
-        {value: "TTS", label: "语音合成"},
-        {value: "LLM", label: "大语言模型"},
-        {value: "Intent", label: "意图识别"},
-        {value: "Memory", label: "记忆模块"},
-        {value: "VAD", label: "语音活动检测"}
+        { value: "ASR", label: "语音识别" },
+        { value: "TTS", label: "语音合成" },
+        { value: "LLM", label: "大语言模型" },
+        { value: "Intent", label: "意图识别" },
+        { value: "Memory", label: "记忆模块" },
+        { value: "VAD", label: "语音活动检测" }
       ],
       currentPage: 1,
       loading: false,
@@ -152,8 +159,8 @@ export default {
       sensitive_keys: ["api_key", "personal_access_token", "access_token", "token", "secret", "access_key_secret", "secret_key"],
       providerForm: {
         id: null,
-        model_type: "",
-        provider_code: "",
+        modelType: "",
+        providerCode: "",
         name: "",
         fields: [],
         sort: 0
@@ -189,123 +196,50 @@ export default {
       return pages;
     },
     filteredProvidersList() {
-      let list = this.providersList.filter(item => {
-        const nameMatch = item.name.toLowerCase().includes(this.searchName.toLowerCase());
-        const typeMatch = !this.searchModelType || item.model_type === this.searchModelType;
-        return nameMatch && typeMatch;
-      });
+      return this.providersList;
 
-      list.sort((a, b) => a.sort - b.sort);
+      // let list = this.providersList.filter(item => {
+      //   const nameMatch = item.name.toLowerCase().includes(this.searchName.toLowerCase());
+      //   const typeMatch = !this.searchModelType || item.model_type === this.searchModelType;
+      //   return nameMatch && typeMatch;
+      // });
 
-      // 分页处理
-      const start = (this.currentPage - 1) * this.pageSize;
-      return list.slice(start, start + this.pageSize);
+      // list.sort((a, b) => a.sort - b.sort);
+
+      // // 分页处理
+      // const start = (this.currentPage - 1) * this.pageSize;
+      // return list.slice(start, start + this.pageSize);
     }
   },
   methods: {
     fetchProviders() {
       this.loading = true;
 
-      // 模拟API请求延迟
-      setTimeout(() => {
-        this.loading = false;
-
-        // 模拟数据 - 从数据库结构中提取
-        this.providersList = [
-          {
-            id: "SYSTEM_ASR_DoubaoASR",
-            model_type: "ASR",
-            provider_code: "doubao",
-            name: "火山引擎语音识别",
-            fields: JSON.parse('[{"key": "appid", "type": "string", "label": "应用ID"}, {"key": "access_token", "type": "string", "label": "访问令牌"}, {"key": "cluster", "type": "string", "label": "集群"}, {"key": "output_dir", "type": "string", "label": "输出目录"}]'),
-            sort: 3,
-            selected: false
-          },
-          {
-            id: "SYSTEM_ASR_FunASR",
-            model_type: "ASR",
-            provider_code: "fun_local",
-            name: "FunASR语音识别",
-            fields: JSON.parse('[{"key": "model_dir", "type": "string", "label": "模型目录"}, {"key": "output_dir", "type": "string", "label": "输出目录"}]'),
-            sort: 1,
-            selected: false
-          },
-          {
-            id: "SYSTEM_LLM_openai",
-            model_type: "LLM",
-            provider_code: "openai",
-            name: "OpenAI接口",
-            fields: JSON.parse('[{"key": "base_url", "type": "string", "label": "基础URL"}, {"key": "model_name", "type": "string", "label": "模型名称"}, {"key": "api_key", "type": "string", "label": "API密钥"}, {"key": "temperature", "type": "number", "label": "温度"}, {"key": "max_tokens", "type": "number", "label": "最大令牌数"}]'),
-            sort: 1,
-            selected: false
-          },
-          {
-            id: "SYSTEM_TTS_edge",
-            model_type: "TTS",
-            provider_code: "edge",
-            name: "Edge TTS",
-            fields: JSON.parse('[{"key": "voice", "type": "string", "label": "音色"}, {"key": "output_dir", "type": "string", "label": "输出目录"}]'),
-            sort: 1,
-            selected: false
-          },
-          {
-            id: "SYSTEM_Memory_mem0ai",
-            model_type: "Memory",
-            provider_code: "mem0ai",
-            name: "Mem0AI记忆",
-            fields: JSON.parse('[{"key": "api_key", "type": "string", "label": "API密钥"}]'),
-            sort: 1,
-            selected: false
-          },
-          {
-            id: "SYSTEM_VAD_SileroVAD",
-            model_type: "VAD",
-            provider_code: "silero",
-            name: "SileroVAD语音活动检测",
-            fields: JSON.parse('[{"key": "threshold", "type": "number", "label": "检测阈值"}, {"key": "model_dir", "type": "string", "label": "模型目录"}, {"key": "min_silence_duration_ms", "type": "number", "label": "最小静音时长"}]'),
-            sort: 1,
-            selected: false
-          },
-          {
-            id: "SYSTEM_Intent_nointent",
-            model_type: "Intent",
-            provider_code: "nointent",
-            name: "无意图识别",
-            fields: [],
-            sort: 1,
-            selected: false
-          },
-          {
-            id: "SYSTEM_TTS_aliyun",
-            model_type: "TTS",
-            provider_code: "aliyun",
-            name: "阿里云TTS",
-            fields: JSON.parse('[{"key": "output_dir", "type": "string", "label": "输出目录"}, {"key": "appkey", "type": "string", "label": "应用密钥"}, {"key": "token", "type": "string", "label": "访问令牌"}, {"key": "voice", "type": "string", "label": "音色"}, {"key": "access_key_id", "type": "string", "label": "访问密钥ID"}, {"key": "access_key_secret", "type": "string", "label": "访问密钥密码"}]'),
-            sort: 9,
-            selected: false
-          },
-          {
-            id: "SYSTEM_LLM_coze",
-            model_type: "LLM",
-            provider_code: "coze",
-            name: "Coze接口",
-            fields: JSON.parse('[{"key": "bot_id", "type": "string", "label": "机器人ID"}, {"key": "user_id", "type": "string", "label": "用户ID"}, {"key": "personal_access_token", "type": "string", "label": "个人访问令牌"}]'),
-            sort: 6,
-            selected: false
-          },
-          {
-            id: "SYSTEM_TTS_TencentTTS",
-            model_type: "TTS",
-            provider_code: "tencent",
-            name: "腾讯语音合成",
-            fields: JSON.parse('[{"key": "appid", "type": "string", "label": "应用ID"}, {"key": "secret_id", "type": "string", "label": "Secret ID"}, {"key": "secret_key", "type": "string", "label": "Secret Key"}, {"key": "output_dir", "type": "string", "label": "输出目录"}, {"key": "region", "type": "string", "label": "区域"}, {"key": "voice", "type": "string", "label": "音色ID"}]'),
-            sort: 5,
-            selected: false
+      Api.model.getModelProvidersPage(
+        {
+          page: this.currentPage,
+          limit: this.pageSize,
+          name: this.searchName,
+          modelType: this.searchModelType
+        },
+        ({ data }) => {
+          this.loading = false;
+          if (data.code === 0) {
+            this.providersList = data.data.list.map(item => {
+              return {
+                ...item,
+                selected: false,
+                fields: JSON.parse(item.fields)
+              };
+            });
+            this.total = data.data.total;
+          } else {
+            this.$message.error({
+              message: data.msg || '获取参数列表失败'
+            });
           }
-        ];
-
-        this.total = this.providersList.length;
-      }, 500);
+        }
+      );
     },
     handleSearch() {
       this.currentPage = 1;
@@ -326,8 +260,8 @@ export default {
       this.dialogTitle = "新增供应器";
       this.providerForm = {
         id: null,
-        model_type: "",
-        provider_code: "",
+        modelType: "",
+        providerCode: "",
         name: "",
         fields: [],
         sort: 0
@@ -342,43 +276,36 @@ export default {
       };
       this.dialogVisible = true;
     },
-    handleSubmit({form, done}) {
+    handleSubmit({ form, done }) {
       this.loading = true;
-      setTimeout(() => {
-        this.loading = false;
+      if (form.id) {
+        // 编辑
+        Api.model.updateModelProvider(form, ({ data }) => {
 
-        if (form.id) {
-          // 模拟编辑操作
-          const index = this.providersList.findIndex(p => p.id === form.id);
-          if (index !== -1) {
-            this.providersList.splice(index, 1, {
-              ...form,
-              fields: typeof form.fields === 'string' ? JSON.parse(form.fields) : form.fields
-            });
+          if (data.code === 0) {
+            this.fetchProviders(); // 刷新表格
             this.$message.success({
               message: "修改成功",
               showClose: true
             });
           }
-        } else {
-          // 模拟新增操作
-          const newId = `SYSTEM_${form.model_type}_${form.provider_code}`;
-          this.providersList.unshift({
-            ...form,
-            id: newId,
-            fields: typeof form.fields === 'string' ? JSON.parse(form.fields) : form.fields,
-            selected: false
-          });
-          this.total += 1;
-          this.$message.success({
-            message: "新增成功",
-            showClose: true
-          });
-        }
-
-        this.dialogVisible = false;
-        done && done();
-      }, 500);
+        });
+      } else {
+        // 新增
+        Api.model.addModelProvider(form, ({ data }) => {
+          if (data.code === 0) {
+            this.fetchProviders(); // 刷新表格
+            this.$message.success({
+              message: "新增成功",
+              showClose: true
+            });
+            this.total += 1;
+          }
+        });
+      }
+      this.loading = false;
+      this.dialogVisible = false;
+      done && done();
     },
     deleteSelectedProviders() {
       const selectedRows = this.providersList.filter(row => row.selected);
@@ -398,16 +325,25 @@ export default {
       this.$confirm(`确定要删除选中的${providerCount}个供应器吗？`, '警告', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'warning',
       }).then(() => {
         const ids = providers.map(provider => provider.id);
-        // 模拟删除操作
-        this.providersList = this.providersList.filter(p => !ids.includes(p.id));
-        this.total = this.providersList.length;
+        Api.model.deleteModelProviderByIds(ids, ({ data }) => {
+          if (data.code === 0) {
 
-        this.$message.success({
-          message: `成功删除${providerCount}个供应器`,
-          showClose: true
+            this.isAllSelected = false;
+            this.fetchProviders(); // 刷新表格
+
+            this.$message.success({
+              message: `成功删除${providerCount}个参数`,
+              showClose: true
+            });
+          } else {
+            this.$message.error({
+              message: data.msg || '删除失败，请重试',
+              showClose: true
+            });
+          }
         });
       }).catch(() => {
         this.$message({
@@ -434,8 +370,9 @@ export default {
       return typeItem ? typeItem.label : type;
     },
     isSensitiveField(fieldKey) {
+      if (typeof fieldKey !== 'string') return false;
       return this.sensitive_keys.some(key =>
-          fieldKey.toLowerCase().includes(key.toLowerCase())
+        fieldKey.toLowerCase().includes(key.toLowerCase())
       );
     },
     handlePageSizeChange(val) {
@@ -443,7 +380,7 @@ export default {
       this.currentPage = 1;
       this.fetchProviders();
     },
-    headerCellClassName({columnIndex}) {
+    headerCellClassName({ columnIndex }) {
       if (columnIndex === 0) {
         return "custom-selection-header";
       }
@@ -461,6 +398,7 @@ export default {
     },
     goNext() {
       if (this.currentPage < this.pageCount) {
+        console.log("this.currentPage", this.currentPage);
         this.currentPage++;
         this.fetchProviders();
       }
@@ -552,7 +490,7 @@ export default {
   flex-direction: column;
 }
 
-.el-card{
+.el-card {
   border: none;
 }
 
@@ -563,6 +501,7 @@ export default {
   flex-direction: column;
   box-shadow: none;
   overflow: hidden;
+
   ::v-deep .el-card__body {
     padding: 15px;
     display: flex;
@@ -748,7 +687,7 @@ export default {
         padding-bottom: 16px;
       }
 
-      & + tr {
+      &+tr {
         margin-top: 10px;
       }
     }
@@ -918,19 +857,20 @@ export default {
 .el-icon-arrow-down {
   transition: transform 0.3s ease;
 }
-.dropdown-trigger {
-    font-size: 14px;
-    color: #303133;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
 
-    &:hover {
-        color: #409EFF;
-    }
+.dropdown-trigger {
+  font-size: 14px;
+  color: #303133;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: #409EFF;
+  }
 }
 
 .dropdown-trigger.active {
-    color: #409EFF;
+  color: #409EFF;
 }
 </style>

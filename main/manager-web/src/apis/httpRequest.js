@@ -20,6 +20,7 @@ function sendRequest() {
     return {
         _sucCallback: null,
         _failCallback: null,
+        _networkFailCallback: null,
         _method: 'GET',
         _data: {},
         _header: { 'content-type': 'application/json; charset=utf-8' },
@@ -36,7 +37,7 @@ function sendRequest() {
                 headers: this._header,
                 responseType: this._responseType
             }).then((res) => {
-                const error = httpHandlerError(res, this._failCallback);
+                const error = httpHandlerError(res, this._failCallback, this._networkFailCallback);
                 if (error) {
                     return
                 }
@@ -47,7 +48,7 @@ function sendRequest() {
             }).catch((res) => {
                 // 打印失败响应
                 console.log('catch', res)
-                httpHandlerError(res, this._failCallback)
+                httpHandlerError(res, this._failCallback, this._networkFailCallback)
             })
             return this
         },
@@ -57,6 +58,10 @@ function sendRequest() {
         },
         'fail'(callback) {
             this._failCallback = callback
+            return this
+        },
+        'networkFail'(callback) {
+            this._networkFailCallback = callback
             return this
         },
         'url'(url) {
@@ -95,11 +100,11 @@ function sendRequest() {
 
 /**
  * Info 请求完成后返回信息
- * callBack 回调函数
- * errTip 自定义错误信息
+ * failCallback 回调函数
+ * networkFailCallback 回调函数
  */
 // 在错误处理函数中添加日志
-function httpHandlerError(info, callBack) {
+function httpHandlerError(info, failCallback, networkFailCallback) {
 
     /** 请求成功，退出该函数 可以根据项目需求来判断是否请求成功。这里判断的是status为200的时候是成功 */
     let networkError = false
@@ -111,12 +116,16 @@ function httpHandlerError(info, callBack) {
             goToPage(Constant.PAGE.LOGIN, true);
             return true
         } else {
-            showDanger(info.data.msg)
+            if (failCallback) {
+                failCallback(info)
+            } else {
+                showDanger(info.data.msg)
+            }
             return true
         }
     }
-    if (callBack) {
-        callBack(info)
+    if (networkFailCallback) {
+        networkFailCallback(info)
     } else {
         showDanger(`网络请求出现了错误【${info.status}】`)
     }

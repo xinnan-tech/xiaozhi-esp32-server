@@ -18,7 +18,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取字典类型列表失败:', err)
                 this.$message.error(err.msg || '获取字典类型列表失败')
                 RequestService.reAjaxFun(() => {
@@ -36,7 +36,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取字典类型详情失败:', err)
                 this.$message.error(err.msg || '获取字典类型详情失败')
                 RequestService.reAjaxFun(() => {
@@ -55,7 +55,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('新增字典类型失败:', err)
                 this.$message.error(err.msg || '新增字典类型失败')
                 RequestService.reAjaxFun(() => {
@@ -74,7 +74,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('更新字典类型失败:', err)
                 this.$message.error(err.msg || '更新字典类型失败')
                 RequestService.reAjaxFun(() => {
@@ -93,7 +93,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('删除字典类型失败:', err)
                 this.$message.error(err.msg || '删除字典类型失败')
                 RequestService.reAjaxFun(() => {
@@ -119,7 +119,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取字典数据列表失败:', err)
                 this.$message.error(err.msg || '获取字典数据列表失败')
                 RequestService.reAjaxFun(() => {
@@ -137,7 +137,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取字典数据详情失败:', err)
                 this.$message.error(err.msg || '获取字典数据详情失败')
                 RequestService.reAjaxFun(() => {
@@ -156,7 +156,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('新增字典数据失败:', err)
                 this.$message.error(err.msg || '新增字典数据失败')
                 RequestService.reAjaxFun(() => {
@@ -175,7 +175,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('更新字典数据失败:', err)
                 this.$message.error(err.msg || '更新字典数据失败')
                 RequestService.reAjaxFun(() => {
@@ -194,7 +194,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('删除字典数据失败:', err)
                 this.$message.error(err.msg || '删除字典数据失败')
                 RequestService.reAjaxFun(() => {
@@ -217,7 +217,7 @@ export default {
                         reject(new Error(res.data?.msg || '获取字典数据列表失败'))
                     }
                 })
-                .fail((err) => {
+                .networkFail((err) => {
                     console.error('获取字典数据列表失败:', err)
                     reject(err)
                 }).send()

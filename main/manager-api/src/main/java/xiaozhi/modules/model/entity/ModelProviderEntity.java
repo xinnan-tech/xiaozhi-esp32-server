@@ -3,10 +3,8 @@ package xiaozhi.modules.model.entity;
 import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -30,7 +28,6 @@ public class ModelProviderEntity {
     private String name;
 
     @Schema(description = "供应器字段列表(JSON格式)")
-    @TableField(typeHandler = JacksonTypeHandler.class)
     private String fields;
 
     @Schema(description = "排序")

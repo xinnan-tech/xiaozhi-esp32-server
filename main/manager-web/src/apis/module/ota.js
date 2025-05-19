@@ -12,7 +12,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取OTA固件列表失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getOtaList(params, callback);
@@ -28,7 +28,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取OTA固件信息失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getOtaInfo(id, callback);
@@ -45,7 +45,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('保存OTA固件信息失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.saveOta(entity, callback);
@@ -62,7 +62,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('更新OTA固件信息失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.updateOta(id, entity, callback);
@@ -78,7 +78,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('删除OTA固件失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.deleteOta(id, callback);
@@ -97,7 +97,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('上传固件文件失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.uploadFirmware(file, callback);
@@ -113,7 +113,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取下载链接失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getDownloadUrl(id, callback);

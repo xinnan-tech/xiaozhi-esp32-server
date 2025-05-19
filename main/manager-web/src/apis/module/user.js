@@ -4,7 +4,7 @@ import RequestService from '../httpRequest'
 
 export default {
     // 登录
-    login(loginForm, callback) {
+    login(loginForm, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/login`)
             .method('POST')
@@ -13,7 +13,11 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail(() => {
+            .fail((err) => {
+                RequestService.clearRequestTime()
+                failCallback(err)
+            })
+            .networkFail(() => {
                 RequestService.reAjaxFun(() => {
                     this.login(loginForm, callback)
                 })
@@ -34,12 +38,32 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {  // 添加错误参数
+            .networkFail((err) => {  // 添加错误参数
 
             }).send()
     },
+    // 发送短信验证码
+    sendSmsVerification(data, callback, failCallback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/user/smsVerification`)
+            .method('POST')
+            .data(data)
+            .success((res) => {
+                RequestService.clearRequestTime()
+                callback(res)
+            })
+            .fail((err) => {
+                RequestService.clearRequestTime()
+                failCallback(err)
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.sendSmsVerification(data, callback, failCallback)
+                })
+            }).send()
+    },
     // 注册账号
-    register(registerForm, callback) {
+    register(registerForm, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/register`)
             .method('POST')
@@ -48,7 +72,14 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail(() => {
+            .fail((err) => {
+                RequestService.clearRequestTime()
+                failCallback(err)
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.register(registerForm, callback, failCallback)
+                })
             }).send()
     },
     // 保存设备配置
@@ -61,7 +92,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('保存配置失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.saveDeviceConfig(device_id, configData, callback);
@@ -77,7 +108,7 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('接口请求失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.getUserInfo(callback)
@@ -97,7 +128,7 @@ export default {
                 RequestService.clearRequestTime();
                 successCallback(res);
             })
-            .fail((error) => {
+            .networkFail((error) => {
                 RequestService.reAjaxFun(() => {
                     this.changePassword(oldPassword, newPassword, successCallback, errorCallback);
                 });
@@ -115,7 +146,7 @@ export default {
                 RequestService.clearRequestTime()
                 successCallback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('修改用户状态失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.changeUserStatus(status, userIds)
@@ -131,7 +162,7 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .fail((err) => {
+            .networkFail((err) => {
                 console.error('获取公共配置失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getPubConfig(callback);

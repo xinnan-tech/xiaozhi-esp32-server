@@ -115,6 +115,13 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202505091409.sql
   - changeSet:
+      id: 202505141132
+      author: zjy
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202505141132.sql
+  - changeSet:
       id: 202505091555
       author: whosmyqueen
       changes:
