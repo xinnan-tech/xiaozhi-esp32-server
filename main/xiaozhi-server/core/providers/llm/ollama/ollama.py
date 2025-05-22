@@ -1,6 +1,5 @@
+import ollama
 from config.logger import setup_logging
-from ollama import Client
-import json
 from core.providers.llm.base import LLMProviderBase
 
 TAG = __name__
@@ -16,7 +15,7 @@ class LLMProvider(LLMProviderBase):
         # if not self.base_url.endswith("/v1"):
         #     self.base_url = f"{self.base_url}/v1"
 
-        self.client = Client(
+        self.client = ollama.Client(
             host=self.base_url,
         )
 
