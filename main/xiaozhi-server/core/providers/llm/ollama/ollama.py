@@ -50,8 +50,8 @@ class LLMProvider(LLMProviderBase):
 
             for chunk in responses:
                 try:
-                    delta = chunk.choices[0].delta if getattr(chunk, 'choices', None) else None
-                    content = delta.content if hasattr(delta, 'content') else ''
+                    message = chunk.message if getattr(chunk, 'message', None) else None
+                    content = message.content if hasattr(message, 'content') else ''
 
                     if content:
                         # 将内容添加到缓冲区
@@ -116,9 +116,9 @@ class LLMProvider(LLMProviderBase):
 
             for chunk in stream:
                 try:
-                    delta = chunk.choices[0].delta if getattr(chunk, 'choices', None) else None
-                    content = delta.content if hasattr(delta, 'content') else None
-                    tool_calls = delta.tool_calls if hasattr(delta, 'tool_calls') else None
+                    message = chunk.message if getattr(chunk, 'message', None) else None
+                    content = message.content if hasattr(message, 'content') else ''
+                    tool_calls = chunk.tool_calls if hasattr(chunk, 'tool_calls') else None
 
                     # 如果是工具调用，直接传递
                     if tool_calls:
