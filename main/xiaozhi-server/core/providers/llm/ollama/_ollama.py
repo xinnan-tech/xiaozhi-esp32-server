@@ -1,5 +1,5 @@
 from config.logger import setup_logging
-from openai import OpenAI
+from ollama import Client
 import json
 from core.providers.llm.base import LLMProviderBase
 
@@ -13,12 +13,11 @@ class LLMProvider(LLMProviderBase):
         self.base_url = config.get("base_url", "http://localhost:11434")
         # Initialize OpenAI client with Ollama base URL
         # 如果没有v1，增加v1
-        if not self.base_url.endswith("/v1"):
-            self.base_url = f"{self.base_url}/v1"
+        # if not self.base_url.endswith("/v1"):
+        #     self.base_url = f"{self.base_url}/v1"
 
-        self.client = OpenAI(
-            base_url=self.base_url,
-            api_key="ollama"  # Ollama doesn't need an API key but OpenAI client requires one
+        self.client = Client(
+            host=self.base_url,
         )
 
         # 检查是否是qwen3模型
@@ -41,8 +40,7 @@ class LLMProvider(LLMProviderBase):
 
                 # 使用修改后的对话
                 dialogue = dialogue_copy
-
-            responses = self.client.chat.completions.create(
+            responses = self.client.chat(
                 model=self.model_name,
                 messages=dialogue,
                 stream=True
@@ -107,7 +105,7 @@ class LLMProvider(LLMProviderBase):
                 # 使用修改后的对话
                 dialogue = dialogue_copy
 
-            stream = self.client.chat.completions.create(
+            stream = self.client.chat(
                 model=self.model_name,
                 messages=dialogue,
                 stream=True,
