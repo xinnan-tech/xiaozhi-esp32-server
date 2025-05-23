@@ -10,10 +10,7 @@ class LLMProvider(LLMProviderBase):
     def __init__(self, config):
         self.model_name = config.get("model_name")
         self.base_url = config.get("base_url", "http://localhost:11434")
-        # Initialize OpenAI client with Ollama base URL
-        # 如果没有v1，增加v1
-        # if not self.base_url.endswith("/v1"):
-        #     self.base_url = f"{self.base_url}/v1"
+        # Initialize Ollama client with Ollama base URL
 
         self.client = ollama.Client(
             host=self.base_url,
