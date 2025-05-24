@@ -879,6 +879,7 @@
                                         // 流已结束且没有更多数据
                                         log("音频播放完成", 'info');
                                         isAudioPlaying = false;
+                                        this.endOfStream = false;
                                         streamingContext = null;
                                     } else {
                                         // 等待更多数据
@@ -1409,6 +1410,17 @@
                 };
 
                 websocket.onclose = () => {
+
+                    // 清理音频缓冲和播放状态
+                    audioBufferQueue = [];
+                    isAudioBuffering = false;
+                    isAudioPlaying = false;
+                    streamingContext = null;
+                    if (visualizationRequest) {
+                        cancelAnimationFrame(visualizationRequest);
+                        visualizationRequest = null;
+                    }
+
                     log('已断开连接', 'info');
                     connectionStatus.textContent = 'ws已断开';
                     connectionStatus.style.color = 'red';
@@ -1562,6 +1574,10 @@
         function sendTextMessage() {
             const message = messageInput.value.trim();
             if (message === '' || !websocket || websocket.readyState !== WebSocket.OPEN) return;
+
+            audioBufferQueue = [];
+            isAudioBuffering = false;
+            isAudioPlaying = false;
 
             try {
                 // 直接发送listen消息，不需要重复发送hello
@@ -2382,6 +2398,8 @@
                     // 如果收到的是第一个音频包，开始缓冲过程
                     if (audioBufferQueue.length === 1 && !isAudioBuffering && !isAudioPlaying) {
                         startAudioBuffering();
+                    } else if (isAudioPlaying && streamingContext) {
+                        streamingContext.decodeOpusFrames([opusData]);
                     }
                 } else {
                     log('收到空音频数据帧，可能是结束标志', 'warning');
