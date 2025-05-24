@@ -1,6 +1,5 @@
+import ollama
 from config.logger import setup_logging
-from openai import OpenAI
-import json
 from core.providers.llm.base import LLMProviderBase
 
 TAG = __name__
@@ -11,14 +10,10 @@ class LLMProvider(LLMProviderBase):
     def __init__(self, config):
         self.model_name = config.get("model_name")
         self.base_url = config.get("base_url", "http://localhost:11434")
-        # Initialize OpenAI client with Ollama base URL
-        # 如果没有v1，增加v1
-        if not self.base_url.endswith("/v1"):
-            self.base_url = f"{self.base_url}/v1"
+        # Initialize Ollama client with Ollama base URL
 
-        self.client = OpenAI(
-            base_url=self.base_url,
-            api_key="ollama"  # Ollama doesn't need an API key but OpenAI client requires one
+        self.client = ollama.Client(
+            host=self.base_url,
         )
 
         # 检查是否是qwen3模型
@@ -41,8 +36,7 @@ class LLMProvider(LLMProviderBase):
 
                 # 使用修改后的对话
                 dialogue = dialogue_copy
-
-            responses = self.client.chat.completions.create(
+            responses = self.client.chat(
                 model=self.model_name,
                 messages=dialogue,
                 stream=True
@@ -53,8 +47,8 @@ class LLMProvider(LLMProviderBase):
 
             for chunk in responses:
                 try:
-                    delta = chunk.choices[0].delta if getattr(chunk, 'choices', None) else None
-                    content = delta.content if hasattr(delta, 'content') else ''
+                    message = chunk.message if getattr(chunk, 'message', None) else None
+                    content = message.content if hasattr(message, 'content') else ''
 
                     if content:
                         # 将内容添加到缓冲区
@@ -107,7 +101,7 @@ class LLMProvider(LLMProviderBase):
                 # 使用修改后的对话
                 dialogue = dialogue_copy
 
-            stream = self.client.chat.completions.create(
+            stream = self.client.chat(
                 model=self.model_name,
                 messages=dialogue,
                 stream=True,
@@ -119,9 +113,9 @@ class LLMProvider(LLMProviderBase):
 
             for chunk in stream:
                 try:
-                    delta = chunk.choices[0].delta if getattr(chunk, 'choices', None) else None
-                    content = delta.content if hasattr(delta, 'content') else None
-                    tool_calls = delta.tool_calls if hasattr(delta, 'tool_calls') else None
+                    message = chunk.message if getattr(chunk, 'message', None) else None
+                    content = message.content if hasattr(message, 'content') else ''
+                    tool_calls = chunk.tool_calls if hasattr(chunk, 'tool_calls') else None
 
                     # 如果是工具调用，直接传递
                     if tool_calls:
