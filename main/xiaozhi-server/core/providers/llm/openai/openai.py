@@ -16,26 +16,37 @@ class LLMProvider(LLMProviderBase):
             self.base_url = config.get("base_url")
         else:
             self.base_url = config.get("url")
-        max_tokens = config.get("max_tokens")
-        if max_tokens is None or max_tokens == "":
-            max_tokens = 500
 
-        try:
-            max_tokens = int(max_tokens)
-        except (ValueError, TypeError):
-            max_tokens = 500
-        self.max_tokens = max_tokens
+        param_defaults = {
+            "max_tokens": (500, int),
+            "temperature": (0.7, lambda x: round(float(x), 1)),
+            "top_p": (1.0, lambda x: round(float(x), 1)),
+            "frequency_penalty": (0, lambda x: round(float(x), 1))
+        }
+
+        for param, (default, converter) in param_defaults.items():
+            value = config.get(param)
+            try:
+                setattr(self, param, converter(value) if value not in (None, "") else default)
+            except (ValueError, TypeError):
+                setattr(self, param, default)
+
+        logger.debug(
+            f"意图识别参数初始化: {self.temperature}, {self.max_tokens}, {self.top_p}, {self.frequency_penalty}")
 
         check_model_key("LLM", self.api_key)
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
-    def response(self, session_id, dialogue):
+    def response(self, session_id, dialogue, **kwargs):
         try:
             responses = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=dialogue,
                 stream=True,
-                max_tokens=self.max_tokens,
+                max_tokens=kwargs.get("max_tokens", self.max_tokens),
+                temperature=kwargs.get("temperature", self.temperature),
+                top_p=kwargs.get("top_p", self.top_p),
+                frequency_penalty=kwargs.get("frequency_penalty", self.frequency_penalty),
             )
 
             is_active = True

@@ -220,6 +220,10 @@ Memory:
   mem_local_short:
     # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器
     type: mem_local_short
+    # 配备记忆存储独立的思考模型
+    # 如果这里不填，则会默认使用selected_module.LLM的模型作为意图识别的思考模型
+    # 如果你的不想使用selected_module.LLM记忆存储，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
+    llm: ChatGLMLLM
 
 ASR:
   FunASR:

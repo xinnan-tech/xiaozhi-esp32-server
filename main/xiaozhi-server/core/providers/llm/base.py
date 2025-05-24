@@ -10,7 +10,7 @@ class LLMProviderBase(ABC):
         """LLM response generator"""
         pass
 
-    def response_no_stream(self, system_prompt, user_prompt):
+    def response_no_stream(self, system_prompt, user_prompt, **kwargs):
         try:
             # 构造对话格式
             dialogue = [
@@ -18,7 +18,7 @@ class LLMProviderBase(ABC):
                 {"role": "user", "content": user_prompt}
             ]
             result = ""
-            for part in self.response("", dialogue):
+            for part in self.response("", dialogue, **kwargs):
                 result += part
             return result
 
@@ -30,7 +30,7 @@ class LLMProviderBase(ABC):
         """
         Default implementation for function calling (streaming)
         This should be overridden by providers that support function calls
-        
+
         Returns: generator that yields either text tokens or a special function call token
         """
         # For providers that don't support functions, just return regular response
