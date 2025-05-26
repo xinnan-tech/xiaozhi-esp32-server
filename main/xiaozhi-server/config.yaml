@@ -60,6 +60,8 @@ enable_greeting: true
 enable_stop_tts_notify: false
 # 说完话是否开启提示音，音效地址
 stop_tts_notify_voice: "config/assets/tts_notify.mp3"
+# 是否启用情感检测
+enable_emotion_detection: true
 
 exit_commands:
   - "退出"

@@ -871,8 +871,9 @@ class ConnectionHandler:
                     if self.stop_event.is_set():
                         break
                     continue
+                enable_emotion_detection = self.config.get("enable_emotion_detection", True)
                 future = asyncio.run_coroutine_threadsafe(
-                    sendAudioMessage(self, audio_datas, text, text_index), self.loop
+                    sendAudioMessage(self, audio_datas, text, text_index, enable_emotion_detection), self.loop
                 )
                 future.result()
             except Exception as e:
