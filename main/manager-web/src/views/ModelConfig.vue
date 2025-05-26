@@ -467,7 +467,7 @@ export default {
 .main-wrapper {
   margin: 5px 22px;
   border-radius: 15px;
-  min-height: calc(100vh - 24vh);
+  min-height: calc(100vh - 26vh);
   height: auto;
   max-height: 80vh;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
