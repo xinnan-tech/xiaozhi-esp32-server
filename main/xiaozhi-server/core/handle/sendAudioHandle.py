@@ -30,9 +30,9 @@ emoji_map = {
 }
 
 
-async def sendAudioMessage(conn, audios, text, text_index=0):
+async def sendAudioMessage(conn, audios, text, text_index=0, enable_emotion_detection=True):
     # 发送句子开始消息
-    if text is not None:
+    if enable_emotion_detection and text is not None:
         emotion = analyze_emotion(text)
         emoji = emoji_map.get(emotion, "🙂")  # 默认使用笑脸
         await conn.websocket.send(
