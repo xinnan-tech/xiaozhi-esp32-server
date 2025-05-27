@@ -107,6 +107,9 @@ class ConnectionHandler:
         self.tts = _tts
         self.memory = _memory
         self.intent = _intent
+        # 导入SpeechBrainProvider
+        from core.providers.speaker.speechbrain import SpeechBrainProvider
+        self.speaker = SpeechBrainProvider(None,False)
 
         # vad相关变量
         self.client_audio_buffer = bytearray()

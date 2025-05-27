@@ -39,6 +39,15 @@ async def handleAudioMessage(conn, audio):
         if len(conn.asr_audio) < 15:
             conn.asr_server_receive = True
         else:
+
+           
+            # 极简流式声纹检测调用
+            is_owner,score = await conn.speaker.handle_audio_data(conn.asr_audio, conn.session_id)
+            if is_owner:
+                conn.logger.bind(tag=TAG).info(f"流式识别到主人音频，score={score}")
+            else:
+                conn.logger.bind(tag=TAG).info(f"流式未识别为主人，忽略音频，score={score}")
+
             raw_text, _ = await conn.asr.speech_to_text(
                 conn.asr_audio, conn.session_id
             )  # 确保ASR模块返回原始文本
