@@ -1,9 +1,4 @@
-import os
-import uuid
-import json
-import base64
 import requests
-from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
 
 
@@ -20,12 +15,6 @@ class TTSProvider(TTSProviderBase):
 
         self.host = "api.coze.cn"
         self.api_url = f"https://{self.host}/v1/audio/speech"
-
-    def generate_filename(self, extension=".wav"):
-        return os.path.join(
-            self.output_file,
-            f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
-        )
 
     async def text_to_speak(self, text, output_file):
         request_json = {

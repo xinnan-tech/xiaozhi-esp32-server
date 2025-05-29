@@ -803,7 +803,10 @@
                                         if (frameData && frameData.length > 0) {
                                             // 转换为Float32
                                             const floatData = convertInt16ToFloat32(frameData);
-                                            decodedSamples.push(...floatData);
+                                            // 使用循环替代展开运算符
+                                            for (let i = 0; i < floatData.length; i++) {
+                                                decodedSamples.push(floatData[i]);
+                                            }
                                         }
                                     } catch (error) {
                                         log("Opus解码失败: " + error.message, 'error');
@@ -811,8 +814,10 @@
                                 }
 
                                 if (decodedSamples.length > 0) {
-                                    // 添加到解码队列
-                                    this.queue.push(...decodedSamples);
+                                    // 使用循环替代展开运算符
+                                    for (let i = 0; i < decodedSamples.length; i++) {
+                                        this.queue.push(decodedSamples[i]);
+                                    }
                                     this.totalSamples += decodedSamples.length;
 
                                     // 如果累积了至少0.2秒的音频，开始播放
@@ -868,36 +873,39 @@
                                     this.source = null;
                                     this.playing = false;
 
-                                    // 如果队列中还有数据或者缓冲区有新数据，继续播放
-                                    if (this.queue.length > 0) {
-                                        setTimeout(() => this.startPlaying(), 10);
-                                    } else if (audioBufferQueue.length > 0) {
-                                        // 缓冲区有新数据，进行解码
-                                        const frames = [...audioBufferQueue];
-                                        audioBufferQueue = [];
-                                        this.decodeOpusFrames(frames);
-                                    } else if (this.endOfStream) {
-                                        // 流已结束且没有更多数据
-                                        log("音频播放完成", 'info');
-                                        isAudioPlaying = false;
-                                        this.endOfStream = false;
-                                        streamingContext = null;
-                                    } else {
-                                        // 等待更多数据
-                                        setTimeout(() => {
-                                            // 如果仍然没有新数据，但有更多的包到达
-                                            if (this.queue.length === 0 && audioBufferQueue.length > 0) {
-                                                const frames = [...audioBufferQueue];
-                                                audioBufferQueue = [];
-                                                this.decodeOpusFrames(frames);
-                                            } else if (this.queue.length === 0 && audioBufferQueue.length === 0) {
-                                                // 真的没有更多数据了
-                                                log("音频播放完成 (超时)", 'info');
-                                                isAudioPlaying = false;
-                                                streamingContext = null;
-                                            }
-                                        }, 500); // 500ms超时
-                                    }
+                                    // 使用setTimeout避免递归调用
+                                    setTimeout(() => {
+                                        // 如果队列中还有数据，继续播放
+                                        if (this.queue.length > 0) {
+                                            this.startPlaying();
+                                        } else if (audioBufferQueue.length > 0) {
+                                            // 缓冲区有新数据，进行解码
+                                            const frames = [...audioBufferQueue];
+                                            audioBufferQueue = [];
+                                            this.decodeOpusFrames(frames);
+                                        } else if (this.endOfStream) {
+                                            // 流已结束且没有更多数据
+                                            log("音频播放完成", 'info');
+                                            isAudioPlaying = false;
+                                            this.endOfStream = false;
+                                            streamingContext = null;
+                                        } else {
+                                            // 等待更多数据
+                                            setTimeout(() => {
+                                                // 如果仍然没有新数据，但有更多的包到达
+                                                if (this.queue.length === 0 && audioBufferQueue.length > 0) {
+                                                    const frames = [...audioBufferQueue];
+                                                    audioBufferQueue = [];
+                                                    this.decodeOpusFrames(frames);
+                                                } else if (this.queue.length === 0 && audioBufferQueue.length === 0) {
+                                                    // 真的没有更多数据了
+                                                    log("音频播放完成 (超时)", 'info');
+                                                    isAudioPlaying = false;
+                                                    streamingContext = null;
+                                                }
+                                            }, 500); // 500ms超时
+                                        }
+                                    }, 10); // 10ms延迟，避免立即递归
                                 };
 
                                 this.source.start();

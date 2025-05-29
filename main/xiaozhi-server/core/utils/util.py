@@ -269,16 +269,7 @@ def initialize_modules(
     # 初始化TTS模块
     if init_tts:
         select_tts_module = config["selected_module"]["TTS"]
-        tts_type = (
-            select_tts_module
-            if "type" not in config["TTS"][select_tts_module]
-            else config["TTS"][select_tts_module]["type"]
-        )
-        modules["tts"] = tts.create_instance(
-            tts_type,
-            config["TTS"][select_tts_module],
-            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
-        )
+        modules["tts"] = initialize_tts(config)
         logger.bind(tag=TAG).info(f"初始化组件: tts成功 {select_tts_module}")
 
     # 初始化LLM模块
@@ -353,6 +344,21 @@ def initialize_modules(
         )
         logger.bind(tag=TAG).info(f"初始化组件: asr成功 {select_asr_module}")
     return modules
+
+
+def initialize_tts(config):
+    select_tts_module = config["selected_module"]["TTS"]
+    tts_type = (
+        select_tts_module
+        if "type" not in config["TTS"][select_tts_module]
+        else config["TTS"][select_tts_module]["type"]
+    )
+    new_tts = tts.create_instance(
+        tts_type,
+        config["TTS"][select_tts_module],
+        str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
+    )
+    return new_tts
 
 
 def analyze_emotion(text):
@@ -882,7 +888,10 @@ def audio_to_data(audio_file_path, is_opus=True):
 
     # 获取原始PCM数据（16位小端）
     raw_data = audio.raw_data
+    return pcm_to_data(raw_data, is_opus), duration
 
+
+def pcm_to_data(raw_data, is_opus=True):
     # 初始化Opus编码器
     encoder = opuslib_next.Encoder(16000, 1, opuslib_next.APPLICATION_AUDIO)
 
@@ -910,7 +919,7 @@ def audio_to_data(audio_file_path, is_opus=True):
 
         datas.append(frame_data)
 
-    return datas, duration
+    return datas
 
 
 def check_vad_update(before_config, new_config):

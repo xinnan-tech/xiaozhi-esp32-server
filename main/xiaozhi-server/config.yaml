@@ -85,6 +85,7 @@ module_test:
 # 唤醒词，用于识别唤醒词还是讲话内容
 wakeup_words:
   - "你好小智"
+  - "嘿你好呀"
   - "你好小志"
   - "小爱同学"
   - "你好小鑫"
@@ -329,7 +330,7 @@ LLM:
     # 定义LLM API类型
     type: openai
     # 先开通服务，打开以下网址，开通的服务搜索Doubao-1.5-pro，开通它
-    # 开通改地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
+    # 开通地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
     # 免费额度500000token
     # 开通后，进入这里获取密钥：https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey?apikey=%7B%7D
     base_url: https://ark.cn-beijing.volces.com/api/v3
@@ -456,6 +457,19 @@ TTS:
     speed_ratio: 1.0
     volume_ratio: 1.0
     pitch_ratio: 1.0
+  #火山tts，支持双向流式tts
+  HuoshanDoubleStreamTTS:
+    type: huoshan_double_stream
+    # 访问 https://console.volcengine.com/speech/service/10007 开通语音合成大模型，购买音色
+    # 在页面底部获取appid和access_token
+    # 资源ID固定为：volc.service_type.10029（大模型语音合成及混音）
+    # 如果是机智云，把接口地址换成wss://bytedance.gizwitsapi.com/api/v3/tts/bidirection
+    # 机智云不需要天填 appid
+    ws_url: wss://openspeech.bytedance.com/api/v3/tts/bidirection
+    appid: 你的火山引擎语音合成服务appid
+    access_token: 你的火山引擎语音合成服务access_token
+    resource_id: volc.service_type.10029
+    speaker: zh_female_wanwanxiaohe_moon_bigtts
   CosyVoiceSiliconflow:
     type: siliconflow
     # 硅基流动TTS

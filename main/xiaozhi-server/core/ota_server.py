@@ -98,7 +98,6 @@ class SimpleOtaServer:
                 content_type="application/json",
             )
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"OTA请求异常: {e}")
             return_json = {"success": False, "message": "request error."}
             response = web.Response(
                 text=json.dumps(return_json, separators=(",", ":")),

@@ -1,11 +1,13 @@
+import os
+import time
 import json
-from core.handle.sendAudioHandle import send_stt_message
-from core.utils.util import remove_punctuation_and_length
+import random
 import shutil
 import asyncio
-import os
-import random
-import time
+from core.handle.sendAudioHandle import send_stt_message
+from core.utils.util import remove_punctuation_and_length
+from core.providers.tts.dto.dto import ContentType, InterfaceType
+
 
 TAG = __name__
 
@@ -26,7 +28,8 @@ async def handleHelloMessage(conn, msg_json):
         format = audio_params.get("format")
         conn.logger.bind(tag=TAG).info(f"客户端音频格式: {format}")
         conn.audio_format = format
-        conn.asr.set_audio_format(format)
+        if conn.asr is not None:
+            conn.asr.set_audio_format(format)
         conn.welcome_msg["audio_params"] = audio_params
 
     await conn.websocket.send(json.dumps(conn.welcome_msg))
@@ -36,6 +39,10 @@ async def checkWakeupWords(conn, text):
     enable_wakeup_words_response_cache = conn.config[
         "enable_wakeup_words_response_cache"
     ]
+    """是否用的是非流式tts"""
+    if conn.tts and conn.tts.interface_type != InterfaceType.NON_STREAM:
+        return False
+
     """是否开启唤醒词加速"""
     if not enable_wakeup_words_response_cache:
         return False
@@ -43,19 +50,17 @@ async def checkWakeupWords(conn, text):
     _, filtered_text = remove_punctuation_and_length(text)
     if filtered_text in conn.config.get("wakeup_words"):
         await send_stt_message(conn, text)
-        conn.tts_first_text_index = 0
-        conn.tts_last_text_index = 0
-        conn.llm_finish_task = True
 
         file = getWakeupWordFile(WAKEUP_CONFIG["file_name"])
         if file is None:
             asyncio.create_task(wakeupWordsResponse(conn))
             return False
-        opus_packets, _ = conn.tts.audio_to_opus_data(file)
         text_hello = WAKEUP_CONFIG["text"]
         if not text_hello:
             text_hello = text
-        conn.audio_play_queue.put((opus_packets, text_hello, 0))
+        conn.tts.tts_one_sentence(
+            conn, ContentType.FILE, content_file=file, content_detail=text_hello
+        )
         if time.time() - WAKEUP_CONFIG["create_time"] > WAKEUP_CONFIG["refresh_time"]:
             asyncio.create_task(wakeupWordsResponse(conn))
         return True

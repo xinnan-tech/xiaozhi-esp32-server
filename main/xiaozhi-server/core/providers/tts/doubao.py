@@ -1,9 +1,7 @@
-import os
 import uuid
 import json
 import base64
 import requests
-from datetime import datetime
 from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
 from config.logger import setup_logging
@@ -40,12 +38,6 @@ class TTSProvider(TTSProviderBase):
         self.authorization = config.get("authorization")
         self.header = {"Authorization": f"{self.authorization}{self.access_token}"}
         check_model_key("TTS", self.access_token)
-
-    def generate_filename(self, extension=".wav"):
-        return os.path.join(
-            self.output_file,
-            f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
-        )
 
     async def text_to_speak(self, text, output_file):
         request_json = {

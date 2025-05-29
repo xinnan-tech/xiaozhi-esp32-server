@@ -1,4 +1,3 @@
-import os
 import uuid
 import json
 import hmac
@@ -8,8 +7,6 @@ import requests
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
 
-import http.client
-import urllib.parse
 import time
 import uuid
 from urllib import parse
@@ -162,12 +159,6 @@ class TTSProvider(TTSProviderBase):
         #              f"过期时间 {datetime.fromtimestamp(self.expire_time)} | "
         #              f"剩余 {remaining:.2f}秒")
         return time.time() > self.expire_time
-
-    def generate_filename(self, extension=".wav"):
-        return os.path.join(
-            self.output_file,
-            f"tts-{__name__}{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
-        )
 
     async def text_to_speak(self, text, output_file):
         if self._is_token_expired():

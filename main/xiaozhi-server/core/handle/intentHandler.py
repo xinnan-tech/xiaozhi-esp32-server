@@ -4,6 +4,7 @@ import uuid
 from core.handle.sendAudioHandle import send_stt_message
 from core.handle.helloHandle import checkWakeupWords
 from core.utils.util import remove_punctuation_and_length
+from core.providers.tts.dto.dto import ContentType
 from core.utils.dialogue import Message
 from plugins_func.register import Action
 from loguru import logger
@@ -143,11 +144,6 @@ async def process_intent_result(conn, intent_result, original_text):
 
 
 def speak_txt(conn, text):
-    text_index = (
-        conn.tts_last_text_index + 1 if hasattr(conn, "tts_last_text_index") else 0
-    )
-    conn.recode_first_last_text(text, text_index)
-    future = conn.executor.submit(conn.speak_and_play, None, text, text_index)
-    conn.llm_finish_task = True
-    conn.tts_queue.put((future, text_index))
+    conn.tts.tts_one_sentence(conn, ContentType.TEXT, content_detail=text)
     conn.dialogue.put(Message(role="assistant", content=text))
+ 

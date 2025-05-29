@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-import os
 import time
 import uuid
 import json
@@ -120,12 +119,6 @@ class TTSProvider(TTSProviderBase):
         if isinstance(msg, str):
             msg = msg.encode("utf-8")
         return hmac.new(key, msg, hashlib.sha256).digest()
-
-    def generate_filename(self, extension=".wav"):
-        return os.path.join(
-            self.output_file,
-            f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
-        )
 
     async def text_to_speak(self, text, output_file):
         # 构建请求体

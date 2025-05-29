@@ -12,13 +12,12 @@ logger = setup_logging()
 class VADProvider(VADProviderBase):
     def __init__(self, config):
         logger.bind(tag=TAG).info("SileroVAD", config)
-        self.model, self.utils = torch.hub.load(
+        self.model, _ = torch.hub.load(
             repo_or_dir=config["model_dir"],
             source="local",
             model="silero_vad",
             force_reload=False,
         )
-        (get_speech_timestamps, _, _, _, _) = self.utils
 
         self.decoder = opuslib_next.Decoder(16000, 1)
 
@@ -53,7 +52,7 @@ class VADProvider(VADProviderBase):
                     speech_prob = self.model(audio_tensor, 16000).item()
                 client_have_voice = speech_prob >= self.vad_threshold
 
-                # 如果之前有声音，但本次没有声音，且与上次有声音的时间查已经超过了静默阈值，则认为已经说完一句话
+                # 如果之前有声音，但本次没有声音，且与上次有声音的时间差已经超过了静默阈值，则认为已经说完一句话
                 if conn.client_have_voice and not client_have_voice:
                     stop_duration = (
                         time.time() * 1000 - conn.client_have_voice_last_time

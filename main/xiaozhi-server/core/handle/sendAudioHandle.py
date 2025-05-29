@@ -1,7 +1,9 @@
 import json
 import asyncio
 import time
+from core.providers.tts.dto.dto import SentenceType
 from core.utils.util import get_string_no_punctuation_or_emoji, analyze_emotion
+from loguru import logger
 
 TAG = __name__
 
@@ -30,7 +32,7 @@ emoji_map = {
 }
 
 
-async def sendAudioMessage(conn, audios, text, text_index=0):
+async def sendAudioMessage(conn, sentenceType, audios, text):
     # 发送句子开始消息
     if text is not None:
         emotion = analyze_emotion(text)
@@ -45,18 +47,20 @@ async def sendAudioMessage(conn, audios, text, text_index=0):
                 }
             )
         )
-
-    if text_index == conn.tts_first_text_index:
+    pre_buffer = False
+    if conn.tts.tts_audio_first_sentence and text is not None:
         conn.logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
+        conn.tts.tts_audio_first_sentence = False
+        pre_buffer = True
+
     await send_tts_message(conn, "sentence_start", text)
 
-    is_first_audio = text_index == conn.tts_first_text_index
-    await sendAudio(conn, audios, pre_buffer=is_first_audio)
+    await sendAudio(conn, audios, pre_buffer)
 
     await send_tts_message(conn, "sentence_end", text)
 
     # 发送结束消息（如果是最后一个文本）
-    if conn.llm_finish_task and text_index == conn.tts_last_text_index:
+    if conn.llm_finish_task and sentenceType == SentenceType.LAST:
         await send_tts_message(conn, "stop", None)
         if conn.close_after_chat:
             await conn.close()
@@ -64,6 +68,8 @@ async def sendAudioMessage(conn, audios, text, text_index=0):
 
 # 播放音频
 async def sendAudio(conn, audios, pre_buffer=True):
+    if audios is None or len(audios) == 0:
+        return
     # 流控参数优化
     frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
     start_time = time.perf_counter()

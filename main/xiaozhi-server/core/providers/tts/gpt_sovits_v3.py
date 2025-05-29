@@ -1,8 +1,5 @@
-import os
-import uuid
 import requests
 from config.logger import setup_logging
-from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
 from core.utils.util import parse_string_to_list
 
@@ -36,12 +33,6 @@ class TTSProvider(TTSProviderBase):
         self.inp_refs = parse_string_to_list(config.get("inp_refs"))
         self.if_sr = str(config.get("if_sr", False)).lower() in ("true", "1", "yes")
 
-    def generate_filename(self, extension=".wav"):
-        return os.path.join(
-            self.output_file,
-            f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
-        )
-
     async def text_to_speak(self, text, output_file):
         request_params = {
             "refer_wav_path": self.refer_wav_path,
@@ -67,4 +58,3 @@ class TTSProvider(TTSProviderBase):
             error_msg = f"GPT_SoVITS_V3 TTS请求失败: {resp.status_code} - {resp.text}"
             logger.bind(tag=TAG).error(error_msg)
             raise Exception(error_msg)
-

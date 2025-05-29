@@ -1,10 +1,5 @@
-import os
-import uuid
-import json
-import base64
 import requests
 from config.logger import setup_logging
-from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
 from core.utils.util import parse_string_to_list
 
@@ -69,12 +64,6 @@ class TTSProvider(TTSProviderBase):
 
         self.aux_ref_audio_paths = parse_string_to_list(
             config.get("aux_ref_audio_paths")
-        )
-
-    def generate_filename(self, extension=".wav"):
-        return os.path.join(
-            self.output_file,
-            f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
         )
 
     async def text_to_speak(self, text, output_file):
