@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
@@ -34,7 +35,9 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.common.utils.Result;
+import xiaozhi.common.utils.ResultUtils;
 import xiaozhi.modules.agent.dto.AgentChatHistoryDTO;
 import xiaozhi.modules.agent.dto.AgentChatSessionDTO;
 import xiaozhi.modules.agent.dto.AgentCreateDTO;
@@ -42,13 +45,14 @@ import xiaozhi.modules.agent.dto.AgentDTO;
 import xiaozhi.modules.agent.dto.AgentMemoryDTO;
 import xiaozhi.modules.agent.dto.AgentUpdateDTO;
 import xiaozhi.modules.agent.entity.AgentEntity;
+import xiaozhi.modules.agent.entity.AgentPluginMapping;
 import xiaozhi.modules.agent.entity.AgentTemplateEntity;
-import xiaozhi.modules.agent.service.AgentChatAudioService;
-import xiaozhi.modules.agent.service.AgentChatHistoryService;
-import xiaozhi.modules.agent.service.AgentService;
-import xiaozhi.modules.agent.service.AgentTemplateService;
+import xiaozhi.modules.agent.service.*;
+import xiaozhi.modules.agent.vo.AgentInfoVO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
+import xiaozhi.modules.model.dto.ModelProviderDTO;
+import xiaozhi.modules.model.service.ModelProviderService;
 import xiaozhi.modules.security.user.SecurityUser;
 
 @Tag(name = "智能体管理")
@@ -88,9 +92,9 @@ public class AgentController {
     @GetMapping("/{id}")
     @Operation(summary = "获取智能体详情")
     @RequiresPermissions("sys:role:normal")
-    public Result<AgentEntity> getAgentById(@PathVariable("id") String id) {
-        AgentEntity agent = agentService.getAgentById(id);
-        return new Result<AgentEntity>().ok(agent);
+    public Result<AgentInfoVO> getAgentById(@PathVariable("id") String id) {
+        AgentInfoVO agent = agentService.getAgentById(id);
+        return ResultUtils.success(agent);
     }
 
     @PostMapping
@@ -138,87 +142,18 @@ public class AgentController {
         }
         AgentUpdateDTO agentUpdateDTO = new AgentUpdateDTO();
         agentUpdateDTO.setSummaryMemory(dto.getSummaryMemory());
-        return updateAgentById(device.getAgentId(), agentUpdateDTO);
+        agentService.updateAgentById(device.getAgentId(), agentUpdateDTO);
+        return new Result<>();
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新智能体")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> update(@PathVariable String id, @RequestBody @Valid AgentUpdateDTO dto) {
-        return updateAgentById(id, dto);
-    }
-
-    private Result<Void> updateAgentById(String id, AgentUpdateDTO dto) {
-        // 先查询现有实体
-        AgentEntity existingEntity = agentService.getAgentById(id);
-        if (existingEntity == null) {
-            return new Result<Void>().error("智能体不存在");
-        }
-
-        // 只更新提供的非空字段
-        if (dto.getAgentName() != null) {
-            existingEntity.setAgentName(dto.getAgentName());
-        }
-        if (dto.getAgentCode() != null) {
-            existingEntity.setAgentCode(dto.getAgentCode());
-        }
-        if (dto.getAsrModelId() != null) {
-            existingEntity.setAsrModelId(dto.getAsrModelId());
-        }
-        if (dto.getVadModelId() != null) {
-            existingEntity.setVadModelId(dto.getVadModelId());
-        }
-        if (dto.getLlmModelId() != null) {
-            existingEntity.setLlmModelId(dto.getLlmModelId());
-        }
-        if (dto.getTtsModelId() != null) {
-            existingEntity.setTtsModelId(dto.getTtsModelId());
-        }
-        if (dto.getTtsVoiceId() != null) {
-            existingEntity.setTtsVoiceId(dto.getTtsVoiceId());
-        }
-        if (dto.getMemModelId() != null) {
-            existingEntity.setMemModelId(dto.getMemModelId());
-        }
-        if (dto.getIntentModelId() != null) {
-            existingEntity.setIntentModelId(dto.getIntentModelId());
-        }
-        if (dto.getSystemPrompt() != null) {
-            existingEntity.setSystemPrompt(dto.getSystemPrompt());
-        }
-        if (dto.getSummaryMemory() != null) {
-            existingEntity.setSummaryMemory(dto.getSummaryMemory());
-        }
-        if (dto.getChatHistoryConf() != null) {
-            existingEntity.setChatHistoryConf(dto.getChatHistoryConf());
-        }
-        if (dto.getLangCode() != null) {
-            existingEntity.setLangCode(dto.getLangCode());
-        }
-        if (dto.getLanguage() != null) {
-            existingEntity.setLanguage(dto.getLanguage());
-        }
-        if (dto.getSort() != null) {
-            existingEntity.setSort(dto.getSort());
-        }
-
-        // 设置更新者信息
-        UserDetail user = SecurityUser.getUser();
-        existingEntity.setUpdater(user.getId());
-        existingEntity.setUpdatedAt(new Date());
-
-        // 更新记忆策略
-        if (existingEntity.getMemModelId() == null || existingEntity.getMemModelId().equals(Constant.MEMORY_NO_MEM)) {
-            // 删除所有记录
-            agentChatHistoryService.deleteByAgentId(existingEntity.getId(), true, true);
-            existingEntity.setSummaryMemory("");
-        } else if (existingEntity.getChatHistoryConf() != null && existingEntity.getChatHistoryConf() == 1) {
-            // 删除音频数据
-            agentChatHistoryService.deleteByAgentId(existingEntity.getId(), true, false);
-        }
-        agentService.updateById(existingEntity);
+        agentService.updateAgentById(id, dto);
         return new Result<>();
     }
+
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除智能体")

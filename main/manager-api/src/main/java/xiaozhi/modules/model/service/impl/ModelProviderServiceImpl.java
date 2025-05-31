@@ -1,10 +1,8 @@
 package xiaozhi.modules.model.service.impl;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +29,24 @@ public class ModelProviderServiceImpl extends BaseServiceImpl<ModelProviderDao, 
         implements ModelProviderService {
 
     private final ModelProviderDao modelProviderDao;
+
+    @Override
+    public List<ModelProviderDTO> getPluginList() {
+        LambdaQueryWrapper<ModelProviderEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ModelProviderEntity::getModelType, "Plugin");
+        List<ModelProviderEntity> providerEntities = modelProviderDao.selectList(queryWrapper);
+        return ConvertUtils.sourceToTarget(providerEntities, ModelProviderDTO.class);
+    }
+
+    @Override
+    public List<ModelProviderDTO> getPluginListByIds(Collection<String> ids) {
+        LambdaQueryWrapper<ModelProviderEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(ModelProviderEntity::getId, ids);
+        queryWrapper.eq(ModelProviderEntity::getModelType, "Plugin");
+        List<ModelProviderEntity> providerEntities = modelProviderDao.selectList(queryWrapper);
+        return ConvertUtils.sourceToTarget(providerEntities, ModelProviderDTO.class);
+    }
+
 
     @Override
     public List<ModelProviderDTO> getListByModelType(String modelType) {

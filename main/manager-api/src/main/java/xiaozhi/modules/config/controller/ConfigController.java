@@ -27,7 +27,7 @@ public class ConfigController {
     private final ConfigService configService;
 
     @PostMapping("server-base")
-    @Operation(summary = "获取配置")
+    @Operation(summary = "服务端获取配置接口")
     public Result<Object> getConfig() {
         Object config = configService.getConfig(true);
         return new Result<Object>().ok(config);

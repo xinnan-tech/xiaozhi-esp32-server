@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import xiaozhi.common.dao.BaseDao;
 import xiaozhi.modules.agent.entity.AgentEntity;
+import xiaozhi.modules.agent.vo.AgentInfoVO;
 
 @Mapper
 public interface AgentDao extends BaseDao<AgentEntity> {
@@ -28,4 +29,11 @@ public interface AgentDao extends BaseDao<AgentEntity> {
             " WHERE d.mac_address = #{macAddress} " +
             " ORDER BY d.id DESC LIMIT 1")
     AgentEntity getDefaultAgentByMacAddress(@Param("macAddress") String macAddress);
+
+    /**
+     * 根据id查询agent信息，包括插件信息
+     *
+     * @param agentId 智能体ID
+     */
+    AgentInfoVO selectAgentInfoById(@Param("agentId") String agentId);
 }
