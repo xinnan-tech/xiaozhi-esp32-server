@@ -130,13 +130,18 @@
         </a>
     </td>
     <td>
-      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+      <a href="https://www.bilibili.com/video/BV1Co76z7EvK" target="_blank">
          <picture>
-           <img alt="客户端MCP" src="docs/images/demo11.png" />
+           <img alt="拍照识物品" src="docs/images/demo12.png" />
          </picture>
         </a>
     </td>
     <td>
+      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+         <picture>
+           <img alt="多指令任务" src="docs/images/demo11.png" />
+         </picture>
+        </a>
     </td>
     <td>
     </td>
