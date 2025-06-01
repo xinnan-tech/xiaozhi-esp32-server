@@ -59,10 +59,14 @@ def get_config_from_api(config):
         "url": config["manager-api"].get("url", ""),
         "secret": config["manager-api"].get("secret", ""),
     }
+    # server的配置以本地为准
     if config.get("server"):
         config_data["server"] = {
             "ip": config["server"].get("ip", ""),
             "port": config["server"].get("port", ""),
+            "http_port": config["server"].get("http_port", ""),
+            "vision_explain": config["server"].get("vision_explain", ""),
+            "auth_key": config["server"].get("auth_key", ""),
         }
     return config_data
 

@@ -1,18 +1,10 @@
-import base64
-import hashlib
-import hmac
-import json
 import time
-from datetime import datetime, timezone
 import os
-import uuid
 from typing import Optional, Tuple, List
-import wave
-import opuslib_next
-
 from aip import AipSpeech
 from core.providers.asr.base import ASRProviderBase
 from config.logger import setup_logging
+from core.providers.asr.dto.dto import InterfaceType
 
 TAG = __name__
 logger = setup_logging()
@@ -21,6 +13,7 @@ logger = setup_logging()
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool = True):
         super().__init__()
+        self.interface_type = InterfaceType.NON_STREAM
         self.app_id = config.get("app_id")
         self.api_key = config.get("api_key")
         self.secret_key = config.get("secret_key")
@@ -35,20 +28,6 @@ class ASRProvider(ASRProviderBase):
 
         # 确保输出目录存在
         os.makedirs(self.output_dir, exist_ok=True)
-
-    def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:
-        """PCM数据保存为WAV文件"""
-        module_name = __name__.split(".")[-1]
-        file_name = f"asr_{module_name}_{session_id}_{uuid.uuid4()}.wav"
-        file_path = os.path.join(self.output_dir, file_name)
-
-        with wave.open(file_path, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)  # 2 bytes = 16-bit
-            wf.setframerate(16000)
-            wf.writeframes(b"".join(pcm_data))
-
-        return file_path
 
     async def speech_to_text(
         self, opus_data: List[bytes], session_id: str

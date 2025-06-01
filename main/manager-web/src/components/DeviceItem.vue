@@ -14,10 +14,10 @@
       </div>
     </div>
     <div class="device-name">
-      设备型号：{{ device.ttsModelName }}
+      语言模型：{{ device.llmModelName }}
     </div>
     <div class="device-name">
-      音色模型：{{ device.ttsVoiceName }}
+      音色模型：{{ device.ttsModelName }} ({{ device.ttsVoiceName }})
     </div>
     <div style="display: flex;gap: 10px;align-items: center;">
       <div class="settings-btn" @click="handleConfigure">

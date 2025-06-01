@@ -36,6 +36,9 @@ public class AgentEntity {
     @Schema(description = "大语言模型标识")
     private String llmModelId;
 
+    @Schema(description = "VLLM模型标识")
+    private String vllmModelId;
+
     @Schema(description = "语音合成模型标识")
     private String ttsModelId;
 

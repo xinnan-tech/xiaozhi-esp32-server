@@ -216,6 +216,7 @@ class TTSProviderBase(ABC):
                 logger.bind(tag=TAG).error(
                     f"处理TTS文本失败: {str(e)}, 类型: {type(e).__name__}, 堆栈: {traceback.format_exc()}"
                 )
+                continue
 
     def _audio_play_priority_thread(self):
         while not self.conn.stop_event.is_set():

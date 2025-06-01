@@ -2,9 +2,6 @@ import http.client
 import json
 import asyncio
 from typing import Optional, Tuple, List
-import opuslib_next
-import wave
-import io
 import os
 import uuid
 import hmac
@@ -16,6 +13,7 @@ import time
 from datetime import datetime
 from config.logger import setup_logging
 from core.providers.asr.base import ASRProviderBase
+from core.providers.asr.dto.dto import InterfaceType
 
 TAG = __name__
 logger = setup_logging()
@@ -92,6 +90,7 @@ class AccessToken:
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
         super().__init__()
+        self.interface_type = InterfaceType.NON_STREAM
         """阿里云ASR初始化"""
         # 新增空值判断逻辑
         self.access_key_id = config.get("access_key_id")
@@ -164,21 +163,6 @@ class ASRProvider(ASRProviderBase):
         request += "&enable_inverse_text_normalization=true"
         request += "&enable_voice_detection=false"
         return request
-
-    def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:
-        """PCM数据保存为WAV文件"""
-        module_name = __name__.split(".")[-1]
-        file_name = f"asr_{module_name}_{session_id}_{uuid.uuid4()}.wav"
-        file_path = os.path.join(self.output_dir, file_name)
-
-        with wave.open(file_path, "wb") as wf:
-            wf.setnchannels(1)  # 单声道
-            wf.setsampwidth(2)  # 16-bit
-            wf.setframerate(self.sample_rate)
-            wf.writeframes(b"".join(pcm_data))
-
-        logger.bind(tag=TAG).debug(f"音频文件已保存至: {file_path}")
-        return file_path
 
     async def _send_request(self, pcm_data: bytes) -> Optional[str]:
         """发送请求到阿里云ASR服务"""

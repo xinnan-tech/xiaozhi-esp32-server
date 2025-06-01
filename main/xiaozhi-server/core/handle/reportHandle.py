@@ -8,6 +8,7 @@ TTS上报功能已集成到ConnectionHandler类中。
 
 具体实现请参考core/connection.py中的相关代码。
 """
+
 import time
 
 import opuslib_next
@@ -145,4 +146,4 @@ def enqueue_asr_report(conn, text, opus_data):
                 f"ASR数据已加入上报队列: {conn.device_id}, 不上报音频"
             )
     except Exception as e:
-        conn.logger.bind(tag=TAG).error(f"加入ASR上报队列失败: {text}, {e}")
+        conn.logger.bind(tag=TAG).debug(f"加入ASR上报队列失败: {text}, {e}")

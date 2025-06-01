@@ -4,7 +4,7 @@ from loguru import logger
 from config.config_loader import load_config
 from config.settings import check_config_file
 
-SERVER_VERSION = "0.5.1"
+SERVER_VERSION = "0.5.2"
 _logger_initialized = False
 
 
@@ -48,7 +48,11 @@ def setup_logging():
 
     # 第一次初始化时配置日志
     if not _logger_initialized:
-        logger.configure(extra={"selected_module": log_config.get("selected_module", "00000000000000")})  # 新增配置
+        logger.configure(
+            extra={
+                "selected_module": log_config.get("selected_module", "00000000000000")
+            }
+        )  # 新增配置
         log_format = log_config.get(
             "log_format",
             "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{extra[selected_module]}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>",
@@ -62,7 +66,9 @@ def setup_logging():
         log_format = log_format.replace("{version}", SERVER_VERSION)
         log_format = log_format.replace("{selected_module}", selected_module_str)
         log_format_file = log_format_file.replace("{version}", SERVER_VERSION)
-        log_format_file = log_format_file.replace("{selected_module}", selected_module_str)
+        log_format_file = log_format_file.replace(
+            "{selected_module}", selected_module_str
+        )
 
         log_level = log_config.get("log_level", "INFO")
         log_dir = log_config.get("log_dir", "tmp")
@@ -116,15 +122,25 @@ def update_module_string(selected_module_str):
         log_format = log_format.replace("{version}", SERVER_VERSION)
         log_format = log_format.replace("{selected_module}", selected_module_str)
         log_format_file = log_format_file.replace("{version}", SERVER_VERSION)
-        log_format_file = log_format_file.replace("{selected_module}", selected_module_str)
+        log_format_file = log_format_file.replace(
+            "{selected_module}", selected_module_str
+        )
 
         logger.remove()
-        logger.add(sys.stdout, format=log_format, level=log_config.get("log_level", "INFO"), filter=formatter)
         logger.add(
-            os.path.join(log_config.get("log_dir", "tmp"), log_config.get("log_file", "server.log")),
+            sys.stdout,
+            format=log_format,
+            level=log_config.get("log_level", "INFO"),
+            filter=formatter,
+        )
+        logger.add(
+            os.path.join(
+                log_config.get("log_dir", "tmp"),
+                log_config.get("log_file", "server.log"),
+            ),
             format=log_format_file,
             level=log_config.get("log_level", "INFO"),
-            filter=formatter
+            filter=formatter,
         )
 
     except Exception as e:

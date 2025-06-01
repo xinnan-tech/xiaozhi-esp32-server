@@ -62,6 +62,7 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
     # 发送结束消息（如果是最后一个文本）
     if conn.llm_finish_task and sentenceType == SentenceType.LAST:
         await send_tts_message(conn, "stop", None)
+        conn.client_is_speaking = False
         if conn.close_after_chat:
             await conn.close()
 
@@ -88,6 +89,7 @@ async def sendAudio(conn, audios, pre_buffer=True):
     # 播放剩余音频帧
     for opus_packet in remaining_audios:
         if conn.client_abort:
+            conn.client_abort = False
             return
 
         # 每分钟重置一次计时器
@@ -131,9 +133,15 @@ async def send_tts_message(conn, state, text=None):
 
 
 async def send_stt_message(conn, text):
+    end_prompt_str = conn.config.get("end_prompt", {}).get("prompt")
+    if end_prompt_str and end_prompt_str == text:
+        await send_tts_message(conn, "start")
+        return
+
     """发送 STT 状态消息"""
     stt_text = get_string_no_punctuation_or_emoji(text)
     await conn.websocket.send(
         json.dumps({"type": "stt", "text": stt_text, "session_id": conn.session_id})
     )
+    conn.client_is_speaking = True
     await send_tts_message(conn, "start")

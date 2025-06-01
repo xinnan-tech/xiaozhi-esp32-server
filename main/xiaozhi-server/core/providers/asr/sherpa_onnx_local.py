@@ -5,8 +5,7 @@ import sys
 import io
 from config.logger import setup_logging
 from typing import Optional, Tuple, List
-import uuid
-import opuslib_next
+from core.providers.asr.dto.dto import InterfaceType
 from core.providers.asr.base import ASRProviderBase
 
 import numpy as np
@@ -38,6 +37,7 @@ class CaptureOutput:
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
         super().__init__()
+        self.interface_type = InterfaceType.LOCAL
         self.model_dir = config.get("model_dir")
         self.output_dir = config.get("output_dir")
         self.delete_audio_file = delete_audio_file
@@ -83,20 +83,6 @@ class ASRProvider(ASRProviderBase):
                 debug=False,
                 use_itn=True,
             )
-
-    def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:
-        """PCM数据保存为WAV文件"""
-        module_name = __name__.split(".")[-1]
-        file_name = f"asr_{module_name}_{session_id}_{uuid.uuid4()}.wav"
-        file_path = os.path.join(self.output_dir, file_name)
-
-        with wave.open(file_path, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)  # 2 bytes = 16-bit
-            wf.setframerate(16000)
-            wf.writeframes(b"".join(pcm_data))
-
-        return file_path
 
     def read_wave(self, wave_filename: str) -> Tuple[np.ndarray, int]:
         """

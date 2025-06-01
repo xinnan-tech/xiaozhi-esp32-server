@@ -10,20 +10,25 @@ import threading
 import traceback
 import subprocess
 import websockets
+from core.handle.mcpHandle import call_mcp_tool
 from core.utils.util import (
     extract_json_from_string,
-    initialize_modules,
     check_vad_update,
     check_asr_update,
     filter_sensitive_info,
-    initialize_tts,
 )
 from typing import Dict, Any
 from core.mcp.manager import MCPManager
+from core.utils.modules_initialize import (
+    initialize_modules,
+    initialize_tts,
+    initialize_asr,
+)
 from core.handle.reportHandle import report
 from core.providers.tts.default import DefaultTTS
 from concurrent.futures import ThreadPoolExecutor
 from core.utils.dialogue import Message, Dialogue
+from core.providers.asr.dto.dto import InterfaceType
 from core.handle.textHandle import handleTextMessage
 from core.handle.functionHandler import FunctionHandler
 from plugins_func.loadplugins import auto_import_modules
@@ -79,6 +84,7 @@ class ConnectionHandler:
 
         # 客户端状态相关
         self.client_abort = False
+        self.client_is_speaking = False
         self.client_listen_mode = "auto"
 
         # 线程任务相关
@@ -112,7 +118,6 @@ class ConnectionHandler:
 
         # asr相关变量
         self.asr_audio = []
-        self.asr_server_receive = True
 
         # llm相关变量
         self.llm_finish_task = True
@@ -142,6 +147,8 @@ class ConnectionHandler:
         )  # 在原来第一道关闭的基础上加60秒，进行二道关闭
 
         self.audio_format = "opus"
+        # {"mcp":true} 表示启用MCP功能
+        self.features = None
 
     async def handle_connection(self, ws):
         try:
@@ -315,10 +322,14 @@ class ConnectionHandler:
             if self.vad is None:
                 self.vad = self._vad
             if self.asr is None:
-                self.asr = self._asr
+                self.asr = self._initialize_asr()
+            # 打开语音识别通道
+            asyncio.run_coroutine_threadsafe(
+                self.asr.open_audio_channels(self), self.loop
+            )
             if self.tts is None:
                 self.tts = self._initialize_tts()
-            # 使用事件循环运行异步方法
+            # 打开语音合成通道
             asyncio.run_coroutine_threadsafe(
                 self.tts.open_audio_channels(self), self.loop
             )
@@ -355,6 +366,19 @@ class ConnectionHandler:
             tts = DefaultTTS(self.config, delete_audio_file=True)
 
         return tts
+
+    def _initialize_asr(self):
+        """初始化ASR"""
+        if self._asr.interface_type == InterfaceType.LOCAL:
+            # 如果公共ASR是本地服务，则直接返回
+            # 因为本地一个实例ASR，可以被多个连接共享
+            asr = self._asr
+        else:
+            # 如果公共ASR是远程服务，则初始化一个新实例
+            # 因为远程ASR，涉及到websocket连接和接收线程，需要每个连接一个实例
+            asr = initialize_asr(self.config)
+
+        return asr
 
     def _initialize_private_config(self):
         """如果是从配置文件获取，则进行二次实例化"""
@@ -454,6 +478,8 @@ class ConnectionHandler:
             self.memory = modules["memory"]
 
     def _initialize_memory(self):
+        if self.memory is None:
+            return
         """初始化记忆模块"""
         self.memory.init_memory(
             role_id=self.device_id,
@@ -494,6 +520,8 @@ class ConnectionHandler:
                 self.logger.bind(tag=TAG).info("使用主LLM作为意图识别模型")
 
     def _initialize_intent(self):
+        if self.intent is None:
+            return
         self.intent_type = self.config["Intent"][
             self.config["selected_module"]["Intent"]
         ]["type"]
@@ -558,6 +586,12 @@ class ConnectionHandler:
         functions = None
         if self.intent_type == "function_call" and hasattr(self, "func_handler"):
             functions = self.func_handler.get_functions()
+        if hasattr(self, "mcp_client"):
+            mcp_tools = self.mcp_client.get_available_tools()
+            if mcp_tools is not None and len(mcp_tools) > 0:
+                if functions is None:
+                    functions = []
+                functions.extend(mcp_tools)
         response_message = []
 
         try:
@@ -595,9 +629,11 @@ class ConnectionHandler:
         function_arguments = ""
         content_arguments = ""
         text_index = 0
-
+        self.client_abort = False
         for response in llm_responses:
-            if self.intent_type == "function_call":
+            if self.client_abort:
+                break
+            if functions is not None:
                 content, tools_call = response
                 if "content" in response:
                     content = response["content"]
@@ -622,9 +658,6 @@ class ConnectionHandler:
             if content is not None and len(content) > 0:
                 if not tool_call_flag:
                     response_message.append(content)
-                    if self.client_abort:
-                        break
-
                     if text_index == 0:
                         self.tts.tts_text_queue.put(
                             TTSMessageDTO(
@@ -676,9 +709,32 @@ class ConnectionHandler:
                     "arguments": function_arguments,
                 }
 
-                # 处理MCP工具调用
+                # 处理Server端MCP工具调用
                 if self.mcp_manager.is_mcp_tool(function_name):
                     result = self._handle_mcp_tool_call(function_call_data)
+                elif hasattr(self, "mcp_client") and self.mcp_client.has_tool(
+                    function_name
+                ):
+                    # 如果是小智端MCP工具调用
+                    self.logger.bind(tag=TAG).debug(
+                        f"调用小智端MCP工具: {function_name}, 参数: {function_arguments}"
+                    )
+                    try:
+                        result = asyncio.run_coroutine_threadsafe(
+                            call_mcp_tool(
+                                self, self.mcp_client, function_name, function_arguments
+                            ),
+                            self.loop,
+                        ).result()
+                        self.logger.bind(tag=TAG).debug(f"MCP工具调用结果: {result}")
+                        result = ActionResponse(
+                            action=Action.REQLLM, result=result, response=""
+                        )
+                    except Exception as e:
+                        self.logger.bind(tag=TAG).error(f"MCP工具调用失败: {e}")
+                        result = ActionResponse(
+                            action=Action.REQLLM, result="MCP工具调用失败", response=""
+                        )
                 else:
                     # 处理系统函数
                     result = self.func_handler.handle_llm_function_call(
@@ -801,10 +857,11 @@ class ConnectionHandler:
                 item = self.report_queue.get(timeout=1)
                 if item is None:  # 检测毒丸对象
                     break
-
                 type, text, audio_data, report_time = item
-
                 try:
+                    # 检查线程池状态
+                    if self.executor is None:
+                        continue
                     # 提交任务到线程池
                     self.executor.submit(
                         self._process_report, type, text, audio_data, report_time
@@ -830,40 +887,42 @@ class ConnectionHandler:
             self.report_queue.task_done()
 
     def clearSpeakStatus(self):
+        self.client_is_speaking = False
         self.logger.bind(tag=TAG).debug(f"清除服务端讲话状态")
-        self.asr_server_receive = True
 
     async def close(self, ws=None):
         """资源清理方法"""
+        try:
+            # 取消超时任务
+            if self.timeout_task:
+                self.timeout_task.cancel()
+                self.timeout_task = None
 
-        # 取消超时任务
-        if self.timeout_task:
-            self.timeout_task.cancel()
-            self.timeout_task = None
+            # 清理MCP资源
+            if hasattr(self, "mcp_manager") and self.mcp_manager:
+                await self.mcp_manager.cleanup_all()
 
-        # 清理MCP资源
-        if hasattr(self, "mcp_manager") and self.mcp_manager:
-            await self.mcp_manager.cleanup_all()
+            # 触发停止事件
+            if self.stop_event:
+                self.stop_event.set()
 
-        # 触发停止事件
-        if self.stop_event:
-            self.stop_event.set()
+            # 清空任务队列
+            self.clear_queues()
 
-        # 清空任务队列
-        self.clear_queues()
+            # 关闭WebSocket连接
+            if ws:
+                await ws.close()
+            elif self.websocket:
+                await self.websocket.close()
 
-        # 关闭WebSocket连接
-        if ws:
-            await ws.close()
-        elif self.websocket:
-            await self.websocket.close()
+            # 最后关闭线程池（避免阻塞）
+            if self.executor:
+                self.executor.shutdown(wait=False)
+                self.executor = None
 
-        # 最后关闭线程池（避免阻塞）
-        if self.executor:
-            self.executor.shutdown(wait=False)
-            self.executor = None
-
-        self.logger.bind(tag=TAG).info("连接资源已释放")
+            self.logger.bind(tag=TAG).info("连接资源已释放")
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"关闭连接时出错: {e}")
 
     def clear_queues(self):
         """清空所有任务队列"""
@@ -873,7 +932,11 @@ class ConnectionHandler:
             )
 
             # 使用非阻塞方式清空队列
-            for q in [self.tts.tts_text_queue, self.tts.tts_audio_queue]:
+            for q in [
+                self.tts.tts_text_queue,
+                self.tts.tts_audio_queue,
+                self.report_queue,
+            ]:
                 if not q:
                     continue
                 while True:

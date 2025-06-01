@@ -2,8 +2,9 @@ import asyncio
 import websockets
 from config.logger import setup_logging
 from core.connection import ConnectionHandler
-from core.utils.util import initialize_modules, check_vad_update, check_asr_update
 from config.config_loader import get_config_from_api
+from core.utils.modules_initialize import initialize_modules
+from core.utils.util import check_vad_update, check_asr_update
 
 TAG = __name__
 

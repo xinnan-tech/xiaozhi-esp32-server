@@ -121,6 +121,28 @@
         </a>
     </td>
   </tr>
+  <tr>
+    <td>
+      <a href="https://www.bilibili.com/video/BV12J7WzBEaH" target="_blank">
+         <picture>
+           <img alt="实时打断" src="docs/images/demo10.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+         <picture>
+           <img alt="客户端MCP" src="docs/images/demo11.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+    </td>
+    <td>
+    </td>
+    <td>
+    </td>
+  </tr>
 </table>
 
 ---
@@ -141,11 +163,10 @@
 本项目提供两种部署方式，请根据您的具体需求选择：
 
 #### 🚀 部署方式选择
-
-| 部署方式 | 特点 | 适用场景 | Docker部署文档 | 源码部署文档 | 视频教程 | 
+| 部署方式 | 特点 | 适用场景 | 部署文档 | 配置要求 | 视频教程 | 
 |---------|------|---------|---------|---------|---------|
-| **最简化安装** | 智能对话、IOT功能，数据存储在配置文件 | 低配置环境，无需数据库 | [Docker只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) | [本地源码只运行Server](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| - | 
-| **全模块安装** | 智能对话、IOT、OTA、智控台，数据存储在数据库 | 完整功能体验 |[Docker运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) | [本地源码运行全模块](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) | [本地源码视频教程](https://www.bilibili.com/video/BV1wBJhz4Ewe) | 
+| **最简化安装** | 智能对话、IOT功能，数据存储在配置文件 | 低配置环境，无需数据库 | [Docker版](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [源码部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 如果使用`FunASR`要2核4G，如果全API，要2核2G | - | 
+| **全模块安装** | 智能对话、IOT、OTA、智控台，数据存储在数据库 | 完整功能体验 |[Docker版](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [源码部署](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) | 如果使用`FunASR`要4核8G，如果全API，要2核4G| [本地源码视频教程](https://www.bilibili.com/video/BV1wBJhz4Ewe) | 
 
 
 > 💡 提示：以下是按最新代码部署后的测试平台，有需要可烧录测试，并发为6个，每天会清空数据
@@ -158,9 +179,23 @@ OTA接口地址: https://2662r3426b.vicp.fun/xiaozhi/ota/
 Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 ```
 
+#### 🚩 配置说明和推荐
+> [!Note]
+> 本项目默认的配置是`入门全免费`设置，如果想效果更优，推荐使用`全流式配置`。
+> 
+> 本项目自`0.5.2`版本，已支持整个生命周期全流式，相比`0.5`版本以前，响应速度提升约`2.5秒`
+
+
+| 模块名称 | 入门全免费设置 | 全流式配置 |
+|---------|---------|------|
+| ASR(语音识别) | FunASR(本地) | ✅DoubaoASR(火山流式语音识别) |
+| LLM(大模型) | ChatGLMLLM(智谱glm-4-flash) | ✅DoubaoLLM(火山doubao-1-5-pro-32k-250115) |
+| TTS(语音合成) | EdgeTTS(微软语音) | ✅HuoshanDoubleStreamTTS(火山双流式语音合成) |
+| Intent(意图识别) | function_call(函数调用) | ✅function_call(函数调用) |
+| Memory(记忆功能) | mem_local_short(本地短期记忆） | ✅mem_local_short（本地短期记忆） |
+
 ---
 ## 功能清单 ✨
-
 ### 已实现 ✅
 
 | 功能模块 | 描述 |
