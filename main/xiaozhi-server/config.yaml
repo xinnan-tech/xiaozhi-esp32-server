@@ -246,6 +246,12 @@ ASR:
     is_ssl: true
     api_key: none
     output_dir: tmp/
+  VolceAIGateway:
+    type: volcengine
+    host: ai-gateway.vei.volces.com
+    model_name: bigmodel
+    api_key: none
+    output_dir: tmp/
   SherpaASR:
     type: sherpa_onnx_local
     model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17

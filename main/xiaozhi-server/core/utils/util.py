@@ -337,6 +337,7 @@ def initialize_modules(
             if "type" not in config["ASR"][select_asr_module]
             else config["ASR"][select_asr_module]["type"]
         )
+        logger.bind(tag=TAG).debug(f"初始化ASR实例参数： {asr_type} {select_asr_module}")
         modules["asr"] = asr.create_instance(
             asr_type,
             config["ASR"][select_asr_module],
