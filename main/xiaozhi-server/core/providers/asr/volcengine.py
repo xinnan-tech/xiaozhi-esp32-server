@@ -1,5 +1,4 @@
 import time
-import io
 import wave
 import os
 from typing import Optional, Tuple, List
@@ -8,7 +7,7 @@ import websockets
 import json
 import base64
 
-import opuslib_next
+from core.providers.asr.dto.dto import InterfaceType
 from core.providers.asr.base import ASRProviderBase
 
 from config.logger import setup_logging
@@ -20,6 +19,7 @@ logger = setup_logging()
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
         super().__init__()
+        self.interface_type = InterfaceType.NON_STREAM
         self.api_key = config.get("api_key")
         self.model_name = config.get("model_name")
         self.output_dir = config.get("output_dir")
@@ -87,7 +87,7 @@ class ASRProvider(ASRProviderBase):
         """Send request to Volc LLM gateway ASR service."""
         try:
             auth_header = {"Authorization": f"Bearer {self.api_key}"}
-            logger.bind(tag=TAG).info(f"ASR 参数: {self.ws_url} {auth_header} ")
+            logger.bind(tag=TAG).debug(f"ASR 参数: {self.ws_url} {auth_header} ")
             async with websockets.connect(
                 self.ws_url, additional_headers=auth_header
             ) as websocket:
