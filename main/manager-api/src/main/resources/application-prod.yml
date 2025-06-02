@@ -1,0 +1,74 @@
+# 生产环境配置文件
+spring:
+  datasource:
+    druid:
+      #MySQL 生产环境配置
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: ${DATABASE_URL:jdbc:mysql://localhost:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true}
+      username: ${DATABASE_USERNAME:root}
+      password: ${DATABASE_PASSWORD:password}
+      # 生产环境连接池优化配置
+      initial-size: 20
+      max-active: 200
+      min-idle: 20
+      max-wait: 10000
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 50
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      # 生产环境监控配置
+      stat-view-servlet:
+        enabled: false
+      filter:
+        stat:
+          log-slow-sql: true
+          slow-sql-millis: 1000
+          merge-sql: false
+        wall:
+          config:
+            multi-statement-allow: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 16      # 生产环境增加连接数
+          max-idle: 16
+          min-idle: 4
+          max-wait: 10000ms
+        shutdown-timeout: 100ms
+
+# 生产环境日志配置
+logging:
+  level:
+    root: INFO
+    com.xiaozhi: INFO
+    org.springframework.web: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/xiaozhi-esp32-api.log
+    max-size: 100MB
+    max-history: 30
+
+# 生产环境服务器配置
+server:
+  port: ${SERVER_PORT:8002}
+  servlet:
+    context-path: /
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 20
+    max-connections: 8192
+    accept-count: 100
+    connection-timeout: 20000
