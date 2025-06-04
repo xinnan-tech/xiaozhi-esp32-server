@@ -4,7 +4,7 @@ from loguru import logger
 from config.config_loader import load_config
 from config.settings import check_config_file
 
-SERVER_VERSION = "0.5.2"
+SERVER_VERSION = "0.5.4"
 _logger_initialized = False
 
 

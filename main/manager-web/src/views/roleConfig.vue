@@ -177,7 +177,7 @@ export default {
         { label: '语音活动检测(VAD)', key: 'vadModelId', type: 'VAD' },
         { label: '语音识别(ASR)', key: 'asrModelId', type: 'ASR' },
         { label: '大语言模型(LLM)', key: 'llmModelId', type: 'LLM' },
-        { label: '视觉大语言模型(VLLM)', key: 'vllmModelId', type: 'VLLM' },
+        { label: '视觉大模型(VLLM)', key: 'vllmModelId', type: 'VLLM' },
         { label: '意图识别(Intent)', key: 'intentModelId', type: 'Intent' },
         { label: '记忆(Memory)', key: 'memModelId', type: 'Memory' },
         { label: '语音合成(TTS)', key: 'ttsModelId', type: 'TTS' },

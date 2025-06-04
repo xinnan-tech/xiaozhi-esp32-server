@@ -89,8 +89,7 @@ async def sendAudio(conn, audios, pre_buffer=True):
     # 播放剩余音频帧
     for opus_packet in remaining_audios:
         if conn.client_abort:
-            conn.client_abort = False
-            return
+            break
 
         # 每分钟重置一次计时器
         if time.perf_counter() - last_reset_time > 60:

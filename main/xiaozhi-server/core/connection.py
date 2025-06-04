@@ -35,7 +35,6 @@ from plugins_func.loadplugins import auto_import_modules
 from plugins_func.register import Action, ActionResponse
 from core.auth import AuthMiddleware, AuthenticationError
 from config.config_loader import get_private_config_from_api
-from core.handle.receiveAudioHandle import handleAudioMessage
 from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
 from config.logger import setup_logging, build_module_string, update_module_string
 from config.manage_api_client import DeviceNotFoundException, DeviceBindException
@@ -81,6 +80,7 @@ class ConnectionHandler:
         self.welcome_msg = None
         self.max_output_size = 0
         self.chat_history_conf = 0
+        self.audio_format = "opus"
 
         # 客户端状态相关
         self.client_abort = False
@@ -117,7 +117,10 @@ class ConnectionHandler:
         self.client_voice_stop = False
 
         # asr相关变量
+        # 因为实际部署时可能会用到公共的本地ASR，不能把变量暴露给公共ASR
+        # 所以涉及到ASR的变量，需要在这里定义，属于connection的私有变量
         self.asr_audio = []
+        self.asr_audio_queue = queue.Queue()
 
         # llm相关变量
         self.llm_finish_task = True
@@ -146,7 +149,6 @@ class ConnectionHandler:
             int(self.config.get("close_connection_no_voice_time", 120)) + 60
         )  # 在原来第一道关闭的基础上加60秒，进行二道关闭
 
-        self.audio_format = "opus"
         # {"mcp":true} 表示启用MCP功能
         self.features = None
 
@@ -254,7 +256,11 @@ class ConnectionHandler:
         if isinstance(message, str):
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
-            await handleAudioMessage(self, message)
+            if self.vad is None:
+                return
+            if self.asr is None:
+                return
+            self.asr_audio_queue.put(message)
 
     async def handle_restart(self, message):
         """处理服务器重启请求"""

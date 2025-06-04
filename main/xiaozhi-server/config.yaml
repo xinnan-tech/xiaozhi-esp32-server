@@ -261,7 +261,7 @@ ASR:
     type: volcengine
     host: ai-gateway.vei.volces.com
     model_name: bigmodel
-    api_key: none
+    api_key: 你的api_key
     output_dir: tmp/
   SherpaASR:
     type: sherpa_onnx_local
@@ -270,7 +270,23 @@ ASR:
   DoubaoASR:
     # 可以在这里申请相关Key等信息
     # https://console.volcengine.com/speech/app
+    # DoubaoASR和DoubaoStreamASR的区别是：DoubaoASR是按次收费，DoubaoStreamASR是按时收费
+    # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
     type: doubao
+    appid: 你的火山引擎语音合成服务appid
+    access_token: 你的火山引擎语音合成服务access_token
+    cluster: volcengine_input_common
+    # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
+    boosting_table_name: （选填）你的热词文件名称
+    correct_table_name: （选填）你的替换词文件名称
+    output_dir: tmp/
+  DoubaoStreamASR:
+    # 可以在这里申请相关Key等信息
+    # https://console.volcengine.com/speech/app
+    # DoubaoASR和DoubaoStreamASR的区别是：DoubaoASR是按次收费，DoubaoStreamASR是按时收费
+    # 开通地址https://console.volcengine.com/speech/service/10011
+    # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
+    type: doubao_stream
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
     cluster: volcengine_input_common
@@ -357,7 +373,7 @@ LLM:
     type: volcengine
     host: ai-gateway.vei.volces.com
     model_name: doubao-pro-32k-functioncall
-    api_key: none
+    api_key: 你的api_key
   DeepSeekLLM:
     # 定义LLM API类型
     type: openai
@@ -418,7 +434,7 @@ LLM:
     # 开通后，进入这里获取密钥：https://console.volcengine.com/vei/aigateway/tokens-list
     base_url: https://ai-gateway.vei.volces.com/v1
     model_name: doubao-pro-32k-functioncall
-    api_key: 你的网关访问密钥
+    api_key: 你的api_key
   LMStudioLLM:
     # 定义LLM API类型
     type: openai
@@ -467,8 +483,13 @@ VLLM:
     type: volcengine
     host: ai-gateway.vei.volces.com
     model_name: doubao-1.5-vision-lite
-    api_key: none
-  
+    api_key: 你的api_key
+  QwenVLVLLM:
+    type: openai
+    model_name: qwen2.5-vl-3b-instruct
+    url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    # 可在这里找到你的api key https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    api_key: 你的api_key
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:

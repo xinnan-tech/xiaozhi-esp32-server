@@ -122,6 +122,8 @@ class IntentProvider(IntentProviderBase):
     async def detect_intent(self, conn, dialogue_history: List[Dict], text: str) -> str:
         if not self.llm:
             raise ValueError("LLM provider not set")
+        if conn.func_handler is None:
+            return '{"function_call": {"name": "continue_chat"}}'
 
         # 记录整体开始时间
         total_start_time = time.time()
@@ -148,9 +150,8 @@ class IntentProvider(IntentProviderBase):
         self.clean_cache()
 
         if self.promot == "":
-            if hasattr(conn, "func_handler"):
-                functions = conn.func_handler.get_functions()
-                self.promot = self.get_intent_system_prompt(functions)
+            functions = conn.func_handler.get_functions()
+            self.promot = self.get_intent_system_prompt(functions)
 
         music_config = initialize_music_handler(conn)
         music_file_names = music_config["music_file_names"]

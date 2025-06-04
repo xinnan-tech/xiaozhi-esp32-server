@@ -140,7 +140,9 @@ class AsyncPerformanceTester:
 
             print(f"🎵 测试 STT: {stt_name}")
 
-            text, _ = await stt.speech_to_text([self.test_wav_list[0]], "1")
+            text, _ = await stt.speech_to_text(
+                [self.test_wav_list[0]], "1", stt.audio_format
+            )
 
             if text is None:
                 print(f"❌ {stt_name} 连接失败")
@@ -151,7 +153,7 @@ class AsyncPerformanceTester:
 
             for i, sentence in enumerate(self.test_wav_list, 1):
                 start = time.time()
-                text, _ = await stt.speech_to_text([sentence], "1")
+                text, _ = await stt.speech_to_text([sentence], "1", stt.audio_format)
                 duration = time.time() - start
                 total_time += duration
 

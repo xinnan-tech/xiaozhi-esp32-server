@@ -37,17 +37,19 @@ class VisionHandler:
 
     async def handle_post(self, request):
         """处理 MCP Vision POST 请求"""
+        response = None  # 初始化response变量
         try:
             # 验证token
             is_valid, token_device_id = self._verify_auth_token(request)
             if not is_valid:
-                return web.Response(
+                response = web.Response(
                     text=json.dumps(
                         self._create_error_response("无效的认证token或token已过期")
                     ),
                     content_type="application/json",
                     status=401,
                 )
+                return response
 
             # 获取请求头信息
             device_id = request.headers.get("Device-Id", "")
@@ -120,11 +122,11 @@ class VisionHandler:
                 vllm_type, current_config["VLLM"][select_vllm_module]
             )
 
-            response = vllm.response(question, image_base64)
+            result = vllm.response(question, image_base64)
 
             return_json = {
                 "success": True,
-                "result": response,
+                "result": result,
             }
 
             response = web.Response(
@@ -146,7 +148,8 @@ class VisionHandler:
                 content_type="application/json",
             )
         finally:
-            self._add_cors_headers(response)
+            if response:
+                self._add_cors_headers(response)
             return response
 
     async def handle_get(self, request):

@@ -96,6 +96,7 @@ async def process_intent_result(conn, intent_result, original_text):
             }
 
             await send_stt_message(conn, original_text)
+            conn.client_abort = False
 
             # 使用executor执行函数调用和结果处理
             def process_function_call():

@@ -46,7 +46,9 @@ class VLLMProvider(VLLMProviderBase):
                         {"type": "text", "text": question},
                         {
                             "type": "image_url",
-                            "image_url": {"url": f"{base64_image}"},
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            },
                         },
                     ],
                 }

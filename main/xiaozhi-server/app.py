@@ -46,8 +46,13 @@ async def main():
     check_ffmpeg_installed()
     config = load_config()
 
-    # 生成随机密钥并添加到配置中
-    config["server"]["auth_key"] = str(uuid.uuid4().hex)
+    # 默认使用manager-api的secret作为auth_key
+    # 如果secret为空，则生成随机密钥
+    # auth_key用于jwt认证，比如视觉分析接口的jwt认证
+    auth_key = config.get("manager-api", {}).get("secret", "")
+    if not auth_key or len(auth_key) == 0 or "你" in auth_key:
+        auth_key = str(uuid.uuid4().hex)
+    config["server"]["auth_key"] = auth_key
 
     # 添加 stdin 监控任务
     stdin_task = asyncio.create_task(monitor_stdin())

@@ -202,7 +202,15 @@ change_role;get_weather;get_news;play_music;hass_get_state;hass_set_state
 
 #### 2. 配置小智开源服务端MCP配置信息
 
-切换到小智开源服务端`xiaozhi-esp32-server`的`mcp_server_settings.json`文件内，在`"mcpServers"`的括号内添加以下内容：
+
+进入`data`目录，找到`.mcp_server_settings.json`文件。
+
+如果你的`data`目录下没有`.mcp_server_settings.json`文件，
+- 请把在`xiaozhi-server`文件夹根目录的`mcp_server_settings.json`文件复制到`data`目录下，并重命名为`.mcp_server_settings.json`
+- 或[下载这个文件](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/main/xiaozhi-server/mcp_server_settings.json)，下载到`data`目录下，并重命名为`.mcp_server_settings.json`
+
+
+修改`"mcpServers"`里的这部分的内容：
 
 ```json
 "Home Assistant": {

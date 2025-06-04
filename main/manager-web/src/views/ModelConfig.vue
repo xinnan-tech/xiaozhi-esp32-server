@@ -31,7 +31,7 @@
             <span class="menu-text">大语言模型</span>
           </el-menu-item>
           <el-menu-item index="vllm">
-            <span class="menu-text">视觉大语言模型</span>
+            <span class="menu-text">视觉大模型</span>
           </el-menu-item>
           <el-menu-item index="intent">
             <span class="menu-text">意图识别</span>
@@ -176,7 +176,7 @@ export default {
         vad: '语言活动检测模型(VAD)',
         asr: '语音识别模型(ASR)',
         llm: '大语言模型（LLM）',
-        vllm: '视觉大语言模型（VLLM）',
+        vllm: '视觉大模型（VLLM）',
         intent: '意图识别模型(Intent)',
         tts: '语音合成模型(TTS)',
         memory: '记忆模型(Memory)'

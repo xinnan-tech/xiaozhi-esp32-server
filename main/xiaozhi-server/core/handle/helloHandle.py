@@ -33,8 +33,6 @@ async def handleHelloMessage(conn, msg_json):
         format = audio_params.get("format")
         conn.logger.bind(tag=TAG).info(f"客户端音频格式: {format}")
         conn.audio_format = format
-        if conn.asr is not None:
-            conn.asr.set_audio_format(format)
         conn.welcome_msg["audio_params"] = audio_params
     features = msg_json.get("features")
     if features:
@@ -65,6 +63,8 @@ async def checkWakeupWords(conn, text):
     """检查是否是唤醒词"""
     _, filtered_text = remove_punctuation_and_length(text)
     if filtered_text in conn.config.get("wakeup_words"):
+        # 设置刚刚被唤醒的标志
+        conn.just_woken_up = True
         await send_stt_message(conn, text)
 
         file = getWakeupWordFile(WAKEUP_CONFIG["file_name"])
@@ -74,6 +74,8 @@ async def checkWakeupWords(conn, text):
         text_hello = WAKEUP_CONFIG["text"]
         if not text_hello:
             text_hello = text
+        if conn.tts is None:
+            return False
         conn.tts.tts_one_sentence(
             conn, ContentType.FILE, content_file=file, content_detail=text_hello
         )
