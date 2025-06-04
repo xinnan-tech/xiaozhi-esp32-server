@@ -11,6 +11,7 @@ import traceback
 import subprocess
 import websockets
 from core.handle.mcpHandle import call_mcp_tool
+from core.message.sender.message_sender_factory import MessageSenderFactory
 from core.utils.util import (
     extract_json_from_string,
     check_vad_update,
@@ -73,6 +74,7 @@ class ConnectionHandler:
         self.read_config_from_api = self.config.get("read_config_from_api", False)
 
         self.websocket = None
+        self.message_sender = None
         self.headers = None
         self.device_id = None
         self.client_ip = None
@@ -186,12 +188,18 @@ class ConnectionHandler:
             self.websocket = ws
             self.device_id = self.headers.get("device-id", None)
 
+            # 初始化message发送器
+            message_sender = MessageSenderFactory.create_sender(
+                self.config, self.websocket
+            )
+            self.message_sender = message_sender
+
             # 启动超时检查任务
             self.timeout_task = asyncio.create_task(self._check_timeout())
 
             self.welcome_msg = self.config["xiaozhi"]
             self.welcome_msg["session_id"] = self.session_id
-            await self.websocket.send(json.dumps(self.welcome_msg))
+            await message_sender.send(json.dumps(self.welcome_msg))
 
             # 获取差异化配置
             self._initialize_private_config()
@@ -263,7 +271,7 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).info("收到服务器重启指令，准备执行...")
 
             # 发送确认响应
-            await self.websocket.send(
+            await self.message_sender.send(
                 json.dumps(
                     {
                         "type": "server",
@@ -293,7 +301,7 @@ class ConnectionHandler:
 
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"重启失败: {str(e)}")
-            await self.websocket.send(
+            await self.message_sender.send(
                 json.dumps(
                     {
                         "type": "server",

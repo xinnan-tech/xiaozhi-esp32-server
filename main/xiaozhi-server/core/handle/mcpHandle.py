@@ -97,7 +97,7 @@ async def send_mcp_message(conn, payload: dict):
     message = json.dumps({"type": "mcp", "payload": payload})
 
     try:
-        await conn.websocket.send(message)
+        await conn.message_sender.send(message)
         conn.logger.bind(tag=TAG).info(f"成功发送MCP消息: {message}")
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"发送MCP消息失败: {e}")
