@@ -181,5 +181,5 @@ class ASRProvider(ASRProviderBase):
             return "", file_path
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"语音识别失败: {e}", exc_info=True)
+            logger.bind(tag=TAG).error(f"语音识别失败:  {self.ws_url} {self.api_key} {e}", exc_info=True)
             return "", file_path
