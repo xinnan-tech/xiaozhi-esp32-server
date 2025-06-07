@@ -42,7 +42,7 @@ class TTSProvider(TTSProviderBase):
         self.get_voice_data(config)
 
     def get_voice_data(self, config: dict):
-        voice_file = Path(get_project_dir() + "data/gpt_sovits_data.yaml")
+        voice_file = Path(get_project_dir() + "data/.voice.yaml")
         voice_data: dict = yaml.safe_load(voice_file.read_text('utf-8')) if voice_file.exists() else {}
         default_voice_data: dict = read_config(get_project_dir() + "gpt_sovits.yaml")
         private_voice = config.get("private_voice", "")
@@ -52,11 +52,18 @@ class TTSProvider(TTSProviderBase):
             data = merge_configs(default_voice_data, voice_data).get("v3").get(private_voice, {})
         if data == {}:
             return
-        self.text_language = data.get('text_lang', 'zh')
-        self.refer_wav_path = data.get("ref_audio_path")
+        self.text_language = data.get('text_language', 'zh')
+        self.refer_wav_path = data.get("refer_wav_path")
         self.inp_refs = parse_string_to_list(data.get("inp_refs"))
         self.prompt_text = data.get("prompt_text")
-        self.prompt_language = data.get("prompt_lang", "zh")
+        self.prompt_language = data.get("prompt_language", "zh")
+
+        self.top_k = int(data.get("top_k", self.top_k))
+        self.top_p = float(data.get("top_p", self.top_p))
+        self.temperature = float(data.get("temperature", self.temperature))
+        self.sample_steps = int(data.get("sample_steps", self.sample_steps))
+        self.speed = float(data.get("speed", self.speed))
+        self.cut_punc = config.get("cut_punc", self.cut_punc)
 
     async def text_to_speak(self, text, output_file):
         request_params = {
