@@ -7,7 +7,7 @@ v2:
 
 v3:
   simple:
-    text_lang: zh
-    ref_audio_path: /to/your/path
+    text_language: zh
+    refer_wav_path: /to/your/path
     prompt_text: 這是語音內容
-    prompt_lang: zh
+    prompt_language: zh
