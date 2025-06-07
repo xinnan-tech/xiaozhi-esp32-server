@@ -1,7 +1,7 @@
 import json
 import asyncio
 from concurrent.futures import Future
-from core.utils.util import get_vision_url
+from core.utils.util import get_vision_url, sanitize_tool_name
 from core.utils.auth import AuthToken
 
 TAG = __name__
@@ -11,7 +11,8 @@ class MCPClient:
     """MCPClient，用于管理MCP状态和工具"""
 
     def __init__(self):
-        self.tools = {}  # Dictionary for O(1) lookup
+        self.tools = {}  # sanitized_name -> tool_data
+        self.name_mapping = {}
         self.ready = False
         self.call_results = {}  # To store Futures for tool call responses
         self.next_id = 1
@@ -30,7 +31,7 @@ class MCPClient:
         result = []
         for tool_name, tool_data in self.tools.items():
             function_def = {
-                "name": tool_data["name"],
+                "name": tool_name,
                 "description": tool_data["description"],
                 "parameters": {
                     "type": tool_data["inputSchema"].get("type", "object"),
@@ -53,7 +54,9 @@ class MCPClient:
 
     async def add_tool(self, tool_data: dict):
         async with self.lock:
-            self.tools[tool_data["name"]] = tool_data
+            sanitized_name = sanitize_tool_name(tool_data["name"])
+            self.tools[sanitized_name] = tool_data
+            self.name_mapping[sanitized_name] = tool_data["name"]
             self._cached_available_tools = (
                 None  # Invalidate the cache when a tool is added
             )
@@ -333,11 +336,12 @@ async def call_mcp_tool(
             raise ValueError(f"参数处理失败: {str(e)}")
         raise e
 
+    actual_name = mcp_client.name_mapping.get(tool_name, tool_name)
     payload = {
         "jsonrpc": "2.0",
         "id": tool_call_id,
         "method": "tools/call",
-        "params": {"name": tool_name, "arguments": arguments},
+        "params": {"name": actual_name, "arguments": arguments},
     }
 
     conn.logger.bind(tag=TAG).info(
