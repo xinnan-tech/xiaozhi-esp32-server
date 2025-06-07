@@ -77,8 +77,11 @@ class TTSProvider(TTSProviderBase):
 
         resp = requests.get(self.url, params=request_params)
         if resp.status_code == 200:
-            with open(output_file, "wb") as file:
-                file.write(resp.content)
+            if output_file:
+                with open(output_file, "wb") as file:
+                    file.write(resp.content)
+            else:
+                return resp.content
         else:
             error_msg = f"GPT_SoVITS_V3 TTS请求失败: {resp.status_code} - {resp.text}"
             logger.bind(tag=TAG).error(error_msg)
