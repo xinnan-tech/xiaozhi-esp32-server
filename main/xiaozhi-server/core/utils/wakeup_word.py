@@ -2,9 +2,8 @@ import os
 import yaml
 import time
 import hashlib
-import fcntl
+import portalocker
 from typing import Dict
-from contextlib import contextmanager
 
 
 class FileLock:
@@ -17,15 +16,15 @@ class FileLock:
         self.start_time = time.time()
         while True:
             try:
-                fcntl.flock(self.file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                portalocker.lock(self.file, portalocker.LOCK_EX | portalocker.LOCK_NB)
                 return self.file
-            except IOError:
+            except portalocker.LockException:
                 if time.time() - self.start_time > self.timeout:
                     raise TimeoutError("获取文件锁超时")
                 time.sleep(0.1)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        fcntl.flock(self.file, fcntl.LOCK_UN)
+        portalocker.unlock(self.file)
 
 
 class WakeupWordsConfig:
