@@ -157,6 +157,11 @@ class ASRProvider(ASRProviderBase):
 
                     if "payload_msg" in result:
                         payload = result["payload_msg"]
+                        # 检查是否是错误码1013（无有效语音）
+                        if "code" in payload and payload["code"] == 1013:
+                            # 静默处理，不记录错误日志
+                            continue
+
                         if "result" in payload:
                             utterances = payload["result"].get("utterances", [])
                             # 检查duration和空文本的情况

@@ -91,7 +91,7 @@ class TTSProvider(TTSProviderBase):
 
         self.appkey = config.get("appkey")
         self.format = config.get("format", "wav")
-
+        self.audio_file_type = config.get("format", "wav")
         sample_rate = config.get("sample_rate", "16000")
         self.sample_rate = int(sample_rate) if sample_rate else 16000
 
@@ -188,9 +188,12 @@ class TTSProvider(TTSProviderBase):
                 )
             # 检查返回请求数据的mime类型是否是audio/***，是则保存到指定路径下；返回的是binary格式的
             if resp.headers["Content-Type"].startswith("audio/"):
-                with open(output_file, "wb") as f:
-                    f.write(resp.content)
-                return output_file
+                if output_file:
+                    with open(output_file, "wb") as f:
+                        f.write(resp.content)
+                    return output_file
+                else:
+                    return resp.content
             else:
                 raise Exception(
                     f"{__name__} status_code: {resp.status_code} response: {resp.content}"

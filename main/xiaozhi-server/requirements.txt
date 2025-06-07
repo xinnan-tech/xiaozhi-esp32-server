@@ -32,3 +32,4 @@ aioconsole==0.8.1
 markitdown==0.1.1
 mcp-proxy==0.6.0
 PyJWT==2.8.0
+psutil==7.0.0

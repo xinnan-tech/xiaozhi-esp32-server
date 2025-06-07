@@ -168,6 +168,7 @@ class ASRProvider(ASRProviderBase):
                 if (
                     "payload_msg" in result
                     and result["payload_msg"]["code"] != self.success_code
+                    and result["payload_msg"]["code"] != 1013  # 忽略无有效语音的错误
                 ):
                     logger.bind(tag=TAG).error(f"ASR error: {result}")
                     return None
@@ -203,6 +204,9 @@ class ASRProvider(ASRProviderBase):
                     if len(result["payload_msg"]["result"]) > 0:
                         return result["payload_msg"]["result"][0]["text"]
                     return None
+                elif "payload_msg" in result and result["payload_msg"]["code"] == 1013:
+                    # 无有效语音，返回空字符串
+                    return ""
                 else:
                     logger.bind(tag=TAG).error(f"ASR error: {result}")
                     return None

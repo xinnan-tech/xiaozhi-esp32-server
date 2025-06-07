@@ -3,6 +3,9 @@ import socket
 import subprocess
 import re
 import os
+import wave
+from io import BytesIO
+from core.utils import p3
 import numpy as np
 import requests
 import opuslib_next
@@ -773,6 +776,22 @@ def audio_to_data(audio_file_path, is_opus=True):
     return pcm_to_data(raw_data, is_opus), duration
 
 
+def audio_bytes_to_data(audio_bytes, file_type, is_opus=True):
+    """
+    直接用音频二进制数据转为opus/pcm数据，支持wav、mp3、p3
+    """
+    if file_type == "p3":
+        # 直接用p3解码
+        return p3.decode_opus_from_bytes(audio_bytes)
+    else:
+        # 其他格式用pydub
+        audio = AudioSegment.from_file(BytesIO(audio_bytes), format=file_type, parameters=["-nostdin"])
+        audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
+        duration = len(audio) / 1000.0
+        raw_data = audio.raw_data
+        return pcm_to_data(raw_data, is_opus), duration
+
+
 def pcm_to_data(raw_data, is_opus=True):
     # 初始化Opus编码器
     encoder = opuslib_next.Encoder(16000, 1, opuslib_next.APPLICATION_AUDIO)
@@ -802,6 +821,33 @@ def pcm_to_data(raw_data, is_opus=True):
         datas.append(frame_data)
 
     return datas
+
+
+def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
+    """
+    将opus帧列表解码为wav字节流
+    """
+    decoder = opuslib_next.Decoder(sample_rate, channels)
+    pcm_datas = []
+
+    frame_duration = 60  # ms
+    frame_size = int(sample_rate * frame_duration / 1000)  # 960
+
+    for opus_frame in opus_datas:
+        # 解码为PCM（返回bytes，2字节/采样点）
+        pcm = decoder.decode(opus_frame, frame_size)
+        pcm_datas.append(pcm)
+
+    pcm_bytes = b''.join(pcm_datas)
+
+    # 写入wav字节流
+    wav_buffer = BytesIO()
+    with wave.open(wav_buffer, 'wb') as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(2)  # 16bit
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm_bytes)
+    return wav_buffer.getvalue()
 
 
 def check_vad_update(before_config, new_config):
