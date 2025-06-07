@@ -981,3 +981,17 @@ def is_valid_image_file(file_data: bytes) -> bool:
 def sanitize_tool_name(name: str) -> str:
     """Sanitize tool names for OpenAI compatibility."""
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+
+
+def replace_other_chars(t: str) -> str:
+    # 移除Markdown標題
+    t = re.sub(r"#*", "", t)
+    # 移除Markdown列表項目
+    t = re.sub(r"\*", "", t)
+    # 移除Markdown鏈接
+    t = re.sub(r"\[.*?]\(.*?\)", "", t)
+    # 移除多餘的空格和換行符
+    t = t.replace("\n", " ").strip()
+    # 移除連結
+    # t = re.sub(r"https?://\S+", "", t)
+    return t

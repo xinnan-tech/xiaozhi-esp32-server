@@ -12,6 +12,7 @@ from config.settings import load_config
 from core.utils.asr import create_instance as create_stt_instance
 from core.utils.llm import create_instance as create_llm_instance
 from core.utils.tts import create_instance as create_tts_instance
+from core.utils.util import replace_other_chars
 
 # 设置全局日志级别为WARNING，抑制INFO级别日志
 logging.basicConfig(level=logging.WARNING)
@@ -100,7 +101,7 @@ class AsyncPerformanceTester:
             for i, sentence in enumerate(self.test_sentences[:2], 1):
                 start = time.time()
                 tmp_file = tts.generate_filename()
-                await tts.text_to_speak(sentence, tmp_file)
+                await tts.text_to_speak(replace_other_chars(sentence), tmp_file)
                 duration = time.time() - start
                 total_time += duration
 

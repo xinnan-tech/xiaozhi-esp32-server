@@ -8,7 +8,7 @@ from datetime import datetime
 from core.utils import textUtils
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
-from core.utils.util import audio_to_data, audio_bytes_to_data
+from core.utils.util import audio_to_data, audio_bytes_to_data, replace_other_chars
 from core.utils.tts import MarkdownCleaner
 from core.utils.output_counter import add_device_output
 from core.handle.reportHandle import enqueue_tts_report
@@ -111,7 +111,7 @@ class TTSProviderBase(ABC):
             try:
                 while not os.path.exists(tmp_file) and max_repeat_time > 0:
                     try:
-                        asyncio.run(self.text_to_speak(text, tmp_file))
+                        asyncio.run(self.text_to_speak(replace_other_chars(text), tmp_file))
                     except Exception as e:
                         logger.bind(tag=TAG).warning(
                             f"语音生成失败{5 - max_repeat_time + 1}次: {text}，错误: {e}"
