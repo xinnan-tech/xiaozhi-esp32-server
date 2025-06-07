@@ -6,6 +6,7 @@ from core.utils.util import get_vision_url, is_valid_image_file
 from core.utils.vllm import create_instance
 from config.config_loader import get_private_config_from_api
 from core.utils.auth import AuthToken
+from core.events.vision_events import publish_visual_context_event
 import base64
 from typing import Tuple, Optional
 
@@ -124,31 +125,40 @@ class VisionHandler:
 
             result = vllm.response(question, image_base64)
 
+            # 将VLLM的输出发布到事件队列
+            await publish_visual_context_event(device_id, client_id, result)
+            self.logger.bind(tag=TAG).info(
+                f"Visual context for device_id: {device_id}, client_id: {client_id} published to event queue."
+            )
+
+            # 返回通用成功消息
             return_json = {
                 "success": True,
-                "result": result,
+                "message": "Visual context received for processing",
             }
-
             response = web.Response(
                 text=json.dumps(return_json, separators=(",", ":")),
                 content_type="application/json",
+                status=200,
             )
         except ValueError as e:
-            self.logger.bind(tag=TAG).error(f"MCP Vision POST请求异常: {e}")
+            self.logger.bind(tag=TAG).error(f"MCP Vision POST请求 ValueError: {e}")
             return_json = self._create_error_response(str(e))
             response = web.Response(
                 text=json.dumps(return_json, separators=(",", ":")),
                 content_type="application/json",
+                status=400,  # Bad Request for ValueErrors
             )
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"MCP Vision POST请求异常: {e}")
-            return_json = self._create_error_response("处理请求时发生错误")
+            self.logger.bind(tag=TAG).error(f"MCP Vision POST请求 Exception: {e}")
+            return_json = self._create_error_response("处理请求时发生内部服务器错误")
             response = web.Response(
                 text=json.dumps(return_json, separators=(",", ":")),
                 content_type="application/json",
+                status=500,  # Internal Server Error
             )
         finally:
-            if response:
+            if response:  # Ensure response is not None before adding headers
                 self._add_cors_headers(response)
             return response
 
@@ -163,16 +173,18 @@ class VisionHandler:
             else:
                 message = "MCP Vision 接口运行不正常，请打开data目录下的.config.yaml文件，找到【server.vision_explain】，设置好地址"
 
-            response = web.Response(text=message, content_type="text/plain")
+            response = web.Response(text=message, content_type="text/plain", status=200)
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"MCP Vision GET请求异常: {e}")
+            self.logger.bind(tag=TAG).error(f"MCP Vision GET请求 Exception: {e}")
             return_json = self._create_error_response("服务器内部错误")
             response = web.Response(
                 text=json.dumps(return_json, separators=(",", ":")),
                 content_type="application/json",
+                status=500,
             )
         finally:
-            self._add_cors_headers(response)
+            if response:  # Ensure response is not None before adding headers
+                self._add_cors_headers(response)
             return response
 
     def _add_cors_headers(self, response):

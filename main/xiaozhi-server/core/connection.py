@@ -38,7 +38,8 @@ from config.config_loader import get_private_config_from_api
 from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
 from config.logger import setup_logging, build_module_string, update_module_string
 from config.manage_api_client import DeviceNotFoundException, DeviceBindException
-
+from core.events.vision_events import visual_context_event_queue, VisualContextEvent
+from typing import Optional
 
 TAG = __name__
 
@@ -152,6 +153,12 @@ class ConnectionHandler:
         # {"mcp":true} 表示启用MCP功能
         self.features = None
 
+        # Visual context related
+        self.visual_context: Optional[str] = None
+        self.visual_context_ready_event = asyncio.Event() # To signal new visual context
+        self._context_listener_task: Optional[asyncio.Task] = None
+
+
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
@@ -187,6 +194,15 @@ class ConnectionHandler:
             # 认证通过,继续处理
             self.websocket = ws
             self.device_id = self.headers.get("device-id", None)
+            if not self.device_id:
+                # This case should ideally be prevented by earlier checks or auth
+                self.logger.bind(tag=TAG).error("Device ID is not set, cannot start visual context listener.")
+                await self.close(ws)
+                return
+
+            # Start the visual context listener task
+            self._context_listener_task = asyncio.create_task(self._visual_context_listener())
+            self.logger.bind(tag=TAG).info(f"Visual context listener task started for device_id: {self.device_id}")
 
             # 启动超时检查任务
             self.timeout_task = asyncio.create_task(self._check_timeout())
@@ -585,6 +601,44 @@ class ConnectionHandler:
         self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
         self.llm_finish_task = False
 
+        # Basic check for vision-related queries to potentially wait for context
+        # TODO: Make keywords configurable or use a more robust intent detection earlier
+        VISION_RELATED_KEYWORDS = ["什么样", "啥样", "样子", "what do you see", "describe this image", "describe the image", "what is this", "这是什么", "这张图片", "图中有什么", "照片里有什么"]
+        # Use a copy of the query for keyword checking to avoid modifying original before logging/processing
+        query_lower_for_check = str(query).lower()
+        is_vision_query = any(keyword in query_lower_for_check for keyword in VISION_RELATED_KEYWORDS)
+
+        if is_vision_query and not self.visual_context:
+            self.logger.bind(tag=TAG).info("Vision-related query detected, waiting for visual context event...")
+            try:
+                # Wait for the visual context event to be set, with a timeout
+                await asyncio.wait_for(self.visual_context_ready_event.wait(), timeout=7.0) # Configurable timeout
+                if self.visual_context:
+                    self.logger.bind(tag=TAG).info(f"Visual context received after waiting for device {self.device_id}.")
+                else:
+                    # Event might have been set and cleared if another query came in very fast,
+                    # or if the listener set context to None for some reason (unlikely here).
+                    self.logger.bind(tag=TAG).info(f"Visual context event was set for device {self.device_id}, but context is currently None.")
+            except asyncio.TimeoutError:
+                self.logger.bind(tag=TAG).warning(f"Timeout waiting for visual context for device {self.device_id}. Proceeding without it for this query.")
+                # Optionally, inform the LLM that image context was expected but not received:
+                # query = f"User asked: '{query}'. (System note: An image was expected but not provided or processed in time.)"
+            except Exception as e:
+                self.logger.bind(tag=TAG).error(f"Error waiting for visual context event for device {self.device_id}: {e}")
+
+        # Integrate visual context if available (either pre-existing or received after waiting)
+        if self.visual_context:
+            self.logger.bind(tag=TAG).info(f"Using visual context for LLM for device {self.device_id}: {self.visual_context}")
+            # Prepend visual context to the user's query
+            # This makes the visual information part of the current user turn for the LLM
+            query = f"Visual context from image: {self.visual_context}. User query: {query}"
+            self.visual_context = None  # Clear context after use
+            self.visual_context_ready_event.clear() # Clear the event, ready for next visual context
+            self.logger.bind(tag=TAG).debug(f"Query transformed with visual context for device {self.device_id}: {query}")
+        elif is_vision_query: # It was a vision query, but context is still None (e.g. timeout)
+             self.logger.bind(tag=TAG).info(f"Proceeding with vision-related query for device {self.device_id} but no visual context is available.")
+
+
         if not tool_call:
             self.dialogue.put(Message(role="user", content=query))
 
@@ -904,6 +958,17 @@ class ConnectionHandler:
                 self.timeout_task.cancel()
                 self.timeout_task = None
 
+            # Cancel the visual context listener task
+            if self._context_listener_task and not self._context_listener_task.done():
+                self._context_listener_task.cancel()
+                try:
+                    await self._context_listener_task
+                except asyncio.CancelledError:
+                    self.logger.bind(tag=TAG).info("Visual context listener task cancelled.")
+                except Exception as e:
+                    self.logger.bind(tag=TAG).error(f"Error during visual context listener task cleanup: {e}")
+            self._context_listener_task = None
+
             # 清理MCP资源
             if hasattr(self, "mcp_manager") and self.mcp_manager:
                 await self.mcp_manager.cleanup_all()
@@ -929,6 +994,45 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).info("连接资源已释放")
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"关闭连接时出错: {e}")
+
+    async def _visual_context_listener(self):
+        """Listens for visual context events from the global queue."""
+        self.logger.bind(tag=TAG).info(f"Device {self.device_id}: Visual context listener started.")
+        try:
+            while True:
+                event: VisualContextEvent = await visual_context_event_queue.get()
+                try:
+                    if event.device_id == self.device_id:
+                        self.visual_context = event.text
+                        self.visual_context_ready_event.set() # Signal that new context is available
+                        self.logger.bind(tag=TAG).info(
+                            f"Device {self.device_id}: Received visual context: '{event.text[:50]}...'"
+                        )
+                        # visual_context_event_queue.task_done() # Call task_done if this connection "owns" the event
+                    else:
+                        # If the event is not for this device, put it back in the queue
+                        # This is a simple re-queue; a more robust system might have dedicated device queues or a pub/sub manager
+                        await visual_context_event_queue.put(event)
+                        # Yield control to allow other listeners to pick up events.
+                        # This sleep is important if many non-matching events are frequent for this device.
+                        await asyncio.sleep(0.01)
+                except Exception as e:
+                    self.logger.bind(tag=TAG).error(f"Device {self.device_id}: Error processing visual event: {e}")
+                    # visual_context_event_queue.task_done() # Ensure task_done is called even on error if event is consumed
+                finally:
+                    # Only call task_done if the event was truly meant for this consumer and processed (or attempted)
+                    # For the re-queue strategy, task_done should only be called by the final consumer.
+                    # Given the current design, if it's a match, it's consumed. If not, it's re-queued.
+                    # So, task_done is called by the matching consumer.
+                    if event.device_id == self.device_id:
+                         visual_context_event_queue.task_done()
+
+        except asyncio.CancelledError:
+            self.logger.bind(tag=TAG).info(f"Device {self.device_id}: Visual context listener cancelled.")
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"Device {self.device_id}: Visual context listener encountered an unhandled error: {e}")
+        finally:
+            self.logger.bind(tag=TAG).info(f"Device {self.device_id}: Visual context listener stopped.")
 
     def clear_queues(self):
         """清空所有任务队列"""
