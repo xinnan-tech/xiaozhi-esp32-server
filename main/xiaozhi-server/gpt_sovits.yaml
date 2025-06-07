@@ -1,0 +1,13 @@
+v2:
+  simple:
+    text_lang: zh
+    ref_audio_path: /to/your/path
+    prompt_text: 這是語音內容
+    prompt_lang: zh
+
+v3:
+  simple:
+    text_lang: zh
+    ref_audio_path: /to/your/path
+    prompt_text: 這是語音內容
+    prompt_lang: zh

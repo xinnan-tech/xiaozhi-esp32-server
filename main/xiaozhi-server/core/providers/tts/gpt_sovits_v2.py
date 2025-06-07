@@ -1,4 +1,9 @@
+from pathlib import Path
+
 import requests
+import yaml
+
+from config.config_loader import get_project_dir, read_config, merge_configs
 from config.logger import setup_logging
 from core.providers.tts.base import TTSProviderBase
 from core.utils.util import parse_string_to_list
@@ -66,6 +71,34 @@ class TTSProvider(TTSProviderBase):
             config.get("aux_ref_audio_paths")
         )
         self.audio_file_type = config.get("format", "wav")
+
+        self.get_voice_data(config)
+
+    def get_voice_data(self, config: dict):
+        voice_file = Path(get_project_dir() + "data/.voice.yaml")
+        voice_data: dict = yaml.safe_load(voice_file.read_text('utf-8')) if voice_file.exists() else {}
+        default_voice_data: dict = read_config(get_project_dir() + "gpt_sovits.yaml")
+        private_voice = config.get("private_voice", "")
+        if voice_data.get('v2'):
+            data = voice_data.get("v2").get(private_voice, {})
+        else:
+            data = merge_configs(default_voice_data, voice_data).get("v2").get(private_voice, {})
+        if data == {}:
+            return
+        self.text_lang = data.get('text_lang', self.text_lang)
+        self.ref_audio_path = data.get("ref_audio_path")
+        self.aux_ref_audio_paths = parse_string_to_list(data.get("aux_ref_audio_paths"))
+        self.prompt_text = data.get("prompt_text")
+        self.prompt_lang = data.get("prompt_lang", self.prompt_lang)
+
+        self.top_k = int(data.get("top_k", self.top_k))
+        self.top_p = float(data.get("top_p", self.top_p))
+        self.temperature = float(data.get("temperature", self.temperature))
+        self.batch_threshold = float(data.get("batch_threshold", self.batch_threshold))
+        self.batch_size = int(data.get("batch_size", self.batch_size))
+        self.speed_factor = float(data.get("speed_factor", self.speed_factor))
+        self.seed = int(data.get("seed", self.seed))
+        self.repetition_penalty = float(data.get("repetition_penalty", self.repetition_penalty))
 
     async def text_to_speak(self, text, output_file):
         request_json = {
