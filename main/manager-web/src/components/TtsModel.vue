@@ -74,6 +74,18 @@
               <span v-else>{{ scope.row.remark }}</span>
             </template>
           </el-table-column>
+          <el-table-column label="音频路径" align="center">
+            <template slot-scope="scope">
+              <el-input v-if="scope.row.editing" v-model="scope.row.referenceAudio" placeholder="这里是参考音频路径 (本地模型用)"></el-input>
+              <span v-else>{{ scope.row.referenceAudio }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="音频文本" align="center">
+            <template slot-scope="scope">
+              <el-input v-if="scope.row.editing" v-model="scope.row.referenceText" placeholder="这里是参考音频文本 (本地模型用)"></el-input>
+              <span v-else>{{ scope.row.referenceText }}</span>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" align="center" width="150">
             <template slot-scope="scope">
               <template v-if="!scope.row.editing">
@@ -206,6 +218,8 @@ export default {
               voiceName: item.name || '未命名音色',
               languageType: item.languages || '',
               remark: item.remark || '',
+              referenceAudio: item.referenceAudio || '',
+              referenceText: item.referenceText || '',
               voiceDemo: item.voiceDemo || '',
               selected: false,
               editing: false,
@@ -351,6 +365,8 @@ export default {
           voiceName: row.voiceName,
           languageType: row.languageType,
           remark: row.remark,
+          referenceAudio: row.referenceAudio,
+          referenceText: row.referenceText,
           ttsModelId: this.ttsModelId,
           voiceDemo: row.voiceDemo || '',
           sort: row.sort
@@ -432,6 +448,8 @@ export default {
         languageType: '中文',
         voiceDemo: '',
         remark: '',
+        referenceAudio: '',
+        referenceText: '',
         selected: false,
         editing: true,
         sort: maxSort + 1

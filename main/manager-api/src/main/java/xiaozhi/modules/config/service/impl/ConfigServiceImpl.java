@@ -66,6 +66,8 @@ public class ConfigServiceImpl implements ConfigService {
                 null,
                 null,
                 null,
+                null,
+                null,
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
                 null,
@@ -102,9 +104,13 @@ public class ConfigServiceImpl implements ConfigService {
         }
         // 获取音色信息
         String voice = null;
+        String referenceAudio = null;
+        String referenceText = null;
         TimbreDetailsVO timbre = timbreService.get(agent.getTtsVoiceId());
         if (timbre != null) {
             voice = timbre.getTtsVoice();
+            referenceAudio = timbre.getReferenceAudio();
+            referenceText = timbre.getReferenceText();
         }
         // 构建返回数据
         Map<String, Object> result = new HashMap<>();
@@ -138,6 +144,8 @@ public class ConfigServiceImpl implements ConfigService {
                 agent.getSystemPrompt(),
                 agent.getSummaryMemory(),
                 voice,
+                referenceAudio,
+                referenceText,
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
                 agent.getLlmModelId(),
@@ -154,7 +162,7 @@ public class ConfigServiceImpl implements ConfigService {
     /**
      * 构建配置信息
      * 
-     * @param paramsList 系统参数列表
+     * @param config 系统参数列表
      * @return 配置信息
      */
     private Object buildConfig(Map<String, Object> config) {
@@ -225,21 +233,25 @@ public class ConfigServiceImpl implements ConfigService {
     /**
      * 构建模块配置
      * 
-     * @param prompt        提示词
-     * @param voice         音色
-     * @param vadModelId    VAD模型ID
-     * @param asrModelId    ASR模型ID
-     * @param llmModelId    LLM模型ID
-     * @param ttsModelId    TTS模型ID
-     * @param memModelId    记忆模型ID
-     * @param intentModelId 意图模型ID
-     * @param result        结果Map
+     * @param prompt            提示词
+     * @param voice             音色
+     * @param referenceAudio    参考音频路径
+     * @param referenceText     参考文本
+     * @param vadModelId        VAD模型ID
+     * @param asrModelId        ASR模型ID
+     * @param llmModelId        LLM模型ID
+     * @param ttsModelId        TTS模型ID
+     * @param memModelId        记忆模型ID
+     * @param intentModelId     意图模型ID
+     * @param result            结果Map
      */
     private void buildModuleConfig(
             String assistantName,
             String prompt,
             String summaryMemory,
             String voice,
+            String referenceAudio,
+            String referenceText,
             String vadModelId,
             String asrModelId,
             String llmModelId,
@@ -265,8 +277,10 @@ public class ConfigServiceImpl implements ConfigService {
             if (model.getConfigJson() != null) {
                 typeConfig.put(model.getId(), model.getConfigJson());
                 // 如果是TTS类型，添加private_voice属性
-                if ("TTS".equals(modelTypes[i]) && voice != null) {
-                    ((Map<String, Object>) model.getConfigJson()).put("private_voice", voice);
+                if ("TTS".equals(modelTypes[i])){
+                    if (voice != null) ((Map<String, Object>) model.getConfigJson()).put("private_voice", voice);
+                    if (referenceAudio != null) ((Map<String, Object>) model.getConfigJson()).put("ref_audio", referenceAudio);
+                    if (referenceText != null) ((Map<String, Object>) model.getConfigJson()).put("ref_text", referenceText);
                 }
                 // 如果是Intent类型，且type=intent_llm，则给他添加附加模型
                 if ("Intent".equals(modelTypes[i])) {

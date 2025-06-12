@@ -11,8 +11,8 @@ class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
         self.url = config.get("url")
-        self.refer_wav_path = config.get("refer_wav_path")
-        self.prompt_text = config.get("prompt_text")
+        self.refer_wav_path = config.get('ref_audio')if config.get('ref_audio') else config.get("refer_wav_path")
+        self.prompt_text = config.get('ref_text')if config.get('ref_text') else config.get("prompt_text")
         self.prompt_language = config.get("prompt_language")
         self.text_language = config.get("text_language", "audo")
 
