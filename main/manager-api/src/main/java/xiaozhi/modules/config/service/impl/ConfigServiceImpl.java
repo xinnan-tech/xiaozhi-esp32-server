@@ -68,11 +68,11 @@ public class ConfigServiceImpl implements ConfigService {
                 null,
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
-                null,
-                null,
-                null,
-                null,
-                null,
+                agent.getLlmModelId(),
+                agent.getVllmModelId(),
+                agent.getTtsModelId(),
+                agent.getMemModelId(),
+                agent.getIntentModelId(),
                 result,
                 isCache);
 
