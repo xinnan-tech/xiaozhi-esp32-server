@@ -146,14 +146,14 @@ class ASRProvider(ASRProviderBase):
             yield data[offset:data_len], True
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str
+        self, opus_data: List[bytes], session_id: str, audio_format="opus"
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
 
         file_path = None
         try:
             # 合并所有opus数据包
-            if self.audio_format == "pcm":
+            if audio_format == "pcm":
                 pcm_data = opus_data
             else:
                 pcm_data = self.decode_opus(opus_data)
