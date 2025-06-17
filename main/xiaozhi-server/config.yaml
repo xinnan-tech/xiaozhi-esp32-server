@@ -117,10 +117,9 @@ plugins:
   # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
   get_news_from_chinanews:
     default_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
-    category_urls:
-      society: "https://www.chinanews.com.cn/rss/society.xml"
-      world: "https://www.chinanews.com.cn/rss/world.xml"
-      finance: "https://www.chinanews.com.cn/rss/finance.xml"
+    society_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
+    world_rss_url: "https://www.chinanews.com.cn/rss/world.xml"
+    finance_rss_url: "https://www.chinanews.com.cn/rss/finance.xml"
   get_news_from_newsnow: {"url": "https://newsnow.busiyi.world/api/s?id="}
   home_assistant:
     devices:
@@ -330,7 +329,7 @@ VAD:
     type: silero
     threshold: 0.5
     model_dir: models/snakers4_silero-vad
-    min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
+    min_silence_duration_ms: 200  # 如果说话停顿比较长，可以把这个值设置大一些
 
 LLM:
   # 所有openai类型均可以修改超参，以AliLLM为例
@@ -779,4 +778,15 @@ TTS:
     headers: # 自定义请求头
       # Authorization: Bearer xxxx
     format: mp3 # 接口返回的音频格式
+    output_dir: tmp/
+  LinkeraiTTS:
+    type: linkerai
+    api_url: https://tts.linkerai.cn/tts
+    audio_format: "pcm"
+    # 默认的access_token供大家测试时免费使用的，此access_token请勿用于商业用途
+    # 如果效果不错，可自行申请token，申请地址：https://linkerai.cn
+    # 各参数意义见开发文档：https://tts.linkerai.cn/docs
+    # 支持声音克隆，可自行上传音频，填入voice参数，voice参数为空时，使用默认声音
+    access_token: "U4YdYXVfpwWnk2t5Gp822zWPCuORyeJL"
+    voice: "OUeAo1mhq6IBExi"
     output_dir: tmp/

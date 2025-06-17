@@ -17,14 +17,17 @@ class TTSProvider(TTSProviderBase):
             self.voice = config.get("private_voice")
         else:
             self.voice = config.get("voice", "alloy")
-        self.response_format = "wav"
+        self.response_format = config.get("format", "wav")
+        self.audio_file_type = config.get("format", "wav")
 
         # 处理空字符串的情况
         speed = config.get("speed", "1.0")
         self.speed = float(speed) if speed else 1.0
 
         self.output_file = config.get("output_dir", "tmp/")
-        check_model_key("TTS", self.api_key)
+        model_key_msg = check_model_key("TTS", self.api_key)
+        if model_key_msg:
+            logger.bind(tag=TAG).error(model_key_msg)
 
     async def text_to_speak(self, text, output_file):
         headers = {
@@ -40,8 +43,11 @@ class TTSProvider(TTSProviderBase):
         }
         response = requests.post(self.api_url, json=data, headers=headers)
         if response.status_code == 200:
-            with open(output_file, "wb") as audio_file:
-                audio_file.write(response.content)
+            if output_file:
+                with open(output_file, "wb") as audio_file:
+                    audio_file.write(response.content)
+            else:
+                return response.content
         else:
             raise Exception(
                 f"OpenAI TTS请求失败: {response.status_code} - {response.text}"

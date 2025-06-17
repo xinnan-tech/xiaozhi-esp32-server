@@ -65,6 +65,7 @@ class TTSProvider(TTSProviderBase):
         self.aux_ref_audio_paths = parse_string_to_list(
             config.get("aux_ref_audio_paths")
         )
+        self.audio_file_type = config.get("format", "wav")
 
     async def text_to_speak(self, text, output_file):
         request_json = {
@@ -91,8 +92,11 @@ class TTSProvider(TTSProviderBase):
 
         resp = requests.post(self.url, json=request_json)
         if resp.status_code == 200:
-            with open(output_file, "wb") as file:
-                file.write(resp.content)
+            if output_file:
+                with open(output_file, "wb") as file:
+                    file.write(resp.content)
+            else:
+                return resp.content
         else:
             error_msg = f"GPT_SoVITS_V2 TTS请求失败: {resp.status_code} - {resp.text}"
             logger.bind(tag=TAG).error(error_msg)

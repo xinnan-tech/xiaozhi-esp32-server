@@ -120,16 +120,16 @@ def map_category(category_text):
     # 类别映射字典，目前支持社会、国际、财经新闻，如需更多类型，参见配置文件
     category_map = {
         # 社会新闻
-        "社会": "society",
-        "社会新闻": "society",
+        "社会": "society_rss_url",
+        "社会新闻": "society_rss_url",
         # 国际新闻
-        "国际": "world",
-        "国际新闻": "world",
+        "国际": "world_rss_url",
+        "国际新闻": "world_rss_url",
         # 财经新闻
-        "财经": "finance",
-        "财经新闻": "finance",
-        "金融": "finance",
-        "经济": "finance",
+        "财经": "finance_rss_url",
+        "财经新闻": "finance_rss_url",
+        "金融": "finance_rss_url",
+        "经济": "finance_rss_url",
     }
 
     # 转换为小写并去除空格
@@ -205,8 +205,8 @@ def get_news_from_chinanews(
 
         # 如果提供了类别，尝试从配置中获取对应的URL
         rss_url = default_rss_url
-        if mapped_category and mapped_category in rss_config.get("category_urls", {}):
-            rss_url = rss_config["category_urls"][mapped_category]
+        if mapped_category and mapped_category in rss_config:
+            rss_url = rss_config[mapped_category]
 
         logger.bind(tag=TAG).info(
             f"获取新闻: 原始类别={category}, 映射类别={mapped_category}, URL={rss_url}"

@@ -108,13 +108,6 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202505081146.sql
   - changeSet:
-      id: 202505091409
-      author: hrz
-      changes:
-        - sqlFile:
-            encoding: utf8
-            path: classpath:db/changelog/202505091409.sql
-  - changeSet:
       id: 202505091555
       author: whosmyqueen
       changes:
@@ -171,6 +164,13 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202505271414.sql
   - changeSet:
+      id: 202505292203
+      author: CAIXYPROMISE
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202505292203.sql
+  - changeSet:
       id: 202506010920
       author: hrz
       changes:
@@ -205,3 +205,25 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202506032232.sql
+  - changeSet:
+      id: 202506051538
+      author: hrz
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202506051538.sql
+  - changeSet:
+      id: 202506080955
+      author: hrz
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202506080955.sql
+  - changeSet:
+      id: 202506161101
+      author: hrz
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202506161101.sql
+

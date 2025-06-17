@@ -89,55 +89,25 @@ http://homeassistant.local:8123
 公司,台灯,switch.iot_cn_831898993_socn1_on_p_2_1;
 ```
 
-这段字符，我们成为“设备清单字符”需要保存好，等一下有用。
-
+这段字符，我们称为“设备清单字符”需要保存好，等一下有用。
 
 #### 2. 登录`智控台`
 
-使用管理员账号，登录`智控台`。点击顶部菜单`参数管理`，搜索`plugins.home_assistant.`，会有三条结果出来
+![image-20250504051716417](images/image-ha-integration-06.png)
 
-编辑`plugins.home_assistant.devices`，把刚才整理的设备清单字符粘贴进去。
+使用管理员账号，登录`智控台`。在`智能体管理`，找到你的智能体，再点击`配置角色`。
 
+将意图识别设置成`函数调用`或`LLM意图识别`。这时你会看到右侧有一个`编辑功能`。点击`编辑功能`按钮，会弹出`功能管理`的框。
 
-编辑`plugins.home_assistant.base_url`，把你部署的`HomeAssistant`接口地址粘贴进去，我粘贴进去的地址是这样的
+在`功能管理`的框里，你需要勾选`HomeAssistant设备状态查询`和`HomeAssistant设备状态修改`。
 
-```
-http://192.168.4.7:8123
-```
+勾选后，在`已选功能`点击`HomeAssistant设备状态查询`，然后在`参数配置`里配置你的`HomeAssistant`地址、密钥、设备清单字符。
 
-编辑`plugins.home_assistant.api_key`，把你从`HomeAssistant`复制过来的密钥，粘贴进去
+编辑好后，点击`保存配置`，这时`功能管理`的框会隐藏，这时你再点击保存智能体配置。
 
+保存成功后，即可唤醒设备操作。
 
-#### 3. 设置`意图识别`函数
-
-在智控台，点击顶部菜单“模型配置”，在左侧栏，找到“意图识别”，找到id为`Intent_function_call`的意图，点击编辑
-
-然后在弹框中，在原来的基础上追加两个函数：“hass_get_state”和“hass_set_state”
-
-修改前
-```
-change_role;get_weather;get_news;play_music
-```
-
-修改后
-
-```
-change_role;get_weather;get_news;play_music;hass_get_state;hass_set_state
-```
-
-#### 4. 手动重启xiaozhi-server
-
-重启xiaozhi-server程序
-
-
-#### 5. 确认角色配置是否设置了函数意图识别
-
-在智控台，点击顶部菜单“智能体管理”，找到设备所在的智能体，点击“配置角色”
-
-确认意图识别(Intent)，是否选择“函数调用意图识别”
-
-
-#### 6. 唤醒设别进行控制
+#### 3. 唤醒设别进行控制
 
 尝试和esp32说，“打开XXX灯”
 

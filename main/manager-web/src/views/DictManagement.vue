@@ -538,7 +538,7 @@ export default {
 
 .data-table {
     border-radius: 6px;
-    overflow-y: auto;
+    overflow-y: hidden;
     background-color: transparent !important;
     --table-max-height: calc(100vh - 40vh);
     max-height: var(--table-max-height);

@@ -34,7 +34,9 @@ class VLLMProvider(VLLMProviderBase):
             except (ValueError, TypeError):
                 setattr(self, param, default)
 
-        check_model_key("VLLM", self.api_key)
+        model_key_msg = check_model_key("VLLM", self.api_key)
+        if model_key_msg:
+            logger.bind(tag=TAG).error(model_key_msg)
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
     def response(self, question, base64_image):

@@ -15,7 +15,9 @@ class LLMProvider(LLMProviderBase):
         self.mode = config.get("mode", "chat-messages")
         self.base_url = config.get("base_url", "https://api.dify.ai/v1").rstrip("/")
         self.session_conversation_map = {}  # 存储session_id和conversation_id的映射
-        check_model_key("DifyLLM", self.api_key)
+        model_key_msg = check_model_key("DifyLLM", self.api_key)
+        if model_key_msg:
+            logger.bind(tag=TAG).error(model_key_msg)
 
     def response(self, session_id, dialogue, **kwargs):
         try:

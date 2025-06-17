@@ -97,19 +97,12 @@
                             popper-class="custom-tooltip">
                             <div slot="content">
                               <div><strong>功能名称:</strong> {{ func.name }}</div>
-                              <div v-if="Object.keys(func.params).length > 0">
-                                <strong>参数配置:</strong>
-                                <div v-for="(value, key) in func.params" :key="key">
-                                  {{ key }}: {{ value }}
-                                </div>
-                              </div>
-                              <div v-else>无参数配置</div>
                             </div>
                             <div class="icon-dot" :style="{ backgroundColor: getFunctionColor(func.name) }">
                               {{ func.name.charAt(0) }}
                             </div>
                           </el-tooltip>
-                          <el-button class="edit-function-btn" @click="showFunctionDialog = true"
+                          <el-button class="edit-function-btn" @click="openFunctionDialog"
                             :class="{ 'active-btn': showFunctionDialog }">
                             编辑功能
                           </el-button>
@@ -138,7 +131,7 @@
       </div>
     </div>
 
-    <function-dialog v-model="showFunctionDialog" :functions="currentFunctions"
+    <function-dialog v-model="showFunctionDialog" :functions="currentFunctions" :all-functions="allFunctions"
       @update-functions="handleUpdateFunctions" @dialog-closed="handleDialogClosed" />
   </div>
 </template>
@@ -192,12 +185,8 @@ export default {
         '#FF6B6B', '#4ECDC4', '#45B7D1',
         '#96CEB4', '#FFEEAD', '#D4A5A5', '#A2836E'
       ],
-      allFunctions: [
-        { name: '天气', params: {} },
-        { name: '新闻', params: {} },
-        { name: '工具', params: {} },
-        { name: '退出', params: {} }
-      ],
+      allFunctions: [],
+      originalFunctions: [],
     }
   },
   methods: {
@@ -222,7 +211,12 @@ export default {
         langCode: this.form.langCode,
         language: this.form.language,
         sort: this.form.sort,
-        functions: this.currentFunctions
+        functions: this.currentFunctions.map(item => {
+          return ({
+            pluginId: item.id,
+            paramInfo: item.params
+          })
+        })
       };
       Api.agent.updateAgentConfig(this.$route.query.agentId, configData, ({ data }) => {
         if (data.code === 0) {
@@ -269,7 +263,8 @@ export default {
           message: '配置已重置',
           showClose: true
         })
-      }).catch(() => { });
+      }).catch(() => {
+      });
     },
     fetchTemplates() {
       Api.agent.getAgentTemplate(({ data }) => {
@@ -335,7 +330,33 @@ export default {
               intentModelId: data.data.intentModelId
             }
           };
-          this.currentFunctions = data.data.functions || [];
+          // 后端只给了最小映射：[{ id, agentId, pluginId }, ...]
+          const savedMappings = data.data.functions || [];
+
+          // 先保证 allFunctions 已经加载（如果没有，则先 fetchAllFunctions）
+          const ensureFuncs = this.allFunctions.length
+            ? Promise.resolve()
+            : this.fetchAllFunctions();
+
+          ensureFuncs.then(() => {
+            // 合并：按照 pluginId（id 字段）把全量元数据信息补齐
+            this.currentFunctions = savedMappings.map(mapping => {
+              const meta = this.allFunctions.find(f => f.id === mapping.pluginId);
+              if (!meta) {
+                // 插件定义没找到，退化处理
+                return { id: mapping.pluginId, name: mapping.pluginId, params: {} };
+              }
+              return {
+                id: mapping.pluginId,
+                name: meta.name,
+                // 后端如果还有 paramInfo 字段就用 mapping.paramInfo，否则用 meta.params 默认值
+                params: mapping.paramInfo || { ...meta.params },
+                fieldsMeta: meta.fieldsMeta  // 保留以便对话框渲染 tooltip
+              };
+            });
+            // 备份原始，以备取消时恢复
+            this.originalFunctions = JSON.parse(JSON.stringify(this.currentFunctions));
+          });
         } else {
           this.$message.error(data.msg || '获取配置失败');
         }
@@ -373,17 +394,15 @@ export default {
     },
     getFunctionColor(name) {
       const hash = [...name].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return this.functionColorMap[hash % 7];
+      return this.functionColorMap[hash % this.functionColorMap.length];
     },
     showFunctionIcons(type) {
-      // TODO 暂时不放出来
-      return false;
-      // return type === 'Intent' &&
-      //   this.form.model.intentModelId !== 'Intent_nointent';
+      return type === 'Intent' &&
+        this.form.model.intentModelId !== 'Intent_nointent';
     },
     handleModelChange(type, value) {
       if (type === 'Intent' && value !== 'Intent_nointent') {
-        this.fetchFunctionList();
+        this.fetchAllFunctions();
       }
       if (type === 'Memory' && value === 'Memory_nomem') {
         this.form.chatHistoryConf = 0;
@@ -392,28 +411,44 @@ export default {
         this.form.chatHistoryConf = 2;
       }
     },
-    fetchFunctionList() {
-      // 使用假数据代替API调用
-      return new Promise(resolve => {
-        setTimeout(() => {
-          this.currentFunctions = [
-            { name: '天气', params: { city: '北京' } },
-            { name: '新闻', params: { type: '科技' } }
-          ];
-          resolve();
-        }, 500);
+    fetchAllFunctions() {
+      return new Promise((resolve, reject) => {
+        Api.model.getPluginFunctionList(null, ({ data }) => {
+          if (data.code === 0) {
+            this.allFunctions = data.data.map(item => {
+              const meta = JSON.parse(item.fields || '[]');
+              const params = meta.reduce((m, f) => {
+                m[f.key] = f.default;
+                return m;
+              }, {});
+              return { ...item, fieldsMeta: meta, params };
+            });
+            resolve();
+          } else {
+            this.$message.error(data.msg || '获取插件列表失败');
+            reject();
+          }
+        });
       });
+    },
+    openFunctionDialog() {
+      // 显示编辑对话框时，确保 allFunctions 已经加载
+      if (this.allFunctions.length === 0) {
+        this.fetchAllFunctions().then(() => this.showFunctionDialog = true);
+      } else {
+        this.showFunctionDialog = true;
+      }
     },
     handleUpdateFunctions(selected) {
       this.currentFunctions = selected;
-      console.log('保存的功能列表:', selected);
-      this.$message.success('功能配置已保存');
     },
     handleDialogClosed(saved) {
       if (!saved) {
-        // 如果未保存，恢复原始功能列表
         this.currentFunctions = JSON.parse(JSON.stringify(this.originalFunctions));
+      } else {
+        this.originalFunctions = JSON.parse(JSON.stringify(this.currentFunctions));
       }
+      this.showFunctionDialog = false;
     },
     updateChatHistoryConf() {
       if (this.form.model.memModelId === 'Memory_nomem') {
@@ -446,9 +481,7 @@ export default {
     const agentId = this.$route.query.agentId;
     if (agentId) {
       this.fetchAgentConfig(agentId);
-      this.fetchFunctionList().then(() => {
-        this.originalFunctions = JSON.parse(JSON.stringify(this.currentFunctions));
-      });
+      this.fetchAllFunctions();
     }
     this.fetchModelOptions();
     this.fetchTemplates();

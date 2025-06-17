@@ -54,12 +54,8 @@ class ASRProvider(ASRProviderBase):
         await super().open_audio_channels(conn)
 
     async def receive_audio(self, conn, audio, audio_have_voice):
-        if not isinstance(audio, bytes):
-            return
-
         conn.asr_audio.append(audio)
-        if audio_have_voice == False and conn.client_have_voice == False:
-            conn.asr_audio = conn.asr_audio[-10:]
+        conn.asr_audio = conn.asr_audio[-10:]
 
         # 如果本次有声音，且之前没有建立连接
         if audio_have_voice and self.asr_ws is None and not self.is_processing:
@@ -114,9 +110,6 @@ class ASRProvider(ASRProviderBase):
 
                 # 发送缓存的音频数据
                 if conn.asr_audio and len(conn.asr_audio) > 0:
-                    logger.bind(tag=TAG).info(
-                        f"发送缓存音频数据: {len(conn.asr_audio)}"
-                    )
                     for cached_audio in conn.asr_audio[-10:]:
                         try:
                             pcm_frame = self.decoder.decode(cached_audio, 960)
@@ -164,8 +157,25 @@ class ASRProvider(ASRProviderBase):
 
                     if "payload_msg" in result:
                         payload = result["payload_msg"]
+                        # 检查是否是错误码1013（无有效语音）
+                        if "code" in payload and payload["code"] == 1013:
+                            # 静默处理，不记录错误日志
+                            continue
+
                         if "result" in payload:
                             utterances = payload["result"].get("utterances", [])
+                            # 检查duration和空文本的情况
+                            if (
+                                payload.get("audio_info", {}).get("duration", 0) > 2000
+                                and not utterances
+                                and not payload["result"].get("text")
+                            ):
+                                logger.bind(tag=TAG).error(f"识别文本：空")
+                                self.text = ""
+                                conn.reset_vad_states()
+                                await self.handle_voice_stop(conn, None)
+                                break
+
                             for utterance in utterances:
                                 if utterance.get("definite", False):
                                     self.text = utterance["text"]
@@ -235,7 +245,7 @@ class ASRProvider(ASRProviderBase):
                 "sample_rate": self.rate,
             },
         }
-        logger.bind(tag=TAG).info(
+        logger.bind(tag=TAG).debug(
             f"构造请求参数: {json.dumps(req, ensure_ascii=False)}"
         )
         return req

@@ -21,7 +21,7 @@ cozepy==0.12.0
 mem0ai==0.1.62
 bs4==0.0.2
 modelscope==1.23.2
-sherpa_onnx==1.11.6
+sherpa_onnx==1.12.0
 mcp==1.8.1
 cnlunar==0.2.0
 PySocks==1.7.1
@@ -32,3 +32,5 @@ aioconsole==0.8.1
 markitdown==0.1.1
 mcp-proxy==0.6.0
 PyJWT==2.8.0
+psutil==7.0.0
+portalocker==2.10.1

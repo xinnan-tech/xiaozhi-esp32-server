@@ -143,9 +143,11 @@ export default {
         { value: "ASR", label: "语音识别" },
         { value: "TTS", label: "语音合成" },
         { value: "LLM", label: "大语言模型" },
+        { value: "VLLM", label: "视觉大语言模型" },
         { value: "Intent", label: "意图识别" },
         { value: "Memory", label: "记忆模块" },
-        { value: "VAD", label: "语音活动检测" }
+        { value: "VAD", label: "语音活动检测" },
+        { value: "Plugin", label: "插件工具" }
       ],
       currentPage: 1,
       loading: false,

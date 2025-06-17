@@ -16,8 +16,8 @@ class TTSProvider(TTSProviderBase):
         self.method = config.get("method", "GET")
         self.headers = config.get("headers", {})
         self.format = config.get("format", "wav")
+        self.audio_file_type = config.get("format", "wav")
         self.output_file = config.get("output_dir", "tmp/")
-
         self.params = config.get("params")
 
         if isinstance(self.params, str):
@@ -43,8 +43,11 @@ class TTSProvider(TTSProviderBase):
         else:
             resp = requests.get(self.url, params=request_params, headers=self.headers)
         if resp.status_code == 200:
-            with open(output_file, "wb") as file:
-                file.write(resp.content)
+            if output_file:
+                with open(output_file, "wb") as file:
+                    file.write(resp.content)
+            else:
+                return resp.content
         else:
             error_msg = f"Custom TTS请求失败: {resp.status_code} - {resp.text}"
             logger.bind(tag=TAG).error(error_msg)

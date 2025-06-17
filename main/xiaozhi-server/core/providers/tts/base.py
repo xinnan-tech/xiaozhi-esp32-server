@@ -1,4 +1,5 @@
 import os
+import re
 import queue
 import uuid
 import asyncio
@@ -8,7 +9,7 @@ from datetime import datetime
 from core.utils import textUtils
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
-from core.utils.util import audio_to_data
+from core.utils.util import audio_to_data, audio_bytes_to_data
 from core.utils.tts import MarkdownCleaner
 from core.utils.output_counter import add_device_output
 from core.handle.reportHandle import enqueue_tts_report
@@ -19,7 +20,6 @@ from core.providers.tts.dto.dto import (
     ContentType,
     InterfaceType,
 )
-
 
 import traceback
 
@@ -33,10 +33,12 @@ class TTSProviderBase(ABC):
         self.conn = None
         self.tts_timeout = 10
         self.delete_audio_file = delete_audio_file
+        self.audio_file_type = "wav"
         self.output_file = config.get("output_dir", "tmp/")
         self.tts_text_queue = queue.Queue()
         self.tts_audio_queue = queue.Queue()
         self.tts_audio_first_sentence = True
+        self.before_stop_play_files = []
 
         self.tts_text_buff = []
         self.punctuations = (
@@ -77,35 +79,62 @@ class TTSProviderBase(ABC):
         )
 
     def to_tts(self, text):
-        tmp_file = self.generate_filename()
-        try:
-            max_repeat_time = 5
-            text = MarkdownCleaner.clean_markdown(text)
-            while not os.path.exists(tmp_file) and max_repeat_time > 0:
+        text = MarkdownCleaner.clean_markdown(text)
+        max_repeat_time = 5
+        if self.delete_audio_file:
+            # 需要删除文件的直接转为音频数据
+            while max_repeat_time > 0:
                 try:
-                    asyncio.run(self.text_to_speak(text, tmp_file))
+                    audio_bytes = asyncio.run(self.text_to_speak(text, None))
+                    if audio_bytes:
+                        audio_datas, _ = audio_bytes_to_data(
+                            audio_bytes, file_type=self.audio_file_type, is_opus=True
+                        )
+                        return audio_datas
+                    else:
+                        max_repeat_time -= 1
                 except Exception as e:
                     logger.bind(tag=TAG).warning(
                         f"语音生成失败{5 - max_repeat_time + 1}次: {text}，错误: {e}"
                     )
-                    # 未执行成功，删除文件
-                    if os.path.exists(tmp_file):
-                        os.remove(tmp_file)
                     max_repeat_time -= 1
-
             if max_repeat_time > 0:
                 logger.bind(tag=TAG).info(
-                    f"语音生成成功: {text}:{tmp_file}，重试{5 - max_repeat_time}次"
+                    f"语音生成成功: {text}，重试{5 - max_repeat_time}次"
                 )
             else:
                 logger.bind(tag=TAG).error(
                     f"语音生成失败: {text}，请检查网络或服务是否正常"
                 )
-
-            return tmp_file
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Failed to generate TTS file: {e}")
             return None
+        else:
+            tmp_file = self.generate_filename()
+            try:
+                while not os.path.exists(tmp_file) and max_repeat_time > 0:
+                    try:
+                        asyncio.run(self.text_to_speak(text, tmp_file))
+                    except Exception as e:
+                        logger.bind(tag=TAG).warning(
+                            f"语音生成失败{5 - max_repeat_time + 1}次: {text}，错误: {e}"
+                        )
+                        # 未执行成功，删除文件
+                        if os.path.exists(tmp_file):
+                            os.remove(tmp_file)
+                        max_repeat_time -= 1
+
+                if max_repeat_time > 0:
+                    logger.bind(tag=TAG).info(
+                        f"语音生成成功: {text}:{tmp_file}，重试{5 - max_repeat_time}次"
+                    )
+                else:
+                    logger.bind(tag=TAG).error(
+                        f"语音生成失败: {text}，请检查网络或服务是否正常"
+                    )
+
+                return tmp_file
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"Failed to generate TTS file: {e}")
+                return None
 
     @abstractmethod
     async def text_to_speak(self, text, output_file):
@@ -141,15 +170,18 @@ class TTSProviderBase(ABC):
                 content_type=ContentType.ACTION,
             )
         )
-        self.tts_text_queue.put(
-            TTSMessageDTO(
-                sentence_id=sentence_id,
-                sentence_type=SentenceType.MIDDLE,
-                content_type=content_type,
-                content_detail=content_detail,
-                content_file=content_file,
+        # 对于单句的文本，进行分段处理
+        segments = re.split(r'([。！？!?；;\n])', content_detail)
+        for seg in segments:
+            self.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=sentence_id,
+                    sentence_type=SentenceType.MIDDLE,
+                    content_type=content_type,
+                    content_detail=seg,
+                    content_file=content_file,
+                )
             )
-        )
         self.tts_text_queue.put(
             TTSMessageDTO(
                 sentence_id=sentence_id,
@@ -193,12 +225,19 @@ class TTSProviderBase(ABC):
                     self.tts_text_buff.append(message.content_detail)
                     segment_text = self._get_segment_text()
                     if segment_text:
-                        tts_file = self.to_tts(segment_text)
-                        if tts_file:
-                            audio_datas = self._process_audio_file(tts_file)
-                            self.tts_audio_queue.put(
-                                (message.sentence_type, audio_datas, segment_text)
-                            )
+                        if self.delete_audio_file:
+                            audio_datas = self.to_tts(segment_text)
+                            if audio_datas:
+                                self.tts_audio_queue.put(
+                                    (message.sentence_type, audio_datas, segment_text)
+                                )
+                        else:
+                            tts_file = self.to_tts(segment_text)
+                            if tts_file:
+                                audio_datas = self._process_audio_file(tts_file)
+                                self.tts_audio_queue.put(
+                                    (message.sentence_type, audio_datas, segment_text)
+                                )
                 elif ContentType.FILE == message.content_type:
                     self._process_remaining_text()
                     tts_file = message.content_file
@@ -324,6 +363,14 @@ class TTSProviderBase(ABC):
             os.remove(tts_file)
         return audio_datas
 
+    def _process_before_stop_play_files(self):
+        for tts_file, text in self.before_stop_play_files:
+            if tts_file and os.path.exists(tts_file):
+                audio_datas = self._process_audio_file(tts_file)
+                self.tts_audio_queue.put((SentenceType.MIDDLE, audio_datas, text))
+        self.before_stop_play_files.clear()
+        self.tts_audio_queue.put((SentenceType.LAST, [], None))
+
     def _process_remaining_text(self):
         """处理剩余的文本并生成语音
 
@@ -335,11 +382,18 @@ class TTSProviderBase(ABC):
         if remaining_text:
             segment_text = textUtils.get_string_no_punctuation_or_emoji(remaining_text)
             if segment_text:
-                tts_file = self.to_tts(segment_text)
-                audio_datas = self._process_audio_file(tts_file)
-                self.tts_audio_queue.put(
-                    (SentenceType.MIDDLE, audio_datas, segment_text)
-                )
+                if self.delete_audio_file:
+                    audio_datas = self.to_tts(segment_text)
+                    if audio_datas:
+                        self.tts_audio_queue.put(
+                            (SentenceType.MIDDLE, audio_datas, segment_text)
+                        )
+                else:
+                    tts_file = self.to_tts(segment_text)
+                    audio_datas = self._process_audio_file(tts_file)
+                    self.tts_audio_queue.put(
+                        (SentenceType.MIDDLE, audio_datas, segment_text)
+                    )
                 self.processed_chars += len(full_text)
                 return True
         return False

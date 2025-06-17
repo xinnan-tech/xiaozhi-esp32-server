@@ -76,6 +76,14 @@ class IntentProvider(IntentProviderBase):
             '返回: {"function_call": {"name": "get_battery_level", "arguments": {"response_success": "当前电池电量为{value}%", "response_failure": "无法获取Battery的当前电量百分比"}}}\n'
             "```\n"
             "```\n"
+            "用户: 当前屏幕亮度是多少？\n"
+            '返回: {"function_call": {"name": "self_screen_get_brightness"}}\n'
+            "```\n"
+            "```\n"
+            "用户: 设置屏幕亮度为50%\n"
+            '返回: {"function_call": {"name": "self_screen_set_brightness", "arguments": {"brightness": 50}}}\n'
+            "```\n"
+            "```\n"
             "用户: 我想结束对话\n"
             '返回: {"function_call": {"name": "handle_exit_intent", "arguments": {"say_goodbye": "goodbye"}}}\n'
             "```\n"
@@ -151,13 +159,24 @@ class IntentProvider(IntentProviderBase):
 
         if self.promot == "":
             functions = conn.func_handler.get_functions()
+            if hasattr(conn, "mcp_client"):
+                mcp_tools = conn.mcp_client.get_available_tools()
+                if mcp_tools is not None and len(mcp_tools) > 0:
+                    if functions is None:
+                        functions = []
+                    functions.extend(mcp_tools)
+
             self.promot = self.get_intent_system_prompt(functions)
 
         music_config = initialize_music_handler(conn)
         music_file_names = music_config["music_file_names"]
         prompt_music = f"{self.promot}\n<musicNames>{music_file_names}\n</musicNames>"
 
-        devices = conn.config["plugins"]["home_assistant"].get("devices", [])
+        home_assistant_cfg = conn.config["plugins"].get("home_assistant")
+        if home_assistant_cfg:
+            devices = home_assistant_cfg.get("devices", [])
+        else:
+            devices = []
         if len(devices) > 0:
             hass_prompt = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
             for device in devices:

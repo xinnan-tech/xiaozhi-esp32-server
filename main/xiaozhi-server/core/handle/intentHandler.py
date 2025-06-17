@@ -1,11 +1,13 @@
 import json
+import asyncio
 import uuid
 from core.handle.sendAudioHandle import send_stt_message
 from core.handle.helloHandle import checkWakeupWords
 from core.utils.util import remove_punctuation_and_length
 from core.providers.tts.dto.dto import ContentType
 from core.utils.dialogue import Message
-from plugins_func.register import Action
+from core.handle.mcpHandle import call_mcp_tool
+from plugins_func.register import Action, ActionResponse
 from loguru import logger
 
 TAG = __name__
@@ -82,9 +84,11 @@ async def process_intent_result(conn, intent_result, original_text):
                 if not funcItem:
                     conn.func_handler.function_registry.register_function("play_music")
 
-            function_args = None
+            function_args = {}
             if "arguments" in intent_data["function_call"]:
                 function_args = intent_data["function_call"]["arguments"]
+                if function_args is None:
+                    function_args = {}
             # 确保参数是字符串格式的JSON
             if isinstance(function_args, dict):
                 function_args = json.dumps(function_args)
@@ -101,10 +105,38 @@ async def process_intent_result(conn, intent_result, original_text):
             # 使用executor执行函数调用和结果处理
             def process_function_call():
                 conn.dialogue.put(Message(role="user", content=original_text))
-                result = conn.func_handler.handle_llm_function_call(
-                    conn, function_call_data
-                )
-                logger.bind(tag=TAG).debug(f"检测到Action : {result.action}")
+
+                # 处理Server端MCP工具调用
+                if conn.mcp_manager.is_mcp_tool(function_name):
+                    result = conn._handle_mcp_tool_call(function_call_data)
+                elif hasattr(conn, "mcp_client") and conn.mcp_client.has_tool(
+                    function_name
+                ):
+                    # 如果是小智端MCP工具调用
+                    conn.logger.bind(tag=TAG).debug(
+                        f"调用小智端MCP工具: {function_name}, 参数: {function_args}"
+                    )
+                    try:
+                        result = asyncio.run_coroutine_threadsafe(
+                            call_mcp_tool(
+                                conn, conn.mcp_client, function_name, function_args
+                            ),
+                            conn.loop,
+                        ).result()
+                        conn.logger.bind(tag=TAG).debug(f"MCP工具调用结果: {result}")
+                        result = ActionResponse(
+                            action=Action.REQLLM, result=result, response=""
+                        )
+                    except Exception as e:
+                        conn.logger.bind(tag=TAG).error(f"MCP工具调用失败: {e}")
+                        result = ActionResponse(
+                            action=Action.REQLLM, result="MCP工具调用失败", response=""
+                        )
+                else:
+                    # 处理系统函数
+                    result = conn.func_handler.handle_llm_function_call(
+                        conn, function_call_data
+                    )
 
                 if result:
                     if result.action == Action.RESPONSE:  # 直接回复前端

@@ -22,6 +22,7 @@ class TTSProvider(TTSProviderBase):
         self.api_url = "https://tts.tencentcloudapi.com"  # 正确的API端点
         self.region = config.get("region")
         self.output_file = config.get("output_dir")
+        self.audio_file_type = config.get("format", "wav")
 
     def _get_auth_headers(self, request_body):
         """生成鉴权请求头"""
@@ -148,12 +149,14 @@ class TTSProvider(TTSProviderBase):
                         f"API返回错误: {error_info['Code']}: {error_info['Message']}"
                     )
 
-                # 提取音频数据
-                audio_data = response_data["Response"].get("Audio")
-                if audio_data:
-                    # 解码Base64音频数据并保存
-                    with open(output_file, "wb") as f:
-                        f.write(base64.b64decode(audio_data))
+                # 解码Base64音频数据
+                audio_bytes = base64.b64decode(response_data["Response"].get("Audio"))
+                if audio_bytes:
+                    if output_file:
+                        with open(output_file, "wb") as f:
+                            f.write(audio_bytes)
+                    else:
+                        return audio_bytes
                 else:
                     raise Exception(f"{__name__}: 没有返回音频数据: {response_data}")
             else:

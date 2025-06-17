@@ -1,5 +1,6 @@
 package xiaozhi.modules.model.service;
 
+import java.util.Collection;
 import java.util.List;
 
 import xiaozhi.common.page.PageData;
@@ -7,7 +8,11 @@ import xiaozhi.modules.model.dto.ModelProviderDTO;
 
 public interface ModelProviderService {
 
-    // List<String> getModelNames(String modelType, String modelName);
+    List<ModelProviderDTO> getPluginList();
+
+    ModelProviderDTO getById(String id);
+
+    List<ModelProviderDTO> getPluginListByIds(Collection<String> ids);
 
     List<ModelProviderDTO> getListByModelType(String modelType);
 

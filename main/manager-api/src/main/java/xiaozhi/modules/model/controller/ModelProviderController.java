@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.Result;
+import xiaozhi.common.utils.ResultUtils;
 import xiaozhi.common.validator.group.UpdateGroup;
 import xiaozhi.modules.model.dto.ModelProviderDTO;
 import xiaozhi.modules.model.service.ModelProviderService;
@@ -63,6 +64,12 @@ public class ModelProviderController {
     public Result<Void> delete(@RequestBody List<String> ids) {
         modelProviderService.delete(ids);
         return new Result<>();
+    }
+
+    @GetMapping("/plugin/names")
+    @Tag(name = "获取插件名称列表")
+    public Result<List<ModelProviderDTO>> getPluginNameList() {
+        return ResultUtils.success(modelProviderService.getPluginList());
     }
 
 }

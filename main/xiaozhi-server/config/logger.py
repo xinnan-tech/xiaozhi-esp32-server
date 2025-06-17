@@ -3,8 +3,9 @@ import sys
 from loguru import logger
 from config.config_loader import load_config
 from config.settings import check_config_file
+from datetime import datetime
 
-SERVER_VERSION = "0.5.4"
+SERVER_VERSION = "0.5.6"
 _logger_initialized = False
 
 
@@ -59,7 +60,7 @@ def setup_logging():
         )
         log_format_file = log_config.get(
             "log_format_file",
-            "{time:YYYY-MM-DD HH:mm:ss} - {version_{extra[selected_module]}} - {name} - {level} - {extra[tag]} - {message}",
+            "{time:YYYY-MM-DD HH:mm:ss} - {version}_{extra[selected_module]} - {name} - {level} - {extra[tag]} - {message}",
         )
         selected_module_str = logger._core.extra["selected_module"]
 
@@ -84,12 +85,23 @@ def setup_logging():
         # 输出到控制台
         logger.add(sys.stdout, format=log_format, level=log_level, filter=formatter)
 
-        # 输出到文件
+        # 输出到文件 - 统一目录，按大小轮转
+        # 日志文件完整路径
+        log_file_path = os.path.join(log_dir, log_file)
+        
+        # 添加日志处理器
         logger.add(
-            os.path.join(log_dir, log_file),
+            log_file_path,
             format=log_format_file,
             level=log_level,
             filter=formatter,
+            rotation="10 MB",  # 每个文件最大10MB
+            retention="30 days",  # 保留30天
+            compression=None,
+            encoding="utf-8",
+            enqueue=True,  # 异步安全
+            backtrace=True,
+            diagnose=True,
         )
         _logger_initialized = True  # 标记为已初始化
 
@@ -102,6 +114,7 @@ def update_module_string(selected_module_str):
     current_module = logger._core.extra["selected_module"]
 
     if current_module == selected_module_str:
+        logger.debug(f"组件未更改无需更新")
         return
 
     try:
@@ -116,7 +129,7 @@ def update_module_string(selected_module_str):
         )
         log_format_file = log_config.get(
             "log_format_file",
-            "{time:YYYY-MM-DD HH:mm:ss} - {version_{extra[selected_module]}} - {name} - {level} - {extra[tag]} - {message}",
+            "{time:YYYY-MM-DD HH:mm:ss} - {version}_{extra[selected_module]} - {name} - {level} - {extra[tag]} - {message}",
         )
 
         log_format = log_format.replace("{version}", SERVER_VERSION)
@@ -133,14 +146,26 @@ def update_module_string(selected_module_str):
             level=log_config.get("log_level", "INFO"),
             filter=formatter,
         )
+        
+        # 更新文件日志配置 - 统一目录，按大小轮转
+        log_dir = log_config.get("log_dir", "tmp")
+        log_file = log_config.get("log_file", "server.log")
+        
+        # 日志文件完整路径
+        log_file_path = os.path.join(log_dir, log_file)
+        
         logger.add(
-            os.path.join(
-                log_config.get("log_dir", "tmp"),
-                log_config.get("log_file", "server.log"),
-            ),
+            log_file_path,
             format=log_format_file,
             level=log_config.get("log_level", "INFO"),
             filter=formatter,
+            rotation="10 MB",  # 每个文件最大10MB
+            retention="30 days",  # 保留30天
+            compression=None,
+            encoding="utf-8",
+            enqueue=True,  # 异步安全
+            backtrace=True,
+            diagnose=True,
         )
 
     except Exception as e:

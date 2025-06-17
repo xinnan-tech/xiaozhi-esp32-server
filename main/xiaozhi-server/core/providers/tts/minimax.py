@@ -14,9 +14,9 @@ class TTSProvider(TTSProviderBase):
         self.api_key = config.get("api_key")
         self.model = config.get("model")
         if config.get("private_voice"):
-            self.voice_id = config.get("private_voice")
+            self.voice = config.get("private_voice")
         else:
-            self.voice_id = config.get("voice_id")
+            self.voice = config.get("voice_id")
 
         default_voice_setting = {
             "voice_id": "female-shaonv",
@@ -43,8 +43,8 @@ class TTSProvider(TTSProviderBase):
         self.audio_setting = {**defult_audio_setting, **config.get("audio_setting", {})}
         self.timber_weights = parse_string_to_list(config.get("timber_weights"))
 
-        if self.voice_id:
-            self.voice_setting["voice_id"] = self.voice_id
+        if self.voice:
+            self.voice_setting["voice_id"] = self.voice
 
         self.host = "api.minimax.chat"
         self.api_url = f"https://{self.host}/v1/t2a_v2?GroupId={self.group_id}"
@@ -52,6 +52,7 @@ class TTSProvider(TTSProviderBase):
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
+        self.audio_file_type = defult_audio_setting.get("format", "mp3")
 
     def generate_filename(self, extension=".mp3"):
         return os.path.join(
@@ -80,8 +81,12 @@ class TTSProvider(TTSProviderBase):
             # 检查返回请求数据的status_code是否为0
             if resp.json()["base_resp"]["status_code"] == 0:
                 data = resp.json()["data"]["audio"]
-                file_to_save = open(output_file, "wb")
-                file_to_save.write(bytes.fromhex(data))
+                audio_bytes = bytes.fromhex(data)
+                if output_file:
+                    with open(output_file, "wb") as file_to_save:
+                        file_to_save.write(audio_bytes)
+                else:
+                    return audio_bytes
             else:
                 raise Exception(
                     f"{__name__} status_code: {resp.status_code} response: {resp.content}"

@@ -305,4 +305,20 @@ export default {
         })
       }).send()
   },
+  // 获取插件列表
+  getPluginFunctionList(params, callback) {
+    RequestService.sendRequest()
+      .url(`${getServiceUrl()}/models/provider/plugin/names`)
+      .method('GET')
+      .success((res) => {
+        RequestService.clearRequestTime()
+        callback(res)
+      })
+      .networkFail((err) => {
+        this.$message.error(err.msg || '获取插件列表失败')
+        RequestService.reAjaxFun(() => {
+          this.getPluginFunctionList(params, callback)
+        })
+      }).send()
+  }
 }

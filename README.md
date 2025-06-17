@@ -170,8 +170,8 @@
 #### 🚀 部署方式选择
 | 部署方式 | 特点 | 适用场景 | 部署文档 | 配置要求 | 视频教程 | 
 |---------|------|---------|---------|---------|---------|
-| **最简化安装** | 智能对话、IOT功能，数据存储在配置文件 | 低配置环境，无需数据库 | [Docker版](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [源码部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 如果使用`FunASR`要2核4G，如果全API，要2核2G | - | 
-| **全模块安装** | 智能对话、IOT、OTA、智控台，数据存储在数据库 | 完整功能体验 |[Docker版](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [源码部署](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) | 如果使用`FunASR`要4核8G，如果全API，要2核4G| [本地源码启动视频教程](https://www.bilibili.com/video/BV1wBJhz4Ewe) / [本地源码自动更新教程](./docs/dev-ops-integration.md) | 
+| **最简化安装** | 智能对话、IOT、MCP、视觉感知，数据存储在配置文件 | 低配置环境，无需数据库 | [①Docker版](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②源码部署](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 如果使用`FunASR`要2核4G，如果全API，要2核2G | - | 
+| **全模块安装** | 智能对话、IOT、MCP、视觉感知、OTA、智控台，数据存储在数据库 | 完整功能体验 |[①Docker版](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②源码部署](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③源码部署自动更新教程](./docs/dev-ops-integration.md) | 如果使用`FunASR`要4核8G，如果全API，要2核4G| [本地源码启动视频教程](https://www.bilibili.com/video/BV1wBJhz4Ewe) | 
 
 
 > 💡 提示：以下是按最新代码部署后的测试平台，有需要可烧录测试，并发为6个，每天会清空数据
@@ -186,28 +186,31 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 #### 🚩 配置说明和推荐
 > [!Note]
-> 本项目默认的配置是`入门全免费`设置，如果想效果更优，推荐使用`全流式配置`。
+> 本项目提供两种配置方案：
 > 
-> 本项目自`0.5.2`版本，已支持整个生命周期全流式，相比`0.5`版本以前，响应速度提升约`2.5秒`
+> 1. `入门全免费`配置：适合个人家庭使用，所有组件均采用免费方案，无需额外付费。
+> 
+> 2. `流式配置`：适合演示、培训、超过2个并发等场景，采用流式处理技术，响应速度更快，体验更佳。
+> 
+> 自`0.5.2`版本起，项目支持流式配置，相比早期版本，响应速度提升约`2.5秒`，显著改善用户体验。
 
-
-| 模块名称 | 入门全免费设置 | 全流式配置 |
-|---------|---------|------|
-| ASR(语音识别) | FunASR(本地) | ✅DoubaoStreamASR(火山流式语音识别) |
-| LLM(大模型) | ChatGLMLLM(智谱glm-4-flash) | ✅DoubaoLLM(火山doubao-1-5-pro-32k-250115) |
-| VLLM(视觉大模型) | ChatGLMVLLM(智谱glm-4v-flash) | ✅QwenVLVLLM(千问qwen2.5-vl-3b-instructh) |
-| TTS(语音合成) | EdgeTTS(微软语音) | ✅HuoshanDoubleStreamTTS(火山双流式语音合成) |
-| Intent(意图识别) | function_call(函数调用) | ✅function_call(函数调用) |
-| Memory(记忆功能) | mem_local_short(本地短期记忆） | ✅mem_local_short（本地短期记忆） |
+| 模块名称 | 入门全免费设置 | 流式配置 |
+|:---:|:---:|:---:|
+| ASR(语音识别) | FunASR(本地) | 👍FunASRServer 或 👍DoubaoStreamASR |
+| LLM(大模型) | ChatGLMLLM(智谱glm-4-flash) | 👍DoubaoLLM(火山doubao-1-5-pro-32k-250115) |
+| VLLM(视觉大模型) | ChatGLMVLLM(智谱glm-4v-flash) | 👍QwenVLVLLM(千问qwen2.5-vl-3b-instructh) |
+| TTS(语音合成) | ✅LinkeraiTTS(灵犀流式) | 👍HuoshanDoubleStreamTTS(火山双流式语音合成) |
+| Intent(意图识别) | function_call(函数调用) | function_call(函数调用) |
+| Memory(记忆功能) | mem_local_short(本地短期记忆） | mem_local_short（本地短期记忆） |
 
 #### 🔧 测试工具
 本项目提供以下测试工具，帮助您验证系统和选择合适的模型：
 
 | 工具名称 | 位置 | 使用方法 | 功能说明 |
-|---------|------|---------|---------|
-| test_page | `main/xiaozhi-server/test/test_page.html` | 使用谷歌浏览器直接打开 | 测试音频播放和接收功能，验证Python端音频处理是否正常 |
-| performance_tester | `main/xiaozhi-server/performance_tester.py` | 执行 `python performance_tester.py` | 测试ASR(语音识别)、LLM(大模型)、TTS(语音合成)三个核心模块的响应速度 |
-| performance_tester_vllm | `main/xiaozhi-server/performance_tester_vllm.py` | 执行 `python performance_tester_vllm.py` | 测试VLLM(视觉模型)的响应速度 |
+|:---:|:---|:---:|:---:|
+| 音频交互测试工具 | main》xiaozhi-server》test》test_page.html | 使用谷歌浏览器直接打开 | 测试音频播放和接收功能，验证Python端音频处理是否正常 |
+| 模型响应测试工具1 | main》xiaozhi-server》performance_tester.py | 执行 `python performance_tester.py` | 测试ASR(语音识别)、LLM(大模型)、TTS(语音合成)三个核心模块的响应速度 |
+| 模型响应测试工具2 | main》xiaozhi-server》performance_tester_vllm.py | 执行 `python performance_tester_vllm.py` | 测试VLLM(视觉模型)的响应速度 |
 
 > 💡 提示：测试模型速度时，只会测试配置了密钥的模型。
 
@@ -216,16 +219,18 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 ### 已实现 ✅
 
 | 功能模块 | 描述 |
-|---------|------|
-| 通信协议 | 基于 `xiaozhi-esp32` 协议，通过 WebSocket 实现数据交互 |
-| 对话交互 | 支持唤醒对话、手动对话及实时打断。长时间无对话时自动休眠 |
-| 意图识别 | 支持使用LLM意图识别、function call函数调用，减少硬编码意图判断 |
-| 多语言识别 | 支持国语、粤语、英语、日语、韩语（默认使用 FunASR） |
-| LLM 模块 | 支持灵活切换 LLM 模块，默认使用 ChatGLMLLM，也可选用阿里百炼、DeepSeek、Ollama 等接口 |
-| TTS 模块 | 支持 EdgeTTS（默认）、火山引擎豆包 TTS 等多种 TTS 接口，满足语音合成需求 |
-| 记忆功能 | 支持超长记忆、本地总结记忆、无记忆三种模式，满足不同场景需求 |
-| IOT功能 | 支持管理注册设备IOT功能，支持基于对话上下文语境下的智能物联网控制 |
-| 智控台 | 提供Web管理界面，支持智能体管理、用户管理、系统配置等功能，方便管理员和用户进行管理 |
+|:---:|:---|
+| 核心服务架构 | 基于WebSocket和HTTP服务器，提供完整的控制台管理和认证系统 |
+| 语音交互系统 | 支持流式ASR(语音识别)、流式TTS(语音合成)、VAD(语音活动检测)，支持多语言识别和语音处理 |
+| 智能对话系统 | 支持多种LLM(大语言模型)，实现智能对话 |
+| 视觉感知系统 | 支持多种VLLM(视觉大模型)，实现多模态交互 |
+| 意图识别系统 | 支持LLM意图识别、Function Call函数调用，提供插件化意图处理机制 |
+| 记忆系统 | 支持本地短期记忆、mem0ai接口记忆，具备记忆总结功能 |
+| IOT/MCP控制协议 | 支持设备注册管理、智能控制接口，同时支持IOT、MCP控制协议 |
+| 管理后台 | 提供Web管理界面，支持用户管理、系统配置和设备管理 |
+| 测试工具 | 提供性能测试工具、视觉模型测试工具和音频交互测试工具 |
+| 部署支持 | 支持Docker部署和本地部署，提供完整的配置文件管理 |
+| 插件系统 | 支持功能插件扩展、自定义插件开发和插件热加载 |
 
 ### 正在开发 🚧
 
@@ -276,7 +281,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
-| 接口调用 | EdgeTTS、火山引擎豆包TTS、腾讯云、阿里云TTS、CosyVoiceSiliconflow、TTS302AI、CozeCnTTS、GizwitsTTS、ACGNTTS、OpenAITTS | EdgeTTS、CosyVoiceSiliconflow(部分) |
+| 接口调用 | EdgeTTS、火山引擎豆包TTS、腾讯云、阿里云TTS、CosyVoiceSiliconflow、TTS302AI、CozeCnTTS、GizwitsTTS、ACGNTTS、OpenAITTS、灵犀流式TTS | 灵犀流式TTS、EdgeTTS、CosyVoiceSiliconflow(部分) |
 | 本地服务 | FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3、MinimaxTTS | FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3、MinimaxTTS |
 
 ---

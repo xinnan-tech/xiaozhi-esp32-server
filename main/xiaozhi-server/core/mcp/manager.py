@@ -75,7 +75,6 @@ class MCPManager:
                 self.conn.logger.bind(tag=TAG).error(
                     f"Failed to initialize MCP server {name}: {e}"
                 )
-        self.conn.func_handler.upload_functions_desc()
 
     def get_all_tools(self) -> List[Dict[str, Any]]:
         """获取所有服务的工具function定义

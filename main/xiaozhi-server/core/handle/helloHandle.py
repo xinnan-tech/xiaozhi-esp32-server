@@ -1,29 +1,31 @@
-import os
 import time
 import json
 import random
-import shutil
 import asyncio
-from core.handle.sendAudioHandle import send_stt_message
-from core.utils.util import remove_punctuation_and_length
-from core.providers.tts.dto.dto import ContentType, InterfaceType
+from core.utils.dialogue import Message
+from core.utils.util import audio_to_data
+from core.handle.sendAudioHandle import sendAudioMessage, send_stt_message
+from core.utils.util import remove_punctuation_and_length, opus_datas_to_wav_bytes
+from core.providers.tts.dto.dto import ContentType, SentenceType
 from core.handle.mcpHandle import (
     MCPClient,
     send_mcp_initialize_message,
     send_mcp_tools_list_request,
 )
-
+from core.utils.wakeup_word import WakeupWordsConfig
 
 TAG = __name__
 
 WAKEUP_CONFIG = {
-    "dir": "config/assets/",
-    "file_name": "wakeup_words",
-    "create_time": time.time(),
-    "refresh_time": 10,
-    "words": ["你好小智", "你好啊小智", "小智你好", "小智"],
-    "text": "",
+    "refresh_time": 5,
+    "words": ["你好", "你好啊", "嘿，你好", "嗨"],
 }
+
+# 创建全局的唤醒词配置管理器
+wakeup_words_config = WakeupWordsConfig()
+
+# 用于防止并发调用wakeupWordsResponse的锁
+_wakeup_response_lock = asyncio.Lock()
 
 
 async def handleHelloMessage(conn, msg_json):
@@ -53,85 +55,87 @@ async def checkWakeupWords(conn, text):
     enable_wakeup_words_response_cache = conn.config[
         "enable_wakeup_words_response_cache"
     ]
-    """是否用的是非流式tts"""
-    if conn.tts and conn.tts.interface_type != InterfaceType.NON_STREAM:
+
+    if not enable_wakeup_words_response_cache or not conn.tts:
         return False
 
-    """是否开启唤醒词加速"""
-    if not enable_wakeup_words_response_cache:
-        return False
-    """检查是否是唤醒词"""
     _, filtered_text = remove_punctuation_and_length(text)
-    if filtered_text in conn.config.get("wakeup_words"):
-        # 设置刚刚被唤醒的标志
-        conn.just_woken_up = True
-        await send_stt_message(conn, text)
+    if filtered_text not in conn.config.get("wakeup_words"):
+        return False
 
-        file = getWakeupWordFile(WAKEUP_CONFIG["file_name"])
-        if file is None:
+    conn.just_woken_up = True
+    await send_stt_message(conn, text)
+
+    # 获取当前音色
+    voice = getattr(conn.tts, "voice", "default")
+    if not voice:
+        voice = "default"
+
+    # 获取唤醒词回复配置
+    response = wakeup_words_config.get_wakeup_response(voice)
+    if not response or not response.get("file_path"):
+        response = {
+            "voice": "default",
+            "file_path": "config/assets/wakeup_words.wav",
+            "time": 0,
+            "text": "哈啰啊，我是小智啦，声音好听的台湾女孩一枚，超开心认识你耶，最近在忙啥，别忘了给我来点有趣的料哦，我超爱听八卦的啦",
+        }
+
+    # 播放唤醒词回复
+    conn.client_abort = False
+    opus_packets, _ = audio_to_data(response.get("file_path"))
+
+    conn.logger.bind(tag=TAG).info(f"播放唤醒词回复: {response.get('text')}")
+    await sendAudioMessage(conn, SentenceType.FIRST, opus_packets, response.get("text"))
+    await sendAudioMessage(conn, SentenceType.LAST, [], None)
+
+    # 补充对话
+    conn.dialogue.put(Message(role="assistant", content=response.get("text")))
+
+    # 检查是否需要更新唤醒词回复
+    if time.time() - response.get("time", 0) > WAKEUP_CONFIG["refresh_time"]:
+        if not _wakeup_response_lock.locked():
             asyncio.create_task(wakeupWordsResponse(conn))
-            return False
-        text_hello = WAKEUP_CONFIG["text"]
-        if not text_hello:
-            text_hello = text
-        if conn.tts is None:
-            return False
-        conn.tts.tts_one_sentence(
-            conn, ContentType.FILE, content_file=file, content_detail=text_hello
-        )
-        if time.time() - WAKEUP_CONFIG["create_time"] > WAKEUP_CONFIG["refresh_time"]:
-            asyncio.create_task(wakeupWordsResponse(conn))
-        return True
-    return False
-
-
-def getWakeupWordFile(file_name):
-    for file in os.listdir(WAKEUP_CONFIG["dir"]):
-        if file.startswith("my_" + file_name):
-            """避免缓存文件是一个空文件"""
-            if os.stat(f"config/assets/{file}").st_size > (15 * 1024):
-                return f"config/assets/{file}"
-
-    """查找config/assets/目录下名称为wakeup_words的文件"""
-    for file in os.listdir(WAKEUP_CONFIG["dir"]):
-        if file.startswith(file_name):
-            return f"config/assets/{file}"
-    return None
+    return True
 
 
 async def wakeupWordsResponse(conn):
-    wait_max_time = 5
-    while conn.llm is None or not conn.llm.response_no_stream:
-        await asyncio.sleep(1)
-        wait_max_time -= 1
-        if wait_max_time <= 0:
-            conn.logger.bind(tag=TAG).error("连接对象没有llm")
+    if not conn.tts or not conn.llm or not conn.llm.response_no_stream:
+        return
+
+    try:
+        # 尝试获取锁，如果获取不到就返回
+        if not await _wakeup_response_lock.acquire():
             return
 
-    """唤醒词响应"""
-    wakeup_word = random.choice(WAKEUP_CONFIG["words"])
-    question = (
-        "此刻用户正在和你说```"
-        + wakeup_word
-        + "```。\n请你根据以上用户的内容，进行简短回复，文字内容控制在15个字以内。\n"
-        + "请勿对这条内容本身进行任何解释和回应，仅返回对用户的内容的回复。"
-    )
-    result = conn.llm.response_no_stream(conn.config["prompt"], question)
-    if result is None or result == "":
-        return
-    tts_file = await asyncio.to_thread(conn.tts.to_tts, result)
-
-    if tts_file is not None and os.path.exists(tts_file):
-        file_type = os.path.splitext(tts_file)[1]
-        if file_type:
-            file_type = file_type.lstrip(".")
-        old_file = getWakeupWordFile("my_" + WAKEUP_CONFIG["file_name"])
-        if old_file is not None:
-            os.remove(old_file)
-        """将文件挪到"wakeup_words.mp3"""
-        shutil.move(
-            tts_file,
-            WAKEUP_CONFIG["dir"] + "my_" + WAKEUP_CONFIG["file_name"] + "." + file_type,
+        # 生成唤醒词回复
+        wakeup_word = random.choice(WAKEUP_CONFIG["words"])
+        question = (
+            "此刻用户正在和你说```"
+            + wakeup_word
+            + "```。\n请你根据以上用户的内容进行20-30字回复。要符合系统设置的角色情感和态度，不要像机器人一样说话。\n"
+            + "请勿对这条内容本身进行任何解释和回应，请勿返回表情符号，仅返回对用户的内容的回复。"
         )
-        WAKEUP_CONFIG["create_time"] = time.time()
-        WAKEUP_CONFIG["text"] = result
+
+        result = conn.llm.response_no_stream(conn.config["prompt"], question)
+        if not result or len(result) == 0:
+            return
+
+        # 生成TTS音频
+        tts_result = await asyncio.to_thread(conn.tts.to_tts, result)
+        if not tts_result:
+            return
+
+        # 获取当前音色
+        voice = getattr(conn.tts, "voice", "default")
+
+        wav_bytes = opus_datas_to_wav_bytes(tts_result, sample_rate=16000)
+        file_path = wakeup_words_config.generate_file_path(voice)
+        with open(file_path, "wb") as f:
+            f.write(wav_bytes)
+        # 更新配置
+        wakeup_words_config.update_wakeup_response(voice, file_path, result)
+    finally:
+        # 确保在任何情况下都释放锁
+        if _wakeup_response_lock.locked():
+            _wakeup_response_lock.release()

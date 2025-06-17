@@ -1,7 +1,7 @@
 import json
 import asyncio
 from concurrent.futures import Future
-from core.utils.util import get_vision_url
+from core.utils.util import get_vision_url, sanitize_tool_name
 from core.utils.auth import AuthToken
 
 TAG = __name__
@@ -11,7 +11,8 @@ class MCPClient:
     """MCPClient，用于管理MCP状态和工具"""
 
     def __init__(self):
-        self.tools = {}  # Dictionary for O(1) lookup
+        self.tools = {}  # sanitized_name -> tool_data
+        self.name_mapping = {}
         self.ready = False
         self.call_results = {}  # To store Futures for tool call responses
         self.next_id = 1
@@ -30,7 +31,7 @@ class MCPClient:
         result = []
         for tool_name, tool_data in self.tools.items():
             function_def = {
-                "name": tool_data["name"],
+                "name": tool_name,
                 "description": tool_data["description"],
                 "parameters": {
                     "type": tool_data["inputSchema"].get("type", "object"),
@@ -53,7 +54,9 @@ class MCPClient:
 
     async def add_tool(self, tool_data: dict):
         async with self.lock:
-            self.tools[tool_data["name"]] = tool_data
+            sanitized_name = sanitize_tool_name(tool_data["name"])
+            self.tools[sanitized_name] = tool_data
+            self.name_mapping[sanitized_name] = tool_data["name"]
             self._cached_available_tools = (
                 None  # Invalidate the cache when a tool is added
             )
@@ -133,9 +136,6 @@ async def handle_mcp_message(conn, mcp_client: MCPClient, payload: dict):
                 conn.logger.bind(tag=TAG).info(
                     f"客户端MCP服务器信息: name={name}, version={version}"
                 )
-            await send_mcp_tools_list_request(
-                conn
-            )  # After initialization, request tool list
             return
 
         elif msg_id == 2:  # mcpToolsListID
@@ -173,6 +173,20 @@ async def handle_mcp_message(conn, mcp_client: MCPClient, payload: dict):
                     }
                     await mcp_client.add_tool(new_tool)
                     conn.logger.bind(tag=TAG).debug(f"客户端工具 #{i+1}: {name}")
+
+                # 替换所有工具描述中的工具名称
+                for tool_data in mcp_client.tools.values():
+                    if "description" in tool_data:
+                        description = tool_data["description"]
+                        # 遍历所有工具名称进行替换
+                        for (
+                            sanitized_name,
+                            original_name,
+                        ) in mcp_client.name_mapping.items():
+                            description = description.replace(
+                                original_name, sanitized_name
+                            )
+                        tool_data["description"] = description
 
                 next_cursor = result.get("nextCursor", "")
                 if next_cursor:
@@ -218,8 +232,6 @@ async def send_mcp_initialize_message(conn):
         "url": vision_url,
         "token": token,
     }
-
-    conn.logger.bind(tag=TAG).info(f"视觉服务信息: {vision}")
 
     payload = {
         "jsonrpc": "2.0",
@@ -333,15 +345,16 @@ async def call_mcp_tool(
             raise ValueError(f"参数处理失败: {str(e)}")
         raise e
 
+    actual_name = mcp_client.name_mapping.get(tool_name, tool_name)
     payload = {
         "jsonrpc": "2.0",
         "id": tool_call_id,
         "method": "tools/call",
-        "params": {"name": tool_name, "arguments": arguments},
+        "params": {"name": actual_name, "arguments": arguments},
     }
 
     conn.logger.bind(tag=TAG).info(
-        f"发送客户端mcp工具调用请求: {tool_name}，参数: {args}"
+        f"发送客户端mcp工具调用请求: {actual_name}，参数: {args}"
     )
     await send_mcp_message(conn, payload)
 
@@ -349,7 +362,7 @@ async def call_mcp_tool(
         # Wait for response or timeout
         raw_result = await asyncio.wait_for(result_future, timeout=timeout)
         conn.logger.bind(tag=TAG).info(
-            f"客户端mcp工具调用 {tool_name} 成功，原始结果: {raw_result}"
+            f"客户端mcp工具调用 {actual_name} 成功，原始结果: {raw_result}"
         )
 
         if isinstance(raw_result, dict):

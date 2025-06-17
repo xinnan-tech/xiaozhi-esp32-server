@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :title="title" :visible.sync="dialogVisible" @close="handleClose" @open="handleOpen">
+  <el-dialog :title="title" :visible.sync="dialogVisible" :close-on-click-modal="false" @close="handleClose" @open="handleOpen">
     <el-form ref="form" :model="form" :rules="rules" label-width="100px">
       <el-form-item label="固件名称" prop="firmwareName">
         <el-input v-model="form.firmwareName" placeholder="请输入固件名称(板子+版本号)"></el-input>

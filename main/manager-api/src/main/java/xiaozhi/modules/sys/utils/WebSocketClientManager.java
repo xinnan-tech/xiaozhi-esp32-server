@@ -1,13 +1,5 @@
 package xiaozhi.modules.sys.utils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StopWatch;
-import org.springframework.web.socket.*;
-import org.springframework.web.socket.client.standard.StandardWebSocketClient;
-import org.springframework.web.socket.handler.AbstractWebSocketHandler;
-import xiaozhi.common.utils.DateUtils;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
@@ -15,30 +7,51 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
+import org.springframework.util.StopWatch;
+import org.springframework.web.socket.BinaryMessage;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketHttpHeaders;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.client.standard.StandardWebSocketClient;
+import org.springframework.web.socket.handler.AbstractWebSocketHandler;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
+import xiaozhi.common.utils.DateUtils;
 
 /**
  * WebSocketClientResource：支持 try-with-resources 模式
  */
 @Slf4j
-public class WebSocketClientManager implements Closeable
-{
+public class WebSocketClientManager implements Closeable {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     // 全局回调线程池
-    private static final ExecutorService CALLBACK_EXECUTOR = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
-        private final AtomicInteger cnt = new AtomicInteger();
+    private static final ExecutorService CALLBACK_EXECUTOR = Executors
+            .newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
+                private final AtomicInteger cnt = new AtomicInteger();
 
-        public Thread newThread(Runnable r)
-        {
-            Thread t = new Thread(r, "ws-callback-" + cnt.getAndIncrement());
-            t.setDaemon(true);
-            return t;
-        }
-    });
+                public Thread newThread(Runnable r) {
+                    Thread t = new Thread(r, "ws-callback-" + cnt.getAndIncrement());
+                    t.setDaemon(true);
+                    return t;
+                }
+            });
 
     private volatile WebSocketSession session;
     private final BlockingQueue<String> textMessageQueue;
@@ -51,18 +64,10 @@ public class WebSocketClientManager implements Closeable
     private volatile Consumer<byte[]> onBinary;
     private volatile Consumer<Throwable> onError;
 
-    private final String uri;
-    private final WebSocketHttpHeaders headers;
-    private final long connectTimeout;
-    private final TimeUnit connectUnit;
     private final int queueCapacity;
 
     // 私有构造，仅由 Builder 调用
     private WebSocketClientManager(Builder b) {
-        this.uri = b.uri;
-        this.headers = b.headers != null ? b.headers : new WebSocketHttpHeaders();
-        this.connectTimeout = b.connectTimeout;
-        this.connectUnit = b.connectUnit;
         this.maxSessionDuration = b.maxSessionDuration;
         this.maxSessionDurationUnit = b.maxSessionDurationUnit;
         this.queueCapacity = b.queueCapacity;
@@ -71,13 +76,14 @@ public class WebSocketClientManager implements Closeable
         this.errorFuture = new CompletableFuture<>();
     }
 
-    public static WebSocketClientManager build(Builder b) throws InterruptedException, ExecutionException, TimeoutException, IOException {
+    public static WebSocketClientManager build(Builder b)
+            throws InterruptedException, ExecutionException, TimeoutException, IOException {
         WebSocketClientManager ws = new WebSocketClientManager(b);
         StandardWebSocketClient client = new StandardWebSocketClient();
-        CompletableFuture<WebSocketSession> future = client.execute(ws.new InternalHandler(b.uri), b.headers, URI.create(b.uri));
+        CompletableFuture<WebSocketSession> future = client.execute(ws.new InternalHandler(b.uri), b.headers,
+                URI.create(b.uri));
         WebSocketSession sess = future.get(b.connectTimeout, b.connectUnit);
-        if (sess == null || !sess.isOpen())
-        {
+        if (sess == null || !sess.isOpen()) {
             throw new IOException("握手失败或会话未打开");
         }
         ws.session = sess;
@@ -100,13 +106,10 @@ public class WebSocketClientManager implements Closeable
         session.sendMessage(new TextMessage(json));
     }
 
-
-
     private <T> List<T> listenerCustom(
             BlockingQueue<T> queue,
             Predicate<T> predicate)
-            throws InterruptedException, TimeoutException, ExecutionException
-    {
+            throws InterruptedException, TimeoutException, ExecutionException {
         List<T> collected = new ArrayList<>();
         long deadline = System.currentTimeMillis() + maxSessionDurationUnit.toMillis(maxSessionDuration);
 
@@ -136,17 +139,16 @@ public class WebSocketClientManager implements Closeable
 
     /**
      * 同步接收多条消息，直到 predicate 为 true 或超时抛异常；
+     * 
      * @return 返回监听期间的所有消息列表
      */
     public List<String> listener(Predicate<String> predicate)
-            throws InterruptedException, TimeoutException, ExecutionException
-    {
+            throws InterruptedException, TimeoutException, ExecutionException {
         return listenerCustom(textMessageQueue, predicate);
     }
 
     public List<byte[]> listenerBinary(Predicate<byte[]> predicate)
-            throws InterruptedException, TimeoutException, ExecutionException
-    {
+            throws InterruptedException, TimeoutException, ExecutionException {
         return listenerCustom(binaryMessageQueue, predicate);
     }
 
@@ -183,8 +185,8 @@ public class WebSocketClientManager implements Closeable
             if (session != null && session.isOpen()) {
                 session.close(CloseStatus.NORMAL);
             }
+        } catch (IOException ignored) {
         }
-        catch (IOException ignored) {}
         textMessageQueue.clear();
         binaryMessageQueue.clear();
         errorFuture.completeExceptionally(new IOException("WebSocket 已关闭"));
@@ -207,7 +209,8 @@ public class WebSocketClientManager implements Closeable
             // 保存会话
             WebSocketClientManager.this.session = session;
             this.stopWatch.start();
-            log.info("ws连接成功, 目标URI: {}, 连接时间: {}", targetUri, DateUtils.getDateTimeNow(DateUtils.DATE_TIME_MILLIS_PATTERN));
+            log.info("ws连接成功, 目标URI: {}, 连接时间: {}", targetUri,
+                    DateUtils.getDateTimeNow(DateUtils.DATE_TIME_MILLIS_PATTERN));
         }
 
         /**
@@ -264,18 +267,19 @@ public class WebSocketClientManager implements Closeable
                 stopWatch.stop();
             }
             log.info("ws连接关闭, 目标URI: {}, 关闭时间: {}, 连接总时长: {}s",
-                    targetUri, DateUtils.getDateTimeNow(DateUtils.DATE_TIME_MILLIS_PATTERN), DateUtils.millsToSecond(stopWatch.getTotalTimeMillis()));
+                    targetUri, DateUtils.getDateTimeNow(DateUtils.DATE_TIME_MILLIS_PATTERN),
+                    DateUtils.millsToSecond(stopWatch.getTotalTimeMillis()));
         }
     }
 
     public static class Builder {
-        private String uri;                                         // 目标 WS URI
-        private long connectTimeout = 3;                            // 请求连接等待时间
-        private TimeUnit connectUnit = TimeUnit.SECONDS;            // 请求连接等待时间单位
-        private long maxSessionDuration = 5;                        // 最大连线时间，默认5秒
+        private String uri; // 目标 WS URI
+        private long connectTimeout = 3; // 请求连接等待时间
+        private TimeUnit connectUnit = TimeUnit.SECONDS; // 请求连接等待时间单位
+        private long maxSessionDuration = 5; // 最大连线时间，默认5秒
         private TimeUnit maxSessionDurationUnit = TimeUnit.SECONDS; // 最大连线时间单位
-        private int queueCapacity = 100;                            // 消息队列容量
-        private WebSocketHttpHeaders headers;                       // 请求头
+        private int queueCapacity = 100; // 消息队列容量
+        private WebSocketHttpHeaders headers; // 请求头
 
         /**
          * 目标 WS URI
@@ -307,7 +311,8 @@ public class WebSocketClientManager implements Closeable
             return this;
         }
 
-        public WebSocketClientManager build() throws InterruptedException, ExecutionException, TimeoutException, IOException {
+        public WebSocketClientManager build()
+                throws InterruptedException, ExecutionException, TimeoutException, IOException {
             return WebSocketClientManager.build(this);
         }
 

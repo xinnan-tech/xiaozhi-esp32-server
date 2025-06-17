@@ -1,5 +1,5 @@
 <template>
-  <el-drawer :visible.sync="dialogVisible" direction="rtl" size="50%" :wrapperClosable="false" :withHeader="false">
+  <el-drawer :visible.sync="dialogVisible" direction="rtl" size="80%" :wrapperClosable="false" :withHeader="false">
     <!-- 自定义标题区域 -->
     <div class="custom-header">
       <div class="header-left">
@@ -16,15 +16,18 @@
           <el-button type="text" @click="selectAll" class="select-all-btn">全选</el-button>
         </div>
         <div class="function-list">
-          <div v-for="func in unselected" :key="func.name" class="function-item">
-            <el-checkbox :label="func.name" v-model="selectedNames" @change="(val) => handleCheckboxChange(func, val)" @click.native.stop></el-checkbox>
-            <div class="func-tag" @click="handleFunctionClick(func)">
-              <div class="color-dot" :style="{backgroundColor: getFunctionColor(func.name)}"></div>
-              <span>{{ func.name }}</span>
+          <div v-if="unselected.length">
+            <div v-for="func in unselected" :key="func.name" class="function-item">
+              <el-checkbox :label="func.name" v-model="selectedNames" @change="(val) => handleCheckboxChange(func, val)"
+                @click.native.stop></el-checkbox>
+              <div class="func-tag" @click="handleFunctionClick(func)">
+                <div class="color-dot" :style="{ backgroundColor: getFunctionColor(func.name) }"></div>
+                <span>{{ func.name }}</span>
+              </div>
             </div>
-            <el-tooltip class="item" effect="dark" :content="func.description || '暂无功能描述'" placement="top">
-              <img src="@/assets/home/info.png" alt="" class="info-icon">
-            </el-tooltip>
+          </div>
+          <div v-else style="display: flex; justify-content: center; align-items: center;">
+            <el-empty description="没有更多的插件了" />
           </div>
         </div>
       </div>
@@ -36,12 +39,18 @@
           <el-button type="text" @click="deselectAll" class="select-all-btn">全选</el-button>
         </div>
         <div class="function-list">
-          <div v-for="func in selectedList" :key="func.name" class="function-item">
-            <el-checkbox :label="func.name" v-model="selectedNames" @change="(val) => handleCheckboxChange(func, val)" @click.native.stop></el-checkbox>
-            <div class="func-tag" @click="handleFunctionClick(func)">
-              <div class="color-dot" :style="{backgroundColor: getFunctionColor(func.name)}"></div>
-              <span>{{ func.name }}</span>
+          <div v-if="selectedList.length > 0">
+            <div v-for="func in selectedList" :key="func.name" class="function-item">
+              <el-checkbox :label="func.name" v-model="selectedNames" @change="(val) => handleCheckboxChange(func, val)"
+                @click.native.stop></el-checkbox>
+              <div class="func-tag" @click="handleFunctionClick(func)">
+                <div class="color-dot" :style="{ backgroundColor: getFunctionColor(func.name) }"></div>
+                <span>{{ func.name }}</span>
+              </div>
             </div>
+          </div>
+          <div v-else style="display: flex; justify-content: center; align-items: center;">
+            <el-empty description="请选择插件功能" />
           </div>
         </div>
       </div>
@@ -49,13 +58,43 @@
       <!-- 右侧：参数配置 -->
       <div class="params-column">
         <h4 v-if="currentFunction" class="column-title">参数配置 - {{ currentFunction.name }}</h4>
-          <div v-if="currentFunction" class="params-container">
-            <el-form :model="currentFunction" size="mini" class="param-form" v-loading="loading" element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading" element-loading-background="rgba(255, 255, 255, 0.7)">
-              <el-form-item v-for="(value, key) in currentFunction.params" :key="key" :label="key" class="param-item">
-                <el-input v-model="currentFunction.params[key]" size="mini" class="param-input" @change="(val) => handleParamChange(currentFunction, key, val)"/>
-              </el-form-item>
-            </el-form>
-          </div>
+        <div v-if="currentFunction" class="params-container">
+          <el-form :model="currentFunction" class="param-form">
+            <!-- 遍历 fieldsMeta，而不是 params 的 keys -->
+            <div v-if="currentFunction.fieldsMeta.length == 0">
+              <el-empty :description="currentFunction.name + ' 无需配置参数'" />
+            </div>
+            <el-form-item v-for="field in currentFunction.fieldsMeta" :key="field.key" :label="field.label"
+              class="param-item" :class="{ 'textarea-field': field.type === 'array' || field.type === 'json' }">
+              <template #label>
+                <span style="font-size: 16px; margin-right: 6px;">{{ field.label }}</span>
+                <el-tooltip effect="dark" :content="fieldRemark(field)" placement="top">
+                  <img src="@/assets/home/info.png" alt="" class="info-icon">
+                </el-tooltip>
+              </template>
+              <!-- ARRAY -->
+              <el-input v-if="field.type === 'array'" type="textarea" v-model="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+
+              <!-- JSON -->
+              <el-input v-else-if="field.type === 'json'" type="textarea" :rows="6" placeholder="请输入合法的 JSON"
+                v-model="textCache[field.key]" @blur="flushJson(field)" />
+
+              <!-- number -->
+              <el-input-number v-else-if="field.type === 'number'" :value="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+
+              <!-- boolean -->
+              <el-switch v-else-if="field.type === 'boolean' || field.type === 'bool'"
+                :value="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+
+              <!-- string or fallback -->
+              <el-input v-else v-model="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+            </el-form-item>
+          </el-form>
+        </div>
         <div v-else class="empty-tip">请选择已配置的功能进行参数设置</div>
       </div>
     </div>
@@ -74,24 +113,19 @@ export default {
     functions: {
       type: Array,
       default: () => []
+    },
+    allFunctions: {
+      type: Array,
+      default: () => []
     }
   },
   data() {
     return {
+      textCache: {},
       dialogVisible: this.value,
       selectedNames: [],
       currentFunction: null,
       modifiedFunctions: {},
-      allFunctions: [
-        {name: '天气', params: {city: '北京'}, description: '查看指定城市的天气情况'},
-        {name: '新闻', params: {type: '科技'}, description: '获取最新科技类新闻资讯'},
-        {name: '工具', params: {category: '常用'}, description: '提供常用工具集合'},
-        {name: '退出', params: {}, description: '退出当前系统'},
-        {name: '音乐', params: {genre: '流行'}, description: '播放流行音乐'},
-        {name: '翻译', params: {from: '中文', to: '英文'}, description: '提供中英文互译功能'},
-        {name: '计算', params: {precision: '2'}, description: '提供精确计算功能'},
-        {name: '日历', params: {view: '月'}, description: '查看月历视图'}
-      ],
       functionColorMap: [
         '#FF6B6B', '#4ECDC4', '#45B7D1',
         '#96CEB4', '#FFEEAD', '#D4A5A5', '#A2836E'
@@ -111,10 +145,37 @@ export default {
     }
   },
   watch: {
-    value(newVal) {
-      this.dialogVisible = newVal;
-      if (newVal) {
+    currentFunction(newFn) {
+      if (!newFn) return;
+      // 对每个字段，如果是 array 或 json，就在 textCache 里生成初始字符串
+      newFn.fieldsMeta.forEach(f => {
+        const v = newFn.params[f.key];
+        if (f.type === 'array') {
+          this.$set(this.textCache, f.key, Array.isArray(v) ? v.join('\n') : '');
+        }
+        else if (f.type === 'json') {
+          try {
+            this.$set(this.textCache, f.key, JSON.stringify(v ?? {}, null, 2));
+          } catch {
+            this.$set(this.textCache, f.key, '');
+          }
+        }
+      });
+    },
+    value(v) {
+      this.dialogVisible = v;
+      if (v) {
+        // 对话框打开时，初始化选中态
         this.selectedNames = this.functions.map(f => f.name);
+        // 把后端传来的 this.functions（带 params）merge 到 allFunctions 上
+        this.functions.forEach(saved => {
+          const idx = this.allFunctions.findIndex(f => f.name === saved.name);
+          if (idx >= 0) {
+            // 保留用户之前在 saved.params 上的改动
+            this.allFunctions[idx].params = { ...saved.params };
+          }
+        });
+        // 右侧默认指向第一个
         this.currentFunction = this.selectedList[0] || null;
       }
     },
@@ -123,14 +184,32 @@ export default {
     }
   },
   methods: {
+    flushArray(key) {
+      const text = this.textCache[key] || '';
+      const arr = text
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean);
+      this.handleParamChange(this.currentFunction, key, arr);
+    },
+
+    flushJson(field) {
+      const key = field.key;
+      if (!key) {
+        return;
+      }
+      const text = this.textCache[key] || '';
+      try {
+        const obj = JSON.parse(text);
+        this.handleParamChange(this.currentFunction, key, obj);
+      } catch {
+        this.$message.error(`${this.currentFunction.name}的${key}字段格式错误：JSON格式有误`);
+      }
+    },
     handleFunctionClick(func) {
       if (this.selectedNames.includes(func.name)) {
-        this.loading = true;
-        setTimeout(() => {
-          const tempFunc = this.tempFunctions[func.name];
-          this.currentFunction = tempFunc ? tempFunc : JSON.parse(JSON.stringify(func));
-          this.loading = false;
-        }, 300);
+        const tempFunc = this.tempFunctions[func.name];
+        this.currentFunction = tempFunc ? tempFunc : func;
       }
     },
     handleParamChange(func, key, value) {
@@ -185,23 +264,31 @@ export default {
 
       const selected = this.selectedList.map(f => {
         const modified = this.modifiedFunctions[f.name];
-        return modified || f;
-      }).map(f => ({
-        ...f,
-        params: JSON.parse(JSON.stringify(f.params))
-      }));
+        return {
+          id: f.id,
+          name: f.name,
+          params: modified
+            ? { ...modified.params }
+            : { ...f.params }
+        }
+      });
 
       this.$emit('update-functions', selected);
       this.dialogVisible = false;
-      this.$message.success('配置保存成功');
       // 通知父组件对话框已关闭且已保存
       this.$emit('dialog-closed', true);
     },
-
     getFunctionColor(name) {
       const hash = [...name].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return this.functionColorMap[hash % 7];
-    }
+      return this.functionColorMap[hash % this.functionColorMap.length];
+    },
+    fieldRemark(field) {
+      let description = (field && field.label) ? field.label : '';
+      if (field.default) {
+        description += `（默认值：${field.default}）`;
+      }
+      return description;
+    },
   }
 }
 </script>
@@ -209,7 +296,7 @@ export default {
 <style lang="scss" scoped>
 .function-manager {
   display: grid;
-  grid-template-columns: minmax(120px, 0.5fr) minmax(120px, 0.5fr) minmax(200px, 2fr);
+  grid-template-columns: max-content max-content 1fr;
   gap: 12px;
   height: calc(70vh - 60px);
 }
@@ -248,6 +335,7 @@ export default {
   overflow-y: auto;
   border-right: 1px solid #EBEEF5;
   scrollbar-width: none;
+  overflow-x: hidden;
 }
 
 .function-column::-webkit-scrollbar {
@@ -257,7 +345,7 @@ export default {
 .function-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .function-item {
@@ -317,9 +405,31 @@ export default {
 }
 
 .param-form {
+  .param-item {
+    font-size: 16px;
+
+    &.textarea-field {
+      ::v-deep .el-form-item__content {
+        margin-left: 0 !important;
+        display: block;
+        width: 100%;
+      }
+
+      ::v-deep .el-form-item__label {
+        display: block;
+        width: 100% !important;
+        margin-bottom: 8px;
+      }
+    }
+  }
+
+  .param-input {
+    width: 100%;
+  }
+
   ::v-deep .el-form-item {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     margin-bottom: 12px;
 
     .el-form-item__label {
@@ -356,9 +466,6 @@ export default {
   text-align: center;
 }
 
-.param-input {
-  width: 100%;
-}
 
 .drawer-footer {
   position: absolute;

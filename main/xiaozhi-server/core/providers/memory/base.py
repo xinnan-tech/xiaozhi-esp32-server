@@ -12,10 +12,6 @@ class MemoryProviderBase(ABC):
 
     def set_llm(self, llm):
         self.llm = llm
-        # 获取模型名称和类型信息
-        model_name = getattr(llm, "model_name", str(llm.__class__.__name__))
-        # 记录更详细的日志
-        logger.bind(tag=TAG).info(f"记忆总结设置LLM: {model_name}")
 
     @abstractmethod
     async def save_memory(self, msgs):
