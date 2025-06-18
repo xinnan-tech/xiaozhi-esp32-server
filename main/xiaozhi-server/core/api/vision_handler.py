@@ -8,6 +8,7 @@ from config.config_loader import get_private_config_from_api
 from core.utils.auth import AuthToken
 import base64
 from typing import Tuple, Optional
+from plugins_func.register import Action
 
 TAG = __name__
 
@@ -122,7 +123,8 @@ class VisionHandler:
 
             return_json = {
                 "success": True,
-                "result": result,
+                "action": Action.RESPONSE.name,
+                "response": result,
             }
 
             response = web.Response(
