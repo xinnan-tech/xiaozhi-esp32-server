@@ -22,6 +22,10 @@ class FunctionHandler:
         self.register_config_functions()
         self.functions_desc = self.function_registry.get_all_function_desc()
         self.finish_init = True
+    
+    def upload_functions_desc(self):
+        self.functions_desc = self.function_registry.get_all_function_desc()
+
 
     def current_support_functions(self):
         func_names = []

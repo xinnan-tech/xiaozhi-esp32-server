@@ -93,9 +93,7 @@ class ASRProvider(ASRProviderBase):
 
                     # 检查初始化响应
                     if "code" in result and result["code"] != 1000:
-                        error_msg = f"ASR服务初始化失败: {result.get('payload_msg', {}).get('message', '未知错误')}"
-                        if "payload_msg" in result:
-                            error_msg += f"\n详细错误信息: {json.dumps(result['payload_msg'], ensure_ascii=False)}"
+                        error_msg = f"ASR服务初始化失败: {result.get('payload_msg', {}).get('error', '未知错误')}"
                         logger.bind(tag=TAG).error(error_msg)
                         raise Exception(error_msg)
 
@@ -309,9 +307,10 @@ class ASRProvider(ASRProviderBase):
 
             # 如果是错误响应
             if message_type == 0x0F:  # SERVER_ERROR_RESPONSE
-                code = int.from_bytes(header[4:8], "big", signed=False)
-                error_msg = res[8:].decode("utf-8")
-                return {"code": code, "error": error_msg}
+                code = int.from_bytes(res[4:8], "big", signed=False)
+                msg_length = int.from_bytes(res[8:12], "big", signed=False)
+                error_msg = json.loads(res[12:].decode("utf-8"))
+                return {"code": code, "msg_length": msg_length, "payload_msg": error_msg}
 
             # 获取JSON数据（跳过12字节头部）
             try:

@@ -5,6 +5,7 @@ import os
 import yaml
 from config.config_loader import get_project_dir
 from config.manage_api_client import save_mem_local_short
+from core.utils.util import check_model_key
 
 
 short_term_memory_prompt = """
@@ -145,6 +146,10 @@ class MemoryProvider(MemoryProviderBase):
         # 打印使用的模型信息
         model_info = getattr(self.llm, "model_name", str(self.llm.__class__.__name__))
         logger.bind(tag=TAG).debug(f"使用记忆保存模型: {model_info}")
+        api_key = getattr(self.llm, "api_key", None)
+        memory_key_msg = check_model_key("记忆总结专用LLM", api_key)
+        if memory_key_msg:
+            logger.bind(tag=TAG).error(memory_key_msg)
         if self.llm is None:
             logger.bind(tag=TAG).error("LLM is not set for memory provider")
             return None

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.redis.RedisKeys;
@@ -22,6 +24,7 @@ import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.device.dto.DeviceRegisterDTO;
 import xiaozhi.modules.device.dto.DeviceUnBindDTO;
+import xiaozhi.modules.device.dto.DeviceUpdateDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.security.user.SecurityUser;
@@ -80,15 +83,19 @@ public class DeviceController {
         return new Result<Void>();
     }
 
-    @PutMapping("/enableOta/{id}/{status}")
-    @Operation(summary = "启用/关闭OTA自动升级")
+    @PutMapping("/update/{id}")
+    @Operation(summary = "更新设备信息")
     @RequiresPermissions("sys:role:normal")
-    public Result<Void> enableOtaUpgrade(@PathVariable String id, @PathVariable Integer status) {
+    public Result<Void> updateDeviceInfo(@PathVariable String id, @Valid @RequestBody DeviceUpdateDTO deviceUpdateDTO) {
         DeviceEntity entity = deviceService.selectById(id);
         if (entity == null) {
             return new Result<Void>().error("设备不存在");
         }
-        entity.setAutoUpdate(status);
+        UserDetail user = SecurityUser.getUser();
+        if (!entity.getUserId().equals(user.getId())) {
+            return new Result<Void>().error("设备不存在");
+        }
+        BeanUtils.copyProperties(deviceUpdateDTO, entity);
         deviceService.updateById(entity);
         return new Result<Void>();
     }

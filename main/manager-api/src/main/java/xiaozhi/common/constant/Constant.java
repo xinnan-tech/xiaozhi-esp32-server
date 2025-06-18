@@ -227,7 +227,7 @@ public interface Constant {
     /**
      * 版本号
      */
-    public static final String VERSION = "0.5.6";
+    public static final String VERSION = "0.5.7";
 
     /**
      * 无效固件URL

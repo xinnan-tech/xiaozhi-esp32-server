@@ -31,7 +31,8 @@ hass_set_state_function_desc = {
                             "description": "只有在设置静音操作时才需要,设置静音的时候该值为true,取消静音时该值为false",
                         },
                         "rgb_color": {
-                            "type": "list",
+                            "type": "array",
+                            "items": {"type": "integer"},
                             "description": "只有在设置颜色时需要,这里填目标颜色的rgb值",
                         },
                     },
