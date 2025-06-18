@@ -7,6 +7,6 @@ VALUES ('Memory_mem0_milvus', 'memory', 'mem0_milvus', 'Mem0AI本地记忆', 0, 
         NULL, 1, '2025-06-18 17:02:49');
 INSERT INTO `ai_model_provider` (`id`, `model_type`, `provider_code`, `name`, `fields`, `sort`,
                                                   `creator`, `create_date`, `updater`, `update_date`)
-VALUES ('31a6781185be2a72865cdb6a4d8f782c', 'Memory', 'mem0_milvus', 'mem0ai本地记忆',
+VALUES ('SYSTEM_Memory_mem0_milvus', 'Memory', 'mem0_milvus', 'mem0ai本地记忆',
         '[{\"key\": \"llm\", \"type\": \"dict\", \"label\": \"llm\", \"default\": \"\", \"editing\": false, \"selected\": false}, {\"key\": \"embedder\", \"type\": \"dict\", \"label\": \"embedder\", \"default\": \"\", \"editing\": false, \"selected\": false}, {\"key\": \"vector_store\", \"type\": \"dict\", \"label\": \"vector_store\", \"default\": \"\", \"editing\": false, \"selected\": false}]',
         0, 1, '2025-06-18 14:00:57', 1, '2025-06-18 14:00:57');
