@@ -319,7 +319,7 @@ ASR:
     output_dir: tmp/
   Groq:
     type: groq
-    model: distil-whisper-large-v3 # https://groq.com/largest-most-capable-asr-model-now-faster-on-groqcloud/
+    model: whisper-large-v3 # https://groq.com/largest-most-capable-asr-model-now-faster-on-groqcloud/
     api_key: 你的groq api key
 
 VAD:
