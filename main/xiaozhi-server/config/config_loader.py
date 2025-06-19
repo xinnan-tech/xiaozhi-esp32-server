@@ -68,6 +68,14 @@ def get_config_from_api(config):
             "vision_explain": config["server"].get("vision_explain", ""),
             "auth_key": config["server"].get("auth_key", ""),
         }
+    
+    # 获取ssl配置
+    if config.get("ssl"):
+        config_data["ssl"] = {
+            "enabled": config["ssl"].get("enabled", False),
+            "certfile": config["ssl"].get("certfile", ""),
+            "keyfile": config["ssl"].get("keyfile", ""),
+        }
     return config_data
 
 

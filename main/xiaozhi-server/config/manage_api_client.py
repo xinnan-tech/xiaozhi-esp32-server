@@ -191,3 +191,17 @@ def init_service(config):
 
 def manage_api_http_safe_close():
     ManageApiClient.safe_close()
+
+# 自定义获取指令集合
+def get_device_commands(mac_address: str) -> Optional[Dict]:
+    """获取设备命令"""
+    try:
+        return ManageApiClient._instance._execute_request(
+            "POST", f"/device/command/consume",
+            json={
+                "deviceId": mac_address
+            },
+        )
+    except Exception as e:
+        print(f"获取设备命令失败: {e}")
+        return None

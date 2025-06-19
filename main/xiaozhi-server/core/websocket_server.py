@@ -5,7 +5,7 @@ from core.connection import ConnectionHandler
 from config.config_loader import get_config_from_api
 from core.utils.modules_initialize import initialize_modules
 from core.utils.util import check_vad_update, check_asr_update
-
+import ssl
 TAG = __name__
 
 
@@ -37,8 +37,18 @@ class WebSocketServer:
         host = server_config.get("ip", "0.0.0.0")
         port = int(server_config.get("port", 8000))
 
+        # 如果配置了SSL证书，则使用SSL
+        ssl_context = None
+        ssl_config = self.config["ssl"]
+        if ssl_config.get("enabled", False):
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(
+                ssl_config["certfile"],
+                keyfile=ssl_config["keyfile"]
+            )
+            print(f"run with SSL")
         async with websockets.serve(
-            self._handle_connection, host, port, process_request=self._http_response
+            self._handle_connection, host, port, process_request=self._http_response, ssl=ssl_context
         ):
             await asyncio.Future()
 

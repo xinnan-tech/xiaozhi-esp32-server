@@ -161,6 +161,62 @@ async def handleTextMessage(conn, message):
             # 重启服务器
             elif msg_json["action"] == "restart":
                 await conn.handle_restart(msg_json)
+            # 检查设备在线状态
+            elif msg_json["action"] == "check_online":
+                print(f"收到检查设备在线状态的请求：{msg_json}")
+                content = msg_json.get("content", {})
+                device_id = content.get("deviceId", "")
+                device_websocket = conn.get_ws_by_device_id(device_id)
+                await conn.websocket.send(
+                    json.dumps(
+                        {
+                            "type": "server",
+                            "status": "success",
+                            "message": "设备在线" if device_websocket is not None else "设备不在线",
+                            "online": device_websocket is not None,
+                            "content": {"action": "check_online"},
+                        }
+                    )
+                )
+            # 收到模拟说话的请求
+            elif msg_json["action"] == "command":
+                content = msg_json.get("content", {})
+                device_websocket = conn.get_ws_by_device_id(
+                    content["deviceId"])
+                original_text = content.get("command", "")
+                print(f"收到模拟说话的请求：{original_text}")
+                print(f"收到模拟说话的请求：{device_websocket}")
+                # 设备在线，立即发送数据包
+                if device_websocket is not None and original_text != "":
+                    print(f"设备在线，直接发送：{msg_json}")
+                    await conn.websocket.send(
+                        json.dumps(
+                            {
+                                "type": "server",
+                                "status": "success",
+                                "message": "模拟说话请求已发送到设备",
+                                "content": {"action": "command"},
+                            }
+                        )
+                    )
+
+                    await handleAbortMessage(device_websocket)
+                    # 上报纯文字数据（复用ASR上报功能，但不提供音频数据）
+                    enqueue_asr_report(device_websocket, original_text, [])
+                    # 否则需要LLM对文字内容进行答复
+                    await startToChat(device_websocket, original_text)
+                else:
+                    print("设备不在线，发送失败")
+                    await conn.websocket.send(
+                        json.dumps(
+                            {
+                                "type": "server",
+                                "status": "fail",
+                                "message": "设备不在线或命令为空",
+                                "content": {"action": "command"},
+                            }
+                        )
+                    )
         else:
             conn.logger.bind(tag=TAG).error(f"收到未知类型消息：{message}")
     except json.JSONDecodeError:

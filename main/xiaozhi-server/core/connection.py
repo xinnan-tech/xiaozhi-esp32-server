@@ -38,6 +38,7 @@ from config.config_loader import get_private_config_from_api
 from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
 from config.logger import setup_logging, build_module_string, update_module_string
 from config.manage_api_client import DeviceNotFoundException, DeviceBindException
+from config.manage_api_client import DeviceNotFoundException, DeviceBindException, get_device_commands
 
 
 TAG = __name__
@@ -48,6 +49,9 @@ auto_import_modules("plugins_func.functions")
 class TTSException(RuntimeError):
     pass
 
+
+# 全局字典，最高效的 device_id -> websocket 映射
+DEVICE_WS_MAP = {}
 
 class ConnectionHandler:
     def __init__(
@@ -188,6 +192,12 @@ class ConnectionHandler:
             self.websocket = ws
             self.device_id = self.headers.get("device-id", None)
 
+            # 最高效：建立 device_id 到 websocket 的映射
+            if self.device_id:
+                DEVICE_WS_MAP[self.device_id] = self
+            print(f"设备 {self.device_id} 已连接，映射到 websocket")
+            print(f"当前连接的设备数量: {DEVICE_WS_MAP}")
+
             # 启动超时检查任务
             self.timeout_task = asyncio.create_task(self._check_timeout())
 
@@ -199,6 +209,12 @@ class ConnectionHandler:
             self._initialize_private_config()
             # 异步初始化
             self.executor.submit(self._initialize_components)
+
+            # 等待初始化完成（可选：如果你有初始化完成的信号，可以await）
+            # await asyncio.sleep(1)  # 这里可以用更优雅的方式判断初始化完成
+
+            # 初始化完成后再调用
+            await self.run_device_commands()
 
             try:
                 async for message in self.websocket:
@@ -961,6 +977,10 @@ class ConnectionHandler:
             elif self.websocket:
                 await self.websocket.close()
 
+            # 最高效：移除 device_id 到 websocket 的映射
+            if self.device_id and self.device_id in DEVICE_WS_MAP:
+                DEVICE_WS_MAP.pop(self.device_id, None)
+
             # 最后关闭线程池（避免阻塞）
             if self.executor:
                 self.executor.shutdown(wait=False)
@@ -1024,3 +1044,40 @@ class ConnectionHandler:
                     break
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"超时检查任务出错: {e}")
+
+    # 自定义指令------------------------------------------------------------------------
+    async def run_device_commands(self):
+        # 如果设备ID带有-，说明并不是真的设备ID，而是一个虚拟设备ID
+        if "-" in self.device_id:
+            print(f"并不是真正的设备，停止指令发送: {self.device_id}")
+            return
+        command = get_device_commands(self.device_id)
+        print(f"获取设备指令1: {self.device_id}")
+        print(f"获取设备指令2++++++++++++++++++++++++++++++++: {command}")
+        if command is None:
+            self.logger.bind(tag=TAG).error("获取设备指令失败，无法发送命令")
+            return
+        # 根据不同类型的命令进行处理
+        # 如果commandType是 "message" 则直接发送消息
+        # [{'id': '32a862b5a118446ea84044e5796830d1', 'deviceId': '10:20:ba:00:00:68', 'commandType': 'message', 'commandContent': '孩子，你需要上学了，听话', 'isExecuted': 0, 'creator': None, 'createDate': '2025-06-10 16:53:56', 'updater': None, 'updateDate': None}, {'id': '80586238070144d2ac9ab687cfb53ae7', 'deviceId': '10:20:ba:00:00:68', 'commandType': 'message', 'commandContent': '孩子，你需要上学了，听话', 'isExecuted': 0, 'creator': None, 'createDate': '2025-06-10 16:33:17', 'updater': None, 'updateDate': None}]
+        # 获取队列里的第一条指令，并进行处理
+        # 如果有第一条指令，则发送
+        commandContentand = command.get("commandContent", command)
+        if not commandContentand:
+            self.logger.bind(tag=TAG).error("设备指令内容为空，无法发送")
+            return
+        # 通过websocket发送指令
+        # await asyncio.sleep(10)  # 这里可以用更优雅的方式判断初始化完成
+        fake_message = json.dumps({
+            "type": "listen",
+            "mode": "manual",
+            "state": "detect",
+            "text": f"{commandContentand}"
+        })
+        await handleTextMessage(self, fake_message)
+        print(f"发送设备指令: {commandContentand}")
+
+    @staticmethod
+    def get_ws_by_device_id(device_id):
+        """根据 device_id 获取 websocket 连接实例"""
+        return DEVICE_WS_MAP.get(device_id)
