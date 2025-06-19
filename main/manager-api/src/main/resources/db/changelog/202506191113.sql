@@ -5,7 +5,7 @@
  Source Server Type    : MySQL
  Source Server Version : 80041 (8.0.41-0ubuntu0.24.04.1)
  Source Host           : 106.75.77.213:3306
- Source Schema         : xiaozhi_esp32_server
+ Source Schema         : zy_esp32_server
 
  Target Server Type    : MySQL
  Target Server Version : 80041 (8.0.41-0ubuntu0.24.04.1)
