@@ -5,6 +5,7 @@ server:
     threads:
       max: 1000
       min-spare: 30
+  address: 0.0.0.0
   port: 8002
   servlet:
     context-path: /xiaozhi

@@ -24,6 +24,9 @@ import xiaozhi.common.annotation.LogOperation;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.utils.Result;
+import xiaozhi.modules.device.entity.DeviceCommandEntity;
+import xiaozhi.modules.device.service.DeviceCommandService;
+import xiaozhi.modules.sys.dto.EmitCommandDTO;
 import xiaozhi.modules.sys.dto.EmitSeverActionDTO;
 import xiaozhi.modules.sys.dto.ServerActionPayloadDTO;
 import xiaozhi.modules.sys.dto.ServerActionResponseDTO;
@@ -40,6 +43,7 @@ import xiaozhi.modules.sys.utils.WebSocketClientManager;
 @AllArgsConstructor
 public class ServerSideManageController {
     private final SysParamsService sysParamsService;
+    private final DeviceCommandService deviceCommandService; // 新增注入
     private static final ObjectMapper objectMapper;
     static {
         objectMapper = new ObjectMapper();
@@ -117,5 +121,138 @@ public class ServerSideManageController {
             throw new RenException("WebSocket连接失败或连接超时");
         }
         return true;
+    }
+
+    @Operation(summary = "通过WebSocket发送指令")
+    @PostMapping("/emit-command")
+    @LogOperation("通过WebSocket发送指令")
+    // @RequiresPermissions("sys:role:superAdmin")
+    public Result<DeviceCommandEntity> emitCommand(@RequestBody @Valid EmitCommandDTO dto) {
+        String wsText = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
+        if (StringUtils.isBlank(wsText)) {
+            throw new RenException("未配置服务端WebSocket地址");
+        }
+        String targetWs = dto.getTargetWs();
+        String[] wsList = wsText.split(";");
+        if (StringUtils.isBlank(targetWs) || !Arrays.asList(wsList).contains(targetWs)) {
+            throw new RenException("目标WebSocket地址不存在");
+        }
+        return new Result<DeviceCommandEntity>().ok(emitCommandByWs(targetWs, dto));
+    }
+
+    private DeviceCommandEntity emitCommandByWs(String targetWsUri, EmitCommandDTO dto) {
+        if (StringUtils.isBlank(targetWsUri) || dto == null || StringUtils.isBlank(dto.getCommand())) {
+            return null;
+        }
+        String serverSK = sysParamsService.getValue(Constant.SERVER_SECRET, true);
+        WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
+        headers.add("device-id", UUID.randomUUID().toString());
+        headers.add("client-id", UUID.randomUUID().toString());
+
+        final DeviceCommandEntity[] resultEntity = { null };
+        try (WebSocketClientManager client = new WebSocketClientManager.Builder()
+                .connectTimeout(3, TimeUnit.SECONDS)
+                .maxSessionDuration(120, TimeUnit.SECONDS)
+                .uri(targetWsUri)
+                .headers(headers)
+                .build()) {
+            // 发送command类型指令
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("secret", serverSK);
+            payload.put("command", dto.getCommand());
+            payload.put("deviceId", dto.getDeviceId());
+            client.sendJson(ServerActionPayloadDTO.build(ServerActionEnum.COMMAND, payload));
+            // 监听返回
+            client.listener((jsonText) -> {
+                if (StringUtils.isBlank(jsonText)) {
+                    return false;
+                }
+                try {
+                    Map<String, Object> resp = objectMapper.readValue(jsonText, Map.class);
+                    Object status = resp.get("status");
+                    if ("success".equals(status) || "fail".equals(status)) {
+                        DeviceCommandEntity entity = new DeviceCommandEntity();
+                        entity.setDeviceId(dto.getDeviceId());
+                        entity.setCommandContent(dto.getCommand());
+                        entity.setCommandType("message");
+                        entity.setIsExecuted("success".equals(status) ? 1 : 0);
+                        deviceCommandService.addCommand(entity);
+                        resultEntity[0] = entity;
+                        return true;
+                    }
+                } catch (Exception e) {
+                    // ignore
+                }
+                return false;
+            });
+        } catch (Exception e) {
+            throw new RenException("WebSocket连接失败或连接超时");
+        }
+        return resultEntity[0];
+    }
+
+    @Operation(summary = "查询设备是否在线")
+    @PostMapping("/device-online")
+    @LogOperation("查询设备是否在线")
+    public Result<Boolean> checkDeviceOnline(@RequestBody Map<String, String> params) {
+        String deviceId = params.get("deviceId");
+        String targetWs = params.get("targetWs");
+        if (StringUtils.isBlank(deviceId) || StringUtils.isBlank(targetWs)) {
+            throw new RenException("参数缺失");
+        }
+        String wsText = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
+        if (StringUtils.isBlank(wsText)) {
+            throw new RenException("未配置服务端WebSocket地址");
+        }
+        String[] wsList = wsText.split(";");
+        if (!Arrays.asList(wsList).contains(targetWs)) {
+            throw new RenException("目标WebSocket地址不存在");
+        }
+        return new Result<Boolean>().ok(checkDeviceOnlineByWs(targetWs, deviceId));
+    }
+
+    private Boolean checkDeviceOnlineByWs(String targetWsUri, String deviceId) {
+        if (StringUtils.isBlank(targetWsUri) || StringUtils.isBlank(deviceId)) {
+            return false;
+        }
+        String serverSK = sysParamsService.getValue(Constant.SERVER_SECRET, true);
+        WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
+        headers.add("device-id", UUID.randomUUID().toString());
+        headers.add("client-id", UUID.randomUUID().toString());
+
+        final boolean[] online = { false };
+        try (WebSocketClientManager client = new WebSocketClientManager.Builder()
+                .connectTimeout(3, TimeUnit.SECONDS)
+                .maxSessionDuration(30, TimeUnit.SECONDS)
+                .uri(targetWsUri)
+                .headers(headers)
+                .build()) {
+            // 发送CHECK_ONLINE类型指令
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("secret", serverSK);
+            payload.put("deviceId", deviceId);
+            client.sendJson(ServerActionPayloadDTO.build(ServerActionEnum.CHECK_ONLINE, payload));
+            // 监听返回
+            client.listener((jsonText) -> {
+                if (StringUtils.isBlank(jsonText)) {
+                    return false;
+                }
+                try {
+                    Map<String, Object> resp = objectMapper.readValue(jsonText, Map.class);
+                    Object status = resp.get("status");
+                    Object onlineVal = resp.get("online");
+                    if ("success".equals(status) && onlineVal instanceof Boolean) {
+                        online[0] = (Boolean) onlineVal;
+                        return true;
+                    }
+                } catch (Exception e) {
+                    // ignore
+                }
+                return false;
+            });
+        } catch (Exception e) {
+            throw new RenException("WebSocket连接失败或连接超时");
+        }
+        return online[0];
     }
 }

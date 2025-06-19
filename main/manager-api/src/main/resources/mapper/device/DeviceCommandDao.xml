@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.device.dao.DeviceCommandDao">
+    <select id="selectByDeviceId" resultType="xiaozhi.modules.device.entity.DeviceCommandEntity">
+        SELECT * FROM zy_ai_device_command WHERE device_id = #{deviceId} AND is_executed = 0 ORDER BY create_date DESC
+    </select>
+    <select id="consumeCommand" resultType="xiaozhi.modules.device.entity.DeviceCommandEntity">
+        SELECT * FROM zy_ai_device_command WHERE is_executed = 0 ORDER BY create_date ASC LIMIT 1 FOR UPDATE
+    </select>
+    <update id="updateExecuted">
+        UPDATE zy_ai_device_command SET is_executed = #{isExecuted}, update_date = NOW() WHERE id = #{id}
+    </update>
+</mapper>
