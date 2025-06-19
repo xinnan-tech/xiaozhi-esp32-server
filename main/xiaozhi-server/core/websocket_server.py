@@ -47,10 +47,16 @@ class WebSocketServer:
                 keyfile=ssl_config["keyfile"]
             )
             print(f"run with SSL")
-        async with websockets.serve(
-            self._handle_connection, host, port, process_request=self._http_response, ssl=ssl_context
-        ):
-            await asyncio.Future()
+            async with websockets.serve(
+                self._handle_connection, host, port, process_request=self._http_response, ssl=ssl_context
+            ):
+                await asyncio.Future()
+        else:
+            print(f"run without SSL")
+            async with websockets.serve(
+                self._handle_connection, host, port, process_request=self._http_response
+            ):
+                await asyncio.Future()
 
     async def _handle_connection(self, websocket):
         """处理新连接，每次创建独立的ConnectionHandler"""

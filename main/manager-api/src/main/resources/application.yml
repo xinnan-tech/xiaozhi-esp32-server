@@ -1,5 +1,9 @@
 # Tomcat
 server:
+  # ssl:
+  #   key-store: classpath:ssl.pfx
+  #   key-store-password: zy123456
+  #   key-store-type: PKCS12
   tomcat:
     uri-encoding: UTF-8
     threads:
