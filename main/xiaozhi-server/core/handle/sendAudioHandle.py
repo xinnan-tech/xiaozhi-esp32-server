@@ -38,7 +38,7 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
     if text is not None:
         emotion = analyze_emotion(text)
         emoji = emoji_map.get(emotion, "🙂")  # 默认使用笑脸
-        await conn.websocket.send(
+        await conn.message_sender.send(
             json.dumps(
                 {
                     "type": "llm",
@@ -82,7 +82,7 @@ async def sendAudio(conn, audios, pre_buffer=True):
     if pre_buffer:
         pre_buffer_frames = min(3, len(audios))
         for i in range(pre_buffer_frames):
-            await conn.websocket.send(audios[i])
+            await conn.message_sender.send(audios[i])
         remaining_audios = audios[pre_buffer_frames:]
     else:
         remaining_audios = audios
@@ -104,7 +104,7 @@ async def sendAudio(conn, audios, pre_buffer=True):
         if delay > 0:
             await asyncio.sleep(delay)
 
-        await conn.websocket.send(opus_packet)
+        await conn.message_sender.send(opus_packet)
 
         play_position += frame_duration
 
@@ -129,7 +129,7 @@ async def send_tts_message(conn, state, text=None):
         conn.clearSpeakStatus()
 
     # 发送消息到客户端
-    await conn.websocket.send(json.dumps(message))
+    await conn.message_sender.send(json.dumps(message))
 
 
 async def send_stt_message(conn, text):
@@ -140,7 +140,7 @@ async def send_stt_message(conn, text):
 
     """发送 STT 状态消息"""
     stt_text = get_string_no_punctuation_or_emoji(text)
-    await conn.websocket.send(
+    await conn.message_sender.send(
         json.dumps({"type": "stt", "text": stt_text, "session_id": conn.session_id})
     )
     conn.client_is_speaking = True
