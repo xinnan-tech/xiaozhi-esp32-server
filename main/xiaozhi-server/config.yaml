@@ -235,7 +235,33 @@ Memory:
     # 如果这里不填，则会默认使用selected_module.LLM的模型作为意图识别的思考模型
     # 如果你的不想使用selected_module.LLM记忆存储，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
     llm: ChatGLMLLM
-
+  mem0_milvus:
+    # 本地 mem0+milvus 记忆功能
+    type: mem0_milvus
+    llm:
+      provider: openai
+      config:
+        model: qwen-plus
+        openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        # https://bailian.console.aliyun.com/?tab=model#/api-key
+        api_key: 阿里云百炼平台api_key
+        temperature: 0.2
+        max_tokens: 2000
+        top_p: 1.0
+    embedder:
+      provider: openai
+      config:
+        model: text-embedding-v4
+        api_key: 阿里云百炼平台api_key
+        openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1/
+    vector_store:
+      #可以使用容器本地部署 milvus 向量数据库
+      provider: milvus
+      config:
+        # 使用你的 milvus 向量数据库地址
+        url: http://127.0.0.1:19530
+        collection_name: mem0_collection
+        embedding_model_dims: 1024
 ASR:
   FunASR:
     type: fun_local
