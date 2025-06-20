@@ -12,7 +12,7 @@ spring:
     druid:
       #MySQL
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://106.75.77.213:3306/zy_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
+      url: jdbc:mysql://106.75.77.213:3306/zy_esp32_server_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
       username: root
       password: zy123456
       initial-size: 10

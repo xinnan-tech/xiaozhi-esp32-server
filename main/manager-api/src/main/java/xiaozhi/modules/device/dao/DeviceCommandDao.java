@@ -13,5 +13,5 @@ public interface DeviceCommandDao extends BaseMapper<DeviceCommandEntity> {
 
     int updateExecuted(@Param("id") String id, @Param("isExecuted") Integer isExecuted);
 
-    DeviceCommandEntity consumeCommand(@Param("id") String id);
+    DeviceCommandEntity consumeCommand(@Param("deviceId") String deviceId);
 }
