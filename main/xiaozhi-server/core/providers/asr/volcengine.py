@@ -101,7 +101,7 @@ class ASRProvider(ASRProviderBase):
         # 发送当前音频数据
         if self.asr_ws and self.is_processing:
             try:
-                logger.bind(tag=TAG).info(f"Append audio data")
+                logger.bind(tag=TAG).debug(f"Append audio data")
                 pcm_frame = self.decode_opus(conn.asr_audio)
                 await self._send_audio_chunk(b''.join(pcm_frame),False if have_voice else True)
                 conn.asr_audio.clear()
@@ -121,7 +121,7 @@ class ASRProvider(ASRProviderBase):
         }
         audio_event["type"] = "input_audio_buffer.commit" if completed else "input_audio_buffer.append"
         await self.asr_ws.send(json.dumps(audio_event))
-        logger.bind(tag=TAG).info(f"Sent audio chunk, size: {len(pcm_data)} , completed: {completed}")
+        logger.bind(tag=TAG).debug(f"Sent audio chunk, size: {len(pcm_data)} , completed: {completed}")
 
     def _create_stream_start_msg(self) -> dict:
         """创建流式识别开始的请求消息，具体格式需参考火山引擎文档"""
@@ -150,7 +150,7 @@ class ASRProvider(ASRProviderBase):
                 try:
                     message = await self.asr_ws.recv()
                     event = json.loads(message)
-                    logger.bind(tag=TAG).info(f"Received ASR result: {event}")
+                    logger.bind(tag=TAG).debug(f"Received ASR result: {event}")
 
                     # 解析火山引擎流式 ASR 的响应格式
                     # 以下为示例，具体字段需要参考文档
@@ -171,7 +171,7 @@ class ASRProvider(ASRProviderBase):
                         self.text = final_transcript # 确保使用最终结果
                         conn.reset_vad_states()
                         await self.handle_voice_stop(conn, None)
-                        # self.text = "" # 清空
+                        self.text = "" # 清空
                         # await self.stop_ws_connection() # 收到完成后可以考虑关闭连接
                         break # 结束接收任务
                     elif message_type == 'error': # 假设的错误类型
@@ -196,23 +196,11 @@ class ASRProvider(ASRProviderBase):
             self.is_processing = False
             # self.text = "" # 确保文本清空
 
-    async def stop_ws_connection(self):
-        logger.bind(tag=TAG).info("Stopping ASR WebSocket connection...")
-        self.is_processing = False # 停止处理标志
-        if self.forward_task:
-            self.forward_task.cancel()
-            try:
-                await self.forward_task
-            except asyncio.CancelledError:
-                logger.bind(tag=TAG).info("ASR forward task cancelled.")
-            self.forward_task = None
-        
+    def stop_ws_connection(self):
+        logger.bind(tag=TAG).info("Stopping ASR WebSocket connection...")     
         if self.asr_ws:
             try:
-                # 发送结束流的信令，如果火山引擎需要
-                end_event = {"type": "input_audio_buffer.commit"} 
-                await self.asr_ws.send(json.dumps(end_event))
-                await self.asr_ws.close()
+                asyncio.create_task(self.asr_ws.close())
                 logger.bind(tag=TAG).info("ASR WebSocket connection closed successfully.")
             except Exception as e:
                 logger.bind(tag=TAG).error(f"Error closing ASR WebSocket: {e}")
@@ -220,70 +208,6 @@ class ASRProvider(ASRProviderBase):
                 self.asr_ws = None
         self.audio_buffer.clear()
         # self.text = "" # 确保文本清空
-
-
-    async def _receive_messages(self, client) -> Optional[str]:
-        resp_msg = ""
-        while True:
-            message = await client.recv()
-            event = json.loads(message)
-            logger.bind(tag=TAG).debug(f"received raw message: {message}")
-            message_type = event.get("type")
-            if message_type == 'conversation.item.input_audio_transcription.completed':
-                logger.bind(tag=TAG).debug(f"responsed message: {resp_msg}")
-                return resp_msg
-            elif message_type == 'conversation.item.input_audio_transcription.result':
-                resp_msg += event.get("transcript")
-
-
-    async def _send_request(
-        self, audio_data: List[bytes], segment_size: int
-    ) -> Optional[str]:
-        """Send request to Volc LLM gateway ASR service."""
-        try:
-            auth_header = {"Authorization": f"Bearer {self.api_key}"}
-            logger.bind(tag=TAG).debug(f"ASR 参数: {self.ws_url} {auth_header} ")
-            async with websockets.connect(
-                self.ws_url, additional_headers=auth_header
-            ) as websocket:
-                # Prepare request data
-                create_session_msg = self._create_session_msg()
-
-                # Send header and metadata
-                # full_client_request
-                await websocket.send(create_session_msg)
-                
-
-                for _, (chunk, last) in enumerate(
-                    self.slice_data(audio_data, segment_size), 1
-                ):
-                    base64_audio = base64.b64encode(chunk).decode("utf-8")
-                    if last:
-                        # 最后一个包，支持commit
-                        ws_event = {
-                            "audio": base64_audio,
-                            "type": "input_audio_buffer.append"
-                        }
-                    else:
-                        ws_event = {
-                            "type": "input_audio_buffer.append",
-                            "audio": base64_audio
-                        }
-                
-                    # Send audio data
-                    await websocket.send(json.dumps(ws_event))
-
-                # Send commit event    
-                ws_event = {
-                    "type": "input_audio_buffer.commit"
-                 }
-                await websocket.send(json.dumps(ws_event))
-                # Receive response
-                return await self._receive_messages(websocket)
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"ASR request failed: {e}", exc_info=True)
-            return None
-
 
     @staticmethod
     def slice_data(data: bytes, chunk_size: int) -> (list, bool):
@@ -321,5 +245,14 @@ class ASRProvider(ASRProviderBase):
 
     async def close(self):
         """资源清理方法"""
-        await self.stop_ws_connection()
-        logger.bind(tag=TAG).info("ASRProvider closed.")
+        if self.asr_ws:
+            await self.asr_ws.close()
+            self.asr_ws = None
+        if self.forward_task:
+            self.forward_task.cancel()
+            try:
+                await self.forward_task
+            except asyncio.CancelledError:
+                pass
+            self.forward_task = None
+        self.is_processing = False
