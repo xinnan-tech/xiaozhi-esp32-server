@@ -82,13 +82,13 @@ class ASRProviderBase(ABC):
         )  # 确保ASR模块返回原始文本
         conn.logger.bind(tag=TAG).info(f"识别文本: {raw_text}")
         text_len, _ = remove_punctuation_and_length(raw_text)
-        self.stop_ws_connection()
+        await self.stop_ws_connection()
         if text_len > 0:
             # 使用自定义模块进行上报
             await startToChat(conn, raw_text)
             enqueue_asr_report(conn, raw_text, asr_audio_task)
 
-    def stop_ws_connection(self):
+    async def stop_ws_connection(self):
         pass
 
     def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:

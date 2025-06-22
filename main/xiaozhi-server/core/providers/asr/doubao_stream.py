@@ -209,9 +209,9 @@ class ASRProvider(ASRProviderBase):
                 self.asr_ws = None
             self.is_processing = False
 
-    def stop_ws_connection(self):
+    async def stop_ws_connection(self):
         if self.asr_ws:
-            asyncio.create_task(self.asr_ws.close())
+            await self.asr_ws.close()
             self.asr_ws = None
         self.is_processing = False
 
