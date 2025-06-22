@@ -122,7 +122,7 @@ class ASRProvider(ASRProviderBase):
                 try:
                     message = await self.ws.recv()
                     event = json.loads(message)
-                    logger.bind(tag=TAG).info(f"session: {self.current_session_id} Received ASR result: {event}")
+                    logger.bind(tag=TAG).debug(f"session: {self.current_session_id} Received ASR result: {event}")
 
                     # 解析火山引擎流式 ASR 的响应格式
                     # 以下为示例，具体字段需要参考文档
@@ -183,18 +183,6 @@ class ASRProvider(ASRProviderBase):
         current_text = self.text
         return current_text, file_path
 
-    async def close(self):
-        """资源清理方法"""
-        logger.bind(tag=TAG).info(f"不知道哪里调用的close {session_id}")
-        await self.stop_ws_connection()
-        if self.forward_task:
-            self.forward_task.cancel()
-            try:
-                await self.forward_task
-            except asyncio.CancelledError:
-                pass
-            self.forward_task = None
-        self.is_processing = False
       
     async def start_session(self, session_id):
         logger.bind(tag=TAG).debug(f"开始会话 {session_id}")
