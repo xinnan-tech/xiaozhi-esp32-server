@@ -80,6 +80,27 @@ class MCPClient:
         fut: concurrent.futures.Future = asyncio.run_coroutine_threadsafe(coro, loop)
         return await asyncio.wrap_future(fut)
 
+    def is_connected(self) -> bool:
+        """检查MCP客户端是否连接正常
+
+        Returns:
+            bool: 如果客户端已连接并正常工作，返回True，否则返回False
+        """
+        # 检查工作任务是否存在
+        if self._worker_task is None:
+            return False
+            
+        # 检查工作任务是否已经完成或取消
+        if self._worker_task.done():
+            return False
+            
+        # 检查会话是否存在
+        if self.session is None:
+            return False
+            
+        # 所有检查都通过，连接正常
+        return True
+
     async def _worker(self):
         async with AsyncExitStack() as stack:
             try:

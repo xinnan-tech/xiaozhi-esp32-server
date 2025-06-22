@@ -1,15 +1,21 @@
 import asyncio
 import base64
+import pydub 
 import json
 import uuid
 import queue
 import websockets
+import requests
+import io
+import openai
+
 
 from core.utils import opus_encoder_utils
 from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
 from core.utils.tts import MarkdownCleaner
 from config.logger import setup_logging
+from core.utils.util import audio_to_data, audio_bytes_to_data, opus_datas_to_wav_bytes
 from core.handle.abortHandle import handleAbortMessage
 from core.providers.tts.dto.dto import SentenceType, ContentType, InterfaceType
 
@@ -28,12 +34,12 @@ class TTSProvider(TTSProviderBase):
             self.host = "ai-gateway.vei.volces.com"
         self.delete_audio_file = delete_audio_file
         self.ws_url = f"wss://{self.host}/v1/realtime?model={self.model_name}"
-
+        self.base_url = f"https://{self.host}/v1"
         if config.get("private_voice"):
             self.voice = config.get("private_voice")
         else:
             self.voice = config.get("voice", "alloy")
-        self.audio_file_type = config.get("format", "pcm") # 流式接口通常使用 pcm
+        self.audio_file_type = config.get("format", "wav") # 流式接口通常使用 pcm
         self.sample_rate = config.get("sample_rate", 16000)
         self.opus_encoder = opus_encoder_utils.OpusEncoderUtils(
             sample_rate=16000, channels=1, frame_size_ms=60
@@ -45,7 +51,6 @@ class TTSProvider(TTSProviderBase):
         self._monitor_task = None
         check_model_key("TTS", self.api_key)
 
-    
 
     async def open_audio_channels(self, conn):
         try:
@@ -70,7 +75,7 @@ class TTSProvider(TTSProviderBase):
                 event_type = data.get("type")
                 logger.bind(tag=TAG).debug(f"Received data: {data}")
                 if event_type == "tts_session.updated":
-                    logger.bind(tag=TAG).info(f"TTS session updated: {data}")
+                    logger.bind(tag=TAG).info(f"Session: {self.conn.sentence_id}, 完成会话初始化")
                     opus_datas_cache = []
                     is_first_sentence = True
                     first_sentence_segment_count = 0  
@@ -80,7 +85,7 @@ class TTSProvider(TTSProviderBase):
                     if len(opus_data_list) == 0:
                         continue
                     if is_first_sentence:
-                        logger.bind(tag=TAG).info(f"Received first audio data")
+                        logger.bind(tag=TAG).debug(f"Session: {self.conn.sentence_id}, Received first audio data")
                         is_first_sentence = False
                         self.tts_audio_queue.put(
                             (SentenceType.FIRST, opus_data_list, None)
@@ -92,14 +97,14 @@ class TTSProvider(TTSProviderBase):
                         )
                     first_sentence_segment_count += 1
                 elif event_type == "response.audio_subtitle.delta":
-                    logger.bind(tag=TAG).info(f"Received subtitles delata data: {data}")
+                    logger.bind(tag=TAG).debug(f"Session: {self.conn.sentence_id},Received subtitles delata data: {data}")
                     subtitles = data.get("subtitles").get("text")
                     if subtitles:
                         self.tts_audio_queue.put(
                             (SentenceType.MIDDLE, [], subtitles)
                         )
                 elif event_type == "response.audio.done":
-                    logger.bind(tag=TAG).info("完成语音生成.")
+                    logger.bind(tag=TAG).debug(f"Session: {self.conn.sentence_id},完成语音生成.")
                     if self.tts_audio_queue:
                         self.tts_audio_queue.put(
                             (SentenceType.LAST, opus_datas_cache, None)
@@ -116,11 +121,12 @@ class TTSProvider(TTSProviderBase):
                     self.ws = None
                     break
         except websockets.exceptions.ConnectionClosed as e:
+            self.stop_ws_connection()
             logger.bind(tag=TAG).warning(f"WebSocket connection closed: {e}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error receiving audio: {e}")
         finally:
-            logger.bind(tag=TAG).info(f"退出音频接收任务")
+            logger.bind(tag=TAG).debug(f"Session: {self.conn.sentence_id}, 退出音频接收任务")
         
     def tts_text_priority_thread(self):
         while not self.conn.stop_event.is_set():
@@ -154,10 +160,10 @@ class TTSProvider(TTSProviderBase):
                     segment_text = self._get_segment_text()
                     if segment_text:
                         logger.bind(tag=TAG).info(
-                            f"开始发送TTS文本: {message.content_detail}"
+                            f"session: {self.conn.sentence_id} 发送TTS文本: {segment_text}"
                         )
                         future = asyncio.run_coroutine_threadsafe(
-                            self.text_to_speak(segment_text, None),
+                            self._send_text(segment_text),
                             loop=self.conn.loop,
                         )
                         future.result()
@@ -170,7 +176,7 @@ class TTSProvider(TTSProviderBase):
                     )
 
                 if message.sentence_type == SentenceType.LAST:
-                    logger.bind(tag=TAG).info("结束TTS会话")
+                    logger.bind(tag=TAG).info(f"session: {self.conn.sentence_id} 结束TTS会话")
                     future = asyncio.run_coroutine_threadsafe(
                         self.finish_session(self.conn.sentence_id),
                         loop=self.conn.loop,
@@ -203,7 +209,7 @@ class TTSProvider(TTSProviderBase):
                 }
             }
             await self.ws.send(json.dumps(session_update_payload))
-            logger.bind(tag=TAG).info(f"会话启动请求已发送, Send Event: {session_update_payload}")
+            logger.bind(tag=TAG).debug(f"会话启动请求已发送, Send Event: {session_update_payload}")
             # 启动监听任务
             if self._monitor_task is None:
                 self._monitor_task = asyncio.create_task(self._receive_audio())
@@ -218,29 +224,27 @@ class TTSProvider(TTSProviderBase):
                     pass
                 self._monitor_task = None
             if self.ws:
-                try:
-                    await self.ws.close()
-                except:
-                    pass
-                self.ws = None
+                await self.stop_ws_connection()
             raise
 
     async def finish_session(self, session_id):    
         try:
             if self.ws:
                 done_payload = {
-                "type": "input_text.done"
-            }
+                    "type": "input_text.done"
+                }
             await self.ws.send(json.dumps(done_payload))
-            logger.bind(tag=TAG).info(f"会话结束请求已发送,Send Event: {done_payload}")
+            logger.bind(tag=TAG).debug(f"会话结束请求已发送,Send Event: {done_payload}")
 
         except Exception as e:
+            await self.stop_ws_connection()
             logger.bind(tag=TAG).error(f"关闭会话失败: {str(e)}")
         
         # 等待监听任务完成
         if hasattr(self, "_monitor_task"):
             try:
                 await self._monitor_task
+                logger.bind(tag=TAG).debug(f"退出monitor task")
             except Exception as e:
                 logger.bind(tag=TAG).error(
                     f"等待监听任务完成时发生错误: {str(e)}"
@@ -249,11 +253,14 @@ class TTSProvider(TTSProviderBase):
                 self._monitor_task = None
          
     async def _ensure_connection(self):
+        # TODO: 建立健康检查机制，实现连接复用
+        #await self.stop_ws_connection()
         if self.ws is None:
             try:
                 logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
                 headers = {"Authorization": f"Bearer {self.api_key}"}
                 self.ws = await websockets.connect(self.ws_url, additional_headers=headers)
+                #self._health_check_task = asyncio.create_task(self._websocket_health_check())
                 logger.bind(tag=TAG).info("WebSocket connection established.")
             except Exception as e:
                 logger.bind(tag=TAG).error(f"Failed to connect to WebSocket: {e}")
@@ -271,7 +278,7 @@ class TTSProvider(TTSProviderBase):
             finally:
                 self.ws = None
  
-    async def text_to_speak(self, text, output_file):
+    async def _send_text(self, text):
         """发送文本到TTS服务"""
         try:
             # 建立新连接
@@ -291,13 +298,51 @@ class TTSProvider(TTSProviderBase):
                     "delta": filtered_text
                 }
             await self.ws.send(json.dumps(text_append_payload))
-            logger.bind(tag=TAG).info(f"发送文本， Send Event: {text_append_payload}")
+            logger.bind(tag=TAG).debug(f"发送文本， Send Event: {text_append_payload}")
             return
         except Exception as e:
             logger.bind(tag=TAG).error(f"发送TTS文本失败: {str(e)}")
             await self.stop_ws_connection()
             raise
-                     
-            
-
+                    
+    async def text_to_speak(self, text, output_file):
+        """采用http方式发送文本到TTS服务"""
+        logger.bind(tag=TAG).info(f"采用http方式发送文本: {text}")
+        client = openai.OpenAI(
+            base_url = self.base_url,
+            api_key = self.api_key
+        )
+        
+        response = client.audio.speech.create(
+                model = self.model_name,
+                voice = self.voice,
+                input = text
+        )
+        # 其他格式用pydub
+        audio = pydub.AudioSegment.from_file(
+            io.BytesIO(response.content), format="mp3", parameters=["-nostdin"]
+        )
+        wav_buffer = io.BytesIO()
+        audio.export(wav_buffer, format="wav")
+        wav_bytes = wav_buffer.getvalue()
+        output_file = "/tmp/a.wav"
+        if output_file:
+            with open(output_file, "wb") as audio_file:
+                    audio_file.write(wav_bytes)
+        return wav_bytes
+        
+    async def _websocket_health_check(self):
+        try:
+            while True:
+                if self.ws is None:
+                    continue 
+                await self.ws.send("Ping")
+                response = await self.ws.recv()
+                logger.bind(tag=TAG).info(f"健康检测收到: {response}")
+                await asyncio.sleep(10)                  
+        except websockets.exceptions.ConnectionClosedOK:
+            logger.bind(tag=TAG).info("连接正常关闭")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"发生错误,关闭连接: {e}")
+            await self.stop_ws_connection()   
             
