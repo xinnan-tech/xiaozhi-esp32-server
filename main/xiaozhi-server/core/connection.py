@@ -115,6 +115,7 @@ class ConnectionHandler:
         self.client_have_voice_last_time = 0.0
         self.client_no_voice_last_time = 0.0
         self.client_voice_stop = False
+        self.client_voice_frame_count = 0
 
         # asr相关变量
         # 因为实际部署时可能会用到公共的本地ASR，不能把变量暴露给公共ASR
@@ -627,8 +628,8 @@ class ConnectionHandler:
                 )
                 memory_str = future.result()
 
-            uuid_str = str(uuid.uuid4()).replace("-", "")
-            self.sentence_id = uuid_str
+            self.sentence_id = str(uuid.uuid4().hex)
+
 
             if self.intent_type == "function_call" and functions is not None:
                 # 使用支持functions的streaming接口
