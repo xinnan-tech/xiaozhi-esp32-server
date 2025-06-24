@@ -82,7 +82,11 @@ def create_iot_function(device_name, method_name, method_info):
                     response = response.replace("{value}", str(param_value))
                     break
 
-            return ActionResponse(Action.RESPONSE, result, response)
+            return ActionResponse(
+                                  Action.REQLLM, 
+                                  result=f"{device_name}操作执行成功，请继续处理剩余指令",
+                                  response=response_success  # 保留成功提示
+                                  )
         except Exception as e:
             conn.logger.bind(tag=TAG).error(
                 f"执行{device_name}的{method_name}操作失败: {e}"

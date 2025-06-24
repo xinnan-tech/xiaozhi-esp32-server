@@ -61,6 +61,16 @@ class FunctionHandler:
         return self.function_registry.get_function(name)
 
     def handle_llm_function_call(self, conn, function_call_data):
+        # 多函数调用处理
+        if "function_calls" in function_call_data:
+            responses = []
+            for call in function_call_data["function_calls"]:
+                func = self.get_function(call["name"])
+                if func:
+                    # 执行函数并收集响应
+                    response = func(conn, **call.get("arguments", {}))
+                    responses.append(response)
+            return self._combine_responses(responses)  # 合并响应
         try:
             function_name = function_call_data["name"]
             funcItem = self.get_function(function_name)

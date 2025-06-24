@@ -99,6 +99,45 @@
       </div>
     </div>
 
+    <!-- MCP区域 -->
+    <div class="mcp-access-point">
+      <div class="mcp-header">
+        <h3 class="bold-title">MCP接入点</h3>
+      </div>
+      <div class="mcp-container">
+        <!-- 左侧区域 -->
+      <div class="mcp-left">
+        <div class="url-header">
+          <h4>接入点地址</h4>
+          <div class="address-desc">
+            <span>以下是智能体的MCP接入点地址。</span>
+            <a href="#" class="doc-link">查看接入点使用文档</a>
+          </div>
+        </div>
+        <el-input v-model="mcpUrl" readonly class="url-input">
+          <template #suffix>
+            <el-button @click="copyUrl" class="inner-copy-btn" icon="el-icon-document-copy">
+              复制
+            </el-button>
+          </template>
+        </el-input>
+      </div>
+
+        <!-- 右侧区域 -->
+        <div class="mcp-right">
+          <h4>接入点状态</h4>
+          <div class="status-container">
+            <span class="status-indicator" :class="mcpStatus"></span>
+            <span class="status-text">{{ mcpStatus === 'connected' ? '已连接' : '未连接' }}</span>
+            <button class="refresh-btn" @click="refreshStatus">
+              <span class="refresh-icon">↻</span>
+              <span>刷新</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="drawer-footer">
       <el-button @click="closeDialog">取消</el-button>
       <el-button type="primary" @click="saveSelection">保存配置</el-button>
@@ -134,6 +173,9 @@ export default {
       // 添加一个标志位来跟踪是否已经保存
       hasSaved: false,
       loading: false,
+      
+      mcpUrl: "https://api.example.com/mcp/v1/endpoint",
+      mcpStatus: "disconnected",
     }
   },
   computed: {
@@ -184,6 +226,37 @@ export default {
     }
   },
   methods: {
+    copyUrl() {
+      const textarea = document.createElement('textarea');
+      textarea.value = this.mcpUrl;
+      textarea.style.position = 'fixed';  // 防止页面滚动
+      document.body.appendChild(textarea);
+      textarea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          this.$message.success('已复制到剪贴板');
+        } else {
+          this.$message.error('复制失败，请手动复制');
+        }
+      } catch (err) {
+        this.$message.error('复制失败，请手动复制');
+        console.error('复制失败:', err);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    },
+
+    refreshStatus() {
+      // 模拟状态刷新
+      this.mcpStatus = "loading";
+      setTimeout(() => {
+        // 随机切换状态用于演示
+        this.mcpStatus = Math.random() > 0.5 ? "connected" : "disconnected";
+      }, 800);
+    },
+
     flushArray(key) {
       const text = this.textCache[key] || '';
       const arr = text
@@ -298,7 +371,7 @@ export default {
   display: grid;
   grid-template-columns: max-content max-content 1fr;
   gap: 12px;
-  height: calc(70vh - 60px);
+  height: calc(58vh);
 }
 
 .custom-header {
@@ -513,5 +586,162 @@ export default {
 
 ::v-deep .el-checkbox__label {
   display: none;
+}
+
+.mcp-access-point {
+  border-top: 1px solid #EBEEF5;
+  padding: 20px 24px;
+  text-align: left;
+}
+
+.mcp-header {
+  .bold-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 5px 0 30px 0;
+  }
+}
+
+.mcp-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.mcp-left, .mcp-right {
+  flex: 1;
+}
+
+.url-header {
+  margin-bottom: 8px;
+  color: black;
+  h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: normal;
+  }
+
+  .address-desc {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    margin-bottom: 12px;
+
+    .doc-link {
+      color: #1677ff;
+      text-decoration: none;
+      margin-left: 4px;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.url-input {
+  border-radius: 4px 0 0 4px;
+  font-size: 14px;
+  height: 36px;
+  box-sizing: border-box;
+  background-color: #f5f5f5;
+}
+
+::v-deep .el-input__inner{
+  background-color: #f5f5f5;
+}
+
+.url-input {
+
+  ::v-deep .el-input__suffix {
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding-right: 15px;
+
+    .inner-copy-btn {
+      pointer-events: auto;
+      border: none;
+      background: white;
+      color: black;
+      padding: 6px;
+      margin-left: 4px;
+
+      &:hover {
+        background: #1677ff;
+        color: white;
+      }
+    }
+  }
+}
+
+.mcp-right {
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: normal;
+    color: black;
+  }
+}
+
+.status-container {
+  display: flex;
+  align-items: center;
+
+  .status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+
+    &.disconnected {
+      background-color: #909399; /* 灰色 - 未连接 */
+    }
+
+    &.connected {
+      background-color: #67C23A; /* 绿色 - 已连接 */
+    }
+
+    &.loading {
+      background-color: #E6A23C; /* 橙色 - 加载中 */
+      animation: pulse 1.5s infinite;
+    }
+  }
+
+  .status-text {
+    font-size: 14px;
+    margin-right: 10px;
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: white;
+    color: black;
+    border: 1px solid #DCDFE6;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: #1677ff;
+      color: white;
+      border-color: #1677ff;
+    }
+
+    .refresh-icon {
+      margin-right: 6px;
+      font-size: 14px;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
 }
 </style>

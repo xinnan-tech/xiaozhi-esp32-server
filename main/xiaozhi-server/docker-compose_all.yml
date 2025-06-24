@@ -52,7 +52,7 @@ services:
     volumes:
       # 配置文件目录
       - ./uploadfile:/uploadfile
-
+  # 数据库模块
   xiaozhi-esp32-server-db:
     image: mysql:latest
     container_name: xiaozhi-esp32-server-db
@@ -73,6 +73,7 @@ services:
       - MYSQL_ROOT_PASSWORD=123456
       - MYSQL_DATABASE=xiaozhi_esp32_server
       - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+  # redis模块
   xiaozhi-esp32-server-redis:
     image: redis
     expose:
