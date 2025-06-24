@@ -34,3 +34,4 @@ mcp-proxy==0.6.0
 PyJWT==2.8.0
 psutil==7.0.0
 portalocker==2.10.1
+pymilvus==2.5.11
