@@ -9,7 +9,7 @@ async def handleAbortMessage(conn):
     conn.client_abort = True
     conn.clear_queues()
     # 打断客户端说话状态
-    await conn.websocket.send(
+    await conn.message_sender.send(
         json.dumps({"type": "tts", "state": "stop", "session_id": conn.session_id})
     )
     conn.clearSpeakStatus()

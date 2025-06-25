@@ -48,7 +48,7 @@ async def handleHelloMessage(conn, msg_json):
             # 发送mcp消息，获取tools列表
             asyncio.create_task(send_mcp_tools_list_request(conn))
 
-    await conn.websocket.send(json.dumps(conn.welcome_msg))
+    await conn.message_sender.send(json.dumps(conn.welcome_msg))
 
 
 async def checkWakeupWords(conn, text):

@@ -18,7 +18,7 @@ async def handleTextMessage(conn, message):
         msg_json = json.loads(message)
         if isinstance(msg_json, int):
             conn.logger.bind(tag=TAG).info(f"收到文本消息：{message}")
-            await conn.websocket.send(message)
+            await conn.message_sender.send(message)
             return
         if msg_json["type"] == "hello":
             conn.logger.bind(tag=TAG).info(f"收到hello消息：{message}")
@@ -95,7 +95,7 @@ async def handleTextMessage(conn, message):
             secret = conn.config["manager-api"].get("secret", "")
             # 如果secret不匹配，则返回
             if post_secret != secret:
-                await conn.websocket.send(
+                await conn.message_sender.send(
                     json.dumps(
                         {
                             "type": "server",
@@ -110,7 +110,7 @@ async def handleTextMessage(conn, message):
                 try:
                     # 更新WebSocketServer的配置
                     if not conn.server:
-                        await conn.websocket.send(
+                        await conn.message_sender.send(
                             json.dumps(
                                 {
                                     "type": "server",
@@ -123,7 +123,7 @@ async def handleTextMessage(conn, message):
                         return
 
                     if not await conn.server.update_config():
-                        await conn.websocket.send(
+                        await conn.message_sender.send(
                             json.dumps(
                                 {
                                     "type": "server",
@@ -136,7 +136,7 @@ async def handleTextMessage(conn, message):
                         return
 
                     # 发送成功响应
-                    await conn.websocket.send(
+                    await conn.message_sender.send(
                         json.dumps(
                             {
                                 "type": "server",
@@ -148,7 +148,7 @@ async def handleTextMessage(conn, message):
                     )
                 except Exception as e:
                     conn.logger.bind(tag=TAG).error(f"更新配置失败: {str(e)}")
-                    await conn.websocket.send(
+                    await conn.message_sender.send(
                         json.dumps(
                             {
                                 "type": "server",
@@ -164,4 +164,4 @@ async def handleTextMessage(conn, message):
         else:
             conn.logger.bind(tag=TAG).error(f"收到未知类型消息：{message}")
     except json.JSONDecodeError:
-        await conn.websocket.send(message)
+        await conn.message_sender.send(message)
