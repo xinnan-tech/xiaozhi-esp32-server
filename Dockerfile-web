@@ -7,20 +7,23 @@ COPY main/manager-web .
 RUN npm run build
 
 # 第二阶段：构建Java后端
-FROM maven:3-eclipse-temurin-21-alpine as api-builder
+FROM maven:3.9.4-eclipse-temurin-21 as api-builder
 WORKDIR /app
 COPY main/manager-api/pom.xml .
 COPY main/manager-api/src ./src
 RUN mvn clean package -Dmaven.test.skip=true
 
 # 第三阶段：构建最终镜像
-FROM eclipse-temurin:21-jdk-jammy
+FROM bellsoft/liberica-runtime-container:jre-21-glibc
 
-# 安装Nginx并清理缓存
-RUN apt-get update && \
-    apt-get install -y nginx && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# 安装Nginx和字体库
+RUN apk update && \
+    apk add --no-cache nginx bash && \
+    apk add --no-cache fontconfig ttf-dejavu msttcorefonts-installer && \
+    rm -rf /var/cache/apk/*
+
+# 更新字体缓存
+RUN printf 'YES\n' | update-ms-fonts && fc-cache -f -v
 
 # 配置Nginx
 COPY docs/docker/nginx.conf /etc/nginx/nginx.conf

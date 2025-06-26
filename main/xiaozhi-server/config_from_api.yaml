@@ -8,6 +8,15 @@
 server:
   ip: 0.0.0.0
   port: 8000
+  # http服务的端口，用于视觉分析接口
+  http_port: 8003
+  # 视觉分析接口地址
+  # 向设备发送的视觉分析的接口地址
+  # 如果按下面默认的写法，系统会自动生成视觉识别地址，并输出在启动日志里，这个地址你可以直接用浏览器访问确认一下
+  # 当你使用docker部署或使用公网部署(使用ssl、域名)时，不一定准确
+  # 所以如果你使用docker部署时，将vision_explain设置成局域网地址
+  # 如果你使用公网部署时，将vision_explain设置成公网地址
+  vision_explain: http://你的ip或者域名:端口号/mcp/vision/explain
 manager-api:
   # 你的manager-api的地址，最好使用局域网ip
   url: http://127.0.0.1:8002/xiaozhi

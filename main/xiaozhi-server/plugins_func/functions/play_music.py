@@ -11,6 +11,7 @@ from core.utils import p3
 from core.handle.sendAudioHandle import send_stt_message
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from core.utils.dialogue import Message
+from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
 
 TAG = __name__
 
@@ -216,23 +217,37 @@ async def play_local_music(conn, specific_file=None):
         text = _get_random_play_prompt(selected_music)
         await send_stt_message(conn, text)
         conn.dialogue.put(Message(role="assistant", content=text))
-        conn.tts_first_text_index = 0
-        conn.tts_last_text_index = 0
 
-        tts_file = await asyncio.to_thread(conn.tts.to_tts, text)
-        if tts_file is not None and os.path.exists(tts_file):
-            conn.tts_last_text_index = 1
-            opus_packets, _ = conn.tts.audio_to_opus_data(tts_file)
-            conn.audio_play_queue.put((opus_packets, None, 0))
-            os.remove(tts_file)
-
-        conn.llm_finish_task = True
-
-        if music_path.endswith(".p3"):
-            opus_packets, _ = p3.decode_opus_from_file(music_path)
-        else:
-            opus_packets, _ = conn.tts.audio_to_opus_data(music_path)
-        conn.audio_play_queue.put((opus_packets, None, conn.tts_last_text_index))
+        conn.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=conn.sentence_id,
+                sentence_type=SentenceType.FIRST,
+                content_type=ContentType.ACTION,
+            )
+        )
+        conn.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=conn.sentence_id,
+                sentence_type=SentenceType.MIDDLE,
+                content_type=ContentType.TEXT,
+                content_detail=text,
+            )
+        )
+        conn.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=conn.sentence_id,
+                sentence_type=SentenceType.MIDDLE,
+                content_type=ContentType.FILE,
+                content_file=music_path,
+            )
+        )
+        conn.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=conn.sentence_id,
+                sentence_type=SentenceType.LAST,
+                content_type=ContentType.ACTION,
+            )
+        )
 
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"播放音乐失败: {str(e)}")

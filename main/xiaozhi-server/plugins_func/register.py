@@ -77,7 +77,6 @@ class DeviceTypeRegistry:
 
 # 初始化函数注册字典
 all_function_registry = {}
-device_type_registry = DeviceTypeRegistry()
 
 
 def register_function(name, desc, type=None):
@@ -91,13 +90,29 @@ def register_function(name, desc, type=None):
     return decorator
 
 
+def register_device_function(name, desc, type=None):
+    """注册设备级别的函数到函数注册字典的装饰器"""
+
+    def decorator(func):
+        logger.bind(tag=TAG).debug(f"设备函数 '{name}' 已加载")
+        return func
+
+    return decorator
+
+
 class FunctionRegistry:
     def __init__(self):
         self.function_registry = {}
         self.logger = setup_logging()
 
-    def register_function(self, name):
-        # 查找all_function_registry中是否有对应的函数
+    def register_function(self, name, func_item=None):
+        # 如果提供了func_item，直接注册
+        if func_item:
+            self.function_registry[name] = func_item
+            self.logger.bind(tag=TAG).debug(f"函数 '{name}' 直接注册成功")
+            return func_item
+
+        # 否则从all_function_registry中查找
         func = all_function_registry.get(name)
         if not func:
             self.logger.bind(tag=TAG).error(f"函数 '{name}' 未找到")

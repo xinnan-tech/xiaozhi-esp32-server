@@ -5,7 +5,7 @@
         <div class="operation-bar">
             <h2 class="page-title">参数管理</h2>
             <div class="right-operations">
-                <el-input placeholder="请输入参数编码查询" v-model="searchCode" class="search-input"
+                <el-input placeholder="请输入参数编码或备注查询" v-model="searchCode" class="search-input"
                     @keyup.enter.native="handleSearch" clearable />
                 <el-button class="btn-search" @click="handleSearch">搜索</el-button>
             </div>

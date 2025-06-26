@@ -5,11 +5,8 @@ import json
 import time
 from datetime import datetime, timezone
 import os
-import uuid
 from typing import Optional, Tuple, List
-import wave
-import opuslib_next
-
+from core.providers.asr.dto.dto import InterfaceType
 import requests
 from core.providers.asr.base import ASRProviderBase
 from config.logger import setup_logging
@@ -25,6 +22,7 @@ class ASRProvider(ASRProviderBase):
 
     def __init__(self, config: dict, delete_audio_file: bool = True):
         super().__init__()
+        self.interface_type = InterfaceType.NON_STREAM
         self.secret_id = config.get("secret_id")
         self.secret_key = config.get("secret_key")
         self.output_dir = config.get("output_dir")
@@ -33,22 +31,8 @@ class ASRProvider(ASRProviderBase):
         # 确保输出目录存在
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:
-        """PCM数据保存为WAV文件"""
-        module_name = __name__.split(".")[-1]
-        file_name = f"asr_{module_name}_{session_id}_{uuid.uuid4()}.wav"
-        file_path = os.path.join(self.output_dir, file_name)
-
-        with wave.open(file_path, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)  # 2 bytes = 16-bit
-            wf.setframerate(16000)
-            wf.writeframes(b"".join(pcm_data))
-
-        return file_path
-
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str
+        self, opus_data: List[bytes], session_id: str, audio_format="opus"
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         if not opus_data:
@@ -63,7 +47,7 @@ class ASRProvider(ASRProviderBase):
                 return None, file_path
 
             # 将Opus音频数据解码为PCM
-            if self.audio_format == "pcm":
+            if audio_format == "pcm":
                 pcm_data = opus_data
             else:
                 pcm_data = self.decode_opus(opus_data)

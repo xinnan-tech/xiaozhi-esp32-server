@@ -2,6 +2,7 @@
 # 然后你想修改覆盖修改什么配置，就修改【.config.yaml】文件，而不是修改【config.yaml】文件
 # 系统会优先读取【data/.config.yaml】文件的配置，如果【.config.yaml】文件里的配置不存在，系统会自动去读取【config.yaml】文件的配置。
 # 这样做，可以最简化配置，保护您的密钥安全。
+# 如果你使用了智控台，那么以下所有配置，都不会生效，请在智控台中修改配置
 
 # #####################################################################################
 # #############################以下是服务器基本运行配置####################################
@@ -9,13 +10,21 @@ server:
   # 服务器监听地址和端口(Server listening address and port)
   ip: 0.0.0.0
   port: 8000
-  # OTA接口的端口号
-  ota_port: 8002
+  # http服务的端口，用于简单OTA接口(单服务部署)，以及视觉分析接口
+  http_port: 8003
   # 这个websocket配置是指ota接口向设备发送的websocket地址
-  # 如果按默认的写法，ota接口会自动生成websocket地址。这个地址你可以直接用浏览器访问ota接口确认一下
+  # 如果按默认的写法，ota接口会自动生成websocket地址，并输出在启动日志里，这个地址你可以直接用浏览器访问ota接口确认一下
   # 当你使用docker部署或使用公网部署(使用ssl、域名)时，不一定准确
-  # 所以如果你使用docker部署或使用公网部署时，请设置正确的websocket地址
+  # 所以如果你使用docker部署时，将websocket设置成局域网地址
+  # 如果你使用公网部署时，将vwebsocket设置成公网地址
   websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
+  # 视觉分析接口地址
+  # 向设备发送的视觉分析的接口地址
+  # 如果按下面默认的写法，系统会自动生成视觉识别地址，并输出在启动日志里，这个地址你可以直接用浏览器访问确认一下
+  # 当你使用docker部署或使用公网部署(使用ssl、域名)时，不一定准确
+  # 所以如果你使用docker部署时，将vision_explain设置成局域网地址
+  # 如果你使用公网部署时，将vision_explain设置成公网地址
+  vision_explain: http://你的ip或者域名:端口号/mcp/vision/explain
   # OTA返回信息时区偏移量
   timezone_offset: +8
   # 认证配置
@@ -110,10 +119,9 @@ plugins:
   # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
   get_news_from_chinanews:
     default_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
-    category_urls:
-      society: "https://www.chinanews.com.cn/rss/society.xml"
-      world: "https://www.chinanews.com.cn/rss/world.xml"
-      finance: "https://www.chinanews.com.cn/rss/finance.xml"
+    society_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
+    world_rss_url: "https://www.chinanews.com.cn/rss/world.xml"
+    finance_rss_url: "https://www.chinanews.com.cn/rss/finance.xml"
   get_news_from_newsnow: {"url": "https://newsnow.busiyi.world/api/s?id="}
   home_assistant:
     devices:
@@ -162,6 +170,8 @@ selected_module:
   ASR: FunASR
   # 将根据配置名称对应的type调用实际的LLM适配器
   LLM: ChatGLMLLM
+  # 视觉语言大模型
+  VLLM: ChatGLMVLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
@@ -222,8 +232,12 @@ Memory:
     # 不想使用记忆功能，可以使用nomem
     type: nomem
   mem_local_short:
-    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地，不会上传到服务器
+    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地服务器，不会上传到外部服务器
     type: mem_local_short
+    # 配备记忆存储独立的思考模型
+    # 如果这里不填，则会默认使用selected_module.LLM的模型作为意图识别的思考模型
+    # 如果你的不想使用selected_module.LLM记忆存储，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
+    llm: ChatGLMLLM
 
 ASR:
   FunASR:
@@ -252,7 +266,23 @@ ASR:
   DoubaoASR:
     # 可以在这里申请相关Key等信息
     # https://console.volcengine.com/speech/app
+    # DoubaoASR和DoubaoStreamASR的区别是：DoubaoASR是按次收费，DoubaoStreamASR是按时收费
+    # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
     type: doubao
+    appid: 你的火山引擎语音合成服务appid
+    access_token: 你的火山引擎语音合成服务access_token
+    cluster: volcengine_input_common
+    # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
+    boosting_table_name: （选填）你的热词文件名称
+    correct_table_name: （选填）你的替换词文件名称
+    output_dir: tmp/
+  DoubaoStreamASR:
+    # 可以在这里申请相关Key等信息
+    # https://console.volcengine.com/speech/app
+    # DoubaoASR和DoubaoStreamASR的区别是：DoubaoASR是按次收费，DoubaoStreamASR是按时收费
+    # 开通地址https://console.volcengine.com/speech/service/10011
+    # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
+    type: doubao_stream
     appid: 你的火山引擎语音合成服务appid
     access_token: 你的火山引擎语音合成服务access_token
     cluster: volcengine_input_common
@@ -296,7 +326,7 @@ VAD:
     type: silero
     threshold: 0.5
     model_dir: models/snakers4_silero-vad
-    min_silence_duration_ms: 700  # 如果说话停顿比较长，可以把这个值设置大一些
+    min_silence_duration_ms: 200  # 如果说话停顿比较长，可以把这个值设置大一些
 
 LLM:
   # 所有openai类型均可以修改超参，以AliLLM为例
@@ -329,7 +359,7 @@ LLM:
     # 定义LLM API类型
     type: openai
     # 先开通服务，打开以下网址，开通的服务搜索Doubao-1.5-pro，开通它
-    # 开通改地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
+    # 开通地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
     # 免费额度500000token
     # 开通后，进入这里获取密钥：https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey?apikey=%7B%7D
     base_url: https://ark.cn-beijing.volces.com/api/v3
@@ -415,7 +445,7 @@ LLM:
     base_url: https://host/api/v1
     # 你可以在这里找到你的api_key
     # https://cloud.tryfastgpt.ai/account/apikey
-    api_key: fastgpt-xxx
+    api_key: 你的fastgpt密钥
     variables:
       k: "v"
       k2: "v2"
@@ -431,6 +461,21 @@ LLM:
     # Xinference服务地址和模型名称
     model_name: qwen2.5:3b-AWQ  # 使用的小模型名称，用于意图识别
     base_url: http://localhost:9997  # Xinference服务地址
+# VLLM配置（视觉语言大模型）
+VLLM:
+  ChatGLMVLLM:
+    type: openai
+    # glm-4v-flash是智谱免费AI的视觉模型，需要先在智谱AI平台创建API密钥并获取api_key
+    # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
+    model_name: glm-4v-flash  # 智谱AI的视觉模型
+    url: https://open.bigmodel.cn/api/paas/v4/
+    api_key: 你的api_key
+  QwenVLVLLM:
+    type: openai
+    model_name: qwen2.5-vl-3b-instruct
+    url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    # 可在这里找到你的api key https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    api_key: 你的api_key
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
@@ -456,6 +501,19 @@ TTS:
     speed_ratio: 1.0
     volume_ratio: 1.0
     pitch_ratio: 1.0
+  #火山tts，支持双向流式tts
+  HuoshanDoubleStreamTTS:
+    type: huoshan_double_stream
+    # 访问 https://console.volcengine.com/speech/service/10007 开通语音合成大模型，购买音色
+    # 在页面底部获取appid和access_token
+    # 资源ID固定为：volc.service_type.10029（大模型语音合成及混音）
+    # 如果是机智云，把接口地址换成wss://bytedance.gizwitsapi.com/api/v3/tts/bidirection
+    # 机智云不需要天填 appid
+    ws_url: wss://openspeech.bytedance.com/api/v3/tts/bidirection
+    appid: 你的火山引擎语音合成服务appid
+    access_token: 你的火山引擎语音合成服务access_token
+    resource_id: volc.service_type.10029
+    speaker: zh_female_wanwanxiaohe_moon_bigtts
   CosyVoiceSiliconflow:
     type: siliconflow
     # 硅基流动TTS
@@ -679,17 +737,40 @@ TTS:
     speed: 1
     output_dir: tmp/
   CustomTTS:
-    # 自定义的TTS接口服务，请求参数可自定义
-    # 要求接口使用GET方式请求，并返回音频文件
+    # 自定义的TTS接口服务，请求参数可自定义，可接入众多TTS服务
+    # 以本地部署的KokoroTTS为例
+    # 如果只有cpu运行：docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    # 如果只有gpu运行：docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
+    # 要求接口使用POST方式请求，并返回音频文件
     type: custom
-    url: "http://127.0.0.1:9880/tts"
+    method: POST
+    url: "http://127.0.0.1:8880/v1/audio/speech"
     params: # 自定义请求参数
-      # text: "{prompt_text}" # {prompt_text}会被替换为实际的提示词内容
-      # speaker: jok老师
-      # speed: 1
-      # foo: bar
-      # testabc: 123456
+      input: "{prompt_text}"
+      response_format: "mp3"
+      download_format: "mp3"
+      voice: "zf_xiaoxiao"
+      lang_code: "z"
+      return_download_link: true
+      speed: 1
+      stream: false
     headers: # 自定义请求头
       # Authorization: Bearer xxxx
+<<<<<<< HEAD
     format: wav # 接口返回的音频格式
     output_dir: tmp/
+=======
+    format: mp3 # 接口返回的音频格式
+    output_dir: tmp/
+  LinkeraiTTS:
+    type: linkerai
+    api_url: https://tts.linkerai.cn/tts
+    audio_format: "pcm"
+    # 默认的access_token供大家测试时免费使用的，此access_token请勿用于商业用途
+    # 如果效果不错，可自行申请token，申请地址：https://linkerai.cn
+    # 各参数意义见开发文档：https://tts.linkerai.cn/docs
+    # 支持声音克隆，可自行上传音频，填入voice参数，voice参数为空时，使用默认声音
+    access_token: "U4YdYXVfpwWnk2t5Gp822zWPCuORyeJL"
+    voice: "OUeAo1mhq6IBExi"
+    output_dir: tmp/
+>>>>>>> 8c1a8f7d559e57ac726db3fd6ebb38d867475444

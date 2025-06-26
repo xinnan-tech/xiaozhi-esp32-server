@@ -9,7 +9,9 @@ class MemoryProviderBase(ABC):
     def __init__(self, config):
         self.config = config
         self.role_id = None
-        self.llm = None
+
+    def set_llm(self, llm):
+        self.llm = llm
 
     @abstractmethod
     async def save_memory(self, msgs):

@@ -9,6 +9,8 @@ TTS上报功能已集成到ConnectionHandler类中。
 具体实现请参考core/connection.py中的相关代码。
 """
 
+import time
+
 import opuslib_next
 
 from config.manage_api_client import report as manage_report
@@ -16,7 +18,7 @@ from config.manage_api_client import report as manage_report
 TAG = __name__
 
 
-def report(conn, type, text, opus_data):
+def report(conn, type, text, opus_data, report_time):
     """执行聊天记录上报操作
 
     Args:
@@ -24,6 +26,7 @@ def report(conn, type, text, opus_data):
         type: 上报类型，1为用户，2为智能体
         text: 合成文本
         opus_data: opus音频数据
+        report_time: 上报时间
     """
     try:
         if opus_data:
@@ -37,6 +40,7 @@ def report(conn, type, text, opus_data):
             chat_type=type,
             content=text,
             audio=audio_data,
+            report_time=report_time,
         )
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"聊天记录上报失败: {e}")
@@ -104,12 +108,12 @@ def enqueue_tts_report(conn, text, opus_data):
     try:
         # 使用连接对象的队列，传入文本和二进制数据而非文件路径
         if conn.chat_history_conf == 2:
-            conn.report_queue.put((2, text, opus_data))
+            conn.report_queue.put((2, text, opus_data, int(time.time())))
             conn.logger.bind(tag=TAG).debug(
                 f"TTS数据已加入上报队列: {conn.device_id}, 音频大小: {len(opus_data)} "
             )
         else:
-            conn.report_queue.put((2, text, None))
+            conn.report_queue.put((2, text, None, int(time.time())))
             conn.logger.bind(tag=TAG).debug(
                 f"TTS数据已加入上报队列: {conn.device_id}, 不上报音频"
             )
@@ -132,14 +136,14 @@ def enqueue_asr_report(conn, text, opus_data):
     try:
         # 使用连接对象的队列，传入文本和二进制数据而非文件路径
         if conn.chat_history_conf == 2:
-            conn.report_queue.put((1, text, opus_data))
+            conn.report_queue.put((1, text, opus_data, int(time.time())))
             conn.logger.bind(tag=TAG).debug(
                 f"ASR数据已加入上报队列: {conn.device_id}, 音频大小: {len(opus_data)} "
             )
         else:
-            conn.report_queue.put((1, text, None))
+            conn.report_queue.put((1, text, None, int(time.time())))
             conn.logger.bind(tag=TAG).debug(
                 f"ASR数据已加入上报队列: {conn.device_id}, 不上报音频"
             )
     except Exception as e:
-        conn.logger.bind(tag=TAG).error(f"加入ASR上报队列失败: {text}, {e}")
+        conn.logger.bind(tag=TAG).debug(f"加入ASR上报队列失败: {text}, {e}")

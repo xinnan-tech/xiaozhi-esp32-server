@@ -79,7 +79,10 @@ public class CaptchaServiceImpl implements CaptchaService {
     public void sendSMSValidateCode(String phone) {
         // 检查发送间隔
         String lastSendTimeKey = RedisKeys.getSMSLastSendTimeKey(phone);
-        String lastSendTime = (String) redisUtils.get(lastSendTimeKey);
+        // 获取是否发送过，如果没有设置最后发送时间（60秒）
+        String lastSendTime = redisUtils
+                .getKeyOrCreate(lastSendTimeKey,
+                        String.valueOf(System.currentTimeMillis()), 60L);
         if (lastSendTime != null) {
             long lastSendTimeLong = Long.parseLong(lastSendTime);
             long currentTime = System.currentTimeMillis();
@@ -98,7 +101,7 @@ public class CaptchaServiceImpl implements CaptchaService {
 
         // 获取最大发送次数限制
         Integer maxSendCount = sysParamsService.getValueObject(
-                Constant.SysMSMParam.SYSTEM_SMS_MAX_SEND_COUNT.getValue(),
+                Constant.SysMSMParam.SERVER_SMS_MAX_SEND_COUNT.getValue(),
                 Integer.class);
         if (maxSendCount == null) {
             maxSendCount = 5; // 默认值
@@ -114,15 +117,11 @@ public class CaptchaServiceImpl implements CaptchaService {
         // 设置验证码
         setCache(key, validateCodes);
 
-        // 设置最后发送时间（60秒）
-        redisUtils.set(lastSendTimeKey, String.valueOf(System.currentTimeMillis()), 60);
-
         // 更新今日发送次数
         if (todayCount == 0) {
-            // 如果是今天第一次发送，设置24小时过期
-            redisUtils.set(todayCountKey, 1, RedisUtils.DEFAULT_EXPIRE);
+            redisUtils.increment(todayCountKey, RedisUtils.DEFAULT_EXPIRE);
         } else {
-            redisUtils.set(todayCountKey, todayCount + 1, RedisUtils.DEFAULT_EXPIRE);
+            redisUtils.increment(todayCountKey);
         }
 
         // 发送验证码短信

@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.RenException;
+import xiaozhi.common.redis.RedisKeys;
+import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.sms.service.SmsService;
 import xiaozhi.modules.sys.service.SysParamsService;
 
@@ -18,6 +20,7 @@ import xiaozhi.modules.sys.service.SysParamsService;
 @Slf4j
 public class ALiYunSmsService implements SmsService {
     private final SysParamsService  sysParamsService;
+    private final RedisUtils redisUtils;
 
     @Override
     public void sendVerificationCodeSms(String phone, String VerificationCode) {
@@ -37,6 +40,9 @@ public class ALiYunSmsService implements SmsService {
             SendSmsResponse sendSmsResponse = client.sendSmsWithOptions(sendSmsRequest, runtime);
             log.info("发送短信响应的requestID: {}", sendSmsResponse.getBody().getRequestId());
         } catch (Exception e) {
+            // 如果发送失败了退还这次发送数
+            String todayCountKey = RedisKeys.getSMSTodayCountKey(phone);
+            redisUtils.delete(todayCountKey);
             // 错误 message
             log.error(e.getMessage());
             throw new RenException("短信发送失败");

@@ -3,12 +3,14 @@ import socket
 import subprocess
 import re
 import os
+import wave
+from io import BytesIO
+from core.utils import p3
 import numpy as np
 import requests
 import opuslib_next
 from pydub import AudioSegment
-from typing import Dict, Any
-from core.utils import tts, llm, intent, memory, vad, asr
+import copy
 
 TAG = __name__
 emoji_map = {
@@ -184,10 +186,8 @@ def remove_punctuation_and_length(text):
 
 def check_model_key(modelType, modelKey):
     if "你" in modelKey:
-        raise ValueError(
-            "你还没配置" + modelType + "的密钥，请检查一下所使用的LLM是否配置了密钥"
-        )
-    return True
+        return f"配置错误: {modelType} 的 API key 未设置,当前值为: {modelKey}"
+    return None
 
 
 def parse_string_to_list(value, separator=";"):
@@ -242,116 +242,6 @@ def extract_json_from_string(input_string):
     if match:
         return match.group(1)  # 返回提取的 JSON 字符串
     return None
-
-
-def initialize_modules(
-    logger,
-    config: Dict[str, Any],
-    init_vad=False,
-    init_asr=False,
-    init_llm=False,
-    init_tts=False,
-    init_memory=False,
-    init_intent=False,
-) -> Dict[str, Any]:
-    """
-    初始化所有模块组件
-
-    Args:
-        config: 配置字典
-
-    Returns:
-        Dict[str, Any]: 包含所有初始化后的模块的字典
-    """
-    modules = {}
-
-    # 初始化TTS模块
-    if init_tts:
-        select_tts_module = config["selected_module"]["TTS"]
-        tts_type = (
-            select_tts_module
-            if "type" not in config["TTS"][select_tts_module]
-            else config["TTS"][select_tts_module]["type"]
-        )
-        modules["tts"] = tts.create_instance(
-            tts_type,
-            config["TTS"][select_tts_module],
-            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
-        )
-        logger.bind(tag=TAG).info(f"初始化组件: tts成功 {select_tts_module}")
-
-    # 初始化LLM模块
-    if init_llm:
-        select_llm_module = config["selected_module"]["LLM"]
-        llm_type = (
-            select_llm_module
-            if "type" not in config["LLM"][select_llm_module]
-            else config["LLM"][select_llm_module]["type"]
-        )
-        modules["llm"] = llm.create_instance(
-            llm_type,
-            config["LLM"][select_llm_module],
-        )
-        logger.bind(tag=TAG).info(f"初始化组件: llm成功 {select_llm_module}")
-
-    # 初始化Intent模块
-    if init_intent:
-        select_intent_module = config["selected_module"]["Intent"]
-        intent_type = (
-            select_intent_module
-            if "type" not in config["Intent"][select_intent_module]
-            else config["Intent"][select_intent_module]["type"]
-        )
-        modules["intent"] = intent.create_instance(
-            intent_type,
-            config["Intent"][select_intent_module],
-        )
-        logger.bind(tag=TAG).info(f"初始化组件: intent成功 {select_intent_module}")
-
-    # 初始化Memory模块
-    if init_memory:
-        select_memory_module = config["selected_module"]["Memory"]
-        memory_type = (
-            select_memory_module
-            if "type" not in config["Memory"][select_memory_module]
-            else config["Memory"][select_memory_module]["type"]
-        )
-        modules["memory"] = memory.create_instance(
-            memory_type,
-            config["Memory"][select_memory_module],
-            config.get('summaryMemory', None),
-        )
-        logger.bind(tag=TAG).info(f"初始化组件: memory成功 {select_memory_module}")
-
-    # 初始化VAD模块
-    if init_vad:
-        select_vad_module = config["selected_module"]["VAD"]
-        vad_type = (
-            select_vad_module
-            if "type" not in config["VAD"][select_vad_module]
-            else config["VAD"][select_vad_module]["type"]
-        )
-        modules["vad"] = vad.create_instance(
-            vad_type,
-            config["VAD"][select_vad_module],
-        )
-        logger.bind(tag=TAG).info(f"初始化组件: vad成功 {select_vad_module}")
-
-    # 初始化ASR模块
-    if init_asr:
-        select_asr_module = config["selected_module"]["ASR"]
-        asr_type = (
-            select_asr_module
-            if "type" not in config["ASR"][select_asr_module]
-            else config["ASR"][select_asr_module]["type"]
-        )
-        modules["asr"] = asr.create_instance(
-            asr_type,
-            config["ASR"][select_asr_module],
-            str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
-        )
-        logger.bind(tag=TAG).info(f"初始化组件: asr成功 {select_asr_module}")
-    return modules
 
 
 def analyze_emotion(text):
@@ -881,7 +771,28 @@ def audio_to_data(audio_file_path, is_opus=True):
 
     # 获取原始PCM数据（16位小端）
     raw_data = audio.raw_data
+    return pcm_to_data(raw_data, is_opus), duration
 
+
+def audio_bytes_to_data(audio_bytes, file_type, is_opus=True):
+    """
+    直接用音频二进制数据转为opus/pcm数据，支持wav、mp3、p3
+    """
+    if file_type == "p3":
+        # 直接用p3解码
+        return p3.decode_opus_from_bytes(audio_bytes)
+    else:
+        # 其他格式用pydub
+        audio = AudioSegment.from_file(
+            BytesIO(audio_bytes), format=file_type, parameters=["-nostdin"]
+        )
+        audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
+        duration = len(audio) / 1000.0
+        raw_data = audio.raw_data
+        return pcm_to_data(raw_data, is_opus), duration
+
+
+def pcm_to_data(raw_data, is_opus=True):
     # 初始化Opus编码器
     encoder = opuslib_next.Encoder(16000, 1, opuslib_next.APPLICATION_AUDIO)
 
@@ -909,7 +820,34 @@ def audio_to_data(audio_file_path, is_opus=True):
 
         datas.append(frame_data)
 
-    return datas, duration
+    return datas
+
+
+def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
+    """
+    将opus帧列表解码为wav字节流
+    """
+    decoder = opuslib_next.Decoder(sample_rate, channels)
+    pcm_datas = []
+
+    frame_duration = 60  # ms
+    frame_size = int(sample_rate * frame_duration / 1000)  # 960
+
+    for opus_frame in opus_datas:
+        # 解码为PCM（返回bytes，2字节/采样点）
+        pcm = decoder.decode(opus_frame, frame_size)
+        pcm_datas.append(pcm)
+
+    pcm_bytes = b"".join(pcm_datas)
+
+    # 写入wav字节流
+    wav_buffer = BytesIO()
+    with wave.open(wav_buffer, "wb") as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(2)  # 16bit
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm_bytes)
+    return wav_buffer.getvalue()
 
 
 def check_vad_update(before_config, new_config):
@@ -956,3 +894,90 @@ def check_asr_update(before_config, new_config):
     )
     update_asr = current_asr_type != new_asr_type
     return update_asr
+
+
+def filter_sensitive_info(config: dict) -> dict:
+    """
+    过滤配置中的敏感信息
+    Args:
+        config: 原始配置字典
+    Returns:
+        过滤后的配置字典
+    """
+    sensitive_keys = [
+        "api_key",
+        "personal_access_token",
+        "access_token",
+        "token",
+        "secret",
+        "access_key_secret",
+        "secret_key",
+    ]
+
+    def _filter_dict(d: dict) -> dict:
+        filtered = {}
+        for k, v in d.items():
+            if any(sensitive in k.lower() for sensitive in sensitive_keys):
+                filtered[k] = "***"
+            elif isinstance(v, dict):
+                filtered[k] = _filter_dict(v)
+            elif isinstance(v, list):
+                filtered[k] = [_filter_dict(i) if isinstance(i, dict) else i for i in v]
+            else:
+                filtered[k] = v
+        return filtered
+
+    return _filter_dict(copy.deepcopy(config))
+
+
+def get_vision_url(config: dict) -> str:
+    """获取 vision URL
+
+    Args:
+        config: 配置字典
+
+    Returns:
+        str: vision URL
+    """
+    server_config = config["server"]
+    vision_explain = server_config.get("vision_explain", "")
+    if "你的" in vision_explain:
+        local_ip = get_local_ip()
+        port = int(server_config.get("http_port", 8003))
+        vision_explain = f"http://{local_ip}:{port}/mcp/vision/explain"
+    return vision_explain
+
+
+def is_valid_image_file(file_data: bytes) -> bool:
+    """
+    检查文件数据是否为有效的图片格式
+
+    Args:
+        file_data: 文件的二进制数据
+
+    Returns:
+        bool: 如果是有效的图片格式返回True，否则返回False
+    """
+    # 常见图片格式的魔数（文件头）
+    image_signatures = {
+        b"\xff\xd8\xff": "JPEG",
+        b"\x89PNG\r\n\x1a\n": "PNG",
+        b"GIF87a": "GIF",
+        b"GIF89a": "GIF",
+        b"BM": "BMP",
+        b"II*\x00": "TIFF",
+        b"MM\x00*": "TIFF",
+        b"RIFF": "WEBP",
+    }
+
+    # 检查文件头是否匹配任何已知的图片格式
+    for signature in image_signatures:
+        if file_data.startswith(signature):
+            return True
+
+    return False
+
+
+def sanitize_tool_name(name: str) -> str:
+    """Sanitize tool names for OpenAI compatibility."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", name)

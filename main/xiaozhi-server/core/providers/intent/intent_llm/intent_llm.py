@@ -53,6 +53,8 @@ class IntentProvider(IntentProviderBase):
 
         prompt = (
             "你是一个意图识别助手。请分析用户的最后一句话，判断用户意图并调用相应的函数。\n\n"
+            "- 如果用户使用疑问词（如'怎么'、'为什么'、'如何'）询问退出相关的问题（例如'怎么退出了？'），注意这不是让你退出，请返回 {'function_call': {'name': 'continue_chat'}\n"
+            "- 仅当用户明确使用'退出系统'、'结束对话'、'我不想和你说话了'等指令时，才触发 handle_exit_intent\n\n"
             f"{functions_desc}\n"
             "处理步骤:\n"
             "1. 分析用户输入，确定用户意图\n"
@@ -70,6 +72,18 @@ class IntentProvider(IntentProviderBase):
             '返回: {"function_call": {"name": "get_time"}}\n'
             "```\n"
             "```\n"
+            "用户: 当前电池电量是多少？\n"
+            '返回: {"function_call": {"name": "get_battery_level", "arguments": {"response_success": "当前电池电量为{value}%", "response_failure": "无法获取Battery的当前电量百分比"}}}\n'
+            "```\n"
+            "```\n"
+            "用户: 当前屏幕亮度是多少？\n"
+            '返回: {"function_call": {"name": "self_screen_get_brightness"}}\n'
+            "```\n"
+            "```\n"
+            "用户: 设置屏幕亮度为50%\n"
+            '返回: {"function_call": {"name": "self_screen_set_brightness", "arguments": {"brightness": 50}}}\n'
+            "```\n"
+            "```\n"
             "用户: 我想结束对话\n"
             '返回: {"function_call": {"name": "handle_exit_intent", "arguments": {"say_goodbye": "goodbye"}}}\n'
             "```\n"
@@ -81,6 +95,10 @@ class IntentProvider(IntentProviderBase):
             "1. 只返回JSON格式，不要包含任何其他文字\n"
             '2. 如果没有找到匹配的函数，返回{"function_call": {"name": "continue_chat"}}\n'
             "3. 确保返回的JSON格式正确，包含所有必要的字段\n"
+            "特殊说明：\n"
+            "- 当用户单次输入包含多个指令时（如'打开灯并且调高音量'）\n"
+            "- 请返回多个function_call组成的JSON数组\n"
+            "- 示例：{'function_calls': [{name:'light_on'}, {name:'volume_up'}]}"
         )
         return prompt
 
@@ -116,6 +134,8 @@ class IntentProvider(IntentProviderBase):
     async def detect_intent(self, conn, dialogue_history: List[Dict], text: str) -> str:
         if not self.llm:
             raise ValueError("LLM provider not set")
+        if conn.func_handler is None:
+            return '{"function_call": {"name": "continue_chat"}}'
 
         # 记录整体开始时间
         total_start_time = time.time()
@@ -142,15 +162,25 @@ class IntentProvider(IntentProviderBase):
         self.clean_cache()
 
         if self.promot == "":
-            if hasattr(conn, "func_handler"):
-                functions = conn.func_handler.get_functions()
-                self.promot = self.get_intent_system_prompt(functions)
+            functions = conn.func_handler.get_functions()
+            if hasattr(conn, "mcp_client"):
+                mcp_tools = conn.mcp_client.get_available_tools()
+                if mcp_tools is not None and len(mcp_tools) > 0:
+                    if functions is None:
+                        functions = []
+                    functions.extend(mcp_tools)
+
+            self.promot = self.get_intent_system_prompt(functions)
 
         music_config = initialize_music_handler(conn)
         music_file_names = music_config["music_file_names"]
         prompt_music = f"{self.promot}\n<musicNames>{music_file_names}\n</musicNames>"
 
-        devices = conn.config["plugins"]["home_assistant"].get("devices", [])
+        home_assistant_cfg = conn.config["plugins"].get("home_assistant")
+        if home_assistant_cfg:
+            devices = home_assistant_cfg.get("devices", [])
+        else:
+            devices = []
         if len(devices) > 0:
             hass_prompt = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
             for device in devices:
@@ -222,7 +252,8 @@ class IntentProvider(IntentProviderBase):
                 if function_name == "continue_chat":
                     # 保留非工具相关的消息
                     clean_history = [
-                        msg for msg in conn.dialogue.dialogue
+                        msg
+                        for msg in conn.dialogue.dialogue
                         if msg.role not in ["tool", "function"]
                     ]
                     conn.dialogue.dialogue = clean_history

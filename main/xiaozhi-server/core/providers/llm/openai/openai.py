@@ -16,26 +16,46 @@ class LLMProvider(LLMProviderBase):
             self.base_url = config.get("base_url")
         else:
             self.base_url = config.get("url")
-        max_tokens = config.get("max_tokens")
-        if max_tokens is None or max_tokens == "":
-            max_tokens = 500
 
-        try:
-            max_tokens = int(max_tokens)
-        except (ValueError, TypeError):
-            max_tokens = 500
-        self.max_tokens = max_tokens
+        param_defaults = {
+            "max_tokens": (500, int),
+            "temperature": (0.7, lambda x: round(float(x), 1)),
+            "top_p": (1.0, lambda x: round(float(x), 1)),
+            "frequency_penalty": (0, lambda x: round(float(x), 1)),
+        }
 
-        check_model_key("LLM", self.api_key)
+        for param, (default, converter) in param_defaults.items():
+            value = config.get(param)
+            try:
+                setattr(
+                    self,
+                    param,
+                    converter(value) if value not in (None, "") else default,
+                )
+            except (ValueError, TypeError):
+                setattr(self, param, default)
+
+        logger.debug(
+            f"意图识别参数初始化: {self.temperature}, {self.max_tokens}, {self.top_p}, {self.frequency_penalty}"
+        )
+
+        model_key_msg = check_model_key("LLM", self.api_key)
+        if model_key_msg:
+            logger.bind(tag=TAG).error(model_key_msg)
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
-    def response(self, session_id, dialogue):
+    def response(self, session_id, dialogue, **kwargs):
         try:
             responses = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=dialogue,
                 stream=True,
-                max_tokens=self.max_tokens,
+                max_tokens=kwargs.get("max_tokens", self.max_tokens),
+                temperature=kwargs.get("temperature", self.temperature),
+                top_p=kwargs.get("top_p", self.top_p),
+                frequency_penalty=kwargs.get(
+                    "frequency_penalty", self.frequency_penalty
+                ),
             )
 
             is_active = True
@@ -73,12 +93,14 @@ class LLMProvider(LLMProviderBase):
             for chunk in stream:
                 # 检查是否存在有效的choice且content不为空
                 if getattr(chunk, "choices", None):
-                    yield chunk.choices[0].delta.content, chunk.choices[0].delta.tool_calls
+                    yield chunk.choices[0].delta.content, chunk.choices[
+                        0
+                    ].delta.tool_calls
                 # 存在 CompletionUsage 消息时，生成 Token 消耗 log
-                elif isinstance(getattr(chunk, 'usage', None), CompletionUsage):
-                    usage_info = getattr(chunk, 'usage', None)
+                elif isinstance(getattr(chunk, "usage", None), CompletionUsage):
+                    usage_info = getattr(chunk, "usage", None)
                     logger.bind(tag=TAG).info(
-                        f"Token 消耗：输入 {getattr(usage_info, 'prompt_tokens', '未知')}，" 
+                        f"Token 消耗：输入 {getattr(usage_info, 'prompt_tokens', '未知')}，"
                         f"输出 {getattr(usage_info, 'completion_tokens', '未知')}，"
                         f"共计 {getattr(usage_info, 'total_tokens', '未知')}"
                     )

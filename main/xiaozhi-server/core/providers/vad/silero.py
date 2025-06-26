@@ -12,13 +12,12 @@ logger = setup_logging()
 class VADProvider(VADProviderBase):
     def __init__(self, config):
         logger.bind(tag=TAG).info("SileroVAD", config)
-        self.model, self.utils = torch.hub.load(
+        self.model, _ = torch.hub.load(
             repo_or_dir=config["model_dir"],
             source="local",
             model="silero_vad",
             force_reload=False,
         )
-        (get_speech_timestamps, _, _, _, _) = self.utils
 
         self.decoder = opuslib_next.Decoder(16000, 1)
 
@@ -36,6 +35,10 @@ class VADProvider(VADProviderBase):
             pcm_frame = self.decoder.decode(opus_packet, 960)
             conn.client_audio_buffer.extend(pcm_frame)  # 将新数据加入缓冲区
 
+            # 初始化帧计数器
+            if not hasattr(conn, "client_voice_frame_count"):
+                conn.client_voice_frame_count = 0
+
             # 处理缓冲区中的完整帧（每次处理512采样点）
             client_have_voice = False
             while len(conn.client_audio_buffer) >= 512 * 2:
@@ -51,9 +54,17 @@ class VADProvider(VADProviderBase):
                 # 检测语音活动
                 with torch.no_grad():
                     speech_prob = self.model(audio_tensor, 16000).item()
-                client_have_voice = speech_prob >= self.vad_threshold
+                is_voice = speech_prob >= self.vad_threshold
 
-                # 如果之前有声音，但本次没有声音，且与上次有声音的时间查已经超过了静默阈值，则认为已经说完一句话
+                if is_voice:
+                    conn.client_voice_frame_count += 1
+                else:
+                    conn.client_voice_frame_count = 0
+
+                # 只有连续4帧检测到语音才认为有语音
+                client_have_voice = conn.client_voice_frame_count >= 4
+
+                # 如果之前有声音，但本次没有声音，且与上次有声音的时间差已经超过了静默阈值，则认为已经说完一句话
                 if conn.client_have_voice and not client_have_voice:
                     stop_duration = (
                         time.time() * 1000 - conn.client_have_voice_last_time

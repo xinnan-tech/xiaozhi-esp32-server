@@ -1,9 +1,6 @@
 package xiaozhi.modules.config.service.impl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -16,7 +13,9 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.modules.agent.entity.AgentEntity;
+import xiaozhi.modules.agent.entity.AgentPluginMapping;
 import xiaozhi.modules.agent.entity.AgentTemplateEntity;
+import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.config.service.ConfigService;
@@ -39,6 +38,7 @@ public class ConfigServiceImpl implements ConfigService {
     private final AgentTemplateService agentTemplateService;
     private final RedisUtils redisUtils;
     private final TimbreService timbreService;
+    private final AgentPluginMappingService agentPluginMappingService;
 
     @Override
     public Object getConfig(Boolean isCache) {
@@ -68,6 +68,7 @@ public class ConfigServiceImpl implements ConfigService {
                 null,
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
+                null,
                 null,
                 null,
                 null,
@@ -131,6 +132,19 @@ public class ConfigServiceImpl implements ConfigService {
             agent.setAsrModelId(null);
         }
 
+        // 添加函数调用参数信息
+        if (!Objects.equals(agent.getIntentModelId(), "Intent_nointent")) {
+            String agentId = agent.getId();
+            List<AgentPluginMapping> pluginMappings = agentPluginMappingService.agentPluginParamsByAgentId(agentId);
+            if (pluginMappings != null && !pluginMappings.isEmpty()) {
+                Map<String, Object> pluginParams = new HashMap<>();
+                for (AgentPluginMapping pluginMapping : pluginMappings) {
+                    pluginParams.put(pluginMapping.getProviderCode(), pluginMapping.getParamInfo());
+                }
+                result.put("plugins", pluginParams);
+            }
+        }
+
         // 构建模块配置
         buildModuleConfig(
                 agent.getAgentName(),
@@ -140,6 +154,7 @@ public class ConfigServiceImpl implements ConfigService {
                 agent.getVadModelId(),
                 agent.getAsrModelId(),
                 agent.getLlmModelId(),
+                agent.getVllmModelId(),
                 agent.getTtsModelId(),
                 agent.getMemModelId(),
                 agent.getIntentModelId(),
@@ -241,6 +256,7 @@ public class ConfigServiceImpl implements ConfigService {
             String vadModelId,
             String asrModelId,
             String llmModelId,
+            String vllmModelId,
             String ttsModelId,
             String memModelId,
             String intentModelId,
@@ -248,9 +264,10 @@ public class ConfigServiceImpl implements ConfigService {
             boolean isCache) {
         Map<String, String> selectedModule = new HashMap<>();
 
-        String[] modelTypes = { "VAD", "ASR", "TTS", "Memory", "Intent", "LLM" };
-        String[] modelIds = { vadModelId, asrModelId, ttsModelId, memModelId, intentModelId, llmModelId };
+        String[] modelTypes = { "VAD", "ASR", "TTS", "Memory", "Intent", "LLM", "VLLM" };
+        String[] modelIds = { vadModelId, asrModelId, ttsModelId, memModelId, intentModelId, llmModelId, vllmModelId };
         String intentLLMModelId = null;
+        String memLocalShortLLMModelId = null;
 
         for (int i = 0; i < modelIds.length; i++) {
             if (modelIds[i] == null) {
@@ -269,7 +286,7 @@ public class ConfigServiceImpl implements ConfigService {
                     Map<String, Object> map = (Map<String, Object>) model.getConfigJson();
                     if ("intent_llm".equals(map.get("type"))) {
                         intentLLMModelId = (String) map.get("llm");
-                        if (intentLLMModelId != null && intentLLMModelId.equals(llmModelId)) {
+                        if (StringUtils.isNotBlank(intentLLMModelId) && intentLLMModelId.equals(llmModelId)) {
                             intentLLMModelId = null;
                         }
                     }
@@ -280,11 +297,33 @@ public class ConfigServiceImpl implements ConfigService {
                             map.put("functions", functions);
                         }
                     }
+                    System.out.println("map: " + map);
+                }
+                if ("Memory".equals(modelTypes[i])) {
+                    Map<String, Object> map = (Map<String, Object>) model.getConfigJson();
+                    if ("mem_local_short".equals(map.get("type"))) {
+                        memLocalShortLLMModelId = (String) map.get("llm");
+                        if (StringUtils.isNotBlank(memLocalShortLLMModelId)
+                                && memLocalShortLLMModelId.equals(llmModelId)) {
+                            memLocalShortLLMModelId = null;
+                        }
+                    }
                 }
                 // 如果是LLM类型，且intentLLMModelId不为空，则添加附加模型
-                if ("LLM".equals(modelTypes[i]) && intentLLMModelId != null) {
-                    ModelConfigEntity intentLLM = modelConfigService.getModelById(intentLLMModelId, isCache);
-                    typeConfig.put(intentLLM.getId(), intentLLM.getConfigJson());
+                if ("LLM".equals(modelTypes[i])) {
+                    if (StringUtils.isNotBlank(intentLLMModelId)) {
+                        if (!typeConfig.containsKey(intentLLMModelId)) {
+                            ModelConfigEntity intentLLM = modelConfigService.getModelById(intentLLMModelId, isCache);
+                            typeConfig.put(intentLLM.getId(), intentLLM.getConfigJson());
+                        }
+                    }
+                    if (StringUtils.isNotBlank(memLocalShortLLMModelId)) {
+                        if (!typeConfig.containsKey(memLocalShortLLMModelId)) {
+                            ModelConfigEntity memLocalShortLLM = modelConfigService
+                                    .getModelById(memLocalShortLLMModelId, isCache);
+                            typeConfig.put(memLocalShortLLM.getId(), memLocalShortLLM.getConfigJson());
+                        }
+                    }
                 }
             }
             result.put(modelTypes[i], typeConfig);

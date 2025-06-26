@@ -1,6 +1,4 @@
 import json
-import queue
-from config.logger import setup_logging
 
 TAG = __name__
 

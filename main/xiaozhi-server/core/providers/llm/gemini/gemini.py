@@ -73,8 +73,9 @@ class LLMProvider(LLMProviderBase):
         http_proxy = cfg.get("http_proxy")
         https_proxy = cfg.get("https_proxy")
 
-        if not check_model_key("LLM", self.api_key):
-            raise ValueError("无效的Gemini API Key，请检查是否配置正确")
+        model_key_msg = check_model_key("LLM", self.api_key)
+        if model_key_msg:
+            log.bind(tag=TAG).error(model_key_msg)
 
         if http_proxy or https_proxy:
             log.bind(tag=TAG).info(
@@ -112,7 +113,7 @@ class LLMProvider(LLMProviderBase):
         ]
 
     # Gemini文档提到，无需维护session-id，直接用dialogue拼接而成
-    def response(self, session_id, dialogue):
+    def response(self, session_id, dialogue, **kwargs):
         yield from self._generate(dialogue, None)
 
     def response_with_functions(self, session_id, dialogue, functions=None):

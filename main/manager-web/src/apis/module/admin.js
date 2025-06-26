@@ -130,5 +130,37 @@ export default {
                 })
             }).send()
     },
+    // 获取ws服务端列表
+    getWsServerList(params, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/admin/server/server-list`)
+            .method('GET')
+            .success((res) => {
+                RequestService.clearRequestTime()
+                callback(res)
+            })
+            .networkFail((err) => {
+                console.error('获取ws服务端列表失败:', err)
+                RequestService.reAjaxFun(() => {
+                    this.getWsServerList(params, callback)
+                })
+            }).send();
+    },
+    // 发送ws服务器动作指令
+    sendWsServerAction(data, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/admin/server/emit-action`)
+            .method('POST')
+            .data(data)
+            .success((res) => {
+                RequestService.clearRequestTime()
+                callback(res)
+            })
+            .networkFail((err) => {
+                RequestService.reAjaxFun(() => {
+                    this.sendWsServerAction(data, callback)
+                })
+            }).send();
+    }
 
 }

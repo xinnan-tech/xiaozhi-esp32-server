@@ -1,5 +1,5 @@
 <template>
-  <el-drawer :visible.sync="dialogVisible" direction="rtl" size="50%" :wrapperClosable="false" :withHeader="false">
+  <el-drawer :visible.sync="dialogVisible" direction="rtl" size="80%" :wrapperClosable="false" :withHeader="false">
     <!-- 自定义标题区域 -->
     <div class="custom-header">
       <div class="header-left">
@@ -16,15 +16,18 @@
           <el-button type="text" @click="selectAll" class="select-all-btn">全选</el-button>
         </div>
         <div class="function-list">
-          <div v-for="func in unselected" :key="func.name" class="function-item">
-            <el-checkbox :label="func.name" v-model="selectedNames" @change="(val) => handleCheckboxChange(func, val)" @click.native.stop></el-checkbox>
-            <div class="func-tag" @click="handleFunctionClick(func)">
-              <div class="color-dot" :style="{backgroundColor: getFunctionColor(func.name)}"></div>
-              <span>{{ func.name }}</span>
+          <div v-if="unselected.length">
+            <div v-for="func in unselected" :key="func.name" class="function-item">
+              <el-checkbox :label="func.name" v-model="selectedNames" @change="(val) => handleCheckboxChange(func, val)"
+                @click.native.stop></el-checkbox>
+              <div class="func-tag" @click="handleFunctionClick(func)">
+                <div class="color-dot" :style="{ backgroundColor: getFunctionColor(func.name) }"></div>
+                <span>{{ func.name }}</span>
+              </div>
             </div>
-            <el-tooltip class="item" effect="dark" :content="func.description || '暂无功能描述'" placement="top">
-              <img src="@/assets/home/info.png" alt="" class="info-icon">
-            </el-tooltip>
+          </div>
+          <div v-else style="display: flex; justify-content: center; align-items: center;">
+            <el-empty description="没有更多的插件了" />
           </div>
         </div>
       </div>
@@ -36,12 +39,18 @@
           <el-button type="text" @click="deselectAll" class="select-all-btn">全选</el-button>
         </div>
         <div class="function-list">
-          <div v-for="func in selectedList" :key="func.name" class="function-item">
-            <el-checkbox :label="func.name" v-model="selectedNames" @change="(val) => handleCheckboxChange(func, val)" @click.native.stop></el-checkbox>
-            <div class="func-tag" @click="handleFunctionClick(func)">
-              <div class="color-dot" :style="{backgroundColor: getFunctionColor(func.name)}"></div>
-              <span>{{ func.name }}</span>
+          <div v-if="selectedList.length > 0">
+            <div v-for="func in selectedList" :key="func.name" class="function-item">
+              <el-checkbox :label="func.name" v-model="selectedNames" @change="(val) => handleCheckboxChange(func, val)"
+                @click.native.stop></el-checkbox>
+              <div class="func-tag" @click="handleFunctionClick(func)">
+                <div class="color-dot" :style="{ backgroundColor: getFunctionColor(func.name) }"></div>
+                <span>{{ func.name }}</span>
+              </div>
             </div>
+          </div>
+          <div v-else style="display: flex; justify-content: center; align-items: center;">
+            <el-empty description="请选择插件功能" />
           </div>
         </div>
       </div>
@@ -49,14 +58,83 @@
       <!-- 右侧：参数配置 -->
       <div class="params-column">
         <h4 v-if="currentFunction" class="column-title">参数配置 - {{ currentFunction.name }}</h4>
-          <div v-if="currentFunction" class="params-container">
-            <el-form :model="currentFunction" size="mini" class="param-form" v-loading="loading" element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading" element-loading-background="rgba(255, 255, 255, 0.7)">
-              <el-form-item v-for="(value, key) in currentFunction.params" :key="key" :label="key" class="param-item">
-                <el-input v-model="currentFunction.params[key]" size="mini" class="param-input" @change="(val) => handleParamChange(currentFunction, key, val)"/>
-              </el-form-item>
-            </el-form>
-          </div>
+        <div v-if="currentFunction" class="params-container">
+          <el-form :model="currentFunction" class="param-form">
+            <!-- 遍历 fieldsMeta，而不是 params 的 keys -->
+            <div v-if="currentFunction.fieldsMeta.length == 0">
+              <el-empty :description="currentFunction.name + ' 无需配置参数'" />
+            </div>
+            <el-form-item v-for="field in currentFunction.fieldsMeta" :key="field.key" :label="field.label"
+              class="param-item" :class="{ 'textarea-field': field.type === 'array' || field.type === 'json' }">
+              <template #label>
+                <span style="font-size: 16px; margin-right: 6px;">{{ field.label }}</span>
+                <el-tooltip effect="dark" :content="fieldRemark(field)" placement="top">
+                  <img src="@/assets/home/info.png" alt="" class="info-icon">
+                </el-tooltip>
+              </template>
+              <!-- ARRAY -->
+              <el-input v-if="field.type === 'array'" type="textarea" v-model="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+
+              <!-- JSON -->
+              <el-input v-else-if="field.type === 'json'" type="textarea" :rows="6" placeholder="请输入合法的 JSON"
+                v-model="textCache[field.key]" @blur="flushJson(field)" />
+
+              <!-- number -->
+              <el-input-number v-else-if="field.type === 'number'" :value="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+
+              <!-- boolean -->
+              <el-switch v-else-if="field.type === 'boolean' || field.type === 'bool'"
+                :value="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+
+              <!-- string or fallback -->
+              <el-input v-else v-model="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+            </el-form-item>
+          </el-form>
+        </div>
         <div v-else class="empty-tip">请选择已配置的功能进行参数设置</div>
+      </div>
+    </div>
+
+    <!-- MCP区域 -->
+    <div class="mcp-access-point">
+      <div class="mcp-header">
+        <h3 class="bold-title">MCP接入点</h3>
+      </div>
+      <div class="mcp-container">
+        <!-- 左侧区域 -->
+      <div class="mcp-left">
+        <div class="url-header">
+          <h4>接入点地址</h4>
+          <div class="address-desc">
+            <span>以下是智能体的MCP接入点地址。</span>
+            <a href="#" class="doc-link">查看接入点使用文档</a>
+          </div>
+        </div>
+        <el-input v-model="mcpUrl" readonly class="url-input">
+          <template #suffix>
+            <el-button @click="copyUrl" class="inner-copy-btn" icon="el-icon-document-copy">
+              复制
+            </el-button>
+          </template>
+        </el-input>
+      </div>
+
+        <!-- 右侧区域 -->
+        <div class="mcp-right">
+          <h4>接入点状态</h4>
+          <div class="status-container">
+            <span class="status-indicator" :class="mcpStatus"></span>
+            <span class="status-text">{{ mcpStatus === 'connected' ? '已连接' : '未连接' }}</span>
+            <button class="refresh-btn" @click="refreshStatus">
+              <span class="refresh-icon">↻</span>
+              <span>刷新</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -74,24 +152,19 @@ export default {
     functions: {
       type: Array,
       default: () => []
+    },
+    allFunctions: {
+      type: Array,
+      default: () => []
     }
   },
   data() {
     return {
+      textCache: {},
       dialogVisible: this.value,
       selectedNames: [],
       currentFunction: null,
       modifiedFunctions: {},
-      allFunctions: [
-        {name: '天气', params: {city: '北京'}, description: '查看指定城市的天气情况'},
-        {name: '新闻', params: {type: '科技'}, description: '获取最新科技类新闻资讯'},
-        {name: '工具', params: {category: '常用'}, description: '提供常用工具集合'},
-        {name: '退出', params: {}, description: '退出当前系统'},
-        {name: '音乐', params: {genre: '流行'}, description: '播放流行音乐'},
-        {name: '翻译', params: {from: '中文', to: '英文'}, description: '提供中英文互译功能'},
-        {name: '计算', params: {precision: '2'}, description: '提供精确计算功能'},
-        {name: '日历', params: {view: '月'}, description: '查看月历视图'}
-      ],
       functionColorMap: [
         '#FF6B6B', '#4ECDC4', '#45B7D1',
         '#96CEB4', '#FFEEAD', '#D4A5A5', '#A2836E'
@@ -100,6 +173,9 @@ export default {
       // 添加一个标志位来跟踪是否已经保存
       hasSaved: false,
       loading: false,
+      
+      mcpUrl: "https://api.example.com/mcp/v1/endpoint",
+      mcpStatus: "disconnected",
     }
   },
   computed: {
@@ -111,10 +187,37 @@ export default {
     }
   },
   watch: {
-    value(newVal) {
-      this.dialogVisible = newVal;
-      if (newVal) {
+    currentFunction(newFn) {
+      if (!newFn) return;
+      // 对每个字段，如果是 array 或 json，就在 textCache 里生成初始字符串
+      newFn.fieldsMeta.forEach(f => {
+        const v = newFn.params[f.key];
+        if (f.type === 'array') {
+          this.$set(this.textCache, f.key, Array.isArray(v) ? v.join('\n') : '');
+        }
+        else if (f.type === 'json') {
+          try {
+            this.$set(this.textCache, f.key, JSON.stringify(v ?? {}, null, 2));
+          } catch {
+            this.$set(this.textCache, f.key, '');
+          }
+        }
+      });
+    },
+    value(v) {
+      this.dialogVisible = v;
+      if (v) {
+        // 对话框打开时，初始化选中态
         this.selectedNames = this.functions.map(f => f.name);
+        // 把后端传来的 this.functions（带 params）merge 到 allFunctions 上
+        this.functions.forEach(saved => {
+          const idx = this.allFunctions.findIndex(f => f.name === saved.name);
+          if (idx >= 0) {
+            // 保留用户之前在 saved.params 上的改动
+            this.allFunctions[idx].params = { ...saved.params };
+          }
+        });
+        // 右侧默认指向第一个
         this.currentFunction = this.selectedList[0] || null;
       }
     },
@@ -123,14 +226,63 @@ export default {
     }
   },
   methods: {
+    copyUrl() {
+      const textarea = document.createElement('textarea');
+      textarea.value = this.mcpUrl;
+      textarea.style.position = 'fixed';  // 防止页面滚动
+      document.body.appendChild(textarea);
+      textarea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          this.$message.success('已复制到剪贴板');
+        } else {
+          this.$message.error('复制失败，请手动复制');
+        }
+      } catch (err) {
+        this.$message.error('复制失败，请手动复制');
+        console.error('复制失败:', err);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    },
+
+    refreshStatus() {
+      // 模拟状态刷新
+      this.mcpStatus = "loading";
+      setTimeout(() => {
+        // 随机切换状态用于演示
+        this.mcpStatus = Math.random() > 0.5 ? "connected" : "disconnected";
+      }, 800);
+    },
+
+    flushArray(key) {
+      const text = this.textCache[key] || '';
+      const arr = text
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean);
+      this.handleParamChange(this.currentFunction, key, arr);
+    },
+
+    flushJson(field) {
+      const key = field.key;
+      if (!key) {
+        return;
+      }
+      const text = this.textCache[key] || '';
+      try {
+        const obj = JSON.parse(text);
+        this.handleParamChange(this.currentFunction, key, obj);
+      } catch {
+        this.$message.error(`${this.currentFunction.name}的${key}字段格式错误：JSON格式有误`);
+      }
+    },
     handleFunctionClick(func) {
       if (this.selectedNames.includes(func.name)) {
-        this.loading = true;
-        setTimeout(() => {
-          const tempFunc = this.tempFunctions[func.name];
-          this.currentFunction = tempFunc ? tempFunc : JSON.parse(JSON.stringify(func));
-          this.loading = false;
-        }, 300);
+        const tempFunc = this.tempFunctions[func.name];
+        this.currentFunction = tempFunc ? tempFunc : func;
       }
     },
     handleParamChange(func, key, value) {
@@ -185,23 +337,31 @@ export default {
 
       const selected = this.selectedList.map(f => {
         const modified = this.modifiedFunctions[f.name];
-        return modified || f;
-      }).map(f => ({
-        ...f,
-        params: JSON.parse(JSON.stringify(f.params))
-      }));
+        return {
+          id: f.id,
+          name: f.name,
+          params: modified
+            ? { ...modified.params }
+            : { ...f.params }
+        }
+      });
 
       this.$emit('update-functions', selected);
       this.dialogVisible = false;
-      this.$message.success('配置保存成功');
       // 通知父组件对话框已关闭且已保存
       this.$emit('dialog-closed', true);
     },
-
     getFunctionColor(name) {
       const hash = [...name].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return this.functionColorMap[hash % 7];
-    }
+      return this.functionColorMap[hash % this.functionColorMap.length];
+    },
+    fieldRemark(field) {
+      let description = (field && field.label) ? field.label : '';
+      if (field.default) {
+        description += `（默认值：${field.default}）`;
+      }
+      return description;
+    },
   }
 }
 </script>
@@ -209,9 +369,9 @@ export default {
 <style lang="scss" scoped>
 .function-manager {
   display: grid;
-  grid-template-columns: minmax(120px, 0.5fr) minmax(120px, 0.5fr) minmax(200px, 2fr);
+  grid-template-columns: max-content max-content 1fr;
   gap: 12px;
-  height: calc(70vh - 60px);
+  height: calc(58vh);
 }
 
 .custom-header {
@@ -248,6 +408,7 @@ export default {
   overflow-y: auto;
   border-right: 1px solid #EBEEF5;
   scrollbar-width: none;
+  overflow-x: hidden;
 }
 
 .function-column::-webkit-scrollbar {
@@ -257,7 +418,7 @@ export default {
 .function-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .function-item {
@@ -317,9 +478,31 @@ export default {
 }
 
 .param-form {
+  .param-item {
+    font-size: 16px;
+
+    &.textarea-field {
+      ::v-deep .el-form-item__content {
+        margin-left: 0 !important;
+        display: block;
+        width: 100%;
+      }
+
+      ::v-deep .el-form-item__label {
+        display: block;
+        width: 100% !important;
+        margin-bottom: 8px;
+      }
+    }
+  }
+
+  .param-input {
+    width: 100%;
+  }
+
   ::v-deep .el-form-item {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     margin-bottom: 12px;
 
     .el-form-item__label {
@@ -356,9 +539,6 @@ export default {
   text-align: center;
 }
 
-.param-input {
-  width: 100%;
-}
 
 .drawer-footer {
   position: absolute;
@@ -406,5 +586,162 @@ export default {
 
 ::v-deep .el-checkbox__label {
   display: none;
+}
+
+.mcp-access-point {
+  border-top: 1px solid #EBEEF5;
+  padding: 20px 24px;
+  text-align: left;
+}
+
+.mcp-header {
+  .bold-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 5px 0 30px 0;
+  }
+}
+
+.mcp-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.mcp-left, .mcp-right {
+  flex: 1;
+}
+
+.url-header {
+  margin-bottom: 8px;
+  color: black;
+  h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: normal;
+  }
+
+  .address-desc {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    margin-bottom: 12px;
+
+    .doc-link {
+      color: #1677ff;
+      text-decoration: none;
+      margin-left: 4px;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.url-input {
+  border-radius: 4px 0 0 4px;
+  font-size: 14px;
+  height: 36px;
+  box-sizing: border-box;
+  background-color: #f5f5f5;
+}
+
+::v-deep .el-input__inner{
+  background-color: #f5f5f5;
+}
+
+.url-input {
+
+  ::v-deep .el-input__suffix {
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding-right: 15px;
+
+    .inner-copy-btn {
+      pointer-events: auto;
+      border: none;
+      background: white;
+      color: black;
+      padding: 6px;
+      margin-left: 4px;
+
+      &:hover {
+        background: #1677ff;
+        color: white;
+      }
+    }
+  }
+}
+
+.mcp-right {
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: normal;
+    color: black;
+  }
+}
+
+.status-container {
+  display: flex;
+  align-items: center;
+
+  .status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+
+    &.disconnected {
+      background-color: #909399; /* 灰色 - 未连接 */
+    }
+
+    &.connected {
+      background-color: #67C23A; /* 绿色 - 已连接 */
+    }
+
+    &.loading {
+      background-color: #E6A23C; /* 橙色 - 加载中 */
+      animation: pulse 1.5s infinite;
+    }
+  }
+
+  .status-text {
+    font-size: 14px;
+    margin-right: 10px;
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: white;
+    color: black;
+    border: 1px solid #DCDFE6;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: #1677ff;
+      color: white;
+      border-color: #1677ff;
+    }
+
+    .refresh-icon {
+      margin-right: 6px;
+      font-size: 14px;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
 }
 </style>

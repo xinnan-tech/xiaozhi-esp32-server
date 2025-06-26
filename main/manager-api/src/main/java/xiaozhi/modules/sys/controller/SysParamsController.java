@@ -59,7 +59,7 @@ public class SysParamsController {
             @Parameter(name = Constant.LIMIT, description = "每页显示记录数", in = ParameterIn.QUERY, required = true, ref = "int"),
             @Parameter(name = Constant.ORDER_FIELD, description = "排序字段", in = ParameterIn.QUERY, ref = "String"),
             @Parameter(name = Constant.ORDER, description = "排序方式，可选值(asc、desc)", in = ParameterIn.QUERY, ref = "String"),
-            @Parameter(name = "paramCode", description = "参数编码", in = ParameterIn.QUERY, ref = "String")
+            @Parameter(name = "paramCode", description = "参数编码或参数备注", in = ParameterIn.QUERY, ref = "String")
     })
     @RequiresPermissions("sys:role:superAdmin")
     public Result<PageData<SysParamsDTO>> page(@Parameter(hidden = true) @RequestParam Map<String, Object> params) {
@@ -111,7 +111,7 @@ public class SysParamsController {
 
     /**
      * 验证WebSocket地址列表
-     * 
+     *
      * @param urls WebSocket地址列表，以分号分隔
      * @return 验证结果
      */
@@ -141,6 +141,19 @@ public class SysParamsController {
                 }
             }
         }
+    }
+
+    @PostMapping("/delete")
+    @Operation(summary = "删除")
+    @LogOperation("删除")
+    @RequiresPermissions("sys:role:superAdmin")
+    public Result<Void> delete(@RequestBody String[] ids) {
+        // 效验数据
+        AssertUtils.isArrayEmpty(ids, "id");
+
+        sysParamsService.delete(ids);
+        configService.getConfig(false);
+        return new Result<Void>();
     }
 
     /**
@@ -181,18 +194,5 @@ public class SysParamsController {
         } catch (Exception e) {
             throw new RenException("OTA接口验证失败：" + e.getMessage());
         }
-    }
-
-    @PostMapping("/delete")
-    @Operation(summary = "删除")
-    @LogOperation("删除")
-    @RequiresPermissions("sys:role:superAdmin")
-    public Result<Void> delete(@RequestBody String[] ids) {
-        // 效验数据
-        AssertUtils.isArrayEmpty(ids, "id");
-
-        sysParamsService.delete(ids);
-        configService.getConfig(false);
-        return new Result<Void>();
     }
 }

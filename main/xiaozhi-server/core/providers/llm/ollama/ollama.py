@@ -18,13 +18,13 @@ class LLMProvider(LLMProviderBase):
 
         self.client = OpenAI(
             base_url=self.base_url,
-            api_key="ollama"  # Ollama doesn't need an API key but OpenAI client requires one
+            api_key="ollama",  # Ollama doesn't need an API key but OpenAI client requires one
         )
 
         # 检查是否是qwen3模型
         self.is_qwen3 = self.model_name and self.model_name.lower().startswith("qwen3")
 
-    def response(self, session_id, dialogue):
+    def response(self, session_id, dialogue, **kwargs):
         try:
             # 如果是qwen3模型，在用户最后一条消息中添加/no_think指令
             if self.is_qwen3:
@@ -35,7 +35,9 @@ class LLMProvider(LLMProviderBase):
                 for i in range(len(dialogue_copy) - 1, -1, -1):
                     if dialogue_copy[i]["role"] == "user":
                         # 在用户消息前添加/no_think指令
-                        dialogue_copy[i]["content"] = "/no_think " + dialogue_copy[i]["content"]
+                        dialogue_copy[i]["content"] = (
+                            "/no_think " + dialogue_copy[i]["content"]
+                        )
                         logger.bind(tag=TAG).debug(f"为qwen3模型添加/no_think指令")
                         break
 
@@ -43,9 +45,7 @@ class LLMProvider(LLMProviderBase):
                 dialogue = dialogue_copy
 
             responses = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=dialogue,
-                stream=True
+                model=self.model_name, messages=dialogue, stream=True
             )
             is_active = True
             # 用于处理跨chunk的标签
@@ -53,29 +53,33 @@ class LLMProvider(LLMProviderBase):
 
             for chunk in responses:
                 try:
-                    delta = chunk.choices[0].delta if getattr(chunk, 'choices', None) else None
-                    content = delta.content if hasattr(delta, 'content') else ''
+                    delta = (
+                        chunk.choices[0].delta
+                        if getattr(chunk, "choices", None)
+                        else None
+                    )
+                    content = delta.content if hasattr(delta, "content") else ""
 
                     if content:
                         # 将内容添加到缓冲区
                         buffer += content
 
                         # 处理缓冲区中的标签
-                        while '<think>' in buffer and '</think>' in buffer:
+                        while "<think>" in buffer and "</think>" in buffer:
                             # 找到完整的<think></think>标签并移除
-                            pre = buffer.split('<think>', 1)[0]
-                            post = buffer.split('</think>', 1)[1]
+                            pre = buffer.split("<think>", 1)[0]
+                            post = buffer.split("</think>", 1)[1]
                             buffer = pre + post
 
                         # 处理只有开始标签的情况
-                        if '<think>' in buffer:
+                        if "<think>" in buffer:
                             is_active = False
-                            buffer = buffer.split('<think>', 1)[0]
+                            buffer = buffer.split("<think>", 1)[0]
 
                         # 处理只有结束标签的情况
-                        if '</think>' in buffer:
+                        if "</think>" in buffer:
                             is_active = True
-                            buffer = buffer.split('</think>', 1)[1]
+                            buffer = buffer.split("</think>", 1)[1]
 
                         # 如果当前处于活动状态且缓冲区有内容，则输出
                         if is_active and buffer:
@@ -100,7 +104,9 @@ class LLMProvider(LLMProviderBase):
                 for i in range(len(dialogue_copy) - 1, -1, -1):
                     if dialogue_copy[i]["role"] == "user":
                         # 在用户消息前添加/no_think指令
-                        dialogue_copy[i]["content"] = "/no_think " + dialogue_copy[i]["content"]
+                        dialogue_copy[i]["content"] = (
+                            "/no_think " + dialogue_copy[i]["content"]
+                        )
                         logger.bind(tag=TAG).debug(f"为qwen3模型添加/no_think指令")
                         break
 
@@ -119,9 +125,15 @@ class LLMProvider(LLMProviderBase):
 
             for chunk in stream:
                 try:
-                    delta = chunk.choices[0].delta if getattr(chunk, 'choices', None) else None
-                    content = delta.content if hasattr(delta, 'content') else None
-                    tool_calls = delta.tool_calls if hasattr(delta, 'tool_calls') else None
+                    delta = (
+                        chunk.choices[0].delta
+                        if getattr(chunk, "choices", None)
+                        else None
+                    )
+                    content = delta.content if hasattr(delta, "content") else None
+                    tool_calls = (
+                        delta.tool_calls if hasattr(delta, "tool_calls") else None
+                    )
 
                     # 如果是工具调用，直接传递
                     if tool_calls:
@@ -134,21 +146,21 @@ class LLMProvider(LLMProviderBase):
                         buffer += content
 
                         # 处理缓冲区中的标签
-                        while '<think>' in buffer and '</think>' in buffer:
+                        while "<think>" in buffer and "</think>" in buffer:
                             # 找到完整的<think></think>标签并移除
-                            pre = buffer.split('<think>', 1)[0]
-                            post = buffer.split('</think>', 1)[1]
+                            pre = buffer.split("<think>", 1)[0]
+                            post = buffer.split("</think>", 1)[1]
                             buffer = pre + post
 
                         # 处理只有开始标签的情况
-                        if '<think>' in buffer:
+                        if "<think>" in buffer:
                             is_active = False
-                            buffer = buffer.split('<think>', 1)[0]
+                            buffer = buffer.split("<think>", 1)[0]
 
                         # 处理只有结束标签的情况
-                        if '</think>' in buffer:
+                        if "</think>" in buffer:
                             is_active = True
-                            buffer = buffer.split('</think>', 1)[1]
+                            buffer = buffer.split("</think>", 1)[1]
 
                         # 如果当前处于活动状态且缓冲区有内容，则输出
                         if is_active and buffer:

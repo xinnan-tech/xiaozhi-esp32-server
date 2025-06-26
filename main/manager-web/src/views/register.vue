@@ -201,6 +201,7 @@ export default {
 
       // 验证图形验证码
       if (!this.validateInput(this.form.captcha, '请输入图形验证码')) {
+        this.fetchCaptcha();
         return;
       }
 

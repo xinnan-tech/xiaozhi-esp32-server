@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :visible="visible" @update:visible="handleVisibleChange" width="57%" center custom-class="custom-dialog"
+  <el-dialog :visible="visible" :close-on-click-modal="false" @update:visible="handleVisibleChange" width="57%" center custom-class="custom-dialog"
     :show-close="false" class="center-dialog">
 
     <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
@@ -18,7 +18,7 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="供应器编码" prop="providerCode" style="flex: 1;">
+          <el-form-item label="编码" prop="providerCode" style="flex: 1;">
             <el-input v-model="form.providerCode" placeholder="请输入供应器编码" class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
@@ -87,6 +87,7 @@
                     <el-option label="数字" value="number"></el-option>
                     <el-option label="布尔值" value="boolean"></el-option>
                     <el-option label="字典" value="dict"></el-option>
+                    <el-option label="分号分割的列表" value="array"></el-option>
                   </el-select>
                 </template>
                 <template v-else>
@@ -97,10 +98,10 @@
             <el-table-column label="默认值">
               <template slot-scope="scope">
                 <template v-if="scope.row.editing">
-                  <el-input v-model="scope.row.default_value" placeholder="请输入默认值"></el-input>
+                  <el-input v-model="scope.row.default" placeholder="请输入默认值"></el-input>
                 </template>
                 <template v-else>
-                  {{ scope.row.default_value }}
+                  {{ scope.row.default }}
                 </template>
               </template>
             </el-table-column>
@@ -161,7 +162,8 @@ export default {
         'string': '字符串',
         'number': '数字',
         'boolean': '布尔值',
-        'dict': '字典'
+        'dict': '字典',
+        'array': '分号分割的列表'
       };
       return typeMap[type];
     },
@@ -220,7 +222,7 @@ export default {
         key: '',
         label: '',
         type: 'string',
-        default_value: '',
+        default: '',
         selected: false,
         editing: true
       });

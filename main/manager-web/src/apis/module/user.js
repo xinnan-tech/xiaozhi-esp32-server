@@ -169,4 +169,28 @@ export default {
                 });
             }).send();
     },
+    // 找回用户密码
+    retrievePassword(passwordData, callback, failCallback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/user/retrieve-password`)
+            .method('PUT')
+            .data({
+                phone: passwordData.phone,
+                code: passwordData.code,
+                password: passwordData.password
+            })
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .fail((err) => {
+                RequestService.clearRequestTime();
+                failCallback(err);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.retrievePassword(passwordData, callback, failCallback);
+                });
+            }).send()
+    }
 }

@@ -1,17 +1,14 @@
 import time
-import io
-import wave
 import os
-from typing import Optional, Tuple, List
 import uuid
-import websockets
 import json
 import gzip
-
-import opuslib_next
-from core.providers.asr.base import ASRProviderBase
-
+import websockets
 from config.logger import setup_logging
+from typing import Optional, Tuple, List
+from core.providers.asr.base import ASRProviderBase
+from core.providers.asr.dto.dto import InterfaceType
+
 
 TAG = __name__
 logger = setup_logging()
@@ -86,6 +83,7 @@ def parse_response(res):
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
         super().__init__()
+        self.interface_type = InterfaceType.NON_STREAM
         self.appid = config.get("appid")
         self.cluster = config.get("cluster")
         self.access_token = config.get("access_token")
@@ -101,20 +99,6 @@ class ASRProvider(ASRProviderBase):
 
         # 确保输出目录存在
         os.makedirs(self.output_dir, exist_ok=True)
-
-    def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:
-        """PCM数据保存为WAV文件"""
-        module_name = __name__.split(".")[-1]
-        file_name = f"asr_{module_name}_{session_id}_{uuid.uuid4()}.wav"
-        file_path = os.path.join(self.output_dir, file_name)
-
-        with wave.open(file_path, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)  # 2 bytes = 16-bit
-            wf.setframerate(16000)
-            wf.writeframes(b"".join(pcm_data))
-
-        return file_path
 
     @staticmethod
     def _generate_header(
@@ -184,6 +168,7 @@ class ASRProvider(ASRProviderBase):
                 if (
                     "payload_msg" in result
                     and result["payload_msg"]["code"] != self.success_code
+                    and result["payload_msg"]["code"] != 1013  # 忽略无有效语音的错误
                 ):
                     logger.bind(tag=TAG).error(f"ASR error: {result}")
                     return None
@@ -219,6 +204,9 @@ class ASRProvider(ASRProviderBase):
                     if len(result["payload_msg"]["result"]) > 0:
                         return result["payload_msg"]["result"][0]["text"]
                     return None
+                elif "payload_msg" in result and result["payload_msg"]["code"] == 1013:
+                    # 无有效语音，返回空字符串
+                    return ""
                 else:
                     logger.bind(tag=TAG).error(f"ASR error: {result}")
                     return None
@@ -244,14 +232,14 @@ class ASRProvider(ASRProviderBase):
             yield data[offset:data_len], True
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str
+        self, opus_data: List[bytes], session_id: str, audio_format="opus"
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
 
         file_path = None
         try:
             # 合并所有opus数据包
-            if self.audio_format == "pcm":
+            if audio_format == "pcm":
                 pcm_data = opus_data
             else:
                 pcm_data = self.decode_opus(opus_data)

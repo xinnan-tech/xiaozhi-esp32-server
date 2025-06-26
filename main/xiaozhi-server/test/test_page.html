@@ -14,7 +14,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             background-color: white;
             border-radius: 10px;
@@ -482,9 +482,10 @@
                 </span>
             </h2>
             <div class="connection-controls">
-                <input type="text" id="otaUrl" value="http://127.0.0.1:8002/xiaozhi/ota/" placeholder="OTA服务器地址" />
+                <input type="text" id="otaUrl" value="http://127.0.0.1:8002/xiaozhi/ota/"
+                    placeholder="OTA服务器地址，如：http://127.0.0.1:8002/xiaozhi/ota/" />
                 <input type="text" id="serverUrl" value="ws://127.0.0.1:8000/xiaozhi/v1/"
-                    placeholder="WebSocket服务器地址" />
+                    placeholder="WebSocket服务器地址，如：ws://127.0.0.1:8000/xiaozhi/v1/" />
                 <button id="connectButton">连接</button>
                 <button id="authTestButton">测试认证</button>
             </div>
@@ -802,7 +803,10 @@
                                         if (frameData && frameData.length > 0) {
                                             // 转换为Float32
                                             const floatData = convertInt16ToFloat32(frameData);
-                                            decodedSamples.push(...floatData);
+                                            // 使用循环替代展开运算符
+                                            for (let i = 0; i < floatData.length; i++) {
+                                                decodedSamples.push(floatData[i]);
+                                            }
                                         }
                                     } catch (error) {
                                         log("Opus解码失败: " + error.message, 'error');
@@ -810,8 +814,10 @@
                                 }
 
                                 if (decodedSamples.length > 0) {
-                                    // 添加到解码队列
-                                    this.queue.push(...decodedSamples);
+                                    // 使用循环替代展开运算符
+                                    for (let i = 0; i < decodedSamples.length; i++) {
+                                        this.queue.push(decodedSamples[i]);
+                                    }
                                     this.totalSamples += decodedSamples.length;
 
                                     // 如果累积了至少0.2秒的音频，开始播放
@@ -867,35 +873,39 @@
                                     this.source = null;
                                     this.playing = false;
 
-                                    // 如果队列中还有数据或者缓冲区有新数据，继续播放
-                                    if (this.queue.length > 0) {
-                                        setTimeout(() => this.startPlaying(), 10);
-                                    } else if (audioBufferQueue.length > 0) {
-                                        // 缓冲区有新数据，进行解码
-                                        const frames = [...audioBufferQueue];
-                                        audioBufferQueue = [];
-                                        this.decodeOpusFrames(frames);
-                                    } else if (this.endOfStream) {
-                                        // 流已结束且没有更多数据
-                                        log("音频播放完成", 'info');
-                                        isAudioPlaying = false;
-                                        streamingContext = null;
-                                    } else {
-                                        // 等待更多数据
-                                        setTimeout(() => {
-                                            // 如果仍然没有新数据，但有更多的包到达
-                                            if (this.queue.length === 0 && audioBufferQueue.length > 0) {
-                                                const frames = [...audioBufferQueue];
-                                                audioBufferQueue = [];
-                                                this.decodeOpusFrames(frames);
-                                            } else if (this.queue.length === 0 && audioBufferQueue.length === 0) {
-                                                // 真的没有更多数据了
-                                                log("音频播放完成 (超时)", 'info');
-                                                isAudioPlaying = false;
-                                                streamingContext = null;
-                                            }
-                                        }, 500); // 500ms超时
-                                    }
+                                    // 使用setTimeout避免递归调用
+                                    setTimeout(() => {
+                                        // 如果队列中还有数据，继续播放
+                                        if (this.queue.length > 0) {
+                                            this.startPlaying();
+                                        } else if (audioBufferQueue.length > 0) {
+                                            // 缓冲区有新数据，进行解码
+                                            const frames = [...audioBufferQueue];
+                                            audioBufferQueue = [];
+                                            this.decodeOpusFrames(frames);
+                                        } else if (this.endOfStream) {
+                                            // 流已结束且没有更多数据
+                                            log("音频播放完成", 'info');
+                                            isAudioPlaying = false;
+                                            this.endOfStream = false;
+                                            streamingContext = null;
+                                        } else {
+                                            // 等待更多数据
+                                            setTimeout(() => {
+                                                // 如果仍然没有新数据，但有更多的包到达
+                                                if (this.queue.length === 0 && audioBufferQueue.length > 0) {
+                                                    const frames = [...audioBufferQueue];
+                                                    audioBufferQueue = [];
+                                                    this.decodeOpusFrames(frames);
+                                                } else if (this.queue.length === 0 && audioBufferQueue.length === 0) {
+                                                    // 真的没有更多数据了
+                                                    log("音频播放完成 (超时)", 'info');
+                                                    isAudioPlaying = false;
+                                                    streamingContext = null;
+                                                }
+                                            }, 500); // 500ms超时
+                                        }
+                                    }, 10); // 10ms延迟，避免立即递归
                                 };
 
                                 this.source.start();
@@ -1061,7 +1071,7 @@
             }
         }
 
-        // 初始化音频录制和处理 
+        // 初始化音频录制和处理
         async function initAudio() {
             try {
                 // 请求麦克风权限
@@ -1306,7 +1316,8 @@
                 // 先检查OTA状态
                 log('正在检查OTA状态...', 'info');
                 const otaUrl = document.getElementById('otaUrl').value.trim();
-
+                localStorage.setItem('otaUrl', otaUrl);
+                localStorage.setItem('wsUrl', url);
                 try {
                     const otaResponse = await fetch(otaUrl, {
                         method: 'POST',
@@ -1473,6 +1484,23 @@
                                 if (message.text && message.text !== '😊') {
                                     addMessage(message.text);
                                 }
+                            }else if (message.type === 'mcp') {
+                                const payload = message.payload || {};
+                                log(`服务器下发: ${JSON.stringify(message)}`, 'info');
+                                if (payload) {
+                                    // 模拟小智客户端行为
+                                    if(payload.method === 'tools/list'){
+                                        const replay_message = JSON.stringify({"session_id":"","type":"mcp","payload":{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"self.get_device_status","description":"Provides the real-time information of the device, including the current status of the audio speaker, screen, battery, network, etc.\nUse this tool for: \n1. Answering questions about current condition (e.g. what is the current volume of the audio speaker?)\n2. As the first step to control the device (e.g. turn up / down the volume of the audio speaker, etc.)","inputSchema":{"type":"object","properties":{}}},{"name":"self.audio_speaker.set_volume","description":"Set the volume of the audio speaker. If the current volume is unknown, you must call `self.get_device_status` tool first and then call this tool.","inputSchema":{"type":"object","properties":{"volume":{"type":"integer","minimum":0,"maximum":100}},"required":["volume"]}},{"name":"self.screen.set_brightness","description":"Set the brightness of the screen.","inputSchema":{"type":"object","properties":{"brightness":{"type":"integer","minimum":0,"maximum":100}},"required":["brightness"]}},{"name":"self.screen.set_theme","description":"Set the theme of the screen. The theme can be 'light' or 'dark'.","inputSchema":{"type":"object","properties":{"theme":{"type":"string"}},"required":["theme"]}}]}}})
+                                        websocket.send(replay_message);
+                                        log(`回复MCP消息: ${replay_message}`, 'info');
+                                    } else if(payload.method === 'tools/call'){
+                                        // 模拟回复
+                                        const replay_message = JSON.stringify({"session_id":"9f261599","type":"mcp","payload":{"jsonrpc":"2.0","id": payload.id,"result":{"content":[{"type":"text","text":"true"}],"isError":false}}})
+                                        websocket.send(replay_message);
+                                        log(`回复MCP消息: ${replay_message}`, 'info');
+                                    }
+                                }
+                                
                             } else {
                                 // 未知消息类型
                                 log(`未知消息类型: ${message.type}`, 'info');
@@ -1512,7 +1540,10 @@
                     device_id: config.deviceId,
                     device_name: config.deviceName,
                     device_mac: config.deviceMac,
-                    token: config.token
+                    token: config.token,
+                    features: {
+                        mcp: true
+                    }
                 };
 
                 log('发送hello握手消息', 'info');
@@ -1562,6 +1593,10 @@
         function sendTextMessage() {
             const message = messageInput.value.trim();
             if (message === '' || !websocket || websocket.readyState !== WebSocket.OPEN) return;
+
+            audioBufferQueue = [];
+            isAudioBuffering = false;
+            isAudioPlaying = false;
 
             try {
                 // 直接发送listen消息，不需要重复发送hello
@@ -1632,6 +1667,16 @@
 
             // 初始更新显示值
             updateDisplayValues();
+
+            const savedOtaUrl = localStorage.getItem('otaUrl');
+            if (savedOtaUrl) {
+                document.getElementById('otaUrl').value = savedOtaUrl;
+            }
+
+            const savedWsUrl = localStorage.getItem('wsUrl');
+            if (savedWsUrl) {
+                document.getElementById('serverUrl').value = savedWsUrl;
+            }
 
             // 切换面板显示
             toggleButton.addEventListener('click', () => {
@@ -1954,7 +1999,7 @@
                     this.buffer = new Int16Array(this.frameSize);
                     this.bufferIndex = 0;
                     this.isRecording = false;
-                    
+
                     // 监听来自主线程的消息
                     this.port.onmessage = (event) => {
                         if (event.data.command === 'start') {
@@ -1962,7 +2007,7 @@
                             this.port.postMessage({ type: 'status', status: 'started' });
                         } else if (event.data.command === 'stop') {
                             this.isRecording = false;
-                            
+
                             // 发送剩余的缓冲区
                             if (this.bufferIndex > 0) {
                                 const finalBuffer = this.buffer.slice(0, this.bufferIndex);
@@ -1972,18 +2017,18 @@
                                 });
                                 this.bufferIndex = 0;
                             }
-                            
+
                             this.port.postMessage({ type: 'status', status: 'stopped' });
                         }
                     };
                 }
-                
+
                 process(inputs, outputs, parameters) {
                     if (!this.isRecording) return true;
-                    
+
                     const input = inputs[0][0]; // 获取第一个输入通道
                     if (!input) return true;
-                    
+
                     // 将浮点采样转换为16位整数并存储
                     for (let i = 0; i < input.length; i++) {
                         if (this.bufferIndex >= this.frameSize) {
@@ -1994,15 +2039,15 @@
                             });
                             this.bufferIndex = 0;
                         }
-                        
+
                         // 转换为16位整数 (-32768到32767)
                         this.buffer[this.bufferIndex++] = Math.max(-32768, Math.min(32767, Math.floor(input[i] * 32767)));
                     }
-                    
+
                     return true;
                 }
             }
-            
+
             registerProcessor('audio-recorder-processor', AudioRecorderProcessor);
         `;
 

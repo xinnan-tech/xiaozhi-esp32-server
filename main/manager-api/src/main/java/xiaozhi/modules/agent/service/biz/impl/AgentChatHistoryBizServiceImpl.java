@@ -47,7 +47,8 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
     public Boolean report(AgentChatHistoryReportDTO report) {
         String macAddress = report.getMacAddress();
         Byte chatType = report.getChatType();
-        log.info("小智设备聊天上报请求: macAddress={}, type={}", macAddress, chatType);
+        Long reportTimeMillis = null != report.getReportTime() ? report.getReportTime() * 1000 : System.currentTimeMillis();
+        log.info("小智设备聊天上报请求: macAddress={}, type={} reportTime={}", macAddress, chatType, reportTimeMillis);
 
         // 根据设备MAC地址查询对应的默认智能体，判断是否需要上报
         AgentEntity agentEntity = agentService.getDefaultAgentByMacAddress(macAddress);
@@ -59,10 +60,10 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
         String agentId = agentEntity.getId();
 
         if (Objects.equals(chatHistoryConf, Constant.ChatHistoryConfEnum.RECORD_TEXT.getCode())) {
-            saveChatText(report, agentId, macAddress, null);
+            saveChatText(report, agentId, macAddress, null, reportTimeMillis);
         } else if (Objects.equals(chatHistoryConf, Constant.ChatHistoryConfEnum.RECORD_TEXT_AUDIO.getCode())) {
             String audioId = saveChatAudio(report);
-            saveChatText(report, agentId, macAddress, audioId);
+            saveChatText(report, agentId, macAddress, audioId, reportTimeMillis);
         }
 
         // 更新设备最后对话时间
@@ -92,8 +93,7 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
     /**
      * 组装上报数据
      */
-    private void saveChatText(AgentChatHistoryReportDTO report, String agentId, String macAddress, String audioId) {
-
+    private void saveChatText(AgentChatHistoryReportDTO report, String agentId, String macAddress, String audioId, Long reportTime) {
         // 构建聊天记录实体
         AgentChatHistoryEntity entity = AgentChatHistoryEntity.builder()
                 .macAddress(macAddress)
@@ -102,6 +102,8 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
                 .chatType(report.getChatType())
                 .content(report.getContent())
                 .audioId(audioId)
+                .createdAt(new Date(reportTime))
+                // NOTE(haotian): 2025/5/26 updateAt可以不设置，重点是createAt，而且这样可以看到上报延迟
                 .build();
 
         // 保存数据

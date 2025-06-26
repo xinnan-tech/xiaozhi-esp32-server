@@ -1,9 +1,8 @@
 import json
 import asyncio
-from config.logger import setup_logging
 from plugins_func.register import (
-    device_type_registry,
-    register_function,
+    FunctionItem,
+    register_device_function,
     ActionResponse,
     Action,
     ToolType,
@@ -83,7 +82,11 @@ def create_iot_function(device_name, method_name, method_info):
                     response = response.replace("{value}", str(param_value))
                     break
 
-            return ActionResponse(Action.RESPONSE, result, response)
+            return ActionResponse(
+                                  Action.REQLLM, 
+                                  result=f"{device_name}操作执行成功，请继续处理剩余指令",
+                                  response=response_success  # 保留成功提示
+                                  )
         except Exception as e:
             conn.logger.bind(tag=TAG).error(
                 f"执行{device_name}的{method_name}操作失败: {e}"
@@ -177,7 +180,7 @@ class IotDescriptor:
                 self.methods.append(method)
 
 
-def register_device_type(descriptor):
+def register_device_type(descriptor, device_type_registry):
     """注册设备类型及其功能"""
     device_name = descriptor["name"]
     type_id = device_type_registry.generate_device_type_id(descriptor)
@@ -213,10 +216,12 @@ def register_device_type(descriptor):
             },
         }
         query_func = create_iot_query_function(device_name, prop_name, prop_info)
-        decorated_func = register_function(func_name, func_desc, ToolType.IOT_CTL)(
-            query_func
+        decorated_func = register_device_function(
+            func_name, func_desc, ToolType.IOT_CTL
+        )(query_func)
+        functions[func_name] = FunctionItem(
+            func_name, func_desc, decorated_func, ToolType.IOT_CTL
         )
-        functions[func_name] = decorated_func
 
     # 为每个方法创建控制函数
     for method_name, method_info in descriptor["methods"].items():
@@ -267,10 +272,12 @@ def register_device_type(descriptor):
             },
         }
         control_func = create_iot_function(device_name, method_name, method_info)
-        decorated_func = register_function(func_name, func_desc, ToolType.IOT_CTL)(
-            control_func
+        decorated_func = register_device_function(
+            func_name, func_desc, ToolType.IOT_CTL
+        )(control_func)
+        functions[func_name] = FunctionItem(
+            func_name, func_desc, decorated_func, ToolType.IOT_CTL
         )
-        functions[func_name] = decorated_func
 
     device_type_registry.register_device_type(type_id, functions)
     return type_id
@@ -289,7 +296,6 @@ async def handleIotDescriptors(conn, descriptors):
     functions_changed = False
 
     for descriptor in descriptors:
-
         # 如果descriptor没有properties和methods，则直接跳过
         if "properties" not in descriptor and "methods" not in descriptor:
             continue
@@ -319,13 +325,16 @@ async def handleIotDescriptors(conn, descriptors):
 
         if conn.load_function_plugin:
             # 注册或获取设备类型
-            type_id = register_device_type(descriptor)
+            device_type_registry = conn.func_handler.device_type_registry
+            type_id = register_device_type(descriptor, device_type_registry)
             device_functions = device_type_registry.get_device_functions(type_id)
 
             # 在连接级注册设备函数
             if hasattr(conn, "func_handler"):
-                for func_name in device_functions:
-                    conn.func_handler.function_registry.register_function(func_name)
+                for func_name, func_item in device_functions.items():
+                    conn.func_handler.function_registry.register_function(
+                        func_name, func_item
+                    )
                     conn.logger.bind(tag=TAG).info(
                         f"注册IOT函数到function handler: {func_name}"
                     )
@@ -334,6 +343,7 @@ async def handleIotDescriptors(conn, descriptors):
     # 如果注册了新函数，更新function描述列表
     if functions_changed and hasattr(conn, "func_handler"):
         conn.func_handler.upload_functions_desc()
+
         func_names = conn.func_handler.current_support_functions()
         conn.logger.bind(tag=TAG).info(f"设备类型: {type_id}")
         conn.logger.bind(tag=TAG).info(

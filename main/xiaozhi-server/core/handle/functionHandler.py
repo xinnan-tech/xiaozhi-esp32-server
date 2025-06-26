@@ -1,6 +1,12 @@
 from config.logger import setup_logging
 import json
-from plugins_func.register import FunctionRegistry, ActionResponse, Action, ToolType
+from plugins_func.register import (
+    FunctionRegistry,
+    ActionResponse,
+    Action,
+    ToolType,
+    DeviceTypeRegistry,
+)
 from plugins_func.functions.hass_init import append_devices_to_prompt
 
 TAG = __name__
@@ -10,29 +16,16 @@ class FunctionHandler:
     def __init__(self, conn):
         self.conn = conn
         self.config = conn.config
+        self.device_type_registry = DeviceTypeRegistry()
         self.function_registry = FunctionRegistry()
         self.register_nessary_functions()
         self.register_config_functions()
         self.functions_desc = self.function_registry.get_all_function_desc()
-        func_names = self.current_support_functions()
-        self.modify_plugin_loader_des(func_names)
         self.finish_init = True
-
-    def modify_plugin_loader_des(self, func_names):
-        if "plugin_loader" not in func_names:
-            return
-        # 可编辑的列表中去掉plugin_loader
-        surport_plugins = [func for func in func_names if func != "plugin_loader"]
-        func_names = ",".join(surport_plugins)
-        for function_desc in self.functions_desc:
-            if function_desc["function"]["name"] == "plugin_loader":
-                function_desc["function"]["description"] = function_desc["function"][
-                    "description"
-                ].replace("[plugins]", func_names)
-                break
-
+    
     def upload_functions_desc(self):
         self.functions_desc = self.function_registry.get_all_function_desc()
+
 
     def current_support_functions(self):
         func_names = []
@@ -51,10 +44,8 @@ class FunctionHandler:
     def register_nessary_functions(self):
         """注册必要的函数"""
         self.function_registry.register_function("handle_exit_intent")
-        self.function_registry.register_function("plugin_loader")
         self.function_registry.register_function("get_time")
         self.function_registry.register_function("get_lunar")
-        self.function_registry.register_function("handle_device")
 
     def register_config_functions(self):
         """注册配置中的函数,可以不同客户端使用不同的配置"""
@@ -70,6 +61,16 @@ class FunctionHandler:
         return self.function_registry.get_function(name)
 
     def handle_llm_function_call(self, conn, function_call_data):
+        # 多函数调用处理
+        if "function_calls" in function_call_data:
+            responses = []
+            for call in function_call_data["function_calls"]:
+                func = self.get_function(call["name"])
+                if func:
+                    # 执行函数并收集响应
+                    response = func(conn, **call.get("arguments", {}))
+                    responses.append(response)
+            return self._combine_responses(responses)  # 合并响应
         try:
             function_name = function_call_data["name"]
             funcItem = self.get_function(function_name)

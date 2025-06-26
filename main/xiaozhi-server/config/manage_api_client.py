@@ -160,7 +160,7 @@ def save_mem_local_short(mac_address: str, short_momery: str) -> Optional[Dict]:
 
 
 def report(
-    mac_address: str, session_id: str, chat_type: int, content: str, audio
+    mac_address: str, session_id: str, chat_type: int, content: str, audio, report_time
 ) -> Optional[Dict]:
     """带熔断的业务方法示例"""
     if not content or not ManageApiClient._instance:
@@ -174,6 +174,7 @@ def report(
                 "sessionId": session_id,
                 "chatType": chat_type,
                 "content": content,
+                "reportTime": report_time,
                 "audioBase64": (
                     base64.b64encode(audio).decode("utf-8") if audio else None
                 ),

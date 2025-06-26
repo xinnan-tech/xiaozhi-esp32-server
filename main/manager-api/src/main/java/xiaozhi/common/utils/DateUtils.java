@@ -21,6 +21,8 @@ public class DateUtils {
      * 时间格式(yyyy-MM-dd HH:mm:ss)
      */
     public final static String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
+    public final static String DATE_TIME_MILLIS_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
+
 
     /**
      * 日期格式化 日期格式为：yyyy-MM-dd
@@ -61,6 +63,19 @@ public class DateUtils {
             e.printStackTrace();
         }
         return null;
+    }
+
+
+    public static String getDateTimeNow() {
+        return getDateTimeNow(DATE_TIME_PATTERN);
+    }
+
+    public static String getDateTimeNow(String pattern) {
+        return format(new Date(), pattern);
+    }
+
+    public static String millsToSecond(long mills) {
+        return String.format("%.3f", mills / 1000.0);
     }
 
     /**

@@ -30,6 +30,9 @@
           <el-menu-item index="llm">
             <span class="menu-text">大语言模型</span>
           </el-menu-item>
+          <el-menu-item index="vllm">
+            <span class="menu-text">视觉大模型</span>
+          </el-menu-item>
           <el-menu-item index="intent">
             <span class="menu-text">意图识别</span>
           </el-menu-item>
@@ -173,6 +176,7 @@ export default {
         vad: '语言活动检测模型(VAD)',
         asr: '语音识别模型(ASR)',
         llm: '大语言模型（LLM）',
+        vllm: '视觉大模型（VLLM）',
         intent: '意图识别模型(Intent)',
         tts: '语音合成模型(TTS)',
         memory: '记忆模型(Memory)'
@@ -467,7 +471,7 @@ export default {
 .main-wrapper {
   margin: 5px 22px;
   border-radius: 15px;
-  min-height: calc(100vh - 24vh);
+  min-height: calc(100vh - 26vh);
   height: auto;
   max-height: 80vh;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);

@@ -14,7 +14,7 @@ class LLMProvider(LLMProviderBase):
         self.base_url = config.get("base_url", config.get("url"))  # 默认使用 base_url
         self.api_url = f"{self.base_url}/api/conversation/process"  # 拼接完整的 API URL
 
-    def response(self, session_id, dialogue):
+    def response(self, session_id, dialogue, **kwargs):
         try:
             # home assistant语音助手自带意图，无需使用xiaozhi ai自带的，只需要把用户说的话传递给home assistant即可
 

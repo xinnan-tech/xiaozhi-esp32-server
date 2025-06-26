@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.agent.dao.AgentPluginMappingMapper">
+
+    <resultMap id="BaseResultMap" type="xiaozhi.modules.agent.entity.AgentPluginMapping">
+        <id property="id" column="id" jdbcType="BIGINT"/>
+        <result property="agentId" column="agent_id" jdbcType="VARCHAR"/>
+        <result property="pluginId" column="plugin_id" jdbcType="VARCHAR"/>
+        <result property="paramInfo" column="param_info" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!-- 用于映射根据agentId查询完整插件信息 -->
+    <resultMap id="AgentPluginWithCodeMap" type="xiaozhi.modules.agent.entity.AgentPluginMapping">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="agentId" property="agentId" jdbcType="VARCHAR"/>
+        <result column="pluginId" property="pluginId" jdbcType="VARCHAR"/>
+        <result column="paramInfo" property="paramInfo" jdbcType="VARCHAR"/>
+        <result column="providerCode" property="providerCode" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,agent_id,plugin_id
+    </sql>
+
+
+    <select id="selectPluginsByAgentId" resultMap="AgentPluginWithCodeMap">
+        SELECT m.id         AS id,
+               m.agent_id   AS agentId,
+               m.plugin_id  AS pluginId,
+               m.param_info AS paramInfo,
+               (
+                   SELECT
+                       p.provider_code
+                   FROM
+                       ai_model_provider p
+                   WHERE
+                       p.id = m.plugin_id
+                   LIMIT
+                       1
+                )    AS providerCode
+        FROM ai_agent_plugin_mapping m
+        WHERE m.agent_id = #{agentId}
+    </select>
+
+
+</mapper>

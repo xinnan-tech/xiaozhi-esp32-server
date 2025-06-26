@@ -12,12 +12,14 @@ class MemoryProvider(MemoryProviderBase):
         super().__init__(config)
         self.api_key = config.get("api_key", "")
         self.api_version = config.get("api_version", "v1.1")
-        have_key = check_model_key("Mem0ai", self.api_key)
-        if not have_key:
+        model_key_msg = check_model_key("Mem0ai", self.api_key)
+        if model_key_msg:
+            logger.bind(tag=TAG).error(model_key_msg)
             self.use_mem0 = False
             return
         else:
             self.use_mem0 = True
+
         try:
             self.client = MemoryClient(api_key=self.api_key)
             logger.bind(tag=TAG).info("成功连接到 Mem0ai 服务")

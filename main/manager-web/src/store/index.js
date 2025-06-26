@@ -13,6 +13,8 @@ export default new Vuex.Store({
     isSuperAdmin: false, // 添加superAdmin状态
     pubConfig: { // 添加公共配置存储
       version: '',
+      beianIcpNum: 'null',
+      beianGaNum: 'null',
       allowUserRegister: false
     }
   },

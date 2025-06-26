@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :visible.sync="dialogVisible" width="57%" center custom-class="custom-dialog" :show-close="false"
+  <el-dialog :visible.sync="dialogVisible" :close-on-click-modal="false" width="57%" center custom-class="custom-dialog" :show-close="false"
     class="center-dialog" >
     <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
       <div style="font-size: 30px; color: #3d4566; margin-top: -10px; margin-bottom: 10px; text-align: center;">
@@ -66,9 +66,12 @@
           <div :key="rowIndex" style="display: flex; gap: 20px; margin-bottom: 0;">
             <el-form-item v-for="field in row" :key="field.prop" :label="field.label" :prop="field.prop"
               style="flex: 1;">
-              <el-input v-model="form.configJson[field.prop]" :placeholder="field.placeholder" :type="field.type"
-                class="custom-input-bg" :show-password="field.type === 'password'">
-              </el-input>
+              <template v-if="field.type === 'json-textarea'">
+                <el-input v-model="fieldJsonMap[field.prop]" type="textarea" :rows="3" placeholder="请输入JSON格式变量(示例:{'key':'value'})"
+                  class="custom-input-bg" @change="(val) => handleJsonChange(field.prop, val)"></el-input>
+              </template>
+              <el-input v-else v-model="form.configJson[field.prop]" :placeholder="field.placeholder" :type="field.type"
+                class="custom-input-bg" :show-password="field.type === 'password'"></el-input>
             </el-form-item>
           </div>
         </template>
@@ -112,6 +115,7 @@ export default {
       pendingProviderType: null,
       pendingModelData: null,
       dynamicCallInfoFields: [],
+      fieldJsonMap: {}, // 用于存储JSON字段的字符串形式
       form: {
         id: "",
         modelType: "",
@@ -175,9 +179,7 @@ export default {
         sort: 0,
         configJson: {}
       };
-      this.dynamicCallInfoFields.forEach(field => {
-        this.$set(this.form.configJson, field.prop, '');
-      });
+      this.fieldJsonMap = {};
     },
     resetProviders() {
       this.providers = [];
@@ -203,7 +205,14 @@ export default {
     handleSave() {
       this.saving = true; // 开始保存加载
 
-      const provideCode = this.form.configJson.type;
+      // 处理所有JSON字段
+      Object.keys(this.fieldJsonMap).forEach(key => {
+        const parsed = this.validateJson(this.fieldJsonMap[key]);
+        if (parsed !== null) {
+          this.form.configJson[key] = parsed;
+        }
+      });
+
       const formData = {
         id: this.modelData.id,
         modelCode: this.form.modelCode,
@@ -213,13 +222,11 @@ export default {
         docLink: this.form.docLink,
         remark: this.form.remark,
         sort: this.form.sort || 0,
-        configJson: {
-          ...this.form.configJson,
-        }
+        configJson: { ...this.form.configJson }
       };
 
       this.$emit("save", {
-        provideCode,
+        provideCode: this.form.configJson.type,
         formData,
         done: () => {
           this.saving = false; // 保存完成后回调
@@ -240,7 +247,6 @@ export default {
           value: String(item.providerCode)
         }));
         this.providersLoaded = true;
-
         this.allProvidersData = data;
 
         if (this.pendingProviderType) {
@@ -255,7 +261,7 @@ export default {
           this.dynamicCallInfoFields = JSON.parse(provider.fields || '[]').map(f => ({
             label: f.label,
             prop: f.key,
-            type: f.type === 'password' ? 'password' : 'text',
+            type: f.type === 'dict' ? 'json-textarea' : (f.type === 'password' ? 'password' : 'text'),
             placeholder: `请输入${f.label}`
           }));
 
@@ -272,6 +278,9 @@ export default {
       this.dynamicCallInfoFields.forEach(field => {
         if (!configJson.hasOwnProperty(field.prop)) {
           configJson[field.prop] = '';
+        } else if (field.type === 'json-textarea') {
+          this.$set(this.fieldJsonMap, field.prop, this.formatJson(configJson[field.prop]));
+          configJson[field.prop] = this.ensureObject(configJson[field.prop]);
         } else if (typeof configJson[field.prop] !== 'string') {
           configJson[field.prop] = String(configJson[field.prop]);
         }
@@ -287,10 +296,43 @@ export default {
         docLink: model.docLink,
         remark: model.remark,
         sort: Number(model.sort) || 0,
-        configJson: {
-          ...configJson
-        }
+        configJson: { ...configJson }
       };
+    },
+    handleJsonChange(field, value) {
+      const parsed = this.validateJson(value);
+      if (parsed !== null) {
+        this.form.configJson[field] = parsed;
+      }
+    },
+    validateJson(value) {
+      try {
+        const parsed = JSON.parse(value);
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          return parsed;
+        }
+        this.$message.error({
+          message: '必须输入字典格式（如 {"key":"value"}），保存则使用原数据',
+          showClose: true
+        });
+        return null;
+      } catch (e) {
+        this.$message.error({
+          message: 'JSON格式错误（如 {"key":"value"}），保存则使用原数据',
+          showClose: true
+        });
+        return null;
+      }
+    },
+    formatJson(obj) {
+      try {
+        return JSON.stringify(obj, null, 2);
+      } catch {
+        return '';
+      }
+    },
+    ensureObject(value) {
+      return typeof value === 'object' ? value : {};
     }
   }
 };
@@ -315,7 +357,6 @@ export default {
   align-items: center;
   justify-content: center;
 }
-
 
 .custom-close-btn {
   position: absolute;
@@ -452,16 +493,9 @@ export default {
   height: 32px;
 }
 
-
 .custom-form .el-form-item {
   margin-bottom: 20px;
 }
-
-
-.custom-input-bg .el-input__inner {
-  height: 32px;
-}
-
 
 .custom-form .el-form-item__label {
   color: #3d4566;

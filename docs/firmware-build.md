@@ -9,7 +9,7 @@
 ### 如果你用的是简单Server部署
 此刻，请你用浏览器打开你的ota地址，例如我的ota地址
 ```
-http://192.168.1.25:8002/xiaozhi/ota/
+http://192.168.1.25:8003/xiaozhi/ota/
 ```
 如果显示“OTA接口运行正常，向设备发送的websocket地址是：ws://xxx:8000/xiaozhi/v1/
 

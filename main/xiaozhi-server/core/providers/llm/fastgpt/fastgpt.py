@@ -14,9 +14,11 @@ class LLMProvider(LLMProviderBase):
         self.base_url = config.get("base_url")
         self.detail = config.get("detail", False)
         self.variables = config.get("variables", {})
-        check_model_key("FastGPTLLM", self.api_key)
+        model_key_msg = check_model_key("FastGPTLLM", self.api_key)
+        if model_key_msg:
+            logger.bind(tag=TAG).error(model_key_msg)
 
-    def response(self, session_id, dialogue):
+    def response(self, session_id, dialogue, **kwargs):
         try:
             # 取最后一条用户消息
             last_msg = next(m for m in reversed(dialogue) if m["role"] == "user")

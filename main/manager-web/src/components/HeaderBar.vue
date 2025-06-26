@@ -35,10 +35,11 @@
           OTA管理
         </div>
         <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown"
-          :class="{ 'active-tab': $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' }" @visible-change="handleParamDropdownVisibleChange">
+          :class="{ 'active-tab': $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' }"
+          @visible-change="handleParamDropdownVisibleChange">
           <span class="el-dropdown-link">
             <img loading="lazy" alt="" src="@/assets/header/param_management.png"
-              :style="{ filter: $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' ? 'brightness(0) invert(1)' : 'None' }" />
+              :style="{ filter: $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' ? 'brightness(0) invert(1)' : 'None' }" />
             参数字典
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': paramDropdownVisible }"></i>
           </span>
@@ -50,7 +51,10 @@
               字典管理
             </el-dropdown-item>
             <el-dropdown-item @click.native="goProviderManagement">
-              供应器管理
+              字段管理
+            </el-dropdown-item>
+            <el-dropdown-item @click.native="goServerSideManagement">
+              服务端管理
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
@@ -144,6 +148,9 @@ export default {
     },
     goProviderManagement() {
       this.$router.push('/provider-management')
+    },
+    goServerSideManagement() {
+      this.$router.push('/server-side-management')
     },
     // 获取用户信息
     fetchUserInfo() {
@@ -320,6 +327,12 @@ export default {
   margin-right: 8px;
   font-size: 14px;
   line-height: 30px;
+}
+
+.custom-search-input::v-deep .el-input__suffix-inner {
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 .avatar-img {
