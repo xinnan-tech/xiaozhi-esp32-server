@@ -112,6 +112,7 @@ async def process_intent_result(conn, intent_result, original_text):
                 elif hasattr(conn, "mcp_client") and conn.mcp_client.has_tool(
                     function_name
                 ):
+                    speak_txt(conn, "好的， 请稍等")
                     # 如果是小智端MCP工具调用
                     conn.logger.bind(tag=TAG).debug(
                         f"调用小智端MCP工具: {function_name}, 参数: {function_args}"

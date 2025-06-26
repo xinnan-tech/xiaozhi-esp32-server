@@ -740,6 +740,7 @@ class ConnectionHandler:
                 elif hasattr(self, "mcp_client") and self.mcp_client.has_tool(
                     function_name
                 ):
+                    speak_txt(self, "好的， 请稍等")
                     # 如果是小智端MCP工具调用
                     self.logger.bind(tag=TAG).debug(
                         f"调用小智端MCP工具: {function_name}, 参数: {function_arguments}"
@@ -1025,3 +1026,7 @@ class ConnectionHandler:
                     break
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"超时检查任务出错: {e}")
+
+def speak_txt(conn, text):
+    conn.tts.tts_one_sentence(conn, ContentType.TEXT, content_detail=text)
+    conn.dialogue.put(Message(role="assistant", content=text))
