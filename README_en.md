@@ -268,7 +268,7 @@ In fact, any LLM that supports openai interface calls can be integrated and used
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
 | Local Usage | FunASR, SherpaASR | FunASR, SherpaASR |
-| API Call | DoubaoASR, FunASRServer, TencentASR, AliyunASR | FunASRServer |
+| API Call | DoubaoASR, FunASRServer, TencentASR, AliyunASR, GroqASR | FunASRServer |
 
 ---
 
