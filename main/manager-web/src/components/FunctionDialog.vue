@@ -660,6 +660,7 @@ export default {
 .mcp-left,
 .mcp-right {
   flex: 1;
+  padding-bottom: 50px;
 }
 
 .url-header {
