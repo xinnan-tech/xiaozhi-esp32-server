@@ -111,6 +111,10 @@ class ASRProviderBase(ABC):
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         pass
+    
+    def is_eou(self, conn, text) -> bool:
+        """判断是否为结束语句"""
+        return conn.asr_provider.is_eou(conn, text)
 
     @staticmethod
     def decode_opus(opus_data: List[bytes]) -> bytes:

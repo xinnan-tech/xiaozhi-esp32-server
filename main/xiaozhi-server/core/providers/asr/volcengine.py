@@ -94,8 +94,8 @@ class ASRProvider(ASRProviderBase):
                 conn.asr_audio.clear()
             except Exception as e:
                 logger.bind(tag=TAG).error(f"Error sending audio data: {e}", exc_info=True)
-                
-        if not have_voice and self.ws and self.is_processing:
+        # TODO: 是否用conn.client_voice_stop  判断会话结束       
+        if self.is_eou(conn, self.text) and self.ws and self.is_processing:
             logger.bind(tag=TAG).info( f"session: {self.current_session_id} 结束会话")
             await self.finish_session(self.current_session_id)
     
