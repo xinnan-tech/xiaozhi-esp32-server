@@ -92,10 +92,8 @@ async def sendAudio(conn, audios, pre_buffer=True):
         if conn.client_abort:
             break
 
-        # 每分钟重置一次计时器
-        if time.perf_counter() - last_reset_time > 60:
-            await conn.reset_timeout()
-            last_reset_time = time.perf_counter()
+        # 重置没有声音的状态
+        conn.last_activity_time = time.time() * 1000
 
         # 计算预期发送时间
         expected_time = start_time + (play_position / 1000)

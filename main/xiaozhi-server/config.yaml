@@ -104,7 +104,8 @@ wakeup_words:
   - "喵喵同学"
   - "小滨小滨"
   - "小冰小冰"
-
+# MCP接入点地址
+mcp_endpoint: 你的接入点 websocket地址
 # 插件的基础配置
 plugins:
   # 获取天气插件的配置，这里填写你的api_key
@@ -120,7 +121,9 @@ plugins:
     society_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
     world_rss_url: "https://www.chinanews.com.cn/rss/world.xml"
     finance_rss_url: "https://www.chinanews.com.cn/rss/finance.xml"
-  get_news_from_newsnow: {"url": "https://newsnow.busiyi.world/api/s?id="}
+  get_news_from_newsnow:
+    url: "https://newsnow.busiyi.world/api/s?id="
+    news_sources: "澎湃新闻;百度热搜;财联社"
   home_assistant:
     devices:
       - 客厅,玩具灯,switch.cuco_cn_460494544_cp1_on_p_2_1
@@ -158,7 +161,7 @@ end_prompt:
   enable: true # 是否开启结束语
   # 结束语
   prompt: |
-    请你以“时间过得真快”未来头，用富有感情、依依不舍的话来结束这场对话吧！
+    请你以"时间过得真快"未来头，用富有感情、依依不舍的话来结束这场对话吧！
 
 # 具体处理时选择的模块(The module selected for specific processing)
 selected_module:
@@ -195,7 +198,7 @@ Intent:
     # 如果你的不想使用selected_module.LLM意图识别，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
     llm: ChatGLMLLM
     # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
+    # 系统默认已经记载"handle_exit_intent(退出识别)"、"play_music(音乐播放)"插件，请勿重复加载
     # 下面是加载查天气、角色切换、加载查新闻的插件示例
     functions:
       - get_weather
@@ -205,7 +208,7 @@ Intent:
     # 不需要动type
     type: function_call
     # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-    # 系统默认已经记载“handle_exit_intent(退出识别)”、“play_music(音乐播放)”插件，请勿重复加载
+    # 系统默认已经记载"handle_exit_intent(退出识别)"、"play_music(音乐播放)"插件，请勿重复加载
     # 下面是加载查天气、角色切换、加载查新闻的插件示例
     functions:
       - change_role

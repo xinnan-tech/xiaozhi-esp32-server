@@ -980,4 +980,5 @@ def is_valid_image_file(file_data: bytes) -> bool:
 
 def sanitize_tool_name(name: str) -> str:
     """Sanitize tool names for OpenAI compatibility."""
-    return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+    # 支持中文、英文字母、数字、下划线和连字符
+    return re.sub(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]", "_", name)

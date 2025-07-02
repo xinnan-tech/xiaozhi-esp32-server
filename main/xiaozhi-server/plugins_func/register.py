@@ -35,7 +35,7 @@ class Action(Enum):
 
 
 class ActionResponse:
-    def __init__(self, action: Action, result, response):
+    def __init__(self, action: Action, result=None, response=None):
         self.action = action  # 动作类型
         self.result = result  # 动作产生的结果
         self.response = response  # 直接回复的内容

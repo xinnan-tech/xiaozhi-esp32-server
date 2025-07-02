@@ -35,7 +35,7 @@ class VADProvider(VADProviderBase):
             pcm_frame = self.decoder.decode(opus_packet, 960)
             conn.client_audio_buffer.extend(pcm_frame)  # 将新数据加入缓冲区
 
-            # 初始化帧计数器
+            # 确保帧计数器存在
             if not hasattr(conn, "client_voice_frame_count"):
                 conn.client_voice_frame_count = 0
 
@@ -66,14 +66,12 @@ class VADProvider(VADProviderBase):
 
                 # 如果之前有声音，但本次没有声音，且与上次有声音的时间差已经超过了静默阈值，则认为已经说完一句话
                 if conn.client_have_voice and not client_have_voice:
-                    stop_duration = (
-                        time.time() * 1000 - conn.client_have_voice_last_time
-                    )
+                    stop_duration = time.time() * 1000 - conn.last_activity_time
                     if stop_duration >= self.silence_threshold_ms:
                         conn.client_voice_stop = True
                 if client_have_voice:
                     conn.client_have_voice = True
-                    conn.client_have_voice_last_time = time.time() * 1000
+                    conn.last_activity_time = time.time() * 1000
 
             return client_have_voice
         except opuslib_next.OpusError as e:

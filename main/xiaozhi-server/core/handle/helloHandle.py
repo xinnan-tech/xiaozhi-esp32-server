@@ -7,7 +7,7 @@ from core.utils.util import audio_to_data
 from core.handle.sendAudioHandle import sendAudioMessage, send_stt_message
 from core.utils.util import remove_punctuation_and_length, opus_datas_to_wav_bytes
 from core.providers.tts.dto.dto import ContentType, SentenceType
-from core.handle.mcpHandle import (
+from core.providers.tools.device_mcp import (
     MCPClient,
     send_mcp_initialize_message,
     send_mcp_tools_list_request,

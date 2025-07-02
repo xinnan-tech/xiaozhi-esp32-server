@@ -66,12 +66,11 @@ async def startToChat(conn, text):
 
 async def no_voice_close_connect(conn, have_voice):
     if have_voice:
-        conn.client_no_voice_last_time = 0.0
+        conn.last_activity_time = time.time() * 1000
         return
-    if conn.client_no_voice_last_time == 0.0:
-        conn.client_no_voice_last_time = time.time() * 1000
-    else:
-        no_voice_time = time.time() * 1000 - conn.client_no_voice_last_time
+    # 只有在已经初始化过时间戳的情况下才进行超时检查
+    if conn.last_activity_time > 0.0:
+        no_voice_time = time.time() * 1000 - conn.last_activity_time
         close_connection_no_voice_time = int(
             conn.config.get("close_connection_no_voice_time", 120)
         )

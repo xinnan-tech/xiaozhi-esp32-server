@@ -101,38 +101,53 @@
 
     <!-- MCP区域 -->
     <div class="mcp-access-point">
-      <div class="mcp-header">
-        <h3 class="bold-title">MCP接入点</h3>
-      </div>
       <div class="mcp-container">
         <!-- 左侧区域 -->
-      <div class="mcp-left">
-        <div class="url-header">
-          <h4>接入点地址</h4>
-          <div class="address-desc">
-            <span>以下是智能体的MCP接入点地址。</span>
-            <a href="#" class="doc-link">查看接入点使用文档</a>
+        <div class="mcp-left">
+          <div class="mcp-header">
+            <h3 class="bold-title">MCP接入点</h3>
           </div>
+          <div class="url-header">
+            <div class="address-desc">
+              <span>以下是智能体的MCP接入点地址。</span>
+              <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-integration.md"
+                target="_blank" class="doc-link">查看接入点使用文档</a>
+            </div>
+          </div>
+          <el-input v-model="mcpUrl" readonly class="url-input">
+            <template #suffix>
+              <el-button @click="copyUrl" class="inner-copy-btn" icon="el-icon-document-copy">
+                复制
+              </el-button>
+            </template>
+          </el-input>
         </div>
-        <el-input v-model="mcpUrl" readonly class="url-input">
-          <template #suffix>
-            <el-button @click="copyUrl" class="inner-copy-btn" icon="el-icon-document-copy">
-              复制
-            </el-button>
-          </template>
-        </el-input>
-      </div>
 
         <!-- 右侧区域 -->
         <div class="mcp-right">
-          <h4>接入点状态</h4>
+          <div class="mcp-header">
+            <h3 class="bold-title">接入点状态</h3>
+          </div>
           <div class="status-container">
             <span class="status-indicator" :class="mcpStatus"></span>
-            <span class="status-text">{{ mcpStatus === 'connected' ? '已连接' : '未连接' }}</span>
+            <span class="status-text">{{
+              mcpStatus === 'connected' ? '已连接' :
+                mcpStatus === 'loading' ? '加载中...' : '未连接'
+            }}</span>
             <button class="refresh-btn" @click="refreshStatus">
               <span class="refresh-icon">↻</span>
               <span>刷新</span>
             </button>
+          </div>
+          <div class="mcp-tools-list">
+            <div v-if="mcpTools.length > 0" class="tools-grid">
+              <el-button v-for="tool in mcpTools" :key="tool" size="small" class="tool-btn" plain>
+                {{ tool }}
+              </el-button>
+            </div>
+            <div v-else class="no-tools">
+              <span>暂无可用工具</span>
+            </div>
           </div>
         </div>
       </div>
@@ -146,6 +161,8 @@
 </template>
 
 <script>
+import Api from '@/apis/api';
+
 export default {
   props: {
     value: Boolean,
@@ -156,6 +173,10 @@ export default {
     allFunctions: {
       type: Array,
       default: () => []
+    },
+    agentId: {
+      type: String,
+      required: true
     }
   },
   data() {
@@ -173,9 +194,10 @@ export default {
       // 添加一个标志位来跟踪是否已经保存
       hasSaved: false,
       loading: false,
-      
-      mcpUrl: "https://api.example.com/mcp/v1/endpoint",
+
+      mcpUrl: "",
       mcpStatus: "disconnected",
+      mcpTools: [],
     }
   },
   computed: {
@@ -219,6 +241,10 @@ export default {
         });
         // 右侧默认指向第一个
         this.currentFunction = this.selectedList[0] || null;
+
+        // 加载MCP数据
+        this.loadMcpAddress();
+        this.loadMcpTools();
       }
     },
     dialogVisible(newVal) {
@@ -249,12 +275,35 @@ export default {
     },
 
     refreshStatus() {
-      // 模拟状态刷新
       this.mcpStatus = "loading";
-      setTimeout(() => {
-        // 随机切换状态用于演示
-        this.mcpStatus = Math.random() > 0.5 ? "connected" : "disconnected";
-      }, 800);
+      this.loadMcpTools();
+    },
+
+    // 加载MCP接入点地址
+    loadMcpAddress() {
+      Api.agent.getAgentMcpAccessAddress(this.agentId, (res) => {
+        if (res.data.code === 0) {
+          this.mcpUrl = res.data.data || "";
+        } else {
+          this.mcpUrl = "";
+          console.error('获取MCP地址失败:', res.data.msg);
+        }
+      });
+    },
+
+    // 加载MCP工具列表
+    loadMcpTools() {
+      Api.agent.getAgentMcpToolsList(this.agentId, (res) => {
+        if (res.data.code === 0) {
+          this.mcpTools = res.data.data || [];
+          // 根据工具列表更新状态
+          this.mcpStatus = this.mcpTools.length > 0 ? "connected" : "disconnected";
+        } else {
+          this.mcpTools = [];
+          this.mcpStatus = "disconnected";
+          console.error('获取MCP工具列表失败:', res.data.msg);
+        }
+      });
     },
 
     flushArray(key) {
@@ -608,13 +657,16 @@ export default {
   gap: 30px;
 }
 
-.mcp-left, .mcp-right {
+.mcp-left,
+.mcp-right {
   flex: 1;
+  padding-bottom: 50px;
 }
 
 .url-header {
   margin-bottom: 8px;
   color: black;
+
   h4 {
     margin: 0 0 15px 0;
     font-size: 16px;
@@ -647,8 +699,9 @@ export default {
   background-color: #f5f5f5;
 }
 
-::v-deep .el-input__inner{
+::v-deep .el-input__inner {
   background-color: #f5f5f5;
+  padding-right: 80px;
 }
 
 .url-input {
@@ -657,20 +710,16 @@ export default {
     right: 0;
     display: flex;
     align-items: center;
-    padding-right: 15px;
+    padding-right: 10px;
 
     .inner-copy-btn {
       pointer-events: auto;
       border: none;
-      background: white;
-      color: black;
+      background: #1677ff;
+      color: white;
       padding: 6px;
+      margin-top: 4px;
       margin-left: 4px;
-
-      &:hover {
-        background: #1677ff;
-        color: white;
-      }
     }
   }
 }
@@ -696,15 +745,18 @@ export default {
     margin-right: 8px;
 
     &.disconnected {
-      background-color: #909399; /* 灰色 - 未连接 */
+      background-color: #909399;
+      /* 灰色 - 未连接 */
     }
 
     &.connected {
-      background-color: #67C23A; /* 绿色 - 已连接 */
+      background-color: #67C23A;
+      /* 绿色 - 已连接 */
     }
 
     &.loading {
-      background-color: #E6A23C; /* 橙色 - 加载中 */
+      background-color: #E6A23C;
+      /* 橙色 - 加载中 */
       animation: pulse 1.5s infinite;
     }
   }
@@ -740,8 +792,47 @@ export default {
 }
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.4; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.mcp-tools-list {
+  margin-top: 10px;
+
+  .tools-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tool-btn {
+    padding: 6px 12px;
+    border-color: #1677ff;
+    color: #1677ff;
+    background-color: white;
+    font-size: 12px;
+
+    &:hover {
+      background-color: #1677ff;
+      color: white;
+      border-color: #1677ff;
+    }
+  }
+
+  .no-tools {
+    text-align: center;
+    color: #909399;
+    font-size: 14px;
+    padding: 10px 0;
+  }
 }
 </style>

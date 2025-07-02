@@ -34,6 +34,8 @@ export default {
                 languages: params.languageType,
                 name: params.voiceName,
                 remark: params.remark,
+                referenceAudio: params.referenceAudio,
+                referenceText: params.referenceText,
                 sort: params.sort,
                 ttsModelId: params.ttsModelId,
                 ttsVoice: params.voiceCode,
@@ -75,6 +77,8 @@ export default {
                 languages: params.languageType,
                 name: params.voiceName,
                 remark: params.remark,
+                referenceAudio: params.referenceAudio,
+                referenceText: params.referenceText,
                 ttsModelId: params.ttsModelId,
                 ttsVoice: params.voiceCode,
                 voiceDemo: params.voiceDemo || ''

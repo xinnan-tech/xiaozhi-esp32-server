@@ -26,6 +26,12 @@ public class TimbreDataDTO {
     @Schema(description = "备注")
     private String remark;
 
+    @Schema(description = "参考音频路径")
+    private String referenceAudio;
+
+    @Schema(description = "參考文本")
+    private String referenceText;
+
     @Schema(description = "排序")
     @Min(value = 0, message = "{sort.number}")
     private long sort;

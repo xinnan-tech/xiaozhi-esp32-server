@@ -1,11 +1,11 @@
 import json
 from core.handle.abortHandle import handleAbortMessage
 from core.handle.helloHandle import handleHelloMessage
-from core.handle.mcpHandle import handle_mcp_message
+from core.providers.tools.device_mcp import handle_mcp_message
 from core.utils.util import remove_punctuation_and_length, filter_sensitive_info
 from core.handle.receiveAudioHandle import startToChat, handleAudioMessage
 from core.handle.sendAudioHandle import send_stt_message, send_tts_message
-from core.handle.iotHandle import handleIotDescriptors, handleIotStatus
+from core.providers.tools.device_iot import handleIotDescriptors, handleIotStatus
 from core.handle.reportHandle import enqueue_asr_report
 import asyncio
 
@@ -77,7 +77,7 @@ async def handleTextMessage(conn, message):
             if "states" in msg_json:
                 asyncio.create_task(handleIotStatus(conn, msg_json["states"]))
         elif msg_json["type"] == "mcp":
-            conn.logger.bind(tag=TAG).info(f"收到mcp消息：{message}")
+            conn.logger.bind(tag=TAG).info(f"收到mcp消息：{message[:100]}")
             if "payload" in msg_json:
                 asyncio.create_task(
                     handle_mcp_message(conn, conn.mcp_client, msg_json["payload"])

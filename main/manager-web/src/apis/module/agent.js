@@ -143,4 +143,34 @@ export default {
                 });
             }).send();
     },
+    // 获取智能体的MCP接入点地址
+    getAgentMcpAccessAddress(agentId, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/mcp/address/${agentId}`)
+            .method('GET')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.getAgentMcpAccessAddress(agentId, callback);
+                });
+            }).send();
+    },
+    // 获取智能体的MCP工具列表
+    getAgentMcpToolsList(agentId, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/mcp/tools/${agentId}`)
+            .method('GET')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.getAgentMcpToolsList(agentId, callback);
+                });
+            }).send();
+    },
 }
