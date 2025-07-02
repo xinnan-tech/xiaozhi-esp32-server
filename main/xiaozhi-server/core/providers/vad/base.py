@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class VADProviderBase(ABC):
@@ -9,7 +8,7 @@ class VADProviderBase(ABC):
         pass
     
     @abstractmethod
-    def is_eou(self, conn, data, text) -> bool:
+    def is_eou(self, conn, text) -> bool:
         """End of Utterance（话语结束检测），是基于语义理解的自动判断用户发言是否结束的技术, True 表示结束，False 表示未结束"""
         pass
     

@@ -1,30 +1,48 @@
+"""
+This module implements Text-to-Speech (TTS) functionality based on the Volcengine service.
+
+It supports both bidirectional streaming TTS via WebSocket and one-time TTS requests
+via HTTP interface.
+"""
 import asyncio
 import base64
-import pydub 
-import json
-import uuid
-import queue
-import websockets
-import requests
 import io
+import json
+import queue
+import uuid
+
 import openai
+import pydub
+import websockets
 
-
-from core.utils import opus_encoder_utils
-from core.utils.util import check_model_key
-from core.providers.tts.base import TTSProviderBase
-from core.utils.tts import MarkdownCleaner
 from config.logger import setup_logging
-from core.utils.util import audio_to_data, audio_bytes_to_data, opus_datas_to_wav_bytes
 from core.handle.abortHandle import handleAbortMessage
-from core.providers.tts.dto.dto import SentenceType, ContentType, InterfaceType
+from core.providers.tts.base import TTSProviderBase
+from core.providers.tts.dto.dto import ContentType, InterfaceType, SentenceType
+from core.utils import opus_encoder_utils
+from core.utils.tts import MarkdownCleaner
+from core.utils.util import check_model_key
 
 TAG = __name__
 logger = setup_logging()
 
 
 class TTSProvider(TTSProviderBase):
+    """
+    Implements the TTS provider for Volcengine, inheriting from TTSProviderBase.
+
+    This class supports both dual-stream TTS via WebSocket and single-request TTS
+    via HTTP, providing real-time and non-real-time speech synthesis capabilities.
+    """
+
     def __init__(self, config, delete_audio_file):
+        """
+        Initializes the TTSProvider for Volcengine.
+
+        Args:
+            config (dict): A dictionary containing the configuration for the TTS provider.
+            delete_audio_file (bool): Whether to delete the generated audio file after playback.
+        """
         super().__init__(config, delete_audio_file)
         self.interface_type = InterfaceType.DUAL_STREAM
         self.api_key = config.get("api_key")
@@ -50,9 +68,18 @@ class TTSProvider(TTSProviderBase):
         self.ws = None
         self._monitor_task = None
         check_model_key("TTS", self.api_key)
+        self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
 
     async def open_audio_channels(self, conn):
+        """
+        Opens the audio channels to prepare for TTS.
+
+        This method ensures that a WebSocket connection to the Volcengine service is established.
+
+        Args:
+            conn: The connection object for managing session state.
+        """
         try:
             await super().open_audio_channels(conn)
             await self._ensure_connection()
@@ -63,10 +90,9 @@ class TTSProvider(TTSProviderBase):
 
     
     async def _receive_audio(self):
-        """监听TTS响应"""
+        """Listens for and processes WebSocket responses from the Volcengine TTS service."""
         opus_datas_cache = []
         is_first_sentence = True
-        is_audio_done = False
         first_sentence_segment_count = 0  # 添加计数器
         try:
             while not self.conn.stop_event.is_set():
@@ -91,7 +117,7 @@ class TTSProvider(TTSProviderBase):
                             (SentenceType.FIRST, opus_data_list, None)
                         )
                     else:                     
-                        logger.bind(tag=TAG).debug(f"Received delta audio data")
+                        logger.bind(tag=TAG).debug("Received delta audio data")
                         self.tts_audio_queue.put(
                             (SentenceType.MIDDLE, opus_data_list, None)
                         )
@@ -116,12 +142,12 @@ class TTSProvider(TTSProviderBase):
                     if self.ws:
                         try:
                             await self.ws.close()
-                        except:
+                        except Exception:
                             pass
                     self.ws = None
                     break
         except websockets.exceptions.ConnectionClosed as e:
-            self.stop_ws_connection()
+            await self.stop_ws_connection()
             logger.bind(tag=TAG).warning(f"WebSocket connection closed: {e}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error receiving audio: {e}")
@@ -129,6 +155,12 @@ class TTSProvider(TTSProviderBase):
             logger.bind(tag=TAG).debug(f"Session: {self.conn.sentence_id}, 退出音频接收任务")
         
     def tts_text_priority_thread(self):
+        """
+        Runs in a separate thread to process the text queue for synthesis.
+
+        It starts, sends data to, and ends the TTS session based on the message type
+        (FIRST, MIDDLE, LAST).
+        """
         while not self.conn.stop_event.is_set():
             try:
                 message = self.tts_text_queue.get(timeout=1)
@@ -140,8 +172,8 @@ class TTSProvider(TTSProviderBase):
                     continue
                 if message.sentence_type == SentenceType.FIRST:
                     if not getattr(self.conn, "sentence_id", None): 
-                            self.conn.sentence_id = uuid.uuid4().hex
-                            logger.bind(tag=TAG).info(f"自动生成新的 会话ID: {self.conn.sentence_id}")
+                        self.conn.sentence_id = uuid.uuid4().hex
+                        logger.bind(tag=TAG).info(f"自动生成新的 会话ID: {self.conn.sentence_id}")
                     logger.bind(tag=TAG).debug("开始启动TTS会话...")
                     future = asyncio.run_coroutine_threadsafe(
                         self.start_session(self.conn.sentence_id),
@@ -186,11 +218,18 @@ class TTSProvider(TTSProviderBase):
                 continue
             except Exception as e:
                 logger.bind(tag=TAG).error(
-                    f"处理TTS文本失败: {str(e)}, 类型: {type(e).__name__}, 堆栈: {traceback.format_exc()}"
+                    f"处理TTS文本失败: {str(e)}, 类型: {type(e).__name__}, 堆栈: {e.__traceback__}"
+
                 )
                 continue
     
     async def start_session(self, session_id):
+        """
+        Starts a TTS session.
+
+        Args:
+            session_id (str): A unique session ID.
+        """
         logger.bind(tag=TAG).info(f"开始会话 {session_id}")
         try:
             # 建立新连接
@@ -220,19 +259,25 @@ class TTSProvider(TTSProviderBase):
                 try:
                     self._monitor_task.cancel()
                     await self._monitor_task
-                except:
+                except Exception:
                     pass
                 self._monitor_task = None
             if self.ws:
                 await self.stop_ws_connection()
             raise
 
-    async def finish_session(self, session_id):    
+    async def finish_session(self, session_id):
+        """
+        Finishes a TTS session.
+
+        Args:
+            session_id (str): The unique session ID.
+        """
         try:
-            if self.ws:
-                done_payload = {
-                    "type": "input_text.done"
-                }
+            await self._ensure_connection()
+            done_payload = {
+                "type": "input_text.done"
+            }
             await self.ws.send(json.dumps(done_payload))
             logger.bind(tag=TAG).debug(f"会话结束请求已发送,Send Event: {done_payload}")
 
@@ -244,7 +289,7 @@ class TTSProvider(TTSProviderBase):
         if hasattr(self, "_monitor_task"):
             try:
                 await self._monitor_task
-                logger.bind(tag=TAG).debug(f"退出monitor task")
+                logger.bind(tag=TAG).debug("退出monitor task")
             except Exception as e:
                 logger.bind(tag=TAG).error(
                     f"等待监听任务完成时发生错误: {str(e)}"
@@ -253,21 +298,38 @@ class TTSProvider(TTSProviderBase):
                 self._monitor_task = None
          
     async def _ensure_connection(self):
-        # TODO: 建立健康检查机制，实现连接复用
-        #await self.stop_ws_connection()
-        if self.ws is None:
+        """Ensures the WebSocket connection is active. Tries to reconnect if it's disconnected."""
+        if self.ws is not None:
             try:
-                logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
-                headers = {"Authorization": f"Bearer {self.api_key}"}
-                self.ws = await websockets.connect(self.ws_url, additional_headers=headers)
-                #self._health_check_task = asyncio.create_task(self._websocket_health_check())
-                logger.bind(tag=TAG).info("WebSocket connection established.")
+                if self.ws:
+                    logger.bind(tag=TAG).info(f"Checking WebSocket connection health: {self.ws_url}")
+                    # 发送ping并设置200ms超时
+                    #await asyncio.wait_for(self.ws.ping(), timeout=0.2)
+                    logger.bind(tag=TAG).debug("WebSocket ping successful")
+                    return True
+                logger.bind(tag=TAG).warning("WebSocket connection not open")
+            except asyncio.TimeoutError:
+                logger.bind(tag=TAG).error("WebSocket ping timed out after 0.2 seconds")
+            except websockets.exceptions.ConnectionClosed:
+                logger.bind(tag=TAG).error("WebSocket connection already closed")
             except Exception as e:
-                logger.bind(tag=TAG).error(f"Failed to connect to WebSocket: {e}")
-                self.ws = None
-                raise
+                logger.bind(tag=TAG).error(f"Failed to ping WebSocket: {e}")
+                await self.stop_ws_connection()
+        
+        try:
+            logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
+            headers = {"Authorization": f"Bearer {self.api_key}"}
+            self.ws = await websockets.connect(self.ws_url, additional_headers=headers)
+            logger.bind(tag=TAG).info("WebSocket connection established.")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Failed to connect to WebSocket: {e}")
+            self.ws = None
+            raise
+            
+        
                     
-    async def stop_ws_connection(self):      
+    async def stop_ws_connection(self):
+        """Safely closes the WebSocket connection."""
         # 关闭WebSocket连接
         if self.ws:
             try:
@@ -279,12 +341,12 @@ class TTSProvider(TTSProviderBase):
                 self.ws = None
  
     async def _send_text(self, text):
-        """发送文本到TTS服务"""
+        """Sends a chunk of text to the TTS service for synthesis."""
         try:
             # 建立新连接
             if self.ws is None:
                 await handleAbortMessage(self.conn)
-                logger.bind(tag=TAG).error(f"WebSocket连接不存在，终止发送文本")
+                logger.bind(tag=TAG).error("WebSocket连接不存在，终止发送文本")
                 return
 
             #  过滤Markdown
@@ -297,7 +359,7 @@ class TTSProvider(TTSProviderBase):
                     "type": "input_text.append",
                     "delta": filtered_text
                 }
-            await self.ws.send(json.dumps(text_append_payload))
+                await self.ws.send(json.dumps(text_append_payload))
             logger.bind(tag=TAG).debug(f"发送文本， Send Event: {text_append_payload}")
             return
         except Exception as e:
@@ -306,14 +368,18 @@ class TTSProvider(TTSProviderBase):
             raise
                     
     async def text_to_speak(self, text, output_file):
-        """采用http方式发送文本到TTS服务"""
-        logger.bind(tag=TAG).info(f"采用http方式发送文本: {text}")
-        client = openai.OpenAI(
-            base_url = self.base_url,
-            api_key = self.api_key
-        )
-        
-        response = client.audio.speech.create(
+        """
+        Converts text to speech via an HTTP POST request.
+
+        Args:
+            text (str): The text to be converted.
+            output_file (str): The path to save the audio file.
+
+        Returns:
+            bytes: The byte stream of the generated WAV audio data.
+        """
+        logger.bind(tag=TAG).info(f"采用http方式发送文本: {text}")     
+        response = self.client.audio.speech.create(
                 model = self.model_name,
                 voice = self.voice,
                 input = text
@@ -328,21 +394,6 @@ class TTSProvider(TTSProviderBase):
         output_file = "/tmp/a.wav"
         if output_file:
             with open(output_file, "wb") as audio_file:
-                    audio_file.write(wav_bytes)
+                audio_file.write(wav_bytes)
         return wav_bytes
-        
-    async def _websocket_health_check(self):
-        try:
-            while True:
-                if self.ws is None:
-                    continue 
-                await self.ws.send("Ping")
-                response = await self.ws.recv()
-                logger.bind(tag=TAG).info(f"健康检测收到: {response}")
-                await asyncio.sleep(10)                  
-        except websockets.exceptions.ConnectionClosedOK:
-            logger.bind(tag=TAG).info("连接正常关闭")
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"发生错误,关闭连接: {e}")
-            await self.stop_ws_connection()   
             

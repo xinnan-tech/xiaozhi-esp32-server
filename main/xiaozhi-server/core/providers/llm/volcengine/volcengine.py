@@ -1,3 +1,8 @@
+"""
+此模块实现了基于火山引擎 OpenAI 接口的大语言模型服务。
+定义了 LLMProvider 类，继承自 LLMProviderBase，
+提供了初始化配置和生成响应的功能，支持普通对话响应和带函数调用的对话响应。
+"""
 import openai
 from openai.types import CompletionUsage
 from config.logger import setup_logging
@@ -9,6 +14,11 @@ logger = setup_logging()
 
 
 class LLMProvider(LLMProviderBase):
+    """
+    LLMProvider 类用于实现基于火山引擎 OpenAI 接口的大语言模型服务。
+    该类继承自 LLMProviderBase，提供了初始化配置和生成响应的功能，
+    支持普通对话响应和带函数调用的对话响应。
+    """
     def __init__(self, config):
         self.api_key = config.get("api_key")
         self.model_name = config.get("model_name")

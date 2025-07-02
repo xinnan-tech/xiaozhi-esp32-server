@@ -114,7 +114,10 @@ class ASRProviderBase(ABC):
     
     def is_eou(self, conn, text) -> bool:
         """判断是否为结束语句"""
-        return conn.asr_provider.is_eou(conn, text)
+        is_eou = conn.vad.is_eou(conn, text)
+        if is_eou:
+            logger.bind(tag=TAG).info(f"检测到结束语句 {text}")
+        return is_eou
 
     @staticmethod
     def decode_opus(opus_data: List[bytes]) -> bytes:

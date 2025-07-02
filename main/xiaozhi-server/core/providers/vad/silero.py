@@ -30,9 +30,9 @@ class VADProvider(VADProviderBase):
             int(min_silence_duration_ms) if min_silence_duration_ms else 1000
         )
 
-    def is_vad(self, conn, opus_packet):
+    def is_vad(self, conn, data):
         try:
-            pcm_frame = self.decoder.decode(opus_packet, 960)
+            pcm_frame = self.decoder.decode(data, 960)
             conn.client_audio_buffer.extend(pcm_frame)  # 将新数据加入缓冲区
 
             # 初始化帧计数器
@@ -72,6 +72,7 @@ class VADProvider(VADProviderBase):
                     if self.stop_duration >= self.silence_threshold_ms:
                         conn.client_voice_stop = True
                 if client_have_voice:
+                    self.stop_duration = 0
                     conn.client_have_voice = True
                     conn.client_have_voice_last_time = time.time() * 1000
 
@@ -82,11 +83,11 @@ class VADProvider(VADProviderBase):
             logger.bind(tag=TAG).error(f"Error processing audio packet: {e}")
             
     def is_eou(self, conn, text) :
-            """End of Utterance（话语结束检测），是基于语义理解的自动判断用户发言是否结束的技术"""
-            return conn.client_voice_stop 
+        """End of Utterance（话语结束检测），是基于语义理解的自动判断用户发言是否结束的技术"""
+        return conn.client_voice_stop 
         
     def get_silence_duration(self, conn) :
         """返回语音静音时长，单位ms"""
-        if conn.client_voice_stop == True:
+        if conn.client_voice_stop:
             return self.stop_duration
         return 0
