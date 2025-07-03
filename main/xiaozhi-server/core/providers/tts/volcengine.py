@@ -304,7 +304,7 @@ class TTSProvider(TTSProviderBase):
                 if self.ws:
                     logger.bind(tag=TAG).info(f"Checking WebSocket connection health: {self.ws_url}")
                     # 发送ping并设置200ms超时
-                    #await asyncio.wait_for(self.ws.ping(), timeout=0.2)
+                    await asyncio.wait_for(self.ws.ping(), timeout=0.2)
                     logger.bind(tag=TAG).debug("WebSocket ping successful")
                     return True
                 logger.bind(tag=TAG).warning("WebSocket connection not open")
@@ -315,16 +315,16 @@ class TTSProvider(TTSProviderBase):
             except Exception as e:
                 logger.bind(tag=TAG).error(f"Failed to ping WebSocket: {e}")
                 await self.stop_ws_connection()
-        
-        try:
-            logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
-            headers = {"Authorization": f"Bearer {self.api_key}"}
-            self.ws = await websockets.connect(self.ws_url, additional_headers=headers)
-            logger.bind(tag=TAG).info("WebSocket connection established.")
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Failed to connect to WebSocket: {e}")
-            self.ws = None
-            raise
+        if self.ws is None:
+            try:
+                logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
+                headers = {"Authorization": f"Bearer {self.api_key}"}
+                self.ws = await websockets.connect(self.ws_url, additional_headers=headers)
+                logger.bind(tag=TAG).info("WebSocket connection established.")
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"Failed to connect to WebSocket: {e}")
+                self.ws = None
+                raise
             
         
                     
