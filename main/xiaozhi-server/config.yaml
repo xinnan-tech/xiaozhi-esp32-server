@@ -343,6 +343,7 @@ LLM:
     top_p: 1
     top_k: 50
     frequency_penalty: 0  # 频率惩罚
+    enable_thinking: false  # 阿里云Qwen3全系列支持思考模式和非思考模式切换 true/false
   AliAppLLM:
     # 定义LLM API类型
     type: AliBL
