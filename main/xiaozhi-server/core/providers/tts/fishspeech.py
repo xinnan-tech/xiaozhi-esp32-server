@@ -85,8 +85,12 @@ class TTSProvider(TTSProviderBase):
         self.reference_id = (
             None if not config.get("reference_id") else config.get("reference_id")
         )
-        self.reference_audio = parse_string_to_list(config.get("reference_audio"))
-        self.reference_text = parse_string_to_list(config.get("reference_text"))
+        self.reference_audio = parse_string_to_list(
+             config.get('ref_audio')if config.get('ref_audio') else config.get("reference_audio")
+        )
+        self.reference_text = parse_string_to_list(
+             config.get('ref_text')if config.get('ref_text') else config.get("reference_text")
+        )
         self.format = config.get("response_format", "wav")
         self.audio_file_type = config.get("response_format", "wav")
         self.api_key = config.get("api_key", "YOUR_API_KEY")

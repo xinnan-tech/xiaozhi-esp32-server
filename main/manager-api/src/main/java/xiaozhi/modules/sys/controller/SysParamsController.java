@@ -104,6 +104,9 @@ public class SysParamsController {
         // 验证OTA地址
         validateOtaUrl(dto.getParamCode(), dto.getParamValue());
 
+        // 验证MCP地址
+        validateMcpUrl(dto.getParamCode(), dto.getParamValue());
+
         sysParamsService.update(dto);
         configService.getConfig(false);
         return new Result<Void>();
@@ -193,6 +196,35 @@ public class SysParamsController {
             }
         } catch (Exception e) {
             throw new RenException("OTA接口验证失败：" + e.getMessage());
+        }
+    }
+
+    private void validateMcpUrl(String paramCode, String url) {
+        if (!paramCode.equals(Constant.SERVER_MCP_ENDPOINT)) {
+            return;
+        }
+        if (StringUtils.isBlank(url) || url.equals("null")) {
+            throw new RenException("MCP地址不能为空");
+        }
+        if (url.contains("localhost") || url.contains("127.0.0.1")) {
+            throw new RenException("MCP地址不能使用localhost或127.0.0.1");
+        }
+        if (!url.toLowerCase().contains("key")) {
+            throw new RenException("不是正确的MCP地址");
+        }
+        try {
+            // 发送GET请求
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            if (response.getStatusCode() != HttpStatus.OK) {
+                throw new RenException("MCP接口访问失败，状态码：" + response.getStatusCode());
+            }
+            // 检查响应内容是否包含OTA相关信息
+            String body = response.getBody();
+            if (body == null || !body.contains("success")) {
+                throw new RenException("MCP接口返回内容格式不正确，可能不是一个真实的MCP接口");
+            }
+        } catch (Exception e) {
+            throw new RenException("MCP接口验证失败：" + e.getMessage());
         }
     }
 }

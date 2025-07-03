@@ -68,4 +68,21 @@ export default {
                 })
             }).send()
     },
+    // 手动添加设备
+    manualAddDevice(params, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/device/manual-add`)
+            .method('POST')
+            .data(params)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail((err) => {
+                console.error('手动添加设备失败:', err);
+                RequestService.reAjaxFun(() => {
+                    this.manualAddDevice(params, callback);
+                });
+            }).send();
+    },
 }

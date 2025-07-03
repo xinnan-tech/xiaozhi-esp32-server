@@ -1,1 +1,1 @@
-redis.call('FLUSHALL')
+redis.call('FLUSHDB')

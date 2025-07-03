@@ -6,6 +6,7 @@ java -jar /app/xiaozhi-esp32-api.jar \
   --spring.datasource.druid.username=${SPRING_DATASOURCE_DRUID_USERNAME} \
   --spring.datasource.druid.password=${SPRING_DATASOURCE_DRUID_PASSWORD} \
   --spring.data.redis.host=${SPRING_DATA_REDIS_HOST} \
+  --spring.data.redis.password=${SPRING_DATA_REDIS_PASSWORD} \
   --spring.data.redis.port=${SPRING_DATA_REDIS_PORT} &
 
 # 启动Nginx（前台运行保持容器存活）

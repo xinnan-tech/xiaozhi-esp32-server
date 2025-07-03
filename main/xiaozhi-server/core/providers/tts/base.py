@@ -43,7 +43,6 @@ class TTSProviderBase(ABC):
         self.tts_text_buff = []
         self.punctuations = (
             "。",
-            ".",
             "？",
             "?",
             "！",
@@ -59,7 +58,6 @@ class TTSProviderBase(ABC):
             "、",
             ",",
             "。",
-            ".",
             "？",
             "?",
             "！",
@@ -171,7 +169,7 @@ class TTSProviderBase(ABC):
             )
         )
         # 对于单句的文本，进行分段处理
-        segments = re.split(r'([。！？!?；;\n])', content_detail)
+        segments = re.split(r"([。！？!?；;\n])", content_detail)
         for seg in segments:
             self.tts_text_queue.put(
                 TTSMessageDTO(

@@ -12,8 +12,8 @@ class TTSProvider(TTSProviderBase):
         super().__init__(config, delete_audio_file)
         self.url = config.get("url")
         self.text_lang = config.get("text_lang", "zh")
-        self.ref_audio_path = config.get("ref_audio_path")
-        self.prompt_text = config.get("prompt_text")
+        self.ref_audio_path = config.get('ref_audio') if config.get('ref_audio') else config.get("ref_audio_path")
+        self.prompt_text = config.get('ref_text') if config.get('ref_text') else config.get("prompt_text")
         self.prompt_lang = config.get("prompt_lang", "zh")
 
         # 处理空字符串的情况

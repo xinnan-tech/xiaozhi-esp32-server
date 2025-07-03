@@ -132,7 +132,7 @@
     </div>
 
     <function-dialog v-model="showFunctionDialog" :functions="currentFunctions" :all-functions="allFunctions"
-      @update-functions="handleUpdateFunctions" @dialog-closed="handleDialogClosed" />
+      :agent-id="$route.query.agentId" @update-functions="handleUpdateFunctions" @dialog-closed="handleDialogClosed" />
   </div>
 </template>
 

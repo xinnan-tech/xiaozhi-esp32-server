@@ -5,7 +5,7 @@ from config.config_loader import load_config
 from config.settings import check_config_file
 from datetime import datetime
 
-SERVER_VERSION = "0.5.8"
+SERVER_VERSION = "0.6.2"
 _logger_initialized = False
 
 
@@ -88,7 +88,7 @@ def setup_logging():
         # 输出到文件 - 统一目录，按大小轮转
         # 日志文件完整路径
         log_file_path = os.path.join(log_dir, log_file)
-        
+
         # 添加日志处理器
         logger.add(
             log_file_path,
@@ -146,14 +146,14 @@ def update_module_string(selected_module_str):
             level=log_config.get("log_level", "INFO"),
             filter=formatter,
         )
-        
+
         # 更新文件日志配置 - 统一目录，按大小轮转
         log_dir = log_config.get("log_dir", "tmp")
         log_file = log_config.get("log_file", "server.log")
-        
+
         # 日志文件完整路径
         log_file_path = os.path.join(log_dir, log_file)
-        
+
         logger.add(
             log_file_path,
             format=log_format_file,

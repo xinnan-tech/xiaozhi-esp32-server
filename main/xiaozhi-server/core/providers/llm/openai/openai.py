@@ -1,3 +1,4 @@
+import httpx
 import openai
 from openai.types import CompletionUsage
 from config.logger import setup_logging
@@ -16,6 +17,9 @@ class LLMProvider(LLMProviderBase):
             self.base_url = config.get("base_url")
         else:
             self.base_url = config.get("url")
+        # 增加timeout的配置项，单位为秒
+        timeout = config.get("timeout", 300)
+        self.timeout = int(timeout) if timeout else 300
 
         param_defaults = {
             "max_tokens": (500, int),
@@ -42,7 +46,7 @@ class LLMProvider(LLMProviderBase):
         model_key_msg = check_model_key("LLM", self.api_key)
         if model_key_msg:
             logger.bind(tag=TAG).error(model_key_msg)
-        self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
+        self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=httpx.Timeout(self.timeout))
 
     def response(self, session_id, dialogue, **kwargs):
         try:

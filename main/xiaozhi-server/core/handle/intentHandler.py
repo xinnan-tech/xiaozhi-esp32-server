@@ -6,7 +6,7 @@ from core.handle.helloHandle import checkWakeupWords
 from core.utils.util import remove_punctuation_and_length
 from core.providers.tts.dto.dto import ContentType
 from core.utils.dialogue import Message
-from core.handle.mcpHandle import call_mcp_tool
+from core.providers.tools.device_mcp import call_mcp_tool
 from plugins_func.register import Action, ActionResponse
 from loguru import logger
 
@@ -106,36 +106,18 @@ async def process_intent_result(conn, intent_result, original_text):
             def process_function_call():
                 conn.dialogue.put(Message(role="user", content=original_text))
 
-                # 处理Server端MCP工具调用
-                if conn.mcp_manager.is_mcp_tool(function_name):
-                    result = conn._handle_mcp_tool_call(function_call_data)
-                elif hasattr(conn, "mcp_client") and conn.mcp_client.has_tool(
-                    function_name
-                ):
-                    # 如果是小智端MCP工具调用
-                    conn.logger.bind(tag=TAG).debug(
-                        f"调用小智端MCP工具: {function_name}, 参数: {function_args}"
-                    )
-                    try:
-                        result = asyncio.run_coroutine_threadsafe(
-                            call_mcp_tool(
-                                conn, conn.mcp_client, function_name, function_args
-                            ),
-                            conn.loop,
-                        ).result()
-                        conn.logger.bind(tag=TAG).debug(f"MCP工具调用结果: {result}")
-                        result = ActionResponse(
-                            action=Action.REQLLM, result=result, response=""
-                        )
-                    except Exception as e:
-                        conn.logger.bind(tag=TAG).error(f"MCP工具调用失败: {e}")
-                        result = ActionResponse(
-                            action=Action.REQLLM, result="MCP工具调用失败", response=""
-                        )
-                else:
-                    # 处理系统函数
-                    result = conn.func_handler.handle_llm_function_call(
-                        conn, function_call_data
+                # 使用统一工具处理器处理所有工具调用
+                try:
+                    result = asyncio.run_coroutine_threadsafe(
+                        conn.func_handler.handle_llm_function_call(
+                            conn, function_call_data
+                        ),
+                        conn.loop,
+                    ).result()
+                except Exception as e:
+                    conn.logger.bind(tag=TAG).error(f"工具调用失败: {e}")
+                    result = ActionResponse(
+                        action=Action.ERROR, result=str(e), response=str(e)
                     )
 
                 if result:

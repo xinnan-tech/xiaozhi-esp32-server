@@ -19,6 +19,8 @@ import xiaozhi.modules.agent.service.AgentChatAudioService;
 import xiaozhi.modules.agent.service.AgentChatHistoryService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.biz.AgentChatHistoryBizService;
+import xiaozhi.modules.device.entity.DeviceEntity;
+import xiaozhi.modules.device.service.DeviceService;
 
 /**
  * {@link AgentChatHistoryBizService} impl
@@ -35,6 +37,7 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
     private final AgentChatHistoryService agentChatHistoryService;
     private final AgentChatAudioService agentChatAudioService;
     private final RedisUtils redisUtils;
+    private final DeviceService deviceService;
 
     /**
      * 处理聊天记录上报，包括文件上传和相关信息记录
@@ -68,6 +71,15 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
 
         // 更新设备最后对话时间
         redisUtils.set(RedisKeys.getAgentDeviceLastConnectedAtById(agentId), new Date());
+
+        // 更新设备最后连接时间
+        DeviceEntity device = deviceService.getDeviceByMacAddress(macAddress);
+        if (device != null) {
+            deviceService.updateDeviceConnectionInfo(agentId, device.getId(), null);
+        } else {
+            log.warn("聊天记录上报时，未找到mac地址为 {} 的设备", macAddress);
+        }
+
         return Boolean.TRUE;
     }
 
