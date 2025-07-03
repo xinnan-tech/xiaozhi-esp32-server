@@ -92,19 +92,22 @@ class VADProvider(VADProviderBase):
             return silence_duration >= self.max_silence_threshold_ms
 
         # For semantic checks, we need the embedding.
-        embedding = self._get_embedding(text)
+        embedding, is_cached = self._get_embedding(text)
         is_stop = embedding[1] > 0.5
-        logger.bind(tag=TAG).info(f"EOU Result: text:{text} embedding:{embedding} semantic_stop:{is_stop} silence_duration:{silence_duration}")
+        if not is_cached or is_stop or silence_duration >= self.max_silence_threshold_ms:
+            logger.bind(tag=TAG).info(f"EOU Result: text:{text} embedding:{embedding} semantic_stop:{is_stop} silence_duration:{silence_duration} cache:{is_cached}")
         if self.semantic_only:
             return is_stop
 
-        # If silence is short, be less likely to interrupt.
-        if silence_duration <= self.min_silence_threshold_ms:
+        if silence_duration <= self.min_silence_threshold_ms / 2:
+            # If silence is short, be less likely to interrupt.
+            return False
+        elif silence_duration <= self.min_silence_threshold_ms:
             # Short silence, requires high confidence to stop.
             return embedding[1] > 0.9
         elif silence_duration <= self.max_silence_threshold_ms:  
             # Medium silence, requires medium confidence to stop.
-            return embedding[1] > 0.6
+            return embedding[1] > 0.8
         else:
             # Force stop if the user has been silent for a while.
             return True
@@ -130,6 +133,7 @@ class VADProvider(VADProviderBase):
 
         Returns:
             list: The embedding vector.
+            bool: True if the embedding is from cache, False otherwise.
 
         Raises:
             Exception: If the API call to the embedding model fails.
@@ -137,7 +141,7 @@ class VADProvider(VADProviderBase):
         if not text or not text.strip():
             return [1.0, 0.0]
         if self.cached_text == text:
-            return self.cached_embedding
+            return self.cached_embedding, True
         try:
             logger.bind(tag=TAG).debug(f"调用嵌入模型:  model: {self.model_name},  input:{text}")
             response = self.client.embeddings.create(
@@ -148,7 +152,7 @@ class VADProvider(VADProviderBase):
             embedding = response.data[0].embedding
             self.cached_text = text
             self.cached_embedding = embedding
-            return embedding
+            return embedding, False
         except Exception as e:
             logger.bind(tag=TAG).error(f"调用嵌入模型失败: {str(e)}")
             raise

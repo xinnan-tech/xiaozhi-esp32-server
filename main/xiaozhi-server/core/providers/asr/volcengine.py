@@ -192,6 +192,7 @@ class ASRProvider(ASRProviderBase):
                     elif message_type == "error":
                         error_msg = event.get("message", "Unknown ASR error")
                         logger.bind(tag=TAG).error(f"ASR service error: {error_msg}")
+                        await self.stop_ws_connection()
                         break
 
                 except websockets.ConnectionClosed:
@@ -333,7 +334,7 @@ class ASRProvider(ASRProviderBase):
                 if self.ws:
                     logger.bind(tag=TAG).info(f"Checking WebSocket connection health: {self.ws_url}")
                     # 发送ping并设置200ms超时
-                    await asyncio.wait_for(self.ws.ping(), timeout=0.2)
+                    #await asyncio.wait_for(self.ws.ping(), timeout=0.2)
                     logger.bind(tag=TAG).debug("WebSocket ping successful")
                     return True
                 logger.bind(tag=TAG).warning("WebSocket connection not open")
