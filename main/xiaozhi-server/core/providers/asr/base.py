@@ -82,13 +82,13 @@ class ASRProviderBase(ABC):
         )  # 确保ASR模块返回原始文本
         conn.logger.bind(tag=TAG).info(f"识别文本: {raw_text}")
         text_len, _ = remove_punctuation_and_length(raw_text)
-        self.stop_ws_connection()
+        await self.stop_ws_connection()
         if text_len > 0:
             # 使用自定义模块进行上报
             await startToChat(conn, raw_text)
             enqueue_asr_report(conn, raw_text, asr_audio_task)
 
-    def stop_ws_connection(self):
+    async def stop_ws_connection(self):
         pass
 
     def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:
@@ -111,6 +111,13 @@ class ASRProviderBase(ABC):
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         pass
+    
+    def is_eou(self, conn, text) -> bool:
+        """判断是否为结束语句"""
+        is_eou = conn.vad.is_eou(conn, text)
+        if is_eou:
+            logger.bind(tag=TAG).info(f"检测到结束语句 {text}")
+        return is_eou
 
     @staticmethod
     def decode_opus(opus_data: List[bytes]) -> bytes:

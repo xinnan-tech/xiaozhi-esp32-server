@@ -34,7 +34,8 @@ emoji_map = {
 
 async def sendAudioMessage(conn, sentenceType, audios, text):
     # 发送句子开始消息
-    conn.logger.bind(tag=TAG).info(f"发送音频消息: {sentenceType}, {text}")
+    audio_len = len(audios)
+    conn.logger.bind(tag=TAG).info(f"发送音频消息: {sentenceType}, {audio_len}, {text}")
     if text is not None:
         emotion = analyze_emotion(text)
         emoji = emoji_map.get(emotion, "🙂")  # 默认使用笑脸
