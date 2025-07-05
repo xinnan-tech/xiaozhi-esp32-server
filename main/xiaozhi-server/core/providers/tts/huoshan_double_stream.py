@@ -10,7 +10,6 @@ from config.logger import setup_logging
 from core.utils import opus_encoder_utils
 from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
-from core.handle.abortHandle import handleAbortMessage
 from core.providers.tts.dto.dto import SentenceType, ContentType, InterfaceType
 from asyncio import Task
 
@@ -175,6 +174,9 @@ class TTSProvider(TTSProviderBase):
     async def _ensure_connection(self):
         """建立新的WebSocket连接"""
         try:
+            if self.ws:
+                logger.bind(tag=TAG).info(f"使用已有链接...")
+                return self.ws
             logger.bind(tag=TAG).info("开始建立新连接...")
             ws_header = {
                 "X-Api-App-Key": self.appId,
@@ -244,9 +246,12 @@ class TTSProvider(TTSProviderBase):
                     logger.bind(tag=TAG).info(
                         f"添加音频文件到待播放列表: {message.content_file}"
                     )
-                    self.before_stop_play_files.append(
-                        (message.content_file, message.content_detail)
-                    )
+                    if message.content_file and os.path.exists(message.content_file):
+                        # 先处理文件音频数据
+                        file_audio = self._process_audio_file(message.content_file)
+                        self.before_stop_play_files.append(
+                            (file_audio, message.content_detail)
+                        )
 
                 if message.sentence_type == SentenceType.LAST:
                     try:
@@ -368,9 +373,17 @@ class TTSProvider(TTSProviderBase):
                 logger.bind(tag=TAG).info("会话结束请求已发送")
 
                 # 等待监听任务完成
-                if hasattr(self, "_monitor_task"):
+                if hasattr(self, "_monitor_task") and self._monitor_task is not None:
                     try:
-                        await self._monitor_task
+                        # 设置4秒超时等待监听任务结束
+                        await asyncio.wait_for(self._monitor_task, timeout=4)
+                    except asyncio.TimeoutError:
+                        logger.bind(tag=TAG).warning("等待监听任务超时，强制取消")
+                        self._monitor_task.cancel()
+                        try:
+                            await self._monitor_task
+                        except asyncio.CancelledError:
+                            pass
                     except Exception as e:
                         logger.bind(tag=TAG).error(
                             f"等待监听任务完成时发生错误: {str(e)}"
@@ -378,8 +391,6 @@ class TTSProvider(TTSProviderBase):
                     finally:
                         self._monitor_task = None
 
-                # 关闭连接
-                await self.close()
         except Exception as e:
             logger.bind(tag=TAG).error(f"关闭会话失败: {str(e)}")
             # 确保清理资源
@@ -400,6 +411,15 @@ class TTSProvider(TTSProviderBase):
 
     async def close(self):
         """资源清理方法"""
+        # 取消监听任务
+        if self._monitor_task:
+            try:
+                self._monitor_task.cancel()
+                await self._monitor_task
+            except asyncio.CancelledError:
+                pass
+            self._monitor_task = None
+
         if self.ws:
             try:
                 await self.ws.close()
@@ -413,6 +433,7 @@ class TTSProvider(TTSProviderBase):
         is_first_sentence = True
         first_sentence_segment_count = 0  # 添加计数器
         try:
+            session_finished = False  # 标记会话是否正常结束
             while not self.conn.stop_event.is_set():
                 try:
                     # 确保 `recv()` 运行在同一个 event loop
@@ -466,6 +487,7 @@ class TTSProvider(TTSProviderBase):
                     elif res.optional.event == EVENT_SessionFinished:
                         logger.bind(tag=TAG).debug(f"会话结束～～")
                         self._process_before_stop_play_files()
+                        session_finished = True
                         break
                 except websockets.ConnectionClosed:
                     logger.bind(tag=TAG).warning("WebSocket连接已关闭")
@@ -476,15 +498,15 @@ class TTSProvider(TTSProviderBase):
                     )
                     traceback.print_exc()
                     break
-        finally:
-            # 确保清理资源
-            if self.ws:
+            # 仅在连接异常时才关闭
+            if not session_finished and self.ws:
                 try:
                     await self.ws.close()
                 except:
                     pass
                 self.ws = None
             # 监听任务退出时清理引用
+        finally:
             self._monitor_task = None
 
     async def send_event(

@@ -17,6 +17,7 @@ from core.utils.util import (
     filter_sensitive_info,
 )
 from typing import Dict, Any
+from collections import deque
 from core.utils.modules_initialize import (
     initialize_modules,
     initialize_tts,
@@ -112,6 +113,8 @@ class ConnectionHandler:
         self.client_have_voice = False
         self.last_activity_time = 0.0  # 统一的活动时间戳（毫秒）
         self.client_voice_stop = False
+        self.client_voice_window = deque(maxlen=5)
+        self.last_is_voice = False
 
         # asr相关变量
         # 因为实际部署时可能会用到公共的本地ASR，不能把变量暴露给公共ASR
@@ -913,6 +916,9 @@ class ConnectionHandler:
                         pass
             except Exception as ws_error:
                 self.logger.bind(tag=TAG).error(f"关闭WebSocket连接时出错: {ws_error}")
+
+            if self.tts:
+                await self.tts.close()
 
             # 最后关闭线程池（避免阻塞）
             if self.executor:
