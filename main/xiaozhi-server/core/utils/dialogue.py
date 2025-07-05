@@ -74,8 +74,14 @@ class Dialogue:
         )
 
         if system_message:
+            # 构建增强的系统提示，包含说话人处理指导
+            speaker_guidance = "\n\n[说话人识别功能说明]\n" \
+                             "当用户消息包含 [说话人: 姓名] 前缀时，表示系统已识别出说话人身份。\n" \
+                             "请根据说话人的身份特征（如果之前有相关信息）来调整回应风格和内容。\n" \
+                             "你可以称呼说话人的名字，并参考他们的特点进行个性化回应。"
+            
             enhanced_system_prompt = (
-                f"{system_message.content}\n\n"
+                f"{system_message.content}{speaker_guidance}\n\n"
                 f"以下是用户的历史记忆：\n```\n{memory_str}\n```"
             )
             dialogue.append({"role": "system", "content": enhanced_system_prompt})

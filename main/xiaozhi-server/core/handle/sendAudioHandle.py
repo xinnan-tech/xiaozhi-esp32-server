@@ -76,7 +76,6 @@ async def sendAudio(conn, audios, pre_buffer=True):
     frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
     start_time = time.perf_counter()
     play_position = 0
-    last_reset_time = time.perf_counter()  # 记录最后的重置时间
 
     # 仅当第一句话时执行预缓冲
     if pre_buffer:

@@ -125,4 +125,13 @@ def initialize_asr(config):
         config["ASR"][select_asr_module],
         str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
     )
+    
+    # 初始化声纹识别功能
+    voiceprint_config = config.get("plugins", {}).get("voiceprint")
+    if voiceprint_config and voiceprint_config.get("url") and voiceprint_config.get("speakers"):
+        new_asr.init_voiceprint(voiceprint_config)
+        logger.bind(tag=TAG).info("ASR模块声纹识别功能已启用")
+    else:
+        logger.bind(tag=TAG).info("ASR模块声纹识别功能已禁用")
+    
     return new_asr
