@@ -34,3 +34,4 @@ mcp-proxy==0.8.0
 PyJWT==2.8.0
 psutil==7.0.0
 portalocker==2.10.1
+groq==0.28.0
