@@ -5,7 +5,7 @@ import asyncio
 from aioconsole import ainput
 from config.settings import load_config
 from config.logger import setup_logging
-from core.utils.util import get_local_ip
+from core.utils.util import get_local_ip, validate_mcp_endpoint
 from core.http_server import SimpleHttpServer
 from core.websocket_server import WebSocketServer
 from core.utils.util import check_ffmpeg_installed
@@ -77,6 +77,17 @@ async def main():
         get_local_ip(),
         port,
     )
+    mcp_endpoint = config.get("mcp_endpoint", None)
+    if mcp_endpoint is not None and "你" not in mcp_endpoint:
+        # 校验MCP接入点格式
+        if validate_mcp_endpoint(mcp_endpoint):
+            logger.bind(tag=TAG).info("mcp接入点是\t{}", mcp_endpoint)
+            # 将mcp计入点地址转成调用点
+            mcp_endpoint = mcp_endpoint.replace("/mcp/", "/call/")
+            config["mcp_endpoint"] = mcp_endpoint
+        else:
+            logger.bind(tag=TAG).error("mcp接入点不符合规范")
+            config["mcp_endpoint"] = "你的接入点 websocket地址"
 
     # 获取WebSocket配置，使用安全的默认值
     websocket_port = 8000

@@ -218,7 +218,7 @@ public class SysParamsController {
             if (response.getStatusCode() != HttpStatus.OK) {
                 throw new RenException("MCP接口访问失败，状态码：" + response.getStatusCode());
             }
-            // 检查响应内容是否包含OTA相关信息
+            // 检查响应内容是否包含mcp相关信息
             String body = response.getBody();
             if (body == null || !body.contains("success")) {
                 throw new RenException("MCP接口返回内容格式不正确，可能不是一个真实的MCP接口");

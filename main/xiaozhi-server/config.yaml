@@ -104,7 +104,8 @@ wakeup_words:
   - "喵喵同学"
   - "小滨小滨"
   - "小冰小冰"
-# MCP接入点地址
+# MCP接入点地址，地址格式为：ws://你的mcp接入点ip或者域名:端口号/mcp/?token=你的token
+# 详细教程 https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-integration.md
 mcp_endpoint: 你的接入点 websocket地址
 # 插件的基础配置
 plugins:
