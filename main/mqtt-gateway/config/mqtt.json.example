@@ -1,0 +1,15 @@
+{
+    "production": {
+        "chat_servers": [
+            "ws://example:8080"
+        ]
+    },
+    "development": {
+        "chat_servers": [
+            "ws://example:8180"
+        ],
+        "mac_addresss": [
+        ]
+    },
+    "debug": false
+}
