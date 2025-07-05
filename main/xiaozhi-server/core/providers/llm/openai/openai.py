@@ -26,6 +26,7 @@ class LLMProvider(LLMProviderBase):
             "temperature": (0.7, lambda x: round(float(x), 1)),
             "top_p": (1.0, lambda x: round(float(x), 1)),
             "frequency_penalty": (0, lambda x: round(float(x), 1)),
+            "enable_thinking": (False, bool),
         }
 
         for param, (default, converter) in param_defaults.items():
@@ -91,7 +92,10 @@ class LLMProvider(LLMProviderBase):
     def response_with_functions(self, session_id, dialogue, functions=None):
         try:
             stream = self.client.chat.completions.create(
-                model=self.model_name, messages=dialogue, stream=True, tools=functions
+                model=self.model_name, messages=dialogue, stream=True, tools=functions,
+                extra_body={
+                    "enable_thinking": self.enable_thinking
+                }
             )
 
             for chunk in stream:
