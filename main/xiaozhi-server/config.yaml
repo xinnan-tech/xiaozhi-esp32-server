@@ -301,15 +301,37 @@ ASR:
     output_dir: tmp/
   AliyunASR:
     # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
+    # HTTP POST请求，一次性处理完整音频
     # 平台地址：https://nls-portal.console.aliyun.com/
     # appkey地址：https://nls-portal.console.aliyun.com/applist
     # token地址：https://nls-portal.console.aliyun.com/overview
+    # AliyunASR和AliyunStreamASR的区别是：AliyunASR是批量处理场景，AliyunStreamASR是实时交互场景
+    # 一般来说非流式ASR更便宜（0.004元/秒，¥0.24/分钟）
+    # 但是AliyunStreamASR实时性更好（0.005元/秒，¥0.3/分钟）
     # 定义ASR API类型
     type: aliyun
     appkey: 你的阿里云智能语音交互服务项目Appkey
     token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
     access_key_id: 你的阿里云账号access_key_id
     access_key_secret: 你的阿里云账号access_key_secret
+    output_dir: tmp/
+  AliyunStreamASR:
+    # 阿里云智能语音交互服务 - 实时流式语音识别
+    # WebSocket连接，实时处理音频流
+    # 平台地址：https://nls-portal.console.aliyun.com/
+    # appkey地址：https://nls-portal.console.aliyun.com/applist
+    # token地址：https://nls-portal.console.aliyun.com/overview
+    # AliyunASR和AliyunStreamASR的区别是：AliyunASR是批量处理场景，AliyunStreamASR是实时交互场景
+    # 一般来说非流式ASR更便宜（0.004元/秒，¥0.24/分钟）
+    # 但是AliyunStreamASR实时性更好（0.005元/秒，¥0.3/分钟）
+    # 定义ASR API类型
+    type: aliyun
+    appkey: 你的阿里云智能语音交互服务项目Appkey
+    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
+    access_key_id: 你的阿里云账号access_key_id
+    access_key_secret: 你的阿里云账号access_key_secret
+    # 服务器地域选择，如nls-gateway-cn-hangzhou.aliyuncs.com(杭州)等
+    host: 根据自己的地理位置选择最近的服务器地域，不填默认为nls-gateway-cn-shanghai.aliyuncs.com(上海)
     output_dir: tmp/
   BaiduASR:
     # 获取AppID、API Key、Secret Key：https://console.bce.baidu.com/ai-engine/old/#/ai/speech/app/list
@@ -671,6 +693,28 @@ TTS:
     # pitch_rate: 0
     # 添加 302.ai TTS 配置
     # token申请地址：https://dash.302.ai/
+  AliyunStreamTTS:
+    # 阿里云CosyVoice大模型流式文本语音合成
+    # 采用FlowingSpeechSynthesizer接口，支持更低延迟和更自然的语音质量
+    # 流式文本语音合成仅提供商用版，不支持试用，详情请参见试用版和商用版。要使用该功能，请开通商用版。
+    # 支持龙系列专用音色：longxiaochun、longyu、longchen等
+    # 平台地址：https://nls-portal.console.aliyun.com/
+    # appkey地址：https://nls-portal.console.aliyun.com/applist
+    # token地址：https://nls-portal.console.aliyun.com/overview
+    # 使用三阶段流式交互：StartSynthesis -> RunSynthesis -> StopSynthesis
+    type: aliyun
+    output_dir: tmp/
+    appkey: 你的阿里云智能语音交互服务项目Appkey
+    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
+    voice: longxiaochun 
+    access_key_id: 你的阿里云账号access_key_id
+    access_key_secret: 你的阿里云账号access_key_secret
+    # 以下可不用设置，使用默认设置
+    # format: pcm  # 音频格式：pcm、wav、mp3
+    # sample_rate: 16000  # 采样率：8000、16000、24000
+    # volume: 50  # 音量：0-100
+    # speech_rate: 0  # 语速：-500到500
+    # pitch_rate: 0  # 语调：-500到500
   TencentTTS:
     # 腾讯云智能语音交互服务，需要先在腾讯云平台开通服务
     # appid、secret_id、secret_key申请地址：https://console.cloud.tencent.com/cam/capi
