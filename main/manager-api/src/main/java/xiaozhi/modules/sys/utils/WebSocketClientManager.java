@@ -137,6 +137,37 @@ public class WebSocketClientManager implements Closeable {
         return collected;
     }
 
+    private <T> List<T> listenerCustomWithoutClose(
+            BlockingQueue<T> queue,
+            Predicate<T> predicate)
+            throws InterruptedException, TimeoutException, ExecutionException {
+        List<T> collected = new ArrayList<>();
+        long deadline = System.currentTimeMillis() + maxSessionDurationUnit.toMillis(maxSessionDuration);
+
+        while (true) {
+            if (errorFuture.isDone()) {
+                errorFuture.get();
+            }
+
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) {
+                throw new TimeoutException("等待批量消息超时");
+            }
+
+            T msg = queue.poll(remaining, TimeUnit.MILLISECONDS);
+            if (msg == null) {
+                throw new TimeoutException("等待批量消息超时");
+            }
+
+            collected.add(msg);
+            if (predicate.test(msg)) {
+                break;
+            }
+        }
+        // 不调用 close()，保持连接开放
+        return collected;
+    }
+
     /**
      * 同步接收多条消息，直到 predicate 为 true 或超时抛异常；
      * 
@@ -145,6 +176,17 @@ public class WebSocketClientManager implements Closeable {
     public List<String> listener(Predicate<String> predicate)
             throws InterruptedException, TimeoutException, ExecutionException {
         return listenerCustom(textMessageQueue, predicate);
+    }
+
+    /**
+     * 同步接收多条消息，直到 predicate 为 true 或超时抛异常；
+     * 不自动关闭连接，适用于需要在同一连接上发送多个消息的场景
+     * 
+     * @return 返回监听期间的所有消息列表
+     */
+    public List<String> listenerWithoutClose(Predicate<String> predicate)
+            throws InterruptedException, TimeoutException, ExecutionException {
+        return listenerCustomWithoutClose(textMessageQueue, predicate);
     }
 
     public List<byte[]> listenerBinary(Predicate<byte[]> predicate)

@@ -65,8 +65,8 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
             try (WebSocketClientManager client = WebSocketClientManager.build(
                     new WebSocketClientManager.Builder()
                             .uri(wsUrl)
-                            .connectTimeout(5, TimeUnit.SECONDS)
-                            .maxSessionDuration(15, TimeUnit.SECONDS))) {
+                            .connectTimeout(8, TimeUnit.SECONDS)
+                            .maxSessionDuration(10, TimeUnit.SECONDS))) {
 
                 // 步骤1: 发送初始化消息并等待响应
                 log.info("发送MCP初始化消息，智能体ID: {}", id);
@@ -83,7 +83,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 client.sendJson(initializeRequest);
 
                 // 等待初始化响应 (id=1) - 移除固定延迟，改为响应驱动
-                List<String> initResponses = client.listener(response -> {
+                List<String> initResponses = client.listenerWithoutClose(response -> {
                     try {
                         Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
                         if (jsonMap != null && Integer.valueOf(1).equals(jsonMap.get("id"))) {
