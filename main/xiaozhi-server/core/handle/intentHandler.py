@@ -79,11 +79,6 @@ async def process_intent_result(conn, intent_result, original_text):
             if function_name == "continue_chat":
                 return False
 
-            if function_name == "play_music":
-                funcItem = conn.func_handler.get_function(function_name)
-                if not funcItem:
-                    conn.func_handler.function_registry.register_function("play_music")
-
             function_args = {}
             if "arguments" in intent_data["function_call"]:
                 function_args = intent_data["function_call"]["arguments"]

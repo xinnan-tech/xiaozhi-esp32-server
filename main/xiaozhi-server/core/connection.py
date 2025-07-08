@@ -193,7 +193,6 @@ class ConnectionHandler:
 
             self.welcome_msg = self.config["xiaozhi"]
             self.welcome_msg["session_id"] = self.session_id
-            await self.websocket.send(json.dumps(self.welcome_msg))
 
             # 获取差异化配置
             self._initialize_private_config()
@@ -214,7 +213,17 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"Connection error: {str(e)}-{stack_trace}")
             return
         finally:
-            await self._save_and_close(ws)
+            try:
+                await self._save_and_close(ws)
+            except Exception as final_error:
+                self.logger.bind(tag=TAG).error(f"最终清理时出错: {final_error}")
+                # 确保即使保存记忆失败，也要关闭连接
+                try:
+                    await self.close(ws)
+                except Exception as close_error:
+                    self.logger.bind(tag=TAG).error(
+                        f"强制关闭连接时出错: {close_error}"
+                    )
 
     async def _save_and_close(self, ws):
         """保存记忆并关闭连接"""
@@ -232,7 +241,10 @@ class ConnectionHandler:
                     except Exception as e:
                         self.logger.bind(tag=TAG).error(f"保存记忆失败: {e}")
                     finally:
-                        loop.close()
+                        try:
+                            loop.close()
+                        except Exception:
+                            pass
 
                 # 启动线程保存记忆，不等待完成
                 threading.Thread(target=save_memory_task, daemon=True).start()
@@ -240,7 +252,12 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"保存记忆失败: {e}")
         finally:
             # 立即关闭连接，不等待记忆保存完成
-            await self.close(ws)
+            try:
+                await self.close(ws)
+            except Exception as close_error:
+                self.logger.bind(tag=TAG).error(
+                    f"保存记忆后关闭连接失败: {close_error}"
+                )
 
     async def _route_message(self, message):
         """消息路由"""
@@ -837,13 +854,22 @@ class ConnectionHandler:
         """资源清理方法"""
         try:
             # 取消超时任务
-            if self.timeout_task:
+            if self.timeout_task and not self.timeout_task.done():
                 self.timeout_task.cancel()
+                try:
+                    await self.timeout_task
+                except asyncio.CancelledError:
+                    pass
                 self.timeout_task = None
 
             # 清理工具处理器资源
             if hasattr(self, "func_handler") and self.func_handler:
-                await self.func_handler.cleanup()
+                try:
+                    await self.func_handler.cleanup()
+                except Exception as cleanup_error:
+                    self.logger.bind(tag=TAG).error(
+                        f"清理工具处理器时出错: {cleanup_error}"
+                    )
 
             # 触发停止事件
             if self.stop_event:
@@ -853,19 +879,58 @@ class ConnectionHandler:
             self.clear_queues()
 
             # 关闭WebSocket连接
-            if ws:
-                await ws.close()
-            elif self.websocket:
-                await self.websocket.close()
+            try:
+                if ws:
+                    # 安全地检查WebSocket状态并关闭
+                    try:
+                        if hasattr(ws, "closed") and not ws.closed:
+                            await ws.close()
+                        elif hasattr(ws, "state") and ws.state.name != "CLOSED":
+                            await ws.close()
+                        else:
+                            # 如果没有closed属性，直接尝试关闭
+                            await ws.close()
+                    except Exception:
+                        # 如果关闭失败，忽略错误
+                        pass
+                elif self.websocket:
+                    try:
+                        if (
+                            hasattr(self.websocket, "closed")
+                            and not self.websocket.closed
+                        ):
+                            await self.websocket.close()
+                        elif (
+                            hasattr(self.websocket, "state")
+                            and self.websocket.state.name != "CLOSED"
+                        ):
+                            await self.websocket.close()
+                        else:
+                            # 如果没有closed属性，直接尝试关闭
+                            await self.websocket.close()
+                    except Exception:
+                        # 如果关闭失败，忽略错误
+                        pass
+            except Exception as ws_error:
+                self.logger.bind(tag=TAG).error(f"关闭WebSocket连接时出错: {ws_error}")
 
             # 最后关闭线程池（避免阻塞）
             if self.executor:
-                self.executor.shutdown(wait=False)
+                try:
+                    self.executor.shutdown(wait=False)
+                except Exception as executor_error:
+                    self.logger.bind(tag=TAG).error(
+                        f"关闭线程池时出错: {executor_error}"
+                    )
                 self.executor = None
 
             self.logger.bind(tag=TAG).info("连接资源已释放")
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"关闭连接时出错: {e}")
+        finally:
+            # 确保停止事件被设置
+            if self.stop_event:
+                self.stop_event.set()
 
     def clear_queues(self):
         """清空所有任务队列"""
@@ -922,9 +987,19 @@ class ConnectionHandler:
                     ):
                         if not self.stop_event.is_set():
                             self.logger.bind(tag=TAG).info("连接超时，准备关闭")
-                            await self.close(self.websocket)
+                            # 设置停止事件，防止重复处理
+                            self.stop_event.set()
+                            # 使用 try-except 包装关闭操作，确保不会因为异常而阻塞
+                            try:
+                                await self.close(self.websocket)
+                            except Exception as close_error:
+                                self.logger.bind(tag=TAG).error(
+                                    f"超时关闭连接时出错: {close_error}"
+                                )
                         break
                 # 每10秒检查一次，避免过于频繁
                 await asyncio.sleep(10)
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"超时检查任务出错: {e}")
+        finally:
+            self.logger.bind(tag=TAG).info("超时检查任务已退出")

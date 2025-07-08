@@ -40,6 +40,7 @@ class VLLMProvider(VLLMProviderBase):
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
     def response(self, question, base64_image):
+        question = question + "(请使用中文回复)"
         try:
             messages = [
                 {

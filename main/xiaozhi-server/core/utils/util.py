@@ -982,3 +982,28 @@ def sanitize_tool_name(name: str) -> str:
     """Sanitize tool names for OpenAI compatibility."""
     # 支持中文、英文字母、数字、下划线和连字符
     return re.sub(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]", "_", name)
+
+
+def validate_mcp_endpoint(mcp_endpoint: str) -> bool:
+    """
+    校验MCP接入点格式
+
+    Args:
+        mcp_endpoint: MCP接入点字符串
+
+    Returns:
+        bool: 是否有效
+    """
+    # 1. 检查是否以ws开头
+    if not mcp_endpoint.startswith("ws"):
+        return False
+
+    # 2. 检查是否包含key、call字样
+    if "key" in mcp_endpoint.lower() or "call" in mcp_endpoint.lower():
+        return False
+
+    # 3. 检查是否包含/mcp/字样
+    if "/mcp/" not in mcp_endpoint:
+        return False
+
+    return True
