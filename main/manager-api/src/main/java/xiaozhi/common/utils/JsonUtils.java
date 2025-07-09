@@ -66,5 +66,4 @@ public class JsonUtils {
             throw new RuntimeException(e);
         }
     }
-
 }
