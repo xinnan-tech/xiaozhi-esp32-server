@@ -1,7 +1,7 @@
 -- 增加火山大模型网关VAD供应器
-DELETE FROM `ai_model_provider` WHERE `id` = 'SYSTEM_ASR_VOLC_GW';
+DELETE FROM `ai_model_provider` WHERE `id` = 'SYSTEM_VAD_VOLC_GW';
 INSERT INTO `ai_model_provider` (`id`, `model_type`, `provider_code`, `name`, `fields`, `sort`, `creator`, `create_date`, `updater`, `update_date`) VALUES
-('SYSTEM_ASR_VOLC_GW', 'VAD', 'volcengine', '火山引擎边缘大模型网关', '[{"key":"api_key","label":"网关秘钥","type":"string"},{"key":"model_name","label":"模型名称","type":"string"},{"key":"host","label":"网关域名","type":"string"},{"key":"senmatic_only","label":"仅使用语义判停","type":"boolean"},{"key":"threshold","label":"音量检测阈值","type":"number"},{"key":"min_silence_duration_ms","label":"最小静音时长","type":"number"},{"key":"max_silence_duration_ms","label":"最大静音时长","type":"number"}]', 1, 1, NOW(), 1, NOW());
+('SYSTEM_VAD_VOLC_GW', 'VAD', 'volcengine', '火山引擎边缘大模型网关', '[{"key":"api_key","label":"网关秘钥","type":"string"},{"key":"model_name","label":"模型名称","type":"string"},{"key":"host","label":"网关域名","type":"string"},{"key":"senmatic_only","label":"仅使用语义判停","type":"boolean"},{"key":"threshold","label":"音量检测阈值","type":"number"},{"key":"min_silence_duration_ms","label":"最小静音时长","type":"number"},{"key":"max_silence_duration_ms","label":"最大静音时长","type":"number"}]', 1, 1, NOW(), 1, NOW());
 
 
 
