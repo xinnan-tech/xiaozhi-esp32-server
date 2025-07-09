@@ -174,4 +174,5 @@ main/xiaozhi-server/mysql
 uploadfile
 *.json
 .vscode
+.cursor
 deploy/
