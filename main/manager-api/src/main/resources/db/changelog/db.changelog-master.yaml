@@ -227,6 +227,13 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202506191643.sql
   - changeSet:
+      id: 202506181501
+      author: chan
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202506181501.sql
+  - changeSet:
       id: 202506251620
       author: Tink
       changes:
