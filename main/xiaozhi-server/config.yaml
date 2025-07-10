@@ -321,6 +321,10 @@ ASR:
     # 语言参数，1537为普通话，具体参考：https://ai.baidu.com/ai-doc/SPEECH/0lbxfnc9b
     dev_pid: 1537
     output_dir: tmp/
+  Groq:
+    type: groq
+    model: whisper-large-v3 # https://groq.com/largest-most-capable-asr-model-now-faster-on-groqcloud/
+    api_key: 你的groq api key
 
 VAD:
   SileroVAD:
