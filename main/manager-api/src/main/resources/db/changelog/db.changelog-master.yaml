@@ -101,12 +101,12 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202505022134.sql
   - changeSet:
-      id: 202505081146
+      id: 202505081147
       author: hrz
       changes:
         - sqlFile:
             encoding: utf8
-            path: classpath:db/changelog/202505081146.sql
+            path: classpath:db/changelog/202505081147.sql
   - changeSet:
       id: 202505091555
       author: whosmyqueen
@@ -240,3 +240,17 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202506261637.sql
+  - changeSet:
+      id: 202507071130
+      author: cgd
+      changes:
+          - sqlFile:
+              encoding: utf8
+              path: classpath:db/changelog/202507071130.sql
+  - changeSet:
+      id: 202507071530
+      author: cgd
+      changes:
+          - sqlFile:
+              encoding: utf8
+              path: classpath:db/changelog/202507071530.sql
