@@ -23,21 +23,23 @@ class VADProvider(VADProviderBase):
 
         # 处理空字符串的情况
         threshold = config.get("threshold", "0.5")
+        threshold_low = config.get("threshold_low", "0.2")
         min_silence_duration_ms = config.get("min_silence_duration_ms", "1000")
 
         self.vad_threshold = float(threshold) if threshold else 0.5
+        self.vad_threshold_low = float(threshold_low) if threshold_low else 0.2
+
         self.silence_threshold_ms = (
             int(min_silence_duration_ms) if min_silence_duration_ms else 1000
         )
+
+        # 至少要多少帧才算有语音
+        self.frame_window_threshold = 3
 
     def is_vad(self, conn, data):
         try:
             pcm_frame = self.decoder.decode(data, 960)
             conn.client_audio_buffer.extend(pcm_frame)  # 将新数据加入缓冲区
-
-            # 确保帧计数器存在
-            if not hasattr(conn, "client_voice_frame_count"):
-                conn.client_voice_frame_count = 0
 
             # 处理缓冲区中的完整帧（每次处理512采样点）
             client_have_voice = False
@@ -54,15 +56,21 @@ class VADProvider(VADProviderBase):
                 # 检测语音活动
                 with torch.no_grad():
                     speech_prob = self.model(audio_tensor, 16000).item()
-                is_voice = speech_prob >= self.vad_threshold
 
-                if is_voice:
-                    conn.client_voice_frame_count += 1
+                # 双阈值判断
+                if speech_prob >= self.vad_threshold:
+                    is_voice = True
+                elif speech_prob <= self.vad_threshold_low:
+                    is_voice = False
                 else:
-                    conn.client_voice_frame_count = 0
+                    is_voice = conn.last_is_voice
 
-                # 只有连续4帧检测到语音才认为有语音
-                client_have_voice = conn.client_voice_frame_count >= 4
+                # 声音没低于最低值则延续前一个状态，判断为有声音
+                conn.last_is_voice = is_voice
+
+                # 更新滑动窗口
+                conn.client_voice_window.append(is_voice)
+                client_have_voice = (conn.client_voice_window.count(True) >= self.frame_window_threshold)
 
                 # 如果之前有声音，但本次没有声音，且与上次有声音的时间差已经超过了静默阈值，则认为已经说完一句话
                 if conn.client_have_voice and not client_have_voice:

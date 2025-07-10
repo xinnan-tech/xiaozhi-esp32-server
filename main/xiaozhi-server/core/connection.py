@@ -12,11 +12,10 @@ import subprocess
 import websockets
 from core.utils.util import (
     extract_json_from_string,
-    check_vad_update,
-    check_asr_update,
     filter_sensitive_info,
 )
 from typing import Dict, Any
+from collections import deque
 from core.utils.modules_initialize import (
     initialize_modules,
     initialize_tts,
@@ -112,6 +111,8 @@ class ConnectionHandler:
         self.client_have_voice = False
         self.last_activity_time = 0.0  # 统一的活动时间戳（毫秒）
         self.client_voice_stop = False
+        self.client_voice_window = deque(maxlen=5)
+        self.last_is_voice = False
 
         # asr相关变量
         # 因为实际部署时可能会用到公共的本地ASR，不能把变量暴露给公共ASR
@@ -423,22 +424,23 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"获取差异化配置失败: {e}")
             private_config = {}
 
-        init_llm, init_tts, init_memory, init_intent = (
+        init_llm, init_tts, init_memory, init_intent, init_vad, init_asr = (
             False,
             False,
             False,
+            False,
+            False,    
             False,
         )
 
-        init_vad = check_vad_update(self.common_config, private_config)
-        init_asr = check_asr_update(self.common_config, private_config)
-
-        if init_vad:
+        if private_config.get("VAD", None) is not None:
+            init_vad = True
             self.config["VAD"] = private_config["VAD"]
             self.config["selected_module"]["VAD"] = private_config["selected_module"][
                 "VAD"
             ]
-        if init_asr:
+        if private_config.get("ASR", None) is not None:
+            init_asr = True
             self.config["ASR"] = private_config["ASR"]
             self.config["selected_module"]["ASR"] = private_config["selected_module"][
                 "ASR"
@@ -608,12 +610,23 @@ class ConnectionHandler:
         # 更新系统prompt至上下文
         self.dialogue.update_system_message(self.prompt)
 
-    def chat(self, query, tool_call=False):
+    def chat(self, query, tool_call=False, depth=0):
         self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
         self.llm_finish_task = False
 
         if not tool_call:
             self.dialogue.put(Message(role="user", content=query))
+
+        # 为最顶层时新建会话ID和发送FIRST请求
+        if depth == 0:
+            self.sentence_id = str(uuid.uuid4().hex)
+            self.tts.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=self.sentence_id,
+                    sentence_type=SentenceType.FIRST,
+                    content_type=ContentType.ACTION,
+                )
+            )
 
         # Define intent functions
         functions = None
@@ -629,8 +642,6 @@ class ConnectionHandler:
                     self.memory.query_memory(query), self.loop
                 )
                 memory_str = future.result()
-
-            self.sentence_id = str(uuid.uuid4().hex)
 
             if self.intent_type == "function_call" and functions is not None:
                 # 使用支持functions的streaming接口
@@ -654,7 +665,6 @@ class ConnectionHandler:
         function_id = None
         function_arguments = ""
         content_arguments = ""
-        text_index = 0
         self.client_abort = False
         for response in llm_responses:
             if self.client_abort:
@@ -684,14 +694,6 @@ class ConnectionHandler:
             if content is not None and len(content) > 0:
                 if not tool_call_flag:
                     response_message.append(content)
-                    if text_index == 0:
-                        self.tts.tts_text_queue.put(
-                            TTSMessageDTO(
-                                sentence_id=self.sentence_id,
-                                sentence_type=SentenceType.FIRST,
-                                content_type=ContentType.ACTION,
-                            )
-                        )
                     self.tts.tts_text_queue.put(
                         TTSMessageDTO(
                             sentence_id=self.sentence_id,
@@ -700,7 +702,6 @@ class ConnectionHandler:
                             content_detail=content,
                         )
                     )
-                    text_index += 1
         # 处理function call
         if tool_call_flag:
             bHasError = False
@@ -725,6 +726,11 @@ class ConnectionHandler:
                         f"function call error: {content_arguments}"
                     )
             if not bHasError:
+                # 如需要大模型先处理一轮，添加相关处理后的日志情况
+                if len(response_message) > 0:
+                    self.dialogue.put(
+                        Message(role="assistant", content="".join(response_message))
+                    )
                 response_message.clear()
                 self.logger.bind(tag=TAG).debug(
                     f"function_name={function_name}, function_id={function_id}, function_arguments={function_arguments}"
@@ -742,14 +748,14 @@ class ConnectionHandler:
                     ),
                     self.loop,
                 ).result()
-                self._handle_function_result(result, function_call_data)
+                self._handle_function_result(result, function_call_data, depth=depth)
 
         # 存储对话内容
         if len(response_message) > 0:
             self.dialogue.put(
                 Message(role="assistant", content="".join(response_message))
             )
-        if text_index > 0:
+        if depth == 0:
             self.tts.tts_text_queue.put(
                 TTSMessageDTO(
                     sentence_id=self.sentence_id,
@@ -764,7 +770,7 @@ class ConnectionHandler:
 
         return True
 
-    def _handle_function_result(self, result, function_call_data):
+    def _handle_function_result(self, result, function_call_data, depth):
         if result.action == Action.RESPONSE:  # 直接回复前端
             text = result.response
             self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
@@ -801,7 +807,7 @@ class ConnectionHandler:
                         content=text,
                     )
                 )
-                self.chat(text, tool_call=True)
+                self.chat(text, tool_call=True, depth=depth + 1)
         elif result.action == Action.NOTFOUND or result.action == Action.ERROR:
             text = result.response if result.response else result.result
             self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
@@ -913,6 +919,9 @@ class ConnectionHandler:
                         pass
             except Exception as ws_error:
                 self.logger.bind(tag=TAG).error(f"关闭WebSocket连接时出错: {ws_error}")
+
+            if self.tts:
+                await self.tts.close()
 
             # 最后关闭线程池（避免阻塞）
             if self.executor:
