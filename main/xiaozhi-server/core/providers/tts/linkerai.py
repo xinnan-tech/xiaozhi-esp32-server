@@ -1,3 +1,4 @@
+import os
 import queue
 import asyncio
 import traceback
@@ -63,9 +64,12 @@ class TTSProvider(TTSProviderBase):
                     logger.bind(tag=TAG).info(
                         f"添加音频文件到待播放列表: {message.content_file}"
                     )
-                    self.before_stop_play_files.append(
-                        (message.content_file, message.content_detail)
-                    )
+                    if message.content_file and os.path.exists(message.content_file):
+                        # 先处理文件音频数据
+                        file_audio = self._process_audio_file(message.content_file)
+                        self.before_stop_play_files.append(
+                            (file_audio, message.content_detail)
+                        )
 
                 if message.sentence_type == SentenceType.LAST:
                     # 处理剩余的文本
