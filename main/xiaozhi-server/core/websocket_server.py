@@ -4,7 +4,6 @@ from config.logger import setup_logging
 from core.connection import ConnectionHandler
 from config.config_loader import get_config_from_api
 from core.utils.modules_initialize import initialize_modules
-from core.utils.util import check_vad_update, check_asr_update
 
 TAG = __name__
 
@@ -100,20 +99,15 @@ class WebSocketServer:
                     self.logger.bind(tag=TAG).error("获取新配置失败")
                     return False
                 self.logger.bind(tag=TAG).info(f"获取新配置成功")
-                # 检查 VAD 和 ASR 类型是否需要更新
-                update_vad = check_vad_update(self.config, new_config)
-                update_asr = check_asr_update(self.config, new_config)
-                self.logger.bind(tag=TAG).info(
-                    f"检查VAD和ASR类型是否需要更新: {update_vad} {update_asr}"
-                )
+               
                 # 更新配置
                 self.config = new_config
                 # 重新初始化组件
                 modules = initialize_modules(
                     self.logger,
                     new_config,
-                    update_vad,
-                    update_asr,
+                    "VAD" in new_config["selected_module"],
+                    "ASR" in new_config["selected_module"],
                     "LLM" in new_config["selected_module"],
                     False,
                     "Memory" in new_config["selected_module"],
