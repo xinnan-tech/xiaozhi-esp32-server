@@ -139,12 +139,7 @@ class TTSProvider(TTSProviderBase):
                     break # End of stream for this request
                 elif event_type == "error":
                     logger.bind(tag=TAG).error(f"Received error from server: {data}")
-                    if self.ws:
-                        try:
-                            await self.ws.close()
-                        except Exception:
-                            pass
-                    self.ws = None
+                    await self.stop_ws_connection()
                     break
         except websockets.exceptions.ConnectionClosed as e:
             await self.stop_ws_connection()
@@ -298,33 +293,38 @@ class TTSProvider(TTSProviderBase):
                 self._monitor_task = None
          
     async def _ensure_connection(self):
-        """Ensures the WebSocket connection is active. Tries to reconnect if it's disconnected."""
-        if self.ws is not None:
-            try:
-                if self.ws:
-                    logger.bind(tag=TAG).info(f"Checking WebSocket connection health: {self.ws_url}")
-                    # 发送ping并设置200ms超时
-                    await asyncio.wait_for(self.ws.ping(), timeout=0.2)
-                    logger.bind(tag=TAG).debug("WebSocket ping successful")
-                    return True
-                logger.bind(tag=TAG).warning("WebSocket connection not open")
-            except asyncio.TimeoutError:
-                logger.bind(tag=TAG).error("WebSocket ping timed out after 0.2 seconds")
-            except websockets.exceptions.ConnectionClosed:
-                logger.bind(tag=TAG).error("WebSocket connection already closed")
-            except Exception as e:
-                logger.bind(tag=TAG).error(f"Failed to ping WebSocket: {e}")
-                await self.stop_ws_connection()
-        if self.ws is None:
-            try:
-                logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
-                headers = {"Authorization": f"Bearer {self.api_key}"}
-                self.ws = await websockets.connect(self.ws_url, additional_headers=headers)
-                logger.bind(tag=TAG).info("WebSocket connection established.")
-            except Exception as e:
-                logger.bind(tag=TAG).error(f"Failed to connect to WebSocket: {e}")
-                self.ws = None
-                raise
+        """
+        Ensures that the WebSocket connection to the ASR service is active.
+
+        If the connection is down, it attempts to reconnect.
+
+        Raises:
+            Exception: If the connection cannot be established.
+        """
+        # 检查连接是否存在且处于 open 状态
+        # websockets 库的自动 ping/pong 机制会处理连接健康检查
+        if self.ws:
+            logger.bind(tag=TAG).debug("WebSocket connection is active.")
+            return
+
+        # 如果连接不存在或已关闭，则重新连接
+        try:
+            logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
+            headers = {"Authorization": f"Bearer {self.api_key}"}
+            # 使用内置的 ping/pong 机制来维持连接和检查健康状况
+            # 每 20 秒发送一次 ping，等待 10 秒超时
+            self.ws = await websockets.connect(
+                self.ws_url,
+                additional_headers=headers,
+                ping_interval=20,
+                ping_timeout=10
+            )
+            logger.bind(tag=TAG).info("WebSocket connection established.")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Failed to connect to WebSocket: {e}")
+            self.ws = None
+            raise
+
             
         
                     

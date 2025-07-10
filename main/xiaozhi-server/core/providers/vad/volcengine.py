@@ -94,7 +94,7 @@ class VADProvider(VADProviderBase):
         # For semantic checks, we need the embedding.
         embedding, is_cached = self._get_embedding(text)
         is_stop = embedding[1] > 0.5
-        if not is_cached or is_stop or silence_duration >= self.max_silence_threshold_ms:
+        if not is_cached or silence_duration >= self.max_silence_threshold_ms:
             logger.bind(tag=TAG).info(f"EOU Result: text:{text} embedding:{embedding} semantic_stop:{is_stop} silence_duration:{silence_duration} cache:{is_cached}")
         if self.semantic_only:
             return is_stop
