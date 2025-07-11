@@ -24,6 +24,7 @@ async def handleAudioMessage(conn, audio):
 
     if have_voice:
         if conn.client_is_speaking:
+            conn.logger.bind(tag=TAG).info("对话过程被客户端打断")
             await handleAbortMessage(conn)
     # 设备长时间空闲检测，用于say goodbye
     await no_voice_close_connect(conn, have_voice)
@@ -50,6 +51,7 @@ async def startToChat(conn, text):
             await max_out_size(conn)
             return
     if conn.client_is_speaking:
+        conn.logger.bind(tag=TAG).info("对话过程被客户端打断")
         await handleAbortMessage(conn)
 
     # 首先进行意图分析
