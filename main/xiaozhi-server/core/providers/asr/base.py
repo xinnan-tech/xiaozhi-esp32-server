@@ -114,6 +114,8 @@ class ASRProviderBase(ABC):
     
     def is_eou(self, conn, text) -> bool:
         """判断是否为结束语句"""
+        if text is None or len(text) == 0:
+            return False
         is_eou = conn.vad.is_eou(conn, text)
         if is_eou:
             logger.bind(tag=TAG).info(f"检测到结束语句 {text}")
