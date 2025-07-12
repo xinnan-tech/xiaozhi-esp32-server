@@ -100,6 +100,10 @@ class TTSProvider(TTSProviderBase):
                 data = json.loads(message)
                 event_type = data.get("type")
                 logger.bind(tag=TAG).debug(f"Received data: {data}")
+                 # 检查客户端是否中止
+                if self.conn.client_abort:
+                    logger.bind(tag=TAG).info("收到打断信息，终止监听TTS响应")
+                    break
                 if event_type == "tts_session.updated":
                     logger.bind(tag=TAG).info(f"Session: {self.conn.sentence_id}, 完成会话初始化")
                     opus_datas_cache = []
@@ -162,13 +166,16 @@ class TTSProvider(TTSProviderBase):
                 logger.bind(tag=TAG).debug(
                     f"收到TTS任务｜{message.sentence_type.name} ｜ {message.content_type.name} | 会话ID: {self.conn.sentence_id}"
                 )
+                if message.sentence_type == SentenceType.FIRST:
+                    self.conn.client_abort = False
+                    
                 if self.conn.client_abort:
                     logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
                     continue
                 if message.sentence_type == SentenceType.FIRST:
                     if not getattr(self.conn, "sentence_id", None): 
                         self.conn.sentence_id = uuid.uuid4().hex
-                        logger.bind(tag=TAG).info(f"自动生成新的 会话ID: {self.conn.sentence_id}")
+                        logger.bind(tag=TAG).info(f"自动生成新的会话ID: {self.conn.sentence_id}")
                     logger.bind(tag=TAG).debug("开始启动TTS会话...")
                     future = asyncio.run_coroutine_threadsafe(
                         self.start_session(self.conn.sentence_id),
