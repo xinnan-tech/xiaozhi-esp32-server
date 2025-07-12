@@ -7,6 +7,7 @@ import asyncio
 import base64
 import json
 import os
+import uuid
 from typing import List, Optional, Tuple
 
 import opuslib_next
@@ -92,51 +93,43 @@ class ASRProvider(ASRProviderBase):
             audio (bytes): The raw audio data chunk.
             audio_have_voice (bool): Flag indicating if the current audio chunk contains voice.
         """
-        if not self.current_session_id:
-            self.current_session_id = conn.session_id
-            logger.bind(tag=TAG).info(f"Auto-generating new session ID: {self.current_session_id}")
-
-        # Determine if there is voice based on client listen mode.
-        if conn.client_listen_mode in ("auto", "realtime"):
-            have_voice = audio_have_voice
-        else:
-            have_voice = conn.client_have_voice
-
         # Buffer audio; discard old audio if there's no voice.
         conn.asr_audio.append(audio)
-        if not have_voice and not conn.client_have_voice:
-            conn.asr_audio = conn.asr_audio[-10:]
-            return
+        conn.asr_audio = conn.asr_audio[-10:]
 
         # Start a new ASR session if voice is detected and not already processing.
-        if have_voice and not self.is_processing:
+        if audio_have_voice and not self.is_processing:
             try:
                 self.is_processing = True
-                logger.bind(tag=TAG).info(f"Starting session: {self.current_session_id}")
-                await self.start_session(self.current_session_id)
+                await self.start_session()
                 pcm_frame = self.decode_opus(conn.asr_audio)
                 await self._send_audio_chunk(b"".join(pcm_frame))
                 conn.asr_audio.clear()
             except Exception as e:
-                logger.bind(tag=TAG).error(f"Failed to establish ASR connection: {e}", exc_info=True)
+                logger.bind(tag=TAG).error(
+                    f"Failed to establish ASR connection: {e}", exc_info=True
+                )
                 await self.stop_ws_connection()
                 return
 
         # Send the current audio data if the session is active.
         if self.ws and self.is_processing:
             try:
-                logger.bind(tag=TAG).debug(f"Sending audio data, size: {len(audio)} for session: {self.current_session_id}")
+                logger.bind(tag=TAG).debug(
+                    f"Sending audio data, size: {len(audio)} for session: {self.current_session_id}"
+                )
                 pcm_frame = self.decode_opus(conn.asr_audio)
                 await self._send_audio_chunk(b"".join(pcm_frame))
                 conn.asr_audio.clear()
             except Exception as e:
-                logger.bind(tag=TAG).error(f"Error sending audio data: {e}", exc_info=True)
+                logger.bind(tag=TAG).error(
+                    f"Error sending audio data: {e}", exc_info=True
+                )
                 await self.stop_ws_connection()
-                
         # Finish the session if end-of-utterance is detected.
-        if self.ws and self.session_started and self.is_eou(conn, self.text) :
+        if self.ws and self.session_started and self.is_eou(conn, self.text):
             logger.bind(tag=TAG).info(f"Finishing session: {self.current_session_id}")
-            await self.finish_session(self.current_session_id)
+            await self.finish_session()
 
     async def _send_audio_chunk(self, pcm_data: bytes):
         """
@@ -164,16 +157,23 @@ class ASRProvider(ASRProviderBase):
         updating the recognized text, and handling final transcripts.
         """
         try:
-            logger.bind(tag=TAG).debug(f"ASR forwarder started for session: {self.current_session_id}")
+            logger.bind(tag=TAG).debug(
+                f"ASR forwarder started for session: {self.current_session_id}"
+            )
             while self.ws and not self.conn.stop_event.is_set() and self.is_processing:
                 try:
                     message = await self.ws.recv()
                     event = json.loads(message)
-                    logger.bind(tag=TAG).debug(f"Received ASR result for session {self.current_session_id}: {event}")
+                    logger.bind(tag=TAG).debug(
+                        f"Received ASR result for session {self.current_session_id}: {event}"
+                    )
 
                     # Parse the response from the Volcengine streaming ASR service.
                     message_type = event.get("type")
-                    if message_type == "conversation.item.input_audio_transcription.result":
+                    if (
+                        message_type
+                        == "conversation.item.input_audio_transcription.result"
+                    ):
                         transcript_segment = event.get("transcript", "")
                         is_final = event.get("is_final", False)
                         self.text = transcript_segment  # Append intermediate result.
@@ -181,9 +181,14 @@ class ASRProvider(ASRProviderBase):
                             logger.bind(tag=TAG).info(f"Final ASR result: {self.text}")
                             self.conn.reset_vad_states()
                             await self.handle_voice_stop(self.conn, None)
-                    elif message_type == "conversation.item.input_audio_transcription.completed":
+                    elif (
+                        message_type
+                        == "conversation.item.input_audio_transcription.completed"
+                    ):
                         final_transcript = event.get("transcript", self.text)
-                        logger.bind(tag=TAG).info(f"ASR transcription completed: {final_transcript}")
+                        logger.bind(tag=TAG).info(
+                            f"ASR transcription completed: {final_transcript}"
+                        )
                         self.text = final_transcript  # Ensure final result is used.
                         self.conn.reset_vad_states()
                         await self.handle_voice_stop(self.conn, None)
@@ -200,12 +205,18 @@ class ASRProvider(ASRProviderBase):
                     logger.bind(tag=TAG).error("ASR WebSocket connection closed.")
                     break
                 except json.JSONDecodeError:
-                    logger.bind(tag=TAG).error(f"Failed to decode JSON from ASR: {message}")
+                    logger.bind(tag=TAG).error(
+                        f"Failed to decode JSON from ASR: {message}"
+                    )
                 except Exception as e:
-                    logger.bind(tag=TAG).error(f"Error processing ASR result: {e}", exc_info=True)
+                    logger.bind(tag=TAG).error(
+                        f"Error processing ASR result: {e}", exc_info=True
+                    )
                     break
         finally:
-            logger.bind(tag=TAG).debug(f"ASR forwarder task finished for session: {self.current_session_id}")
+            logger.bind(tag=TAG).debug(
+                f"ASR forwarder task finished for session: {self.current_session_id}"
+            )
             self.is_processing = False
 
     async def speech_to_text(
@@ -225,7 +236,7 @@ class ASRProvider(ASRProviderBase):
         """
         return self.text, None
 
-    async def start_session(self, session_id: str):
+    async def start_session(self):
         """
         Starts a new ASR transcription session.
 
@@ -238,7 +249,8 @@ class ASRProvider(ASRProviderBase):
         Raises:
             Exception: If the session fails to start.
         """
-        logger.bind(tag=TAG).debug(f"Starting session {session_id}")
+        self.current_session_id = uuid.uuid4().hex
+        logger.bind(tag=TAG).info(f"Starting session {self.current_session_id}")
         try:
             await self._ensure_connection()
             # Create the request message to start streaming recognition.
@@ -249,7 +261,7 @@ class ASRProvider(ASRProviderBase):
                 "input_audio_bits": 16,
                 "input_audio_channel": 1,
                 "input_audio_transcription": {"model": self.model_name},
-                "session_id": session_id,
+                "session_id": self.current_session_id,
             }
             event = {"type": "transcription_session.update", "session": config}
             await self.ws.send(json.dumps(event))
@@ -271,7 +283,7 @@ class ASRProvider(ASRProviderBase):
             await self.stop_ws_connection()
             raise
 
-    async def finish_session(self, session_id: str):
+    async def finish_session(self):
         """
         Finishes the current ASR session.
 
@@ -281,13 +293,16 @@ class ASRProvider(ASRProviderBase):
         Args:
             session_id (str): The ID of the session to finish.
         """
+        logger.bind(tag=TAG).info(f"Stopping session {self.current_session_id}")
         try:
             self.audio_buffer.clear()
             await self._ensure_connection()
             done_payload = {"type": "input_audio_buffer.commit"}
             await self.ws.send(json.dumps(done_payload))
             self.session_started = False
-            logger.bind(tag=TAG).debug(f"Session finish request sent: {done_payload} for session: {session_id}")
+            logger.bind(tag=TAG).debug(
+                f"Session finish: {done_payload} for session: {self.current_session_id}"
+            )
         except Exception as e:
             await self.stop_ws_connection()
             logger.bind(tag=TAG).error(f"Failed to close session: {e}")
@@ -313,7 +328,9 @@ class ASRProvider(ASRProviderBase):
             conn: The connection object.
             asr_audio_task: The audio task associated with the ASR.
         """
-        raw_text, _ = await self.speech_to_text(asr_audio_task, conn.session_id, conn.audio_format)
+        raw_text, _ = await self.speech_to_text(
+            asr_audio_task, conn.session_id, conn.audio_format
+        )
         conn.logger.bind(tag=TAG).info(f"Recognized text: {raw_text}")
         text_len, _ = remove_punctuation_and_length(raw_text)
         if text_len > 0:
@@ -345,8 +362,8 @@ class ASRProvider(ASRProviderBase):
                 self.ws_url,
                 additional_headers=headers,
                 ping_interval=60,  # Increased from 20
-                ping_timeout=30,   # Increased from 10
-                close_timeout=10   # Added for graceful close
+                ping_timeout=30,  # Increased from 10
+                close_timeout=10,  # Added for graceful close
             )
             logger.bind(tag=TAG).info("WebSocket connection established.")
         except Exception as e:
@@ -362,8 +379,10 @@ class ASRProvider(ASRProviderBase):
         if self.ws:
             try:
                 await self.ws.close()
-                logger.bind(tag=TAG).info("ASR WebSocket connection closed successfully.")
-            except Exception as e:
+                logger.bind(tag=TAG).info(
+                    "ASR WebSocket connection closed successfully."
+                )
+            except websockets.WebSocketException as e:
                 logger.bind(tag=TAG).error(f"Error closing ASR WebSocket: {e}")
             finally:
                 self.ws = None
