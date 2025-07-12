@@ -143,7 +143,6 @@ class TTSProvider(TTSProviderBase):
                     break # End of stream for this request
                 elif event_type == "error":
                     logger.bind(tag=TAG).error(f"Received error from server: {data}")
-                    await self.stop_ws_connection()
                     break
         except websockets.exceptions.ConnectionClosed as e:
             await self.stop_ws_connection()
@@ -264,8 +263,7 @@ class TTSProvider(TTSProviderBase):
                 except Exception:
                     pass
                 self._monitor_task = None
-            if self.ws:
-                await self.stop_ws_connection()
+            await self.stop_ws_connection()
             raise
 
     async def finish_session(self, session_id):
@@ -276,7 +274,6 @@ class TTSProvider(TTSProviderBase):
             session_id (str): The unique session ID.
         """
         try:
-            await self._ensure_connection()
             done_payload = {
                 "type": "input_text.done"
             }
@@ -284,8 +281,8 @@ class TTSProvider(TTSProviderBase):
             logger.bind(tag=TAG).debug(f"会话结束请求已发送,Send Event: {done_payload}")
 
         except Exception as e:
-            await self.stop_ws_connection()
             logger.bind(tag=TAG).error(f"关闭会话失败: {str(e)}")
+            await self.stop_ws_connection()
         
         # 等待监听任务完成
         if hasattr(self, "_monitor_task"):

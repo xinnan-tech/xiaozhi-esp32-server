@@ -78,7 +78,7 @@ class ASRProvider(ASRProviderBase):
             conn: The connection object, which includes session details.
         """
         await super().open_audio_channels(conn)
-        self.current_session_id = conn.session_id
+        await self._ensure_connection()
         self.conn = conn
 
     async def receive_audio(self, conn, audio: bytes, audio_have_voice: bool):
@@ -197,7 +197,6 @@ class ASRProvider(ASRProviderBase):
                     elif message_type == "error":
                         error_msg = event.get("error", {})
                         logger.bind(tag=TAG).error(f"ASR service error: {error_msg}")
-                        await self.stop_ws_connection()
                         break
 
                 except websockets.ConnectionClosed:
@@ -296,7 +295,6 @@ class ASRProvider(ASRProviderBase):
         logger.bind(tag=TAG).info(f"Stopping session {self.current_session_id}")
         try:
             self.audio_buffer.clear()
-            await self._ensure_connection()
             done_payload = {"type": "input_audio_buffer.commit"}
             await self.ws.send(json.dumps(done_payload))
             self.session_started = False
