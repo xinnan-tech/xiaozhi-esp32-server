@@ -312,12 +312,13 @@ class TTSProvider(TTSProviderBase):
             logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
             headers = {"Authorization": f"Bearer {self.api_key}"}
             # 使用内置的 ping/pong 机制来维持连接和检查健康状况
-            # 每 20 秒发送一次 ping，等待 10 秒超时
+            # 每 60 秒发送一次 ping，等待 30 秒超时
             self.ws = await websockets.connect(
                 self.ws_url,
                 additional_headers=headers,
-                ping_interval=20,
-                ping_timeout=10
+                ping_interval=60,
+                ping_timeout=30,
+                close_timeout=10
             )
             logger.bind(tag=TAG).info("WebSocket connection established.")
         except Exception as e:

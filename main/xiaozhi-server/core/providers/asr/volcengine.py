@@ -130,9 +130,9 @@ class ASRProvider(ASRProviderBase):
                 await self._send_audio_chunk(b"".join(pcm_frame))
                 conn.asr_audio.clear()
             except Exception as e:
-                await self.stop_ws_connection()
                 logger.bind(tag=TAG).error(f"Error sending audio data: {e}", exc_info=True)
-
+                await self.stop_ws_connection()
+                
         # Finish the session if end-of-utterance is detected.
         if self.ws and self.session_started and self.is_eou(conn, self.text) :
             logger.bind(tag=TAG).info(f"Finishing session: {self.current_session_id}")
@@ -340,12 +340,13 @@ class ASRProvider(ASRProviderBase):
             logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
             headers = {"Authorization": f"Bearer {self.api_key}"}
             # 使用内置的 ping/pong 机制来维持连接和检查健康状况
-            # 每 20 秒发送一次 ping，等待 10 秒超时
+            # 每 60 秒发送一次 ping，等待 30 秒超时
             self.ws = await websockets.connect(
                 self.ws_url,
                 additional_headers=headers,
-                ping_interval=20,
-                ping_timeout=10
+                ping_interval=60,  # Increased from 20
+                ping_timeout=30,   # Increased from 10
+                close_timeout=10   # Added for graceful close
             )
             logger.bind(tag=TAG).info("WebSocket connection established.")
         except Exception as e:
