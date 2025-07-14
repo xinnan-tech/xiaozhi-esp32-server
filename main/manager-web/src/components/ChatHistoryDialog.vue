@@ -24,7 +24,7 @@
                             <img :src="message.chatType === 1 ? getUserAvatar(currentSessionId) : require('@/assets/xiaozhi-logo.png')"
                                 class="avatar" />
                             <div class="message-content">
-                                {{ message.content }}
+                                {{ extractContentFromString(message.content) }}
                                 <i v-if="message.audioId" :class="getAudioIconClass(message)"
                                     @click="playAudio(message)" class="audio-icon"></i>
                             </div>
@@ -129,6 +129,32 @@ export default {
         }
     },
     methods: {
+        /**
+         * 从 content 字段中提取聊天内容
+         * 如果 content 是 JSON 格式（如 {"speaker": "未知说话人", "content": "现在几点了。"}），则提取 content 字段
+         * 如果 content 是普通字符串，则直接返回
+         * 
+         * @param {string} content 原始内容
+         * @returns {string} 提取的聊天内容
+         */
+        extractContentFromString(content) {
+            if (!content || content.trim() === '') {
+                return content;
+            }
+
+            // 尝试解析为 JSON
+            try {
+                const jsonObj = JSON.parse(content);
+                if (jsonObj && typeof jsonObj === 'object' && jsonObj.content) {
+                    return jsonObj.content;
+                }
+            } catch (e) {
+                // 如果不是有效的 JSON，直接返回原内容
+            }
+
+            // 如果不是 JSON 格式或没有 content 字段，直接返回原内容
+            return content;
+        },
         resetData() {
             this.sessions = [];
             this.messages = [];

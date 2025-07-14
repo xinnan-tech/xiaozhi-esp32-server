@@ -151,20 +151,44 @@ def parse_weather_info(soup):
 
 @register_function("get_weather", GET_WEATHER_FUNCTION_DESC, ToolType.SYSTEM_CTL)
 def get_weather(conn, location: str = None, lang: str = "zh_CN"):
-    api_host = conn.config["plugins"]["get_weather"].get("api_host", "mj7p3y7naa.re.qweatherapi.com")
-    api_key = conn.config["plugins"]["get_weather"].get("api_key", "a861d0d5e7bf4ee1a83d9a9e4f96d4da")
+    from core.utils.cache.manager import cache_manager, CacheType
+
+    api_host = conn.config["plugins"]["get_weather"].get(
+        "api_host", "mj7p3y7naa.re.qweatherapi.com"
+    )
+    api_key = conn.config["plugins"]["get_weather"].get(
+        "api_key", "a861d0d5e7bf4ee1a83d9a9e4f96d4da"
+    )
     default_location = conn.config["plugins"]["get_weather"]["default_location"]
     client_ip = conn.client_ip
+
     # 优先使用用户提供的location参数
     if not location:
         # 通过客户端IP解析城市
         if client_ip:
-            # 动态解析IP对应的城市信息
-            ip_info = get_ip_info(client_ip, logger)
-            location = ip_info.get("city") if ip_info and "city" in ip_info else None
+            # 先从缓存获取IP对应的城市信息
+            cached_ip_info = cache_manager.get(CacheType.IP_INFO, client_ip)
+            if cached_ip_info:
+                location = cached_ip_info.get("city")
+            else:
+                # 缓存未命中，调用API获取
+                ip_info = get_ip_info(client_ip, logger)
+                if ip_info:
+                    cache_manager.set(CacheType.IP_INFO, client_ip, ip_info)
+                    location = ip_info.get("city")
+
+            if not location:
+                location = default_location
         else:
-            # 若IP解析失败或无IP，使用默认位置
+            # 若无IP，使用默认位置
             location = default_location
+    # 尝试从缓存获取完整天气报告
+    weather_cache_key = f"full_weather_{location}_{lang}"
+    cached_weather_report = cache_manager.get(CacheType.WEATHER, weather_cache_key)
+    if cached_weather_report:
+        return ActionResponse(Action.REQLLM, cached_weather_report, None)
+
+    # 缓存未命中，获取实时天气数据
     city_info = fetch_city_info(location, api_key, api_host)
     if not city_info:
         return ActionResponse(
@@ -191,5 +215,8 @@ def get_weather(conn, location: str = None, lang: str = "zh_CN"):
 
     # 提示语
     weather_report += "\n（如需某一天的具体天气，请告诉我日期）"
+
+    # 缓存完整的天气报告
+    cache_manager.set(CacheType.WEATHER, weather_cache_key, weather_report)
 
     return ActionResponse(Action.REQLLM, weather_report, None)

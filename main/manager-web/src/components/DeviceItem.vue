@@ -23,6 +23,9 @@
       <div class="settings-btn" @click="handleConfigure">
         配置角色
       </div>
+       <div class="settings-btn" @click="handleVoicePrint">
+        声纹识别
+      </div>
       <div class="settings-btn" @click="handleDeviceManage">
         设备管理({{ device.deviceCount }})
       </div>
@@ -76,6 +79,9 @@ export default {
     },
     handleConfigure() {
       this.$router.push({ path: '/role-config', query: { agentId: this.device.agentId } });
+    },
+    handleVoicePrint() {
+      this.$router.push({ path: '/voice-print', query: { agentId: this.device.agentId } });
     },
     handleDeviceManage() {
       this.$router.push({ path: '/device-management', query: { agentId: this.device.agentId } });

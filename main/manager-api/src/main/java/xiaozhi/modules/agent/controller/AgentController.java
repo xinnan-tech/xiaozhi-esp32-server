@@ -47,6 +47,7 @@ import xiaozhi.modules.agent.service.AgentChatHistoryService;
 import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
+import xiaozhi.modules.agent.vo.AgentChatHistoryUserVO;
 import xiaozhi.modules.agent.vo.AgentInfoVO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
@@ -180,6 +181,33 @@ public class AgentController {
         // 查询聊天记录
         List<AgentChatHistoryDTO> result = agentChatHistoryService.getChatHistoryBySessionId(id, sessionId);
         return new Result<List<AgentChatHistoryDTO>>().ok(result);
+    }
+    @GetMapping("/{id}/chat-history/user")
+    @Operation(summary = "获取智能体聊天记录（用户）")
+    @RequiresPermissions("sys:role:normal")
+    public Result<List<AgentChatHistoryUserVO>> getRecentlyFiftyByAgentId(
+            @PathVariable("id") String id) {
+        // 获取当前用户
+        UserDetail user = SecurityUser.getUser();
+
+        // 检查权限
+        if (!agentService.checkAgentPermission(id, user.getId())) {
+            return new Result<List<AgentChatHistoryUserVO>>().error("没有权限查看该智能体的聊天记录");
+        }
+
+        // 查询聊天记录
+        List<AgentChatHistoryUserVO> data = agentChatHistoryService.getRecentlyFiftyByAgentId(id);
+        return new Result<List<AgentChatHistoryUserVO>>().ok(data);
+    }
+
+    @GetMapping("/{id}/chat-history/audio")
+    @Operation(summary = "获取音频内容")
+    @RequiresPermissions("sys:role:normal")
+    public Result<String> getContentByAudioId(
+            @PathVariable("id") String id) {
+        // 查询聊天记录
+        String data = agentChatHistoryService.getContentByAudioId(id);
+        return new Result<String>().ok(data);
     }
 
     @PostMapping("/audio/{audioId}")

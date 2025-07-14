@@ -9,20 +9,26 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
+import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.JsonUtils;
+import xiaozhi.modules.agent.dao.AgentVoicePrintDao;
 import xiaozhi.modules.agent.entity.AgentEntity;
 import xiaozhi.modules.agent.entity.AgentPluginMapping;
 import xiaozhi.modules.agent.entity.AgentTemplateEntity;
+import xiaozhi.modules.agent.entity.AgentVoicePrintEntity;
 import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
 import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
+import xiaozhi.modules.agent.vo.AgentVoicePrintVO;
 import xiaozhi.modules.config.service.ConfigService;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
@@ -45,6 +51,7 @@ public class ConfigServiceImpl implements ConfigService {
     private final TimbreService timbreService;
     private final AgentPluginMappingService agentPluginMappingService;
     private final AgentMcpAccessPointService agentMcpAccessPointService;
+    private final AgentVoicePrintDao agentVoicePrintDao;
 
     @Override
     public Object getConfig(Boolean isCache) {
@@ -162,6 +169,8 @@ public class ConfigServiceImpl implements ConfigService {
             mcpEndpoint = mcpEndpoint.replace("/mcp/", "/call/");
             result.put("mcp_endpoint", mcpEndpoint);
         }
+        // 获取声纹信息
+        buildVoiceprintConfig(agent.getId(), result);
 
         // 构建模块配置
         buildModuleConfig(
@@ -253,6 +262,62 @@ public class ConfigServiceImpl implements ConfigService {
         }
 
         return config;
+    }
+
+    /**
+     * 构建声纹配置信息
+     * 
+     * @param agentId 智能体ID
+     * @param result  结果Map
+     */
+    private void buildVoiceprintConfig(String agentId, Map<String, Object> result) {
+        try {
+            // 获取声纹接口地址
+            String voiceprintUrl = sysParamsService.getValue("server.voice_print", true);
+            if (StringUtils.isBlank(voiceprintUrl) || "null".equals(voiceprintUrl)) {
+                return;
+            }
+
+            // 获取智能体关联的声纹信息（不需要用户权限验证）
+            List<AgentVoicePrintVO> voiceprints = getVoiceprintsByAgentId(agentId);
+            if (voiceprints == null || voiceprints.isEmpty()) {
+                return;
+            }
+
+            // 构建speakers列表
+            List<String> speakers = new ArrayList<>();
+            for (AgentVoicePrintVO voiceprint : voiceprints) {
+                String speakerStr = String.format("%s,%s,%s",
+                        voiceprint.getId(),
+                        voiceprint.getSourceName(),
+                        voiceprint.getIntroduce() != null ? voiceprint.getIntroduce() : "");
+                speakers.add(speakerStr);
+            }
+
+            // 构建声纹配置
+            Map<String, Object> voiceprintConfig = new HashMap<>();
+            voiceprintConfig.put("url", voiceprintUrl);
+            voiceprintConfig.put("speakers", speakers);
+
+            result.put("voiceprint", voiceprintConfig);
+        } catch (Exception e) {
+            // 声纹配置获取失败时不影响其他功能
+            System.err.println("获取声纹配置失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取智能体关联的声纹信息
+     * 
+     * @param agentId 智能体ID
+     * @return 声纹信息列表
+     */
+    private List<AgentVoicePrintVO> getVoiceprintsByAgentId(String agentId) {
+        LambdaQueryWrapper<AgentVoicePrintEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AgentVoicePrintEntity::getAgentId, agentId);
+        queryWrapper.orderByAsc(AgentVoicePrintEntity::getCreateDate);
+        List<AgentVoicePrintEntity> entities = agentVoicePrintDao.selectList(queryWrapper);
+        return ConvertUtils.sourceToTarget(entities, AgentVoicePrintVO.class);
     }
 
     /**
