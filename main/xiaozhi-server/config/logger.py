@@ -5,7 +5,7 @@ from config.config_loader import load_config
 from config.settings import check_config_file
 from datetime import datetime
 
-SERVER_VERSION = "0.6.3"
+SERVER_VERSION = "0.7.1"
 _logger_initialized = False
 
 
@@ -35,8 +35,12 @@ def build_module_string(selected_module):
 
 
 def formatter(record):
-    """为没有 tag 的日志添加默认值"""
+    """为没有 tag 的日志添加默认值，并处理动态模块字符串"""
     record["extra"].setdefault("tag", record["name"])
+    # 如果没有设置 selected_module，使用默认值
+    record["extra"].setdefault("selected_module", "00000000000000")
+    # 将 selected_module 从 extra 提取到顶级，以支持 {selected_module} 格式
+    record["selected_module"] = record["extra"]["selected_module"]
     return record["message"]
 
 
@@ -49,11 +53,11 @@ def setup_logging():
 
     # 第一次初始化时配置日志
     if not _logger_initialized:
+        # 使用默认的模块字符串进行初始化
         logger.configure(
             extra={
-                "selected_module": log_config.get("selected_module", "00000000000000")
-            }
-        )  # 新增配置
+                "selected_module": "00000000000000"})
+        
         log_format = log_config.get(
             "log_format",
             "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{extra[selected_module]}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>",
@@ -62,14 +66,8 @@ def setup_logging():
             "log_format_file",
             "{time:YYYY-MM-DD HH:mm:ss} - {version}_{extra[selected_module]} - {name} - {level} - {extra[tag]} - {message}",
         )
-        selected_module_str = logger._core.extra["selected_module"]
-
         log_format = log_format.replace("{version}", SERVER_VERSION)
-        log_format = log_format.replace("{selected_module}", selected_module_str)
         log_format_file = log_format_file.replace("{version}", SERVER_VERSION)
-        log_format_file = log_format_file.replace(
-            "{selected_module}", selected_module_str
-        )
 
         log_level = log_config.get("log_level", "INFO")
         log_dir = log_config.get("log_dir", "tmp")
@@ -108,66 +106,7 @@ def setup_logging():
     return logger
 
 
-def update_module_string(selected_module_str):
-    """更新模块字符串并重新配置日志处理器"""
-    logger.debug(f"更新日志配置组件")
-    current_module = logger._core.extra["selected_module"]
+def create_connection_logger(selected_module_str):
+    """为连接创建独立的日志器，绑定特定的模块字符串"""
+    return logger.bind(selected_module=selected_module_str)
 
-    if current_module == selected_module_str:
-        logger.debug(f"组件未更改无需更新")
-        return
-
-    try:
-        logger.configure(extra={"selected_module": selected_module_str})
-
-        config = load_config()
-        log_config = config["log"]
-
-        log_format = log_config.get(
-            "log_format",
-            "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{extra[selected_module]}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>",
-        )
-        log_format_file = log_config.get(
-            "log_format_file",
-            "{time:YYYY-MM-DD HH:mm:ss} - {version}_{extra[selected_module]} - {name} - {level} - {extra[tag]} - {message}",
-        )
-
-        log_format = log_format.replace("{version}", SERVER_VERSION)
-        log_format = log_format.replace("{selected_module}", selected_module_str)
-        log_format_file = log_format_file.replace("{version}", SERVER_VERSION)
-        log_format_file = log_format_file.replace(
-            "{selected_module}", selected_module_str
-        )
-
-        logger.remove()
-        logger.add(
-            sys.stdout,
-            format=log_format,
-            level=log_config.get("log_level", "INFO"),
-            filter=formatter,
-        )
-
-        # 更新文件日志配置 - 统一目录，按大小轮转
-        log_dir = log_config.get("log_dir", "tmp")
-        log_file = log_config.get("log_file", "server.log")
-
-        # 日志文件完整路径
-        log_file_path = os.path.join(log_dir, log_file)
-
-        logger.add(
-            log_file_path,
-            format=log_format_file,
-            level=log_config.get("log_level", "INFO"),
-            filter=formatter,
-            rotation="10 MB",  # 每个文件最大10MB
-            retention="30 days",  # 保留30天
-            compression=None,
-            encoding="utf-8",
-            enqueue=True,  # 异步安全
-            backtrace=True,
-            diagnose=True,
-        )
-
-    except Exception as e:
-        logger.error(f"日志配置更新失败: {str(e)}")
-        raise

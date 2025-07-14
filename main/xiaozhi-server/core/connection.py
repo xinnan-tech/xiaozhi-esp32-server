@@ -22,6 +22,7 @@ from core.utils.modules_initialize import (
     initialize_asr,
 )
 from core.handle.reportHandle import report
+from core.utils.modules_initialize import initialize_voiceprint
 from core.providers.tts.default import DefaultTTS
 from concurrent.futures import ThreadPoolExecutor
 from core.utils.dialogue import Message, Dialogue
@@ -33,8 +34,9 @@ from plugins_func.register import Action, ActionResponse
 from core.auth import AuthMiddleware, AuthenticationError
 from config.config_loader import get_private_config_from_api
 from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
-from config.logger import setup_logging, build_module_string, update_module_string
+from config.logger import setup_logging, build_module_string, create_connection_logger
 from config.manage_api_client import DeviceNotFoundException, DeviceBindException
+from core.utils.prompt_manager import PromptManager
 
 
 TAG = __name__
@@ -72,12 +74,12 @@ class ConnectionHandler:
         self.headers = None
         self.device_id = None
         self.client_ip = None
-        self.client_ip_info = {}
         self.prompt = None
         self.welcome_msg = None
         self.max_output_size = 0
         self.chat_history_conf = 0
         self.audio_format = "opus"
+        self.just_woken_up = False
 
         # 客户端状态相关
         self.client_abort = False
@@ -149,6 +151,9 @@ class ConnectionHandler:
 
         # {"mcp":true} 表示启用MCP功能
         self.features = None
+
+        # 初始化提示词管理器
+        self.prompt_manager = PromptManager(config, self.logger)
 
     async def handle_connection(self, ws):
         try:
@@ -325,13 +330,16 @@ class ConnectionHandler:
             self.selected_module_str = build_module_string(
                 self.config.get("selected_module", {})
             )
-            update_module_string(self.selected_module_str)
+            self.logger = create_connection_logger(self.selected_module_str)
+            
             """初始化组件"""
             if self.config.get("prompt") is not None:
-                self.prompt = self.config["prompt"]
-                self.change_system_prompt(self.prompt)
+                user_prompt = self.config["prompt"]
+                # 使用快速提示词进行初始化
+                prompt = self.prompt_manager.get_quick_prompt(user_prompt)
+                self.change_system_prompt(prompt)
                 self.logger.bind(tag=TAG).info(
-                    f"初始化组件: prompt成功 {self.prompt[:50]}..."
+                    f"快速初始化组件: prompt成功 {prompt[:50]}..."
                 )
 
             """初始化本地组件"""
@@ -356,8 +364,21 @@ class ConnectionHandler:
             self._initialize_intent()
             """初始化上报线程"""
             self._init_report_threads()
+            """更新系统提示词"""
+            self._init_prompt_enhancement()
+
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
+
+    def _init_prompt_enhancement(self):
+        # 更新上下文信息
+        self.prompt_manager.update_context_info(self, self.client_ip)
+        enhanced_prompt = self.prompt_manager.build_enhanced_prompt(
+            self.config["prompt"], self.device_id, self.client_ip
+        )
+        if enhanced_prompt:
+            self.change_system_prompt(enhanced_prompt)
+            self.logger.bind(tag=TAG).info("系统提示词已增强更新")
 
     def _init_report_threads(self):
         """初始化ASR和TTS上报线程"""
@@ -393,6 +414,16 @@ class ConnectionHandler:
             # 如果公共ASR是远程服务，则初始化一个新实例
             # 因为远程ASR，涉及到websocket连接和接收线程，需要每个连接一个实例
             asr = initialize_asr(self.config)
+
+        # 动态初始化声纹识别功能
+        try:
+            success = initialize_voiceprint(asr, self.config)
+            if success:
+                self.logger.bind(tag=TAG).info("声纹识别功能已在连接时动态启用")
+            else:
+                self.logger.bind(tag=TAG).info("声纹识别功能未启用或配置不完整")
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"动态初始化声纹识别时发生错误: {str(e)}")
 
         return asr
 
@@ -479,6 +510,9 @@ class ConnectionHandler:
                 ] = plugin_from_server.keys()
         if private_config.get("prompt", None) is not None:
             self.config["prompt"] = private_config["prompt"]
+        # 获取声纹信息
+        if private_config.get("voiceprint", None) is not None:
+            self.config["voiceprint"] = private_config["voiceprint"]
         if private_config.get("summaryMemory", None) is not None:
             self.config["summaryMemory"] = private_config["summaryMemory"]
         if private_config.get("device_max_output_size", None) is not None:
@@ -647,13 +681,17 @@ class ConnectionHandler:
                 # 使用支持functions的streaming接口
                 llm_responses = self.llm.response_with_functions(
                     self.session_id,
-                    self.dialogue.get_llm_dialogue_with_memory(memory_str),
+                    self.dialogue.get_llm_dialogue_with_memory(
+                        memory_str, self.config.get("voiceprint", {})
+                    ),
                     functions=functions,
                 )
             else:
                 llm_responses = self.llm.response(
                     self.session_id,
-                    self.dialogue.get_llm_dialogue_with_memory(memory_str),
+                    self.dialogue.get_llm_dialogue_with_memory(
+                        memory_str, self.config.get("voiceprint", {})
+                    ),
                 )
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
@@ -764,8 +802,11 @@ class ConnectionHandler:
                 )
             )
         self.llm_finish_task = True
+        # 使用lambda延迟计算，只有在DEBUG级别时才执行get_llm_dialogue()
         self.logger.bind(tag=TAG).debug(
-            json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False)
+            lambda: json.dumps(
+                self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False
+            )
         )
 
         return True
@@ -823,14 +864,13 @@ class ConnectionHandler:
                 item = self.report_queue.get(timeout=1)
                 if item is None:  # 检测毒丸对象
                     break
-                type, text, audio_data, report_time = item
                 try:
                     # 检查线程池状态
                     if self.executor is None:
                         continue
                     # 提交任务到线程池
                     self.executor.submit(
-                        self._process_report, type, text, audio_data, report_time
+                        self._process_report, *item
                     )
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"聊天记录上报线程异常: {e}")

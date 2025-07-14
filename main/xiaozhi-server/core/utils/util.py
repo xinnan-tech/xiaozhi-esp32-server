@@ -96,11 +96,23 @@ def is_private_ip(ip_addr):
 
 def get_ip_info(ip_addr, logger):
     try:
+        # 导入全局缓存管理器
+        from core.utils.cache.manager import cache_manager, CacheType
+
+        # 先从缓存获取
+        cached_ip_info = cache_manager.get(CacheType.IP_INFO, ip_addr)
+        if cached_ip_info is not None:
+            return cached_ip_info
+
+        # 缓存未命中，调用API
         if is_private_ip(ip_addr):
             ip_addr = ""
         url = f"https://whois.pconline.com.cn/ipJson.jsp?json=true&ip={ip_addr}"
         resp = requests.get(url).json()
         ip_info = {"city": resp.get("city")}
+
+        # 存入缓存
+        cache_manager.set(CacheType.IP_INFO, ip_addr, ip_info)
         return ip_info
     except Exception as e:
         logger.bind(tag=TAG).error(f"Error getting client ip info: {e}")

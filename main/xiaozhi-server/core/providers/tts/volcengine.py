@@ -100,6 +100,10 @@ class TTSProvider(TTSProviderBase):
                 data = json.loads(message)
                 event_type = data.get("type")
                 logger.bind(tag=TAG).debug(f"Received data: {data}")
+                 # 检查客户端是否中止
+                if self.conn.client_abort:
+                    logger.bind(tag=TAG).info("收到打断信息，终止监听TTS响应")
+                    break
                 if event_type == "tts_session.updated":
                     logger.bind(tag=TAG).info(f"Session: {self.conn.sentence_id}, 完成会话初始化")
                     opus_datas_cache = []
@@ -139,7 +143,6 @@ class TTSProvider(TTSProviderBase):
                     break # End of stream for this request
                 elif event_type == "error":
                     logger.bind(tag=TAG).error(f"Received error from server: {data}")
-                    await self.stop_ws_connection()
                     break
         except websockets.exceptions.ConnectionClosed as e:
             await self.stop_ws_connection()
@@ -162,13 +165,16 @@ class TTSProvider(TTSProviderBase):
                 logger.bind(tag=TAG).debug(
                     f"收到TTS任务｜{message.sentence_type.name} ｜ {message.content_type.name} | 会话ID: {self.conn.sentence_id}"
                 )
+                if message.sentence_type == SentenceType.FIRST:
+                    self.conn.client_abort = False
+                    
                 if self.conn.client_abort:
                     logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
                     continue
                 if message.sentence_type == SentenceType.FIRST:
                     if not getattr(self.conn, "sentence_id", None): 
                         self.conn.sentence_id = uuid.uuid4().hex
-                        logger.bind(tag=TAG).info(f"自动生成新的 会话ID: {self.conn.sentence_id}")
+                        logger.bind(tag=TAG).info(f"自动生成新的会话ID: {self.conn.sentence_id}")
                     logger.bind(tag=TAG).debug("开始启动TTS会话...")
                     future = asyncio.run_coroutine_threadsafe(
                         self.start_session(self.conn.sentence_id),
@@ -257,8 +263,7 @@ class TTSProvider(TTSProviderBase):
                 except Exception:
                     pass
                 self._monitor_task = None
-            if self.ws:
-                await self.stop_ws_connection()
+            await self.stop_ws_connection()
             raise
 
     async def finish_session(self, session_id):
@@ -269,7 +274,6 @@ class TTSProvider(TTSProviderBase):
             session_id (str): The unique session ID.
         """
         try:
-            await self._ensure_connection()
             done_payload = {
                 "type": "input_text.done"
             }
@@ -277,8 +281,8 @@ class TTSProvider(TTSProviderBase):
             logger.bind(tag=TAG).debug(f"会话结束请求已发送,Send Event: {done_payload}")
 
         except Exception as e:
-            await self.stop_ws_connection()
             logger.bind(tag=TAG).error(f"关闭会话失败: {str(e)}")
+            await self.stop_ws_connection()
         
         # 等待监听任务完成
         if hasattr(self, "_monitor_task"):
@@ -304,7 +308,7 @@ class TTSProvider(TTSProviderBase):
         # 检查连接是否存在且处于 open 状态
         # websockets 库的自动 ping/pong 机制会处理连接健康检查
         if self.ws:
-            logger.bind(tag=TAG).debug("WebSocket connection is active.")
+            logger.bind(tag=TAG).info("WebSocket connection is active.")
             return
 
         # 如果连接不存在或已关闭，则重新连接
@@ -312,12 +316,13 @@ class TTSProvider(TTSProviderBase):
             logger.bind(tag=TAG).info(f"Connecting to {self.ws_url}")
             headers = {"Authorization": f"Bearer {self.api_key}"}
             # 使用内置的 ping/pong 机制来维持连接和检查健康状况
-            # 每 20 秒发送一次 ping，等待 10 秒超时
+            # 每 60 秒发送一次 ping，等待 30 秒超时
             self.ws = await websockets.connect(
                 self.ws_url,
                 additional_headers=headers,
-                ping_interval=20,
-                ping_timeout=10
+                ping_interval=60,
+                ping_timeout=30,
+                close_timeout=10
             )
             logger.bind(tag=TAG).info("WebSocket connection established.")
         except Exception as e:
@@ -345,8 +350,8 @@ class TTSProvider(TTSProviderBase):
         try:
             # 建立新连接
             if self.ws is None:
-                await handleAbortMessage(self.conn)
                 logger.bind(tag=TAG).error("WebSocket连接不存在，终止发送文本")
+                await handleAbortMessage(self.conn)
                 return
 
             #  过滤Markdown

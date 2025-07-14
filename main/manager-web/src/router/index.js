@@ -18,6 +18,13 @@ const routes = [
       return import('../views/roleConfig.vue')
     }
   },
+   {
+    path: '/voice-print',
+    name: 'VoicePrint',
+    component: function () {
+      return import('../views/VoicePrint.vue')
+    }
+  },
   {
     path: '/login',
     name: 'login',

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -16,11 +17,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.common.utils.JsonUtils;
+import xiaozhi.modules.agent.Enums.AgentChatHistoryType;
 import xiaozhi.modules.agent.dao.AiAgentChatHistoryDao;
 import xiaozhi.modules.agent.dto.AgentChatHistoryDTO;
 import xiaozhi.modules.agent.dto.AgentChatSessionDTO;
 import xiaozhi.modules.agent.entity.AgentChatHistoryEntity;
 import xiaozhi.modules.agent.service.AgentChatHistoryService;
+import xiaozhi.modules.agent.vo.AgentChatHistoryUserVO;
 
 /**
  * 智能体聊天记录表处理service {@link AgentChatHistoryService} impl
@@ -89,5 +93,75 @@ public class AgentChatHistoryServiceImpl extends ServiceImpl<AiAgentChatHistoryD
             baseMapper.deleteHistoryByAgentId(agentId);
         }
 
+    }
+
+    @Override
+    public List<AgentChatHistoryUserVO> getRecentlyFiftyByAgentId(String agentId) {
+        // 构建查询条件(不添加按照创建时间排序，数据本来就是主键越大创建时间越大
+        // 不添加这样可以减少排序全部数据在分页的全盘扫描消耗)
+        LambdaQueryWrapper<AgentChatHistoryEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(AgentChatHistoryEntity::getContent, AgentChatHistoryEntity::getAudioId)
+                .eq(AgentChatHistoryEntity::getAgentId, agentId)
+                .eq(AgentChatHistoryEntity::getChatType, AgentChatHistoryType.USER.getValue())
+                .isNotNull(AgentChatHistoryEntity::getAudioId);
+
+        // 构建分页查询，查询前50页数据
+        Page<AgentChatHistoryEntity> pageParam = new Page<>(0, 50);
+        IPage<AgentChatHistoryEntity> result = this.baseMapper.selectPage(pageParam, wrapper);
+        return result.getRecords().stream().map(item -> {
+            AgentChatHistoryUserVO vo = ConvertUtils.sourceToTarget(item, AgentChatHistoryUserVO.class);
+            // 处理 content 字段，确保只返回聊天内容
+            if (vo != null && vo.getContent() != null) {
+                vo.setContent(extractContentFromString(vo.getContent()));
+            }
+            return vo;
+        }).toList();
+    }
+
+    /**
+     * 从 content 字段中提取聊天内容
+     * 如果 content 是 JSON 格式（如 {"speaker": "未知说话人", "content": "现在几点了。"}），则提取 content
+     * 字段
+     * 如果 content 是普通字符串，则直接返回
+     * 
+     * @param content 原始内容
+     * @return 提取的聊天内容
+     */
+    private String extractContentFromString(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            return content;
+        }
+
+        // 尝试解析为 JSON
+        try {
+            Map<String, Object> jsonMap = JsonUtils.parseObject(content, Map.class);
+            if (jsonMap != null && jsonMap.containsKey("content")) {
+                Object contentObj = jsonMap.get("content");
+                return contentObj != null ? contentObj.toString() : content;
+            }
+        } catch (Exception e) {
+            // 如果不是有效的 JSON，直接返回原内容
+        }
+
+        // 如果不是 JSON 格式或没有 content 字段，直接返回原内容
+        return content;
+    }
+
+    @Override
+    public String getContentByAudioId(String audioId) {
+        AgentChatHistoryEntity agentChatHistoryEntity = baseMapper
+                .selectOne(new LambdaQueryWrapper<AgentChatHistoryEntity>()
+                        .select(AgentChatHistoryEntity::getContent)
+                        .eq(AgentChatHistoryEntity::getAudioId, audioId));
+        return agentChatHistoryEntity == null ? null : agentChatHistoryEntity.getContent();
+    }
+
+    @Override
+    public boolean isAudioOwnedByAgent(String audioId, String agentId) {
+        // 查询是否有指定音频id和智能体id的数据，如果有且只有一条说明此数据属性此智能体
+        Long row = baseMapper.selectCount(new LambdaQueryWrapper<AgentChatHistoryEntity>()
+                .eq(AgentChatHistoryEntity::getAudioId, audioId)
+                .eq(AgentChatHistoryEntity::getAgentId, agentId));
+        return row == 1;
     }
 }
