@@ -4,6 +4,8 @@
 
 本项目的测试平台`https://2662r3426b.vicp.fun`，从开放以来就使用了该方法，效果良好。
 
+教程可参考B站博主`毕乐labs`发布的视频教程：[《开源小智服务器xiaozhi-server自动更新以及最新版本MCP接入点配置保姆教程》](https://www.bilibili.com/video/BV15H37zHE7Q)
+
 # 开始条件
 - 你的电脑/服务器是linux操作系统
 - 你已经跑通了整个流程
@@ -40,6 +42,9 @@ git clone https://ghproxy.net/https://github.com/xinnan-tech/xiaozhi-esp32-serve
 
 此刻你需要把`model.pt`文件复制到新的目录去，你可以这样
 ```
+# 创建需要的目录
+mkdir -p /home/system/xiaozhi/xiaozhi-esp32-server/main/xiaozhi-server/data/
+
 cp 你原来的.config.yaml完整路径 /home/system/xiaozhi/xiaozhi-esp32-server/main/xiaozhi-server/data/.config.yaml
 cp 你原来的model.pt完整路径 /home/system/xiaozhi/xiaozhi-esp32-server/main/xiaozhi-server/models/SenseVoiceSmall/model.pt
 ```
@@ -161,3 +166,11 @@ tail -f /home/system/xiaozhi/xiaozhi-esp32-server/main/xiaozhi-server/tmp/server
 
 # 注意事项
 测试平台`https://2662r3426b.vicp.fun`，是使用nginx做了反向代理。nginx.conf详细配置可以[参考这里](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)
+
+## 常见问题
+
+### 1、为什么没有见到8001端口？
+回答：8001是开发环境使用的，用于运行前端的端口。如果你是服务器部署，不建议使用`npm run serve`启动8001端口运行前端，而是像本教程一样编译成html文件，然后使用nginx来管理访问。
+
+### 2、每次更新需要更新手动SQL语句吗？
+回答：不需要，因为项目使用**Liquibase**管理数据库版本，会自动执行新的sql脚本。

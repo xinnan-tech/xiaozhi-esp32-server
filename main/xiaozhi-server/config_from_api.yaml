@@ -19,6 +19,7 @@ server:
   vision_explain: http://你的ip或者域名:端口号/mcp/vision/explain
 manager-api:
   # 你的manager-api的地址，最好使用局域网ip
+  # 如果使用docker部署，请使用填写成 http://xiaozhi-esp32-server-web:8002/xiaozhi
   url: http://127.0.0.1:8002/xiaozhi
   # 你的manager-api的token，就是刚才复制出来的server.secret
   secret: 你的server.secret值

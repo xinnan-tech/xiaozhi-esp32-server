@@ -278,7 +278,7 @@ export default {
 
 .device-list-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 30px;
   padding: 30px 0;
 }

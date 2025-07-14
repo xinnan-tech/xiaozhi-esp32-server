@@ -104,7 +104,8 @@ wakeup_words:
   - "喵喵同学"
   - "小滨小滨"
   - "小冰小冰"
-# MCP接入点地址
+# MCP接入点地址，地址格式为：ws://你的mcp接入点ip或者域名:端口号/mcp/?token=你的token
+# 详细教程 https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-integration.md
 mcp_endpoint: 你的接入点 websocket地址
 # 插件的基础配置
 plugins:
@@ -137,6 +138,16 @@ plugins:
       - ".wav"
       - ".p3"
     refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
+
+# 声纹识别配置
+voiceprint:
+  # 声纹接口地址
+  url: 
+  # 说话人配置：speaker_id,名称,描述
+  speakers:
+    - "test1,张三,张三是一个程序员"
+    - "test2,李四,李四是一个产品经理"
+    - "test3,王五,王五是一个设计师"
 
 # #####################################################################################
 # ################################以下是角色模型配置######################################
@@ -325,6 +336,7 @@ VAD:
   SileroVAD:
     type: silero
     threshold: 0.5
+    threshold_low: 0.3
     model_dir: models/snakers4_silero-vad
     min_silence_duration_ms: 200  # 如果说话停顿比较长，可以把这个值设置大一些
 

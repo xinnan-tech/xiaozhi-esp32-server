@@ -6,9 +6,8 @@ from core.handle.helloHandle import checkWakeupWords
 from core.utils.util import remove_punctuation_and_length
 from core.providers.tts.dto.dto import ContentType
 from core.utils.dialogue import Message
-from core.providers.tools.device_mcp import call_mcp_tool
 from plugins_func.register import Action, ActionResponse
-from loguru import logger
+from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType
 
 TAG = __name__
 
@@ -29,6 +28,8 @@ async def handle_user_intent(conn, text):
     intent_result = await analyze_intent_with_llm(conn, text)
     if not intent_result:
         return False
+    # 会话开始时生成sentence_id
+    conn.sentence_id = str(uuid.uuid4().hex)
     # 处理各种意图
     return await process_intent_result(conn, intent_result, text)
 
@@ -78,11 +79,6 @@ async def process_intent_result(conn, intent_result, original_text):
             function_name = intent_data["function_call"]["name"]
             if function_name == "continue_chat":
                 return False
-
-            if function_name == "play_music":
-                funcItem = conn.func_handler.get_function(function_name)
-                if not funcItem:
-                    conn.func_handler.function_registry.register_function("play_music")
 
             function_args = {}
             if "arguments" in intent_data["function_call"]:
@@ -158,5 +154,19 @@ async def process_intent_result(conn, intent_result, original_text):
 
 
 def speak_txt(conn, text):
+    conn.tts.tts_text_queue.put(
+        TTSMessageDTO(
+            sentence_id=conn.sentence_id,
+            sentence_type=SentenceType.FIRST,
+            content_type=ContentType.ACTION,
+        )
+    )
     conn.tts.tts_one_sentence(conn, ContentType.TEXT, content_detail=text)
+    conn.tts.tts_text_queue.put(
+        TTSMessageDTO(
+            sentence_id=conn.sentence_id,
+            sentence_type=SentenceType.LAST,
+            content_type=ContentType.ACTION,
+        )
+    )
     conn.dialogue.put(Message(role="assistant", content=text))
