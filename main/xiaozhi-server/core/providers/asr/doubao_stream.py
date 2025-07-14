@@ -7,6 +7,9 @@ import opuslib_next
 from core.providers.asr.base import ASRProviderBase
 from config.logger import setup_logging
 from core.providers.asr.dto.dto import InterfaceType
+from core.handle.receiveAudioHandle import startToChat
+from core.handle.reportHandle import enqueue_asr_report
+from core.utils.util import remove_punctuation_and_length
 
 TAG = __name__
 logger = setup_logging()
@@ -24,6 +27,7 @@ class ASRProvider(ASRProviderBase):
         self.asr_ws = None
         self.forward_task = None
         self.is_processing = False  # 添加处理状态标志
+        self.audio_cache = []  # 添加音频数据缓存用于保存文件
 
         # 配置参数
         self.appid = str(config.get("appid"))
@@ -56,6 +60,12 @@ class ASRProvider(ASRProviderBase):
     async def receive_audio(self, conn, audio, audio_have_voice):
         conn.asr_audio.append(audio)
         conn.asr_audio = conn.asr_audio[-10:]
+        
+        # 缓存音频数据用于保存文件
+        self.audio_cache.append(audio)
+        # 限制缓存大小，避免内存占用过多
+        if len(self.audio_cache) > 100:
+            self.audio_cache = self.audio_cache[-100:]
 
         # 如果本次有声音，且之前没有建立连接
         if audio_have_voice and self.asr_ws is None and not self.is_processing:
@@ -168,10 +178,11 @@ class ASRProvider(ASRProviderBase):
                                 and not utterances
                                 and not payload["result"].get("text")
                             ):
+                                logger.info(f"payload: {payload}")
                                 logger.bind(tag=TAG).error(f"识别文本：空")
                                 self.text = ""
                                 conn.reset_vad_states()
-                                await self.handle_voice_stop(conn, None)
+                                await self.handle_voice_stop(conn, [])
                                 break
 
                             for utterance in utterances:
@@ -181,7 +192,7 @@ class ASRProvider(ASRProviderBase):
                                         f"识别到文本: {self.text}"
                                     )
                                     conn.reset_vad_states()
-                                    await self.handle_voice_stop(conn, None)
+                                    await self.handle_voice_stop(conn, [])
                                     break
                         elif "error" in payload:
                             error_msg = payload.get("error", "未知错误")
@@ -349,3 +360,90 @@ class ASRProvider(ASRProviderBase):
                 pass
             self.forward_task = None
         self.is_processing = False
+
+    async def handle_voice_stop(self, conn, asr_audio_task):
+        """处理流式ASR的语音停止事件，包含音频保存逻辑"""
+        try:
+            # 对于流式ASR，使用缓存的音频数据
+            if self.audio_cache and len(self.audio_cache) > 0:
+                file_path = None
+                pcm_data = []
+                
+                try:
+                    # 判断是否保存为WAV文件
+                    if not self.delete_audio_file:
+                        # 解码音频数据为PCM
+                        for audio_chunk in self.audio_cache:
+                            try:
+                                pcm_frame = self.decoder.decode(audio_chunk, 960)
+                                pcm_data.append(pcm_frame)
+                            except Exception as e:
+                                logger.bind(tag=TAG).warning(f"解码音频块失败: {e}")
+                                continue
+                        
+                        if pcm_data:
+                            file_path = self.save_audio_to_file(pcm_data, conn.session_id)
+                            logger.bind(tag=TAG).info(f"已保存音频文件: {file_path}")
+                        
+                except Exception as e:
+                    logger.bind(tag=TAG).error(f"保存音频文件失败: {e}")
+                
+                # 处理声纹识别（如果有）
+                speaker_name = None
+                if self.voiceprint_provider and pcm_data:
+                    try:
+                        combined_pcm_data = b"".join(pcm_data)
+                        wav_data = self._pcm_to_wav(combined_pcm_data)
+                        if wav_data:
+                            speaker_name = await self.voiceprint_provider.identify_speaker(wav_data, conn.session_id)
+                            if speaker_name:
+                                logger.bind(tag=TAG).info(f"声纹识别结果: {speaker_name}")
+                    except Exception as e:
+                        logger.bind(tag=TAG).error(f"声纹识别失败: {e}")
+                
+                # 记录识别结果
+                if self.text:
+                    logger.bind(tag=TAG).info(f"识别文本: {self.text}")
+                if speaker_name:
+                    logger.bind(tag=TAG).info(f"识别说话人: {speaker_name}")
+                
+                # 检查文本长度
+                text_len, _ = remove_punctuation_and_length(self.text)
+                self.stop_ws_connection()
+                
+                if text_len > 0:
+                    # 构建包含说话人信息的增强文本
+                    enhanced_text = self._build_enhanced_text(self.text, speaker_name)
+                    
+                    # 使用自定义模块进行上报
+                    await startToChat(conn, enhanced_text)
+                    
+                    try:
+                        # 确保音频数据格式正确 - 使用原始音频缓存
+                        audio_data_for_report = self.audio_cache.copy() if self.audio_cache else []
+                        enqueue_asr_report(conn, enhanced_text, audio_data_for_report)
+                        logger.bind(tag=TAG).info(f"enqueue_asr_report调用完成，音频包数量: {len(audio_data_for_report)}")
+                    except Exception as e:
+                        logger.bind(tag=TAG).error(f"音频上报失败: {e}")
+                        # 如果音频上报失败，至少保证文字上报
+                        try:
+                            enqueue_asr_report(conn, enhanced_text, [])
+                            logger.bind(tag=TAG).info(f"文字上报成功（音频上报失败后的备用方案）")
+                        except Exception as e2:
+                            logger.bind(tag=TAG).error(f"文字上报也失败: {e2}")
+                
+                # 清空音频缓存
+                self.audio_cache.clear()
+                
+            else:
+                # 如果没有音频缓存，仍然进行聊天处理
+                if self.text:
+                    text_len, _ = remove_punctuation_and_length(self.text)
+                    if text_len > 0:
+                        await startToChat(conn, self.text)
+                        enqueue_asr_report(conn, self.text, [])
+            
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"处理语音停止事件失败: {e}")
+            # 确保清空缓存
+            self.audio_cache.clear()
