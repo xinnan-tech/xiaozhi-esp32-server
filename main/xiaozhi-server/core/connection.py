@@ -78,6 +78,7 @@ class ConnectionHandler:
         self.max_output_size = 0
         self.chat_history_conf = 0
         self.audio_format = "opus"
+        self.just_woken_up = False
 
         # 客户端状态相关
         self.client_abort = False
