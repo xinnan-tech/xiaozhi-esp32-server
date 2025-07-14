@@ -308,7 +308,7 @@ class TTSProvider(TTSProviderBase):
         # 检查连接是否存在且处于 open 状态
         # websockets 库的自动 ping/pong 机制会处理连接健康检查
         if self.ws:
-            logger.bind(tag=TAG).debug("WebSocket connection is active.")
+            logger.bind(tag=TAG).info("WebSocket connection is active.")
             return
 
         # 如果连接不存在或已关闭，则重新连接
@@ -350,8 +350,8 @@ class TTSProvider(TTSProviderBase):
         try:
             # 建立新连接
             if self.ws is None:
-                await handleAbortMessage(self.conn)
                 logger.bind(tag=TAG).error("WebSocket连接不存在，终止发送文本")
+                await handleAbortMessage(self.conn)
                 return
 
             #  过滤Markdown
