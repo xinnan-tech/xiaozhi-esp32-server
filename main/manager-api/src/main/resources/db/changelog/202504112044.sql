@@ -43,6 +43,7 @@ INSERT INTO `ai_model_config` VALUES ('TTS_ACGNTTS', 'TTS', 'ACGNTTS', 'ACGN语�
 INSERT INTO `ai_model_config` VALUES ('TTS_OpenAITTS', 'TTS', 'OpenAITTS', 'OpenAI语音合成', 0, 1, '{\"type\": \"openai\", \"api_key\": \"你的api_key\", \"api_url\": \"https://api.openai.com/v1/audio/speech\", \"model\": \"tts-1\", \"voice\": \"onyx\", \"speed\": 1, \"output_dir\": \"tmp/\"}', NULL, NULL, 13, NULL, NULL, NULL, NULL);
 INSERT INTO `ai_model_config` VALUES ('TTS_CustomTTS', 'TTS', 'CustomTTS', '自定义语音合成', 0, 1, '{\"type\": \"custom\", \"url\": \"http://127.0.0.1:9880/tts\", \"params\": {}, \"headers\": {}, \"format\": \"wav\", \"output_dir\": \"tmp/\"}', NULL, NULL, 14, NULL, NULL, NULL, NULL);
 INSERT INTO `ai_model_config` VALUES ('TTS_TencentTTS', 'TTS', 'TencentTTS', '腾讯语音合成', 0, 1, '{\"type\": \"tencent\", \"appid\": \"\", \"secret_id\": \"\", \"secret_key\": \"\", \"region\": \"ap-guangzhou\", \"voice\": \"101001\", \"output_dir\": \"tmp/\"}', NULL, NULL, 3, NULL, NULL, NULL, NULL);
+INSERT INTO `ai_model_config` VALUES ('TTS_PaddleSpeechTTS', 'TTS', 'PaddleSpeechTTS', '百度PaddleSpeech语音合成', 0, 1, '{\"type\": \"paddle_speech\", \"url\": \"请输入您的服务器地址\", \"spk_id\": \"0\", \"speed\": \"1.0\", \"volume\": \"1.0\", \"sample_rate\": \"0\", \"save_path\": \"./streaming_tts.wav\"}', NULL, NULL, 18, NULL, NULL, NULL, NULL);
 
 -- Memory模型配置
 INSERT INTO `ai_model_config` VALUES ('Memory_nomem', 'Memory', 'nomem', '无记忆', 1, 1, '{\"type\": \"nomem\"}', NULL, NULL, 1, NULL, NULL, NULL, NULL);
