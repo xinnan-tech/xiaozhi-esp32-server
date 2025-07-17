@@ -26,7 +26,7 @@ class LLMProvider(LLMProviderBase):
             "temperature": (0.7, lambda x: round(float(x), 1)),
             "top_p": (1.0, lambda x: round(float(x), 1)),
             "frequency_penalty": (0, lambda x: round(float(x), 1)),
-            "enable_thinking": (False, bool),
+            "enable_thinking": (False, lambda x: x.lower() == 'true'),
         }
 
         for param, (default, converter) in param_defaults.items():
