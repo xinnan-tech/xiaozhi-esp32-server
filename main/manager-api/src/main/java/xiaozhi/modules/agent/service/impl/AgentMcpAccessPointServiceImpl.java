@@ -178,7 +178,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
 
             }
         } catch (Exception e) {
-            log.error("获取智能体 MCP 工具列表失败，智能体ID: {}", id, e);
+            log.error("获取智能体 MCP 工具列表失败，智能体ID: {},错误原因：{}", id, e.getMessage());
             return List.of();
         }
     }
