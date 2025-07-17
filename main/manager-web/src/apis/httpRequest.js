@@ -30,10 +30,17 @@ function sendRequest() {
             if (isNotNull(store.getters.getToken)) {
                 this._header.Authorization = 'Bearer ' + (JSON.parse(store.getters.getToken)).token
             }
-
+            // 判断是否启用请求方法覆盖
+            const shouldOverride = process.env.NODE_ENV === 'production'
+                && process.env.VUE_APP_HTTP_METHOD_OVERRIDE === 'true'
+                && ['PUT', 'DELETE'].includes(this._method)
+            const realMethod = shouldOverride ? 'POST' : this._method
+            if (shouldOverride) {
+                this._header['X-HTTP-Method-Override'] = this._method
+            }
             // 打印请求信息
             fly.request(this._url, this._data, {
-                method: this._method,
+                method: realMethod,
                 headers: this._header,
                 responseType: this._responseType
             }).then((res) => {
