@@ -159,7 +159,7 @@ class TTSProviderBase(ABC):
             if conn.sentence_id:
                 sentence_id = conn.sentence_id
             else:
-                sentence_id = str(uuid.uuid4()).replace("-", "")
+                sentence_id = str(uuid.uuid4().hex)
                 conn.sentence_id = sentence_id
         # 对于单句的文本，进行分段处理
         segments = re.split(r"([。！？!?；;\n])", content_detail)

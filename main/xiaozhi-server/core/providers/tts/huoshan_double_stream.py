@@ -435,10 +435,10 @@ class TTSProvider(TTSProviderBase):
                                     (SentenceType.MIDDLE, opus_datas, None)
                                 )
                             else:
-                                opus_datas_cache = opus_datas_cache + opus_datas
+                                opus_datas_cache.extend(opus_datas)
                         else:
                             # 后续句子缓存
-                            opus_datas_cache = opus_datas_cache + opus_datas
+                            opus_datas_cache.extend(opus_datas)
                     elif res.optional.event == EVENT_TTSSentenceEnd:
                         logger.bind(tag=TAG).info(f"句子语音生成成功：{self.tts_text}")
                         if not is_first_sentence or first_sentence_segment_count > 10:
@@ -469,7 +469,7 @@ class TTSProvider(TTSProviderBase):
                 except:
                     pass
                 self.ws = None
-            # 监听任务退出时清理引用
+        # 监听任务退出时清理引用
         finally:
             self._monitor_task = None
 
