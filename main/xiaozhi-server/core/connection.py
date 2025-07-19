@@ -497,6 +497,11 @@ class ConnectionHandler:
             self.config["selected_module"]["LLM"] = private_config["selected_module"][
                 "LLM"
             ]
+        if private_config.get("VLLM", None) is not None:
+            self.config["VLLM"] = private_config["VLLM"]
+            self.config["selected_module"]["VLLM"] = private_config["selected_module"][
+                "VLLM"
+            ]
         if private_config.get("Memory", None) is not None:
             init_memory = True
             self.config["Memory"] = private_config["Memory"]

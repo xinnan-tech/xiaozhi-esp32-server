@@ -146,6 +146,9 @@ async def send_stt_message(conn, text):
             if isinstance(parsed_data, dict) and "content" in parsed_data:
                 # 如果是包含说话人信息的JSON格式，只显示content部分
                 display_text = parsed_data["content"]
+                # 保存说话人信息到conn对象
+                if "speaker" in parsed_data:
+                    conn.current_speaker = parsed_data["speaker"]
     except (json.JSONDecodeError, TypeError):
         # 如果不是JSON格式，直接使用原始文本
         display_text = text
