@@ -781,3 +781,16 @@ TTS:
     access_token: "U4YdYXVfpwWnk2t5Gp822zWPCuORyeJL"
     voice: "OUeAo1mhq6IBExi"
     output_dir: tmp/
+  PaddleSpeechTTS:
+    #百度飞浆 PaddleSpeech
+    #框架地址 https://www.paddlepaddle.org.cn/
+    #项目地址 https://github.com/PaddlePaddle/PaddleSpeech
+    #SpeechServerDemo https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/demos/speech_server
+    type: paddle_speech
+    url: http://127.0.0.1:8090/paddlespeech/tts  # TTS 服务的 URL 地址，指向本地服务器
+    spk_id: 0  # 发音人 ID，0 通常表示默认的发音人
+    speed: 1.0  # 语速，1.0 表示正常语速，>1 表示加快，<1 表示减慢
+    volume: 1.0  # 音量，1.0 表示正常音量，>1 表示增大，<1 表示减小
+    sample_rate: 0  # 采样率，0 表示自动选择系统默认的采样率
+    save_path: ./streaming_tts.wav  # 服务器生成的语音文件保存路径
+
