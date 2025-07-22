@@ -60,7 +60,7 @@ async def check_direct_exit(conn, text):
 async def analyze_intent_with_llm(conn, text):
     """使用LLM分析用户意图"""
     if not hasattr(conn, "intent") or not conn.intent:
-        conn.logger.bind(tag=TAG).warning("意图识别服务未初始化")
+        conn.logger.bind(tag=TAG).error("意图识别服务未初始化")
         return None
 
     # 对话历史记录

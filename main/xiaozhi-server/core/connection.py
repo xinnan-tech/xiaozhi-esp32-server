@@ -12,8 +12,6 @@ import subprocess
 import websockets
 from core.utils.util import (
     extract_json_from_string,
-    check_vad_update,
-    check_asr_update,
     filter_sensitive_info,
 )
 from typing import Dict, Any
@@ -81,6 +79,7 @@ class ConnectionHandler:
         self.max_output_size = 0
         self.chat_history_conf = 0
         self.audio_format = "opus"
+        self.just_woken_up = False
 
         # 客户端状态相关
         self.client_abort = False
@@ -465,22 +464,23 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"获取差异化配置失败: {e}")
             private_config = {}
 
-        init_llm, init_tts, init_memory, init_intent = (
+        init_llm, init_tts, init_memory, init_intent, init_vad, init_asr = (
             False,
             False,
             False,
+            False,
+            False,    
             False,
         )
 
-        init_vad = check_vad_update(self.common_config, private_config)
-        init_asr = check_asr_update(self.common_config, private_config)
-
-        if init_vad:
+        if private_config.get("VAD", None) is not None:
+            init_vad = True
             self.config["VAD"] = private_config["VAD"]
             self.config["selected_module"]["VAD"] = private_config["selected_module"][
                 "VAD"
             ]
-        if init_asr:
+        if private_config.get("ASR", None) is not None:
+            init_asr = True
             self.config["ASR"] = private_config["ASR"]
             self.config["selected_module"]["ASR"] = private_config["selected_module"][
                 "ASR"

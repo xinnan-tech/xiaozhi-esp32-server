@@ -14,6 +14,8 @@ TAG = __name__
 async def handleAudioMessage(conn, audio):
     # 当前片段是否有人说话
     have_voice = conn.vad.is_vad(conn, audio)
+    if have_voice:
+        conn.logger.bind(tag=TAG).info(f"收到音频数据,len: {len(audio)}, wake_up: {conn.just_woken_up}")
     # 如果设备刚刚被唤醒，短暂忽略VAD检测
     if have_voice and hasattr(conn, "just_woken_up") and conn.just_woken_up:
         have_voice = False
@@ -25,6 +27,7 @@ async def handleAudioMessage(conn, audio):
 
     if have_voice:
         if conn.client_is_speaking:
+            conn.logger.bind(tag=TAG).info("对话过程被客户端打断")
             await handleAbortMessage(conn)
     # 设备长时间空闲检测，用于say goodbye
     await no_voice_close_connect(conn, have_voice)
@@ -76,6 +79,7 @@ async def startToChat(conn, text):
             await max_out_size(conn)
             return
     if conn.client_is_speaking:
+        conn.logger.bind(tag=TAG).info("对话过程被客户端打断")
         await handleAbortMessage(conn)
 
     # 首先进行意图分析，使用实际文本内容
@@ -155,7 +159,7 @@ async def check_bind_device(conn):
                 continue
         conn.tts.tts_audio_queue.put((SentenceType.LAST, [], None))
     else:
-        text = f"没有找到该设备的版本信息，请正确配置 OTA地址，然后重新编译固件。"
+        text = "没有找到该设备的版本信息，请正确配置 OTA地址，然后重新编译固件。"
         await send_stt_message(conn, text)
         music_path = "config/assets/bind_not_found.wav"
         opus_packets, _ = audio_to_data(music_path)

@@ -270,6 +270,12 @@ ASR:
     is_ssl: true
     api_key: none
     output_dir: tmp/
+  VolceAIGateway:
+    type: volcengine
+    host: ai-gateway.vei.volces.com
+    model_name: bigmodel
+    api_key: 你的api_key
+    output_dir: tmp/
   SherpaASR:
     type: sherpa_onnx_local
     model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
@@ -377,6 +383,11 @@ LLM:
     base_url: https://ark.cn-beijing.volces.com/api/v3
     model_name: doubao-1-5-pro-32k-250115
     api_key: 你的doubao web key
+  VolceAIGateway:
+    type: volcengine
+    host: ai-gateway.vei.volces.com
+    model_name: doubao-pro-32k-functioncall
+    api_key: 你的api_key
   DeepSeekLLM:
     # 定义LLM API类型
     type: openai
@@ -437,7 +448,7 @@ LLM:
     # 开通后，进入这里获取密钥：https://console.volcengine.com/vei/aigateway/tokens-list
     base_url: https://ai-gateway.vei.volces.com/v1
     model_name: doubao-pro-32k-functioncall
-    api_key: 你的网关访问密钥
+    api_key: 你的api_key
   LMStudioLLM:
     # 定义LLM API类型
     type: openai
@@ -482,6 +493,11 @@ VLLM:
     model_name: glm-4v-flash  # 智谱AI的视觉模型
     url: https://open.bigmodel.cn/api/paas/v4/
     api_key: 你的api_key
+  VolceAIGateway:
+    type: volcengine
+    host: ai-gateway.vei.volces.com
+    model_name: doubao-1.5-vision-lite
+    api_key: 你的api_key
   QwenVLVLLM:
     type: openai
     model_name: qwen2.5-vl-3b-instruct
@@ -513,6 +529,14 @@ TTS:
     speed_ratio: 1.0
     volume_ratio: 1.0
     pitch_ratio: 1.0
+  VolceAIGateway:
+    type: volcengine
+    host: ai-gateway.vei.volces.com
+    model_name: doubao-tts
+    output_dir: tmp/
+    api_key: none
+    voice: zh_male_shaonianzixin_moon_bigtts
+    speed: 1
   #火山tts，支持双向流式tts
   HuoshanDoubleStreamTTS:
     type: huoshan_double_stream

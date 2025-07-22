@@ -218,7 +218,7 @@ class ASRProviderBase(ABC):
             logger.bind(tag=TAG).error(f"WAV转换失败: {e}")
             return b""
 
-    def stop_ws_connection(self):
+    async def stop_ws_connection(self):
         pass
 
     def save_audio_to_file(self, pcm_data: List[bytes], session_id: str) -> str:
@@ -241,6 +241,15 @@ class ASRProviderBase(ABC):
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         pass
+    
+    def is_eou(self, conn, text) -> bool:
+        """判断是否为结束语句"""
+        if text is None or len(text) == 0:
+            return False
+        is_eou = conn.vad.is_eou(conn, text)
+        if is_eou:
+            logger.bind(tag=TAG).info(f"检测到结束语句 {text}")
+        return is_eou
 
     @staticmethod
     def decode_opus(opus_data: List[bytes]) -> List[bytes]:

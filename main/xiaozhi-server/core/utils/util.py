@@ -862,52 +862,6 @@ def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
     return wav_buffer.getvalue()
 
 
-def check_vad_update(before_config, new_config):
-    if (
-        new_config.get("selected_module") is None
-        or new_config["selected_module"].get("VAD") is None
-    ):
-        return False
-    update_vad = False
-    current_vad_module = before_config["selected_module"]["VAD"]
-    new_vad_module = new_config["selected_module"]["VAD"]
-    current_vad_type = (
-        current_vad_module
-        if "type" not in before_config["VAD"][current_vad_module]
-        else before_config["VAD"][current_vad_module]["type"]
-    )
-    new_vad_type = (
-        new_vad_module
-        if "type" not in new_config["VAD"][new_vad_module]
-        else new_config["VAD"][new_vad_module]["type"]
-    )
-    update_vad = current_vad_type != new_vad_type
-    return update_vad
-
-
-def check_asr_update(before_config, new_config):
-    if (
-        new_config.get("selected_module") is None
-        or new_config["selected_module"].get("ASR") is None
-    ):
-        return False
-    update_asr = False
-    current_asr_module = before_config["selected_module"]["ASR"]
-    new_asr_module = new_config["selected_module"]["ASR"]
-    current_asr_type = (
-        current_asr_module
-        if "type" not in before_config["ASR"][current_asr_module]
-        else before_config["ASR"][current_asr_module]["type"]
-    )
-    new_asr_type = (
-        new_asr_module
-        if "type" not in new_config["ASR"][new_asr_module]
-        else new_config["ASR"][new_asr_module]["type"]
-    )
-    update_asr = current_asr_type != new_asr_type
-    return update_asr
-
-
 def filter_sensitive_info(config: dict) -> dict:
     """
     过滤配置中的敏感信息
