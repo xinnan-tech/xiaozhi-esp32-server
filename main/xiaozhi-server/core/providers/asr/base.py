@@ -17,7 +17,6 @@ from core.handle.receiveAudioHandle import startToChat
 from core.handle.reportHandle import enqueue_asr_report
 from core.utils.util import remove_punctuation_and_length
 from core.handle.receiveAudioHandle import handleAudioMessage
-from core.utils.voiceprint_provider import VoiceprintProvider
 
 TAG = __name__
 logger = setup_logging()
@@ -25,13 +24,7 @@ logger = setup_logging()
 
 class ASRProviderBase(ABC):
     def __init__(self):
-        self.voiceprint_provider = None
-
-    def init_voiceprint(self, voiceprint_config: dict):
-        """初始化声纹识别"""
-        if voiceprint_config:
-            self.voiceprint_provider = VoiceprintProvider(voiceprint_config)
-            logger.bind(tag=TAG).info("声纹识别模块已初始化")
+        pass
 
     # 打开音频通道
     async def open_audio_channels(self, conn):
@@ -94,7 +87,8 @@ class ASRProviderBase(ABC):
             
             # 预先准备WAV数据
             wav_data = None
-            if self.voiceprint_provider and combined_pcm_data:
+            # 使用连接的声纹识别提供者
+            if conn.voiceprint_provider and combined_pcm_data:
                 wav_data = self._pcm_to_wav(combined_pcm_data)
             
             
@@ -102,7 +96,6 @@ class ASRProviderBase(ABC):
             def run_asr():
                 start_time = time.monotonic()
                 try:
-                    import asyncio
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
@@ -123,14 +116,13 @@ class ASRProviderBase(ABC):
             def run_voiceprint():
                 if not wav_data:
                     return None
-                start_time = time.monotonic()
                 try:
-                    import asyncio
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
+                        # 使用连接的声纹识别提供者
                         result = loop.run_until_complete(
-                            self.voiceprint_provider.identify_speaker(wav_data, conn.session_id)
+                            conn.voiceprint_provider.identify_speaker(wav_data, conn.session_id)
                         )
                         return result
                     finally:
@@ -145,7 +137,7 @@ class ASRProviderBase(ABC):
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as thread_executor:
                 asr_future = thread_executor.submit(run_asr)
                 
-                if self.voiceprint_provider and wav_data:
+                if conn.voiceprint_provider and wav_data:
                     voiceprint_future = thread_executor.submit(run_voiceprint)
                     
                     # 等待两个线程都完成
@@ -157,7 +149,6 @@ class ASRProviderBase(ABC):
                     asr_result = asr_future.result(timeout=15)
                     results = {"asr": asr_result, "voiceprint": None}
             
-            parallel_execution_time = time.monotonic() - parallel_start_time
             
             # 处理结果
             raw_text, file_path = results.get("asr", ("", None))

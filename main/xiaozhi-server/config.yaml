@@ -311,15 +311,39 @@ ASR:
     output_dir: tmp/
   AliyunASR:
     # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
+    # HTTP POST请求，一次性处理完整音频
     # 平台地址：https://nls-portal.console.aliyun.com/
     # appkey地址：https://nls-portal.console.aliyun.com/applist
     # token地址：https://nls-portal.console.aliyun.com/overview
+    # AliyunASR和AliyunStreamASR的区别是：AliyunASR是批量处理场景，AliyunStreamASR是实时交互场景
+    # 一般来说非流式ASR更便宜（0.004元/秒，¥0.24/分钟）
+    # 但是AliyunStreamASR实时性更好（0.005元/秒，¥0.3/分钟）
     # 定义ASR API类型
     type: aliyun
     appkey: 你的阿里云智能语音交互服务项目Appkey
     token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
     access_key_id: 你的阿里云账号access_key_id
     access_key_secret: 你的阿里云账号access_key_secret
+    output_dir: tmp/
+  AliyunStreamASR:
+    # 阿里云智能语音交互服务 - 实时流式语音识别
+    # WebSocket连接，实时处理音频流
+    # 平台地址：https://nls-portal.console.aliyun.com/
+    # appkey地址：https://nls-portal.console.aliyun.com/applist
+    # token地址：https://nls-portal.console.aliyun.com/overview
+    # AliyunASR和AliyunStreamASR的区别是：AliyunASR是批量处理场景，AliyunStreamASR是实时交互场景
+    # 一般来说非流式ASR更便宜（0.004元/秒，¥0.24/分钟）
+    # 但是AliyunStreamASR实时性更好（0.005元/秒，¥0.3/分钟）
+    # 定义ASR API类型
+    type: aliyun_stream
+    appkey: 你的阿里云智能语音交互服务项目Appkey
+    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
+    access_key_id: 你的阿里云账号access_key_id
+    access_key_secret: 你的阿里云账号access_key_secret
+    # 服务器地域选择，可选择距离更近的服务器以减少延迟，如nls-gateway-cn-hangzhou.aliyuncs.com(杭州)等
+    host: nls-gateway-cn-shanghai.aliyuncs.com
+    # 断句检测时间(毫秒)，控制静音多长时间后进行断句，默认800毫秒
+    max_sentence_silence: 800
     output_dir: tmp/
   BaiduASR:
     # 获取AppID、API Key、Secret Key：https://console.bce.baidu.com/ai-engine/old/#/ai/speech/app/list
@@ -331,7 +355,33 @@ ASR:
     # 语言参数，1537为普通话，具体参考：https://ai.baidu.com/ai-doc/SPEECH/0lbxfnc9b
     dev_pid: 1537
     output_dir: tmp/
+  OpenaiASR:
+    # OpenAI语音识别服务，需要先在OpenAI平台创建组织并获取api_key
+    # 支持中、英、日、韩等多种语音识别，具体参考文档https://platform.openai.com/docs/guides/speech-to-text
+    # 需要网络连接
+    # 申请步骤：
+    # 1.登录OpenAI Platform。https://auth.openai.com/log-in
+    # 2.创建api-key  https://platform.openai.com/settings/organization/api-keys
+    # 3.模型可以选择gpt-4o-transcribe或GPT-4o mini Transcribe
+    type: openai
+    api_key: 你的OpenAI API密钥
+    base_url: https://api.openai.com/v1/audio/transcriptions
+    model_name: gpt-4o-mini-transcribe
+    output_dir: tmp/
+  GroqASR:
+    # Groq语音识别服务，需要先在Groq Console创建API密钥
+    # 申请步骤：
+    # 1.登录groq Console。https://console.groq.com/home
+    # 2.创建api-key  https://console.groq.com/keys
+    # 3.模型可以选择whisper-large-v3-turbo或whisper-large-v3（distil-whisper-large-v3-en仅支持英语转录）
+    type: openai
+    api_key: 你的Groq API密钥
+    base_url: https://api.groq.com/openai/v1/audio/transcriptions
+    model_name: whisper-large-v3-turbo
+    output_dir: tmp/
 
+
+  
 VAD:
   SileroVAD:
     type: silero
@@ -680,8 +730,30 @@ TTS:
     # volume: 50
     # speech_rate: 0
     # pitch_rate: 0
-    # 添加 302.ai TTS 配置
-    # token申请地址：https://dash.302.ai/
+  AliyunStreamTTS:
+    # 阿里云CosyVoice大模型流式文本语音合成
+    # 采用FlowingSpeechSynthesizer接口，支持更低延迟和更自然的语音质量
+    # 流式文本语音合成仅提供商用版，不支持试用，详情请参见试用版和商用版。要使用该功能，请开通商用版。
+    # 支持龙系列专用音色：longxiaochun、longyu、longchen等
+    # 平台地址：https://nls-portal.console.aliyun.com/
+    # appkey地址：https://nls-portal.console.aliyun.com/applist
+    # token地址：https://nls-portal.console.aliyun.com/overview
+    # 使用三阶段流式交互：StartSynthesis -> RunSynthesis -> StopSynthesis
+    type: aliyun_stream
+    output_dir: tmp/
+    appkey: 你的阿里云智能语音交互服务项目Appkey
+    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
+    voice: longxiaochun 
+    access_key_id: 你的阿里云账号access_key_id
+    access_key_secret: 你的阿里云账号access_key_secret
+    # 截至2025年7月21日大模型音色只有北京节点采用，其他节点暂不支持
+    host: nls-gateway-cn-beijing.aliyuncs.com
+    # 以下可不用设置，使用默认设置
+    # format: pcm  # 音频格式：pcm、wav、mp3
+    # sample_rate: 16000  # 采样率：8000、16000、24000
+    # volume: 50  # 音量：0-100
+    # speech_rate: 0  # 语速：-500到500
+    # pitch_rate: 0  # 语调：-500到500
   TencentTTS:
     # 腾讯云智能语音交互服务，需要先在腾讯云平台开通服务
     # appid、secret_id、secret_key申请地址：https://console.cloud.tencent.com/cam/capi
@@ -696,6 +768,8 @@ TTS:
 
   TTS302AI:
     # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
+    # 添加 302.ai TTS 配置
+    # token申请地址：https://dash.302.ai/
     # 获取api_keyn路径：https://dash.302.ai/apis/list
     # 价格，$35/百万字符。火山原版¥450元/百万字符
     type: doubao

@@ -21,6 +21,30 @@ WEEKDAY_MAP = {
     "Sunday": "星期日",
 }
 
+EMOJI_List = [
+    "😶",
+    "🙂",
+    "😆",
+    "😂",
+    "😔",
+    "😠",
+    "😭",
+    "😍",
+    "😳",
+    "😲",
+    "😱",
+    "🤔",
+    "😉",
+    "😎",
+    "😌",
+    "🤤",
+    "😘",
+    "😏",
+    "😴",
+    "😜",
+    "🙄",
+]
+
 
 class PromptManager:
     """系统提示词管理器，负责管理和更新系统提示词"""
@@ -206,6 +230,7 @@ class PromptManager:
                 lunar_date=lunar_date,
                 local_address=local_address,
                 weather_info=weather_info,
+                emojiList=EMOJI_List,
             )
             device_cache_key = f"device_prompt:{device_id}"
             self.cache_manager.set(

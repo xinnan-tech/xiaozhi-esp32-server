@@ -50,6 +50,7 @@ class TTSProviderBase(ABC):
             "；",
             ";",
             "：",
+            "~",
         )
         self.first_sentence_punctuations = (
             "，",
@@ -159,7 +160,7 @@ class TTSProviderBase(ABC):
             if conn.sentence_id:
                 sentence_id = conn.sentence_id
             else:
-                sentence_id = str(uuid.uuid4()).replace("-", "")
+                sentence_id = str(uuid.uuid4().hex)
                 conn.sentence_id = sentence_id
         # 对于单句的文本，进行分段处理
         segments = re.split(r"([。！？!?；;\n])", content_detail)
@@ -332,7 +333,6 @@ class TTSProviderBase(ABC):
         Returns:
             tuple: (sentence_type, audio_datas, content_detail)
         """
-        audio_datas = []
         if tts_file.endswith(".p3"):
             audio_datas, _ = p3.decode_opus_from_file(tts_file)
         elif self.conn.audio_format == "pcm":

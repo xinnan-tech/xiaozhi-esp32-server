@@ -3,9 +3,11 @@ package xiaozhi.modules.agent.service.impl;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +24,6 @@ import org.springframework.web.client.RestTemplate;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.RenException;
@@ -43,7 +44,6 @@ import xiaozhi.modules.sys.service.SysParamsService;
  * @author zjy
  */
 @Service
-@AllArgsConstructor
 @Slf4j
 public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, AgentVoicePrintEntity>
         implements AgentVoicePrintService {
@@ -55,6 +55,18 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
     private final TransactionTemplate transactionTemplate;
     // 识别度
     private final Double RECOGNITION = 0.5;
+    private final Executor taskExecutor;
+
+    public AgentVoicePrintServiceImpl(AgentChatAudioService agentChatAudioService, RestTemplate restTemplate,
+                                      SysParamsService sysParamsService, AgentChatHistoryService agentChatHistoryService,
+                                      TransactionTemplate transactionTemplate, @Qualifier("taskExecutor") Executor taskExecutor) {
+        this.agentChatAudioService = agentChatAudioService;
+        this.restTemplate = restTemplate;
+        this.sysParamsService = sysParamsService;
+        this.agentChatHistoryService = agentChatHistoryService;
+        this.transactionTemplate = transactionTemplate;
+        this.taskExecutor = taskExecutor;
+    }
 
     @Override
     public boolean insert(AgentVoicePrintSaveDTO dto) {
@@ -96,7 +108,7 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
     @Override
     public boolean delete(Long userId, String voicePrintId) {
         // 开启事务
-        return Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+        boolean b = Boolean.TRUE.equals(transactionTemplate.execute(status -> {
             try {
                 // 删除声纹,按照指定当前登录用户和智能体
                 int row = baseMapper.delete(new LambdaQueryWrapper<AgentVoicePrintEntity>()
@@ -106,17 +118,25 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
                     status.setRollbackOnly(); // 标记事务回滚
                     return false;
                 }
-                cancelVoicePrint(voicePrintId);
+
                 return true;
-            } catch (RenException e) {
-                status.setRollbackOnly(); // 标记事务回滚
-                throw e;
             } catch (Exception e) {
                 status.setRollbackOnly(); // 标记事务回滚
-                log.error("删除声纹错误原因：{}", e.getMessage());
-                throw new RenException("删除声纹错误，请联系管理员");
+                log.error("删除声纹存在错误原因：{}", e.getMessage());
+                throw new RenException("删除声纹出现了错误");
             }
         }));
+        // 数据库声纹数据删除成功才继续执行删除声纹服务的数据
+        if(b){
+            taskExecutor.execute(()-> {
+                try {
+                    cancelVoicePrint(voicePrintId);
+                }catch (RuntimeException e) {
+                    log.error("删除声纹存在运行时错误原因：{}，id：{}", e.getMessage(),voicePrintId);
+                }
+            });
+        }
+        return b;
     }
 
     @Override

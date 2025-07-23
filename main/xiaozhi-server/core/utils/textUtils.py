@@ -1,3 +1,31 @@
+import json
+
+TAG = __name__
+EMOJI_MAP = {
+    "😂": "laughing",
+    "😭": "crying",
+    "😠": "angry",
+    "😔": "sad",
+    "😍": "loving",
+    "😲": "surprised",
+    "😱": "shocked",
+    "🤔": "thinking",
+    "😌": "relaxed",
+    "😴": "sleepy",
+    "😜": "silly",
+    "🙄": "confused",
+    "😶": "neutral",
+    "🙂": "happy",
+    "😆": "laughing",
+    "😳": "embarrassed",
+    "😉": "winking",
+    "😎": "cool",
+    "🤤": "delicious",
+    "😘": "kissy",
+    "😏": "confident",
+}
+
+
 def get_string_no_punctuation_or_emoji(s):
     """去除字符串首尾的空格、标点符号和表情符号"""
     chars = list(s)
@@ -22,6 +50,11 @@ def is_punctuation_or_emoji(char):
         ".",  # 中文句号 + 英文句号
         "！",
         "!",  # 中文感叹号 + 英文感叹号
+        "“",
+        "”",
+        '"',  # 中文双引号 + 英文引号
+        "：",
+        ":",  # 中文冒号 + 英文冒号
         "-",
         "－",  # 英文连字符 + 中文全角横线
         "、",  # 中文顿号
@@ -44,3 +77,28 @@ def is_punctuation_or_emoji(char):
         (0x2700, 0x27BF),
     ]
     return any(start <= code_point <= end for start, end in emoji_ranges)
+
+
+async def get_emotion(conn, text):
+    """获取文本内的情绪消息"""
+    emoji = "🙂"
+    emotion = "happy"
+    for char in text:
+        if char in EMOJI_MAP:
+            emoji = char
+            emotion = EMOJI_MAP[char]
+            break
+    try:
+        await conn.websocket.send(
+            json.dumps(
+                {
+                    "type": "llm",
+                    "text": emoji,
+                    "emotion": emotion,
+                    "session_id": conn.session_id,
+                }
+            )
+        )
+    except Exception as e:
+        conn.logger.bind(tag=TAG).warning(f"发送情绪表情失败，错误:{e}")
+    return

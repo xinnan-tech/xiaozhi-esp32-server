@@ -1,8 +1,9 @@
 # 声纹识别启用指南
 
-本教程包含2个部分
+本教程包含3个部分
 - 1、如何部署声纹识别这个服务
 - 2、全模块部署时，怎么配置声纹识别接口
+- 3、最简化部署时，怎么配置声纹识别
 
 # 1、如何部署声纹识别这个服务
 
@@ -186,3 +187,47 @@ http://192.168.1.25:8005/voiceprint/health?key=abcd
 ## 第三步 和你的智能体聊天
 
 将你的设备通电，问它，你知道我是谁吗？如果他能回答得出，说明声纹识别功能正常。
+
+# 3、最简化部署时，怎么配置声纹识别
+
+## 第一步 配置接口
+打开 `xiaozhi-server/data/.config.yaml` 文件（如果没有需要创建），然后添加/修改以下内容：
+
+```
+# 声纹识别配置
+voiceprint:
+  # 声纹接口地址
+  url: 你的声纹接口地址
+  # 说话人配置：speaker_id,名称,描述
+  speakers:
+    - "test1,张三,张三是一个程序员"
+    - "test2,李四,李四是一个产品经理"
+    - "test3,王五,王五是一个设计师"
+```
+
+把上一步得来的 `声纹接口地址` 粘贴到 `url` 里。然后保存。
+
+`speakers` 参数依据需求添加。这里需要注意这个 `speaker_id` 参数，后面注册声纹会用到。
+
+## 第二步 注册声纹
+如果你已经启动了声纹服务，本地浏览器里访问 `http://localhost:8005/voiceprint/docs` 即可查看 API 文档，这里只说明注册声纹的 API 如何使用。
+
+注册声纹的 API 地址为 `http://localhost:8005/voiceprint/register`，请求方式为 POST。
+
+请求头需要包含 Bearer Token 认证，token 为 `声纹接口地址` 中 `?key=` 后的部分，比如如果我的声纹注册地址为 `http://127.0.0.1:8005/voiceprint/health?key=abcd`，那么我的 token 就是`abcd`。
+
+请求体包含说话人 ID（speaker_id），和 WAV 音频文件（file），请求示例如下：
+
+```
+curl -X POST \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "speaker_id=your_speaker_id_here" \
+  -F "file=@/path/to/your/file" \
+  http://localhost:8005/voiceprint/register
+```
+
+ 这里的 `file` 是要注册的说话人说话的音频文件， `speaker_id` 需要和第一步配置接口的 `speaker_id` 保持一致。比如说我需要注册张三的声纹，在 `.config.yaml` 中填的张三的 `speaker_id` 为 `test1`，那么我注册张三声纹的时候，请求体里填的 `speaker_id` 就是 `test1`， `file` 填的就是张三说一段话的音频文件。
+
+ ## 第三步 启动服务
+
+启动小智服务器和声纹服务，即可正常使用。

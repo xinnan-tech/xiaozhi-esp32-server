@@ -52,10 +52,11 @@ EVENT_ConnectionFinished = 52  # 连接结束
 
 # 上行Session事件
 EVENT_StartSession = 100
-
+EVENT_CancelSession = 101
 EVENT_FinishSession = 102
 # 下行Session事件
 EVENT_SessionStarted = 150
+EVENT_SessionCanceled = 151
 EVENT_SessionFinished = 152
 
 EVENT_SessionFailed = 153
@@ -207,8 +208,16 @@ class TTSProvider(TTSProviderBase):
                     self.conn.client_abort = False
 
                 if self.conn.client_abort:
-                    logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
-                    continue
+                    try:
+                        logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
+                        asyncio.run_coroutine_threadsafe(
+                            self.cancel_session(self.conn.sentence_id),
+                            loop=self.conn.loop,
+                        )
+                        continue
+                    except Exception as e:
+                        logger.bind(tag=TAG).error(f"取消TTS会话失败: {str(e)}")
+                        continue
 
                 if message.sentence_type == SentenceType.FIRST:
                     # 初始化参数
@@ -371,6 +380,27 @@ class TTSProvider(TTSProviderBase):
             await self.close()
             raise
 
+    async def cancel_session(self,session_id):
+        logger.bind(tag=TAG).info(f"取消会话，释放服务端资源～～{session_id}")
+        try:
+            if self.ws:
+                header = Header(
+                    message_type=FULL_CLIENT_REQUEST,
+                    message_type_specific_flags=MsgTypeFlagWithEvent,
+                    serial_method=JSON,
+                ).as_bytes()
+                optional = Optional(
+                    event=EVENT_CancelSession, sessionId=session_id
+                ).as_bytes()
+                payload = str.encode("{}")
+                await self.send_event(self.ws, header, optional, payload)
+                logger.bind(tag=TAG).info("会话取消请求已发送")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"取消会话失败: {str(e)}")
+            # 确保清理资源
+            await self.close()
+            raise
+
     async def close(self):
         """资源清理方法"""
         # 取消监听任务
@@ -405,12 +435,11 @@ class TTSProvider(TTSProviderBase):
                     res = self.parser_response(msg)
                     self.print_response(res, "send_text res:")
 
-                    # 检查客户端是否中止
-                    if self.conn.client_abort:
-                        logger.bind(tag=TAG).info("收到打断信息，终止监听TTS响应")
+                    if res.optional.event == EVENT_SessionCanceled:
+                        logger.bind(tag=TAG).debug(f"释放服务端资源成功～～")
+                        session_finished = True
                         break
-
-                    if res.optional.event == EVENT_TTSSentenceStart:
+                    elif res.optional.event == EVENT_TTSSentenceStart:
                         json_data = json.loads(res.payload.decode("utf-8"))
                         self.tts_text = json_data.get("text", "")
                         logger.bind(tag=TAG).debug(f"句子语音生成开始: {self.tts_text}")
@@ -435,10 +464,10 @@ class TTSProvider(TTSProviderBase):
                                     (SentenceType.MIDDLE, opus_datas, None)
                                 )
                             else:
-                                opus_datas_cache = opus_datas_cache + opus_datas
+                                opus_datas_cache.extend(opus_datas)
                         else:
                             # 后续句子缓存
-                            opus_datas_cache = opus_datas_cache + opus_datas
+                            opus_datas_cache.extend(opus_datas)
                     elif res.optional.event == EVENT_TTSSentenceEnd:
                         logger.bind(tag=TAG).info(f"句子语音生成成功：{self.tts_text}")
                         if not is_first_sentence or first_sentence_segment_count > 10:
@@ -469,7 +498,7 @@ class TTSProvider(TTSProviderBase):
                 except:
                     pass
                 self.ws = None
-            # 监听任务退出时清理引用
+        # 监听任务退出时清理引用
         finally:
             self._monitor_task = None
 
