@@ -658,7 +658,7 @@ class ConnectionHandler:
         # 更新系统prompt至上下文
         self.dialogue.update_system_message(self.prompt)
 
-    def chat(self, query, tool_call=False, depth=0):
+    def chat(self, query, tool_call=False, depth=0, enable_tts=True):
         self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
         self.llm_finish_task = False
 
@@ -668,13 +668,14 @@ class ConnectionHandler:
         # 为最顶层时新建会话ID和发送FIRST请求
         if depth == 0:
             self.sentence_id = str(uuid.uuid4().hex)
-            self.tts.tts_text_queue.put(
-                TTSMessageDTO(
-                    sentence_id=self.sentence_id,
-                    sentence_type=SentenceType.FIRST,
-                    content_type=ContentType.ACTION,
+            if enable_tts:
+                self.tts.tts_text_queue.put(
+                    TTSMessageDTO(
+                        sentence_id=self.sentence_id,
+                        sentence_type=SentenceType.FIRST,
+                        content_type=ContentType.ACTION,
+                    )
                 )
-            )
 
         # Define intent functions
         functions = None
@@ -756,14 +757,15 @@ class ConnectionHandler:
             if content is not None and len(content) > 0:
                 if not tool_call_flag:
                     response_message.append(content)
-                    self.tts.tts_text_queue.put(
-                        TTSMessageDTO(
-                            sentence_id=self.sentence_id,
-                            sentence_type=SentenceType.MIDDLE,
-                            content_type=ContentType.TEXT,
-                            content_detail=content,
+                    if enable_tts:
+                        self.tts.tts_text_queue.put(
+                            TTSMessageDTO(
+                                sentence_id=self.sentence_id,
+                                sentence_type=SentenceType.MIDDLE,
+                                content_type=ContentType.TEXT,
+                                content_detail=content,
+                            )
                         )
-                    )
         # 处理function call
         if tool_call_flag:
             bHasError = False
@@ -817,7 +819,7 @@ class ConnectionHandler:
             self.dialogue.put(
                 Message(role="assistant", content="".join(response_message))
             )
-        if depth == 0:
+        if depth == 0 and enable_tts:
             self.tts.tts_text_queue.put(
                 TTSMessageDTO(
                     sentence_id=self.sentence_id,

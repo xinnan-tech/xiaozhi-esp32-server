@@ -8,6 +8,7 @@ from core.providers.tts.dto.dto import ContentType
 from core.utils.dialogue import Message
 from plugins_func.register import Action, ActionResponse
 from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType
+from config.settings import load_config
 
 TAG = __name__
 
@@ -128,9 +129,32 @@ async def process_intent_result(conn, intent_result, original_text):
 
                 if result:
                     if result.action == Action.RESPONSE:  # 直接回复前端
-                        text = result.response
-                        if text is not None:
-                            speak_txt(conn, text)
+                        enable_visual_memory_merge = load_config().get('enable_visual_memory_merge')
+                        if enable_visual_memory_merge and function_name == "self_camera_take_photo":
+                            # 1. 直接 TTS 视觉模型的结果
+                            text = result.response
+                            if text is not None:
+                                speak_txt(conn, text)
+                            # 2. 结构化消息
+                            vision_message = (
+                                f"【系统观察】检测到用户提出 '{original_text}' 的拍照意图。视觉模型已完成处理，并返回以下环境分析报告：\n"
+                                f"--------------------\n"
+                                f"视觉分析结果：\n"
+                                f"{result.response}\n"
+                                f"--------------------\n"
+                                f"请将上述视觉信息作为本次对话的重要记忆和后续提问的上下文依据。"
+                                f"你不需要做任何回答，或简短恢复'ok'即可。"
+                            )
+                            # 3. 作为"用户消息"调用主LLM chat，仅用于记忆，不TTS
+                            try:
+                                conn.chat(vision_message, tool_call=False, enable_tts=False)
+                            except Exception as e:
+                                conn.logger.bind(tag=TAG).error(f"主LLM记忆同步失败: {e}")
+                            return True
+                        else:
+                            text = result.response
+                            if text is not None:
+                                speak_txt(conn, text)
                     elif result.action == Action.REQLLM:  # 调用函数后再请求llm生成回复
                         text = result.result
                         conn.dialogue.put(Message(role="tool", content=text))
