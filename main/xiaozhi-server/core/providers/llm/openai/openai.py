@@ -39,6 +39,9 @@ class LLMProvider(LLMProviderBase):
             except (ValueError, TypeError):
                 setattr(self, param, default)
 
+        # 处理extra_body参数，用于传递额外的API参数
+        self.extra_body = {} if config.get('extra_body', {}) == "" else config.get('extra_body', {})
+
         logger.debug(
             f"意图识别参数初始化: {self.temperature}, {self.max_tokens}, {self.top_p}, {self.frequency_penalty}"
         )
@@ -60,6 +63,7 @@ class LLMProvider(LLMProviderBase):
                 frequency_penalty=kwargs.get(
                     "frequency_penalty", self.frequency_penalty
                 ),
+                extra_body=self.extra_body
             )
 
             is_active = True
@@ -91,7 +95,7 @@ class LLMProvider(LLMProviderBase):
     def response_with_functions(self, session_id, dialogue, functions=None):
         try:
             stream = self.client.chat.completions.create(
-                model=self.model_name, messages=dialogue, stream=True, tools=functions
+                model=self.model_name, messages=dialogue, stream=True, tools=functions, extra_body=self.extra_body
             )
 
             for chunk in stream:
