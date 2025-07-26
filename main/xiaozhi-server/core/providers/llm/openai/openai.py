@@ -39,6 +39,13 @@ class LLMProvider(LLMProviderBase):
             except (ValueError, TypeError):
                 setattr(self, param, default)
 
+        # 处理extra_body参数，用于传递额外的API参数
+        self.extra_body = config.get('extra_body', {})
+        if self.extra_body:
+            logger.info(f"OpenAI LLM extra_body配置: {self.extra_body}")
+        else:
+            logger.debug(f"未配置extra_body参数")
+        
         logger.debug(
             f"意图识别参数初始化: {self.temperature}, {self.max_tokens}, {self.top_p}, {self.frequency_penalty}"
         )
@@ -50,18 +57,29 @@ class LLMProvider(LLMProviderBase):
 
     def response(self, session_id, dialogue, **kwargs):
         try:
-            responses = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=dialogue,
-                stream=True,
-                max_tokens=kwargs.get("max_tokens", self.max_tokens),
-                temperature=kwargs.get("temperature", self.temperature),
-                top_p=kwargs.get("top_p", self.top_p),
-                frequency_penalty=kwargs.get(
+            # 构建请求参数
+            request_params = {
+                "model": self.model_name,
+                "messages": dialogue,
+                "stream": True,
+                "max_tokens": kwargs.get("max_tokens", self.max_tokens),
+                "temperature": kwargs.get("temperature", self.temperature),
+                "top_p": kwargs.get("top_p", self.top_p),
+                "frequency_penalty": kwargs.get(
                     "frequency_penalty", self.frequency_penalty
                 ),
-            )
 
+            }
+            
+            # 添加extra_body参数
+            if hasattr(self, 'extra_body') and self.extra_body:
+                request_params["extra_body"] = self.extra_body
+                logger.info(f"OpenAI LLM extra_body: {self.extra_body}")
+            
+            # 打印完整的请求参数（用于调试）
+            #logger.info(f"OpenAI API 请求参数: {request_params}")
+            
+            responses = self.client.chat.completions.create(**request_params)
             is_active = True
             for chunk in responses:
                 try:
@@ -90,9 +108,24 @@ class LLMProvider(LLMProviderBase):
 
     def response_with_functions(self, session_id, dialogue, functions=None):
         try:
-            stream = self.client.chat.completions.create(
-                model=self.model_name, messages=dialogue, stream=True, tools=functions
-            )
+            # 构建请求参数
+            request_params = {
+                "model": self.model_name,
+                "messages": dialogue,
+                "stream": True,
+                "tools": functions,
+
+            }
+            
+            # 添加extra_body参数
+            if hasattr(self, 'extra_body') and self.extra_body:
+                request_params["extra_body"] = self.extra_body
+                logger.info(f"OpenAI LLM extra_body: {self.extra_body}")
+            
+            # 打印完整的请求参数（用于调试）
+            #logger.info(f"OpenAI API 请求参数: {request_params}")
+            
+            stream = self.client.chat.completions.create(**request_params)
 
             for chunk in stream:
                 # 检查是否存在有效的choice且content不为空
