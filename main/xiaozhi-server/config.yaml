@@ -885,3 +885,18 @@ TTS:
     access_token: "U4YdYXVfpwWnk2t5Gp822zWPCuORyeJL"
     voice: "OUeAo1mhq6IBExi"
     output_dir: tmp/
+  PaddleSpeechTTS:
+    #百度飞浆 PaddleSpeech 支持本地离线部署 支持模型训练
+    #框架地址 https://www.paddlepaddle.org.cn/
+    #项目地址 https://github.com/PaddlePaddle/PaddleSpeech
+    #SpeechServerDemo https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/demos/speech_server
+    #流式传输请参考 https://github.com/PaddlePaddle/PaddleSpeech/wiki/PaddleSpeech-Server-WebSocket-API
+    type: paddle_speech
+    protocol: websocket # protocol choices = ['websocket', 'http']
+    url: ws://127.0.0.1:8092/paddlespeech/tts/streaming  # TTS 服务的 URL 地址，指向本地服务器 [websocket默认ws://127.0.0.1:8092/paddlespeech/tts/streaming，http默认http://127.0.0.1:8090/paddlespeech/tts]
+    spk_id: 0  # 发音人 ID，0 通常表示默认的发音人
+    sample_rate: 24000  # 采样率 [websocket默认24000，http默认0 自动选择]
+    speed: 1.0  # 语速，1.0 表示正常语速，>1 表示加快，<1 表示减慢
+    volume: 1.0  # 音量，1.0 表示正常音量，>1 表示增大，<1 表示减小
+    save_path: ./streaming_tts.wav  # 服务器生成的语音文件保存路径
+
