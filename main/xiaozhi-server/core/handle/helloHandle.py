@@ -83,7 +83,7 @@ async def checkWakeupWords(conn, text):
 
     # 播放唤醒词回复
     conn.client_abort = False
-    opus_packets, _ = audio_to_data(response.get("file_path"))
+    opus_packets = audio_to_data(response.get("file_path"))
 
     conn.logger.bind(tag=TAG).info(f"播放唤醒词回复: {response.get('text')}")
     await sendAudioMessage(conn, SentenceType.FIRST, opus_packets, response.get("text"))

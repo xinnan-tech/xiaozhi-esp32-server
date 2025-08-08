@@ -16,8 +16,10 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
         conn.logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
         conn.tts.tts_audio_first_sentence = False
         pre_buffer = True
+        await send_tts_message(conn, "start", None)
 
-    await send_tts_message(conn, "sentence_start", text)
+    if sentenceType == SentenceType.FIRST:
+        await send_tts_message(conn, "sentence_start", text)
 
     await sendAudio(conn, audios, pre_buffer)
 
@@ -31,44 +33,51 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
 
 # 播放音频
 async def sendAudio(conn, audios, pre_buffer=True):
-    if audios is None or len(audios) == 0:
+    if audios is None:
         return
-    # 流控参数优化
-    frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
-    start_time = time.perf_counter()
-    play_position = 0
-
-    # 仅当第一句话时执行预缓冲
-    if pre_buffer:
-        pre_buffer_frames = min(3, len(audios))
-        for i in range(pre_buffer_frames):
-            await conn.websocket.send(audios[i])
-        remaining_audios = audios[pre_buffer_frames:]
+    # 如果audios不是opus数组，则不需要进行遍历，可以直接发送;这里需要进行流控管理，防止发送过快引发客户端溢出
+    if isinstance(audios ,bytes):
+        await conn.websocket.send(audios)
     else:
-        remaining_audios = audios
+        if audios is None or len(audios) == 0:
+            return
+        # 流控参数优化
+        frame_duration = 60  # 帧时长（毫秒），匹配 Opus 编码
+        start_time = time.perf_counter()
+        play_position = 0
+        # 仅当第一句话时执行预缓冲
+        if pre_buffer:
+            pre_buffer_frames = min(3, len(audios))
+            for i in range(pre_buffer_frames):
+                await conn.websocket.send(audios[i])
+            remaining_audios = audios[pre_buffer_frames:]
+        else:
+            remaining_audios = audios
 
-    # 播放剩余音频帧
-    for opus_packet in remaining_audios:
-        if conn.client_abort:
-            break
+        # 播放剩余音频帧
+        for opus_packet in remaining_audios:
+            if conn.client_abort:
+                break
 
-        # 重置没有声音的状态
-        conn.last_activity_time = time.time() * 1000
+            # 重置没有声音的状态
+            conn.last_activity_time = time.time() * 1000
 
-        # 计算预期发送时间
-        expected_time = start_time + (play_position / 1000)
-        current_time = time.perf_counter()
-        delay = expected_time - current_time
-        if delay > 0:
-            await asyncio.sleep(delay)
+            # 计算预期发送时间
+            expected_time = start_time + (play_position / 1000)
+            current_time = time.perf_counter()
+            delay = expected_time - current_time
+            if delay > 0:
+                await asyncio.sleep(delay)
 
-        await conn.websocket.send(opus_packet)
+            await conn.websocket.send(opus_packet)
 
-        play_position += frame_duration
+            play_position += frame_duration
 
 
 async def send_tts_message(conn, state, text=None):
     """发送 TTS 状态消息"""
+    if text is None and state == "sentence_start":
+        return
     message = {"type": "tts", "state": state, "session_id": conn.session_id}
     if text is not None:
         message["text"] = textUtils.check_emoji(text)
