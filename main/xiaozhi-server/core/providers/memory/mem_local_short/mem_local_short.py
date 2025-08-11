@@ -143,6 +143,11 @@ class MemoryProvider(MemoryProviderBase):
             yaml.dump(all_memory, f, allow_unicode=True)
 
     async def save_memory(self, msgs):
+        # Check if llm is set
+        if not hasattr(self, 'llm') or self.llm is None:
+            logger.bind(tag=TAG).error("LLM is not set for memory provider")
+            return None
+            
         # 打印使用的模型信息
         model_info = getattr(self.llm, "model_name", str(self.llm.__class__.__name__))
         logger.bind(tag=TAG).debug(f"使用记忆保存模型: {model_info}")

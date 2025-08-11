@@ -40,7 +40,15 @@ async def handleHelloMessage(conn, msg_json):
     if features:
         conn.logger.bind(tag=TAG).info(f"客户端特性: {features}")
         conn.features = features
-        if features.get("mcp"):
+        
+        # Handle both list and dictionary formats for features
+        has_mcp = False
+        if isinstance(features, list):
+            has_mcp = "mcp" in features
+        elif isinstance(features, dict):
+            has_mcp = features.get("mcp", False)
+            
+        if has_mcp:
             conn.logger.bind(tag=TAG).info("客户端支持MCP")
             conn.mcp_client = MCPClient()
             # 发送初始化

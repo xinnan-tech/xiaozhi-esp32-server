@@ -53,6 +53,7 @@ async def main():
     if not auth_key or len(auth_key) == 0 or "你" in auth_key:
         auth_key = str(uuid.uuid4().hex)
     config["server"]["auth_key"] = auth_key
+    logger.bind(tag=TAG).info(f"Generated auth_key: {auth_key}")
 
     # 添加 stdin 监控任务
     stdin_task = asyncio.create_task(monitor_stdin())

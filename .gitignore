@@ -134,7 +134,12 @@ dmypy.json
 .pyre/
 
 # music directory
-music/
+# music/
+
+node_modules
+
+main/mqtt-gateway/node_modules
+main/xiaozhi-server/venv
 
 # pytype static type analyzer
 .pytype/
