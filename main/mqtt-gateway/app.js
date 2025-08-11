@@ -69,7 +69,7 @@ class WebSocketBridge extends Emitter {
             }
             if (this.userData && this.userData.ip) {
                 headers['x-forwarded-for'] = this.userData.ip;
-            } 
+            }
             this.wsClient = new WebSocket(this.chatServer, { headers });
 
             this.wsClient.on('open', () => {
@@ -84,11 +84,16 @@ class WebSocketBridge extends Emitter {
 
             this.wsClient.on('message', (data, isBinary) => {
                 if (isBinary) {
-                    const timestamp = data.readUInt32BE(8);
-                    const opusLength = data.readUInt32BE(12);
-                    const opus = data.subarray(16, 16 + opusLength);
-                    // 二进制数据通过UDP发送
-                    this.connection.sendUdpMessage(opus, timestamp);
+                    // xiaozhi-server sends raw Opus data directly as binary WebSocket messages
+                    // No header parsing needed - the entire binary message is the Opus payload
+                    console.log(`📦 WebSocket binary message: ${data.length} bytes of raw Opus data`);
+                    console.log(`📦 First 8 bytes: ${data.subarray(0, Math.min(8, data.length)).toString('hex')}`);
+
+                    // Generate timestamp for UDP packet (use relative timestamp to fit in 32-bit)
+                    const timestamp = (Date.now() - this.connection.udp.startTime) & 0xFFFFFFFF;
+
+                    // Send the raw Opus data directly via UDP
+                    this.connection.sendUdpMessage(data, timestamp);
                 } else {
                     // JSON数据通过MQTT发送
                     const message = JSON.parse(data.toString());
@@ -120,11 +125,9 @@ class WebSocketBridge extends Emitter {
 
     sendAudio(opus, timestamp) {
         if (this.wsClient && this.wsClient.readyState === WebSocket.OPEN) {
-            const buffer = Buffer.alloc(16 + opus.length);
-            buffer.writeUInt32BE(timestamp, 8);
-            buffer.writeUInt32BE(opus.length, 12);
-            buffer.set(opus, 16);
-            this.wsClient.send(buffer, { binary: true });
+            // Send raw Opus data directly without header
+            // This avoids the need to strip headers in xiaozhi-server
+            this.wsClient.send(opus, { binary: true });
         }
     }
 
@@ -164,7 +167,7 @@ class MQTTConnection {
 
         // 创建协议处理器，并传入socket
         this.protocol = new MQTTProtocol(socket);
-        
+
         this.setupProtocolHandlers();
     }
 
@@ -206,8 +209,8 @@ class MQTTConnection {
         this.clientId = connectData.clientId;
         this.username = connectData.username;
         this.password = connectData.password;
-        
-        debug('客户端连接:', { 
+
+        debug('客户端连接:', {
             clientId: this.clientId,
             username: this.username,
             password: this.password,
@@ -243,13 +246,13 @@ class MQTTConnection {
             return;
         }
         this.replyTo = `devices/p2p/${parts[1]}`;
-        
+
         this.server.addConnection(this);
     }
 
     handleSubscribe(subscribeData) {
-        debug('客户端订阅主题:', { 
-            clientId: this.clientId, 
+        debug('客户端订阅主题:', {
+            clientId: this.clientId,
             topic: subscribeData.topic,
             packetId: subscribeData.packetId
         });
@@ -277,13 +280,13 @@ class MQTTConnection {
     checkKeepAlive() {
         const now = Date.now();
         const keepAliveInterval = this.protocol.getKeepAliveInterval();
-        
+
         // 如果keepAliveInterval为0，表示不需要心跳检查
         if (keepAliveInterval === 0 || !this.protocol.isConnected) return;
-        
+
         const lastActivity = this.protocol.getLastActivity();
         const timeSinceLastActivity = now - lastActivity;
-        
+
         // 如果超过心跳间隔，关闭连接
         if (timeSinceLastActivity > keepAliveInterval) {
             debug('心跳超时，关闭连接:', this.clientId);
@@ -292,13 +295,13 @@ class MQTTConnection {
     }
 
     handlePublish(publishData) {
-        debug('收到发布消息:', { 
-            clientId: this.clientId, 
-            topic: publishData.topic, 
-            payload: publishData.payload, 
+        debug('收到发布消息:', {
+            clientId: this.clientId,
+            topic: publishData.topic,
+            payload: publishData.payload,
             qos: publishData.qos
         });
-        
+
         if (publishData.qos !== 0) {
             debug('不支持的 QoS 级别:', publishData.qos, '关闭连接');
             this.close();
@@ -336,19 +339,30 @@ class MQTTConnection {
         }
         this.udp.localSequence++;
         const header = this.generateUdpHeader(payload.length, timestamp, this.udp.localSequence);
+
+        console.log(`🔐 Encrypting: payload=${payload.length}B, timestamp=${timestamp}, seq=${this.udp.localSequence}`);
+        console.log(`🔐 Header: ${header.toString('hex')}`);
+        console.log(`🔐 Key: ${this.udp.key.toString('hex')}`);
+        console.log(`🔐 Payload first 8 bytes: ${payload.subarray(0, 8).toString('hex')}`);
+
         const cipher = crypto.createCipheriv(this.udp.encryption, this.udp.key, header);
-        const message = Buffer.concat([header, cipher.update(payload), cipher.final()]);
+        const encryptedPayload = Buffer.concat([cipher.update(payload), cipher.final()]);
+
+        console.log(`🔐 Encrypted first 8 bytes: ${encryptedPayload.subarray(0, 8).toString('hex')}`);
+
+        const message = Buffer.concat([header, encryptedPayload]);
         this.server.sendUdpMessage(message, this.udp.remoteAddress);
     }
 
     generateUdpHeader(length, timestamp, sequence) {
-      // 重用预分配的缓冲区
-      this.headerBuffer.writeUInt8(1, 0);
-      this.headerBuffer.writeUInt16BE(length, 2);
-      this.headerBuffer.writeUInt32BE(this.connectionId, 4);
-      this.headerBuffer.writeUInt32BE(timestamp, 8);
-      this.headerBuffer.writeUInt32BE(sequence, 12);
-      return Buffer.from(this.headerBuffer); // 返回副本以避免并发问题
+        // 重用预分配的缓冲区
+        this.headerBuffer.writeUInt8(1, 0);        // packet_type
+        this.headerBuffer.writeUInt8(0, 1);        // flags
+        this.headerBuffer.writeUInt16BE(length, 2); // payload_len
+        this.headerBuffer.writeUInt32BE(this.connectionId, 4); // ssrc/connection_id
+        this.headerBuffer.writeUInt32BE(timestamp, 8);         // timestamp
+        this.headerBuffer.writeUInt32BE(sequence, 12);         // sequence
+        return Buffer.from(this.headerBuffer); // 返回副本以避免并发问题
     }
 
     async parseHelloMessage(json) {
@@ -409,13 +423,13 @@ class MQTTConnection {
             }
             return;
         }
-        
+
         if (json.type === 'goodbye') {
             this.bridge.close();
             this.bridge = null;
             return;
         }
-        
+
         this.bridge.sendJson(json);
     }
 
@@ -435,7 +449,15 @@ class MQTTConnection {
         const encryptedPayload = message.slice(16, 16 + payloadLength);
         const cipher = crypto.createDecipheriv(this.udp.encryption, this.udp.key, header);
         const payload = Buffer.concat([cipher.update(encryptedPayload), cipher.final()]);
-        
+
+        // Check if this is a ping message
+        const payloadStr = payload.toString();
+        if (payloadStr.startsWith('ping:')) {
+            debug(`收到 UDP ping 消息: ${payloadStr} from ${rinfo.address}:${rinfo.port}`);
+            // Ping message received, connection is now established
+            return;
+        }
+
         this.bridge.sendAudio(payload, timestamp);
         this.udp.remoteSequence = sequence;
     }
@@ -449,7 +471,7 @@ class MQTTServer {
     constructor() {
         this.mqttPort = parseInt(process.env.MQTT_PORT) || 1883;
         this.udpPort = parseInt(process.env.UDP_PORT) || this.mqttPort;
-        this.publicIp = process.env.PUBLIC_IP || 'mqtt.xiaozhi.me';
+        this.publicIp = process.env.PUBLIC_IP || 'broker.emqx.io';
         this.connections = new Map(); // clientId -> MQTTConnection
         this.keepAliveTimer = null;
         this.keepAliveCheckInterval = 1000; // 默认每1秒检查一次
@@ -473,19 +495,19 @@ class MQTTServer {
             new MQTTConnection(socket, connectionId, this);
         });
 
-        this.mqttServer.listen(this.mqttPort, () => {
-            console.warn(`MQTT 服务器正在监听端口 ${this.mqttPort}`);
+        this.mqttServer.listen(this.mqttPort, '0.0.0.0', () => {
+            console.warn(`MQTT 服务器正在监听端口 ${this.mqttPort} (所有接口)`);
         });
 
 
         this.udpServer = dgram.createSocket('udp4');
         this.udpServer.on('message', this.onUdpMessage.bind(this));
         this.udpServer.on('error', err => {
-          console.error('UDP 错误', err);
-          setTimeout(() => { process.exit(1); }, 1000);
+            console.error('UDP 错误', err);
+            setTimeout(() => { process.exit(1); }, 1000);
         });
         this.udpServer.bind(this.udpPort, () => {
-          console.warn(`UDP 服务器正在监听 ${this.publicIp}:${this.udpPort}`);
+            console.warn(`UDP 服务器正在监听 ${this.publicIp}:${this.udpPort}`);
         });
 
         // 启动全局心跳检查定时器
@@ -500,7 +522,7 @@ class MQTTServer {
         this.clearKeepAliveTimer();
         this.lastConnectionCount = 0;
         this.lastActiveConnectionCount = 0;
-        
+
         // 设置新的定时器
         this.keepAliveTimer = setInterval(() => {
             // 检查所有连接的心跳状态
@@ -555,21 +577,21 @@ class MQTTServer {
             console.warn('收到不完整的 UDP Header', rinfo);
             return;
         }
-    
+
         try {
             const type = message.readUInt8(0);
             if (type !== 1) return;
-    
+
             const payloadLength = message.readUInt16BE(2);
             if (message.length < 16 + payloadLength) return;
-    
+
             const connectionId = message.readUInt32BE(4);
             const connection = this.connections.get(connectionId);
             if (!connection) return;
-    
+
             const timestamp = message.readUInt32BE(8);
             const sequence = message.readUInt32BE(12);
-            
+
             connection.onUdpMessage(rinfo, message, payloadLength, timestamp, sequence);
         } catch (error) {
             console.error('UDP 消息处理错误:', error);
@@ -586,7 +608,7 @@ class MQTTServer {
         this.stopping = true;
         // 清除心跳检查定时器
         this.clearKeepAliveTimer();
-        
+
         if (this.connections.size > 0) {
             console.warn(`等待 ${this.connections.size} 个连接关闭`);
             for (const connection of this.connections.values()) {
@@ -602,7 +624,7 @@ class MQTTServer {
             this.udpServer = null;
             console.warn('UDP 服务器已停止');
         }
-        
+
         // 关闭MQTT服务器
         if (this.mqttServer) {
             this.mqttServer.close();
