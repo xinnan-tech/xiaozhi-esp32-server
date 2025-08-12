@@ -3,7 +3,7 @@
     custom-class="custom-dialog" :show-close="false" class="center-dialog">
     <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
       <div style="font-size: 30px; color: #3d4566; margin-top: -10px; margin-bottom: 10px; text-align: center;">
-        添加模型
+        Add Model
       </div>
 
       <button class="custom-close-btn" @click="handleClose">
@@ -12,14 +12,14 @@
 
       <!-- 模型信息部分 -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <div style="font-size: 20px; font-weight: bold; color: #3d4566;">模型信息</div>
+        <div style="font-size: 20px; font-weight: bold; color: #3d4566;">Model Information</div>
         <div style="display: flex; align-items: center; gap: 20px;">
           <div style="display: flex; align-items: center;">
-            <span style="margin-right: 8px;">是否启用</span>
+            <span style="margin-right: 8px;">Enable</span>
             <el-switch v-model="formData.isEnabled" class="custom-switch"></el-switch>
           </div>
           <div style="display: none; align-items: center;">
-            <span style="margin-right: 8px;">设为默认</span>
+            <span style="margin-right: 8px;">Set as Default</span>
             <el-switch v-model="formData.isDefault" class="custom-switch"></el-switch>
           </div>
         </div>
@@ -28,38 +28,38 @@
       <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
       <el-form :model="formData" label-width="100px" label-position="left" class="custom-form">
         <div style="display: flex; gap: 20px; margin-bottom: 0;">
-          <el-form-item label="模型名称" prop="modelName" style="flex: 1;">
-            <el-input v-model="formData.modelName" placeholder="请输入模型名称" class="custom-input-bg"></el-input>
+          <el-form-item label="Model Name" prop="modelName" style="flex: 1;">
+            <el-input v-model="formData.modelName" placeholder="Please enter model name" class="custom-input-bg"></el-input>
           </el-form-item>
-          <el-form-item label="模型编码" prop="modelCode" style="flex: 1;">
-            <el-input v-model="formData.modelCode" placeholder="请输入模型编码" class="custom-input-bg"></el-input>
+          <el-form-item label="Model Code" prop="modelCode" style="flex: 1;">
+            <el-input v-model="formData.modelCode" placeholder="Please enter model code" class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
 
         <div style="display: flex; gap: 20px; margin-bottom: 0;">
-          <el-form-item label="供应器" prop="supplier" style="flex: 1;">
-            <el-select v-model="formData.supplier" placeholder="请选择" class="custom-select custom-input-bg"
+          <el-form-item label="Provider" prop="supplier" style="flex: 1;">
+            <el-select v-model="formData.supplier" placeholder="Please select" class="custom-select custom-input-bg"
               style="width: 100%;" @focus="loadProviders" filterable>
               <el-option v-for="item in providers" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
-          <el-form-item label="排序号" prop="sortOrder" style="flex: 1;">
-            <el-input v-model="formData.sort" type="number" placeholder="请输入排序号" class="custom-input-bg"></el-input>
+          <el-form-item label="Sort Order" prop="sortOrder" style="flex: 1;">
+            <el-input v-model="formData.sort" type="number" placeholder="Please enter sort order" class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
 
 
-        <el-form-item label="文档地址" prop="docLink" style="margin-bottom: 27px;">
-          <el-input v-model="formData.docLink" placeholder="请输入文档地址" class="custom-input-bg"></el-input>
+        <el-form-item label="Document URL" prop="docLink" style="margin-bottom: 27px;">
+          <el-input v-model="formData.docLink" placeholder="Please enter document URL" class="custom-input-bg"></el-input>
         </el-form-item>
 
-        <el-form-item label="备注" prop="remark" class="prop-remark">
-          <el-input v-model="formData.remark" type="textarea" :rows="3" placeholder="请输入模型备注" :autosize="{ minRows: 3, maxRows: 5 }"
+        <el-form-item label="Remarks" prop="remark" class="prop-remark">
+          <el-input v-model="formData.remark" type="textarea" :rows="3" placeholder="Please enter model remarks" :autosize="{ minRows: 3, maxRows: 5 }"
             class="custom-input-bg"></el-input>
         </el-form-item>
       </el-form>
 
-      <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px;">调用信息</div>
+      <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px;">API Configuration</div>
       <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
 
       <el-form :model="formData.configJson" label-width="auto" label-position="left" class="custom-form">
@@ -83,7 +83,7 @@
         class="save-btn"
         :loading="saving"
         :disabled="saving">
-        保存
+        Save
       </el-button>
     </div>
   </el-dialog>
@@ -159,7 +159,7 @@ export default {
             label: f.label,
             prop: f.key,
             type: f.type === 'password' ? 'password' : 'text',
-            placeholder: `请输入${f.label}`
+            placeholder: `Please enter ${f.label}`
           }))
         }))
         this.providersLoaded = true
@@ -195,7 +195,7 @@ export default {
       this.saving = true;
 
       if (!this.formData.supplier) {
-        this.$message.error('请选择供应器');
+        this.$message.error('Please select a provider');
         this.saving = false;
         return;
       }
@@ -239,10 +239,10 @@ export default {
         isDefault: true,
         configJson: {}
       };
-      // 重置加载状态
+      // Reset loading state
       this.providers = [];
       this.providersLoaded = false;
-      // 重置字段配置
+      // Reset field configuration
       this.providerFields = [];
       this.currentProvider = null;
     },
