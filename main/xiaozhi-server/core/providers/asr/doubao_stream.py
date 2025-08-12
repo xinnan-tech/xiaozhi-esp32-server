@@ -1,351 +1,271 @@
+import time
+import os
+import uuid
 import json
 import gzip
-import uuid
-import asyncio
 import websockets
-import opuslib_next
-from core.providers.asr.base import ASRProviderBase
 from config.logger import setup_logging
+from typing import Optional, Tuple, List
+from core.providers.asr.base import ASRProviderBase
 from core.providers.asr.dto.dto import InterfaceType
+
 
 TAG = __name__
 logger = setup_logging()
 
+CLIENT_FULL_REQUEST = 0b0001
+CLIENT_AUDIO_ONLY_REQUEST = 0b0010
+
+NO_SEQUENCE = 0b0000
+NEG_SEQUENCE = 0b0010
+
+SERVER_FULL_RESPONSE = 0b1001
+SERVER_ACK = 0b1011
+SERVER_ERROR_RESPONSE = 0b1111
+
+NO_SERIALIZATION = 0b0000
+JSON = 0b0001
+THRIFT = 0b0011
+CUSTOM_TYPE = 0b1111
+NO_COMPRESSION = 0b0000
+GZIP = 0b0001
+CUSTOM_COMPRESSION = 0b1111
+
+
+def parse_response(res):
+    """
+    protocol_version(4 bits), header_size(4 bits),
+    message_type(4 bits), message_type_specific_flags(4 bits)
+    serialization_method(4 bits) message_compression(4 bits)
+    reserved （8bits) 保留字段
+    header_extensions 扩展头(大小等于 8 * 4 * (header_size - 1) )
+    payload 类似与http 请求体
+    """
+    protocol_version = res[0] >> 4
+    header_size = res[0] & 0x0F
+    message_type = res[1] >> 4
+    message_type_specific_flags = res[1] & 0x0F
+    serialization_method = res[2] >> 4
+    message_compression = res[2] & 0x0F
+    reserved = res[3]
+    header_extensions = res[4 : header_size * 4]
+    payload = res[header_size * 4 :]
+    result = {}
+    payload_msg = None
+    payload_size = 0
+    if message_type == SERVER_FULL_RESPONSE:
+        payload_size = int.from_bytes(payload[:4], "big", signed=True)
+        payload_msg = payload[4:]
+    elif message_type == SERVER_ACK:
+        seq = int.from_bytes(payload[:4], "big", signed=True)
+        result["seq"] = seq
+        if len(payload) >= 8:
+            payload_size = int.from_bytes(payload[4:8], "big", signed=False)
+            payload_msg = payload[8:]
+    elif message_type == SERVER_ERROR_RESPONSE:
+        code = int.from_bytes(payload[:4], "big", signed=False)
+        result["code"] = code
+        payload_size = int.from_bytes(payload[4:8], "big", signed=False)
+        payload_msg = payload[8:]
+    if payload_msg is None:
+        return result
+    if message_compression == GZIP:
+        payload_msg = gzip.decompress(payload_msg)
+    if serialization_method == JSON:
+        payload_msg = json.loads(str(payload_msg, "utf-8"))
+    elif serialization_method != NO_SERIALIZATION:
+        payload_msg = str(payload_msg, "utf-8")
+    result["payload_msg"] = payload_msg
+    result["payload_size"] = payload_size
+    return result
+
 
 class ASRProvider(ASRProviderBase):
-    def __init__(self, config, delete_audio_file):
+    def __init__(self, config: dict, delete_audio_file: bool):
         super().__init__()
-        self.interface_type = InterfaceType.STREAM
-        self.config = config
-        self.text = ""
-        self.max_retries = 3
-        self.retry_delay = 2
-        self.decoder = opuslib_next.Decoder(16000, 1)
-        self.asr_ws = None
-        self.forward_task = None
-        self.is_processing = False  # 添加处理状态标志
-
-        # 配置参数
-        self.appid = str(config.get("appid"))
+        self.interface_type = InterfaceType.NON_STREAM
+        self.appid = config.get("appid")
         self.cluster = config.get("cluster")
         self.access_token = config.get("access_token")
         self.boosting_table_name = config.get("boosting_table_name", "")
         self.correct_table_name = config.get("correct_table_name", "")
-        self.output_dir = config.get("output_dir", "tmp/")
+        self.output_dir = config.get("output_dir")
         self.delete_audio_file = delete_audio_file
 
-        # 火山引擎ASR配置
-        self.ws_url = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel"
-        self.uid = config.get("uid", "streaming_asr_service")
-        self.workflow = config.get(
-            "workflow", "audio_in,resample,partition,vad,fe,decode,itn,nlu_punctuate"
-        )
-        self.result_type = config.get("result_type", "single")
-        self.format = config.get("format", "pcm")
-        self.codec = config.get("codec", "pcm")
-        self.rate = config.get("sample_rate", 16000)
-        self.language = config.get("language", "zh-CN")
-        self.bits = config.get("bits", 16)
-        self.channel = config.get("channel", 1)
-        self.auth_method = config.get("auth_method", "token")
-        self.secret = config.get("secret", "access_secret")
+        self.host = "openspeech.bytedance.com"
+        self.ws_url = f"wss://{self.host}/api/v2/asr"
+        self.success_code = 1000
+        self.seg_duration = 15000
 
-    async def open_audio_channels(self, conn):
-        await super().open_audio_channels(conn)
+        # 确保输出目录存在
+        os.makedirs(self.output_dir, exist_ok=True)
 
-    async def receive_audio(self, conn, audio, audio_have_voice):
-        conn.asr_audio.append(audio)
-        conn.asr_audio = conn.asr_audio[-10:]
+    @staticmethod
+    def _generate_header(
+        message_type=CLIENT_FULL_REQUEST, message_type_specific_flags=NO_SEQUENCE
+    ) -> bytearray:
+        """Generate protocol header."""
+        header = bytearray()
+        header_size = 1
+        header.append((0b0001 << 4) | header_size)  # Protocol version
+        header.append((message_type << 4) | message_type_specific_flags)
+        header.append((0b0001 << 4) | 0b0001)  # JSON serialization & GZIP compression
+        header.append(0x00)  # reserved
+        return header
 
-        # 如果本次有声音，且之前没有建立连接
-        if audio_have_voice and self.asr_ws is None and not self.is_processing:
-            try:
-                self.is_processing = True
-                # 建立新的WebSocket连接
-                headers = self.token_auth() if self.auth_method == "token" else None
-                logger.bind(tag=TAG).info(f"正在连接ASR服务，headers: {headers}")
-
-                self.asr_ws = await websockets.connect(
-                    self.ws_url,
-                    additional_headers=headers,
-                    max_size=1000000000,
-                    ping_interval=None,
-                    ping_timeout=None,
-                    close_timeout=10,
-                )
-
-                # 发送初始化请求
-                request_params = self.construct_request(str(uuid.uuid4()))
-                try:
-                    payload_bytes = str.encode(json.dumps(request_params))
-                    payload_bytes = gzip.compress(payload_bytes)
-                    full_client_request = self.generate_header()
-                    full_client_request.extend((len(payload_bytes)).to_bytes(4, "big"))
-                    full_client_request.extend(payload_bytes)
-
-                    logger.bind(tag=TAG).info(f"发送初始化请求: {request_params}")
-                    await self.asr_ws.send(full_client_request)
-
-                    # 等待初始化响应
-                    init_res = await self.asr_ws.recv()
-                    result = self.parse_response(init_res)
-                    logger.bind(tag=TAG).info(f"收到初始化响应: {result}")
-
-                    # 检查初始化响应
-                    if "code" in result and result["code"] != 1000:
-                        error_msg = f"ASR服务初始化失败: {result.get('payload_msg', {}).get('error', '未知错误')}"
-                        logger.bind(tag=TAG).error(error_msg)
-                        raise Exception(error_msg)
-
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"发送初始化请求失败: {str(e)}")
-                    if hasattr(e, "__cause__") and e.__cause__:
-                        logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
-                    raise e
-
-                # 启动接收ASR结果的异步任务
-                self.forward_task = asyncio.create_task(self._forward_asr_results(conn))
-
-                # 发送缓存的音频数据
-                if conn.asr_audio and len(conn.asr_audio) > 0:
-                    for cached_audio in conn.asr_audio[-10:]:
-                        try:
-                            pcm_frame = self.decoder.decode(cached_audio, 960)
-                            payload = gzip.compress(pcm_frame)
-                            audio_request = bytearray(
-                                self.generate_audio_default_header()
-                            )
-                            audio_request.extend(len(payload).to_bytes(4, "big"))
-                            audio_request.extend(payload)
-                            await self.asr_ws.send(audio_request)
-                        except Exception as e:
-                            logger.bind(tag=TAG).info(
-                                f"发送缓存音频数据时发生错误: {e}"
-                            )
-
-            except Exception as e:
-                logger.bind(tag=TAG).error(f"建立ASR连接失败: {str(e)}")
-                if hasattr(e, "__cause__") and e.__cause__:
-                    logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
-                if self.asr_ws:
-                    await self.asr_ws.close()
-                    self.asr_ws = None
-                self.is_processing = False
-                return
-
-        # 发送当前音频数据
-        if self.asr_ws and self.is_processing:
-            try:
-                pcm_frame = self.decoder.decode(audio, 960)
-                payload = gzip.compress(pcm_frame)
-                audio_request = bytearray(self.generate_audio_default_header())
-                audio_request.extend(len(payload).to_bytes(4, "big"))
-                audio_request.extend(payload)
-                await self.asr_ws.send(audio_request)
-            except Exception as e:
-                logger.bind(tag=TAG).info(f"发送音频数据时发生错误: {e}")
-
-    async def _forward_asr_results(self, conn):
-        try:
-            while self.asr_ws and not conn.stop_event.is_set():
-                try:
-                    response = await self.asr_ws.recv()
-                    result = self.parse_response(response)
-                    logger.bind(tag=TAG).debug(f"收到ASR结果: {result}")
-
-                    if "payload_msg" in result:
-                        payload = result["payload_msg"]
-                        # 检查是否是错误码1013（无有效语音）
-                        if "code" in payload and payload["code"] == 1013:
-                            # 静默处理，不记录错误日志
-                            continue
-
-                        if "result" in payload:
-                            utterances = payload["result"].get("utterances", [])
-                            # 检查duration和空文本的情况
-                            if (
-                                payload.get("audio_info", {}).get("duration", 0) > 2000
-                                and not utterances
-                                and not payload["result"].get("text")
-                            ):
-                                logger.bind(tag=TAG).error(f"识别文本：空")
-                                self.text = ""
-                                conn.reset_vad_states()
-                                await self.handle_voice_stop(conn, None)
-                                break
-
-                            for utterance in utterances:
-                                if utterance.get("definite", False):
-                                    self.text = utterance["text"]
-                                    logger.bind(tag=TAG).info(
-                                        f"识别到文本: {self.text}"
-                                    )
-                                    conn.reset_vad_states()
-                                    await self.handle_voice_stop(conn, None)
-                                    break
-                        elif "error" in payload:
-                            error_msg = payload.get("error", "未知错误")
-                            logger.bind(tag=TAG).error(f"ASR服务返回错误: {error_msg}")
-                            break
-
-                except websockets.ConnectionClosed:
-                    logger.bind(tag=TAG).info("ASR服务连接已关闭")
-                    self.is_processing = False
-                    break
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"处理ASR结果时发生错误: {str(e)}")
-                    if hasattr(e, "__cause__") and e.__cause__:
-                        logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
-                    self.is_processing = False
-                    break
-
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"ASR结果转发任务发生错误: {str(e)}")
-            if hasattr(e, "__cause__") and e.__cause__:
-                logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
-        finally:
-            if self.asr_ws:
-                await self.asr_ws.close()
-                self.asr_ws = None
-            self.is_processing = False
-
-    def stop_ws_connection(self):
-        if self.asr_ws:
-            asyncio.create_task(self.asr_ws.close())
-            self.asr_ws = None
-        self.is_processing = False
-
-    def construct_request(self, reqid):
-        req = {
+    def _construct_request(self, reqid) -> dict:
+        """Construct the request payload."""
+        return {
             "app": {
-                "appid": self.appid,
+                "appid": f"{self.appid}",
                 "cluster": self.cluster,
                 "token": self.access_token,
             },
-            "user": {"uid": self.uid},
+            "user": {
+                "uid": str(uuid.uuid4()),
+            },
             "request": {
                 "reqid": reqid,
-                "workflow": self.workflow,
-                "show_utterances": True,
-                "result_type": self.result_type,
+                "show_utterances": False,
                 "sequence": 1,
                 "boosting_table_name": self.boosting_table_name,
                 "correct_table_name": self.correct_table_name,
-                "end_window_size": 200,
             },
             "audio": {
-                "format": self.format,
-                "codec": self.codec,
-                "rate": self.rate,
-                "language": self.language,
-                "bits": self.bits,
-                "channel": self.channel,
-                "sample_rate": self.rate,
+                "format": "raw",
+                "rate": 16000,
+                "language": "zh-CN",
+                "bits": 16,
+                "channel": 1,
+                "codec": "raw",
             },
         }
-        logger.bind(tag=TAG).debug(
-            f"构造请求参数: {json.dumps(req, ensure_ascii=False)}"
-        )
-        return req
 
-    def token_auth(self):
-        return {
-            "X-Api-App-Key": self.appid,
-            "X-Api-Access-Key": self.access_token,
-            "X-Api-Resource-Id": "volc.bigasr.sauc.duration",
-            "X-Api-Connect-Id": str(uuid.uuid4()),
-        }
-
-    def generate_header(
-        self,
-        version=0x01,
-        message_type=0x01,
-        message_type_specific_flags=0x00,
-        serial_method=0x01,
-        compression_type=0x01,
-        reserved_data=0x00,
-        extension_header: bytes = b"",
-    ):
-        header = bytearray()
-        header_size = int(len(extension_header) / 4) + 1
-        header.append((version << 4) | header_size)
-        header.append((message_type << 4) | message_type_specific_flags)
-        header.append((serial_method << 4) | compression_type)
-        header.append(reserved_data)
-        header.extend(extension_header)
-        return header
-
-    def generate_audio_default_header(self):
-        return self.generate_header(
-            version=0x01,
-            message_type=0x02,
-            message_type_specific_flags=0x00,
-            serial_method=0x01,
-            compression_type=0x01,
-        )
-
-    def generate_last_audio_default_header(self):
-        return self.generate_header(
-            version=0x01,
-            message_type=0x02,
-            message_type_specific_flags=0x02,
-            serial_method=0x01,
-            compression_type=0x01,
-        )
-
-    def parse_response(self, res: bytes) -> dict:
+    async def _send_request(
+        self, audio_data: List[bytes], segment_size: int
+    ) -> Optional[str]:
+        """Send request to Volcano ASR service."""
         try:
-            # 检查响应长度
-            if len(res) < 4:
-                logger.bind(tag=TAG).error(f"响应数据长度不足: {len(res)}")
-                return {"error": "响应数据长度不足"}
+            auth_header = {"Authorization": "Bearer; {}".format(self.access_token)}
+            async with websockets.connect(
+                self.ws_url, additional_headers=auth_header
+            ) as websocket:
+                # Prepare request data
+                request_params = self._construct_request(str(uuid.uuid4()))
+                payload_bytes = str.encode(json.dumps(request_params))
+                payload_bytes = gzip.compress(payload_bytes)
+                full_client_request = self._generate_header()
+                full_client_request.extend(
+                    (len(payload_bytes)).to_bytes(4, "big")
+                )  # payload size(4 bytes)
+                full_client_request.extend(payload_bytes)  # payload
 
-            # 获取消息头
-            header = res[:4]
-            message_type = header[1] >> 4
+                # Send header and metadata
+                # full_client_request
+                await websocket.send(full_client_request)
+                res = await websocket.recv()
+                result = parse_response(res)
+                if (
+                    "payload_msg" in result
+                    and result["payload_msg"]["code"] != self.success_code
+                    and result["payload_msg"]["code"] != 1013  # 忽略无有效语音的错误
+                ):
+                    logger.bind(tag=TAG).error(f"ASR error: {result}")
+                    return None
 
-            # 如果是错误响应
-            if message_type == 0x0F:  # SERVER_ERROR_RESPONSE
-                code = int.from_bytes(res[4:8], "big", signed=False)
-                msg_length = int.from_bytes(res[8:12], "big", signed=False)
-                error_msg = json.loads(res[12:].decode("utf-8"))
-                return {
-                    "code": code,
-                    "msg_length": msg_length,
-                    "payload_msg": error_msg,
-                }
+                for seq, (chunk, last) in enumerate(
+                    self.slice_data(audio_data, segment_size), 1
+                ):
+                    if last:
+                        audio_only_request = self._generate_header(
+                            message_type=CLIENT_AUDIO_ONLY_REQUEST,
+                            message_type_specific_flags=NEG_SEQUENCE,
+                        )
+                    else:
+                        audio_only_request = self._generate_header(
+                            message_type=CLIENT_AUDIO_ONLY_REQUEST
+                        )
+                    payload_bytes = gzip.compress(chunk)
+                    audio_only_request.extend(
+                        (len(payload_bytes)).to_bytes(4, "big")
+                    )  # payload size(4 bytes)
+                    audio_only_request.extend(payload_bytes)  # payload
+                    # Send audio data
+                    await websocket.send(audio_only_request)
 
-            # 获取JSON数据（跳过12字节头部）
-            try:
-                json_data = res[12:].decode("utf-8")
-                result = json.loads(json_data)
-                logger.bind(tag=TAG).debug(f"成功解析JSON响应: {result}")
-                return {"payload_msg": result}
-            except (UnicodeDecodeError, json.JSONDecodeError) as e:
-                logger.bind(tag=TAG).error(f"JSON解析失败: {str(e)}")
-                logger.bind(tag=TAG).error(f"原始数据: {res}")
-                raise
+                # Receive response
+                response = await websocket.recv()
+                result = parse_response(response)
+
+                if (
+                    "payload_msg" in result
+                    and result["payload_msg"]["code"] == self.success_code
+                ):
+                    if len(result["payload_msg"]["result"]) > 0:
+                        return result["payload_msg"]["result"][0]["text"]
+                    return None
+                elif "payload_msg" in result and result["payload_msg"]["code"] == 1013:
+                    # 无有效语音，返回空字符串
+                    return ""
+                else:
+                    logger.bind(tag=TAG).error(f"ASR error: {result}")
+                    return None
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"解析响应失败: {str(e)}")
-            logger.bind(tag=TAG).error(f"原始响应数据: {res.hex()}")
-            raise
+            logger.bind(tag=TAG).error(f"ASR request failed: {e}", exc_info=True)
+            return None
 
-    async def speech_to_text(self, opus_data, session_id, audio_format):
-        result = self.text
-        self.text = ""  # 清空text
-        return result, None
+    @staticmethod
+    def slice_data(data: bytes, chunk_size: int) -> (list, bool):
+        """
+        slice data
+        :param data: wav data
+        :param chunk_size: the segment size in one request
+        :return: segment data, last flag
+        """
+        data_len = len(data)
+        offset = 0
+        while offset + chunk_size < data_len:
+            yield data[offset : offset + chunk_size], False
+            offset += chunk_size
+        else:
+            yield data[offset:data_len], True
 
-    async def close(self):
-        """资源清理方法"""
-        if self.asr_ws:
-            await self.asr_ws.close()
-            self.asr_ws = None
-        if self.forward_task:
-            self.forward_task.cancel()
-            try:
-                await self.forward_task
-            except asyncio.CancelledError:
+    async def speech_to_text(
+        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """将语音数据转换为文本"""
+
+        file_path = None
+        try:
+            # 合并所有opus数据包
+            if audio_format == "pcm":
+                pcm_data = opus_data
+            else:
+                pcm_data = self.decode_opus(opus_data)
+            combined_pcm_data = b"".join(pcm_data)
+
+            # 判断是否保存为WAV文件
+            if self.delete_audio_file:
                 pass
-            self.forward_task = None
-        self.is_processing = False
+            else:
+                file_path = self.save_audio_to_file(pcm_data, session_id)
+
+            # 直接使用PCM数据
+            # 计算分段大小 (单声道, 16bit, 16kHz采样率)
+            size_per_sec = 1 * 2 * 16000  # nchannels * sampwidth * framerate
+            segment_size = int(size_per_sec * self.seg_duration / 1000)
+
+            # 语音识别
+            start_time = time.time()
+            text = await self._send_request(combined_pcm_data, segment_size)
+            if text:
+                logger.bind(tag=TAG).debug(
+                    f"语音识别耗时: {time.time() - start_time:.3f}s | 结果: {text}"
+                )
+                return text, file_path
+            return "", file_path
+
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"语音识别失败: {e}", exc_info=True)
+            return "", file_path

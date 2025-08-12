@@ -10,7 +10,6 @@ from config.logger import setup_logging
 from core.utils import opus_encoder_utils
 from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
-from core.handle.abortHandle import handleAbortMessage
 from core.providers.tts.dto.dto import SentenceType, ContentType, InterfaceType
 from asyncio import Task
 
@@ -53,10 +52,11 @@ EVENT_ConnectionFinished = 52  # 连接结束
 
 # 上行Session事件
 EVENT_StartSession = 100
-
+EVENT_CancelSession = 101
 EVENT_FinishSession = 102
 # 下行Session事件
 EVENT_SessionStarted = 150
+EVENT_SessionCanceled = 151
 EVENT_SessionFinished = 152
 
 EVENT_SessionFailed = 153
@@ -152,6 +152,12 @@ class TTSProvider(TTSProviderBase):
             self.voice = config.get("private_voice")
         else:
             self.voice = config.get("speaker")
+        speech_rate = config.get("speech_rate", "0")
+        loudness_rate = config.get("loudness_rate", "0")
+        pitch = config.get("pitch", "0")
+        self.speech_rate = int(speech_rate) if speech_rate else 0
+        self.loudness_rate = int(loudness_rate) if loudness_rate else 0
+        self.pitch = int(pitch) if pitch else 0
         self.ws_url = config.get("ws_url")
         self.authorization = config.get("authorization")
         self.header = {"Authorization": f"{self.authorization}{self.access_token}"}
@@ -175,6 +181,9 @@ class TTSProvider(TTSProviderBase):
     async def _ensure_connection(self):
         """建立新的WebSocket连接"""
         try:
+            if self.ws:
+                logger.bind(tag=TAG).info(f"使用已有链接...")
+                return self.ws
             logger.bind(tag=TAG).info("开始建立新连接...")
             ws_header = {
                 "X-Api-App-Key": self.appId,
@@ -200,9 +209,21 @@ class TTSProvider(TTSProviderBase):
                 logger.bind(tag=TAG).debug(
                     f"收到TTS任务｜{message.sentence_type.name} ｜ {message.content_type.name} | 会话ID: {self.conn.sentence_id}"
                 )
+
+                if message.sentence_type == SentenceType.FIRST:
+                    self.conn.client_abort = False
+
                 if self.conn.client_abort:
-                    logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
-                    continue
+                    try:
+                        logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
+                        asyncio.run_coroutine_threadsafe(
+                            self.cancel_session(self.conn.sentence_id),
+                            loop=self.conn.loop,
+                        )
+                        continue
+                    except Exception as e:
+                        logger.bind(tag=TAG).error(f"取消TTS会话失败: {str(e)}")
+                        continue
 
                 if message.sentence_type == SentenceType.FIRST:
                     # 初始化参数
@@ -217,7 +238,6 @@ class TTSProvider(TTSProviderBase):
                             loop=self.conn.loop,
                         )
                         future.result()
-                        self.tts_audio_first_sentence = True
                         self.before_stop_play_files.clear()
                         logger.bind(tag=TAG).info("TTS会话启动成功")
                     except Exception as e:
@@ -244,9 +264,12 @@ class TTSProvider(TTSProviderBase):
                     logger.bind(tag=TAG).info(
                         f"添加音频文件到待播放列表: {message.content_file}"
                     )
-                    self.before_stop_play_files.append(
-                        (message.content_file, message.content_detail)
-                    )
+                    if message.content_file and os.path.exists(message.content_file):
+                        # 先处理文件音频数据
+                        file_audio = self._process_audio_file(message.content_file)
+                        self.before_stop_play_files.append(
+                            (file_audio, message.content_detail)
+                        )
 
                 if message.sentence_type == SentenceType.LAST:
                     try:
@@ -295,25 +318,15 @@ class TTSProvider(TTSProviderBase):
     async def start_session(self, session_id):
         logger.bind(tag=TAG).info(f"开始会话～～{session_id}")
         try:
-            task = self._monitor_task
+            # 会话开始时检测上个会话的监听状态
             if (
-                task is not None
-                and isinstance(task, Task)
-                and not task.done()
+                self._monitor_task is not None
+                and isinstance(self._monitor_task, Task)
+                and not self._monitor_task.done()
             ):
-                logger.bind(tag=TAG).info("等待上一个监听任务结束...")
-                if self.ws is not None:
-                    logger.bind(tag=TAG).info("强制关闭上一个WebSocket连接以唤醒监听任务...")
-                    try:
-                        await self.ws.close()
-                    except Exception as e:
-                        logger.bind(tag=TAG).warning(f"关闭上一个ws异常: {e}")
-                    self.ws = None
-                try:
-                    await asyncio.wait_for(task, timeout=8)
-                except Exception as e:
-                    logger.bind(tag=TAG).warning(f"等待监听任务异常: {e}")
-                self._monitor_task = None
+                logger.bind(tag=TAG).info("检测到未完成的上个会话，关闭监听任务和连接...")
+                await self.close()
+
             # 建立新连接
             await self._ensure_connection()
 
@@ -336,19 +349,7 @@ class TTSProvider(TTSProviderBase):
         except Exception as e:
             logger.bind(tag=TAG).error(f"启动会话失败: {str(e)}")
             # 确保清理资源
-            if hasattr(self, "_monitor_task"):
-                try:
-                    self._monitor_task.cancel()
-                    await self._monitor_task
-                except:
-                    pass
-                self._monitor_task = None
-            if self.ws:
-                try:
-                    await self.ws.close()
-                except:
-                    pass
-                self.ws = None
+            await self.close()
             raise
 
     async def finish_session(self, session_id):
@@ -368,7 +369,7 @@ class TTSProvider(TTSProviderBase):
                 logger.bind(tag=TAG).info("会话结束请求已发送")
 
                 # 等待监听任务完成
-                if hasattr(self, "_monitor_task"):
+                if self._monitor_task:
                     try:
                         await self._monitor_task
                     except Exception as e:
@@ -378,28 +379,46 @@ class TTSProvider(TTSProviderBase):
                     finally:
                         self._monitor_task = None
 
-                # 关闭连接
-                await self.close()
         except Exception as e:
             logger.bind(tag=TAG).error(f"关闭会话失败: {str(e)}")
             # 确保清理资源
-            if hasattr(self, "_monitor_task"):
-                try:
-                    self._monitor_task.cancel()
-                    await self._monitor_task
-                except:
-                    pass
-                self._monitor_task = None
+            await self.close()
+            raise
+
+    async def cancel_session(self,session_id):
+        logger.bind(tag=TAG).info(f"取消会话，释放服务端资源～～{session_id}")
+        try:
             if self.ws:
-                try:
-                    await self.ws.close()
-                except:
-                    pass
-                self.ws = None
+                header = Header(
+                    message_type=FULL_CLIENT_REQUEST,
+                    message_type_specific_flags=MsgTypeFlagWithEvent,
+                    serial_method=JSON,
+                ).as_bytes()
+                optional = Optional(
+                    event=EVENT_CancelSession, sessionId=session_id
+                ).as_bytes()
+                payload = str.encode("{}")
+                await self.send_event(self.ws, header, optional, payload)
+                logger.bind(tag=TAG).info("会话取消请求已发送")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"取消会话失败: {str(e)}")
+            # 确保清理资源
+            await self.close()
             raise
 
     async def close(self):
         """资源清理方法"""
+        # 取消监听任务
+        if self._monitor_task:
+            try:
+                self._monitor_task.cancel()
+                await self._monitor_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                logger.bind(tag=TAG).warning(f"关闭时取消监听任务错误: {e}")
+            self._monitor_task = None
+
         if self.ws:
             try:
                 await self.ws.close()
@@ -413,6 +432,7 @@ class TTSProvider(TTSProviderBase):
         is_first_sentence = True
         first_sentence_segment_count = 0  # 添加计数器
         try:
+            session_finished = False  # 标记会话是否正常结束
             while not self.conn.stop_event.is_set():
                 try:
                     # 确保 `recv()` 运行在同一个 event loop
@@ -420,12 +440,11 @@ class TTSProvider(TTSProviderBase):
                     res = self.parser_response(msg)
                     self.print_response(res, "send_text res:")
 
-                    # 检查客户端是否中止
-                    if self.conn.client_abort:
-                        logger.bind(tag=TAG).info("收到打断信息，终止监听TTS响应")
+                    if res.optional.event == EVENT_SessionCanceled:
+                        logger.bind(tag=TAG).debug(f"释放服务端资源成功～～")
+                        session_finished = True
                         break
-
-                    if res.optional.event == EVENT_TTSSentenceStart:
+                    elif res.optional.event == EVENT_TTSSentenceStart:
                         json_data = json.loads(res.payload.decode("utf-8"))
                         self.tts_text = json_data.get("text", "")
                         logger.bind(tag=TAG).debug(f"句子语音生成开始: {self.tts_text}")
@@ -450,10 +469,10 @@ class TTSProvider(TTSProviderBase):
                                     (SentenceType.MIDDLE, opus_datas, None)
                                 )
                             else:
-                                opus_datas_cache = opus_datas_cache + opus_datas
+                                opus_datas_cache.extend(opus_datas)
                         else:
                             # 后续句子缓存
-                            opus_datas_cache = opus_datas_cache + opus_datas
+                            opus_datas_cache.extend(opus_datas)
                     elif res.optional.event == EVENT_TTSSentenceEnd:
                         logger.bind(tag=TAG).info(f"句子语音生成成功：{self.tts_text}")
                         if not is_first_sentence or first_sentence_segment_count > 10:
@@ -466,6 +485,7 @@ class TTSProvider(TTSProviderBase):
                     elif res.optional.event == EVENT_SessionFinished:
                         logger.bind(tag=TAG).debug(f"会话结束～～")
                         self._process_before_stop_play_files()
+                        session_finished = True
                         break
                 except websockets.ConnectionClosed:
                     logger.bind(tag=TAG).warning("WebSocket连接已关闭")
@@ -476,15 +496,15 @@ class TTSProvider(TTSProviderBase):
                     )
                     traceback.print_exc()
                     break
-        finally:
-            # 确保清理资源
-            if self.ws:
+            # 仅在连接异常时才关闭
+            if not session_finished and self.ws:
                 try:
                     await self.ws.close()
                 except:
                     pass
                 self.ws = None
-            # 监听任务退出时清理引用
+        # 监听任务退出时清理引用
+        finally:
             self._monitor_task = None
 
     async def send_event(
@@ -622,8 +642,15 @@ class TTSProvider(TTSProviderBase):
                         "audio_params": {
                             "format": audio_format,
                             "sample_rate": audio_sample_rate,
+                            "speech_rate": self.speech_rate,
+                            "loudness_rate": self.loudness_rate
                         },
                     },
+                    "additions": {
+                        "post_process": {
+                            "pitch": self.pitch
+                        }
+                    }
                 }
             )
         )

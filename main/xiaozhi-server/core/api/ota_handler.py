@@ -62,6 +62,37 @@ class OTAHandler(BaseHandler):
                     "url": self._get_websocket_url(local_ip, port),
                 },
             }
+            
+            # Add MQTT gateway configuration if enabled
+            mqtt_config = server_config.get("mqtt_gateway", {})
+            if mqtt_config.get("enabled", False):
+                return_json["mqtt_gateway"] = {
+                    "broker": mqtt_config.get("broker", local_ip),
+                    "port": mqtt_config.get("port", 1883),
+                    "udp_port": mqtt_config.get("udp_port", 8884)
+                }
+                
+                # Also add MQTT credentials section for client authentication
+                import base64
+                import hmac
+                import hashlib
+                
+                client_id = f"GID_test@@@{device_id}@@@{data_json.get('client_id', 'default-client')}"
+                
+                # Create username (base64 encoded JSON) - must match client format
+                username_data = {"ip": "192.168.1.100"}  # Placeholder IP
+                username = base64.b64encode(json.dumps(username_data).encode()).decode()
+                
+                # Generate password using HMAC (must match gateway's signature key)
+                secret_key = "test-signature-key-12345"  # Must match MQTT_SIGNATURE_KEY in gateway's .env
+                content = f"{client_id}|{username}"
+                password = base64.b64encode(hmac.new(secret_key.encode(), content.encode(), hashlib.sha256).digest()).decode()
+                
+                return_json["mqtt"] = {
+                    "client_id": client_id,
+                    "username": username,
+                    "password": password
+                }
             response = web.Response(
                 text=json.dumps(return_json, separators=(",", ":")),
                 content_type="application/json",

@@ -1,13 +1,10 @@
-from config.logger import setup_logging
 import os
 import re
 import time
 import random
-import asyncio
 import difflib
 import traceback
 from pathlib import Path
-from core.utils import p3
 from core.handle.sendAudioHandle import send_stt_message
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from core.utils.dialogue import Message
@@ -51,8 +48,8 @@ def play_music(conn, song_name: str):
             )
 
         # 提交异步任务
-        future = asyncio.run_coroutine_threadsafe(
-            handle_music_command(conn, music_intent), conn.loop
+        task = conn.loop.create_task(
+            handle_music_command(conn, music_intent)  # 封装异步逻辑
         )
 
         # 非阻塞回调处理
@@ -63,7 +60,7 @@ def play_music(conn, song_name: str):
             except Exception as e:
                 conn.logger.bind(tag=TAG).error(f"播放失败: {e}")
 
-        future.add_done_callback(handle_done)
+        task.add_done_callback(handle_done)
 
         return ActionResponse(
             action=Action.NONE, result="指令已接收", response="正在为您播放音乐"
@@ -178,13 +175,13 @@ def _get_random_play_prompt(song_name):
     # 移除文件扩展名
     clean_name = os.path.splitext(song_name)[0]
     prompts = [
-        f"正在为您播放，{clean_name}",
-        f"请欣赏歌曲，{clean_name}",
-        f"即将为您播放，{clean_name}",
-        f"为您带来，{clean_name}",
-        f"让我们聆听，{clean_name}",
-        f"接下来请欣赏，{clean_name}",
-        f"为您献上，{clean_name}",
+        f"正在为您播放，《{clean_name}》",
+        f"请欣赏歌曲，《{clean_name}》",
+        f"即将为您播放，《{clean_name}》",
+        f"现在为您带来，《{clean_name}》",
+        f"让我们一起聆听，《{clean_name}》",
+        f"接下来请欣赏，《{clean_name}》",
+        f"此刻为您献上，《{clean_name}》",
     ]
     # 直接使用random.choice，不设置seed
     return random.choice(prompts)
@@ -218,13 +215,14 @@ async def play_local_music(conn, specific_file=None):
         await send_stt_message(conn, text)
         conn.dialogue.put(Message(role="assistant", content=text))
 
-        conn.tts.tts_text_queue.put(
-            TTSMessageDTO(
-                sentence_id=conn.sentence_id,
-                sentence_type=SentenceType.FIRST,
-                content_type=ContentType.ACTION,
+        if conn.intent_type == "intent_llm":
+            conn.tts.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=conn.sentence_id,
+                    sentence_type=SentenceType.FIRST,
+                    content_type=ContentType.ACTION,
+                )
             )
-        )
         conn.tts.tts_text_queue.put(
             TTSMessageDTO(
                 sentence_id=conn.sentence_id,
@@ -241,13 +239,14 @@ async def play_local_music(conn, specific_file=None):
                 content_file=music_path,
             )
         )
-        conn.tts.tts_text_queue.put(
-            TTSMessageDTO(
-                sentence_id=conn.sentence_id,
-                sentence_type=SentenceType.LAST,
-                content_type=ContentType.ACTION,
+        if conn.intent_type == "intent_llm":
+            conn.tts.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=conn.sentence_id,
+                    sentence_type=SentenceType.LAST,
+                    content_type=ContentType.ACTION,
+                )
             )
-        )
 
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"播放音乐失败: {str(e)}")

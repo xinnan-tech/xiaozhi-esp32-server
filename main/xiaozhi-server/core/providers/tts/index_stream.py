@@ -19,27 +19,24 @@ class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
         self.interface_type = InterfaceType.SINGLE_STREAM
-        self.access_token = config.get("access_token")
-        self.voice = config.get("voice")
-        self.api_url = config.get("api_url")
+        self.voice = config.get("voice", "xiao_he")
+        if config.get("private_voice"):
+            self.voice = config.get("private_voice")
+        else:
+            self.voice = config.get("voice", "xiao_he")
+        self.api_url = config.get("api_url", "http://8.138.114.124:11996/tts")
         self.audio_format = "pcm"
         self.before_stop_play_files = []
-        self.segment_count = 0  # 添加片段计数器
+        self.segment_count = 0
 
-        # 创建Opus编码器
+        # 创建Opus编码器 需注意接口返回的采样率为24000
         self.opus_encoder = opus_encoder_utils.OpusEncoderUtils(
-            sample_rate=16000, channels=1, frame_size_ms=60
+            sample_rate=24000, channels=1, frame_size_ms=60
         )
 
-        # 添加文本缓冲区
+        # 文本缓冲区和PCM缓冲区
         self.text_buffer = ""
-
-        # PCM缓冲区
         self.pcm_buffer = bytearray()
-
-    ###################################################################################
-    # linkerai单流式TTS重写父类的方法--开始
-    ###################################################################################
 
     def tts_text_priority_thread(self):
         """流式文本处理线程"""
@@ -83,7 +80,6 @@ class TTSProvider(TTSProviderBase):
 
     def _process_remaining_text(self, is_last=False):
         """处理剩余的文本并生成语音
-
         Returns:
             bool: 是否成功处理了文本
         """
@@ -124,36 +120,10 @@ class TTSProvider(TTSProviderBase):
         finally:
             return None
 
-    ###################################################################################
-    # linkerai单流式TTS重写父类的方法--结束
-    ###################################################################################
-
     async def text_to_speak(self, text, is_last):
         """流式处理TTS音频，每句只推送一次音频列表"""
-        await self._tts_request(text, is_last)
+        payload = {"text": text, "character": self.voice}
 
-    async def close(self):
-        """资源清理"""
-        await super().close()
-        if hasattr(self, "opus_encoder"):
-            self.opus_encoder.close()
-
-    async def _tts_request(self, text: str, is_last: bool) -> None:
-        params = {
-            "tts_text": text,
-            "spk_id": self.voice,
-            "frame_durition": 60,
-            "stream": "true",
-            "target_sr": 16000,
-            "audio_format": "pcm",
-            "instruct_text": "请生成一段自然流畅的语音",
-        }
-        headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-        }
-
-        # 一帧 PCM 所需字节数：60 ms &times; 16 kHz &times; 1 ch &times; 2 B = 1 920
         frame_bytes = int(
             self.opus_encoder.sample_rate
             * self.opus_encoder.channels  # 1
@@ -161,12 +131,9 @@ class TTSProvider(TTSProviderBase):
             / 1000
             * 2
         )  # 16-bit = 2 bytes
-
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    self.api_url, params=params, headers=headers, timeout=10
-                ) as resp:
+                async with session.post(self.api_url, json=payload, timeout=10) as resp:
 
                     if resp.status != 200:
                         logger.bind(tag=TAG).error(
@@ -180,20 +147,17 @@ class TTSProvider(TTSProviderBase):
 
                     self.tts_audio_queue.put((SentenceType.FIRST, [], text))
 
-                    # 兼容 iter_chunked / iter_chunks / iter_any
+                    # 处理音频流数据
                     async for chunk in resp.content.iter_any():
                         data = chunk[0] if isinstance(chunk, (list, tuple)) else chunk
                         if not data:
                             continue
 
-                        # 拼到 buffer
                         self.pcm_buffer.extend(data)
 
-                        # 够一帧就编码
                         while len(self.pcm_buffer) >= frame_bytes:
                             frame = bytes(self.pcm_buffer[:frame_bytes])
                             del self.pcm_buffer[:frame_bytes]
-
                             opus = self.opus_encoder.encode_pcm_to_opus(
                                 frame, end_of_stream=False
                             )
@@ -237,6 +201,12 @@ class TTSProvider(TTSProviderBase):
             logger.bind(tag=TAG).error(f"TTS请求异常: {e}")
             self.tts_audio_queue.put((SentenceType.LAST, [], None))
 
+    async def close(self):
+        """资源清理"""
+        await super().close()
+        if hasattr(self, "opus_encoder"):
+            self.opus_encoder.close()
+
     def to_tts(self, text: str) -> list:
         """非流式TTS处理，用于测试及保存音频文件的场景
 
@@ -249,24 +219,10 @@ class TTSProvider(TTSProviderBase):
         start_time = time.time()
         text = MarkdownCleaner.clean_markdown(text)
 
-        params = {
-            "tts_text": text,
-            "spk_id": self.voice,
-            "frame_duration": 60,
-            "stream": False,
-            "target_sr": 16000,
-            "audio_format": self.audio_format,
-            "instruct_text": "请生成一段自然流畅的语音",
-        }
-        headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-        }
+        payload = {"text": text, "character": self.character}
 
         try:
-            with requests.get(
-                self.api_url, params=params, headers=headers, timeout=5
-            ) as response:
+            with requests.post(self.api_url, json=payload, timeout=5) as response:
                 if response.status_code != 200:
                     logger.bind(tag=TAG).error(
                         f"TTS请求失败: {response.status_code}, {response.text}"

@@ -40,6 +40,7 @@ class ASRProvider(ASRProviderBase):
         self.interface_type = InterfaceType.LOCAL
         self.model_dir = config.get("model_dir")
         self.output_dir = config.get("output_dir")
+        self.model_type = config.get("model_type", "sense_voice")  # 支持 paraformer
         self.delete_audio_file = delete_audio_file
 
         # 确保输出目录存在
@@ -73,16 +74,27 @@ class ASRProvider(ASRProviderBase):
             raise
 
         with CaptureOutput():
-            self.model = sherpa_onnx.OfflineRecognizer.from_sense_voice(
-                model=self.model_path,
-                tokens=self.tokens_path,
-                num_threads=2,
-                sample_rate=16000,
-                feature_dim=80,
-                decoding_method="greedy_search",
-                debug=False,
-                use_itn=True,
-            )
+            if self.model_type == "paraformer":
+                self.model = sherpa_onnx.OfflineRecognizer.from_paraformer(
+                    paraformer=self.model_path,
+                    tokens=self.tokens_path,
+                    num_threads=2,
+                    sample_rate=16000,
+                    feature_dim=80,
+                    decoding_method="greedy_search",
+                    debug=False,
+                )
+            else:  # sense_voice
+                self.model = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+                    model=self.model_path,
+                    tokens=self.tokens_path,
+                    num_threads=2,
+                    sample_rate=16000,
+                    feature_dim=80,
+                    decoding_method="greedy_search",
+                    debug=False,
+                    use_itn=True,
+                )
 
     def read_wave(self, wave_filename: str) -> Tuple[np.ndarray, int]:
         """

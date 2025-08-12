@@ -18,9 +18,9 @@ from queue import Queue, Empty
 import opuslib
 
 # --- Configuration ---
-SERVER_IP = "192.168.1.3" # !!! UPDATE with your server's local IP address !!!
+SERVER_IP = "192.168.1.102" # !!! UPDATE with your server's local IP address !!!
 OTA_PORT = 8003
-MQTT_BROKER_HOST = "192.168.1.3"  # MQTT gateway IP
+MQTT_BROKER_HOST = "192.168.1.102"  # MQTT gateway IP
 MQTT_BROKER_PORT = 1883
 # DEVICE_MAC is now dynamically generated for uniqueness
 PLAYBACK_BUFFER_MIN_FRAMES = 3  # Minimum frames to have in buffer to continue playback
@@ -321,11 +321,16 @@ class TestClient:
         """Requests OTA configuration from the server."""
         logger.info(f"▶️ STEP 1: Requesting OTA config from http://{SERVER_IP}:{OTA_PORT}/xiaozhi/ota/")
         try:
+            # Generate a client ID for this session
+            import uuid
+            session_client_id = str(uuid.uuid4())
+            
             headers = {"device-id": self.device_mac_formatted}
             data = {
                 "application": {
                     "version": "1.0.0"
-                }
+                },
+                "client_id": session_client_id
             }
             response = requests.post(f"http://{SERVER_IP}:{OTA_PORT}/xiaozhi/ota/", headers=headers, json=data, timeout=5)
             response.raise_for_status()
@@ -527,6 +532,8 @@ class TestClient:
         # Initialize the decoder with the sample rate provided by the server
         decoder = opuslib.Decoder(audio_params["sample_rate"], audio_params["channels"])
         frame_size_samples = int(audio_params["sample_rate"] * audio_params["frame_duration"] / 1000)
+        # Maximum frame size for Opus (120ms at 48kHz = 5760 samples, but we'll use a larger buffer)
+        max_frame_size = int(audio_params["sample_rate"] * 0.12)  # 120ms worth of samples
         
         while not stop_threads.is_set() and self.session_active:
             try:
@@ -554,7 +561,8 @@ class TestClient:
                     opus_payload = decryptor.update(encrypted) + decryptor.finalize()
                     
                     # Decode the Opus payload to PCM and put it in the playback queue
-                    pcm_payload = decoder.decode(opus_payload, frame_size_samples)
+                    # Use max_frame_size to provide enough buffer space for variable frame sizes
+                    pcm_payload = decoder.decode(opus_payload, max_frame_size)
                     self.audio_playback_queue.put(pcm_payload)
                     
             except socket.timeout:

@@ -33,10 +33,16 @@ def hass_get_state(conn, entity_id=""):
         future = asyncio.run_coroutine_threadsafe(
             handle_hass_get_state(conn, entity_id), conn.loop
         )
-        ha_response = future.result()
+        # 添加10秒超时
+        ha_response = future.result(timeout=10)
         return ActionResponse(Action.REQLLM, ha_response, None)
+    except asyncio.TimeoutError:
+        logger.bind(tag=TAG).error("获取Home Assistant状态超时")
+        return ActionResponse(Action.ERROR, "请求超时", None)
     except Exception as e:
-        logger.bind(tag=TAG).error(f"处理设置属性意图错误: {e}")
+        error_msg = f"执行Home Assistant操作失败"
+        logger.bind(tag=TAG).error(error_msg)
+        return ActionResponse(Action.ERROR, error_msg, None)
 
 
 async def handle_hass_get_state(conn, entity_id):

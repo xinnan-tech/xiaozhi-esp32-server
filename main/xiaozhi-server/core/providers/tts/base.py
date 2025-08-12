@@ -50,6 +50,7 @@ class TTSProviderBase(ABC):
             "；",
             ";",
             "：",
+            "~",
         )
         self.first_sentence_punctuations = (
             "，",
@@ -159,15 +160,8 @@ class TTSProviderBase(ABC):
             if conn.sentence_id:
                 sentence_id = conn.sentence_id
             else:
-                sentence_id = str(uuid.uuid4()).replace("-", "")
+                sentence_id = str(uuid.uuid4().hex)
                 conn.sentence_id = sentence_id
-        self.tts_text_queue.put(
-            TTSMessageDTO(
-                sentence_id=sentence_id,
-                sentence_type=SentenceType.FIRST,
-                content_type=ContentType.ACTION,
-            )
-        )
         # 对于单句的文本，进行分段处理
         segments = re.split(r"([。！？!?；;\n])", content_detail)
         for seg in segments:
@@ -180,13 +174,6 @@ class TTSProviderBase(ABC):
                     content_file=content_file,
                 )
             )
-        self.tts_text_queue.put(
-            TTSMessageDTO(
-                sentence_id=sentence_id,
-                sentence_type=SentenceType.LAST,
-                content_type=ContentType.ACTION,
-            )
-        )
 
     async def open_audio_channels(self, conn):
         self.conn = conn
@@ -209,6 +196,8 @@ class TTSProviderBase(ABC):
         while not self.conn.stop_event.is_set():
             try:
                 message = self.tts_text_queue.get(timeout=1)
+                if message.sentence_type == SentenceType.FIRST:
+                    self.conn.client_abort = False
                 if self.conn.client_abort:
                     logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
                     continue
@@ -344,7 +333,6 @@ class TTSProviderBase(ABC):
         Returns:
             tuple: (sentence_type, audio_datas, content_detail)
         """
-        audio_datas = []
         if tts_file.endswith(".p3"):
             audio_datas, _ = p3.decode_opus_from_file(tts_file)
         elif self.conn.audio_format == "pcm":
@@ -362,10 +350,8 @@ class TTSProviderBase(ABC):
         return audio_datas
 
     def _process_before_stop_play_files(self):
-        for tts_file, text in self.before_stop_play_files:
-            if tts_file and os.path.exists(tts_file):
-                audio_datas = self._process_audio_file(tts_file)
-                self.tts_audio_queue.put((SentenceType.MIDDLE, audio_datas, text))
+        for audio_datas, text in self.before_stop_play_files:
+            self.tts_audio_queue.put((SentenceType.MIDDLE, audio_datas, text))
         self.before_stop_play_files.clear()
         self.tts_audio_queue.put((SentenceType.LAST, [], None))
 
