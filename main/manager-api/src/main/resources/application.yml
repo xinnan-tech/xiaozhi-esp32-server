@@ -26,6 +26,10 @@ spring:
       enabled: true
   main:
     allow-bean-definition-overriding: true
+  datasource:
+    url: jdbc:mysql://turntable.proxy.rlwy.net:38288/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
+    username: root
+    password: nrTgFMCdwgjqZFFRXDhDZbCapfPNBxZK
 
 knife4j:
   enable: true
