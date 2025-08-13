@@ -183,7 +183,7 @@ def _get_random_play_prompt(song_name):
         f"Next, please enjoy, '{clean_name}'",
         f"At this moment, presenting to you, '{clean_name}'",
     ]
-    # 直接使用random.choice，不设置seed
+     # 直接使用random.choice，不设置seed
     return random.choice(prompts)
 
 
