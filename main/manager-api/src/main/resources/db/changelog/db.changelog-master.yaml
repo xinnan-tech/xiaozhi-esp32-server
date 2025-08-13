@@ -297,9 +297,17 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202508111734.sql
   - changeSet:
+<<<<<<< Updated upstream
       id: 202508131308
+=======
+      id: 202508111734
+>>>>>>> Stashed changes
       author: fyb
       changes:
         - sqlFile:
             encoding: utf8
+<<<<<<< Updated upstream
             path: classpath:db/changelog/202508131308.sql
+=======
+            path: classpath:db/changelog/202508131407.sql
+>>>>>>> Stashed changes
