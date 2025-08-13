@@ -175,15 +175,15 @@ def _get_random_play_prompt(song_name):
     # 移除文件扩展名
     clean_name = os.path.splitext(song_name)[0]
     prompts = [
-        f"正在为您播放，《{clean_name}》",
-        f"请欣赏歌曲，《{clean_name}》",
-        f"即将为您播放，《{clean_name}》",
-        f"现在为您带来，《{clean_name}》",
-        f"让我们一起聆听，《{clean_name}》",
-        f"接下来请欣赏，《{clean_name}》",
-        f"此刻为您献上，《{clean_name}》",
+        f"Now playing for you, '{clean_name}'",
+        f"Please enjoy the song, '{clean_name}'",
+        f"About to play for you, '{clean_name}'",
+        f"Now bringing you, '{clean_name}'",
+        f"Let's listen together to, '{clean_name}'",
+        f"Next, please enjoy, '{clean_name}'",
+        f"At this moment, presenting to you, '{clean_name}'",
     ]
-    # 直接使用random.choice，不设置seed
+     # 直接使用random.choice，不设置seed
     return random.choice(prompts)
 
 

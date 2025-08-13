@@ -18,6 +18,7 @@ from queue import Queue, Empty
 import opuslib
 
 # --- Configuration ---
+
 SERVER_IP = "192.168.1.101" # !!! UPDATE with your server's local IP address !!!
 OTA_PORT = 8003
 MQTT_BROKER_HOST = "192.168.1.101"  # MQTT gateway IP
