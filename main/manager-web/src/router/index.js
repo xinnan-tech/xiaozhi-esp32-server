@@ -46,7 +46,7 @@ const routes = [
       return import('../views/retrievePassword.vue')
     }
   },
-  // 设备管理页面路由
+  // Device management page route
   {
     path: '/device-management',
     name: 'DeviceManagement',
@@ -54,7 +54,7 @@ const routes = [
       return import('../views/DeviceManagement.vue')
     }
   },
-  // 添加用户管理路由
+  // Add user management route
   {
     path: '/user-management',
     name: 'UserManagement',
@@ -77,7 +77,7 @@ const routes = [
     },
     meta: {
       requiresAuth: true,
-      title: '参数管理'
+      title: 'Parameter Management'
     }
   },
 
@@ -89,7 +89,7 @@ const routes = [
     },
     meta: {
       requiresAuth: true,
-      title: '服务端管理'
+      title: 'Server Management'
     }
   },
   {
@@ -100,7 +100,7 @@ const routes = [
     },
     meta: {
       requiresAuth: true,
-      title: 'OTA管理'
+      title: 'OTA Management'
     }
   },
   {
@@ -123,31 +123,31 @@ const router = new VueRouter({
   routes
 })
 
-// 全局处理重复导航，改为刷新页面
+// Global handling of duplicate navigation, changed to refresh page
 const originalPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {
   return originalPush.call(this, location).catch(err => {
     if (err.name === 'NavigationDuplicated') {
-      // 如果是重复导航，刷新页面
+      // If it's duplicate navigation, refresh page
       window.location.reload()
     } else {
-      // 其他错误正常抛出
+      // Throw other errors normally
       throw err
     }
   })
 }
 
-// 需要登录才能访问的路由
+// Routes that require login to access
 const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig']
 
-// 路由守卫
+// Route guard
 router.beforeEach((to, from, next) => {
-  // 检查是否是需要保护的路由
+  // Check if it's a protected route
   if (protectedRoutes.includes(to.name)) {
-    // 从localStorage获取token
+    // Get token from localStorage
     const token = localStorage.getItem('token')
     if (!token) {
-      // 未登录，跳转到登录页
+      // Not logged in, redirect to login page
       next({ name: 'login', query: { redirect: to.fullPath } })
       return
     }

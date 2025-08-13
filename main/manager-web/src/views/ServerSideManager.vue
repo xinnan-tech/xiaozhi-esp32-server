@@ -3,7 +3,7 @@
     <HeaderBar />
 
     <div class="operation-bar">
-      <h2 class="page-title">服务端管理</h2>
+      <h2 class="page-title">Server Management</h2>
     </div>
 
     <div class="main-wrapper">
@@ -11,19 +11,19 @@
         <div class="content-area">
           <el-card class="params-card" shadow="never">
             <el-table ref="paramsTable" :data="paramsList" class="transparent-table" v-loading="loading"
-              element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
+              element-loading-text="Loading..." element-loading-spinner="el-icon-loading"
               element-loading-background="rgba(255, 255, 255, 0.7)" :header-cell-class-name="headerCellClassName">
-              <el-table-column label="选择" align="center" width="120">
+              <el-table-column label="Select" align="center" width="120">
                 <template slot-scope="scope">
                   <el-checkbox v-model="scope.row.selected"></el-checkbox>
                 </template>
               </el-table-column>
-              <el-table-column label="ws地址" prop="address" align="center"></el-table-column>
-              <el-table-column label="操作" prop="operator" align="center" show-overflow-tooltip>
+              <el-table-column label="WebSocket Address" prop="address" align="center"></el-table-column>
+              <el-table-column label="Actions" prop="operator" align="center" show-overflow-tooltip>
                 <template slot-scope="scope">
-                  <el-button size="medium" type="text" @click="emitAction(scope.row, actionMap.restart)">重启</el-button>
+                  <el-button size="medium" type="text" @click="emitAction(scope.row, actionMap.restart)">Restart</el-button>
                   <el-button size="medium" type="text"
-                    @click="emitAction(scope.row, actionMap.update_config)">更新配置</el-button>
+                    @click="emitAction(scope.row, actionMap.update_config)">Update Config</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -53,15 +53,15 @@ export default {
       actionMap: {
         restart: {
           value: 'restart',
-          title: "重启服务端",
-          message: "确定要重启服务端吗？",
-          confirmText: "重启",
+          title: "Restart Server",
+          message: "Are you sure you want to restart the server?",
+          confirmText: "Restart",
         },
         update_config: {
           value: 'update_config',
-          title: "更新配置",
-          message: "确定要更新配置吗？",
-          confirmText: "更新",
+          title: "Update Configuration",
+          message: "Are you sure you want to update the configuration?",
+          confirmText: "Update",
         }
       },
       currentPage: 1,
@@ -70,7 +70,7 @@ export default {
       pageSizeOptions: [10, 20, 50, 100],
       total: 0,
       dialogVisible: false,
-      dialogTitle: "新增参数",
+      dialogTitle: "Add Parameter",
       isAllSelected: false,
       sensitive_keys: ["api_key", "personal_access_token", "access_token", "token", "secret", "access_key_secret", "secret_key"],
       paramForm: {
@@ -122,7 +122,7 @@ export default {
             this.total = data.data.length;
           } else {
             this.$message.error({
-              message: data.msg || '获取参数列表失败',
+              message: data.msg || 'Failed to get parameter list',
               showClose: true
             });
           }
@@ -133,24 +133,24 @@ export default {
       if (actionItem === undefined || rowItem.address === undefined) {
         return;
       }
-      // 弹开询问框
+      // Show confirmation dialog
       this.$confirm(actionItem.message, actionItem.title, {
-        confirmButtonText: actionItem.confirmText, // 确认按钮文本
+        confirmButtonText: actionItem.confirmText, // Confirm button text
       }).then(() => {
-        // 用户点击了确认按钮
+        // User clicked confirm button
         Api.admin.sendWsServerAction({
           targetWs: rowItem.address,
           action: actionItem.value
         }, ({ data }) => {
           if (data.code !== 0) {
             this.$message.error({
-              message: data.msg || '操作失败',
+              message: data.msg || 'Operation failed',
               showClose: true
             });
             return;
           }
           this.$message.success({
-            message: `${actionItem.title}成功`,
+            message: `${actionItem.title} successful`,
             showClose: true
           })
         })

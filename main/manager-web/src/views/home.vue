@@ -1,19 +1,19 @@
 <template>
   <div class="welcome">
-    <!-- 公共头部 -->
+    <!-- Common header -->
     <HeaderBar :devices="devices" @search="handleSearch" @search-reset="handleSearchReset" />
     <el-main style="padding: 20px;display: flex;flex-direction: column;">
       <div>
-        <!-- 首页内容 -->
+        <!-- Home page content -->
         <div class="add-device">
           <div class="add-device-bg">
             <div class="hellow-text" style="margin-top: 30px;">
-              你好，小智
+              Hello, Xiaozhi
             </div>
             <div class="hellow-text">
-              让我们度过
+              Let's have
               <div style="display: inline-block;color: #5778FF;">
-                美好的一天！
+                a wonderful day!
               </div>
             </div>
             <div class="hi-hint">
@@ -21,7 +21,7 @@
             </div>
             <div class="add-device-btn">
               <div class="left-add" @click="showAddDialog">
-                添加智能体
+                Add Agent
               </div>
               <div style="width: 23px;height: 13px;background: #5778ff;margin-left: -10px;" />
               <div class="right-add">
@@ -92,7 +92,7 @@ export default {
       this.addDeviceDialogVisible = true
     },
     goToRoleConfig() {
-      // 点击配置角色后跳转到角色配置页
+      // Navigate to role configuration page after clicking configure role
       this.$router.push('/role-config')
     },
     handleWisdomBodyAdded(res) {
@@ -122,11 +122,11 @@ export default {
         return this.searchRegex.test(device.agentName);
       });
     },
-    // 搜索更新智能体列表
+    // Search and update agent list
     handleSearchResult(filteredList) {
-      this.devices = filteredList; // 更新设备列表
+      this.devices = filteredList; // Update device list
     },
-    // 获取智能体列表
+    // Get agent list
     fetchAgentList() {
       this.isLoading = true;
       Api.agent.getAgentList(({ data }) => {
@@ -136,10 +136,10 @@ export default {
             agentId: item.id
           }));
 
-          // 动态设置骨架屏数量（可选）
+          // Dynamically set skeleton screen count (optional)
           this.skeletonCount = Math.min(
-            Math.max(this.originalDevices.length, 3), // 最少3个
-            10 // 最多10个
+            Math.max(this.originalDevices.length, 3), // At least 3
+            10 // At most 10
           );
 
           this.handleSearchReset();
@@ -150,23 +150,23 @@ export default {
         this.isLoading = false;
       });
     },
-    // 删除智能体
+    // Delete agent
     handleDeleteAgent(agentId) {
-      this.$confirm('确定要删除该智能体吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm('Are you sure you want to delete this agent?', 'Confirm', {
+        confirmButtonText: 'Confirm',
+        cancelButtonText: 'Cancel',
         type: 'warning'
       }).then(() => {
         Api.agent.deleteAgent(agentId, (res) => {
           if (res.data.code === 0) {
             this.$message.success({
-              message: '删除成功',
+              message: 'Deletion successful',
               showClose: true
             });
-            this.fetchAgentList(); // 刷新列表
+            this.fetchAgentList(); // Refresh list
           } else {
             this.$message.error({
-              message: res.data.msg || '删除失败',
+              message: res.data.msg || 'Deletion failed',
               showClose: true
             });
           }
@@ -191,13 +191,13 @@ export default {
   flex-direction: column;
   background: linear-gradient(145deg, #e6eeff, #eff0ff);
   background-size: cover;
-  /* 确保背景图像覆盖整个元素 */
+  /* Ensure the background image covers the entire element */
   background-position: center;
-  /* 从顶部中心对齐 */
+  /* Align from top center */
   -webkit-background-size: cover;
-  /* 兼容老版本WebKit浏览器 */
+  /* Compatible with older WebKit browsers */
   -o-background-size: cover;
-  /* 兼容老版本Opera浏览器 */
+  /* Compatible with older Opera browsers */
 }
 
 .add-device {
@@ -218,15 +218,15 @@ export default {
   background-image: url("@/assets/home/main-top-bg.png");
   overflow: hidden;
   background-size: cover;
-  /* 确保背景图像覆盖整个元素 */
+  /* Ensure the background image covers the entire element */
   background-position: center;
-  /* 从顶部中心对齐 */
+  /* Align from top center */
   -webkit-background-size: cover;
-  /* 兼容老版本WebKit浏览器 */
+  /* Compatible with older WebKit browsers */
   -o-background-size: cover;
   box-sizing: border-box;
 
-  /* 兼容老版本Opera浏览器 */
+  /* Compatible with older Opera browsers */
   .hellow-text {
     margin-left: 75px;
     color: #3d4566;
@@ -283,10 +283,10 @@ export default {
   padding: 30px 0;
 }
 
-/* 在 DeviceItem.vue 的样式中 */
+/* In DeviceItem.vue styles */
 .device-item {
   margin: 0 !important;
-  /* 避免冲突 */
+  /* Avoid conflicts */
   width: auto !important;
 }
 
@@ -297,10 +297,10 @@ export default {
   padding-top: 30px;
   color: #979db1;
   text-align: center;
-  /* 居中显示 */
+  /* Center display */
 }
 
-/* 骨架屏动画 */
+/* Skeleton screen animation */
 @keyframes shimmer {
   100% {
     transform: translateX(100%);

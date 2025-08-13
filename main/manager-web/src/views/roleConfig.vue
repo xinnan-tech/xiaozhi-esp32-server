@@ -3,7 +3,7 @@
     <HeaderBar />
 
     <div class="operation-bar">
-      <h2 class="page-title">角色配置</h2>
+      <h2 class="page-title">Role Configuration</h2>
     </div>
 
     <div class="main-wrapper">
@@ -18,10 +18,10 @@
               <div class="header-actions">
                 <div class="hint-text">
                   <img loading="lazy" src="@/assets/home/info.png" alt="">
-                  <span>保存配置后，需要重启设备，新的配置才会生效。</span>
+                  <span>After saving the configuration, you need to restart the device for the new configuration to take effect.</span>
                 </div>
-                <el-button type="primary" class="save-btn" @click="saveConfig">保存配置</el-button>
-                <el-button class="reset-btn" @click="resetConfig">重置</el-button>
+                <el-button type="primary" class="save-btn" @click="saveConfig">Save Configuration</el-button>
+                <el-button class="reset-btn" @click="resetConfig">Reset</el-button>
                 <button class="custom-close-btn" @click="goToHome">
                   ×
                 </button>
@@ -33,10 +33,10 @@
               <div class="form-content">
                 <div class="form-grid">
                   <div class="form-column">
-                    <el-form-item label="助手昵称：">
+                    <el-form-item label="Assistant Name:">
                       <el-input v-model="form.agentName" class="form-input" maxlength="10" />
                     </el-form-item>
-                    <el-form-item label="角色模版：">
+                    <el-form-item label="Role Template:">
                       <div class="template-container">
                         <div v-for="(template, index) in templates" :key="`template-${index}`" class="template-item"
                           :class="{ 'template-loading': loadingTemplate }" @click="selectTemplate(template)">
@@ -44,39 +44,39 @@
                         </div>
                       </div>
                     </el-form-item>
-                    <el-form-item label="角色介绍：">
-                      <el-input type="textarea" rows="9" resize="none" placeholder="请输入内容" v-model="form.systemPrompt"
+                    <el-form-item label="Role Introduction:">
+                      <el-input type="textarea" rows="9" resize="none" placeholder="Please enter content" v-model="form.systemPrompt"
                         maxlength="2000" show-word-limit class="form-textarea" />
                     </el-form-item>
 
-                    <el-form-item label="记忆：">
+                    <el-form-item label="Memory:">
                       <el-input type="textarea" rows="6" resize="none" v-model="form.summaryMemory" maxlength="2000"
                         show-word-limit class="form-textarea"
                         :disabled="form.model.memModelId !== 'Memory_mem_local_short'" />
                     </el-form-item>
-                    <el-form-item label="语言编码：" style="display: none;">
-                      <el-input v-model="form.langCode" placeholder="请输入语言编码，如：zh_CN" maxlength="10" show-word-limit
+                    <el-form-item label="Language Code:" style="display: none;">
+                      <el-input v-model="form.langCode" placeholder="Please enter language code, e.g.: en_US" maxlength="10" show-word-limit
                         class="form-input" />
                     </el-form-item>
-                    <el-form-item label="交互语种：" style="display: none;">
-                      <el-input v-model="form.language" placeholder="请输入交互语种，如：中文" maxlength="10" show-word-limit
+                    <el-form-item label="Interaction Language:" style="display: none;">
+                      <el-input v-model="form.language" placeholder="Please enter interaction language, e.g.: English" maxlength="10" show-word-limit
                         class="form-input" />
                     </el-form-item>
                   </div>
                   <div class="form-column">
                     <div class="model-row">
-                      <el-form-item label="语音活动检测(VAD)" class="model-item">
+                      <el-form-item label="Voice Activity Detection (VAD)" class="model-item">
                         <div class="model-select-wrapper">
-                          <el-select v-model="form.model.vadModelId" filterable placeholder="请选择" class="form-select"
+                          <el-select v-model="form.model.vadModelId" filterable placeholder="Please select" class="form-select"
                             @change="handleModelChange('VAD', $event)">
                             <el-option v-for="(item, optionIndex) in modelOptions['VAD']"
                               :key="`option-vad-${optionIndex}`" :label="item.label" :value="item.value" />
                           </el-select>
                         </div>
                       </el-form-item>
-                      <el-form-item label="语音识别(ASR)" class="model-item">
+                      <el-form-item label="Speech Recognition (ASR)" class="model-item">
                         <div class="model-select-wrapper">
-                          <el-select v-model="form.model.asrModelId" filterable placeholder="请选择" class="form-select"
+                          <el-select v-model="form.model.asrModelId" filterable placeholder="Please select" class="form-select"
                             @change="handleModelChange('ASR', $event)">
                             <el-option v-for="(item, optionIndex) in modelOptions['ASR']"
                               :key="`option-asr-${optionIndex}`" :label="item.label" :value="item.value" />
@@ -87,7 +87,7 @@
                     <el-form-item v-for="(model, index) in models.slice(2)" :key="`model-${index}`" :label="model.label"
                       class="model-item">
                       <div class="model-select-wrapper">
-                        <el-select v-model="form.model[model.key]" filterable placeholder="请选择" class="form-select"
+                        <el-select v-model="form.model[model.key]" filterable placeholder="Please select" class="form-select"
                           @change="handleModelChange(model.type, $event)">
                           <el-option v-for="(item, optionIndex) in modelOptions[model.type]"
                             :key="`option-${index}-${optionIndex}`" :label="item.label" :value="item.value" />
@@ -96,7 +96,7 @@
                           <el-tooltip v-for="func in currentFunctions" :key="func.name" effect="dark" placement="top"
                             popper-class="custom-tooltip">
                             <div slot="content">
-                              <div><strong>功能名称:</strong> {{ func.name }}</div>
+                              <div><strong>Function Name:</strong> {{ func.name }}</div>
                             </div>
                             <div class="icon-dot" :style="{ backgroundColor: getFunctionColor(func.name) }">
                               {{ func.name.charAt(0) }}
@@ -104,20 +104,20 @@
                           </el-tooltip>
                           <el-button class="edit-function-btn" @click="openFunctionDialog"
                             :class="{ 'active-btn': showFunctionDialog }">
-                            编辑功能
+                            Edit Functions
                           </el-button>
                         </div>
                         <div v-if="model.type === 'Memory' && form.model.memModelId !== 'Memory_nomem'"
                           class="chat-history-options">
                           <el-radio-group v-model="form.chatHistoryConf" @change="updateChatHistoryConf">
-                            <el-radio-button :label="1">上报文字</el-radio-button>
-                            <el-radio-button :label="2">上报文字+语音</el-radio-button>
+                            <el-radio-button :label="1">Report Text</el-radio-button>
+                            <el-radio-button :label="2">Report Text + Audio</el-radio-button>
                           </el-radio-group>
                         </div>
                       </div>
                     </el-form-item>
-                    <el-form-item label="角色音色">
-                      <el-select v-model="form.ttsVoiceId" placeholder="请选择" class="form-select">
+                    <el-form-item label="Voice Timbre:">
+                      <el-select v-model="form.ttsVoiceId" placeholder="Please select" class="form-select">
                         <el-option v-for="(item, index) in voiceOptions" :key="`voice-${index}`" :label="item.label"
                           :value="item.value" />
                       </el-select>
@@ -167,13 +167,13 @@ export default {
         }
       },
       models: [
-        { label: '语音活动检测(VAD)', key: 'vadModelId', type: 'VAD' },
-        { label: '语音识别(ASR)', key: 'asrModelId', type: 'ASR' },
-        { label: '大语言模型(LLM)', key: 'llmModelId', type: 'LLM' },
-        { label: '视觉大模型(VLLM)', key: 'vllmModelId', type: 'VLLM' },
-        { label: '意图识别(Intent)', key: 'intentModelId', type: 'Intent' },
-        { label: '记忆(Memory)', key: 'memModelId', type: 'Memory' },
-        { label: '语音合成(TTS)', key: 'ttsModelId', type: 'TTS' },
+        { label: 'Voice Activity Detection (VAD)', key: 'vadModelId', type: 'VAD' },
+        { label: 'Speech Recognition (ASR)', key: 'asrModelId', type: 'ASR' },
+        { label: 'Large Language Model (LLM)', key: 'llmModelId', type: 'LLM' },
+        { label: 'Vision Language Model (VLLM)', key: 'vllmModelId', type: 'VLLM' },
+        { label: 'Intent Recognition (Intent)', key: 'intentModelId', type: 'Intent' },
+        { label: 'Memory', key: 'memModelId', type: 'Memory' },
+        { label: 'Text-to-Speech (TTS)', key: 'ttsModelId', type: 'TTS' },
       ],
       modelOptions: {},
       templates: [],
@@ -221,21 +221,21 @@ export default {
       Api.agent.updateAgentConfig(this.$route.query.agentId, configData, ({ data }) => {
         if (data.code === 0) {
           this.$message.success({
-            message: '配置保存成功',
+            message: 'Configuration saved successfully',
             showClose: true
           });
         } else {
           this.$message.error({
-            message: data.msg || '配置保存失败',
+            message: data.msg || 'Failed to save configuration',
             showClose: true
           });
         }
       });
     },
     resetConfig() {
-      this.$confirm('确定要重置配置吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm('Are you sure you want to reset the configuration?', 'Confirm', {
+        confirmButtonText: 'Confirm',
+        cancelButtonText: 'Cancel',
         type: 'warning'
       }).then(() => {
         this.form = {
@@ -260,7 +260,7 @@ export default {
         }
         this.currentFunctions = [];
         this.$message.success({
-          message: '配置已重置',
+          message: 'Configuration has been reset',
           showClose: true
         })
       }).catch(() => {
@@ -271,7 +271,7 @@ export default {
         if (data.code === 0) {
           this.templates = data.data;
         } else {
-          this.$message.error(data.msg || '获取模板列表失败');
+          this.$message.error(data.msg || 'Failed to get template list');
         }
       });
     },
@@ -281,15 +281,15 @@ export default {
       try {
         this.applyTemplateData(template);
         this.$message.success({
-          message: `「${template.agentName}」模板已应用`,
+          message: `"${template.agentName}" template has been applied`,
           showClose: true
         });
       } catch (error) {
         this.$message.error({
-          message: '应用模板失败',
+          message: 'Failed to apply template',
           showClose: true
         });
-        console.error('应用模板失败:', error);
+        console.error('Failed to apply template:', error);
       } finally {
         this.loadingTemplate = false;
       }
@@ -358,7 +358,7 @@ export default {
             this.originalFunctions = JSON.parse(JSON.stringify(this.currentFunctions));
           });
         } else {
-          this.$message.error(data.msg || '获取配置失败');
+          this.$message.error(data.msg || 'Failed to get configuration');
         }
       });
     },
@@ -371,7 +371,7 @@ export default {
               label: item.modelName
             })));
           } else {
-            this.$message.error(data.msg || '获取模型列表失败');
+            this.$message.error(data.msg || 'Failed to get model list');
           }
         });
       });
@@ -425,7 +425,7 @@ export default {
             });
             resolve();
           } else {
-            this.$message.error(data.msg || '获取插件列表失败');
+            this.$message.error(data.msg || 'Failed to get plugin list');
             reject();
           }
         });

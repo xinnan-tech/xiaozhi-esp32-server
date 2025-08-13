@@ -1,19 +1,19 @@
 <template>
     <el-dialog :title="title" :visible.sync="dialogVisible" width="30%" @close="handleClose">
         <el-form :model="form" :rules="rules" ref="form" label-width="100px">
-            <el-form-item label="字典标签" prop="dictLabel">
-                <el-input v-model="form.dictLabel" placeholder="请输入字典标签"></el-input>
+            <el-form-item label="Dictionary Label" prop="dictLabel">
+                <el-input v-model="form.dictLabel" placeholder="Please enter dictionary label"></el-input>
             </el-form-item>
-            <el-form-item label="字典值" prop="dictValue">
-                <el-input v-model="form.dictValue" placeholder="请输入字典值"></el-input>
+            <el-form-item label="Dictionary Value" prop="dictValue">
+                <el-input v-model="form.dictValue" placeholder="Please enter dictionary value"></el-input>
             </el-form-item>
-            <el-form-item label="排序" prop="sort">
+            <el-form-item label="Sort" prop="sort">
                 <el-input-number v-model="form.sort" :min="0" :max="999" style="width: 100%;"></el-input-number>
             </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer">
-            <el-button @click="handleClose">取 消</el-button>
-            <el-button type="primary" @click="handleSave">确 定</el-button>
+            <el-button @click="handleClose">Cancel</el-button>
+            <el-button type="primary" @click="handleSave">Confirm</el-button>
         </div>
     </el-dialog>
 </template>
@@ -28,7 +28,7 @@ export default {
         },
         title: {
             type: String,
-            default: '新增字典数据'
+            default: 'Add Dictionary Data'
         },
         dictData: {
             type: Object,
@@ -50,8 +50,8 @@ export default {
                 sort: 0
             },
             rules: {
-                dictLabel: [{ required: true, message: '请输入字典标签', trigger: 'blur' }],
-                dictValue: [{ required: true, message: '请输入字典值', trigger: 'blur' }]
+                dictLabel: [{ required: true, message: 'Please enter dictionary label', trigger: 'blur' }],
+                dictValue: [{ required: true, message: 'Please enter dictionary value', trigger: 'blur' }]
             }
         }
     },

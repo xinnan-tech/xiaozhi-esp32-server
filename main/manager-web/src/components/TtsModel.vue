@@ -9,30 +9,30 @@
         <el-table v-loading="loading" :data="filteredTtsModels" style="width: 100%;" class="data-table"
           header-row-class-name="table-header" :fit="true" element-loading-text="拼命加载中"
           element-loading-spinner="el-icon-loading" element-loading-background="rgba(0, 0, 0, 0.8)">
-          <el-table-column label="选择" width="50" align="center">
+          <el-table-column label="Select" width="50" align="center">
             <template slot-scope="scope">
               <el-checkbox v-model="scope.row.selected"></el-checkbox>
             </template>
           </el-table-column>
-          <el-table-column label="音色编码" align="center">
+          <el-table-column label="Voice Code" align="center">
             <template slot-scope="scope">
               <el-input v-if="scope.row.editing" v-model="scope.row.voiceCode"></el-input>
               <span v-else>{{ scope.row.voiceCode }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="音色名称" align="center">
+          <el-table-column label="Voice Name" align="center">
             <template slot-scope="scope">
               <el-input v-if="scope.row.editing" v-model="scope.row.voiceName"></el-input>
               <span v-else>{{ scope.row.voiceName }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="语言类型" align="center">
+          <el-table-column label="Language Type" align="center">
             <template slot-scope="scope">
               <el-input v-if="scope.row.editing" v-model="scope.row.languageType"></el-input>
               <span v-else>{{ scope.row.languageType }}</span>
             </template>
           </el-table-column>
-          <el-table-column v-if="!showReferenceColumns" label="试听" align="center" class-name="audio-column">
+          <el-table-column v-if="!showReferenceColumns" label="Preview" align="center" class-name="audio-column">
             <template slot-scope="scope">
               <div class="custom-audio-container">
                 <el-input v-if="scope.row.editing" v-model="scope.row.voiceDemo" placeholder="请输入MP3地址"
@@ -42,33 +42,33 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column v-if="!showReferenceColumns" label="备注" align="center">
+          <el-table-column v-if="!showReferenceColumns" label="Remarks" align="center">
             <template slot-scope="scope">
               <el-input v-if="scope.row.editing" type="textarea" :rows="1" autosize v-model="scope.row.remark"
                 placeholder="这里是备注" class="remark-input"></el-input>
               <span v-else>{{ scope.row.remark }}</span>
             </template>
           </el-table-column>
-          <el-table-column v-if="showReferenceColumns" label="克隆音频路径" align="center">
+          <el-table-column v-if="showReferenceColumns" label="Clone Audio Path" align="center">
             <template slot-scope="scope">
               <el-input v-if="scope.row.editing" v-model="scope.row.referenceAudio" placeholder="这里是克隆音频路径"></el-input>
               <span v-else>{{ scope.row.referenceAudio }}</span>
             </template>
           </el-table-column>
-          <el-table-column v-if="showReferenceColumns" label="克隆音频文本" align="center">
+          <el-table-column v-if="showReferenceColumns" label="Clone Audio Text" align="center">
             <template slot-scope="scope">
               <el-input v-if="scope.row.editing" v-model="scope.row.referenceText" placeholder="这里是克隆音频对应文本"></el-input>
               <span v-else>{{ scope.row.referenceText }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" align="center" width="150">
+          <el-table-column label="Actions" align="center" width="150">
             <template slot-scope="scope">
               <template v-if="!scope.row.editing">
                 <el-button type="text" size="mini" @click="startEdit(scope.row)" class="edit-btn">
-                  编辑
+                  Edit
                 </el-button>
                 <el-button type="text" size="mini" @click="deleteRow(scope.row)" class="delete-btn">
-                  删除
+                  Delete
                 </el-button>
               </template>
               <el-button v-else type="success" size="mini" @click="saveEdit(scope.row)" class="save-Tts">保存
@@ -87,10 +87,10 @@
     </div>
     <div class="action-buttons">
       <el-button type="primary" size="mini" @click="toggleSelectAll" style="background: #606ff3;border: None">
-        {{ selectAll ? '取消全选' : '全选' }}
+        {{ selectAll ? 'Deselect All' : 'Select All' }}
       </el-button>
       <el-button type="primary" size="mini" @click="addNew" style="background: #5bc98c;border: None;">
-        新增
+        Add
       </el-button>
       <el-button type="primary" size="mini" @click="deleteRow(filteredTtsModels.filter(row => row.selected))"
         style="background: red;border:None">删除

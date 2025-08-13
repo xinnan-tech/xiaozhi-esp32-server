@@ -1,10 +1,10 @@
-import Fly from 'flyio/dist/npm/fly';
+import Fly from 'flyio/dist/npm/fly.js';
 import store from '../store/index';
 import Constant from '../utils/constant';
 import { goToPage, isNotNull, showDanger, showWarning } from '../utils/index';
 
 const fly = new Fly()
-// 设置超时
+// Set timeout
 fly.config.timeout = 30000
 
 /**
@@ -25,13 +25,13 @@ function sendRequest() {
         _data: {},
         _header: { 'content-type': 'application/json; charset=utf-8' },
         _url: '',
-        _responseType: undefined, // 新增响应类型字段
+        _responseType: undefined, // Added response type field
         'send'() {
             if (isNotNull(store.getters.getToken)) {
                 this._header.Authorization = 'Bearer ' + (JSON.parse(store.getters.getToken)).token
             }
 
-            // 打印请求信息
+            // Log request information
             fly.request(this._url, this._data, {
                 method: this._method,
                 headers: this._header,
@@ -46,7 +46,7 @@ function sendRequest() {
                     this._sucCallback(res)
                 }
             }).catch((res) => {
-                // 打印失败响应
+                // Log failed response
                 console.log('catch', res)
                 httpHandlerError(res, this._failCallback, this._networkFailCallback)
             })
@@ -90,7 +90,7 @@ function sendRequest() {
         'async'(flag) {
             this.async = flag
         },
-        // 新增类型设置方法
+        // Added type setting method
         'type'(responseType) {
             this._responseType = responseType;
             return this;
@@ -99,14 +99,14 @@ function sendRequest() {
 }
 
 /**
- * Info 请求完成后返回信息
+ * Info information returned after request completion
  * failCallback 回调函数
  * networkFailCallback 回调函数
  */
 // 在错误处理函数中添加日志
 function httpHandlerError(info, failCallback, networkFailCallback) {
 
-    /** 请求成功，退出该函数 可以根据项目需求来判断是否请求成功。这里判断的是status为200的时候是成功 */
+    /** Request successful, exit function. Success can be determined based on project requirements. Here, status 200 indicates success */
     let networkError = false
     if (info.status === 200) {
         if (info.data.code === 'success' || info.data.code === 0 || info.data.code === undefined) {
@@ -127,7 +127,7 @@ function httpHandlerError(info, failCallback, networkFailCallback) {
     if (networkFailCallback) {
         networkFailCallback(info)
     } else {
-        showDanger(`网络请求出现了错误【${info.status}】`)
+        showDanger(`Network request error [${info.status}]`)
     }
     return true
 }
@@ -142,9 +142,9 @@ function reAjaxFun(fn) {
     }
     let ajaxIndex = parseInt((nowTimeSec - requestTime) / reAjaxSec)
     if (ajaxIndex > 10) {
-        showWarning('似乎无法连接服务器')
+        showWarning('Unable to connect to server')
     } else {
-        showWarning('正在连接服务器(' + ajaxIndex + ')')
+        showWarning('Connecting to server (' + ajaxIndex + ')')
     }
     if (ajaxIndex < 10 && fn) {
         setTimeout(() => {
