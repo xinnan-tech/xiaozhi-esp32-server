@@ -6,19 +6,34 @@ This guide explains how to integrate and use TEN VAD (Voice Activity Detection) 
 
 TEN VAD is a high-performance voice activity detection system that can be used as an alternative to Silero VAD. It provides accurate voice detection with configurable thresholds and parameters.
 
+**Available Versions:**
+- **TEN VAD (Original)**: Linux-only native library version
+- **TEN VAD ONNX**: Cross-platform version with Windows, Linux, and macOS support
+
 ## Installation
 
-### Method 1: Automatic Installation (Recommended)
+### TEN VAD ONNX (Recommended - Cross-Platform)
 
-Run the installation script:
+#### Method 1: Automatic Installation
+```bash
+cd main/xiaozhi-server
+python scripts/install_ten_vad_onnx.py
+```
 
+#### Method 2: Manual Installation
+1. Ensure you have the `ten-vad-1.0-ONNX` directory available
+2. Copy the necessary files to `models/ten-vad-onnx/`
+3. Run the test script to verify: `python scripts/test_ten_vad_onnx.py`
+
+### TEN VAD Original (Linux Only)
+
+#### Method 1: Automatic Installation
 ```bash
 cd main/xiaozhi-server
 python scripts/install_ten_vad.py
 ```
 
-### Method 2: Manual Installation
-
+#### Method 2: Manual Installation
 1. Install the TEN VAD package:
 ```bash
 pip install ten-vad
@@ -29,12 +44,26 @@ pip install ten-vad
 mkdir -p models/ten-vad
 ```
 
-3. The model files will be downloaded automatically on first use.
-
 ## Configuration
 
-The TEN VAD configuration is already added to your `.config.yaml` file:
+Both TEN VAD configurations are available in your `.config.yaml` file:
 
+### TEN VAD ONNX (Cross-Platform)
+```yaml
+VAD:
+  TenVAD_ONNX:
+    type: ten_vad_onnx
+    model_path: models/ten-vad-onnx
+    sample_rate: 16000
+    hop_size: 256                    # TEN VAD frame size
+    frame_size: 512                  # Processing frame size
+    threshold: 0.5
+    threshold_low: 0.2
+    min_silence_duration_ms: 1000
+    frame_window_threshold: 3
+```
+
+### TEN VAD Original (Linux Only)
 ```yaml
 VAD:
   TenVAD:
@@ -60,11 +89,16 @@ VAD:
 
 ## Usage
 
-To use TEN VAD, update your configuration:
-
+### For Cross-Platform Support (Recommended)
 ```yaml
 selected_module:
-  VAD: TenVAD  # Change from SileroVAD to TenVAD
+  VAD: TenVAD_ONNX  # Use ONNX version for cross-platform support
+```
+
+### For Linux-Only Systems
+```yaml
+selected_module:
+  VAD: TenVAD  # Original version (Linux only)
 ```
 
 ## Performance Tuning
@@ -113,13 +147,15 @@ This will show periodic VAD detection results in the logs.
 
 ## Comparison with Other VAD Systems
 
-| Feature | TEN VAD | Silero VAD | 
-|---------|---------|------------|
-| Accuracy | High | High |
-| Speed | Fast | Fast |
-| Memory Usage | Medium | Low |
-| Model Size | Medium | Small |
-| Language Support | Multi | Multi |
+| Feature | TEN VAD ONNX | TEN VAD Original | Silero VAD | 
+|---------|--------------|------------------|------------|
+| **Platform Support** | Windows, Linux, macOS | Linux only | Windows, Linux, macOS |
+| **Accuracy** | High | High | High |
+| **Speed** | Fast | Fast | Fast |
+| **Memory Usage** | Medium | Medium | Low |
+| **Model Size** | Medium | Medium | Small |
+| **Language Support** | Multi | Multi | Multi |
+| **Installation** | Manual setup | pip install | pip install |
 
 ## Advanced Configuration
 

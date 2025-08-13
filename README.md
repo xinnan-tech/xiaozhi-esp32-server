@@ -293,10 +293,11 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 ### VAD 语音活动检测
 
-| 类型  |   平台名称    | 使用方式 | 收费模式 | 备注 |
-|:---:|:---------:|:----:|:----:|:--:|
-| VAD | SileroVAD | 本地使用 |  免费  |    |
-| VAD | TenVAD | 本地使用 |  免费  | 高性能语音活动检测 |
+| 类型  |   平台名称    | 使用方式 | 收费模式 | 平台支持 | 备注 |
+|:---:|:---------:|:----:|:----:|:----:|:--:|
+| VAD | SileroVAD | 本地使用 |  免费  | Windows, Linux, macOS |    |
+| VAD | TenVAD | 本地使用 |  免费  | Linux | 高性能语音活动检测 |
+| VAD | TenVAD_ONNX | 本地使用 |  免费  | Windows, Linux, macOS | 跨平台高性能VAD |
 
 ---
 

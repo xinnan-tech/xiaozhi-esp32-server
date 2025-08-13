@@ -1,7 +1,10 @@
 # TEN VAD Integration Summary
 
 ## Overview
-TEN VAD has been successfully integrated into the XiaoZhi ESP32 Server as an alternative Voice Activity Detection (VAD) provider alongside the existing Silero VAD.
+TEN VAD has been successfully integrated into the XiaoZhi ESP32 Server with **full cross-platform support**. Two versions are now available:
+
+1. **TEN VAD Original**: Linux-only version using pip package
+2. **TEN VAD ONNX**: Cross-platform version supporting Windows, Linux, and macOS
 
 ## Files Added/Modified
 
