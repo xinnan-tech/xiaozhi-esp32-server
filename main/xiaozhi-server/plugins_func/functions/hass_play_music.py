@@ -11,17 +11,17 @@ hass_play_music_function_desc = {
     "type": "function",
     "function": {
         "name": "hass_play_music",
-        "description": "用户想听音乐、有声书的时候使用，在房间的媒体播放器（media_player）里播放对应音频",
+        "description": "Used when user wants to listen to music or audiobooks, plays corresponding audio in the room's media player (media_player)",
         "parameters": {
             "type": "object",
             "properties": {
                 "media_content_id": {
                     "type": "string",
-                    "description": "可以是音乐或有声书的专辑名称、歌曲名、演唱者,如果未指定就填random",
+                    "description": "Can be album name, song name, or artist name for music or audiobooks. Fill 'random' if not specified",
                 },
                 "entity_id": {
                     "type": "string",
-                    "description": "需要操作的音箱的设备id,homeassistant里的entity_id,media_player开头",
+                    "description": "Device ID of the speaker to operate, entity_id in homeassistant, starts with media_player",
                 },
             },
             "required": ["media_content_id", "entity_id"],
@@ -35,16 +35,17 @@ hass_play_music_function_desc = {
 )
 def hass_play_music(conn, entity_id="", media_content_id="random"):
     try:
-        # 执行音乐播放命令
+        # Execute music playback command
         future = asyncio.run_coroutine_threadsafe(
-            handle_hass_play_music(conn, entity_id, media_content_id), conn.loop
+            handle_hass_play_music(
+                conn, entity_id, media_content_id), conn.loop
         )
         ha_response = future.result()
         return ActionResponse(
-            action=Action.RESPONSE, result="退出意图已处理", response=ha_response
+            action=Action.RESPONSE, result="Exit intent processed", response=ha_response
         )
     except Exception as e:
-        logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
+        logger.bind(tag=TAG).error(f"Error processing music intent: {e}")
 
 
 async def handle_hass_play_music(conn, entity_id, media_content_id):
@@ -52,10 +53,11 @@ async def handle_hass_play_music(conn, entity_id, media_content_id):
     api_key = ha_config.get("api_key")
     base_url = ha_config.get("base_url")
     url = f"{base_url}/api/services/music_assistant/play_media"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}",
+               "Content-Type": "application/json"}
     data = {"entity_id": entity_id, "media_id": media_content_id}
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
-        return f"正在播放{media_content_id}的音乐"
+        return f"Now playing {media_content_id} music"
     else:
-        return f"音乐播放失败，错误码: {response.status_code}"
+        return f"Music playback failed, error code: {response.status_code}"

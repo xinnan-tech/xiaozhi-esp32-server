@@ -1,21 +1,20 @@
-"""IoT设备描述符定义"""
+"""IoT device descriptor definition"""
 
 from config.logger import setup_logging
 
 TAG = __name__
 logger = setup_logging()
 
-
 class IotDescriptor:
-    """IoT设备描述符"""
-
+    """IoT device descriptor"""
+    
     def __init__(self, name, description, properties, methods):
         self.name = name
         self.description = description
         self.properties = []
         self.methods = []
-
-        # 根据描述创建属性
+        
+        # Create properties based on description
         if properties is not None:
             for key, value in properties.items():
                 property_item = {}
@@ -28,14 +27,14 @@ class IotDescriptor:
                 else:
                     property_item["value"] = ""
                 self.properties.append(property_item)
-
-        # 根据描述创建方法
+        
+        # Create methods based on description
         if methods is not None:
             for key, value in methods.items():
                 method = {}
                 method["description"] = value["description"]
                 method["name"] = key
-                # 检查方法是否有参数
+                # Check if method has parameters
                 if "parameters" in value:
                     method["parameters"] = {}
                     for k, v in value["parameters"].items():

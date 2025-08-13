@@ -4,6 +4,7 @@ from dashscope import Application
 from core.providers.llm.base import LLMProviderBase
 from core.utils.util import check_model_key
 
+
 TAG = __name__
 logger = setup_logging()
 
@@ -19,14 +20,14 @@ class LLMProvider(LLMProviderBase):
 
     def response(self, session_id, dialogue):
         try:
-            # 处理dialogue
+            # Process dialogue
             if self.is_No_prompt:
                 dialogue.pop(0)
                 logger.bind(tag=TAG).debug(
-                    f"【阿里百练API服务】处理后的dialogue: {dialogue}"
+                    f"[Alibaba Bailian API Service] Processed dialogue: {dialogue}"
                 )
 
-            # 构造调用参数
+            # Construct call parameters
             call_params = {
                 "api_key": self.api_key,
                 "app_id": self.app_id,
@@ -34,12 +35,12 @@ class LLMProvider(LLMProviderBase):
                 "messages": dialogue,
             }
             if self.memory_id != False:
-                # 百练memory需要prompt参数
+                # Bailian memory requires prompt parameter
                 prompt = dialogue[-1].get("content")
                 call_params["memory_id"] = self.memory_id
                 call_params["prompt"] = prompt
                 logger.bind(tag=TAG).debug(
-                    f"【阿里百练API服务】处理后的prompt: {prompt}"
+                    f"[Alibaba Bailian API Service] Processed prompt: {prompt}"
                 )
 
             responses = Application.call(**call_params)
@@ -47,20 +48,21 @@ class LLMProvider(LLMProviderBase):
                 logger.bind(tag=TAG).error(
                     f"code={responses.status_code}, "
                     f"message={responses.message}, "
-                    f"请参考文档：https://help.aliyun.com/zh/model-studio/developer-reference/error-code"
+                    f"Please refer to documentation: https://help.aliyun.com/zh/model-studio/developer-reference/error-code"
                 )
-                yield "【阿里百练API服务响应异常】"
+                yield "[Alibaba Bailian API Service Response Exception]"
             else:
                 logger.bind(tag=TAG).debug(
-                    f"【阿里百练API服务】构造参数: {call_params}"
+                    f"[Alibaba Bailian API Service] Constructed parameters: {call_params}"
                 )
                 yield responses.output.text
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"【阿里百练API服务】响应异常: {e}")
-            yield "【LLM服务响应异常】"
+            logger.bind(tag=TAG).error(
+                f"[Alibaba Bailian API Service] Response exception: {e}")
+            yield "[LLM Service Response Exception]"
 
     def response_with_functions(self, session_id, dialogue, functions=None):
         logger.bind(tag=TAG).error(
-            f"阿里百练暂未实现完整的工具调用（function call），建议使用其他意图识别"
+            f"Alibaba Bailian has not yet implemented complete tool calling (function call), it is recommended to use other intent recognition methods"
         )

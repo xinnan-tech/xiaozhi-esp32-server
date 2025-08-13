@@ -39,7 +39,7 @@ def get_lunar(date=None, query=None):
     """
     from core.utils.cache.manager import cache_manager, CacheType
 
-    # 如果提供了日期参数，则使用指定日期；否则使用当前日期
+    # If date parameter is provided, use specified date; otherwise use current date
     if date:
         try:
             now = datetime.strptime(date, "%Y-%m-%d")
@@ -58,24 +58,29 @@ def get_lunar(date=None, query=None):
     if query is None:
         query = "default query for heavenly stems/earthly branches year and lunar date"
 
-    # 尝试从缓存获取农历信息
+    # Try to get lunar information from cache
     lunar_cache_key = f"lunar_info_{current_date}"
     cached_lunar_info = cache_manager.get(CacheType.LUNAR, lunar_cache_key)
+
     if cached_lunar_info:
         return ActionResponse(Action.REQLLM, cached_lunar_info, None)
 
     response_text = f"Please respond to the user's query based on the following information, providing details related to {query}:\n"
 
     lunar = cnlunar.Lunar(now, godType="8char")
+
     response_text += (
         "Lunar Calendar Information:\n"
-        "%s Year %s %s\n" % (lunar.lunarYearCn, lunar.lunarMonthCn[:-1], lunar.lunarDayCn)
-        + "Heavenly Stems & Earthly Branches: %s Year %s Month %s Day\n" % (lunar.year8Char, lunar.month8Char, lunar.day8Char)
+        "%s Year %s %s\n" % (
+            lunar.lunarYearCn, lunar.lunarMonthCn[:-1], lunar.lunarDayCn)
+        + "Heavenly Stems & Earthly Branches: %s Year %s Month %s Day\n" % (
+            lunar.year8Char, lunar.month8Char, lunar.day8Char)
         + "Chinese Zodiac: %s\n" % (lunar.chineseYearZodiac)
         + "Eight Characters (Ba Zi): %s\n"
         % (
             " ".join(
-                [lunar.year8Char, lunar.month8Char, lunar.day8Char, lunar.twohour8Char]
+                [lunar.year8Char, lunar.month8Char,
+                    lunar.day8Char, lunar.twohour8Char]
             )
         )
         + "Today's Festivals: %s\n"
@@ -83,15 +88,16 @@ def get_lunar(date=None, query=None):
             ",".join(
                 filter(
                     None,
-                    (
+                    [
                         lunar.get_legalHolidays(),
                         lunar.get_otherHolidays(),
                         lunar.get_otherLunarHolidays(),
-                    ),
+                    ],
                 )
             )
         )
-        + "Today's Solar Term: %s\n" % (lunar.todaySolarTerms if lunar.todaySolarTerms else "None")
+        + "Today's Solar Term: %s\n" % (
+            lunar.todaySolarTerms if lunar.todaySolarTerms else "None")
         + "Next Solar Term: %s %s Year %s Month %s Day\n"
         % (
             lunar.nextSolarTerm,
