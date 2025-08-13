@@ -18,10 +18,20 @@ class TTSProvider(TTSProviderBase):
         super().__init__(config, delete_audio_file)
         self.url = config.get("url", "ws://192.168.1.10:8092/paddlespeech/tts/streaming")
         self.protocol = config.get("protocol", "websocket")
-        self.spk_id = config.get("spk_id", 0)
-        self.sample_rate = config.get("sample_rate", 24000)
-        self.speed = config.get("speed", 1.0)
-        self.volume = config.get("volume", 1.0)
+        if config.get("private_voice"):
+            self.spk_id = int(config.get("private_voice"))
+        else:
+            self.spk_id = int(config.get("spk_id", "0"))
+        
+        sample_rate = config.get("sample_rate", 24000)
+        self.sample_rate = float(sample_rate) if sample_rate else 24000
+        
+        speed = config.get("speed", 1.0)
+        self.speed = float(speed) if speed else 1.0
+        
+        volume = config.get("volume", 1.0)
+        self.volume = float(volume) if volume else 1.0
+        
         self.save_path = config.get("save_path", "./streaming_tts.wav")
 
     async def pcm_to_wav(self, pcm_data: bytes, sample_rate: int = 24000, num_channels: int = 1,
