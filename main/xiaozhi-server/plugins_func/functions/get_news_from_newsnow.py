@@ -10,77 +10,80 @@ logger = setup_logging()
 
 CHANNEL_MAP = {
     "V2EX": "v2ex-share",
-    "知乎": "zhihu",
-    "微博": "weibo",
-    "联合早报": "zaobao",
-    "酷安": "coolapk",
+    "Zhihu": "zhihu",
+    "Weibo": "weibo",
+    "Lianhe Zaobao": "zaobao",
+    "Coolapk": "coolapk",
     "MKTNews": "mktnews-flash",
-    "华尔街见闻": "wallstreetcn-quick",
-    "36氪": "36kr-quick",
-    "抖音": "douyin",
-    "虎扑": "hupu",
-    "百度贴吧": "tieba",
-    "今日头条": "toutiao",
-    "IT之家": "ithome",
-    "澎湃新闻": "thepaper",
-    "卫星通讯社": "sputniknewscn",
-    "参考消息": "cankaoxiaoxi",
-    "远景论坛": "pcbeta-windows11",
-    "财联社": "cls-depth",
-    "雪球": "xueqiu-hotstock",
-    "格隆汇": "gelonghui",
-    "法布财经": "fastbull-express",
+    "Wall Street Journal": "wallstreetcn-quick",
+    "36Kr": "36kr-quick",
+    "Douyin": "douyin",
+    "Hupu": "hupu",
+    "Baidu Tieba": "tieba",
+    "Toutiao": "toutiao",
+    "IT Home": "ithome",
+    "Pengpai News": "thepaper",
+    "Sputnik News": "sputniknewscn",
+    "Reference News": "cankaoxiaoxi",
+    "Pcbeta": "pcbeta-windows11",
+    "CLS": "cls-depth",
+    "Xueqiu": "xueqiu-hotstock",
+    "Gelonghui": "gelonghui",
+    "Fastbull": "fastbull-express",
     "Solidot": "solidot",
     "Hacker News": "hackernews",
     "Product Hunt": "producthunt",
     "Github": "github-trending-today",
-    "哔哩哔哩": "bilibili-hot-search",
-    "快手": "kuaishou",
-    "靠谱新闻": "kaopu",
-    "金十数据": "jin10",
-    "百度热搜": "baidu",
-    "牛客": "nowcoder",
-    "少数派": "sspai",
-    "稀土掘金": "juejin",
-    "凤凰网": "ifeng",
-    "虫部落": "chongbuluo-latest",
+    "Bilibili": "bilibili-hot-search",
+    "Kuaishou": "kuaishou",
+    "Kaopu News": "kaopu",
+    "Jin10": "jin10",
+    "Baidu Hot Search": "baidu",
+    "Nowcoder": "nowcoder",
+    "Sspai": "sspai",
+    "Juejin": "juejin",
+    "Ifeng": "ifeng",
+    "Chongbuluo": "chongbuluo-latest",
 }
 
-
-# 默认新闻来源字典，当配置中没有指定时使用
-DEFAULT_NEWS_SOURCES = "澎湃新闻;百度热搜;财联社"
+# Default news sources dictionary, used when not specified in config
+DEFAULT_NEWS_SOURCES = "Pengpai News;Baidu Hot Search;CLS"
 
 
 def get_news_sources_from_config(conn):
-    """从配置中获取新闻源字符串"""
+    """Get news sources string from config"""
     try:
-        # 尝试从插件配置中获取新闻源
+        # Try to get news sources from plugin config
         if (
             conn.config.get("plugins")
             and conn.config["plugins"].get("get_news_from_newsnow")
             and conn.config["plugins"]["get_news_from_newsnow"].get("news_sources")
         ):
-            # 获取配置的新闻源字符串
+            # Get configured news sources string
             news_sources_config = conn.config["plugins"]["get_news_from_newsnow"][
                 "news_sources"
             ]
 
             if isinstance(news_sources_config, str) and news_sources_config.strip():
-                logger.bind(tag=TAG).debug(f"使用配置的新闻源: {news_sources_config}")
+                logger.bind(tag=TAG).debug(
+                    f"Using configured news sources: {news_sources_config}")
                 return news_sources_config
             else:
-                logger.bind(tag=TAG).warning("新闻源配置为空或格式错误，使用默认配置")
+                logger.bind(tag=TAG).warning(
+                    "News sources config is empty or invalid format, using default config")
         else:
-            logger.bind(tag=TAG).debug("未找到新闻源配置，使用默认配置")
+            logger.bind(tag=TAG).debug(
+                "News sources config not found, using default config")
 
         return DEFAULT_NEWS_SOURCES
 
     except Exception as e:
-        logger.bind(tag=TAG).error(f"获取新闻源配置失败: {e}，使用默认配置")
+        logger.bind(tag=TAG).error(
+            f"Failed to get news sources config: {e}, using default config")
         return DEFAULT_NEWS_SOURCES
 
 
-# 从CHANNEL_MAP获取所有可用的新闻源名称
+# Get all available news source names from CHANNEL_MAP
 available_sources = list(CHANNEL_MAP.keys())
 example_sources_str = "、".join(available_sources)
 
@@ -89,25 +92,25 @@ GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC = {
     "function": {
         "name": "get_news_from_newsnow",
         "description": (
-            "获取最新新闻，随机选择一条新闻进行播报。"
-            f"用户可以选择不同的新闻源，标准的名称是：{example_sources_str}"
-            "例如用户要求百度新闻，其实就是百度热搜。如果没有指定，默认从澎湃新闻获取。"
-            "用户可以要求获取详细内容，此时会获取新闻的详细内容。"
+            "Get latest news, randomly select one news item for broadcast. "
+            f"Users can choose different news sources, standard names are: {example_sources_str}"
+            "For example, if user requests Baidu news, it's actually Baidu Hot Search. If not specified, defaults to Pengpai News. "
+            "Users can request detailed content, which will fetch detailed news content."
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "source": {
                     "type": "string",
-                    "description": f"新闻源的标准中文名称，例如{example_sources_str}等。可选参数，如果不提供则使用默认新闻源",
+                    "description": f"Standard Chinese name of news source, e.g., {example_sources_str} etc. Optional parameter, uses default news source if not provided",
                 },
                 "detail": {
                     "type": "boolean",
-                    "description": "是否获取详细内容，默认为false。如果为true，则获取上一条新闻的详细内容",
+                    "description": "Whether to get detailed content, defaults to false. If true, gets detailed content of the previous news item",
                 },
                 "lang": {
                     "type": "string",
-                    "description": "返回用户使用的语言code，例如zh_CN/zh_HK/en_US/ja_JP等，默认zh_CN",
+                    "description": "Language code for user response, e.g., zh_CN/zh_HK/en_US/ja_JP etc., defaults to zh_CN",
                 },
             },
             "required": ["lang"],
@@ -117,7 +120,7 @@ GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC = {
 
 
 def fetch_news_from_api(conn, source="thepaper"):
-    """从API获取新闻列表"""
+    """Fetch news list from API"""
     try:
         api_url = f"https://newsnow.busiyi.world/api/s?id={source}"
         if conn.config["plugins"].get("get_news_from_newsnow") and conn.config[
@@ -127,42 +130,44 @@ def fetch_news_from_api(conn, source="thepaper"):
 
         response = requests.get(api_url, timeout=10)
         response.raise_for_status()
-
         data = response.json()
 
         if "items" in data:
             return data["items"]
         else:
-            logger.bind(tag=TAG).error(f"获取新闻API响应格式错误: {data}")
+            logger.bind(tag=TAG).error(
+                f"News API response format error: {data}")
             return []
 
     except Exception as e:
-        logger.bind(tag=TAG).error(f"获取新闻API失败: {e}")
+        logger.bind(tag=TAG).error(f"News API failed: {e}")
         return []
 
 
 def fetch_news_detail(url):
-    """获取新闻详情页内容并使用MarkItDown清理HTML"""
+    """Fetch news detail page content and clean HTML using MarkItDown"""
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        # 使用MarkItDown清理HTML内容
+        # Use MarkItDown to clean HTML content
         md = MarkItDown(enable_plugins=False)
         result = md.convert(response)
 
-        # 获取清理后的文本内容
+        # Get cleaned text content
         clean_text = result.text_content
 
-        # 如果清理后的内容为空，返回提示信息
+        # If cleaned content is empty, return prompt message
         if not clean_text or len(clean_text.strip()) == 0:
-            logger.bind(tag=TAG).warning(f"清理后的新闻内容为空: {url}")
-            return "无法解析新闻详情内容，可能是网站结构特殊或内容受限。"
+            logger.bind(tag=TAG).warning(
+                f"Cleaned news content is empty: {url}")
+            return "Unable to parse news detail content, website structure may be special or content restricted."
 
         return clean_text
+
     except Exception as e:
-        logger.bind(tag=TAG).error(f"获取新闻详情失败: {e}")
-        return "无法获取详细内容"
+        logger.bind(tag=TAG).error(f"Failed to fetch news details: {e}")
+        return "Unable to get detailed content"
 
 
 @register_function(
@@ -171,14 +176,14 @@ def fetch_news_detail(url):
     ToolType.SYSTEM_CTL,
 )
 def get_news_from_newsnow(
-    conn, source: str = "澎湃新闻", detail: bool = False, lang: str = "zh_CN"
+    conn, source: str = "Pengpai News", detail: bool = False, lang: str = "zh_CN"
 ):
-    """获取新闻并随机选择一条进行播报，或获取上一条新闻的详细内容"""
+    """Get news and randomly select one for broadcast, or get detailed content of previous news"""
     try:
-        # 获取当前配置的新闻源
+        # Get currently configured news sources
         news_sources = get_news_sources_from_config(conn)
 
-        # 如果detail为True，获取上一条新闻的详细内容
+        # If detail is True, get detailed content of previous news
         detail = str(detail).lower() == "true"
         if detail:
             if (
@@ -188,101 +193,99 @@ def get_news_from_newsnow(
             ):
                 return ActionResponse(
                     Action.REQLLM,
-                    "抱歉，没有找到最近查询的新闻，请先获取一条新闻。",
+                    "Sorry, no recent news query found, please get a news item first.",
                     None,
                 )
 
             url = conn.last_newsnow_link.get("url")
-            title = conn.last_newsnow_link.get("title", "未知标题")
+            title = conn.last_newsnow_link.get("title", "Unknown title")
             source_id = conn.last_newsnow_link.get("source_id", "thepaper")
-            source_name = CHANNEL_MAP.get(source_id, "未知来源")
+            source_name = CHANNEL_MAP.get(source_id, "Unknown source")
 
             if not url or url == "#":
                 return ActionResponse(
-                    Action.REQLLM, "抱歉，该新闻没有可用的链接获取详细内容。", None
+                    Action.REQLLM, "Sorry, this news has no available link to get detailed content.", None
                 )
 
             logger.bind(tag=TAG).debug(
-                f"获取新闻详情: {title}, 来源: {source_name}, URL={url}"
+                f"Getting news details: {title}, source: {source_name}, URL={url}"
             )
 
-            # 获取新闻详情
+            # Get news details
             detail_content = fetch_news_detail(url)
-
-            if not detail_content or detail_content == "无法获取详细内容":
+            if not detail_content or detail_content == "Unable to get detailed content":
                 return ActionResponse(
                     Action.REQLLM,
-                    f"抱歉，无法获取《{title}》的详细内容，可能是链接已失效或网站结构发生变化。",
+                    f"Sorry, unable to get detailed content for 《{title}》, link may be invalid or website structure has changed.",
                     None,
                 )
 
-            # 构建详情报告
+            # Build detail report
             detail_report = (
-                f"根据下列数据，用{lang}回应用户的新闻详情查询请求：\n\n"
-                f"新闻标题: {title}\n"
-                # f"新闻来源: {source_name}\n"
-                f"详细内容: {detail_content}\n\n"
-                f"(请对上述新闻内容进行总结，提取关键信息，以自然、流畅的方式向用户播报，"
-                f"不要提及这是总结，就像是在讲述一个完整的新闻故事)"
+                f"Based on the following data, respond to user's news detail query in {lang}:\n\n"
+                f"News title: {title}\n"
+                f"Detailed content: {detail_content}\n\n"
+                f"(Please summarize the above news content, extract key information, and broadcast to user in a natural, fluent manner, "
+                f"don't mention this is a summary, tell it like a complete news story)"
             )
 
             return ActionResponse(Action.REQLLM, detail_report, None)
 
-        # 否则，获取新闻列表并随机选择一条
-        # 将中文名称转换为英文ID
+        # Otherwise, get news list and randomly select one
+        # Convert Chinese name to English ID
         english_source_id = None
-
-        # 检查输入的中文名称是否在配置的新闻源中
+        # Check if input Chinese name is in configured news sources
         news_sources_list = [
             name.strip() for name in news_sources.split(";") if name.strip()
         ]
+
         if source in news_sources_list:
-            # 如果输入的中文名称在配置的新闻源中，在 CHANNEL_MAP 中查找对应的英文ID
+            # If input Chinese name is in configured news sources, look up corresponding English ID in CHANNEL_MAP
             english_source_id = CHANNEL_MAP.get(source)
 
-        # 如果找不到对应的英文ID，使用默认源
+        # If corresponding English ID not found, use default source
         if not english_source_id:
-            logger.bind(tag=TAG).warning(f"无效的新闻源: {source}，使用默认源澎湃新闻")
+            logger.bind(tag=TAG).warning(
+                f"Invalid news source: {source}, using default source Pengpai News")
             english_source_id = "thepaper"
-            source = "澎湃新闻"
+            source = "Pengpai News"
 
-        logger.bind(tag=TAG).info(f"获取新闻: 新闻源={source}({english_source_id})")
+        logger.bind(tag=TAG).info(
+            f"Getting news: news source={source}({english_source_id})")
 
-        # 获取新闻列表
+        # Get news list
         news_items = fetch_news_from_api(conn, english_source_id)
-
         if not news_items:
             return ActionResponse(
                 Action.REQLLM,
-                f"抱歉，未能从{source}获取到新闻信息，请稍后再试或尝试其他新闻源。",
+                f"Sorry, failed to get news information from {source}, please try again later or try other news sources.",
                 None,
             )
 
-        # 随机选择一条新闻
+        # Randomly select one news item
         selected_news = random.choice(news_items)
 
-        # 保存当前新闻链接到连接对象，以便后续查询详情
+        # Save current news link to connection object for later detail queries
         if not hasattr(conn, "last_newsnow_link"):
             conn.last_newsnow_link = {}
         conn.last_newsnow_link = {
             "url": selected_news.get("url", "#"),
-            "title": selected_news.get("title", "未知标题"),
+            "title": selected_news.get("title", "Unknown title"),
             "source_id": english_source_id,
         }
 
-        # 构建新闻报告
+        # Build news report
         news_report = (
-            f"根据下列数据，用{lang}回应用户的新闻查询请求：\n\n"
-            f"新闻标题: {selected_news['title']}\n"
-            # f"新闻来源: {source}\n"
-            f"(请以自然、流畅的方式向用户播报这条新闻标题，"
-            f"提示用户可以要求获取详细内容，此时会获取新闻的详细内容。)"
+            f"Based on the following data, respond to user's news query in {lang}:\n\n"
+            f"News title: {selected_news['title']}\n"
+            f"(Please broadcast this news title to user in a natural, fluent manner, "
+            f"remind user they can request detailed content, which will fetch detailed news content.)"
         )
 
         return ActionResponse(Action.REQLLM, news_report, None)
 
     except Exception as e:
-        logger.bind(tag=TAG).error(f"获取新闻出错: {e}")
+        logger.bind(tag=TAG).error(f"Error getting news: {e}")
         return ActionResponse(
-            Action.REQLLM, "抱歉，获取新闻时发生错误，请稍后再试。", None
+            Action.REQLLM, "Sorry, an error occurred while getting news, please try again later.", None
         )

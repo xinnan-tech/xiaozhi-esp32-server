@@ -7,11 +7,12 @@ logger = setup_logging()
 
 
 def create_instance(class_name, *args, **kwargs):
-    # 创建intent实例
+    # Create intent instance
     if os.path.exists(os.path.join('core', 'providers', 'intent', class_name, f'{class_name}.py')):
         lib_name = f'core.providers.intent.{class_name}.{class_name}'
         if lib_name not in sys.modules:
             sys.modules[lib_name] = importlib.import_module(f'{lib_name}')
         return sys.modules[lib_name].IntentProvider(*args, **kwargs)
 
-    raise ValueError(f"不支持的intent类型: {class_name}，请检查该配置的type是否设置正确")
+    raise ValueError(
+        f"Unsupported intent type: {class_name}, please check if the type in this configuration is set correctly")

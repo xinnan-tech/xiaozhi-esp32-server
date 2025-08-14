@@ -1,7 +1,6 @@
-"""服务端MCP客户端"""
+"""Server-side MCP client"""
 
 from __future__ import annotations
-
 from datetime import timedelta
 import asyncio
 import os
@@ -9,7 +8,6 @@ import shutil
 import concurrent.futures
 from contextlib import AsyncExitStack
 from typing import Optional, List, Dict, Any
-
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
@@ -20,42 +18,40 @@ TAG = __name__
 
 
 class ServerMCPClient:
-    """服务端MCP客户端，用于连接和管理MCP服务"""
+    """Server-side MCP client for connecting and managing MCP services"""
 
     def __init__(self, config: Dict[str, Any]):
-        """初始化服务端MCP客户端
+        """Initialize server-side MCP client
 
         Args:
-            config: MCP服务配置字典
+            config: MCP service configuration dictionary
         """
         self.logger = setup_logging()
         self.config = config
-
         self._worker_task: Optional[asyncio.Task] = None
         self._ready_evt = asyncio.Event()
         self._shutdown_evt = asyncio.Event()
-
         self.session: Optional[ClientSession] = None
-        self.tools: List = []  # 原始工具对象
+        self.tools: List = []  # Original tool objects
         self.tools_dict: Dict[str, Any] = {}
         self.name_mapping: Dict[str, str] = {}
 
     async def initialize(self):
-        """初始化MCP客户端连接"""
+        """Initialize MCP client connection"""
         if self._worker_task:
             return
 
         self._worker_task = asyncio.create_task(
             self._worker(), name="ServerMCPClientWorker"
         )
-        await self._ready_evt.wait()
 
+        await self._ready_evt.wait()
         self.logger.bind(tag=TAG).info(
-            f"服务端MCP客户端已连接，可用工具: {[name for name in self.name_mapping.values()]}"
+            f"Server-side MCP client connected, available tools: {[name for name in self.name_mapping.values()]}"
         )
 
     async def cleanup(self):
-        """清理MCP客户端资源"""
+        """Clean up MCP client resources"""
         if not self._worker_task:
             return
 
@@ -63,26 +59,27 @@ class ServerMCPClient:
         try:
             await asyncio.wait_for(self._worker_task, timeout=20)
         except (asyncio.TimeoutError, Exception) as e:
-            self.logger.bind(tag=TAG).error(f"服务端MCP客户端关闭错误: {e}")
+            self.logger.bind(tag=TAG).error(
+                f"Server-side MCP client shutdown error: {e}")
         finally:
             self._worker_task = None
 
     def has_tool(self, name: str) -> bool:
-        """检查是否包含指定工具
+        """Check if the specified tool is included
 
         Args:
-            name: 工具名称
+            name: Tool name
 
         Returns:
-            bool: 是否包含该工具
+            bool: Whether the tool is included
         """
         return name in self.tools_dict
 
     def get_available_tools(self) -> List[Dict[str, Any]]:
-        """获取所有可用工具的定义
+        """Get definitions of all available tools
 
         Returns:
-            List[Dict[str, Any]]: 工具定义列表
+            List[Dict[str, Any]]: Tool definition list
         """
         return [
             {
@@ -97,20 +94,20 @@ class ServerMCPClient:
         ]
 
     async def call_tool(self, name: str, args: dict) -> Any:
-        """调用指定工具
+        """Call the specified tool
 
         Args:
-            name: 工具名称
-            args: 工具参数
+            name: Tool name
+            args: Tool parameters
 
         Returns:
-            Any: 工具执行结果
+            Any: Tool execution result
 
         Raises:
-            RuntimeError: 客户端未初始化时抛出
+            RuntimeError: Thrown when client is not initialized
         """
         if not self.session:
-            raise RuntimeError("服务端MCP客户端未初始化")
+            raise RuntimeError("Server-side MCP client not initialized")
 
         real_name = self.name_mapping.get(name, name)
         loop = self._worker_task.get_loop()
@@ -119,35 +116,36 @@ class ServerMCPClient:
         if loop is asyncio.get_running_loop():
             return await coro
 
-        fut: concurrent.futures.Future = asyncio.run_coroutine_threadsafe(coro, loop)
+        fut: concurrent.futures.Future = asyncio.run_coroutine_threadsafe(
+            coro, loop)
         return await asyncio.wrap_future(fut)
 
     def is_connected(self) -> bool:
-        """检查MCP客户端是否连接正常
+        """Check if MCP client is connected normally
 
         Returns:
-            bool: 如果客户端已连接并正常工作，返回True，否则返回False
+            bool: Returns True if client is connected and working normally, otherwise False
         """
-        # 检查工作任务是否存在
+        # Check if worker task exists
         if self._worker_task is None:
             return False
 
-        # 检查工作任务是否已经完成或取消
+        # Check if worker task is completed or cancelled
         if self._worker_task.done():
             return False
 
-        # 检查会话是否存在
+        # Check if session exists
         if self.session is None:
             return False
 
-        # 所有检查都通过，连接正常
+        # All checks passed, connection is normal
         return True
 
     async def _worker(self):
-        """MCP客户端工作协程"""
+        """MCP client worker coroutine"""
         async with AsyncExitStack() as stack:
             try:
-                # 建立 StdioClient
+                # Establish StdioClient
                 if "command" in self.config:
                     cmd = (
                         shutil.which("npx")
@@ -165,7 +163,7 @@ class ServerMCPClient:
                     )
                     read_stream, write_stream = stdio_r, stdio_w
 
-                # 建立SSEClient
+                # Establish SSEClient
                 elif "url" in self.config:
                     if "API_ACCESS_TOKEN" in self.config:
                         headers = {
@@ -173,13 +171,15 @@ class ServerMCPClient:
                         }
                     else:
                         headers = {}
+
                     sse_r, sse_w = await stack.enter_async_context(
                         sse_client(self.config["url"], headers=headers)
                     )
                     read_stream, write_stream = sse_r, sse_w
 
                 else:
-                    raise ValueError("MCP客户端配置必须包含'command'或'url'")
+                    raise ValueError(
+                        "MCP client configuration must contain 'command' or 'url'")
 
                 self.session = await stack.enter_async_context(
                     ClientSession(
@@ -188,10 +188,12 @@ class ServerMCPClient:
                         read_timeout_seconds=timedelta(seconds=15),
                     )
                 )
+
                 await self.session.initialize()
 
-                # 获取工具
+                # Get tools
                 self.tools = (await self.session.list_tools()).tools
+
                 for t in self.tools:
                     sanitized = sanitize_tool_name(t.name)
                     self.tools_dict[sanitized] = t
@@ -199,10 +201,11 @@ class ServerMCPClient:
 
                 self._ready_evt.set()
 
-                # 挂起等待关闭
+                # Suspend and wait for shutdown
                 await self._shutdown_evt.wait()
 
             except Exception as e:
-                self.logger.bind(tag=TAG).error(f"服务端MCP客户端工作协程错误: {e}")
+                self.logger.bind(tag=TAG).error(
+                    f"Server-side MCP client worker coroutine error: {e}")
                 self._ready_evt.set()
                 raise

@@ -3,6 +3,7 @@ from openai import OpenAI
 import json
 from core.providers.llm.base import LLMProviderBase
 
+
 TAG = __name__
 logger = setup_logging()
 
@@ -12,7 +13,7 @@ class LLMProvider(LLMProviderBase):
         self.model_name = config.get("model_name")
         self.base_url = config.get("base_url", "http://localhost:9997")
         # Initialize OpenAI client with Xinference base URL
-        # 如果没有v1，增加v1
+        # If there's no v1, add v1
         if not self.base_url.endswith("/v1"):
             self.base_url = f"{self.base_url}/v1"
 
@@ -23,11 +24,14 @@ class LLMProvider(LLMProviderBase):
         try:
             self.client = OpenAI(
                 base_url=self.base_url,
-                api_key="xinference",  # Xinference has a similar setup to Ollama where it doesn't need an actual key
+                # Xinference has a similar setup to Ollama where it doesn't need an actual key
+                api_key="xinference",
             )
-            logger.bind(tag=TAG).info("Xinference client initialized successfully")
+            logger.bind(tag=TAG).info(
+                "Xinference client initialized successfully")
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Error initializing Xinference client: {e}")
+            logger.bind(tag=TAG).error(
+                f"Error initializing Xinference client: {e}")
             raise
 
     def response(self, session_id, dialogue, **kwargs):
@@ -46,7 +50,8 @@ class LLMProvider(LLMProviderBase):
                         if getattr(chunk, "choices", None)
                         else None
                     )
-                    content = delta.content if hasattr(delta, "content") else ""
+                    content = delta.content if hasattr(
+                        delta, "content") else ""
                     if content:
                         if "<think>" in content:
                             is_active = False
@@ -60,8 +65,9 @@ class LLMProvider(LLMProviderBase):
                     logger.bind(tag=TAG).error(f"Error processing chunk: {e}")
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Xinference response generation: {e}")
-            yield "【Xinference服务响应异常】"
+            logger.bind(tag=TAG).error(
+                f"Error in Xinference response generation: {e}")
+            yield "[Xinference Service Response Exception]"
 
     def response_with_functions(self, session_id, dialogue, functions=None):
         try:
@@ -91,8 +97,9 @@ class LLMProvider(LLMProviderBase):
                     yield None, tool_calls
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Xinference function call: {e}")
+            logger.bind(tag=TAG).error(
+                f"Error in Xinference function call: {e}")
             yield {
                 "type": "content",
-                "content": f"【Xinference服务响应异常: {str(e)}】",
+                "content": f"[Xinference Service Response Exception: {str(e)}]",
             }

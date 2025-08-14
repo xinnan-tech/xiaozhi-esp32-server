@@ -11,14 +11,14 @@ hass_get_state_function_desc = {
     "type": "function",
     "function": {
         "name": "hass_get_state",
-        "description": "获取homeassistant里设备的状态,包括查询灯光亮度、颜色、色温,媒体播放器的音量,设备的暂停、继续操作",
+        "description": "Get device status in homeassistant, including querying light brightness, color, color temperature, media player volume, device pause/resume operations",
         "parameters": {
             "type": "object",
             "properties": {
                 "entity_id": {
                     "type": "string",
-                    "description": "需要操作的设备id,homeassistant里的entity_id",
-                }
+                    "description": "Device ID to operate, entity_id in homeassistant",
+                },
             },
             "required": ["entity_id"],
         },
@@ -29,20 +29,13 @@ hass_get_state_function_desc = {
 @register_function("hass_get_state", hass_get_state_function_desc, ToolType.SYSTEM_CTL)
 def hass_get_state(conn, entity_id=""):
     try:
-
         future = asyncio.run_coroutine_threadsafe(
             handle_hass_get_state(conn, entity_id), conn.loop
         )
-        # 添加10秒超时
-        ha_response = future.result(timeout=10)
+        ha_response = future.result()
         return ActionResponse(Action.REQLLM, ha_response, None)
-    except asyncio.TimeoutError:
-        logger.bind(tag=TAG).error("获取Home Assistant状态超时")
-        return ActionResponse(Action.ERROR, "请求超时", None)
     except Exception as e:
-        error_msg = f"执行Home Assistant操作失败"
-        logger.bind(tag=TAG).error(error_msg)
-        return ActionResponse(Action.ERROR, error_msg, None)
+        logger.bind(tag=TAG).error(f"Error processing get state intent: {e}")
 
 
 async def handle_hass_get_state(conn, entity_id):
@@ -50,51 +43,57 @@ async def handle_hass_get_state(conn, entity_id):
     api_key = ha_config.get("api_key")
     base_url = ha_config.get("base_url")
     url = f"{base_url}/api/states/{entity_id}"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}",
+               "Content-Type": "application/json"}
+
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        responsetext = "设备状态:" + response.json()["state"] + " "
-        logger.bind(tag=TAG).info(f"api返回内容: {response.json()}")
+        responsetext = "Device status: " + response.json()["state"] + " "
+        logger.bind(tag=TAG).info(f"API return content: {response.json()}")
 
         if "media_title" in response.json()["attributes"]:
             responsetext = (
                 responsetext
-                + "正在播放的是:"
+                + "Currently playing: "
                 + str(response.json()["attributes"]["media_title"])
                 + " "
             )
+
         if "volume_level" in response.json()["attributes"]:
             responsetext = (
                 responsetext
-                + "音量是:"
+                + "Volume is: "
                 + str(response.json()["attributes"]["volume_level"])
                 + " "
             )
+
         if "color_temp_kelvin" in response.json()["attributes"]:
             responsetext = (
                 responsetext
-                + "色温是:"
+                + "Color temperature is: "
                 + str(response.json()["attributes"]["color_temp_kelvin"])
                 + " "
             )
+
         if "rgb_color" in response.json()["attributes"]:
             responsetext = (
                 responsetext
-                + "rgb颜色是:"
+                + "RGB color is: "
                 + str(response.json()["attributes"]["rgb_color"])
                 + " "
             )
+
         if "brightness" in response.json()["attributes"]:
             responsetext = (
                 responsetext
-                + "亮度是:"
+                + "Brightness is: "
                 + str(response.json()["attributes"]["brightness"])
                 + " "
             )
-        logger.bind(tag=TAG).info(f"查询返回内容: {responsetext}")
+
+        logger.bind(tag=TAG).info(f"Query return content: {responsetext}")
         return responsetext
         # return response.json()['attributes']
         # response.attributes
-
     else:
-        return f"切换失败，错误码: {response.status_code}"
+        return f"Switch failed, error code: {response.status_code}"

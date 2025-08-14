@@ -1,4 +1,4 @@
-"""MCP接入点客户端定义"""
+"""MCP endpoint client definition"""
 
 import asyncio
 from concurrent.futures import Future
@@ -8,10 +8,9 @@ from config.logger import setup_logging
 TAG = __name__
 logger = setup_logging()
 
-
 class MCPEndpointClient:
-    """MCP接入点客户端，用于管理MCP接入点状态和工具"""
-
+    """MCP endpoint client for managing MCP endpoint state and tools"""
+    
     def __init__(self, conn=None):
         self.conn = conn
         self.tools = {}  # sanitized_name -> tool_data
@@ -21,7 +20,7 @@ class MCPEndpointClient:
         self.next_id = 1
         self.lock = asyncio.Lock()
         self._cached_available_tools = None  # Cache for get_available_tools
-        self.websocket = None  # WebSocket连接
+        self.websocket = None  # WebSocket connection
 
     def has_tool(self, name: str) -> bool:
         return name in self.tools
@@ -30,7 +29,7 @@ class MCPEndpointClient:
         # Check if the cache is valid
         if self._cached_available_tools is not None:
             return self._cached_available_tools
-
+        
         # If cache is not valid, regenerate the list
         result = []
         for tool_name, tool_data in self.tools.items():
@@ -44,7 +43,7 @@ class MCPEndpointClient:
                 },
             }
             result.append({"type": "function", "function": function_def})
-
+        
         self._cached_available_tools = result  # Store the generated list in cache
         return result
 
@@ -61,9 +60,7 @@ class MCPEndpointClient:
             sanitized_name = sanitize_tool_name(tool_data["name"])
             self.tools[sanitized_name] = tool_data
             self.name_mapping[sanitized_name] = tool_data["name"]
-            self._cached_available_tools = (
-                None  # Invalidate the cache when a tool is added
-            )
+            self._cached_available_tools = None  # Invalidate the cache when a tool is added
 
     async def get_next_id(self) -> int:
         async with self.lock:
@@ -95,18 +92,18 @@ class MCPEndpointClient:
                 self.call_results.pop(id)
 
     def set_websocket(self, websocket):
-        """设置WebSocket连接"""
+        """Set WebSocket connection"""
         self.websocket = websocket
 
     async def send_message(self, message: str):
-        """发送消息到MCP接入点"""
+        """Send message to MCP endpoint"""
         if self.websocket:
             await self.websocket.send(message)
         else:
-            raise RuntimeError("WebSocket连接未建立")
+            raise RuntimeError("WebSocket connection not established")
 
     async def close(self):
-        """关闭WebSocket连接"""
+        """Close WebSocket connection"""
         if self.websocket:
             await self.websocket.close()
             self.websocket = None

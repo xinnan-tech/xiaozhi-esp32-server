@@ -2,6 +2,7 @@ from ..base import IntentProviderBase
 from typing import List, Dict
 from config.logger import setup_logging
 
+
 TAG = __name__
 logger = setup_logging()
 
@@ -9,12 +10,12 @@ logger = setup_logging()
 class IntentProvider(IntentProviderBase):
     async def detect_intent(self, conn, dialogue_history: List[Dict], text: str) -> str:
         """
-        默认的意图识别实现，始终返回继续聊天
+        Default intent recognition implementation, always returns continue chat
         Args:
-            dialogue_history: 对话历史记录列表
-            text: 本次对话记录
+            dialogue_history: List of dialogue history records
+            text: Current conversation record
         Returns:
-            固定返回"继续聊天"
+            Fixed return "continue chat"
         """
         logger.bind(tag=TAG).debug(
             "Using functionCallProvider, always returning continue chat"
