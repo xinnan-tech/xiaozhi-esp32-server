@@ -1,78 +1,81 @@
-# MQTT+UDP 到 WebSocket 桥接服务
+# MQTT+UDP to WebSocket Bridge Service
 
-## 项目概述
+## Project Overview
 
-这是一个用于物联网设备通信的桥接服务，实现了MQTT和UDP协议到WebSocket的转换。该服务允许设备通过MQTT协议进行控制消息传输，同时通过UDP协议高效传输音频数据，并将这些数据桥接到WebSocket服务。
+This is a bridge service for IoT device communication that implements conversion from MQTT and UDP protocols to WebSocket. The service allows devices to transmit control messages through MQTT protocol while efficiently transmitting audio data through UDP protocol, bridging this data to WebSocket services.
 
-## 功能特点
+## Features
 
-- **多协议支持**: 同时支持MQTT、UDP和WebSocket协议
-- **音频数据传输**: 专为音频数据流优化的传输机制
-- **加密通信**: 使用AES-128-CTR加密UDP数据传输
-- **会话管理**: 完整的设备会话生命周期管理
-- **自动重连**: 连接断开时自动重连机制
-- **心跳检测**: 定期检查连接活跃状态
-- **开发/生产环境配置**: 支持不同环境的配置切换
+- **Multi-protocol Support**: Simultaneous support for MQTT, UDP, and WebSocket protocols
+- **Audio Data Transmission**: Transmission mechanism optimized for audio data streams
+- **Encrypted Communication**: Uses AES-128-CTR encryption for UDP data transmission
+- **Session Management**: Complete device session lifecycle management
+- **Auto Reconnection**: Automatic reconnection mechanism when connections are lost
+- **Heartbeat Detection**: Periodic checking of connection active status
+- **Development/Production Environment Configuration**: Support for configuration switching between different environments
 
-## 技术架构
+## Technical Architecture
 
-- **MQTT服务器**: 处理设备控制消息
-- **UDP服务器**: 处理高效的音频数据传输
-- **WebSocket客户端**: 连接到聊天服务器
-- **桥接层**: 在不同协议间转换和路由消息
+- **MQTT Server**: Handles device control messages
+- **UDP Server**: Handles efficient audio data transmission
+- **WebSocket Client**: Connects to chat servers
+- **Bridge Layer**: Converts and routes messages between different protocols
 
-## 项目结构
+## Project Structure
 
 ```
-├── app.js                # 主应用入口
-├── mqtt-protocol.js      # MQTT协议实现
-├── ecosystem.config.js   # PM2配置文件
-├── package.json          # 项目依赖
-├── .env                  # 环境变量配置
+├── app.js                # Main application entry point
+├── mqtt-protocol.js      # MQTT protocol implementation
+├── ecosystem.config.js   # PM2 configuration file
+├── package.json          # Project dependencies
+├── .env                  # Environment variable configuration
 ├── utils/
-│   ├── config-manager.js # 配置管理工具
-│   ├── mqtt_config_v2.js # MQTT配置验证工具
-│   └── weixinAlert.js    # 微信告警工具
-└── config/               # 配置文件目录
+│   ├── config-manager.js # Configuration management tool
+│   ├── mqtt_config_v2.js # MQTT configuration validation tool
+│   └── weixinAlert.js    # WeChat alert tool
+└── config/               # Configuration file directory
 ```
 
-## 依赖项
+## Dependencies
 
-- **debug**: 调试日志输出
-- **dotenv**: 环境变量管理
-- **ws**: WebSocket客户端
-- **events**: Node.js 事件模块
+- **debug**: Debug log output
+- **dotenv**: Environment variable management
+- **ws**: WebSocket client
+- **events**: Node.js event module
 
-## 安装要求
+## Installation Requirements
 
-- Node.js 14.x 或更高版本
-- npm 或 yarn 包管理器
-- PM2 (用于生产环境部署)
+- Node.js 14.x or higher
+- npm or yarn package manager
+- PM2 (for production environment deployment)
 
-## 安装步骤
+## Installation Steps
 
-1. 克隆仓库
+1. Clone repository
+
 ```bash
-git clone <仓库地址>
+git clone <repository-url>
 cd mqtt-websocket-bridge
 ```
 
-2. 安装依赖
+2. Install dependencies
+
 ```bash
 npm install
 ```
 
-3. 创建配置文件
+3. Create configuration file
+
 ```bash
 mkdir -p config
 cp config/mqtt.json.example config/mqtt.json
 ```
 
-4. 编辑配置文件 `config/mqtt.json`，设置适当的参数
+4. Edit configuration file `config/mqtt.json` and set appropriate parameters
 
-## 配置说明
+## Configuration Instructions
 
-配置文件 `config/mqtt.json` 需要包含以下内容:
+Configuration file `config/mqtt.json` needs to contain the following content:
 
 ```json
 {
@@ -87,63 +90,65 @@ cp config/mqtt.json.example config/mqtt.json
 }
 ```
 
-## 环境变量
+## Environment Variables
 
-创建 `.env` 文件并设置以下环境变量:
+Create `.env` file and set the following environment variables:
 
 ```
-MQTT_PORT=1883       # MQTT服务器端口
-UDP_PORT=8884        # UDP服务器端口
-PUBLIC_IP=your-ip    # 服务器公网IP
+MQTT_PORT=1883       # MQTT server port
+UDP_PORT=8884        # UDP server port
+PUBLIC_IP=your-ip    # Server public IP
 ```
 
-## 运行服务
+## Running the Service
 
-### 开发环境
+### Development Environment
 
 ```bash
-# 直接运行
+# Run directly
 node app.js
 
-# 调试模式运行
+# Run in debug mode
 DEBUG=mqtt-server node app.js
 ```
 
-### 生产环境 (使用PM2)
+### Production Environment (Using PM2)
 
 ```bash
-# 安装PM2
+# Install PM2
 npm install -g pm2
 
-# 启动服务
+# Start service
 pm2 start ecosystem.config.js
 
-# 查看日志
+# View logs
 pm2 logs xz-mqtt
 
-# 监控服务
+# Monitor service
 pm2 monit
 ```
 
-服务将在以下端口启动:
-- MQTT 服务器: 端口 1883 (可通过环境变量修改)
-- UDP 服务器: 端口 8884 (可通过环境变量修改)
+The service will start on the following ports:
 
-## 协议说明
+- MQTT Server: Port 1883 (can be modified via environment variables)
+- UDP Server: Port 8884 (can be modified via environment variables)
 
-### 设备连接流程
+## Protocol Description
 
-1. 设备通过MQTT协议连接到服务器
-2. 设备发送 `hello` 消息，包含音频参数和特性
-3. 服务器创建WebSocket连接到聊天服务器
-4. 服务器返回UDP连接参数给设备
-5. 设备通过UDP发送音频数据
-6. 服务器将音频数据转发到WebSocket
-7. WebSocket返回的控制消息通过MQTT发送给设备
+### Device Connection Flow
 
-### 消息格式
+1. Device connects to server via MQTT protocol
+2. Device sends `hello` message containing audio parameters and features
+3. Server creates WebSocket connection to chat server
+4. Server returns UDP connection parameters to device
+5. Device sends audio data via UDP
+6. Server forwards audio data to WebSocket
+7. Control messages returned by WebSocket are sent to device via MQTT
 
-#### Hello 消息 (设备 -> 服务器)
+### Message Format
+
+#### Hello Message (Device -> Server)
+
 ```json
 {
   "type": "hello",
@@ -153,7 +158,8 @@ pm2 monit
 }
 ```
 
-#### Hello 响应 (服务器 -> 设备)
+#### Hello Response (Server -> Device)
+
 ```json
 {
   "type": "hello",
@@ -171,45 +177,45 @@ pm2 monit
 }
 ```
 
-## 安全说明
+## Security Description
 
-- UDP通信使用AES-128-CTR加密
-- 每个会话使用唯一的加密密钥
-- 使用序列号防止重放攻击
-- 设备通过MAC地址进行身份验证
-- 支持设备分组和UUID验证
+- UDP communication uses AES-128-CTR encryption
+- Each session uses a unique encryption key
+- Uses sequence numbers to prevent replay attacks
+- Device authentication via MAC address
+- Supports device grouping and UUID verification
 
-## 性能优化
+## Performance Optimization
 
-- 使用预分配的缓冲区减少内存分配
-- UDP协议用于高效传输音频数据
-- 定期清理不活跃的连接
-- 连接数和活跃连接数监控
-- 支持多聊天服务器负载均衡
+- Uses pre-allocated buffers to reduce memory allocation
+- UDP protocol for efficient audio data transmission
+- Periodic cleanup of inactive connections
+- Connection count and active connection monitoring
+- Support for multi-chat server load balancing
 
-## 故障排除
+## Troubleshooting
 
-- 检查设备MAC地址格式是否正确
-- 确保UDP端口在防火墙中开放
-- 启用调试模式查看详细日志
-- 检查配置文件中的聊天服务器地址是否正确
-- 验证设备认证信息是否正确
+- Check if device MAC address format is correct
+- Ensure UDP port is open in firewall
+- Enable debug mode to view detailed logs
+- Check if chat server address in configuration file is correct
+- Verify device authentication information is correct
 
-## 开发指南
+## Development Guide
 
-### 添加新功能
+### Adding New Features
 
-1. 修改 `mqtt-protocol.js` 以支持新的MQTT功能
-2. 在 `MQTTConnection` 类中添加新的消息处理方法
-3. 更新配置管理器以支持新的配置选项
-4. 在 `WebSocketBridge` 类中添加新的WebSocket处理逻辑
+1. Modify `mqtt-protocol.js` to support new MQTT functionality
+2. Add new message handling methods in `MQTTConnection` class
+3. Update configuration manager to support new configuration options
+4. Add new WebSocket handling logic in `WebSocketBridge` class
 
-### 调试技巧
+### Debugging Tips
 
 ```bash
-# 启用所有调试输出
+# Enable all debug output
 DEBUG=* node app.js
 
-# 只启用MQTT服务器调试
+# Enable only MQTT server debugging
 DEBUG=mqtt-server node app.js
 ```

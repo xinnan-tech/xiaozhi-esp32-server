@@ -11,7 +11,7 @@ hass_set_state_function_desc = {
     "type": "function",
     "function": {
         "name": "hass_set_state",
-        "description": "设置homeassistant里设备的状态,包括开、关,调整灯光亮度、颜色、色温,调整播放器的音量,设备的暂停、继续、静音操作",
+        "description": "Set device status in homeassistant, including on/off, adjusting light brightness, color, color temperature, adjusting player volume, device pause/resume/mute operations",
         "parameters": {
             "type": "object",
             "properties": {
@@ -20,34 +20,33 @@ hass_set_state_function_desc = {
                     "properties": {
                         "type": {
                             "type": "string",
-                            "description": "需要操作的动作,打开设备:turn_on,关闭设备:turn_off,增加亮度:brightness_up,降低亮度:brightness_down,设置亮度:brightness_value,增加音量:volume_up,降低音量:volume_down,设置音量:volume_set,设置色温:set_kelvin,设置颜色:set_color,设备暂停:pause,设备继续:continue,静音/取消静音:volume_mute",
+                            "description": "Action to perform, turn on device: turn_on, turn off device: turn_off, increase brightness: brightness_up, decrease brightness: brightness_down, set brightness: brightness_value, increase volume: volume_up, decrease volume: volume_down, set volume: volume_set, set color temperature: set_kelvin, set color: set_color, device pause: pause, device resume: continue, mute/unmute: volume_mute",
                         },
                         "input": {
                             "type": "integer",
-                            "description": "只有在设置音量,设置亮度时候才需要,有效值为1-100,对应音量和亮度的1%-100%",
+                            "description": "Only needed when setting volume or brightness, valid values 1-100, corresponding to 1%-100% volume and brightness",
                         },
                         "is_muted": {
                             "type": "string",
-                            "description": "只有在设置静音操作时才需要,设置静音的时候该值为true,取消静音时该值为false",
+                            "description": "Only needed for mute operations, set to true when muting, false when unmuting",
                         },
                         "rgb_color": {
                             "type": "array",
                             "items": {"type": "integer"},
-                            "description": "只有在设置颜色时需要,这里填目标颜色的rgb值",
+                            "description": "Only needed when setting color, fill target color RGB values here",
                         },
                     },
                     "required": ["type"],
                 },
                 "entity_id": {
                     "type": "string",
-                    "description": "需要操作的设备id,homeassistant里的entity_id",
+                    "description": "Device ID to operate, entity_id in homeassistant",
                 },
             },
             "required": ["state", "entity_id"],
         },
     },
 }
-
 
 @register_function("hass_set_state", hass_set_state_function_desc, ToolType.SYSTEM_CTL)
 def hass_set_state(conn, entity_id="", state={}):
@@ -58,85 +57,99 @@ def hass_set_state(conn, entity_id="", state={}):
         ha_response = future.result()
         return ActionResponse(Action.REQLLM, ha_response, None)
     except Exception as e:
-        logger.bind(tag=TAG).error(f"处理设置属性意图错误: {e}")
-
+        logger.bind(tag=TAG).error(f"Error processing set attribute intent: {e}")
 
 async def handle_hass_set_state(conn, entity_id, state):
     ha_config = initialize_hass_handler(conn)
     api_key = ha_config.get("api_key")
     base_url = ha_config.get("base_url")
+    
     """
     state = { "type":"brightness_up","input":"80","is_muted":"true"}
     """
+    
     domains = entity_id.split(".")
     if len(domains) > 1:
         domain = domains[0]
     else:
-        return "执行失败，错误的设备id"
+        return "Execution failed, invalid device id"
+    
     action = ""
     arg = ""
     value = ""
+    
     if state["type"] == "turn_on":
-        description = "设备已打开"
+        description = "Device turned on"
         if domain == "cover":
             action = "open_cover"
         elif domain == "vacuum":
             action = "start"
         else:
             action = "turn_on"
+    
     elif state["type"] == "turn_off":
-        description = "设备已关闭"
+        description = "Device turned off"
         if domain == "cover":
             action = "close_cover"
         elif domain == "vacuum":
             action = "stop"
         else:
             action = "turn_off"
+    
     elif state["type"] == "brightness_up":
-        description = "灯光已调亮"
+        description = "Light brightness increased"
         action = "turn_on"
         arg = "brightness_step_pct"
         value = 10
+    
     elif state["type"] == "brightness_down":
-        description = "灯光已调暗"
+        description = "Light brightness decreased"
         action = "turn_on"
         arg = "brightness_step_pct"
         value = -10
+    
     elif state["type"] == "brightness_value":
-        description = f"亮度已调整到{state['input']}"
+        description = f"Brightness adjusted to {state['input']}"
         action = "turn_on"
         arg = "brightness_pct"
         value = state["input"]
+    
     elif state["type"] == "set_color":
-        description = f"颜色已调整到{state['rgb_color']}"
+        description = f"Color adjusted to {state['rgb_color']}"
         action = "turn_on"
         arg = "rgb_color"
         value = state["rgb_color"]
+    
     elif state["type"] == "set_kelvin":
-        description = f"色温已调整到{state['input']}K"
+        description = f"Color temperature adjusted to {state['input']}K"
         action = "turn_on"
         arg = "kelvin"
         value = state["input"]
+    
     elif state["type"] == "volume_up":
-        description = "音量已调大"
+        description = "Volume increased"
         action = state["type"]
+    
     elif state["type"] == "volume_down":
-        description = "音量已调小"
+        description = "Volume decreased"
         action = state["type"]
+    
     elif state["type"] == "volume_set":
-        description = f"音量已调整到{state['input']}"
+        description = f"Volume adjusted to {state['input']}"
         action = state["type"]
         arg = "volume_level"
         value = state["input"]
         if state["input"] >= 1:
             value = state["input"] / 100
+    
     elif state["type"] == "volume_mute":
-        description = f"设备已静音"
+        description = f"Device muted"
         action = state["type"]
         arg = "is_volume_muted"
         value = state["is_muted"]
+    
     elif state["type"] == "pause":
-        description = f"设备已暂停"
+        description = f"Device paused"
         action = state["type"]
         if domain == "media_player":
             action = "media_pause"
@@ -144,28 +157,33 @@ async def handle_hass_set_state(conn, entity_id, state):
             action = "stop_cover"
         if domain == "vacuum":
             action = "pause"
+    
     elif state["type"] == "continue":
-        description = f"设备已继续"
+        description = f"Device resumed"
         if domain == "media_player":
             action = "media_play"
         if domain == "vacuum":
             action = "start"
+    
     else:
-        return f"{domain} {state.type}功能尚未支持"
-
+        return f"{domain} {state.type} function not yet supported"
+    
     if arg == "":
         data = {
             "entity_id": entity_id,
         }
     else:
         data = {"entity_id": entity_id, arg: value}
+    
     url = f"{base_url}/api/services/{domain}/{action}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     response = requests.post(url, headers=headers, json=data)
+    
     logger.bind(tag=TAG).info(
-        f"设置状态:{description},url:{url},return_code:{response.status_code}"
+        f"Set status: {description}, url: {url}, return_code: {response.status_code}"
     )
+    
     if response.status_code == 200:
         return description
     else:
-        return f"设置失败，错误码: {response.status_code}"
+        return f"Setting failed, error code: {response.status_code}"

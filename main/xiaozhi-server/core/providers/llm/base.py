@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
 
+
 TAG = __name__
 logger = setup_logging()
+
 
 class LLMProviderBase(ABC):
     @abstractmethod
@@ -12,7 +14,7 @@ class LLMProviderBase(ABC):
 
     def response_no_stream(self, system_prompt, user_prompt, **kwargs):
         try:
-            # 构造对话格式
+            # Construct dialogue format
             dialogue = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -23,17 +25,18 @@ class LLMProviderBase(ABC):
             return result
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
-            return "【LLM服务响应异常】"
-    
+            logger.bind(tag=TAG).error(
+                f"Error in Ollama response generation: {e}")
+            return "[LLM Service Response Exception]"
+
     def response_with_functions(self, session_id, dialogue, functions=None):
         """
         Default implementation for function calling (streaming)
         This should be overridden by providers that support function calls
+
 
         Returns: generator that yields either text tokens or a special function call token
         """
         # For providers that don't support functions, just return regular response
         for token in self.response(session_id, dialogue):
             yield token, None
-

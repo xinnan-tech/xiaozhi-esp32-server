@@ -1,4 +1,4 @@
-"""设备端MCP客户端定义"""
+"""Device-side MCP client definition"""
 
 import asyncio
 from concurrent.futures import Future
@@ -8,10 +8,9 @@ from config.logger import setup_logging
 TAG = __name__
 logger = setup_logging()
 
-
 class MCPClient:
-    """设备端MCP客户端，用于管理MCP状态和工具"""
-
+    """Device-side MCP client for managing MCP state and tools"""
+    
     def __init__(self):
         self.tools = {}  # sanitized_name -> tool_data
         self.name_mapping = {}
@@ -28,7 +27,7 @@ class MCPClient:
         # Check if the cache is valid
         if self._cached_available_tools is not None:
             return self._cached_available_tools
-
+        
         # If cache is not valid, regenerate the list
         result = []
         for tool_name, tool_data in self.tools.items():
@@ -42,7 +41,7 @@ class MCPClient:
                 },
             }
             result.append({"type": "function", "function": function_def})
-
+        
         self._cached_available_tools = result  # Store the generated list in cache
         return result
 
@@ -59,9 +58,7 @@ class MCPClient:
             sanitized_name = sanitize_tool_name(tool_data["name"])
             self.tools[sanitized_name] = tool_data
             self.name_mapping[sanitized_name] = tool_data["name"]
-            self._cached_available_tools = (
-                None  # Invalidate the cache when a tool is added
-            )
+            self._cached_available_tools = None  # Invalidate the cache when a tool is added
 
     async def get_next_id(self) -> int:
         async with self.lock:

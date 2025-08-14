@@ -9,80 +9,80 @@ from core.utils.util import check_model_key
 
 
 short_term_memory_prompt = """
-# 时空记忆编织者
+# Temporal Memory Weaver
 
-## 核心使命
-构建可生长的动态记忆网络，在有限空间内保留关键信息的同时，智能维护信息演变轨迹
-根据对话记录，总结user的重要信息，以便在未来的对话中提供更个性化的服务
+## Core Mission
+Build a growable dynamic memory network that retains key information within limited space while intelligently maintaining information evolution trajectories
+Summarize important user information based on conversation records to provide more personalized services in future conversations
 
-## 记忆法则
-### 1. 三维度记忆评估（每次更新必执行）
-| 维度       | 评估标准                  | 权重分 |
-|------------|---------------------------|--------|
-| 时效性     | 信息新鲜度（按对话轮次） | 40%    |
-| 情感强度   | 含💖标记/重复提及次数     | 35%    |
-| 关联密度   | 与其他信息的连接数量      | 25%    |
+## Memory Rules
+### 1. Three-Dimensional Memory Assessment (Must execute on every update)
+| Dimension      | Assessment Criteria              | Weight |
+|----------------|----------------------------------|--------|
+| Timeliness     | Information freshness (by turns) | 40%    |
+| Emotional Intensity | Contains 💖 marks/repeat mentions | 35%    |
+| Association Density | Number of connections to other info | 25%    |
 
-### 2. 动态更新机制
-**名字变更处理示例：**
-原始记忆："曾用名": ["张三"], "现用名": "张三丰"
-触发条件：当检测到「我叫X」「称呼我Y」等命名信号时
-操作流程：
-1. 将旧名移入"曾用名"列表
-2. 记录命名时间轴："2024-02-15 14:32:启用张三丰"
-3. 在记忆立方追加：「从张三到张三丰的身份蜕变」
+### 2. Dynamic Update Mechanism
+**Name Change Handling Example:**
+Original memory: "former_names": ["Zhang San"], "current_name": "Zhang Sanfeng"
+Trigger condition: When detecting naming signals like "My name is X" "Call me Y"
+Operation process:
+1. Move old name to "former_names" list
+2. Record naming timeline: "2024-02-15 14:32: Activated Zhang Sanfeng"
+3. Append to memory cube: "Identity transformation from Zhang San to Zhang Sanfeng"
 
-### 3. 空间优化策略
-- **信息压缩术**：用符号体系提升密度
-  - ✅"张三丰[北/软工/🐱]"
-  - ❌"北京软件工程师，养猫"
-- **淘汰预警**：当总字数≥900时触发
-  1. 删除权重分<60且3轮未提及的信息
-  2. 合并相似条目（保留时间戳最近的）
+### 3. Space Optimization Strategy
+- **Information Compression**: Use symbol system to enhance density
+  - ✅"Zhang Sanfeng[Beijing/SoftEng/🐱]"
+  - ❌"Beijing software engineer, owns cat"
+- **Elimination Warning**: Triggered when total word count ≥900
+  1. Delete info with weight score <60 and not mentioned for 3 rounds
+  2. Merge similar entries (keep most recent timestamp)
 
-## 记忆结构
-输出格式必须为可解析的json字符串，不需要解释、注释和说明，保存记忆时仅从对话提取信息，不要混入示例内容
+## Memory Structure
+Output format must be parseable JSON string, no explanations, comments or descriptions needed, only extract information from conversations when saving memory, do not mix in example content
 ```json
 {
-  "时空档案": {
-    "身份图谱": {
-      "现用名": "",
-      "特征标记": [] 
+  "temporal_profile": {
+    "identity_map": {
+      "current_name": "",
+      "feature_tags": [] 
     },
-    "记忆立方": [
+    "memory_cube": [
       {
-        "事件": "入职新公司",
-        "时间戳": "2024-03-20",
-        "情感值": 0.9,
-        "关联项": ["下午茶"],
-        "保鲜期": 30 
+        "event": "Started new job",
+        "timestamp": "2024-03-20",
+        "emotional_value": 0.9,
+        "related_items": ["afternoon tea"],
+        "freshness_period": 30 
       }
     ]
   },
-  "关系网络": {
-    "高频话题": {"职场": 12},
-    "暗线联系": [""]
+  "relationship_network": {
+    "frequent_topics": {"workplace": 12},
+    "hidden_connections": [""]
   },
-  "待响应": {
-    "紧急事项": ["需立即处理的任务"], 
-    "潜在关怀": ["可主动提供的帮助"]
+  "pending_response": {
+    "urgent_matters": ["Tasks requiring immediate attention"], 
+    "potential_care": ["Help that can be proactively offered"]
   },
-  "高光语录": [
-    "最打动人心的瞬间，强烈的情感表达，user的原话"
+  "highlight_quotes": [
+    "Most touching moments, strong emotional expressions, user's original words"
   ]
 }
 ```
 """
 
 short_term_memory_prompt_only_content = """
-你是一个经验丰富的记忆总结者，擅长将对话内容进行总结摘要，遵循以下规则：
-1、总结user的重要信息，以便在未来的对话中提供更个性化的服务
-2、不要重复总结，不要遗忘之前记忆，除非原来的记忆超过了1800字内，否则不要遗忘、不要压缩用户的历史记忆
-3、用户操控的设备音量、播放音乐、天气、退出、不想对话等和用户本身无关的内容，这些信息不需要加入到总结中
-4、不要把设备操控的成果结果和失败结果加入到总结中，也不要把用户的一些废话加入到总结中
-5、不要为了总结而总结，如果用户的聊天没有意义，请返回原来的历史记录也是可以的
-6、只需要返回总结摘要，严格控制在1800字内
-7、不要包含代码、xml，不需要解释、注释和说明，保存记忆时仅从对话提取信息，不要混入示例内容
+You are an experienced memory summarizer, skilled at summarizing conversation content, following these rules:
+1. Summarize important user information to provide more personalized services in future conversations
+2. Don't repeat summaries, don't forget previous memories, unless original memory exceeds 1800 words, otherwise don't forget or compress user's historical memory
+3. User device control content like volume, music playback, weather, exit, not wanting to chat etc. that are unrelated to the user themselves, this information doesn't need to be included in the summary
+4. Don't include device control success/failure results in the summary, and don't include user's meaningless chatter
+5. Don't summarize for the sake of summarizing, if user's chat is meaningless, returning the original historical record is acceptable
+6. Only return summary digest, strictly control within 1800 words
+7. Don't include code, xml, no explanations, comments or descriptions needed, only extract information from conversations when saving memory, don't mix in example content
 """
 
 
@@ -98,7 +98,7 @@ def extract_json_data(json_code):
         except Exception as e:
             print("Error:", e)
         return ""
-    jsonData = json_code[start + 7 : end]
+    jsonData = json_code[start + 7: end]
     return jsonData
 
 
@@ -121,7 +121,7 @@ class MemoryProvider(MemoryProviderBase):
         self.load_memory(summary_memory)
 
     def load_memory(self, summary_memory):
-        # api获取到总结记忆后直接返回
+        # Return directly after API retrieves summary memory
         if summary_memory or not self.save_to_file:
             self.short_memory = summary_memory
             return
@@ -147,12 +147,14 @@ class MemoryProvider(MemoryProviderBase):
         if not hasattr(self, 'llm') or self.llm is None:
             logger.bind(tag=TAG).error("LLM is not set for memory provider")
             return None
-            
-        # 打印使用的模型信息
-        model_info = getattr(self.llm, "model_name", str(self.llm.__class__.__name__))
-        logger.bind(tag=TAG).debug(f"使用记忆保存模型: {model_info}")
+
+        # Print model information being used
+        model_info = getattr(self.llm, "model_name",
+                             str(self.llm.__class__.__name__))
+        logger.bind(tag=TAG).debug(f"Using memory saving model: {model_info}")
         api_key = getattr(self.llm, "api_key", None)
-        memory_key_msg = check_model_key("记忆总结专用LLM", api_key)
+        memory_key_msg = check_model_key(
+            "Memory Summary Dedicated LLM", api_key)
         if memory_key_msg:
             logger.bind(tag=TAG).error(memory_key_msg)
         if self.llm is None:
@@ -169,12 +171,12 @@ class MemoryProvider(MemoryProviderBase):
             elif msg.role == "assistant":
                 msgStr += f"Assistant: {msg.content}\n"
         if self.short_memory and len(self.short_memory) > 0:
-            msgStr += "历史记忆：\n"
+            msgStr += "Historical Memory:\n"
             msgStr += self.short_memory
 
-        # 当前时间
+        # Current time
         time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        msgStr += f"当前时间：{time_str}"
+        msgStr += f"Current time: {time_str}"
 
         if self.save_to_file:
             result = self.llm.response_no_stream(
@@ -185,7 +187,7 @@ class MemoryProvider(MemoryProviderBase):
             )
             json_str = extract_json_data(result)
             try:
-                json.loads(json_str)  # 检查json格式是否正确
+                json.loads(json_str)  # Check if JSON format is correct
                 self.short_memory = json_str
                 self.save_memory_to_file()
             except Exception as e:
@@ -198,7 +200,8 @@ class MemoryProvider(MemoryProviderBase):
                 temperature=0.2,
             )
             save_mem_local_short(self.role_id, result)
-        logger.bind(tag=TAG).info(f"Save memory successful - Role: {self.role_id}")
+        logger.bind(tag=TAG).info(
+            f"Save memory successful - Role: {self.role_id}")
 
         return self.short_memory
 

@@ -18,10 +18,11 @@ def append_devices_to_prompt(conn):
         )
 
         if "hass_get_state" in funcs or "hass_set_state" in funcs:
-            prompt = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
-            deviceStr = conn.config["plugins"].get(config_source, {}).get("devices", "")
+            prompt = "\nBelow is my smart device list (location, device name, entity_id), can be controlled through homeassistant\n"
+            deviceStr = conn.config["plugins"].get(
+                config_source, {}).get("devices", "")
             conn.prompt += prompt + deviceStr + "\n"
-            # 更新提示词
+            # Update prompt
             conn.dialogue.update_system_message(conn.prompt)
 
 
@@ -30,21 +31,22 @@ def initialize_hass_handler(conn):
     if not conn.load_function_plugin:
         return ha_config
 
-    # 确定配置来源
+    # Determine config source
     config_source = (
         "home_assistant"
         if conn.config["plugins"].get("home_assistant")
         else "hass_get_state"
     )
+
     if not conn.config["plugins"].get(config_source):
         return ha_config
 
-    # 统一获取配置
+    # Unified config retrieval
     plugin_config = conn.config["plugins"][config_source]
     ha_config["base_url"] = plugin_config.get("base_url")
     ha_config["api_key"] = plugin_config.get("api_key")
 
-    # 统一检查API密钥
+    # Unified API key check
     model_key_msg = check_model_key("home_assistant", ha_config.get("api_key"))
     if model_key_msg:
         logger.bind(tag=TAG).error(model_key_msg)

@@ -14,28 +14,28 @@
       </div>
     </div>
     <div class="device-name">
-      语言模型：{{ device.llmModelName }}
+      Language Model: {{ device.llmModelName }}
     </div>
     <div class="device-name">
-      音色模型：{{ device.ttsModelName }} ({{ device.ttsVoiceName }})
+      Voice Model: {{ device.ttsModelName }} ({{ device.ttsVoiceName }})
     </div>
     <div style="display: flex;gap: 10px;align-items: center;">
       <div class="settings-btn" @click="handleConfigure">
-        配置角色
+        Configure Role
       </div>
       <div class="settings-btn" @click="handleDeviceManage">
-        设备管理({{ device.deviceCount }})
+        Device Management ({{ device.deviceCount }})
       </div>
       <div class="settings-btn" @click="handleChatHistory"
         :class="{ 'disabled-btn': device.memModelId === 'Memory_nomem' }">
-        <el-tooltip v-if="device.memModelId === 'Memory_nomem'" content="请先在“配置角色”界面开启记忆" placement="top">
-          <span>聊天记录</span>
+        <el-tooltip v-if="device.memModelId === 'Memory_nomem'" content="Please enable memory in the 'Configure Role' interface first" placement="top">
+          <span>Chat History</span>
         </el-tooltip>
-        <span v-else>聊天记录</span>
+        <span v-else>Chat History</span>
       </div>
     </div>
     <div class="version-info">
-      <div>最近对话：{{ formattedLastConnectedTime }}</div>
+      <div>Last Conversation: {{ formattedLastConnectedTime }}</div>
     </div>
   </div>
 </template>
@@ -51,20 +51,20 @@ export default {
   },
   computed: {
     formattedLastConnectedTime() {
-      if (!this.device.lastConnectedAt) return '暂未对话';
+      if (!this.device.lastConnectedAt) return 'No conversation yet';
 
       const lastTime = new Date(this.device.lastConnectedAt);
       const now = new Date();
       const diffMinutes = Math.floor((now - lastTime) / (1000 * 60));
 
       if (diffMinutes <= 1) {
-        return '刚刚';
+        return 'Just now';
       } else if (diffMinutes < 60) {
-        return `${diffMinutes}分钟前`;
+        return `${diffMinutes} minutes ago`;
       } else if (diffMinutes < 24 * 60) {
         const hours = Math.floor(diffMinutes / 60);
         const minutes = diffMinutes % 60;
-        return `${hours}小时${minutes > 0 ? minutes + '分钟' : ''}前`;
+        return `${hours} hours${minutes > 0 ? ' ' + minutes + ' minutes' : ''} ago`;
       } else {
         return this.device.lastConnectedAt;
       }

@@ -2,7 +2,7 @@ import { getServiceUrl } from '../api';
 import RequestService from '../httpRequest';
 
 export default {
-  // 获取模型配置列表
+  // Get model configuration list
   getModelList(params, callback) {
     const queryParams = new URLSearchParams({
       modelType: params.modelType,
@@ -19,13 +19,13 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        console.error('获取模型列表失败:', err)
+        console.error('Get model list failed:', err)
         RequestService.reAjaxFun(() => {
           this.getModelList(params, callback)
         })
       }).send()
   },
-  // 获取模型供应器列表
+  // Get model provider list
   getModelProviders(modelType, callback) {
     RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/${modelType}/provideTypes`)
@@ -35,15 +35,15 @@ export default {
         callback(res.data?.data || [])
       })
       .networkFail((err) => {
-        console.error('获取供应器列表失败:', err)
-        this.$message.error('获取供应器列表失败')
+        console.error('Get provider list failed:', err)
+        this.$message.error('Get provider list failed')
         RequestService.reAjaxFun(() => {
           this.getModelProviders(modelType, callback)
         })
       }).send()
   },
 
-  // 新增模型配置
+  // Add model configuration
   addModel(params, callback) {
     const { modelType, provideCode, formData } = params;
     const postData = {
@@ -66,14 +66,14 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        console.error('新增模型失败:', err)
-        this.$message.error(err.msg || '新增模型失败')
+        console.error('Add model failed:', err)
+        this.$message.error(err.msg || 'Add model failed')
         RequestService.reAjaxFun(() => {
           this.addModel(params, callback)
         })
       }).send()
   },
-  // 删除模型配置
+  // Delete model configuration
   deleteModel(id, callback) {
     RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/${id}`)
@@ -83,14 +83,14 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        console.error('删除模型失败:', err)
-        this.$message.error(err.msg || '删除模型失败')
+        console.error('Delete model failed:', err)
+        this.$message.error(err.msg || 'Delete model failed')
         RequestService.reAjaxFun(() => {
           this.deleteModel(id, callback)
         })
       }).send()
   },
-  // 获取模型名称列表
+  // Get model name list
   getModelNames(modelType, modelName, callback) {
     RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/names`)
@@ -106,7 +106,7 @@ export default {
         });
       }).send();
   },
-  // 获取模型音色列表
+  // Get model voice list
   getModelVoices(modelId, voiceName, callback) {
     const queryParams = new URLSearchParams({
       voiceName: voiceName || ''
@@ -124,7 +124,7 @@ export default {
         });
       }).send();
   },
-  // 获取单个模型配置
+  // Get single model configuration
   getModelConfig(id, callback) {
     RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/${id}`)
@@ -134,14 +134,14 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        console.error('获取模型配置失败:', err)
-        this.$message.error(err.msg || '获取模型配置失败')
+        console.error('Get model configuration failed:', err)
+        this.$message.error(err.msg || 'Get model configuration failed')
         RequestService.reAjaxFun(() => {
           this.getModelConfig(id, callback)
         })
       }).send()
   },
-  // 启用/禁用模型状态
+  // Enable/Disable model status
   updateModelStatus(id, status, callback) {
     RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/enable/${id}/${status}`)
@@ -151,14 +151,14 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        console.error('更新模型状态失败:', err)
-        this.$message.error(err.msg || '更新模型状态失败')
+        console.error('Update model status failed:', err)
+        this.$message.error(err.msg || 'Update model status failed')
         RequestService.reAjaxFun(() => {
           this.updateModelStatus(id, status, callback)
         })
       }).send()
   },
-  // 更新模型配置
+  // Update model configuration
   updateModel(params, callback) {
     const { modelType, provideCode, id, formData } = params;
     const payload = {
@@ -174,14 +174,14 @@ export default {
         callback(res);
       })
       .networkFail((err) => {
-        console.error('更新模型失败:', err);
-        this.$message.error(err.msg || '更新模型失败');
+        console.error('Update model failed:', err);
+        this.$message.error(err.msg || 'Update model failed');
         RequestService.reAjaxFun(() => {
           this.updateModel(params, callback);
         });
       }).send();
   },
-  // 设置默认模型
+  // Set default model
   setDefaultModel(id, callback) {
     RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/default/${id}`)
@@ -191,8 +191,8 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        console.error('设置默认模型失败:', err)
-        this.$message.error(err.msg || '设置默认模型失败')
+        console.error('Set default model failed:', err)
+        this.$message.error(err.msg || 'Set default model failed')
         RequestService.reAjaxFun(() => {
           this.setDefaultModel(id, callback)
         })
@@ -200,9 +200,9 @@ export default {
   },
 
   /**
-   * 获取模型配置列表（支持查询参数）
-   * @param {Object} params - 查询参数对象，例如 { name: 'test', modelType: 1 }
-   * @param {Function} callback - 回调函数
+   * Get model configuration list (supports query parameters)
+   * @param {Object} params - Query parameter object, e.g., { name: 'test', modelType: 1 }
+   * @param {Function} callback - Callback function
    */
   getModelProvidersPage(params, callback) {
     // 构建查询参数
@@ -220,7 +220,7 @@ export default {
         callback(res);
       })
       .networkFail((err) => {
-        this.$message.error(err.msg || '获取供应器列表失败');
+        this.$message.error(err.msg || 'Get provider list failed');
         RequestService.reAjaxFun(() => {
           this.getModelProviders(params, callback);
         });
@@ -228,9 +228,9 @@ export default {
   },
 
   /**
-   * 新增模型供应器配置
-   * @param {Object} params - 请求参数对象，例如 { modelType: '1', providerCode: '1', name: '1', fields: '1', sort: 1 }
-   * @param {Function} callback - 成功回调函数
+   * Add model provider configuration
+   * @param {Object} params - Request parameter object, e.g., { modelType: '1', providerCode: '1', name: '1', fields: '1', sort: 1 }
+   * @param {Function} callback - Success callback function
    */
   addModelProvider(params, callback) {
     const postData = {
@@ -250,8 +250,8 @@ export default {
         callback(res);
       })
       .networkFail((err) => {
-        console.error('新增模型供应器失败:', err)
-        this.$message.error(err.msg || '新增模型供应器失败')
+        console.error('Add model provider failed:', err)
+        this.$message.error(err.msg || 'Add model provider failed')
         RequestService.reAjaxFun(() => {
           this.addModelProvider(params, callback);
         });
@@ -259,9 +259,9 @@ export default {
   },
 
   /**
-   * 更新模型供应器配置
-   * @param {Object} params - 请求参数对象，例如 { id: '111', modelType: '1', providerCode: '1', name: '1', fields: '1', sort: 1 }
-   * @param {Function} callback - 成功回调函数
+   * Update model provider configuration
+   * @param {Object} params - Request parameter object, e.g., { id: '111', modelType: '1', providerCode: '1', name: '1', fields: '1', sort: 1 }
+   * @param {Function} callback - Success callback function
    */
   updateModelProvider(params, callback) {
     const putData = {
@@ -282,13 +282,13 @@ export default {
         callback(res);
       })
       .networkFail((err) => {
-        this.$message.error(err.msg || '更新模型供应器失败')
+        this.$message.error(err.msg || 'Update model provider failed')
         RequestService.reAjaxFun(() => {
           this.updateModelProvider(params, callback);
         });
       }).send();
   },
-  // 删除
+  // Delete
   deleteModelProviderByIds(ids, callback) {
     RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/provider/delete`)
@@ -299,13 +299,13 @@ export default {
         callback(res);
       })
       .networkFail((err) => {
-        this.$message.error(err.msg || '删除模型供应器失败')
+        this.$message.error(err.msg || 'Delete model provider failed')
         RequestService.reAjaxFun(() => {
           this.deleteModelProviderByIds(ids, callback)
         })
       }).send()
   },
-  // 获取插件列表
+  // Get plugin list
   getPluginFunctionList(params, callback) {
     RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/provider/plugin/names`)
@@ -315,7 +315,7 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        this.$message.error(err.msg || '获取插件列表失败')
+        this.$message.error(err.msg || 'Get plugin list failed')
         RequestService.reAjaxFun(() => {
           this.getPluginFunctionList(params, callback)
         })

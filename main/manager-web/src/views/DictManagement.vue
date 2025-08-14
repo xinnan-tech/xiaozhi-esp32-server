@@ -3,70 +3,70 @@
         <HeaderBar />
 
         <div class="operation-bar">
-            <h2 class="page-title">字典管理</h2>
+            <h2 class="page-title">Dictionary Management</h2>
             <div class="action-group">
                 <div class="search-group">
-                    <el-input placeholder="请输入字典值标签查询" v-model="search" class="search-input" clearable
+                    <el-input placeholder="Enter dictionary label to search" v-model="search" class="search-input" clearable
                         @keyup.enter.native="handleSearch" style="width: 240px" />
                     <el-button class="btn-search" @click="handleSearch">
-                        搜索
+                        Search
                     </el-button>
                 </div>
             </div>
         </div>
 
-        <!-- 主体内容 -->
+        <!-- Main content -->
         <div class="main-wrapper">
             <div class="content-panel">
-                <!-- 左侧字典类型列表 -->
+                <!-- Left side dictionary type list -->
                 <div class="dict-type-panel">
                     <div class="dict-type-header">
-                        <el-button type="success" size="mini" @click="showAddDictTypeDialog">新增字典类型</el-button>
+                        <el-button type="success" size="mini" @click="showAddDictTypeDialog">Add Dictionary Type</el-button>
                         <el-button type="danger" size="mini" @click="batchDeleteDictType"
                             :disabled="selectedDictTypes.length === 0">
-                            批量删除字典类型
+                            Batch Delete Types
                         </el-button>
                     </div>
                     <el-table ref="dictTypeTable" :data="dictTypeList" style="width: 100%" v-loading="dictTypeLoading"
-                        element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
+                        element-loading-text="Loading..." element-loading-spinner="el-icon-loading"
                         element-loading-background="rgba(255, 255, 255, 0.7)" @row-click="handleDictTypeRowClick"
                         @selection-change="handleDictTypeSelectionChange" :row-class-name="tableRowClassName"
                         class="dict-type-table">
                         <el-table-column type="selection" width="55" align="center"></el-table-column>
-                        <el-table-column label="字典类型名称" prop="dictName" align="center"></el-table-column>
-                        <el-table-column label="操作" width="100" align="center">
+                        <el-table-column label="Dictionary Type Name" prop="dictName" align="center"></el-table-column>
+                        <el-table-column label="Actions" width="100" align="center">
                             <template slot-scope="scope">
-                                <el-button type="text" size="mini" @click.stop="editDictType(scope.row)">编辑</el-button>
+                                <el-button type="text" size="mini" @click.stop="editDictType(scope.row)">Edit</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                 </div>
 
-                <!-- 右侧字典数据列表 -->
+                <!-- Right side dictionary data list -->
                 <div class="content-area">
                     <el-card class="dict-data-card" shadow="never">
                         <el-table ref="dictDataTable" :data="dictDataList" style="width: 100%"
-                            v-loading="dictDataLoading" element-loading-text="拼命加载中"
+                            v-loading="dictDataLoading" element-loading-text="Loading..."
                             element-loading-spinner="el-icon-loading"
                             element-loading-background="rgba(255, 255, 255, 0.7)" class="data-table"
                             header-row-class-name="table-header">
-                            <el-table-column label="选择" align="center" width="55">
+                            <el-table-column label="Select" align="center" width="55">
                                 <template slot-scope="scope">
                                     <el-checkbox v-model="scope.row.selected"></el-checkbox>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="字典标签" prop="dictLabel" align="center"></el-table-column>
-                            <el-table-column label="字典值" prop="dictValue" align="center"></el-table-column>
-                            <el-table-column label="排序" prop="sort" align="center"></el-table-column>
-                            <el-table-column label="操作" align="center" width="180px">
+                            <el-table-column label="Dictionary Label" prop="dictLabel" align="center"></el-table-column>
+                            <el-table-column label="Dictionary Value" prop="dictValue" align="center"></el-table-column>
+                            <el-table-column label="Sort Order" prop="sort" align="center"></el-table-column>
+                            <el-table-column label="Actions" align="center" width="180px">
                                 <template slot-scope="scope">
                                     <el-button type="text" size="mini" @click="editDictData(scope.row)"
                                         class="edit-btn">
-                                        修改
+                                        Edit
                                     </el-button>
                                     <el-button type="text" size="mini" @click="deleteDictData(scope.row)"
                                         class="delete-btn">
-                                        删除
+                                        Delete
                                     </el-button>
                                 </template>
                             </el-table-column>
@@ -74,36 +74,36 @@
                         <div class="table-footer">
                             <div class="batch-actions">
                                 <el-button size="mini" type="primary" @click="selectAllDictData">
-                                    {{ isAllDictDataSelected ? '取消全选' : '全选' }}
+                                    {{ isAllDictDataSelected ? 'Deselect All' : 'Select All' }}
                                 </el-button>
                                 <el-button type="success" size="mini" @click="showAddDictDataDialog" class="add-btn">
-                                    新增字典数据
+                                    Add Dictionary Data
                                 </el-button>
                                 <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDeleteDictData">
-                                    批量删除字典数据
+                                    Batch Delete Data
                                 </el-button>
                             </div>
                             <div class="custom-pagination">
                                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                                    <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`"
+                                    <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item} items/page`"
                                         :value="item">
                                     </el-option>
                                 </el-select>
 
                                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
-                                    首页
+                                    First
                                 </button>
                                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
-                                    上一页
+                                    Previous
                                 </button>
                                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                                     :class="{ active: page === currentPage }" @click="goToPage(page)">
                                     {{ page }}
                                 </button>
                                 <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
-                                    下一页
+                                    Next
                                 </button>
-                                <span class="total-text">共{{ total }}条记录</span>
+                                <span class="total-text">Total {{ total }} records</span>
                             </div>
                         </div>
                     </el-card>
@@ -111,11 +111,11 @@
             </div>
         </div>
 
-        <!-- 使用字典类型编辑弹框组件 -->
+        <!-- Dictionary type edit dialog component -->
         <DictTypeDialog :visible.sync="dictTypeDialogVisible" :title="dictTypeDialogTitle" :dictTypeData="dictTypeForm"
             @save="saveDictType" />
 
-        <!-- 使用字典数据编辑弹框组件 -->
+        <!-- Dictionary data edit dialog component -->
         <DictDataDialog :visible.sync="dictDataDialogVisible" :title="dictDataDialogTitle" :dictData="dictDataForm"
             :dictTypeId="selectedDictType?.id" @save="saveDictData" />
         <el-footer style="flex-shrink:unset;">
@@ -140,25 +140,25 @@ export default {
     },
     data() {
         return {
-            // 字典类型相关
+            // Dictionary type related
             dictTypeList: [],
             dictTypeLoading: false,
             selectedDictType: null,
             selectedDictTypes: [],  // 恢复多选数组
             dictTypeDialogVisible: false,
-            dictTypeDialogTitle: '新增字典类型',
+            dictTypeDialogTitle: 'Add Dictionary Type',
             dictTypeForm: {
                 id: null,
                 dictName: '',
                 dictType: ''
             },
 
-            // 字典数据相关
+            // Dictionary data related
             dictDataList: [],
             dictDataLoading: false,
             isAllDictDataSelected: false,
             dictDataDialogVisible: false,
-            dictDataDialogTitle: '新增字典数据',
+            dictDataDialogTitle: 'Add Dictionary Data',
             dictDataForm: {
                 id: null,
                 dictTypeId: null,
@@ -178,7 +178,7 @@ export default {
         this.loadDictTypeList()
     },
     methods: {
-        // 字典类型相关方法
+        // Dictionary type related methods
         loadDictTypeList() {
             this.dictTypeLoading = true
             dictApi.getDictTypeList({
@@ -211,7 +211,7 @@ export default {
             return row === this.selectedDictType ? 'current-row' : ''
         },
         showAddDictTypeDialog() {
-            this.dictTypeDialogTitle = '新增字典类型'
+            this.dictTypeDialogTitle = 'Add Dictionary Type'
             this.dictTypeForm = {
                 id: null,
                 dictName: '',
@@ -220,7 +220,7 @@ export default {
             this.dictTypeDialogVisible = true
         },
         editDictType(row) {
-            this.dictTypeDialogTitle = '编辑字典类型'
+            this.dictTypeDialogTitle = 'Edit Dictionary Type'
             this.dictTypeForm = { ...row }
             this.dictTypeDialogVisible = true
         },
@@ -228,7 +228,7 @@ export default {
             const api = formData.id ? dictApi.updateDictType : dictApi.addDictType
             api(formData, ({ data }) => {
                 if (data.code === 0) {
-                    this.$message.success('保存成功')
+                    this.$message.success('Saved successfully')
                     this.dictTypeDialogVisible = false
                     this.loadDictTypeList()
                 }
@@ -236,26 +236,26 @@ export default {
         },
         batchDeleteDictType() {
             if (this.selectedDictTypes.length === 0) {
-                this.$message.warning('请选择要删除的字典类型')
+                this.$message.warning('Please select dictionary types to delete')
                 return
             }
 
-            this.$confirm('确定要删除选中的字典类型吗?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
+            this.$confirm('Are you sure you want to delete the selected dictionary types?', 'Confirm', {
+                confirmButtonText: 'Confirm',
+                cancelButtonText: 'Cancel',
                 type: 'warning'
             }).then(() => {
                 const ids = this.selectedDictTypes.map(item => item.id)
                 dictApi.deleteDictType(ids, ({ data }) => {
                     if (data.code === 0) {
-                        this.$message.success('删除成功')
+                        this.$message.success('Deleted successfully')
                         this.loadDictTypeList()
                     }
                 })
             })
         },
 
-        // 字典数据相关方法
+        // Dictionary data related methods
         loadDictDataList(dictTypeId) {
             if (!dictTypeId) return
             this.dictDataLoading = true
@@ -273,7 +273,7 @@ export default {
                     }))
                     this.total = data.data.total
                 } else {
-                    this.$message.error(data.msg || '获取字典数据失败')
+                    this.$message.error(data.msg || 'Failed to get dictionary data')
                 }
                 this.dictDataLoading = false
             })
@@ -286,10 +286,10 @@ export default {
         },
         showAddDictDataDialog() {
             if (!this.selectedDictType) {
-                this.$message.warning('请先选择字典类型')
+                this.$message.warning('Please select a dictionary type first')
                 return
             }
-            this.dictDataDialogTitle = '新增字典数据'
+            this.dictDataDialogTitle = 'Add Dictionary Data'
             this.dictDataForm = {
                 id: null,
                 dictTypeId: this.selectedDictType.id,
@@ -300,7 +300,7 @@ export default {
             this.dictDataDialogVisible = true
         },
         editDictData(row) {
-            this.dictDataDialogTitle = '编辑字典数据'
+            this.dictDataDialogTitle = 'Edit Dictionary Data'
             this.dictDataForm = { ...row }
             this.dictDataDialogVisible = true
         },
@@ -308,21 +308,21 @@ export default {
             const api = formData.id ? dictApi.updateDictData : dictApi.addDictData
             api(formData, ({ data }) => {
                 if (data.code === 0) {
-                    this.$message.success('保存成功')
+                    this.$message.success('Saved successfully')
                     this.dictDataDialogVisible = false
                     this.loadDictDataList(formData.dictTypeId)
                 }
             })
         },
         deleteDictData(row) {
-            this.$confirm('确定要删除该字典数据吗?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
+            this.$confirm('Are you sure you want to delete this dictionary data?', 'Confirm', {
+                confirmButtonText: 'Confirm',
+                cancelButtonText: 'Cancel',
                 type: 'warning'
             }).then(() => {
                 dictApi.deleteDictData([row.id], ({ data }) => {
                     if (data.code === 0) {
-                        this.$message.success('删除成功')
+                        this.$message.success('Deleted successfully')
                         this.loadDictDataList(row.dictTypeId)
                     }
                 })
@@ -331,19 +331,19 @@ export default {
         batchDeleteDictData() {
             const selectedRows = this.dictDataList.filter(row => row.selected)
             if (selectedRows.length === 0) {
-                this.$message.warning('请选择要删除的字典数据')
+                this.$message.warning('Please select dictionary data to delete')
                 return
             }
 
-            this.$confirm(`确定要删除选中的${selectedRows.length}个字典数据吗?`, '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
+            this.$confirm(`Are you sure you want to delete ${selectedRows.length} selected dictionary data items?`, 'Confirm', {
+                confirmButtonText: 'Confirm',
+                cancelButtonText: 'Cancel',
                 type: 'warning'
             }).then(() => {
                 const ids = selectedRows.map(item => item.id)
                 dictApi.deleteDictData(ids, ({ data }) => {
                     if (data.code === 0) {
-                        this.$message.success('删除成功')
+                        this.$message.success('Deleted successfully')
                         this.loadDictDataList(this.selectedDictType.id)
                     }
                 })
@@ -351,13 +351,13 @@ export default {
         },
         handleSearch() {
             if (!this.selectedDictType) {
-                this.$message.warning('请先选择字典类型')
+                this.$message.warning('Please select a dictionary type first')
                 return
             }
             this.currentPage = 1
             this.loadDictDataList(this.selectedDictType.id)
         },
-        // 添加分页相关方法
+        // Add pagination related methods
         handlePageSizeChange(val) {
             this.pageSize = val;
             this.currentPage = 1;

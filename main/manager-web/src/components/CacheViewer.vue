@@ -1,60 +1,60 @@
 <template>
   <el-dialog
-    title="CDN资源缓存状态"
+    title="CDN Resource Cache Status"
     :visible.sync="visible"
     width="70%"
     :before-close="handleClose"
   >
     <div v-if="isLoading" class="loading-container">
-      <p>正在加载缓存信息...</p>
+      <p>Loading cache information...</p>
     </div>
     
     <div v-else>
       <div v-if="!cacheAvailable" class="no-cache-message">
         <i class="el-icon-warning-outline"></i>
-        <p>您的浏览器不支持Cache API或Service Worker未安装</p>
-        <el-button type="primary" @click="refreshPage">刷新页面</el-button>
+        <p>Your browser does not support the Cache API or Service Worker is not installed</p>
+        <el-button type="primary" @click="refreshPage">Refresh Page</el-button>
       </div>
       
       <div v-else>
         <el-alert
           v-if="cacheData.totalCached === 0"
-          title="未发现缓存的CDN资源"
+          title="No Cached CDN Resources Found"
           type="warning"
           :closable="false"
           show-icon
         >
-          <p>Service Worker可能尚未完成初始化或缓存尚未建立。请刷新页面或等待一会后再试。</p>
+          <p>Service Worker may not have finished initialization or cache has not been established. Please refresh the page or wait a moment and try again.</p>
         </el-alert>
         
         <div v-else>
           <el-alert
-            title="CDN资源缓存状态"
+            title="CDN Resource Cache Status"
             type="success"
             :closable="false"
             show-icon
           >
-            共发现 {{ cacheData.totalCached }} 个缓存资源
+            Found {{ cacheData.totalCached }} cached resources in total
           </el-alert>
           
-          <h3>JavaScript 资源 ({{ cacheData.js.length }})</h3>
+          <h3>JavaScript Resources ({{ cacheData.js.length }})</h3>
           <el-table :data="cacheData.js" stripe style="width: 100%">
             <el-table-column prop="url" label="URL" width="auto" show-overflow-tooltip />
-            <el-table-column prop="cached" label="状态" width="100">
+            <el-table-column prop="cached" label="Status" width="100">
               <template slot-scope="scope">
-                <el-tag type="success" v-if="scope.row.cached">已缓存</el-tag>
-                <el-tag type="danger" v-else>未缓存</el-tag>
+                <el-tag type="success" v-if="scope.row.cached">Cached</el-tag>
+                <el-tag type="danger" v-else>Not Cached</el-tag>
               </template>
             </el-table-column>
           </el-table>
           
-          <h3>CSS 资源 ({{ cacheData.css.length }})</h3>
+          <h3>CSS Resources ({{ cacheData.css.length }})</h3>
           <el-table :data="cacheData.css" stripe style="width: 100%">
             <el-table-column prop="url" label="URL" width="auto" show-overflow-tooltip />
-            <el-table-column prop="cached" label="状态" width="100">
+            <el-table-column prop="cached" label="Status" width="100">
               <template slot-scope="scope">
-                <el-tag type="success" v-if="scope.row.cached">已缓存</el-tag>
-                <el-tag type="danger" v-else>未缓存</el-tag>
+                <el-tag type="success" v-if="scope.row.cached">Cached</el-tag>
+                <el-tag type="danger" v-else>Not Cached</el-tag>
               </template>
             </el-table-column>
           </el-table>
@@ -63,9 +63,9 @@
     </div>
     
     <span slot="footer" class="dialog-footer">
-      <el-button @click="handleClose">关闭</el-button>
-      <el-button type="primary" @click="refreshCache">刷新缓存状态</el-button>
-      <el-button type="danger" @click="clearCache">清除缓存</el-button>
+      <el-button @click="handleClose">Close</el-button>
+      <el-button type="primary" @click="refreshCache">Refresh Cache Status</el-button>
+      <el-button type="danger" @click="clearCache">Clear Cache</el-button>
     </span>
   </el-dialog>
 </template>
@@ -129,8 +129,8 @@ export default {
           await logCacheStatus();
         }
       } catch (error) {
-        console.error('加载缓存数据失败:', error);
-        this.$message.error('加载缓存数据失败');
+        console.error('Failed to load cache data:', error);
+        this.$message.error('Failed to load cache data');
       } finally {
         this.isLoading = false;
       }
@@ -138,29 +138,29 @@ export default {
     
     async refreshCache() {
       this.loadCacheData();
-      this.$message.success('正在刷新缓存状态');
+      this.$message.success('Refreshing cache status');
     },
     
     async clearCache() {
-      this.$confirm('确定要清除所有缓存吗?', '警告', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm('Are you sure you want to clear all cache?', 'Warning', {
+        confirmButtonText: 'Confirm',
+        cancelButtonText: 'Cancel',
         type: 'warning'
       }).then(async () => {
         try {
           const success = await clearAllCaches();
           if (success) {
-            this.$message.success('缓存已清除');
+            this.$message.success('Cache cleared');
             await this.loadCacheData();
           } else {
-            this.$message.error('清除缓存失败');
+            this.$message.error('Failed to clear cache');
           }
         } catch (error) {
-          console.error('清除缓存失败:', error);
-          this.$message.error('清除缓存失败');
+          console.error('Failed to clear cache:', error);
+          this.$message.error('Failed to clear cache');
         }
       }).catch(() => {
-        this.$message.info('已取消清除');
+        this.$message.info('Clear operation cancelled');
       });
     },
     

@@ -3,11 +3,11 @@
     <HeaderBar />
 
     <div class="operation-bar">
-      <h2 class="page-title">用户管理</h2>
+      <h2 class="page-title">User Management</h2>
       <div class="right-operations">
-        <el-input placeholder="请输入手机号码查询" v-model="searchPhone" class="search-input" clearable
+        <el-input placeholder="Enter phone number to search" v-model="searchPhone" class="search-input" clearable
           @keyup.enter.native="handleSearch" />
-        <el-button class="btn-search" @click="handleSearch">搜索</el-button>
+        <el-button class="btn-search" @click="handleSearch">Search</el-button>
       </div>
     </div>
 
@@ -16,31 +16,31 @@
         <div class="content-area">
           <el-card class="user-card" shadow="never">
             <el-table ref="userTable" :data="userList" class="transparent-table" v-loading="loading"
-              element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
+              element-loading-text="Loading..." element-loading-spinner="el-icon-loading"
               element-loading-background="rgba(255, 255, 255, 0.7)">
-              <el-table-column label="选择" align="center" width="120">
+              <el-table-column label="Select" align="center" width="120">
                 <template slot-scope="scope">
                   <el-checkbox v-model="scope.row.selected"></el-checkbox>
                 </template>
               </el-table-column>
-              <el-table-column label="用户Id" prop="userid" align="center"></el-table-column>
-              <el-table-column label="手机号码" prop="mobile" align="center"></el-table-column>
-              <el-table-column label="设备数量" prop="deviceCount" align="center"></el-table-column>
-              <el-table-column label="注册时间" prop="createDate" align="center"></el-table-column>
-              <el-table-column label="状态" prop="status" align="center">
+              <el-table-column label="User ID" prop="userid" align="center"></el-table-column>
+              <el-table-column label="Phone Number" prop="mobile" align="center"></el-table-column>
+              <el-table-column label="Device Count" prop="deviceCount" align="center"></el-table-column>
+              <el-table-column label="Registration Time" prop="createDate" align="center"></el-table-column>
+              <el-table-column label="Status" prop="status" align="center">
                 <template slot-scope="scope">
-                  <el-tag v-if="scope.row.status === 1" type="success">正常</el-tag>
-                  <el-tag v-else type="danger">禁用</el-tag>
+                  <el-tag v-if="scope.row.status === 1" type="success">Active</el-tag>
+                  <el-tag v-else type="danger">Disabled</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" align="center">
+              <el-table-column label="Actions" align="center">
                 <template slot-scope="scope">
-                  <el-button size="mini" type="text" @click="resetPassword(scope.row)">重置密码</el-button>
+                  <el-button size="mini" type="text" @click="resetPassword(scope.row)">Reset Password</el-button>
                   <el-button size="mini" type="text" v-if="scope.row.status === 1"
-                    @click="handleChangeStatus(scope.row, 0)">禁用账户</el-button>
+                    @click="handleChangeStatus(scope.row, 0)">Disable Account</el-button>
                   <el-button size="mini" type="text" v-if="scope.row.status === 0"
-                    @click="handleChangeStatus(scope.row, 1)">恢复账号</el-button>
-                  <el-button size="mini" type="text" @click="deleteUser(scope.row)">删除用户</el-button>
+                    @click="handleChangeStatus(scope.row, 1)">Enable Account</el-button>
+                  <el-button size="mini" type="text" @click="deleteUser(scope.row)">Delete User</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -48,32 +48,32 @@
             <div class="table_bottom">
               <div class="ctrl_btn">
                 <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
-                  {{ isAllSelected ? '取消全选' : '全选' }}
+                  {{ isAllSelected ? 'Deselect All' : 'Select All' }}
                 </el-button>
-                <el-button size="mini" type="success" icon="el-icon-circle-check" @click="batchEnable">启用</el-button>
+                <el-button size="mini" type="success" icon="el-icon-circle-check" @click="batchEnable">Enable</el-button>
                 <el-button size="mini" type="warning" @click="batchDisable"><i
-                    class="el-icon-remove-outline rotated-icon"></i>禁用</el-button>
-                <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">删除</el-button>
+                    class="el-icon-remove-outline rotated-icon"></i>Disable</el-button>
+                <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">Delete</el-button>
               </div>
               <div class="custom-pagination">
                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                  <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`" :value="item">
+                  <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item} items/page`" :value="item">
                   </el-option>
                 </el-select>
 
                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
-                  首页
+                  First
                 </button>
                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
-                  上一页
+                  Previous
                 </button>
                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                   :class="{ active: page === currentPage }" @click="goToPage(page)">
                   {{ page }}
                 </button> <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
-                  下一页
+                  Next
                 </button>
-                <span class="total-text">共{{ total }}条记录</span>
+                <span class="total-text">Total {{ total }} records</span>
               </div>
             </div>
           </el-card>
@@ -148,7 +148,7 @@ export default {
           mobile: this.searchPhone,
         },
         ({ data }) => {
-          this.loading = false; // 结束加载
+          this.loading = false; // End loading
           if (data.code === 0) {
             this.userList = data.data.list.map(item => ({
               ...item,
@@ -172,19 +172,19 @@ export default {
     batchDelete() {
       const selectedUsers = this.userList.filter(user => user.selected);
       if (selectedUsers.length === 0) {
-        this.$message.warning("请先选择需要删除的用户");
+        this.$message.warning("Please select users to delete first");
         return;
       }
 
-      this.$confirm(`确定要删除选中的${selectedUsers.length}个用户吗？`, "警告", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
+      this.$confirm(`Are you sure you want to delete ${selectedUsers.length} selected users?`, "Warning", {
+        confirmButtonText: "Confirm",
+        cancelButtonText: "Cancel",
         type: "warning",
       })
         .then(async () => {
           const loading = this.$loading({
             lock: true,
-            text: "正在删除中...",
+            text: "Deleting...",
             spinner: "el-icon-loading",
             background: "rgba(0, 0, 0, 0.7)",
           });
@@ -209,29 +209,29 @@ export default {
 
             if (failCount === 0) {
               this.$message.success({
-                message: `成功删除${successCount}个用户`,
+                message: `Successfully deleted ${successCount} users`,
                 showClose: true
               });
             } else if (successCount === 0) {
               this.$message.error({
-                message: '删除失败，请重试',
+                message: 'Deletion failed, please try again',
                 showClose: true
               });
             } else {
               this.$message.warning(
-                `成功删除${successCount}个用户，${failCount}个删除失败`
+                `Successfully deleted ${successCount} users, ${failCount} failed`
               );
             }
 
             this.fetchUsers();
           } catch (error) {
-            this.$message.error("删除过程中发生错误");
+            this.$message.error("An error occurred during deletion");
           } finally {
             loading.close();
           }
         })
         .catch(() => {
-          this.$message.info("已取消删除");
+          this.$message.info("Deletion cancelled");
         });
     },
     batchEnable() {
@@ -243,16 +243,16 @@ export default {
       this.handleChangeStatus(selectedUsers, 0);
     },
     resetPassword(row) {
-      this.$confirm("重置后将会生成新密码，是否继续？", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
+      this.$confirm("A new password will be generated after reset. Continue?", "Confirm", {
+        confirmButtonText: "Confirm",
+        cancelButtonText: "Cancel",
       }).then(() => {
         Api.admin.resetUserPassword(row.userid, ({ data }) => {
           if (data.code === 0) {
             this.currentPassword = data.data;
             this.showViewPassword = true;
             this.$message.success({
-              message: "密码已重置，请通知用户使用新密码登录",
+              message: "Password has been reset. Please notify the user to login with the new password",
               showClose: true
             });
           }
@@ -260,22 +260,22 @@ export default {
       });
     },
     deleteUser(row) {
-      this.$confirm("确定要删除该用户吗？", "警告", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
+      this.$confirm("Are you sure you want to delete this user?", "Warning", {
+        confirmButtonText: "Confirm",
+        cancelButtonText: "Cancel",
         type: "warning",
       })
         .then(() => {
           Api.admin.deleteUser(row.userid, ({ data }) => {
             if (data.code === 0) {
               this.$message.success({
-                message: "删除成功",
+                message: "Deleted successfully",
                 showClose: true
               });
               this.fetchUsers();
             } else {
               this.$message.error({
-                message: data.msg || "删除失败",
+                message: data.msg || "Failed to delete",
                 showClose: true
               });
             }
@@ -304,38 +304,38 @@ export default {
       this.fetchUsers();
     },
     handleChangeStatus(row, status) {
-      // 处理单个用户或用户数组
+      // Handle single user or user array
       const users = Array.isArray(row) ? row : [row];
-      const confirmText = status === 0 ? '禁用' : '启用';
+      const confirmText = status === 0 ? 'disable' : 'enable';
       const userCount = users.length;
 
-      this.$confirm(`确定要${confirmText}选中的${userCount}个用户吗？`, '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm(`Are you sure you want to ${confirmText} ${userCount} selected users?`, 'Confirm', {
+        confirmButtonText: 'Confirm',
+        cancelButtonText: 'Cancel',
         type: 'warning'
       }).then(() => {
         const userIds = users.map(user => user.userid);
         if (userIds.some(id => isNaN(id))) {
-          this.$message.error('存在无效的用户ID');
+          this.$message.error('Invalid user IDs found');
           return;
         }
 
         Api.user.changeUserStatus(status, userIds, ({ data }) => {
           if (data.code === 0) {
             this.$message.success({
-              message: `成功${confirmText}${userCount}个用户`,
+              message: `Successfully ${confirmText}d ${userCount} users`,
               showClose: true
             });
-            this.fetchUsers(); // 刷新用户列表
+            this.fetchUsers(); // Refresh user list
           } else {
             this.$message.error({
-              message: '操作失败，请重试',
+              message: 'Operation failed, please try again',
               showClose: true
             });
           }
         });
       }).catch(() => {
-        // 用户取消操作
+        // User cancelled operation
       });
     },
   },

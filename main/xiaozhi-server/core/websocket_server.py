@@ -14,6 +14,7 @@ class WebSocketServer:
         self.config = config
         self.logger = setup_logging()
         self.config_lock = asyncio.Lock()
+
         modules = initialize_modules(
             self.logger,
             self.config,
@@ -24,6 +25,7 @@ class WebSocketServer:
             "Memory" in self.config["selected_module"],
             "Intent" in self.config["selected_module"],
         )
+
         self._vad = modules["vad"] if "vad" in modules else None
         self._asr = modules["asr"] if "asr" in modules else None
         self._llm = modules["llm"] if "llm" in modules else None
@@ -43,8 +45,8 @@ class WebSocketServer:
             await asyncio.Future()
 
     async def _handle_connection(self, websocket):
-        """处理新连接，每次创建独立的ConnectionHandler"""
-        # 创建ConnectionHandler时传入当前server实例
+        """Handle new connection, create independent ConnectionHandler each time"""
+        # Pass current server instance when creating ConnectionHandler
         handler = ConnectionHandler(
             self.config,
             self._vad,
@@ -52,8 +54,9 @@ class WebSocketServer:
             self._llm,
             self._memory,
             self._intent,
-            self,  # 传入server实例
+            self,  # Pass server instance
         )
+
         self.active_connections.add(handler)
         try:
             await handler.handle_connection(websocket)
@@ -61,37 +64,44 @@ class WebSocketServer:
             self.active_connections.discard(handler)
 
     async def _http_response(self, websocket, request_headers):
-        # 检查是否为 WebSocket 升级请求
+        # Check if it's a WebSocket upgrade request
         if request_headers.headers.get("connection", "").lower() == "upgrade":
-            # 如果是 WebSocket 请求，返回 None 允许握手继续
+            # If it's a WebSocket request, return None to allow handshake to continue
             return None
         else:
-            # 如果是普通 HTTP 请求，返回 "server is running"
+            # If it's a regular HTTP request, return "server is running"
             return websocket.respond(200, "Server is running\n")
 
     async def update_config(self) -> bool:
-        """更新服务器配置并重新初始化组件
+        """Update server configuration and reinitialize components
 
         Returns:
-            bool: 更新是否成功
+            bool: Whether update was successful
         """
         try:
             async with self.config_lock:
-                # 重新获取配置
+                # Get configuration again
                 new_config = get_config_from_api(self.config)
                 if new_config is None:
-                    self.logger.bind(tag=TAG).error("获取新配置失败")
+                    self.logger.bind(tag=TAG).error(
+                        "Failed to get new configuration")
                     return False
-                self.logger.bind(tag=TAG).info(f"获取新配置成功")
-                # 检查 VAD 和 ASR 类型是否需要更新
+
+                self.logger.bind(tag=TAG).info(
+                    f"Successfully got new configuration")
+
+                # Check if VAD and ASR types need updating
                 update_vad = check_vad_update(self.config, new_config)
                 update_asr = check_asr_update(self.config, new_config)
+
                 self.logger.bind(tag=TAG).info(
-                    f"检查VAD和ASR类型是否需要更新: {update_vad} {update_asr}"
+                    f"Check if VAD and ASR types need updating: {update_vad} {update_asr}"
                 )
-                # 更新配置
+
+                # Update configuration
                 self.config = new_config
-                # 重新初始化组件
+
+                # Reinitialize components
                 modules = initialize_modules(
                     self.logger,
                     new_config,
@@ -103,7 +113,7 @@ class WebSocketServer:
                     "Intent" in new_config["selected_module"],
                 )
 
-                # 更新组件实例
+                # Update component instances
                 if "vad" in modules:
                     self._vad = modules["vad"]
                 if "asr" in modules:
@@ -114,8 +124,12 @@ class WebSocketServer:
                     self._intent = modules["intent"]
                 if "memory" in modules:
                     self._memory = modules["memory"]
-                self.logger.bind(tag=TAG).info(f"更新配置任务执行完毕")
+
+                self.logger.bind(tag=TAG).info(
+                    f"Configuration update task completed")
                 return True
+
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"更新服务器配置失败: {str(e)}")
+            self.logger.bind(tag=TAG).error(
+                f"Failed to update server configuration: {str(e)}")
             return False

@@ -1,0 +1,70 @@
+name: Test Platform Detection
+
+on: [push, pull_request]
+
+jobs:
+  test-platforms:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: Linux
+            python-version: '3.9'
+          - os: ubuntu-latest
+            platform: Linux
+            python-version: '3.10'
+          - os: ubuntu-latest
+            platform: Linux
+            python-version: '3.11'
+          - os: ubuntu-latest
+            platform: Linux
+            python-version: '3.12'
+          - os: macos-latest
+            platform: macOS
+            python-version: '3.9'
+          - os: macos-latest
+            platform: macOS
+            python-version: '3.10'
+          - os: macos-latest
+            platform: macOS
+            python-version: '3.11'
+          - os: macos-latest
+            platform: macOS
+            python-version: '3.12'
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install system dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libc++1 libc++abi1
+    
+    - name: Install dependencies for git clone scenario
+      run: |
+        pip install -r requirements.txt
+        pip install -r examples/requirements.txt
+    
+    - name: Test git clone scenario
+      run: |
+        cd examples
+        python test.py s0724-s0730.wav output_git_clone.txt
+        echo "✅ ${{ matrix.platform }} Python ${{ matrix.python-version }} git clone scenario successful"
+    
+    - name: Install package
+      run: pip install .
+    
+    - name: Test pip install scenario
+      run: |
+        python -c "from ten_vad import TenVad; print('✅ ${{ matrix.platform }} Python ${{ matrix.python-version }} pip install import successful')"
+        cd examples
+        python test.py s0724-s0730.wav output_pip_install.txt
+        echo "✅ ${{ matrix.platform }} Python ${{ matrix.python-version }} pip install scenario successful"

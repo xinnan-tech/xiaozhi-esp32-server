@@ -1,4 +1,5 @@
 import uuid
+import re
 from typing import List, Dict
 from datetime import datetime
 
@@ -22,7 +23,7 @@ class Message:
 class Dialogue:
     def __init__(self):
         self.dialogue: List[Message] = []
-        # 获取当前时间
+        # Get current time
         self.current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def put(self, message: Message):
@@ -45,44 +46,78 @@ class Dialogue:
             dialogue.append({"role": m.role, "content": m.content})
 
     def get_llm_dialogue(self) -> List[Dict[str, str]]:
-        dialogue = []
-        for m in self.dialogue:
-            self.getMessages(m, dialogue)
-        return dialogue
+        # Directly call get_llm_dialogue_with_memory, passing None as memory_str
+        # This ensures speaker functionality takes effect in all call paths
+        return self.get_llm_dialogue_with_memory(None, None)
 
     def update_system_message(self, new_content: str):
-        """更新或添加系统消息"""
-        # 查找第一个系统消息
-        system_msg = next((msg for msg in self.dialogue if msg.role == "system"), None)
+        """Update or add system message"""
+        # Find the first system message
+        system_msg = next(
+            (msg for msg in self.dialogue if msg.role == "system"), None)
+
         if system_msg:
             system_msg.content = new_content
         else:
             self.put(Message(role="system", content=new_content))
 
     def get_llm_dialogue_with_memory(
-        self, memory_str: str = None
+        self, memory_str: str = None, voiceprint_config: dict = None
     ) -> List[Dict[str, str]]:
-        if memory_str is None or len(memory_str) == 0:
-            return self.get_llm_dialogue()
-
-        # 构建带记忆的对话
+        # Build dialogue
         dialogue = []
 
-        # 添加系统提示和记忆
+        # Add system prompt and memory
         system_message = next(
             (msg for msg in self.dialogue if msg.role == "system"), None
         )
 
         if system_message:
-            enhanced_system_prompt = (
-                f"{system_message.content}\n\n"
-                f"以下是用户的历史记忆：\n```\n{memory_str}\n```"
-            )
-            dialogue.append({"role": "system", "content": enhanced_system_prompt})
+            # Base system prompt
+            enhanced_system_prompt = system_message.content
 
-        # 添加用户和助手的对话
+            # Replace time placeholder
+            enhanced_system_prompt = enhanced_system_prompt.replace(
+                "{{current_time}}", datetime.now().strftime("%H:%M")
+            )
+
+            # Add speaker personalization description
+            try:
+                speakers = voiceprint_config.get("speakers", [])
+                if speakers:
+                    enhanced_system_prompt += "\n\n"
+                    for speaker_str in speakers:
+                        try:
+                            parts = speaker_str.split(",", 2)
+                            if len(parts) >= 2:
+                                name = parts[1].strip()
+                                # If description is empty, then ""
+                                description = (
+                                    parts[2].strip() if len(parts) >= 3 else ""
+                                )
+                                enhanced_system_prompt += f"\n- {name}: {description}"
+                        except:
+                            pass
+                    enhanced_system_prompt += "\n\n"
+            except:
+                # Ignore errors when configuration reading fails, don't affect other functionality
+                pass
+
+            # Use regular expression to match <memory></memory> tags, regardless of content inside
+            if memory_str is not None:
+                enhanced_system_prompt = re.sub(
+                    r"<memory>.*?</memory>",
+                    f"\n<memory>{memory_str}</memory>\n",
+                    enhanced_system_prompt,
+                    flags=re.DOTALL,
+                )
+
+            dialogue.append(
+                {"role": "system", "content": enhanced_system_prompt})
+
+        # Add user and assistant dialogue
         for m in self.dialogue:
-            if m.role != "system":  # 跳过原始的系统消息
+            if m.role != "system":  # Skip original system message
                 self.getMessages(m, dialogue)
 
         return dialogue
