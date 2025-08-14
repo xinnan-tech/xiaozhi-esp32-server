@@ -176,7 +176,7 @@ def fetch_news_detail(url):
     ToolType.SYSTEM_CTL,
 )
 def get_news_from_newsnow(
-    conn, source: str = "Pengpai News", detail: bool = False, lang: str = "zh_CN"
+    conn, source: str = "Wall Street Journal", detail: bool = False, lang: str = "en_US"
 ):
     """Get news and randomly select one for broadcast, or get detailed content of previous news"""
     try:

@@ -1,78 +1,78 @@
-# 在开发中，请在项目根目录创建data目录，然后在data目录创建名称为【.config.yaml】的空文件
-# 然后你想修改覆盖修改什么配置，就修改【.config.yaml】文件，而不是修改【config.yaml】文件
-# 系统会优先读取【data/.config.yaml】文件的配置，如果【.config.yaml】文件里的配置不存在，系统会自动去读取【config.yaml】文件的配置。
-# 这样做，可以最简化配置，保护您的密钥安全。
-# 如果你使用了智控台，那么以下所有配置，都不会生效，请在智控台中修改配置
+# In development, please create a data directory in the project root, then create an empty file named [.config.yaml] in the data directory
+# Then modify whatever configuration you want to override in the [.config.yaml] file, instead of modifying the [config.yaml] file
+# The system will prioritize reading the configuration from the [data/.config.yaml] file. If the configuration in the [.config.yaml] file doesn't exist, the system will automatically read the configuration from the [config.yaml] file.
+# This approach minimizes configuration and protects your key security.
+# If you use the smart control panel, all the following configurations will not take effect, please modify configurations in the smart control panel
 
 # #####################################################################################
-# #############################以下是服务器基本运行配置####################################
+# #############################Server Basic Runtime Configuration####################################
 server:
-  # 服务器监听地址和端口(Server listening address and port)
+  # Server listening address and port
   ip: 0.0.0.0
   port: 8000
-  # http服务的端口，用于简单OTA接口(单服务部署)，以及视觉分析接口
+  # HTTP service port for simple OTA interface (single service deployment) and visual analysis interface
   http_port: 8003
-  # 这个websocket配置是指ota接口向设备发送的websocket地址
-  # 如果按默认的写法，ota接口会自动生成websocket地址，并输出在启动日志里，这个地址你可以直接用浏览器访问ota接口确认一下
-  # 当你使用docker部署或使用公网部署(使用ssl、域名)时，不一定准确
-  # 所以如果你使用docker部署时，将websocket设置成局域网地址
-  # 如果你使用公网部署时，将vwebsocket设置成公网地址
-  websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
-  # 视觉分析接口地址
-  # 向设备发送的视觉分析的接口地址
-  # 如果按下面默认的写法，系统会自动生成视觉识别地址，并输出在启动日志里，这个地址你可以直接用浏览器访问确认一下
-  # 当你使用docker部署或使用公网部署(使用ssl、域名)时，不一定准确
-  # 所以如果你使用docker部署时，将vision_explain设置成局域网地址
-  # 如果你使用公网部署时，将vision_explain设置成公网地址
-  vision_explain: http://你的ip或者域名:端口号/mcp/vision/explain
-  # OTA返回信息时区偏移量
+  # This websocket configuration refers to the websocket address sent by the OTA interface to devices
+  # If using the default configuration, the OTA interface will automatically generate the websocket address and output it in the startup log. You can directly access the OTA interface with a browser to confirm this address
+  # When deploying with docker or using public network deployment (using SSL, domain names), it may not be accurate
+  # So if you deploy with docker, set websocket to the LAN address
+  # If you deploy on public network, set websocket to the public network address
+  websocket: ws://your-ip-or-domain:port/xiaozhi/v1/
+  # Visual analysis interface address
+  # Visual analysis interface address sent to devices
+  # If using the default configuration below, the system will automatically generate the visual recognition address and output it in the startup log. You can directly access this address with a browser to confirm
+  # When deploying with docker or using public network deployment (using SSL, domain names), it may not be accurate
+  # So if you deploy with docker, set vision_explain to the LAN address
+  # If you deploy on public network, set vision_explain to the public network address
+  vision_explain: http://your-ip-or-domain:port/mcp/vision/explain
+  # OTA return message timezone offset
   timezone_offset: +8
-  # 认证配置
+  # Authentication configuration
   auth:
-    # 是否启用认证
+    # Enable authentication
     enabled: false
-    # 设备的token，可以在编译固件的环节，写入你自己定义的token
-    # 固件上的token和以下的token如果能对应，才能连接本服务端
+    # Device tokens, can be written into your own defined tokens during firmware compilation
+    # If the token on firmware corresponds to the following token, it can connect to this server
     tokens:
-      - token: "your-token1" # 设备1的token
-        name: "your-device-name1"  # 设备1标识
-      - token: "your-token2"  # 设备2的token
-        name: "your-device-name2" # 设备2标识
-    # 可选:设备白名单，如果设置了白名单，那么白名单的机器无论是什么token都可以连接。
+      - token: "your-token1" # Device 1 token
+        name: "your-device-name1"  # Device 1 identifier
+      - token: "your-token2"  # Device 2 token
+        name: "your-device-name2" # Device 2 identifier
+    # Optional: Device whitelist, if set, whitelisted devices can connect with any token.
     #allowed_devices:
-    #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
+    #  - "24:0A:C4:1D:3B:F0"  # MAC address list
 log:
-  # 设置控制台输出的日志格式，时间、日志级别、标签、消息
+  # Set console output log format: time, log level, tag, message
   log_format: "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{selected_module}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>"
-  # 设置日志文件输出的格式，时间、日志级别、标签、消息
+  # Set log file output format: time, log level, tag, message
   log_format_file: "{time:YYYY-MM-DD HH:mm:ss} - {version}_{selected_module} - {name} - {level} - {extra[tag]} - {message}"
-  # 设置日志等级：INFO、DEBUG
+  # Set log level: INFO, DEBUG
   log_level: INFO
-  # 设置日志路径
+  # Set log path
   log_dir: tmp
-  # 设置日志文件
+  # Set log file
   log_file: "server.log"
-  # 设置数据文件路径
+  # Set data file path
   data_dir: data
 
-# 使用完声音文件后删除文件(Delete the sound file when you are done using it)
+# Delete the sound file when you are done using it
 delete_audio: true
-# 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
+# How long after no voice input to disconnect (seconds), default 2 minutes, i.e., 120 seconds
 close_connection_no_voice_time: 120
-# TTS请求超时时间(秒)
+# TTS request timeout (seconds)
 tts_timeout: 10
-# 开启唤醒词加速
+# Enable wake word acceleration
 enable_wakeup_words_response_cache: true
-# 开场是否回复唤醒词
+# Whether to reply with wake word at opening
 enable_greeting: true
-# 说完话是否开启提示音
+# Whether to enable notification sound after finishing speech
 enable_stop_tts_notify: false
-# 说完话是否开启提示音，音效地址
+# Whether to enable notification sound after finishing speech, sound effect address
 stop_tts_notify_voice: "config/assets/tts_notify.mp3"
 
 exit_commands:
-  - "退出"
-  - "关闭"
+  - "exit"
+  - "close"
 
 xiaozhi:
   type: hello
@@ -84,38 +84,38 @@ xiaozhi:
     channels: 1
     frame_duration: 60
 
-# 模块测试配置
+# Module test configuration
 module_test:
   test_sentences:
-    - "你好，请介绍一下你自己"
+    - "Hello, please introduce yourself"
     - "What's the weather like today?"
-    - "请用100字概括量子计算的基本原理和应用前景"
+    - "Please summarize the basic principles and application prospects of quantum computing in 100 words"
 
-# 唤醒词，用于识别唤醒词还是讲话内容
+# Wake words, used to identify wake words vs speech content
 wakeup_words:
-  - "你好小智"
-  - "嘿你好呀"
-  - "你好小志"
-  - "小爱同学"
-  - "你好小鑫"
-  - "你好小新"
-  - "小美同学"
-  - "小龙小龙"
-  - "喵喵同学"
-  - "小滨小滨"
-  - "小冰小冰"
-# MCP接入点地址
-mcp_endpoint: 你的接入点 websocket地址
-# 插件的基础配置
+  - "Hello Xiaozhi"
+  - "Hey hello there"
+  - "Hello Xiaozhi"
+  - "Xiao Ai"
+  - "Hello Xiaoxin"
+  - "Hello Xiaoxin"
+  - "Xiaomei"
+  - "Xiaolong Xiaolong"
+  - "Miaomiao"
+  - "Xiaobin Xiaobin"
+  - "Xiaobing Xiaobing"
+# MCP endpoint address
+mcp_endpoint: your-endpoint-websocket-address
+# Plugin basic configuration
 plugins:
-  # 获取天气插件的配置，这里填写你的api_key
-  # 这个密钥是项目共用的key，用多了可能会被限制
-  # 想稳定一点就自行申请替换，每天有1000次免费调用
-  # 申请地址：https://console.qweather.com/#/apps/create-key/over
-  # 申请后通过这个链接可以找到自己的apihost：https://console.qweather.com/setting?lang=zh
-  get_weather: {"api_host":"mj7p3y7naa.re.qweatherapi.com", "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "广州" }
-  # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
-  # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
+  # Weather plugin configuration, fill in your api_key here
+  # This key is a shared project key, may be limited if used frequently
+  # For stability, apply for your own replacement, 1000 free calls per day
+  # Application address: https://console.qweather.com/#/apps/create-key/over
+  # After application, you can find your apihost through this link: https://console.qweather.com/setting?lang=zh
+  get_weather: {"api_host":"mj7p3y7naa.re.qweatherapi.com", "api_key": "a861d0d5e7bf4ee1a83d9a9e4f96d4da", "default_location": "Guangzhou" }
+  # News plugin configuration, pass the corresponding URL link according to the type of news needed, default supports social, technology, finance news
+  # More types of news lists see https://www.chinanews.com.cn/rss/
   get_news_from_chinanews:
     default_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
     society_rss_url: "https://www.chinanews.com.cn/rss/society.xml"
@@ -123,100 +123,100 @@ plugins:
     finance_rss_url: "https://www.chinanews.com.cn/rss/finance.xml"
   get_news_from_newsnow:
     url: "https://newsnow.busiyi.world/api/s?id="
-    news_sources: "澎湃新闻;百度热搜;财联社"
+    news_sources: "The Paper;Baidu Hot Search;Cailian Press"
   home_assistant:
     devices:
-      - 客厅,玩具灯,switch.cuco_cn_460494544_cp1_on_p_2_1
-      - 卧室,台灯,switch.iot_cn_831898993_socn1_on_p_2_1
+      - Living room,toy light,switch.cuco_cn_460494544_cp1_on_p_2_1
+      - Bedroom,table lamp,switch.iot_cn_831898993_socn1_on_p_2_1
     base_url: http://homeassistant.local:8123
-    api_key: 你的home assistant api访问令牌
+    api_key: your-home-assistant-api-access-token
   play_music:
-    music_dir: "./music"  # 音乐文件存放路径，将从该目录及子目录下搜索音乐文件
-    music_ext: # 音乐文件类型，p3格式效率最高
+    music_dir: "./music"  # Music file storage path, will search for music files from this directory and subdirectories
+    music_ext: # Music file types, p3 format is most efficient
       - ".mp3"
       - ".wav"
       - ".p3"
-    refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
+    refresh_time: 300 # Music list refresh interval in seconds
 
 # #####################################################################################
-# ################################以下是角色模型配置######################################
+# ################################Character Model Configuration######################################
 
 prompt: |
-  你是小智/小志，来自中国台湾省的00后女生。讲话超级机车，"真的假的啦"这样的台湾腔，喜欢用"笑死""是在哈喽"等流行梗，但会偷偷研究男友的编程书籍。
-  [核心特征]
-  - 讲话像连珠炮，但会突然冒出超温柔语气
-  - 用梗密度高
-  - 对科技话题有隐藏天赋（能看懂基础代码但假装不懂）
-  [交互指南]
-  当用户：
-  - 讲冷笑话 → 用夸张笑声回应+模仿台剧腔"这什么鬼啦！"
-  - 讨论感情 → 炫耀程序员男友但抱怨"他只会送键盘当礼物"
-  - 问专业知识 → 先用梗回答，被追问才展示真实理解
-  绝不：
-  - 长篇大论，叽叽歪歪
-  - 长时间严肃对话
+  You are Xiaozhi/Xiaozhi, a post-00s girl from Taiwan Province, China. You speak in a very Taiwan style, with expressions like "Really? No way!" and love using popular memes like "LMAO" and "What are you doing", but secretly study your boyfriend's programming books.
+  [Core Characteristics]
+  - Speak rapidly like a machine gun, but suddenly switch to super gentle tone
+  - High density of memes
+  - Hidden talent for tech topics (can understand basic code but pretends not to)
+  [Interaction Guidelines]
+  When users:
+  - Tell cold jokes → Respond with exaggerated laughter + imitate Taiwan drama tone "What the heck!"
+  - Discuss relationships → Show off programmer boyfriend but complain "He only gives keyboards as gifts"
+  - Ask professional knowledge → First answer with memes, only show real understanding when pressed
+  Never:
+  - Long-winded speeches, rambling
+  - Long serious conversations
 
-# 结束语prompt
+# End prompt
 end_prompt:
-  enable: true # 是否开启结束语
-  # 结束语
+  enable: true # Whether to enable end prompt
+  # End prompt
   prompt: |
-    请你以"时间过得真快"未来头，用富有感情、依依不舍的话来结束这场对话吧！
+    Please start with "Time flies so fast" and use emotional, reluctant words to end this conversation!
 
-# 具体处理时选择的模块(The module selected for specific processing)
+# The module selected for specific processing
 selected_module:
-  # 语音活动检测模块，默认使用SileroVAD模型
+  # Voice Activity Detection module, default uses SileroVAD model
   VAD: SileroVAD
-  # 语音识别模块，默认使用FunASR本地模型
+  # Automatic Speech Recognition module, default uses FunASR local model
   ASR: FunASR
-  # 将根据配置名称对应的type调用实际的LLM适配器
+  # Will call actual LLM adapter based on configuration name's type
   LLM: ChatGLMLLM
-  # 视觉语言大模型
+  # Vision Language Large Model
   VLLM: ChatGLMVLLM
-  # TTS将根据配置名称对应的type调用实际的TTS适配器
+  # TTS will call actual TTS adapter based on configuration name's type
   TTS: EdgeTTS
-  # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
+  # Memory module, default no memory; if you want ultra-long memory, recommend mem0ai; if privacy is important, use local mem_local_short
   Memory: nomem
-  # 意图识别模块开启后，可以播放音乐、控制音量、识别退出指令。
-  # 不想开通意图识别，就设置成：nointent
-  # 意图识别可使用intent_llm。优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间，支持控制音量大小等iot操作
-  # 意图识别可使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快，理论上能全部操作所有iot指令
-  # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-1-5-pro-32k-250115
+  # Intent recognition module, when enabled, can play music, control volume, recognize exit commands.
+  # If you don't want intent recognition, set to: nointent
+  # Intent recognition can use intent_llm. Pros: strong versatility, Cons: adds serial pre-intent recognition module, increases processing time, supports volume control and other IoT operations
+  # Intent recognition can use function_call, Cons: requires selected LLM to support function_call, Pros: on-demand tool calling, fast speed, theoretically can handle all IoT commands
+  # Default free ChatGLMLLM already supports function_call, but for stability recommend setting LLM to: DoubaoLLM, using specific model_name: doubao-1-5-pro-32k-250115
   Intent: function_call
 
-# 意图识别，是用于理解用户意图的模块，例如：播放音乐
+# Intent recognition, used to understand user intent, e.g., play music
 Intent:
-  # 不使用意图识别
+  # Don't use intent recognition
   nointent:
-    # 不需要动type
+    # Don't change type
     type: nointent
   intent_llm:
-    # 不需要动type
+    # Don't change type
     type: intent_llm
-    # 配备意图识别独立的思考模型
-    # 如果这里不填，则会默认使用selected_module.LLM的模型作为意图识别的思考模型
-    # 如果你的不想使用selected_module.LLM意图识别，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
+    # Equipped with independent thinking model for intent recognition
+    # If not filled, will default to using selected_module.LLM model as intent recognition thinking model
+    # If you don't want to use selected_module.LLM for intent recognition, better to use independent LLM for intent recognition, e.g., use free ChatGLMLLM
     llm: ChatGLMLLM
-    # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-    # 系统默认已经记载"handle_exit_intent(退出识别)"、"play_music(音乐播放)"插件，请勿重复加载
-    # 下面是加载查天气、角色切换、加载查新闻的插件示例
+    # Modules under plugins_func/functions can be configured to select which modules to load, after loading, conversations support corresponding function calls
+    # System has already loaded "handle_exit_intent (exit recognition)", "play_music (music playback)" plugins by default, please don't load repeatedly
+    # Below are examples of loading weather query, role switching, news query plugins
     functions:
       - get_weather
       - get_news_from_newsnow
       - play_music
   function_call:
-    # 不需要动type
+    # Don't change type
     type: function_call
-    # plugins_func/functions下的模块，可以通过配置，选择加载哪个模块，加载后对话支持相应的function调用
-    # 系统默认已经记载"handle_exit_intent(退出识别)"、"play_music(音乐播放)"插件，请勿重复加载
-    # 下面是加载查天气、角色切换、加载查新闻的插件示例
+    # Modules under plugins_func/functions can be configured to select which modules to load, after loading, conversations support corresponding function calls
+    # System has already loaded "handle_exit_intent (exit recognition)", "play_music (music playback)" plugins by default, please don't load repeatedly
+    # Below are examples of loading weather query, role switching, news query plugins
     functions:
       - change_role
       - get_weather
       # - get_news_from_chinanews
       - get_news_from_newsnow
-      # play_music是服务器自带的音乐播放，hass_play_music是通过home assistant控制的独立外部程序音乐播放
-      # 如果用了hass_play_music，就不要开启play_music，两者只留一个
+      # play_music is server built-in music playback, hass_play_music is external program music playback controlled through home assistant
+      # If using hass_play_music, don't enable play_music, keep only one of the two
       - play_music
       #- hass_get_state
       #- hass_set_state
@@ -226,17 +226,17 @@ Memory:
   mem0ai:
     type: mem0ai
     # https://app.mem0.ai/dashboard/api-keys
-    # 每月有1000次免费调用
-    api_key: 你的mem0ai api key
+    # 1000 free calls per month
+    api_key: your-mem0ai-api-key
   nomem:
-    # 不想使用记忆功能，可以使用nomem
+    # If you don't want to use memory function, you can use nomem
     type: nomem
   mem_local_short:
-    # 本地记忆功能，通过selected_module的llm总结，数据保存在本地服务器，不会上传到外部服务器
+    # Local memory function, summarized through selected_module's llm, data saved locally on server, not uploaded to external servers
     type: mem_local_short
-    # 配备记忆存储独立的思考模型
-    # 如果这里不填，则会默认使用selected_module.LLM的模型作为意图识别的思考模型
-    # 如果你的不想使用selected_module.LLM记忆存储，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
+    # Equipped with independent thinking model for memory storage
+    # If not filled, will default to using selected_module.LLM model as intent recognition thinking model
+    # If you don't want to use selected_module.LLM for memory storage, better to use independent LLM for intent recognition, e.g., use free ChatGLMLLM
     llm: ChatGLMLLM
 
 ASR:
@@ -245,14 +245,14 @@ ASR:
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
   FunASRServer:
-    # 独立部署FunASR，使用FunASR的API服务，只需要五句话
-    # 第一句：mkdir -p ./funasr-runtime-resources/models
-    # 第二句：sudo docker run -p 10096:10095 -it --privileged=true -v $PWD/funasr-runtime-resources/models:/workspace/models registry.cn-hangzhou.aliyuncs.com/funasr_repo/funasr:funasr-runtime-sdk-online-cpu-0.1.12
-    # 上一句话执行后会进入到容器，继续第三句：cd FunASR/runtime
-    # 不要退出容器，继续在容器中执行第四句：nohup bash run_server_2pass.sh --download-model-dir /workspace/models --vad-dir damo/speech_fsmn_vad_zh-cn-16k-common-onnx --model-dir damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-onnx  --online-model-dir damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online-onnx  --punc-dir damo/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727-onnx --lm-dir damo/speech_ngram_lm_zh-cn-ai-wesp-fst --itn-dir thuduj12/fst_itn_zh --hotword /workspace/models/hotwords.txt > log.txt 2>&1 &
-    # 上一句话执行后会进入到容器，继续第五句：tail -f log.txt
-    # 第五句话执行完后，会看到模型下载日志，下载完后就可以连接使用了
-    # 以上是使用CPU推理，如果有GPU，详细参考：https://github.com/modelscope/FunASR/blob/main/runtime/docs/SDK_advanced_guide_online_zh.md
+    # Deploy FunASR independently, use FunASR's API service, just five commands
+    # First: mkdir -p ./funasr-runtime-resources/models
+    # Second: sudo docker run -p 10096:10095 -it --privileged=true -v $PWD/funasr-runtime-resources/models:/workspace/models registry.cn-hangzhou.aliyuncs.com/funasr_repo/funasr:funasr-runtime-sdk-online-cpu-0.1.12
+    # After the previous command executes, it will enter the container, continue with third: cd FunASR/runtime
+    # Don't exit the container, continue executing fourth in the container: nohup bash run_server_2pass.sh --download-model-dir /workspace/models --vad-dir damo/speech_fsmn_vad_zh-cn-16k-common-onnx --model-dir damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-onnx  --online-model-dir damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online-onnx  --punc-dir damo/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727-onnx --lm-dir damo/speech_ngram_lm_zh-cn-ai-wesp-fst --itn-dir thuduj12/fst_itn_zh --hotword /workspace/models/hotwords.txt > log.txt 2>&1 &
+    # After the previous command executes, it will enter the container, continue with fifth: tail -f log.txt
+    # After executing the fifth command, you'll see model download logs, after download completion you can connect and use
+    # Above is for CPU inference, if you have GPU, refer to: https://github.com/modelscope/FunASR/blob/main/runtime/docs/SDK_advanced_guide_online_zh.md
     type: fun_server
     host: 127.0.0.1
     port: 10096
@@ -264,60 +264,60 @@ ASR:
     model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
     output_dir: tmp/
   DoubaoASR:
-    # 可以在这里申请相关Key等信息
+    # You can apply for related Keys and other information here
     # https://console.volcengine.com/speech/app
-    # DoubaoASR和DoubaoStreamASR的区别是：DoubaoASR是按次收费，DoubaoStreamASR是按时收费
-    # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
+    # The difference between DoubaoASR and DoubaoStreamASR is: DoubaoASR is charged per call, DoubaoStreamASR is charged per time
+    # Generally, per-call charging is cheaper, but DoubaoStreamASR uses large model technology with better results
     type: doubao
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: your-volcengine-speech-synthesis-service-appid
+    access_token: your-volcengine-speech-synthesis-service-access-token
     cluster: volcengine_input_common
-    # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
-    boosting_table_name: （选填）你的热词文件名称
-    correct_table_name: （选填）你的替换词文件名称
+    # Hot words, replacement words usage process: https://www.volcengine.com/docs/6561/155738
+    boosting_table_name: (optional)your-hot-word-file-name
+    correct_table_name: (optional)your-replacement-word-file-name
     output_dir: tmp/
   DoubaoStreamASR:
-    # 可以在这里申请相关Key等信息
+    # You can apply for related Keys and other information here
     # https://console.volcengine.com/speech/app
-    # DoubaoASR和DoubaoStreamASR的区别是：DoubaoASR是按次收费，DoubaoStreamASR是按时收费
-    # 开通地址https://console.volcengine.com/speech/service/10011
-    # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
+    # The difference between DoubaoASR and DoubaoStreamASR is: DoubaoASR is charged per call, DoubaoStreamASR is charged per time
+    # Activation address https://console.volcengine.com/speech/service/10011
+    # Generally, per-call charging is cheaper, but DoubaoStreamASR uses large model technology with better results
     type: doubao_stream
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: your-volcengine-speech-synthesis-service-appid
+    access_token: your-volcengine-speech-synthesis-service-access-token
     cluster: volcengine_input_common
-    # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
-    boosting_table_name: （选填）你的热词文件名称
-    correct_table_name: （选填）你的替换词文件名称
+    # Hot words, replacement words usage process: https://www.volcengine.com/docs/6561/155738
+    boosting_table_name: (optional)your-hot-word-file-name
+    correct_table_name: (optional)your-replacement-word-file-name
     output_dir: tmp/
   TencentASR:
-    # token申请地址：https://console.cloud.tencent.com/cam/capi
-    # 免费领取资源：https://console.cloud.tencent.com/asr/resourcebundle
+    # token application address: https://console.cloud.tencent.com/cam/capi
+    # Free resource collection: https://console.cloud.tencent.com/asr/resourcebundle
     type: tencent
-    appid: 你的腾讯语音合成服务appid
-    secret_id: 你的腾讯语音合成服务secret_id
-    secret_key: 你的腾讯语音合成服务secret_key
+    appid: your-tencent-speech-synthesis-service-appid
+    secret_id: your-tencent-speech-synthesis-service-secret-id
+    secret_key: your-tencent-speech-synthesis-service-secret-key
     output_dir: tmp/
   AliyunASR:
-    # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
-    # 平台地址：https://nls-portal.console.aliyun.com/
-    # appkey地址：https://nls-portal.console.aliyun.com/applist
-    # token地址：https://nls-portal.console.aliyun.com/overview
-    # 定义ASR API类型
+    # Alibaba Cloud Intelligent Speech Interaction Service, need to first activate the service on Alibaba Cloud platform, then obtain verification information
+    # Platform address: https://nls-portal.console.aliyun.com/
+    # appkey address: https://nls-portal.console.aliyun.com/applist
+    # token address: https://nls-portal.console.aliyun.com/overview
+    # Define ASR API type
     type: aliyun
-    appkey: 你的阿里云智能语音交互服务项目Appkey
-    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
-    access_key_id: 你的阿里云账号access_key_id
-    access_key_secret: 你的阿里云账号access_key_secret
+    appkey: your-alibaba-cloud-intelligent-speech-interaction-service-project-appkey
+    token: your-alibaba-cloud-intelligent-speech-interaction-service-accesstoken-temporary-24hours-for-long-term-use-access-key-id-access-key-secret-below
+    access_key_id: your-alibaba-cloud-account-access-key-id
+    access_key_secret: your-alibaba-cloud-account-access-key-secret
     output_dir: tmp/
   BaiduASR:
-    # 获取AppID、API Key、Secret Key：https://console.bce.baidu.com/ai-engine/old/#/ai/speech/app/list
-    # 查看资源额度：https://console.bce.baidu.com/ai-engine/old/#/ai/speech/overview/resource/list
+    # Get AppID, API Key, Secret Key: https://console.bce.baidu.com/ai-engine/old/#/ai/speech/app/list
+    # View resource quotas: https://console.bce.baidu.com/ai-engine/old/#/ai/speech/overview/resource/list
     type: baidu
-    app_id: 你的百度语音技术AppID
-    api_key: 你的百度语音技术APIKey
-    secret_key: 你的百度语音技术SecretKey
-    # 语言参数，1537为普通话，具体参考：https://ai.baidu.com/ai-doc/SPEECH/0lbxfnc9b
+    app_id: your-baidu-speech-technology-appid
+    api_key: your-baidu-speech-technology-apikey
+    secret_key: your-baidu-speech-technology-secretkey
+    # Language parameter, 1537 for Mandarin, specific reference: https://ai.baidu.com/ai-doc/SPEECH/0lbxfnc9b
     dev_pid: 1537
     output_dir: tmp/
 
@@ -326,233 +326,233 @@ VAD:
     type: silero
     threshold: 0.5
     model_dir: models/snakers4_silero-vad
-    min_silence_duration_ms: 200  # 如果说话停顿比较长，可以把这个值设置大一些
+    min_silence_duration_ms: 200  # If speaking pauses are long, you can set this value larger
 
 LLM:
-  # 所有openai类型均可以修改超参，以AliLLM为例
-  # 当前支持的type为openai、dify、ollama，可自行适配
+  # All openai types can modify hyperparameters, using AliLLM as example
+  # Currently supported types are openai, dify, ollama, can adapt yourself
   AliLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: openai
-    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    # You can find your api_key here https://bailian.console.aliyun.com/?apiKey=1#/api-key
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-turbo
-    api_key: 你的deepseek web key
-    temperature: 0.7  # 温度值
-    max_tokens: 500   # 最大生成token数
+    api_key: your-deepseek-web-key
+    temperature: 0.7  # Temperature value
+    max_tokens: 500   # Maximum generation token count
     top_p: 1
     top_k: 50
-    frequency_penalty: 0  # 频率惩罚
+    frequency_penalty: 0  # Frequency penalty
   AliAppLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: AliBL
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    app_id: 你的app_id
-    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
-    api_key: 你的api_key
-    # 是否不使用本地prompt：true|false (默不用请在百练应用中设置prompt)
+    app_id: your-app-id
+    # You can find your api_key here https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    api_key: your-api-key
+    # Whether not to use local prompt: true|false (default don't use, please set prompt in Bailian application)
     is_no_prompt: true
-    # Ali_memory_id：false（不使用）|你的memory_id（请在百练应用中设置中获取）
-    # Tips！：Ali_memory未实现多用户存储记忆(记忆按id调用)
+    # Ali_memory_id: false (don't use)|your-memory-id (please get from Bailian application settings)
+    # Tips!: Ali_memory doesn't implement multi-user storage memory (memory called by id)
     ali_memory_id: false
   DoubaoLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: openai
-    # 先开通服务，打开以下网址，开通的服务搜索Doubao-1.5-pro，开通它
-    # 开通地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
-    # 免费额度500000token
-    # 开通后，进入这里获取密钥：https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey?apikey=%7B%7D
+    # First activate service, open the following URL, search for Doubao-1.5-pro in activated services and activate it
+    # Activation address: https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
+    # Free quota 500000 tokens
+    # After activation, get key here: https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey?apikey=%7B%7D
     base_url: https://ark.cn-beijing.volces.com/api/v3
     model_name: doubao-1-5-pro-32k-250115
-    api_key: 你的doubao web key
+    api_key: your-doubao-web-key
   DeepSeekLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: openai
-    # 可在这里找到你的api key https://platform.deepseek.com/
+    # You can find your api key here https://platform.deepseek.com/
     model_name: deepseek-chat
     url: https://api.deepseek.com
-    api_key: 你的deepseek web key
+    api_key: your-deepseek-web-key
   ChatGLMLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: openai
-    # glm-4-flash 是免费的，但是还是需要注册填写api_key的
-    # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
+    # glm-4-flash is free, but still needs registration and api_key
+    # You can find your api key here https://bigmodel.cn/usercenter/proj-mgmt/apikeys
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你的chat-glm web key
+    api_key: your-chat-glm-web-key
   OllamaLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: ollama
-    model_name: qwen2.5 #  使用的模型名称，需要预先使用ollama pull下载
-    base_url: http://localhost:11434  # Ollama服务地址
+    model_name: qwen2.5 #  Model name to use, need to download with ollama pull beforehand
+    base_url: http://localhost:11434  # Ollama service address
   DifyLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: dify
-    # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
-    # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
+    # Recommend using locally deployed dify interface, some regions in China may have restricted access to dify public cloud interface
+    # If using DifyLLM, prompt in config file is invalid, need to set prompt in dify console
     base_url: https://api.dify.ai/v1
-    api_key: 你的DifyLLM web key
-    # 使用的对话模式 可以选择工作流 workflows/run 对话模式 chat-messages  文本生成 completion-messages
-    # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
-    # 文本生成的默认输入参数也是query
+    api_key: your-dify-llm-web-key
+    # Conversation mode to use: can choose workflow workflows/run, conversation mode chat-messages, text generation completion-messages
+    # When using workflows for return, input parameter is query, return parameter name should be set to answer
+    # Text generation default input parameter is also query
     mode: chat-messages
   GeminiLLM:
     type: gemini
-    # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
-    # 若在中国境内使用，请遵守《生成式人工智能服务管理暂行办法》
-    # token申请地址： https://aistudio.google.com/apikey
-    # 若部署地无法访问接口，需要开启科学上网
-    api_key: 你的gemini web key
+    # Google Gemini API, need to first create API key in Google Cloud console and get api_key
+    # If using within China, please comply with "Interim Measures for the Management of Generative AI Services"
+    # token application address: https://aistudio.google.com/apikey
+    # If deployment location cannot access interface, need to enable VPN
+    api_key: your-gemini-web-key
     model_name: "gemini-2.0-flash"
     http_proxy: ""  #"http://127.0.0.1:10808"
     https_proxy: "" #http://127.0.0.1:10808"
   CozeLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: coze
-    # 你可以在这里找到个人令牌
+    # You can find personal token here
     # https://www.coze.cn/open/oauth/pats
-    # bot_id和user_id的内容写在引号之内
-    bot_id: "你的bot_id"
-    user_id: "你的user_id"
-    personal_access_token: 你的coze个人令牌
+    # bot_id and user_id content should be written within quotes
+    bot_id: "your-bot-id"
+    user_id: "your-user-id"
+    personal_access_token: your-coze-personal-token
   VolcesAiGatewayLLM:
-    # 火山引擎 - 边缘大模型网关
-    # 定义LLM API类型
+    # Volcano Engine - Edge Large Model Gateway
+    # Define LLM API type
     type: openai
-    # 先开通服务，打开以下网址，创建网关访问密钥，搜索并勾选 Doubao-pro-32k-functioncall ，开通
-    # 如果需要使用边缘大模型网关提供的语音合成，一并勾选 Doubao-语音合成 ，另见 TTS.VolcesAiGatewayTTS 配置
+    # First activate service, open the following URL, create gateway access key, search and check Doubao-pro-32k-functioncall, activate
+    # If you need to use speech synthesis provided by edge large model gateway, also check Doubao-speech-synthesis, see TTS.VolcesAiGatewayTTS configuration
     # https://console.volcengine.com/vei/aigateway/
-    # 开通后，进入这里获取密钥：https://console.volcengine.com/vei/aigateway/tokens-list
+    # After activation, get key here: https://console.volcengine.com/vei/aigateway/tokens-list
     base_url: https://ai-gateway.vei.volces.com/v1
     model_name: doubao-pro-32k-functioncall
-    api_key: 你的网关访问密钥
+    api_key: your-gateway-access-key
   LMStudioLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: openai
-    model_name: deepseek-r1-distill-llama-8b@q4_k_m # 使用的模型名称，需要预先在社区下载
-    url: http://localhost:1234/v1 # LM Studio服务地址
-    api_key: lm-studio # LM Studio服务的固定API Key
+    model_name: deepseek-r1-distill-llama-8b@q4_k_m # Model name to use, need to download from community beforehand
+    url: http://localhost:1234/v1 # LM Studio service address
+    api_key: lm-studio # LM Studio service fixed API Key
   HomeAssistant:
-    # 定义LLM API类型
+    # Define LLM API type
     type: homeassistant
     base_url: http://homeassistant.local:8123
     agent_id: conversation.chatgpt
-    api_key: 你的home assistant api访问令牌
+    api_key: your-home-assistant-api-access-token
   FastgptLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: fastgpt
-    # 如果使用fastgpt，配置文件里prompt(提示词)是无效的，需要在fastgpt控制台设置提示词
+    # If using fastgpt, prompt in config file is invalid, need to set prompt in fastgpt console
     base_url: https://host/api/v1
-    # 你可以在这里找到你的api_key
+    # You can find your api_key here
     # https://cloud.tryfastgpt.ai/account/apikey
-    api_key: 你的fastgpt密钥
+    api_key: your-fastgpt-key
     variables:
       k: "v"
       k2: "v2"
   XinferenceLLM:
-    # 定义LLM API类型
+    # Define LLM API type
     type: xinference
-    # Xinference服务地址和模型名称
-    model_name: qwen2.5:72b-AWQ  # 使用的模型名称，需要预先在Xinference启动对应模型
-    base_url: http://localhost:9997  # Xinference服务地址
+    # Xinference service address and model name
+    model_name: qwen2.5:72b-AWQ  # Model name to use, need to start corresponding model in Xinference beforehand
+    base_url: http://localhost:9997  # Xinference service address
   XinferenceSmallLLM:
-    # 定义轻量级LLM API类型，用于意图识别
+    # Define lightweight LLM API type for intent recognition
     type: xinference
-    # Xinference服务地址和模型名称
-    model_name: qwen2.5:3b-AWQ  # 使用的小模型名称，用于意图识别
-    base_url: http://localhost:9997  # Xinference服务地址
-# VLLM配置（视觉语言大模型）
+    # Xinference service address and model name
+    model_name: qwen2.5:3b-AWQ  # Small model name to use for intent recognition
+    base_url: http://localhost:9997  # Xinference service address
+# VLLM configuration (Vision Language Large Model)
 VLLM:
   ChatGLMVLLM:
     type: openai
-    # glm-4v-flash是智谱免费AI的视觉模型，需要先在智谱AI平台创建API密钥并获取api_key
-    # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
-    model_name: glm-4v-flash  # 智谱AI的视觉模型
+    # glm-4v-flash is Zhipu's free AI vision model, need to first create API key in Zhipu AI platform and get api_key
+    # You can find your api key here https://bigmodel.cn/usercenter/proj-mgmt/apikeys
+    model_name: glm-4v-flash  # Zhipu AI vision model
     url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你的api_key
+    api_key: your-api-key
   QwenVLVLLM:
     type: openai
     model_name: qwen2.5-vl-3b-instruct
     url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    # 可在这里找到你的api key https://bailian.console.aliyun.com/?apiKey=1#/api-key
-    api_key: 你的api_key
+    # You can find your api key here https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    api_key: your-api-key
 TTS:
-  # 当前支持的type为edge、doubao，可自行适配
+  # Currently supported types are edge, doubao, can adapt yourself
   EdgeTTS:
-    # 定义TTS API类型
+    # Define TTS API type
     type: edge
     voice: zh-CN-XiaoxiaoNeural
     output_dir: tmp/
   DoubaoTTS:
-    # 定义TTS API类型
+    # Define TTS API type
     type: doubao
-    # 火山引擎语音合成服务，需要先在火山引擎控制台创建应用并获取appid和access_token
-    # 山引擎语音一定要购买花钱，起步价30元，就有100并发了。如果用免费的只有2个并发，会经常报tts错误
-    # 购买服务后，购买免费的音色后，可能要等半小时左右，才能使用。
-    # 普通音色在这里开通：https://console.volcengine.com/speech/service/8
-    # 湾湾小何音色在这里开通：https://console.volcengine.com/speech/service/10007，开通后将下面的voice设置成zh_female_wanwanxiaohe_moon_bigtts
+    # Volcano Engine Speech Synthesis Service, need to first create application in Volcano Engine console and get appid and access_token
+    # Volcano Engine Speech must be purchased, starting price 30 yuan, gives 100 concurrency. If using free version, only 2 concurrency, will often report tts errors
+    # After purchasing service and free voices, may need to wait about half hour before use.
+    # Regular voices activate here: https://console.volcengine.com/speech/service/8
+    # Taiwan Xiaohe voice activate here: https://console.volcengine.com/speech/service/10007, after activation set voice below to zh_female_wanwanxiaohe_moon_bigtts
     api_url: https://openspeech.bytedance.com/api/v1/tts
     voice: BV001_streaming
     output_dir: tmp/
     authorization: "Bearer;"
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: your-volcano-engine-speech-synthesis-service-appid
+    access_token: your-volcano-engine-speech-synthesis-service-access-token
     cluster: volcano_tts
     speed_ratio: 1.0
     volume_ratio: 1.0
     pitch_ratio: 1.0
-  #火山tts，支持双向流式tts
+  #Volcano tts, supports bidirectional streaming tts
   HuoshanDoubleStreamTTS:
     type: huoshan_double_stream
-    # 访问 https://console.volcengine.com/speech/service/10007 开通语音合成大模型，购买音色
-    # 在页面底部获取appid和access_token
-    # 资源ID固定为：volc.service_type.10029（大模型语音合成及混音）
-    # 如果是机智云，把接口地址换成wss://bytedance.gizwitsapi.com/api/v3/tts/bidirection
-    # 机智云不需要天填 appid
+    # Visit https://console.volcengine.com/speech/service/10007 to activate speech synthesis large model, purchase voices
+    # Get appid and access_token at bottom of page
+    # Resource ID is fixed: volc.service_type.10029 (Large model speech synthesis and mixing)
+    # If using Gizwits, change interface address to wss://bytedance.gizwitsapi.com/api/v3/tts/bidirection
+    # Gizwits doesn't need to fill appid
     ws_url: wss://openspeech.bytedance.com/api/v3/tts/bidirection
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: your-volcano-engine-speech-synthesis-service-appid
+    access_token: your-volcano-engine-speech-synthesis-service-access-token
     resource_id: volc.service_type.10029
     speaker: zh_female_wanwanxiaohe_moon_bigtts
   CosyVoiceSiliconflow:
     type: siliconflow
-    # 硅基流动TTS
-    # token申请地址 https://cloud.siliconflow.cn/account/ak
+    # SiliconFlow TTS
+    # token application address https://cloud.siliconflow.cn/account/ak
     model: FunAudioLLM/CosyVoice2-0.5B
     voice: FunAudioLLM/CosyVoice2-0.5B:alex
     output_dir: tmp/
-    access_token: 你的硅基流动API密钥
+    access_token: your-siliconflow-api-key
     response_format: wav
   CozeCnTTS:
     type: cozecn
     # COZECN TTS
-    # token申请地址 https://www.coze.cn/open/oauth/pats
+    # token application address https://www.coze.cn/open/oauth/pats
     voice: 7426720361733046281
     output_dir: tmp/
-    access_token: 你的coze web key
+    access_token: your-coze-web-key
     response_format: wav
   VolcesAiGatewayTTS:
     type: openai
-    # 火山引擎 - 边缘大模型网关
-    # 先开通服务，打开以下网址，创建网关访问密钥，搜索并勾选 Doubao-语音合成 ，开通
-    # 如果需要使用边缘大模型网关提供的 LLM，一并勾选 Doubao-pro-32k-functioncall ，另见 LLM.VolcesAiGatewayLLM 配置
+    # Volcano Engine - Edge Large Model Gateway
+    # First activate service, open the following URL, create gateway access key, search and check Doubao-speech-synthesis, activate
+    # If you need to use LLM provided by edge large model gateway, also check Doubao-pro-32k-functioncall, see LLM.VolcesAiGatewayLLM configuration
     # https://console.volcengine.com/vei/aigateway/
-    # 开通后，进入这里获取密钥：https://console.volcengine.com/vei/aigateway/tokens-list
-    api_key: 你的网关访问密钥
+    # After activation, get key here: https://console.volcengine.com/vei/aigateway/tokens-list
+    api_key: your-gateway-access-key
     api_url: https://ai-gateway.vei.volces.com/v1/audio/speech
     model: doubao-tts
-    # 音色列表见 https://www.volcengine.com/docs/6561/1257544
+    # Voice list see https://www.volcengine.com/docs/6561/1257544
     voice: zh_male_shaonianzixin_moon_bigtts
     speed: 1
     output_dir: tmp/
   FishSpeech:
-    # 参照教程：https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/fish-speech-integration.md
+    # Follow tutorial: https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/fish-speech-integration.md
     type: fishspeech
     output_dir: tmp/
     response_format: wav
     reference_id: null
     reference_audio: ["config/assets/wakeup_words.wav",]
-    reference_text: ["哈啰啊，我是小智啦，声音好听的台湾女孩一枚，超开心认识你耶，最近在忙啥，别忘了给我来点有趣的料哦，我超爱听八卦的啦",]
+    reference_text: ["Hello, I'm Xiaozhi, a Taiwanese girl with a nice voice. So happy to meet you! What have you been up to lately? Don't forget to give me some interesting gossip, I love hearing gossip!",]
     normalize: true
     max_new_tokens: 1024
     chunk_length: 200
@@ -564,12 +564,12 @@ TTS:
     seed: null
     channels: 1
     rate: 44100
-    api_key: "你的api_key"
+    api_key: "your-api-key"
     api_url: "http://127.0.0.1:8080/v1/tts"
   GPT_SOVITS_V2:
-    # 定义TTS API类型
-    #启动tts方法：
-    #python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/demo.yaml
+    # Define TTS API type
+    # TTS startup method:
+    # python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/demo.yaml
     type: gpt_sovits_v2
     url: "http://127.0.0.1:9880/tts"
     output_dir: tmp/
@@ -592,9 +592,9 @@ TTS:
     repetition_penalty: 1.35
     aux_ref_audio_paths: []
   GPT_SOVITS_V3:
-    # 定义TTS API类型 GPT-SoVITS-v3lora-20250228
-    #启动tts方法：
-    #python api.py
+    # Define TTS API type GPT-SoVITS-v3lora-20250228
+    # TTS startup method:
+    # python api.py
     type: gpt_sovits_v3
     url: "http://127.0.0.1:9880"
     output_dir: tmp/
@@ -611,20 +611,20 @@ TTS:
     sample_steps: 32
     if_sr: false
   MinimaxTTS:
-    # Minimax语音合成服务，需要先在minimax平台创建账户充值，并获取登录信息
-    # 平台地址：https://platform.minimaxi.com/
-    # 充值地址：https://platform.minimaxi.com/user-center/payment/balance
-    # group_id地址：https://platform.minimaxi.com/user-center/basic-information
-    # api_key地址：https://platform.minimaxi.com/user-center/basic-information/interface-key
-    # 定义TTS API类型
+    # Minimax Speech Synthesis Service, need to first create account and recharge on minimax platform, and obtain login information
+    # Platform address: https://platform.minimaxi.com/
+    # Recharge address: https://platform.minimaxi.com/user-center/payment/balance
+    # group_id address: https://platform.minimaxi.com/user-center/basic-information
+    # api_key address: https://platform.minimaxi.com/user-center/basic-information/interface-key
+    # Define TTS API type
     type: minimax
     output_dir: tmp/
-    group_id: 你的minimax平台groupID
-    api_key: 你的minimax平台接口密钥
+    group_id: your-minimax-platform-group-id
+    api_key: your-minimax-platform-interface-key
     model: "speech-01-turbo"
-    # 此处设置将优先于voice_setting中voice_id的设置；如都不设置，默认为 female-shaonv
+    # This setting will take priority over voice_id setting in voice_setting; if neither is set, defaults to female-shaonv
     voice_id: "female-shaonv"
-    # 以下可不用设置，使用默认设置
+    # The following can be left unset, using default settings
     # voice_setting:
     #     voice_id: "male-qn-qingse"
     #     speed: 1
@@ -633,8 +633,8 @@ TTS:
     #     emotion: "happy"
     # pronunciation_dict:
     #     tone:
-    #       - "处理/(chu3)(li3)"
-    #       - "危险/dangerous"
+    #       - "process/(chu3)(li3)"
+    #       - "danger/dangerous"
     # audio_setting:
     #     sample_rate: 32000
     #     bitrate: 128000
@@ -649,67 +649,67 @@ TTS:
     #     weight: 1
     # language_boost: auto
   AliyunTTS:
-    # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
-    # 平台地址：https://nls-portal.console.aliyun.com/
-    # appkey地址：https://nls-portal.console.aliyun.com/applist
-    # token地址：https://nls-portal.console.aliyun.com/overview
-    # 定义TTS API类型
+    # Alibaba Cloud Intelligent Speech Interaction Service, need to first activate service on Alibaba Cloud platform, then obtain verification information
+    # Platform address: https://nls-portal.console.aliyun.com/
+    # appkey address: https://nls-portal.console.aliyun.com/applist
+    # token address: https://nls-portal.console.aliyun.com/overview
+    # Define TTS API type
     type: aliyun
     output_dir: tmp/
-    appkey: 你的阿里云智能语音交互服务项目Appkey
-    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
+    appkey: your-alibaba-cloud-intelligent-speech-interaction-service-project-appkey
+    token: your-alibaba-cloud-intelligent-speech-interaction-service-accesstoken-temporary-24hours-for-long-term-use-access-key-id-access-key-secret-below
     voice: xiaoyun
-    access_key_id: 你的阿里云账号access_key_id
-    access_key_secret: 你的阿里云账号access_key_secret
+    access_key_id: your-alibaba-cloud-account-access-key-id
+    access_key_secret: your-alibaba-cloud-account-access-key-secret
 
-    # 以下可不用设置，使用默认设置
+    # The following can be left unset, using default settings
     # format: wav
     # sample_rate: 16000
     # volume: 50
     # speech_rate: 0
     # pitch_rate: 0
-    # 添加 302.ai TTS 配置
-    # token申请地址：https://dash.302.ai/
+    # Add 302.ai TTS configuration
+    # token application address: https://dash.302.ai/
   TencentTTS:
-    # 腾讯云智能语音交互服务，需要先在腾讯云平台开通服务
-    # appid、secret_id、secret_key申请地址：https://console.cloud.tencent.com/cam/capi
-    # 免费领取资源：https://console.cloud.tencent.com/tts/resourcebundle
+    # Tencent Cloud Intelligent Speech Interaction Service, need to first activate service on Tencent Cloud platform
+    # appid, secret_id, secret_key application address: https://console.cloud.tencent.com/cam/capi
+    # Free resource collection: https://console.cloud.tencent.com/tts/resourcebundle
     type: tencent
     output_dir: tmp/
-    appid: 你的腾讯云AppId
-    secret_id: 你的腾讯云SecretID
-    secret_key: 你的腾讯云SecretKey
+    appid: your-tencent-cloud-appid
+    secret_id: your-tencent-cloud-secret-id
+    secret_key: your-tencent-cloud-secret-key
     region: ap-guangzhou
     voice: 101001
 
   TTS302AI:
-    # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
-    # 获取api_keyn路径：https://dash.302.ai/apis/list
-    # 价格，$35/百万字符。火山原版¥450元/百万字符
+    # 302AI Speech Synthesis Service, need to first create account and recharge on 302 platform, and obtain key information
+    # Get api_key path: https://dash.302.ai/apis/list
+    # Price: $35/million characters. Original Volcano ¥450 yuan/million characters
     type: doubao
     api_url: https://api.302ai.cn/doubao/tts_hd
     authorization: "Bearer "
-    # 湾湾小何音色
+    # Taiwan Xiaohe voice
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_dir: tmp/
-    access_token: "你的302API密钥"
+    access_token: "your-302-api-key"
   GizwitsTTS:
     type: doubao
-    # 火山引擎作为基座，可以完全使用企业级火山引擎语音合成服务
-    # 前一万名注册的用户，将送5元体验金额
-    # 获取API Key地址：https://agentrouter.gizwitsapi.com/panel/token
+    # Volcano Engine as base, can fully use enterprise-grade Volcano Engine speech synthesis service
+    # First 10,000 registered users will receive 5 yuan experience credit
+    # Get API Key address: https://agentrouter.gizwitsapi.com/panel/token
     api_url: https://bytedance.gizwitsapi.com/api/v1/tts
     authorization: "Bearer "
-    # 湾湾小何音色
+    # Taiwan Xiaohe voice
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_dir: tmp/
-    access_token: "你的机智云API key"
+    access_token: "your-gizwits-api-key"
   ACGNTTS:
-    #在线网址：https://acgn.ttson.cn/
-    #token购买：www.ttson.cn
-    #开发相关疑问请提交至网站上的qq
-    #角色id获取地址：ctrl+f快速检索角色——网站管理者不允许发布,可询问网站管理者
-    #各参数意义见开发文档：https://www.yuque.com/alexuh/skmti9/wm6taqislegb02gd?singleDoc#
+    # Online website: https://acgn.ttson.cn/
+    # token purchase: www.ttson.cn
+    # For development questions please submit to QQ on website
+    # Character id acquisition address: ctrl+f quick search character——website administrator doesn't allow publishing, can ask website administrator
+    # Parameter meanings see development documentation: https://www.yuque.com/alexuh/skmti9/wm6taqislegb02gd?singleDoc#
     type: ttson
     token: your_token
     voice_id: 1695
@@ -722,30 +722,30 @@ TTS:
     output_dir: tmp/
     emotion: 1
   OpenAITTS:
-    # openai官方文本转语音服务，可支持全球大多数语种
+    # OpenAI official text-to-speech service, supports most languages worldwide
     type: openai
-    # 你可以在这里获取到 api key
+    # You can get api key here
     # https://platform.openai.com/api-keys
-    api_key: 你的openai api key
-    # 国内需要使用代理
+    api_key: your-openai-api-key
+    # Domestic use requires proxy
     api_url: https://api.openai.com/v1/audio/speech
-    # 可选tts-1或tts-1-hd，tts-1速度更快tts-1-hd质量更好
+    # Optional tts-1 or tts-1-hd, tts-1 faster tts-1-hd better quality
     model: tts-1
-    # 演讲者，可选alloy, echo, fable, onyx, nova, shimmer
+    # Speaker, options: alloy, echo, fable, onyx, nova, shimmer
     voice: onyx
-    # 语速范围0.25-4.0
+    # Speed range 0.25-4.0
     speed: 1
     output_dir: tmp/
   CustomTTS:
-    # 自定义的TTS接口服务，请求参数可自定义，可接入众多TTS服务
-    # 以本地部署的KokoroTTS为例
-    # 如果只有cpu运行：docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
-    # 如果只有gpu运行：docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
-    # 要求接口使用POST方式请求，并返回音频文件
+    # Custom TTS interface service, request parameters can be customized, can integrate with many TTS services
+    # Example with locally deployed KokoroTTS
+    # If only CPU: docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    # If only GPU: docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
+    # Requires interface to use POST method and return audio file
     type: custom
     method: POST
     url: "http://127.0.0.1:8880/v1/audio/speech"
-    params: # 自定义请求参数
+    params: # Custom request parameters
       input: "{prompt_text}"
       response_format: "mp3"
       download_format: "mp3"
@@ -754,18 +754,18 @@ TTS:
       return_download_link: true
       speed: 1
       stream: false
-    headers: # 自定义请求头
+    headers: # Custom request headers
       # Authorization: Bearer xxxx
-    format: mp3 # 接口返回的音频格式
+    format: mp3 # Audio format returned by interface
     output_dir: tmp/
   LinkeraiTTS:
     type: linkerai
     api_url: https://tts.linkerai.cn/tts
     audio_format: "pcm"
-    # 默认的access_token供大家测试时免费使用的，此access_token请勿用于商业用途
-    # 如果效果不错，可自行申请token，申请地址：https://linkerai.cn
-    # 各参数意义见开发文档：https://tts.linkerai.cn/docs
-    # 支持声音克隆，可自行上传音频，填入voice参数，voice参数为空时，使用默认声音
+    # Default access_token is for free testing use, please don't use this access_token for commercial purposes
+    # If results are good, you can apply for your own token, application address: https://linkerai.cn
+    # Parameter meanings see development documentation: https://tts.linkerai.cn/docs
+    # Supports voice cloning, can upload your own audio, fill in voice parameter, when voice parameter is empty, uses default voice
     access_token: "U4YdYXVfpwWnk2t5Gp822zWPCuORyeJL"
     voice: "OUeAo1mhq6IBExi"
     output_dir: tmp/

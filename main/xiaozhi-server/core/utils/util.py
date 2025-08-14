@@ -107,9 +107,22 @@ def get_ip_info(ip_addr, logger):
         if is_private_ip(ip_addr):
             ip_addr = ""
 
-        url = f"https://whois.pconline.com.cn/ipJson.jsp?json=true&ip={ip_addr}"
+        # Use Indian/International IP geolocation service
+        url = f"http://ip-api.com/json/{ip_addr}?fields=status,country,regionName,city,timezone"
         resp = requests.get(url).json()
-        ip_info = {"city": resp.get("city")}
+
+        if resp.get("status") == "success":
+            city = resp.get("city", "Unknown")
+            region = resp.get("regionName", "")
+            country = resp.get("country", "")
+
+            # Format Indian location
+            if country == "India":
+                ip_info = {"city": f"{city}, {region}"}
+            else:
+                ip_info = {"city": f"{city}, {country}"}
+        else:
+            ip_info = {"city": "Unknown location"}
 
         # Store in cache
         cache_manager.set(CacheType.IP_INFO, ip_addr, ip_info)

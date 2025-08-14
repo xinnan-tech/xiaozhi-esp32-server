@@ -39,6 +39,7 @@ GET_NEWS_FROM_CHINANEWS_FUNCTION_DESC = {
     },
 }
 
+
 def fetch_news_from_rss(rss_url):
     """Fetch news list from RSS source"""
     try:
@@ -50,9 +51,11 @@ def fetch_news_from_rss(rss_url):
         news_items = []
         for item in root.findall(".//item"):
             title = (
-                item.find("title").text if item.find("title") is not None else "No title"
+                item.find("title").text if item.find(
+                    "title") is not None else "No title"
             )
-            link = item.find("link").text if item.find("link") is not None else "#"
+            link = item.find("link").text if item.find(
+                "link") is not None else "#"
             description = (
                 item.find("description").text
                 if item.find("description") is not None
@@ -76,6 +79,7 @@ def fetch_news_from_rss(rss_url):
         logger.bind(tag=TAG).error(f"Failed to fetch RSS news: {e}")
         return []
 
+
 def fetch_news_detail(url):
     """Fetch news detail page content and summarize"""
     try:
@@ -89,19 +93,22 @@ def fetch_news_detail(url):
         if content_div:
             paragraphs = content_div.find_all("p")
             content = "\n".join(
-                [p.get_text().strip() for p in paragraphs if p.get_text().strip()]
+                [p.get_text().strip()
+                 for p in paragraphs if p.get_text().strip()]
             )
             return content
         else:
             # If specific content area not found, try to get all paragraphs
             paragraphs = soup.find_all("p")
             content = "\n".join(
-                [p.get_text().strip() for p in paragraphs if p.get_text().strip()]
+                [p.get_text().strip()
+                 for p in paragraphs if p.get_text().strip()]
             )
             return content[:2000]  # Limit length
     except Exception as e:
         logger.bind(tag=TAG).error(f"Failed to fetch news details: {e}")
         return "Unable to get detailed content"
+
 
 def map_category(category_text):
     """Map user input Chinese category to category keys in config file"""
@@ -127,13 +134,14 @@ def map_category(category_text):
     # Return mapping result, if no match found return original input
     return category_map.get(normalized_category, category_text)
 
+
 @register_function(
     "get_news_from_chinanews",
     GET_NEWS_FROM_CHINANEWS_FUNCTION_DESC,
     ToolType.SYSTEM_CTL,
 )
 def get_news_from_chinanews(
-    conn, category: str = None, detail: bool = False, lang: str = "zh_CN"
+    conn, category: str = None, detail: bool = False, lang: str = "en_US"
 ):
     """Get news and randomly select one for broadcast, or get detailed content of previous news"""
     try:
@@ -149,15 +157,16 @@ def get_news_from_chinanews(
                     "Sorry, no recent news query found, please get a news item first.",
                     None,
                 )
-            
+
             link = conn.last_news_link.get("link")
             title = conn.last_news_link.get("title", "Unknown title")
             if link == "#":
                 return ActionResponse(
                     Action.REQLLM, "Sorry, this news has no available link to get detailed content.", None
                 )
-            
-            logger.bind(tag=TAG).debug(f"Getting news details: {title}, URL={link}")
+
+            logger.bind(tag=TAG).debug(
+                f"Getting news details: {title}, URL={link}")
             # Get news details
             detail_content = fetch_news_detail(link)
             if not detail_content or detail_content == "Unable to get detailed content":
@@ -166,7 +175,7 @@ def get_news_from_chinanews(
                     f"Sorry, unable to get detailed content for 《{title}》, link may be invalid or website structure has changed.",
                     None,
                 )
-            
+
             # Build detail report
             detail_report = (
                 f"Based on the following data, respond to user's news detail query in {lang}:\n\n"
@@ -175,34 +184,34 @@ def get_news_from_chinanews(
                 f"(Please summarize the above news content, extract key information, and broadcast to user in a natural, fluent manner, "
                 f"don't mention this is a summary, tell it like a complete news story)"
             )
-            
+
             return ActionResponse(Action.REQLLM, detail_report, None)
-        
+
         # Otherwise, get news list and randomly select one
         # Get RSS URL from config
         rss_config = conn.config["plugins"]["get_news_from_chinanews"]
         default_rss_url = rss_config.get(
             "default_rss_url", "https://www.chinanews.com.cn/rss/society.xml"
         )
-        
+
         # Map user input category to category key in config
         mapped_category = map_category(category)
         # If category is provided, try to get corresponding URL from config
         rss_url = default_rss_url
         if mapped_category and mapped_category in rss_config:
             rss_url = rss_config[mapped_category]
-        
+
         logger.bind(tag=TAG).info(
             f"Getting news: original category={category}, mapped category={mapped_category}, URL={rss_url}"
         )
-        
+
         # Get news list
         news_items = fetch_news_from_rss(rss_url)
         if not news_items:
             return ActionResponse(
                 Action.REQLLM, "Sorry, failed to get news information, please try again later.", None
             )
-        
+
         # Randomly select one news item
         selected_news = random.choice(news_items)
         # Save current news link to connection object for later detail queries
@@ -212,7 +221,7 @@ def get_news_from_chinanews(
             "link": selected_news.get("link", "#"),
             "title": selected_news.get("title", "Unknown title"),
         }
-        
+
         # Build news report
         news_report = (
             f"Based on the following data, respond to user's news query in {lang}:\n\n"
@@ -223,9 +232,9 @@ def get_news_from_chinanews(
             f"just read the news directly, no need for extra content. "
             f"If user asks for more details, tell them they can say 'please introduce this news in detail' to get more content)"
         )
-        
+
         return ActionResponse(Action.REQLLM, news_report, None)
-    
+
     except Exception as e:
         logger.bind(tag=TAG).error(f"Error getting news: {e}")
         return ActionResponse(
