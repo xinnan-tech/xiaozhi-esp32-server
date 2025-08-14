@@ -2,6 +2,7 @@ import requests
 import json
 from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
+from core.providers.tts.elevenlabs import TTSProvider as ElevenLabsProvider
 from config.logger import setup_logging
 
 TAG = __name__
@@ -46,6 +47,16 @@ class TTSProvider(TTSProviderBase):
         # API endpoint
         self.api_url = "https://api.siliconflow.com/v1/audio/speech"
         
+        # Initialize ElevenLabs fallback if configured
+        self.fallback_provider = None
+        fallback_config = config.get("fallback", {})
+        if fallback_config.get("enabled", True) and fallback_config.get("elevenlabs"):
+            try:
+                self.fallback_provider = ElevenLabsProvider(fallback_config["elevenlabs"], delete_audio_file)
+                logger.bind(tag=TAG).info("ElevenLabs fallback provider initialized")
+            except Exception as e:
+                logger.bind(tag=TAG).warning(f"Failed to initialize ElevenLabs fallback: {e}")
+        
         # Validate API key
         model_key_msg = check_model_key("SiliconFlow TTS", self.access_token)
         if model_key_msg:
@@ -59,7 +70,29 @@ class TTSProvider(TTSProviderBase):
     
     async def text_to_speak(self, text, output_file):
         """
-        Convert text to speech using SiliconFlow CosyVoice API
+        Convert text to speech using SiliconFlow CosyVoice API with ElevenLabs fallback
+        """
+        # Try SiliconFlow first
+        try:
+            return await self._siliconflow_tts(text, output_file)
+        except Exception as e:
+            logger.bind(tag=TAG).warning(f"SiliconFlow TTS failed: {str(e)}")
+            
+            # Try ElevenLabs fallback if available
+            if self.fallback_provider:
+                logger.bind(tag=TAG).info("Attempting ElevenLabs fallback...")
+                try:
+                    return await self.fallback_provider.text_to_speak(text, output_file)
+                except Exception as fallback_error:
+                    logger.bind(tag=TAG).error(f"ElevenLabs fallback also failed: {str(fallback_error)}")
+                    raise Exception(f"Both SiliconFlow and ElevenLabs failed. SiliconFlow: {str(e)}, ElevenLabs: {str(fallback_error)}")
+            else:
+                # No fallback available, re-raise original error
+                raise
+    
+    async def _siliconflow_tts(self, text, output_file):
+        """
+        Internal method for SiliconFlow TTS API call
         """
         # Prepare request payload - based on your original API example
         payload = {
@@ -80,43 +113,32 @@ class TTSProvider(TTSProviderBase):
             "Content-Type": "application/json"
         }
         
-        try:
-            logger.bind(tag=TAG).debug(f"SiliconFlow TTS request: {text[:50]}...")
-            
-            response = requests.post(
-                self.api_url,
-                json=payload,
-                headers=headers,
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                if output_file:
-                    with open(output_file, "wb") as audio_file:
-                        audio_file.write(response.content)
-                    logger.bind(tag=TAG).debug(f"SiliconFlow TTS saved to: {output_file}")
-                else:
-                    return response.content
+        logger.bind(tag=TAG).debug(f"SiliconFlow TTS request: {text[:50]}...")
+        
+        response = requests.post(
+            self.api_url,
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            if output_file:
+                with open(output_file, "wb") as audio_file:
+                    audio_file.write(response.content)
+                logger.bind(tag=TAG).debug(f"SiliconFlow TTS saved to: {output_file}")
             else:
-                # Try to parse error response
-                try:
-                    error_data = response.json()
-                except:
-                    error_data = response.text
-                
-                raise Exception(
-                    f"SiliconFlow TTS request failed: {response.status_code} - {error_data}"
-                )
-                
-        except requests.exceptions.Timeout:
-            raise Exception("SiliconFlow TTS request timed out")
-        
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"SiliconFlow TTS network error: {str(e)}")
-        
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"SiliconFlow TTS error: {str(e)}")
-            raise
+                return response.content
+        else:
+            # Try to parse error response
+            try:
+                error_data = response.json()
+            except:
+                error_data = response.text
+            
+            raise Exception(
+                f"SiliconFlow TTS request failed: {response.status_code} - {error_data}"
+            )
     
     def get_available_voices(self):
         """
