@@ -69,7 +69,7 @@
 【Important! The following information is provided in real-time, no need to call tools for queries, please use directly:】
 - **Current Time:** {{current_time}}
 - **Today's Date:** {{today_date}} ({{today_weekday}})
-- **Today's Lunar Calendar:** {{lunar_date}}
+- **Today's Indian Calendar:** {{lunar_date}}
 - **User's City:** {{local_address}}
 - **Local 7-day Weather Forecast:** {{weather_info}}
 </context>

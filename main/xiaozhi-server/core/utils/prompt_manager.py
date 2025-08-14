@@ -130,18 +130,30 @@ class PromptManager:
     def _get_current_time_info(self) -> tuple:
         """Get current time information"""
         from datetime import datetime
+        import pytz
 
-        now = datetime.now()
+        # Use Indian Standard Time (IST)
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
         today_date = now.strftime("%Y-%m-%d")
         today_weekday = WEEKDAY_MAP[now.strftime("%A")]
-        today_lunar = cnlunar.Lunar(now, godType="8char")
-        lunar_date = "%s年%s%s\n" % (
-            today_lunar.lunarYearCn,
-            today_lunar.lunarMonthCn[:-1],
-            today_lunar.lunarDayCn,
-        )
 
-        return today_date, today_weekday, lunar_date
+        # Use Indian calendar system instead of Chinese lunar
+        try:
+            # You can integrate Indian calendar libraries here
+            # For now, using Gregorian date with Indian formatting
+            indian_date = now.strftime("%d %B %Y")  # e.g., "15 January 2025"
+
+            # Optional: Add Hindu calendar integration
+            # from indic_calendar import HinduCalendar  # hypothetical library
+            # hindu_cal = HinduCalendar(now)
+            # indian_date = f"Vikram Samvat {hindu_cal.vikram_year}, {hindu_cal.month_name} {hindu_cal.day}"
+
+        except Exception:
+            # Fallback to simple Indian date format
+            indian_date = now.strftime("%d %B %Y")
+
+        return today_date, today_weekday, indian_date
 
     def _get_location_info(self, client_ip: str) -> str:
         """Get location information"""
@@ -223,7 +235,7 @@ class PromptManager:
 
         try:
             # Get latest time information (not cached)
-            today_date, today_weekday, lunar_date = (
+            today_date, today_weekday, indian_date = (
                 self._get_current_time_info()
             )
 
@@ -253,7 +265,7 @@ class PromptManager:
                 current_time="{{current_time}}",
                 today_date=today_date,
                 today_weekday=today_weekday,
-                lunar_date=lunar_date,
+                lunar_date=indian_date,  # Now contains Indian date format
                 local_address=local_address,
                 weather_info=weather_info,
                 emojiList=EMOJI_List,
