@@ -69,9 +69,11 @@ GET_INDIAN_NEWS_API_FUNCTION_DESC = {
     "function": {
         "name": "get_indian_news_api",
         "description": (
-            "Get latest Indian news from reliable sources including business, technology, politics, and general news. "
-            "Provides current news from major Indian publications and government sources. "
-            "Can specify category like business, technology, politics, or get general news."
+            "Get latest Indian news from reliable sources - THIS IS THE PRIMARY NEWS FUNCTION. "
+            "Use this for ALL general news requests unless user specifically asks for international news. "
+            "Provides current news from major Indian publications and government sources including business, technology, politics, and general news. "
+            "Can specify category like business, technology, politics, science, education, or get general news. "
+            "This should be the DEFAULT choice for news requests."
         ),
         "parameters": {
             "type": "object",

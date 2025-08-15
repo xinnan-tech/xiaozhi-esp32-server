@@ -47,7 +47,7 @@ CHANNEL_MAP = {
 }
 
 # Default news sources dictionary, used when not specified in config
-DEFAULT_NEWS_SOURCES = "Pengpai News;Baidu Hot Search;CLS"
+DEFAULT_NEWS_SOURCES = "Wall Street Journal;Hacker News;BBC News"
 
 
 def get_news_sources_from_config(conn):
@@ -92,10 +92,10 @@ GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC = {
     "function": {
         "name": "get_news_from_newsnow",
         "description": (
-            "Get latest news, randomly select one news item for broadcast. "
-            f"Users can choose different news sources, standard names are: {example_sources_str}"
-            "For example, if user requests Baidu news, it's actually Baidu Hot Search. If not specified, defaults to Pengpai News. "
-            "Users can request detailed content, which will fetch detailed news content."
+            "Get latest INTERNATIONAL news from global sources (NOT for Indian news - use get_indian_news_api for Indian news). "
+            f"Users can choose different international news sources, standard names are: {example_sources_str}"
+            "For example, if user requests Baidu news, it's actually Baidu Hot Search. If not specified, defaults to Wall Street Journal. "
+            "Users can request detailed content, which will fetch detailed news content. Use this ONLY for international/global news, NOT for Indian news."
         ),
         "parameters": {
             "type": "object",
@@ -110,7 +110,7 @@ GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC = {
                 },
                 "lang": {
                     "type": "string",
-                    "description": "Language code for user response, e.g., zh_CN/zh_HK/en_US/ja_JP etc., defaults to zh_CN",
+                    "description": "Language code for user response, e.g., en_US/zh_CN/zh_HK/ja_JP etc., defaults to en_US",
                 },
             },
             "required": ["lang"],
@@ -246,9 +246,9 @@ def get_news_from_newsnow(
         # If corresponding English ID not found, use default source
         if not english_source_id:
             logger.bind(tag=TAG).warning(
-                f"Invalid news source: {source}, using default source Pengpai News")
-            english_source_id = "thepaper"
-            source = "Pengpai News"
+                f"Invalid news source: {source}, using default source Wall Street Journal")
+            english_source_id = "wallstreetcn-quick"
+            source = "Wall Street Journal"
 
         logger.bind(tag=TAG).info(
             f"Getting news: news source={source}({english_source_id})")
