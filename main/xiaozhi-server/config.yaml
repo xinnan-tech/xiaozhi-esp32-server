@@ -389,8 +389,21 @@ VAD:
   SileroVAD:
     type: silero
     threshold: 0.5
+    threshold_low: 0.2  # Low threshold for hysteresis
     model_dir: models/snakers4_silero-vad
-    min_silence_duration_ms: 200  # If speaking pauses are long, you can set this value larger
+    min_silence_duration_ms: 1000  # If speaking pauses are long, you can set this value larger
+    frame_window_threshold: 3  # Minimum frames with voice detection to trigger VAD (default: 3)
+  
+  TenVAD_ONNX:
+    type: ten_vad_onnx
+    model_path: models/ten-vad-onnx
+    sample_rate: 16000
+    hop_size: 256  # TEN VAD frame size (16ms at 16kHz)
+    frame_size: 512  # Processing frame size
+    threshold: 0.5  # High threshold for voice detection
+    threshold_low: 0.2  # Low threshold for hysteresis
+    min_silence_duration_ms: 1000  # Silence duration before ending speech
+    frame_window_threshold: 3  # Minimum frames with voice detection to trigger VAD
 
 LLM:
   # All openai types can modify hyperparameters, using AliLLM as example

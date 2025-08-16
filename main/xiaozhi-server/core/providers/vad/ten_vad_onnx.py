@@ -140,11 +140,108 @@ class VADProvider(VADProviderBase):
                 break
         
         if not library_found:
-            missing_paths = [str(p) for p in library_paths]
-            raise FileNotFoundError(
-                f"TEN VAD ONNX library not found for {current_platform} {current_arch}. "
-                f"Expected one of: {missing_paths}"
+            # Try to auto-install the libraries
+            logger.bind(tag=TAG).warning(
+                f"TEN VAD ONNX libraries not found for {current_platform} {current_arch}. "
+                "Attempting automatic installation..."
             )
+            if self._auto_install_libraries(model_path, current_platform, current_arch):
+                # Check again after installation
+                for lib_path in library_paths:
+                    if lib_path.exists():
+                        library_found = True
+                        logger.bind(tag=TAG).info(f"Successfully installed TEN VAD library: {lib_path}")
+                        break
+            
+            if not library_found:
+                missing_paths = [str(p) for p in library_paths]
+                raise FileNotFoundError(
+                    f"TEN VAD ONNX library not found for {current_platform} {current_arch}. "
+                    f"Expected one of: {missing_paths}. "
+                    "Please run: python scripts/install_ten_vad_onnx.py"
+                )
+
+    def _auto_install_libraries(self, model_path, current_platform, current_arch):
+        """Attempt to automatically install TEN VAD ONNX libraries"""
+        try:
+            import subprocess
+            import shutil
+            
+            # Look for TEN VAD source directory
+            source_candidates = [
+                Path("ten-vad-1.0-ONNX"),
+                Path("../ten-vad-1.0-ONNX"),
+                Path("../../ten-vad-1.0-ONNX"),
+                Path(model_path).parent.parent / "ten-vad-1.0-ONNX"
+            ]
+            
+            source_path = None
+            for candidate in source_candidates:
+                if candidate.exists():
+                    source_path = candidate
+                    break
+            
+            if not source_path:
+                logger.bind(tag=TAG).error("TEN VAD ONNX source directory not found")
+                return False
+            
+            logger.bind(tag=TAG).info(f"Found TEN VAD ONNX source: {source_path}")
+            
+            # Copy Python implementation
+            ten_vad_py_src = source_path / "include" / "ten_vad.py"
+            ten_vad_py_dst = model_path / "ten_vad.py"
+            if ten_vad_py_src.exists() and not ten_vad_py_dst.exists():
+                shutil.copy2(ten_vad_py_src, ten_vad_py_dst)
+                logger.bind(tag=TAG).info(f"Copied ten_vad.py to {ten_vad_py_dst}")
+            
+            # Copy platform-specific library
+            if current_platform == "Linux" and current_arch in ["x86_64", "x64"]:
+                src_lib = source_path / "lib" / "Linux" / "x64" / "libten_vad.so"
+                dst_paths = [
+                    model_path / "lib" / "Linux" / "x64" / "libten_vad.so",
+                    model_path / "ten_vad_library" / "libten_vad.so"
+                ]
+            elif current_platform == "Darwin":  # macOS
+                src_lib = source_path / "lib" / "macOS" / "ten_vad.framework" / "Versions" / "A" / "ten_vad"
+                dst_paths = [
+                    model_path / "lib" / "macOS" / "ten_vad.framework" / "Versions" / "A" / "ten_vad",
+                    model_path / "ten_vad_library" / "libten_vad"
+                ]
+            elif current_platform == "Windows":
+                if current_arch.upper() in ['X64', 'X86_64', 'AMD64']:
+                    src_lib = source_path / "lib" / "Windows" / "x64" / "ten_vad.dll"
+                    dst_paths = [
+                        model_path / "lib" / "Windows" / "x64" / "ten_vad.dll",
+                        model_path / "ten_vad_library" / "ten_vad.dll"
+                    ]
+                else:
+                    src_lib = source_path / "lib" / "Windows" / "x86" / "ten_vad.dll"
+                    dst_paths = [
+                        model_path / "lib" / "Windows" / "x86" / "ten_vad.dll",
+                        model_path / "ten_vad_library" / "ten_vad.dll"
+                    ]
+            else:
+                return False
+            
+            # Copy library to destination paths
+            if src_lib.exists():
+                for dst_path in dst_paths:
+                    dst_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_lib, dst_path)
+                    logger.bind(tag=TAG).info(f"Copied library to {dst_path}")
+                    
+                    # Set execute permission on Linux/macOS
+                    if current_platform in ["Linux", "Darwin"]:
+                        os.chmod(dst_path, 0o755)
+                
+                return True
+            else:
+                logger.bind(tag=TAG).error(f"Source library not found: {src_lib}")
+                return False
+                
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Failed to auto-install libraries: {e}")
+            return False
 
     def is_vad(self, conn, opus_packet):
         """
