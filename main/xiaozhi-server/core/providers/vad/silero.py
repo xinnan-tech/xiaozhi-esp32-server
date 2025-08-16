@@ -31,7 +31,7 @@ class VADProvider(VADProviderBase):
         )
 
         # At least how many frames needed to be considered as having voice
-        self.frame_window_threshold = 3
+        self.frame_window_threshold = int(config.get("frame_window_threshold", 3))
 
     def is_vad(self, conn, opus_packet):
         try:

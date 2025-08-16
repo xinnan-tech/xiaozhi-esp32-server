@@ -158,9 +158,9 @@ main/manager-web/node_modules
 .private_config.yaml
 .env.development
 
-# model files
-main/xiaozhi-server/models/SenseVoiceSmall/model.pt
-main/xiaozhi-server/models/sherpa-onnx*
+# model files - exclude entire models directory since they auto-download
+main/xiaozhi-server/models/
+models/sherpa-onnx-zipformer-gigaspeech-2023-12-12/
 /main/xiaozhi-server/audio_ref/
 /audio_ref/
 /asr-models/iic/SenseVoiceSmall/

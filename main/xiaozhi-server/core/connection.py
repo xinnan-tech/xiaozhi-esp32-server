@@ -127,6 +127,10 @@ class ConnectionHandler:
         # Therefore, variables related to ASR need to be defined here as private variables of the connection.
         self.asr_audio = []
         self.asr_audio_queue = queue.Queue()
+        
+        # Pre-buffer to store audio chunks before voice detection
+        # This helps capture the beginning of speech that might be missed
+        self.audio_pre_buffer = deque(maxlen=10)  # Store last 10 chunks (600ms) before voice detection
 
         # LLM related variables
         self.llm_finish_task = True
@@ -1071,6 +1075,9 @@ class ConnectionHandler:
         self.client_audio_buffer = bytearray()
         self.client_have_voice = False
         self.client_voice_stop = False
+        # Clear pre-buffer when resetting VAD states
+        if hasattr(self, 'audio_pre_buffer'):
+            self.audio_pre_buffer.clear()
         self.logger.bind(tag=TAG).debug("VAD states reset.")
 
     def chat_and_close(self, text):

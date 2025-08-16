@@ -58,6 +58,15 @@ class ASRProviderBase(ABC):
         else:
             have_voice = conn.client_have_voice
 
+        # Always add audio to pre-buffer (rolling buffer)
+        conn.audio_pre_buffer.append(audio)
+        
+        # If voice is detected and we're not already collecting
+        if have_voice and not conn.client_have_voice:
+            # Add pre-buffered audio to the beginning of ASR audio
+            conn.asr_audio = list(conn.audio_pre_buffer) + conn.asr_audio
+            conn.audio_pre_buffer.clear()
+        
         conn.asr_audio.append(audio)
         if not have_voice and not conn.client_have_voice:
             conn.asr_audio = conn.asr_audio[-10:]
@@ -68,7 +77,7 @@ class ASRProviderBase(ABC):
             conn.asr_audio.clear()
             conn.reset_vad_states()
 
-            if len(asr_audio_task) > 15:
+            if len(asr_audio_task) > 20:  # Increased from 15 to 20 chunks (1.2 seconds)
                 await self.handle_voice_stop(conn, asr_audio_task)
 
     # Handle voice stop

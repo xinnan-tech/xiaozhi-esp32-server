@@ -12,6 +12,15 @@ import numpy as np
 import sherpa_onnx
 
 from modelscope.hub.file_download import model_file_download
+try:
+    from huggingface_hub import hf_hub_download
+    HF_AVAILABLE = True
+except ImportError:
+    HF_AVAILABLE = False
+
+import requests
+import tarfile
+import urllib.request
 
 TAG = __name__
 logger = setup_logging()
@@ -47,44 +56,239 @@ class ASRProvider(ASRProviderBase):
         # Ensure output directory exists
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # Initialize model file paths
-        model_files = {
-            "model.int8.onnx": os.path.join(self.model_dir, "model.int8.onnx"),
-            "tokens.txt": os.path.join(self.model_dir, "tokens.txt"),
-        }
+        # Initialize model file paths based on model type
+        model_files = self._get_model_files_for_type()
 
         # Download and check model files
         try:
+            # Determine model source and ID based on model directory name
+            model_info = self._get_model_id_from_dir()
+            
+            # Check if we need to download the entire model from GitHub
+            if model_info["source"] == "github":
+                # For GitHub models, check if any files are missing and download the whole archive
+                missing_files = [f for f in model_files.values() if not os.path.isfile(f)]
+                if missing_files:
+                    logger.bind(tag=TAG).info("Downloading complete model from GitHub...")
+                    self._download_from_github(model_info["url"], self.model_dir)
+            else:
+                # For individual file downloads (HuggingFace/ModelScope)
+                for file_name, file_path in model_files.items():
+                    if not os.path.isfile(file_path):
+                        logger.bind(tag=TAG).info(
+                            f"Downloading model file: {file_name}")
+                        
+                        if model_info["source"] == "huggingface" and HF_AVAILABLE:
+                            # Use Hugging Face Hub
+                            try:
+                                hf_hub_download(
+                                    repo_id=model_info["model_id"],
+                                    filename=file_name,
+                                    local_dir=self.model_dir,
+                                    local_dir_use_symlinks=False
+                                )
+                            except Exception as e:
+                                logger.bind(tag=TAG).warning(
+                                    f"HuggingFace download failed: {e}, trying ModelScope...")
+                                # Fallback to ModelScope
+                                model_file_download(
+                                    model_id=model_info["model_id"],
+                                    file_path=file_name,
+                                    local_dir=self.model_dir,
+                                )
+                        else:
+                            # Use ModelScope
+                            model_file_download(
+                                model_id=model_info["model_id"],
+                                file_path=file_name,
+                                local_dir=self.model_dir,
+                            )
+
+            # Verify all files exist after download
             for file_name, file_path in model_files.items():
                 if not os.path.isfile(file_path):
-                    logger.bind(tag=TAG).info(
-                        f"Downloading model file: {file_name}")
-                    model_file_download(
-                        model_id="pengzhendong/sherpa-onnx-sense-voice-zh-en-ja-ko-yue",
-                        file_path=file_name,
-                        local_dir=self.model_dir,
-                    )
+                    raise FileNotFoundError(
+                        f"Model file not found after download: {file_path}")
 
-                    if not os.path.isfile(file_path):
-                        raise FileNotFoundError(
-                            f"Model file download failed: {file_path}")
-
-            self.model_path = model_files["model.int8.onnx"]
-            self.tokens_path = model_files["tokens.txt"]
+            # Set model paths based on type
+            if self.model_type == "whisper":
+                self.encoder_path = list(model_files.values())[0]  # encoder
+                self.decoder_path = list(model_files.values())[1]  # decoder  
+                self.tokens_path = list(model_files.values())[2]   # tokens
+            elif self.model_type == "zipformer":
+                # Handle different zipformer file naming patterns
+                model_name = os.path.basename(self.model_dir)
+                if "gigaspeech" in model_name:
+                    self.encoder_path = model_files["encoder-epoch-30-avg-1.onnx"]
+                    self.decoder_path = model_files["decoder-epoch-30-avg-1.onnx"]
+                    self.joiner_path = model_files["joiner-epoch-30-avg-1.onnx"]
+                else:
+                    self.encoder_path = model_files["encoder-epoch-99-avg-1.onnx"]
+                    self.decoder_path = model_files["decoder-epoch-99-avg-1.onnx"]
+                    self.joiner_path = model_files["joiner-epoch-99-avg-1.onnx"]
+                self.tokens_path = model_files["tokens.txt"]
+            else:
+                self.model_path = model_files["model.int8.onnx"]
+                self.tokens_path = model_files["tokens.txt"]
 
         except Exception as e:
             logger.bind(tag=TAG).error(
                 f"Model file processing failed: {str(e)}")
             raise
 
+        # Initialize the model
+        self._initialize_model()
+
+    def _get_model_id_from_dir(self) -> str:
+        """Determine ModelScope model ID based on model directory name"""
+        dir_name = os.path.basename(self.model_dir)
+        
+        # Map directory names to model sources (ModelScope and HuggingFace)
+        model_mapping = {
+            # Multilingual models
+            "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17": {
+                "source": "modelscope",
+                "model_id": "pengzhendong/sherpa-onnx-sense-voice-zh-en-ja-ko-yue"
+            },
+            
+            # English-only Whisper models (HuggingFace - more reliable)
+            "sherpa-onnx-whisper-tiny.en": {
+                "source": "huggingface",
+                "model_id": "csukuangfj/sherpa-onnx-whisper-tiny.en"
+            },
+            "sherpa-onnx-whisper-base.en": {
+                "source": "huggingface", 
+                "model_id": "csukuangfj/sherpa-onnx-whisper-base.en"
+            },
+            "sherpa-onnx-whisper-small.en": {
+                "source": "huggingface",
+                "model_id": "csukuangfj/sherpa-onnx-whisper-small.en"
+            },
+            "sherpa-onnx-whisper-medium.en": {
+                "source": "huggingface",
+                "model_id": "csukuangfj/sherpa-onnx-whisper-medium.en"
+            },
+            
+            # English-only Zipformer models (HuggingFace)
+            "sherpa-onnx-zipformer-en-2023-04-01": {
+                "source": "huggingface",
+                "model_id": "csukuangfj/sherpa-onnx-zipformer-en-2023-04-01"
+            },
+            "sherpa-onnx-zipformer-gigaspeech-2023-12-12": {
+                "source": "github",
+                "model_id": "sherpa-onnx-zipformer-gigaspeech-2023-12-12",
+                "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-zipformer-gigaspeech-2023-12-12.tar.bz2"
+            },
+        }
+        
+        return model_mapping.get(dir_name, {
+            "source": "modelscope",
+            "model_id": "pengzhendong/sherpa-onnx-sense-voice-zh-en-ja-ko-yue"
+        })
+
+    def _get_model_files_for_type(self) -> dict:
+        """Get required model files based on model type"""
+        if self.model_type == "whisper":
+            # Dynamic file names based on model directory
+            model_name = os.path.basename(self.model_dir)
+            if "tiny.en" in model_name:
+                prefix = "tiny.en"
+            elif "base.en" in model_name:
+                prefix = "base.en"
+            elif "small.en" in model_name:
+                prefix = "small.en"
+            elif "medium.en" in model_name:
+                prefix = "medium.en"
+            else:
+                prefix = "tiny.en"  # default
+                
+            return {
+                f"{prefix}-encoder.onnx": os.path.join(self.model_dir, f"{prefix}-encoder.onnx"),
+                f"{prefix}-decoder.onnx": os.path.join(self.model_dir, f"{prefix}-decoder.onnx"),
+                f"{prefix}-tokens.txt": os.path.join(self.model_dir, f"{prefix}-tokens.txt"),
+            }
+        elif self.model_type == "zipformer":
+            # Check for different zipformer file naming patterns
+            model_name = os.path.basename(self.model_dir)
+            if "gigaspeech" in model_name:
+                return {
+                    "encoder-epoch-30-avg-1.onnx": os.path.join(self.model_dir, "encoder-epoch-30-avg-1.onnx"),
+                    "decoder-epoch-30-avg-1.onnx": os.path.join(self.model_dir, "decoder-epoch-30-avg-1.onnx"),
+                    "joiner-epoch-30-avg-1.onnx": os.path.join(self.model_dir, "joiner-epoch-30-avg-1.onnx"),
+                    "tokens.txt": os.path.join(self.model_dir, "tokens.txt"),
+                }
+            else:
+                return {
+                    "encoder-epoch-99-avg-1.onnx": os.path.join(self.model_dir, "encoder-epoch-99-avg-1.onnx"),
+                    "decoder-epoch-99-avg-1.onnx": os.path.join(self.model_dir, "decoder-epoch-99-avg-1.onnx"),
+                    "joiner-epoch-99-avg-1.onnx": os.path.join(self.model_dir, "joiner-epoch-99-avg-1.onnx"),
+                    "tokens.txt": os.path.join(self.model_dir, "tokens.txt"),
+                }
+        else:  # sense_voice or paraformer
+            return {
+                "model.int8.onnx": os.path.join(self.model_dir, "model.int8.onnx"),
+                "tokens.txt": os.path.join(self.model_dir, "tokens.txt"),
+            }
+
+    def _download_from_github(self, url: str, model_dir: str):
+        """Download and extract model from GitHub releases"""
+        try:
+            # Create parent directory
+            parent_dir = os.path.dirname(model_dir)
+            os.makedirs(parent_dir, exist_ok=True)
+            
+            # Download the tar.bz2 file to a temporary location
+            tar_filename = os.path.join(parent_dir, "temp_model.tar.bz2")
+            logger.bind(tag=TAG).info(f"Downloading from GitHub: {url}")
+            
+            urllib.request.urlretrieve(url, tar_filename)
+            
+            # Extract the tar.bz2 file
+            logger.bind(tag=TAG).info("Extracting model files...")
+            with tarfile.open(tar_filename, 'r:bz2') as tar:
+                # Extract to parent directory
+                tar.extractall(parent_dir)
+            
+            # Clean up the tar file
+            os.remove(tar_filename)
+            
+            # Verify the extracted directory exists
+            if os.path.exists(model_dir):
+                logger.bind(tag=TAG).info("GitHub model download completed successfully")
+            else:
+                raise FileNotFoundError(f"Extracted model directory not found: {model_dir}")
+            
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"GitHub download failed: {e}")
+            raise
+
+    def _initialize_model(self):
+        """Initialize the appropriate model based on type"""
         with CaptureOutput():
             if self.model_type == "paraformer":
                 self.model = sherpa_onnx.OfflineRecognizer.from_paraformer(
                     paraformer=self.model_path,
                     tokens=self.tokens_path,
                     num_threads=2,
-                    sample_rate=16000,
-                    feature_dim=80,
+                    decoding_method="greedy_search",
+                    debug=False,
+                )
+            elif self.model_type == "whisper":
+                self.model = sherpa_onnx.OfflineRecognizer.from_whisper(
+                    encoder=self.encoder_path,
+                    decoder=self.decoder_path,
+                    tokens=self.tokens_path,
+                    num_threads=2,
+                    decoding_method="greedy_search",
+                    debug=False,
+                )
+            elif self.model_type == "zipformer":
+                self.model = sherpa_onnx.OfflineRecognizer.from_transducer(
+                    encoder=self.encoder_path,
+                    decoder=self.decoder_path,
+                    joiner=self.joiner_path,
+                    tokens=self.tokens_path,
+                    num_threads=2,
                     decoding_method="greedy_search",
                     debug=False,
                 )
@@ -93,8 +297,6 @@ class ASRProvider(ASRProviderBase):
                     model=self.model_path,
                     tokens=self.tokens_path,
                     num_threads=2,
-                    sample_rate=16000,
-                    feature_dim=80,
                     decoding_method="greedy_search",
                     debug=False,
                     use_itn=True,
