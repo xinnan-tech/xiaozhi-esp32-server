@@ -360,8 +360,8 @@ class ASRProvider(ASRProviderBase):
                 rate = wav_file.getframerate()
                 audio_length_seconds = frames / float(rate)
 
-            # Log the transcript information
-            self.log_audio_transcript(file_path, audio_length_seconds, text)
+            # Log the transcript information - TEMPORARILY DISABLED
+            # self.log_audio_transcript(file_path, audio_length_seconds, text)
 
             return text, file_path
 
@@ -375,10 +375,10 @@ class ASRProvider(ASRProviderBase):
                 logger.bind(tag=TAG).info(
                     f"Audio file preserved (deletion disabled): {file_path}")
                 # Commented out deletion code to preserve audio files
-                # try:
-                #     os.remove(file_path)
-                #     logger.bind(tag=TAG).debug(
-                #         f"Deleted temporary audio file: {file_path}")
-                # except Exception as e:
-                #     logger.bind(tag=TAG).error(
-                #         f"File deletion failed: {file_path} | Error: {e}")
+                try:
+                    os.remove(file_path)
+                    logger.bind(tag=TAG).debug(
+                        f"Deleted temporary audio file: {file_path}")
+                except Exception as e:
+                    logger.bind(tag=TAG).error(
+                        f"File deletion failed: {file_path} | Error: {e}")

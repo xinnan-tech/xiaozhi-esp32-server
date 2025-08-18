@@ -42,6 +42,8 @@ async def handleTextMessage(conn, message):
                 conn.reset_vad_states()
                 # Mark that we just started listening to prevent processing stale audio
                 conn.just_started_listening = True
+                # Set a timestamp for when we started listening
+                conn.listen_start_time = time.time()
                 # Add initial connection flag to prevent false positive on first audio
                 if not hasattr(conn, "initial_connection_handled"):
                     conn.initial_connection_handled = False

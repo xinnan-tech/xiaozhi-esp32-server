@@ -60,6 +60,14 @@ class ASRProviderBase(ABC):
         else:
             have_voice = conn.client_have_voice
 
+        # Echo suppression: Ignore audio for a brief period after starting to listen
+        if hasattr(conn, 'listen_start_time'):
+            time_since_listen_start = time.time() - conn.listen_start_time
+            if time_since_listen_start < 0.1:  # Ignore first 300ms of audio (echo period)
+                if have_voice:
+                    logger.bind(tag=TAG).debug(f"Ignoring potential echo audio ({time_since_listen_start:.2f}s after listen start)")
+                have_voice = False
+
         # Always add audio to pre-buffer (rolling buffer)
         conn.audio_pre_buffer.append(audio)
         
@@ -330,10 +338,11 @@ class ASRProviderBase(ABC):
                 f.write(f"Transcript: {transcript}\n")
                 f.write(f"{'='*80}\n")
                 
-            logger.bind(tag=TAG).info(
-                f"Logged ASR transcript to {log_dir} - File: {os.path.basename(file_path)}, "
-                f"Length: {audio_length_seconds:.2f}s, Transcript: {transcript[:50]}..."
-            )
+            # Logging disabled - comment out the log message
+            # logger.bind(tag=TAG).info(
+            #     f"Logged ASR transcript to {log_dir} - File: {os.path.basename(file_path)}, "
+            #     f"Length: {audio_length_seconds:.2f}s, Transcript: {transcript[:50]}..."
+            # )
         except Exception as e:
             logger.bind(tag=TAG).error(f"Failed to log audio transcript: {e}")
 
