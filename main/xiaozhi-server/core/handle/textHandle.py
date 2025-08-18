@@ -38,6 +38,10 @@ async def handleTextMessage(conn, message):
                     f"Client audio capture mode: {conn.client_listen_mode}"
                 )
             if msg_json["state"] == "start":
+                # Reset VAD states to clear any leftover audio from previous session
+                conn.reset_vad_states()
+                # Mark that we just started listening to prevent processing stale audio
+                conn.just_started_listening = True
                 # Add initial connection flag to prevent false positive on first audio
                 if not hasattr(conn, "initial_connection_handled"):
                     conn.initial_connection_handled = False

@@ -354,6 +354,15 @@ class ASRProvider(ASRProviderBase):
                 f"Speech recognition time: {time.time() - start_time:.3f}s | Result: {text}"
             )
 
+            # Calculate audio length from WAV file
+            with wave.open(file_path, 'rb') as wav_file:
+                frames = wav_file.getnframes()
+                rate = wav_file.getframerate()
+                audio_length_seconds = frames / float(rate)
+
+            # Log the transcript information
+            self.log_audio_transcript(file_path, audio_length_seconds, text)
+
             return text, file_path
 
         except Exception as e:
@@ -361,12 +370,15 @@ class ASRProvider(ASRProviderBase):
                 f"Speech recognition failed: {e}", exc_info=True)
             return "", file_path
         finally:
-            # File cleanup logic
+            # File cleanup logic - DISABLED to preserve audio files
             if self.delete_audio_file and file_path and os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                    logger.bind(tag=TAG).debug(
-                        f"Deleted temporary audio file: {file_path}")
-                except Exception as e:
-                    logger.bind(tag=TAG).error(
-                        f"File deletion failed: {file_path} | Error: {e}")
+                logger.bind(tag=TAG).info(
+                    f"Audio file preserved (deletion disabled): {file_path}")
+                # Commented out deletion code to preserve audio files
+                # try:
+                #     os.remove(file_path)
+                #     logger.bind(tag=TAG).debug(
+                #         f"Deleted temporary audio file: {file_path}")
+                # except Exception as e:
+                #     logger.bind(tag=TAG).error(
+                #         f"File deletion failed: {file_path} | Error: {e}")

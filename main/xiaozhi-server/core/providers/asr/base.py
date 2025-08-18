@@ -10,6 +10,8 @@ import json
 import io
 import time
 import concurrent.futures
+import csv
+from datetime import datetime
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
 from typing import Optional, Tuple, List, Dict, Any
@@ -63,6 +65,9 @@ class ASRProviderBase(ABC):
         
         # If voice is detected and we're not already collecting
         if have_voice and not conn.client_have_voice:
+            # Clear the just_started_listening flag when actual voice is detected
+            if hasattr(conn, 'just_started_listening'):
+                conn.just_started_listening = False
             # Add pre-buffered audio to the beginning of ASR audio
             conn.asr_audio = list(conn.audio_pre_buffer) + conn.asr_audio
             conn.audio_pre_buffer.clear()
@@ -73,11 +78,20 @@ class ASRProviderBase(ABC):
             return
 
         if conn.client_voice_stop:
+            # Check if we just started listening - if so, skip this audio
+            if hasattr(conn, 'just_started_listening') and conn.just_started_listening:
+                logger.bind(tag=TAG).debug("Skipping stale audio chunks after listen start")
+                conn.just_started_listening = False
+                conn.asr_audio.clear()
+                conn.reset_vad_states()
+                return
+                
             asr_audio_task = conn.asr_audio.copy()
             conn.asr_audio.clear()
             conn.reset_vad_states()
 
             if len(asr_audio_task) > 20:  # Increased from 15 to 20 chunks (1.2 seconds)
+                logger.bind(tag=TAG).debug(f"Processing {len(asr_audio_task)} audio chunks")
                 await self.handle_voice_stop(conn, asr_audio_task)
 
     # Handle voice stop
@@ -252,6 +266,76 @@ class ASRProviderBase(ABC):
             wf.writeframes(b"".join(pcm_data))
 
         return file_path
+
+    def log_audio_transcript(self, file_path: str, audio_length_seconds: float, transcript: str):
+        """Log audio file information to CSV file"""
+        try:
+            # Create logs directory at the same level as output_dir
+            log_dir = os.path.join(os.path.dirname(self.output_dir), "asr_logs")
+            os.makedirs(log_dir, exist_ok=True)
+            
+            # Create both CSV and JSON log files for easy inspection
+            csv_log_file = os.path.join(log_dir, f"asr_log_{datetime.now().strftime('%Y%m%d')}.csv")
+            json_log_file = os.path.join(log_dir, f"asr_log_{datetime.now().strftime('%Y%m%d')}.json")
+            
+            # Write to CSV file
+            csv_exists = os.path.exists(csv_log_file)
+            with open(csv_log_file, 'a', newline='', encoding='utf-8') as csvfile:
+                fieldnames = ['timestamp', 'filename', 'file_path', 'audio_length_seconds', 'transcript']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                
+                if not csv_exists:
+                    writer.writeheader()
+                
+                writer.writerow({
+                    'timestamp': datetime.now().isoformat(),
+                    'filename': os.path.basename(file_path),
+                    'file_path': file_path,
+                    'audio_length_seconds': round(audio_length_seconds, 2),
+                    'transcript': transcript
+                })
+            
+            # Also write to JSON file for easier parsing
+            log_entry = {
+                'timestamp': datetime.now().isoformat(),
+                'filename': os.path.basename(file_path),
+                'file_path': file_path,
+                'audio_length_seconds': round(audio_length_seconds, 2),
+                'transcript': transcript
+            }
+            
+            # Read existing JSON logs or create new list
+            json_logs = []
+            if os.path.exists(json_log_file):
+                try:
+                    with open(json_log_file, 'r', encoding='utf-8') as f:
+                        json_logs = json.load(f)
+                except:
+                    json_logs = []
+            
+            json_logs.append(log_entry)
+            
+            # Write updated JSON logs
+            with open(json_log_file, 'w', encoding='utf-8') as f:
+                json.dump(json_logs, f, ensure_ascii=False, indent=2)
+            
+            # Also create a simple text log for quick inspection
+            txt_log_file = os.path.join(log_dir, f"asr_log_{datetime.now().strftime('%Y%m%d')}.txt")
+            with open(txt_log_file, 'a', encoding='utf-8') as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                f.write(f"Filename: {os.path.basename(file_path)}\n")
+                f.write(f"Full Path: {file_path}\n")
+                f.write(f"Audio Length: {audio_length_seconds:.2f} seconds\n")
+                f.write(f"Transcript: {transcript}\n")
+                f.write(f"{'='*80}\n")
+                
+            logger.bind(tag=TAG).info(
+                f"Logged ASR transcript to {log_dir} - File: {os.path.basename(file_path)}, "
+                f"Length: {audio_length_seconds:.2f}s, Transcript: {transcript[:50]}..."
+            )
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Failed to log audio transcript: {e}")
 
     @abstractmethod
     async def speech_to_text(

@@ -1078,6 +1078,21 @@ class ConnectionHandler:
         # Clear pre-buffer when resetting VAD states
         if hasattr(self, 'audio_pre_buffer'):
             self.audio_pre_buffer.clear()
+        # Clear ASR audio buffer to prevent processing leftover audio
+        if hasattr(self, 'asr_audio'):
+            self.asr_audio.clear()
+        # Clear ASR audio queue for this specific connection only
+        if hasattr(self, 'asr_audio_queue'):
+            # Empty the queue by getting all items without blocking
+            cleared_count = 0
+            while not self.asr_audio_queue.empty():
+                try:
+                    self.asr_audio_queue.get_nowait()
+                    cleared_count += 1
+                except queue.Empty:
+                    break
+            if cleared_count > 0:
+                self.logger.bind(tag=TAG).debug(f"Cleared {cleared_count} audio chunks from ASR queue")
         self.logger.bind(tag=TAG).debug("VAD states reset.")
 
     def chat_and_close(self, text):
