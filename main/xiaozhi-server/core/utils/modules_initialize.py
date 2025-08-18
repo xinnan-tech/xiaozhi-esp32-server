@@ -128,9 +128,15 @@ def initialize_asr(config):
         else config["ASR"][select_asr_module]["type"]
     )
 
+    # Create module config with filtering settings
+    module_config = config["ASR"][select_asr_module].copy()
+    # Add ASR filtering config if available
+    if "filtering" in config["ASR"]:
+        module_config["filtering"] = config["ASR"]["filtering"]
+
     new_asr = asr.create_instance(
         asr_type,
-        config["ASR"][select_asr_module],
+        module_config,
         str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
     )
 

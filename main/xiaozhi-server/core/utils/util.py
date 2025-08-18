@@ -139,7 +139,7 @@ def write_json_file(file_path, data):
         json.dump(data, file, ensure_ascii=False, indent=4)
 
 
-def remove_punctuation_and_length(text):
+def remove_punctuation_and_length(text, config=None, use_filter=True):
     # Unicode ranges for full-width and half-width symbols
     full_width_punctuations = (
         "！＂＃＄％＆＇（）＊＋，－。／：；＜＝＞？＠［＼］＾＿｀｛｜｝～"
@@ -159,6 +159,16 @@ def remove_punctuation_and_length(text):
         and char not in full_width_space
     )
 
+    # Apply ASR filtering if enabled
+    if use_filter and config:
+        from core.utils.asr_filter import ASRFilter
+        asr_filter = ASRFilter(config)
+        should_filter, reason = asr_filter.should_filter(result)
+        
+        if should_filter:
+            return 0, ""
+    
+    # Legacy hardcoded filter (deprecated, but kept for compatibility)
     if result == "Yeah":
         return 0, ""
 

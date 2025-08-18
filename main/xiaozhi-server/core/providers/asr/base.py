@@ -19,14 +19,16 @@ from core.handle.receiveAudioHandle import startToChat
 from core.handle.reportHandle import enqueue_asr_report
 from core.utils.util import remove_punctuation_and_length
 from core.handle.receiveAudioHandle import handleAudioMessage
+from core.utils.asr_filter import ASRFilter
 
 TAG = __name__
 logger = setup_logging()
 
 
 class ASRProviderBase(ABC):
-    def __init__(self):
-        pass
+    def __init__(self, config=None):
+        self.config = config
+        self.asr_filter = ASRFilter(config) if config else None
 
     # Open audio channels
     async def open_audio_channels(self, conn):
@@ -188,6 +190,28 @@ class ASRProviderBase(ABC):
             # Process results
             raw_text, file_path = results.get("asr", ("", None))
             speaker_name = results.get("voiceprint", None)
+
+            # Apply ASR filtering if enabled
+            if self.asr_filter and raw_text:
+                # Prepare context for filtering
+                filter_context = {
+                    'time_since_bot_utterance': time.time() - getattr(conn, 'last_bot_utterance_time', 0),
+                    'expecting_response': getattr(conn, 'expecting_user_response', False),
+                    'recent_filtered': getattr(conn, 'recent_filtered_texts', [])[-5:]
+                }
+                
+                should_filter, reason = self.asr_filter.should_filter(raw_text, filter_context)
+                
+                if should_filter:
+                    logger.bind(tag=TAG).info(f"Filtered transcript: '{raw_text}' - Reason: {reason}")
+                    # Track filtered texts
+                    if not hasattr(conn, 'recent_filtered_texts'):
+                        conn.recent_filtered_texts = []
+                    conn.recent_filtered_texts.append(raw_text)
+                    # Keep only last 10 filtered texts
+                    conn.recent_filtered_texts = conn.recent_filtered_texts[-10:]
+                    self.stop_ws_connection()
+                    return
 
             # Log recognition results
             if raw_text:
