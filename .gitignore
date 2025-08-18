@@ -161,6 +161,10 @@ main/manager-web/node_modules
 # model files - exclude entire models directory since they auto-download
 main/xiaozhi-server/models/
 models/sherpa-onnx-zipformer-gigaspeech-2023-12-12/
+
+# Exception for ten-vad-onnx - include this model with its libraries
+!main/xiaozhi-server/models/ten-vad-onnx/
+!main/xiaozhi-server/models/ten-vad-onnx/**
 /main/xiaozhi-server/audio_ref/
 /audio_ref/
 /asr-models/iic/SenseVoiceSmall/
