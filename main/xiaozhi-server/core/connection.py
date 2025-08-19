@@ -1075,6 +1075,9 @@ class ConnectionHandler:
         self.client_audio_buffer = bytearray()
         self.client_have_voice = False
         self.client_voice_stop = False
+        # Reset VAD provider internal states
+        if hasattr(self, 'vad') and self.vad is not None:
+            self.vad.reset()
         # Clear pre-buffer when resetting VAD states
         if hasattr(self, 'audio_pre_buffer'):
             self.audio_pre_buffer.clear()

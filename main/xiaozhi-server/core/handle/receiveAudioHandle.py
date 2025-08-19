@@ -12,6 +12,14 @@ TAG = __name__
 
 
 async def handleAudioMessage(conn, audio):
+    # Log that we received audio (only log periodically to avoid spam)
+    if not hasattr(conn, '_audio_log_counter'):
+        conn._audio_log_counter = 0
+    conn._audio_log_counter += 1
+    
+    if conn._audio_log_counter % 50 == 0:  # Log every 50th packet
+        conn.logger.bind(tag=TAG).debug(f"Received audio packet #{conn._audio_log_counter}, size: {len(audio)} bytes")
+    
     # Whether the current segment has someone speaking
     have_voice = conn.vad.is_vad(conn, audio)
     

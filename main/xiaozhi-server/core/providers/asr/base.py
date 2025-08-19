@@ -61,6 +61,16 @@ class ASRProviderBase(ABC):
             have_voice = audio_have_voice
         else:
             have_voice = conn.client_have_voice
+            
+        # Debug logging
+        if not hasattr(conn, '_asr_log_counter'):
+            conn._asr_log_counter = 0
+        conn._asr_log_counter += 1
+        
+        if conn._asr_log_counter % 50 == 0 or have_voice:
+            logger.bind(tag=TAG).debug(f"ASR receive_audio: have_voice={have_voice}, "
+                                     f"client_have_voice={conn.client_have_voice}, "
+                                     f"audio_len={len(audio)}, asr_buffer_len={len(conn.asr_audio)}")
 
         # Echo suppression: Ignore audio for a brief period after starting to listen
         if hasattr(conn, 'listen_start_time'):
