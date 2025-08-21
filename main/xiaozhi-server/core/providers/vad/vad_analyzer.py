@@ -221,7 +221,7 @@ class VADAnalyzer(ABC):
                 self._debug_log_counter = 0
             self._debug_log_counter += 1
             
-            if self._debug_log_counter % 10 == 0:
+            if self._debug_log_counter % 100 == 0:  # Reduced from 10 to 100
                 logger.debug(f"VAD analysis: confidence={confidence:.3f} (threshold={self._params.confidence}), "
                            f"volume={volume:.4f} (threshold={self._params.min_volume}), "
                            f"speaking={speaking}")

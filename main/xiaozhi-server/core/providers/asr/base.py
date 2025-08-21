@@ -67,7 +67,7 @@ class ASRProviderBase(ABC):
             conn._asr_log_counter = 0
         conn._asr_log_counter += 1
         
-        if conn._asr_log_counter % 50 == 0 or have_voice:
+        if conn._asr_log_counter % 200 == 0 or (have_voice and conn._asr_log_counter % 50 == 0):
             logger.bind(tag=TAG).debug(f"ASR receive_audio: have_voice={have_voice}, "
                                      f"client_have_voice={conn.client_have_voice}, "
                                      f"audio_len={len(audio)}, asr_buffer_len={len(conn.asr_audio)}")

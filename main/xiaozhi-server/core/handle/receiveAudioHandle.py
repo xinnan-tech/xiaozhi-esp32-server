@@ -17,7 +17,7 @@ async def handleAudioMessage(conn, audio):
         conn._audio_log_counter = 0
     conn._audio_log_counter += 1
     
-    if conn._audio_log_counter % 50 == 0:  # Log every 50th packet
+    if conn._audio_log_counter % 200 == 0:  # Log every 200th packet (reduced from 50)
         conn.logger.bind(tag=TAG).debug(f"Received audio packet #{conn._audio_log_counter}, size: {len(audio)} bytes")
     
     # Whether the current segment has someone speaking

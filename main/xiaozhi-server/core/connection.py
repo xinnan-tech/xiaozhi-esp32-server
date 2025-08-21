@@ -1096,7 +1096,7 @@ class ConnectionHandler:
                     break
             if cleared_count > 0:
                 self.logger.bind(tag=TAG).debug(f"Cleared {cleared_count} audio chunks from ASR queue")
-        self.logger.bind(tag=TAG).debug("VAD states reset.")
+        self.logger.bind(tag=TAG).info("VAD states reset.")
 
     def chat_and_close(self, text):
         """Chat with the user and then close the connection"""

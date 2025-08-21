@@ -199,7 +199,7 @@ class SileroVADAnalyzer(VADAnalyzer):
                 self._confidence_log_counter = 0
             self._confidence_log_counter += 1
             
-            if self._confidence_log_counter % 10 == 0:  # Log every 10th frame
+            if self._confidence_log_counter % 100 == 0:  # Log every 100th frame (reduced from 10)
                 audio_rms = float(np.sqrt(np.mean(audio_float32 ** 2)))
                 confidence_val = float(new_confidence)
                 logger.debug(f"VAD confidence: {confidence_val:.3f}, RMS: {audio_rms:.4f}")
@@ -288,7 +288,7 @@ class VADProvider(VADProviderBase):
             
             # Log VAD state for debugging (only log state changes)
             if not hasattr(self, '_last_logged_state') or self._last_logged_state != vad_state:
-                logger.bind(tag=TAG).debug(f"VAD state: {vad_state.name}")
+                logger.bind(tag=TAG).info(f"VAD state: {vad_state.name}")
                 self._last_logged_state = vad_state
             
             # Update connection state based on VAD state
@@ -300,7 +300,7 @@ class VADProvider(VADProviderBase):
                     stop_duration = time.time() * 1000 - conn.last_activity_time
                     if stop_duration >= self.silence_threshold_ms:
                         conn.client_voice_stop = True
-                        logger.bind(tag=TAG).debug(f"Voice stopped after {stop_duration}ms silence")
+                        logger.bind(tag=TAG).info(f"Voice stopped after {stop_duration}ms silence")
                         
             if current_have_voice:
                 conn.client_have_voice = True

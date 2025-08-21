@@ -42,6 +42,62 @@ def formatter(record):
     record["extra"].setdefault("selected_module", "00000000000000")
     # Extract selected_module from extra to top level to support {selected_module} format
     record["selected_module"] = record["extra"]["selected_module"]
+
+    # Filter out verbose VAD and ASR debug messages to reduce log noise
+    if record["level"].name == "DEBUG":
+        tag = record["extra"].get("tag", "")
+        message = record["message"]
+
+        # Filter out repetitive VAD debug messages (but keep important events)
+        if "vad" in tag.lower() or "connection" in tag.lower():
+            # Always keep important VAD events
+            if any(phrase in message for phrase in [
+                "Voice stopped after",
+                "VAD states reset",
+                "Cleared server speaking status"
+            ]):
+                # Allow these important messages to pass through
+                return record["message"]
+            elif any(phrase in message for phrase in [
+                "VAD confidence:",
+                "VAD analysis:",
+                "RMS:",
+                "threshold"
+            ]):
+                return False  # Skip repetitive messages
+            # Keep VAD state changes but filter out the repetitive ones
+            elif "VAD state:" in message:
+                # Only show state changes, not repetitive same state logs
+                if not hasattr(formatter, '_last_vad_state'):
+                    formatter._last_vad_state = {}
+
+                # Extract connection ID or use default
+                connection_id = record.get("extra", {}).get("selected_module", "default")
+
+                # Only log if state actually changed
+                if connection_id not in formatter._last_vad_state or formatter._last_vad_state[connection_id] != message:
+                    formatter._last_vad_state[connection_id] = message
+                    # Allow this state change log to pass through
+                    return record["message"]
+                else:
+                    return False  # Skip repeated same state
+
+        # Filter out repetitive ASR debug messages
+        if "asr" in tag.lower():
+            if any(phrase in message for phrase in [
+                "ASR receive_audio:",
+                "have_voice=",
+                "client_have_voice=",
+                "audio_len=",
+                "asr_buffer_len="
+            ]):
+                return False  # Skip this log message
+
+        # Filter out audio packet reception messages
+        if "receiveAudioHandle" in tag:
+            if "Received audio packet" in message:
+                return False  # Skip this log message
+
     return record["message"]
 
 def update_module_string(selected_module_str):
