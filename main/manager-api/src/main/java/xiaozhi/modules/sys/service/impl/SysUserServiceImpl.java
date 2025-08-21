@@ -56,7 +56,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         if (users == null || users.isEmpty()) {
             return null;
         }
-        SysUserEntity entity = users.get(0);
+        SysUserEntity entity = users.getFirst();
         return ConvertUtils.sourceToTarget(entity, SysUserDTO.class);
     }
 

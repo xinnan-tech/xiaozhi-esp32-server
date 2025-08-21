@@ -21,11 +21,7 @@ import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.config.service.ConfigService;
-import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
-import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
-import xiaozhi.modules.model.dto.ModelConfigDTO;
-import xiaozhi.modules.model.dto.ModelProviderDTO;
-import xiaozhi.modules.model.dto.VoiceDTO;
+import xiaozhi.modules.model.dto.*;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.model.service.ModelProviderService;
@@ -50,6 +46,14 @@ public class ModelController {
             @RequestParam(required = false) String modelName) {
         List<ModelBasicInfoDTO> modelList = modelConfigService.getModelCodeList(modelType, modelName);
         return new Result<List<ModelBasicInfoDTO>>().ok(modelList);
+    }
+
+    @GetMapping("/llm/names")
+    @Operation(summary = "获取LLM模型信息")
+    @RequiresPermissions("sys:role:normal")
+    public Result<List<LlmModelBasicInfoDTO>> getLlmModelCodeList(@RequestParam(required = false) String modelName) {
+        List<LlmModelBasicInfoDTO> llmModelCodeList = modelConfigService.getLlmModelCodeList(modelName);
+        return new Result<List<LlmModelBasicInfoDTO>>().ok(llmModelCodeList);
     }
 
     @GetMapping("/{modelType}/provideTypes")

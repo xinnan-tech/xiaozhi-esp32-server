@@ -3,7 +3,7 @@ import RequestService from '../httpRequest';
 
 
 export default {
-    // User list
+    // 用户列表
     getUserList(params, callback) {
         const queryParams = new URLSearchParams({
             page: params.page,
@@ -19,13 +19,13 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('Request failed:', err)
+                console.error('请求失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.getUserList(callback)
                 })
             }).send()
     },
-    // Delete user
+    // 删除用户
     deleteUser(id, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/users/${id}`)
@@ -35,13 +35,13 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('Delete failed:', err)
+                console.error('删除失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.deleteUser(id, callback)
                 })
             }).send()
     },
-    // Reset user password
+    // 重置用户密码
     resetUserPassword(id, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/users/${id}`)
@@ -51,13 +51,13 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('Reset password failed:', err)
+                console.error('重置密码失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.resetUserPassword(id, callback)
                 })
             }).send()
     },
-    // Get parameters list
+    // 获取参数列表
     getParamsList(params, callback) {
         const queryParams = new URLSearchParams({
             page: params.page,
@@ -73,13 +73,13 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('Get parameters list failed:', err)
+                console.error('获取参数列表失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.getParamsList(params, callback)
                 })
             }).send()
     },
-    // Save
+    // 保存
     addParam(data, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/params`)
@@ -90,13 +90,13 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('Add parameter failed:', err)
+                console.error('添加参数失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.addParam(data, callback)
                 })
             }).send()
     },
-    // Update
+    // 修改
     updateParam(data, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/params`)
@@ -107,13 +107,13 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('Update parameter failed:', err)
+                console.error('更新参数失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.updateParam(data, callback)
                 })
             }).send()
     },
-    // Delete
+    // 删除
     deleteParam(ids, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/params/delete`)
@@ -124,13 +124,13 @@ export default {
                 callback(res);
             })
             .networkFail((err) => {
-                console.error('Delete parameter failed:', err)
+                console.error('删除参数失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.deleteParam(ids, callback)
                 })
             }).send()
     },
-    // Get WS server list
+    // 获取ws服务端列表
     getWsServerList(params, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/server/server-list`)
@@ -140,13 +140,13 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('Get WS server list failed:', err)
+                console.error('获取ws服务端列表失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.getWsServerList(params, callback)
                 })
             }).send();
     },
-    // Send WS server action command
+    // 发送ws服务器动作指令
     sendWsServerAction(data, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/server/emit-action`)

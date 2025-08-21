@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+dist
+*.local
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.hbuilderx
+
+.stylelintcache
+.eslintcache
+
+docs/.vitepress/dist
+docs/.vitepress/cache
+
+src/types
+
+# lock 文件还是不要了，我主要的版本写死就好了
+# pnpm-lock.yaml
+# package-lock.json
+
+# TIPS：如果某些文件已经加入了版本管理，现在重新加入 .gitignore 是不生效的，需要执行下面的操作
+# `git rm -r --cached .` 然后提交 commit 即可。
+
+# git rm -r --cached file1 file2  ## 针对某些文件
+# git rm -r --cached dir1 dir2  ## 针对某些文件夹
+# git rm -r --cached .  ## 针对所有文件
+
+# 更新 uni-app 官方版本
+# npx @dcloudio/uvm@latest

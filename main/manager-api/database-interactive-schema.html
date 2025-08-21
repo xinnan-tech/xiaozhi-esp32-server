@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xiaozhi ESP32 Server - Interactive Database Schema</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        select, button {
+            padding: 8px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        select:focus, button:hover {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .schema-container {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .category {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .category:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .category-icon {
+            font-size: 1.5em;
+        }
+
+        .category-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .table-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .table-card.highlighted {
+            border-color: #28a745;
+            background: #f8fff9;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-name {
+            font-size: 1.1em;
+        }
+
+        .table-count {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+
+        .table-fields {
+            padding: 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .table-card.expanded .table-fields {
+            max-height: 500px;
+        }
+
+        .field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .field:last-child {
+            border-bottom: none;
+        }
+
+        .field-name {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .field-type {
+            font-size: 0.9em;
+            color: #6c757d;
+            background: #f8f9fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .key-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .pk { background: #dc3545; color: white; }
+        .fk { background: #fd7e14; color: white; }
+        .uk { background: #6f42c1; color: white; }
+
+        .relationships-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .relationships-header {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .relationship-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .relationship-item:hover {
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+            transform: translateX(5px);
+        }
+
+        .relationship-type {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .relationship-desc {
+            color: #6c757d;
+            font-size: 0.95em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .schema-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗄️ Xiaozhi ESP32 Server Database Schema</h1>
+            <p>Interactive visualization of 16 tables across 6 functional categories</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="categoryFilter">Filter by Category:</label>
+                <select id="categoryFilter">
+                    <option value="all">All Categories</option>
+                    <option value="system">🔐 System Management</option>
+                    <option value="model">🤖 AI Model Config</option>
+                    <option value="agent">🧠 AI Agent Management</option>
+                    <option value="device">📱 Device Management</option>
+                    <option value="voice">🔊 Voice Recognition</option>
+                    <option value="chat">💬 Chat & Communication</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="tableSearch">Search Tables:</label>
+                <input type="text" id="tableSearch" placeholder="Enter table name..." style="padding: 8px 15px; border: 2px solid #dee2e6; border-radius: 8px;">
+            </div>
+            
+            <button onclick="expandAllTables()">Expand All</button>
+            <button onclick="collapseAllTables()">Collapse All</button>
+            <button onclick="showRelationships()">Show Relationships</button>
+        </div>
+
+        <div class="schema-container" id="schemaContainer">
+            <!-- Tables will be dynamically generated here -->
+        </div>
+
+        <div class="relationships-panel hidden" id="relationshipsPanel">
+            <div class="relationships-header">
+                🔗 Database Relationships
+            </div>
+            <div id="relationshipsList">
+                <!-- Relationships will be dynamically generated here -->
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">16</div>
+                <div class="stat-label">Total Tables</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">6</div>
+                <div class="stat-label">Categories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">25</div>
+                <div class="stat-label">Relationships</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">7</div>
+                <div class="stat-label">Model Types</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Database schema data
+        const databaseSchema = {
+            system: {
+                title: "🔐 System Management",
+                tables: {
+                    sys_user: {
+                        name: "sys_user",
+                        description: "System users with authentication",
+                        fields: [
+                            { name: "id", type: "bigint", key: "PK" },
+                            { name: "username", type: "varchar(50)", key: "UK" },
+                            { name: "password", type: "varchar(100)", key: "" },
+                            { name: "super_admin", type: "tinyint", key: "" },
+                            { name: "status", type: "tinyint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    },
+                    sys_user_token: {
+                        name: "sys_user_token",
+                        description: "User authentication tokens",
+                        fields: [
+                            { name: "id", type: "bigint", key: "PK" },
+                            { name: "user_id", type: "bigint", key: "FK" },
+                            { name: "token", type: "varchar(100)", key: "UK" },
+                            { name: "expire_date", type: "datetime", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    },
+                    sys_params: {
+                        name: "sys_params",
+                        description: "System configuration parameters",
+                        fields: [
+                            { name: "id", type: "bigint", key: "PK" },
+                            { name: "param_code", type: "varchar(32)", key: "UK" },
+                            { name: "param_value", type: "varchar(2000)", key: "" },
+                            { name: "param_type", type: "tinyint", key: "" },
+                            { name: "remark", type: "varchar(200)", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    },
+                    sys_dict_type: {
+                        name: "sys_dict_type",
+                        description: "Dictionary types for system data",
+                        fields: [
+                            { name: "id", type: "bigint", key: "PK" },
+                            { name: "dict_type", type: "varchar(100)", key: "UK" },
+                            { name: "dict_name", type: "varchar(255)", key: "" },
+                            { name: "remark", type: "varchar(255)", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    },
+                    sys_dict_data: {
+                        name: "sys_dict_data",
+                        description: "Dictionary data entries",
+                        fields: [
+                            { name: "id", type: "bigint", key: "PK" },
+                            { name: "dict_type_id", type: "bigint", key: "FK" },
+                            { name: "dict_label", type: "varchar(255)", key: "" },
+                            { name: "dict_value", type: "varchar(255)", key: "" },
+                            { name: "remark", type: "varchar(255)", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    }
+                }
+            },
+            model: {
+                title: "🤖 AI Model Configuration",
+                tables: {
+                    ai_model_provider: {
+                        name: "ai_model_provider",
+                        description: "AI model providers (OpenAI, Alibaba, etc.)",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "model_type", type: "varchar(20)", key: "" },
+                            { name: "provider_code", type: "varchar(50)", key: "" },
+                            { name: "name", type: "varchar(50)", key: "" },
+                            { name: "fields", type: "json", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    },
+                    ai_model_config: {
+                        name: "ai_model_config",
+                        description: "AI model configurations",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "model_type", type: "varchar(20)", key: "" },
+                            { name: "model_code", type: "varchar(50)", key: "" },
+                            { name: "model_name", type: "varchar(50)", key: "" },
+                            { name: "is_default", type: "tinyint(1)", key: "" },
+                            { name: "is_enabled", type: "tinyint(1)", key: "" },
+                            { name: "config_json", type: "json", key: "" },
+                            { name: "doc_link", type: "varchar(200)", key: "" },
+                            { name: "remark", type: "varchar(255)", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    },
+                    ai_tts_voice: {
+                        name: "ai_tts_voice",
+                        description: "Text-to-Speech voice configurations",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "tts_model_id", type: "varchar(32)", key: "FK" },
+                            { name: "name", type: "varchar(20)", key: "" },
+                            { name: "tts_voice", type: "varchar(50)", key: "" },
+                            { name: "languages", type: "varchar(50)", key: "" },
+                            { name: "voice_demo", type: "varchar(500)", key: "" },
+                            { name: "remark", type: "varchar(255)", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    }
+                }
+            },
+            agent: {
+                title: "🧠 AI Agent Management",
+                tables: {
+                    ai_agent_template: {
+                        name: "ai_agent_template",
+                        description: "Predefined AI agent configurations",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "agent_code", type: "varchar(36)", key: "" },
+                            { name: "agent_name", type: "varchar(64)", key: "" },
+                            { name: "asr_model_id", type: "varchar(32)", key: "" },
+                            { name: "vad_model_id", type: "varchar(64)", key: "" },
+                            { name: "llm_model_id", type: "varchar(32)", key: "" },
+                            { name: "vllm_model_id", type: "varchar(32)", key: "" },
+                            { name: "tts_model_id", type: "varchar(32)", key: "" },
+                            { name: "tts_voice_id", type: "varchar(32)", key: "" },
+                            { name: "mem_model_id", type: "varchar(32)", key: "" },
+                            { name: "intent_model_id", type: "varchar(32)", key: "" },
+                            { name: "system_prompt", type: "text", key: "" },
+                            { name: "lang_code", type: "varchar(10)", key: "" },
+                            { name: "language", type: "varchar(10)", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "created_at", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "updated_at", type: "datetime", key: "" }
+                        ]
+                    },
+                    ai_agent: {
+                        name: "ai_agent",
+                        description: "User-created AI agents",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "user_id", type: "bigint", key: "FK" },
+                            { name: "agent_code", type: "varchar(36)", key: "" },
+                            { name: "agent_name", type: "varchar(64)", key: "" },
+                            { name: "asr_model_id", type: "varchar(32)", key: "" },
+                            { name: "vad_model_id", type: "varchar(64)", key: "" },
+                            { name: "llm_model_id", type: "varchar(32)", key: "" },
+                            { name: "vllm_model_id", type: "varchar(32)", key: "" },
+                            { name: "tts_model_id", type: "varchar(32)", key: "" },
+                            { name: "tts_voice_id", type: "varchar(32)", key: "" },
+                            { name: "mem_model_id", type: "varchar(32)", key: "" },
+                            { name: "intent_model_id", type: "varchar(32)", key: "" },
+                            { name: "system_prompt", type: "text", key: "" },
+                            { name: "lang_code", type: "varchar(10)", key: "" },
+                            { name: "language", type: "varchar(10)", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "created_at", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "updated_at", type: "datetime", key: "" }
+                        ]
+                    }
+                }
+            },
+            device: {
+                title: "📱 Device Management",
+                tables: {
+                    ai_device: {
+                        name: "ai_device",
+                        description: "ESP32 device information",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "user_id", type: "bigint", key: "FK" },
+                            { name: "mac_address", type: "varchar(50)", key: "" },
+                            { name: "last_connected_at", type: "datetime", key: "" },
+                            { name: "auto_update", type: "tinyint", key: "" },
+                            { name: "board", type: "varchar(50)", key: "" },
+                            { name: "alias", type: "varchar(64)", key: "" },
+                            { name: "agent_id", type: "varchar(32)", key: "FK" },
+                            { name: "app_version", type: "varchar(20)", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    }
+                }
+            },
+            voice: {
+                title: "🔊 Voice Recognition",
+                tables: {
+                    ai_voiceprint: {
+                        name: "ai_voiceprint",
+                        description: "Voice print recognition data",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "name", type: "varchar(64)", key: "" },
+                            { name: "user_id", type: "bigint", key: "FK" },
+                            { name: "agent_id", type: "varchar(32)", key: "FK" },
+                            { name: "agent_code", type: "varchar(36)", key: "" },
+                            { name: "agent_name", type: "varchar(36)", key: "" },
+                            { name: "description", type: "varchar(255)", key: "" },
+                            { name: "embedding", type: "longtext", key: "" },
+                            { name: "memory", type: "text", key: "" },
+                            { name: "sort", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "created_at", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "updated_at", type: "datetime", key: "" }
+                        ]
+                    }
+                }
+            },
+            chat: {
+                title: "💬 Chat & Communication",
+                tables: {
+                    ai_chat_history: {
+                        name: "ai_chat_history",
+                        description: "Web-based chat sessions",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "user_id", type: "bigint", key: "FK" },
+                            { name: "agent_id", type: "varchar(32)", key: "FK" },
+                            { name: "device_id", type: "varchar(32)", key: "FK" },
+                            { name: "message_count", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    },
+                    ai_chat_message: {
+                        name: "ai_chat_message",
+                        description: "Individual chat messages",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "user_id", type: "bigint", key: "FK" },
+                            { name: "chat_id", type: "varchar(64)", key: "FK" },
+                            { name: "role", type: "enum", key: "" },
+                            { name: "content", type: "text", key: "" },
+                            { name: "prompt_tokens", type: "int", key: "" },
+                            { name: "total_tokens", type: "int", key: "" },
+                            { name: "completion_tokens", type: "int", key: "" },
+                            { name: "prompt_ms", type: "int", key: "" },
+                            { name: "total_ms", type: "int", key: "" },
+                            { name: "completion_ms", type: "int", key: "" },
+                            { name: "creator", type: "bigint", key: "" },
+                            { name: "create_date", type: "datetime", key: "" },
+                            { name: "updater", type: "bigint", key: "" },
+                            { name: "update_date", type: "datetime", key: "" }
+                        ]
+                    },
+                    ai_agent_chat_history: {
+                        name: "ai_agent_chat_history",
+                        description: "Device-based chat interactions",
+                        fields: [
+                            { name: "id", type: "bigint", key: "PK" },
+                            { name: "mac_address", type: "varchar(50)", key: "" },
+                            { name: "agent_id", type: "varchar(32)", key: "FK" },
+                            { name: "session_id", type: "varchar(50)", key: "" },
+                            { name: "chat_type", type: "tinyint(3)", key: "" },
+                            { name: "content", type: "varchar(1024)", key: "" },
+                            { name: "audio_id", type: "varchar(32)", key: "FK" },
+                            { name: "created_at", type: "datetime(3)", key: "" },
+                            { name: "updated_at", type: "datetime(3)", key: "" }
+                        ]
+                    },
+                    ai_agent_chat_audio: {
+                        name: "ai_agent_chat_audio",
+                        description: "Audio data for device chats",
+                        fields: [
+                            { name: "id", type: "varchar(32)", key: "PK" },
+                            { name: "audio", type: "longblob", key: "" }
+                        ]
+                    }
+                }
+            }
+        };
+
+        // Relationships data
+        const relationships = [
+            { from: "sys_user", to: "sys_user_token", type: "1:1", description: "User has authentication token" },
+            { from: "sys_user", to: "ai_agent", type: "1:M", description: "User owns multiple AI agents" },
+            { from: "sys_user", to: "ai_device", type: "1:M", description: "User owns multiple ESP32 devices" },
+            { from: "sys_user", to: "ai_voiceprint", type: "1:M", description: "User has multiple voiceprints" },
+            { from: "sys_user", to: "ai_chat_history", type: "1:M", description: "User participates in multiple chats" },
+            { from: "sys_user", to: "ai_chat_message", type: "1:M", description: "User sends multiple messages" },
+            { from: "sys_dict_type", to: "sys_dict_data", type: "1:M", description: "Dictionary type contains entries" },
+            { from: "ai_model_config", to: "ai_tts_voice", type: "1:M", description: "TTS model provides multiple voices" },
+            { from: "ai_model_config", to: "ai_agent", type: "1:M", description: "Models used by multiple agents" },
+            { from: "ai_tts_voice", to: "ai_agent", type: "1:M", description: "Voice used by multiple agents" },
+            { from: "ai_agent_template", to: "ai_agent", type: "Template", description: "Template basis for agent creation" },
+            { from: "ai_agent", to: "ai_device", type: "1:M", description: "Agent assigned to multiple devices" },
+            { from: "ai_agent", to: "ai_voiceprint", type: "1:M", description: "Agent recognizes multiple voices" },
+            { from: "ai_agent", to: "ai_chat_history", type: "1:M", description: "Agent in multiple chat sessions" },
+            { from: "ai_agent", to: "ai_agent_chat_history", type: "1:M", description: "Agent in multiple device chats" },
+            { from: "ai_device", to: "ai_chat_history", type: "1:M", description: "Device used in multiple chats" },
+            { from: "ai_device", to: "ai_agent_chat_history", type: "1:M", description: "Device connects via MAC address" },
+            { from: "ai_chat_history", to: "ai_chat_message", type: "1:M", description: "Chat session contains messages" },
+            { from: "ai_agent_chat_history", to: "ai_agent_chat_audio", type: "1:1", description: "Chat entry may have audio data" }
+        ];
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            renderSchema();
+            setupEventListeners();
+        });
+
+        function renderSchema() {
+            const container = document.getElementById('schemaContainer');
+            container.innerHTML = '';
+
+            Object.keys(databaseSchema).forEach(categoryKey => {
+                const category = databaseSchema[categoryKey];
+                const categoryDiv = createCategoryDiv(categoryKey, category);
+                container.appendChild(categoryDiv);
+            });
+        }
+
+        function createCategoryDiv(categoryKey, category) {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'category';
+            categoryDiv.setAttribute('data-category', categoryKey);
+
+            const header = document.createElement('div');
+            header.className = 'category-header';
+            header.innerHTML = `
+                <span class="category-icon">${category.title.split(' ')[0]}</span>
+                <span class="category-title">${category.title}</span>
+            `;
+
+            categoryDiv.appendChild(header);
+
+            Object.keys(category.tables).forEach(tableKey => {
+                const table = category.tables[tableKey];
+                const tableCard = createTableCard(table);
+                categoryDiv.appendChild(tableCard);
+            });
+
+            return categoryDiv;
+        }
+
+        function createTableCard(table) {
+            const card = document.createElement('div');
+            card.className = 'table-card';
+            card.setAttribute('data-table', table.name);
+
+            const header = document.createElement('div');
+            header.className = 'table-header';
+            header.innerHTML = `
+                <span class="table-name">${table.name}</span>
+                <span class="table-count">${table.fields.length} fields</span>
+            `;
+
+            const fields = document.createElement('div');
+            fields.className = 'table-fields';
+
+            table.fields.forEach(field => {
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = 'field';
+
+                const keyIndicator = field.key ? `<span class="key-indicator ${field.key.toLowerCase()}">${field.key}</span>` : '';
+
+                fieldDiv.innerHTML = `
+                    <span class="field-name">${keyIndicator}${field.name}</span>
+                    <span class="field-type">${field.type}</span>
+                `;
+                fields.appendChild(fieldDiv);
+            });
+
+            card.appendChild(header);
+            card.appendChild(fields);
+
+            // Add click event to toggle expansion
+            card.addEventListener('click', function() {
+                card.classList.toggle('expanded');
+            });
+
+            return card;
+        }
+
+        function setupEventListeners() {
+            // Category filter
+            document.getElementById('categoryFilter').addEventListener('change', function() {
+                filterByCategory(this.value);
+            });
+
+            // Table search
+            document.getElementById('tableSearch').addEventListener('input', function() {
+                searchTables(this.value);
+            });
+        }
+
+        function filterByCategory(category) {
+            const categories = document.querySelectorAll('.category');
+
+            categories.forEach(cat => {
+                if (category === 'all' || cat.getAttribute('data-category') === category) {
+                    cat.style.display = 'block';
+                } else {
+                    cat.style.display = 'none';
+                }
+            });
+        }
+
+        function searchTables(searchTerm) {
+            const tables = document.querySelectorAll('.table-card');
+
+            tables.forEach(table => {
+                const tableName = table.getAttribute('data-table').toLowerCase();
+                if (tableName.includes(searchTerm.toLowerCase())) {
+                    table.style.display = 'block';
+                    table.parentElement.style.display = 'block';
+                } else {
+                    table.style.display = 'none';
+                }
+            });
+
+            // Hide empty categories
+            const categories = document.querySelectorAll('.category');
+            categories.forEach(category => {
+                const visibleTables = category.querySelectorAll('.table-card[style*="block"], .table-card:not([style])');
+                if (visibleTables.length === 0 && searchTerm) {
+                    category.style.display = 'none';
+                }
+            });
+        }
+
+        function expandAllTables() {
+            const tables = document.querySelectorAll('.table-card');
+            tables.forEach(table => {
+                table.classList.add('expanded');
+            });
+        }
+
+        function collapseAllTables() {
+            const tables = document.querySelectorAll('.table-card');
+            tables.forEach(table => {
+                table.classList.remove('expanded');
+            });
+        }
+
+        function showRelationships() {
+            const panel = document.getElementById('relationshipsPanel');
+            const list = document.getElementById('relationshipsList');
+
+            if (panel.classList.contains('hidden')) {
+                // Show relationships
+                list.innerHTML = '';
+                relationships.forEach(rel => {
+                    const item = document.createElement('div');
+                    item.className = 'relationship-item';
+                    item.innerHTML = `
+                        <div class="relationship-type">${rel.from} → ${rel.to} (${rel.type})</div>
+                        <div class="relationship-desc">${rel.description}</div>
+                    `;
+
+                    // Add click event to highlight related tables
+                    item.addEventListener('click', function() {
+                        highlightRelatedTables(rel.from, rel.to);
+                    });
+
+                    list.appendChild(item);
+                });
+                panel.classList.remove('hidden');
+            } else {
+                // Hide relationships
+                panel.classList.add('hidden');
+                clearHighlights();
+            }
+        }
+
+        function highlightRelatedTables(fromTable, toTable) {
+            // Clear previous highlights
+            clearHighlights();
+
+            // Highlight related tables
+            const tables = document.querySelectorAll('.table-card');
+            tables.forEach(table => {
+                const tableName = table.getAttribute('data-table');
+                if (tableName === fromTable || tableName === toTable) {
+                    table.classList.add('highlighted');
+                }
+            });
+        }
+
+        function clearHighlights() {
+            const tables = document.querySelectorAll('.table-card');
+            tables.forEach(table => {
+                table.classList.remove('highlighted');
+            });
+        }
+    </script>
+</body>
+</html>

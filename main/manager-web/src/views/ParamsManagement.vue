@@ -3,11 +3,11 @@
         <HeaderBar />
 
         <div class="operation-bar">
-            <h2 class="page-title">Parameter Management</h2>
+            <h2 class="page-title">参数管理</h2>
             <div class="right-operations">
-                <el-input placeholder="Enter parameter code or remark to search" v-model="searchCode" class="search-input"
+                <el-input placeholder="请输入参数编码或备注查询" v-model="searchCode" class="search-input"
                     @keyup.enter.native="handleSearch" clearable />
-                <el-button class="btn-search" @click="handleSearch">Search</el-button>
+                <el-button class="btn-search" @click="handleSearch">搜索</el-button>
             </div>
         </div>
 
@@ -16,33 +16,33 @@
                 <div class="content-area">
                     <el-card class="params-card" shadow="never">
                         <el-table ref="paramsTable" :data="paramsList" class="transparent-table" v-loading="loading"
-                            element-loading-text="Loading..." element-loading-spinner="el-icon-loading"
+                            element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
                             element-loading-background="rgba(255, 255, 255, 0.7)"
                             :header-cell-class-name="headerCellClassName">
-                            <el-table-column label="Select" align="center" width="120">
+                            <el-table-column label="选择" align="center" width="120">
                                 <template slot-scope="scope">
                                     <el-checkbox v-model="scope.row.selected"></el-checkbox>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="Parameter Code" prop="paramCode" align="center"></el-table-column>
-                            <el-table-column label="Parameter Value" prop="paramValue" align="center" show-overflow-tooltip>
+                            <el-table-column label="参数编码" prop="paramCode" align="center"></el-table-column>
+                            <el-table-column label="参数值" prop="paramValue" align="center" show-overflow-tooltip>
                                 <template slot-scope="scope">
                                     <div v-if="isSensitiveParam(scope.row.paramCode)">
                                         <span v-if="!scope.row.showValue">{{ maskSensitiveValue(scope.row.paramValue)
                                         }}</span>
                                         <span v-else>{{ scope.row.paramValue }}</span>
                                         <el-button size="mini" type="text" @click="toggleSensitiveValue(scope.row)">
-                                            {{ scope.row.showValue ? 'Hide' : 'View' }}
+                                            {{ scope.row.showValue ? '隐藏' : '查看' }}
                                         </el-button>
                                     </div>
                                     <span v-else>{{ scope.row.paramValue }}</span>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="Remark" prop="remark" align="center"></el-table-column>
-                            <el-table-column label="Actions" align="center">
+                            <el-table-column label="备注" prop="remark" align="center"></el-table-column>
+                            <el-table-column label="操作" align="center">
                                 <template slot-scope="scope">
-                                    <el-button size="mini" type="text" @click="editParam(scope.row)">Edit</el-button>
-                                    <el-button size="mini" type="text" @click="deleteParam(scope.row)">Delete</el-button>
+                                    <el-button size="mini" type="text" @click="editParam(scope.row)">编辑</el-button>
+                                    <el-button size="mini" type="text" @click="deleteParam(scope.row)">删除</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -50,32 +50,32 @@
                         <div class="table_bottom">
                             <div class="ctrl_btn">
                                 <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
-                                    {{ isAllSelected ? 'Deselect All' : 'Select All' }}
+                                    {{ isAllSelected ? '取消全选' : '全选' }}
                                 </el-button>
-                                <el-button size="mini" type="success" @click="showAddDialog">Add</el-button>
+                                <el-button size="mini" type="success" @click="showAddDialog">新增</el-button>
                                 <el-button size="mini" type="danger" icon="el-icon-delete"
-                                    @click="deleteSelectedParams">Delete</el-button>
+                                    @click="deleteSelectedParams">删除</el-button>
                             </div>
                             <div class="custom-pagination">
                                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                                    <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item} items/page`"
+                                    <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`"
                                         :value="item">
                                     </el-option>
                                 </el-select>
                                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
-                                    First
+                                    首页
                                 </button>
                                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
-                                    Previous
+                                    上一页
                                 </button>
                                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                                     :class="{ active: page === currentPage }" @click="goToPage(page)">
                                     {{ page }}
                                 </button>
                                 <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
-                                    Next
+                                    下一页
                                 </button>
-                                <span class="total-text">Total {{ total }} records</span>
+                                <span class="total-text">共{{ total }}条记录</span>
                             </div>
                         </div>
                     </el-card>
@@ -83,7 +83,7 @@
             </div>
         </div>
 
-        <!-- Add/Edit parameter dialog -->
+        <!-- 新增/编辑参数对话框 -->
         <param-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="paramForm" @submit="handleSubmit"
             @cancel="dialogVisible = false" />
         <el-footer>
@@ -109,7 +109,7 @@ export default {
             pageSizeOptions: [10, 20, 50, 100],
             total: 0,
             dialogVisible: false,
-            dialogTitle: "Add Parameter",
+            dialogTitle: "新增参数",
             isAllSelected: false,
             sensitive_keys: ["api_key", "personal_access_token", "access_token", "token", "secret", "access_key_secret", "secret_key"],
             paramForm: {
@@ -170,7 +170,7 @@ export default {
                         this.total = data.data.total;
                     } else {
                         this.$message.error({
-                            message: data.msg || 'Failed to get parameter list',
+                            message: data.msg || '获取参数列表失败',
                             showClose: true
                         });
                     }
@@ -188,7 +188,7 @@ export default {
             });
         },
         showAddDialog() {
-            this.dialogTitle = "Add Parameter";
+            this.dialogTitle = "新增参数";
             this.paramForm = {
                 id: null,
                 paramCode: "",
@@ -198,18 +198,18 @@ export default {
             this.dialogVisible = true;
         },
         editParam(row) {
-            this.dialogTitle = "Edit Parameter";
+            this.dialogTitle = "编辑参数";
             this.paramForm = { ...row };
             this.dialogVisible = true;
         },
 
         handleSubmit({ form, done }) {
             if (form.id) {
-                // Edit
+                // 编辑
                 Api.admin.updateParam(form, ({ data }) => {
                     if (data.code === 0) {
                         this.$message.success({
-                            message: "Modified successfully",
+                            message: "修改成功",
                             showClose: true
                         });
                         this.dialogVisible = false;
@@ -218,11 +218,11 @@ export default {
                     done && done();
                 });
             } else {
-                // Add
+                // 新增
                 Api.admin.addParam(form, ({ data }) => {
                     if (data.code === 0) {
                         this.$message.success({
-                            message: "Added successfully",
+                            message: "新增成功",
                             showClose: true
                         });
                         this.dialogVisible = false;
@@ -237,7 +237,7 @@ export default {
             const selectedRows = this.paramsList.filter(row => row.selected);
             if (selectedRows.length === 0) {
                 this.$message.warning({
-                    message: "Please select parameters to delete first",
+                    message: "请先选择需要删除的参数",
                     showClose: true
                 });
                 return;
@@ -245,28 +245,28 @@ export default {
             this.deleteParam(selectedRows);
         },
         deleteParam(row) {
-            // Handle single parameter or parameter array
+            // 处理单个参数或参数数组
             const params = Array.isArray(row) ? row : [row];
 
             if (Array.isArray(row) && row.length === 0) {
                 this.$message.warning({
-                    message: "Please select parameters to delete first",
+                    message: "请先选择需要删除的参数",
                     showClose: true
                 });
                 return;
             }
 
             const paramCount = params.length;
-            this.$confirm(`Are you sure you want to delete ${paramCount} selected parameters?`, 'Warning', {
-                confirmButtonText: 'Confirm',
-                cancelButtonText: 'Cancel',
+            this.$confirm(`确定要删除选中的${paramCount}个参数吗？`, '警告', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
                 type: 'warning',
                 distinguishCancelAndClose: true
             }).then(() => {
                 const ids = params.map(param => param.id);
                 if (ids.some(id => isNaN(id))) {
                     this.$message.error({
-                        message: 'Invalid parameter IDs found',
+                        message: '存在无效的参数ID',
                         showClose: true
                     });
                     return;
@@ -275,13 +275,13 @@ export default {
                 Api.admin.deleteParam(ids, ({ data }) => {
                     if (data.code === 0) {
                         this.$message.success({
-                            message: `Successfully deleted ${paramCount} parameters`,
+                            message: `成功删除${paramCount}个参数`,
                             showClose: true
                         });
                         this.fetchParams();
                     } else {
                         this.$message.error({
-                            message: data.msg || 'Failed to delete, please try again',
+                            message: data.msg || '删除失败，请重试',
                             showClose: true
                         });
                     }
@@ -290,13 +290,13 @@ export default {
                 if (action === 'cancel') {
                     this.$message({
                         type: 'info',
-                        message: 'Delete operation cancelled',
+                        message: '已取消删除操作',
                         duration: 1000
                     });
                 } else {
                     this.$message({
                         type: 'info',
-                        message: 'Operation closed',
+                        message: '操作已关闭',
                         duration: 1000
                     });
                 }

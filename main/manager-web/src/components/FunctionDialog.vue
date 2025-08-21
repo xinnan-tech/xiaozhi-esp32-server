@@ -3,7 +3,7 @@
     <!-- 自定义标题区域 -->
     <div class="custom-header">
       <div class="header-left">
-        <h3 class="bold-title">Function Management</h3>
+        <h3 class="bold-title">功能管理</h3>
       </div>
       <button class="custom-close-btn" @click="closeDialog">×</button>
     </div>
@@ -12,8 +12,8 @@
       <!-- 左侧：未选功能 -->
       <div class="function-column">
         <div class="column-header">
-          <h4 class="column-title">Unselected Functions</h4>
-          <el-button type="text" @click="selectAll" class="select-all-btn">Select All</el-button>
+          <h4 class="column-title">未选功能</h4>
+          <el-button type="text" @click="selectAll" class="select-all-btn">全选</el-button>
         </div>
         <div class="function-list">
           <div v-if="unselected.length">
@@ -27,7 +27,7 @@
             </div>
           </div>
           <div v-else style="display: flex; justify-content: center; align-items: center;">
-            <el-empty description="No more plugins available" />
+            <el-empty description="没有更多的插件了" />
           </div>
         </div>
       </div>
@@ -35,8 +35,8 @@
       <!-- 中间：已选功能 -->
       <div class="function-column">
         <div class="column-header">
-          <h4 class="column-title">Selected Functions</h4>
-          <el-button type="text" @click="deselectAll" class="select-all-btn">Select All</el-button>
+          <h4 class="column-title">已选功能</h4>
+          <el-button type="text" @click="deselectAll" class="select-all-btn">全选</el-button>
         </div>
         <div class="function-list">
           <div v-if="selectedList.length > 0">
@@ -50,19 +50,19 @@
             </div>
           </div>
           <div v-else style="display: flex; justify-content: center; align-items: center;">
-            <el-empty description="Please select plugin functions" />
+            <el-empty description="请选择插件功能" />
           </div>
         </div>
       </div>
 
       <!-- 右侧：参数配置 -->
       <div class="params-column">
-        <h4 v-if="currentFunction" class="column-title">Parameter Configuration - {{ currentFunction.name }}</h4>
+        <h4 v-if="currentFunction" class="column-title">参数配置 - {{ currentFunction.name }}</h4>
         <div v-if="currentFunction" class="params-container">
           <el-form :model="currentFunction" class="param-form">
             <!-- 遍历 fieldsMeta，而不是 params 的 keys -->
             <div v-if="currentFunction.fieldsMeta.length == 0">
-              <el-empty :description="currentFunction.name + ' requires no parameter configuration'" />
+              <el-empty :description="currentFunction.name + ' 无需配置参数'" />
             </div>
             <el-form-item v-for="field in currentFunction.fieldsMeta" :key="field.key" :label="field.label"
               class="param-item" :class="{ 'textarea-field': field.type === 'array' || field.type === 'json' }">
@@ -77,7 +77,7 @@
                 @change="val => handleParamChange(currentFunction, field.key, val)" />
 
               <!-- JSON -->
-              <el-input v-else-if="field.type === 'json'" type="textarea" :rows="6" placeholder="Please enter valid JSON"
+              <el-input v-else-if="field.type === 'json'" type="textarea" :rows="6" placeholder="请输入合法的 JSON"
                 v-model="textCache[field.key]" @blur="flushJson(field)" />
 
               <!-- number -->
@@ -95,7 +95,7 @@
             </el-form-item>
           </el-form>
         </div>
-        <div v-else class="empty-tip">Please select a configured function for parameter settings</div>
+        <div v-else class="empty-tip">请选择已配置的功能进行参数设置</div>
       </div>
     </div>
 
@@ -105,19 +105,21 @@
         <!-- 左侧区域 -->
         <div class="mcp-left">
           <div class="mcp-header">
-            <h3 class="bold-title">MCP Access Point</h3>
+            <h3 class="bold-title">MCP接入点</h3>
           </div>
           <div class="url-header">
             <div class="address-desc">
-              <span>Below is the MCP access point address for the agent.</span>
+              <span>以下是智能体的MCP接入点地址。</span>
+              <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-enable.md"
+                target="_blank" class="doc-link">如何部署MCP接入点</a> &nbsp;&nbsp;|&nbsp;&nbsp;
               <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-integration.md"
-                target="_blank" class="doc-link">View Access Point Usage Documentation</a>
+                target="_blank" class="doc-link">如何接入MCP功能</a> &nbsp;
             </div>
           </div>
           <el-input v-model="mcpUrl" readonly class="url-input">
             <template #suffix>
               <el-button @click="copyUrl" class="inner-copy-btn" icon="el-icon-document-copy">
-                Copy
+                复制
               </el-button>
             </template>
           </el-input>
@@ -126,17 +128,17 @@
         <!-- 右侧区域 -->
         <div class="mcp-right">
           <div class="mcp-header">
-            <h3 class="bold-title">Access Point Status</h3>
+            <h3 class="bold-title">接入点状态</h3>
           </div>
           <div class="status-container">
             <span class="status-indicator" :class="mcpStatus"></span>
             <span class="status-text">{{
-              mcpStatus === 'connected' ? 'Connected' :
-                mcpStatus === 'loading' ? 'Loading...' : 'Disconnected'
+              mcpStatus === 'connected' ? '已连接' :
+                mcpStatus === 'loading' ? '加载中...' : '未连接'
             }}</span>
             <button class="refresh-btn" @click="refreshStatus">
               <span class="refresh-icon">↻</span>
-              <span>Refresh</span>
+              <span>刷新</span>
             </button>
           </div>
           <div class="mcp-tools-list">
@@ -146,7 +148,7 @@
               </el-button>
             </div>
             <div v-else class="no-tools">
-              <span>No tools available</span>
+              <span>暂无可用工具</span>
             </div>
           </div>
         </div>
@@ -154,8 +156,8 @@
     </div>
 
     <div class="drawer-footer">
-      <el-button @click="closeDialog">Cancel</el-button>
-      <el-button type="primary" @click="saveSelection">Save Configuration</el-button>
+      <el-button @click="closeDialog">取消</el-button>
+      <el-button type="primary" @click="saveSelection">保存配置</el-button>
     </div>
   </el-drawer>
 </template>
@@ -262,13 +264,13 @@ export default {
       try {
         const successful = document.execCommand('copy');
         if (successful) {
-          this.$message.success('Copied to clipboard');
+          this.$message.success('已复制到剪贴板');
         } else {
-          this.$message.error('Copy failed, please copy manually');
+          this.$message.error('复制失败，请手动复制');
         }
       } catch (err) {
         this.$message.error('复制失败，请手动复制');
-        console.error('Copy failed:', err);
+        console.error('复制失败:', err);
       } finally {
         document.body.removeChild(textarea);
       }
@@ -286,7 +288,7 @@ export default {
           this.mcpUrl = res.data.data || "";
         } else {
           this.mcpUrl = "";
-          console.error('Failed to get MCP address:', res.data.msg);
+          console.error('获取MCP地址失败:', res.data.msg);
         }
       });
     },
@@ -301,7 +303,7 @@ export default {
         } else {
           this.mcpTools = [];
           this.mcpStatus = "disconnected";
-          console.error('Failed to get MCP tool list:', res.data.msg);
+          console.error('获取MCP工具列表失败:', res.data.msg);
         }
       });
     },
@@ -325,7 +327,7 @@ export default {
         const obj = JSON.parse(text);
         this.handleParamChange(this.currentFunction, key, obj);
       } catch {
-        this.$message.error(`${this.currentFunction.name}'s ${key} field format error: Invalid JSON format`);
+        this.$message.error(`${this.currentFunction.name}的${key}字段格式错误：JSON格式有误`);
       }
     },
     handleFunctionClick(func) {

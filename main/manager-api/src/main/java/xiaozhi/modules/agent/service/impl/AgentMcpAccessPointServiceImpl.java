@@ -18,7 +18,7 @@ import xiaozhi.common.constant.Constant;
 import xiaozhi.common.utils.AESUtils;
 import xiaozhi.common.utils.HashEncryptionUtil;
 import xiaozhi.common.utils.JsonUtils;
-import xiaozhi.modules.agent.dto.McpJsonRpcRequest;
+import xiaozhi.modules.agent.Enums.XiaoZhiMcpJsonRpcJson;
 import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
 import xiaozhi.modules.sys.service.SysParamsService;
 import xiaozhi.modules.sys.utils.WebSocketClientManager;
@@ -61,57 +61,79 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
         wsUrl = wsUrl.replace("/mcp/", "/call/");
 
         try {
-            // 创建 WebSocket 连接
+            // 创建 WebSocket 连接，增加超时时间到15秒
             try (WebSocketClientManager client = WebSocketClientManager.build(
                     new WebSocketClientManager.Builder()
                             .uri(wsUrl)
-                            .connectTimeout(5, TimeUnit.SECONDS)
-                            .maxSessionDuration(9, TimeUnit.SECONDS))) {
+                            .bufferSize(1024 * 1024)
+                            .connectTimeout(8, TimeUnit.SECONDS)
+                            .maxSessionDuration(10, TimeUnit.SECONDS))) {
 
-                // 发送初始化消息
-                McpJsonRpcRequest initializeRequest = new McpJsonRpcRequest("initialize",
-                        Map.of(
-                                "protocolVersion", "2024-11-05",
-                                "capabilities", Map.of(
-                                        "roots", Map.of("listChanged", false),
-                                        "sampling", Map.of()),
-                                "clientInfo", Map.of(
-                                        "name", "xz-mcp-broker",
-                                        "version", "0.0.1")),
-                        1);
-                client.sendJson(initializeRequest);
+                // 步骤1: 发送初始化消息并等待响应
+                log.info("发送MCP初始化消息，智能体ID: {}", id);
+                client.sendText(XiaoZhiMcpJsonRpcJson.getInitializeJson());
 
-                // 等待初始化响应
-                Thread.sleep(200);
-
-                // 发送初始化完成通知
-                // 对于通知类型的消息，手动构建JSON以避免包含null字段
-                String notificationJson = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}";
-                client.sendText(notificationJson);
-
-                // 等待 0.2 秒
-                Thread.sleep(200);
-
-                // 发送工具列表请求
-                McpJsonRpcRequest toolsRequest = new McpJsonRpcRequest("tools/list", null, 2);
-                client.sendJson(toolsRequest);
-
-                // 监听响应，直到收到包含 id=2 的响应（tools/list响应）
-                List<String> responses = client.listener(response -> {
+                // 等待初始化响应 (id=1) - 移除固定延迟，改为响应驱动
+                List<String> initResponses = client.listenerWithoutClose(response -> {
                     try {
-                        // 先尝试解析为通用JSON对象来获取id
                         Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
-                        return jsonMap != null && Integer.valueOf(2).equals(jsonMap.get("id"));
+                        if (jsonMap != null && Integer.valueOf(1).equals(jsonMap.get("id"))) {
+                            // 检查是否有result字段，表示初始化成功
+                            return jsonMap.containsKey("result") && !jsonMap.containsKey("error");
+                        }
+                        return false;
                     } catch (Exception e) {
-                        log.warn("解析响应失败: {}", response, e);
+                        log.warn("解析初始化响应失败: {}", response, e);
                         return false;
                     }
                 });
 
-                // 处理响应
-                for (String response : responses) {
+                // 验证初始化响应
+                boolean initSucceeded = false;
+                for (String response : initResponses) {
                     try {
-                        // 先解析为通用JSON对象
+                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        if (jsonMap != null && Integer.valueOf(1).equals(jsonMap.get("id"))) {
+                            if (jsonMap.containsKey("result")) {
+                                log.info("MCP初始化成功，智能体ID: {}", id);
+                                initSucceeded = true;
+                                break;
+                            } else if (jsonMap.containsKey("error")) {
+                                log.error("MCP初始化失败，智能体ID: {}, 错误: {}", id, jsonMap.get("error"));
+                                return List.of();
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("处理初始化响应失败: {}", response, e);
+                    }
+                }
+
+                if (!initSucceeded) {
+                    log.error("未收到有效的MCP初始化响应，智能体ID: {}", id);
+                    return List.of();
+                }
+
+                // 步骤2: 发送初始化完成通知 - 只有在收到initialize响应后才发送
+                log.info("发送MCP初始化完成通知，智能体ID: {}", id);
+                client.sendText(XiaoZhiMcpJsonRpcJson.getNotificationsInitializedJson());
+                // 步骤3: 发送工具列表请求 - 立即发送，无需额外延迟
+                log.info("发送MCP工具列表请求，智能体ID: {}", id);
+                client.sendText(XiaoZhiMcpJsonRpcJson.getToolsListJson());
+
+                // 等待工具列表响应 (id=2)
+                List<String> toolsResponses = client.listener(response -> {
+                    try {
+                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        return jsonMap != null && Integer.valueOf(2).equals(jsonMap.get("id"));
+                    } catch (Exception e) {
+                        log.warn("解析工具列表响应失败: {}", response, e);
+                        return false;
+                    }
+                });
+
+                // 处理工具列表响应
+                for (String response : toolsResponses) {
+                    try {
                         Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
                         if (jsonMap != null && Integer.valueOf(2).equals(jsonMap.get("id"))) {
                             // 检查是否有result字段
@@ -122,11 +144,16 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                                 if (toolsObj instanceof List) {
                                     List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
                                     // 提取工具名称列表
-                                    return toolsList.stream()
+                                    List<String> result = toolsList.stream()
                                             .map(tool -> (String) tool.get("name"))
                                             .filter(name -> name != null)
                                             .collect(Collectors.toList());
+                                    log.info("成功获取MCP工具列表，智能体ID: {}, 工具数量: {}", id, result.size());
+                                    return result;
                                 }
+                            } else if (jsonMap.containsKey("error")) {
+                                log.error("获取工具列表失败，智能体ID: {}, 错误: {}", id, jsonMap.get("error"));
+                                return List.of();
                             }
                         }
                     } catch (Exception e) {
@@ -134,12 +161,12 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                     }
                 }
 
-                log.warn("未找到有效的工具列表响应");
+                log.warn("未找到有效的工具列表响应，智能体ID: {}", id);
                 return List.of();
 
             }
         } catch (Exception e) {
-            log.error("获取智能体 MCP 工具列表失败，智能体ID: {}", id, e);
+            log.error("获取智能体 MCP 工具列表失败，智能体ID: {},错误原因：{}", id, e.getMessage());
             return List.of();
         }
     }

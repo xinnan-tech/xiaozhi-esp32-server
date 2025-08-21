@@ -66,7 +66,7 @@ public class OtaServiceImpl extends BaseServiceImpl<OtaDao, OtaEntity> implement
         // 同类固件只保留最新的一条
         List<OtaEntity> otaList = baseDao.selectList(queryWrapper);
         if (otaList != null && otaList.size() > 0) {
-            OtaEntity otaBefore = otaList.get(0);
+            OtaEntity otaBefore = otaList.getFirst();
             entity.setId(otaBefore.getId());
             baseDao.updateById(entity);
             return true;

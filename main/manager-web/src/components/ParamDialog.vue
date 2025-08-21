@@ -20,22 +20,22 @@
       </div>
 
       <el-form :model="form" :rules="rules" ref="form" label-width="110px" label-position="left" class="param-form">
-        <el-form-item label="Parameter Code" prop="paramCode" class="form-item">
-          <el-input v-model="form.paramCode" placeholder="Please enter parameter code" class="custom-input"></el-input>
+        <el-form-item label="参数编码" prop="paramCode" class="form-item">
+          <el-input v-model="form.paramCode" placeholder="请输入参数编码" class="custom-input"></el-input>
         </el-form-item>
 
-        <el-form-item label="Parameter Value" prop="paramValue" class="form-item">
-          <el-input v-model="form.paramValue" placeholder="Please enter parameter value" class="custom-input"></el-input>
+        <el-form-item label="参数值" prop="paramValue" class="form-item">
+          <el-input v-model="form.paramValue" placeholder="请输入参数值" class="custom-input"></el-input>
         </el-form-item>
 
-        <el-form-item label="Value Type" prop="valueType" class="form-item">
-          <el-select v-model="form.valueType" placeholder="Please select value type" class="custom-select">
+        <el-form-item label="值类型" prop="valueType" class="form-item">
+          <el-select v-model="form.valueType" placeholder="请选择值类型" class="custom-select">
             <el-option v-for="item in valueTypeOptions" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Remarks" prop="remark" class="form-item remark-item">
-          <el-input type="textarea" v-model="form.remark" placeholder="Please enter remarks" :rows="3" class="custom-textarea"></el-input>
+        <el-form-item label="备注" prop="remark" class="form-item remark-item">
+          <el-input type="textarea" v-model="form.remark" placeholder="请输入备注" :rows="3" class="custom-textarea"></el-input>
         </el-form-item>
       </el-form>
 
@@ -46,10 +46,10 @@
           class="save-btn"
           :loading="saving"
           :disabled="saving">
-          Save
+          保存
         </el-button>
         <el-button @click="cancel" class="cancel-btn">
-          Cancel
+          取消
         </el-button>
       </div>
     </div>
@@ -61,7 +61,7 @@ export default {
   props: {
     title: {
       type: String,
-      default: 'Add Parameter'
+      default: '新增参数'
     },
     visible: {
       type: Boolean,
@@ -83,21 +83,21 @@ export default {
       dialogKey: Date.now(),
       saving: false,
       valueTypeOptions: [
-        { value: 'string', label: 'String (string)' },
-        { value: 'number', label: 'Number (number)' },
-        { value: 'boolean', label: 'Boolean (boolean)' },
-        { value: 'array', label: 'Array (array)' },
-        { value: 'json', label: 'JSON Object (json)' }
+        { value: 'string', label: '字符串(string)' },
+        { value: 'number', label: '数字(number)' },
+        { value: 'boolean', label: '布尔值(boolean)' },
+        { value: 'array', label: '数组(array)' },
+        { value: 'json', label: 'JSON对象(json)' }
       ],
       rules: {
         paramCode: [
-          { required: true, message: "Please enter parameter code", trigger: "blur" }
+          { required: true, message: "请输入参数编码", trigger: "blur" }
         ],
         paramValue: [
-          { required: true, message: "Please enter parameter value", trigger: "blur" }
+          { required: true, message: "请输入参数值", trigger: "blur" }
         ],
         valueType: [
-          { required: true, message: "Please select value type", trigger: "change" }
+          { required: true, message: "请选择值类型", trigger: "change" }
         ]
       }
     };

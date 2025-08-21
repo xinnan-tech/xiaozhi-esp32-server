@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :title="'Chat History with ' + agentName + (currentMacAddress ? ' [' + currentMacAddress + ']' : '')"
+    <el-dialog :title="'与' + agentName + '的聊天记录' + (currentMacAddress ? '[' + currentMacAddress + ']' : '')"
         :visible.sync="dialogVisible" width="80%" :before-close="handleClose" custom-class="chat-history-dialog">
         <div class="chat-container">
             <div class="session-list" @scroll="handleScroll">
@@ -11,8 +11,8 @@
                         <div class="message-count">{{ session.chatCount > 99 ? '99' : session.chatCount }}</div>
                     </div>
                 </div>
-                <div v-if="loading" class="loading">Loading...</div>
-                <div v-if="!hasMore" class="no-more">No more records</div>
+                <div v-if="loading" class="loading">加载中...</div>
+                <div v-if="!hasMore" class="no-more">没有更多记录了</div>
             </div>
             <div class="chat-content">
                 <div v-if="currentSessionId" class="messages">
@@ -24,7 +24,7 @@
                             <img :src="message.chatType === 1 ? getUserAvatar(currentSessionId) : require('@/assets/xiaozhi-logo.png')"
                                 class="avatar" />
                             <div class="message-content">
-                                {{ message.content }}
+                                {{ extractContentFromString(message.content) }}
                                 <i v-if="message.audioId" :class="getAudioIconClass(message)"
                                     @click="playAudio(message)" class="audio-icon"></i>
                             </div>
@@ -32,7 +32,7 @@
                     </div>
                 </div>
                 <div v-else class="no-session-selected">
-                    Please select a session to view chat history
+                    请选择会话查看聊天记录
                 </div>
             </div>
         </div>
@@ -94,9 +94,9 @@ export default {
             if (!this.messages || this.messages.length === 0) return [];
 
             const result = [];
-            const TIME_INTERVAL = 60 * 1000; // 1 minute time interval (milliseconds)
+            const TIME_INTERVAL = 60 * 1000; // 1分钟的时间间隔（毫秒）
 
-            // Add time marker for the first message
+            // 添加第一条消息的时间标记
             if (this.messages[0]) {
                 result.push({
                     type: 'time',
@@ -105,12 +105,12 @@ export default {
                 });
             }
 
-            // Process message list
+            // 处理消息列表
             for (let i = 0; i < this.messages.length; i++) {
                 const currentMessage = this.messages[i];
                 result.push(currentMessage);
 
-                // Check if time marker needs to be added
+                // 检查是否需要添加时间标记
                 if (i < this.messages.length - 1) {
                     const currentTime = new Date(currentMessage.createdAt).getTime();
                     const nextTime = new Date(this.messages[i + 1].createdAt).getTime();
@@ -129,6 +129,32 @@ export default {
         }
     },
     methods: {
+        /**
+         * 从 content 字段中提取聊天内容
+         * 如果 content 是 JSON 格式（如 {"speaker": "未知说话人", "content": "现在几点了。"}），则提取 content 字段
+         * 如果 content 是普通字符串，则直接返回
+         * 
+         * @param {string} content 原始内容
+         * @returns {string} 提取的聊天内容
+         */
+        extractContentFromString(content) {
+            if (!content || content.trim() === '') {
+                return content;
+            }
+
+            // 尝试解析为 JSON
+            try {
+                const jsonObj = JSON.parse(content);
+                if (jsonObj && typeof jsonObj === 'object' && jsonObj.content) {
+                    return jsonObj.content;
+                }
+            } catch (e) {
+                // 如果不是有效的 JSON，直接返回原内容
+            }
+
+            // 如果不是 JSON 格式或没有 content 字段，直接返回原内容
+            return content;
+        },
         resetData() {
             this.sessions = [];
             this.messages = [];
@@ -187,7 +213,7 @@ export default {
 
             this.scrollTimer = setTimeout(() => {
                 const { scrollTop, scrollHeight, clientHeight } = e.target;
-                // Load more when scrolled to bottom
+                // 当滚动到底部时加载更多
                 if (scrollHeight - scrollTop <= clientHeight + 50) {
                     this.loadSessions();
                 }
@@ -204,9 +230,9 @@ export default {
             const minutes = date.getMinutes().toString().padStart(2, '0');
 
             if (date >= today) {
-                return `Today ${hours}:${minutes}`;
+                return `今天 ${hours}:${minutes}`;
             } else if (date >= yesterday) {
-                return `Yesterday ${hours}:${minutes}`;
+                return `昨天 ${hours}:${minutes}`;
             } else {
                 const year = date.getFullYear();
                 const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -222,7 +248,7 @@ export default {
         },
         playAudio(message) {
             if (this.playingAudioId === message.audioId) {
-                // If currently playing this audio, stop it
+                // 如果正在播放当前音频，则停止播放
                 if (this.audioElement) {
                     this.audioElement.pause();
                     this.audioElement = null;
@@ -231,17 +257,17 @@ export default {
                 return;
             }
 
-            // Stop currently playing audio
+            // 停止当前正在播放的音频
             if (this.audioElement) {
                 this.audioElement.pause();
                 this.audioElement = null;
             }
 
-            // First get audio download ID
+            // 先获取音频下载ID
             this.playingAudioId = message.audioId;
             Api.agent.getAudioId(message.audioId, (res) => {
                 if (res.data && res.data.data) {
-                    // Use the obtained download ID to play audio
+                    // 使用获取到的下载ID播放音频
                     this.audioElement = new Audio(Api.getServiceUrl() + `/agent/play/${res.data.data}`);
 
                     this.audioElement.onended = () => {
@@ -254,17 +280,17 @@ export default {
             });
         },
         getUserAvatar(sessionId) {
-            // Extract all digits from sessionId
+            // 从 sessionId 中提取所有数字
             const numbers = sessionId.match(/\d+/g);
             if (!numbers) return require('@/assets/user-avatar1.png');
 
-            // Sum all digits
+            // 将所有数字相加
             const sum = numbers.reduce((acc, num) => acc + parseInt(num), 0);
 
-            // Calculate modulo 5 and add 1 to get a number between 1-5
+            // 计算模5并加1，得到1-5之间的数字
             const avatarIndex = (sum % 5) + 1;
 
-            // Return corresponding avatar image
+            // 返回对应的头像图片
             return require(`@/assets/user-avatar${avatarIndex}.png`);
         }
     }
@@ -319,7 +345,7 @@ export default {
     height: 30px;
     line-height: 30px;
     width: calc(100% - 30px);
-    /* Leave space for message count */
+    /* 为消息数量留出空间 */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -442,6 +468,6 @@ export default {
     padding: 0;
     overflow: hidden;
     height: calc(90vh - 54px);
-    /* Subtract title bar height */
+    /* 减去标题栏的高度 */
 }
 </style>

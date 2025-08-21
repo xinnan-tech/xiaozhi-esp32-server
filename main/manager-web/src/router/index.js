@@ -18,6 +18,13 @@ const routes = [
       return import('../views/roleConfig.vue')
     }
   },
+   {
+    path: '/voice-print',
+    name: 'VoicePrint',
+    component: function () {
+      return import('../views/VoicePrint.vue')
+    }
+  },
   {
     path: '/login',
     name: 'login',
@@ -46,7 +53,7 @@ const routes = [
       return import('../views/retrievePassword.vue')
     }
   },
-  // Device management page route
+  // 设备管理页面路由
   {
     path: '/device-management',
     name: 'DeviceManagement',
@@ -54,7 +61,7 @@ const routes = [
       return import('../views/DeviceManagement.vue')
     }
   },
-  // Add user management route
+  // 添加用户管理路由
   {
     path: '/user-management',
     name: 'UserManagement',
@@ -77,7 +84,7 @@ const routes = [
     },
     meta: {
       requiresAuth: true,
-      title: 'Parameter Management'
+      title: '参数管理'
     }
   },
 
@@ -89,7 +96,7 @@ const routes = [
     },
     meta: {
       requiresAuth: true,
-      title: 'Server Management'
+      title: '服务端管理'
     }
   },
   {
@@ -100,7 +107,7 @@ const routes = [
     },
     meta: {
       requiresAuth: true,
-      title: 'OTA Management'
+      title: 'OTA管理'
     }
   },
   {
@@ -123,31 +130,31 @@ const router = new VueRouter({
   routes
 })
 
-// Global handling of duplicate navigation, changed to refresh page
+// 全局处理重复导航，改为刷新页面
 const originalPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {
   return originalPush.call(this, location).catch(err => {
     if (err.name === 'NavigationDuplicated') {
-      // If it's duplicate navigation, refresh page
+      // 如果是重复导航，刷新页面
       window.location.reload()
     } else {
-      // Throw other errors normally
+      // 其他错误正常抛出
       throw err
     }
   })
 }
 
-// Routes that require login to access
+// 需要登录才能访问的路由
 const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig']
 
-// Route guard
+// 路由守卫
 router.beforeEach((to, from, next) => {
-  // Check if it's a protected route
+  // 检查是否是需要保护的路由
   if (protectedRoutes.includes(to.name)) {
-    // Get token from localStorage
+    // 从localStorage获取token
     const token = localStorage.getItem('token')
     if (!token) {
-      // Not logged in, redirect to login page
+      // 未登录，跳转到登录页
       next({ name: 'login', query: { redirect: to.fullPath } })
       return
     }

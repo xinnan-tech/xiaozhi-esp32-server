@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xiaozhi ESP32 Server - Interactive Database Network Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(15px);
+            padding: 15px 30px;
+            z-index: 1000;
+            border-bottom: 2px solid rgba(100, 255, 218, 0.3);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            background: linear-gradient(135deg, #64ffda 0%, #667eea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 8px 12px;
+            background: rgba(100, 255, 218, 0.1);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            background: rgba(100, 255, 218, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .stat-number {
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #64ffda;
+        }
+
+        .controls {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 300px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #64ffda;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, button, input {
+            padding: 12px 16px;
+            border: 2px solid rgba(100, 255, 218, 0.3);
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: rgba(26, 26, 46, 0.9);
+            color: white;
+        }
+
+        select {
+            background: rgba(26, 26, 46, 0.95);
+            color: #64ffda;
+            cursor: pointer;
+        }
+
+        select option {
+            background: #1a1a2e;
+            color: #64ffda;
+            padding: 8px 12px;
+            border: none;
+        }
+
+        select option:hover {
+            background: rgba(100, 255, 218, 0.1);
+            color: white;
+        }
+
+        select:focus, button:focus, input:focus {
+            border-color: #64ffda;
+            outline: none;
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
+            background: rgba(26, 26, 46, 0.95);
+        }
+
+        input {
+            background: rgba(26, 26, 46, 0.9);
+            color: #64ffda;
+        }
+
+        input::placeholder {
+            color: rgba(100, 255, 218, 0.6);
+        }
+
+        button {
+            background: linear-gradient(135deg, #64ffda 0%, #667eea 100%);
+            color: #1a1a2e;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(100, 255, 218, 0.4);
+        }
+
+        .diagram-container {
+            position: absolute;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+
+        .diagram-canvas {
+            width: 2000px;
+            height: 1500px;
+            position: relative;
+            cursor: grab;
+            transform-origin: 0 0;
+            transition: transform 0.3s ease;
+        }
+
+        .diagram-canvas.dragging {
+            cursor: grabbing;
+        }
+
+        .table-node {
+            position: absolute;
+            min-width: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(100, 255, 218, 0.3);
+            border-radius: 15px;
+            padding: 15px;
+            cursor: move;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .table-node:hover {
+            border-color: #64ffda;
+            box-shadow: 0 10px 30px rgba(100, 255, 218, 0.3);
+            transform: translateY(-5px);
+        }
+
+        .table-node.highlighted {
+            border-color: #ff6b6b;
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .table-node.selected {
+            border-color: #ffd93d;
+            box-shadow: 0 0 30px rgba(255, 217, 61, 0.5);
+            background: rgba(255, 217, 61, 0.1);
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.3);
+        }
+
+        .table-icon {
+            font-size: 1.5em;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #64ffda 0%, #667eea 100%);
+        }
+
+        .table-name {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #64ffda;
+        }
+
+        .table-description {
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+
+        .field-count {
+            font-size: 0.8em;
+            color: rgba(100, 255, 218, 0.8);
+            background: rgba(100, 255, 218, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .connection-line {
+            stroke-width: 3;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .connection-line.one-to-one {
+            stroke: #64ffda;
+            stroke-dasharray: none;
+        }
+
+        .connection-line.one-to-many {
+            stroke: #667eea;
+            stroke-dasharray: 8,4;
+        }
+
+        .connection-line.many-to-many {
+            stroke: #ff6b6b;
+            stroke-dasharray: 12,4,3,4;
+        }
+
+        .connection-line.template {
+            stroke: #ffd93d;
+            stroke-dasharray: 16,6;
+        }
+
+        .connection-line:hover {
+            stroke-width: 5;
+            filter: drop-shadow(0 0 15px currentColor);
+        }
+
+        #connectionsSvg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2000px;
+            height: 1500px;
+            pointer-events: none;
+            z-index: 10;
+            overflow: visible;
+        }
+
+        .relationship-label {
+            position: absolute;
+            background: rgba(26, 26, 46, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: 600;
+            pointer-events: none;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+        }
+
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(15px);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            z-index: 999;
+        }
+
+        .legend h3 {
+            color: #64ffda;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .legend-line {
+            width: 30px;
+            height: 2px;
+            border-radius: 1px;
+        }
+
+        .legend-line.one-to-one { background: #64ffda; }
+        .legend-line.one-to-many { 
+            background: linear-gradient(90deg, #667eea 50%, transparent 50%);
+            background-size: 10px 2px;
+        }
+        .legend-line.many-to-many { 
+            background: linear-gradient(90deg, #ff6b6b 60%, transparent 60%);
+            background-size: 15px 2px;
+        }
+        .legend-line.template { 
+            background: linear-gradient(90deg, #ffd93d 75%, transparent 75%);
+            background-size: 20px 2px;
+        }
+
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+        }
+
+        .zoom-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(26, 26, 46, 0.95);
+            border: 2px solid rgba(100, 255, 218, 0.3);
+            color: #64ffda;
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: #64ffda;
+            transform: scale(1.1);
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 80px;
+            right: -400px;
+            width: 380px;
+            height: calc(100vh - 80px);
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(15px);
+            border-left: 2px solid rgba(100, 255, 218, 0.3);
+            padding: 25px;
+            overflow-y: auto;
+            transition: right 0.4s ease;
+            z-index: 998;
+        }
+
+        .sidebar.open {
+            right: 0;
+        }
+
+        .sidebar h3 {
+            color: #64ffda;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .field-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+        }
+
+        .field-name {
+            font-weight: 600;
+            color: white;
+        }
+
+        .field-type {
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(100, 255, 218, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .key-badge {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .key-badge.pk { background: #ff6b6b; color: white; }
+        .key-badge.fk { background: #667eea; color: white; }
+        .key-badge.uk { background: #ffd93d; color: #1a1a2e; }
+
+        @media (max-width: 768px) {
+            .controls {
+                position: fixed;
+                top: 80px;
+                left: 10px;
+                right: 10px;
+                min-width: auto;
+                max-height: 200px;
+            }
+            
+            .legend {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+            }
+            
+            .sidebar {
+                width: 100%;
+                right: -100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>🗄️ Xiaozhi ESP32 Database Network</h1>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">16</div>
+                        <div>Tables</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">25</div>
+                        <div>Relations</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">6</div>
+                        <div>Categories</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="categoryFilter">Filter by Category</label>
+                <select id="categoryFilter">
+                    <option value="all">All Categories</option>
+                    <option value="system">🔐 System Management</option>
+                    <option value="model">🤖 AI Model Config</option>
+                    <option value="agent">🧠 AI Agent Management</option>
+                    <option value="device">📱 Device Management</option>
+                    <option value="voice">🔊 Voice Recognition</option>
+                    <option value="chat">💬 Chat & Communication</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="relationshipFilter">Filter Relationships</label>
+                <select id="relationshipFilter">
+                    <option value="all">All Relationships</option>
+                    <option value="one-to-one">1:1 Relationships</option>
+                    <option value="one-to-many">1:M Relationships</option>
+                    <option value="many-to-many">M:M Relationships</option>
+                    <option value="template">Template Based</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="tableSearch">Search Tables</label>
+                <input type="text" id="tableSearch" placeholder="Enter table name...">
+            </div>
+
+            <button onclick="resetLayout()">Reset Layout</button>
+            <button onclick="autoArrange()">Auto Arrange</button>
+            <button onclick="exportDiagram()">Export PNG</button>
+        </div>
+
+        <div class="diagram-container">
+            <div class="diagram-canvas" id="diagramCanvas">
+                <svg id="connectionsSvg">
+                </svg>
+                <!-- Table nodes will be dynamically generated here -->
+            </div>
+        </div>
+
+        <div class="zoom-controls">
+            <button class="zoom-btn" onclick="zoomIn()">+</button>
+            <button class="zoom-btn" onclick="zoomOut()">−</button>
+            <button class="zoom-btn" onclick="resetZoom()">⌂</button>
+        </div>
+
+        <div class="legend">
+            <h3>Relationship Types</h3>
+            <div class="legend-item">
+                <div class="legend-line one-to-one"></div>
+                <span>One-to-One (1:1)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line one-to-many"></div>
+                <span>One-to-Many (1:M)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line many-to-many"></div>
+                <span>Many-to-Many (M:M)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line template"></div>
+                <span>Template Based</span>
+            </div>
+        </div>
+
+        <div class="sidebar" id="tableSidebar">
+            <h3 id="sidebarTitle">Table Details</h3>
+            <div id="sidebarContent">
+                <!-- Table details will be shown here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentZoom = 1;
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let canvasOffset = { x: 0, y: 0 };
+        let selectedTable = null;
+
+        // Database schema with positioning
+        const tableData = {
+            // System Management (Top Left)
+            sys_user: {
+                name: "sys_user", category: "system", icon: "👤",
+                description: "System users with authentication",
+                x: 100, y: 150,
+                fields: [
+                    { name: "id", type: "bigint", key: "PK" },
+                    { name: "username", type: "varchar(50)", key: "UK" },
+                    { name: "password", type: "varchar(100)", key: "" },
+                    { name: "super_admin", type: "tinyint", key: "" },
+                    { name: "status", type: "tinyint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            sys_user_token: {
+                name: "sys_user_token", category: "system", icon: "🔑",
+                description: "User authentication tokens",
+                x: 350, y: 150,
+                fields: [
+                    { name: "id", type: "bigint", key: "PK" },
+                    { name: "user_id", type: "bigint", key: "FK" },
+                    { name: "token", type: "varchar(100)", key: "UK" },
+                    { name: "expire_date", type: "datetime", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            sys_params: {
+                name: "sys_params", category: "system", icon: "⚙️",
+                description: "System configuration parameters",
+                x: 100, y: 320,
+                fields: [
+                    { name: "id", type: "bigint", key: "PK" },
+                    { name: "param_code", type: "varchar(32)", key: "UK" },
+                    { name: "param_value", type: "varchar(2000)", key: "" },
+                    { name: "param_type", type: "tinyint", key: "" },
+                    { name: "remark", type: "varchar(200)", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            sys_dict_type: {
+                name: "sys_dict_type", category: "system", icon: "📚",
+                description: "Dictionary types for system data",
+                x: 350, y: 320,
+                fields: [
+                    { name: "id", type: "bigint", key: "PK" },
+                    { name: "dict_type", type: "varchar(100)", key: "UK" },
+                    { name: "dict_name", type: "varchar(255)", key: "" },
+                    { name: "remark", type: "varchar(255)", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            sys_dict_data: {
+                name: "sys_dict_data", category: "system", icon: "📖",
+                description: "Dictionary data entries",
+                x: 600, y: 320,
+                fields: [
+                    { name: "id", type: "bigint", key: "PK" },
+                    { name: "dict_type_id", type: "bigint", key: "FK" },
+                    { name: "dict_label", type: "varchar(255)", key: "" },
+                    { name: "dict_value", type: "varchar(255)", key: "" },
+                    { name: "remark", type: "varchar(255)", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            // AI Model Configuration (Top Center)
+            ai_model_provider: {
+                name: "ai_model_provider", category: "model", icon: "🏭",
+                description: "AI model providers",
+                x: 800, y: 150,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "model_type", type: "varchar(20)", key: "" },
+                    { name: "provider_code", type: "varchar(50)", key: "" },
+                    { name: "name", type: "varchar(50)", key: "" },
+                    { name: "fields", type: "json", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            ai_model_config: {
+                name: "ai_model_config", category: "model", icon: "🤖",
+                description: "AI model configurations",
+                x: 1050, y: 150,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "model_type", type: "varchar(20)", key: "" },
+                    { name: "model_code", type: "varchar(50)", key: "" },
+                    { name: "model_name", type: "varchar(50)", key: "" },
+                    { name: "is_default", type: "tinyint(1)", key: "" },
+                    { name: "is_enabled", type: "tinyint(1)", key: "" },
+                    { name: "config_json", type: "json", key: "" },
+                    { name: "doc_link", type: "varchar(200)", key: "" },
+                    { name: "remark", type: "varchar(255)", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            ai_tts_voice: {
+                name: "ai_tts_voice", category: "model", icon: "🔊",
+                description: "Text-to-Speech voice configurations",
+                x: 1300, y: 150,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "tts_model_id", type: "varchar(32)", key: "FK" },
+                    { name: "name", type: "varchar(20)", key: "" },
+                    { name: "tts_voice", type: "varchar(50)", key: "" },
+                    { name: "languages", type: "varchar(50)", key: "" },
+                    { name: "voice_demo", type: "varchar(500)", key: "" },
+                    { name: "remark", type: "varchar(255)", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            // AI Agent Management (Center)
+            ai_agent_template: {
+                name: "ai_agent_template", category: "agent", icon: "📋",
+                description: "Predefined AI agent configurations",
+                x: 800, y: 350,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "agent_code", type: "varchar(36)", key: "" },
+                    { name: "agent_name", type: "varchar(64)", key: "" },
+                    { name: "asr_model_id", type: "varchar(32)", key: "" },
+                    { name: "vad_model_id", type: "varchar(64)", key: "" },
+                    { name: "llm_model_id", type: "varchar(32)", key: "" },
+                    { name: "vllm_model_id", type: "varchar(32)", key: "" },
+                    { name: "tts_model_id", type: "varchar(32)", key: "" },
+                    { name: "tts_voice_id", type: "varchar(32)", key: "" },
+                    { name: "mem_model_id", type: "varchar(32)", key: "" },
+                    { name: "intent_model_id", type: "varchar(32)", key: "" },
+                    { name: "system_prompt", type: "text", key: "" },
+                    { name: "lang_code", type: "varchar(10)", key: "" },
+                    { name: "language", type: "varchar(10)", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "created_at", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "updated_at", type: "datetime", key: "" }
+                ]
+            },
+            ai_agent: {
+                name: "ai_agent", category: "agent", icon: "🧠",
+                description: "User-created AI agents",
+                x: 400, y: 500,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "user_id", type: "bigint", key: "FK" },
+                    { name: "agent_code", type: "varchar(36)", key: "" },
+                    { name: "agent_name", type: "varchar(64)", key: "" },
+                    { name: "asr_model_id", type: "varchar(32)", key: "" },
+                    { name: "vad_model_id", type: "varchar(64)", key: "" },
+                    { name: "llm_model_id", type: "varchar(32)", key: "" },
+                    { name: "vllm_model_id", type: "varchar(32)", key: "" },
+                    { name: "tts_model_id", type: "varchar(32)", key: "" },
+                    { name: "tts_voice_id", type: "varchar(32)", key: "" },
+                    { name: "mem_model_id", type: "varchar(32)", key: "" },
+                    { name: "intent_model_id", type: "varchar(32)", key: "" },
+                    { name: "system_prompt", type: "text", key: "" },
+                    { name: "lang_code", type: "varchar(10)", key: "" },
+                    { name: "language", type: "varchar(10)", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "created_at", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "updated_at", type: "datetime", key: "" }
+                ]
+            },
+            // Device Management (Right Center)
+            ai_device: {
+                name: "ai_device", category: "device", icon: "📱",
+                description: "ESP32 device information",
+                x: 700, y: 500,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "user_id", type: "bigint", key: "FK" },
+                    { name: "mac_address", type: "varchar(50)", key: "" },
+                    { name: "last_connected_at", type: "datetime", key: "" },
+                    { name: "auto_update", type: "tinyint", key: "" },
+                    { name: "board", type: "varchar(50)", key: "" },
+                    { name: "alias", type: "varchar(64)", key: "" },
+                    { name: "agent_id", type: "varchar(32)", key: "FK" },
+                    { name: "app_version", type: "varchar(20)", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            // Voice Recognition (Left Center)
+            ai_voiceprint: {
+                name: "ai_voiceprint", category: "voice", icon: "🎤",
+                description: "Voice print recognition data",
+                x: 100, y: 500,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "name", type: "varchar(64)", key: "" },
+                    { name: "user_id", type: "bigint", key: "FK" },
+                    { name: "agent_id", type: "varchar(32)", key: "FK" },
+                    { name: "agent_code", type: "varchar(36)", key: "" },
+                    { name: "agent_name", type: "varchar(36)", key: "" },
+                    { name: "description", type: "varchar(255)", key: "" },
+                    { name: "embedding", type: "longtext", key: "" },
+                    { name: "memory", type: "text", key: "" },
+                    { name: "sort", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "created_at", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "updated_at", type: "datetime", key: "" }
+                ]
+            },
+            // Chat & Communication (Bottom)
+            ai_chat_history: {
+                name: "ai_chat_history", category: "chat", icon: "💬",
+                description: "Web-based chat sessions",
+                x: 200, y: 700,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "user_id", type: "bigint", key: "FK" },
+                    { name: "agent_id", type: "varchar(32)", key: "FK" },
+                    { name: "device_id", type: "varchar(32)", key: "FK" },
+                    { name: "message_count", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            ai_chat_message: {
+                name: "ai_chat_message", category: "chat", icon: "📝",
+                description: "Individual chat messages",
+                x: 500, y: 700,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "user_id", type: "bigint", key: "FK" },
+                    { name: "chat_id", type: "varchar(64)", key: "FK" },
+                    { name: "role", type: "enum", key: "" },
+                    { name: "content", type: "text", key: "" },
+                    { name: "prompt_tokens", type: "int", key: "" },
+                    { name: "total_tokens", type: "int", key: "" },
+                    { name: "completion_tokens", type: "int", key: "" },
+                    { name: "prompt_ms", type: "int", key: "" },
+                    { name: "total_ms", type: "int", key: "" },
+                    { name: "completion_ms", type: "int", key: "" },
+                    { name: "creator", type: "bigint", key: "" },
+                    { name: "create_date", type: "datetime", key: "" },
+                    { name: "updater", type: "bigint", key: "" },
+                    { name: "update_date", type: "datetime", key: "" }
+                ]
+            },
+            ai_agent_chat_history: {
+                name: "ai_agent_chat_history", category: "chat", icon: "🗨️",
+                description: "Device-based chat interactions",
+                x: 800, y: 700,
+                fields: [
+                    { name: "id", type: "bigint", key: "PK" },
+                    { name: "mac_address", type: "varchar(50)", key: "" },
+                    { name: "agent_id", type: "varchar(32)", key: "FK" },
+                    { name: "session_id", type: "varchar(50)", key: "" },
+                    { name: "chat_type", type: "tinyint(3)", key: "" },
+                    { name: "content", type: "varchar(1024)", key: "" },
+                    { name: "audio_id", type: "varchar(32)", key: "FK" },
+                    { name: "created_at", type: "datetime(3)", key: "" },
+                    { name: "updated_at", type: "datetime(3)", key: "" }
+                ]
+            },
+            ai_agent_chat_audio: {
+                name: "ai_agent_chat_audio", category: "chat", icon: "🎵",
+                description: "Audio data for device chats",
+                x: 1100, y: 700,
+                fields: [
+                    { name: "id", type: "varchar(32)", key: "PK" },
+                    { name: "audio", type: "longblob", key: "" }
+                ]
+            }
+        };
+
+        // Relationships data
+        const relationships = [
+            { from: "sys_user", to: "sys_user_token", type: "one-to-one", label: "1:1" },
+            { from: "sys_user", to: "sys_params", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "sys_dict_type", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "sys_dict_data", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_model_provider", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_model_config", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_tts_voice", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_agent_template", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_agent", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_device", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_voiceprint", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_chat_history", type: "one-to-many", label: "1:M" },
+            { from: "sys_user", to: "ai_chat_message", type: "one-to-many", label: "1:M" },
+            { from: "sys_dict_type", to: "sys_dict_data", type: "one-to-many", label: "1:M" },
+            { from: "ai_model_provider", to: "ai_model_config", type: "one-to-many", label: "1:M" },
+            { from: "ai_model_config", to: "ai_tts_voice", type: "one-to-many", label: "1:M" },
+            { from: "ai_model_config", to: "ai_agent", type: "many-to-many", label: "M:M" },
+            { from: "ai_tts_voice", to: "ai_agent", type: "one-to-many", label: "1:M" },
+            { from: "ai_agent_template", to: "ai_agent", type: "template", label: "Template" },
+            { from: "ai_agent", to: "ai_device", type: "one-to-many", label: "1:M" },
+            { from: "ai_agent", to: "ai_voiceprint", type: "one-to-many", label: "1:M" },
+            { from: "ai_agent", to: "ai_chat_history", type: "one-to-many", label: "1:M" },
+            { from: "ai_agent", to: "ai_agent_chat_history", type: "one-to-many", label: "1:M" },
+            { from: "ai_device", to: "ai_chat_history", type: "one-to-many", label: "1:M" },
+            { from: "ai_device", to: "ai_agent_chat_history", type: "one-to-many", label: "1:M" },
+            { from: "ai_chat_history", to: "ai_chat_message", type: "one-to-many", label: "1:M" },
+            { from: "ai_agent_chat_history", to: "ai_agent_chat_audio", type: "one-to-one", label: "1:1" }
+        ];
+
+        // Initialize the diagram
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDiagram();
+            setupEventListeners();
+        });
+
+        function initializeDiagram() {
+            const canvas = document.getElementById('diagramCanvas');
+
+            // Create table nodes
+            Object.keys(tableData).forEach(tableKey => {
+                const table = tableData[tableKey];
+                const node = createTableNode(table);
+                canvas.appendChild(node);
+            });
+
+            // Draw connections
+            drawConnections();
+        }
+
+        function createTableNode(table) {
+            const node = document.createElement('div');
+            node.className = 'table-node';
+            node.setAttribute('data-table', table.name);
+            node.setAttribute('data-category', table.category);
+            node.style.left = table.x + 'px';
+            node.style.top = table.y + 'px';
+
+            const keyBadge = (key) => {
+                if (!key) return '';
+                return `<span class="key-badge ${key.toLowerCase()}">${key}</span>`;
+            };
+
+            node.innerHTML = `
+                <div class="table-header">
+                    <div class="table-icon">${table.icon}</div>
+                    <div class="table-name">${table.name}</div>
+                </div>
+                <div class="table-description">${table.description}</div>
+                <div class="field-count">${table.fields.length} fields</div>
+            `;
+
+            // Add drag functionality
+            let isDraggingNode = false;
+            let nodeOffset = { x: 0, y: 0 };
+
+            node.addEventListener('mousedown', function(e) {
+                if (e.target === node || e.target.closest('.table-node') === node) {
+                    isDraggingNode = true;
+                    const rect = node.getBoundingClientRect();
+                    const canvasRect = document.getElementById('diagramCanvas').getBoundingClientRect();
+                    nodeOffset.x = e.clientX - rect.left;
+                    nodeOffset.y = e.clientY - rect.top;
+                    node.style.zIndex = 1000;
+                    e.preventDefault();
+                }
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (isDraggingNode && node.style.zIndex === '1000') {
+                    const canvasRect = document.getElementById('diagramCanvas').getBoundingClientRect();
+                    const newX = (e.clientX - canvasRect.left - nodeOffset.x) / currentZoom;
+                    const newY = (e.clientY - canvasRect.top - nodeOffset.y) / currentZoom;
+
+                    node.style.left = Math.max(0, newX) + 'px';
+                    node.style.top = Math.max(0, newY) + 'px';
+
+                    // Update table position in data
+                    table.x = Math.max(0, newX);
+                    table.y = Math.max(0, newY);
+
+                    drawConnections();
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isDraggingNode) {
+                    isDraggingNode = false;
+                    node.style.zIndex = 'auto';
+                }
+            });
+
+            // Add click functionality for details
+            node.addEventListener('click', function(e) {
+                if (!isDraggingNode) {
+                    showTableDetails(table);
+                    highlightRelatedTables(table.name);
+                }
+            });
+
+            // Add hover effects
+            node.addEventListener('mouseenter', function() {
+                if (!isDraggingNode) {
+                    highlightConnections(table.name);
+                }
+            });
+
+            node.addEventListener('mouseleave', function() {
+                if (!isDraggingNode) {
+                    clearConnectionHighlights();
+                }
+            });
+
+            return node;
+        }
+
+        function drawConnections() {
+            const svg = document.getElementById('connectionsSvg');
+            svg.innerHTML = '';
+
+            // Create defs for arrow markers
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            svg.appendChild(defs);
+
+            // Clear existing labels
+            document.querySelectorAll('.relationship-label').forEach(label => label.remove());
+
+            console.log('Drawing connections, total relationships:', relationships.length);
+
+            relationships.forEach((rel, index) => {
+                const fromTable = tableData[rel.from];
+                const toTable = tableData[rel.to];
+
+                console.log(`Processing relationship ${index}: ${rel.from} -> ${rel.to}`, rel);
+
+                if (!fromTable || !toTable) {
+                    console.log(`Missing table data for ${rel.from} or ${rel.to}`);
+                    return;
+                }
+
+                const fromNode = document.querySelector(`[data-table="${rel.from}"]`);
+                const toNode = document.querySelector(`[data-table="${rel.to}"]`);
+
+                if (!fromNode || !toNode) {
+                    console.log(`Missing DOM nodes for ${rel.from} or ${rel.to}`);
+                    return;
+                }
+                if (fromNode.style.display === 'none' || toNode.style.display === 'none') {
+                    console.log(`Hidden nodes for ${rel.from} or ${rel.to}`);
+                    return;
+                }
+
+                // Get actual positions from the table data (not DOM positions)
+                const fromX = fromTable.x + 100; // Center of table (assuming 200px width)
+                const fromY = fromTable.y + 60;  // Center of table (assuming 120px height)
+                const toX = toTable.x + 100;
+                const toY = toTable.y + 60;
+
+                // Create unique arrow marker for this relationship
+                const markerId = `arrow-${index}`;
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', markerId);
+                marker.setAttribute('markerWidth', '12');
+                marker.setAttribute('markerHeight', '12');
+                marker.setAttribute('refX', '10');
+                marker.setAttribute('refY', '6');
+                marker.setAttribute('orient', 'auto');
+                marker.setAttribute('markerUnits', 'strokeWidth');
+
+                const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                arrowPath.setAttribute('d', 'M2,2 L2,10 L10,6 z');
+                arrowPath.setAttribute('fill', getConnectionColor(rel.type));
+                marker.appendChild(arrowPath);
+                defs.appendChild(marker);
+
+                // Create connection line
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', fromX);
+                line.setAttribute('y1', fromY);
+                line.setAttribute('x2', toX);
+                line.setAttribute('y2', toY);
+                line.setAttribute('class', `connection-line ${rel.type}`);
+                line.setAttribute('data-from', rel.from);
+                line.setAttribute('data-to', rel.to);
+                line.setAttribute('marker-end', `url(#${markerId})`);
+                line.setAttribute('stroke', getConnectionColor(rel.type));
+                line.setAttribute('stroke-width', '3');
+                line.setAttribute('fill', 'none');
+
+                // Set stroke pattern based on relationship type
+                switch(rel.type) {
+                    case 'one-to-many':
+                        line.setAttribute('stroke-dasharray', '8,4');
+                        break;
+                    case 'many-to-many':
+                        line.setAttribute('stroke-dasharray', '12,4,3,4');
+                        break;
+                    case 'template':
+                        line.setAttribute('stroke-dasharray', '16,6');
+                        break;
+                    default: // one-to-one
+                        line.setAttribute('stroke-dasharray', 'none');
+                }
+
+                svg.appendChild(line);
+                console.log(`Created line from (${fromX},${fromY}) to (${toX},${toY}) for ${rel.from} -> ${rel.to}`);
+
+                // Add relationship label
+                const labelX = (fromX + toX) / 2;
+                const labelY = (fromY + toY) / 2;
+
+                const label = document.createElement('div');
+                label.className = 'relationship-label';
+                label.style.left = labelX + 'px';
+                label.style.top = labelY + 'px';
+                label.style.transform = 'translate(-50%, -50%)';
+                label.textContent = rel.label;
+                label.setAttribute('data-from', rel.from);
+                label.setAttribute('data-to', rel.to);
+
+                document.getElementById('diagramCanvas').appendChild(label);
+            });
+        }
+
+        function getConnectionColor(type) {
+            switch(type) {
+                case 'one-to-one': return '#64ffda';
+                case 'one-to-many': return '#667eea';
+                case 'many-to-many': return '#ff6b6b';
+                case 'template': return '#ffd93d';
+                default: return '#64ffda';
+            }
+        }
+
+        function setupEventListeners() {
+            // Category filter
+            document.getElementById('categoryFilter').addEventListener('change', function() {
+                filterByCategory(this.value);
+            });
+
+            // Relationship filter
+            document.getElementById('relationshipFilter').addEventListener('change', function() {
+                filterByRelationship(this.value);
+            });
+
+            // Table search
+            document.getElementById('tableSearch').addEventListener('input', function() {
+                searchTables(this.value);
+            });
+
+            // Canvas pan functionality
+            const canvas = document.getElementById('diagramCanvas');
+            let isPanning = false;
+            let panStart = { x: 0, y: 0 };
+
+            canvas.addEventListener('mousedown', function(e) {
+                if (e.target === canvas) {
+                    isPanning = true;
+                    panStart.x = e.clientX - canvasOffset.x;
+                    panStart.y = e.clientY - canvasOffset.y;
+                    canvas.classList.add('dragging');
+                }
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (isPanning) {
+                    canvasOffset.x = e.clientX - panStart.x;
+                    canvasOffset.y = e.clientY - panStart.y;
+                    canvas.style.transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${currentZoom})`;
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                isPanning = false;
+                canvas.classList.remove('dragging');
+            });
+
+            // Zoom with mouse wheel
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                currentZoom = Math.max(0.1, Math.min(3, currentZoom * delta));
+                canvas.style.transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${currentZoom})`;
+                drawConnections();
+            });
+        }
+
+        function showTableDetails(table) {
+            const sidebar = document.getElementById('tableSidebar');
+            const title = document.getElementById('sidebarTitle');
+            const content = document.getElementById('sidebarContent');
+
+            title.textContent = table.name;
+
+            let fieldsHtml = `
+                <div style="margin-bottom: 20px;">
+                    <strong>Category:</strong> ${getCategoryName(table.category)}<br>
+                    <strong>Description:</strong> ${table.description}<br>
+                    <strong>Total Fields:</strong> ${table.fields.length}
+                </div>
+                <h4 style="color: #64ffda; margin-bottom: 15px;">Fields:</h4>
+            `;
+
+            table.fields.forEach(field => {
+                const keyBadge = field.key ? `<span class="key-badge ${field.key.toLowerCase()}">${field.key}</span>` : '';
+                fieldsHtml += `
+                    <div class="field-item">
+                        <span class="field-name">${keyBadge}${field.name}</span>
+                        <span class="field-type">${field.type}</span>
+                    </div>
+                `;
+            });
+
+            content.innerHTML = fieldsHtml;
+            sidebar.classList.add('open');
+            selectedTable = table.name;
+        }
+
+        function getCategoryName(category) {
+            const categoryNames = {
+                'system': '🔐 System Management',
+                'model': '🤖 AI Model Config',
+                'agent': '🧠 AI Agent Management',
+                'device': '📱 Device Management',
+                'voice': '🔊 Voice Recognition',
+                'chat': '💬 Chat & Communication'
+            };
+            return categoryNames[category] || category;
+        }
+
+        function highlightRelatedTables(tableName) {
+            // Clear previous highlights
+            document.querySelectorAll('.table-node').forEach(node => {
+                node.classList.remove('highlighted', 'selected');
+            });
+
+            // Highlight selected table
+            const selectedNode = document.querySelector(`[data-table="${tableName}"]`);
+            if (selectedNode) {
+                selectedNode.classList.add('selected');
+            }
+
+            // Highlight related tables
+            relationships.forEach(rel => {
+                if (rel.from === tableName) {
+                    const toNode = document.querySelector(`[data-table="${rel.to}"]`);
+                    if (toNode) toNode.classList.add('highlighted');
+                }
+                if (rel.to === tableName) {
+                    const fromNode = document.querySelector(`[data-table="${rel.from}"]`);
+                    if (fromNode) fromNode.classList.add('highlighted');
+                }
+            });
+        }
+
+        function highlightConnections(tableName) {
+            document.querySelectorAll('.connection-line').forEach(line => {
+                const from = line.getAttribute('data-from');
+                const to = line.getAttribute('data-to');
+                if (from === tableName || to === tableName) {
+                    line.setAttribute('stroke-width', '6');
+                    line.style.filter = 'drop-shadow(0 0 15px currentColor)';
+                }
+            });
+        }
+
+        function clearConnectionHighlights() {
+            document.querySelectorAll('.connection-line').forEach(line => {
+                line.setAttribute('stroke-width', '3');
+                line.style.filter = 'none';
+            });
+        }
+
+        function filterByCategory(category) {
+            document.querySelectorAll('.table-node').forEach(node => {
+                const nodeCategory = node.getAttribute('data-category');
+                if (category === 'all' || nodeCategory === category) {
+                    node.style.display = 'block';
+                } else {
+                    node.style.display = 'none';
+                }
+            });
+            drawConnections();
+        }
+
+        function filterByRelationship(type) {
+            document.querySelectorAll('.connection-line').forEach(line => {
+                const lineClasses = line.getAttribute('class');
+                if (type === 'all' || lineClasses.includes(type)) {
+                    line.style.display = 'block';
+                } else {
+                    line.style.display = 'none';
+                }
+            });
+
+            document.querySelectorAll('.relationship-label').forEach(label => {
+                const from = label.getAttribute('data-from');
+                const to = label.getAttribute('data-to');
+                const rel = relationships.find(r => r.from === from && r.to === to);
+                if (type === 'all' || (rel && rel.type === type)) {
+                    label.style.display = 'block';
+                } else {
+                    label.style.display = 'none';
+                }
+            });
+        }
+
+        function searchTables(searchTerm) {
+            document.querySelectorAll('.table-node').forEach(node => {
+                const tableName = node.getAttribute('data-table').toLowerCase();
+                if (tableName.includes(searchTerm.toLowerCase())) {
+                    node.style.display = 'block';
+                    if (searchTerm) {
+                        node.classList.add('highlighted');
+                    } else {
+                        node.classList.remove('highlighted');
+                    }
+                } else {
+                    node.style.display = 'none';
+                    node.classList.remove('highlighted');
+                }
+            });
+            drawConnections();
+        }
+
+        // Zoom functions
+        function zoomIn() {
+            currentZoom = Math.min(3, currentZoom * 1.2);
+            const canvas = document.getElementById('diagramCanvas');
+            canvas.style.transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${currentZoom})`;
+            drawConnections();
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(0.1, currentZoom / 1.2);
+            const canvas = document.getElementById('diagramCanvas');
+            canvas.style.transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${currentZoom})`;
+            drawConnections();
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            canvasOffset = { x: 0, y: 0 };
+            const canvas = document.getElementById('diagramCanvas');
+            canvas.style.transform = `translate(0px, 0px) scale(1)`;
+            drawConnections();
+        }
+
+        // Layout functions
+        function resetLayout() {
+            // Reset to original positions
+            const originalPositions = {
+                sys_user: { x: 100, y: 150 },
+                sys_user_token: { x: 350, y: 150 },
+                sys_params: { x: 100, y: 320 },
+                sys_dict_type: { x: 350, y: 320 },
+                sys_dict_data: { x: 600, y: 320 },
+                ai_model_provider: { x: 800, y: 150 },
+                ai_model_config: { x: 1050, y: 150 },
+                ai_tts_voice: { x: 1300, y: 150 },
+                ai_agent_template: { x: 800, y: 350 },
+                ai_agent: { x: 400, y: 500 },
+                ai_device: { x: 700, y: 500 },
+                ai_voiceprint: { x: 100, y: 500 },
+                ai_chat_history: { x: 200, y: 700 },
+                ai_chat_message: { x: 500, y: 700 },
+                ai_agent_chat_history: { x: 800, y: 700 },
+                ai_agent_chat_audio: { x: 1100, y: 700 }
+            };
+
+            Object.keys(originalPositions).forEach(tableName => {
+                const table = tableData[tableName];
+                const node = document.querySelector(`[data-table="${tableName}"]`);
+                if (table && node) {
+                    table.x = originalPositions[tableName].x;
+                    table.y = originalPositions[tableName].y;
+                    node.style.left = table.x + 'px';
+                    node.style.top = table.y + 'px';
+                }
+            });
+
+            drawConnections();
+        }
+
+        function autoArrange() {
+            // Arrange tables by category in a grid
+            const categories = {
+                system: { x: 100, y: 150, tables: [] },
+                model: { x: 800, y: 150, tables: [] },
+                agent: { x: 400, y: 350, tables: [] },
+                device: { x: 700, y: 500, tables: [] },
+                voice: { x: 100, y: 500, tables: [] },
+                chat: { x: 200, y: 700, tables: [] }
+            };
+
+            // Group tables by category
+            Object.keys(tableData).forEach(tableName => {
+                const table = tableData[tableName];
+                if (categories[table.category]) {
+                    categories[table.category].tables.push(tableName);
+                }
+            });
+
+            // Position tables within each category
+            Object.keys(categories).forEach(categoryKey => {
+                const category = categories[categoryKey];
+                category.tables.forEach((tableName, index) => {
+                    const table = tableData[tableName];
+                    const node = document.querySelector(`[data-table="${tableName}"]`);
+                    if (table && node) {
+                        const col = index % 3;
+                        const row = Math.floor(index / 3);
+                        table.x = category.x + (col * 250);
+                        table.y = category.y + (row * 180);
+                        node.style.left = table.x + 'px';
+                        node.style.top = table.y + 'px';
+                    }
+                });
+            });
+
+            drawConnections();
+        }
+
+        function exportDiagram() {
+            // Create a canvas element for export
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size
+            canvas.width = 1600;
+            canvas.height = 1200;
+
+            // Fill background
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add title
+            ctx.fillStyle = '#64ffda';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Xiaozhi ESP32 Database Network Diagram', canvas.width / 2, 40);
+
+            // Draw tables (simplified representation)
+            Object.keys(tableData).forEach(tableName => {
+                const table = tableData[tableName];
+                const x = table.x * 0.8 + 50;
+                const y = table.y * 0.8 + 80;
+
+                // Draw table box
+                ctx.fillStyle = 'rgba(100, 255, 218, 0.1)';
+                ctx.fillRect(x, y, 160, 80);
+                ctx.strokeStyle = '#64ffda';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, 160, 80);
+
+                // Draw table name
+                ctx.fillStyle = '#64ffda';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(table.name, x + 10, y + 20);
+
+                // Draw description
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '10px Arial';
+                ctx.fillText(table.description.substring(0, 25) + '...', x + 10, y + 40);
+
+                // Draw field count
+                ctx.fillStyle = '#64ffda';
+                ctx.font = '10px Arial';
+                ctx.fillText(`${table.fields.length} fields`, x + 10, y + 60);
+            });
+
+            // Create download link
+            const link = document.createElement('a');
+            link.download = 'xiaozhi-database-diagram.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('tableSidebar');
+            const controls = document.querySelector('.controls');
+
+            if (!sidebar.contains(e.target) && !controls.contains(e.target) &&
+                !e.target.closest('.table-node')) {
+                sidebar.classList.remove('open');
+                document.querySelectorAll('.table-node').forEach(node => {
+                    node.classList.remove('highlighted', 'selected');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

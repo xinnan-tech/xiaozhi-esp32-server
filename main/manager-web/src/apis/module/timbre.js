@@ -2,7 +2,7 @@ import { getServiceUrl } from '../api';
 import RequestService from '../httpRequest';
 
 export default {
-    // Get voice list
+    // 获取音色
     getVoiceList(params, callback) {
         const queryParams = new URLSearchParams({
             ttsModelId: params.ttsModelId,
@@ -19,13 +19,13 @@ export default {
                 callback(res.data || []);
             })
             .networkFail((err) => {
-                console.error('Get voice list failed:', err);
+                console.error('获取音色列表失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getVoiceList(params, callback);
                 });
             }).send();
     },
-    // Save voice
+    // 音色保存
     saveVoice(params, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/ttsVoice`)
@@ -45,13 +45,13 @@ export default {
                 callback(res.data);
             })
             .networkFail((err) => {
-                console.error('Save voice failed:', err);
+                console.error('保存音色失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.saveVoice(params, callback);
                 });
             }).send();
     },
-    // Delete voice
+    // 音色删除
     deleteVoice(ids, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/ttsVoice/delete`)
@@ -62,13 +62,13 @@ export default {
                 callback(res);
             })
             .networkFail((err) => {
-                console.error('Delete voice failed:', err);
+                console.error('删除音色失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.deleteVoice(ids, callback);
                 });
             }).send();
     },
-    // Update voice
+    // 音色修改
     updateVoice(params, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/ttsVoice/${params.id}`)
@@ -87,7 +87,7 @@ export default {
                 callback(res.data);
             })
             .networkFail((err) => {
-                console.error('Update voice failed:', err);
+                console.error('修改音色失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.updateVoice(params, callback);
                 });

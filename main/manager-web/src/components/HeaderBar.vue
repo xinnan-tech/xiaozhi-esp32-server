@@ -1,38 +1,38 @@
 <template>
   <el-header class="header">
     <div class="header-container">
-      <!-- Left side elements -->
+      <!-- 左侧元素 -->
       <div class="header-left" @click="goHome">
         <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.png" class="logo-img" />
         <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" class="brand-img" />
       </div>
 
-      <!-- Center navigation menu -->
+      <!-- 中间导航菜单 -->
       <div class="header-center">
         <div class="equipment-management"
           :class="{ 'active-tab': $route.path === '/home' || $route.path === '/role-config' || $route.path === '/device-management' }"
           @click="goHome">
           <img loading="lazy" alt="" src="@/assets/header/robot.png"
             :style="{ filter: $route.path === '/home' || $route.path === '/role-config' || $route.path === '/device-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          Agent Management
+          智能体管理
         </div>
         <div v-if="isSuperAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }"
           @click="goModelConfig">
           <img loading="lazy" alt="" src="@/assets/header/model_config.png"
             :style="{ filter: $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None' }" />
-          Model Configuration
+          模型配置
         </div>
         <div v-if="isSuperAdmin" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/user-management' }" @click="goUserManagement">
           <img loading="lazy" alt="" src="@/assets/header/user_management.png"
             :style="{ filter: $route.path === '/user-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          User Management
+          用户管理
         </div>
         <div v-if="isSuperAdmin" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/ota-management' }" @click="goOtaManagement">
           <img loading="lazy" alt="" src="@/assets/header/firmware_update.png"
             :style="{ filter: $route.path === '/ota-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          OTA Management
+          OTA管理
         </div>
         <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown"
           :class="{ 'active-tab': $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' }"
@@ -40,30 +40,30 @@
           <span class="el-dropdown-link">
             <img loading="lazy" alt="" src="@/assets/header/param_management.png"
               :style="{ filter: $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' ? 'brightness(0) invert(1)' : 'None' }" />
-            Parameters & Dictionary
+            参数字典
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': paramDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="goParamManagement">
-              Parameter Management
+              参数管理
             </el-dropdown-item>
             <el-dropdown-item @click.native="goDictManagement">
-              Dictionary Management
+              字典管理
             </el-dropdown-item>
             <el-dropdown-item @click.native="goProviderManagement">
-              Field Management
+              字段管理
             </el-dropdown-item>
             <el-dropdown-item @click.native="goServerSideManagement">
-              Server Management
+              服务端管理
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </div>
 
-      <!-- Right side elements -->
+      <!-- 右侧元素 -->
       <div class="header-right">
         <div class="search-container" v-if="$route.path === '/home' && !(isSuperAdmin && isSmallScreen)">
-          <el-input v-model="search" placeholder="Search by name.." class="custom-search-input"
+          <el-input v-model="search" placeholder="输入名称搜索.." class="custom-search-input"
             @keyup.enter.native="handleSearch">
             <i slot="suffix" class="el-icon-search search-icon" @click="handleSearch"></i>
           </el-input>
@@ -71,18 +71,18 @@
         <img loading="lazy" alt="" src="@/assets/home/avatar.png" class="avatar-img" />
         <el-dropdown trigger="click" class="user-dropdown" @visible-change="handleUserDropdownVisibleChange">
           <span class="el-dropdown-link">
-            {{ userInfo.username || 'Loading...' }}
+            {{ userInfo.username || '加载中...' }}
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': userDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="showChangePasswordDialog">Change Password</el-dropdown-item>
-            <el-dropdown-item @click.native="handleLogout">Logout</el-dropdown-item>
+            <el-dropdown-item @click.native="showChangePasswordDialog">修改密码</el-dropdown-item>
+            <el-dropdown-item @click.native="handleLogout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </div>
     </div>
 
-    <!-- Change Password Dialog -->
+    <!-- 修改密码弹窗 -->
     <ChangePasswordDialog v-model="isChangePasswordDialogVisible" />
   </el-header>
 </template>
@@ -90,14 +90,14 @@
 <script>
 import userApi from '@/apis/module/user';
 import { mapActions, mapGetters } from 'vuex';
-import ChangePasswordDialog from './ChangePasswordDialog.vue'; // Import change password dialog component
+import ChangePasswordDialog from './ChangePasswordDialog.vue'; // 引入修改密码弹窗组件
 
 export default {
   name: 'HeaderBar',
   components: {
     ChangePasswordDialog
   },
-  props: ['devices'],  // Receive device list from parent component
+  props: ['devices'],  // 接收父组件设备列表
   data() {
     return {
       search: '',
@@ -105,7 +105,7 @@ export default {
         username: '',
         mobile: ''
       },
-      isChangePasswordDialogVisible: false, // Control the display of change password dialog
+      isChangePasswordDialogVisible: false, // 控制修改密码弹窗的显示
       userDropdownVisible: false,
       paramDropdownVisible: false,
       isSmallScreen: false
@@ -122,13 +122,13 @@ export default {
     this.checkScreenSize();
     window.addEventListener('resize', this.checkScreenSize);
   },
-  // Remove event listener
+  //移除事件监听器
   beforeDestroy() {
     window.removeEventListener('resize', this.checkScreenSize);
   },
   methods: {
     goHome() {
-      // Navigate to home
+      // 跳转到首页
       this.$router.push('/home')
     },
     goUserManagement() {
@@ -152,7 +152,7 @@ export default {
     goServerSideManagement() {
       this.$router.push('/server-side-management')
     },
-    // Get user information
+    // 获取用户信息
     fetchUserInfo() {
       userApi.getUserInfo(({ data }) => {
         this.userInfo = data.data
@@ -164,46 +164,46 @@ export default {
     checkScreenSize() {
       this.isSmallScreen = window.innerWidth <= 1386;
     },
-    // Handle search
+    // 处理搜索
     handleSearch() {
       const searchValue = this.search.trim();
 
-      // If search content is empty, trigger reset event
+      // 如果搜索内容为空，触发重置事件
       if (!searchValue) {
         this.$emit('search-reset');
         return;
       }
 
       try {
-        // Create case-insensitive regular expression
+        // 创建不区分大小写的正则表达式
         const regex = new RegExp(searchValue, 'i');
-        // Trigger search event, pass regex to parent component
+        // 触发搜索事件，将正则表达式传递给父组件
         this.$emit('search', regex);
       } catch (error) {
-        console.error('Failed to create regular expression:', error);
+        console.error('正则表达式创建失败:', error);
         this.$message.error({
-          message: 'Invalid search keyword format',
+          message: '搜索关键词格式不正确',
           showClose: true
         });
       }
     },
-    // Show change password dialog
+    // 显示修改密码弹窗
     showChangePasswordDialog() {
       this.isChangePasswordDialogVisible = true;
     },
-    // Logout
+    // 退出登录
     async handleLogout() {
       try {
-        // Call Vuex logout action
+        // 调用 Vuex 的 logout action
         await this.logout();
         this.$message.success({
-          message: 'Logout successful',
+          message: '退出登录成功',
           showClose: true
         });
       } catch (error) {
-        console.error('Logout failed:', error);
+        console.error('退出登录失败:', error);
         this.$message.error({
-          message: 'Logout failed, please try again',
+          message: '退出登录失败，请重试',
           showClose: true
         });
       }
@@ -211,12 +211,12 @@ export default {
     handleUserDropdownVisibleChange(visible) {
       this.userDropdownVisible = visible;
     },
-    // Listen to the visibility change of the second dropdown menu
+    // 监听第二个下拉菜单的可见状态变化
     handleParamDropdownVisibleChange(visible) {
       this.paramDropdownVisible = visible;
     },
 
-    // Use mapActions to import Vuex logout action
+    // 使用 mapActions 引入 Vuex 的 logout action
     ...mapActions(['logout'])
   }
 }
@@ -228,7 +228,7 @@ export default {
   border: 1px solid #fff;
   height: 63px !important;
   min-width: 900px;
-  /* Set minimum width to prevent excessive compression */
+  /* 设置最小宽度防止过度压缩 */
   overflow: hidden;
 }
 
@@ -288,7 +288,7 @@ export default {
   transition: all 0.3s ease;
   cursor: pointer;
   flex-shrink: 0;
-  /* Prevent navigation buttons from being compressed */
+  /* 防止导航按钮被压缩 */
   padding: 0 15px;
   position: relative;
 }
@@ -364,7 +364,7 @@ export default {
   transition: transform 0.3s ease;
 }
 
-/* Responsive adjustments */
+/* 响应式调整 */
 @media (max-width: 1200px) {
   .header-center {
     gap: 14px;

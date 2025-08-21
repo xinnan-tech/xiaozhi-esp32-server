@@ -41,6 +41,7 @@ import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.agent.vo.AgentInfoVO;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.model.dto.ModelProviderDTO;
+import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.model.service.ModelProviderService;
 import xiaozhi.modules.security.user.SecurityUser;
@@ -324,7 +325,33 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             // 删除音频数据
             agentChatHistoryService.deleteByAgentId(existingEntity.getId(), true, false);
         }
+
+        boolean b = validateLLMIntentParams(dto.getLlmModelId(), dto.getIntentModelId());
+        if (!b) {
+            throw new RenException("LLM大模型和Intent意图识别，选择参数不匹配");
+        }
         this.updateById(existingEntity);
+    }
+
+    /**
+     * 验证大语言模型和意图识别的参数是否符合匹配
+     * 
+     * @param llmModelId    大语言模型id
+     * @param intentModelId 意图识别id
+     * @return T 匹配 : F 不匹配
+     */
+    private boolean validateLLMIntentParams(String llmModelId, String intentModelId) {
+        if (StringUtils.isBlank(llmModelId)) {
+            return true;
+        }
+        ModelConfigEntity llmModelData = modelConfigService.selectById(llmModelId);
+        String type = llmModelData.getConfigJson().get("type").toString();
+        // 如果查询大语言模型是openai或者ollama，意图识别选参数都可以
+        if ("openai".equals(type) || "ollama".equals(type)) {
+            return true;
+        }
+        // 除了openai和ollama的类型，不可以选择id为Intent_function_call（函数调用）的意图识别
+        return !"Intent_function_call".equals(intentModelId);
     }
 
     @Override

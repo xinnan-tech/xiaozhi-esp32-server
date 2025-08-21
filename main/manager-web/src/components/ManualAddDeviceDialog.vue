@@ -1,9 +1,9 @@
 <template>
-  <el-dialog title="Manual Add Device" :visible="visible" @close="handleClose" width="30%" center>
+  <el-dialog title="手动添加设备" :visible="visible" @close="handleClose" width="30%" center>
     <div class="dialog-content">
       <el-form :model="deviceForm" :rules="rules" ref="deviceForm" label-width="100px">
-        <el-form-item label="Device Model" prop="board">
-          <el-select v-model="deviceForm.board" placeholder="Please select device model" style="width: 100%">
+        <el-form-item label="设备型号" prop="board">
+          <el-select v-model="deviceForm.board" placeholder="请选择设备型号" style="width: 100%">
             <el-option
               v-for="item in firmwareTypes"
               :key="item.key"
@@ -12,17 +12,17 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="Firmware Version" prop="appVersion">
-          <el-input v-model="deviceForm.appVersion" placeholder="Please enter firmware version"></el-input>
+        <el-form-item label="固件版本" prop="appVersion">
+          <el-input v-model="deviceForm.appVersion" placeholder="请输入固件版本"></el-input>
         </el-form-item>
-        <el-form-item label="MAC Address" prop="macAddress">
-          <el-input v-model="deviceForm.macAddress" placeholder="Please enter MAC address"></el-input>
+        <el-form-item label="Mac地址" prop="macAddress">
+          <el-input v-model="deviceForm.macAddress" placeholder="请输入Mac地址"></el-input>
         </el-form-item>
       </el-form>
     </div>
     <div style="display: flex;margin: 15px 15px;gap: 7px;">
-      <div class="dialog-btn" @click="submitForm">Confirm</div>
-      <div class="dialog-btn cancel-btn" @click="cancel">Cancel</div>
+      <div class="dialog-btn" @click="submitForm">确定</div>
+      <div class="dialog-btn cancel-btn" @click="cancel">取消</div>
     </div>
   </el-dialog>
 </template>
@@ -37,13 +37,13 @@ export default {
     agentId: { type: String, required: true }
   },
   data() {
-    // MAC address validation rules
+    // MAC地址验证规则
     const validateMac = (rule, value, callback) => {
       const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
       if (!value) {
-        callback(new Error('Please enter MAC address'));
+        callback(new Error('请输入Mac地址'));
       } else if (!macRegex.test(value)) {
-        callback(new Error('Please enter correct MAC address format, e.g.: 00:1A:2B:3C:4D:5E'));
+        callback(new Error('请输入正确的Mac地址格式，例如：00:1A:2B:3C:4D:5E'));
       } else {
         callback();
       }
@@ -58,10 +58,10 @@ export default {
       firmwareTypes: [],
       rules: {
         board: [
-          { required: true, message: 'Please select device model', trigger: 'change' }
+          { required: true, message: '请选择设备型号', trigger: 'change' }
         ],
         appVersion: [
-          { required: true, message: 'Please enter firmware version', trigger: 'blur' }
+          { required: true, message: '请输入固件版本', trigger: 'blur' }
         ],
         macAddress: [
           { required: true, validator: validateMac, trigger: 'blur' }
@@ -78,8 +78,8 @@ export default {
         const res = await Api.dict.getDictDataByType('FIRMWARE_TYPE');
         this.firmwareTypes = res.data;
       } catch (error) {
-        console.error('Failed to get firmware types:', error);
-        this.$message.error(error.message || 'Failed to get firmware types');
+        console.error('获取固件类型失败:', error);
+        this.$message.error(error.message || '获取固件类型失败');
       }
     },
     submitForm() {
@@ -97,11 +97,11 @@ export default {
       
       Api.device.manualAddDevice(params, ({ data }) => {
         if (data.code === 0) {
-          this.$message.success('Device added successfully');
+          this.$message.success('设备添加成功');
           this.$emit('refresh');
           this.closeDialog();
         } else {
-          this.$message.error(data.msg || 'Failed to add');
+          this.$message.error(data.msg || '添加失败');
         }
       });
     },

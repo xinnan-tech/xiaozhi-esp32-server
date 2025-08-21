@@ -5,7 +5,7 @@
 
     <!-- 根据参数编码，查询value -->
 	<select id="getValueByCode" resultType="String">
-        select param_value from sys_params where param_code = #{value}
+        select param_value from sys_params where param_code = #{paramCode}
     </select>
 
     <!-- 获取参数编码列表 -->

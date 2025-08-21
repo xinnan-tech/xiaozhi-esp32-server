@@ -92,11 +92,6 @@ public interface Constant {
     String SERVER_WEBSOCKET = "server.websocket";
 
     /**
-     * mqtt gateway 配置
-     */
-    String SERVER_MQTT_GATEWAY = "server.mqtt_gateway";
-
-    /**
      * ota地址
      */
     String SERVER_OTA = "server.ota";
@@ -120,6 +115,11 @@ public interface Constant {
      * mcp接入点路径
      */
     String SERVER_MCP_ENDPOINT = "server.mcp_endpoint";
+
+    /**
+     * mcp接入点路径
+     */
+    String SERVER_VOICE_PRINT = "server.voice_print";
 
     /**
      * 无记忆
@@ -237,7 +237,7 @@ public interface Constant {
     /**
      * 版本号
      */
-    public static final String VERSION = "0.6.2";
+    public static final String VERSION = "0.7.5";
 
     /**
      * 无效固件URL

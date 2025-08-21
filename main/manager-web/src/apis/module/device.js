@@ -2,7 +2,7 @@ import { getServiceUrl } from '../api';
 import RequestService from '../httpRequest';
 
 export default {
-    // Bound devices
+    // 已绑设备
     getAgentBindDevices(agentId, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/bind/${agentId}`)
@@ -12,13 +12,13 @@ export default {
                 callback(res);
             })
             .networkFail((err) => {
-                console.error('Get device list failed:', err);
+                console.error('获取设备列表失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getAgentBindDevices(agentId, callback);
                 });
             }).send();
     },
-    // Unbind device
+    // 解绑设备
     unbindDevice(device_id, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/unbind`)
@@ -29,13 +29,13 @@ export default {
                 callback(res);
             })
             .networkFail((err) => {
-                console.error('Unbind device failed:', err);
+                console.error('解绑设备失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.unbindDevice(device_id, callback);
                 });
             }).send();
     },
-    // Bind device
+    // 绑定设备
     bindDevice(agentId, deviceCode, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/bind/${agentId}/${deviceCode}`)
@@ -45,7 +45,7 @@ export default {
                 callback(res);
             })
             .networkFail((err) => {
-                console.error('Bind device failed:', err);
+                console.error('绑定设备失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.bindDevice(agentId, deviceCode, callback);
                 });
@@ -61,14 +61,14 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('Update OTA status failed:', err)
-                this.$message.error(err.msg || 'Update OTA status failed')
+                console.error('更新OTA状态失败:', err)
+                this.$message.error(err.msg || '更新OTA状态失败')
                 RequestService.reAjaxFun(() => {
                     this.updateDeviceInfo(id, payload, callback)
                 })
             }).send()
     },
-    // Manually add device
+    // 手动添加设备
     manualAddDevice(params, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/manual-add`)
@@ -79,7 +79,7 @@ export default {
                 callback(res);
             })
             .networkFail((err) => {
-                console.error('Manually add device failed:', err);
+                console.error('手动添加设备失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.manualAddDevice(params, callback);
                 });

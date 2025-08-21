@@ -3,11 +3,11 @@
         <HeaderBar />
 
         <div class="operation-bar">
-            <h2 class="page-title">Firmware Management</h2>
+            <h2 class="page-title">固件管理</h2>
             <div class="right-operations">
-                <el-input placeholder="Enter firmware name to search" v-model="searchName" class="search-input"
+                <el-input placeholder="请输入固件名称查询" v-model="searchName" class="search-input"
                     @keyup.enter.native="handleSearch" clearable />
-                <el-button class="btn-search" @click="handleSearch">Search</el-button>
+                <el-button class="btn-search" @click="handleSearch">搜索</el-button>
             </div>
         </div>
 
@@ -16,44 +16,44 @@
                 <div class="content-area">
                     <el-card class="params-card" shadow="never">
                         <el-table ref="paramsTable" :data="paramsList" class="transparent-table" v-loading="loading"
-                            element-loading-text="Loading..." element-loading-spinner="el-icon-loading"
+                            element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
                             element-loading-background="rgba(255, 255, 255, 0.7)"
                             :header-cell-class-name="headerCellClassName">
-                            <el-table-column label="Select" align="center" width="120">
+                            <el-table-column label="选择" align="center" width="120">
                                 <template slot-scope="scope">
                                     <el-checkbox v-model="scope.row.selected"></el-checkbox>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="Firmware Name" prop="firmwareName" align="center"></el-table-column>
-                            <el-table-column label="Firmware Type" prop="type" align="center">
+                            <el-table-column label="固件名称" prop="firmwareName" align="center"></el-table-column>
+                            <el-table-column label="固件类型" prop="type" align="center">
                                 <template slot-scope="scope">
                                     {{ getFirmwareTypeName(scope.row.type) }}
                                 </template>
                             </el-table-column>
-                            <el-table-column label="Version" prop="version" align="center"></el-table-column>
-                            <el-table-column label="File Size" prop="size" align="center">
+                            <el-table-column label="版本号" prop="version" align="center"></el-table-column>
+                            <el-table-column label="文件大小" prop="size" align="center">
                                 <template slot-scope="scope">
                                     {{ formatFileSize(scope.row.size) }}
                                 </template>
                             </el-table-column>
-                            <el-table-column label="Remark" prop="remark" align="center"
+                            <el-table-column label="备注" prop="remark" align="center"
                                 show-overflow-tooltip></el-table-column>
-                            <el-table-column label="Create Time" prop="createDate" align="center">
+                            <el-table-column label="创建时间" prop="createDate" align="center">
                                 <template slot-scope="scope">
                                     {{ formatDate(scope.row.createDate) }}
                                 </template>
                             </el-table-column>
-                            <el-table-column label="Update Time" prop="updateDate" align="center">
+                            <el-table-column label="更新时间" prop="updateDate" align="center">
                                 <template slot-scope="scope">
                                     {{ formatDate(scope.row.updateDate) }}
                                 </template>
                             </el-table-column>
-                            <el-table-column label="Actions" align="center">
+                            <el-table-column label="操作" align="center">
                                 <template slot-scope="scope">
                                     <el-button size="mini" type="text"
-                                        @click="downloadFirmware(scope.row)">Download</el-button>
-                                    <el-button size="mini" type="text" @click="editParam(scope.row)">Edit</el-button>
-                                    <el-button size="mini" type="text" @click="deleteParam(scope.row)">Delete</el-button>
+                                        @click="downloadFirmware(scope.row)">下载</el-button>
+                                    <el-button size="mini" type="text" @click="editParam(scope.row)">编辑</el-button>
+                                    <el-button size="mini" type="text" @click="deleteParam(scope.row)">删除</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -61,33 +61,33 @@
                         <div class="table_bottom">
                             <div class="ctrl_btn">
                                 <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
-                                    {{ isAllSelected ? 'Deselect All' : 'Select All' }}
+                                    {{ isAllSelected ? '取消全选' : '全选' }}
                                 </el-button>
                                 <el-button size="mini" type="success" @click="showAddDialog"
-                                    style="background: #5bc98c;border: None;">Add</el-button>
+                                    style="background: #5bc98c;border: None;">新增</el-button>
                                 <el-button size="mini" type="danger" icon="el-icon-delete"
-                                    @click="deleteSelectedParams">Delete</el-button>
+                                    @click="deleteSelectedParams">删除</el-button>
                             </div>
                             <div class="custom-pagination">
                                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                                    <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item} items/page`"
+                                    <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`"
                                         :value="item">
                                     </el-option>
                                 </el-select>
                                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
-                                    First
+                                    首页
                                 </button>
                                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
-                                    Previous
+                                    上一页
                                 </button>
                                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                                     :class="{ active: page === currentPage }" @click="goToPage(page)">
                                     {{ page }}
                                 </button>
                                 <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
-                                    Next
+                                    下一页
                                 </button>
-                                <span class="total-text">Total {{ total }} records</span>
+                                <span class="total-text">共{{ total }}条记录</span>
                             </div>
                         </div>
                     </el-card>
@@ -95,7 +95,7 @@
             </div>
         </div>
 
-        <!-- Add/Edit firmware dialog -->
+        <!-- 新增/编辑固件对话框 -->
         <firmware-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="firmwareForm"
             :firmware-types="firmwareTypes" @submit="handleSubmit" @cancel="dialogVisible = false" />
         <el-footer>
@@ -124,7 +124,7 @@ export default {
             pageSizeOptions: [10, 20, 50, 100],
             total: 0,
             dialogVisible: false,
-            dialogTitle: "Add Firmware",
+            dialogTitle: "New Firmware",
             isAllSelected: false,
             firmwareForm: {
                 id: null,
@@ -193,7 +193,7 @@ export default {
                     this.paramsList = [];
                     this.total = 0;
                     this.$message.error({
-                        message: res?.data?.msg || 'Failed to get firmware list',
+                        message: res?.data?.msg || '获取固件列表失败',
                         showClose: true
                     });
                 }
@@ -210,7 +210,7 @@ export default {
             });
         },
         showAddDialog() {
-            this.dialogTitle = "Add Firmware";
+            this.dialogTitle = "New Firmware";
             // Completely reset form data
             this.firmwareForm = {
                 id: null,
@@ -222,7 +222,7 @@ export default {
                 firmwarePath: ""
             };
             this.$nextTick(() => {
-                // Reset form validation state
+                // 重置表单的校验状态
                 if (this.$refs.firmwareDialog && this.$refs.firmwareDialog.$refs.form) {
                     this.$refs.firmwareDialog.$refs.form.clearValidate();
                 }
@@ -236,37 +236,37 @@ export default {
         },
         handleSubmit(form) {
             if (form.id) {
-                // Edit
+                // 编辑
                 Api.ota.updateOta(form.id, form, (res) => {
                     res = res.data;
                     if (res.code === 0) {
                         this.$message.success({
-                            message: "Modified successfully",
+                            message: "修改成功",
                             showClose: true
                         });
                         this.dialogVisible = false;
                         this.fetchFirmwareList();
                     } else {
                         this.$message.error({
-                            message: res.msg || "Failed to modify",
+                            message: res.msg || "修改失败",
                             showClose: true
                         });
                     }
                 });
             } else {
-                // Add
+                // 新增
                 Api.ota.saveOta(form, (res) => {
                     res = res.data;
                     if (res.code === 0) {
                         this.$message.success({
-                            message: "Added successfully",
+                            message: "新增成功",
                             showClose: true
                         });
                         this.dialogVisible = false;
                         this.fetchFirmwareList();
                     } else {
                         this.$message.error({
-                            message: res.msg || "Failed to add",
+                            message: res.msg || "新增失败",
                             showClose: true
                         });
                     }
@@ -278,7 +278,7 @@ export default {
             const selectedRows = this.firmwareList.filter(row => row.selected);
             if (selectedRows.length === 0) {
                 this.$message.warning({
-                    message: "Please select firmware to delete first",
+                    message: "请先选择需要删除的固件",
                     showClose: true
                 });
                 return;
@@ -286,28 +286,28 @@ export default {
             this.deleteParam(selectedRows);
         },
         deleteParam(row) {
-            // Handle single parameter or parameter array
+            // 处理单个参数或参数数组
             const params = Array.isArray(row) ? row : [row];
 
             if (Array.isArray(row) && row.length === 0) {
                 this.$message.warning({
-                    message: "Please select parameters to delete first",
+                    message: "请先选择需要删除的参数",
                     showClose: true
                 });
                 return;
             }
 
             const paramCount = params.length;
-            this.$confirm(`Are you sure you want to delete ${paramCount} selected firmware?`, 'Warning', {
-                confirmButtonText: 'Confirm',
-                cancelButtonText: 'Cancel',
+            this.$confirm(`确定要删除选中的${paramCount}个固件吗？`, '警告', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
                 type: 'warning',
                 distinguishCancelAndClose: true
             }).then(() => {
                 const ids = params.map(param => param.id);
                 if (ids.some(id => !id)) {
                     this.$message.error({
-                        message: 'Invalid parameter IDs found',
+                        message: '存在无效的参数ID',
                         showClose: true
                     });
                     return;
@@ -317,13 +317,13 @@ export default {
                     res = res.data;
                     if (res.code === 0) {
                         this.$message.success({
-                            message: `Successfully deleted ${paramCount} firmware`,
+                            message: `成功删除${paramCount}个固件`,
                             showClose: true
                         });
                         this.fetchFirmwareList();
                     } else {
                         this.$message.error({
-                            message: res.msg || 'Failed to delete, please try again',
+                            message: res.msg || '删除失败，请重试',
                             showClose: true
                         });
                     }
@@ -332,13 +332,13 @@ export default {
                 if (action === 'cancel') {
                     this.$message({
                         type: 'info',
-                        message: 'Delete operation cancelled',
+                        message: '已取消删除操作',
                         duration: 1000
                     });
                 } else {
                     this.$message({
                         type: 'info',
-                        message: 'Operation closed',
+                        message: '操作已关闭',
                         duration: 1000
                     });
                 }
@@ -372,17 +372,17 @@ export default {
         },
         downloadFirmware(firmware) {
             if (!firmware || !firmware.id) {
-                this.$message.error('Incomplete firmware information');
+                this.$message.error('固件信息不完整');
                 return;
             }
-            // First get download link
+            // 先获取下载链接
             Api.ota.getDownloadUrl(firmware.id, (res) => {
                 if (res.data.code === 0) {
                     const uuid = res.data.data;
                     const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
                     window.open(`${window.location.origin}${baseUrl}/otaMag/download/${uuid}`);
                 } else {
-                    this.$message.error('Failed to get download link');
+                    this.$message.error('获取下载链接失败');
                 }
             });
         },
@@ -393,8 +393,8 @@ export default {
                 const res = await Api.dict.getDictDataByType('FIRMWARE_TYPE')
                 this.firmwareTypes = res.data
             } catch (error) {
-                console.error('Failed to get firmware types:', error)
-                this.$message.error(error.message || 'Failed to get firmware types')
+                console.error('获取固件类型失败:', error)
+                this.$message.error(error.message || '获取固件类型失败')
             }
         },
         getFirmwareTypeName(type) {

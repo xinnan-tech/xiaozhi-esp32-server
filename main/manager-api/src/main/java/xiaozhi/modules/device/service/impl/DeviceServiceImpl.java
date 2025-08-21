@@ -175,24 +175,6 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         }
 
         response.setWebsocket(websocket);
-        
-        // 添加MQTT UDP配置
-        // 从系统参数获取WebSocket URL，如果未配置不使用默认值
-        String mqttUdpConfig = sysParamsService.getValue(Constant.SERVER_MQTT_GATEWAY, false);
-        if(!StringUtils.isBlank(mqttUdpConfig)) {
-            DeviceReportRespDTO.MQTT mqtt= new DeviceReportRespDTO.MQTT();
-            mqtt.setEndpoint(mqttUdpConfig);
-            mqtt.setClient_id(clientId);
-            String userNameString = deviceById.getId().replace(":", "_");
-            mqtt.setUsername(userNameString);
-            mqtt.setPassword(deviceById.getBoard());
-            String topicString = deviceById.getBoard() + '/' + deviceById.getAgentId();
-            mqtt.setPublish_topic(topicString);
-            String subscribeString = "devices/p2p/"+userNameString;
-            mqtt.setSubscribe_topic(subscribeString);
-            response.setMqtt(mqtt);
-        }
-       
 
         if (deviceById != null) {
             // 如果设备存在，则异步更新上次连接时间和版本信息

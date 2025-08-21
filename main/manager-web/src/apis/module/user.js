@@ -3,7 +3,7 @@ import RequestService from '../httpRequest'
 
 
 export default {
-    // Login
+    // 登录
     login(loginForm, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/login`)
@@ -23,7 +23,7 @@ export default {
                 })
             }).send()
     },
-    // Get verification code
+    // 获取验证码
     getCaptcha(uuid, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/captcha?uuid=${uuid}`)
@@ -38,11 +38,11 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
-            .networkFail((err) => {  // Add error parameter
+            .networkFail((err) => {  // 添加错误参数
 
             }).send()
     },
-    // Send SMS verification code
+    // 发送短信验证码
     sendSmsVerification(data, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/smsVerification`)
@@ -62,7 +62,7 @@ export default {
                 })
             }).send()
     },
-    // Register account
+    // 注册账号
     register(registerForm, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/register`)
@@ -82,7 +82,7 @@ export default {
                 })
             }).send()
     },
-    // Save device configuration
+    // 保存设备配置
     saveDeviceConfig(device_id, configData, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/configDevice/${device_id}`)
@@ -93,13 +93,13 @@ export default {
                 callback(res);
             })
             .networkFail((err) => {
-                console.error('Save configuration failed:', err);
+                console.error('保存配置失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.saveDeviceConfig(device_id, configData, callback);
                 });
             }).send();
     },
-    // Get user information
+    // 用户信息获取
     getUserInfo(callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/info`)
@@ -109,13 +109,13 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('API request failed:', err)
+                console.error('接口请求失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.getUserInfo(callback)
                 })
             }).send()
     },
-    // Change user password
+    // 修改用户密码
     changePassword(oldPassword, newPassword, successCallback, errorCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/change-password`)
@@ -135,7 +135,7 @@ export default {
             })
             .send();
     },
-    // Change user status
+    // 修改用户状态
     changeUserStatus(status, userIds, successCallback) {
         console.log(555, userIds)
         RequestService.sendRequest()
@@ -147,13 +147,13 @@ export default {
                 successCallback(res);
             })
             .networkFail((err) => {
-                console.error('Change user status failed:', err)
+                console.error('修改用户状态失败:', err)
                 RequestService.reAjaxFun(() => {
                     this.changeUserStatus(status, userIds)
                 })
             }).send()
     },
-    // Get public configuration
+    // 获取公共配置
     getPubConfig(callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/pub-config`)
@@ -163,13 +163,13 @@ export default {
                 callback(res);
             })
             .networkFail((err) => {
-                console.error('Get public configuration failed:', err);
+                console.error('获取公共配置失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getPubConfig(callback);
                 });
             }).send();
     },
-    // Retrieve user password
+    // 找回用户密码
     retrievePassword(passwordData, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/user/retrieve-password`)

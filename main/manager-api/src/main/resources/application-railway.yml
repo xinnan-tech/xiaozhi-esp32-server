@@ -1,0 +1,61 @@
+knife4j:
+  production: false
+  enable: true
+  basic:
+    enable: false
+    username: renren
+    password: 2ZABCDEUgF
+  setting:
+    enableFooter: false
+
+spring:
+  datasource:
+    druid:
+      #Railway MySQL Configuration
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      # Railway database connection
+      url: jdbc:mysql://nozomi.proxy.rlwy.net:25037/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
+      username: root
+      password: OcaVNLKcwNdyElfaeUPqvvfYZiiEHgdm
+      initial-size: 10
+      max-active: 100
+      min-idle: 10
+      max-wait: 6000
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      stat-view-servlet:
+        enabled: false
+      filter:
+        stat:
+          log-slow-sql: true
+          slow-sql-millis: 1000
+          merge-sql: false
+        wall:
+          config:
+            multi-statement-allow: true
+  data:
+    redis:
+      # Railway Redis Configuration
+      host: maglev.proxy.rlwy.net
+      port: 16780
+      password: beVfOKcZjMUCBiZIQnvSMivhpSeijpKP
+      username: default
+      database: 0
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+        shutdown-timeout: 100ms
+
+# Liquibase configuration for Railway
+liquibase:
+  change-log: classpath:db/changelog/db.changelog-master.yaml
+  enabled: true
+  drop-first: false
