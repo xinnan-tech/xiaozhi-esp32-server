@@ -23,7 +23,7 @@ async def handleAudioMessage(conn, audio):
     # Skip VAD/ASR processing when server is speaking (streaming audio to client)
     # This prevents interruptions during TTS playback
     if conn.client_is_speaking:
-        conn.logger.bind(tag=TAG).debug("Server is speaking - skipping audio processing to prevent interruption")
+        # conn.logger.bind(tag=TAG).debug("Server is speaking - skipping audio processing to prevent interruption")
         return
 
     # Whether the current segment has someone speaking

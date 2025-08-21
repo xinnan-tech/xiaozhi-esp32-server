@@ -24,7 +24,6 @@ class TTSProvider(TTSProviderBase):
             "pitch": 0,
             "emotion": "happy",
         }
-
         default_pronunciation_dict = {
             "tone": ["处理/(chu3)(li3)", "危险/dangerous"]}
         default_audio_setting = {
