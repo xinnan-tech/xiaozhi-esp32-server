@@ -46,18 +46,26 @@ def get_config_from_api(config):
     """Get configuration from Java API"""
     # Initialize API client
     init_service(config)
-    
+
     # Get server configuration
     config_data = get_server_config()
     if config_data is None:
         raise Exception("Failed to fetch server config from API")
-    
+
+    # Print the configuration received from API
+    print("=" * 80)
+    print("CONFIGURATION RECEIVED FROM API:")
+    print("=" * 80)
+    import json
+    print(json.dumps(config_data, indent=2, ensure_ascii=False))
+    print("=" * 80)
+
     config_data["read_config_from_api"] = True
     config_data["manager-api"] = {
         "url": config["manager-api"].get("url", ""),
         "secret": config["manager-api"].get("secret", ""),
     }
-    
+
     # Use local server configuration as priority
     if config.get("server"):
         config_data["server"] = {
@@ -67,7 +75,12 @@ def get_config_from_api(config):
             "vision_explain": config["server"].get("vision_explain", ""),
             "auth_key": config["server"].get("auth_key", ""),
         }
-    
+
+    print("FINAL MERGED CONFIGURATION:")
+    print("=" * 80)
+    print(json.dumps(config_data, indent=2, ensure_ascii=False))
+    print("=" * 80)
+
     return config_data
 
 def get_private_config_from_api(config, device_id, client_id):

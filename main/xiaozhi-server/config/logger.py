@@ -139,6 +139,13 @@ def setup_logging():
         log_format_file = log_format_file.replace("{version}", SERVER_VERSION)
         
         log_level = log_config.get("log_level", "INFO")
+
+        # Validate log level - if it's not a valid log level, default to INFO
+        valid_log_levels = ["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
+        if log_level not in valid_log_levels:
+            logger.warning(f"Invalid log level '{log_level}' found in config, defaulting to INFO")
+            log_level = "INFO"
+
         log_dir = log_config.get("log_dir", "tmp")
         log_file = log_config.get("log_file", "server.log")
         data_dir = log_config.get("data_dir", "data")
