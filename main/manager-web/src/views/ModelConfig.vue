@@ -358,13 +358,13 @@ export default {
       Api.model.addModel(params, ({ data }) => {
         if (data.code === 0) {
           this.$message.success({
-            message: '新增成功',
+            message: 'Added successfully',
             showClose: true
           });
           this.loadData();
         } else {
           this.$message.error({
-            message: data.msg || '新增失败',
+            message: data.msg || 'Failed to add',
             showClose: true
           });
         }
@@ -409,7 +409,7 @@ export default {
           this.modelList = data.data.list;
           this.total = data.data.total;
         } else {
-          this.$message.error(data.msg || '获取模型列表失败');
+          this.$message.error(data.msg || 'Failed to get model list');
         }
       });
     },

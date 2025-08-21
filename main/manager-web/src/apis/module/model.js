@@ -19,7 +19,7 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        console.error('获取模型列表失败:', err)
+        console.error('Failed to get model list:', err)
         RequestService.reAjaxFun(() => {
           this.getModelList(params, callback)
         })
@@ -66,8 +66,8 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        console.error('新增模型失败:', err)
-        this.$message.error(err.msg || '新增模型失败')
+        console.error('Failed to add model:', err)
+        this.$message.error(err.msg || 'Failed to add model')
         RequestService.reAjaxFun(() => {
           this.addModel(params, callback)
         })
@@ -190,8 +190,8 @@ export default {
         callback(res);
       })
       .networkFail((err) => {
-        console.error('更新模型失败:', err);
-        this.$message.error(err.msg || '更新模型失败');
+        console.error('Failed to update model:', err);
+        this.$message.error(err.msg || 'Failed to update model');
         RequestService.reAjaxFun(() => {
           this.updateModel(params, callback);
         });

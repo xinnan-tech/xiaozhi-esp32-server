@@ -51,7 +51,7 @@
               字典管理
             </el-dropdown-item>
             <el-dropdown-item @click.native="goProviderManagement">
-              字段管理
+              Provider
             </el-dropdown-item>
             <el-dropdown-item @click.native="goServerSideManagement">
               服务端管理

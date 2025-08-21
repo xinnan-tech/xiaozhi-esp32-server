@@ -3,7 +3,7 @@
     <HeaderBar />
 
     <div class="operation-bar">
-      <h2 class="page-title">字段管理</h2>
+      <h2 class="page-title">Provider</h2>
       <div class="right-operations">
         <el-dropdown trigger="click" @command="handleSelectModelType" @visible-change="handleDropdownVisibleChange">
           <el-button class="category-btn">
@@ -99,16 +99,16 @@
                   首页
                 </button>
                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
-                  上一页
+                  Previous
                 </button>
                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                   :class="{ active: page === currentPage }" @click="goToPage(page)">
                   {{ page }}
                 </button>
                 <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
-                  下一页
+                  Next
                 </button>
-                <span class="total-text">共{{ total }}条记录</span>
+                <span class="total-text">Total {{ total }} records</span>
               </div>
             </div>
           </el-card>
@@ -140,14 +140,14 @@ export default {
       searchModelType: "",
       providersList: [],
       modelTypes: [
-        { value: "ASR", label: "语音识别" },
-        { value: "TTS", label: "语音合成" },
-        { value: "LLM", label: "大语言模型" },
-        { value: "VLLM", label: "视觉大语言模型" },
-        { value: "Intent", label: "意图识别" },
-        { value: "Memory", label: "记忆模块" },
-        { value: "VAD", label: "语音活动检测" },
-        { value: "Plugin", label: "插件工具" }
+        { value: "ASR", label: "Speech Recognition" },
+        { value: "TTS", label: "Text-to-Speech" },
+        { value: "LLM", label: "Large Language Model" },
+        { value: "VLLM", label: "Vision Language Model" },
+        { value: "Intent", label: "Intent Recognition" },
+        { value: "Memory", label: "Memory Module" },
+        { value: "VAD", label: "Voice Activity Detection" },
+        { value: "Plugin", label: "Plugin Tools" }
       ],
       currentPage: 1,
       loading: false,
@@ -155,7 +155,7 @@ export default {
       pageSizeOptions: [10, 20, 50, 100],
       total: 0,
       dialogVisible: false,
-      dialogTitle: "新增供应器",
+      dialogTitle: "Add Provider",
       isAllSelected: false,
       isDropdownOpen: false,
       sensitive_keys: ["api_key", "personal_access_token", "access_token", "token", "secret", "access_key_secret", "secret_key"],
@@ -237,7 +237,7 @@ export default {
             this.total = data.data.total;
           } else {
             this.$message.error({
-              message: data.msg || '获取参数列表失败'
+              message: data.msg || 'Failed to fetch provider list'
             });
           }
         }
@@ -259,7 +259,7 @@ export default {
       });
     },
     showAddDialog() {
-      this.dialogTitle = "新增供应器";
+      this.dialogTitle = "Add Provider";
       this.providerForm = {
         id: null,
         modelType: "",
@@ -271,7 +271,7 @@ export default {
       this.dialogVisible = true;
     },
     editProvider(row) {
-      this.dialogTitle = "编辑供应器";
+      this.dialogTitle = "Edit Provider";
       this.providerForm = {
         ...row,
         fields: JSON.parse(JSON.stringify(row.fields))
@@ -281,24 +281,24 @@ export default {
     handleSubmit({ form, done }) {
       this.loading = true;
       if (form.id) {
-        // 编辑
+        // Edit
         Api.model.updateModelProvider(form, ({ data }) => {
 
           if (data.code === 0) {
-            this.fetchProviders(); // 刷新表格
+            this.fetchProviders(); // Refresh table
             this.$message.success({
-              message: "修改成功",
+              message: "Updated successfully",
               showClose: true
             });
           }
         });
       } else {
-        // 新增
+        // Add
         Api.model.addModelProvider(form, ({ data }) => {
           if (data.code === 0) {
-            this.fetchProviders(); // 刷新表格
+            this.fetchProviders(); // Refresh table
             this.$message.success({
-              message: "新增成功",
+              message: "Added successfully",
               showClose: true
             });
             this.total += 1;
@@ -313,7 +313,7 @@ export default {
       const selectedRows = this.providersList.filter(row => row.selected);
       if (selectedRows.length === 0) {
         this.$message.warning({
-          message: "请先选择需要删除的供应器",
+          message: "Please select providers to delete first",
           showClose: true
         });
         return;
