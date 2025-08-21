@@ -16,13 +16,19 @@ async def handleAudioMessage(conn, audio):
     if not hasattr(conn, '_audio_log_counter'):
         conn._audio_log_counter = 0
     conn._audio_log_counter += 1
-    
+
     if conn._audio_log_counter % 200 == 0:  # Log every 200th packet (reduced from 50)
         conn.logger.bind(tag=TAG).debug(f"Received audio packet #{conn._audio_log_counter}, size: {len(audio)} bytes")
-    
+
+    # Skip VAD/ASR processing when server is speaking (streaming audio to client)
+    # This prevents interruptions during TTS playback
+    if conn.client_is_speaking:
+        conn.logger.bind(tag=TAG).debug("Server is speaking - skipping audio processing to prevent interruption")
+        return
+
     # Whether the current segment has someone speaking
     have_voice = conn.vad.is_vad(conn, audio)
-    
+
     # Check if this is the initial connection period (ignore first 1 second of audio)
     if have_voice and hasattr(conn, "initial_connection_handled") and not conn.initial_connection_handled:
         current_time = asyncio.get_event_loop().time()
@@ -32,7 +38,7 @@ async def handleAudioMessage(conn, audio):
             return
         else:
             conn.initial_connection_handled = True
-    
+
     # If the device was just woken up, briefly ignore VAD detection
     if have_voice and hasattr(conn, "just_woken_up") and conn.just_woken_up:
         have_voice = False

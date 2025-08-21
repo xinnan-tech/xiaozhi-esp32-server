@@ -166,3 +166,107 @@ Full Path: ./audio_files\asr_base_58880620-be02-415e-b9a9-bcecd6fcd85b_8afec574-
 Audio Length: 2.76 seconds
 Transcript: Tell me another one.
 ================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T12:53:06.340526
+Filename: asr_base_0b3c7f51-e480-4c3b-b84d-d2d4277eb4b3_b509dc72-fe00-43e1-9c9a-c931fbd963ef.wav
+Full Path: ./audio_files\asr_base_0b3c7f51-e480-4c3b-b84d-d2d4277eb4b3_b509dc72-fe00-43e1-9c9a-c931fbd963ef.wav
+Audio Length: 2.76 seconds
+Transcript: Am I audible?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T12:56:41.965296
+Filename: asr_base_a7c9e7b1-df3c-4fd3-bdf7-21378e716d7a_b842c092-57d8-458b-b164-f5ea18e4b316.wav
+Full Path: ./audio_files\asr_base_a7c9e7b1-df3c-4fd3-bdf7-21378e716d7a_b842c092-57d8-458b-b164-f5ea18e4b316.wav
+Audio Length: 1.98 seconds
+Transcript: Am I audible?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T12:58:17.158189
+Filename: asr_base_a7c9e7b1-df3c-4fd3-bdf7-21378e716d7a_408be9af-083f-429e-a676-72ddfaffcf09.wav
+Full Path: ./audio_files\asr_base_a7c9e7b1-df3c-4fd3-bdf7-21378e716d7a_408be9af-083f-429e-a676-72ddfaffcf09.wav
+Audio Length: 5.20 seconds
+Transcript: I'm ready. Can you listen to me right now? Can you stay?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T12:58:36.504023
+Filename: asr_base_a7c9e7b1-df3c-4fd3-bdf7-21378e716d7a_cb30e24f-2082-42e3-b03f-6a237530ba28.wav
+Full Path: ./audio_files\asr_base_a7c9e7b1-df3c-4fd3-bdf7-21378e716d7a_cb30e24f-2082-42e3-b03f-6a237530ba28.wav
+Audio Length: 3.36 seconds
+Transcript: Can you tell me a story?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T12:59:52.294534
+Filename: asr_base_65833e66-8628-436b-a1ab-5ef493febef1_c1b8553d-3e73-47ba-81bb-11679a5be488.wav
+Full Path: ./audio_files\asr_base_65833e66-8628-436b-a1ab-5ef493febef1_c1b8553d-3e73-47ba-81bb-11679a5be488.wav
+Audio Length: 1.70 seconds
+Transcript: Hello?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T13:00:33.801714
+Filename: asr_base_65833e66-8628-436b-a1ab-5ef493febef1_b5015d16-c659-4984-82f8-101e49d031ce.wav
+Full Path: ./audio_files\asr_base_65833e66-8628-436b-a1ab-5ef493febef1_b5015d16-c659-4984-82f8-101e49d031ce.wav
+Audio Length: 4.68 seconds
+Transcript: Six piece tenders.
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T13:04:29.337836
+Filename: asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_b46ec7a7-ff6b-48e6-bbb3-274db4db1300.wav
+Full Path: ./audio_files\asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_b46ec7a7-ff6b-48e6-bbb3-274db4db1300.wav
+Audio Length: 1.66 seconds
+Transcript: Hello?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T13:04:56.848487
+Filename: asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_324df0a4-836e-41de-9ac4-fbfc24ec5197.wav
+Full Path: ./audio_files\asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_324df0a4-836e-41de-9ac4-fbfc24ec5197.wav
+Audio Length: 3.08 seconds
+Transcript: Can you tell me a story?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T13:05:28.819407
+Filename: asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_35baa6c2-5acf-439c-84e5-a0b887f6fc79.wav
+Full Path: ./audio_files\asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_35baa6c2-5acf-439c-84e5-a0b887f6fc79.wav
+Audio Length: 2.40 seconds
+Transcript: Am I audible to you?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T13:05:55.601465
+Filename: asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_423b075b-41c0-4707-97bd-496226f53232.wav
+Full Path: ./audio_files\asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_423b075b-41c0-4707-97bd-496226f53232.wav
+Audio Length: 2.82 seconds
+Transcript: Can you tell me another story?
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T13:06:26.820176
+Filename: asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_8973e288-43cf-4d09-8391-7dc7a38cf925.wav
+Full Path: ./audio_files\asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_8973e288-43cf-4d09-8391-7dc7a38cf925.wav
+Audio Length: 2.44 seconds
+Transcript: Can I take ten minutes
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T13:06:52.279831
+Filename: asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_a4f22978-8e8a-4dab-9445-823cb70aaff1.wav
+Full Path: ./audio_files\asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_a4f22978-8e8a-4dab-9445-823cb70aaff1.wav
+Audio Length: 2.52 seconds
+Transcript: Check the method right now.
+================================================================================
+
+================================================================================
+Timestamp: 2025-08-21T13:07:18.552938
+Filename: asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_5804d339-f4df-4446-afaa-17cde0720cb8.wav
+Full Path: ./audio_files\asr_base_02ff5dcc-e069-4ca5-8aef-7fa8988136a2_5804d339-f4df-4446-afaa-17cde0720cb8.wav
+Audio Length: 2.42 seconds
+Transcript: Yeah. That's it.
+================================================================================

@@ -85,8 +85,9 @@ async def send_tts_message(conn, state, text=None):
             )
             audios, _ = conn.tts.audio_to_opus_data(stop_tts_notify_voice)
             await sendAudio(conn, audios)
-        # Clear server speaking status
+        # Clear server speaking status and resume listening
         conn.clearSpeakStatus()
+        conn.logger.bind(tag=TAG).info("TTS finished - resuming audio listening")
 
     # Send message to client
     await conn.websocket.send(json.dumps(message))
@@ -121,4 +122,5 @@ async def send_stt_message(conn, text):
                    "session_id": conn.session_id})
     )
     conn.client_is_speaking = True
+    conn.logger.bind(tag=TAG).info("TTS started - pausing audio listening to prevent interruption")
     await send_tts_message(conn, "start")
