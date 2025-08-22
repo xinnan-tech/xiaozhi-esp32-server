@@ -270,24 +270,23 @@ Memory:
 ASR:
 
   DeepgramASR:
-    # Deepgram Nova-2 ASR - High accuracy speech recognition
-    # Get API key here: https://console.deepgram.com/
-    # Supports 100+ languages with excellent accuracy
+   
     type: deepgram
     api_key: 2bc99f78312157bb1e017a2596b45c71bfe5f6ba
-    # Model options: nova-3 (latest), nova, enhanced, base
+   
     model: nova-3
-    # Language code (e.g., en, zh, es, fr, de, ja, ko, etc.)
+   
     language: en-IN
-    # Smart formatting (punctuation, capitalization, number formatting)
+   
     smart_format: true
-    # Add punctuation
+   
     punctuate: true
-    # Speaker diarization (identify different speakers)
+   
     diarize: false
-    # Multichannel processing
+   
     multichannel: false
-    # Request timeout in seconds
+    output_dir: tmp/
+   
     timeout: 60
   FunASR:
     type: fun_local

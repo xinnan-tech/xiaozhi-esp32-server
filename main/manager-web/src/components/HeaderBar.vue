@@ -14,25 +14,25 @@
           @click="goHome">
           <img loading="lazy" alt="" src="@/assets/header/robot.png"
             :style="{ filter: $route.path === '/home' || $route.path === '/role-config' || $route.path === '/device-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          智能体管理
+         Agent Management
         </div>
         <div v-if="isSuperAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }"
           @click="goModelConfig">
           <img loading="lazy" alt="" src="@/assets/header/model_config.png"
             :style="{ filter: $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None' }" />
-          模型配置
+         Model Configuration
         </div>
         <div v-if="isSuperAdmin" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/user-management' }" @click="goUserManagement">
           <img loading="lazy" alt="" src="@/assets/header/user_management.png"
             :style="{ filter: $route.path === '/user-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          用户管理
+         User Management
         </div>
         <div v-if="isSuperAdmin" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/ota-management' }" @click="goOtaManagement">
           <img loading="lazy" alt="" src="@/assets/header/firmware_update.png"
             :style="{ filter: $route.path === '/ota-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          OTA管理
+          OTA Management
         </div>
         <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown"
           :class="{ 'active-tab': $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' }"
@@ -40,21 +40,21 @@
           <span class="el-dropdown-link">
             <img loading="lazy" alt="" src="@/assets/header/param_management.png"
               :style="{ filter: $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' ? 'brightness(0) invert(1)' : 'None' }" />
-            参数字典
+            Parameter Dictionary
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': paramDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="goParamManagement">
-              参数管理
+              Parameter Management
             </el-dropdown-item>
             <el-dropdown-item @click.native="goDictManagement">
-              字典管理
+              Dictionary Management
             </el-dropdown-item>
             <el-dropdown-item @click.native="goProviderManagement">
               Provider
             </el-dropdown-item>
             <el-dropdown-item @click.native="goServerSideManagement">
-              服务端管理
+              Server Side Management
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
@@ -75,8 +75,8 @@
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': userDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="showChangePasswordDialog">修改密码</el-dropdown-item>
-            <el-dropdown-item @click.native="handleLogout">退出登录</el-dropdown-item>
+            <el-dropdown-item @click.native="showChangePasswordDialog">Change Password</el-dropdown-item>
+            <el-dropdown-item @click.native="handleLogout">log out</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </div>

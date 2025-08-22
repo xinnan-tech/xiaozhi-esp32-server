@@ -8,7 +8,7 @@
           <img loading="lazy" src="@/assets/login/shield.png" alt=""
             style="width: 19px;height: 23px; filter: brightness(0) invert(1);" />
         </div>
-        修改密码
+        Change Password
       </div>
       <div style="height: 1px;background: #e8f0ff;" />
       <div style="margin: 22px 15px;">

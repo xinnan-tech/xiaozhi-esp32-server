@@ -16,3 +16,7 @@ Vue 3.x
 # API Documentation
 After starting, open: http://localhost:8002/xiaozhi/doc.html
 
+run app
+
+
+npm  run serve 

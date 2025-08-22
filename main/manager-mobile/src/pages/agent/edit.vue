@@ -497,14 +497,14 @@ onMounted(async () => {
       </view>
     </view>
 
-    <!-- 模型配置标题 -->
+    <!--Model Configuration标题 -->
     <view class="pb-[20rpx]">
       <text class="text-[32rpx] text-[#232338] font-bold">
-        模型配置
+       Model Configuration
       </text>
     </view>
 
-    <!-- 模型配置卡片 -->
+    <!--Model Configuration卡片 -->
     <view class="mb-[24rpx] border border-[#eeeeee] rounded-[20rpx] bg-[#fbfbfb] p-[24rpx]" style="box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);">
       <view class="flex flex-col gap-[16rpx]">
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('vad')">
