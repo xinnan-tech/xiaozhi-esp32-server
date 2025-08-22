@@ -315,12 +315,15 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
             String frontedUrl = sysParamsService.getValue(Constant.SERVER_FRONTED_URL, true);
             code.setMessage(frontedUrl + "\n" + cachedCode);
             code.setChallenge(deviceId);
+            log.info("📱 Device {} requesting activation - Using cached code: {}", deviceId, cachedCode);
         } else {
             String newCode = RandomUtil.randomNumbers(6);
             code.setCode(newCode);
             String frontedUrl = sysParamsService.getValue(Constant.SERVER_FRONTED_URL, true);
             code.setMessage(frontedUrl + "\n" + newCode);
             code.setChallenge(deviceId);
+            log.info("🔐 Generated NEW activation code for device {}: {}", deviceId, newCode);
+            log.info("📱 Please bind device using code: {} at {}", newCode, frontedUrl);
 
             Map<String, Object> dataMap = new HashMap<>();
             dataMap.put("id", deviceId);

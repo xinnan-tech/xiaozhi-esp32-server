@@ -44,7 +44,7 @@ import xiaozhi.common.validator.ValidatorUtils;
 import xiaozhi.modules.device.entity.OtaEntity;
 import xiaozhi.modules.device.service.OtaService;
 
-@Tag(name = "设备管理", description = "OTA 相关接口")
+@Tag(name = "Device Management", description = "OTA 相关接口")
 @Slf4j
 @RestController
 @RequiredArgsConstructor

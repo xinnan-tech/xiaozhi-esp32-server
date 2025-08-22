@@ -38,11 +38,17 @@ class OTAHandler(BaseHandler):
         """
         server_config = self.config["server"]
         websocket_config = server_config.get("websocket", "")
+        
+        # Debug logging
+        print(f"[OTA DEBUG] server_config websocket value: {websocket_config}")
+        print(f"[OTA DEBUG] Full server config: {server_config}")
 
-        if "你的" not in websocket_config:
-            return websocket_config
-        else:
+        if not websocket_config or "你的" in websocket_config:
+            print(f"[OTA DEBUG] Using default websocket URL")
             return f"ws://{local_ip}:{port}/xiaozhi/v1/"
+        else:
+            print(f"[OTA DEBUG] Using configured websocket URL: {websocket_config}")
+            return websocket_config
 
     def _generate_mqtt_credentials(self, device_id: str, client_ip: str) -> dict:
         """Generate MQTT credentials

@@ -1,16 +1,16 @@
 <template>
     <el-dialog :title="title" :visible.sync="dialogVisible"  width="30%" @close="handleClose">
         <el-form :model="form" :rules="rules" ref="form" label-width="120px">
-            <el-form-item label="字典类型名称" prop="dictName">
-                <el-input v-model="form.dictName" placeholder="请输入字典类型名称"></el-input>
+            <el-form-item label="Dictionary Type Name" prop="dictName">
+                <el-input v-model="form.dictName" placeholder="Enter dictionary type name"></el-input>
             </el-form-item>
-            <el-form-item label="字典类型编码" prop="dictType">
-                <el-input v-model="form.dictType" placeholder="请输入字典类型编码"></el-input>
+            <el-form-item label="Dictionary Type Code" prop="dictType">
+                <el-input v-model="form.dictType" placeholder="Enter dictionary type code"></el-input>
             </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer">
-            <el-button @click="handleClose">取 消</el-button>
-            <el-button type="primary" @click="handleSave">确 定</el-button>
+            <el-button @click="handleClose">Cancel</el-button>
+            <el-button type="primary" @click="handleSave">Confirm</el-button>
         </div>
     </el-dialog>
 </template>
@@ -25,7 +25,7 @@ export default {
         },
         title: {
             type: String,
-            default: '新增字典类型'
+            default: 'Add Dictionary Type'
         },
         dictTypeData: {
             type: Object,
@@ -41,8 +41,8 @@ export default {
                 dictType: ''
             },
             rules: {
-                dictName: [{ required: true, message: '请输入字典类型名称', trigger: 'blur' }],
-                dictType: [{ required: true, message: '请输入字典类型编码', trigger: 'blur' }]
+                dictName: [{ required: true, message: 'Please enter dictionary type name', trigger: 'blur' }],
+                dictType: [{ required: true, message: 'Please enter dictionary type code', trigger: 'blur' }]
             }
         }
     },

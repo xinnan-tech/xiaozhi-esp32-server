@@ -12,8 +12,8 @@
       </div>
 
       <el-form :model="form" :rules="rules" ref="form" label-width="110px" label-position="left" class="param-form">
-        <el-form-item label="声纹向量" prop="audioId" class="form-item">
-          <el-select v-model="form.audioId" placeholder="请选择一条语言消息" class="custom-select">
+        <el-form-item label="Voice Vector" prop="audioId" class="form-item">
+          <el-select v-model="form.audioId" placeholder="Please select a voice message" class="custom-select">
             <el-option v-for="item in valueTypeOptions" :key="item.audioId" :label="item.content" :value="item.audioId">
               <span style="float: left">{{ item.content }}</span>
               <span style="float: right; color: #8492a6; font-size: 13px">
@@ -24,22 +24,22 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="姓名" prop="sourceName" class="form-item">
-          <el-input v-model="form.sourceName" placeholder="请输入姓名" class="custom-input"></el-input>
+        <el-form-item label="Name" prop="sourceName" class="form-item">
+          <el-input v-model="form.sourceName" placeholder="Please enter name" class="custom-input"></el-input>
         </el-form-item>
 
-        <el-form-item label="描述" prop="introduce" class="form-item remark-item">
-          <el-input type="textarea" v-model="form.introduce" placeholder="请输入描述" :rows="3" class="custom-textarea"
+        <el-form-item label="Description" prop="introduce" class="form-item remark-item">
+          <el-input type="textarea" v-model="form.introduce" placeholder="Please enter description" :rows="3" class="custom-textarea"
             maxlength="100" show-word-limit></el-input>
         </el-form-item>
       </el-form>
 
       <div class="dialog-footer">
         <el-button type="primary" @click="submit" class="save-btn" :loading="saving" :disabled="saving">
-          保存
+          Save
         </el-button>
         <el-button @click="cancel" class="cancel-btn">
-          取消
+          Cancel
         </el-button>
       </div>
     </div>
@@ -53,7 +53,7 @@ export default {
   props: {
     title: {
       type: String,
-      default: '添加说话人'
+      default: 'Add Speaker'
     },
     visible: {
       type: Boolean,
@@ -83,13 +83,13 @@ export default {
       ],
       rules: {
         introduce: [
-          { required: true, message: "请输入描述", trigger: "blur" }
+          { required: true, message: "Please enter description", trigger: "blur" }
         ],
         sourceName: [
-          { required: true, message: "请输入姓名", trigger: "blur" }
+          { required: true, message: "Please enter name", trigger: "blur" }
         ],
         audioId: [
-          { required: true, message: "请选择音频向量", trigger: "change" }
+          { required: true, message: "Please select audio vector", trigger: "change" }
         ]
       }
     };
@@ -103,7 +103,7 @@ export default {
     },
     playAudio(audioId) {
       if (this.playingAudioId === audioId) {
-        // 如果正在播放当前音频，则停止播放
+        // If currently playing this audio, stop it
         if (this.audioElement) {
           this.audioElement.pause();
           this.audioElement = null;
@@ -112,17 +112,17 @@ export default {
         return;
       }
 
-      // 停止当前正在播放的音频
+      // Stop currently playing audio
       if (this.audioElement) {
         this.audioElement.pause();
         this.audioElement = null;
       }
 
-      // 先获取音频下载ID
+      // First get audio download ID
       this.playingAudioId = audioId;
       api.agent.getAudioId(audioId, (res) => {
         if (res.data && res.data.data) {
-          // 使用获取到的下载ID播放音频
+          // Use the obtained download ID to play audio
           this.audioElement = new Audio(api.getServiceUrl() + `/agent/play/${res.data.data}`);
 
           this.audioElement.onended = () => {
@@ -137,11 +137,11 @@ export default {
     submit() {
       this.$refs.form.validate((valid) => {
         if (valid) {
-          this.saving = true; // 开始加载
+          this.saving = true; // Start loading
           this.$emit('submit', {
             form: this.form,
             done: () => {
-              this.saving = false; // 加载完成
+              this.saving = false; // Loading complete
             }
           });
 
@@ -152,7 +152,7 @@ export default {
       });
     },
     cancel() {
-      this.saving = false; // 取消时重置状态
+      this.saving = false; // Reset status on cancel
       this.$emit('cancel');
     }
   },

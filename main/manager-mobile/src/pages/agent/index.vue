@@ -71,7 +71,7 @@ const tabList = [
     activeIcon: '/static/tabbar/robot_activate.png',
   },
   {
-    label: '设备管理',
+    label: 'Device Management',
     value: 'device-management',
     icon: '/static/tabbar/device.png',
     activeIcon: '/static/tabbar/device_activate.png',

@@ -14,31 +14,31 @@
       </div>
     </div>
     <div class="device-name">
-      语言模型：{{ device.llmModelName }}
+      Language Model: {{ device.llmModelName }}
     </div>
     <div class="device-name">
-      音色模型：{{ device.ttsModelName }} ({{ device.ttsVoiceName }})
+      Voice Model: {{ device.ttsModelName }} ({{ device.ttsVoiceName }})
     </div>
-    <div style="display: flex;gap: 10px;align-items: center;">
+    <div style="display: flex;gap: 8px;align-items: center;flex-wrap: wrap;">
       <div class="settings-btn" @click="handleConfigure">
-        配置角色
+        Configure Role
       </div>
        <div class="settings-btn" @click="handleVoicePrint">
-        声纹识别
+        Voice Recognition
       </div>
       <div class="settings-btn" @click="handleDeviceManage">
-        设备管理({{ device.deviceCount }})
+        Devices ({{ device.deviceCount }})
       </div>
       <div class="settings-btn" @click="handleChatHistory"
         :class="{ 'disabled-btn': device.memModelId === 'Memory_nomem' }">
-        <el-tooltip v-if="device.memModelId === 'Memory_nomem'" content="请先在“配置角色”界面开启记忆" placement="top">
-          <span>聊天记录</span>
+        <el-tooltip v-if="device.memModelId === 'Memory_nomem'" content="Please enable memory in 'Configure Role' first" placement="top">
+          <span>Chat History</span>
         </el-tooltip>
-        <span v-else>聊天记录</span>
+        <span v-else>Chat History</span>
       </div>
     </div>
     <div class="version-info">
-      <div>最近对话：{{ formattedLastConnectedTime }}</div>
+      <div>Last Conversation: {{ formattedLastConnectedTime }}</div>
     </div>
   </div>
 </template>
@@ -54,20 +54,20 @@ export default {
   },
   computed: {
     formattedLastConnectedTime() {
-      if (!this.device.lastConnectedAt) return '暂未对话';
+      if (!this.device.lastConnectedAt) return 'No conversations yet';
 
       const lastTime = new Date(this.device.lastConnectedAt);
       const now = new Date();
       const diffMinutes = Math.floor((now - lastTime) / (1000 * 60));
 
       if (diffMinutes <= 1) {
-        return '刚刚';
+        return 'Just now';
       } else if (diffMinutes < 60) {
-        return `${diffMinutes}分钟前`;
+        return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
       } else if (diffMinutes < 24 * 60) {
         const hours = Math.floor(diffMinutes / 60);
         const minutes = diffMinutes % 60;
-        return `${hours}小时${minutes > 0 ? minutes + '分钟' : ''}前`;
+        return `${hours} hour${hours > 1 ? 's' : ''} ${minutes > 0 ? minutes + ' minute' + (minutes > 1 ? 's' : '') : ''} ago`;
       } else {
         return this.device.lastConnectedAt;
       }
@@ -114,15 +114,17 @@ export default {
 
 .settings-btn {
   font-weight: 500;
-  font-size: 12px;
+  font-size: 11px;
   color: #5778ff;
   background: #e6ebff;
   width: auto;
-  padding: 0 12px;
-  height: 21px;
-  line-height: 21px;
+  padding: 0 10px;
+  height: 22px;
+  line-height: 22px;
   cursor: pointer;
-  border-radius: 14px;
+  border-radius: 11px;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .version-info {

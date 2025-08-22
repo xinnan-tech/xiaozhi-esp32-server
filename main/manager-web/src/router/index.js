@@ -53,7 +53,7 @@ const routes = [
       return import('../views/retrievePassword.vue')
     }
   },
-  // 设备管理页面路由
+  // Device Management页面路由
   {
     path: '/device-management',
     name: 'DeviceManagement',
@@ -73,7 +73,7 @@ const routes = [
     path: '/model-config',
     name: 'ModelConfig',
     component: function () {
-      return import('../views/ModelConfig.vue')
+      return import('../views/modelConfig.vue')
     }
   },
   {

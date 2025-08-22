@@ -4,7 +4,7 @@
       <!-- 保持相同的头部 -->
       <el-header>
         <div style="display: flex;align-items: center;margin-top: 15px;margin-left: 10px;gap: 10px;">
-          <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.png" style="width: 45px;height: 45px;" />
+          <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.svg" style="width: 45px;height: 45px;" />
           <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" style="height: 18px;" />
         </div>
       </el-header>

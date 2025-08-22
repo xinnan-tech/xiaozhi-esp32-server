@@ -3,7 +3,7 @@
     <HeaderBar/>
 
     <div class="operation-bar">
-      <h2 class="page-title">设备管理</h2>
+      <h2 class="page-title">Device Management</h2>
       <div class="right-operations">
         <el-input placeholder="请输入设备型号或Mac地址查询" v-model="searchKeyword" class="search-input"
                   @keyup.enter.native="handleSearch" clearable/>

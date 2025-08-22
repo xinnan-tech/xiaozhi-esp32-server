@@ -146,7 +146,7 @@ export default {
         name: [{ required: true, message: 'Please enter provider name', trigger: 'blur' }]
       },
       isAllFieldsSelected: false,
-      tableKey: 0 // 用于强制表格重新渲染
+      tableKey: 0 // Used to force table re-render
     };
   },
   computed: {

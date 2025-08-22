@@ -26,7 +26,7 @@ import xiaozhi.modules.agent.vo.AgentVoicePrintVO;
 import xiaozhi.modules.security.user.SecurityUser;
 import xiaozhi.modules.sys.service.SysParamsService;
 
-@Tag(name = "智能体声纹管理")
+@Tag(name = "Agent Voice Print Management")
 @AllArgsConstructor
 @RestController
 @RequestMapping("/agent/voice-print")
@@ -35,18 +35,18 @@ public class AgentVoicePrintController {
     private final SysParamsService sysParamsService;
 
     @PostMapping
-    @Operation(summary = "创建智能体的声纹")
+    @Operation(summary = "Create agent voice print")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> save(@RequestBody @Valid AgentVoicePrintSaveDTO dto) {
         boolean b = agentVoicePrintService.insert(dto);
         if (b) {
             return new Result<>();
         }
-        return new Result<Void>().error("智能体的声纹创建失败");
+        return new Result<Void>().error("Failed to create agent voice print");
     }
 
     @PutMapping
-    @Operation(summary = "更新智能体的对应声纹")
+    @Operation(summary = "Update agent voice print")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> update(@RequestBody @Valid AgentVoicePrintUpdateDTO dto) {
         Long userId = SecurityUser.getUserId();
@@ -54,29 +54,29 @@ public class AgentVoicePrintController {
         if (b) {
             return new Result<>();
         }
-        return new Result<Void>().error("智能体的对应声纹更新失败");
+        return new Result<Void>().error("Failed to update agent voice print");
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除智能体对应声纹")
+    @Operation(summary = "Delete agent voice print")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> delete(@PathVariable String id) {
         Long userId = SecurityUser.getUserId();
-        // 先删除关联的设备
+        // First delete associated devices
         boolean delete = agentVoicePrintService.delete(userId, id);
         if (delete) {
             return new Result<>();
         }
-        return new Result<Void>().error("智能体的对应声纹删除失败");
+        return new Result<Void>().error("Failed to delete agent voice print");
     }
 
     @GetMapping("/list/{id}")
-    @Operation(summary = "获取用户指定智能体声纹列表")
+    @Operation(summary = "Get user specified agent voice print list")
     @RequiresPermissions("sys:role:normal")
     public Result<List<AgentVoicePrintVO>> list(@PathVariable String id) {
         String voiceprintUrl = sysParamsService.getValue("server.voice_print", true);
         if (StringUtils.isBlank(voiceprintUrl) || "null".equals(voiceprintUrl)) {
-            throw new RenException("声纹接口未配置，请先在参数配置中配置声纹接口地址(server.voice_print)");
+            throw new RenException("Voice print interface not configured, please configure the voice print interface address in parameter settings (server.voice_print)");
         }
         Long userId = SecurityUser.getUserId();
         List<AgentVoicePrintVO> list = agentVoicePrintService.list(userId, id);

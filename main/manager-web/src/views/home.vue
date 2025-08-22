@@ -8,12 +8,12 @@
         <div class="add-device">
           <div class="add-device-bg">
             <div class="hellow-text" style="margin-top: 30px;">
-              你好，小智
+              Hello, Cheeko
             </div>
             <div class="hellow-text">
-              让我们度过
+              Let's have a
               <div style="display: inline-block;color: #5778FF;">
-                美好的一天！
+                wonderful day!
               </div>
             </div>
             <div class="hi-hint">
@@ -21,7 +21,7 @@
             </div>
             <div class="add-device-btn">
               <div class="left-add" @click="showAddDialog">
-                添加智能体
+                Add Agent
               </div>
               <div style="width: 23px;height: 13px;background: #5778ff;margin-left: -10px;" />
               <div class="right-add">

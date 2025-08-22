@@ -30,7 +30,7 @@ import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.security.user.SecurityUser;
 
-@Tag(name = "设备管理")
+@Tag(name = "Device Management")
 @AllArgsConstructor
 @RestController
 @RequestMapping("/device")

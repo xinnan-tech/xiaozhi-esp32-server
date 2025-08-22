@@ -179,7 +179,7 @@ xiaozhi-esp32-server
 *   **关键实现细节:**
 
     1.  **模块化项目结构 (`modules/` 包):**
-        *   `manager-api` 的核心业务逻辑被清晰地划分到 `src/main/java/xiaozhi/modules/` 目录下的不同模块中。这种按功能领域划分模块的方式（例如 `sys` 负责系统管理，`agent` 负责智能体配置，`device` 负责设备管理，`config` 负责为`xiaozhi-server`提供配置，`security` 负责安全，`timbre` 负责音色管理，`ota` 负责固件升级）极大地提高了代码的可维护性和可扩展性。
+        *   `manager-api` 的核心业务逻辑被清晰地划分到 `src/main/java/xiaozhi/modules/` 目录下的不同模块中。这种按功能领域划分模块的方式（例如 `sys` 负责系统管理，`agent` 负责智能体配置，`device` 负责Device Management，`config` 负责为`xiaozhi-server`提供配置，`security` 负责安全，`timbre` 负责音色管理，`ota` 负责固件升级）极大地提高了代码的可维护性和可扩展性。
         *   **各模块内部结构:** 每个业务模块通常遵循经典的三层架构或其变体：
             *   **Controller (控制层):** 位于 `xiaozhi.modules.[模块名].controller`。
             *   **Service (服务层):** 位于 `xiaozhi.modules.[模块名].service`。
@@ -257,7 +257,7 @@ xiaozhi-esp32-server
         *   用户界面由一系列可复用的Vue组件 (`.vue` 单文件组件) 构成，形成一个组件树。这种方式提高了代码的模块化程度、可维护性和复用性。
         *   **`src/main.js`:** 应用的入口JS文件。它负责创建和初始化根Vue实例，注册全局插件（如Vue Router, Vuex, Element UI），并把根Vue实例挂载到 `public/index.html` 中的某个DOM元素上（通常是 `#app`）。
         *   **`src/App.vue`:** 应用的根组件。它通常定义了应用的基础布局结构（如包含导航栏、侧边栏、主内容区），并通过 `<router-view></router-view>` 标签来显示当前路由匹配到的视图组件。
-        *   **视图组件 (`src/views/`):** 这些组件代表了应用中的各个“页面”或主要功能区（例如 `Login.vue` 登录页, `DeviceManagement.vue` 设备管理页, `UserManagement.vue` 用户管理页, `ModelConfig.vue` 模型配置页）。它们通常由Vue Router直接映射。
+        *   **视图组件 (`src/views/`):** 这些组件代表了应用中的各个“页面”或主要功能区（例如 `Login.vue` 登录页, `DeviceManagement.vue` Device Management页, `UserManagement.vue` 用户管理页, `ModelConfig.vue` 模型配置页）。它们通常由Vue Router直接映射。
         *   **可复用UI组件 (`src/components/`):** 包含了在不同视图之间共享的、更小粒度的UI组件（例如 `HeaderBar.vue` 顶部导航栏, `AddDeviceDialog.vue` 添加设备对话框, `AudioPlayer.vue` 音频播放器组件）。
 
     3.  **客户端路由 (`src/router/index.js`):**

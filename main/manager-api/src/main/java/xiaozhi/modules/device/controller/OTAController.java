@@ -30,7 +30,7 @@ import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.sys.service.SysParamsService;
 
-@Tag(name = "设备管理", description = "OTA 相关接口")
+@Tag(name = "Device Management", description = "OTA 相关接口")
 @Slf4j
 @RestController
 @RequiredArgsConstructor

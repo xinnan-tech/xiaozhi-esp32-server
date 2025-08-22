@@ -227,7 +227,7 @@ onShow(() => {
                   <view class="stat-chip">
                     <wd-icon name="phone" custom-class="chip-icon" />
                     <text class="chip-text">
-                      设备管理({{ agent.deviceCount }})
+                      Device Management({{ agent.deviceCount }})
                     </text>
                   </view>
                   <view v-if="agent.lastConnectedAt" class="stat-chip">

@@ -3,8 +3,8 @@
     <div class="header-container">
       <!-- 左侧元素 -->
       <div class="header-left" @click="goHome">
-        <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.png" class="logo-img" />
-        <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" class="brand-img" />
+        <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.svg" class="logo-img" />
+        <!-- <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" class="brand-img" /> -->
       </div>
 
       <!-- 中间导航菜单 -->
@@ -63,7 +63,7 @@
       <!-- 右侧元素 -->
       <div class="header-right">
         <div class="search-container" v-if="$route.path === '/home' && !(isSuperAdmin && isSmallScreen)">
-          <el-input v-model="search" placeholder="输入名称搜索.." class="custom-search-input"
+          <el-input v-model="search" placeholder="Enter name to search.." class="custom-search-input"
             @keyup.enter.native="handleSearch">
             <i slot="suffix" class="el-icon-search search-icon" @click="handleSearch"></i>
           </el-input>
@@ -71,7 +71,7 @@
         <img loading="lazy" alt="" src="@/assets/home/avatar.png" class="avatar-img" />
         <el-dropdown trigger="click" class="user-dropdown" @visible-change="handleUserDropdownVisibleChange">
           <span class="el-dropdown-link">
-            {{ userInfo.username || '加载中...' }}
+            {{ userInfo.username || 'Loading...' }}
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': userDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
@@ -122,13 +122,13 @@ export default {
     this.checkScreenSize();
     window.addEventListener('resize', this.checkScreenSize);
   },
-  //移除事件监听器
+  // Remove event listener
   beforeDestroy() {
     window.removeEventListener('resize', this.checkScreenSize);
   },
   methods: {
     goHome() {
-      // 跳转到首页
+      // Navigate to home page
       this.$router.push('/home')
     },
     goUserManagement() {
@@ -152,7 +152,7 @@ export default {
     goServerSideManagement() {
       this.$router.push('/server-side-management')
     },
-    // 获取用户信息
+    // Get user information
     fetchUserInfo() {
       userApi.getUserInfo(({ data }) => {
         this.userInfo = data.data
@@ -164,46 +164,46 @@ export default {
     checkScreenSize() {
       this.isSmallScreen = window.innerWidth <= 1386;
     },
-    // 处理搜索
+    // Handle search
     handleSearch() {
       const searchValue = this.search.trim();
 
-      // 如果搜索内容为空，触发重置事件
+      // If search content is empty, trigger reset event
       if (!searchValue) {
         this.$emit('search-reset');
         return;
       }
 
       try {
-        // 创建不区分大小写的正则表达式
+        // Create case-insensitive regex
         const regex = new RegExp(searchValue, 'i');
-        // 触发搜索事件，将正则表达式传递给父组件
+        // Trigger search event, pass regex to parent component
         this.$emit('search', regex);
       } catch (error) {
-        console.error('正则表达式创建失败:', error);
+        console.error('Failed to create regex:', error);
         this.$message.error({
-          message: '搜索关键词格式不正确',
+          message: 'Invalid search keyword format',
           showClose: true
         });
       }
     },
-    // 显示修改密码弹窗
+    // Show change password dialog
     showChangePasswordDialog() {
       this.isChangePasswordDialogVisible = true;
     },
-    // 退出登录
+    // Logout
     async handleLogout() {
       try {
-        // 调用 Vuex 的 logout action
+        // Call Vuex logout action
         await this.logout();
         this.$message.success({
-          message: '退出登录成功',
+          message: 'Logout successful',
           showClose: true
         });
       } catch (error) {
-        console.error('退出登录失败:', error);
+        console.error('Logout failed:', error);
         this.$message.error({
-          message: '退出登录失败，请重试',
+          message: 'Logout failed, please try again',
           showClose: true
         });
       }
@@ -211,12 +211,12 @@ export default {
     handleUserDropdownVisibleChange(visible) {
       this.userDropdownVisible = visible;
     },
-    // 监听第二个下拉菜单的可见状态变化
+    // Listen to second dropdown menu visibility change
     handleParamDropdownVisibleChange(visible) {
       this.paramDropdownVisible = visible;
     },
 
-    // 使用 mapActions 引入 Vuex 的 logout action
+    // Use mapActions to import Vuex logout action
     ...mapActions(['logout'])
   }
 }
@@ -248,8 +248,8 @@ export default {
 }
 
 .logo-img {
-  width: 42px;
-  height: 42px;
+  width: 90px;
+  height: 90px;
 }
 
 .brand-img {
