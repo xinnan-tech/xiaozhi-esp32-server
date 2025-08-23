@@ -1,4 +1,4 @@
-import { pages, subPackages } from '@/pages.json'
+import { pages, subPackages } from '../../pages.json'
 import { isMpWeixin } from './platform'
 
 /**

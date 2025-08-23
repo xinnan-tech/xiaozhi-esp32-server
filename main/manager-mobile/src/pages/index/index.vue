@@ -45,7 +45,7 @@ systemInfo = uni.getSystemInfoSync()
 safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 
-// 智能体数据
+// Agent data
 const agentList = ref<Agent[]>([])
 const pagingRef = ref()
 useZPaging(pagingRef)
@@ -55,7 +55,7 @@ const message = useMessage()
 // z-paging查询列表数据
 async function queryList(pageNo: number, pageSize: number) {
   try {
-    console.log('z-paging获取智能体列表')
+    console.log('z-paging get agent list')
 
     const response = await getAgentList()
 
@@ -66,45 +66,45 @@ async function queryList(pageNo: number, pageSize: number) {
     pagingRef.value.complete(response)
   }
   catch (error) {
-    console.error('获取智能体列表失败:', error)
+    console.error('Failed to get agent list:', error)
     // 告知z-paging数据加载失败
     pagingRef.value.complete(false)
   }
 }
 
-// 创建智能体
+// Create agent
 async function handleCreateAgent(agentName: string) {
   try {
     await createAgent({ agentName: agentName.trim() })
     // 创建成功后刷新列表
     pagingRef.value.reload()
-    toast.success(`智能体"${agentName}"创建成功！`)
+    toast.success(`Agent "${agentName}" created successfully!`)
   }
   catch (error: any) {
-    console.error('创建智能体失败:', error)
-    const errorMessage = error?.message || '创建失败，请重试'
+    console.error('Failed to create agent:', error)
+    const errorMessage = error?.message || 'Creation failed, please try again'
     toast.error(errorMessage)
   }
 }
 
-// 删除智能体
+// Delete agent
 async function handleDeleteAgent(agent: Agent) {
   try {
     await deleteAgent(agent.id)
     // 删除成功后刷新列表
     pagingRef.value.reload()
-    toast.success(`智能体"${agent.agentName}"已删除`)
+    toast.success(`Agent "${agent.agentName}" has been deleted`)
   }
   catch (error: any) {
-    console.error('删除智能体失败:', error)
-    const errorMessage = error?.message || '删除失败，请重试'
+    console.error('Failed to delete agent:', error)
+    const errorMessage = error?.message || 'Deletion failed, please try again'
     toast.error(errorMessage)
   }
 }
 
 // 进入编辑页面
 function goToEditAgent(agent: Agent) {
-  // 传递智能体ID到编辑页面
+  // Pass agent ID to edit page
   uni.navigateTo({
     url: `/pages/agent/index?agentId=${agent.id}`,
   })
@@ -119,13 +119,13 @@ function handleCardClick(agent: Agent) {
 function openCreateDialog() {
   message
     .prompt({
-      title: '创建智能体',
+      title: 'Create Agent',
       msg: '',
-      inputPlaceholder: '例如：客服助手、语音助理、知识问答',
+      inputPlaceholder: 'e.g., Customer Service Assistant, Voice Assistant, Q&A Bot',
       inputValue: '',
       inputPattern: /^[\u4E00-\u9FA5a-z0-9\s]{1,50}$/i,
-      confirmButtonText: '立即创建',
-      cancelButtonText: '取消',
+      confirmButtonText: 'Create Now',
+      cancelButtonText: 'Cancel',
     })
     .then(async (result: any) => {
       if (result.value && String(result.value).trim()) {
@@ -144,17 +144,17 @@ function formatTime(timeStr: string) {
   const diff = now.getTime() - date.getTime()
 
   if (diff < 60000)
-    return '刚刚'
+    return 'Just now'
   if (diff < 3600000)
-    return `${Math.floor(diff / 60000)}分钟前`
+    return `${Math.floor(diff / 60000)} minutes ago`
   if (diff < 86400000)
-    return `${Math.floor(diff / 3600000)}小时前`
-  return `${Math.floor(diff / 86400000)}天前`
+    return `${Math.floor(diff / 3600000)} hours ago`
+  return `${Math.floor(diff / 86400000)} days ago`
 }
 
 // 页面显示时刷新列表
 onShow(() => {
-  console.log('首页 onShow，刷新智能体列表')
+  console.log('Home onShow, refreshing agent list')
   if (pagingRef.value) {
     pagingRef.value.reload()
   }
@@ -164,7 +164,7 @@ onShow(() => {
 <template>
   <z-paging
     ref="pagingRef" v-model="agentList" :refresher-enabled="true" :auto-show-back-to-top="true"
-    :loading-more-enabled="false" :show-loading-more="false" :hide-empty-view="false" empty-view-text="暂无智能体"
+    :loading-more-enabled="false" :show-loading-more="false" :hide-empty-view="false" empty-view-text="No agents yet"
     empty-view-img="" :refresher-threshold="80" :back-to-top-style="{
       backgroundColor: '#fff',
       borderRadius: '50%',
@@ -178,11 +178,11 @@ onShow(() => {
         <view class="banner-content">
           <view class="welcome-info">
             <text class="greeting">
-              你好，小智
+              Hello, Smart Manager
             </text>
             <text class="subtitle">
-              让我们度过 <text class="highlight">
-                美好的一天！
+              Let's have a <text class="highlight">
+                wonderful day!
               </text>
             </text>
             <text class="english-subtitle">
@@ -201,7 +201,7 @@ onShow(() => {
       <view class="content-section-header" />
     </template>
 
-    <!-- 智能体卡片列表 -->
+    <!-- Agent card list -->
     <view class="agent-list">
       <view v-for="agent in agentList" :key="agent.id" class="agent-item">
         <wd-swipe-action>
@@ -216,10 +216,10 @@ onShow(() => {
 
                 <view class="model-info">
                   <text class="model-text">
-                    语言模型： {{ agent.llmModelName }}
+                    Language Model: {{ agent.llmModelName }}
                   </text>
                   <text class="model-text">
-                    音色模型： {{ agent.ttsModelName }} ({{ agent.ttsVoiceName }})
+                    Voice Model: {{ agent.ttsModelName }} ({{ agent.ttsVoiceName }})
                   </text>
                 </view>
 
@@ -233,7 +233,7 @@ onShow(() => {
                   <view v-if="agent.lastConnectedAt" class="stat-chip">
                     <wd-icon name="time" custom-class="chip-icon" />
                     <text class="chip-text">
-                      最近对话：{{ formatTime(agent.lastConnectedAt) }}
+                      Last conversation: {{ formatTime(agent.lastConnectedAt) }}
                     </text>
                   </view>
                 </view>
@@ -247,7 +247,7 @@ onShow(() => {
             <view class="swipe-actions">
               <view class="action-btn delete-btn" @click.stop="handleDeleteAgent(agent)">
                 <wd-icon name="delete" />
-                <text>删除</text>
+                <text>Delete</text>
               </view>
             </view>
           </template>
@@ -260,10 +260,10 @@ onShow(() => {
       <view class="empty-state">
         <wd-icon name="robot" custom-class="empty-icon" />
         <text class="empty-text">
-          暂无智能体
+          No agents yet
         </text>
         <text class="empty-desc">
-          点击右下角 + 号创建您的第一个智能体
+          Click the + button at bottom right to create your first agent
         </text>
       </view>
     </template>

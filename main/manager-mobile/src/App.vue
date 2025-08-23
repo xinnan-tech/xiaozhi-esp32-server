@@ -1,39 +1,23 @@
+<template>
+  <router-view />
+</template>
+
 <script setup lang="ts">
-import { onHide, onLaunch, onShow } from '@dcloudio/uni-app'
-import { usePageAuth } from '@/hooks/usePageAuth'
-import { useConfigStore } from '@/store'
-import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only'
+// For H5 platform, we'll use Vue lifecycle hooks instead
+import { onMounted } from 'vue'
 
-usePageAuth()
-
-const configStore = useConfigStore()
-
-onLaunch(() => {
-  console.log('App Launch')
-  // 获取公共配置
-  configStore.fetchPublicConfig().catch((error) => {
-    console.error('获取公共配置失败:', error)
-  })
-})
-onShow(() => {
-  console.log('App Show')
-})
-onHide(() => {
-  console.log('App Hide')
+onMounted(() => {
+  console.log('App mounted')
 })
 </script>
 
-<style lang="scss">
-swiper,
-scroll-view {
-  flex: 1;
-  height: 100%;
-  overflow: hidden;
+<style>
+/* Global app styles */
+page {
+  background-color: #f5f5f5;
 }
 
-image {
-  width: 100%;
-  height: 100%;
-  vertical-align: middle;
+.container {
+  padding: 20rpx;
 }
 </style>
