@@ -184,5 +184,5 @@ WHERE model_name = '火山引擎边缘大模型网关';
 
 -- Update TTS voice names
 UPDATE ai_tts_voice 
-SET voice_name = 'Alibaba Cloud Xiaoyun'
-WHERE voice_name = '阿里云小云';
+SET name = 'Alibaba Cloud Xiaoyun'
+WHERE name = '阿里云小云';

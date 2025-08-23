@@ -318,13 +318,6 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202501230003_translate_provider_fields.sql
   - changeSet:
-      id: 202501230004_translate_model_names
-      author: cheeko
-      changes:
-        - sqlFile:
-            encoding: utf8
-            path: classpath:db/changelog/202501230004_translate_model_names.sql
-  - changeSet:
       id: 202501230005_translate_sys_params
       author: cheeko
       changes:
