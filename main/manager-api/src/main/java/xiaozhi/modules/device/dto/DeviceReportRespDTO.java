@@ -22,6 +22,9 @@ public class DeviceReportRespDTO {
     
     @Schema(description = "WebSocket配置")
     private Websocket websocket;
+    
+    @Schema(description = "MQTT配置")
+    private Mqtt mqtt;
 
     @Getter
     @Setter
@@ -69,5 +72,27 @@ public class DeviceReportRespDTO {
     public static class Websocket {
         @Schema(description = "WebSocket服务器地址")
         private String url;
+    }
+    
+    @Getter
+    @Setter
+    public static class Mqtt {
+        @Schema(description = "MQTT服务器端点")
+        private String endpoint;
+        
+        @Schema(description = "MQTT客户端ID")
+        private String client_id;
+        
+        @Schema(description = "MQTT用户名")
+        private String username;
+        
+        @Schema(description = "MQTT密码")
+        private String password;
+        
+        @Schema(description = "发布主题")
+        private String publish_topic;
+        
+        @Schema(description = "订阅主题")
+        private String subscribe_topic;
     }
 }
