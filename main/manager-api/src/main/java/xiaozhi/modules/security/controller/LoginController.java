@@ -103,7 +103,7 @@ public class LoginController {
 
     @PostMapping("/register")
     @Operation(summary = "注册")
-    public Result<Void> register(@RequestBody LoginDTO login) {
+    public Result<TokenDTO> register(@RequestBody LoginDTO login) {
         if (!sysUserService.getAllowUserRegister()) {
             throw new RenException("当前不允许普通用户注册");
         }
@@ -139,7 +139,15 @@ public class LoginController {
         userDTO.setUsername(login.getUsername());
         userDTO.setPassword(login.getPassword());
         sysUserService.save(userDTO);
-        return new Result<>();
+        
+        // Get the saved user to get the ID for token creation
+        SysUserDTO savedUser = sysUserService.getByUsername(login.getUsername());
+        if (savedUser == null) {
+            throw new RenException("用户注册失败，请重试");
+        }
+        
+        // Create and return token for the newly registered user
+        return sysUserTokenService.createToken(savedUser.getId());
     }
 
     @GetMapping("/info")

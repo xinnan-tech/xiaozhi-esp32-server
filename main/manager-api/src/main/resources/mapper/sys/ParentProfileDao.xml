@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="xiaozhi.modules.sys.dao.ParentProfileDao">
+
+    <!-- Result map for ParentProfileEntity -->
+    <resultMap id="parentProfileMap" type="xiaozhi.modules.sys.entity.ParentProfileEntity">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="supabaseUserId" column="supabase_user_id"/>
+        <result property="fullName" column="full_name"/>
+        <result property="email" column="email"/>
+        <result property="phoneNumber" column="phone_number"/>
+        <result property="preferredLanguage" column="preferred_language"/>
+        <result property="timezone" column="timezone"/>
+        <result property="notificationPreferences" column="notification_preferences"/>
+        <result property="onboardingCompleted" column="onboarding_completed"/>
+        <result property="termsAcceptedAt" column="terms_accepted_at"/>
+        <result property="privacyPolicyAcceptedAt" column="privacy_policy_accepted_at"/>
+        <result property="creator" column="creator"/>
+        <result property="createDate" column="create_date"/>
+        <result property="updater" column="updater"/>
+        <result property="updateDate" column="update_date"/>
+    </resultMap>
+
+    <!-- Get parent profile by user ID -->
+    <select id="getByUserId" resultMap="parentProfileMap">
+        SELECT * FROM parent_profile WHERE user_id = #{userId}
+    </select>
+
+    <!-- Get parent profile by Supabase user ID -->
+    <select id="getBySupabaseUserId" resultMap="parentProfileMap">
+        SELECT * FROM parent_profile WHERE supabase_user_id = #{supabaseUserId}
+    </select>
+
+    <!-- Update terms acceptance -->
+    <update id="updateTermsAcceptance">
+        UPDATE parent_profile 
+        SET 
+            terms_accepted_at = #{termsAcceptedAt},
+            privacy_policy_accepted_at = #{privacyPolicyAcceptedAt},
+            update_date = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- Update onboarding completion status -->
+    <update id="updateOnboardingStatus">
+        UPDATE parent_profile 
+        SET 
+            onboarding_completed = #{onboardingCompleted},
+            update_date = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>
