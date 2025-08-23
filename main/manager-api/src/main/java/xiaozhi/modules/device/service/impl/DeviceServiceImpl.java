@@ -1,12 +1,16 @@
 package xiaozhi.modules.device.service.impl;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.aop.framework.AopContext;
@@ -175,6 +179,13 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         }
 
         response.setWebsocket(websocket);
+        
+        // Always include MQTT credentials for all devices (both registered and unregistered)
+        DeviceReportRespDTO.Mqtt mqttCredentials = buildMqttCredentials(macAddress);
+        if (mqttCredentials != null) {
+            response.setMqtt(mqttCredentials);
+            log.info("Added MQTT credentials to response for device: {}", macAddress);
+        }
 
         if (deviceById != null) {
             // 如果设备存在，则异步更新上次连接时间和版本信息
@@ -348,6 +359,88 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
             redisUtils.set(codeKey, deviceId);
         }
         return code;
+    }
+    
+    private DeviceReportRespDTO.Mqtt buildMqttCredentials(String deviceId) {
+        try {
+            DeviceReportRespDTO.Mqtt mqtt = new DeviceReportRespDTO.Mqtt();
+            
+            // Get MQTT configuration from system parameters
+            String mqttBroker = sysParamsService.getValue("mqtt.broker", true);
+            String mqttPort = sysParamsService.getValue("mqtt.port", true);
+            String mqttSignatureKey = sysParamsService.getValue("mqtt.signature_key", true);
+            
+            // Use defaults if not configured
+            if (StringUtils.isBlank(mqttBroker)) {
+                mqttBroker = "192.168.1.105"; // Default to local IP
+            }
+            if (StringUtils.isBlank(mqttPort)) {
+                mqttPort = "1883";
+            }
+            if (StringUtils.isBlank(mqttSignatureKey)) {
+                mqttSignatureKey = "test-signature-key-12345";
+            }
+            
+            // Convert MAC address format (remove colons, use underscores)
+            String macAddress = deviceId.replace(":", "_");
+            
+            // Generate UUID for this session
+            String clientUuid = UUID.randomUUID().toString();
+            
+            // Create client ID in format: GID_test@@@mac_address@@@uuid
+            String groupId = "GID_test";
+            String clientId = groupId + "@@@" + macAddress + "@@@" + clientUuid;
+            
+            // Get client IP from request
+            String clientIp = "127.0.0.1";
+            try {
+                ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                if (attributes != null) {
+                    HttpServletRequest request = attributes.getRequest();
+                    clientIp = request.getRemoteAddr();
+                    String forwardedFor = request.getHeader("X-Forwarded-For");
+                    if (StringUtils.isNotBlank(forwardedFor)) {
+                        clientIp = forwardedFor.split(",")[0].trim();
+                    } else {
+                        String realIp = request.getHeader("X-Real-IP");
+                        if (StringUtils.isNotBlank(realIp)) {
+                            clientIp = realIp;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to get client IP: {}", e.getMessage());
+            }
+            
+            // Create user data and encode as base64 JSON
+            Map<String, String> userData = new HashMap<>();
+            userData.put("ip", clientIp);
+            String userDataJson = "{\"ip\":\"" + clientIp + "\"}";
+            String username = Base64.getEncoder().encodeToString(userDataJson.getBytes(StandardCharsets.UTF_8));
+            
+            // Generate password signature using HMAC-SHA256
+            String content = clientId + "|" + username;
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(mqttSignatureKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(secretKeySpec);
+            byte[] signature = mac.doFinal(content.getBytes(StandardCharsets.UTF_8));
+            String password = Base64.getEncoder().encodeToString(signature);
+            
+            // Set MQTT credentials
+            mqtt.setEndpoint(mqttBroker + ":" + mqttPort);
+            mqtt.setClient_id(clientId);
+            mqtt.setUsername(username);
+            mqtt.setPassword(password);
+            mqtt.setPublish_topic("device-server");
+            mqtt.setSubscribe_topic("null");
+            
+            log.info("Generated MQTT credentials for device {}: clientId={}", deviceId, clientId);
+            
+            return mqtt;
+        } catch (Exception e) {
+            log.error("Failed to generate MQTT credentials for device {}: {}", deviceId, e.getMessage(), e);
+            return null;
+        }
     }
 
     private DeviceReportRespDTO.Firmware buildFirmwareInfo(String type, String currentVersion) {

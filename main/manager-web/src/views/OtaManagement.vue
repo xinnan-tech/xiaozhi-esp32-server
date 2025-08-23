@@ -14,6 +14,45 @@
         <div class="main-wrapper">
             <div class="content-panel">
                 <div class="content-area">
+                    <!-- Connected Devices Summary Card -->
+                    <el-card class="device-summary-card" shadow="never" style="margin-bottom: 20px;">
+                        <div slot="header" class="clearfix">
+                            <span style="font-weight: bold;">Connected Devices Overview</span>
+                            <el-button style="float: right; padding: 3px 0" type="text" @click="fetchConnectedDevices">
+                                <i class="el-icon-refresh"></i> Refresh
+                            </el-button>
+                        </div>
+                        <div class="device-stats">
+                            <el-row :gutter="20">
+                                <el-col :span="6">
+                                    <div class="stat-item">
+                                        <div class="stat-value">{{ connectedDevices.total || 0 }}</div>
+                                        <div class="stat-label">Total Devices</div>
+                                    </div>
+                                </el-col>
+                                <el-col :span="6">
+                                    <div class="stat-item">
+                                        <div class="stat-value">{{ connectedDevices.activeToday || 0 }}</div>
+                                        <div class="stat-label">Active Today</div>
+                                    </div>
+                                </el-col>
+                                <el-col :span="12">
+                                    <div class="stat-item">
+                                        <div class="stat-label">Firmware Versions in Use:</div>
+                                        <div class="version-list">
+                                            <el-tag v-for="(count, version) in connectedDevices.versionDistribution" 
+                                                    :key="version" 
+                                                    size="small" 
+                                                    style="margin: 2px;">
+                                                {{ version }} ({{ count }} devices)
+                                            </el-tag>
+                                        </div>
+                                    </div>
+                                </el-col>
+                            </el-row>
+                        </div>
+                    </el-card>
+                    
                     <el-card class="params-card" shadow="never">
                         <el-table ref="paramsTable" :data="paramsList" class="transparent-table" v-loading="loading"
                             element-loading-text="Loading..." element-loading-spinner="el-icon-loading"
@@ -136,11 +175,17 @@ export default {
                 firmwarePath: ""
             },
             firmwareTypes: [],
+            connectedDevices: {
+                total: 0,
+                activeToday: 0,
+                versionDistribution: {}
+            }
         };
     },
     created() {
         this.fetchFirmwareList();
         this.getFirmwareTypes();
+        this.fetchConnectedDevices();
     },
 
     computed: {
@@ -401,6 +446,36 @@ export default {
             const firmwareType = this.firmwareTypes.find(item => item.key === type)
             return firmwareType ? firmwareType.name : type
         },
+        fetchConnectedDevices() {
+            // Fetch connected devices statistics
+            // This would call an API endpoint to get device statistics
+            // For now, we'll use the device management API to get device info
+            const currentAgentId = localStorage.getItem('agentId') || this.$route.query.agentId;
+            if (currentAgentId) {
+                Api.device.getAgentBindDevices(currentAgentId, ({data}) => {
+                    if (data.code === 0 && data.data) {
+                        const devices = data.data;
+                        this.connectedDevices.total = devices.length;
+                        
+                        // Count devices active today
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        this.connectedDevices.activeToday = devices.filter(device => {
+                            const lastConnected = new Date(device.lastConnectedAt);
+                            return lastConnected >= today;
+                        }).length;
+                        
+                        // Calculate version distribution
+                        const versionMap = {};
+                        devices.forEach(device => {
+                            const version = device.appVersion || 'Unknown';
+                            versionMap[version] = (versionMap[version] || 0) + 1;
+                        });
+                        this.connectedDevices.versionDistribution = versionMap;
+                    }
+                });
+            }
+        },
     },
 };
 </script>
@@ -479,6 +554,45 @@ export default {
     background-color: white;
     display: flex;
     flex-direction: column;
+}
+
+.device-summary-card {
+    background: white;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    
+    ::v-deep .el-card__header {
+        background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f8 100%);
+        padding: 12px 20px;
+        border-bottom: 1px solid #e4e7ed;
+    }
+    
+    .device-stats {
+        padding: 10px 0;
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            
+            .stat-value {
+                font-size: 28px;
+                font-weight: bold;
+                color: #409eff;
+                margin-bottom: 5px;
+            }
+            
+            .stat-label {
+                font-size: 14px;
+                color: #606266;
+                margin-bottom: 8px;
+            }
+            
+            .version-list {
+                margin-top: 8px;
+                text-align: left;
+            }
+        }
+    }
 }
 
 .params-card {
