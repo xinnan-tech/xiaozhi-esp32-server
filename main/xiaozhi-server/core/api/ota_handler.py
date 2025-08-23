@@ -5,6 +5,7 @@ import base64
 import hmac
 import hashlib
 import os
+import aiohttp
 from aiohttp import web
 from core.utils.util import get_local_ip
 from core.api.base_handler import BaseHandler
