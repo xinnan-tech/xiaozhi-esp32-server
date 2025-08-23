@@ -15,10 +15,10 @@
             </div>
         </div>
 
-        <!-- 主体内容 -->
+        <!-- Main Content -->
         <div class="main-wrapper">
             <div class="content-panel">
-                <!-- 左侧字典类型列表 -->
+                <!-- Left side dictionary type list -->
                 <div class="dict-type-panel">
                     <div class="dict-type-header">
                         <el-button type="success" size="mini" @click="showAddDictTypeDialog">Add Dictionary Type</el-button>
@@ -42,7 +42,7 @@
                     </el-table>
                 </div>
 
-                <!-- 右侧字典数据列表 -->
+                <!-- Right side dictionary data list -->
                 <div class="content-area">
                     <el-card class="dict-data-card" shadow="never">
                         <el-table ref="dictDataTable" :data="dictDataList" style="width: 100%"
@@ -111,11 +111,11 @@
             </div>
         </div>
 
-        <!-- 使用字典类型编辑弹框组件 -->
+        <!-- Dictionary type edit dialog component -->
         <DictTypeDialog :visible.sync="dictTypeDialogVisible" :title="dictTypeDialogTitle" :dictTypeData="dictTypeForm"
             @save="saveDictType" />
 
-        <!-- 使用字典数据编辑弹框组件 -->
+        <!-- Dictionary data edit dialog component -->
         <DictDataDialog :visible.sync="dictDataDialogVisible" :title="dictDataDialogTitle" :dictData="dictDataForm"
             :dictTypeId="selectedDictType?.id" @save="saveDictData" />
         <el-footer style="flex-shrink:unset;">
@@ -140,11 +140,11 @@ export default {
     },
     data() {
         return {
-            // 字典类型相关
+            // Dictionary type related
             dictTypeList: [],
             dictTypeLoading: false,
             selectedDictType: null,
-            selectedDictTypes: [],  // 恢复多选数组
+            selectedDictTypes: [],  // Restore multi-select array
             dictTypeDialogVisible: false,
             dictTypeDialogTitle: 'Add Dictionary Type',
             dictTypeForm: {
@@ -153,7 +153,7 @@ export default {
                 dictType: ''
             },
 
-            // 字典数据相关
+            // Dictionary data related
             dictDataList: [],
             dictDataLoading: false,
             isAllDictDataSelected: false,
@@ -167,7 +167,7 @@ export default {
                 sort: 0
             },
             search: '',
-            // 添加分页相关数据
+            // Add pagination related data
             pageSizeOptions: [10, 20, 50, 100],
             currentPage: 1,
             pageSize: 10,
@@ -178,7 +178,7 @@ export default {
         this.loadDictTypeList()
     },
     methods: {
-        // 字典类型相关方法
+        // Dictionary type related methods
         loadDictTypeList() {
             this.dictTypeLoading = true
             dictApi.getDictTypeList({
@@ -255,7 +255,7 @@ export default {
             })
         },
 
-        // 字典数据相关方法
+        // Dictionary data related methods
         loadDictDataList(dictTypeId) {
             if (!dictTypeId) return
             this.dictDataLoading = true
@@ -273,7 +273,7 @@ export default {
                     }))
                     this.total = data.data.total
                 } else {
-                    this.$message.error(data.msg || '获取字典数据失败')
+                    this.$message.error(data.msg || 'Failed to get dictionary data')
                 }
                 this.dictDataLoading = false
             })
@@ -286,7 +286,7 @@ export default {
         },
         showAddDictDataDialog() {
             if (!this.selectedDictType) {
-                this.$message.warning('请先选择字典类型')
+                this.$message.warning('Please select a dictionary type first')
                 return
             }
             this.dictDataDialogTitle = 'Add Dictionary Data'
@@ -351,13 +351,13 @@ export default {
         },
         handleSearch() {
             if (!this.selectedDictType) {
-                this.$message.warning('请先选择字典类型')
+                this.$message.warning('Please select a dictionary type first')
                 return
             }
             this.currentPage = 1
             this.loadDictDataList(this.selectedDictType.id)
         },
-        // 添加分页相关方法
+        // Add pagination related methods
         handlePageSizeChange(val) {
             this.pageSize = val;
             this.currentPage = 1;

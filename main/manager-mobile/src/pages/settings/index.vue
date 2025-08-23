@@ -369,8 +369,8 @@ onMounted(async () => {
         </view>
       </view>
 
-      <!-- 底部安全距离 -->
-      <!-- 底部安全距离 -->
+      <!-- Bottom safe area -->
+      <!-- Bottom safe area -->
     <view style="height: env(safe-area-inset-bottom);" />
     </view>
   </view>

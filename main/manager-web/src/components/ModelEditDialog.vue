@@ -3,7 +3,7 @@
     class="center-dialog" >
     <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
       <div style="font-size: 30px; color: #3d4566; margin-top: -10px; margin-bottom: 10px; text-align: center;">
-        修改模型
+        Edit Model
       </div>
 
       <button class="custom-close-btn" @click="dialogVisible = false">
@@ -11,14 +11,14 @@
       </button>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <div style="font-size: 20px; font-weight: bold; color: #3d4566;">模型信息</div>
+        <div style="font-size: 20px; font-weight: bold; color: #3d4566;">Model Information</div>
         <div style="display: flex; align-items: center; gap: 20px;">
           <div style="display: flex; align-items: center;">
-            <span style="margin-right: 8px;">是否启用</span>
+            <span style="margin-right: 8px;">Enable</span>
             <el-switch v-model="form.isEnabled" :active-value="1" :inactive-value="0" class="custom-switch"></el-switch>
           </div>
           <div style="display: none; align-items: center;">
-            <span style="margin-right: 8px;">设为默认</span>
+            <span style="margin-right: 8px;">Set as Default</span>
             <el-switch v-model="form.isDefault" :active-value="1" :inactive-value="0" class="custom-switch"></el-switch>
           </div>
         </div>
@@ -28,37 +28,37 @@
 
       <el-form :model="form" ref="form" label-width="100px" label-position="left" class="custom-form">
         <div style="display: flex; gap: 20px; margin-bottom: 0;">
-          <el-form-item label="模型名称" prop="name" style="flex: 1;">
-            <el-input v-model="form.modelName" placeholder="请输入模型名称" class="custom-input-bg"></el-input>
+          <el-form-item label="Model Name" prop="name" style="flex: 1;">
+            <el-input v-model="form.modelName" placeholder="Enter model name" class="custom-input-bg"></el-input>
           </el-form-item>
-          <el-form-item label="模型编码" prop="code" style="flex: 1;">
-            <el-input v-model="form.modelCode" placeholder="请输入模型编码" class="custom-input-bg"></el-input>
+          <el-form-item label="Model Code" prop="code" style="flex: 1;">
+            <el-input v-model="form.modelCode" placeholder="Enter model code" class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
 
         <div style="display: flex; gap: 20px; margin-bottom: 0;">
-          <el-form-item label="供应器" prop="supplier" style="flex: 1;">
-            <el-select v-model="form.configJson.type" placeholder="请选择" class="custom-select custom-input-bg"
+          <el-form-item label="Provider" prop="supplier" style="flex: 1;">
+            <el-select v-model="form.configJson.type" placeholder="Please select" class="custom-select custom-input-bg"
               style="width: 100%;" @focus="loadProviders" filterable>
               <el-option v-for="item in providers" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
-          <el-form-item label="排序号" prop="sort" style="flex: 1;">
-            <el-input v-model.number="form.sort" type="number" placeholder="请输入排序号" class="custom-input-bg"></el-input>
+          <el-form-item label="Sort Order" prop="sort" style="flex: 1;">
+            <el-input v-model.number="form.sort" type="number" placeholder="Enter sort order" class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
 
-        <el-form-item label="文档地址" prop="docUrl" style="margin-bottom: 27px;">
-          <el-input v-model="form.docLink" placeholder="请输入文档地址" class="custom-input-bg"></el-input>
+        <el-form-item label="Doc URL" prop="docUrl" style="margin-bottom: 27px;">
+          <el-input v-model="form.docLink" placeholder="Enter documentation URL" class="custom-input-bg"></el-input>
         </el-form-item>
 
-        <el-form-item label="备注" prop="remark" class="prop-remark">
-          <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入模型备注" :autosize="{ minRows: 3, maxRows: 5 }"
+        <el-form-item label="Remark" prop="remark" class="prop-remark">
+          <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="Enter model remarks" :autosize="{ minRows: 3, maxRows: 5 }"
             class="custom-input-bg"></el-input>
         </el-form-item>
       </el-form>
 
-      <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px;">调用信息</div>
+      <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px;">Call Information</div>
       <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
 
       <el-form :model="form.configJson" ref="callInfoForm" label-width="auto" class="custom-form">
@@ -67,7 +67,7 @@
             <el-form-item v-for="field in row" :key="field.prop" :label="field.label" :prop="field.prop"
               style="flex: 1;">
               <template v-if="field.type === 'json-textarea'">
-                <el-input v-model="fieldJsonMap[field.prop]" type="textarea" :rows="3" placeholder="请输入JSON格式变量(示例:{'key':'value'})"
+                <el-input v-model="fieldJsonMap[field.prop]" type="textarea" :rows="3" placeholder="Enter JSON format (example: {'key':'value'})"
                   class="custom-input-bg" @change="(val) => handleJsonChange(field.prop, val)"></el-input>
               </template>
               <el-input v-else v-model="form.configJson[field.prop]" :placeholder="field.placeholder" :type="field.type"
@@ -85,7 +85,7 @@
         class="save-btn"
         :loading="saving"
         :disabled="saving">
-        保存
+        Save
       </el-button>
     </div>
   </el-dialog>
@@ -115,7 +115,7 @@ export default {
       pendingProviderType: null,
       pendingModelData: null,
       dynamicCallInfoFields: [],
-      fieldJsonMap: {}, // 用于存储JSON字段的字符串形式
+      fieldJsonMap: {}, // Store string form of JSON fields
       form: {
         id: "",
         modelType: "",
@@ -203,9 +203,9 @@ export default {
       }
     },
     handleSave() {
-      this.saving = true; // 开始保存加载
+      this.saving = true; // Start saving loading
 
-      // 处理所有JSON字段
+      // Process all JSON fields
       Object.keys(this.fieldJsonMap).forEach(key => {
         const parsed = this.validateJson(this.fieldJsonMap[key]);
         if (parsed !== null) {
@@ -229,11 +229,11 @@ export default {
         provideCode: this.form.configJson.type,
         formData,
         done: () => {
-          this.saving = false; // 保存完成后回调
+          this.saving = false; // Callback after save complete
         }
       });
 
-      // 如果父组件不处理done回调，3秒后自动关闭加载状态
+      // If parent component doesn't handle done callback, auto close loading state after 3 seconds
       setTimeout(() => {
         this.saving = false;
       }, 3000);
@@ -262,7 +262,7 @@ export default {
             label: f.label,
             prop: f.key,
             type: f.type === 'dict' ? 'json-textarea' : (f.type === 'password' ? 'password' : 'text'),
-            placeholder: `请输入${f.label}`
+            placeholder: `Enter ${f.label}`
           }));
 
           if (this.pendingModelData && this.pendingProviderType === providerCode) {
@@ -312,13 +312,13 @@ export default {
           return parsed;
         }
         this.$message.error({
-          message: '必须输入字典格式（如 {"key":"value"}），保存则使用原数据',
+          message: 'Must enter dictionary format (e.g. {"key":"value"}), original data will be used if saved',
           showClose: true
         });
         return null;
       } catch (e) {
         this.$message.error({
-          message: 'JSON格式错误（如 {"key":"value"}），保存则使用原数据',
+          message: 'JSON format error (e.g. {"key":"value"}), original data will be used if saved',
           showClose: true
         });
         return null;
