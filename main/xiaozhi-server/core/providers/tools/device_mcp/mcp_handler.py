@@ -30,6 +30,14 @@ async def send_mcp_message(conn, payload: dict):
 async def handle_mcp_message(conn, mcp_client, payload: dict):
     """Handle MCP messages, including initialization, tool list and tool call responses"""
     logger.bind(tag=TAG).info(f"Handling MCP message: {str(payload)[:100]}")
+    
+    # Log device initialization request details
+    if "method" in payload and payload["method"] == "initialize":
+        params = payload.get("params", {})
+        client_info = params.get("clientInfo", {})
+        logger.bind(tag=TAG).info(
+            f"Device initialization request received - Client: {client_info.get('name', 'unknown')} v{client_info.get('version', 'unknown')}"
+        )
 
     if not isinstance(payload, dict):
         logger.bind(tag=TAG).error(
@@ -51,12 +59,56 @@ async def handle_mcp_message(conn, mcp_client, payload: dict):
 
         if msg_id == 1:  # mcpInitializeID
             logger.bind(tag=TAG).debug("Received MCP initialization response")
-            server_info = result.get("serverInfo")
+            
+            # Extract all relevant information
+            protocol_version = result.get("protocolVersion", "unknown")
+            capabilities = result.get("capabilities", {})
+            server_info = result.get("serverInfo", {})
+            
             if isinstance(server_info, dict):
-                name = server_info.get("name")
-                version = server_info.get("version")
+                name = server_info.get("name", "unknown")
+                version = server_info.get("version", "unknown")
+                
+                # Store firmware info in connection object for later use
+                conn.device_firmware_info = {
+                    'name': name,
+                    'version': version,
+                    'protocol_version': protocol_version,
+                    'capabilities': capabilities,
+                    'timestamp': asyncio.get_event_loop().time()
+                }
+                
+                # Enhanced logging with more prominent firmware version display
                 logger.bind(tag=TAG).info(
-                    f"Client MCP server info: name={name}, version={version}"
+                    f"="*60
+                )
+                logger.bind(tag=TAG).info(
+                    f"DEVICE CONNECTED - Firmware Details:"
+                )
+                logger.bind(tag=TAG).info(
+                    f"  Device Name: {name}"
+                )
+                logger.bind(tag=TAG).info(
+                    f"  Firmware Version: {version}"
+                )
+                logger.bind(tag=TAG).info(
+                    f"  Protocol Version: {protocol_version}"
+                )
+                logger.bind(tag=TAG).info(
+                    f"  Device ID: {conn.headers.get('device-id', 'unknown')}"
+                )
+                logger.bind(tag=TAG).info(
+                    f"  MAC Address: {conn.headers.get('device-id', 'unknown').replace('_', ':').upper()}"
+                )
+                logger.bind(tag=TAG).info(
+                    f"  Capabilities: {list(capabilities.keys()) if capabilities else 'none'}"
+                )
+                logger.bind(tag=TAG).info(
+                    f"="*60
+                )
+            else:
+                logger.bind(tag=TAG).warning(
+                    f"Device initialization response missing serverInfo: {result}"
                 )
             return
 

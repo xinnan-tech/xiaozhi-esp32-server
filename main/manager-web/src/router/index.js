@@ -73,7 +73,7 @@ const routes = [
     path: '/model-config',
     name: 'ModelConfig',
     component: function () {
-      return import('../views/modelConfig.vue')
+      return import('../views/ModelConfig.vue')
     }
   },
   {
