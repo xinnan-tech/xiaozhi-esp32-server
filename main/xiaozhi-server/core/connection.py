@@ -269,16 +269,27 @@ class ConnectionHandler:
                 # Use a thread pool to save memory asynchronously
                 def save_memory_task():
                     try:
+                        self.logger.bind(tag=TAG).info(f"[MEM0-THREAD] Starting memory save task for {memory_type}")
+                        self.logger.bind(tag=TAG).info(f"[MEM0-THREAD] Dialogue messages count: {len(self.dialogue.dialogue) if self.dialogue and self.dialogue.dialogue else 0}")
+                        
                         # Create a new event loop (to avoid conflicts with the main loop)
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
-                        loop.run_until_complete(
+                        
+                        self.logger.bind(tag=TAG).info(f"[MEM0-THREAD] Calling memory.save_memory()")
+                        result = loop.run_until_complete(
                             self.memory.save_memory(self.dialogue.dialogue)
                         )
-                        self.logger.bind(tag=TAG).info(f"Memory saved successfully using {memory_type}")
+                        
+                        if result:
+                            self.logger.bind(tag=TAG).info(f"[MEM0-THREAD] Memory saved successfully using {memory_type}. Result: {result}")
+                        else:
+                            self.logger.bind(tag=TAG).warning(f"[MEM0-THREAD] Memory save returned None/False for {memory_type}")
                     except Exception as e:
                         self.logger.bind(tag=TAG).error(
-                            f"Failed to save memory: {e}")
+                            f"[MEM0-THREAD] Failed to save memory: {e}")
+                        self.logger.bind(tag=TAG).error(
+                            f"[MEM0-THREAD] Exception traceback: {traceback.format_exc()}")
                     finally:
                         try:
                             loop.close()
@@ -286,6 +297,7 @@ class ConnectionHandler:
                             pass
 
                 # Start a thread to save memory, do not wait for completion
+                self.logger.bind(tag=TAG).info(f"[MEM0-THREAD] Starting new thread for memory save")
                 threading.Thread(target=save_memory_task, daemon=True).start()
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"Failed to save memory: {e}")
