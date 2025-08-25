@@ -45,7 +45,7 @@ import xiaozhi.modules.sys.utils.WebSocketValidator;
  */
 @RestController
 @RequestMapping("admin/params")
-@Tag(name = "参数管理")
+@Tag(name = "Parameter Management")
 @AllArgsConstructor
 public class SysParamsController {
     private final SysParamsService sysParamsService;
@@ -53,7 +53,7 @@ public class SysParamsController {
     private final RestTemplate restTemplate;
 
     @GetMapping("page")
-    @Operation(summary = "分页")
+    @Operation(summary = "Pagination")
     @Parameters({
             @Parameter(name = Constant.PAGE, description = "当前页码，从1开始", in = ParameterIn.QUERY, required = true, ref = "int"),
             @Parameter(name = Constant.LIMIT, description = "每页显示记录数", in = ParameterIn.QUERY, required = true, ref = "int"),
@@ -69,7 +69,7 @@ public class SysParamsController {
     }
 
     @GetMapping("{id}")
-    @Operation(summary = "信息")
+    @Operation(summary = "Information")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<SysParamsDTO> get(@PathVariable("id") Long id) {
         SysParamsDTO data = sysParamsService.get(id);
@@ -78,7 +78,7 @@ public class SysParamsController {
     }
 
     @PostMapping
-    @Operation(summary = "保存")
+    @Operation(summary = "Save")
     @LogOperation("保存")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> save(@RequestBody SysParamsDTO dto) {
@@ -91,7 +91,7 @@ public class SysParamsController {
     }
 
     @PutMapping
-    @Operation(summary = "修改")
+    @Operation(summary = "Modify")
     @LogOperation("修改")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> update(@RequestBody SysParamsDTO dto) {
@@ -150,7 +150,7 @@ public class SysParamsController {
     }
 
     @PostMapping("/delete")
-    @Operation(summary = "删除")
+    @Operation(summary = "Delete")
     @LogOperation("删除")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> delete(@RequestBody String[] ids) {

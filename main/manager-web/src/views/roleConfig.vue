@@ -84,7 +84,7 @@
                         </div>
                       </el-form-item>
                     </div>
-                    <el-form-item v-for="(model, index) in models.slice(2)" :key="`model-${index}`" :label="model.label"
+                    <el-form-item v-for="(model, index) in models.slice(2).filter(m => m.type !== 'VLLM')" :key="`model-${index}`" :label="model.label"
                       class="model-item">
                       <div class="model-select-wrapper">
                         <el-select v-model="form.model[model.key]" filterable placeholder="Please select" class="form-select"
@@ -281,15 +281,15 @@ export default {
       try {
         this.applyTemplateData(template);
         this.$message.success({
-          message: `「${template.agentName}」模板已应用`,
+          message: `"${template.agentName}" template applied`,
           showClose: true
         });
       } catch (error) {
         this.$message.error({
-          message: '应用模板失败',
+          message: 'Failed to apply template',
           showClose: true
         });
-        console.error('应用模板失败:', error);
+        console.error('Failed to apply template:', error);
       } finally {
         this.loadingTemplate = false;
       }
@@ -692,16 +692,18 @@ export default {
 
 .template-item {
   height: 4vh;
-  width: 76px;
+  width: auto;
   border-radius: 8px;
-  background: #e6ebff;
+  background: hsl(228, 100%, 95%);
   line-height: 4vh;
   font-weight: 400;
-  font-size: 11px;
+  font-size: 14px;
   text-align: center;
   color: #5778ff;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .template-item:hover {

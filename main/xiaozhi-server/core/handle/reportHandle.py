@@ -95,8 +95,10 @@ def opus_to_wav(conn, opus_data):
 
 def enqueue_tts_report(conn, text, opus_data):
     if not conn.read_config_from_api or conn.need_bind or not conn.report_tts_enable:
+        conn.logger.bind(tag=TAG).info("Chat history NOT SAVED - API config or binding not enabled")
         return
     if conn.chat_history_conf == 0:
+        conn.logger.bind(tag=TAG).info("Chat history NOT SAVED - Disabled in configuration (chatHistoryConf = 0)")
         return
     """Add TTS data to reporting queue
 
@@ -109,13 +111,13 @@ def enqueue_tts_report(conn, text, opus_data):
         # Use connection object's queue, pass text and binary data instead of file path
         if conn.chat_history_conf == 2:
             conn.report_queue.put((2, text, opus_data, int(time.time())))
-            conn.logger.bind(tag=TAG).debug(
-                f"TTS data added to reporting queue: {conn.device_id}, audio size: {len(opus_data)} "
+            conn.logger.bind(tag=TAG).info(
+                f"Chat history saving to MYSQL DATABASE with TEXT + AUDIO (device: {conn.device_id}, audio size: {len(opus_data)} bytes)"
             )
         else:
             conn.report_queue.put((2, text, None, int(time.time())))
-            conn.logger.bind(tag=TAG).debug(
-                f"TTS data added to reporting queue: {conn.device_id}, no audio reporting"
+            conn.logger.bind(tag=TAG).info(
+                f"Chat history saving to MYSQL DATABASE with TEXT ONLY (device: {conn.device_id})"
             )
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"Failed to add TTS to reporting queue: {text}, {e}")
@@ -123,8 +125,10 @@ def enqueue_tts_report(conn, text, opus_data):
 
 def enqueue_asr_report(conn, text, opus_data):
     if not conn.read_config_from_api or conn.need_bind or not conn.report_asr_enable:
+        conn.logger.bind(tag=TAG).info("User audio NOT SAVED - API config or binding not enabled")
         return
     if conn.chat_history_conf == 0:
+        conn.logger.bind(tag=TAG).info("User audio NOT SAVED - Disabled in configuration (chatHistoryConf = 0)")
         return
     """Add ASR data to reporting queue
 
@@ -137,13 +141,13 @@ def enqueue_asr_report(conn, text, opus_data):
         # Use connection object's queue, pass text and binary data instead of file path
         if conn.chat_history_conf == 2:
             conn.report_queue.put((1, text, opus_data, int(time.time())))
-            conn.logger.bind(tag=TAG).debug(
-                f"ASR data added to reporting queue: {conn.device_id}, audio size: {len(opus_data)} "
+            conn.logger.bind(tag=TAG).info(
+                f"User audio saving to MYSQL DATABASE with TEXT + AUDIO (device: {conn.device_id}, audio size: {len(opus_data)} bytes)"
             )
         else:
             conn.report_queue.put((1, text, None, int(time.time())))
-            conn.logger.bind(tag=TAG).debug(
-                f"ASR data added to reporting queue: {conn.device_id}, no audio reporting"
+            conn.logger.bind(tag=TAG).info(
+                f"User audio saving to MYSQL DATABASE with TEXT ONLY (device: {conn.device_id})"
             )
     except Exception as e:
         conn.logger.bind(tag=TAG).debug(f"Failed to add ASR to reporting queue: {text}, {e}")

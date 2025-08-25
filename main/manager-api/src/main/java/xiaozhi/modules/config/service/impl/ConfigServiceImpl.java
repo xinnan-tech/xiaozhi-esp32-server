@@ -398,6 +398,22 @@ public class ConfigServiceImpl implements ConfigService {
                 }
                 if ("Memory".equals(modelTypes[i])) {
                     Map<String, Object> map = (Map<String, Object>) model.getConfigJson();
+                    
+                    // Fix for Memory configuration API key
+                    if ("mem0ai".equals(map.get("type"))) {
+                        // Always use the actual API key from system parameters for mem0
+                        String mem0ApiKey = sysParamsService.getValue("mem0.api_key", false);
+                        if (StringUtils.isNotBlank(mem0ApiKey)) {
+                            map.put("api_key", mem0ApiKey);
+                            System.out.println("[DEBUG] Using mem0 API key from system parameters");
+                        } else {
+                            // Fallback to the original logic
+                            String apiKey = (String) map.get("api_key");
+                            System.out.println("[DEBUG] No system parameter for mem0.api_key, using config value: " + 
+                                             (apiKey != null ? "(length: " + apiKey.length() + ")" : "null"));
+                        }
+                    }
+                    
                     if ("mem_local_short".equals(map.get("type"))) {
                         memLocalShortLLMModelId = (String) map.get("llm");
                         if (StringUtils.isNotBlank(memLocalShortLLMModelId)

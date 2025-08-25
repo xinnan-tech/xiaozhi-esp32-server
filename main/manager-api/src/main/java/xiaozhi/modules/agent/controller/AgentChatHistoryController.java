@@ -13,7 +13,7 @@ import xiaozhi.common.utils.Result;
 import xiaozhi.modules.agent.dto.AgentChatHistoryReportDTO;
 import xiaozhi.modules.agent.service.biz.AgentChatHistoryBizService;
 
-@Tag(name = "智能体聊天历史管理")
+@Tag(name = "Agent Chat History Management")
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/agent/chat-history")
@@ -27,7 +27,7 @@ public class AgentChatHistoryController {
      *
      * @param request 包含上传文件及相关信息的请求对象
      */
-    @Operation(summary = "小智服务聊天上报请求")
+    @Operation(summary = "Xiaozhi service chat report request")
     @PostMapping("/report")
     public Result<Boolean> uploadFile(@Valid @RequestBody AgentChatHistoryReportDTO request) {
         Boolean result = agentChatHistoryBizService.report(request);

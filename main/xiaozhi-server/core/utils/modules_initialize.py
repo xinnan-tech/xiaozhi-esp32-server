@@ -73,6 +73,20 @@ def initialize_modules(
             if "type" not in config["Memory"][select_memory_module]
             else config["Memory"][select_memory_module]["type"]
         )
+        
+        # Debug logging for memory configuration
+        memory_config = config["Memory"][select_memory_module]
+        logger.bind(tag=TAG).debug(f"Memory module selected: {select_memory_module}")
+        logger.bind(tag=TAG).debug(f"Memory type: {memory_type}")
+        logger.bind(tag=TAG).debug(f"Memory config keys: {list(memory_config.keys()) if isinstance(memory_config, dict) else 'Not a dict'}")
+        
+        if memory_type == "mem0ai" and isinstance(memory_config, dict):
+            api_key = memory_config.get("api_key", "")
+            if api_key:
+                masked_key = f"{api_key[:4]}...{api_key[-4:]}" if len(api_key) > 8 else "****"
+                logger.bind(tag=TAG).debug(f"Mem0 API key from config: {masked_key} (length: {len(api_key)})")
+            else:
+                logger.bind(tag=TAG).warning("Mem0 API key not found in configuration")
 
         modules["memory"] = memory.create_instance(
             memory_type,

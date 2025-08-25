@@ -30,7 +30,7 @@ import xiaozhi.modules.timbre.service.TimbreService;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/models")
-@Tag(name = "模型配置")
+@Tag(name = "Model Configuration")
 public class ModelController {
 
     private final ModelProviderService modelProviderService;
@@ -40,7 +40,7 @@ public class ModelController {
     private final AgentTemplateService agentTemplateService;
 
     @GetMapping("/names")
-    @Operation(summary = "获取所有模型名称")
+    @Operation(summary = "Get all model names")
     @RequiresPermissions("sys:role:normal")
     public Result<List<ModelBasicInfoDTO>> getModelNames(@RequestParam String modelType,
             @RequestParam(required = false) String modelName) {
@@ -49,7 +49,7 @@ public class ModelController {
     }
 
     @GetMapping("/llm/names")
-    @Operation(summary = "获取LLM模型信息")
+    @Operation(summary = "Get LLM model information")
     @RequiresPermissions("sys:role:normal")
     public Result<List<LlmModelBasicInfoDTO>> getLlmModelCodeList(@RequestParam(required = false) String modelName) {
         List<LlmModelBasicInfoDTO> llmModelCodeList = modelConfigService.getLlmModelCodeList(modelName);
@@ -57,7 +57,7 @@ public class ModelController {
     }
 
     @GetMapping("/{modelType}/provideTypes")
-    @Operation(summary = "获取模型供应器列表")
+    @Operation(summary = "Get model provider list")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<List<ModelProviderDTO>> getModelProviderList(@PathVariable String modelType) {
         List<ModelProviderDTO> modelProviderDTOS = modelProviderService.getListByModelType(modelType);
@@ -65,7 +65,7 @@ public class ModelController {
     }
 
     @GetMapping("/list")
-    @Operation(summary = "获取模型配置列表")
+    @Operation(summary = "Get model configuration list")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<PageData<ModelConfigDTO>> getModelConfigList(
             @RequestParam(required = true) String modelType,
@@ -77,7 +77,7 @@ public class ModelController {
     }
 
     @PostMapping("/{modelType}/{provideCode}")
-    @Operation(summary = "新增模型配置")
+    @Operation(summary = "Add model configuration")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<ModelConfigDTO> addModelConfig(@PathVariable String modelType,
             @PathVariable String provideCode,
@@ -88,7 +88,7 @@ public class ModelController {
     }
 
     @PutMapping("/{modelType}/{provideCode}/{id}")
-    @Operation(summary = "编辑模型配置")
+    @Operation(summary = "Edit model configuration")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<ModelConfigDTO> editModelConfig(@PathVariable String modelType,
             @PathVariable String provideCode,
@@ -100,7 +100,7 @@ public class ModelController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除模型配置")
+    @Operation(summary = "Delete model configuration")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> deleteModelConfig(@PathVariable String id) {
         modelConfigService.delete(id);
@@ -108,7 +108,7 @@ public class ModelController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "获取模型配置")
+    @Operation(summary = "Get model configuration")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<ModelConfigDTO> getModelConfig(@PathVariable String id) {
         ModelConfigEntity item = modelConfigService.selectById(id);
@@ -117,7 +117,7 @@ public class ModelController {
     }
 
     @PutMapping("/enable/{id}/{status}")
-    @Operation(summary = "启用/关闭模型配置")
+    @Operation(summary = "Enable/disable model configuration")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> enableModelConfig(@PathVariable String id, @PathVariable Integer status) {
         ModelConfigEntity entity = modelConfigService.selectById(id);
@@ -130,7 +130,7 @@ public class ModelController {
     }
 
     @PutMapping("/default/{id}")
-    @Operation(summary = "设置默认模型")
+    @Operation(summary = "Set default model")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> setDefaultModel(@PathVariable String id) {
         ModelConfigEntity entity = modelConfigService.selectById(id);
@@ -151,7 +151,7 @@ public class ModelController {
     }
 
     @GetMapping("/{modelId}/voices")
-    @Operation(summary = "获取模型音色")
+    @Operation(summary = "Get model voices")
     @RequiresPermissions("sys:role:normal")
     public Result<List<VoiceDTO>> getVoiceList(@PathVariable String modelId,
             @RequestParam(required = false) String voiceName) {

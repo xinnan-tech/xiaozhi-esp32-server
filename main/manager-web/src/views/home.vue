@@ -150,23 +150,23 @@ export default {
         this.isLoading = false;
       });
     },
-    // 删除智能体
+    // Delete agent
     handleDeleteAgent(agentId) {
-      this.$confirm('确定要删除该智能体吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm('Are you sure you want to delete this agent?', 'Confirm', {
+        confirmButtonText: 'Confirm',
+        cancelButtonText: 'Cancel',
         type: 'warning'
       }).then(() => {
         Api.agent.deleteAgent(agentId, (res) => {
           if (res.data.code === 0) {
             this.$message.success({
-              message: '删除成功',
+              message: 'Deleted successfully',
               showClose: true
             });
-            this.fetchAgentList(); // 刷新列表
+            this.fetchAgentList(); // Refresh list
           } else {
             this.$message.error({
-              message: res.data.msg || '删除失败',
+              message: res.data.msg || 'Failed to delete',
               showClose: true
             });
           }

@@ -1,4 +1,4 @@
-This is a development document. If you need to deploy the Xiaozhi server, [click here to view the deployment tutorial](../../README.md#%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3)
+This is a development document. If you need to deploy the Xiaozhi server, [click here to view the deployment tutorial](../../README.md#deployment-documentation)
 
 # Project Introduction
 

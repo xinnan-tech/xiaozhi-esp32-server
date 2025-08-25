@@ -37,14 +37,14 @@ import xiaozhi.modules.sys.vo.AdminPageUserVO;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/admin")
-@Tag(name = "管理员管理")
+@Tag(name = "Administrator Management")
 public class AdminController {
     private final SysUserService sysUserService;
 
     private final DeviceService deviceService;
 
     @GetMapping("/users")
-    @Operation(summary = "分页查找用户")
+    @Operation(summary = "Paginated user search")
     @RequiresPermissions("sys:role:superAdmin")
     @Parameters({
             @Parameter(name = "mobile", description = "用户手机号码", required = false),
@@ -63,7 +63,7 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}")
-    @Operation(summary = "重置密码")
+    @Operation(summary = "Reset password")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<String> update(
             @PathVariable Long id) {
@@ -72,7 +72,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/users/{id}")
-    @Operation(summary = "用户删除")
+    @Operation(summary = "Delete user")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> delete(@PathVariable Long id) {
         sysUserService.deleteById(id);
@@ -80,7 +80,7 @@ public class AdminController {
     }
 
     @PutMapping("/users/changeStatus/{status}")
-    @Operation(summary = "批量修改用户状态")
+    @Operation(summary = "Batch modify user status")
     @RequiresPermissions("sys:role:superAdmin")
     @Parameter(name = "status", description = "用户状态", required = true)
     public Result<Void> changeStatus(@PathVariable Integer status, @RequestBody String[] userIds) {
@@ -89,7 +89,7 @@ public class AdminController {
     }
 
     @GetMapping("/device/all")
-    @Operation(summary = "分页查找设备")
+    @Operation(summary = "Paginated device search")
     @RequiresPermissions("sys:role:superAdmin")
     @Parameters({
             @Parameter(name = "keywords", description = "设备关键词", required = false),

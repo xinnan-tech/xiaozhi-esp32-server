@@ -255,6 +255,17 @@ class ConnectionHandler:
         """Save memory and close the connection"""
         try:
             if self.memory:
+                # Log where memory is being saved based on memory type
+                memory_type = getattr(self, 'memory_type', 'unknown')
+                if memory_type == "nomem":
+                    self.logger.bind(tag=TAG).info("Memory saving DISABLED (using nomem)")
+                elif memory_type == "mem0ai":
+                    self.logger.bind(tag=TAG).info("Saving memory to MEM0 CLOUD")
+                elif memory_type == "mem_local_short":
+                    self.logger.bind(tag=TAG).info("Saving memory to LOCAL STORAGE (mem_local_short)")
+                else:
+                    self.logger.bind(tag=TAG).info(f"Saving memory using: {memory_type}")
+                
                 # Use a thread pool to save memory asynchronously
                 def save_memory_task():
                     try:
@@ -264,6 +275,7 @@ class ConnectionHandler:
                         loop.run_until_complete(
                             self.memory.save_memory(self.dialogue.dialogue)
                         )
+                        self.logger.bind(tag=TAG).info(f"Memory saved successfully using {memory_type}")
                     except Exception as e:
                         self.logger.bind(tag=TAG).error(
                             f"Failed to save memory: {e}")
@@ -474,6 +486,24 @@ class ConnectionHandler:
             )
             private_config["delete_audio"] = bool(
                 self.config.get("delete_audio", True))
+            # Log the actual API key status for debugging (without exposing the full key)
+            if "Memory" in private_config and "Memory_mem0ai" in private_config.get("Memory", {}):
+                mem0_config = private_config["Memory"]["Memory_mem0ai"]
+                api_key = mem0_config.get("api_key", "")
+                
+                # DEBUG: Print the full API key to verify what's being received
+                self.logger.bind(tag=TAG).info(f"[DEBUG] Raw mem0 API key received: '{api_key}'")
+                
+                if api_key == "***":
+                    self.logger.bind(tag=TAG).warning(
+                        "Mem0 API key is MASKED (***) from manager API - please configure the actual API key in the Manager Web Dashboard under Provider Management"
+                    )
+                elif api_key:
+                    masked_key = f"{api_key[:4]}...{api_key[-4:]}" if len(api_key) > 8 else "****"
+                    self.logger.bind(tag=TAG).debug(f"Mem0 API key received: {masked_key} (length: {len(api_key)})")
+                else:
+                    self.logger.bind(tag=TAG).warning("Mem0 API key is empty in differential configuration")
+            
             self.logger.bind(tag=TAG).info(
                 f"{time.time() - begin_time} seconds, successfully obtained differential configuration: {json.dumps(filter_sensitive_info(private_config), ensure_ascii=False)}"
             )
@@ -606,11 +636,16 @@ class ConnectionHandler:
         memory_type = self.config["Memory"][self.config["selected_module"]["Memory"]][
             "type"
         ]
+        # Store memory type for logging
+        self.memory_type = memory_type
+        
         # If using nomem, return directly
         if memory_type == "nomem":
+            self.logger.bind(tag=TAG).info("Memory module initialized: DISABLED (nomem)")
             return
         # Use mem_local_short mode
         elif memory_type == "mem_local_short":
+            self.logger.bind(tag=TAG).info("Memory module initialized: LOCAL STORAGE (mem_local_short)")
             memory_llm_name = memory_config[self.config["selected_module"]["Memory"]][
                 "llm"
             ]
@@ -632,7 +667,11 @@ class ConnectionHandler:
                 # Otherwise use main LLM
                 self.memory.set_llm(self.llm)
                 self.logger.bind(tag=TAG).info(
-                    "Using main LLM as intent recognition model")
+                    "Using main LLM as memory model")
+        elif memory_type == "mem0ai":
+            self.logger.bind(tag=TAG).info("Memory module initialized: MEM0 CLOUD (mem0ai)")
+        else:
+            self.logger.bind(tag=TAG).info(f"Memory module initialized: {memory_type}")
 
     def _initialize_intent(self):
         if self.intent is None:

@@ -11,15 +11,26 @@ class MemoryProvider(MemoryProviderBase):
         super().__init__(config)
         self.api_key = config.get("api_key", "")
         self.api_version = config.get("api_version", "v1.1")
+        
+        # Debug logging for API key (show first/last 4 chars only for security)
+        if self.api_key:
+            masked_key = f"{self.api_key[:4]}...{self.api_key[-4:]}" if len(self.api_key) > 8 else "****"
+            logger.bind(tag=TAG).debug(f"Mem0 API key configured: {masked_key} (length: {len(self.api_key)})")
+        else:
+            logger.bind(tag=TAG).warning("Mem0 API key is empty or not configured")
+        
         model_key_msg = check_model_key("Mem0ai", self.api_key)
         if model_key_msg:
             logger.bind(tag=TAG).error(model_key_msg)
+            logger.bind(tag=TAG).error(f"API key validation failed. Please check your Mem0 API key configuration.")
             self.use_mem0 = False
             return
         else:
             self.use_mem0 = True
+            logger.bind(tag=TAG).debug("Mem0 API key passed initial validation")
 
         try:
+            logger.bind(tag=TAG).debug(f"Attempting to connect to Mem0ai service with API version: {self.api_version}")
             self.client = MemoryClient(api_key=self.api_key)
             logger.bind(tag=TAG).info(
                 "Successfully connected to Mem0ai service")
@@ -28,6 +39,8 @@ class MemoryProvider(MemoryProviderBase):
                 f"Error occurred while connecting to Mem0ai service: {str(e)}")
             logger.bind(tag=TAG).error(
                 f"Detailed error: {traceback.format_exc()}")
+            logger.bind(tag=TAG).error(
+                "Please verify your API key at https://app.mem0.ai/dashboard/api-keys")
             self.use_mem0 = False
 
     async def save_memory(self, msgs):

@@ -21,7 +21,7 @@ import xiaozhi.modules.config.service.ConfigService;
  */
 @RestController
 @RequestMapping("config")
-@Tag(name = "参数管理")
+@Tag(name = "Parameter Management")
 @AllArgsConstructor
 public class ConfigController {
     private final ConfigService configService;
