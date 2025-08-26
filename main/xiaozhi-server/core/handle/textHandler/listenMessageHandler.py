@@ -4,13 +4,13 @@ from typing import Dict, Any
 from core.handle.messageType import MessageType
 from core.handle.receiveAudioHandle import startToChat, handleAudioMessage
 from core.handle.reportHandle import enqueue_asr_report
-from core.handle.textHandler.messageHandler import MessageHandler
+from core.handle.textMessageHandler import TextMessageHandler
 from core.utils.util import remove_punctuation_and_length
 
 TAG = __name__
 
 
-class ListenMessageHandler(MessageHandler):
+class ListenTextMessageHandler(TextMessageHandler):
     """Listen消息处理器"""
 
     @property

@@ -1,14 +1,14 @@
 import json
 
-from core.handle.messageHandlerRegistry import MessageHandlerRegistry
+from core.handle.textMessageHandlerRegistry import TextMessageHandlerRegistry
 
 TAG = __name__
 
 
-class MessageProcessor:
+class TextMessageProcessor:
     """消息处理器主类"""
 
-    def __init__(self, registry: MessageHandlerRegistry):
+    def __init__(self, registry: TextMessageHandlerRegistry):
         self.registry = registry
 
     async def process_message(self, conn, message: str) -> None:

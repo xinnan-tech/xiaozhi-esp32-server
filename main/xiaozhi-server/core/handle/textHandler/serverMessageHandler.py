@@ -2,13 +2,13 @@ import json
 from typing import Dict, Any
 
 from core.handle.messageType import MessageType
-from core.handle.textHandler.messageHandler import MessageHandler
+from core.handle.textMessageHandler import TextMessageHandler
 from core.utils.util import filter_sensitive_info
 
 TAG = __name__
 
 
-class ServerMessageHandler(MessageHandler):
+class ServerTextMessageHandler(TextMessageHandler):
     """服务器消息处理器"""
 
     @property

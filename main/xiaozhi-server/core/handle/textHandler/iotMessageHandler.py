@@ -2,11 +2,11 @@ import asyncio
 from typing import Dict, Any
 
 from core.handle.messageType import MessageType
-from core.handle.textHandler.messageHandler import MessageHandler
+from core.handle.textMessageHandler import TextMessageHandler
 from core.providers.tools.device_iot import handleIotDescriptors, handleIotStatus
 
 
-class IotMessageHandler(MessageHandler):
+class IotTextMessageHandler(TextMessageHandler):
     """IoT消息处理器"""
 
     @property

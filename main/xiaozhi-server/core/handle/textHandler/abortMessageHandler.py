@@ -2,10 +2,10 @@ from typing import Dict, Any
 
 from core.handle.messageType import MessageType
 from core.handle.textHandler.abortHandle import handleAbortMessage
-from core.handle.textHandler.messageHandler import MessageHandler
+from core.handle.textMessageHandler import TextMessageHandler
 
 
-class AbortMessageHandler(MessageHandler):
+class AbortTextMessageHandler(TextMessageHandler):
     """Abort消息处理器"""
 
     @property

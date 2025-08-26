@@ -6,7 +6,7 @@ from core.handle.messageType import MessageType
 TAG = __name__
 
 
-class MessageHandler(ABC):
+class TextMessageHandler(ABC):
     """消息处理器抽象基类"""
 
     @abstractmethod

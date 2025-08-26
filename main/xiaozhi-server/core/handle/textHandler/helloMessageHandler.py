@@ -3,13 +3,13 @@ import json
 from typing import Dict, Any
 
 from core.handle.messageType import MessageType
-from core.handle.textHandler.messageHandler import MessageHandler
+from core.handle.textMessageHandler import TextMessageHandler
 from core.providers.tools.device_mcp import send_mcp_initialize_message, send_mcp_tools_list_request, MCPClient
 
 TAG = __name__
 
 
-class HelloMessageHandler(MessageHandler):
+class HelloTextMessageHandler(TextMessageHandler):
     """Hello消息处理器"""
 
     @property
