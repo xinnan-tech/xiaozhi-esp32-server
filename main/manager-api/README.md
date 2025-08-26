@@ -2,6 +2,11 @@ This is a development document. If you need to deploy the Xiaozhi server, [click
 
 # Project Introduction
 
+
+run app
+
+
+npm  run serve 
 manager-api: This project is developed based on the SpringBoot framework.
 
 When developing, use a code editor and select the `manager-api` folder as the project directory when importing the project.

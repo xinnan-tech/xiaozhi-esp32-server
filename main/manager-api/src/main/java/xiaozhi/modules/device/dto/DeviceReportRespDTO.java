@@ -24,7 +24,7 @@ public class DeviceReportRespDTO {
     private Websocket websocket;
     
     @Schema(description = "MQTT配置")
-    private Mqtt mqtt;
+    private Mqtt mqtt_gateway;
 
     @Getter
     @Setter
@@ -77,6 +77,12 @@ public class DeviceReportRespDTO {
     @Getter
     @Setter
     public static class Mqtt {
+        @Schema(description = "MQTT服务器地址")
+        private String broker;
+        
+        @Schema(description = "MQTT服务器端口")
+        private Integer port;
+        
         @Schema(description = "MQTT服务器端点")
         private String endpoint;
         
