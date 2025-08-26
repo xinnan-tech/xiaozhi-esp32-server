@@ -399,9 +399,21 @@ class TestClient:
     def connect_mqtt(self) -> bool:
         """Connects to the MQTT Broker."""
         # Get MQTT configuration from OTA response
-        mqtt_config = self.ota_config.get("mqtt_gateway", {})
+        mqtt_config = self.ota_config.get("mqtt", {})
+        
+        # Try to get broker and port from the config
         mqtt_broker = mqtt_config.get("broker", MQTT_BROKER_HOST)
         mqtt_port = mqtt_config.get("port", MQTT_BROKER_PORT)
+        
+        # If broker/port not directly available, try parsing from endpoint
+        if not mqtt_broker or mqtt_broker == MQTT_BROKER_HOST:
+            mqtt_endpoint = mqtt_config.get("endpoint", f"{MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}")
+            if ':' in mqtt_endpoint:
+                mqtt_broker, port_str = mqtt_endpoint.rsplit(':', 1)
+                mqtt_port = int(port_str)
+            else:
+                mqtt_broker = mqtt_endpoint
+                mqtt_port = MQTT_BROKER_PORT
         
         logger.info(f"▶️ STEP 2: Connecting to MQTT Gateway at {mqtt_broker}:{mqtt_port}...")
         
