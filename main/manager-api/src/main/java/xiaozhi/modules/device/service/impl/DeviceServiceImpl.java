@@ -183,7 +183,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // Always include MQTT credentials for all devices (both registered and unregistered)
         DeviceReportRespDTO.Mqtt mqttCredentials = buildMqttCredentials(macAddress);
         if (mqttCredentials != null) {
-            response.setMqtt_gateway(mqttCredentials);
+            response.setMqtt(mqttCredentials);
             log.info("Added MQTT credentials to response for device: {}", macAddress);
         }
 

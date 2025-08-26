@@ -8,4 +8,4 @@ INSERT INTO `sys_params` (id, param_code, param_value, value_type, param_type, r
 VALUES (121, 'mqtt.port', '1883', 'string', 1, 'MQTT broker port');
 
 INSERT INTO `sys_params` (id, param_code, param_value, value_type, param_type, remark) 
-VALUES (122, 'mqtt.signature_key', 'your-secure-signature-key-here', 'string', 1, 'MQTT signature key for authentication');
+VALUES (122, 'mqtt.signature_key', 'test-signature-key-12345', 'string', 1, 'MQTT signature key for authentication');
