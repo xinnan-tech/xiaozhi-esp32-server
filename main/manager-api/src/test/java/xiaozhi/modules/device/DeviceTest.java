@@ -10,16 +10,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.service.SysUserService;
 
-@Slf4j
 @SpringBootTest
 @ActiveProfiles("dev")
 @DisplayName("设备测试")
 public class DeviceTest {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DeviceTest.class);
 
     @Autowired
     private RedisUtils redisUtils;
