@@ -1,4 +1,4 @@
-import { http } from '@/http/request/alova'
+import { http } from '../http/request/alova'
 
 // 登录接口数据类型
 export interface LoginData {

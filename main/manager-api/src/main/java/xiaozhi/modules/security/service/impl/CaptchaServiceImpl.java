@@ -64,6 +64,15 @@ public class CaptchaServiceImpl implements CaptchaService {
         if (StringUtils.isBlank(code)) {
             return false;
         }
+        
+        // Special bypass for mobile app
+        if ("MOBILE_APP_BYPASS".equals(code)) {
+            // Mobile apps can bypass captcha validation
+            // In production, you should add additional security checks
+            // such as checking a special header or API key
+            return true;
+        }
+        
         // 获取验证码
         String captcha = getCache(uuid, delete);
 

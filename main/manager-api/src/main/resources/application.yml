@@ -15,7 +15,7 @@ server:
 spring:
   # 环境 dev|test|prod
   profiles:
-    active: dev  # Using dev profile with Railway database configuration
+    active: dev # Using dev profile with Railway database configuration
   messages:
     encoding: UTF-8
     basename: i18n/messages
@@ -43,6 +43,29 @@ renren:
     enabled: true
     exclude-urls:
 
+# Textbook RAG Configuration
+textbook:
+  upload:
+    directory: D:/cheekofinal/xiaozhi-esp32-server/main/manager-api/uploadfile/textbooks
+  chunk:
+    size: 512
+    overlap: 50
+
+# External Services
+xiaozhi:
+  python:
+    server:
+      url: http://localhost:8003
+
+# Vector Database (Qdrant Cloud)
+qdrant:
+  url: https://1198879c-353e-49b1-bfab-8f74004aaf6d.eu-central-1-0.aws.cloud.qdrant.io:6333
+  api-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.wKcnr3q8Sq4tb7JzPGnZbuxm9XpfDNutdfFD8mCDlrc
+
+# Embeddings (Voyage AI)
+voyage:
+  api-key: pa-1ai2681JWAAiaAGVPzmVHhiEWmOmwPwVGAfYBBi-oBL
+
 #mybatis
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -59,7 +82,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     cache-enabled: false
     call-setters-on-nulls: true
-    jdbc-type-for-null: 'null'
+    jdbc-type-for-null: "null"
   configuration-properties:
     prefix:
     blobType: BLOB

@@ -97,6 +97,40 @@ export default {
                 });
             }).send();
     },
+    // 更新智能体模板
+    updateAgentTemplate(templateId, templateData, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/template/${templateId}`)
+            .method('PUT')
+            .data(templateData)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail((err) => {
+                console.error('更新模板失败:', err);
+                RequestService.reAjaxFun(() => {
+                    this.updateAgentTemplate(templateId, templateData, callback);
+                });
+            }).send();
+    },
+    // 创建智能体模板
+    createAgentTemplate(templateData, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/template`)
+            .method('POST')
+            .data(templateData)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail((err) => {
+                console.error('创建模板失败:', err);
+                RequestService.reAjaxFun(() => {
+                    this.createAgentTemplate(templateData, callback);
+                });
+            }).send();
+    },
     // 获取智能体会话列表
     getAgentSessions(agentId, params, callback) {
         RequestService.sendRequest()

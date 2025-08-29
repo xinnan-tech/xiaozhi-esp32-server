@@ -145,8 +145,27 @@ public class AgentController {
     @RequiresPermissions("sys:role:normal")
     public Result<List<AgentTemplateEntity>> templateList() {
         List<AgentTemplateEntity> list = agentTemplateService
-                .list(new QueryWrapper<AgentTemplateEntity>().orderByAsc("sort"));
+                .list(new QueryWrapper<AgentTemplateEntity>()
+                        .eq("is_visible", 1)
+                        .orderByAsc("sort"));
         return new Result<List<AgentTemplateEntity>>().ok(list);
+    }
+
+    @PutMapping("/template/{id}")
+    @Operation(summary = "更新智能体模板")
+    @RequiresPermissions("sys:role:normal")
+    public Result<Void> updateTemplate(@PathVariable String id, @RequestBody AgentTemplateEntity template) {
+        template.setId(id);
+        agentTemplateService.updateById(template);
+        return new Result<>();
+    }
+
+    @PostMapping("/template")
+    @Operation(summary = "创建智能体模板")
+    @RequiresPermissions("sys:role:normal")
+    public Result<String> createTemplate(@RequestBody AgentTemplateEntity template) {
+        agentTemplateService.save(template);
+        return new Result<String>().ok(template.getId());
     }
 
     @GetMapping("/{id}/sessions")

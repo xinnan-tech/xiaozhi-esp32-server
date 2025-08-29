@@ -304,6 +304,28 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202508131557.sql
   - changeSet:
+
+      id: 202508231800
+      author: Claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508231800.sql
+  - changeSet:
+      id: 202508291400
+      author: Claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508291400.sql
+  - changeSet:
+      id: 202508291500
+      author: Claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508291500.sql
+
       id: 202501230002_translate_dict_names
       author: cheeko
       changes:
@@ -345,3 +367,4 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202508291600_add_play_story.sql
+

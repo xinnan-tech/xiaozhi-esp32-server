@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+</head>
+<body>
+    <div id="app">
+        <h1>Test Page - Manager Mobile</h1>
+        <p>If you can see this, the server is working!</p>
+    </div>
+    
+    <script type="module">
+        console.log('Test page loaded');
+        
+        // Check if Vue app is mounting
+        import('./main.ts').then(module => {
+            console.log('Main module loaded:', module);
+            if (module.createApp) {
+                const { app } = module.createApp();
+                console.log('App created:', app);
+                app.mount('#app');
+                console.log('App mounted');
+            }
+        }).catch(err => {
+            console.error('Error loading main module:', err);
+        });
+    </script>
+</body>
+</html>

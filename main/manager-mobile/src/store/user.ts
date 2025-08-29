@@ -1,9 +1,9 @@
-import type { UserInfo } from '@/api/auth'
+import type { UserInfo } from '../api/auth'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
   getUserInfo as _getUserInfo,
-} from '@/api/auth'
+} from '../api/auth'
 
 // 初始化状态
 const userInfoState: UserInfo & { avatar?: string, token?: string } = {

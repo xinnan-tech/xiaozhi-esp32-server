@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="xiaozhi.modules.content.dao.ContentLibraryDao">
+
+    <resultMap id="contentLibraryMap" type="xiaozhi.modules.content.entity.ContentLibraryEntity">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="romanized" property="romanized"/>
+        <result column="filename" property="filename"/>
+        <result column="content_type" property="contentType"/>
+        <result column="category" property="category"/>
+        <result column="alternatives" property="alternatives"/>
+        <result column="aws_s3_url" property="awsS3Url"/>
+        <result column="duration_seconds" property="durationSeconds"/>
+        <result column="file_size_bytes" property="fileSizeBytes"/>
+        <result column="is_active" property="isActive"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- Get paginated content list with filters -->
+    <select id="getContentList" resultMap="contentLibraryMap">
+        SELECT *
+        FROM content_library
+        WHERE is_active = 1
+        <if test="contentType != null and contentType != ''">
+            AND content_type = #{contentType}
+        </if>
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="search != null and search != ''">
+            AND (
+                title LIKE CONCAT('%', #{search}, '%')
+                OR romanized LIKE CONCAT('%', #{search}, '%')
+                OR alternatives LIKE CONCAT('%', #{search}, '%')
+            )
+        </if>
+        ORDER BY created_at DESC, title ASC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- Get total count for pagination -->
+    <select id="getContentCount" resultType="int">
+        SELECT COUNT(*)
+        FROM content_library
+        WHERE is_active = 1
+        <if test="contentType != null and contentType != ''">
+            AND content_type = #{contentType}
+        </if>
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="search != null and search != ''">
+            AND (
+                title LIKE CONCAT('%', #{search}, '%')
+                OR romanized LIKE CONCAT('%', #{search}, '%')
+                OR alternatives LIKE CONCAT('%', #{search}, '%')
+            )
+        </if>
+    </select>
+
+    <!-- Get distinct categories by content type -->
+    <select id="getCategoriesByType" resultType="String">
+        SELECT DISTINCT category
+        FROM content_library
+        WHERE is_active = 1 AND content_type = #{contentType}
+        ORDER BY category ASC
+    </select>
+
+    <!-- Search content by title or alternatives -->
+    <select id="searchContent" resultMap="contentLibraryMap">
+        SELECT *
+        FROM content_library
+        WHERE is_active = 1
+        <if test="contentType != null and contentType != ''">
+            AND content_type = #{contentType}
+        </if>
+        AND (
+            title LIKE CONCAT('%', #{query}, '%')
+            OR romanized LIKE CONCAT('%', #{query}, '%')
+            OR alternatives LIKE CONCAT('%', #{query}, '%')
+        )
+        ORDER BY 
+            CASE 
+                WHEN title LIKE CONCAT(#{query}, '%') THEN 1
+                WHEN title LIKE CONCAT('%', #{query}, '%') THEN 2
+                WHEN romanized LIKE CONCAT(#{query}, '%') THEN 3
+                WHEN alternatives LIKE CONCAT('%', #{query}, '%') THEN 4
+                ELSE 5
+            END,
+            title ASC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- Get search results count -->
+    <select id="getSearchCount" resultType="int">
+        SELECT COUNT(*)
+        FROM content_library
+        WHERE is_active = 1
+        <if test="contentType != null and contentType != ''">
+            AND content_type = #{contentType}
+        </if>
+        AND (
+            title LIKE CONCAT('%', #{query}, '%')
+            OR romanized LIKE CONCAT('%', #{query}, '%')
+            OR alternatives LIKE CONCAT('%', #{query}, '%')
+        )
+    </select>
+
+    <!-- Batch insert content items -->
+    <insert id="batchInsert">
+        INSERT INTO content_library (
+            id, title, romanized, filename, content_type, category,
+            alternatives, aws_s3_url, duration_seconds, file_size_bytes, is_active
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.id}, #{item.title}, #{item.romanized}, #{item.filename},
+                #{item.contentType}, #{item.category}, #{item.alternatives},
+                #{item.awsS3Url}, #{item.durationSeconds}, #{item.fileSizeBytes}, #{item.isActive}
+            )
+        </foreach>
+    </insert>
+
+    <!-- Find content by filename -->
+    <select id="findByFilename" resultMap="contentLibraryMap">
+        SELECT *
+        FROM content_library
+        WHERE filename = #{filename}
+        LIMIT 1
+    </select>
+
+</mapper>
