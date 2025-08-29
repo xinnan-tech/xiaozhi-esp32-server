@@ -1,0 +1,98 @@
+# Migration Profile Configuration
+# Used specifically for running the Content Library Migration script
+# 
+# Usage: java -jar app.jar --spring.profiles.active=migration
+
+spring:
+  application:
+    name: XiaoZhi Content Library Migration
+  
+  # Database configuration (inherits from main application.yml)
+  datasource:
+    # Ensure connection pool is sufficient for batch operations
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # JPA/MyBatis configuration for batch operations
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+
+# Logging configuration for migration
+logging:
+  level:
+    xiaozhi.migration: DEBUG
+    xiaozhi.modules.content: DEBUG
+    org.springframework.transaction: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{50}] - %msg%n"
+  file:
+    name: logs/content-migration.log
+    max-size: 100MB
+    max-history: 5
+
+# Migration specific configuration
+migration:
+  content-library:
+    # Base path for xiaozhi-server directory (relative to working directory)
+    base-path: "${user.dir}/xiaozhi-server"
+    
+    # Alternative absolute paths for different deployment scenarios
+    # base-path: "/opt/xiaozhi/xiaozhi-server"  # Production path
+    # base-path: "/home/user/xiaozhi-server"    # Development path
+    
+    # Batch size for database operations
+    batch-size: 100
+    
+    # Whether to skip migration if content already exists
+    skip-if-exists: false
+    
+    # Timeout settings
+    connection-timeout: 30000
+    read-timeout: 60000
+    
+    # File paths
+    music-path: "${migration.content-library.base-path}/music"
+    stories-path: "${migration.content-library.base-path}/stories"
+    
+    # Content type mappings
+    music:
+      content-type: "music"
+      supported-languages:
+        - English
+        - Hindi
+        - Kannada
+        - Phonics
+        - Telugu
+    
+    stories:
+      content-type: "story"
+      supported-genres:
+        - Adventure
+        - Bedtime
+        - Educational
+        - "Fairy Tales"  # Note: quoted due to space
+        - Fantasy
+
+# Performance tuning for migration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Transaction configuration for batch operations
+spring.transaction:
+  default-timeout: 300  # 5 minutes timeout for large batches

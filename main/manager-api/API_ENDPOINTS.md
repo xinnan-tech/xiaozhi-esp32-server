@@ -102,6 +102,28 @@ curl -X DELETE "$BASE_URL/agent/{id}" \
 curl -X GET "$BASE_URL/agent/template" \
   -H "token: $TOKEN"
 
+# Update agent template
+curl -X PUT "$BASE_URL/agent/template/{id}" \
+  -H "token: $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentName": "Updated Template Name",
+    "systemPrompt": "Updated system prompt"
+  }'
+
+# Create agent template
+curl -X POST "$BASE_URL/agent/template" \
+  -H "token: $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentName": "New Template",
+    "systemPrompt": "System prompt for new template",
+    "asrModelId": "ASR_FunASR",
+    "vadModelId": "VAD_SileroVAD",
+    "llmModelId": "LLM_ChatGLMLLM",
+    "ttsModelId": "TTS_EdgeTTS"
+  }'
+
 # Get agent sessions
 curl -X GET "$BASE_URL/agent/{id}/sessions" \
   -H "token: $TOKEN"
@@ -650,6 +672,87 @@ curl -X DELETE "$BASE_URL/api/mobile/profile" \
 6. Pagination parameters typically include `page` and `limit` query parameters
 7. Admin endpoints require admin privileges
 8. Mobile parent profile endpoints are designed for the Flutter mobile app integration
+
+## Content Library Management
+
+### Content Library Controller
+```bash
+# Get paginated content list with filters
+curl -X GET "$BASE_URL/content/library?page=1&limit=20&contentType=music&category=English" \
+  -H "token: $TOKEN"
+
+# Search content across titles and alternatives
+curl -X GET "$BASE_URL/content/library/search?query=baby%20shark&contentType=music&page=1&limit=20" \
+  -H "token: $TOKEN"
+
+# Get available categories by content type
+curl -X GET "$BASE_URL/content/library/categories?contentType=music" \
+  -H "token: $TOKEN"
+
+# Get available story categories
+curl -X GET "$BASE_URL/content/library/categories?contentType=story" \
+  -H "token: $TOKEN"
+
+# Get content by ID
+curl -X GET "$BASE_URL/content/library/{content_id}" \
+  -H "token: $TOKEN"
+
+# Get content statistics
+curl -X GET "$BASE_URL/content/library/statistics" \
+  -H "token: $TOKEN"
+
+# Add new content (admin only)
+curl -X POST "$BASE_URL/content/library" \
+  -H "token: $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "New Song Title",
+    "romanized": "New Song Title",
+    "filename": "new_song.mp3",
+    "contentType": "music",
+    "category": "English",
+    "alternatives": ["new song", "song title"],
+    "awsS3Url": "https://s3.amazonaws.com/bucket/new_song.mp3",
+    "durationSeconds": 180,
+    "fileSizeBytes": 3145728
+  }'
+
+# Update existing content
+curl -X PUT "$BASE_URL/content/library/{content_id}" \
+  -H "token: $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated Title",
+    "category": "Hindi"
+  }'
+
+# Delete content (soft delete - sets inactive)
+curl -X DELETE "$BASE_URL/content/library/{content_id}" \
+  -H "token: $TOKEN"
+
+# Batch insert content (for migration)
+curl -X POST "$BASE_URL/content/library/batch" \
+  -H "token: $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "title": "Song 1",
+      "filename": "song1.mp3",
+      "contentType": "music",
+      "category": "English"
+    },
+    {
+      "title": "Story 1",
+      "filename": "story1.mp3",
+      "contentType": "story",
+      "category": "Adventure"
+    }
+  ]'
+
+# Sync content from metadata files
+curl -X POST "$BASE_URL/content/library/sync" \
+  -H "token: $TOKEN"
+```
 
 ## Testing Authentication Flow
 

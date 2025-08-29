@@ -178,6 +178,7 @@ export default {
       modelOptions: {},
       templates: [],
       loadingTemplate: false,
+      selectedTemplate: null, // Track currently selected template
       voiceOptions: [],
       showFunctionDialog: false,
       currentFunctions: [],
@@ -218,6 +219,30 @@ export default {
           })
         })
       };
+
+      // Check if we need to update template
+      if (this.selectedTemplate && this.hasTemplateChanges()) {
+        this.$confirm('Do you want to save changes to the template as well? This will affect all future uses of this template.', 'Update Template', {
+          confirmButtonText: 'Update Template',
+          cancelButtonText: 'Keep Template Unchanged',
+          type: 'question',
+          distinguishCancelAndClose: true
+        }).then(() => {
+          // User wants to update template
+          this.saveConfigAndTemplate(configData);
+        }).catch((action) => {
+          if (action === 'cancel') {
+            // User wants to save config only
+            this.saveConfigOnly(configData);
+          }
+        });
+      } else {
+        // No template changes, save config only
+        this.saveConfigOnly(configData);
+      }
+    },
+
+    saveConfigOnly(configData) {
       Api.agent.updateAgentConfig(this.$route.query.agentId, configData, ({ data }) => {
         if (data.code === 0) {
           this.$message.success({
@@ -231,6 +256,73 @@ export default {
           });
         }
       });
+    },
+
+    saveConfigAndTemplate(configData) {
+      // First save the agent config
+      Api.agent.updateAgentConfig(this.$route.query.agentId, configData, ({ data }) => {
+        if (data.code === 0) {
+          // Then update the template
+          const templateData = {
+            agentName: this.form.agentName,
+            systemPrompt: this.form.systemPrompt,
+            summaryMemory: this.form.summaryMemory,
+            asrModelId: this.form.model.asrModelId,
+            vadModelId: this.form.model.vadModelId,
+            llmModelId: this.form.model.llmModelId,
+            vllmModelId: this.form.model.vllmModelId,
+            ttsModelId: this.form.model.ttsModelId,
+            ttsVoiceId: this.form.ttsVoiceId,
+            memModelId: this.form.model.memModelId,
+            intentModelId: this.form.model.intentModelId,
+            chatHistoryConf: this.form.chatHistoryConf,
+            langCode: this.form.langCode,
+            language: this.form.language
+          };
+
+          Api.agent.updateAgentTemplate(this.selectedTemplate.id, templateData, ({ data: templateResult }) => {
+            if (templateResult.code === 0) {
+              this.$message.success({
+                message: 'Configuration and template saved successfully',
+                showClose: true
+              });
+              // Refresh templates to reflect changes
+              this.fetchTemplates();
+            } else {
+              this.$message.warning({
+                message: 'Configuration saved but template update failed: ' + (templateResult.msg || 'Unknown error'),
+                showClose: true
+              });
+            }
+          });
+        } else {
+          this.$message.error({
+            message: data.msg || 'Failed to save configuration',
+            showClose: true
+          });
+        }
+      });
+    },
+
+    hasTemplateChanges() {
+      if (!this.selectedTemplate) return false;
+      
+      return (
+        this.form.agentName !== this.selectedTemplate.agentName ||
+        this.form.systemPrompt !== this.selectedTemplate.systemPrompt ||
+        this.form.summaryMemory !== this.selectedTemplate.summaryMemory ||
+        this.form.model.asrModelId !== this.selectedTemplate.asrModelId ||
+        this.form.model.vadModelId !== this.selectedTemplate.vadModelId ||
+        this.form.model.llmModelId !== this.selectedTemplate.llmModelId ||
+        this.form.model.vllmModelId !== this.selectedTemplate.vllmModelId ||
+        this.form.model.ttsModelId !== this.selectedTemplate.ttsModelId ||
+        this.form.ttsVoiceId !== this.selectedTemplate.ttsVoiceId ||
+        this.form.model.memModelId !== this.selectedTemplate.memModelId ||
+        this.form.model.intentModelId !== this.selectedTemplate.intentModelId ||
+        this.form.chatHistoryConf !== this.selectedTemplate.chatHistoryConf ||
+        this.form.langCode !== this.selectedTemplate.langCode ||
+        this.form.language !== this.selectedTemplate.language
+      );
     },
     resetConfig() {
       this.$confirm('Are you sure you want to reset the configuration?', 'Confirm', {
@@ -279,6 +371,7 @@ export default {
       if (this.loadingTemplate) return;
       this.loadingTemplate = true;
       try {
+        this.selectedTemplate = template; // Track selected template
         this.applyTemplateData(template);
         this.$message.success({
           message: `「${template.agentName}」模板已应用`,
