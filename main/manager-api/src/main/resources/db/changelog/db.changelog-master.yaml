@@ -331,3 +331,17 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202508291530_add_amazon_transcribe_streaming.sql
+  - changeSet:
+      id: 202508291545
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508291545_add_groq_llm.sql
+  - changeSet:
+      id: 202508291600
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508291600_add_play_story.sql

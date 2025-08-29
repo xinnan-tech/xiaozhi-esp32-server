@@ -74,15 +74,38 @@ class ASRProviderBase(ABC):
         else:
             logger.bind(tag=TAG).debug("No recording start time found")
             
-        if len(conn.asr_audio) > 0 and recording_start_time:
+        if len(conn.asr_audio) > 0 and recording_start_time and not conn.client_voice_stop:
             current_time = time.time()
             recording_duration = current_time - recording_start_time
             max_recording_time = conn.config.get('max_recording_time', 10.0)
             logger.bind(tag=TAG).debug(f"Recording duration: {recording_duration:.2f}s, max: {max_recording_time}s, audio chunks: {len(conn.asr_audio)}")
             if recording_duration >= max_recording_time:
-                logger.bind(tag=TAG).info(f"Maximum recording time reached ({recording_duration:.2f}s) - forcing voice stop")
-                conn.client_voice_stop = True
-                have_voice = False  # Force stop current voice detection
+                # Use a timeout flag to prevent multiple timeout messages
+                if not hasattr(conn, '_timeout_triggered') or not conn._timeout_triggered:
+                    logger.bind(tag=TAG).info(f"Maximum recording time reached ({recording_duration:.2f}s) - forcing voice stop")
+                    conn._timeout_triggered = True
+                    
+                    # Force voice stop using the same logic as VAD silence detection
+                    conn.client_voice_stop = True
+                    have_voice = False
+                    
+                    # Process any accumulated audio before resetting (same as normal VAD flow)
+                    if len(conn.asr_audio) > 20:
+                        asr_audio_task = conn.asr_audio.copy()
+                        conn.asr_audio.clear()
+                        conn.reset_vad_states()
+                        conn._timeout_triggered = False  # Reset for next session
+                        # Process the accumulated audio
+                        asyncio.create_task(self.handle_voice_stop(conn, asr_audio_task))
+                    else:
+                        # No significant audio to process, just reset everything
+                        conn.reset_vad_states()
+                        conn._timeout_triggered = False  # Reset for next session
+                    
+                    return  # Exit early like VAD does
+                else:
+                    # Already triggered timeout, skip this audio chunk
+                    return
             
         # Debug logging
         if not hasattr(conn, '_asr_log_counter'):
