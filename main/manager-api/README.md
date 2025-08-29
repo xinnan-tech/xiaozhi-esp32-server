@@ -21,7 +21,7 @@ Vue 3.x
 # API Documentation
 After starting, open: http://localhost:8002/xiaozhi/doc.html
 
-run app
+to run app
 
 
-npm  run serve 
+mvn spring-boot:run
