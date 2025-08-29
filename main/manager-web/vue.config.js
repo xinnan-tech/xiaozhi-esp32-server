@@ -43,7 +43,7 @@ module.exports = defineConfig({
   devServer: {
     port: 8001, // 指定端口为 8001
     proxy: {
-      '/xiaozhi': {
+      '/toy': {
         target: 'http://127.0.0.1:8002',
         changeOrigin: true
       }

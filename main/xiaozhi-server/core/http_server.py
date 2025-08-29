@@ -29,7 +29,7 @@ class SimpleHttpServer:
         if websocket_config and "you" not in websocket_config:
             return websocket_config
         else:
-            return f"ws://{local_ip}:{port}/xiaozhi/v1/"
+            return f"ws://{local_ip}:{port}/toy/v1/"
 
     async def start(self):
         server_config = self.config["server"]
@@ -51,10 +51,10 @@ class SimpleHttpServer:
                     # If smart control panel is not enabled, just running single module, need to add simple OTA interface for delivering websocket interface
                     self.logger.bind(tag=TAG).info("Adding OTA routes")
                     app.add_routes([
-                        web.get("/xiaozhi/ota/", self.ota_handler.handle_get),
-                        web.post("/xiaozhi/ota/",
+                        web.get("/toy/ota/", self.ota_handler.handle_get),
+                        web.post("/toy/ota/",
                                  self.ota_handler.handle_post),
-                        web.options("/xiaozhi/ota/",
+                        web.options("/toy/ota/",
                                     self.ota_handler.handle_post),
                     ])
 

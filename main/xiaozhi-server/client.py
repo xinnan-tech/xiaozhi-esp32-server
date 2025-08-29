@@ -322,7 +322,7 @@ class TestClient:
 
     def get_ota_config(self) -> bool:
         """Requests OTA configuration from the server."""
-        logger.info(f"▶️ STEP 1: Requesting OTA config from http://{SERVER_IP}:{OTA_PORT}/xiaozhi/ota/")
+        logger.info(f"▶️ STEP 1: Requesting OTA config from http://{SERVER_IP}:{OTA_PORT}/toy/ota/")
         try:
             # Generate a client ID for this session
             import uuid
@@ -335,7 +335,7 @@ class TestClient:
                 },
                 "client_id": session_client_id
             }
-            response = requests.post(f"http://{SERVER_IP}:{OTA_PORT}/xiaozhi/ota/", headers=headers, json=data, timeout=5)
+            response = requests.post(f"http://{SERVER_IP}:{OTA_PORT}/toy/ota/", headers=headers, json=data, timeout=5)
             response.raise_for_status()
             self.ota_config = response.json()
             print(f"OTA Config received: {json.dumps(self.ota_config, indent=2)}")
@@ -347,7 +347,7 @@ class TestClient:
                 logger.info(f"✅ Got websocket URL from OTA: {self.websocket_url}")
             else:
                 logger.warning("⚠️ No websocket URL in OTA response, using fallback")
-                self.websocket_url = f"ws://{SERVER_IP}:8000/xiaozhi/v1/"
+                self.websocket_url = f"ws://{SERVER_IP}:8000/toy/v1/"
             
             # Extract MQTT credentials from OTA response
             mqtt_info = self.ota_config.get("mqtt", {})

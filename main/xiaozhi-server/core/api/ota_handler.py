@@ -46,7 +46,7 @@ class OTAHandler(BaseHandler):
 
         if not websocket_config or "你的" in websocket_config:
             print(f"[OTA DEBUG] Using default websocket URL")
-            return f"ws://{local_ip}:{port}/xiaozhi/v1/"
+            return f"ws://{local_ip}:{port}/toy/v1/"
         else:
             print(f"[OTA DEBUG] Using configured websocket URL: {websocket_config}")
             return websocket_config
