@@ -12,7 +12,9 @@ export default new Vuex.Store({
     userInfo: {}, // 添加用户信息存储
     isSuperAdmin: false, // 添加superAdmin状态
     pubConfig: { // 添加公共配置存储
-      version: '',
+      version: '0.7.5',
+      name: 'cheeko-server',
+      year: '©2025',
       beianIcpNum: 'null',
       beianGaNum: 'null',
       allowUserRegister: false
@@ -50,7 +52,14 @@ export default new Vuex.Store({
       localStorage.setItem('isSuperAdmin', isSuperAdmin)
     },
     setPubConfig(state, config) {
-      state.pubConfig = config
+      state.pubConfig = {
+        version: config.version || '0.7.5',
+        name: config.name || 'cheeko-server',
+        year: config.year || '©2025',
+        beianIcpNum: config.beianIcpNum || 'null',
+        beianGaNum: config.beianGaNum || 'null',
+        allowUserRegister: config.allowUserRegister || false
+      }
     },
     clearAuth(state) {
       state.token = ''

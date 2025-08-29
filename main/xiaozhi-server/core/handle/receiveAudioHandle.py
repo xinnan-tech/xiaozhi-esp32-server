@@ -28,6 +28,13 @@ async def handleAudioMessage(conn, audio):
 
     # Whether the current segment has someone speaking
     have_voice = conn.vad.is_vad(conn, audio)
+    
+    # Track when voice recording starts in auto VAD mode (for 10-second timeout)
+    if have_voice and not hasattr(conn, 'vad_recording_start_time'):
+        conn.vad_recording_start_time = time.time()
+        conn.logger.bind(tag=TAG).debug(f"VAD recording started at: {conn.vad_recording_start_time}")
+    elif have_voice and hasattr(conn, 'vad_recording_start_time'):
+        conn.logger.bind(tag=TAG).debug(f"VAD recording continues, started at: {conn.vad_recording_start_time}")
 
     # Check if this is the initial connection period (ignore first 1 second of audio)
     if have_voice and hasattr(conn, "initial_connection_handled") and not conn.initial_connection_handled:

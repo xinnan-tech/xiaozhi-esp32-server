@@ -1,7 +1,12 @@
-This is a development document. If you need to deploy the Xiaozhi server, [click here to view the deployment tutorial](../../README.md#%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3)
+This is a development document. If you need to deploy the Xiaozhi server, [click here to view the deployment tutorial](../../README.md#deployment-documentation)
 
 # Project Introduction
 
+
+run app
+
+
+npm  run serve 
 manager-api: This project is developed based on the SpringBoot framework.
 
 When developing, use a code editor and select the `manager-api` folder as the project directory when importing the project.
@@ -16,7 +21,7 @@ Vue 3.x
 # API Documentation
 After starting, open: http://localhost:8002/xiaozhi/doc.html
 
-run app
+to run app
 
 
-npm  run serve 
+mvn spring-boot:run

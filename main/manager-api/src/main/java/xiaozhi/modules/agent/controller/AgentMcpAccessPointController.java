@@ -17,7 +17,7 @@ import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.security.user.SecurityUser;
 
-@Tag(name = "智能体Mcp接入点管理")
+@Tag(name = "Agent MCP Access Point Management")
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/agent/mcp")
@@ -31,7 +31,7 @@ public class AgentMcpAccessPointController {
      * @param audioId 智能体id
      * @return 返回错误提醒或者Mcp接入点地址
      */
-    @Operation(summary = "获取智能体的Mcp接入点地址")
+    @Operation(summary = "Get agent MCP access point address")
     @GetMapping("/address/{agentId}")
     @RequiresPermissions("sys:role:normal")
     public Result<String> getAgentMcpAccessAddress(@PathVariable("agentId") String agentId) {
@@ -49,7 +49,7 @@ public class AgentMcpAccessPointController {
         return new Result<String>().ok(agentMcpAccessAddress);
     }
 
-    @Operation(summary = "获取智能体的Mcp工具列表")
+    @Operation(summary = "Get agent MCP tools list")
     @GetMapping("/tools/{agentId}")
     @RequiresPermissions("sys:role:normal")
     public Result<List<String>> getAgentMcpToolsList(@PathVariable("agentId") String agentId) {

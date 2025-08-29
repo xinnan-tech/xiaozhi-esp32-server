@@ -427,6 +427,8 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
             String password = Base64.getEncoder().encodeToString(signature);
             
             // Set MQTT credentials
+            mqtt.setBroker(mqttBroker);
+            mqtt.setPort(Integer.parseInt(mqttPort));
             mqtt.setEndpoint(mqttBroker + ":" + mqttPort);
             mqtt.setClient_id(clientId);
             mqtt.setUsername(username);

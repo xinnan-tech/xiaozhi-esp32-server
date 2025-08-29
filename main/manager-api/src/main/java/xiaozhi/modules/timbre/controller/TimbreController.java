@@ -35,12 +35,12 @@ import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/ttsVoice")
-@Tag(name = "音色管理")
+@Tag(name = "Timbre Management")
 public class TimbreController {
     private final TimbreService timbreService;
 
     @GetMapping
-    @Operation(summary = "分页查找")
+    @Operation(summary = "Paginated search")
     @RequiresPermissions("sys:role:superAdmin")
     @Parameters({
             @Parameter(name = "ttsModelId", description = "对应 TTS 模型主键", required = true),
@@ -62,7 +62,7 @@ public class TimbreController {
     }
 
     @PostMapping
-    @Operation(summary = "音色保存")
+    @Operation(summary = "Save timbre")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> save(@RequestBody TimbreDataDTO dto) {
         ValidatorUtils.validateEntity(dto);
@@ -71,7 +71,7 @@ public class TimbreController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "音色修改")
+    @Operation(summary = "Modify timbre")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> update(
             @PathVariable String id,
@@ -82,7 +82,7 @@ public class TimbreController {
     }
 
     @PostMapping("/delete")
-    @Operation(summary = "音色删除")
+    @Operation(summary = "Delete timbre")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> delete(@RequestBody String[] ids) {
         timbreService.delete(ids);

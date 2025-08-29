@@ -68,7 +68,7 @@ async def main():
 
     if not read_config_from_api:
         logger.bind(tag=TAG).info(
-            "OTA interface is\t\thttp://{}:{}/xiaozhi/ota/",
+            "OTA interface is\t\thttp://{}:{}/toy/ota/",
             get_local_ip(),
             port,
         )
@@ -98,7 +98,7 @@ async def main():
         websocket_port = int(server_config.get("port", 8000))
 
     logger.bind(tag=TAG).info(
-        "Websocket address is\tws://{}:{}/xiaozhi/v1/",
+        "Websocket address is\tws://{}:{}/toy/v1/",
         get_local_ip(),
         websocket_port,
     )

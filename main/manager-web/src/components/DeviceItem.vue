@@ -5,11 +5,11 @@
         {{ device.agentName }}
       </div>
       <div>
-        <img src="@/assets/home/delete.png" alt="" style="width: 18px;height: 18px;margin-right: 10px;"
+        <img src="@/assets/home/delete.png" alt="" class="action-icon delete-icon"
           @click.stop="handleDelete" />
         <el-tooltip class="item" effect="dark" :content="device.systemPrompt" placement="top"
           popper-class="custom-tooltip">
-          <img src="@/assets/home/info.png" alt="" style="width: 18px;height: 18px;" />
+          <img src="@/assets/home/info.png" alt="" class="action-icon info-icon" />
         </el-tooltip>
       </div>
     </div>
@@ -140,6 +140,35 @@ export default {
   background: #e6e6e6;
   color: #999;
   cursor: not-allowed;
+}
+
+.action-icon {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.action-icon:hover {
+  transform: scale(1.2);
+  background-color: rgba(87, 120, 255, 0.1);
+}
+
+.delete-icon:hover {
+  background-color: rgba(245, 108, 108, 0.1);
+  filter: brightness(1.2);
+}
+
+.info-icon {
+  margin-right: 0;
+}
+
+.info-icon:hover {
+  background-color: rgba(64, 158, 255, 0.1);
+  filter: brightness(1.2);
 }
 </style>
 

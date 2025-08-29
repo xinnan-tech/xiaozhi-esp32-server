@@ -45,7 +45,7 @@ import xiaozhi.modules.sys.vo.SysDictDataItem;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/user")
-@Tag(name = "登录管理")
+@Tag(name = "Login Management")
 public class LoginController {
     private final SysUserService sysUserService;
     private final SysUserTokenService sysUserTokenService;
@@ -54,7 +54,7 @@ public class LoginController {
     private final SysDictDataService sysDictDataService;
 
     @GetMapping("/captcha")
-    @Operation(summary = "验证码")
+    @Operation(summary = "Captcha")
     public void captcha(HttpServletResponse response, String uuid) throws IOException {
         // uuid不能为空
         AssertUtils.isBlank(uuid, ErrorCode.IDENTIFIER_NOT_NULL);
@@ -63,7 +63,7 @@ public class LoginController {
     }
 
     @PostMapping("/smsVerification")
-    @Operation(summary = "短信验证码")
+    @Operation(summary = "SMS verification code")
     public Result<Void> smsVerification(@RequestBody SmsVerificationDTO dto) {
         // 验证图形验证码
         boolean validate = captchaService.validate(dto.getCaptchaId(), dto.getCaptcha(), true);
@@ -81,7 +81,7 @@ public class LoginController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "登录")
+    @Operation(summary = "Login")
     public Result<TokenDTO> login(@RequestBody LoginDTO login) {
         // 验证是否正确输入验证码
         boolean validate = captchaService.validate(login.getCaptchaId(), login.getCaptcha(), true);
@@ -102,8 +102,10 @@ public class LoginController {
     }
 
     @PostMapping("/register")
-    @Operation(summary = "注册")
-    public Result<TokenDTO> register(@RequestBody LoginDTO login) {
+
+    @Operation(summary = "Register")
+    public Result<Void> register(@RequestBody LoginDTO login) {
+         Production1
         if (!sysUserService.getAllowUserRegister()) {
             throw new RenException("当前不允许普通用户注册");
         }
@@ -151,7 +153,7 @@ public class LoginController {
     }
 
     @GetMapping("/info")
-    @Operation(summary = "用户信息获取")
+    @Operation(summary = "Get user information")
     public Result<UserDetail> info() {
         UserDetail user = SecurityUser.getUser();
         Result<UserDetail> result = new Result<>();
@@ -160,7 +162,7 @@ public class LoginController {
     }
 
     @PutMapping("/change-password")
-    @Operation(summary = "修改用户密码")
+    @Operation(summary = "Change user password")
     public Result<?> changePassword(@RequestBody PasswordDTO passwordDTO) {
         // 判断非空
         ValidatorUtils.validateEntity(passwordDTO);
@@ -170,7 +172,7 @@ public class LoginController {
     }
 
     @PutMapping("/retrieve-password")
-    @Operation(summary = "找回密码")
+    @Operation(summary = "Retrieve password")
     public Result<?> retrievePassword(@RequestBody RetrievePasswordDTO dto) {
         // 是否开启手机注册
         Boolean isMobileRegister = sysParamsService
@@ -203,7 +205,7 @@ public class LoginController {
     }
 
     @GetMapping("/pub-config")
-    @Operation(summary = "公共配置")
+    @Operation(summary = "Public configuration")
     public Result<Map<String, Object>> pubConfig() {
         Map<String, Object> config = new HashMap<>();
         config.put("enableMobileRegister", sysParamsService

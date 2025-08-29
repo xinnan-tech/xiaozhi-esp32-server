@@ -19,9 +19,9 @@ import opuslib
 
 # --- Configuration ---
 
-SERVER_IP = "192.168.1.105" # !!! UPDATE with your server's local IP address !!!
+SERVER_IP = "139.59.7.72" # !!! UPDATE with your server's local IP address !!!
 OTA_PORT = 8002
-MQTT_BROKER_HOST = "192.168.1.105"  # MQTT gateway IP
+MQTT_BROKER_HOST = "139.59.7.72"  # MQTT gateway IP
 
 
 MQTT_BROKER_PORT = 1883
@@ -322,7 +322,7 @@ class TestClient:
 
     def get_ota_config(self) -> bool:
         """Requests OTA configuration from the server."""
-        logger.info(f"▶️ STEP 1: Requesting OTA config from http://{SERVER_IP}:{OTA_PORT}/xiaozhi/ota/")
+        logger.info(f"▶️ STEP 1: Requesting OTA config from http://{SERVER_IP}:{OTA_PORT}/toy/ota/")
         try:
             # Generate a client ID for this session
             import uuid
@@ -335,7 +335,7 @@ class TestClient:
                 },
                 "client_id": session_client_id
             }
-            response = requests.post(f"http://{SERVER_IP}:{OTA_PORT}/xiaozhi/ota/", headers=headers, json=data, timeout=5)
+            response = requests.post(f"http://{SERVER_IP}:{OTA_PORT}/toy/ota/", headers=headers, json=data, timeout=5)
             response.raise_for_status()
             self.ota_config = response.json()
             print(f"OTA Config received: {json.dumps(self.ota_config, indent=2)}")
@@ -347,7 +347,7 @@ class TestClient:
                 logger.info(f"✅ Got websocket URL from OTA: {self.websocket_url}")
             else:
                 logger.warning("⚠️ No websocket URL in OTA response, using fallback")
-                self.websocket_url = f"ws://{SERVER_IP}:8000/xiaozhi/v1/"
+                self.websocket_url = f"ws://{SERVER_IP}:8000/toy/v1/"
             
             # Extract MQTT credentials from OTA response
             mqtt_info = self.ota_config.get("mqtt", {})
@@ -403,6 +403,10 @@ class TestClient:
         mqtt_broker = mqtt_config.get("broker", MQTT_BROKER_HOST)
         mqtt_port = mqtt_config.get("port", MQTT_BROKER_PORT)
         
+        logger.info(f"📍 MQTT Config from OTA: {mqtt_config}")
+        logger.info(f"📍 Using MQTT Broker: {mqtt_broker}")
+        logger.info(f"📍 Using MQTT Port: {mqtt_port}")
+        logger.info(f"📍 MQTT Credentials: client_id={self.mqtt_credentials.get('client_id', 'NOT SET')}")
         logger.info(f"▶️ STEP 2: Connecting to MQTT Gateway at {mqtt_broker}:{mqtt_port}...")
         
         self.mqtt_client = mqtt_client.Client(
@@ -417,16 +421,29 @@ class TestClient:
         )
         
         try:
-            logger.info(f"🔄 Connecting to {mqtt_broker}:{mqtt_port}...")
+            logger.info(f"🔄 Attempting connection to MQTT broker...")
+            logger.info(f"   Host: {mqtt_broker}")
+            logger.info(f"   Port: {mqtt_port}")
+            logger.info(f"   Client ID: {self.mqtt_credentials['client_id']}")
+            logger.info(f"   Username: {self.mqtt_credentials['username']}")
+            
             self.mqtt_client.connect(mqtt_broker, mqtt_port, 60)
             self.mqtt_client.loop_start()
             
             # Wait a moment for connection to establish
             time.sleep(2)
             
+            # Check if connected
+            if self.mqtt_client.is_connected():
+                logger.info("✅ MQTT client is connected!")
+            else:
+                logger.warning("⚠️ MQTT client connection status unknown, waiting...")
+            
             return True
         except Exception as e:
             logger.error(f"❌ Failed to connect to MQTT Gateway: {e}")
+            logger.error(f"   Error type: {type(e).__name__}")
+            logger.error(f"   Broker: {mqtt_broker}:{mqtt_port}")
             return False
 
     def send_hello_and_get_session(self) -> bool:

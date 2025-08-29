@@ -1,11 +1,11 @@
 {
     "production": {
         "chat_servers": [
-            "ws://192.168.68.66:8000/xiaozhi/v1/"
+            "ws://192.168.68.66:8000/toy/v1/"
         ]
     },
     "development": {
-        "chat_servers": ["ws://192.168.68.66:8000/xiaozhi/v1/"],
+        "chat_servers": ["ws://192.168.68.66:8000/toy/v1/"],
         "mac_addresss": ["d8:43:ae:3e:4b:5a"]
     },
     "debug": false

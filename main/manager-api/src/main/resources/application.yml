@@ -7,7 +7,7 @@ server:
       min-spare: 30
   port: 8002
   servlet:
-    context-path: /xiaozhi
+    context-path: /toy
     session:
       cookie:
         http-only: true

@@ -22,7 +22,7 @@
         <el-progress v-if="isUploading || uploadStatus === 'success'" :percentage="uploadProgress"
           :status="uploadStatus"></el-progress>
         <div class="hint-text">
-          <span>Note: Please upload the original xiaozhi.bin file, not the merged-binary.bin file</span>
+          <span>Note: Please upload the original toy.bin file, not the merged-binary.bin file</span>
         </div>
       </el-form-item>
       <el-form-item label="Remarks" prop="remark">

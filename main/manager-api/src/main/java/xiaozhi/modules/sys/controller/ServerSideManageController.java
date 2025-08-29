@@ -36,7 +36,7 @@ import xiaozhi.modules.sys.utils.WebSocketClientManager;
  */
 @RestController
 @RequestMapping("/admin/server")
-@Tag(name = "服务端管理")
+@Tag(name = "Server Management")
 @AllArgsConstructor
 public class ServerSideManageController {
     private final SysParamsService sysParamsService;
@@ -47,7 +47,7 @@ public class ServerSideManageController {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    @Operation(summary = "获取Ws服务端列表")
+    @Operation(summary = "Get WebSocket server list")
     @GetMapping("/server-list")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<List<String>> getWsServerList() {
@@ -58,7 +58,7 @@ public class ServerSideManageController {
         return new Result<List<String>>().ok(Arrays.asList(wsText.split(";")));
     }
 
-    @Operation(summary = "通知python服务端更新配置")
+    @Operation(summary = "Notify Python server to update configuration")
     @PostMapping("/emit-action")
     @LogOperation("通知python服务端更新配置")
     @RequiresPermissions("sys:role:superAdmin")

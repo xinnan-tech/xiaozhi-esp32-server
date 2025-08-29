@@ -17,7 +17,7 @@ server:
   # When deploying with docker or using public network deployment (using SSL, domain names), it may not be accurate
   # So if you deploy with docker, set websocket to the LAN address
   # If you deploy on public network, set websocket to the public network address
-  websocket: ws://your-ip-or-domain:port/xiaozhi/v1/
+  websocket: ws://your-ip-or-domain:port/toy/v1/
   # Visual analysis interface address
   # Visual analysis interface address sent to devices
   # If using the default configuration below, the system will automatically generate the visual recognition address and output it in the startup log. You can directly access this address with a browser to confirm

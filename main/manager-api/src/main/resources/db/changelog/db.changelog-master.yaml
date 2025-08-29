@@ -304,6 +304,7 @@ databaseChangeLog:
             encoding: utf8
             path: classpath:db/changelog/202508131557.sql
   - changeSet:
+
       id: 202508231800
       author: Claude
       changes:
@@ -324,3 +325,46 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202508291500.sql
+
+      id: 202501230002_translate_dict_names
+      author: cheeko
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202501230002_translate_dict_names.sql
+  - changeSet:
+      id: 202501230003_translate_provider_fields
+      author: cheeko
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202501230003_translate_provider_fields.sql
+  - changeSet:
+      id: 202501230005_translate_sys_params
+      author: cheeko
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202501230005_translate_sys_params.sql
+  - changeSet:
+      id: 202508291530
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508291530_add_amazon_transcribe_streaming.sql
+  - changeSet:
+      id: 202508291545
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508291545_add_groq_llm.sql
+  - changeSet:
+      id: 202508291600
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508291600_add_play_story.sql
+

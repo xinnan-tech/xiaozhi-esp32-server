@@ -1,11 +1,11 @@
 <template>
   <div class="welcome" @keyup.enter="register">
     <el-container style="height: 100%;">
-      <!-- 保持相同的头部 -->
+      <!-- Keep the same header -->
       <el-header>
         <div style="display: flex;align-items: center;margin-top: 15px;margin-left: 10px;gap: 10px;">
           <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.svg" style="width: 45px;height: 45px;" />
-          <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" style="height: 18px;" />
+          <!-- <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" style="height: 18px;" /> -->
         </div>
       </el-header>
       <div class="login-person">
@@ -13,10 +13,10 @@
       </div>
       <el-main style="position: relative;">
         <div class="login-box">
-          <!-- 修改标题部分 -->
+          <!-- Title section -->
           <div style="display: flex;align-items: center;gap: 20px;margin-bottom: 39px;padding: 0 30px;">
             <img loading="lazy" alt="" src="@/assets/login/hi.png" style="width: 34px;height: 34px;" />
-            <div class="login-text">注册</div>
+            <div class="login-text">Register</div>
             <div class="login-welcome">
               WELCOME TO REGISTER
             </div>
@@ -24,13 +24,13 @@
 
           <div style="padding: 0 30px;">
             <form @submit.prevent="register">
-              <!-- 用户名/手机号输入框 -->
+              <!-- Username/phone input box -->
               <div class="input-box" v-if="!enableMobileRegister">
                 <img loading="lazy" alt="" class="input-icon" src="@/assets/login/username.png" />
-                <el-input v-model="form.username" placeholder="请输入用户名" />
+                <el-input v-model="form.username" placeholder="Enter username" />
               </div>
 
-              <!-- 手机号注册部分 -->
+              <!-- Mobile registration section -->
               <template v-if="enableMobileRegister">
                 <div class="input-box">
                   <div style="display: flex; align-items: center; width: 100%;">
@@ -38,79 +38,79 @@
                       <el-option v-for="item in mobileAreaList" :key="item.key" :label="`${item.name} (${item.key})`"
                         :value="item.key" />
                     </el-select>
-                    <el-input v-model="form.mobile" placeholder="请输入手机号码" />
+                    <el-input v-model="form.mobile" placeholder="Enter phone number" />
                   </div>
                 </div>
 
                 <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
                   <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
                     <img loading="lazy" alt="" class="input-icon" src="@/assets/login/shield.png" />
-                    <el-input v-model="form.captcha" placeholder="请输入验证码" style="flex: 1;" />
+                    <el-input v-model="form.captcha" placeholder="Enter verification code" style="flex: 1;" />
                   </div>
-                  <img loading="lazy" v-if="captchaUrl" :src="captchaUrl" alt="验证码"
+                  <img loading="lazy" v-if="captchaUrl" :src="captchaUrl" alt="Captcha"
                     style="width: 150px; height: 40px; cursor: pointer;" @click="fetchCaptcha" />
                 </div>
 
-                <!-- 手机验证码 -->
+                <!-- Mobile verification code -->
 
                 <div style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
                   <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
                     <img loading="lazy" alt="" class="input-icon" src="@/assets/login/phone.png" />
-                    <el-input v-model="form.mobileCaptcha" placeholder="请输入手机验证码" style="flex: 1;" maxlength="6" />
+                    <el-input v-model="form.mobileCaptcha" placeholder="Enter SMS code" style="flex: 1;" maxlength="6" />
                   </div>
                   <el-button type="primary" class="send-captcha-btn" :disabled="!canSendMobileCaptcha"
                     @click="sendMobileCaptcha">
                     <span>
-                      {{ countdown > 0 ? `${countdown}秒后重试` : '发送验证码' }}
+                      {{ countdown > 0 ? `Retry in ${countdown}s` : 'Send Code' }}
                     </span>
                   </el-button>
                 </div>
               </template>
 
-              <!-- 密码输入框 -->
+              <!-- Password input box -->
               <div class="input-box">
                 <img loading="lazy" alt="" class="input-icon" src="@/assets/login/password.png" />
-                <el-input v-model="form.password" placeholder="请输入密码" type="password" show-password />
+                <el-input v-model="form.password" placeholder="Enter password" type="password" show-password />
               </div>
 
-              <!-- 新增确认密码 -->
+              <!-- Confirm password -->
               <div class="input-box">
                 <img loading="lazy" alt="" class="input-icon" src="@/assets/login/password.png" />
-                <el-input v-model="form.confirmPassword" placeholder="请确认密码" type="password" show-password />
+                <el-input v-model="form.confirmPassword" placeholder="Confirm password" type="password" show-password />
               </div>
 
-              <!-- 验证码部分保持相同 -->
+              <!-- Captcha section -->
               <div v-if="!enableMobileRegister"
                 style="display: flex; align-items: center; margin-top: 20px; width: 100%; gap: 10px;">
                 <div class="input-box" style="width: calc(100% - 130px); margin-top: 0;">
                   <img loading="lazy" alt="" class="input-icon" src="@/assets/login/shield.png" />
-                  <el-input v-model="form.captcha" placeholder="请输入验证码" style="flex: 1;" />
+                  <el-input v-model="form.captcha" placeholder="Enter verification code" style="flex: 1;" />
                 </div>
-                <img loading="lazy" v-if="captchaUrl" :src="captchaUrl" alt="验证码"
+                <img loading="lazy" v-if="captchaUrl" :src="captchaUrl" alt="Captcha"
                   style="width: 150px; height: 40px; cursor: pointer;" @click="fetchCaptcha" />
               </div>
 
-              <!-- 修改底部链接 -->
+              <!-- Bottom link -->
               <div style="font-weight: 400;font-size: 14px;text-align: left;color: #5778ff;margin-top: 20px;">
-                <div style="cursor: pointer;" @click="goToLogin">已有账号？立即登录</div>
+                <div style="cursor: pointer;" @click="goToLogin">Already have an account? Login now</div>
               </div>
             </form>
           </div>
 
-          <!-- 修改按钮文本 -->
-          <div class="login-btn" @click="register">立即注册</div>
+          <!-- Button text -->
+          <div class="login-btn" @click="register">Register Now</div>
 
-          <!-- 保持相同的协议声明 -->
+          <!-- Agreement declaration -->
           <div style="font-size: 14px;color: #979db1;">
-            注册即同意
-            <div style="display: inline-block;color: #5778FF;cursor: pointer;">《用户协议》</div>
-            和
-            <div style="display: inline-block;color: #5778FF;cursor: pointer;">《隐私政策》</div>
+            By registering, you agree to the
+            <div style="display: inline-block;color: #5778FF;cursor: pointer;">Terms of Service</div>
+            and
+            <div style="display: inline-block;color: #5778FF;cursor: pointer;">Privacy Policy</div>
           </div>
         </div>
       </el-main>
 
-      <!-- 保持相同的页脚 -->
+      <!-- Footer -->
       <el-footer>
         <version-footer />
       </el-footer>
@@ -159,7 +159,7 @@ export default {
   mounted() {
     this.$store.dispatch('fetchPubConfig').then(() => {
       if (!this.allowUserRegister) {
-        showDanger('当前不允许普通用户注册');
+        showDanger('User registration is currently not allowed');
         setTimeout(() => {
           goToPage('/login');
         }, 1500);
@@ -168,7 +168,7 @@ export default {
     this.fetchCaptcha();
   },
   methods: {
-    // 复用验证码获取方法
+    // Reuse captcha fetch method
     fetchCaptcha() {
       this.form.captchaId = getUUID();
       Api.user.getCaptcha(this.form.captchaId, (res) => {
@@ -177,13 +177,13 @@ export default {
           this.captchaUrl = URL.createObjectURL(blob);
 
         } else {
-          console.error('验证码加载异常:', error);
-          showDanger('验证码加载失败，点击刷新');
+          console.error('Captcha loading error:', error);
+          showDanger('Failed to load captcha, click to refresh');
         }
       });
     },
 
-    // 封装输入验证逻辑
+    // Encapsulate input validation logic
     validateInput(input, message) {
       if (!input.trim()) {
         showDanger(message);
@@ -192,26 +192,26 @@ export default {
       return true;
     },
 
-    // 发送手机验证码
+    // Send mobile verification code
     sendMobileCaptcha() {
       if (!validateMobile(this.form.mobile, this.form.areaCode)) {
-        showDanger('请输入正确的手机号码');
+        showDanger('Please enter a valid phone number');
         return;
       }
 
-      // 验证图形验证码
-      if (!this.validateInput(this.form.captcha, '请输入图形验证码')) {
+      // Verify captcha
+      if (!this.validateInput(this.form.captcha, 'Please enter the captcha')) {
         this.fetchCaptcha();
         return;
       }
 
-      // 清除可能存在的旧定时器
+      // Clear any existing timer
       if (this.timer) {
         clearInterval(this.timer);
         this.timer = null;
       }
 
-      // 开始倒计时
+      // Start countdown
       this.countdown = 60;
       this.timer = setInterval(() => {
         if (this.countdown > 0) {
@@ -222,49 +222,49 @@ export default {
         }
       }, 1000);
 
-      // 调用发送验证码接口
+      // Call send verification code API
       Api.user.sendSmsVerification({
         phone: this.form.areaCode + this.form.mobile,
         captcha: this.form.captcha,
         captchaId: this.form.captchaId
       }, (res) => {
-        showSuccess('验证码发送成功');
+        showSuccess('Verification code sent successfully');
       }, (err) => {
-        showDanger(err.data.msg || '验证码发送失败');
+        showDanger(err.data.msg || 'Failed to send verification code');
         this.countdown = 0;
         this.fetchCaptcha();
       });
     },
 
-    // 注册逻辑
+    // Registration logic
     register() {
       if (this.enableMobileRegister) {
-        // 手机号注册验证
+        // Mobile registration validation
         if (!validateMobile(this.form.mobile, this.form.areaCode)) {
-          showDanger('请输入正确的手机号码');
+          showDanger('Please enter a valid phone number');
           return;
         }
         if (!this.form.mobileCaptcha) {
-          showDanger('请输入手机验证码');
+          showDanger('Please enter the SMS verification code');
           return;
         }
       } else {
-        // 用户名注册验证
-        if (!this.validateInput(this.form.username, '用户名不能为空')) {
+        // Username registration validation
+        if (!this.validateInput(this.form.username, 'Username cannot be empty')) {
           return;
         }
       }
 
-      // 验证密码
-      if (!this.validateInput(this.form.password, '密码不能为空')) {
+      // Validate password
+      if (!this.validateInput(this.form.password, 'Password cannot be empty')) {
         return;
       }
       if (this.form.password !== this.form.confirmPassword) {
-        showDanger('两次输入的密码不一致')
+        showDanger('Passwords do not match')
         return
       }
-      // 验证验证码
-      if (!this.validateInput(this.form.captcha, '验证码不能为空')) {
+      // Validate captcha
+      if (!this.validateInput(this.form.captcha, 'Verification code cannot be empty')) {
         return;
       }
 
@@ -273,11 +273,11 @@ export default {
       }
 
       Api.user.register(this.form, ({ data }) => {
-        showSuccess('注册成功！')
+        showSuccess('Registration successful!')
         goToPage('/login')
       }, (err) => {
-        showDanger(err.data.msg || '注册失败')
-        if (err.data != null && err.data.msg != null && err.data.msg.indexOf('图形验证码') > -1) {
+        showDanger(err.data.msg || 'Registration failed')
+        if (err.data != null && err.data.msg != null && (err.data.msg.indexOf('captcha') > -1 || err.data.msg.indexOf('图形验证码') > -1)) {
           this.fetchCaptcha()
         }
       })

@@ -37,12 +37,12 @@ import xiaozhi.modules.sys.vo.SysDictDataVO;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/admin/dict/data")
-@Tag(name = "字典数据管理")
+@Tag(name = "Dictionary Data Management")
 public class SysDictDataController {
     private final SysDictDataService sysDictDataService;
 
     @GetMapping("/page")
-    @Operation(summary = "分页查询字典数据")
+    @Operation(summary = "Paginated dictionary data query")
     @RequiresPermissions("sys:role:superAdmin")
     @Parameters({ @Parameter(name = "dictTypeId", description = "字典类型ID", required = true),
             @Parameter(name = "dictLabel", description = "数据标签"), @Parameter(name = "dictValue", description = "数据值"),
@@ -60,7 +60,7 @@ public class SysDictDataController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "获取字典数据详情")
+    @Operation(summary = "Get dictionary data details")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<SysDictDataVO> get(@PathVariable("id") Long id) {
         SysDictDataVO vo = sysDictDataService.get(id);
@@ -68,7 +68,7 @@ public class SysDictDataController {
     }
 
     @PostMapping("/save")
-    @Operation(summary = "新增字典数据")
+    @Operation(summary = "Add dictionary data")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> save(@RequestBody SysDictDataDTO dto) {
         ValidatorUtils.validateEntity(dto);
@@ -77,7 +77,7 @@ public class SysDictDataController {
     }
 
     @PutMapping("/update")
-    @Operation(summary = "修改字典数据")
+    @Operation(summary = "Modify dictionary data")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Void> update(@RequestBody SysDictDataDTO dto) {
         ValidatorUtils.validateEntity(dto);
@@ -86,7 +86,7 @@ public class SysDictDataController {
     }
 
     @PostMapping("/delete")
-    @Operation(summary = "删除字典数据")
+    @Operation(summary = "Delete dictionary data")
     @RequiresPermissions("sys:role:superAdmin")
     @Parameter(name = "ids", description = "ID数组", required = true)
     public Result<Void> delete(@RequestBody Long[] ids) {
@@ -95,7 +95,7 @@ public class SysDictDataController {
     }
 
     @GetMapping("/type/{dictType}")
-    @Operation(summary = "获取字典数据列表")
+    @Operation(summary = "Get dictionary data list")
     @RequiresPermissions("sys:role:normal")
     public Result<List<SysDictDataItem>> getDictDataByType(@PathVariable("dictType") String dictType) {
         List<SysDictDataItem> list = sysDictDataService.getDictDataByType(dictType);
