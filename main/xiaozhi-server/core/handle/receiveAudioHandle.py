@@ -3,7 +3,7 @@ import json
 from core.handle.sendAudioHandle import send_stt_message
 from core.handle.intentHandler import handle_user_intent
 from core.utils.output_counter import check_device_output_limit
-from core.handle.abortHandle import handleAbortMessage
+from core.handle.textHandler.abortHandle import handleAbortMessage
 from core.handle.sendAudioHandle import SentenceType
 from core.utils.util import audio_to_data_stream
 
