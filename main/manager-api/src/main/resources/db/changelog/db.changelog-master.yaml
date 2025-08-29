@@ -325,7 +325,7 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202508291500.sql
-
+  - changeSet:
       id: 202501230002_translate_dict_names
       author: cheeko
       changes:

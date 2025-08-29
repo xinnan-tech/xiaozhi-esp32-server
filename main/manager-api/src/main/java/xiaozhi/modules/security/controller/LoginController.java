@@ -104,8 +104,8 @@ public class LoginController {
     @PostMapping("/register")
 
     @Operation(summary = "Register")
-    public Result<Void> register(@RequestBody LoginDTO login) {
-         Production1
+    public Result<TokenDTO> register(@RequestBody LoginDTO login) {
+      
         if (!sysUserService.getAllowUserRegister()) {
             throw new RenException("当前不允许普通用户注册");
         }
