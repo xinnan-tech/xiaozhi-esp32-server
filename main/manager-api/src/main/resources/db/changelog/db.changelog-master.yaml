@@ -324,3 +324,10 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202501230005_translate_sys_params.sql
+  - changeSet:
+      id: 202508291530
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508291530_add_amazon_transcribe_streaming.sql

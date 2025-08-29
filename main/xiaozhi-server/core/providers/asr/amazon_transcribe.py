@@ -31,7 +31,7 @@ class ASRProvider(ASRProviderBase):
         
         # Transcription Configuration
         self.language_code = config.get("language_code", "en-US")
-        self.sample_rate = config.get("sample_rate", 16000)
+        self.sample_rate = int(config.get("sample_rate", 16000))
         self.media_format = config.get("media_format", "wav")
         self.vocabulary_name = config.get("vocabulary_name")  # Optional custom vocabulary
         self.vocabulary_filter_name = config.get("vocabulary_filter_name")  # Optional vocabulary filter

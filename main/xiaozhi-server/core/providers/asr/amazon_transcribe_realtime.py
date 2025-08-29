@@ -80,7 +80,7 @@ class ASRProvider(ASRProviderBase):
         
         # Multi-language Configuration for India
         self.language_code = config.get("language_code", "en-IN")
-        self.sample_rate = config.get("sample_rate", 16000)
+        self.sample_rate = int(config.get("sample_rate", 16000))
         self.media_encoding = "pcm"  # Fixed for streaming
         
         # Indian languages supported by Amazon Transcribe
@@ -98,8 +98,11 @@ class ASRProvider(ASRProviderBase):
         }
         
         # Multi-language detection settings - temporarily disabled due to API conflicts
-        self.enable_language_detection = config.get("enable_language_detection", False)
-        self.romanized_output = config.get("romanized_output", True)
+        enable_lang_detect = config.get("enable_language_detection", False)
+        self.enable_language_detection = enable_lang_detect if isinstance(enable_lang_detect, bool) else str(enable_lang_detect).lower() == "true"
+        
+        romanized = config.get("romanized_output", True)
+        self.romanized_output = romanized if isinstance(romanized, bool) else str(romanized).lower() == "true"
         
         # File management
         self.output_dir = config.get("output_dir", "./audio_files")
