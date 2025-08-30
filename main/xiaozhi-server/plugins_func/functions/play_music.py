@@ -11,10 +11,22 @@ from core.utils.dialogue import Message
 from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
 from plugins_func.utils.multilingual_matcher import MultilingualMatcher
 
+# S3 Streaming imports
+import boto3
+from botocore.exceptions import ClientError
+import logging
+
+# CDN Download imports
+from core.utils.cdn_manager import download_cdn_file
+
 TAG = __name__
 
 MUSIC_CACHE = {}
 MULTILINGUAL_MATCHER = None
+
+# S3 Configuration
+S3_CLIENT = None
+S3_BUCKET_NAME = "cheeko-audio-files"
 
 play_music_function_desc = {
     "type": "function",
@@ -28,8 +40,8 @@ play_music_function_desc = {
                     "type": "string",
                     "description": "Complete user request for music. Include the full original request to enable intelligent matching. Examples: 'play Baa Baa Black Sheep', 'sing Hanuman Chalisa', 'play any Hindi song', 'I want Telugu music', 'play phonics songs', 'something energetic', 'play music for kids'",
                 },
-                "language_preference": {
-                    "type": "string",
+                "requested_language": {
+                    "type": ["string", "null"],
                     "description": "Detected or requested language preference. Options: 'english', 'hindi', 'telugu', 'kannada', 'tamil', 'phonics', or 'any'. Only set if explicitly mentioned or clearly implied.",
                 },
                 "song_type": {
@@ -45,13 +57,22 @@ play_music_function_desc = {
 
 
 @register_function("play_music", play_music_function_desc, ToolType.SYSTEM_CTL)
-def play_music(conn, user_request: str, song_type: str = "random", language_preference: str = None):
+def play_music(conn, user_request: str, song_type: str = "random", requested_language: str = None):
     try:
+        # Check if music is already playing to prevent multiple simultaneous requests
+        # if hasattr(conn, 'client_is_speaking') and conn.client_is_speaking:
+        #     conn.logger.bind(tag=TAG).info(f"Music already playing, ignoring duplicate request: '{user_request}'")
+        #     return ActionResponse(
+        #         action=Action.RESPONSE, 
+        #         result="Music already playing", 
+        #         response="I'm already playing music for you!"
+        #     )
+        
         # Initialize multilingual matcher
         initialize_multilingual_music_system(conn)
         
         # Log the request for debugging
-        conn.logger.bind(tag=TAG).info(f"Music request: '{user_request}', type: {song_type}, language: {language_preference}")
+        conn.logger.bind(tag=TAG).info(f"Music request: '{user_request}', type: {song_type}, language: {requested_language}")
 
         # Check event loop status
         if not conn.loop.is_running():
@@ -62,7 +83,7 @@ def play_music(conn, user_request: str, song_type: str = "random", language_pref
 
         # Submit async task with enhanced parameters
         task = conn.loop.create_task(
-            handle_multilingual_music_command(conn, user_request, song_type, language_preference)
+            handle_multilingual_music_command(conn, user_request, song_type, requested_language)
         )
 
         # Non-blocking callback handling
@@ -83,7 +104,9 @@ def play_music(conn, user_request: str, song_type: str = "random", language_pref
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"Error handling multilingual music request: {e}")
         return ActionResponse(
-            action=Action.RESPONSE, result=str(e), response="Error occurred while processing your music request"
+            action=Action.RESPONSE, 
+            result="Song not available", 
+            response="The song you requested is not available right now, but it will be available soon. Please try again later."
         )
 
 
@@ -224,26 +247,123 @@ def _find_best_match(potential_song, music_files):
 
 
 def get_music_files(music_dir, music_ext):
+    """Get all music files - S3 MODE: Read from metadata.json"""
+    import json
+    
     music_dir = Path(music_dir)
     music_files = []
     music_file_names = []
-    for file in music_dir.rglob("*"):
-        # Check if it's a file
-        if file.is_file():
-            # Get file extension
-            ext = file.suffix.lower()
-            # Check if extension is in the list
-            if ext in music_ext:
-                # Add relative path
-                music_files.append(str(file.relative_to(music_dir)))
-                music_file_names.append(
-                    os.path.splitext(str(file.relative_to(music_dir)))[0]
-                )
+    
+    # Iterate through language folders
+    for language_folder in music_dir.iterdir():
+        if language_folder.is_dir():
+            language_name = language_folder.name
+            
+            # Check for metadata.json file first (S3 mode)
+            metadata_file = language_folder / "metadata.json"
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                    
+                    # Add music from metadata
+                    for song_title, song_info in metadata.items():
+                        filename = song_info.get('filename', f"{song_title}.mp3")
+                        relative_path = f"{language_name}/{filename}"
+                        music_files.append(relative_path)
+                        music_file_names.append(os.path.splitext(relative_path)[0])
+                    
+                    logging.info(f"Loaded {len(metadata)} songs from {language_name} metadata")
+                    continue
+                    
+                except Exception as e:
+                    logging.error(f"Error reading metadata from {metadata_file}: {e}")
+            
+            # Fallback: scan for actual audio files (legacy mode)
+            for file in language_folder.rglob("*"):
+                if file.is_file():
+                    ext = file.suffix.lower()
+                    if ext in music_ext:
+                        relative_path = str(file.relative_to(music_dir))
+                        music_files.append(relative_path)
+                        music_file_names.append(os.path.splitext(relative_path)[0])
+    
     return music_files, music_file_names
 
 
+def initialize_s3_client():
+    """Initialize S3 client for streaming with SigV4"""
+    global S3_CLIENT
+    if S3_CLIENT is None:
+        try:
+            from botocore.config import Config
+            
+            aws_access_key = os.getenv('AWS_ACCESS_KEY_ID')
+            aws_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+            aws_region = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+            
+            if aws_access_key and aws_secret_key:
+                S3_CLIENT = boto3.client(
+                    's3',
+                    aws_access_key_id=aws_access_key,
+                    aws_secret_access_key=aws_secret_key,
+                    region_name=aws_region,
+                    config=Config(signature_version="s3v4")
+                )
+                logging.info(f"S3 client initialized for music streaming (region: {aws_region})")
+            else:
+                logging.warning("AWS credentials not found, S3 streaming disabled")
+        except Exception as e:
+            logging.error(f"Failed to initialize S3 client: {e}")
+            S3_CLIENT = None
+
+def generate_cdn_music_url(language, filename):
+    """Generate CDN streaming URL for music file"""
+    try:
+        # Import CDN helper
+        from utils.cdn_helper import get_audio_url
+        
+        # Ensure proper capitalization for S3 key (S3 folders are capitalized)
+        language_capitalized = language.capitalize()
+        audio_path = f"music/{language_capitalized}/{filename}"
+        
+        # Use CDN helper to generate URL with automatic encoding
+        cdn_url = get_audio_url(audio_path)
+        logging.info(f"Generated CDN URL for music: {audio_path} -> {cdn_url}")
+        return cdn_url
+        
+    except Exception as e:
+        logging.error(f"Error generating CDN URL for music: {e}")
+        # Fallback to S3 presigned URL if CDN fails
+        return generate_s3_music_url_fallback(language, filename)
+
+def generate_s3_music_url_fallback(language, filename):
+    """Fallback S3 streaming URL for music file"""
+    global S3_CLIENT, S3_BUCKET_NAME
+    
+    if not S3_CLIENT:
+        return None
+    
+    try:
+        # Ensure proper capitalization for S3 key (S3 folders are capitalized)
+        language_capitalized = language.capitalize()
+        s3_key = f"music/{language_capitalized}/{filename}"
+        url = S3_CLIENT.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': S3_BUCKET_NAME, 'Key': s3_key},
+            ExpiresIn=7200  # 2 hours for streaming
+        )
+        logging.info(f"Generated fallback S3 URL for music: {s3_key}")
+        return url
+    except ClientError as e:
+        logging.error(f"Error generating fallback S3 URL for music: {e}")
+        return None
+
 def initialize_music_handler(conn):
     global MUSIC_CACHE
+    # Initialize S3 client
+    initialize_s3_client()
+    
     if MUSIC_CACHE == {}:
         if "play_music" in conn.config["plugins"]:
             MUSIC_CACHE["music_config"] = conn.config["plugins"]["play_music"]
@@ -286,7 +406,7 @@ def initialize_multilingual_music_system(conn):
             conn.logger.bind(tag=TAG).error(f"Failed to initialize multilingual matcher: {e}")
             MULTILINGUAL_MATCHER = None
 
-async def handle_multilingual_music_command(conn, user_request: str, song_type: str, language_preference: str = None):
+async def handle_multilingual_music_command(conn, user_request: str, song_type: str, requested_language: str = None):
     """Enhanced music command handler with multilingual AI matching"""
     global MULTILINGUAL_MATCHER, MUSIC_CACHE
     
@@ -295,7 +415,7 @@ async def handle_multilingual_music_command(conn, user_request: str, song_type: 
     # Check if music directory exists
     if not os.path.exists(MUSIC_CACHE["music_dir"]):
         conn.logger.bind(tag=TAG).error(f"Music directory does not exist: {MUSIC_CACHE['music_dir']}")
-        await send_stt_message(conn, "Sorry, I couldn't find the music collection.")
+        await send_stt_message(conn, "The music collection is being set up. Songs will be available soon. Please try again later.")
         return
     
     # Refresh cache if needed
@@ -309,8 +429,8 @@ async def handle_multilingual_music_command(conn, user_request: str, song_type: 
     match_info = None
     
     # Detect language from request if not provided
-    if not language_preference and MULTILINGUAL_MATCHER:
-        language_preference = MULTILINGUAL_MATCHER.detect_language_from_request(user_request)
+    if not requested_language and MULTILINGUAL_MATCHER:
+        requested_language = MULTILINGUAL_MATCHER.detect_language_from_request(user_request)
     
     # Check if this is a language-only request
     is_language_only = MULTILINGUAL_MATCHER and MULTILINGUAL_MATCHER.is_language_only_request(user_request)
@@ -330,20 +450,20 @@ async def handle_multilingual_music_command(conn, user_request: str, song_type: 
                         list(MULTILINGUAL_MATCHER.metadata_cache[detected_language]['metadata'].values()).index(metadata_entry)
                     ] if detected_language in MULTILINGUAL_MATCHER.metadata_cache else 'Unknown'
                 }
-                conn.logger.bind(tag=TAG).info(f"AI match found: {selected_music} ({detected_language}) - overriding LLM language hint: {language_preference}")
+                conn.logger.bind(tag=TAG).info(f"AI match found: {selected_music} ({detected_language}) - overriding LLM language hint: {requested_language}")
         except Exception as e:
             conn.logger.bind(tag=TAG).error(f"Error in AI matching: {e}")
     
     # Try language-specific selection for language requests or when language is detected
-    if not selected_music and language_preference and MULTILINGUAL_MATCHER:
+    if not selected_music and requested_language and MULTILINGUAL_MATCHER:
         try:
-            language_content = MULTILINGUAL_MATCHER.get_language_specific_content(language_preference)
+            language_content = MULTILINGUAL_MATCHER.get_language_specific_content(requested_language)
             if language_content:
                 selected_path, metadata_entry = random.choice(language_content)
                 selected_music = selected_path
                 match_info = {
                     'method': 'language_random',
-                    'language': language_preference,
+                    'language': requested_language,
                     'title': metadata_entry.get('romanized', 'Unknown')
                 }
                 conn.logger.bind(tag=TAG).info(f"Language-specific random selection: {selected_music}")
@@ -395,31 +515,67 @@ async def handle_multilingual_music_command(conn, user_request: str, song_type: 
     if selected_music:
         await play_multilingual_music(conn, selected_music, match_info, user_request)
     else:
-        conn.logger.bind(tag=TAG).error("No music found to play")
-        await send_stt_message(conn, "Sorry, I couldn't find any music to play.")
+        # Provide a user-friendly message when song is not available
+        conn.logger.bind(tag=TAG).info(f"Song not found for request: {user_request}")
+        not_available_message = "The song you requested is not available right now, but it will be available soon. Please try again later or ask for a different song."
+        await send_stt_message(conn, not_available_message)
 
 async def play_multilingual_music(conn, selected_music: str, match_info: dict, original_request: str):
-    """Play selected music with contextual introduction"""
+    """Play selected music with contextual introduction - CDN STREAMING VERSION"""
     global MUSIC_CACHE
     
     try:
-        # Ensure path correctness
-        if not os.path.isabs(selected_music):
-            music_path = os.path.join(MUSIC_CACHE["music_dir"], selected_music)
+        # Extract language and filename from selected_music path
+        # selected_music format: "Hindi/song.mp3" or "English/song.mp3"
+        path_parts = selected_music.split('/')
+        if len(path_parts) >= 2:
+            language = path_parts[0]
+            filename = path_parts[1]
         else:
-            music_path = selected_music
+            # Fallback: try to get from match_info
+            language = match_info.get('language', 'English')
+            filename = os.path.basename(selected_music)
         
-        if not os.path.exists(music_path):
-            conn.logger.bind(tag=TAG).error(f"Selected music file does not exist: {music_path}")
+        # Generate CDN streaming URL
+        cdn_url = generate_cdn_music_url(language, filename)
+        
+        if not cdn_url:
+            conn.logger.bind(tag=TAG).error(f"Failed to generate CDN URL for: {language}/{filename}")
+            await send_stt_message(conn, "The song is not available right now, but it will be available soon. Please try again later.")
+            return
+        
+        # CRITICAL CHANGE: Download from CDN to local file first
+        # Try CDN download, fallback to presigned URL if needed
+        local_file_path = await download_cdn_file(cdn_url, conn)
+        if not local_file_path:
+            conn.logger.bind(tag=TAG).warning(f"CDN download failed for: {cdn_url}")
+            # Try direct presigned URL as fallback
+            try:
+                presigned_url = generate_s3_music_url_fallback(language, filename)
+                if presigned_url:
+                    conn.logger.bind(tag=TAG).info(f"Using presigned URL fallback: {presigned_url[:50]}...")
+                    local_file_path = await download_cdn_file(presigned_url, conn)
+            except Exception as e:
+                conn.logger.bind(tag=TAG).error(f"Presigned URL fallback failed: {e}")
+        
+        if not local_file_path:
+            conn.logger.bind(tag=TAG).error(f"All download methods failed for: {language}/{filename}")
+            await send_stt_message(conn, "The song is not available right now, but it will be available soon. Please try again later.")
             return
         
         # Generate contextual introduction based on match info
         intro_text = generate_multilingual_intro(match_info, original_request)
         
+        # Set client_is_speaking flag to prevent VAD during music playback
+        conn.client_is_speaking = True
+        # Set llm_finish_task to ensure "stop" message is sent when music finishes
+        conn.llm_finish_task = True
+        conn.logger.bind(tag=TAG).info("Music playback started - pausing audio listening to prevent interruption")
+        
         await send_stt_message(conn, intro_text)
         conn.dialogue.put(Message(role="assistant", content=intro_text))
         
-        # Queue TTS messages
+        # Queue TTS messages with S3 URL
         if conn.intent_type == "intent_llm":
             conn.tts.tts_text_queue.put(
                 TTSMessageDTO(
@@ -438,29 +594,31 @@ async def play_multilingual_music(conn, selected_music: str, match_info: dict, o
             )
         )
         
+        # Use CDN URL instead of local file path
         conn.tts.tts_text_queue.put(
             TTSMessageDTO(
                 sentence_id=conn.sentence_id,
                 sentence_type=SentenceType.MIDDLE,
                 content_type=ContentType.FILE,
-                content_file=music_path,
+                content_file=local_file_path,  # LOCAL FILE, NOT CDN URL!
             )
         )
         
-        if conn.intent_type == "intent_llm":
-            conn.tts.tts_text_queue.put(
-                TTSMessageDTO(
-                    sentence_id=conn.sentence_id,
-                    sentence_type=SentenceType.LAST,
-                    content_type=ContentType.ACTION,
-                )
+        # Always send LAST message to ensure proper TTS stop signal
+        conn.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=conn.sentence_id,
+                sentence_type=SentenceType.LAST,
+                content_type=ContentType.ACTION,
             )
+        )
         
-        conn.logger.bind(tag=TAG).info(f"Playing multilingual music: {music_path}")
+        conn.logger.bind(tag=TAG).info(f"Streaming music from local cache: {local_file_path}")
         
     except Exception as e:
-        conn.logger.bind(tag=TAG).error(f"Failed to play multilingual music: {str(e)}")
+        conn.logger.bind(tag=TAG).error(f"Failed to stream music from CDN: {str(e)}")
         conn.logger.bind(tag=TAG).error(f"Detailed error: {traceback.format_exc()}")
+        await send_stt_message(conn, "The song is not available right now, but it will be available soon. Please try again later.")
 
 def generate_multilingual_intro(match_info: dict, original_request: str) -> str:
     """Generate contextual introduction based on matching method and info"""
@@ -589,28 +747,59 @@ def _get_random_play_prompt(song_name):
 
 async def play_local_music(conn, specific_file=None):
     global MUSIC_CACHE
-    """Play local music file"""
+    """Play music from S3 - UPDATED FOR S3 STREAMING"""
     try:
-        if not os.path.exists(MUSIC_CACHE["music_dir"]):
-            conn.logger.bind(tag=TAG).error(
-                f"Music directory does not exist: " + MUSIC_CACHE["music_dir"]
-            )
-            return
-
         # Ensure path correctness
         if specific_file:
             selected_music = specific_file
-            music_path = os.path.join(MUSIC_CACHE["music_dir"], specific_file)
         else:
             if not MUSIC_CACHE["music_files"]:
-                conn.logger.bind(tag=TAG).error("No MP3 music files found")
+                conn.logger.bind(tag=TAG).error("No music files found in metadata")
                 return
             selected_music = random.choice(MUSIC_CACHE["music_files"])
-            music_path = os.path.join(MUSIC_CACHE["music_dir"], selected_music)
 
-        if not os.path.exists(music_path):
-            conn.logger.bind(tag=TAG).error(f"Selected music file does not exist: {music_path}")
+        # Extract language and filename from path
+        path_parts = selected_music.split('/')
+        if len(path_parts) >= 2:
+            language = path_parts[0]
+            filename = path_parts[1]
+        else:
+            # Fallback
+            language = "English"
+            filename = os.path.basename(selected_music)
+
+        # Generate CDN streaming URL (CloudFront)
+        cdn_url = generate_cdn_music_url(language, filename)
+        
+        if not cdn_url:
+            conn.logger.bind(tag=TAG).error(f"Failed to generate CDN URL for: {language}/{filename}")
+            await send_stt_message(conn, "The song is not available right now, but it will be available soon. Please try again later.")
             return
+
+        # Download from CDN to local file first (same as multilingual function)
+        local_file_path = await download_cdn_file(cdn_url, conn)
+        if not local_file_path:
+            conn.logger.bind(tag=TAG).warning(f"CDN download failed for: {cdn_url}")
+            # Try presigned URL fallback
+            try:
+                presigned_url = generate_s3_music_url_fallback(language, filename)
+                if presigned_url:
+                    conn.logger.bind(tag=TAG).info(f"Using presigned URL fallback: {presigned_url[:50]}...")
+                    local_file_path = await download_cdn_file(presigned_url, conn)
+            except Exception as e:
+                conn.logger.bind(tag=TAG).error(f"Presigned URL fallback failed: {e}")
+        
+        if not local_file_path:
+            conn.logger.bind(tag=TAG).error(f"All download methods failed for: {language}/{filename}")
+            await send_stt_message(conn, "The song is not available right now, but it will be available soon. Please try again later.")
+            return
+
+        # Set client_is_speaking flag to prevent VAD during music playback
+        conn.client_is_speaking = True
+        # Set llm_finish_task to ensure "stop" message is sent when music finishes
+        conn.llm_finish_task = True
+        conn.logger.bind(tag=TAG).info("Music playback started - pausing audio listening to prevent interruption")
+        
         text = _get_random_play_prompt(selected_music)
         await send_stt_message(conn, text)
         conn.dialogue.put(Message(role="assistant", content=text))
@@ -631,23 +820,28 @@ async def play_local_music(conn, specific_file=None):
                 content_detail=text,
             )
         )
+        # Use local downloaded file instead of streaming URL
         conn.tts.tts_text_queue.put(
             TTSMessageDTO(
                 sentence_id=conn.sentence_id,
                 sentence_type=SentenceType.MIDDLE,
                 content_type=ContentType.FILE,
-                content_file=music_path,
+                content_file=local_file_path,  # LOCAL FILE, NOT STREAMING URL!
             )
         )
-        if conn.intent_type == "intent_llm":
-            conn.tts.tts_text_queue.put(
-                TTSMessageDTO(
-                    sentence_id=conn.sentence_id,
-                    sentence_type=SentenceType.LAST,
-                    content_type=ContentType.ACTION,
-                )
+        
+        # Always send LAST message to ensure proper TTS stop signal
+        conn.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=conn.sentence_id,
+                sentence_type=SentenceType.LAST,
+                content_type=ContentType.ACTION,
             )
+        )
+
+        conn.logger.bind(tag=TAG).info(f"Streaming music from local cache: {local_file_path}")
 
     except Exception as e:
-        conn.logger.bind(tag=TAG).error(f"Failed to play music: {str(e)}")
+        conn.logger.bind(tag=TAG).error(f"Failed to stream music from CDN: {str(e)}")
         conn.logger.bind(tag=TAG).error(f"Detailed error: {traceback.format_exc()}")
+        await send_stt_message(conn, "The song is not available right now, but it will be available soon. Please try again later.")

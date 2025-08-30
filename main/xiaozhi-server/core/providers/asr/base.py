@@ -62,23 +62,23 @@ class ASRProviderBase(ABC):
         else:
             have_voice = conn.client_have_voice
             
-        # Check for maximum recording timeout (default 10 seconds)
-        # This applies when we're actively recording (have accumulated audio)
+        # Check for maximum recording timeout (hardcoded 10 seconds)
+        # This applies when we're actively recording
         recording_start_time = None
-        if hasattr(conn, 'listen_start_time'):
-            recording_start_time = conn.listen_start_time  # Manual listen mode
-            logger.bind(tag=TAG).debug(f"Using manual listen start time: {recording_start_time}")
-        elif hasattr(conn, 'vad_recording_start_time'):
+        if hasattr(conn, 'vad_recording_start_time'):
             recording_start_time = conn.vad_recording_start_time  # Auto VAD mode
-            logger.bind(tag=TAG).debug(f"Using VAD recording start time: {recording_start_time}")
-        else:
-            logger.bind(tag=TAG).debug("No recording start time found")
+        elif hasattr(conn, 'listen_start_time'):
+            recording_start_time = conn.listen_start_time  # Manual listen mode
             
-        if len(conn.asr_audio) > 0 and recording_start_time and not conn.client_voice_stop:
+        if recording_start_time and not conn.client_voice_stop:
             current_time = time.time()
             recording_duration = current_time - recording_start_time
-            max_recording_time = conn.config.get('max_recording_time', 10.0)
-            logger.bind(tag=TAG).debug(f"Recording duration: {recording_duration:.2f}s, max: {max_recording_time}s, audio chunks: {len(conn.asr_audio)}")
+            max_recording_time = 10.0  # Hardcoded 10 second maximum
+            
+            # Log every 50 chunks or when approaching timeout
+            if len(conn.asr_audio) % 50 == 0 or recording_duration >= (max_recording_time - 1):
+                logger.bind(tag=TAG).debug(f"Recording duration: {recording_duration:.2f}s, max: {max_recording_time}s, audio chunks: {len(conn.asr_audio)}")
+            
             if recording_duration >= max_recording_time:
                 # Use a timeout flag to prevent multiple timeout messages
                 if not hasattr(conn, '_timeout_triggered') or not conn._timeout_triggered:
@@ -91,16 +91,16 @@ class ASRProviderBase(ABC):
                     
                     # Process any accumulated audio before resetting (same as normal VAD flow)
                     if len(conn.asr_audio) > 20:
+                        logger.bind(tag=TAG).info(f"Processing {len(conn.asr_audio)} audio chunks after 10-second timeout")
                         asr_audio_task = conn.asr_audio.copy()
                         conn.asr_audio.clear()
                         conn.reset_vad_states()
-                        conn._timeout_triggered = False  # Reset for next session
-                        # Process the accumulated audio
+                        # Process the accumulated audio asynchronously
                         asyncio.create_task(self.handle_voice_stop(conn, asr_audio_task))
                     else:
+                        logger.bind(tag=TAG).debug(f"Timeout reached but insufficient audio ({len(conn.asr_audio)} chunks) - resetting without processing")
                         # No significant audio to process, just reset everything
                         conn.reset_vad_states()
-                        conn._timeout_triggered = False  # Reset for next session
                     
                     return  # Exit early like VAD does
                 else:

@@ -96,6 +96,7 @@ class MultilingualMatcher:
         
         return None
     
+    
     def extract_content_name_from_request(self, request: str) -> Optional[str]:
         """
         Extract content name from user request
