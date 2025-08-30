@@ -75,9 +75,9 @@ class ASRProviderBase(ABC):
                                      f"audio_len={len(audio)}, asr_buffer_len={len(conn.asr_audio)}")
 
         # Echo suppression: Ignore audio for a brief period after starting to listen
-        if hasattr(conn, 'listen_start_time'):
+        if hasattr(conn, 'listen_start_time') and conn.listen_start_time is not None:
             time_since_listen_start = time.time() - conn.listen_start_time
-            if time_since_listen_start < 0.1:  # Ignore first 300ms of audio (echo period)
+            if time_since_listen_start < 0.1:  # Ignore first 100ms of audio (echo period)
                 if have_voice:
                     logger.bind(tag=TAG).debug(f"Ignoring potential echo audio ({time_since_listen_start:.2f}s after listen start)")
                 have_voice = False
