@@ -62,51 +62,7 @@ class ASRProviderBase(ABC):
         else:
             have_voice = conn.client_have_voice
             
-        # Check for maximum recording timeout (hardcoded 10 seconds)
-        # This applies when we're actively recording
-        recording_start_time = None
-        if hasattr(conn, 'vad_recording_start_time'):
-            recording_start_time = conn.vad_recording_start_time  # Auto VAD mode
-        elif hasattr(conn, 'listen_start_time'):
-            recording_start_time = conn.listen_start_time  # Manual listen mode
-            
-        if recording_start_time and not conn.client_voice_stop:
-            current_time = time.time()
-            recording_duration = current_time - recording_start_time
-            max_recording_time = 10.0  # Hardcoded 10 second maximum
-            
-            # Log every 50 chunks or when approaching timeout
-            if len(conn.asr_audio) % 50 == 0 or recording_duration >= (max_recording_time - 1):
-                logger.bind(tag=TAG).debug(f"Recording duration: {recording_duration:.2f}s, max: {max_recording_time}s, audio chunks: {len(conn.asr_audio)}")
-            
-            if recording_duration >= max_recording_time:
-                # Use a timeout flag to prevent multiple timeout messages
-                if not hasattr(conn, '_timeout_triggered') or not conn._timeout_triggered:
-                    logger.bind(tag=TAG).info(f"Maximum recording time reached ({recording_duration:.2f}s) - forcing voice stop")
-                    conn._timeout_triggered = True
-                    
-                    # Force voice stop using the same logic as VAD silence detection
-                    conn.client_voice_stop = True
-                    have_voice = False
-                    
-                    # Process any accumulated audio before resetting (same as normal VAD flow)
-                    if len(conn.asr_audio) > 20:
-                        logger.bind(tag=TAG).info(f"Processing {len(conn.asr_audio)} audio chunks after timeout")
-                        asr_audio_task = conn.asr_audio.copy()
-                        conn.asr_audio.clear()
-                        # Reset states and clear timeout flag
-                        conn.reset_vad_states()
-                        # Process the accumulated audio asynchronously
-                        asyncio.create_task(self.handle_voice_stop(conn, asr_audio_task))
-                    else:
-                        logger.bind(tag=TAG).debug(f"Timeout reached but insufficient audio ({len(conn.asr_audio)} chunks) - resetting without processing")
-                        # No significant audio to process, just reset everything
-                        conn.reset_vad_states()
-                    
-                    return  # Exit early like VAD does
-                
-                # If timeout already triggered, just skip this audio and return
-                return
+        # 10 second timeout removed - VAD will handle voice detection naturally
             
         # Debug logging
         if not hasattr(conn, '_asr_log_counter'):
@@ -134,13 +90,8 @@ class ASRProviderBase(ABC):
             # Clear the just_started_listening flag when actual voice is detected
             if hasattr(conn, 'just_started_listening'):
                 conn.just_started_listening = False
-            # Start recording timer for VAD-based sessions (only if not already set)
-            if not hasattr(conn, 'vad_recording_start_time') or conn.vad_recording_start_time is None:
-                conn.vad_recording_start_time = time.time()
-                # Reset timeout flag when starting new recording session
-                if hasattr(conn, '_timeout_triggered'):
-                    conn._timeout_triggered = False
-                logger.bind(tag=TAG).debug("VAD recording session started")
+            # VAD recording session started (no timeout needed)
+            logger.bind(tag=TAG).debug("VAD recording session started")
             # Add pre-buffered audio to the beginning of ASR audio
             conn.asr_audio = list(conn.audio_pre_buffer) + conn.asr_audio
             conn.audio_pre_buffer.clear()

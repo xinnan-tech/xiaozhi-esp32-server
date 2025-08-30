@@ -2361,13 +2361,10 @@ class ConnectionHandler:
         # Clear ASR audio buffer to prevent processing leftover audio
         if hasattr(self, 'asr_audio'):
             self.asr_audio.clear()
-        # Reset VAD recording start time for timeout
+        # Reset VAD recording start time (no timeout logic needed)
         if hasattr(self, 'vad_recording_start_time'):
             self.vad_recording_start_time = None
-        # Reset timeout flag
-        if hasattr(self, '_timeout_triggered'):
-            self._timeout_triggered = False
-        # Also reset listen start time to prevent conflicts
+        # Also reset listen start time
         if hasattr(self, 'listen_start_time'):
             self.listen_start_time = None
         # Clear ASR audio queue for this specific connection only
