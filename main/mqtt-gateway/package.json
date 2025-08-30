@@ -1,0 +1,17 @@
+{
+  "name": "mqtt-gateway",
+  "version": "1.0.0",
+  "description": "This is a bridge service for IoT device communication that implements conversion from MQTT and UDP protocols to WebSocket. The service allows devices to transmit control messages through MQTT protocol while efficiently transmitting audio data through UDP protocol, bridging this data to WebSocket services.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "debug": "^4.4.1",
+    "dotenv": "^17.2.1",
+    "ws": "^8.18.3"
+  }
+}

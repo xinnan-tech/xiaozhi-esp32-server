@@ -1,0 +1,37 @@
+{
+  "A For Apple , B For Ball, C For Cat": {
+    "romanized": "A For Apple B For Ball C For Cat",
+    "filename": "A For Apple , B For Ball, C For Cat.mp3",
+    "alternatives": [
+      "A For Apple B For Ball C For Cat",
+      "a for apple b for ball c for cat",
+      "apple ball cat",
+      "ABC song",
+      "alphabet song",
+      "phonics ABC",
+      "A B C phonics",
+      "apple ball cat song",
+      "phonics alphabet",
+      "learn ABC",
+      "ABC learning"
+    ]
+  },
+  "Fun! Learning ABC For Kindergart": {
+    "romanized": "Fun Learning ABC For Kindergarten",
+    "filename": "Fun! Learning ABC For Kindergart.mp3",
+    "alternatives": [
+      "Fun Learning ABC For Kindergarten",
+      "fun learning ABC",
+      "kindergarten ABC",
+      "ABC for kindergarten",
+      "fun ABC learning",
+      "kindergarten phonics",
+      "ABC kindergarten song",
+      "learning ABC fun",
+      "phonics for kids",
+      "alphabet for kindergarten",
+      "fun alphabet song",
+      "kindergarten alphabet"
+    ]
+  }
+}

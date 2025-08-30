@@ -1,0 +1,572 @@
+{
+    "a portrait of a cat": {
+      "romanized": "a portrait of a cat",
+      "filename": "a portrait of a cat.mp3",
+      "alternatives": ["portrait of cat", "cat portrait", "cat story"]
+    },
+    "amazing gazelle (1)": {
+      "romanized": "amazing gazelle (1)",
+      "filename": "amazing gazelle (1).mp3",
+      "alternatives": ["amazing gazelle", "gazelle story", "gazelle part 1"]
+    },
+    "amazing gazelle": {
+      "romanized": "amazing gazelle",
+      "filename": "amazing gazelle.mp3",
+      "alternatives": ["gazelle story", "amazing animal", "gazelle tale"]
+    },
+    "astropup and the wreck of the hesperus": {
+      "romanized": "astropup and the wreck of the hesperus",
+      "filename": "astropup and the wreck of the hesperus.mp3",
+      "alternatives": ["astropup hesperus", "astropup wreck", "space dog story"]
+    },
+    "astropup in gone with the wind": {
+      "romanized": "astropup in gone with the wind",
+      "filename": "astropup in gone with the wind.mp3",
+      "alternatives": ["astropup gone with wind", "astropup wind", "space dog story"]
+    },
+    "atropup marlows metamorphosis": {
+      "romanized": "atropup marlows metamorphosis",
+      "filename": "atropup marlows metamorphosis.mp3",
+      "alternatives": ["astropup metamorphosis", "marlow metamorphosis", "space dog story"]
+    },
+    "bertie and the ghost (1)": {
+      "romanized": "bertie and the ghost (1)",
+      "filename": "bertie and the ghost (1).mp3",
+      "alternatives": ["bertie ghost", "bertie ghost part 1", "frog story"]
+    },
+    "bertie and the ghost": {
+      "romanized": "bertie and the ghost",
+      "filename": "bertie and the ghost.mp3",
+      "alternatives": ["bertie ghost", "ghost story", "frog story"]
+    },
+    "bertie and the lion (1)": {
+      "romanized": "bertie and the lion (1)",
+      "filename": "bertie and the lion (1).mp3",
+      "alternatives": ["bertie lion", "bertie lion part 1", "frog story"]
+    },
+    "bertie and the lion": {
+      "romanized": "bertie and the lion",
+      "filename": "bertie and the lion.mp3",
+      "alternatives": ["bertie lion", "lion story", "frog story"]
+    },
+    "bertie and the queens confession": {
+      "romanized": "bertie and the queens confession",
+      "filename": "bertie and the queens confession.mp3",
+      "alternatives": ["bertie queen confession", "bertie queen", "frog story"]
+    },
+    "bertie and the secret potato": {
+      "romanized": "bertie and the secret potato",
+      "filename": "bertie and the secret potato.mp3",
+      "alternatives": ["bertie secret potato", "bertie potato", "frog story"]
+    },
+    "bertie meets father christmas": {
+      "romanized": "bertie meets father christmas",
+      "filename": "bertie meets father christmas.mp3",
+      "alternatives": ["bertie father christmas", "bertie santa", "frog story"]
+    },
+    "berties car": {
+      "romanized": "berties car",
+      "filename": "berties car.mp3",
+      "alternatives": ["bertie car", "car story", "frog story"]
+    },
+    "berties year of the rat": {
+      "romanized": "berties year of the rat",
+      "filename": "berties year of the rat.mp3",
+      "alternatives": ["bertie year rat", "year of rat", "zodiac story"]
+    },
+    "birdy and the boy": {
+      "romanized": "birdy and the boy",
+      "filename": "birdy and the boy.mp3",
+      "alternatives": ["birdy boy", "bird boy", "bird story"]
+    },
+    "birdy and the christmas power cut": {
+      "romanized": "birdy and the christmas power cut",
+      "filename": "birdy and the christmas power cut.mp3",
+      "alternatives": ["birdy christmas power cut", "birdy power cut", "bird story"]
+    },
+    "birdy and the garage": {
+      "romanized": "birdy and the garage",
+      "filename": "birdy and the garage.mp3",
+      "alternatives": ["birdy garage", "garage story", "bird story"]
+    },
+    "birdy and the mischevious gnomes": {
+      "romanized": "birdy and the mischevious gnomes",
+      "filename": "birdy and the mischevious gnomes.mp3",
+      "alternatives": ["birdy mischievous gnomes", "birdy gnomes", "bird story"]
+    },
+    "birdy and the seagulls (1)": {
+      "romanized": "birdy and the seagulls (1)",
+      "filename": "birdy and the seagulls (1).mp3",
+      "alternatives": ["birdy seagulls", "birdy seagulls part 1", "bird story"]
+    },
+    "birdy and the seagulls": {
+      "romanized": "birdy and the seagulls",
+      "filename": "birdy and the seagulls.mp3",
+      "alternatives": ["birdy seagulls", "seagull story", "bird story"]
+    },
+    "birdy lost found": {
+      "romanized": "birdy lost found",
+      "filename": "birdy lost found.mp3",
+      "alternatives": ["birdy lost and found", "lost birdy", "bird story"]
+    },
+    "birdy on the ski slopes": {
+      "romanized": "birdy on the ski slopes",
+      "filename": "birdy on the ski slopes.mp3",
+      "alternatives": ["birdy ski slopes", "birdy skiing", "bird story"]
+    },
+    "birdys halloween": {
+      "romanized": "birdys halloween",
+      "filename": "birdys halloween.mp3",
+      "alternatives": ["birdy halloween", "spooky story", "bird story"]
+    },
+    "chinese year of the pig": {
+      "romanized": "chinese year of the pig",
+      "filename": "chinese year of the pig.mp3",
+      "alternatives": ["chinese year pig", "year of pig", "zodiac story"]
+    },
+    "chinese year of the tiger": {
+      "romanized": "chinese year of the tiger",
+      "filename": "chinese year of the tiger.mp3",
+      "alternatives": ["chinese year tiger", "year of tiger", "zodiac story"]
+    },
+    "colin the grumpy king": {
+      "romanized": "colin the grumpy king",
+      "filename": "colin the grumpy king.mp3",
+      "alternatives": ["colin grumpy king", "grumpy king", "king story"]
+    },
+    "colins april fool": {
+      "romanized": "colins april fool",
+      "filename": "colins april fool.mp3",
+      "alternatives": ["colin april fool", "april fool", "king story"]
+    },
+    "country mouse and the city mouse": {
+      "romanized": "country mouse and the city mouse",
+      "filename": "country mouse and the city mouse.mp3",
+      "alternatives": ["country city mouse", "two mice", "mouse story"]
+    },
+    "emperor new clothes": {
+      "romanized": "emperor new clothes",
+      "filename": "emperor new clothes.mp3",
+      "alternatives": ["emperor's new clothes", "new clothes", "fairy tale"]
+    },
+    "father anansi": {
+      "romanized": "father anansi",
+      "filename": "father anansi.mp3",
+      "alternatives": ["anansi story", "spider story", "anansi tale"]
+    },
+    "five little monkeys": {
+      "romanized": "five little monkeys",
+      "filename": "five little monkeys.mp3",
+      "alternatives": ["little monkeys", "monkey song", "counting song"]
+    },
+    "fox and the crow": {
+      "romanized": "fox and the crow",
+      "filename": "fox and the crow.mp3",
+      "alternatives": ["fox crow", "fox and crow", "fable"]
+    },
+    "frere jacques": {
+      "romanized": "frere jacques",
+      "filename": "frere jacques.mp3",
+      "alternatives": ["brother john", "french song", "nursery rhyme"]
+    },
+    "gladys alone real life": {
+      "romanized": "gladys alone real life",
+      "filename": "gladys alone real life.mp3",
+      "alternatives": ["gladys real life", "gladys alone", "music story"]
+    },
+    "gladys alone triumph": {
+      "romanized": "gladys alone triumph",
+      "filename": "gladys alone triumph.mp3",
+      "alternatives": ["gladys triumph", "gladys alone", "music story"]
+    },
+    "gladys and the big deal": {
+      "romanized": "gladys and the big deal",
+      "filename": "gladys and the big deal.mp3",
+      "alternatives": ["gladys big deal", "big deal", "music story"]
+    },
+    "gladys and the big gig": {
+      "romanized": "gladys and the big gig",
+      "filename": "gladys and the big gig.mp3",
+      "alternatives": ["gladys big gig", "big gig", "music story"]
+    },
+    "gladys the music maker": {
+      "romanized": "gladys the music maker",
+      "filename": "gladys the music maker.mp3",
+      "alternatives": ["gladys music maker", "music maker", "music story"]
+    },
+    "goldilocks and the three bears": {
+      "romanized": "goldilocks and the three bears",
+      "filename": "goldilocks and the three bears.mp3",
+      "alternatives": ["goldilocks three bears", "goldilocks bears", "fairy tale"]
+    },
+    "halloween at the cafe": {
+      "romanized": "halloween at the cafe",
+      "filename": "halloween at the cafe.mp3",
+      "alternatives": ["halloween cafe", "cafe halloween", "spooky story"]
+    },
+    "harry and rosie trick santa": {
+      "romanized": "harry and rosie trick santa",
+      "filename": "harry and rosie trick santa.mp3",
+      "alternatives": ["harry rosie trick santa", "trick santa", "christmas story"]
+    },
+    "honest jack": {
+      "romanized": "honest jack",
+      "filename": "honest jack.mp3",
+      "alternatives": ["jack story", "honest story", "jack tale"]
+    },
+    "how apollo found his lyre": {
+      "romanized": "how apollo found his lyre",
+      "filename": "how apollo found his lyre.mp3",
+      "alternatives": ["apollo lyre", "apollo story", "mythology"]
+    },
+    "how the jellyfish lost": {
+      "romanized": "how the jellyfish lost",
+      "filename": "how the jellyfish lost.mp3",
+      "alternatives": ["jellyfish lost", "jellyfish story", "sea story"]
+    },
+    "jack hannaford": {
+      "romanized": "jack hannaford",
+      "filename": "jack hannaford.mp3",
+      "alternatives": ["hannaford jack", "jack story", "hannaford tale"]
+    },
+    "jakes spell of bad luck": {
+      "romanized": "jakes spell of bad luck",
+      "filename": "jakes spell of bad luck.mp3",
+      "alternatives": ["jake spell bad luck", "bad luck spell", "jake story"]
+    },
+    "jimmy mouse and the cake competition": {
+      "romanized": "jimmy mouse and the cake competition",
+      "filename": "jimmy mouse and the cake competition.mp3",
+      "alternatives": ["jimmy mouse cake competition", "cake competition", "mouse story"]
+    },
+    "katie and mr new part two": {
+      "romanized": "katie and mr new part two",
+      "filename": "katie and mr new part two.mp3",
+      "alternatives": ["katie mr new part 2", "katie mr new", "witch story"]
+    },
+    "katie and mr new": {
+      "romanized": "katie and mr new",
+      "filename": "katie and mr new.mp3",
+      "alternatives": ["katie mr new", "mr new", "witch story"]
+    },
+    "katie and no more miss perfect part two": {
+      "romanized": "katie and no more miss perfect part two",
+      "filename": "katie and no more miss perfect part two.mp3",
+      "alternatives": ["katie no more perfect 2", "no more perfect", "witch story"]
+    },
+    "katie and the big cat": {
+      "romanized": "katie and the big cat",
+      "filename": "katie and the big cat.mp3",
+      "alternatives": ["katie big cat", "big cat", "witch story"]
+    },
+    "katie and the curse of macbeth": {
+      "romanized": "katie and the curse of macbeth",
+      "filename": "katie and the curse of macbeth.mp3",
+      "alternatives": ["katie curse macbeth", "macbeth curse", "witch story"]
+    },
+    "katie and the invisible umbrella": {
+      "romanized": "katie and the invisible umbrella",
+      "filename": "katie and the invisible umbrella.mp3",
+      "alternatives": ["katie invisible umbrella", "invisible umbrella", "witch story"]
+    },
+    "katie and the magic theatre": {
+      "romanized": "katie and the magic theatre",
+      "filename": "katie and the magic theatre.mp3",
+      "alternatives": ["katie magic theatre", "magic theatre", "witch story"]
+    },
+    "katie and the perfect baby sitter": {
+      "romanized": "katie and the perfect baby sitter",
+      "filename": "katie and the perfect baby sitter.mp3",
+      "alternatives": ["katie perfect babysitter", "perfect babysitter", "witch story"]
+    },
+    "katie and the remote for life": {
+      "romanized": "katie and the remote for life",
+      "filename": "katie and the remote for life.mp3",
+      "alternatives": ["katie remote life", "remote for life", "witch story"]
+    },
+    "katie witch part": {
+      "romanized": "katie witch part",
+      "filename": "katie witch part.mp3",
+      "alternatives": ["katie witch", "witch story", "katie tale"]
+    },
+    "katie witch": {
+      "romanized": "katie witch",
+      "filename": "katie witch.mp3",
+      "alternatives": ["witch katie", "witch story", "katie tale"]
+    },
+    "katies botanical birthday": {
+      "romanized": "katies botanical birthday",
+      "filename": "katies botanical birthday.mp3",
+      "alternatives": ["katie botanical birthday", "botanical birthday", "witch story"]
+    },
+    "katies magic personality part": {
+      "romanized": "katies magic personality part",
+      "filename": "katies magic personality part.mp3",
+      "alternatives": ["katie magic personality", "magic personality", "witch story"]
+    },
+    "king of apes": {
+      "romanized": "king of apes",
+      "filename": "king of apes.mp3",
+      "alternatives": ["ape king", "apes story", "jungle story"]
+    },
+    "lady annabelles diamond dog collar": {
+      "romanized": "lady annabelles diamond dog collar",
+      "filename": "lady annabelles diamond dog collar.mp3",
+      "alternatives": ["lady annabelle diamond collar", "diamond dog collar", "dog story"]
+    },
+    "lazy jack": {
+      "romanized": "lazy jack",
+      "filename": "lazy jack.mp3",
+      "alternatives": ["jack story", "lazy story", "jack tale"]
+    },
+    "lets go beach song (1)": {
+      "romanized": "lets go beach song (1)",
+      "filename": "lets go beach song (1).mp3",
+      "alternatives": ["let's go beach", "beach song part 1", "beach story"]
+    },
+    "lets go beach song": {
+      "romanized": "lets go beach song",
+      "filename": "lets go beach song.mp3",
+      "alternatives": ["let's go beach", "beach song", "beach story"]
+    },
+    "little red riding hood": {
+      "romanized": "little red riding hood",
+      "filename": "little red riding hood.mp3",
+      "alternatives": ["red riding hood", "little red", "fairy tale"]
+    },
+    "monkeys gold": {
+      "romanized": "monkeys gold",
+      "filename": "monkeys gold.mp3",
+      "alternatives": ["monkey gold", "gold story", "monkey treasure"]
+    },
+    "my shadow": {
+      "romanized": "my shadow",
+      "filename": "my shadow.mp3",
+      "alternatives": ["shadow poem", "shadow story", "stevenson poem"]
+    },
+    "sleeping beauty shorter version": {
+      "romanized": "sleeping beauty shorter version",
+      "filename": "sleeping beauty shorter version.mp3",
+      "alternatives": ["sleeping beauty", "beauty short", "fairy tale"]
+    },
+    "snow white shorter version": {
+      "romanized": "snow white shorter version",
+      "filename": "snow white shorter version.mp3",
+      "alternatives": ["snow white", "snow white short", "fairy tale"]
+    },
+    "solomon takes a walk": {
+      "romanized": "solomon takes a walk",
+      "filename": "solomon takes a walk.mp3",
+      "alternatives": ["solomon walk", "solomon story", "walk story"]
+    },
+    "song ghost girl": {
+      "romanized": "song ghost girl",
+      "filename": "song ghost girl.mp3",
+      "alternatives": ["ghost girl song", "ghost girl", "spooky song"]
+    }, 
+     "the beauty at the last ball": {
+      "romanized": "the beauty at the last ball",
+      "filename": "the beauty at the last ball.mp3",
+      "alternatives": ["beauty last ball", "last ball", "beauty story"]
+    },
+    "the beauty under arrest": {
+      "romanized": "the beauty under arrest",
+      "filename": "the beauty under arrest.mp3",
+      "alternatives": ["beauty under arrest", "beauty arrest", "beauty story"]
+    },
+    "the beautys champion": {
+      "romanized": "the beautys champion",
+      "filename": "the beautys champion.mp3",
+      "alternatives": ["beauty champion", "beauty's champion", "beauty story"]
+    },
+    "the beautys time": {
+      "romanized": "the beautys time",
+      "filename": "the beautys time.mp3",
+      "alternatives": ["beauty time", "beauty's time", "beauty story"]
+    },
+    "the cat who wanted to be a monkey": {
+      "romanized": "the cat who wanted to be a monkey",
+      "filename": "the cat who wanted to be a monkey.mp3",
+      "alternatives": ["cat wanted monkey", "cat monkey", "animal story"]
+    },
+    "the chinese year of the rabbit": {
+      "romanized": "the chinese year of the rabbit",
+      "filename": "the chinese year of the rabbit.mp3",
+      "alternatives": ["chinese year rabbit", "year of rabbit", "zodiac story"]
+    },
+    "the chix split": {
+      "romanized": "the chix split",
+      "filename": "the chix split.mp3",
+      "alternatives": ["chix split", "band split", "music story"]
+    },
+    "the dog and the elephant": {
+      "romanized": "the dog and the elephant",
+      "filename": "the dog and the elephant.mp3",
+      "alternatives": ["dog elephant", "dog and elephant", "animal story"]
+    },
+    "the dragon and his grandmother": {
+      "romanized": "the dragon and his grandmother",
+      "filename": "the dragon and his grandmother.mp3",
+      "alternatives": ["dragon grandmother", "dragon grandma", "dragon story"]
+    },
+    "the dutch hotel the ghost writer": {
+      "romanized": "the dutch hotel the ghost writer",
+      "filename": "the dutch hotel the ghost writer.mp3",
+      "alternatives": ["dutch hotel ghost writer", "ghost writer", "hotel story"]
+    },
+    "the fairies of merlins craig": {
+      "romanized": "the fairies of merlins craig",
+      "filename": "the fairies of merlins craig.mp3",
+      "alternatives": ["fairies merlins craig", "merlin fairies", "fairy story"]
+    },
+    "the gingerbread man": {
+      "romanized": "the gingerbread man",
+      "filename": "the gingerbread man.mp3",
+      "alternatives": ["gingerbread man", "gingerbread story", "cookie story"]
+    },
+    "the golden goose": {
+      "romanized": "the golden goose",
+      "filename": "the golden goose.mp3",
+      "alternatives": ["golden goose", "goose story", "golden bird"]
+    },
+    "the grasshopper and the ants": {
+      "romanized": "the grasshopper and the ants",
+      "filename": "the grasshopper and the ants.mp3",
+      "alternatives": ["grasshopper ants", "grasshopper and ants", "fable"]
+    },
+    "the grateful crane": {
+      "romanized": "the grateful crane",
+      "filename": "the grateful crane.mp3",
+      "alternatives": ["grateful crane", "crane story", "japanese tale"]
+    },
+    "the greedy bear": {
+      "romanized": "the greedy bear",
+      "filename": "the greedy bear.mp3",
+      "alternatives": ["greedy bear", "bear story", "greed story"]
+    },
+    "the jumblies": {
+      "romanized": "the jumblies",
+      "filename": "the jumblies.mp3",
+      "alternatives": ["jumblies", "jumblies story", "nonsense story"]
+    },
+    "the missing bunny": {
+      "romanized": "the missing bunny",
+      "filename": "the missing bunny.mp3",
+      "alternatives": ["missing bunny", "bunny story", "lost bunny"]
+    },
+    "the mouse and the cake": {
+      "romanized": "the mouse and the cake",
+      "filename": "the mouse and the cake.mp3",
+      "alternatives": ["mouse cake", "mouse and cake", "cake story"]
+    },
+    "the oak and the reed": {
+      "romanized": "the oak and the reed",
+      "filename": "the oak and the reed.mp3",
+      "alternatives": ["oak reed", "oak and reed", "fable"]
+    },
+    "the parrot for president": {
+      "romanized": "the parrot for president",
+      "filename": "the parrot for president.mp3",
+      "alternatives": ["parrot president", "parrot for president", "political story"]
+    },
+    "the piper and the pooka": {
+      "romanized": "the piper and the pooka",
+      "filename": "the piper and the pooka.mp3",
+      "alternatives": ["piper pooka", "piper and pooka", "irish folklore"]
+    },
+    "the pooka in the kitchen": {
+      "romanized": "the pooka in the kitchen",
+      "filename": "the pooka in the kitchen.mp3",
+      "alternatives": ["pooka kitchen", "pooka in kitchen", "irish folklore"]
+    },
+    "the spy who never was part": {
+      "romanized": "the spy who never was part",
+      "filename": "the spy who never was part.mp3",
+      "alternatives": ["spy who never was", "spy never was", "spy story"]
+    },
+    "the unwilling mermaid": {
+      "romanized": "the unwilling mermaid",
+      "filename": "the unwilling mermaid.mp3",
+      "alternatives": ["unwilling mermaid", "mermaid story", "reluctant mermaid"]
+    },
+    "the vigilante monkey": {
+      "romanized": "the vigilante monkey",
+      "filename": "the vigilante monkey.mp3",
+      "alternatives": ["vigilante monkey", "monkey vigilante", "monkey story"]
+    },
+    "the weaver and the dragon": {
+      "romanized": "the weaver and the dragon",
+      "filename": "the weaver and the dragon.mp3",
+      "alternatives": ["weaver dragon", "weaver and dragon", "dragon story"]
+    },
+    "the wicked uncle": {
+      "romanized": "the wicked uncle",
+      "filename": "the wicked uncle.mp3",
+      "alternatives": ["wicked uncle", "uncle story", "wicked story"]
+    },
+    "the wind and the moon": {
+      "romanized": "the wind and the moon",
+      "filename": "the wind and the moon.mp3",
+      "alternatives": ["wind moon", "wind and moon", "nature story"]
+    },
+    "The Wind and the Sun": {
+      "romanized": "The Wind and the Sun",
+      "filename": "The Wind and the Sun.mp3",
+      "alternatives": ["Wind and Sun", "wind sun", "fable"]
+    },
+    "the witch who lost her spells": {
+      "romanized": "the witch who lost her spells",
+      "filename": "the witch who lost her spells.mp3",
+      "alternatives": ["witch lost spells", "lost spells", "witch story"]
+    },
+    "the zoo that bit back": {
+      "romanized": "the zoo that bit back",
+      "filename": "the zoo that bit back.mp3",
+      "alternatives": ["zoo bit back", "zoo story", "animal story"]
+    },
+    "this little piggy (1)": {
+      "romanized": "this little piggy (1)",
+      "filename": "this little piggy (1).mp3",
+      "alternatives": ["this little piggy", "little piggy part 1", "nursery rhyme"]
+    },
+    "this little piggy": {
+      "romanized": "this little piggy",
+      "filename": "this little piggy.mp3",
+      "alternatives": ["little piggy", "piggy story", "nursery rhyme"]
+    },
+    "three donkey fables": {
+      "romanized": "three donkey fables",
+      "filename": "three donkey fables.mp3",
+      "alternatives": ["donkey fables", "three fables", "donkey story"]
+    },
+    "three men in a tub": {
+      "romanized": "three men in a tub",
+      "filename": "three men in a tub.mp3",
+      "alternatives": ["three men tub", "men in tub", "nursery rhyme"]
+    },
+    "thrushbeard": {
+      "romanized": "thrushbeard",
+      "filename": "thrushbeard.mp3",
+      "alternatives": ["thrush beard", "king thrushbeard", "fairy tale"]
+    },
+    "tim tadpoles birthday": {
+      "romanized": "tim tadpoles birthday",
+      "filename": "tim tadpoles birthday.mp3",
+      "alternatives": ["tim tadpole birthday", "tadpole birthday", "tim story"]
+    },
+    "twinkle twinkle little star": {
+      "romanized": "twinkle twinkle little star",
+      "filename": "twinkle twinkle little star.mp3",
+      "alternatives": ["twinkle star", "little star", "lullaby"]
+    },
+    "uncle christmas": {
+      "romanized": "uncle christmas",
+      "filename": "uncle christmas.mp3",
+      "alternatives": ["christmas uncle", "uncle story", "holiday story"]
+    },
+    "wicked uncle smuggled cat": {
+      "romanized": "wicked uncle smuggled cat",
+      "filename": "wicked uncle smuggled cat.mp3",
+      "alternatives": ["wicked uncle cat", "smuggled cat", "uncle story"]
+    }
+  }
