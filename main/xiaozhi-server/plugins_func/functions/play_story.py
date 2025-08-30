@@ -1155,16 +1155,20 @@ def initialize_story_handler(conn):
             STORY_CACHE["story_dir"] = os.path.abspath(
                 STORY_CACHE["story_config"].get("story_dir", "./stories")
             )
-            STORY_CACHE["story_ext"] = STORY_CACHE["story_config"].get(
-                "story_ext", (".mp3", ".wav", ".p3")
+            story_ext_config = STORY_CACHE["story_config"].get(
+                "story_ext", ".mp3;.wav;.p3"
             )
-            STORY_CACHE["refresh_time"] = STORY_CACHE["story_config"].get(
+            if isinstance(story_ext_config, str):
+                STORY_CACHE["story_ext"] = tuple(ext.strip() for ext in story_ext_config.split(';'))
+            else:
+                STORY_CACHE["story_ext"] = story_ext_config
+            STORY_CACHE["refresh_time"] = float(STORY_CACHE["story_config"].get(
                 "refresh_time", 300  # Refresh every 5 minutes
-            )
+            ))
         else:
             STORY_CACHE["story_dir"] = os.path.abspath("./stories")
             STORY_CACHE["story_ext"] = (".mp3", ".wav", ".p3")
-            STORY_CACHE["refresh_time"] = 300
+            STORY_CACHE["refresh_time"] = 300.0
         
         # Get story files organized by category
         STORY_CACHE["story_files_by_category"], STORY_CACHE["all_story_files"] = get_story_files(
