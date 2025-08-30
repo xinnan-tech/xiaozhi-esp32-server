@@ -91,9 +91,10 @@ class ASRProviderBase(ABC):
                     
                     # Process any accumulated audio before resetting (same as normal VAD flow)
                     if len(conn.asr_audio) > 20:
-                        logger.bind(tag=TAG).info(f"Processing {len(conn.asr_audio)} audio chunks after 10-second timeout")
+                        logger.bind(tag=TAG).info(f"Processing {len(conn.asr_audio)} audio chunks after timeout")
                         asr_audio_task = conn.asr_audio.copy()
                         conn.asr_audio.clear()
+                        # Reset states and clear timeout flag
                         conn.reset_vad_states()
                         # Process the accumulated audio asynchronously
                         asyncio.create_task(self.handle_voice_stop(conn, asr_audio_task))
@@ -103,9 +104,9 @@ class ASRProviderBase(ABC):
                         conn.reset_vad_states()
                     
                     return  # Exit early like VAD does
-                else:
-                    # Already triggered timeout, skip this audio chunk
-                    return
+                
+                # If timeout already triggered, just skip this audio and return
+                return
             
         # Debug logging
         if not hasattr(conn, '_asr_log_counter'):
@@ -133,9 +134,12 @@ class ASRProviderBase(ABC):
             # Clear the just_started_listening flag when actual voice is detected
             if hasattr(conn, 'just_started_listening'):
                 conn.just_started_listening = False
-            # Start recording timer for VAD-based sessions
-            if not hasattr(conn, 'vad_recording_start_time'):
+            # Start recording timer for VAD-based sessions (only if not already set)
+            if not hasattr(conn, 'vad_recording_start_time') or conn.vad_recording_start_time is None:
                 conn.vad_recording_start_time = time.time()
+                # Reset timeout flag when starting new recording session
+                if hasattr(conn, '_timeout_triggered'):
+                    conn._timeout_triggered = False
                 logger.bind(tag=TAG).debug("VAD recording session started")
             # Add pre-buffered audio to the beginning of ASR audio
             conn.asr_audio = list(conn.audio_pre_buffer) + conn.asr_audio
@@ -247,7 +251,11 @@ class ASRProviderBase(ABC):
                     results = {"asr": asr_result, "voiceprint": None}
 
             # Process results
-            raw_text, file_path = results.get("asr", ("", None))
+            asr_result = results.get("asr", ("", None))
+            if asr_result is None:
+                raw_text, file_path = "", None
+            else:
+                raw_text, file_path = asr_result
             speaker_name = results.get("voiceprint", None)
 
             # Apply ASR filtering if enabled

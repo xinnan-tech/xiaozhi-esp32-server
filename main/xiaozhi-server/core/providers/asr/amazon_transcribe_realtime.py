@@ -154,7 +154,7 @@ class ASRProvider(ASRProviderBase):
                 pcm_data = self.decode_opus(opus_data)
                 if not pcm_data:
                     logger.bind(tag=TAG).error("Failed to decode Opus audio")
-                    return None, None
+                    return ("", None)
             else:
                 pcm_data = opus_data
 
@@ -183,7 +183,7 @@ class ASRProvider(ASRProviderBase):
             logger.bind(tag=TAG).error(
                 f"Speech-to-text error: {str(e)}, type: {type(e).__name__}"
             )
-            return None, audio_file_path
+            return ("", audio_file_path)
 
         finally:
             # Clean up audio file if configured
