@@ -11,7 +11,7 @@ const { InjectManifest } = require('workbox-webpack-plugin');
 // 引入 path 模块
 
 const path = require('path')
- 
+
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
@@ -26,7 +26,7 @@ const cdnResources = {
     'https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css'
   ],
   js: [
-    'https://unpkg.com/vue@2.6.14/dist/vue.min.js',
+    'https://unpkg.com/vue@2.7.16/dist/vue.min.js',
     'https://unpkg.com/vue-router@3.6.5/dist/vue-router.min.js',
     'https://unpkg.com/vuex@3.6.2/dist/vuex.min.js',
     'https://unpkg.com/element-ui@2.15.14/lib/index.js',
