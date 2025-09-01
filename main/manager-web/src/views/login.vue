@@ -145,8 +145,6 @@ export default Vue.extend({
   },
 
   computed: {
-    // 这里用 mapState，为了不阻塞你先跑起来，state 暂时用 any。
-    // 若你后续给 Vuex 增强了 RootState 类型，这里可替换成强类型选择器。
     ...mapState({
       allowUserRegister: (state: RootState): boolean => state.pubConfig.allowUserRegister,
       enableMobileRegister: (state: RootState): boolean => state.pubConfig.enableMobileRegister,
