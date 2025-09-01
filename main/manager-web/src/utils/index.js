@@ -95,7 +95,7 @@ export function showSuccess(msg) {
  * @param path
  * @param isRepalce
  */
-export function goToPage(path, isRepalce) {
+export function goToPage(path, isRepalce = false) {
     if (isRepalce) {
         router.replace(path)
     } else {
