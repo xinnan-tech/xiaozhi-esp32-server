@@ -13,10 +13,12 @@ logger = setup_logging()
 
 class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
+        super().__init__(config)  # Initialize the parent class with asr_filter
         self.interface_type = InterfaceType.NON_STREAM
         self.api_key = config.get("api_key")
         self.api_url = config.get("base_url")
         self.model = config.get("model_name")
+        self.language = config.get("language")  # Add language support
         self.output_dir = config.get("output_dir")
         self.delete_audio_file = delete_audio_file
 
@@ -41,10 +43,14 @@ class ASRProvider(ASRProviderBase):
                 "Authorization": f"Bearer {self.api_key}",
             }
 
-            # Use data parameter to pass model name
+            # Use data parameter to pass model name and language
             data = {
                 "model": self.model
             }
+            
+            # Add language parameter if specified
+            if self.language:
+                data["language"] = self.language
 
             # Use with statement to ensure file is closed
             with open(file_path, "rb") as audio_file:

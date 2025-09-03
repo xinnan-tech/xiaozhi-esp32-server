@@ -367,4 +367,47 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202508291600_add_play_story.sql
+  - changeSet:
+      id: 202509020001
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509020001_add_openai_gemini_tts_fixed.sql
+  - changeSet:
+      id: 202509020002
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509020002_add_openai_gemini_voices_fixed.sql
+  - changeSet:
+      id: 202509020003
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509020003_add_openai_gemini_tts_providers.sql
+  - changeSet:
+      id: 202509020004
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509020004_clear_liquibase_checksums.sql
+  - changeSet:
+      id: 202509020005
+      author: claude
+      validCheckSum: 8:84e92fe6edb605f91c8c0c0802ba0e27
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509020005_update_tts_configs.sql
+  - changeSet:
+      id: 202509030001
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509030001_clear_tts_config_checksum.sql
 

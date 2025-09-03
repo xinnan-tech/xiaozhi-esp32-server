@@ -19,9 +19,9 @@ import opuslib
 
 # --- Configuration ---
 
-SERVER_IP = "192.168.1.111" # !!! UPDATE with your server's local IP address !!!
-OTA_PORT = 8003
-MQTT_BROKER_HOST = "192.168.1.111"  # MQTT gateway IP
+SERVER_IP = "192.168.1.179" # !!! UPDATE with your server's local IP address !!!
+OTA_PORT = 8002
+MQTT_BROKER_HOST = "192.168.1.179"  # MQTT gateway IP
 
 
 MQTT_BROKER_PORT = 1883
@@ -331,7 +331,11 @@ class TestClient:
             headers = {"device-id": self.device_mac_formatted}
             data = {
                 "application": {
-                    "version": "1.0.0"
+                    "version": "1.7.6",
+                    "name": "DOIT AI Kit v1.7.6"
+                },
+                "board": {
+                    "type": "doit-ai-01-kit"
                 },
                 "client_id": session_client_id
             }
