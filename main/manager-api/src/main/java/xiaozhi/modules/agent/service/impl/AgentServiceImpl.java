@@ -96,7 +96,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
 
         // 如果智能体编码为空，自动生成一个带前缀的编码
         if (entity.getAgentCode() == null || entity.getAgentCode().trim().isEmpty()) {
-            entity.setAgentCode("AGT_" + System.currentTimeMillis());
+            entity.setAgentCode("AGT_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8));
         }
 
         // 如果排序字段为空，设置默认值0
@@ -393,7 +393,21 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         // 播放音乐、播放故事、查天气、查新闻
         String[] pluginIds = new String[] { "SYSTEM_PLUGIN_MUSIC", "SYSTEM_PLUGIN_STORY", 
                 "SYSTEM_PLUGIN_WEATHER", "SYSTEM_PLUGIN_NEWS_NEWSNOW" };
+        
+        // 检查已存在的插件映射
+        List<AgentPluginMapping> existingMappings = agentPluginMappingService.list(
+            new QueryWrapper<AgentPluginMapping>().eq("agent_id", entity.getId())
+        );
+        List<String> existingPluginIds = existingMappings.stream()
+            .map(AgentPluginMapping::getPluginId)
+            .collect(Collectors.toList());
+        
         for (String pluginId : pluginIds) {
+            // 跳过已存在的插件映射
+            if (existingPluginIds.contains(pluginId)) {
+                continue;
+            }
+            
             ModelProviderDTO provider = modelProviderService.getById(pluginId);
             if (provider == null) {
                 continue;
@@ -412,8 +426,10 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             mapping.setAgentId(entity.getId());
             toInsert.add(mapping);
         }
-        // 保存默认插件
-        agentPluginMappingService.saveBatch(toInsert);
+        // 只保存不存在的默认插件
+        if (!toInsert.isEmpty()) {
+            agentPluginMappingService.saveBatch(toInsert);
+        }
         return entity.getId();
     }
 }
