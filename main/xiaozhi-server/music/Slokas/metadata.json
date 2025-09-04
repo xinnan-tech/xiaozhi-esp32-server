@@ -1,0 +1,155 @@
+{
+  "Ganesh Pujan": {
+    "romanized": "Ganesh Pujan",
+    "filename": "Ganesh Pujan.mp3",
+    "alternatives": [
+      "ganesh pujan",
+      "ganesha puja",
+      "ganpati prayer",
+      "vakratunda mahakaya",
+      "ganesh vandana",
+      "vignaharta",
+      "remover of obstacles",
+      "ganesh mantra",
+      "ganesh aarti"
+    ]
+  },
+  "Guru Brahma Guru Vishnu": {
+    "romanized": "Guru Brahma Guru Vishnu",
+    "filename": "Guru Brahma Guru Vishnu.mp3",
+    "alternatives": [
+      "guru brahma",
+      "guru vishnu",
+      "guru devo maheshwara",
+      "guru sakshat parabrahma",
+      "teacher prayer",
+      "guru mantra",
+      "guru shloka",
+      "guru stotram"
+    ]
+  },
+  "Guru Vandana": {
+    "romanized": "Guru Vandana",
+    "filename": "Guru Vandana.mp3",
+    "alternatives": [
+      "guru vandana",
+      "teacher praise",
+      "guru prayer",
+      "guru salutation",
+      "guru pranam",
+      "teacher mantra",
+      "guru stotra"
+    ]
+  },
+  "Hanuman Smaran": {
+    "romanized": "Hanuman Smaran",
+    "filename": "Hanuman Smaran.mp3",
+    "alternatives": [
+      "hanuman smaran",
+      "hanuman remembrance",
+      "bajrang bali",
+      "hanuman prayer",
+      "monkey god",
+      "hanuman mantra",
+      "anjaneya",
+      "pawanputra"
+    ]
+  },
+  "Hanuman Stuti": {
+    "romanized": "Hanuman Stuti",
+    "filename": "Hanuman Stuti.mp3",
+    "alternatives": [
+      "hanuman stuti",
+      "hanuman praise",
+      "hanuman stotra",
+      "hanuman chalisa",
+      "bajrangbali stuti",
+      "hanuman hymn",
+      "maruti stuti"
+    ]
+  },
+  "Prarthana": {
+    "romanized": "Prarthana",
+    "filename": "Prarthana.mp3",
+    "alternatives": [
+      "prarthana",
+      "prayer",
+      "daily prayer",
+      "morning prayer",
+      "school prayer",
+      "universal prayer",
+      "prarthna",
+      "general prayer"
+    ]
+  },
+  "Ram Vandana": {
+    "romanized": "Ram Vandana",
+    "filename": "Ram Vandana.mp3",
+    "alternatives": [
+      "ram vandana",
+      "rama prayer",
+      "sri ram",
+      "ram mantra",
+      "raghupati raghav",
+      "rama stotra",
+      "ram bhajan",
+      "maryada purushottam"
+    ]
+  },
+  "Saraswati Stuti": {
+    "romanized": "Saraswati Stuti",
+    "filename": "Saraswati Stuti.mp3",
+    "alternatives": [
+      "saraswati stuti",
+      "saraswati vandana",
+      "ya kundendu",
+      "knowledge goddess",
+      "vidya prayer",
+      "saraswati mantra",
+      "learning prayer",
+      "education prayer",
+      "saraswati stotra"
+    ]
+  },
+  "Shanti Mantra": {
+    "romanized": "Shanti Mantra",
+    "filename": "Shanti Mantra.mp3",
+    "alternatives": [
+      "shanti mantra",
+      "peace mantra",
+      "om shanti",
+      "peace prayer",
+      "om sahana vavatu",
+      "shanti path",
+      "peace chant",
+      "universal peace"
+    ]
+  },
+  "Vishnu Dyan": {
+    "romanized": "Vishnu Dhyan",
+    "filename": "Vishnu Dyan.mp3",
+    "alternatives": [
+      "vishnu dhyan",
+      "vishnu meditation",
+      "vishnu dhyana",
+      "narayana meditation",
+      "vishnu contemplation",
+      "preserver god",
+      "vishnu focus"
+    ]
+  },
+  "Vishnu Stuti": {
+    "romanized": "Vishnu Stuti",
+    "filename": "Vishnu Stuti.mp3",
+    "alternatives": [
+      "vishnu stuti",
+      "vishnu praise",
+      "vishnu stotra",
+      "narayana stuti",
+      "hari stuti",
+      "vishnu hymn",
+      "vishnu vandana",
+      "preserver prayer"
+    ]
+  }
+}
