@@ -103,5 +103,92 @@
           "bus wheels song",
           "go round and round"
       ]
-  }
+  },
+    "Head Shoulders Knees and Toes": {
+      "romanized": "Head Shoulders Knees and Toes",
+      "filename": "Head, Shoulders, Knees and Toes.mp3",
+      "alternatives": [
+        "head shoulders knees and toes",
+        "body parts song",
+        "action song",
+        "exercise song",
+        "kids body song",
+        "nursery action song",
+        "movement song",
+        "body song"
+      ]
+    },
+    "Hot Cross Buns": {
+      "romanized": "Hot Cross Buns",
+      "filename": "Hot Cross Buns.mp3",
+      "alternatives": [
+        "hot cross buns",
+        "easter song",
+        "buns song",
+        "one a penny",
+        "two a penny",
+        "traditional nursery rhyme",
+        "food song",
+        "classic rhyme"
+      ]
+    },
+    "I'm A Little Teapot": {
+      "romanized": "I'm A Little Teapot",
+      "filename": "I'm A Little Teapot.mp3",
+      "alternatives": [
+        "i'm a little teapot",
+        "little teapot",
+        "teapot song",
+        "short and stout",
+        "tip me over",
+        "pour me out",
+        "action nursery rhyme",
+        "tea song"
+      ]
+    },
+    "Johny Johny Yes Papa": {
+      "romanized": "Johny Johny Yes Papa",
+      "filename": "Johny Johny Yes Papa.mp3",
+      "alternatives": [
+        "johny johny yes papa",
+        "johnny johnny",
+        "yes papa",
+        "eating sugar",
+        "no papa",
+        "telling lies",
+        "open your mouth",
+        "ha ha ha",
+        "popular kids song"
+      ]
+    },
+    "Rain Rain Go Away": {
+      "romanized": "Rain Rain Go Away",
+      "filename": "Rain rain go away.mp3",
+      "alternatives": [
+        "rain rain go away",
+        "come again another day",
+        "rain song",
+        "weather song",
+        "little johnny wants to play",
+        "rainy day song",
+        "nursery weather song",
+        "rain rhyme"
+      ]
+    },
+    "Twinkle Twinkle Little Star": {
+      "romanized": "Twinkle Twinkle Little Star",
+      "filename": "Twinkle Twinkle Little Star.mp3",
+      "alternatives": [
+        "twinkle twinkle little star",
+        "twinkle twinkle",
+        "little star",
+        "how i wonder what you are",
+        "star song",
+        "night song",
+        "lullaby",
+        "classic nursery rhyme",
+        "bedtime song",
+        "diamond in the sky"
+      ]
+    }
   }

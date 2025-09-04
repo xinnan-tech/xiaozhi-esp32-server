@@ -32,22 +32,22 @@ play_music_function_desc = {
     "type": "function",
     "function": {
         "name": "play_music",
-        "description": "Advanced multilingual music player that understands natural language requests in any language. Supports specific song requests, language preferences, mood-based selection, and educational content. Handles requests like 'play Baa Baa Black Sheep', 'sing a Hindi song', 'play phonics', 'I want energetic music', 'play something in Telugu', etc. Uses AI-powered matching to find songs even with different spellings or scripts.",
+        "description": "Advanced multilingual music player that understands natural language requests in any language. Supports specific song requests, language preferences, mood-based selection, educational content, and spiritual content. Handles requests like 'play Baa Baa Black Sheep', 'sing a Hindi song', 'play phonics', 'play Gayatri Mantra', 'sing Hanuman Chalisa', 'play Bhagavad Gita', 'play slokas', 'chant mantras', etc. Uses AI-powered matching to find songs even with different spellings or scripts.",
         "parameters": {
             "type": "object",
             "properties": {
                 "user_request": {
                     "type": "string",
-                    "description": "Complete user request for music. Include the full original request to enable intelligent matching. Examples: 'play Baa Baa Black Sheep', 'sing Hanuman Chalisa', 'play any Hindi song', 'I want Telugu music', 'play phonics songs', 'something energetic', 'play music for kids'",
+                    "description": "Complete user request for music. Include the full original request to enable intelligent matching. Examples: 'play Baa Baa Black Sheep', 'sing Hanuman Chalisa', 'play any Hindi song', 'I want Telugu music', 'play phonics songs', 'play Gayatri Mantra', 'chant mantras', 'play Bhagavad Gita', 'something energetic', 'play music for kids'",
                 },
                 "requested_language": {
                     "type": ["string", "null"],
-                    "description": "Detected or requested language preference. Options: 'english', 'hindi', 'telugu', 'kannada', 'tamil', 'phonics', or 'any'. Only set if explicitly mentioned or clearly implied.",
+                    "description": "Detected or requested language preference. Options: 'english', 'hindi', 'telugu', 'kannada', 'tamil', 'phonics', 'slokas', 'bhagavad gita', or 'any'. Only set if explicitly mentioned or clearly implied.",
                 },
                 "song_type": {
                     "type": "string",
-                    "enum": ["specific", "random", "language_specific", "educational"],
-                    "description": "Type of request: 'specific' for named songs (e.g., 'play Hanuman Chalisa', 'bandar mama song'), 'random' for any song, 'language_specific' for language-only requests (e.g., 'play Hindi song'), 'educational' for phonics/learning content"
+                    "enum": ["specific", "random", "language_specific", "educational", "spiritual"],
+                    "description": "Type of request: 'specific' for named songs (e.g., 'play Hanuman Chalisa', 'play Gayatri Mantra'), 'random' for any song, 'language_specific' for language-only requests (e.g., 'play Hindi song'), 'educational' for phonics/learning content, 'spiritual' for mantras/slokas/bhagavad gita content"
                 }
             },
             "required": ["user_request", "song_type"],
@@ -200,6 +200,41 @@ def _detect_language_request(text):
         "punjabi": "Punjabi",
         "marathi": "Marathi",
         "gujarati": "Gujarati",
+        
+        # Slokas/Mantras variations (Spiritual content)
+        "sloka": "Slokas",
+        "slokas": "Slokas",
+        "mantra": "Slokas",
+        "mantras": "Slokas",
+        "play sloka": "Slokas",
+        "play slokas": "Slokas",
+        "play mantra": "Slokas",
+        "play mantras": "Slokas",
+        "sing mantra": "Slokas",
+        "chant mantra": "Slokas",
+        "sanskrit mantra": "Slokas",
+        "vedic mantra": "Slokas",
+        "gayatri mantra": "Slokas",
+        "hanuman chalisa": "Slokas",
+        "om namah shivaya": "Slokas",
+        "shiva mantra": "Slokas",
+        "spiritual song": "Slokas",
+        "devotional song": "Slokas",
+        "prayer": "Slokas",
+        "sacred chant": "Slokas",
+        
+        # Bhagavad Gita variations (Spiritual content)
+        "bhagavad gita": "Bhagavad Gita",
+        "gita": "Bhagavad Gita",
+        "play gita": "Bhagavad Gita",
+        "bhagwad gita": "Bhagavad Gita",
+        "krishna gita": "Bhagavad Gita",
+        "gita chapter": "Bhagavad Gita",
+        "play bhagavad gita": "Bhagavad Gita",
+        "spiritual teaching": "Bhagavad Gita",
+        "karma yoga": "Bhagavad Gita",
+        "dharma": "Bhagavad Gita",
+        "krishna teachings": "Bhagavad Gita",
     }
     
     # Check for language requests
@@ -323,9 +358,9 @@ def generate_cdn_music_url(language, filename):
         # Import CDN helper
         from utils.cdn_helper import get_audio_url
         
-        # Ensure proper capitalization for S3 key (S3 folders are capitalized)
-        language_capitalized = language.capitalize()
-        audio_path = f"music/{language_capitalized}/{filename}"
+        # Use the language folder name as-is (it already has the correct case from the path)
+        # No need to capitalize since paths like "Bhagavad Gita" already have proper case
+        audio_path = f"music/{language}/{filename}"
         
         # Use CDN helper to generate URL with automatic encoding
         cdn_url = get_audio_url(audio_path)
@@ -345,9 +380,9 @@ def generate_s3_music_url_fallback(language, filename):
         return None
     
     try:
-        # Ensure proper capitalization for S3 key (S3 folders are capitalized)
-        language_capitalized = language.capitalize()
-        s3_key = f"music/{language_capitalized}/{filename}"
+        # Use the language folder name as-is (it already has the correct case from the path)
+        # No need to capitalize since paths like "Bhagavad Gita" already have proper case
+        s3_key = f"music/{language}/{filename}"
         url = S3_CLIENT.generate_presigned_url(
             'get_object',
             Params={'Bucket': S3_BUCKET_NAME, 'Key': s3_key},
