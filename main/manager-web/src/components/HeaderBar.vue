@@ -1,13 +1,13 @@
 <template>
   <el-header class="header">
     <div class="header-container">
-      <!-- 左侧元素 -->
+      <!-- Left elements -->
       <div class="header-left" @click="goHome">
         <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.svg" class="logo-img" />
         <!-- <img loading="lazy" alt="" src="@/assets/xiaozhi-ai.png" class="brand-img" /> -->
       </div>
 
-      <!-- 中间导航菜单 -->
+      <!-- Center navigation menu -->
       <div class="header-center">
         <div class="equipment-management"
           :class="{ 'active-tab': $route.path === '/home' || $route.path === '/role-config' || $route.path === '/device-management' }"
@@ -60,7 +60,7 @@
         </el-dropdown>
       </div>
 
-      <!-- 右侧元素 -->
+      <!-- Right elements -->
       <div class="header-right">
         <div class="search-container" v-if="$route.path === '/home' && !(isSuperAdmin && isSmallScreen)">
           <el-input v-model="search" placeholder="Enter name to search.." class="custom-search-input"
@@ -82,7 +82,7 @@
       </div>
     </div>
 
-    <!-- 修改密码弹窗 -->
+    <!-- Change password dialog -->
     <ChangePasswordDialog v-model="isChangePasswordDialogVisible" />
   </el-header>
 </template>
@@ -90,14 +90,14 @@
 <script>
 import userApi from '@/apis/module/user';
 import { mapActions, mapGetters } from 'vuex';
-import ChangePasswordDialog from './ChangePasswordDialog.vue'; // 引入修改密码弹窗组件
+import ChangePasswordDialog from './ChangePasswordDialog.vue'; // Import change password dialog component
 
 export default {
   name: 'HeaderBar',
   components: {
     ChangePasswordDialog
   },
-  props: ['devices'],  // 接收父组件设备列表
+  props: ['devices'],  // Receive device list from parent component
   data() {
     return {
       search: '',
@@ -105,7 +105,7 @@ export default {
         username: '',
         mobile: ''
       },
-      isChangePasswordDialogVisible: false, // 控制修改密码弹窗的显示
+      isChangePasswordDialogVisible: false, // Control change password dialog visibility
       userDropdownVisible: false,
       paramDropdownVisible: false,
       isSmallScreen: false

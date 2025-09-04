@@ -7,13 +7,13 @@
         <img src="@/assets/login/shield.png" alt=""
           style="width: 19px;height: 23px; filter: brightness(0) invert(1);" />
       </div>
-      用户新密码
+      New User Password
     </div>
     <div style="height: 1px;background: #e8f0ff;" />
     <div style="margin: 22px 15px;">
       <div style="font-weight: 400;font-size: 14px;text-align: left;color: #3d4566;">
         <div style="color: red;display: inline-block;">*</div>
-        用户新密码：
+        New User Password:
       </div>
       <div class="input-46" style="margin-top: 12px;">
         <el-input v-model="password" type="text" :readonly="true" style="font-weight: bold; color: #333;" />
@@ -22,10 +22,10 @@
     <div style="display: flex;margin: 15px 15px;gap: 7px;">
       <div class="dialog-btn" style="background: #e6ebff;border: 1px solid #adbdff;color: #5778ff;"
         @click="closeDialog">
-        关闭
+        Close
       </div>
       <div class="dialog-btn" style="background: #5778ff;color: white;" @click="copyPassword">
-        复制密码
+        Copy Password
       </div>
     </div>
   </el-dialog>
@@ -45,7 +45,7 @@ export default {
     copyPassword() {
       navigator.clipboard.writeText(this.password)
       this.$message.success({
-        message: '密码已复制',
+        message: 'Password copied',
         showClose: true
       })
     }

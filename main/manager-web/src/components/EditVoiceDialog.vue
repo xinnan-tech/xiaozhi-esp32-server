@@ -3,31 +3,31 @@
     <el-form :model="voiceForm" :rules="rules" ref="voiceForm" label-width="80px">
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="音色编码" prop="voiceCode">
-            <el-input v-model="voiceForm.voiceCode" placeholder="请输入内容" class="compact-input"></el-input>
+          <el-form-item label="Voice Code" prop="voiceCode">
+            <el-input v-model="voiceForm.voiceCode" placeholder="Please enter voice code" class="compact-input"></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="音色名称" prop="voiceName">
-            <el-input v-model="voiceForm.voiceName" placeholder="请输入内容" class="compact-input"></el-input>
+          <el-form-item label="Voice Name" prop="voiceName">
+            <el-input v-model="voiceForm.voiceName" placeholder="Please enter voice name" class="compact-input"></el-input>
           </el-form-item>
         </el-col>
       </el-row>
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="语言类型" prop="languageType">
-            <el-input v-model="voiceForm.languageType" placeholder="请输入内容" class="compact-input"></el-input>
+          <el-form-item label="Language" prop="languageType">
+            <el-input v-model="voiceForm.languageType" placeholder="Please enter language" class="compact-input"></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="排序号" prop="sortNumber">
+          <el-form-item label="Sort Order" prop="sortNumber">
             <el-input-number v-model="voiceForm.sortNumber" :min="1" :controls="false" class="compact-number"></el-input-number>
           </el-form-item>
         </el-col>
       </el-row>
 
-      <el-form-item label="备注" prop="remark">
-        <el-input v-model="voiceForm.remark" type="textarea" :rows="2" placeholder="请输入内容" class="compact-textarea"
+      <el-form-item label="Remarks" prop="remark">
+        <el-input v-model="voiceForm.remark" type="textarea" :rows="2" placeholder="Please enter remarks" class="compact-textarea"
         ></el-input>
         <div class="audio-controls">
            <div class="audio-player">
@@ -38,14 +38,14 @@
         class="custom-audio"
       ></audio>
     </div>
-          <el-button type="primary" size="mini" class="preview-btn">生成试听</el-button>
+          <el-button type="primary" size="mini" class="preview-btn">Generate Preview</el-button>
         </div>
       </el-form-item>
     </el-form>
 
     <div slot="footer" class="dialog-footer">
-      <el-button type="primary" @click="handleSave">保存</el-button>
-      <el-button type="primary" @click="handleClose">关闭</el-button>
+      <el-button type="primary" @click="handleSave">Save</el-button>
+      <el-button type="primary" @click="handleClose">Close</el-button>
     </div>
   </el-dialog>
 </template>
@@ -59,8 +59,8 @@ export default {
       type: Object,
       default: () => ({
         voiceCode: 'wawaxiaohe',
-        voiceName: '湾湾小何',
-        languageType: '中文',
+        voiceName: 'Wanwan Xiaohe',
+        languageType: 'Chinese',
         sortNumber: 123
       })
     }
@@ -72,8 +72,8 @@ export default {
       audioUrl: 'http://music.163.com/song/media/outer/url?id=447925558.mp3',
       generatedAudio: null,
       rules: {
-        voiceCode: [{ required: true, message: '请输入音色编码', trigger: 'blur' }],
-        voiceName: [{ required: true, message: '请输入音色名称', trigger: 'blur' }]
+        voiceCode: [{ required: true, message: 'Please enter voice code', trigger: 'blur' }],
+        voiceName: [{ required: true, message: 'Please enter voice name', trigger: 'blur' }]
       }
     }
   },

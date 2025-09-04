@@ -37,7 +37,7 @@ export default {
     agentId: { type: String, required: true }
   },
   data() {
-    // MAC地址验证规则
+    // MAC address validation rule
     const validateMac = (rule, value, callback) => {
       const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
       if (!value) {
