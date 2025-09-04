@@ -16,6 +16,13 @@
             :style="{ filter: $route.path === '/home' || $route.path === '/role-config' || $route.path === '/device-management' ? 'brightness(0) invert(1)' : 'None' }" />
           智能体管理
         </div>
+        <div class="equipment-management"
+          :class="{ 'active-tab': $route.path === '/device/camera' }"
+          @click="goDeviceCamera">
+          <img loading="lazy" alt="" src="@/assets/header/robot.png"
+            :style="{ filter: $route.path === '/device/camera' ? 'brightness(0) invert(1)' : 'None' }" />
+          设备摄像头
+        </div>
         <div v-if="isSuperAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }"
           @click="goModelConfig">
           <img loading="lazy" alt="" src="@/assets/header/model_config.png"
@@ -130,6 +137,9 @@ export default {
     goHome() {
       // 跳转到首页
       this.$router.push('/home')
+    },
+    goDeviceCamera() {
+      this.$router.push('/device/camera')
     },
     goUserManagement() {
       this.$router.push('/user-management')

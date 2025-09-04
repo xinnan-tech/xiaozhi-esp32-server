@@ -28,6 +28,16 @@
                 <i class="el-icon-right" @click="showAddDialog" style="font-size: 20px;color: #fff;" />
               </div>
             </div>
+            <!-- 添加设备摄像头按钮 -->
+            <div class="camera-btn" @click="goToDeviceCamera">
+              <div class="left-camera">
+                设备摄像头
+              </div>
+              <div style="width: 23px;height: 13px;background: #28a745;margin-left: -10px;" />
+              <div class="right-camera">
+                <i class="el-icon-video-camera" style="font-size: 20px;color: #fff;" />
+              </div>
+            </div>
           </div>
         </div>
         <div class="device-list-container">
@@ -64,6 +74,7 @@ import ChatHistoryDialog from '@/components/ChatHistoryDialog.vue';
 import DeviceItem from '@/components/DeviceItem.vue';
 import HeaderBar from '@/components/HeaderBar.vue';
 import VersionFooter from '@/components/VersionFooter.vue';
+import DeviceCamera from '@/views/DeviceCamera.vue';
 
 export default {
   name: 'HomePage',
@@ -177,6 +188,9 @@ export default {
       this.currentAgentId = agentId;
       this.currentAgentName = agentName;
       this.showChatHistory = true;
+    },
+    goToDeviceCamera() {
+      this.$router.push('/device/camera');
     }
   }
 }
@@ -197,7 +211,25 @@ export default {
   -webkit-background-size: cover;
   /* 兼容老版本WebKit浏览器 */
   -o-background-size: cover;
+  box-sizing: border-box;
+
   /* 兼容老版本Opera浏览器 */
+  .hellow-text {
+    margin-left: 75px;
+    color: #3d4566;
+    font-size: 33px;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .hi-hint {
+    font-weight: 400;
+    font-size: 12px;
+    text-align: left;
+    color: #818cae;
+    margin-left: 75px;
+    margin-top: 5px;
+  }
 }
 
 .add-device {
@@ -269,6 +301,37 @@ export default {
     height: 34px;
     border-radius: 50%;
     background: #5778ff;
+    margin-left: -6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+.camera-btn {
+  display: flex;
+  align-items: center;
+  margin-left: 75px;
+  margin-top: 15px;
+  cursor: pointer;
+
+  .left-camera {
+    width: 105px;
+    height: 34px;
+    border-radius: 17px;
+    background: #28a745;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    line-height: 34px;
+  }
+
+  .right-camera {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #28a745;
     margin-left: -6px;
     display: flex;
     justify-content: center;

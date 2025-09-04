@@ -5,14 +5,17 @@ from core.connection import ConnectionHandler
 from config.config_loader import get_config_from_api
 from core.utils.modules_initialize import initialize_modules
 from core.utils.util import check_vad_update, check_asr_update
+import json
 
 TAG = __name__
 
 
 class WebSocketServer:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, redis=None, camera_handler=None):
         self.config = config
         self.logger = setup_logging()
+        self.redis = redis
+        self.camera_handler = camera_handler
         self.config_lock = asyncio.Lock()
         modules = initialize_modules(
             self.logger,
@@ -40,6 +43,9 @@ class WebSocketServer:
         async with websockets.serve(
             self._handle_connection, host, port, process_request=self._http_response
         ):
+            # 启动摄像头控制订阅
+            if self.redis is not None:
+                asyncio.create_task(self._camera_cmd_sub())
             await asyncio.Future()
 
     async def _handle_connection(self, websocket):
@@ -85,6 +91,92 @@ class WebSocketServer:
         else:
             # 如果是普通 HTTP 请求，返回 "server is running"
             return websocket.respond(200, "Server is running\n")
+
+    async def _camera_cmd_sub(self):
+        try:
+            # 检查Redis连接状态
+            if self.redis is None:
+                self.logger.bind(tag=TAG).error("Redis连接为空，无法订阅摄像头命令")
+                return
+                
+            # 测试Redis连接
+            try:
+                await self.redis.ping()
+                self.logger.bind(tag=TAG).info("Redis连接正常")
+            except Exception as e:
+                self.logger.bind(tag=TAG).error(f"Redis连接失败: {e}")
+                return
+                
+            self.logger.bind(tag=TAG).info("开始订阅摄像头命令频道: camera:cmd:*")
+            pubsub = self.redis.pubsub()
+            await pubsub.psubscribe("camera:cmd:*")
+            self.logger.bind(tag=TAG).info("成功订阅摄像头命令频道")
+
+            async for msg in pubsub.listen():
+                self.logger.bind(tag=TAG).info(f"收到Redis消息: {msg}")
+
+                if msg.get("type") != "pmessage":
+                    self.logger.bind(tag=TAG).info(f"跳过非模式消息: {msg.get('type')}")
+                    continue
+
+                channel = msg.get("channel", "")
+                payload = msg.get("data", "")
+                self.logger.bind(tag=TAG).info(f"处理摄像头命令 - 频道: {channel}, 数据: {payload}")
+
+                # 提取 deviceId
+                # 修复：正确处理包含冒号的设备ID
+                # 频道格式：camera:cmd:80:b5:4e:c7:78:a4
+                # 需要提取：80:b5:4e:c7:78:a4
+                if channel.startswith("camera:cmd:"):
+                    device_id = channel[11:]  # 去掉 "camera:cmd:" 前缀 (11个字符)
+                    self.logger.bind(tag=TAG).info(f"原始频道: {channel}")
+                    self.logger.bind(tag=TAG).info(f"前缀长度: 11, 提取结果: {device_id}")
+                else:
+                    device_id = channel
+                self.logger.bind(tag=TAG).info(f"提取的设备ID: {device_id}")
+
+                # 在活动连接中找到对应设备
+                target = None
+                active_connections_count = len(list(self.active_connections))
+                self.logger.bind(tag=TAG).info(f"当前活跃连接数: {active_connections_count}")
+
+                for conn in list(self.active_connections):
+                    conn_device_id = getattr(conn, "device_id", None)
+                    self.logger.bind(tag=TAG).info(f"检查连接: {conn}, device_id: {conn_device_id}")
+                    if conn_device_id == device_id:
+                        target = conn
+                        self.logger.bind(tag=TAG).info(f"找到目标连接: {target}")
+                        break
+
+                if target is None:
+                    self.logger.bind(tag=TAG).warning(f"未找到设备ID为 {device_id} 的活跃连接")
+                    # 尝试重新建立连接
+                    self.logger.bind(tag=TAG).info(f"尝试重新建立与设备 {device_id} 的连接...")
+                    # 这里可以添加重连逻辑，暂时跳过
+                    continue
+
+                try:
+                    data = json.loads(payload)
+                    action = data.get("action")
+                    self.logger.bind(tag=TAG).info(f"处理摄像头动作: {action}")
+
+                    if action == "start":
+                        args = {}
+                        if "fps" in data: args["fps"] = data["fps"]
+                        if "quality" in data: args["quality"] = data["quality"]
+                        rpc = {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"self.camera.stream.start","arguments":args}}
+                        self.logger.bind(tag=TAG).info(f"发送启动命令: {rpc}")
+                        await target.websocket.send(json.dumps({"type":"mcp","payload":rpc}))
+                        self.logger.bind(tag=TAG).info("启动命令发送成功")
+                    elif action == "stop":
+                        rpc = {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"self.camera.stream.stop"}}
+                        self.logger.bind(tag=TAG).info(f"发送停止命令: {rpc}")
+                        await target.websocket.send(json.dumps({"type":"mcp","payload":rpc}))
+                        self.logger.bind(tag=TAG).info("停止命令发送成功")
+                except Exception as e:
+                    self.logger.bind(tag=TAG).exception(f"处理摄像头指令失败: {e}")
+        except Exception as e:
+            self.logger.bind(tag=TAG).exception(f"摄像头指令订阅失败: {e}")
 
     async def update_config(self) -> bool:
         """更新服务器配置并重新初始化组件
