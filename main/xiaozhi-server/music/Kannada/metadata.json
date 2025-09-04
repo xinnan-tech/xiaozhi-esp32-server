@@ -96,5 +96,19 @@
       "timma song",
       "nature song kannada"
     ]
+  },
+  "Iruve Iruve": {
+      "romanized": "Iruve Iruve",
+      "filename": "Iruve Iruve.mp3",
+      "alternatives": [
+        "iruve iruve",
+        "kannada song",
+        "kannada rhyme",
+        "children kannada song",
+        "kids kannada song",
+        "kannada nursery rhyme",
+        "iruve",
+        "traditional kannada song"
+      ]
+    }
   }
-}
