@@ -41,6 +41,14 @@ server:
     # 可选:设备白名单，如果设置了白名单，那么白名单的机器无论是什么token都可以连接。
     #allowed_devices:
     #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
+  redis:
+    host: 192.168.1.13
+    port: 6379
+    password: redis_DbiKM4
+    database: 0
+    # 也可直接:
+    # redis:
+    # url: redis://:redis_DbiKM4@192.168.1.13:6379/0
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
   log_format: "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{selected_module}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>"

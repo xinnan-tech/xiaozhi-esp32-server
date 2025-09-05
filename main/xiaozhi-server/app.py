@@ -2,6 +2,12 @@ import sys
 import uuid
 import signal
 import asyncio
+import json
+import os
+try:
+    import redis.asyncio as aioredis  # prefer redis>=5
+except Exception:
+    import aioredis  # fallback for legacy envs
 from aioconsole import ainput
 from config.settings import load_config
 from config.logger import setup_logging
@@ -45,6 +51,8 @@ async def monitor_stdin():
 async def main():
     check_ffmpeg_installed()
     config = load_config()
+    # 打印当前工作目录，便于定位保存文件的真实位置
+    logger.bind(tag=TAG).info("当前工作目录: {}", os.getcwd())
 
     # 默认使用manager-api的secret作为auth_key
     # 如果secret为空，则生成随机密钥
@@ -56,12 +64,34 @@ async def main():
 
     # 添加 stdin 监控任务
     stdin_task = asyncio.create_task(monitor_stdin())
+    # 初始化 Redis（供摄像头帧转发与指令分发）
+    redis_cfg = config.get("redis", {}) or {}
+    redis_url = config.get("redis", {}).get("url")
+    if not redis_url:
+        host = redis_cfg.get("host", "192.168.1.13")
+        port = int(redis_cfg.get("port", 6379))
+        db = int(redis_cfg.get("database", 0))
+        password = redis_cfg.get("password", "redis_DbiKM4")
+        if password:
+            redis_url = f"redis://:{password}@{host}:{port}/{db}"
+        else:
+            redis_url = f"redis://{host}:{port}/{db}"
+    try:
+        redis = await aioredis.from_url(redis_url, encoding="utf-8", decode_responses=True)
+        logger.bind(tag=TAG).info("Redis 已连接: {}", redis_url)
+    except Exception as e:
+        redis = None
+        logger.bind(tag=TAG).error("Redis 连接失败，将不启用视频转发功能: {}", str(e))
 
-    # 启动 WebSocket 服务器
-    ws_server = WebSocketServer(config)
-    ws_task = asyncio.create_task(ws_server.start())
     # 启动 Simple http 服务器
     ota_server = SimpleHttpServer(config)
+    # 让 HTTP 服务器能够访问 Redis
+    if redis:
+        ota_server.camera_handler.set_redis(redis)
+    
+    # 启动 WebSocket 服务器（注入 redis 和 camera_handler）
+    ws_server = WebSocketServer(config, redis=redis, camera_handler=ota_server.camera_handler)
+    ws_task = asyncio.create_task(ws_server.start())
     ota_task = asyncio.create_task(ota_server.start())
 
     read_config_from_api = config.get("read_config_from_api", False)
@@ -74,6 +104,16 @@ async def main():
         )
     logger.bind(tag=TAG).info(
         "视觉分析接口是\thttp://{}:{}/mcp/vision/explain",
+        get_local_ip(),
+        port,
+    )
+    logger.bind(tag=TAG).info(
+        "摄像头控制接口是\thttp://{}:{}/camera/{{device_id}}/start",
+        get_local_ip(),
+        port,
+    )
+    logger.bind(tag=TAG).info(
+        "摄像头流媒体接口是\thttp://{}:{}/camera/{{device_id}}/stream",
         get_local_ip(),
         port,
     )

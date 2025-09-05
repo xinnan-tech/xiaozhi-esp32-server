@@ -10,6 +10,8 @@ import threading
 import traceback
 import subprocess
 import websockets
+import base64
+from datetime import datetime
 from core.utils.util import (
     extract_json_from_string,
     check_vad_update,
@@ -156,6 +158,8 @@ class ConnectionHandler:
 
         # 初始化提示词管理器
         self.prompt_manager = PromptManager(config, self.logger)
+        # 摄像头帧计数器（每设备计数，用于采样保存）
+        self._camera_frame_counters = {}
 
     async def handle_connection(self, ws):
         try:
@@ -275,13 +279,91 @@ class ConnectionHandler:
     async def _route_message(self, message):
         """消息路由"""
         if isinstance(message, str):
-            await handleTextMessage(self, message)
+            # 可能是JSON文本
+            try:
+                obj = json.loads(message)
+                # 转发摄像头帧到 Redis，并保存到本地文件
+                if obj.get("type") == "camera" and obj.get("event") == "frame":
+                    payload = obj
+                elif obj.get("type") == "mcp" and isinstance(obj.get("payload"), dict) \
+                        and obj["payload"].get("type") == "camera" and obj["payload"].get("event") == "frame":
+                    payload = obj["payload"]
+                else:
+                    payload = None
+
+                if payload is not None:
+                    b64 = payload.get("data")
+                    if isinstance(b64, str) and self.device_id:
+                        # 统计：每秒打印一次匹配到的摄像头帧数量
+                        try:
+                            now_sec = int(time.time())
+                            if not hasattr(self, "_cam_stat"):
+                                self._cam_stat = {"sec": now_sec, "count": 0}
+                            if self._cam_stat["sec"] != now_sec:
+                                self.logger.bind(tag=TAG).info(
+                                    f"mcp camera frames last second: {self._cam_stat['count']}"
+                                )
+                                self._cam_stat = {"sec": now_sec, "count": 1}
+                            else:
+                                self._cam_stat["count"] += 1
+                        except Exception:
+                            pass
+                        # 1) 保存本地文件（每帧保存一张，便于快速验证）
+                        try:
+                            cnt = self._camera_frame_counters.get(self.device_id, 0) + 1
+                            self._camera_frame_counters[self.device_id] = cnt
+                            # 保存为 JPG
+                            jpeg_bytes = base64.b64decode(b64)
+                            base_dir = os.path.abspath(os.path.join(os.getcwd(), "camera_frames_py"))
+                            # Windows 不允许文件名包含冒号，替换为下划线
+                            safe_device_id = self.device_id.replace(":", "_")
+                            out_dir = os.path.join(base_dir, safe_device_id)
+                            os.makedirs(out_dir, exist_ok=True)
+                            ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+                            out_path = os.path.join(out_dir, f"{ts}.jpg")
+                            with open(out_path, "wb") as f:
+                                f.write(jpeg_bytes)
+                            # 为了快速定位，每帧都打印保存路径
+                            self.logger.bind(tag=TAG).info(
+                                f"saved camera frame(py): device={self.device_id}, path={out_path}, bytes={len(jpeg_bytes)}, count={cnt}"
+                            )
+                        except Exception as save_err:
+                            # 提升为警告，便于快速发现失败原因
+                            self.logger.bind(tag=TAG).warning(f"save camera frame failed: {save_err}")
+                        
+                        # 2) 发布到 Redis（若可用）
+                        if hasattr(self.server, "redis") and self.server.redis is not None:
+                            await self.server.redis.publish(f"camera:frames:{self.device_id}", b64)
+                        
+                        # 3) 直接传递给 CameraHandler（如果存在）
+                        if hasattr(self.server, "camera_handler") and self.server.camera_handler is not None:
+                            self.logger.bind(tag=TAG).info(f"Passing frame to CameraHandler for device: {self.device_id}")
+                            self.server.camera_handler.add_frame(self.device_id, b64)
+                        else:
+                            self.logger.bind(tag=TAG).warning(f"CameraHandler not available for device: {self.device_id}")
+                else:
+                    await handleTextMessage(self, message)
+            except Exception:
+                await handleTextMessage(self, message)
         elif isinstance(message, bytes):
             if self.vad is None:
                 return
             if self.asr is None:
                 return
             self.asr_audio_queue.put(message)
+            # 帧统计：记录收到的二进制块数（仅用于调试）
+            try:
+                now_sec = int(time.time())
+                if not hasattr(self, "_fps_stat"):
+                    self._fps_stat = {"sec": now_sec, "count": 0}
+                if self._fps_stat["sec"] != now_sec:
+                    # 每秒打印一次上一秒统计
+                    self.logger.bind(tag=TAG).debug(f"binary frames last second: {self._fps_stat['count']}")
+                    self._fps_stat = {"sec": now_sec, "count": 1}
+                else:
+                    self._fps_stat["count"] += 1
+            except Exception:
+                pass
 
     async def handle_restart(self, message):
         """处理服务器重启请求"""

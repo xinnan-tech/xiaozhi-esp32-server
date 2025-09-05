@@ -38,9 +38,9 @@ spring:
             multi-statement-allow: true
   data:
     redis:
-      host: 127.0.0.1         # Redis服务器地址
+      host: 192.168.1.13         # Redis服务器地址
       port: 6379              # Redis服务器连接端口
-      password:              # Redis服务器连接密码（默认为空）
+      password:  redis_DbiKM4 # Redis服务器连接密码（默认为空）
       database: 0            # Redis数据库索引（默认为0）
       timeout: 10000ms       # 连接超时时间（毫秒）
       lettuce:
