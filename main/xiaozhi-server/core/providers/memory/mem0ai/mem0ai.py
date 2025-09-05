@@ -62,19 +62,23 @@ class MemoryProvider(MemoryProviderBase):
         try:
             logger.bind(tag=TAG).info(f"[MEM0] Preparing to save memory for user_id: {self.role_id}")
             
-            # Format the content as a message list for mem0
-            messages = [
-                {"role": message.role, "content": message.content}
-                for message in msgs
-                if message.role != "system"
-            ]
+            # Convert messages to a single conversation text for mem0
+            conversation_text = ""
+            for message in msgs:
+                if message.role != "system":
+                    role_label = "User" if message.role == "user" else "Assistant" 
+                    conversation_text += f"{role_label}: {message.content}\n"
             
-            logger.bind(tag=TAG).info(f"[MEM0] Formatted {len(messages)} messages for saving (excluded system messages)")
-            logger.bind(tag=TAG).debug(f"[MEM0] Messages to save: {messages[:2]}...")  # Log first 2 messages for debugging
+            if not conversation_text.strip():
+                logger.bind(tag=TAG).info("[MEM0] No conversation content to save after filtering")
+                return None
             
-            logger.bind(tag=TAG).info(f"[MEM0] Calling client.add() with API version: {self.api_version}")
+            logger.bind(tag=TAG).info(f"[MEM0] Conversation text prepared ({len(conversation_text)} chars)")
+            logger.bind(tag=TAG).debug(f"[MEM0] First 200 chars: {conversation_text[:200]}...")
+            
+            logger.bind(tag=TAG).info(f"[MEM0] Calling client.add() with user_id: {self.role_id}")
             result = self.client.add(
-                messages, user_id=self.role_id, output_format=self.api_version
+                conversation_text, user_id=self.role_id
             )
             
             logger.bind(tag=TAG).info(f"[MEM0] Memory saved successfully! Result: {result}")
@@ -95,7 +99,7 @@ class MemoryProvider(MemoryProviderBase):
         try:
             logger.bind(tag=TAG).info(f"[MEM0-QUERY] Searching memories for user_id: {self.role_id}")
             results = self.client.search(
-                query, user_id=self.role_id, output_format=self.api_version
+                query, user_id=self.role_id
             )
             
             # logger.bind(tag=TAG).info(f"[MEM0-QUERY] Search completed. Results: {results}")
