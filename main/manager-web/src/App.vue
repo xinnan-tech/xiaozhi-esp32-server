@@ -60,6 +60,12 @@ export default {
     };
   },
   mounted() {
+    // 检测是否为移动设备且VUE_APP_H5_URL不为空，如果两个条件都满足则跳转到H5页面
+    if (this.isMobileDevice() && process.env.VUE_APP_H5_URL) {
+      window.location.href = process.env.VUE_APP_H5_URL;
+      return;
+    }
+    
     // 只有在启用CDN时才添加相关事件和功能
     if (this.isCDNEnabled) {
       // 添加全局快捷键Alt+C用于显示缓存查看器
@@ -101,6 +107,11 @@ export default {
         this.showCacheViewer = true;
       }
     },
+    isMobileDevice() {
+      // 检测是否为移动设备的函数
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    },
+    
     async checkServiceWorkerStatus() {
       // 检查Service Worker是否已注册
       if ('serviceWorker' in navigator) {

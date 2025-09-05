@@ -462,21 +462,14 @@ class TTSProvider(TTSProviderBase):
                         logger.bind(tag=TAG).debug(
                             f"推送数据到队列里面帧数～～{len(opus_datas)}"
                         )
-                        if is_first_sentence:
-                            first_sentence_segment_count += 1
-                            if first_sentence_segment_count <= 6:
-                                self.tts_audio_queue.put(
-                                    (SentenceType.MIDDLE, opus_datas, None)
-                                )
-                            else:
-                                opus_datas_cache.extend(opus_datas)
-                        else:
-                            # 后续句子缓存
-                            opus_datas_cache.extend(opus_datas)
+                        # 优化：对于第一句话，不进行缓存，立即推送到队列
+                        self.tts_audio_queue.put(
+                            (SentenceType.MIDDLE, opus_datas, None)
+                        )
                     elif res.optional.event == EVENT_TTSSentenceEnd:
                         logger.bind(tag=TAG).info(f"句子语音生成成功：{self.tts_text}")
-                        if not is_first_sentence or first_sentence_segment_count > 10:
-                            # 发送缓存的数据
+                        # 优化：如果有缓存的数据，立即发送
+                        if opus_datas_cache:
                             self.tts_audio_queue.put(
                                 (SentenceType.MIDDLE, opus_datas_cache, None)
                             )
