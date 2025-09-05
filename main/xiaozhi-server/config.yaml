@@ -389,6 +389,22 @@ ASR:
     base_url: https://api.groq.com/openai/v1/audio/transcriptions
     model_name: whisper-large-v3-turbo
     output_dir: tmp/
+  VoskASR:
+    # 官方网站：https://alphacephei.com/vosk/
+    # 配置说明：
+    # 1. VOSK是一个离线语音识别库，支持多种语言
+    # 2. 需要先下载模型文件：https://alphacephei.com/vosk/models
+    # 3. 中文模型推荐使用vosk-model-small-cn-0.22或vosk-model-cn-0.22
+    # 4. 完全离线运行，无需网络连接
+    # 5. 输出文件保存在tmp/目录
+    # 使用步骤：
+    # 1. 访问 https://alphacephei.com/vosk/models 下载对应的模型
+    # 2. 解压模型文件到项目目录下的models/vosk/文件夹
+    # 3. 在配置中指定正确的模型路径
+    # 4. 注意：VOSK中文模型输出不带标点符号，词与词之间会有空格
+    type: vosk
+    model_path: 你的模型路径，如：models/vosk/vosk-model-small-cn-0.22
+    output_dir: tmp/
 
 
   
