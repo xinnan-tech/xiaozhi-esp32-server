@@ -723,26 +723,38 @@ TTS:
     #     voice_id: female-shaonv
     #     weight: 1
     # language_boost: auto
-
-# MinimaxTTSHTTPStream和MinimaxTTSWebSocketStream还在测试，测试完再开放
-#
-#  MinimaxTTSHTTPStream:
-#  # Minimax流式语音合成服务
-#    type: minimax_httpstream
-#    output_dir: tmp/
-#    group_id: 你的minimax平台groupID
-#    api_key: 你的minimax平台接口密钥
-#    model: "speech-01-turbo"
-#    voice_id: "female-shaonv"
-#
-#  MinimaxTTSWebSocketStream:
-#    type: minimax_webSocket
-#    output_dir: tmp/
-#    group_id: 你的minimax平台groupID
-#    api_key: 你的minimax平台接口密钥
-#    model: "speech-01-turbo"
-#    voice_id: "female-shaonv"
-
+  MinimaxTTSHTTPStream:
+  # Minimax流式语音合成服务
+    type: minimax_httpstream
+    output_dir: tmp/
+    group_id: 你的minimax平台groupID
+    api_key: 你的minimax平台接口密钥
+    model: "speech-01-turbo"
+    voice_id: "female-shaonv"
+    # 以下可不用设置，使用默认设置
+    # voice_setting:
+    #     voice_id: "male-qn-qingse"
+    #     speed: 1
+    #     vol: 1
+    #     pitch: 0
+    #     emotion: "happy"
+    # pronunciation_dict:
+    #     tone:
+    #       - "处理/(chu3)(li3)"
+    #       - "危险/dangerous"
+    # audio_setting:
+    #     sample_rate: 24000
+    #     bitrate: 128000
+    #     format: "mp3"
+    #     channel: 1
+    # timber_weights:
+    #   -
+    #     voice_id: male-qn-qingse
+    #     weight: 1
+    #   -
+    #     voice_id: female-shaonv
+    #     weight: 1
+    # language_boost: auto
   AliyunTTS:
     # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
     # 平台地址：https://nls-portal.console.aliyun.com/
