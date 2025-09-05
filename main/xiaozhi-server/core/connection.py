@@ -662,28 +662,11 @@
 #         # Use mem_local_short mode
 #         elif memory_type == "mem_local_short":
 #             self.logger.bind(tag=TAG).info("Memory module initialized: LOCAL STORAGE (mem_local_short)")
-#             memory_llm_name = memory_config[self.config["selected_module"]["Memory"]][
-#                 "llm"
-#             ]
-#             if memory_llm_name and memory_llm_name in self.config["LLM"]:
-#                 # If a dedicated LLM is configured, create an independent LLM instance
-#                 from core.utils import llm as llm_utils
-
-#                 memory_llm_config = self.config["LLM"][memory_llm_name]
-#                 memory_llm_type = memory_llm_config.get(
-#                     "type", memory_llm_name)
-#                 memory_llm = llm_utils.create_instance(
-#                     memory_llm_type, memory_llm_config
-#                 )
-#                 self.logger.bind(tag=TAG).info(
-#                     f"Created a dedicated LLM for memory summary: {memory_llm_name}, type: {memory_llm_type}"
-#                 )
-#                 self.memory.set_llm(memory_llm)
-#             else:
-#                 # Otherwise use main LLM
-#                 self.memory.set_llm(self.llm)
-#                 self.logger.bind(tag=TAG).info(
-#                     "Using main LLM as memory model")
+#             # ALWAYS use the main LLM for memory operations
+#             # This ensures consistency and avoids configuration issues
+#             self.memory.set_llm(self.llm)
+#             self.logger.bind(tag=TAG).info(
+#                 f"Using main LLM ({self.config['selected_module']['LLM']}) for memory operations")
 #         elif memory_type == "mem0ai":
 #             self.logger.bind(tag=TAG).info("Memory module initialized: MEM0 CLOUD (mem0ai)")
 #         else:
@@ -1884,28 +1867,11 @@ class ConnectionHandler:
         # Use mem_local_short mode
         elif memory_type == "mem_local_short":
             self.logger.bind(tag=TAG).info("Memory module initialized: LOCAL STORAGE (mem_local_short)")
-            memory_llm_name = memory_config[self.config["selected_module"]["Memory"]][
-                "llm"
-            ]
-            if memory_llm_name and memory_llm_name in self.config["LLM"]:
-                # If a dedicated LLM is configured, create an independent LLM instance
-                from core.utils import llm as llm_utils
-
-                memory_llm_config = self.config["LLM"][memory_llm_name]
-                memory_llm_type = memory_llm_config.get(
-                    "type", memory_llm_name)
-                memory_llm = llm_utils.create_instance(
-                    memory_llm_type, memory_llm_config
-                )
-                self.logger.bind(tag=TAG).info(
-                    f"Created a dedicated LLM for memory summary: {memory_llm_name}, type: {memory_llm_type}"
-                )
-                self.memory.set_llm(memory_llm)
-            else:
-                # Otherwise use main LLM
-                self.memory.set_llm(self.llm)
-                self.logger.bind(tag=TAG).info(
-                    "Using main LLM as memory model")
+            # ALWAYS use the main LLM for memory operations
+            # This ensures consistency and avoids configuration issues
+            self.memory.set_llm(self.llm)
+            self.logger.bind(tag=TAG).info(
+                f"Using main LLM ({self.config['selected_module']['LLM']}) for memory operations")
         elif memory_type == "mem0ai":
             self.logger.bind(tag=TAG).info("Memory module initialized: MEM0 CLOUD (mem0ai)")
         else:

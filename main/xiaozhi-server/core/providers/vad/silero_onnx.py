@@ -201,7 +201,7 @@ class SileroVADAnalyzer(VADAnalyzer):
             
             if self._confidence_log_counter % 100 == 0:  # Log every 100th frame (reduced from 10)
                 audio_rms = float(np.sqrt(np.mean(audio_float32 ** 2)))
-                confidence_val = float(new_confidence)
+                confidence_val = float(new_confidence.item())  # Use .item() to extract scalar from numpy array
                 logger.debug(f"VAD confidence: {confidence_val:.3f}, RMS: {audio_rms:.4f}")
             
             # Reset model periodically to prevent memory growth
@@ -211,7 +211,7 @@ class SileroVADAnalyzer(VADAnalyzer):
                 self._model.reset_states()
                 self._last_reset_time = curr_time
                 
-            return float(new_confidence)
+            return float(new_confidence.item())  # Use .item() to extract scalar from numpy array
         except Exception as e:
             logger.error(f"Error analyzing audio with Silero ONNX VAD: {e}")
             return 0.0
