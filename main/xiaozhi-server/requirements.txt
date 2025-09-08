@@ -40,3 +40,7 @@ deepgram-sdk==4.8.1
 fuzzywuzzy
 Levenshtein
 amazon_transcribe
+# Semantic search dependencies
+qdrant-client>=1.7.0
+sentence-transformers>=2.2.0
+pyspellchecker>=0.7.0
