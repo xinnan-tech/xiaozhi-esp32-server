@@ -125,7 +125,9 @@ def _extract_song_name(text):
         "I want to hear",
         "listen to",
         "play some music",
-        "music"
+        "music",
+        "tell",
+        "can you tell"
     ]
     
     text_lower = text.lower()
