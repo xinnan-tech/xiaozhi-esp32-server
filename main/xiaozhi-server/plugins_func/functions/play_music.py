@@ -10,6 +10,7 @@ from plugins_func.register import register_function, ToolType, ActionResponse, A
 from core.utils.dialogue import Message
 from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
 from plugins_func.utils.multilingual_matcher import MultilingualMatcher
+from plugins_func.utils.semantic_music_search import SemanticMusicSearch
 
 # S3 Streaming imports
 import boto3
@@ -23,6 +24,7 @@ TAG = __name__
 
 MUSIC_CACHE = {}
 MULTILINGUAL_MATCHER = None
+SEMANTIC_SEARCH = None
 
 # S3 Configuration
 S3_CLIENT = None
@@ -425,8 +427,8 @@ def initialize_music_handler(conn):
     return MUSIC_CACHE
 
 def initialize_multilingual_music_system(conn):
-    """Initialize the multilingual music matching system"""
-    global MULTILINGUAL_MATCHER, MUSIC_CACHE
+    """Initialize the multilingual music matching system with semantic search"""
+    global MULTILINGUAL_MATCHER, SEMANTIC_SEARCH, MUSIC_CACHE
     
     # Initialize basic music cache first
     initialize_music_handler(conn)
@@ -442,10 +444,35 @@ def initialize_multilingual_music_system(conn):
         except Exception as e:
             conn.logger.bind(tag=TAG).error(f"Failed to initialize multilingual matcher: {e}")
             MULTILINGUAL_MATCHER = None
+    
+    # Initialize semantic search if not already done
+    if SEMANTIC_SEARCH is None:
+        try:
+            semantic_config = conn.config.get('semantic_search', {})
+            if semantic_config.get('enabled', False):
+                SEMANTIC_SEARCH = SemanticMusicSearch(semantic_config)
+                if SEMANTIC_SEARCH.initialize():
+                    conn.logger.bind(tag=TAG).info("Semantic music search initialized successfully")
+                    
+                    # Check if collection is already indexed
+                    if SEMANTIC_SEARCH.is_collection_indexed():
+                        stats = SEMANTIC_SEARCH.get_collection_stats()
+                        conn.logger.bind(tag=TAG).info(f"Using existing music index with {stats.get('points_count', 0)} songs")
+                    else:
+                        conn.logger.bind(tag=TAG).warning("Music collection is empty. Please run 'python index_music.py' to index your music")
+                        # Don't try to index on-the-fly anymore to avoid timeouts
+                else:
+                    conn.logger.bind(tag=TAG).warning("Failed to initialize semantic search")
+                    SEMANTIC_SEARCH = None
+            else:
+                conn.logger.bind(tag=TAG).info("Semantic search is disabled in configuration")
+        except Exception as e:
+            conn.logger.bind(tag=TAG).error(f"Failed to initialize semantic search: {e}")
+            SEMANTIC_SEARCH = None
 
 async def handle_multilingual_music_command(conn, user_request: str, song_type: str, requested_language: str = None):
-    """Enhanced music command handler with multilingual AI matching"""
-    global MULTILINGUAL_MATCHER, MUSIC_CACHE
+    """Enhanced music command handler with semantic search and multilingual matching"""
+    global MULTILINGUAL_MATCHER, SEMANTIC_SEARCH, MUSIC_CACHE
     
     conn.logger.bind(tag=TAG).debug(f"Processing multilingual music request: '{user_request}'")
     
@@ -472,24 +499,41 @@ async def handle_multilingual_music_command(conn, user_request: str, song_type: 
     # Check if this is a language-only request
     is_language_only = MULTILINGUAL_MATCHER and MULTILINGUAL_MATCHER.is_language_only_request(user_request)
     
-    # Try multilingual AI matching for specific songs (ignore LLM language hint for better accuracy)
-    if MULTILINGUAL_MATCHER and song_type in ["specific", "random"] and not is_language_only:
+    # Try semantic search for specific songs first (most accurate)
+    if SEMANTIC_SEARCH and song_type in ["specific", "random"] and not is_language_only:
         try:
-            # First try without language hint to find best match across all languages
+            semantic_result = SEMANTIC_SEARCH.find_best_match(user_request)
+            if semantic_result and semantic_result.score > 0.5:  # Confidence threshold
+                selected_music = semantic_result.file_path
+                match_info = {
+                    'method': 'semantic_search',
+                    'language': semantic_result.language,
+                    'title': semantic_result.romanized,
+                    'original_title': semantic_result.title,
+                    'score': semantic_result.score
+                }
+                conn.logger.bind(tag=TAG).info(f"Semantic search match: {selected_music} ({semantic_result.language}) - score: {semantic_result.score:.3f}")
+        except Exception as e:
+            conn.logger.bind(tag=TAG).error(f"Error in semantic search: {e}")
+    
+    # Fallback to multilingual AI matching if semantic search didn't find a good match
+    if not selected_music and MULTILINGUAL_MATCHER and song_type in ["specific", "random"] and not is_language_only:
+        try:
+            # Try multilingual matcher as fallback
             match_result = MULTILINGUAL_MATCHER.find_content_match(user_request, None)
             if match_result:
                 selected_music, detected_language, metadata_entry = match_result
                 match_info = {
-                    'method': 'ai_multilingual',
+                    'method': 'ai_multilingual_fallback',
                     'language': detected_language,
                     'title': metadata_entry.get('romanized', 'Unknown'),
                     'original_title': list(MULTILINGUAL_MATCHER.metadata_cache[detected_language]['metadata'].keys())[
                         list(MULTILINGUAL_MATCHER.metadata_cache[detected_language]['metadata'].values()).index(metadata_entry)
                     ] if detected_language in MULTILINGUAL_MATCHER.metadata_cache else 'Unknown'
                 }
-                conn.logger.bind(tag=TAG).info(f"AI match found: {selected_music} ({detected_language}) - overriding LLM language hint: {requested_language}")
+                conn.logger.bind(tag=TAG).info(f"Fallback AI match found: {selected_music} ({detected_language})")
         except Exception as e:
-            conn.logger.bind(tag=TAG).error(f"Error in AI matching: {e}")
+            conn.logger.bind(tag=TAG).error(f"Error in AI matching fallback: {e}")
     
     # Try language-specific selection for language requests or when language is detected
     if not selected_music and requested_language and MULTILINGUAL_MATCHER:
@@ -669,7 +713,36 @@ def generate_multilingual_intro(match_info: dict, original_request: str) -> str:
         language = 'unknown'
     
     try:
-        if method == 'ai_multilingual':
+        if method == 'semantic_search':
+            score = match_info.get('score', 0)
+            if score > 0.8:
+                if language != 'unknown':
+                    intros = [
+                        f"Perfect match! I found '{title}' in {language.title()} for you!",
+                        f"Excellent! Here's '{title}' - exactly what you asked for in {language.title()}!",
+                        f"Found it! Playing '{title}' - this {language.title()} song matches perfectly!",
+                        f"Great choice! '{title}' in {language.title()} is exactly what you wanted!"
+                    ]
+                else:
+                    intros = [
+                        f"Perfect! I found exactly what you wanted: '{title}'!",
+                        f"Excellent match! Here's '{title}' for you!",
+                        f"Found it! Playing '{title}' - this is exactly what you asked for!"
+                    ]
+            else:
+                if language != 'unknown':
+                    intros = [
+                        f"I think you'll like '{title}' in {language.title()}!",
+                        f"Here's '{title}' - a great {language.title()} song that matches your request!",
+                        f"Playing '{title}' in {language.title()} - hope this is what you wanted!"
+                    ]
+                else:
+                    intros = [
+                        f"I found '{title}' which should match your request!",
+                        f"Here's '{title}' - I think this is what you're looking for!",
+                        f"Playing '{title}' based on your request!"
+                    ]
+        elif method == 'ai_multilingual' or method == 'ai_multilingual_fallback':
             if language != 'unknown':
                 intros = [
                     f"Perfect! I found '{title}' in {language.title()} for you!",
