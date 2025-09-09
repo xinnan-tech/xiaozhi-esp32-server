@@ -866,3 +866,19 @@ TTS:
     access_token: "U4YdYXVfpwWnk2t5Gp822zWPCuORyeJL"
     voice: "OUeAo1mhq6IBExi"
     output_dir: tmp/
+
+semantic_search:
+  # Enable semantic search for music (requires Qdrant and sentence-transformers)
+  enabled: true  # Set to false to disable
+  # Qdrant vector database URL - using same instance as memory system
+  qdrant_url: "https://a2482b9f-2c29-476e-9ff0-741aaaaf632e.eu-west-1-0.aws.cloud.qdrant.io"
+  # Qdrant API key - using your reference code's API key
+  qdrant_api_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.zPBGAqVGy-edbbgfNOJsPWV496BsnQ4ELOFvsLNyjsk"
+  # Vector collection name for music embeddings  
+  collection_name: "xiaozhi_music"
+  # Sentence transformer model for embeddings (fast and efficient)
+  embedding_model: "all-MiniLM-L6-v2"
+  # Number of search results to return
+  search_limit: 5
+  # Minimum similarity score threshold (0.5 = 50% similarity required)
+  min_score_threshold: 0.5
