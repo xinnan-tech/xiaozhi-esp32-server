@@ -416,14 +416,6 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         String[] pluginIds = new String[] { "SYSTEM_PLUGIN_MUSIC", "SYSTEM_PLUGIN_STORY", 
                 "SYSTEM_PLUGIN_WEATHER", "SYSTEM_PLUGIN_NEWS_NEWSNOW" };
         
-        // 检查已存在的插件映射
-        List<AgentPluginMapping> existingMappings = agentPluginMappingService.list(
-            new QueryWrapper<AgentPluginMapping>().eq("agent_id", entity.getId())
-        );
-        List<String> existingPluginIds = existingMappings.stream()
-            .map(AgentPluginMapping::getPluginId)
-            .collect(Collectors.toList());
-        
         for (String pluginId : pluginIds) {
             // 跳过已存在的插件映射
             if (existingPluginIds.contains(pluginId)) {
