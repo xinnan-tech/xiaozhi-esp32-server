@@ -14,8 +14,10 @@ server:
 
 spring:
   # 环境 dev|test|prod
+  # Profile will be set by SPRING_PROFILES_ACTIVE environment variable
+  # Default to 'dev' if not specified
   profiles:
-    active: dev # Using dev profile with Railway database configuration
+    default: prod
   messages:
     encoding: UTF-8
     basename: i18n/messages

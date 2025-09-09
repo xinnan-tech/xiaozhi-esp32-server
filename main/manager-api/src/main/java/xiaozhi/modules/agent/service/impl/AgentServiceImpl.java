@@ -378,6 +378,17 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             entity.setChatHistoryConf(template.getChatHistoryConf());
             entity.setLangCode(template.getLangCode());
             entity.setLanguage(template.getLanguage());
+            
+            // Override with custom defaults for memory and voice
+            entity.setMemModelId("Memory_mem0ai");  // Always use memoAI for memory
+            entity.setTtsModelId("TTS_EdgeTTS");  // Always use EdgeTTS model
+            entity.setTtsVoiceId("TTS_EdgeTTS_Ana");  // Always use EdgeTTS Ana voice (en-US-AnaNeural)
+            
+            // Log the overridden values for debugging
+            System.out.println("Creating agent with overridden defaults:");
+            System.out.println("  Memory: " + entity.getMemModelId());
+            System.out.println("  TTS Model: " + entity.getTtsModelId());
+            System.out.println("  TTS Voice: " + entity.getTtsVoiceId());
         }
 
         // 设置用户ID和创建者信息

@@ -1,0 +1,7 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# But keep the example
+!.env.example
