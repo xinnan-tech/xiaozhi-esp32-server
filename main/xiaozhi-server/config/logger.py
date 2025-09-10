@@ -45,6 +45,11 @@ def formatter(record):
     return record["message"]
 
 
+def get_logger(tag):
+    """获取预配置的日志记录器，避免循环导入"""
+    # 基本配置，不依赖config
+    return logger.bind(tag=tag)
+
 def setup_logging():
     check_config_file()
     """从配置文件中读取日志配置，并设置日志输出格式和级别"""

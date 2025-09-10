@@ -1,10 +1,10 @@
 import os
 import re
 import sys
-from config.logger import setup_logging
+from config.logger import get_logger
 import importlib
 
-logger = setup_logging()
+logger = get_logger(__name__)
 
 
 def create_instance(class_name, *args, **kwargs):
