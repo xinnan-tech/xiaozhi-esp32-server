@@ -45,4 +45,14 @@ public class AgentDTO {
 
     @Schema(description = "设备数量", example = "10")
     private Integer deviceCount;
+
+    @Schema(description = "设备MAC地址列表", example = "AA:BB:CC:DD:EE:FF,11:22:33:44:55:66")
+    private String deviceMacAddresses;
+
+    // 管理员专用字段 - 智能体所有者信息
+    @Schema(description = "所有者用户名", example = "john_doe")
+    private String ownerUsername;
+
+    @Schema(description = "创建时间", example = "2024-03-20 10:00:00")
+    private Date createDate;
 }

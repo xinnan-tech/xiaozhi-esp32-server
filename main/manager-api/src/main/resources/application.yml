@@ -17,7 +17,7 @@ spring:
   # Profile will be set by SPRING_PROFILES_ACTIVE environment variable
   # Default to 'dev' if not specified
   profiles:
-    default: prod
+    default: dev
   messages:
     encoding: UTF-8
     basename: i18n/messages

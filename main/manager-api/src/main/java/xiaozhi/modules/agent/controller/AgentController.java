@@ -67,11 +67,21 @@ public class AgentController {
     private final RedisUtils redisUtils;
 
     @GetMapping("/list")
-    @Operation(summary = "Get user agents list")
+    @Operation(summary = "Get agents list (admin gets all agents, user gets own agents)")
     @RequiresPermissions("sys:role:normal")
-    public Result<List<AgentDTO>> getUserAgents() {
+    public Result<List<AgentDTO>> getAgentsList() {
         UserDetail user = SecurityUser.getUser();
-        List<AgentDTO> agents = agentService.getUserAgents(user.getId());
+        List<AgentDTO> agents;
+        
+        // Check if user is super admin
+        if (user.getSuperAdmin() != null && user.getSuperAdmin() == 1) {
+            // Admin sees all agents from all users with owner information
+            agents = agentService.getAllAgentsForAdmin();
+        } else {
+            // Regular user sees only their own agents
+            agents = agentService.getUserAgents(user.getId());
+        }
+        
         return new Result<List<AgentDTO>>().ok(agents);
     }
 
