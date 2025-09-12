@@ -239,15 +239,7 @@ async def handleAudioMessage(conn, audio):
             conn.logger.bind(tag=TAG).debug(f"VAD recording started at: {conn.vad_recording_start_time}")
         # Don't overwrite existing timer during continuous voice detection
 
-    # Check if this is the initial connection period (ignore first 1 second of audio)
-    if have_voice and hasattr(conn, "initial_connection_handled") and not conn.initial_connection_handled:
-        current_time = asyncio.get_event_loop().time()
-        if current_time - conn.initial_connection_time < 1.0:  # Ignore first 1 second
-            have_voice = False
-            conn.asr_audio.clear()  # Clear any accumulated audio
-            return
-        else:
-            conn.initial_connection_handled = True
+    # Initial connection handling removed - no longer ignoring initial audio
 
     # If the device was just woken up, briefly ignore VAD detection
     if have_voice and hasattr(conn, "just_woken_up") and conn.just_woken_up:
