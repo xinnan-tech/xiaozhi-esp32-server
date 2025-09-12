@@ -117,17 +117,11 @@ class PromptManager:
 
     def _get_current_time_info(self) -> tuple:
         """获取当前时间信息"""
-        from datetime import datetime
-
-        now = datetime.now()
-        today_date = now.strftime("%Y-%m-%d")
-        today_weekday = WEEKDAY_MAP[now.strftime("%A")]
-        today_lunar = cnlunar.Lunar(now, godType="8char")
-        lunar_date = "%s年%s%s\n" % (
-            today_lunar.lunarYearCn,
-            today_lunar.lunarMonthCn[:-1],
-            today_lunar.lunarDayCn,
-        )
+        from .current_time import get_current_date, get_current_weekday, get_current_lunar_date
+        
+        today_date = get_current_date()
+        today_weekday = get_current_weekday()
+        lunar_date = get_current_lunar_date() + "\n"
 
         return today_date, today_weekday, lunar_date
 

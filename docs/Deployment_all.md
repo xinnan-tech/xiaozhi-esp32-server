@@ -476,7 +476,8 @@ ws://你电脑局域网的ip:8000/xiaozhi/v1/
 4、[如何部署MCP接入点](./mcp-endpoint-enable.md)<br/>
 5、[如何接入MCP接入点](./mcp-endpoint-integration.md)<br/>
 6、[如何开启声纹识别](./voiceprint-integration.md)<br/>
-10、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
+7、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
+8、[天气插件使用指南](./weather-integration.md)<br/>
 ## 语音克隆、本地语音部署相关教程
 1、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
 2、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>

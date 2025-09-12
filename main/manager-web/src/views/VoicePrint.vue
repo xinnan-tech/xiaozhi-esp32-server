@@ -3,7 +3,7 @@
         <HeaderBar />
 
         <div class="operation-bar">
-            <h2 class="page-title">声纹识别</h2>
+            <h2 class="page-title">{{ $t('voicePrint.pageTitle') }}</h2>
         </div>
 
         <div class="main-wrapper">
@@ -11,23 +11,23 @@
                 <div class="content-area">
                     <el-card class="voice-print-card" shadow="never">
                         <el-table ref="paramsTable" :data="voicePrintList" class="transparent-table" v-loading="loading"
-                            element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
-                            element-loading-background="rgba(255, 255, 255, 0.7)">
-                            <el-table-column label="姓名" prop="sourceName" align="center"></el-table-column>
-                            <el-table-column label="描述" prop="introduce" align="center"></el-table-column>
-                            <el-table-column label="创建时间" prop="createDate" align="center"></el-table-column>
-                            <el-table-column label="操作" align="center">
+                           :element-loading-text="$t('voicePrint.loading')" element-loading-spinner="el-icon-loading"
+                          element-loading-background="rgba(255, 255, 255, 0.7)">
+                            <el-table-column :label="$t('voicePrint.name')" prop="sourceName" align="center"></el-table-column>
+                        <el-table-column :label="$t('voicePrint.description')" prop="introduce" align="center"></el-table-column>
+                        <el-table-column :label="$t('voicePrint.createTime')" prop="createDate" align="center"></el-table-column>
+                        <el-table-column :label="$t('voicePrint.action')" align="center">
                                 <template slot-scope="scope">
-                                    <el-button size="mini" type="text" @click="editVoicePrint(scope.row)">编辑</el-button>
+                                    <el-button size="mini" type="text" @click="editVoicePrint(scope.row)">{{ $t('voicePrint.edit') }}</el-button>
                                     <el-button size="mini" type="text"
-                                        @click="deleteVoicePrint(scope.row.id)">删除</el-button>
+                                        @click="deleteVoicePrint(scope.row.id)">{{ $t('voicePrint.delete') }}</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
 
                         <div class="table_bottom">
                             <div class="ctrl_btn">
-                                <el-button size="mini" type="success" @click="showAddDialog">新增</el-button>
+                                <el-button size="mini" type="success" @click="showAddDialog">{{ $t('voicePrint.add') }}</el-button>
                             </div>
                         </div>
                     </el-card>
@@ -56,7 +56,7 @@ export default {
             voicePrintList: [],
             loading: false,
             dialogVisible: false,
-            dialogTitle: "添加说话人",
+            dialogTitle: this.$t('voicePrint.addSpeaker'),
             isAllSelected: false,
             paramForm: {
                 id: null,
@@ -87,7 +87,7 @@ export default {
                         }));
                     } else {
                         this.$message.error({
-                            message: data.msg || '获取声纹列表失败',
+                            message: data.msg || this.$t('voicePrint.fetchFailed'),
                             showClose: true
                         });
                     }
@@ -95,7 +95,7 @@ export default {
             );
         },
         showAddDialog() {
-            this.dialogTitle = "添加说话人";
+            this.dialogTitle = this.$t('voicePrint.addSpeaker');
             this.paramForm = {
                 id: null,
                 audioId: '',
@@ -105,7 +105,7 @@ export default {
             this.dialogVisible = true;
         },
         editVoicePrint(row) {
-            this.dialogTitle = "编辑说话人";
+            this.dialogTitle = this.$t('voicePrint.editSpeaker');
             this.paramForm = { ...row };
             this.dialogVisible = true;
         },
@@ -116,7 +116,7 @@ export default {
                 Api.agent.updateAgentVoicePrint(form, ({ data }) => {
                     if (data.code === 0) {
                         this.$message.success({
-                            message: "修改成功",
+                            message: this.$t('voicePrint.updateSuccess'),
                             showClose: true
                         });
                         this.dialogVisible = false;
@@ -134,7 +134,7 @@ export default {
                 }, ({ data }) => {
                     if (data.code === 0) {
                         this.$message.success({
-                            message: "新增成功",
+                            message: this.$t('voicePrint.addSuccess'),
                             showClose: true
                         });
                         this.dialogVisible = false;
@@ -146,22 +146,22 @@ export default {
         },
         // 删除按钮
         deleteVoicePrint(id) {
-            this.$confirm(`确定要删除选中的此声纹吗？`, '警告', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
+            this.$confirm(this.$t('voicePrint.confirmDelete'), this.$t('voicePrint.warning'), {
+                confirmButtonText: this.$t('voicePrint.confirm'),
+                cancelButtonText: this.$t('voicePrint.cancel'),
                 type: 'warning',
                 distinguishCancelAndClose: true
             }).then(() => {
                 Api.agent.deleteAgentVoicePrint(id, ({ data }) => {
                     if (data.code === 0) {
                         this.$message.success({
-                            message: `成功删除此声纹`,
+                            message: this.$t('voicePrint.deleteSuccess'),
                             showClose: true
                         });
                         this.fetchVoicePrints();
                     } else {
                         this.$message.error({
-                            message: data.msg || '删除失败，请重试',
+                            message: data.msg || this.$t('voicePrint.deleteFailed'),
                             showClose: true
                         });
                     }
@@ -170,13 +170,13 @@ export default {
                 if (action === 'cancel') {
                     this.$message({
                         type: 'info',
-                        message: '已取消删除操作',
+                        message: this.$t('voicePrint.cancelDelete'),
                         duration: 1000
                     });
                 } else {
                     this.$message({
                         type: 'info',
-                        message: '操作已关闭',
+                        message: this.$t('voicePrint.closeOperation'),
                         duration: 1000
                     });
                 }

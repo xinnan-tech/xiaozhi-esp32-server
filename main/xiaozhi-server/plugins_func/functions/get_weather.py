@@ -110,6 +110,11 @@ WEATHER_CODE_MAP = {
 def fetch_city_info(location, api_key, api_host):
     url = f"https://{api_host}/geo/v2/city/lookup?key={api_key}&location={location}&lang=zh"
     response = requests.get(url, headers=HEADERS).json()
+    if response.get("error") is not None:
+        logger.bind(tag=TAG).error(
+            f"获取天气失败，原因：{response.get('error', {}).get('detail')}"
+        )
+        return None
     return response.get("location", [])[0] if response.get("location") else None
 
 

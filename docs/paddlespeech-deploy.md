@@ -75,7 +75,7 @@ TTS:
       sample_rate: 24000  # 采样率 [websocket默认24000，http默认0 自动选择]
       speed: 1.0  # 语速，1.0 表示正常语速，>1 表示加快，<1 表示减慢
       volume: 1.0  # 音量，1.0 表示正常音量，>1 表示增大，<1 表示减小
-      save_path: ./streaming_tts.wav  # 服务器生成的语音文件保存路径
+      save_path:   # 保存路径
 ```
 ### 3.启动xiaozhi服务
 ```py

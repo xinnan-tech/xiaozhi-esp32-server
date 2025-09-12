@@ -1,11 +1,11 @@
 import time
 import json
-from core.handle.sendAudioHandle import send_stt_message
+import asyncio
+from core.utils.util import audio_to_data
+from core.handle.abortHandle import handleAbortMessage
 from core.handle.intentHandler import handle_user_intent
 from core.utils.output_counter import check_device_output_limit
-from core.handle.abortHandle import handleAbortMessage
-from core.handle.sendAudioHandle import SentenceType
-from core.utils.util import audio_to_data_stream
+from core.handle.sendAudioHandle import send_stt_message, SentenceType
 
 TAG = __name__
 
@@ -13,7 +13,14 @@ TAG = __name__
 async def handleAudioMessage(conn, audio):
     # 当前片段是否有人说话
     have_voice = conn.vad.is_vad(conn, audio)
-
+    # 如果设备刚刚被唤醒，短暂忽略VAD检测
+    if have_voice and hasattr(conn, "just_woken_up") and conn.just_woken_up:
+        have_voice = False
+        # 设置一个短暂延迟后恢复VAD检测
+        conn.asr_audio.clear()
+        if not hasattr(conn, "vad_resume_task") or conn.vad_resume_task.done():
+            conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
+        return
     if have_voice:
         if conn.client_is_speaking:
             await handleAbortMessage(conn)
@@ -22,6 +29,13 @@ async def handleAudioMessage(conn, audio):
     # 接收音频
     await conn.asr.receive_audio(conn, audio, have_voice)
 
+
+async def resume_vad_detection(conn):
+    # 等待2秒后恢复VAD检测
+    await asyncio.sleep(1)
+    conn.just_woken_up = False
+
+
 async def startToChat(conn, text):
     # 检查输入是否是JSON格式（包含说话人信息）
     speaker_name = None
@@ -29,11 +43,11 @@ async def startToChat(conn, text):
 
     try:
         # 尝试解析JSON格式的输入
-        if text.strip().startswith('{') and text.strip().endswith('}'):
+        if text.strip().startswith("{") and text.strip().endswith("}"):
             data = json.loads(text)
-            if 'speaker' in data and 'content' in data:
-                speaker_name = data['speaker']
-                actual_text = data['content']
+            if "speaker" in data and "content" in data:
+                speaker_name = data["speaker"]
+                actual_text = data["content"]
                 conn.logger.bind(tag=TAG).info(f"解析到说话人信息: {speaker_name}")
 
                 # 直接使用JSON格式的文本，不解析
@@ -102,12 +116,13 @@ async def no_voice_close_connect(conn, have_voice):
 
 
 async def max_out_size(conn):
+    # 播放超出最大输出字数的提示
+    conn.client_abort = False
     text = "不好意思，我现在有点事情要忙，明天这个时候我们再聊，约好了哦！明天不见不散，拜拜！"
     await send_stt_message(conn, text)
     file_path = "config/assets/max_output_size.wav"
-    conn.tts.tts_audio_queue.put((SentenceType.FIRST, [], text))
-    play_audio_frames(conn, file_path)
-    conn.tts.tts_audio_queue.put((SentenceType.LAST, [], None))
+    opus_packets = audio_to_data(file_path)
+    conn.tts.tts_audio_queue.put((SentenceType.LAST, opus_packets, text))
     conn.close_after_chat = True
 
 
@@ -125,35 +140,25 @@ async def check_bind_device(conn):
 
         # 播放提示音
         music_path = "config/assets/bind_code.wav"
-        conn.tts.tts_audio_queue.put((SentenceType.FIRST, [], text))
-        play_audio_frames(conn, music_path)
+        opus_packets = audio_to_data(music_path)
+        conn.tts.tts_audio_queue.put((SentenceType.FIRST, opus_packets, text))
 
         # 逐个播放数字
         for i in range(6):  # 确保只播放6位数字
             try:
                 digit = conn.bind_code[i]
                 num_path = f"config/assets/bind_code/{digit}.wav"
-                play_audio_frames(conn, num_path)
+                num_packets = audio_to_data(num_path)
+                conn.tts.tts_audio_queue.put((SentenceType.MIDDLE, num_packets, None))
             except Exception as e:
                 conn.logger.bind(tag=TAG).error(f"播放数字音频失败: {e}")
                 continue
         conn.tts.tts_audio_queue.put((SentenceType.LAST, [], None))
     else:
+        # 播放未绑定提示
+        conn.client_abort = False
         text = f"没有找到该设备的版本信息，请正确配置 OTA地址，然后重新编译固件。"
         await send_stt_message(conn, text)
         music_path = "config/assets/bind_not_found.wav"
-        conn.tts.tts_audio_queue.put((SentenceType.FIRST, [], text))
-        play_audio_frames(conn, music_path)
-        conn.tts.tts_audio_queue.put((SentenceType.LAST, [], None))
-
-
-def play_audio_frames(conn, file_path):
-    """播放音频文件并处理发送帧数据"""
-    def handle_audio_frame(frame_data):
-        conn.tts.tts_audio_queue.put((SentenceType.MIDDLE, frame_data, None))
-
-    audio_to_data_stream(
-        file_path,
-        is_opus=True,
-        callback=handle_audio_frame
-    )
+        opus_packets = audio_to_data(music_path)
+        conn.tts.tts_audio_queue.put((SentenceType.LAST, opus_packets, text))

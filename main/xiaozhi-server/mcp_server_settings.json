@@ -36,6 +36,12 @@
       "command": "npx",
       "args": ["-y", "@simonb97/server-win-cli"],
       "link": "https://github.com/SimonB97/win-cli-mcp-server"
+    },
+    "sse-mcp-server": {
+      "url": "http://localhost:8080/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR TOKEN"
+      }
     }
   }
 }

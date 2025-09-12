@@ -68,6 +68,9 @@ class ServerMCPManager:
 
         # 输出当前支持的服务端MCP工具列表
         if hasattr(self.conn, "func_handler") and self.conn.func_handler:
+            # 刷新工具缓存以确保服务端MCP工具被正确加载
+            if hasattr(self.conn.func_handler, "tool_manager"):
+                self.conn.func_handler.tool_manager.refresh_tools()
             self.conn.func_handler.current_support_functions()
 
     def get_all_tools(self) -> List[Dict[str, Any]]:

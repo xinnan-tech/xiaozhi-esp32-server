@@ -54,11 +54,7 @@ def hass_set_state(conn, entity_id="", state=None):
     if state is None:
         state = {}
     try:
-        future = asyncio.run_coroutine_threadsafe(
-            handle_hass_set_state(conn, entity_id, state), conn.loop
-        )
-        # 添加10秒超时
-        ha_response = future.result(timeout=10)
+        ha_response = handle_hass_set_state(conn, entity_id, state)
         return ActionResponse(Action.REQLLM, ha_response, None)
     except asyncio.TimeoutError:
         logger.bind(tag=TAG).error("设置Home Assistant状态超时")
@@ -69,7 +65,7 @@ def hass_set_state(conn, entity_id="", state=None):
         return ActionResponse(Action.ERROR, error_msg, None)
 
 
-async def handle_hass_set_state(conn, entity_id, state):
+def handle_hass_set_state(conn, entity_id, state):
     ha_config = initialize_hass_handler(conn)
     api_key = ha_config.get("api_key")
     base_url = ha_config.get("base_url")
@@ -169,7 +165,7 @@ async def handle_hass_set_state(conn, entity_id, state):
         data = {"entity_id": entity_id, arg: value}
     url = f"{base_url}/api/services/{domain}/{action}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=5)  # 设置5秒超时
     logger.bind(tag=TAG).info(
         f"设置状态:{description},url:{url},return_code:{response.status_code}"
     )

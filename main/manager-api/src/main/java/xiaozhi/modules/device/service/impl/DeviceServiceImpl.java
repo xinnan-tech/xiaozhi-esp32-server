@@ -1,12 +1,17 @@
 package xiaozhi.modules.device.service.impl;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.aop.framework.AopContext;
@@ -33,6 +38,7 @@ import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.DateUtils;
 import xiaozhi.modules.device.dao.DeviceDao;
+import xiaozhi.modules.device.dto.DeviceManualAddDTO;
 import xiaozhi.modules.device.dto.DevicePageUserDTO;
 import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
@@ -44,7 +50,6 @@ import xiaozhi.modules.device.vo.UserShowDeviceListVO;
 import xiaozhi.modules.security.user.SecurityUser;
 import xiaozhi.modules.sys.service.SysParamsService;
 import xiaozhi.modules.sys.service.SysUserUtilService;
-import xiaozhi.modules.device.dto.DeviceManualAddDTO;
 
 @Slf4j
 @Service
@@ -175,6 +180,23 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         }
 
         response.setWebsocket(websocket);
+
+        // 添加MQTT UDP配置
+        // 从系统参数获取MQTT Gateway地址，仅在配置有效时使用
+        String mqttUdpConfig = sysParamsService.getValue(Constant.SERVER_MQTT_GATEWAY, false);
+        if (mqttUdpConfig != null && !mqttUdpConfig.equals("null") && !mqttUdpConfig.isEmpty()) {
+            try {
+                String groupId = deviceById != null && deviceById.getBoard() != null ? deviceById.getBoard()
+                        : "GID_default";
+                DeviceReportRespDTO.MQTT mqtt = buildMqttConfig(macAddress, clientId, groupId);
+                if (mqtt != null) {
+                    mqtt.setEndpoint(mqttUdpConfig);
+                    response.setMqtt(mqtt);
+                }
+            } catch (Exception e) {
+                log.error("生成MQTT配置失败: {}", e.getMessage());
+            }
+        }
 
         if (deviceById != null) {
             // 如果设备存在，则异步更新上次连接时间和版本信息
@@ -436,5 +458,76 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         entity.setUpdater(userId);
         entity.setAutoUpdate(1);
         baseDao.insert(entity);
+    }
+
+    /**
+     * 生成MQTT密码签名
+     * 
+     * @param content   签名内容 (clientId + '|' + username)
+     * @param secretKey 密钥
+     * @return Base64编码的HMAC-SHA256签名
+     */
+    private String generatePasswordSignature(String content, String secretKey) throws Exception {
+        Mac hmac = Mac.getInstance("HmacSHA256");
+        SecretKeySpec keySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        hmac.init(keySpec);
+        byte[] signature = hmac.doFinal(content.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(signature);
+    }
+
+    /**
+     * 构建MQTT配置信息
+     * 
+     * @param macAddress MAC地址
+     * @param clientId   客户端ID (UUID)
+     * @param groupId    分组ID
+     * @return MQTT配置对象
+     */
+    private DeviceReportRespDTO.MQTT buildMqttConfig(String macAddress, String clientId, String groupId)
+            throws Exception {
+        // 从环境变量或系统参数获取签名密钥
+        String signatureKey = sysParamsService.getValue("server.mqtt_signature_key", false);
+        if (StringUtils.isBlank(signatureKey)) {
+            log.warn("缺少MQTT_SIGNATURE_KEY，跳过MQTT配置生成");
+            return null;
+        }
+
+        // 构建客户端ID格式：groupId@@@macAddress@@@uuid
+        String groupIdSafeStr = groupId.replace(":", "_");
+        String deviceIdSafeStr = macAddress.replace(":", "_");
+        String clientIdSafeStr = clientId.replace(":", "_");
+        String mqttClientId = String.format("%s@@@%s@@@%s", groupIdSafeStr, deviceIdSafeStr, clientIdSafeStr);
+
+        // 构建用户数据（包含IP等信息）
+        Map<String, String> userData = new HashMap<>();
+        // 尝试获取客户端IP
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
+                    .getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                String clientIp = request.getRemoteAddr();
+                userData.put("ip", clientIp);
+            }
+        } catch (Exception e) {
+            userData.put("ip", "unknown");
+        }
+
+        // 将用户数据编码为Base64 JSON
+        String userDataJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(userData);
+        String username = Base64.getEncoder().encodeToString(userDataJson.getBytes(StandardCharsets.UTF_8));
+
+        // 生成密码签名
+        String password = generatePasswordSignature(mqttClientId + "|" + username, signatureKey);
+
+        // 构建MQTT配置
+        DeviceReportRespDTO.MQTT mqtt = new DeviceReportRespDTO.MQTT();
+        mqtt.setClient_id(mqttClientId);
+        mqtt.setUsername(username);
+        mqtt.setPassword(password);
+        mqtt.setPublish_topic("device-server");
+        mqtt.setSubscribe_topic("devices/p2p/" + deviceIdSafeStr);
+
+        return mqtt;
     }
 }

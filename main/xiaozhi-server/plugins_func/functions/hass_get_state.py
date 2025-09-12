@@ -29,12 +29,7 @@ hass_get_state_function_desc = {
 @register_function("hass_get_state", hass_get_state_function_desc, ToolType.SYSTEM_CTL)
 def hass_get_state(conn, entity_id=""):
     try:
-
-        future = asyncio.run_coroutine_threadsafe(
-            handle_hass_get_state(conn, entity_id), conn.loop
-        )
-        # 添加10秒超时
-        ha_response = future.result(timeout=10)
+        ha_response = handle_hass_get_state(conn, entity_id)
         return ActionResponse(Action.REQLLM, ha_response, None)
     except asyncio.TimeoutError:
         logger.bind(tag=TAG).error("获取Home Assistant状态超时")
@@ -45,13 +40,13 @@ def hass_get_state(conn, entity_id=""):
         return ActionResponse(Action.ERROR, error_msg, None)
 
 
-async def handle_hass_get_state(conn, entity_id):
+def handle_hass_get_state(conn, entity_id):
     ha_config = initialize_hass_handler(conn)
     api_key = ha_config.get("api_key")
     base_url = ha_config.get("base_url")
     url = f"{base_url}/api/states/{entity_id}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=5)
     if response.status_code == 200:
         responsetext = "设备状态:" + response.json()["state"] + " "
         logger.bind(tag=TAG).info(f"api返回内容: {response.json()}")

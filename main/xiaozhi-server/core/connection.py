@@ -140,10 +140,6 @@ class ConnectionHandler:
         self.func_handler = None
 
         self.cmd_exit = self.config["exit_commands"]
-        self.max_cmd_length = 0
-        for cmd in self.cmd_exit:
-            if len(cmd) > self.max_cmd_length:
-                self.max_cmd_length = len(cmd)
 
         # 是否在聊天结束后关闭连接
         self.close_after_chat = False
@@ -157,6 +153,9 @@ class ConnectionHandler:
 
         # {"mcp":true} 表示启用MCP功能
         self.features = None
+
+        # 标记连接是否来自MQTT
+        self.conn_from_mqtt_gateway = False
 
         # 初始化提示词管理器
         self.prompt_manager = PromptManager(config, self.logger)
@@ -201,6 +200,12 @@ class ConnectionHandler:
             # 认证通过,继续处理
             self.websocket = ws
             self.device_id = self.headers.get("device-id", None)
+
+            # 检查是否来自MQTT连接
+            request_path = ws.request.path
+            self.conn_from_mqtt_gateway = request_path.endswith("?from=mqtt_gateway")
+            if self.conn_from_mqtt_gateway:
+                self.logger.bind(tag=TAG).info("连接来自:MQTT网关")
 
             # 初始化活动时间戳
             self.last_activity_time = time.time() * 1000
@@ -281,11 +286,81 @@ class ConnectionHandler:
         if isinstance(message, str):
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
-            if self.vad is None:
+            if self.vad is None or self.asr is None:
                 return
-            if self.asr is None:
-                return
+
+            # 处理来自MQTT网关的音频包
+            if self.conn_from_mqtt_gateway and len(message) >= 16:
+                handled = await self._process_mqtt_audio_message(message)
+                if handled:
+                    return
+
+            # 不需要头部处理或没有头部时，直接处理原始消息
             self.asr_audio_queue.put(message)
+
+    async def _process_mqtt_audio_message(self, message):
+        """
+        处理来自MQTT网关的音频消息，解析16字节头部并提取音频数据
+
+        Args:
+            message: 包含头部的音频消息
+
+        Returns:
+            bool: 是否成功处理了消息
+        """
+        try:
+            # 提取头部信息
+            timestamp = int.from_bytes(message[8:12], "big")
+            audio_length = int.from_bytes(message[12:16], "big")
+
+            # 提取音频数据
+            if audio_length > 0 and len(message) >= 16 + audio_length:
+                # 有指定长度，提取精确的音频数据
+                audio_data = message[16 : 16 + audio_length]
+                # 基于时间戳进行排序处理
+                self._process_websocket_audio(audio_data, timestamp)
+                return True
+            elif len(message) > 16:
+                # 没有指定长度或长度无效，去掉头部后处理剩余数据
+                audio_data = message[16:]
+                self.asr_audio_queue.put(audio_data)
+                return True
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"解析WebSocket音频包失败: {e}")
+
+        # 处理失败，返回False表示需要继续处理
+        return False
+
+    def _process_websocket_audio(self, audio_data, timestamp):
+        """处理WebSocket格式的音频包"""
+        # 初始化时间戳序列管理
+        if not hasattr(self, "audio_timestamp_buffer"):
+            self.audio_timestamp_buffer = {}
+            self.last_processed_timestamp = 0
+            self.max_timestamp_buffer_size = 20
+
+        # 如果时间戳是递增的，直接处理
+        if timestamp >= self.last_processed_timestamp:
+            self.asr_audio_queue.put(audio_data)
+            self.last_processed_timestamp = timestamp
+
+            # 处理缓冲区中的后续包
+            processed_any = True
+            while processed_any:
+                processed_any = False
+                for ts in sorted(self.audio_timestamp_buffer.keys()):
+                    if ts > self.last_processed_timestamp:
+                        buffered_audio = self.audio_timestamp_buffer.pop(ts)
+                        self.asr_audio_queue.put(buffered_audio)
+                        self.last_processed_timestamp = ts
+                        processed_any = True
+                        break
+        else:
+            # 乱序包，暂存
+            if len(self.audio_timestamp_buffer) < self.max_timestamp_buffer_size:
+                self.audio_timestamp_buffer[timestamp] = audio_data
+            else:
+                self.asr_audio_queue.put(audio_data)
 
     async def handle_restart(self, message):
         """处理服务器重启请求"""
@@ -436,10 +511,14 @@ class ConnectionHandler:
         try:
             voiceprint_config = self.config.get("voiceprint", {})
             if voiceprint_config:
-                self.voiceprint_provider = VoiceprintProvider(voiceprint_config)
-                self.logger.bind(tag=TAG).info("声纹识别功能已在连接时动态启用")
+                voiceprint_provider = VoiceprintProvider(voiceprint_config)
+                if voiceprint_provider is not None and voiceprint_provider.enabled:
+                    self.voiceprint_provider = voiceprint_provider
+                    self.logger.bind(tag=TAG).info("声纹识别功能已在连接时动态启用")
+                else:
+                    self.logger.bind(tag=TAG).warning("声纹识别功能启用但配置不完整")
             else:
-                self.logger.bind(tag=TAG).info("声纹识别功能未启用或配置不完整")
+                self.logger.bind(tag=TAG).info("声纹识别功能未启用")
         except Exception as e:
             self.logger.bind(tag=TAG).warning(f"声纹识别初始化失败: {str(e)}")
 
@@ -857,7 +936,11 @@ class ConnectionHandler:
                             {
                                 "id": function_id,
                                 "function": {
-                                    "arguments": "{}" if function_arguments == "" else function_arguments,
+                                    "arguments": (
+                                        "{}"
+                                        if function_arguments == ""
+                                        else function_arguments
+                                    ),
                                     "name": function_name,
                                 },
                                 "type": "function",
@@ -925,6 +1008,10 @@ class ConnectionHandler:
     async def close(self, ws=None):
         """资源清理方法"""
         try:
+            # 清理音频缓冲区
+            if hasattr(self, "audio_buffer"):
+                self.audio_buffer.clear()
+
             # 取消超时任务
             if self.timeout_task and not self.timeout_task.done():
                 self.timeout_task.cancel()

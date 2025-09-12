@@ -33,8 +33,8 @@ class VADProvider(VADProviderBase):
             int(min_silence_duration_ms) if min_silence_duration_ms else 1000
         )
 
-        # 至少要多少帧才算有语音,增加灵敏度
-        self.frame_window_threshold = 1
+        # 至少要多少帧才算有语音
+        self.frame_window_threshold = 3
 
     def is_vad(self, conn, opus_packet):
         try:

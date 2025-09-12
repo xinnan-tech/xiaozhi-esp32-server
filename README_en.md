@@ -38,9 +38,9 @@ Supports MCP endpoints and voiceprint recognition
 </p>
 
 <p align="center">
-By Professor Siyuan Liu Research and Development Group (South China University of Technology)
+Spearheaded by Professor Siyuan Liu's Team (South China University of Technology)
 </br>
-刘思源教授团队研发（华南理工大学）
+刘思源教授团队主导研发（华南理工大学）
 </br>
 <img src="./docs/images/hnlg.jpg" alt="South China University of Technology" width="50%">
 </p>
@@ -93,7 +93,7 @@ Want to see the usage effects? Click the videos below 🎥
   </tr>
   <tr>
     <td>
-        <a href="https://www.bilibili.com/video/BV1Vy96YCE3R" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
          <picture>
            <img alt="Custom voice timbre" src="docs/images/demo6.png" />
          </picture>
@@ -194,6 +194,7 @@ This project provides two deployment methods. Please choose based on your specif
 
 ```
 Intelligent Control Console Address: https://2662r3426b.vicp.fun
+Intelligent Control Console Address (H5): https://2662r3426b.vicp.fun/h5/index.html
 
 Service Test Tool: https://2662r3426b.vicp.fun/test/
 OTA Interface Address: https://2662r3426b.vicp.fun/xiaozhi/ota/
@@ -352,8 +353,10 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 | <img src="./docs/images/logo_bailing.png" width="160"> | [Bailing Voice Dialogue Robot](https://github.com/wwbin2017/bailing) | This project is inspired by [Bailing Voice Dialogue Robot](https://github.com/wwbin2017/bailing) and implemented on its basis |
 | <img src="./docs/images/logo_tenclass.png" width="160"> | [Tenclass](https://www.tenclass.com/) | Thanks to [Tenclass](https://www.tenclass.com/) for formulating standard communication protocols, multi-device compatibility solutions, and high-concurrency scenario practice demonstrations for the Xiaozhi ecosystem; providing full-link technical documentation support for this project |
 | <img src="./docs/images/logo_xuanfeng.png" width="160"> | [Xuanfeng Technology](https://github.com/Eric0308) | Thanks to [Xuanfeng Technology](https://github.com/Eric0308) for contributing function calling framework, MCP communication protocol, and plugin-based calling mechanism implementation code. Through standardized instruction scheduling system and dynamic expansion capabilities, it significantly improves the interaction efficiency and functional extensibility of frontend devices (IoT) |
+| <img src="./docs/images/logo_junsen.png" width="160"> | [huangjunsen](https://github.com/huangjunsen0406) | Thanks to [huangjunsen](https://github.com/huangjunsen0406) for contributing the `Smart Control Console Mobile` module, which enables efficient control and real-time interaction across mobile devices, significantly enhancing the system's operational convenience and management efficiency in mobile scenarios. |
 | <img src="./docs/images/logo_huiyuan.png" width="160"> | [Huiyuan Design](http://ui.kwd988.net/) | Thanks to [Huiyuan Design](http://ui.kwd988.net/) for providing professional visual solutions for this project, using their design practical experience serving over a thousand enterprises to empower this project's product user experience |
 | <img src="./docs/images/logo_qinren.png" width="160"> | [Xi'an Qinren Information Technology](https://www.029app.com/) | Thanks to [Xi'an Qinren Information Technology](https://www.029app.com/) for deepening this project's visual system, ensuring consistency and extensibility of overall design style in multi-scenario applications |
+| <img src="./docs/images/logo_contributors.png" width="160"> | [Code Contributors](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors) | Thanks to [all code contributors](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors), your efforts have made the project more robust and powerful. |
 
 
 <a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">

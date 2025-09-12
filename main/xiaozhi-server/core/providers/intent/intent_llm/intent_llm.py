@@ -53,24 +53,33 @@ class IntentProvider(IntentProviderBase):
             functions_desc += "---\n"
 
         prompt = (
+            "【严格格式要求】你必须只能返回JSON格式，绝对不能返回任何自然语言！\n\n"
             "你是一个意图识别助手。请分析用户的最后一句话，判断用户意图并调用相应的函数。\n\n"
+
+            "【重要规则】以下类型的查询请直接返回result_for_context，无需调用函数：\n"
+            "- 询问当前时间（如：现在几点、当前时间、查询时间等）\n"
+            "- 询问今天日期（如：今天几号、今天星期几、今天是什么日期等）\n"
+            "- 询问今天农历（如：今天农历几号、今天什么节气等）\n"
+            "- 询问所在城市（如：我现在在哪里、你知道我在哪个城市吗等）"
+            "系统会根据上下文信息直接构建回答。\n\n"
             "- 如果用户使用疑问词（如'怎么'、'为什么'、'如何'）询问退出相关的问题（例如'怎么退出了？'），注意这不是让你退出，请返回 {'function_call': {'name': 'continue_chat'}\n"
             "- 仅当用户明确使用'退出系统'、'结束对话'、'我不想和你说话了'等指令时，才触发 handle_exit_intent\n\n"
             f"{functions_desc}\n"
             "处理步骤:\n"
             "1. 分析用户输入，确定用户意图\n"
-            "2. 从可用函数列表中选择最匹配的函数\n"
-            "3. 如果找到匹配的函数，生成对应的function_call 格式\n"
-            '4. 如果没有找到匹配的函数，返回{"function_call": {"name": "continue_chat"}}\n\n'
+            "2. 检查是否为上述基础信息查询（时间、日期等），如是则返回result_for_context\n"
+            "3. 从可用函数列表中选择最匹配的函数\n"
+            "4. 如果找到匹配的函数，生成对应的function_call 格式\n"
+            '5. 如果没有找到匹配的函数，返回{"function_call": {"name": "continue_chat"}}\n\n'
             "返回格式要求：\n"
-            "1. 必须返回纯JSON格式\n"
+            "1. 必须返回纯JSON格式，不要包含任何其他文字\n"
             "2. 必须包含function_call字段\n"
             "3. function_call必须包含name字段\n"
             "4. 如果函数需要参数，必须包含arguments字段\n\n"
             "示例：\n"
             "```\n"
             "用户: 现在几点了？\n"
-            '返回: {"function_call": {"name": "get_time"}}\n'
+            '返回: {"function_call": {"name": "result_for_context"}}\n'
             "```\n"
             "```\n"
             "用户: 当前电池电量是多少？\n"
@@ -94,12 +103,15 @@ class IntentProvider(IntentProviderBase):
             "```\n\n"
             "注意：\n"
             "1. 只返回JSON格式，不要包含任何其他文字\n"
-            '2. 如果没有找到匹配的函数，返回{"function_call": {"name": "continue_chat"}}\n'
-            "3. 确保返回的JSON格式正确，包含所有必要的字段\n"
+            '2. 优先检查用户查询是否为基础信息（时间、日期等），如是则返回{"function_call": {"name": "result_for_context"}}，不需要arguments参数\n'
+            '3. 如果没有找到匹配的函数，返回{"function_call": {"name": "continue_chat"}}\n'
+            "4. 确保返回的JSON格式正确，包含所有必要的字段\n"
+            "5. result_for_context不需要任何参数，系统会自动从上下文获取信息\n"
             "特殊说明：\n"
             "- 当用户单次输入包含多个指令时（如'打开灯并且调高音量'）\n"
             "- 请返回多个function_call组成的JSON数组\n"
-            "- 示例：{'function_calls': [{name:'light_on'}, {name:'volume_up'}]}"
+            "- 示例：{'function_calls': [{name:'light_on'}, {name:'volume_up'}]}\n\n"
+            "【最终警告】绝对禁止输出任何自然语言、表情符号或解释文字！只能输出有效JSON格式！违反此规则将导致系统错误！"
         )
         return prompt
 
@@ -223,8 +235,13 @@ class IntentProvider(IntentProviderBase):
                     f"llm 识别到意图: {function_name}, 参数: {function_args}"
                 )
 
-                # 如果是继续聊天，清理工具调用相关的历史消息
-                if function_name == "continue_chat":
+                # 处理不同类型的意图
+                if function_name == "result_for_context":
+                    # 处理基础信息查询，直接从context构建结果
+                    logger.bind(tag=TAG).info("检测到result_for_context意图，将使用上下文信息直接回答")
+                    
+                elif function_name == "continue_chat":
+                    # 处理普通对话
                     # 保留非工具相关的消息
                     clean_history = [
                         msg
@@ -232,26 +249,16 @@ class IntentProvider(IntentProviderBase):
                         if msg.role not in ["tool", "function"]
                     ]
                     conn.dialogue.dialogue = clean_history
+                    
+                else:
+                    # 处理函数调用
+                    logger.bind(tag=TAG).info(f"检测到函数调用意图: {function_name}")
 
-                # 添加到缓存
-                self.cache_manager.set(self.CacheType.INTENT, cache_key, intent)
-
-                # 后处理时间
-                postprocess_time = time.time() - postprocess_start_time
-                logger.bind(tag=TAG).debug(f"意图后处理耗时: {postprocess_time:.4f}秒")
-
-                # 确保返回完全序列化的JSON字符串
-                return intent
-            else:
-                # 添加到缓存
-                self.cache_manager.set(self.CacheType.INTENT, cache_key, intent)
-
-                # 后处理时间
-                postprocess_time = time.time() - postprocess_start_time
-                logger.bind(tag=TAG).debug(f"意图后处理耗时: {postprocess_time:.4f}秒")
-
-                # 返回普通意图
-                return intent
+            # 统一缓存处理和返回
+            self.cache_manager.set(self.CacheType.INTENT, cache_key, intent)
+            postprocess_time = time.time() - postprocess_start_time
+            logger.bind(tag=TAG).debug(f"意图后处理耗时: {postprocess_time:.4f}秒")
+            return intent
         except json.JSONDecodeError:
             # 后处理时间
             postprocess_time = time.time() - postprocess_start_time
@@ -259,4 +266,4 @@ class IntentProvider(IntentProviderBase):
                 f"无法解析意图JSON: {intent}, 后处理耗时: {postprocess_time:.4f}秒"
             )
             # 如果解析失败，默认返回继续聊天意图
-            return '{"intent": "继续聊天"}'
+            return '{"function_call": {"name": "continue_chat"}}'

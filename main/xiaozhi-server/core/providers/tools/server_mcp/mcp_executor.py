@@ -18,8 +18,8 @@ class ServerMCPExecutor(ToolExecutor):
         """初始化MCP管理器"""
         if not self._initialized:
             self.mcp_manager = ServerMCPManager(self.conn)
-            await self.mcp_manager.initialize_servers()
             self._initialized = True
+            await self.mcp_manager.initialize_servers()
 
     async def execute(
         self, conn, tool_name: str, arguments: Dict[str, Any]

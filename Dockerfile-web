@@ -18,12 +18,12 @@ FROM bellsoft/liberica-runtime-container:jre-21-glibc
 
 # 安装Nginx和字体库
 RUN apk update && \
-    apk add --no-cache nginx bash && \
-    apk add --no-cache fontconfig ttf-dejavu msttcorefonts-installer && \
+    apk add --no-cache nginx bash fontconfig ttf-dejavu && \
+    apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ msttcorefonts-installer || true && \
     rm -rf /var/cache/apk/*
 
 # 更新字体缓存
-RUN printf 'YES\n' | update-ms-fonts && fc-cache -f -v
+RUN (printf 'YES\n' | update-ms-fonts || true) && fc-cache -f -v
 
 # 配置Nginx
 COPY docs/docker/nginx.conf /etc/nginx/nginx.conf

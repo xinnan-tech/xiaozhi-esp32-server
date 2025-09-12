@@ -167,14 +167,13 @@ class ServerMCPClient:
 
                 # 建立SSEClient
                 elif "url" in self.config:
+                    headers = dict(self.config.get("headers", {}))
+                    # TODO 兼容旧版本
                     if "API_ACCESS_TOKEN" in self.config:
-                        headers = {
-                            "Authorization": f"Bearer {self.config['API_ACCESS_TOKEN']}"
-                        }
-                    else:
-                        headers = {}
+                        headers["Authorization"] = f"Bearer {self.config['API_ACCESS_TOKEN']}"
+                        self.logger.bind(tag=TAG).warning(f"你正在使用旧过时的配置 API_ACCESS_TOKEN ，请在.mcp_server_settings.json中将API_ACCESS_TOKEN直接设置在headers中，例如 'Authorization': 'Bearer API_ACCESS_TOKEN'")
                     sse_r, sse_w = await stack.enter_async_context(
-                        sse_client(self.config["url"], headers=headers)
+                        sse_client(self.config["url"], headers=headers, timeout=self.config.get("timeout", 5), sse_read_timeout=self.config.get("sse_read_timeout", 60 * 5))
                     )
                     read_stream, write_stream = sse_r, sse_w
 

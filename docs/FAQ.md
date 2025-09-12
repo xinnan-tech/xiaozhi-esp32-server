@@ -62,6 +62,7 @@ VAD:
 ### 7、部署相关教程
 1、[如何进行最简化部署](./Deployment.md)<br/>
 2、[如何进行全模块部署](./Deployment_all.md)<br/>
+2、[如何部署MQTT网关开启MQTT+UDP协议](./mqtt-gateway-integration.md)<br/>
 3、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
 4、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
 

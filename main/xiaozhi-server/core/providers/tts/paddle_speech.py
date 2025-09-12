@@ -1,13 +1,15 @@
-import asyncio
-import json
-import base64
-import aiohttp
-import numpy as np
 import io
 import wave
+import json
+import base64
+import asyncio
 import websockets
-from core.providers.tts.base import TTSProviderBase
+import numpy as np
+from datetime import datetime
 from config.logger import setup_logging
+from core.providers.tts.base import TTSProviderBase
+
+
 
 TAG = __name__
 logger = setup_logging()
@@ -18,11 +20,12 @@ class TTSProvider(TTSProviderBase):
         super().__init__(config, delete_audio_file)
         self.url = config.get("url", "ws://192.168.1.10:8092/paddlespeech/tts/streaming")
         self.protocol = config.get("protocol", "websocket")
+        
         if config.get("private_voice"):
             self.spk_id = int(config.get("private_voice"))
         else:
-            self.spk_id = int(config.get("spk_id", "0"))  
-        
+            self.spk_id = int(config.get("spk_id", "0"))
+            
         sample_rate = config.get("sample_rate", 24000)
         self.sample_rate = float(sample_rate) if sample_rate else 24000
         
@@ -32,7 +35,21 @@ class TTSProvider(TTSProviderBase):
         volume = config.get("volume", 1.0)
         self.volume = float(volume) if volume else 1.0
         
-        self.save_path = config.get("save_path", "./streaming_tts.wav")
+        self.delete_audio_file = config.get("delete_audio", True)
+        if not self.delete_audio_file:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            save_path = config.get("save_path")
+            if save_path:
+                if not save_path.endswith('.wav'):
+                    save_path = f"{save_path}_{timestamp}.wav"
+                else:
+                    other_path = save_path[:-4]
+                    save_path = f"{other_path}_{timestamp}.wav"
+                self.save_path = save_path
+            else:
+                self.save_path = f"./streaming_tts_{timestamp}.wav"
+        else:
+            self.save_path = None
 
     async def pcm_to_wav(self, pcm_data: bytes, sample_rate: int = 24000, num_channels: int = 1,
                          bits_per_sample: int = 16) -> bytes:
@@ -58,42 +75,8 @@ class TTSProvider(TTSProviderBase):
     async def text_to_speak(self, text, output_file):
         if self.protocol == "websocket":
             return await self.text_streaming(text, output_file)
-        elif self.protocol == "http":
-            return await self.text(text, output_file)
         else:
             raise ValueError("Unsupported protocol. Please use 'websocket' or 'http'.")
-
-    async def text(self, text, output_file):
-        request_json = {
-            "text": text,
-            "spk_id": self.spk_id,
-            "speed": self.speed,
-            "volume": self.volume,
-            "sample_rate": self.sample_rate,
-            "save_path": self.save_path
-        }
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(self.url, json=request_json) as resp:
-                    if resp.status == 200:
-                        resp_json = await resp.json()
-                        if resp_json.get("success"):
-                            data = resp_json["result"]
-                            audio_bytes = base64.b64decode(data["audio"])
-                            if output_file:
-                                with open(output_file, "wb") as file_to_save:
-                                    file_to_save.write(audio_bytes)
-                            else:
-                                return audio_bytes
-                        else:
-                            raise Exception(
-                                f"Error: {resp_json.get('message', 'Unknown error')} while processing text: {text}")
-                    else:
-                        raise Exception(
-                            f"HTTP Error: {resp.status} - {await resp.text()} while processing text: {text}")
-        except Exception as e:
-            raise Exception(f"Error during TTS HTTP request: {e} while processing text: {text}")
 
     async def text_streaming(self, text, output_file):
         try:
@@ -151,6 +134,12 @@ class TTSProvider(TTSProviderBase):
                 # 接收结束响应避免服务抛出异常
                 await ws.recv()
 
+                # 根据配置决定是否保存文件
+                if not self.delete_audio_file and self.save_path:
+                    with open(self.save_path, "wb") as f:
+                        f.write(wav_data)
+                    logger.bind(tag=TAG).info(f"音频文件已保存到: {self.save_path}")
+                
                 # 返回或保存音频数据
                 if output_file:
                     with open(output_file, "wb") as file_to_save:

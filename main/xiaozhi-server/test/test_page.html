@@ -181,6 +181,7 @@
         import { checkOpusLoaded, initOpusEncoder } from './js/opus.js';
         import { addMessage } from './js/document.js'
         import BlockingQueue from './js/utils/BlockingQueue.js'
+        import { createStreamingContext } from './js/StreamingContext.js'
         // 需要加载的脚本列表 - 移除Opus依赖
         const scriptFiles = [];
 
@@ -230,6 +231,16 @@
         const conversationDiv = document.getElementById('conversation');
         const logContainer = document.getElementById('logContainer');
 
+        function getAudioContextInstance() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: SAMPLE_RATE,
+                    latencyHint: 'interactive'
+                });
+                log('创建音频上下文，采样率: ' + SAMPLE_RATE + 'Hz', 'debug');
+            }
+            return audioContext;
+        }
 
         // 初始化可视化器
         function initVisualizer() {
@@ -306,12 +317,7 @@
             // 确保Opus解码器已初始化
             try {
                 // 确保音频上下文存在
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                        sampleRate: SAMPLE_RATE
-                    });
-                    log('创建音频上下文，采样率: ' + SAMPLE_RATE + 'Hz', 'debug');
-                }
+                audioContext = getAudioContextInstance();
 
                 // 确保解码器已初始化
                 if (!opusDecoder) {
@@ -331,125 +337,7 @@
 
                 // 创建流式播放上下文
                 if (!streamingContext) {
-                    streamingContext = {
-                        queue: [],          // 已解码的PCM队列。正在播放
-                        activeQueue: new BlockingQueue(), // 已解码的PCM队列。准备播放
-                        pendingAudioBufferQueue: [],  // 待处理的缓存队列
-                        audioBufferQueue: new BlockingQueue(),  // 缓存队列
-                        playing: false,     // 是否正在播放
-                        endOfStream: false, // 是否收到结束信号
-                        source: null,       // 当前音频源
-                        totalSamples: 0,    // 累积的总样本数
-                        lastPlayTime: 0,    // 上次播放的时间戳
-
-
-                        // 缓存音频数组
-                        pushAudioBuffer: function (item) {
-                            this.audioBufferQueue.enqueue(...item)
-                        },
-
-                        // 获取需要处理缓存队列，单线程：在audioBufferQueue一直更新的状态下不会出现安全问题
-                        getPendingAudioBufferQueue: async function () {
-                            // 原子交换 + 清空
-                            [this.pendingAudioBufferQueue, this.audioBufferQueue] = [await this.audioBufferQueue.dequeue(), new BlockingQueue()];
-
-                        },
-                        // 获取正在播放已解码的PCM队列，单线程：在activeQueue一直更新的状态下不会出现安全问题
-                        getQueue: async function (minSamples) {
-                            let TepArray = []
-                            const num = minSamples - this.queue.length > 0 ? minSamples - this.queue.length : 1;
-                            // 原子交换 + 清空
-                            [TepArray, this.activeQueue] = [await this.activeQueue.dequeue(num), new BlockingQueue()];
-                            this.queue.push(...TepArray)
-                        },
-                        // 将Opus数据解码为PCM
-                        decodeOpusFrames: async function () {
-                            if (!opusDecoder) {
-                                log('Opus解码器未初始化，无法解码', 'error');
-                                return;
-                            } else {
-                                log('Opus解码器启动', 'info');
-                            }
-
-                            while (true) {
-                                let decodedSamples = [];
-                                for (const frame of this.pendingAudioBufferQueue) {
-                                    try {
-                                        // 使用Opus解码器解码
-                                        const frameData = opusDecoder.decode(frame);
-                                        if (frameData && frameData.length > 0) {
-                                            // 转换为Float32
-                                            const floatData = convertInt16ToFloat32(frameData);
-                                            // 使用循环替代展开运算符
-                                            for (let i = 0; i < floatData.length; i++) {
-                                                decodedSamples.push(floatData[i]);
-                                            }
-                                        }
-                                    } catch (error) {
-                                        log("Opus解码失败: " + error.message, 'error');
-                                    }
-                                }
-
-                                if (decodedSamples.length > 0) {
-                                    // 使用循环替代展开运算符
-                                    for (let i = 0; i < decodedSamples.length; i++) {
-                                        this.activeQueue.enqueue(decodedSamples[i]);
-                                    }
-                                    this.totalSamples += decodedSamples.length;
-                                } else {
-                                    log('没有成功解码的样本', 'warning');
-                                }
-                                await this.getPendingAudioBufferQueue();
-                            }
-                        },
-
-                        // 开始播放音频
-                        startPlaying: async function () {
-                            while (true) {
-                                // 如果累积了至少0.3秒的音频，开始播放
-                                const minSamples = SAMPLE_RATE * MIN_AUDIO_DURATION * 3;
-                                if (!this.playing && this.queue.length < minSamples) {
-                                    await this.getQueue(minSamples)
-                                }
-                                this.playing = true;
-                                while (this.playing && this.queue.length) {
-                                    // 创建新的音频缓冲区
-                                    const minPlaySamples = Math.min(this.queue.length, SAMPLE_RATE);
-                                    const currentSamples = this.queue.splice(0, minPlaySamples);
-
-                                    const audioBuffer = audioContext.createBuffer(CHANNELS, currentSamples.length, SAMPLE_RATE);
-                                    audioBuffer.copyToChannel(new Float32Array(currentSamples), 0);
-
-                                    // 创建音频源
-                                    this.source = audioContext.createBufferSource();
-                                    this.source.buffer = audioBuffer;
-
-                                    // 创建增益节点用于平滑过渡
-                                    const gainNode = audioContext.createGain();
-
-                                    // 应用淡入淡出效果避免爆音
-                                    const fadeDuration = 0.02; // 20毫秒
-                                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                                    gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + fadeDuration);
-
-                                    const duration = audioBuffer.duration;
-                                    if (duration > fadeDuration * 2) {
-                                        gainNode.gain.setValueAtTime(1, audioContext.currentTime + duration - fadeDuration);
-                                        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
-                                    }
-
-                                    // 连接节点并开始播放
-                                    this.source.connect(gainNode);
-                                    gainNode.connect(audioContext.destination);
-
-                                    this.lastPlayTime = audioContext.currentTime;
-                                    log(`开始播放 ${currentSamples.length} 个样本，约 ${(currentSamples.length / SAMPLE_RATE).toFixed(2)} 秒`, 'info');
-                                    this.source.start();
-                                }
-                                await this.getQueue(minSamples)
-                            }
-                        }
-                    };
+                    streamingContext = createStreamingContext(opusDecoder, audioContext, SAMPLE_RATE, CHANNELS, MIN_AUDIO_DURATION);
                 }
 
                 streamingContext.decodeOpusFrames();
@@ -462,15 +350,7 @@
             }
         }
 
-        // 将Int16音频数据转换为Float32音频数据
-        function convertInt16ToFloat32(int16Data) {
-            const float32Data = new Float32Array(int16Data.length);
-            for (let i = 0; i < int16Data.length; i++) {
-                // 将[-32768,32767]范围转换为[-1,1]
-                float32Data[i] = int16Data[i] / (int16Data[i] < 0 ? 0x8000 : 0x7FFF);
-            }
-            return float32Data;
-        }
+
 
         // 初始化Opus解码器 - 确保完全初始化完成后才返回
         async function initOpusDecoder() {
@@ -617,10 +497,7 @@
                 log('已获取麦克风访问权限', 'success');
 
                 // 创建音频上下文
-                audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                    sampleRate: 16000,  // 确保采样率与服务器期望的一致
-                    latencyHint: 'interactive'
-                });
+                audioContext = getAudioContextInstance();
                 const source = audioContext.createMediaStreamSource(stream);
 
                 // 获取实际音频轨道设置
@@ -1416,12 +1293,7 @@
 
         // 创建音频处理器
         async function createAudioProcessor() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                    sampleRate: 16000,
-                    latencyHint: 'interactive'
-                });
-            }
+            audioContext = getAudioContextInstance();
 
             try {
                 // 检查是否支持AudioWorklet
@@ -1616,12 +1488,7 @@
                 });
 
                 // 创建音频上下文和分析器
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                        sampleRate: 16000,
-                        latencyHint: 'interactive'
-                    });
-                }
+                audioContext = getAudioContextInstance();
 
                 // 创建音频处理器
                 const processorResult = await createAudioProcessor();

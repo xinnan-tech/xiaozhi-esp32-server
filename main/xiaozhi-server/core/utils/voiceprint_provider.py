@@ -19,6 +19,8 @@ class VoiceprintProvider:
         self.original_url = config.get("url", "")
         self.speakers = config.get("speakers", [])
         self.speaker_map = self._parse_speakers()
+        # 声纹识别相似度阈值，默认0.4
+        self.similarity_threshold = float(config.get("similarity_threshold", 0.4))
         
         # 解析API地址和密钥
         self.api_url = None
@@ -62,7 +64,7 @@ class VoiceprintProvider:
                     # 进行健康检查，验证服务器是否可用
                     if self._check_server_health():
                         self.enabled = True
-                        logger.bind(tag=TAG).info(f"声纹识别已启用: API={self.api_url}, 说话人={len(self.speaker_ids)}个")
+                        logger.bind(tag=TAG).info(f"声纹识别已启用: API={self.api_url}, 说话人={len(self.speaker_ids)}个, 相似度阈值={self.similarity_threshold}")
                     else:
                         self.enabled = False
                         logger.bind(tag=TAG).warning(f"声纹识别服务器不可用，声纹识别已禁用: {self.api_url}")
@@ -169,12 +171,14 @@ class VoiceprintProvider:
                         
                         logger.bind(tag=TAG).info(f"声纹识别耗时: {total_elapsed_time:.3f}s")
                         
-                        # 置信度检查
-                        if score < 0.5:
-                            logger.bind(tag=TAG).warning(f"声纹识别置信度较低: {score:.3f}")
+                        # 相似度阈值检查
+                        if score < self.similarity_threshold:
+                            logger.bind(tag=TAG).warning(f"声纹识别相似度{score:.3f}低于阈值{self.similarity_threshold}")
+                            return "未知说话人"
                         
                         if speaker_id and speaker_id in self.speaker_map:
                             result_name = self.speaker_map[speaker_id]["name"]
+                            logger.bind(tag=TAG).info(f"声纹识别成功: {result_name} (相似度: {score:.3f})")
                             return result_name
                         else:
                             logger.bind(tag=TAG).warning(f"未识别的说话人ID: {speaker_id}")

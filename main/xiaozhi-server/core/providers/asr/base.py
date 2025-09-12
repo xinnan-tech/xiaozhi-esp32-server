@@ -1,14 +1,14 @@
 import os
+import io
 import wave
 import uuid
+import json
+import time
 import queue
 import asyncio
 import traceback
 import threading
 import opuslib_next
-import json
-import io
-import time
 import concurrent.futures
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
@@ -87,10 +87,8 @@ class ASRProviderBase(ABC):
             
             # 预先准备WAV数据
             wav_data = None
-            # 使用连接的声纹识别提供者
             if conn.voiceprint_provider and combined_pcm_data:
                 wav_data = self._pcm_to_wav(combined_pcm_data)
-            
             
             # 定义ASR任务
             def run_asr():
@@ -149,7 +147,7 @@ class ASRProviderBase(ABC):
             
             
             # 处理结果
-            raw_text, file_path = results.get("asr", ("", None))
+            raw_text, _ = results.get("asr", ("", None))
             speaker_name = results.get("voiceprint", None)
             
             # 记录识别结果

@@ -11,9 +11,9 @@
         </button>
       </div>
 
-      <el-form :model="form" :rules="rules" ref="form" label-width="110px" label-position="left" class="param-form">
-        <el-form-item label="声纹向量" prop="audioId" class="form-item">
-          <el-select v-model="form.audioId" placeholder="请选择一条语言消息" class="custom-select">
+      <el-form :model="form" :rules="rules" ref="form" label-width="auto" label-position="left" class="param-form">
+        <el-form-item :label="$t('voicePrintDialog.voicePrintVector')" prop="audioId" class="form-item">
+          <el-select v-model="form.audioId" :placeholder="$t('voicePrintDialog.selectVoiceMessage')" class="custom-select">
             <el-option v-for="item in valueTypeOptions" :key="item.audioId" :label="item.content" :value="item.audioId">
               <span style="float: left">{{ item.content }}</span>
               <span style="float: right; color: #8492a6; font-size: 13px">
@@ -24,22 +24,22 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="姓名" prop="sourceName" class="form-item">
-          <el-input v-model="form.sourceName" placeholder="请输入姓名" class="custom-input"></el-input>
+        <el-form-item :label="$t('voicePrintDialog.name')" prop="sourceName" class="form-item">
+          <el-input v-model="form.sourceName" :placeholder="$t('voicePrintDialog.enterName')" class="custom-input"></el-input>
         </el-form-item>
 
-        <el-form-item label="描述" prop="introduce" class="form-item remark-item">
-          <el-input type="textarea" v-model="form.introduce" placeholder="请输入描述" :rows="3" class="custom-textarea"
+        <el-form-item :label="$t('voicePrintDialog.description')" prop="introduce" class="form-item remark-item">
+          <el-input type="textarea" v-model="form.introduce" :placeholder="$t('voicePrintDialog.enterDescription')" :rows="3" class="custom-textarea"
             maxlength="100" show-word-limit></el-input>
         </el-form-item>
       </el-form>
 
       <div class="dialog-footer">
         <el-button type="primary" @click="submit" class="save-btn" :loading="saving" :disabled="saving">
-          保存
+          {{ $t('voicePrintDialog.save') }}
         </el-button>
         <el-button @click="cancel" class="cancel-btn">
-          取消
+          {{ $t('voicePrintDialog.cancel') }}
         </el-button>
       </div>
     </div>
@@ -83,13 +83,13 @@ export default {
       ],
       rules: {
         introduce: [
-          { required: true, message: "请输入描述", trigger: "blur" }
+          { required: true, message: '请输入描述', trigger: "blur" }
         ],
         sourceName: [
-          { required: true, message: "请输入姓名", trigger: "blur" }
+          { required: true, message: '请输入名称', trigger: "blur" }
         ],
         audioId: [
-          { required: true, message: "请选择音频向量", trigger: "change" }
+          { required: true, message: '请选择音频向量', trigger: "change" }
         ]
       }
     };

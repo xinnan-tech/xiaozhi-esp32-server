@@ -303,3 +303,45 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202508131557.sql
+  - changeSet:
+      id: 202508271113
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202508271113.sql
+  - changeSet:
+      id: 202509051745
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509051745.sql
+  - changeSet:
+      id: 202509081140
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509081140.sql
+  - changeSet:
+      id: 202509091042
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509091042.sql
+  - changeSet:
+      id: 202509091633
+      author: fyb
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509091633.sql
+  - changeSet:
+      id: 202509080922
+      author: fyb
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509080922.sql

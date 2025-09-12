@@ -6,7 +6,7 @@
 本项目基于人机共生智能理论和技术研发智能终端软硬件体系<br/>为开源智能硬件项目
 <a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a>提供后端服务<br/>
 根据<a href="https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh">小智通信协议</a>使用Python、Java、Vue实现<br/>
-支持MCP接入点和声纹识别
+支持MQTT+UDP协议、Websocket协议、MCP接入点、声纹识别
 </p>
 
 <p align="center">
@@ -38,9 +38,9 @@
 </p>
 
 <p align="center">
-By Professor Siyuan Liu Research and Development Group ( South China University of Technology)
+Spearheaded by Professor Siyuan Liu's Team (South China University of Technology)
 </br>
-刘思源教授团队研发（华南理工大学）
+刘思源教授团队主导研发（华南理工大学）
 </br>
 <img src="./docs/images/hnlg.jpg" alt="华南理工大学" width="50%">
 </p>
@@ -94,7 +94,7 @@ By Professor Siyuan Liu Research and Development Group ( South China University 
   </tr>
   <tr>
     <td>
-        <a href="https://www.bilibili.com/video/BV1Vy96YCE3R" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
          <picture>
            <img alt="自定义音色" src="docs/images/demo6.png" />
          </picture>
@@ -197,6 +197,7 @@ By Professor Siyuan Liu Research and Development Group ( South China University 
 
 ```
 智控台地址: https://2662r3426b.vicp.fun
+智控台(h5版): https://2662r3426b.vicp.fun/h5/index.html
 
 服务测试工具： https://2662r3426b.vicp.fun/test/
 OTA接口地址: https://2662r3426b.vicp.fun/xiaozhi/ota/
@@ -240,7 +241,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 ![请参考-全模块安装架构图](docs/images/deploy2.png)
 | 功能模块 | 描述 |
 |:---:|:---|
-| 核心架构 | 基于WebSocket和HTTP服务器，提供完整的控制台管理和认证系统 |
+| 核心架构 | 基于MQTT+UDP网关、WebSocket、HTTP服务器，提供完整的控制台管理和认证系统 |
 | 语音交互 | 支持流式ASR(语音识别)、流式TTS(语音合成)、VAD(语音活动检测)，支持多语言识别和语音处理 |
 | 声纹识别 | 支持多用户声纹注册、管理和识别，与ASR并行处理，实时识别说话人身份并传递给LLM进行个性化回应 |
 | 智能对话 | 支持多种LLM(大语言模型)，实现智能对话 |
@@ -282,6 +283,8 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | dify 接口调用 | Dify | - |
 | fastgpt 接口调用 | Fastgpt | - |
 | coze 接口调用 | Coze | - |
+| xinference 接口调用 | Xinference | - |
+| homeassistant 接口调用 | HomeAssistant | - |
 
 实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
 
@@ -301,8 +304,8 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
-| 接口调用 | EdgeTTS、火山引擎豆包TTS、腾讯云、阿里云TTS、CosyVoiceSiliconflow、TTS302AI、CozeCnTTS、GizwitsTTS、ACGNTTS、OpenAITTS、灵犀流式TTS | 灵犀流式TTS、EdgeTTS、CosyVoiceSiliconflow(部分) |
-| 本地服务 | FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3、MinimaxTTS | FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3、MinimaxTTS |
+| 接口调用 | EdgeTTS、火山引擎豆包TTS、腾讯云、阿里云TTS、阿里云流式TTS、CosyVoiceSiliconflow、TTS302AI、CozeCnTTS、GizwitsTTS、ACGNTTS、OpenAITTS、灵犀流式TTS、MinimaxTTS、火山双流式TTS | 灵犀流式TTS、EdgeTTS、CosyVoiceSiliconflow(部分) |
+| 本地服务 | FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3、Index-TTS、PaddleSpeech | Index-TTS、PaddleSpeech、FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3 |
 
 ---
 
@@ -319,7 +322,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
 | 本地使用 | FunASR、SherpaASR | FunASR、SherpaASR |
-| 接口调用 | DoubaoASR、FunASRServer、TencentASR、AliyunASR | FunASRServer |
+| 接口调用 | DoubaoASR、Doubao流式ASR、FunASRServer、TencentASR、AliyunASR、Aliyun流式ASR、百度ASR、OpenAI ASR | FunASRServer |
 
 ---
 
@@ -337,6 +340,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 |:------:|:---------------:|:----:|:---------:|:--:|
 | Memory |     mem0ai      | 接口调用 | 1000次/月额度 |    |
 | Memory | mem_local_short | 本地总结 |    免费     |    |
+| Memory |     nomem       | 无记忆模式 |    免费     |    |
 
 ---
 
@@ -346,6 +350,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 |:------:|:-------------:|:----:|:-------:|:---------------------:|
 | Intent |  intent_llm   | 接口调用 | 根据LLM收费 |    通过大模型识别意图，通用性强     |
 | Intent | function_call | 接口调用 | 根据LLM收费 | 通过大模型函数调用完成意图，速度快，效果好 |
+| Intent |    nointent   | 无意图模式 |    免费     |    不进行意图识别，直接返回对话结果     |
 
 ---
 
@@ -356,8 +361,10 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | <img src="./docs/images/logo_bailing.png" width="160"> | [百聆语音对话机器人](https://github.com/wwbin2017/bailing) | 本项目受[百聆语音对话机器人](https://github.com/wwbin2017/bailing)启发，并在其基础上实现 |
 | <img src="./docs/images/logo_tenclass.png" width="160"> | [十方融海](https://www.tenclass.com/) | 感谢[十方融海](https://www.tenclass.com/)为小智生态制定了标准的通讯协议、多设备兼容性方案及高并发场景实践示范；为本项目提供了全链路技术文档支持 |
 | <img src="./docs/images/logo_xuanfeng.png" width="160"> | [玄凤科技](https://github.com/Eric0308) | 感谢[玄凤科技](https://github.com/Eric0308)贡献函数调用框架、MCP通信协议及插件化调用机制的实现代码，通过标准化的指令调度体系与动态扩展能力，显著提升了前端设备(IoT)的交互效率和功能延展性 |
+| <img src="./docs/images/logo_junsen.png" width="160"> | [huangjunsen](https://github.com/huangjunsen0406) | 感谢[huangjunsen](https://github.com/huangjunsen0406) 贡献`智控台移动端`模块，实现了跨平台移动设备的高效控制与实时交互，大幅提升了系统在移动场景下的操作便捷性和管理效率 |
 | <img src="./docs/images/logo_huiyuan.png" width="160"> | [汇远设计](http://ui.kwd988.net/) | 感谢[汇远设计](http://ui.kwd988.net/)为本项目提供专业视觉解决方案，用其服务超千家企业的设计实战经验，赋能本项目产品用户体验 |
 | <img src="./docs/images/logo_qinren.png" width="160"> | [西安勤人信息科技](https://www.029app.com/) | 感谢[西安勤人信息科技](https://www.029app.com/)深化本项目视觉体系，确保整体设计风格在多场景应用中的一致性和扩展性 |
+| <img src="./docs/images/logo_contributors.png" width="160"> | [代码贡献者](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors) | 感谢[所有代码贡献者](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors)贡献者，你们的付出让项目更加健壮和强大。 |
 
 
 <a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">

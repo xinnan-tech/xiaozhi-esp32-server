@@ -14,36 +14,38 @@
       </div>
     </div>
     <div class="device-name">
-      语言模型：{{ device.llmModelName }}
+      {{ $t('home.languageModel') }}：{{ device.llmModelName }}
     </div>
     <div class="device-name">
-      音色模型：{{ device.ttsModelName }} ({{ device.ttsVoiceName }})
+      {{ $t('home.voiceModel') }}：{{ device.ttsModelName }} ({{ device.ttsVoiceName }})
     </div>
     <div style="display: flex;gap: 10px;align-items: center;">
       <div class="settings-btn" @click="handleConfigure">
-        配置角色
+        {{ $t('home.configureRole') }}
       </div>
-       <div class="settings-btn" @click="handleVoicePrint">
-        声纹识别
+      <div class="settings-btn" @click="handleVoicePrint">
+        {{ $t('home.voiceprintRecognition') }}
       </div>
       <div class="settings-btn" @click="handleDeviceManage">
-        设备管理({{ device.deviceCount }})
+        {{ $t('home.deviceManagement') }}({{ device.deviceCount }})
       </div>
-      <div class="settings-btn" @click="handleChatHistory"
-        :class="{ 'disabled-btn': device.memModelId === 'Memory_nomem' }">
-        <el-tooltip v-if="device.memModelId === 'Memory_nomem'" content="请先在“配置角色”界面开启记忆" placement="top">
-          <span>聊天记录</span>
+      <div :class="['settings-btn', { 'disabled-btn': device.memModelId === 'Memory_nomem' }]"
+        @click="handleChatHistory">
+        <el-tooltip v-if="device.memModelId === 'Memory_nomem'" :content="$t('home.enableMemory')" placement="top">
+          <span>{{ $t('home.chatHistory') }}</span>
         </el-tooltip>
-        <span v-else>聊天记录</span>
+        <span v-else>{{ $t('home.chatHistory') }}</span>
       </div>
     </div>
     <div class="version-info">
-      <div>最近对话：{{ formattedLastConnectedTime }}</div>
+      <div>{{ $t('home.lastConversation') }}：{{ formattedLastConnectedTime }}</div>
     </div>
   </div>
 </template>
 
 <script>
+import i18n from '@/i18n';
+
 export default {
   name: 'DeviceItem',
   props: {
@@ -54,23 +56,27 @@ export default {
   },
   computed: {
     formattedLastConnectedTime() {
-      if (!this.device.lastConnectedAt) return '暂未对话';
+      if (!this.device.lastConnectedAt) return this.$t('home.noConversation');
 
       const lastTime = new Date(this.device.lastConnectedAt);
       const now = new Date();
       const diffMinutes = Math.floor((now - lastTime) / (1000 * 60));
 
       if (diffMinutes <= 1) {
-        return '刚刚';
+        return this.$t('home.justNow');
       } else if (diffMinutes < 60) {
-        return `${diffMinutes}分钟前`;
+        return this.$t('home.minutesAgo', { minutes: diffMinutes });
       } else if (diffMinutes < 24 * 60) {
         const hours = Math.floor(diffMinutes / 60);
         const minutes = diffMinutes % 60;
-        return `${hours}小时${minutes > 0 ? minutes + '分钟' : ''}前`;
+        return this.$t('home.hoursAgo', { hours, minutes });
       } else {
         return this.device.lastConnectedAt;
       }
+    },
+    // 判断是否为英文
+    isEnglish() {
+      return i18n.locale === 'en';
     }
   },
   methods: {

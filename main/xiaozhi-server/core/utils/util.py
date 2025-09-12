@@ -1,16 +1,17 @@
-import json
-import socket
-import subprocess
 import re
 import os
-from io import BytesIO
-from typing import Callable, Any
-from core.utils import p3
-import numpy as np
-import requests
-import opuslib_next
-from pydub import AudioSegment
+import json
 import copy
+import wave
+import socket
+import requests
+import subprocess
+import numpy as np
+import opuslib_next
+from io import BytesIO
+from core.utils import p3
+from pydub import AudioSegment
+from typing import Callable, Any
 
 TAG = __name__
 emoji_map = {
@@ -228,6 +229,56 @@ def audio_to_data_stream(audio_file_path, is_opus=True, callback: Callable[[Any]
     raw_data = audio.raw_data
     pcm_to_data_stream(raw_data, is_opus, callback)
 
+def audio_to_data(audio_file_path: str, is_opus: bool = True) -> list[bytes]:
+    """
+    将音频文件转换为Opus/PCM编码的帧列表
+    Args:
+        audio_file_path: 音频文件路径
+        is_opus: 是否进行Opus编码
+    """
+    # 获取文件后缀名
+    file_type = os.path.splitext(audio_file_path)[1]
+    if file_type:
+        file_type = file_type.lstrip(".")
+    # 读取音频文件，-nostdin 参数：不要从标准输入读取数据，否则FFmpeg会阻塞
+    audio = AudioSegment.from_file(
+        audio_file_path, format=file_type, parameters=["-nostdin"]
+    )
+
+    # 转换为单声道/16kHz采样率/16位小端编码（确保与编码器匹配）
+    audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
+
+    # 获取原始PCM数据（16位小端）
+    raw_data = audio.raw_data
+
+    # 初始化Opus编码器
+    encoder = opuslib_next.Encoder(16000, 1, opuslib_next.APPLICATION_AUDIO)
+
+    # 编码参数
+    frame_duration = 60  # 60ms per frame
+    frame_size = int(16000 * frame_duration / 1000)  # 960 samples/frame
+
+    datas = []
+    # 按帧处理所有音频数据（包括最后一帧可能补零）
+    for i in range(0, len(raw_data), frame_size * 2):  # 16bit=2bytes/sample
+        # 获取当前帧的二进制数据
+        chunk = raw_data[i : i + frame_size * 2]
+
+        # 如果最后一帧不足，补零
+        if len(chunk) < frame_size * 2:
+            chunk += b"\x00" * (frame_size * 2 - len(chunk))
+
+        if is_opus:
+            # 转换为numpy数组处理
+            np_frame = np.frombuffer(chunk, dtype=np.int16)
+            # 编码Opus数据
+            frame_data = encoder.encode(np_frame.tobytes(), frame_size)
+        else:
+            frame_data = chunk if isinstance(chunk, bytes) else bytes(chunk)
+
+        datas.append(frame_data)
+
+    return datas
 
 def audio_bytes_to_data_stream(audio_bytes, file_type, is_opus, callback: Callable[[Any], Any]) -> None:
     """
@@ -273,6 +324,31 @@ def pcm_to_data_stream(raw_data, is_opus=True, callback: Callable[[Any], Any] = 
             frame_data = chunk if isinstance(chunk, bytes) else bytes(chunk)
             callback(frame_data)
 
+def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
+    """
+    将opus帧列表解码为wav字节流
+    """
+    decoder = opuslib_next.Decoder(sample_rate, channels)
+    pcm_datas = []
+
+    frame_duration = 60  # ms
+    frame_size = int(sample_rate * frame_duration / 1000)  # 960
+
+    for opus_frame in opus_datas:
+        # 解码为PCM（返回bytes，2字节/采样点）
+        pcm = decoder.decode(opus_frame, frame_size)
+        pcm_datas.append(pcm)
+
+    pcm_bytes = b"".join(pcm_datas)
+
+    # 写入wav字节流
+    wav_buffer = BytesIO()
+    with wave.open(wav_buffer, "wb") as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(2)  # 16bit
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm_bytes)
+    return wav_buffer.getvalue()
 
 def check_vad_update(before_config, new_config):
     if (

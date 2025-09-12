@@ -1,9 +1,9 @@
 <template>
-  <el-dialog title="手动添加设备" :visible="visible" @close="handleClose" width="30%" center>
+  <el-dialog :title="$t('manualAddDeviceDialog.title')" :visible="visible" @close="handleClose" width="30%" center>
     <div class="dialog-content">
-      <el-form :model="deviceForm" :rules="rules" ref="deviceForm" label-width="100px">
-        <el-form-item label="设备型号" prop="board">
-          <el-select v-model="deviceForm.board" placeholder="请选择设备型号" style="width: 100%">
+      <el-form :model="deviceForm" :rules="rules" ref="deviceForm" label-width="auto">
+        <el-form-item :label="$t('manualAddDeviceDialog.deviceType')" prop="board">
+          <el-select v-model="deviceForm.board" :placeholder="$t('manualAddDeviceDialog.deviceTypePlaceholder')" style="width: 100%">
             <el-option
               v-for="item in firmwareTypes"
               :key="item.key"
@@ -12,17 +12,17 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="固件版本" prop="appVersion">
-          <el-input v-model="deviceForm.appVersion" placeholder="请输入固件版本"></el-input>
+        <el-form-item :label="$t('manualAddDeviceDialog.firmwareVersion')" prop="appVersion">
+          <el-input v-model="deviceForm.appVersion" :placeholder="$t('manualAddDeviceDialog.firmwareVersionPlaceholder')"></el-input>
         </el-form-item>
-        <el-form-item label="Mac地址" prop="macAddress">
-          <el-input v-model="deviceForm.macAddress" placeholder="请输入Mac地址"></el-input>
+        <el-form-item :label="$t('manualAddDeviceDialog.macAddress')" prop="macAddress">
+          <el-input v-model="deviceForm.macAddress" :placeholder="$t('manualAddDeviceDialog.macAddressPlaceholder')"></el-input>
         </el-form-item>
       </el-form>
     </div>
     <div style="display: flex;margin: 15px 15px;gap: 7px;">
-      <div class="dialog-btn" @click="submitForm">确定</div>
-      <div class="dialog-btn cancel-btn" @click="cancel">取消</div>
+      <div class="dialog-btn" @click="submitForm">{{ $t('manualAddDeviceDialog.confirm') }}</div>
+      <div class="dialog-btn cancel-btn" @click="cancel">{{ $t('manualAddDeviceDialog.cancel') }}</div>
     </div>
   </el-dialog>
 </template>
@@ -41,9 +41,9 @@ export default {
     const validateMac = (rule, value, callback) => {
       const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
       if (!value) {
-        callback(new Error('请输入Mac地址'));
+        callback(new Error(this.$t('manualAddDeviceDialog.requiredMacAddress')));
       } else if (!macRegex.test(value)) {
-        callback(new Error('请输入正确的Mac地址格式，例如：00:1A:2B:3C:4D:5E'));
+        callback(new Error(this.$t('manualAddDeviceDialog.invalidMacAddress')));
       } else {
         callback();
       }
@@ -58,10 +58,10 @@ export default {
       firmwareTypes: [],
       rules: {
         board: [
-          { required: true, message: '请选择设备型号', trigger: 'change' }
+          { required: true, message: this.$t('manualAddDeviceDialog.requiredDeviceType'), trigger: 'change' }
         ],
         appVersion: [
-          { required: true, message: '请输入固件版本', trigger: 'blur' }
+          { required: true, message: this.$t('manualAddDeviceDialog.requiredFirmwareVersion'), trigger: 'blur' }
         ],
         macAddress: [
           { required: true, validator: validateMac, trigger: 'blur' }
@@ -79,7 +79,7 @@ export default {
         this.firmwareTypes = res.data;
       } catch (error) {
         console.error('获取固件类型失败:', error);
-        this.$message.error(error.message || '获取固件类型失败');
+        this.$message.error(error.message || this.$t('manualAddDeviceDialog.getFirmwareTypeFailed'));
       }
     },
     submitForm() {
@@ -97,11 +97,11 @@ export default {
       
       Api.device.manualAddDevice(params, ({ data }) => {
         if (data.code === 0) {
-          this.$message.success('设备添加成功');
+          this.$message.success(this.$t('manualAddDeviceDialog.addSuccess'));
           this.$emit('refresh');
           this.closeDialog();
         } else {
-          this.$message.error(data.msg || '添加失败');
+          this.$message.error(data.msg || this.$t('manualAddDeviceDialog.addFailed'));
         }
       });
     },
@@ -149,10 +149,10 @@ export default {
 }
 
 ::v-deep .el-dialog__body {
-  padding: 20px 6px;
+  padding: 20px 20px;
 }
 
 ::v-deep .el-form-item {
   margin-bottom: 20px;
 }
-</style> 
+</style>

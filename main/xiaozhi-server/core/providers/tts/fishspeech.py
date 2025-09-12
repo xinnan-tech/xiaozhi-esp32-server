@@ -143,8 +143,8 @@ class TTSProvider(TTSProviderBase):
         data = {
             "text": text,
             "references": [
-                ServeReferenceAudio(audio=audio if audio else b"", text=text)
-                for text, audio in zip(ref_texts, byte_audios)
+                ServeReferenceAudio(audio=audio if audio else b"", text=ref_text)
+                for ref_text, audio in zip(ref_texts, byte_audios)
             ],
             "reference_id": self.reference_id,
             "normalize": self.normalize,

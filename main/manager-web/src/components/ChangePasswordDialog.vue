@@ -8,38 +8,38 @@
           <img loading="lazy" src="@/assets/login/shield.png" alt=""
             style="width: 19px;height: 23px; filter: brightness(0) invert(1);" />
         </div>
-        修改密码
+        {{ $t('changePassword.title') }}
       </div>
       <div style="height: 1px;background: #e8f0ff;" />
       <div style="margin: 22px 15px;">
         <div style="font-weight: 400;font-size: 14px;text-align: left;color: #3d4566;">
           <div style="color: red;display: inline-block;">*</div>
-          旧密码：
+          {{ $t('changePassword.oldPasswordLabel') }}
         </div>
         <div class="input-46" style="margin-top: 12px;">
-          <el-input placeholder="请输入旧密码" v-model="oldPassword" type="password" show-password />
+          <el-input :placeholder="$t('changePassword.oldPasswordPlaceholder')" v-model="oldPassword" type="password" show-password />
         </div>
         <div style="font-weight: 400;font-size: 14px;text-align: left;color: #3d4566;margin-top: 12px;">
           <div style="color: red;display: inline-block;">*</div>
-          新密码：
+          {{ $t('changePassword.newPasswordLabel') }}
         </div>
         <div class="input-46" style="margin-top: 12px;">
-          <el-input placeholder="请输入新密码" v-model="newPassword" type="password" show-password />
+          <el-input :placeholder="$t('changePassword.newPasswordPlaceholder')" v-model="newPassword" type="password" show-password />
         </div>
         <div style="font-weight: 400;font-size: 14px;text-align: left;color: #3d4566;margin-top: 12px;">
           <div style="color: red;display: inline-block;">*</div>
-          确认新密码：
+          {{ $t('changePassword.confirmPasswordLabel') }}
         </div>
         <div class="input-46" style="margin-top: 12px;">
-          <el-input placeholder="请再次输入新密码" v-model="confirmNewPassword" type="password" show-password />
+          <el-input :placeholder="$t('changePassword.confirmPasswordPlaceholder')" v-model="confirmNewPassword" type="password" show-password />
         </div>
       </div>
       <div style="display: flex;margin: 15px 15px;gap: 7px;">
         <div class="dialog-btn" @click="confirm">
-          确定
+          {{ $t('changePassword.confirmButton') }}
         </div>
         <div class="dialog-btn" style="background: #e6ebff;border: 1px solid #adbdff;color: #5778ff;" @click="cancel">
-          取消
+          {{ $t('changePassword.cancelButton') }}
         </div>
       </div>
     </el-dialog>
@@ -49,6 +49,7 @@
 <script>
 import userApi from '@/apis/module/user';
 import { mapActions } from 'vuex';
+import { changeLanguage } from '@/i18n';
 
 export default {
   name: 'ChangePasswordDialog',
@@ -78,15 +79,15 @@ export default {
     ...mapActions(['logout']), // 引入Vuex的logout action
     confirm() {
       if (!this.oldPassword.trim() || !this.newPassword.trim() || !this.confirmNewPassword.trim()) {
-        this.$message.error('请填写所有字段');
+        this.$message.error(this.$t('changePassword.allFieldsRequired'));
         return;
       }
       if (this.newPassword !== this.confirmNewPassword) {
-        this.$message.error('两次输入的新密码不一致');
+        this.$message.error(this.$t('changePassword.passwordsNotMatch'));
         return;
       }
       if (this.newPassword === this.oldPassword) {
-        this.$message.error('新密码不能与旧密码相同');
+        this.$message.error(this.$t('changePassword.newPasswordSameAsOld'));
         return;
       }
 
@@ -94,7 +95,7 @@ export default {
       userApi.changePassword(this.oldPassword, this.newPassword, (res) => {
         if (res.data.code === 0) {
           this.$message.success({
-            message: '密码修改成功，请重新登录',
+            message: this.$t('changePassword.passwordChangedSuccessfully'),
             showClose: true
           });
           this.logout().then(() => {
@@ -102,10 +103,10 @@ export default {
             this.$emit('update:visible', false);
           });
         } else {
-          this.$message.error(res.data.msg || '密码修改失败');
+          this.$message.error(res.data.msg || this.$t('changePassword.changeFailed'));
         }
       }, (err) => {
-        this.$message.error(err.msg || '密码修改失败');
+        this.$message.error(err.msg || this.$t('changePassword.changeFailed'));
       });
       this.$emit('input', false);
     },
