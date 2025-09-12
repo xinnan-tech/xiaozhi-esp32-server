@@ -39,11 +39,9 @@ class ASRProviderBase(ABC):
 
     # Process ASR audio in order
     def asr_text_priority_thread(self, conn):
-        logger.bind(tag=TAG).info("ASR audio processing thread started")
         while not conn.stop_event.is_set():
             try:
                 message = conn.asr_audio_queue.get(timeout=1)
-                logger.bind(tag=TAG).debug(f"ASR thread processing audio: {len(message)} bytes")
                 future = asyncio.run_coroutine_threadsafe(
                     handleAudioMessage(conn, message),
                     conn.loop,
@@ -396,46 +394,6 @@ class ASRProviderBase(ABC):
     ) -> Tuple[Optional[str], Optional[str]]:
         """Convert speech data to text"""
         pass
-
-    async def start_streaming_session(self, conn, session_id: str) -> bool:
-        """Start a streaming ASR session for real-time transcription.
-        
-        Args:
-            conn: Connection object
-            session_id: Unique session identifier
-            
-        Returns:
-            True if session started successfully, False otherwise
-        """
-        logger.bind(tag=TAG).warning("Streaming not implemented for this ASR provider")
-        return False
-
-    async def stream_audio_chunk(self, conn, audio_chunk: bytes, session_id: str) -> Optional[str]:
-        """Stream an audio chunk to the active ASR session.
-        
-        Args:
-            conn: Connection object
-            audio_chunk: PCM audio data to stream
-            session_id: Session identifier
-            
-        Returns:
-            Latest partial transcript if available, None otherwise
-        """
-        logger.bind(tag=TAG).warning("Audio streaming not implemented for this ASR provider")
-        return None
-
-    async def end_streaming_session(self, conn, session_id: str) -> Tuple[str, Optional[str]]:
-        """End the streaming ASR session and get final transcript.
-        
-        Args:
-            conn: Connection object
-            session_id: Session identifier
-            
-        Returns:
-            Tuple of (final_transcript, file_path)
-        """
-        logger.bind(tag=TAG).warning("Streaming session end not implemented for this ASR provider")
-        return "", None
 
     @staticmethod
     def decode_opus(opus_data: List[bytes]) -> List[bytes]:
