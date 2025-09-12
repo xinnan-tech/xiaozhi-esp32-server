@@ -63,8 +63,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // 忽略未知属性
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        // 设置时区
-        mapper.setTimeZone(TimeZone.getTimeZone("GMT+8"));
+        // 设置时区 (IST - India Standard Time)
+        mapper.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
 
         // 配置Java8日期时间序列化
         JavaTimeModule javaTimeModule = new JavaTimeModule();

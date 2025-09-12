@@ -404,6 +404,43 @@ ASR:
     # Language parameter, 1537 for Mandarin, specific reference: https://ai.baidu.com/ai-doc/SPEECH/0lbxfnc9b
     dev_pid: 1537
     output_dir: tmp/
+  GoogleSpeechV2:
+    # Google Cloud Speech-to-Text v2 with Chirp 2 model
+    # Chirp 2 is Google's next-generation universal speech model with improved accuracy
+    # Setup instructions:
+    # 1. Enable Speech-to-Text API v2 in Google Cloud Console: https://console.cloud.google.com/apis/library/speech.googleapis.com
+    # 2. Create a service account: https://console.cloud.google.com/iam-admin/serviceaccounts
+    # 3. Download JSON credentials and set the path below
+    # Pricing: https://cloud.google.com/speech-to-text/v2/pricing
+    type: google_speech_v2
+    # Google Cloud project ID
+    project_id: gen-lang-client-0652043794
+    # Processing location for Chirp 2 (available in: us-central1, europe-west4, asia-southeast1)
+    # Note: API resource uses 'global' but processing happens in this region
+    location: us-central1
+    # Path to service account credentials JSON file
+    credentials_path: "C:\\Users\\Acer\\Cheeko-esp32-server\\main\\xiaozhi-server\\gen-lang-client-0652043794-e5f4175261a8.json"
+    # Model to use (chirp_2 for best accuracy, latest_long for standard)
+    model: chirp_2
+    # Language codes - Chirp 2 supports multiple languages simultaneously
+    # Examples: ["en-US"], ["zh-CN"], ["en-US", "zh-CN"] for multilingual
+    language_codes: 
+      - en-US
+    # Audio encoding (LINEAR16 for PCM, OGG_OPUS for Opus)
+    encoding: LINEAR16
+    # Sample rate in Hz (16000 recommended)
+    sample_rate_hertz: 16000
+    # Enable automatic punctuation
+    enable_automatic_punctuation: true
+    # Enable word-level timestamps
+    enable_word_time_offsets: false
+    # Enable word confidence scores
+    enable_word_confidence: false
+    # Enable spoken punctuation (e.g., "period", "comma")
+    enable_spoken_punctuation: false
+    # Enable spoken emojis (e.g., "smiley face")
+    enable_spoken_emojis: false
+    output_dir: tmp/
 
 VAD:
   SileroVAD:
@@ -866,3 +903,23 @@ TTS:
     access_token: "U4YdYXVfpwWnk2t5Gp822zWPCuORyeJL"
     voice: "OUeAo1mhq6IBExi"
     output_dir: tmp/
+
+# #####################################################################################
+# ##############################Semantic Search Configuration########################### 
+# Semantic search for improved music matching using vector embeddings
+semantic_search:
+  # Enable semantic search for music (requires Qdrant and sentence-transformers)
+  enabled: false  # Set to true to enable
+  # Qdrant vector database URL (can be local or cloud instance)
+  qdrant_url: "https://your-qdrant-instance.com"  # Change to your Qdrant URL
+  # Qdrant API key (required for cloud instances, optional for local)
+  qdrant_api_key: "your-qdrant-api-key"  # Change to your API key
+  # Vector collection name for music embeddings
+  collection_name: "xiaozhi_music"
+  # Sentence transformer model for embeddings (smaller models are faster)
+  # Options: "all-MiniLM-L6-v2" (fast), "all-mpnet-base-v2" (better quality)
+  embedding_model: "all-MiniLM-L6-v2"
+  # Number of search results to return
+  search_limit: 5
+  # Minimum similarity score threshold (0.0 to 1.0, higher = more strict)
+  min_score_threshold: 0.5

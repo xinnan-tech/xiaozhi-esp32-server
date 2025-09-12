@@ -228,7 +228,7 @@ async def handleAudioMessage(conn, audio):
         return
 
     # Whether the current segment has someone speaking
-    have_voice = conn.vad.is_vad(conn, audio)
+    have_voice = await conn.vad.is_vad(conn, audio)
     
     # Track when voice recording starts in auto VAD mode (for 10-second timeout)
     # Only set the timer once per recording session when transitioning from no-voice to voice

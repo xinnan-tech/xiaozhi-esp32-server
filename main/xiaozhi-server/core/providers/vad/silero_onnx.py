@@ -266,11 +266,11 @@ class VADProvider(VADProviderBase):
         """Reset the VAD provider internal states."""
         self.analyzer.reset()
         
-    def is_vad(self, conn, opus_packet) -> bool:
-        """Detect voice activity in Opus audio packet.
+    async def is_vad(self, conn, opus_packet) -> bool:
+        """Detect voice activity in Opus audio packet and stream to ASR.
         
-        This method maintains compatibility with the existing interface while
-        using the new production-ready VAD analyzer internally.
+        This method handles VAD detection and streaming to ASR in real-time,
+        replacing the old buffer-based approach.
         
         Args:
             conn: Connection object with client state
@@ -288,23 +288,99 @@ class VADProvider(VADProviderBase):
             
             # Log VAD state for debugging (only log state changes)
             if not hasattr(self, '_last_logged_state') or self._last_logged_state != vad_state:
-                logger.bind(tag=TAG).info(f"VAD state: {vad_state.name}")
+                logger.bind(tag=TAG).info(f"[VAD-STATE] VAD state changed to: {vad_state.name} for {conn.session_id}")
                 self._last_logged_state = vad_state
             
             # Update connection state based on VAD state
-            current_have_voice = vad_state in [VADState.SPEAKING, VADState.STARTING]
+            # Include STOPPING state because it still contains speech that should be processed
+            current_have_voice = vad_state in [VADState.SPEAKING, VADState.STARTING, VADState.STOPPING]
             
-            # Handle silence detection for sentence end
-            if conn.client_have_voice and not current_have_voice:
-                if vad_state == VADState.QUIET:
-                    stop_duration = time.time() * 1000 - conn.last_activity_time
-                    if stop_duration >= self.silence_threshold_ms:
-                        conn.client_voice_stop = True
-                        logger.bind(tag=TAG).info(f"Voice stopped after {stop_duration}ms silence")
+            # Handle streaming session management based on VAD state
+            if vad_state == VADState.STARTING and not getattr(conn, 'asr_streaming_active', False):
+                # Start streaming session when voice begins
+                logger.bind(tag=TAG).info(f"[VAD-START] Voice activity detected - starting ASR streaming session for {conn.session_id}")
+                if hasattr(conn, 'asr_provider'):
+                    logger.bind(tag=TAG).debug(f"[VAD-START] ASR provider found: {type(conn.asr_provider).__name__}")
+                    success = await conn.asr_provider.start_streaming_session(conn, conn.session_id)
+                    if success:
+                        conn.asr_streaming_active = True
+                        conn.asr_stream_start_time = time.time()
+                        logger.bind(tag=TAG).info(f"[VAD-START] ASR streaming session started successfully for {conn.session_id}")
+                    else:
+                        logger.bind(tag=TAG).error(f"[VAD-START] Failed to start ASR streaming session for {conn.session_id}")
+                else:
+                    logger.bind(tag=TAG).error(f"[VAD-START] No ASR provider found on connection {conn.session_id}")
+            
+            # Stream audio during voice activity
+            streaming_active = getattr(conn, 'asr_streaming_active', False)
+            logger.bind(tag=TAG).info(f"[VAD-STREAM] Audio streaming check - streaming_active={streaming_active}, current_have_voice={current_have_voice}, vad_state={vad_state.name}")
+            
+            if streaming_active and current_have_voice:
+                if hasattr(conn, 'asr_provider'):
+                    # Stream the PCM audio chunk to ASR
+                    logger.bind(tag=TAG).info(f"[VAD-STREAM] Streaming {len(pcm_frame)} bytes to ASR for {conn.session_id}")
+                    partial_result = await conn.asr_provider.stream_audio_chunk(conn, pcm_frame, conn.session_id)
+                    if partial_result:
+                        logger.bind(tag=TAG).info(f"[VAD-STREAM] Partial transcript from ASR: '{partial_result}'")
+                        conn.latest_partial_transcript = partial_result
+                else:
+                    logger.bind(tag=TAG).error(f"[VAD-STREAM] ASR provider not found on connection {conn.session_id}")
+            elif streaming_active:
+                logger.bind(tag=TAG).debug(f"[VAD-STREAM] Streaming session active but no voice detected (state: {vad_state}) for {conn.session_id}")
+            elif current_have_voice:
+                logger.bind(tag=TAG).debug(f"[VAD-STREAM] Voice detected but no streaming session active for {conn.session_id}")
+            
+            # Handle end of voice activity
+            if vad_state == VADState.QUIET and getattr(conn, 'asr_streaming_active', False):
+                # Check if enough silence has passed to end the session
+                if not hasattr(conn, 'silence_start_time'):
+                    conn.silence_start_time = time.time()
+                    logger.bind(tag=TAG).debug(f"[VAD-END] Starting silence timer for {conn.session_id}")
+                
+                silence_duration_ms = (time.time() - conn.silence_start_time) * 1000
+                if silence_duration_ms >= self.silence_threshold_ms:
+                    logger.bind(tag=TAG).info(f"[VAD-END] Voice ended after {silence_duration_ms:.0f}ms silence - ending ASR streaming session for {conn.session_id}")
+                    
+                    if hasattr(conn, 'asr_provider'):
+                        # End the streaming session and get final transcript
+                        logger.bind(tag=TAG).debug(f"[VAD-END] Calling end_streaming_session for {conn.session_id}")
+                        final_transcript, file_path = await conn.asr_provider.end_streaming_session(conn, conn.session_id)
                         
+                        if final_transcript.strip():
+                            logger.bind(tag=TAG).info(f"[VAD-END] Final transcript received: '{final_transcript}'")
+                            
+                            # Process the final transcript (same as old system)
+                            from core.handle.receiveAudioHandle import startToChat
+                            logger.bind(tag=TAG).info(f"[VAD-END] Sending transcript to chat handler for {conn.session_id}")
+                            await startToChat(conn, final_transcript)
+                        else:
+                            logger.bind(tag=TAG).warning(f"[VAD-END] No speech detected in streaming session for {conn.session_id}")
+                    else:
+                        logger.bind(tag=TAG).error(f"[VAD-END] No ASR provider found for {conn.session_id}")
+                    
+                    # Reset streaming state
+                    conn.asr_streaming_active = False
+                    if hasattr(conn, 'silence_start_time'):
+                        delattr(conn, 'silence_start_time')
+                    if hasattr(conn, 'asr_stream_start_time'):
+                        delattr(conn, 'asr_stream_start_time')
+                    if hasattr(conn, 'latest_partial_transcript'):
+                        delattr(conn, 'latest_partial_transcript')
+                    logger.bind(tag=TAG).info(f"[VAD-END] Streaming state reset for {conn.session_id}")
+                else:
+                    logger.bind(tag=TAG).debug(f"[VAD-END] Silence duration {silence_duration_ms:.0f}ms < threshold {self.silence_threshold_ms}ms for {conn.session_id}")
+            else:
+                # Reset silence timer if voice is detected again
+                if hasattr(conn, 'silence_start_time'):
+                    logger.bind(tag=TAG).debug(f"[VAD-END] Resetting silence timer for {conn.session_id}")
+                    delattr(conn, 'silence_start_time')
+            
+            # Update legacy connection state for compatibility
             if current_have_voice:
                 conn.client_have_voice = True
                 conn.last_activity_time = time.time() * 1000
+            else:
+                conn.client_have_voice = False
                 
             # Update last voice state for compatibility
             if hasattr(conn, 'last_is_voice'):
@@ -317,4 +393,6 @@ class VADProvider(VADProviderBase):
             return False
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error processing audio packet: {e}")
+            import traceback
+            logger.bind(tag=TAG).debug(f"Traceback: {traceback.format_exc()}")
             return False
