@@ -24,6 +24,13 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
 
     # 发送结束消息（如果是最后一个文本）
     if conn.llm_finish_task and sentenceType == SentenceType.LAST:
+        if hasattr(conn, "audio_flow_control"):
+            flow_control = conn.audio_flow_control
+            delay = (flow_control["start_time"] + flow_control["packet_count"] * 60 / 1000) - flow_control["last_send_time"]
+            conn.logger.bind(tag=TAG).info(f"等待误差后发送stop指令 : {delay}")
+            if delay > 0:
+                await asyncio.sleep(delay * 20 + 0.06)
+            delattr(conn, "audio_flow_control")
         await send_tts_message(conn, "stop", None)
         conn.client_is_speaking = False
         if conn.close_after_chat:
@@ -98,10 +105,11 @@ async def sendAudio(conn, audios, frame_duration=60):
 
         # 获取或初始化流控状态
         if not hasattr(conn, "audio_flow_control"):
+            start_time = time.perf_counter()
             conn.audio_flow_control = {
                 "last_send_time": 0,
                 "packet_count": 0,
-                "start_time": time.perf_counter(),
+                "start_time": start_time,
                 "sequence": 0,  # 添加序列号
             }
 
@@ -114,6 +122,9 @@ async def sendAudio(conn, audios, frame_duration=60):
         delay = expected_time - current_time
         if delay > 0:
             await asyncio.sleep(delay)
+        else:
+            # 纠正误差
+            flow_control["start_time"] += abs(delay)
 
         if conn.conn_from_mqtt_gateway:
             # 计算时间戳和序列号
