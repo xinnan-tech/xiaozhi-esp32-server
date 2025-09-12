@@ -3,13 +3,13 @@
     <HeaderBar />
 
     <div class="operation-bar">
-      <h2 class="page-title">{{ modelTypeText }}</h2>
+      <h2 class="page-title">{{ $t('modelConfig.' + activeTab) }}</h2>
       <div class="action-group">
         <div class="search-group">
-          <el-input placeholder="请输入模型名称查询" v-model="search" class="search-input" clearable
+          <el-input :placeholder="$t('modelConfig.searchPlaceholder')" v-model="search" class="search-input" clearable
             @keyup.enter.native="handleSearch" style="width: 240px" />
           <el-button class="btn-search" @click="handleSearch">
-            搜索
+            {{ $t('modelConfig.search') }}
           </el-button>
         </div>
       </div>
@@ -22,73 +22,73 @@
         <el-menu :default-active="activeTab" class="nav-panel" @select="handleMenuSelect"
           style="background-size: cover; background-position: center;">
           <el-menu-item index="vad">
-            <span class="menu-text">语言活动检测</span>
+            <span class="menu-text">{{ $t('modelConfig.vad') }}</span>
           </el-menu-item>
           <el-menu-item index="asr">
-            <span class="menu-text">语音识别</span>
+            <span class="menu-text">{{ $t('modelConfig.asr') }}</span>
           </el-menu-item>
           <el-menu-item index="llm">
-            <span class="menu-text">大语言模型</span>
+            <span class="menu-text">{{ $t('modelConfig.llm') }}</span>
           </el-menu-item>
           <el-menu-item index="vllm">
-            <span class="menu-text">视觉大模型</span>
+            <span class="menu-text">{{ $t('modelConfig.vllm') }}</span>
           </el-menu-item>
           <el-menu-item index="intent">
-            <span class="menu-text">意图识别</span>
+            <span class="menu-text">{{ $t('modelConfig.intent') }}</span>
           </el-menu-item>
           <el-menu-item index="tts">
-            <span class="menu-text">语音合成</span>
+            <span class="menu-text">{{ $t('modelConfig.tts') }}</span>
           </el-menu-item>
           <el-menu-item index="memory">
-            <span class="menu-text">记忆</span>
+            <span class="menu-text">{{ $t('modelConfig.memory') }}</span>
           </el-menu-item>
         </el-menu>
 
         <!-- 右侧内容 -->
         <div class="content-area">
           <el-card class="model-card" shadow="never">
-            <el-table ref="modelTable" style="width: 100%" v-loading="loading" element-loading-text="拼命加载中"
+            <el-table ref="modelTable" style="width: 100%" v-loading="loading" :element-loading-text="$t('modelConfig.loading')"
               element-loading-spinner="el-icon-loading" element-loading-background="rgba(255, 255, 255, 0.7)"
               :header-cell-style="{ background: 'transparent' }" :data="modelList" class="data-table"
               header-row-class-name="table-header" :header-cell-class-name="headerCellClassName"
               @selection-change="handleSelectionChange">
-              <el-table-column type="selection" width="55" align="center"></el-table-column>
-              <el-table-column label="模型ID" prop="id" align="center"></el-table-column>
-              <el-table-column label="模型名称" prop="modelName" align="center"></el-table-column>
-              <el-table-column label="提供商" align="center">
+              <el-table-column type="selection" width="55" align="center" :cell-class-name="selectionCellClassName"></el-table-column>
+              <el-table-column :label="$t('modelConfig.modelId')" prop="id" align="center"></el-table-column>
+              <el-table-column :label="$t('modelConfig.modelName')" prop="modelName" align="center"></el-table-column>
+              <el-table-column :label="$t('modelConfig.provider')" align="center">
                 <template slot-scope="scope">
-                  {{ scope.row.configJson.type || '未知' }}
+                  {{ scope.row.configJson.type || $t('modelConfig.unknown') }}
                 </template>
               </el-table-column>
-              <el-table-column label="是否启用" align="center">
+              <el-table-column :label="$t('modelConfig.isEnabled')" align="center">
                 <template slot-scope="scope">
                   <el-switch v-model="scope.row.isEnabled" class="custom-switch" :active-value="1" :inactive-value="0"
                     @change="handleStatusChange(scope.row)" />
                 </template>
               </el-table-column>
-              <el-table-column label="是否默认" align="center">
+              <el-table-column :label="$t('modelConfig.isDefault')" align="center">
                 <template slot-scope="scope">
                   <el-switch v-model="scope.row.isDefault" class="custom-switch" :active-value="1" :inactive-value="0"
                     @change="handleDefaultChange(scope.row)" />
                 </template>
               </el-table-column>
-              <el-table-column v-if="activeTab === 'tts'" label="音色管理" align="center">
+              <el-table-column v-if="activeTab === 'tts'" :label="$t('modelConfig.voiceManagement')" align="center">
                 <template slot-scope="scope">
                   <el-button type="text" size="mini" @click="openTtsDialog(scope.row)" class="voice-management-btn">
-                    音色管理
+                    {{ $t('modelConfig.voiceManagement') }}
                   </el-button>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" align="center" width="180px">
+              <el-table-column :label="$t('modelConfig.action')" align="center" width="180px">
                 <template slot-scope="scope">
                   <el-button type="text" size="mini" @click="editModel(scope.row)" class="edit-btn">
-                    修改
+                    {{ $t('modelConfig.edit') }}
                   </el-button>
                   <el-button type="text" size="mini" @click="duplicateModel(scope.row)" class="edit-btn">
-                    创建副本
+                    {{ $t('modelConfig.duplicate') }}
                   </el-button>
                   <el-button type="text" size="mini" @click="deleteModel(scope.row)" class="delete-btn">
-                    删除
+                    {{ $t('modelConfig.delete') }}
                   </el-button>
                 </template>
               </el-table-column>
@@ -97,32 +97,32 @@
               <div class="batch-actions">
                 <el-button size="mini" type="primary" @click="selectAll">
                   {{ isAllSelected ?
-                    '取消全选' : '全选' }}
+                    $t('modelConfig.deselectAll') : $t('modelConfig.selectAll') }}
                 </el-button>
                 <el-button type="success" size="mini" @click="addModel" class="add-btn">
-                  新增
+                  {{ $t('modelConfig.add') }}
                 </el-button>
                 <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">
-                  删除
+                  {{ $t('modelConfig.delete') }}
                 </el-button>
               </div>
               <div class="custom-pagination">
 
                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                  <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`" :value="item">
+                  <el-option v-for="item in pageSizeOptions" :key="item" :label="$t('modelConfig.itemsPerPage', { items: item })" :value="item">
                   </el-option>
                 </el-select>
 
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">首页</button>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">上一页</button>
+                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">{{ $t('modelConfig.firstPage') }}</button>
+                <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">{{ $t('modelConfig.prevPage') }}</button>
 
                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                   :class="{ active: page === currentPage }" @click="goToPage(page)">
                   {{ page }}
                 </button>
 
-                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">下一页</button>
-                <span class="total-text">共{{ total }}条记录</span>
+                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">{{ $t('modelConfig.nextPage') }}</button>
+                <span class="total-text">{{ $t('modelConfig.totalRecords', { total }) }}</span>
               </div>
             </div>
           </el-card>
@@ -173,19 +173,22 @@ export default {
   created() {
     this.loadData();
   },
+  
+  mounted() {
+    // 在组件挂载后确保表头翻译文本正确显示
+    setTimeout(() => {
+      this.updateSelectionHeaderText();
+    }, 100);
+  },
+  
+  updated() {
+    // 在组件更新后重新设置表头翻译文本
+    this.updateSelectionHeaderText();
+  },
 
   computed: {
     modelTypeText() {
-      const map = {
-        vad: '语言活动检测模型(VAD)',
-        asr: '语音识别模型(ASR)',
-        llm: '大语言模型（LLM）',
-        vllm: '视觉大模型（VLLM）',
-        intent: '意图识别模型(Intent)',
-        tts: '语音合成模型(TTS)',
-        memory: '记忆模型(Memory)'
-      }
-      return map[this.activeTab] || '模型配置'
+      return this.$t('modelConfig.' + this.activeTab) || this.$t('modelConfig.modelConfig')
     },
     pageCount() {
       return Math.ceil(this.total / this.pageSize);
@@ -208,6 +211,13 @@ export default {
   },
 
   methods: {
+    // 更新选择列表头翻译文本
+    updateSelectionHeaderText() {
+      const thElement = document.querySelector(`.el-table__header th:nth-child(1) .cell`);
+      if (thElement) {
+        thElement.setAttribute('data-content', this.$t('modelConfig.select'));
+      }
+    },
     handlePageSizeChange(val) {
       this.pageSize = val;
       this.currentPage = 1;
@@ -224,6 +234,19 @@ export default {
       }
       return '';
     },
+    selectionCellClassName({ row, column, rowIndex, columnIndex }) {
+      // 只对表头行设置data-content
+      if (rowIndex === undefined) {
+        // 使用setTimeout确保DOM已经渲染完成
+        setTimeout(() => {
+          const thElement = document.querySelector(`.el-table__header th:nth-child(1) .cell`);
+          if (thElement) {
+            thElement.setAttribute('data-content', this.$t('modelConfig.select'));
+          }
+        }, 0);
+      }
+      return '';
+    },
     handleMenuSelect(index) {
       this.activeTab = index;
       this.currentPage = 1;  // 重置到第一页
@@ -237,13 +260,13 @@ export default {
     // 批量删除
     batchDelete() {
       if (this.selectedModels.length === 0) {
-        this.$message.warning('请先选择要删除的模型')
+        this.$message.warning(this.$t('modelConfig.selectModelsFirst'))
         return
       }
 
-      this.$confirm('确定要删除选中的模型吗?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm(this.$t('modelConfig.confirmBatchDelete'), this.$t('message.info'), {
+        confirmButtonText: this.$t('common.confirm'),
+        cancelButtonText: this.$t('common.cancel'),
         type: 'warning'
       }).then(() => {
         const deletePromises = this.selectedModels.map(model =>
@@ -258,19 +281,19 @@ export default {
         Promise.all(deletePromises).then(results => {
           if (results.every(Boolean)) {
             this.$message.success({
-              message: '批量删除成功',
+              message: this.$t('modelConfig.batchDeleteSuccess'),
               showClose: true
             })
             this.loadData()
           } else {
             this.$message.error({
-              message: '部分删除失败',
+              message: this.$t('modelConfig.partialDeleteFailed'),
               showClose: true
             })
           }
         })
       }).catch(() => {
-        this.$message.info('已取消删除')
+        this.$message.info(this.$t('modelConfig.deleteCancelled'))
       })
     },
     addModel() {
@@ -287,9 +310,9 @@ export default {
     },
     // 删除单个模型
     deleteModel(model) {
-      this.$confirm('确定要删除该模型吗?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm(this.$t('modelConfig.confirmDelete'), this.$t('message.info'), {
+        confirmButtonText: this.$t('common.confirm'),
+        cancelButtonText: this.$t('common.cancel'),
         type: 'warning'
       }).then(() => {
         Api.model.deleteModel(
@@ -297,20 +320,20 @@ export default {
           ({ data }) => {
             if (data.code === 0) {
               this.$message.success({
-                message: '删除成功',
+                message: this.$t('modelConfig.deleteSuccess'),
                 showClose: true
               })
               this.loadData()
             } else {
               this.$message.error({
-                message: data.msg || '删除失败',
+                message: data.msg || this.$t('modelConfig.deleteFailed'),
                 showClose: true
               })
             }
           }
         )
       }).catch(() => {
-        this.$message.info('已取消删除')
+        this.$message.info(this.$t('modelConfig.deleteCancelled'))
       })
     },
     handleCurrentChange(page) {
@@ -325,11 +348,11 @@ export default {
         Api.model.addModel({modelType, provideCode, formData},
         ({ data }) => {
           if (data.code === 0) {
-            this.$message.success('创建副本成功');
+            this.$message.success(this.$t('modelConfig.duplicateSuccess'));
             this.loadData();
             this.editDialogVisible = false;
           } else {
-            this.$message.error(data.msg || '创建副本失败');
+            this.$message.error(data.msg || this.$t('modelConfig.duplicateFailed'));
           }
           done && done(); // 调用done回调关闭加载状态
         })
@@ -339,11 +362,11 @@ export default {
           { modelType, provideCode, id, formData },
           ({ data }) => {
             if (data.code === 0) {
-              this.$message.success('保存成功');
+              this.$message.success(this.$t('modelConfig.saveSuccess'));
               this.loadData();
               this.editDialogVisible = false;
             } else {
-              this.$message.error(data.msg || '保存失败');
+              this.$message.error(data.msg || this.$t('modelConfig.saveFailed'));
             }
             done && done(); // 调用done回调关闭加载状态
           }
@@ -381,13 +404,13 @@ export default {
       Api.model.addModel(params, ({ data }) => {
         if (data.code === 0) {
           this.$message.success({
-            message: '新增成功',
+            message: this.$t('modelConfig.addSuccess'),
             showClose: true
           });
           this.loadData();
         } else {
           this.$message.error({
-            message: data.msg || '新增失败',
+            message: data.msg || this.$t('modelConfig.addFailed'),
             showClose: true
           });
         }
@@ -432,7 +455,7 @@ export default {
           this.modelList = data.data.list;
           this.total = data.data.total;
         } else {
-          this.$message.error(data.msg || '获取模型列表失败');
+          this.$message.error(data.msg || this.$t('modelConfig.fetchModelsFailed'));
         }
       });
     },
@@ -448,13 +471,13 @@ export default {
         newStatus,
         ({ data }) => {
           if (data.code === 0) {
-            this.$message.success(newStatus === 1 ? '启用成功' : '禁用成功')
+            this.$message.success(newStatus === 1 ? this.$t('modelConfig.enableSuccess') : this.$t('modelConfig.disableSuccess'))
             // 保持新状态
             model.isEnabled = newStatus
           } else {
             // 操作失败时恢复原状态
             model.isEnabled = originalStatus
-            this.$message.error(data.msg || '操作失败')
+            this.$message.error(data.msg || this.$t('modelConfig.operationFailed'))
           }
         }
       )
@@ -462,7 +485,7 @@ export default {
     handleDefaultChange(model) {
       Api.model.setDefaultModel(model.id, ({ data }) => {
         if (data.code === 0) {
-          this.$message.success('设置默认模型成功')
+          this.$message.success(this.$t('modelConfig.setDefaultSuccess'))
           this.loadData()
         }
       })
@@ -764,13 +787,24 @@ export default {
 }
 
 ::v-deep .el-table .custom-selection-header .cell::before {
-  content: '选择';
+  content: attr(data-content);
   display: block;
   text-align: center;
-  line-height: 0;
+  line-height: 32px; /* 设置合适的行高，确保文本完整显示 */
   color: black;
-  margin-top: 23px;
+  margin-top: 0; /* 移除可能导致偏移的上边距 */
+  height: 32px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
 }
+
+.custom-selection-header .cell {
+  position: relative;
+}
+/* 已移除可能影响文本显示的空伪元素 */
 
 ::v-deep .el-table__body .el-checkbox__inner {
   display: inline-block !important;

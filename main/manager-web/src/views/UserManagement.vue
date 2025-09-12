@@ -3,11 +3,11 @@
     <HeaderBar />
 
     <div class="operation-bar">
-      <h2 class="page-title">用户管理</h2>
+      <h2 class="page-title">{{ $t('header.userManagement') }}</h2>
       <div class="right-operations">
-        <el-input placeholder="请输入手机号码查询" v-model="searchPhone" class="search-input" clearable
+        <el-input :placeholder="$t('user.searchPhone')" v-model="searchPhone" class="search-input" clearable
           @keyup.enter.native="handleSearch" />
-        <el-button class="btn-search" @click="handleSearch">搜索</el-button>
+        <el-button class="btn-search" @click="handleSearch">{{ $t('user.search') }}</el-button>
       </div>
     </div>
 
@@ -18,29 +18,29 @@
             <el-table ref="userTable" :data="userList" class="transparent-table" v-loading="loading"
               element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading"
               element-loading-background="rgba(255, 255, 255, 0.7)">
-              <el-table-column label="选择" align="center" width="120">
+              <el-table-column :label="$t('modelConfig.select')" align="center" width="120">
                 <template slot-scope="scope">
                   <el-checkbox v-model="scope.row.selected"></el-checkbox>
                 </template>
               </el-table-column>
-              <el-table-column label="用户Id" prop="userid" align="center"></el-table-column>
-              <el-table-column label="手机号码" prop="mobile" align="center"></el-table-column>
-              <el-table-column label="设备数量" prop="deviceCount" align="center"></el-table-column>
-              <el-table-column label="注册时间" prop="createDate" align="center"></el-table-column>
-              <el-table-column label="状态" prop="status" align="center">
+              <el-table-column :label="$t('user.userid')" prop="userid" align="center"></el-table-column>
+              <el-table-column :label="$t('user.mobile')" prop="mobile" align="center"></el-table-column>
+              <el-table-column :label="$t('user.deviceCount')" prop="deviceCount" align="center"></el-table-column>
+              <el-table-column :label="$t('user.createDate')" prop="createDate" align="center"></el-table-column>
+              <el-table-column :label="$t('user.status')" prop="status" align="center">
                 <template slot-scope="scope">
-                  <el-tag v-if="scope.row.status === 1" type="success">正常</el-tag>
-                  <el-tag v-else type="danger">禁用</el-tag>
+                  <el-tag v-if="scope.row.status === 1" type="success">{{ $t('user.normal') }}</el-tag>
+                  <el-tag v-else type="danger">{{ $t('user.disabled') }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" align="center">
+              <el-table-column :label="$t('modelConfig.action')" align="center">
                 <template slot-scope="scope">
-                  <el-button size="mini" type="text" @click="resetPassword(scope.row)">重置密码</el-button>
+                  <el-button size="mini" type="text" @click="resetPassword(scope.row)">{{ $t('user.resetPassword') }}</el-button>
                   <el-button size="mini" type="text" v-if="scope.row.status === 1"
-                    @click="handleChangeStatus(scope.row, 0)">禁用账户</el-button>
+                      @click="handleChangeStatus(scope.row, 0)">{{ $t('user.disableAccount') }}</el-button>
                   <el-button size="mini" type="text" v-if="scope.row.status === 0"
-                    @click="handleChangeStatus(scope.row, 1)">恢复账号</el-button>
-                  <el-button size="mini" type="text" @click="deleteUser(scope.row)">删除用户</el-button>
+                      @click="handleChangeStatus(scope.row, 1)">{{ $t('user.enableAccount') }}</el-button>
+                  <el-button size="mini" type="text" @click="deleteUser(scope.row)">{{ $t('user.deleteUser') }}</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -48,32 +48,32 @@
             <div class="table_bottom">
               <div class="ctrl_btn">
                 <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
-                  {{ isAllSelected ? '取消全选' : '全选' }}
+                  {{ isAllSelected ? $t('user.deselectAll') : $t('user.selectAll') }}
                 </el-button>
-                <el-button size="mini" type="success" icon="el-icon-circle-check" @click="batchEnable">启用</el-button>
+                <el-button size="mini" type="success" icon="el-icon-circle-check" @click="batchEnable">{{ $t('user.enable') }}</el-button>
                 <el-button size="mini" type="warning" @click="batchDisable"><i
-                    class="el-icon-remove-outline rotated-icon"></i>禁用</el-button>
-                <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">删除</el-button>
+                      class="el-icon-remove-outline rotated-icon"></i>{{ $t('user.disable') }}</el-button>
+                <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">{{ $t('user.delete') }}</el-button>
               </div>
               <div class="custom-pagination">
-                <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                  <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`" :value="item">
+                <el-select v-model="pageSize" @change="handlePageSizeChange" :class="['page-size-select', { 'page-size-select-en': isEnglish }]">
+                  <el-option v-for="item in pageSizeOptions" :key="item" :label="$t('modelConfig.itemsPerPage', { count: item })" :value="item">
                   </el-option>
                 </el-select>
 
                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
-                  首页
+                  {{ $t('modelConfig.firstPage') }}
                 </button>
                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
-                  上一页
+                  {{ $t('modelConfig.prevPage') }}
                 </button>
                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                   :class="{ active: page === currentPage }" @click="goToPage(page)">
                   {{ page }}
                 </button> <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
-                  下一页
+                  {{ $t('modelConfig.nextPage') }}
                 </button>
-                <span class="total-text">共{{ total }}条记录</span>
+                <span class="total-text">{{ $t('modelConfig.totalRecords', { count: total }) }}</span>
               </div>
             </div>
           </el-card>
@@ -93,6 +93,7 @@ import Api from "@/apis/api";
 import HeaderBar from "@/components/HeaderBar.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
 import ViewPasswordDialog from "@/components/ViewPasswordDialog.vue";
+import i18n from '@/i18n';
 export default {
   components: { HeaderBar, ViewPasswordDialog, VersionFooter },
   data() {
@@ -115,6 +116,9 @@ export default {
   computed: {
     pageCount() {
       return Math.ceil(this.total / this.pageSize);
+    },
+    isEnglish() {
+      return i18n.locale === 'en';
     },
     visiblePages() {
       const pages = [];
@@ -172,19 +176,19 @@ export default {
     batchDelete() {
       const selectedUsers = this.userList.filter(user => user.selected);
       if (selectedUsers.length === 0) {
-        this.$message.warning("请先选择需要删除的用户");
+        this.$message.warning(this.$t('user.selectUsersFirst'));
         return;
       }
 
-      this.$confirm(`确定要删除选中的${selectedUsers.length}个用户吗？`, "警告", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
+      this.$confirm(this.$t('user.confirmDeleteSelected', { count: selectedUsers.length }), "警告", {
+        confirmButtonText: this.$t('common.confirm'),
+        cancelButtonText: this.$t('common.cancel'),
         type: "warning",
       })
         .then(async () => {
           const loading = this.$loading({
             lock: true,
-            text: "正在删除中...",
+            text: this.$t('user.deleting'),
             spinner: "el-icon-loading",
             background: "rgba(0, 0, 0, 0.7)",
           });
@@ -655,6 +659,16 @@ export default {
     background: #dee7ff;
     color: #606266;
     font-size: 14px;
+  }
+  
+  &.page-size-select-en {
+    width: 130px;
+    
+    :deep(.el-input__inner) {
+      height: 36px;
+      line-height: 36px;
+      font-size: 15px;
+    }
   }
 
   :deep(.el-input__suffix) {

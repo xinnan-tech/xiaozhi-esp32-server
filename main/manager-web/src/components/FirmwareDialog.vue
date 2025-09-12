@@ -1,37 +1,37 @@
 <template>
   <el-dialog :title="title" :visible.sync="dialogVisible" :close-on-click-modal="false" @close="handleClose" @open="handleOpen">
-    <el-form ref="form" :model="form" :rules="rules" label-width="100px">
-      <el-form-item label="固件名称" prop="firmwareName">
-        <el-input v-model="form.firmwareName" placeholder="请输入固件名称(板子+版本号)"></el-input>
+    <el-form ref="form" :model="form" :rules="rules" label-width="auto">
+      <el-form-item :label="$t('firmwareDialog.firmwareName')" prop="firmwareName">
+        <el-input v-model="form.firmwareName" :placeholder="$t('firmwareDialog.firmwareNamePlaceholder')"></el-input>
       </el-form-item>
-      <el-form-item label="固件类型" prop="type">
-        <el-select v-model="form.type" placeholder="请选择固件类型" style="width: 100%;" filterable :disabled="isTypeDisabled">
+      <el-form-item :label="$t('firmwareDialog.firmwareType')" prop="type">
+        <el-select v-model="form.type" :placeholder="$t('firmwareDialog.firmwareTypePlaceholder')" style="width: 100%;" filterable :disabled="isTypeDisabled">
           <el-option v-for="item in firmwareTypes" :key="item.key" :label="item.name" :value="item.key"></el-option>
         </el-select>
       </el-form-item>
-      <el-form-item label="版本号" prop="version">
-        <el-input v-model="form.version" placeholder="请输入版本号(x.x.x格式)"></el-input>
+      <el-form-item :label="$t('firmwareDialog.version')" prop="version">
+        <el-input v-model="form.version" :placeholder="$t('firmwareDialog.versionPlaceholder')"></el-input>
       </el-form-item>
-      <el-form-item label="固件文件" prop="firmwarePath">
+      <el-form-item :label="$t('firmwareDialog.firmwareFile')" prop="firmwarePath">
         <el-upload ref="upload" class="upload-demo" action="#" :http-request="handleUpload"
           :before-upload="beforeUpload" :accept="'.bin,.apk'" :limit="1" :multiple="false" :auto-upload="true"
           :on-remove="handleRemove">
-          <el-button size="small" type="primary">点击上传</el-button>
-          <div slot="tip" class="el-upload__tip">只能上传固件文件(.bin/.apk)，且不超过100MB</div>
+          <el-button size="small" type="primary">{{ $t('firmwareDialog.clickUpload') }}</el-button>
+          <div slot="tip" class="el-upload__tip">{{ $t('firmwareDialog.uploadTip') }}</div>
         </el-upload>
         <el-progress v-if="isUploading || uploadStatus === 'success'" :percentage="uploadProgress"
           :status="uploadStatus"></el-progress>
         <div class="hint-text">
-          <span>温馨提示：请上传合并前的xiaozhi.bin文件，而不是合并后的merged-binary.bin文件</span>
+          <span>{{ $t('firmwareDialog.uploadHint') }}</span>
         </div>
       </el-form-item>
-      <el-form-item label="备注" prop="remark">
-        <el-input type="textarea" v-model="form.remark" placeholder="请输入备注信息"></el-input>
+      <el-form-item :label="$t('firmwareDialog.remark')" prop="remark">
+        <el-input type="textarea" v-model="form.remark" :placeholder="$t('firmwareDialog.remarkPlaceholder')"></el-input>
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
-      <el-button @click="handleCancel">取 消</el-button>
-      <el-button type="primary" @click="handleSubmit">确 定</el-button>
+      <el-button @click="handleCancel">{{ $t('button.cancel') }}</el-button>
+      <el-button type="primary" @click="handleSubmit">{{ $t('button.save') }}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -68,17 +68,17 @@ export default {
       dialogVisible: this.visible,
       rules: {
         firmwareName: [
-          { required: true, message: '请输入固件名称(板子+版本号)', trigger: 'blur' }
+          { required: true, message: this.$t('firmwareDialog.requiredFirmwareName'), trigger: 'blur' }
         ],
         type: [
-          { required: true, message: '请选择固件类型', trigger: 'change' }
+          { required: true, message: this.$t('firmwareDialog.requiredFirmwareType'), trigger: 'change' }
         ],
         version: [
-          { required: true, message: '请输入版本号', trigger: 'blur' },
-          { pattern: /^\d+\.\d+\.\d+$/, message: '版本号格式不正确，请输入x.x.x格式', trigger: 'blur' }
+          { required: true, message: this.$t('firmwareDialog.requiredVersion'), trigger: 'blur' },
+          { pattern: /^\d+\.\d+\.\d+$/, message: this.$t('firmwareDialog.versionFormatError'), trigger: 'blur' }
         ],
         firmwarePath: [
-          { required: false, message: '请上传固件文件', trigger: 'change' }
+          { required: false, message: this.$t('firmwareDialog.requiredFirmwareFile'), trigger: 'change' }
         ]
       }
     }
@@ -115,7 +115,7 @@ export default {
         if (valid) {
           // 如果是新增模式且没有上传文件，则提示错误
           if (!this.form.id && !this.form.firmwarePath) {
-            this.$message.error('请上传固件文件')
+            this.$message.error(this.$t('firmwareDialog.requiredFirmwareFile'))
             return
           }
           // 提交成功后将关闭对话框的逻辑交给父组件处理
@@ -128,13 +128,13 @@ export default {
       const isValidType = ['.bin', '.apk'].some(ext => file.name.toLowerCase().endsWith(ext))
 
       if (!isValidType) {
-        this.$message.error('只能上传.bin/.apk格式的固件文件!')
-        return false
-      }
-      if (!isValidSize) {
-        this.$message.error('固件文件大小不能超过100MB!')
-        return false
-      }
+          this.$message.error(this.$t('firmwareDialog.invalidFileType'))
+          return false
+        }
+        if (!isValidSize) {
+          this.$message.error(this.$t('firmwareDialog.invalidFileSize'))
+          return false
+        }
       return true
     },
     handleUpload(options) {
@@ -158,14 +158,14 @@ export default {
           this.form.size = file.size
           this.uploadProgress = 100
           this.uploadStatus = 'success'
-          this.$message.success('固件文件上传成功')
+          this.$message.success(this.$t('firmwareDialog.uploadSuccess'))
           // 延迟2秒后隐藏进度条
           setTimeout(() => {
             this.isUploading = false
           }, 2000)
         } else {
           this.uploadStatus = 'exception'
-          this.$message.error(res.msg || '文件上传失败')
+          this.$message.error(res.msg || this.$t('firmwareDialog.uploadFailed'))
           this.isUploading = false
         }
       }, (progressEvent) => {

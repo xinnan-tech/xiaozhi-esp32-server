@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :title="'与' + agentName + '的聊天记录' + (currentMacAddress ? '[' + currentMacAddress + ']' : '')"
+    <el-dialog :title="$t('chatHistory.with') + agentName + $t('chatHistory.dialogTitle') + (currentMacAddress ? '[' + currentMacAddress + ']' : '')"
         :visible.sync="dialogVisible" width="80%" :before-close="handleClose" custom-class="chat-history-dialog">
         <div class="chat-container">
             <div class="session-list" @scroll="handleScroll">
@@ -11,8 +11,8 @@
                         <div class="message-count">{{ session.chatCount > 99 ? '99' : session.chatCount }}</div>
                     </div>
                 </div>
-                <div v-if="loading" class="loading">加载中...</div>
-                <div v-if="!hasMore" class="no-more">没有更多记录了</div>
+                <div v-if="loading" class="loading">{{ $t('chatHistory.loading') }}</div>
+                <div v-if="!hasMore" class="no-more">{{ $t('chatHistory.noMoreRecords') }}</div>
             </div>
             <div class="chat-content">
                 <div v-if="currentSessionId" class="messages">
@@ -32,7 +32,7 @@
                     </div>
                 </div>
                 <div v-else class="no-session-selected">
-                    请选择会话查看聊天记录
+                    {{ $t('chatHistory.selectSession') }}
                 </div>
             </div>
         </div>
@@ -230,9 +230,9 @@ export default {
             const minutes = date.getMinutes().toString().padStart(2, '0');
 
             if (date >= today) {
-                return `今天 ${hours}:${minutes}`;
+                return `${this.$t('chatHistory.today')} ${hours}:${minutes}`;
             } else if (date >= yesterday) {
-                return `昨天 ${hours}:${minutes}`;
+                return `${this.$t('chatHistory.yesterday')} ${hours}:${minutes}`;
             } else {
                 const year = date.getFullYear();
                 const month = (date.getMonth() + 1).toString().padStart(2, '0');

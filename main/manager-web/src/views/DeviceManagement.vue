@@ -3,11 +3,11 @@
     <HeaderBar/>
 
     <div class="operation-bar">
-      <h2 class="page-title">设备管理</h2>
+      <h2 class="page-title">{{ $t('device.management') }}</h2>
       <div class="right-operations">
-        <el-input placeholder="请输入设备型号或Mac地址查询" v-model="searchKeyword" class="search-input"
+        <el-input :placeholder="$t('device.searchPlaceholder')" v-model="searchKeyword" class="search-input"
                   @keyup.enter.native="handleSearch" clearable/>
-        <el-button class="btn-search" @click="handleSearch">搜索</el-button>
+        <el-button class="btn-search" @click="handleSearch">{{ $t('device.search') }}</el-button>
       </div>
     </div>
 
@@ -17,23 +17,23 @@
           <el-card class="device-card" shadow="never">
             <el-table ref="deviceTable" :data="paginatedDeviceList" class="transparent-table"
                       :header-cell-class-name="headerCellClassName" v-loading="loading"
-                      element-loading-text="拼命加载中"
+                      :element-loading-text="$t('message.loading')"
                       element-loading-spinner="el-icon-loading" element-loading-background="rgba(255, 255, 255, 0.7)">
-              <el-table-column label="选择" align="center" width="120">
+              <el-table-column :label="$t('modelConfig.select')" align="center" width="120">
                 <template slot-scope="scope">
                   <el-checkbox v-model="scope.row.selected"></el-checkbox>
                 </template>
               </el-table-column>
-              <el-table-column label="设备型号" prop="model" align="center">
+              <el-table-column :label="$t('device.model')" prop="model" align="center">
                 <template slot-scope="scope">
                   {{ getFirmwareTypeName(scope.row.model) }}
                 </template>
               </el-table-column>
-              <el-table-column label="固件版本" prop="firmwareVersion" align="center"></el-table-column>
-              <el-table-column label="Mac地址" prop="macAddress" align="center"></el-table-column>
-              <el-table-column label="绑定时间" prop="bindTime" align="center"></el-table-column>
-              <el-table-column label="最近对话" prop="lastConversation" align="center"></el-table-column>
-              <el-table-column label="备注" align="center">
+              <el-table-column :label="$t('device.firmwareVersion')" prop="firmwareVersion" align="center"></el-table-column>
+              <el-table-column :label="$t('device.macAddress')" prop="macAddress" align="center"></el-table-column>
+              <el-table-column :label="$t('device.bindTime')" prop="bindTime" align="center"></el-table-column>
+              <el-table-column :label="$t('device.lastConversation')" prop="lastConversation" align="center"></el-table-column>
+              <el-table-column :label="$t('device.remark')" align="center">
                 <template #default="{ row }">
                   <el-input
                       v-show="row.isEdit"
@@ -51,52 +51,52 @@
                       style="cursor: pointer;"
                   ></i>
                   <span @click="row.isEdit = true">
-                    {{ row.remark || '—' }}
+                    {{ row.remark || '-' }}
                   </span>
                 </span>
                 </template>
               </el-table-column>
-              <el-table-column label="OTA升级" align="center">
+              <el-table-column :label="$t('device.autoUpdate')" align="center">
                 <template slot-scope="scope">
                   <el-switch v-model="scope.row.otaSwitch" size="mini" active-color="#13ce66" inactive-color="#ff4949"
                              @change="handleOtaSwitchChange(scope.row)"></el-switch>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" align="center">
+              <el-table-column :label="$t('device.operation')" align="center">
                 <template slot-scope="scope">
                   <el-button size="mini" type="text" @click="handleUnbind(scope.row.device_id)">
-                    解绑
-                  </el-button>
+                  {{ $t('device.unbind') }}
+                </el-button>
                 </template>
               </el-table-column>
             </el-table>
 
             <div class="table_bottom">
               <div class="ctrl_btn">
-                <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
-                  {{ isCurrentPageAllSelected ? '取消全选' : '全选' }}
-                </el-button>
-                <el-button type="success" size="mini" class="add-device-btn" @click="handleAddDevice">
-                  验证码绑定
-                </el-button>
-                <el-button type="success" size="mini" class="add-device-btn" @click="handleManualAddDevice">
-                  手动添加
-                </el-button>
-                <el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteSelected">解绑</el-button>
-              </div>
+                  <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
+                    {{ isCurrentPageAllSelected ? $t('common.deselectAll') : $t('common.selectAll') }}
+                  </el-button>
+                  <el-button type="success" size="mini" class="add-device-btn" @click="handleAddDevice">
+                    {{ $t('device.bindWithCode') }}
+                  </el-button>
+                  <el-button type="success" size="mini" class="add-device-btn" @click="handleManualAddDevice">
+                    {{ $t('device.manualAdd') }}
+                  </el-button>
+                  <el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteSelected">{{ $t('device.unbind') }}</el-button>
+                </div>
               <div class="custom-pagination">
                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                  <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}条/页`" :value="item">
-                  </el-option>
-                </el-select>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">首页</button>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">上一页</button>
+                    <el-option v-for="item in pageSizeOptions" :key="item" :label="$t('dictManagement.itemsPerPage').replace('{items}', item)" :value="item">
+                    </el-option>
+                  </el-select>
+                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">{{ $t('dictManagement.firstPage') }}</button>
+                  <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">{{ $t('dictManagement.prevPage') }}</button>
                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                         :class="{ active: page === currentPage }" @click="goToPage(page)">
                   {{ page }}
                 </button>
-                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">下一页</button>
-                <span class="total-text">共{{ deviceList.length }}条记录</span>
+                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">{{ $t('dictManagement.nextPage') }}</button>
+                <span class="total-text">{{ $t('dictManagement.totalRecords').replace('{total}', deviceList.length) }}</span>
               </div>
             </div>
           </el-card>
@@ -194,8 +194,8 @@ export default {
         const res = await Api.dict.getDictDataByType('FIRMWARE_TYPE')
         this.firmwareTypes = res.data
       } catch (error) {
-        console.error('获取固件类型失败:', error)
-        this.$message.error(error.message || '获取固件类型失败')
+        console.error(this.$t('device.getFirmwareTypeFailed') + ':', error)
+        this.$message.error(error.message || this.$t('device.getFirmwareTypeFailed'))
       }
     },
     handlePageSizeChange(val) {
@@ -218,15 +218,15 @@ export default {
       const selectedDevices = this.paginatedDeviceList.filter(device => device.selected);
       if (selectedDevices.length === 0) {
         this.$message.warning({
-          message: '请至少选择一条记录',
+          message: this.$t('device.selectAtLeastOne'),
           showClose: true
         });
         return;
       }
 
-      this.$confirm(`确认要解绑选中的 ${selectedDevices.length} 台设备吗？`, '警告', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm(this.$t('device.confirmBatchUnbind').replace('{count}', selectedDevices.length), this.$t('message.warning'), {
+        confirmButtonText: this.$t('button.ok'),
+        cancelButtonText: this.$t('button.cancel'),
         type: 'warning'
       }).then(() => {
         const deviceIds = selectedDevices.map(device => device.device_id);
@@ -240,7 +240,7 @@ export default {
             if (data.code === 0) {
               resolve();
             } else {
-              reject(data.msg || '解绑失败');
+              reject(data.msg || this.$t('device.bindFailed'));
             }
           });
         });
@@ -248,14 +248,14 @@ export default {
       Promise.all(promises)
           .then(() => {
             this.$message.success({
-              message: `成功解绑 ${deviceIds.length} 台设备`,
+              message: this.$t('device.batchUnbindSuccess').replace('{count}', deviceIds.length),
               showClose: true
             });
             this.fetchBindDevices(this.currentAgentId);
           })
           .catch(error => {
             this.$message.error({
-              message: error || '批量解绑过程中出现错误',
+              message: error || this.$t('device.batchUnbindError'),
               showClose: true
             });
           });
@@ -271,7 +271,7 @@ export default {
 
       const text = (row.remark || '').trim();
       if (text.length > 64) {
-        this.$message.warning('备注不能超过 64 字符');
+        this.$message.warning(this.$t('device.remarkTooLong'));
         return;
       }
       if (text === row._originalRemark) {
@@ -282,10 +282,10 @@ export default {
       this.updateDeviceInfo(row.device_id, { alias: text }, (ok, resp) => {
         if (ok) {
           row._originalRemark = text;
-          this.$message.success('备注已保存');
+          this.$message.success(this.$t('device.remarkSaved'));
         } else {
           row.remark = row._originalRemark;
-          this.$message.error(resp.msg || '备注保存失败');
+          this.$message.error(resp.msg || this.$t('device.remarkSaveFailed'));
         }
         row._submitting = false;
       });
@@ -303,23 +303,23 @@ export default {
       this.submitRemark(row);
     },
     handleUnbind(device_id) {
-      this.$confirm('确认要解绑该设备吗？', '警告', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm(this.$t('device.confirmUnbind'), this.$t('message.warning'), {
+        confirmButtonText: this.$t('button.ok'),
+        cancelButtonText: this.$t('button.cancel'),
         type: 'warning'
       }).then(() => {
         Api.device.unbindDevice(device_id, ({data}) => {
           if (data.code === 0) {
-            this.$message.success({
-              message: '设备解绑成功',
-              showClose: true
-            });
+              this.$message.success({
+                message: this.$t('device.unbindSuccess'),
+                showClose: true
+              });
             this.fetchBindDevices(this.$route.query.agentId);
           } else {
-            this.$message.error({
-              message: data.msg || '设备解绑失败',
-              showClose: true
-            });
+              this.$message.error({
+                message: data.msg || this.$t('device.unbindFailed'),
+                showClose: true
+              });
           }
         });
       });
@@ -363,7 +363,7 @@ export default {
           this.activeSearchKeyword = "";
           this.searchKeyword = "";
         } else {
-          this.$message.error(data.msg || '获取设备列表失败');
+          this.$message.error(data.msg || this.$t('device.getListFailed'));
         }
       });
     },
@@ -385,11 +385,11 @@ export default {
     handleOtaSwitchChange(row) {
       this.updateDeviceInfo(row.device_id, {autoUpdate: row.otaSwitch ? 1 : 0}, (result, {msg}) => {
         if (result) {
-          this.$message.success(row.otaSwitch ? '已设置成自动升级' : '已关闭自动升级');
+          this.$message.success(row.otaSwitch ? this.$t('device.autoUpdateEnabled') : this.$t('device.autoUpdateDisabled'));
           return;
         }
         row.otaSwitch = !row.otaSwitch
-        this.$message.error(msg || '操作失败')
+        this.$message.error(msg || this.$t('message.error'))
       })
     },
   }

@@ -3,7 +3,7 @@
     <!-- 自定义标题区域 -->
     <div class="custom-header">
       <div class="header-left">
-        <h3 class="bold-title">功能管理</h3>
+        <h3 class="bold-title">{{ $t('functionDialog.title') }}</h3>
       </div>
       <button class="custom-close-btn" @click="closeDialog">×</button>
     </div>
@@ -12,8 +12,8 @@
       <!-- 左侧：未选功能 -->
       <div class="function-column">
         <div class="column-header">
-          <h4 class="column-title">未选功能</h4>
-          <el-button type="text" @click="selectAll" class="select-all-btn">全选</el-button>
+          <h4 class="column-title">{{ $t('functionDialog.unselectedFunctions') }}</h4>
+          <el-button type="text" @click="selectAll" class="select-all-btn">{{ $t('functionDialog.selectAll') }}</el-button>
         </div>
         <div class="function-list">
           <div v-if="unselected.length">
@@ -27,7 +27,7 @@
             </div>
           </div>
           <div v-else style="display: flex; justify-content: center; align-items: center;">
-            <el-empty description="没有更多的插件了" />
+            <el-empty :description="$t('functionDialog.noMorePlugins')" />
           </div>
         </div>
       </div>
@@ -35,8 +35,8 @@
       <!-- 中间：已选功能 -->
       <div class="function-column">
         <div class="column-header">
-          <h4 class="column-title">已选功能</h4>
-          <el-button type="text" @click="deselectAll" class="select-all-btn">全选</el-button>
+          <h4 class="column-title">{{ $t('functionDialog.selectedFunctions') }}</h4>
+          <el-button type="text" @click="deselectAll" class="select-all-btn">{{ $t('functionDialog.selectAll') }}</el-button>
         </div>
         <div class="function-list">
           <div v-if="selectedList.length > 0">
@@ -50,19 +50,19 @@
             </div>
           </div>
           <div v-else style="display: flex; justify-content: center; align-items: center;">
-            <el-empty description="请选择插件功能" />
+            <el-empty :description="$t('functionDialog.pleaseSelectPlugin')" />
           </div>
         </div>
       </div>
 
       <!-- 右侧：参数配置 -->
       <div class="params-column">
-        <h4 v-if="currentFunction" class="column-title">参数配置 - {{ currentFunction.name }}</h4>
+        <h4 v-if="currentFunction" class="column-title">{{ $t('functionDialog.paramConfig') }} - {{ currentFunction.name }}</h4>
         <div v-if="currentFunction" class="params-container">
           <el-form :model="currentFunction" class="param-form">
             <!-- 遍历 fieldsMeta，而不是 params 的 keys -->
             <div v-if="currentFunction.fieldsMeta.length == 0">
-              <el-empty :description="currentFunction.name + ' 无需配置参数'" />
+              <el-empty :description="currentFunction.name + $t('functionDialog.noNeedToConfig')" />
             </div>
             <el-form-item v-for="field in currentFunction.fieldsMeta" :key="field.key" :label="field.label"
               class="param-item" :class="{ 'textarea-field': field.type === 'array' || field.type === 'json' }">
@@ -95,7 +95,7 @@
             </el-form-item>
           </el-form>
         </div>
-        <div v-else class="empty-tip">请选择已配置的功能进行参数设置</div>
+        <div v-else class="empty-tip">{{ $t('functionDialog.pleaseSelectFunctionForParam') }}</div>
       </div>
     </div>
 
@@ -105,22 +105,22 @@
         <!-- 左侧区域 -->
         <div class="mcp-left">
           <div class="mcp-header">
-            <h3 class="bold-title">MCP接入点</h3>
+            <h3 class="bold-title">{{ $t('functionDialog.mcpAccessPoint') }}</h3>
           </div>
           <div class="url-header">
             <div class="address-desc">
-              <span>以下是智能体的MCP接入点地址。</span>
+              <span>{{ $t('functionDialog.mcpAddressDesc') }}</span>
               <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-enable.md"
-                target="_blank" class="doc-link">如何部署MCP接入点</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+                target="_blank" class="doc-link">{{ $t('functionDialog.howToDeployMcp') }}</a> &nbsp;&nbsp;|&nbsp;&nbsp;
               <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-integration.md"
-                target="_blank" class="doc-link">如何接入MCP功能</a> &nbsp;
+                target="_blank" class="doc-link">{{ $t('functionDialog.howToIntegrateMcp') }}</a> &nbsp;
             </div>
           </div>
           <el-input v-model="mcpUrl" readonly class="url-input">
             <template #suffix>
               <el-button @click="copyUrl" class="inner-copy-btn" icon="el-icon-document-copy">
-                复制
-              </el-button>
+                  {{ $t('functionDialog.copy') }}
+                </el-button>
             </template>
           </el-input>
         </div>
@@ -128,17 +128,17 @@
         <!-- 右侧区域 -->
         <div class="mcp-right">
           <div class="mcp-header">
-            <h3 class="bold-title">接入点状态</h3>
+            <h3 class="bold-title">{{ $t('functionDialog.accessPointStatus') }}</h3>
           </div>
           <div class="status-container">
             <span class="status-indicator" :class="mcpStatus"></span>
             <span class="status-text">{{
-              mcpStatus === 'connected' ? '已连接' :
-                mcpStatus === 'loading' ? '加载中...' : '未连接'
+              mcpStatus === 'connected' ? $t('functionDialog.connected') :
+                mcpStatus === 'loading' ? $t('functionDialog.loading') : $t('functionDialog.disconnected')
             }}</span>
             <button class="refresh-btn" @click="refreshStatus">
               <span class="refresh-icon">↻</span>
-              <span>刷新</span>
+              <span>{{ $t('functionDialog.refresh') }}</span>
             </button>
           </div>
           <div class="mcp-tools-list">
@@ -148,7 +148,7 @@
               </el-button>
             </div>
             <div v-else class="no-tools">
-              <span>暂无可用工具</span>
+              <span>{{ $t('functionDialog.noAvailableTools') }}</span>
             </div>
           </div>
         </div>
@@ -156,16 +156,19 @@
     </div>
 
     <div class="drawer-footer">
-      <el-button @click="closeDialog">取消</el-button>
-      <el-button type="primary" @click="saveSelection">保存配置</el-button>
+      <el-button @click="closeDialog">{{ $t('functionDialog.cancel') }}</el-button>
+      <el-button type="primary" @click="saveSelection">{{ $t('functionDialog.saveConfig') }}</el-button>
     </div>
   </el-drawer>
 </template>
 
 <script>
 import Api from '@/apis/api';
+import i18n from '@/i18n';
 
 export default {
+  i18n,
+
   props: {
     value: Boolean,
     functions: {
@@ -264,9 +267,9 @@ export default {
       try {
         const successful = document.execCommand('copy');
         if (successful) {
-          this.$message.success('已复制到剪贴板');
+          this.$message.success(this.$t('functionDialog.copiedToClipboard'));
         } else {
-          this.$message.error('复制失败，请手动复制');
+          this.$message.error(this.$t('functionDialog.copyFailed'));
         }
       } catch (err) {
         this.$message.error('复制失败，请手动复制');
@@ -327,7 +330,7 @@ export default {
         const obj = JSON.parse(text);
         this.handleParamChange(this.currentFunction, key, obj);
       } catch {
-        this.$message.error(`${this.currentFunction.name}的${key}字段格式错误：JSON格式有误`);
+        this.$message.error(`${this.currentFunction.name}${this.$t('functionDialog.jsonFormatError')}`);
       }
     },
     handleFunctionClick(func) {
@@ -409,7 +412,7 @@ export default {
     fieldRemark(field) {
       let description = (field && field.label) ? field.label : '';
       if (field.default) {
-        description += `（默认值：${field.default}）`;
+        description += `（${this.$t('functionDialog.defaultValue')}：${field.default}）`;
       }
       return description;
     },
