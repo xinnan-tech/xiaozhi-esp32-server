@@ -1,12 +1,17 @@
 {
     "production": {
         "chat_servers": [
+
             "ws://192.168.1.166:8000/toy/v1/"
+
+            "ws://139.59.7.72:8000/toy/v1/"
+
         ]
     },
     "development": {
         "chat_servers": [
-            "ws://192.168.1.166:8000/toy/v1/"
+            "ws://139.59.7.72:8000/toy/v1/"
+
         ],
         "mac_addresss": [
         ]

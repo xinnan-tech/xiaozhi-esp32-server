@@ -410,4 +410,11 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202509030001_clear_tts_config_checksum.sql
+  - changeSet:
+      id: 202509061300
+      author: claude
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202509061300_add_ana_voice.sql
 

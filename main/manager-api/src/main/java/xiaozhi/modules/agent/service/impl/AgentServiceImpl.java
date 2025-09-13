@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -96,7 +97,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
 
         // 如果智能体编码为空，自动生成一个带前缀的编码
         if (entity.getAgentCode() == null || entity.getAgentCode().trim().isEmpty()) {
-            entity.setAgentCode("AGT_" + System.currentTimeMillis());
+            entity.setAgentCode("AGT_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8));
         }
 
         // 如果排序字段为空，设置默认值0
@@ -145,6 +146,59 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
 
             // 获取设备数量
             dto.setDeviceCount(getDeviceCountByAgentId(agent.getId()));
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AgentDTO> getAllAgentsForAdmin() {
+        List<Map<String, Object>> agentMaps = agentDao.getAllAgentsWithOwnerInfo();
+        return agentMaps.stream().map(agentMap -> {
+            AgentDTO dto = new AgentDTO();
+            
+            // 基础智能体信息
+            String agentId = (String) agentMap.get("id");
+            dto.setId(agentId);
+            dto.setAgentName((String) agentMap.get("agent_name"));
+            dto.setSystemPrompt((String) agentMap.get("system_prompt"));
+            
+            // Handle LocalDateTime to Date conversion for createDate
+            Object createdAt = agentMap.get("created_at");
+            if (createdAt instanceof java.time.LocalDateTime) {
+                dto.setCreateDate(java.sql.Timestamp.valueOf((java.time.LocalDateTime) createdAt));
+            }
+
+            // 获取模型名称 - 同用户方法
+            String ttsModelId = (String) agentMap.get("tts_model_id");
+            String llmModelId = (String) agentMap.get("llm_model_id");
+            String vllmModelId = (String) agentMap.get("vllm_model_id");
+            String memModelId = (String) agentMap.get("mem_model_id");
+            String ttsVoiceId = (String) agentMap.get("tts_voice_id");
+
+            dto.setTtsModelName(modelConfigService.getModelNameById(ttsModelId));
+            dto.setLlmModelName(modelConfigService.getModelNameById(llmModelId));
+            dto.setVllmModelName(modelConfigService.getModelNameById(vllmModelId));
+            dto.setMemModelId(memModelId);
+            dto.setTtsVoiceName(timbreModelService.getTimbreNameById(ttsVoiceId));
+
+            // 获取智能体最近的最后连接时长 - 同用户方法
+            dto.setLastConnectedAt(deviceService.getLatestLastConnectionTime(agentId));
+            
+            // 获取设备MAC地址列表 - 管理员专用
+            String macAddresses = (String) agentMap.get("device_mac_addresses");
+            dto.setDeviceMacAddresses(macAddresses);
+            
+            // 计算设备数量（从MAC地址列表或使用原方法）
+            if (macAddresses != null && !macAddresses.isEmpty()) {
+                dto.setDeviceCount(macAddresses.split(",").length);
+            } else {
+                // 使用原来的方法获取设备数量
+                dto.setDeviceCount(getDeviceCountByAgentId(agentId));
+            }
+
+            // 管理员专用字段 - 用户信息
+            dto.setOwnerUsername((String) agentMap.get("owner_username"));
+            
             return dto;
         }).collect(Collectors.toList());
     }
@@ -377,6 +431,17 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             entity.setChatHistoryConf(template.getChatHistoryConf());
             entity.setLangCode(template.getLangCode());
             entity.setLanguage(template.getLanguage());
+            
+            // Override with custom defaults for memory and voice
+            entity.setMemModelId("Memory_mem0ai");  // Always use memoAI for memory
+            entity.setTtsModelId("TTS_EdgeTTS");  // Always use EdgeTTS model
+            entity.setTtsVoiceId("TTS_EdgeTTS_Ana");  // Always use EdgeTTS Ana voice (en-US-AnaNeural)
+            
+            // Log the overridden values for debugging
+            System.out.println("Creating agent with overridden defaults:");
+            System.out.println("  Memory: " + entity.getMemModelId());
+            System.out.println("  TTS Model: " + entity.getTtsModelId());
+            System.out.println("  TTS Voice: " + entity.getTtsVoiceId());
         }
 
         // 设置用户ID和创建者信息
@@ -388,12 +453,28 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         // 保存智能体
         insert(entity);
 
+        // 先检查是否已存在插件映射
+        List<AgentPluginMapping> existingMappings = agentPluginMappingService.list(
+                new QueryWrapper<AgentPluginMapping>()
+                        .eq("agent_id", entity.getId()));
+        
+        // 收集已存在的插件ID
+        Set<String> existingPluginIds = existingMappings.stream()
+                .map(AgentPluginMapping::getPluginId)
+                .collect(Collectors.toSet());
+
         // 设置默认插件
         List<AgentPluginMapping> toInsert = new ArrayList<>();
         // 播放音乐、播放故事、查天气、查新闻
         String[] pluginIds = new String[] { "SYSTEM_PLUGIN_MUSIC", "SYSTEM_PLUGIN_STORY", 
                 "SYSTEM_PLUGIN_WEATHER", "SYSTEM_PLUGIN_NEWS_NEWSNOW" };
+        
         for (String pluginId : pluginIds) {
+            // 跳过已存在的插件映射
+            if (existingPluginIds.contains(pluginId)) {
+                continue;
+            }
+            
             ModelProviderDTO provider = modelProviderService.getById(pluginId);
             if (provider == null) {
                 continue;
@@ -412,8 +493,11 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             mapping.setAgentId(entity.getId());
             toInsert.add(mapping);
         }
-        // 保存默认插件
-        agentPluginMappingService.saveBatch(toInsert);
+
+        // 只有当有新插件需要插入时才保存
+        if (!toInsert.isEmpty()) {
+            agentPluginMappingService.saveBatch(toInsert);
+        }
         return entity.getId();
     }
 }

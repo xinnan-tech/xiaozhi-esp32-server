@@ -71,7 +71,17 @@ public class DeviceController {
     @RequiresPermissions("sys:role:normal")
     public Result<List<DeviceEntity>> getUserDevices(@PathVariable String agentId) {
         UserDetail user = SecurityUser.getUser();
-        List<DeviceEntity> devices = deviceService.getUserDevices(user.getId(), agentId);
+        List<DeviceEntity> devices;
+        
+        // Check if user is super admin
+        if (user.getSuperAdmin() != null && user.getSuperAdmin() == 1) {
+            // Admin can see all devices for any agent
+            devices = deviceService.getDevicesByAgentId(agentId);
+        } else {
+            // Regular user can only see their own devices
+            devices = deviceService.getUserDevices(user.getId(), agentId);
+        }
+        
         return new Result<List<DeviceEntity>>().ok(devices);
     }
 

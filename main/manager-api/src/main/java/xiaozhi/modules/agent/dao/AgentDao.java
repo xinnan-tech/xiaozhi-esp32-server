@@ -1,8 +1,10 @@
 package xiaozhi.modules.agent.dao;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
 import org.apache.ibatis.annotations.Select;
 import xiaozhi.common.dao.BaseDao;
 import xiaozhi.modules.agent.entity.AgentEntity;
@@ -29,6 +31,24 @@ public interface AgentDao extends BaseDao<AgentEntity> {
             " WHERE d.mac_address = #{macAddress} " +
             " ORDER BY d.id DESC LIMIT 1")
     AgentEntity getDefaultAgentByMacAddress(@Param("macAddress") String macAddress);
+
+    /**
+     * 获取所有智能体及其所有者信息（管理员专用）
+     *
+     * @return 所有智能体列表及用户信息
+     */
+    @Select("SELECT " +
+            "a.id, a.agent_name, a.system_prompt, a.tts_model_id, " +
+            "a.llm_model_id, a.vllm_model_id, a.mem_model_id, a.tts_voice_id, " +
+            "a.created_at, a.updated_at, a.user_id, " +
+            "u.username as owner_username, " +
+            "GROUP_CONCAT(d.mac_address SEPARATOR ',') as device_mac_addresses " +
+            "FROM ai_agent a " +
+            "LEFT JOIN sys_user u ON a.user_id = u.id " +
+            "LEFT JOIN ai_device d ON a.id = d.agent_id " +
+            "GROUP BY a.id " +
+            "ORDER BY a.created_at DESC")
+    List<Map<String, Object>> getAllAgentsWithOwnerInfo();
 
     /**
      * 根据id查询agent信息，包括插件信息

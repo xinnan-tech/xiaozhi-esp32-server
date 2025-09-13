@@ -53,8 +53,10 @@ class SemanticMusicSearch:
         self.is_available = True
         
         # Qdrant configuration
-        self.qdrant_url = self.config.get("qdrant_url", "https://localhost:6333")
-        self.qdrant_api_key = self.config.get("qdrant_api_key", None)
+
+        self.qdrant_url = self.config.get("qdrant_url", "https://a2482b9f-2c29-476e-9ff0-741aaaaf632e.eu-west-1-0.aws.cloud.qdrant.io")
+        self.qdrant_api_key = self.config.get("qdrant_api_key", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.zPBGAqVGy-edbbgfNOJsPWV496BsnQ4ELOFvsLNyjsk")
+
         self.collection_name = self.config.get("collection_name", "xiaozhi_music")
         
         # Embedding model configuration
