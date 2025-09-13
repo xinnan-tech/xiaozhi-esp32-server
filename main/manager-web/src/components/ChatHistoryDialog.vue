@@ -96,7 +96,7 @@ export default {
             const result = [];
             const TIME_INTERVAL = 60 * 1000; // 1分钟的时间间隔（毫秒）
 
-            // 添加第一条消息的时间标记
+            // 添加第一条消息的时间标记 (converted to IST)
             if (this.messages[0]) {
                 result.push({
                     type: 'time',
@@ -118,7 +118,7 @@ export default {
                     if (nextTime - currentTime > TIME_INTERVAL) {
                         result.push({
                             type: 'time',
-                            content: this.formatTime(this.messages[i + 1].createdAt),
+                            content: this.formatTime(this.messages[i + 1].createdAt), // converted to IST
                             id: `time-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
                         });
                     }
@@ -220,24 +220,36 @@ export default {
             }, 200);
         },
         formatTime(timestamp) {
+            // Backend sends timestamps already in IST format, no timezone conversion needed
             const date = new Date(timestamp);
             const now = new Date();
+            
+            // Create today and yesterday date objects for comparison
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
-
-            const hours = date.getHours().toString().padStart(2, '0');
+            
+            // Create message date object for comparison (without time)
+            const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            
+            // Format time in 12-hour format
+            const hours = date.getHours();
             const minutes = date.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12; // Convert to 12-hour format
+            const timeStr = `${displayHours}:${minutes} ${ampm}`;
 
-            if (date >= today) {
-                return `Today ${hours}:${minutes}`;
-            } else if (date >= yesterday) {
-                return `Yesterday ${hours}:${minutes}`;
+            // Compare dates and return appropriate format
+            if (messageDate.getTime() === today.getTime()) {
+                return `Today ${timeStr}`;
+            } else if (messageDate.getTime() === yesterday.getTime()) {
+                return `Yesterday ${timeStr}`;
             } else {
+                // For older dates, show full date and time
                 const year = date.getFullYear();
                 const month = (date.getMonth() + 1).toString().padStart(2, '0');
                 const day = date.getDate().toString().padStart(2, '0');
-                return `${year}-${month}-${day} ${hours}:${minutes}`;
+                return `${year}-${month}-${day} ${timeStr}`;
             }
         },
         getAudioIconClass(message) {

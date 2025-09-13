@@ -449,7 +449,9 @@ def initialize_multilingual_music_system(conn):
     if SEMANTIC_SEARCH is None:
         try:
             semantic_config = conn.config.get('semantic_search', {})
-            if semantic_config.get('enabled', True):
+
+            if semantic_config.get('enabled', False):
+
                 SEMANTIC_SEARCH = SemanticMusicSearch(semantic_config)
                 if SEMANTIC_SEARCH.initialize():
                     conn.logger.bind(tag=TAG).info("Semantic music search initialized successfully")

@@ -151,6 +151,59 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
     }
 
     @Override
+    public List<AgentDTO> getAllAgentsForAdmin() {
+        List<Map<String, Object>> agentMaps = agentDao.getAllAgentsWithOwnerInfo();
+        return agentMaps.stream().map(agentMap -> {
+            AgentDTO dto = new AgentDTO();
+            
+            // 基础智能体信息
+            String agentId = (String) agentMap.get("id");
+            dto.setId(agentId);
+            dto.setAgentName((String) agentMap.get("agent_name"));
+            dto.setSystemPrompt((String) agentMap.get("system_prompt"));
+            
+            // Handle LocalDateTime to Date conversion for createDate
+            Object createdAt = agentMap.get("created_at");
+            if (createdAt instanceof java.time.LocalDateTime) {
+                dto.setCreateDate(java.sql.Timestamp.valueOf((java.time.LocalDateTime) createdAt));
+            }
+
+            // 获取模型名称 - 同用户方法
+            String ttsModelId = (String) agentMap.get("tts_model_id");
+            String llmModelId = (String) agentMap.get("llm_model_id");
+            String vllmModelId = (String) agentMap.get("vllm_model_id");
+            String memModelId = (String) agentMap.get("mem_model_id");
+            String ttsVoiceId = (String) agentMap.get("tts_voice_id");
+
+            dto.setTtsModelName(modelConfigService.getModelNameById(ttsModelId));
+            dto.setLlmModelName(modelConfigService.getModelNameById(llmModelId));
+            dto.setVllmModelName(modelConfigService.getModelNameById(vllmModelId));
+            dto.setMemModelId(memModelId);
+            dto.setTtsVoiceName(timbreModelService.getTimbreNameById(ttsVoiceId));
+
+            // 获取智能体最近的最后连接时长 - 同用户方法
+            dto.setLastConnectedAt(deviceService.getLatestLastConnectionTime(agentId));
+            
+            // 获取设备MAC地址列表 - 管理员专用
+            String macAddresses = (String) agentMap.get("device_mac_addresses");
+            dto.setDeviceMacAddresses(macAddresses);
+            
+            // 计算设备数量（从MAC地址列表或使用原方法）
+            if (macAddresses != null && !macAddresses.isEmpty()) {
+                dto.setDeviceCount(macAddresses.split(",").length);
+            } else {
+                // 使用原来的方法获取设备数量
+                dto.setDeviceCount(getDeviceCountByAgentId(agentId));
+            }
+
+            // 管理员专用字段 - 用户信息
+            dto.setOwnerUsername((String) agentMap.get("owner_username"));
+            
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
     public Integer getDeviceCountByAgentId(String agentId) {
         if (StringUtils.isBlank(agentId)) {
             return 0;

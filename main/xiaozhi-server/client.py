@@ -24,6 +24,7 @@ OTA_PORT = 8002
 MQTT_BROKER_HOST = "64.227.170.31"  # MQTT gateway IP
 
 
+
 MQTT_BROKER_PORT = 1883
 # DEVICE_MAC is now dynamically generated for uniqueness
 PLAYBACK_BUFFER_MIN_FRAMES = 3  # Minimum frames to have in buffer to continue playback

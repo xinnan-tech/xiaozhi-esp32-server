@@ -16,6 +16,7 @@ spring:
     druid:
       #MySQL - Local Docker Configuration
       driver-class-name: com.mysql.cj.jdbc.Driver
+
       # Local Docker MySQL Configuration
       url: jdbc:mysql://localhost:3307/manager_api?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=false&allowPublicKeyRetrieval=true
       username: manager
@@ -25,7 +26,6 @@ spring:
       # url: jdbc:mysql://crossover.proxy.rlwy.net:56145/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
       # username: root
       # password: XjOWQwtGNcoMIELTjoMoaaBTfKiBjVcA
-
       initial-size: 10
       max-active: 100
       min-idle: 10
