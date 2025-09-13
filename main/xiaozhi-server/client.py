@@ -7,7 +7,7 @@ import struct
 import logging
 import pyaudio
 import keyboard
-
+#hjvk
 from typing import Dict, Optional, Tuple
 import requests
 import paho.mqtt.client as mqtt_client
