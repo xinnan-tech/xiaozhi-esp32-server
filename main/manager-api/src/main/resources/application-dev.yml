@@ -22,7 +22,7 @@ spring:
       # password: cTefiuLmZSMqGpcQImUmBIsUBhNyUvrK
       driver-class-name: com.mysql.cj.jdbc.Driver
       # Railway MySQL Configuration - Updated for Railway database
-      url: jdbc:mysql://crossover.proxy.rlwy.net:56145/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
+      url: jdbc:mysql://crossover.proxy.rlwy.net:56145/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Kolkata&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
       username: root
       password: XjOWQwtGNcoMIELTjoMoaaBTfKiBjVcA
 

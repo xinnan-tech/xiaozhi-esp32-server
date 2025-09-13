@@ -3,8 +3,29 @@ import RequestService from '../httpRequest';
 
 
 export default {
-    // 获取智能体列表
-    getAgentList(callback) {
+    // 获取智能体列表 (Admin - shows all agents from all users)
+    getAgentList(params, callback) {
+        // Support both old callback-only format and new params format
+        if (typeof params === 'function') {
+            callback = params;
+            params = { page: 1, limit: 1000 }; // Default pagination for all agents
+        }
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/all`)
+            .method('GET')
+            .data(params)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.getAgentList(params, callback);
+                });
+            }).send();
+    },
+    // 获取用户自己的智能体列表 (User - shows only current user's agents)
+    getUserAgentList(callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/agent/list`)
             .method('GET')
@@ -14,7 +35,7 @@ export default {
             })
             .networkFail(() => {
                 RequestService.reAjaxFun(() => {
-                    this.getAgentList(callback);
+                    this.getUserAgentList(callback);
                 });
             }).send();
     },
