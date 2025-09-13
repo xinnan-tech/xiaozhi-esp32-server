@@ -6,8 +6,8 @@
           {{ device.agentName }}
         </div>
         <!-- Admin-only: Show owner username -->
-        <div v-if="isAdmin && device.ownerUsername" class="owner-info">
-          Owner: {{ device.ownerUsername }}
+        <div v-if="isAdmin" class="owner-info">
+          Owner: {{ device.ownerUsername || `User ID: ${device.userId}` }}
         </div>
       </div>
       <div>

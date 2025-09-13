@@ -450,7 +450,7 @@ def initialize_multilingual_music_system(conn):
         try:
             semantic_config = conn.config.get('semantic_search', {})
 
-            if semantic_config.get('enabled', False):
+            if semantic_config.get('enabled', True):
 
                 SEMANTIC_SEARCH = SemanticMusicSearch(semantic_config)
                 if SEMANTIC_SEARCH.initialize():

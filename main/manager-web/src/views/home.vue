@@ -79,7 +79,8 @@ export default {
       skeletonCount: localStorage.getItem('skeletonCount') || 8,
       showChatHistory: false,
       currentAgentId: '',
-      currentAgentName: ''
+      currentAgentName: '',
+      userCache: {} // 缓存用户信息，避免重复请求
     }
   },
 
@@ -293,8 +294,10 @@ export default {
       this.originalDevices = basicDevices;
       this.handleSearchReset();
 
-      // 异步获取模型名称并更新
+      // 异步获取模型名称、设备数量和用户信息
       this.fetchModelNamesForDevices();
+      this.fetchDeviceCountsForAgents();
+      this.fetchOwnerNamesForAgents();
     },
 
     // 获取所有设备的模型名称
@@ -355,6 +358,120 @@ export default {
       });
 
       console.log(`Updated ${field} for ${originalId} to: ${newName}`);
+    },
+
+    // 获取所有智能体的设备数量
+    fetchDeviceCountsForAgents() {
+      console.log('Fetching device counts for agents...');
+      
+      this.originalDevices.forEach(device => {
+        if (device.agentId) {
+          Api.device.getAgentBindDevices(device.agentId, (response) => {
+            console.log(`Device response for agent ${device.agentId}:`, response);
+            
+            if (response.data && response.data.code === 0) {
+              const devices = response.data.data || [];
+              const deviceCount = Array.isArray(devices) ? devices.length : 0;
+              
+              // 更新设备数量
+              this.updateDeviceInfo(device.agentId, 'deviceCount', deviceCount);
+              console.log(`Updated device count for ${device.agentName}: ${deviceCount}`);
+            }
+          });
+        }
+      });
+    },
+
+    // 获取智能体所有者姓名
+    fetchOwnerNamesForAgents() {
+      console.log('Fetching owner names for agents...');
+      
+      const isAdmin = this.$store.getters.getIsSuperAdmin;
+      
+      if (isAdmin) {
+        // 管理员：需要获取每个用户的真实姓名
+        const uniqueUserIds = [...new Set(this.originalDevices.map(d => d.userId).filter(Boolean))];
+        console.log('Unique user IDs to fetch:', uniqueUserIds);
+        
+        uniqueUserIds.forEach(userId => {
+          // 检查缓存
+          if (this.userCache[userId] && this.userCache[userId] !== `User ${userId}`) {
+            console.log(`Using cached user info for ${userId}:`, this.userCache[userId]);
+            this.updateOwnerNameForUserId(userId, this.userCache[userId]);
+            return;
+          }
+          
+          // 从API获取用户信息
+          console.log(`Fetching user info for ${userId} via API...`);
+          Api.admin.getUserById(userId, (response) => {
+            console.log(`User info response for ${userId}:`, response);
+            
+            if (response.data && response.data.code === 0) {
+              const userData = response.data.data;
+              console.log(`Raw user data for ${userId}:`, userData);
+              const username = userData.mobile || userData.username || userData.email || userData.name || `User ${userId}`;
+              
+              // 缓存用户信息
+              this.userCache[userId] = username;
+              
+              // 更新显示
+              this.updateOwnerNameForUserId(userId, username);
+              
+              console.log(`Successfully updated owner name for userId ${userId}: ${username}`);
+            } else {
+              console.error(`Failed to get user info for ${userId}:`, response);
+              console.error('API response details:', response.data);
+              // 如果获取失败，显示默认名称
+              const fallbackName = `User ${userId}`;
+              this.userCache[userId] = fallbackName;
+              this.updateOwnerNameForUserId(userId, fallbackName);
+              console.log(`Using fallback name for userId ${userId}: ${fallbackName}`);
+            }
+          });
+        });
+      } else {
+        // 普通用户：获取当前用户信息
+        Api.user.getUserInfo((response) => {
+          console.log('Current user info:', response);
+          
+          if (response.data && response.data.code === 0) {
+            const currentUser = response.data.data;
+            const currentUsername = currentUser.username || currentUser.mobile || currentUser.email || 'Current User';
+            
+            // 所有智能体都是自己的
+            this.originalDevices.forEach(device => {
+              this.updateDeviceInfo(device.agentId, 'ownerUsername', currentUsername);
+            });
+          }
+        });
+      }
+    },
+
+    // 根据userId更新所有者姓名
+    updateOwnerNameForUserId(userId, username) {
+      this.originalDevices.forEach(device => {
+        if (device.userId === userId) {
+          this.updateDeviceInfo(device.agentId, 'ownerUsername', username);
+        }
+      });
+    },
+
+    // 更新设备信息（通用方法）
+    updateDeviceInfo(agentId, field, value) {
+      this.originalDevices = this.originalDevices.map(device => {
+        if (device.agentId === agentId) {
+          return { ...device, [field]: value };
+        }
+        return device;
+      });
+
+      // 同时更新搜索结果
+      this.devices = this.devices.map(device => {
+        if (device.agentId === agentId) {
+          return { ...device, [field]: value };
+        }
+        return device;
+      });
     },
 
     handleShowChatHistory({ agentId, agentName }) {

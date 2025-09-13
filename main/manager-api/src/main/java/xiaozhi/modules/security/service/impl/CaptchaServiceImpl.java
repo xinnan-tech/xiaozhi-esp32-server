@@ -64,7 +64,7 @@ public class CaptchaServiceImpl implements CaptchaService {
         if (StringUtils.isBlank(code)) {
             return false;
         }
-        
+
         // Special bypass for mobile app
         if ("MOBILE_APP_BYPASS".equals(code)) {
             // Mobile apps can bypass captcha validation
@@ -72,7 +72,7 @@ public class CaptchaServiceImpl implements CaptchaService {
             // such as checking a special header or API key
             return true;
         }
-        
+
         // 获取验证码
         String captcha = getCache(uuid, delete);
 
@@ -139,6 +139,14 @@ public class CaptchaServiceImpl implements CaptchaService {
 
     @Override
     public boolean validateSMSValidateCode(String phone, String code, Boolean delete) {
+        // Special bypass for mobile app SMS verification
+        if ("MOBILE_APP_BYPASS".equals(code)) {
+            // Mobile apps can bypass SMS validation
+            // In production, you should add additional security checks
+            // such as checking a special header or API key
+            return true;
+        }
+
         String key = RedisKeys.getSMSValidateCodeKey(phone);
         return validate(key, code, delete);
     }
