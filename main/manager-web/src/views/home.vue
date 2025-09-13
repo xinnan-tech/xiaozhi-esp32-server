@@ -129,26 +129,49 @@ export default {
     // 获取智能体列表
     fetchAgentList() {
       this.isLoading = true;
-      Api.agent.getAgentList(({ data }) => {
-        if (data?.data) {
-          this.originalDevices = data.data.map(item => ({
-            ...item,
-            agentId: item.id
-          }));
 
-          // 动态设置骨架屏数量（可选）
-          this.skeletonCount = Math.min(
-            Math.max(this.originalDevices.length, 3), // 最少3个
-            10 // 最多10个
-          );
+      // 根据用户角色决定使用哪个API
+      const isAdmin = this.$store.getters.getIsSuperAdmin;
 
-          this.handleSearchReset();
-        }
-        this.isLoading = false;
-      }, (error) => {
-        console.error('Failed to fetch agent list:', error);
-        this.isLoading = false;
-      });
+      if (isAdmin) {
+        // 管理员：获取所有智能体
+        Api.agent.getAgentList(({ data }) => {
+          this.handleAgentListResponse(data);
+        }, (error) => {
+          console.error('Failed to fetch admin agent list:', error);
+          this.isLoading = false;
+        });
+      } else {
+        // 普通用户：只获取自己的智能体
+        Api.agent.getUserAgentList(({ data }) => {
+          this.handleAgentListResponse(data);
+        }, (error) => {
+          console.error('Failed to fetch user agent list:', error);
+          this.isLoading = false;
+        });
+      }
+    },
+
+    // 处理智能体列表响应
+    handleAgentListResponse(data) {
+      if (data?.data) {
+        // 对于用户API，数据直接在data中；对于管理员API，数据在data.list中
+        const agentList = data.data.list || data.data;
+
+        this.originalDevices = agentList.map(item => ({
+          ...item,
+          agentId: item.id
+        }));
+
+        // 动态设置骨架屏数量（可选）
+        this.skeletonCount = Math.min(
+          Math.max(this.originalDevices.length, 3), // 最少3个
+          10 // 最多10个
+        );
+
+        this.handleSearchReset();
+      }
+      this.isLoading = false;
     },
     // Delete agent
     handleDeleteAgent(agentId) {
