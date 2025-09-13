@@ -10,22 +10,22 @@ knife4j:
 
 # Server configuration
 server:
-  secret: a3c1734a-1efe-4ab7-8f43-98f88b874e4b
+  secret: d153e93c-bb2f-42e7-8045-a1ee47a1dcfc
 spring:
   datasource:
     druid:
-      #MySQL - Local Docker Configuration
-      driver-class-name: com.mysql.cj.jdbc.Driver
-
-      # Local Docker MySQL Configuration
-      url: jdbc:mysql://localhost:3307/manager_api?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=false&allowPublicKeyRetrieval=true
-      username: manager
-      password: managerpassword
-      
-      # Railway MySQL Configuration (commented out for local development)
-      # url: jdbc:mysql://crossover.proxy.rlwy.net:56145/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
+      #MySQL
+      # driver-class-name: com.mysql.cj.jdbc.Driver
+      # # Railway MySQL Configuration - Updated for Railway database
+      # url: jdbc:mysql://yamanote.proxy.rlwy.net:16958/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
       # username: root
-      # password: XjOWQwtGNcoMIELTjoMoaaBTfKiBjVcA
+      # password: cTefiuLmZSMqGpcQImUmBIsUBhNyUvrK
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      # Railway MySQL Configuration - Updated for Railway database
+      url: jdbc:mysql://crossover.proxy.rlwy.net:56145/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Kolkata&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
+      username: root
+      password: XjOWQwtGNcoMIELTjoMoaaBTfKiBjVcA
+
       initial-size: 10
       max-active: 100
       min-idle: 10
@@ -49,23 +49,19 @@ spring:
             multi-statement-allow: true
   data:
     redis:
-      # Local Docker Redis Configuration
-      host: localhost # Local Redis服务器地址
-      port: 6380 # Local Redis服务器连接端口
-      password: redispassword # Local Redis服务器连接密码
+      # Railway Redis Configuration
+      host: yamanote.proxy.rlwy.net # Railway Redis服务器地址
+      port: 34938 # Railway Redis服务器连接端口
+      password: YbdhwguVUNowduNpDZjuSefZFhBXiOEP # Railway Redis服务器连接密码
+      username: default # Railway Redis用户名
       database: 0 # Redis数据库索引（默认为0）
-      timeout: 10000ms # 连接超时时间（毫秒）
+      timeout: 30000ms # 连接超时时间（毫秒）- 增加超时时间
       ssl:
-        enabled: false # 本地开发不需要SSL
-      
-      # Railway Redis Configuration (commented out for local development)
-      # host: yamanote.proxy.rlwy.net # Railway Redis服务器地址
-      # port: 34938 # Railway Redis服务器连接端口
-      # password: YbdhwguVUNowduNpDZjuSefZFhBXiOEP # Railway Redis服务器连接密码
-      # username: default # Railway Redis用户名
+        enabled: false # 尝试禁用SSL，Railway可能不需要
       lettuce:
         pool:
           max-active: 8 # 连接池最大连接数（使用负值表示没有限制）
           max-idle: 8 # 连接池中的最大空闲连接
           min-idle: 0 # 连接池中的最小空闲连接
         shutdown-timeout: 100ms # 客户端优雅关闭的等待时间
+

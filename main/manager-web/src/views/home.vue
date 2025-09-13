@@ -84,7 +84,31 @@ export default {
   },
 
   mounted() {
+    console.log('Home component mounted, fetching agent list'); // Debug log
     this.fetchAgentList();
+  },
+
+  activated() {
+    // This runs when component is activated (useful if using keep-alive)
+    console.log('Home component activated, fetching agent list'); // Debug log
+    this.fetchAgentList();
+  },
+
+  created() {
+    console.log('Home component created'); // Debug log
+  },
+
+  watch: {
+    '$route'(to, from) {
+      // Watch for route changes - refetch data when navigating back to home
+      console.log('Route changed:', from.path, '->', to.path); // Debug log
+      if (to.name === 'home' || to.path === '/home') {
+        console.log('Navigated back to home, refetching agent list'); // Debug log
+        this.$nextTick(() => {
+          this.fetchAgentList();
+        });
+      }
+    }
   },
 
   methods: {
@@ -129,24 +153,34 @@ export default {
     // 获取智能体列表
     fetchAgentList() {
       this.isLoading = true;
+      console.log('Starting to fetch agent list...'); // Debug log
 
       // 根据用户角色决定使用哪个API
       const isAdmin = this.$store.getters.getIsSuperAdmin;
+      console.log('User is admin:', isAdmin); // Debug log
 
       if (isAdmin) {
         // 管理员：获取所有智能体
-        Api.agent.getAgentList(({ data }) => {
-          this.handleAgentListResponse(data);
+        console.log('Fetching admin agent list...'); // Debug log
+        Api.agent.getAgentList((response) => {
+          console.log('Admin API response received:', response); // Debug log
+          // Extract response.data to match expected structure
+          this.handleAgentListResponse(response.data);
         }, (error) => {
           console.error('Failed to fetch admin agent list:', error);
+          this.$message.error('Failed to load agent list. Please check your connection and try again.');
           this.isLoading = false;
         });
       } else {
         // 普通用户：只获取自己的智能体
-        Api.agent.getUserAgentList(({ data }) => {
-          this.handleAgentListResponse(data);
+        console.log('Fetching user agent list...'); // Debug log
+        Api.agent.getUserAgentList((response) => {
+          console.log('User API response received:', response); // Debug log
+          // Extract response.data to match expected structure
+          this.handleAgentListResponse(response.data);
         }, (error) => {
           console.error('Failed to fetch user agent list:', error);
+          this.$message.error('Failed to load your agents. Please check your connection and try again.');
           this.isLoading = false;
         });
       }
@@ -154,14 +188,43 @@ export default {
 
     // 处理智能体列表响应
     handleAgentListResponse(data) {
-      if (data?.data) {
-        // 对于用户API，数据直接在data中；对于管理员API，数据在data.list中
-        const agentList = data.data.list || data.data;
+      console.log('Raw API Response:', data); // Debug log
+      
+      if (data) {
+        // The parameter 'data' is already response.data from the API call
+        let agentList = [];
+        
+        // The API response structure is nested: response.data.data.list
+        if (data.data && data.data.list && Array.isArray(data.data.list)) {
+          // For admin API: data.data.list (nested structure)
+          agentList = data.data.list;
+          console.log('Using data.data.list structure'); // Debug log
+        } else if (data.list && Array.isArray(data.list)) {
+          // For fallback: data.list
+          agentList = data.list;
+          console.log('Using data.list structure'); // Debug log
+        } else if (Array.isArray(data.data)) {
+          // For user API: data.data (direct array)
+          agentList = data.data;
+          console.log('Using data.data array structure'); // Debug log
+        } else if (Array.isArray(data)) {
+          // For direct array: data
+          agentList = data;
+          console.log('Using direct array structure'); // Debug log
+        } else {
+          console.error('Unexpected API response structure:', data);
+          console.error('Available keys in data:', Object.keys(data || {})); // Debug log
+          this.$message.error('Failed to load agent list: Invalid response format');
+          this.isLoading = false;
+          return;
+        }
 
-        this.originalDevices = agentList.map(item => ({
-          ...item,
-          agentId: item.id
-        }));
+        console.log('Agent list before processing:', agentList); // Debug log
+
+        // 处理agent数据并获取模型名称
+        this.processAgentListWithModelNames(agentList);
+
+        console.log('Final processed devices:', this.originalDevices); // Debug log
 
         // 动态设置骨架屏数量（可选）
         this.skeletonCount = Math.min(
@@ -170,6 +233,9 @@ export default {
         );
 
         this.handleSearchReset();
+      } else {
+        console.error('No data in API response:', data);
+        this.$message.error('Failed to load agent list: No data received');
       }
       this.isLoading = false;
     },
@@ -196,6 +262,101 @@ export default {
         });
       }).catch(() => { });
     },
+
+    // 处理agent列表并获取模型名称
+    async processAgentListWithModelNames(agentList) {
+      // 首先创建基本的设备列表
+      const basicDevices = agentList
+        .filter(item => item && (item.id || item.agentId))
+        .map(item => ({
+          ...item,
+          agentId: item.agentId || item.id,
+          agentName: item.agentName || item.name || 'Unknown Agent',
+          // 暂时使用模型ID，稍后会被替换为模型名称
+          llmModelName: item.llmModelId || 'Not configured',
+          ttsModelName: item.ttsModelId || 'Not configured', 
+          ttsVoiceName: item.ttsVoiceId || 'Default',
+          deviceCount: item.deviceCount || 0,
+          memModelId: item.memModelId || 'Memory_nomem',
+          lastConnectedAt: item.lastConnectedAt || null,
+          systemPrompt: item.systemPrompt || 'No system prompt configured',
+          ownerUsername: item.ownerUsername || null,
+          // 保留原始ID用于获取模型名称
+          originalLlmModelId: item.llmModelId,
+          originalTtsModelId: item.ttsModelId,
+          originalTtsVoiceId: item.ttsVoiceId
+        }));
+
+      console.log('Basic devices processed:', basicDevices); // Debug log
+
+      // 设置基本数据先显示
+      this.originalDevices = basicDevices;
+      this.handleSearchReset();
+
+      // 异步获取模型名称并更新
+      this.fetchModelNamesForDevices();
+    },
+
+    // 获取所有设备的模型名称
+    fetchModelNamesForDevices() {
+      const uniqueLlmModels = [...new Set(this.originalDevices.map(d => d.originalLlmModelId).filter(Boolean))];
+      const uniqueTtsModels = [...new Set(this.originalDevices.map(d => d.originalTtsModelId).filter(Boolean))];
+      const uniqueVoiceIds = [...new Set(this.originalDevices.map(d => d.originalTtsVoiceId).filter(Boolean))];
+
+      console.log('Fetching names for:', { uniqueLlmModels, uniqueTtsModels, uniqueVoiceIds });
+
+      // 获取LLM模型名称
+      uniqueLlmModels.forEach(modelId => {
+        Api.model.getModelConfig(modelId, (response) => {
+          console.log(`LLM Model response for ${modelId}:`, response);
+          if (response.data && response.data.code === 0) {
+            const modelName = response.data.data?.modelName || modelId;
+            this.updateDeviceModelName('llmModelName', modelId, modelName);
+          }
+        });
+      });
+
+      // 获取TTS模型名称
+      uniqueTtsModels.forEach(modelId => {
+        Api.model.getModelConfig(modelId, (response) => {
+          console.log(`TTS Model response for ${modelId}:`, response);
+          if (response.data && response.data.code === 0) {
+            const modelName = response.data.data?.modelName || modelId;
+            this.updateDeviceModelName('ttsModelName', modelId, modelName);
+          }
+        });
+      });
+
+      // 获取TTS声音名称 (暂时跳过自定义语音，只显示ID)
+      console.log('Voice IDs will be displayed as-is for now');
+    },
+
+    // 更新设备的模型名称
+    updateDeviceModelName(field, originalId, newName) {
+      const fieldMapping = {
+        'llmModelName': 'originalLlmModelId',
+        'ttsModelName': 'originalTtsModelId', 
+        'ttsVoiceName': 'originalTtsVoiceId'
+      };
+
+      this.originalDevices = this.originalDevices.map(device => {
+        if (device[fieldMapping[field]] === originalId) {
+          return { ...device, [field]: newName };
+        }
+        return device;
+      });
+
+      // 如果当前显示的是搜索结果，也要更新搜索结果
+      this.devices = this.devices.map(device => {
+        if (device[fieldMapping[field]] === originalId) {
+          return { ...device, [field]: newName };
+        }
+        return device;
+      });
+
+      console.log(`Updated ${field} for ${originalId} to: ${newName}`);
+    },
+
     handleShowChatHistory({ agentId, agentName }) {
       this.currentAgentId = agentId;
       this.currentAgentName = agentName;
