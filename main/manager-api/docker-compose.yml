@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  manager-api-db:
+    image: mysql:8.0
+    container_name: manager-api-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: manager_api
+      MYSQL_USER: manager
+      MYSQL_PASSWORD: managerpassword
+      TZ: Asia/Shanghai
+    ports:
+      - "3307:3306"  # Using 3307 to avoid conflicts with other MySQL instances
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d  # For initialization scripts
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      interval: 10s
+      retries: 10
+    networks:
+      - manager-api-network
+
+  # Redis Cache
+  manager-api-redis:
+    image: redis:7-alpine
+    container_name: manager-api-redis
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "6380:6379"  # Using 6380 to avoid conflicts with other Redis instances
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf  # Optional custom config
+    command: redis-server --appendonly yes --requirepass redispassword
+    healthcheck:
+      test: ["CMD", "redis-cli", "auth", "redispassword", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - manager-api-network
+
+  # Redis Commander (Optional - Web UI for Redis)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: manager-api-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:manager-api-redis:6379:0:redispassword
+    ports:
+      - "8081:8081"
+    depends_on:
+      - manager-api-redis
+    networks:
+      - manager-api-network
+
+  # phpMyAdmin (Optional - Web UI for MySQL)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: manager-api-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: manager-api-db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "8080:80"
+    depends_on:
+      - manager-api-db
+    networks:
+      - manager-api-network
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  manager-api-network:
+    driver: bridge
