@@ -1,0 +1,24 @@
+
+read_config_from_api: true  # Set to true when Java API is running
+
+server:
+  ip: 0.0.0.0
+  port: 8000
+  http_port: 8003
+  # Update this with your actual IP if needed for vision endpoint
+  vision_explain: http://192.168.1.111:8003/mcp/vision/explain
+  mqtt_gateway:
+    enabled: true
+    broker: 192.168.1.111
+    port: 1883
+    udp_port: 8884
+
+manager-api:
+  # Manager API endpoint
+  url: http://192.168.1.111:8002/toy
+  # Server secret from database
+  # secret: d153e93c-bb2f-42e7-8045-a1ee47a1dcfc
+  secret: 1b4414eb-d082-49b0-8e52-c9cae70afb8m
+  timeout: 30
+  max_retries: 3
+  retry_delay: 5

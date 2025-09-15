@@ -1,15 +1,8 @@
 {
-    "production": {
-        "chat_servers": [
-            "ws://139.59.7.72:8000/toy/v1/"
-        ]
-    },
-    "development": {
-        "chat_servers": [
-            "ws://139.59.7.72:8000/toy/v1/"
-        ],
-        "mac_addresss": [
-        ]
-    },
-    "debug": false
+  "debug": false,
+  "livekit": {
+    "url": "wss://cheeko-ycahauzs.livekit.cloud",
+    "api_key": "APInJFs2nTcUxcE",
+    "api_secret": "CDpl09fZm8WCMHHYBdi6OBrMqjq5u7D78ROH02O6I8Z"
+  }
 }

@@ -9,7 +9,7 @@
 ### 如果你用的是简单Server部署
 此刻，请你用浏览器打开你的ota地址，例如我的ota地址
 ```
-http://192.168.1.25:8003/xiaozhi/ota/
+http://192.168.1.1115:8003/xiaozhi/ota/
 ```
 如果显示“OTA接口运行正常，向设备发送的websocket地址是：ws://xxx:8000/xiaozhi/v1/
 
@@ -22,7 +22,7 @@ http://192.168.1.25:8003/xiaozhi/ota/
 ### 如果你用的是全模块部署
 此刻，请你用浏览器打开你的ota地址，例如我的ota地址
 ```
-http://192.168.1.25:8002/xiaozhi/ota/
+http://192.168.1.1115:8002/xiaozhi/ota/
 ```
 
 如果显示“OTA接口运行正常，websocket集群数量：X”。那就往下进行2步。
@@ -36,7 +36,7 @@ http://192.168.1.25:8002/xiaozhi/ota/
 - 3、在列表中找到`server.websocket`项目，输入你的`Websocket`地址。例如我的就是
 
 ```
-ws://192.168.1.25:8000/xiaozhi/v1/
+ws://192.168.1.1115:8000/xiaozhi/v1/
 ```
 
 配置完后，再使用浏览器刷新你的ota接口地址，看看是不是正常了。如果还不正常就，就再次确认一下Websocket是否正常启动，是否配置了Websocket地址。
@@ -54,7 +54,7 @@ ws://192.168.1.25:8000/xiaozhi/v1/
 ## 第4步 修改OTA地址
 
 找到`OTA_URL`的`default`的内容，把`https://api.tenclass.net/xiaozhi/ota/`
-   改成你自己的地址，例如，我的接口地址是`http://192.168.1.25:8002/xiaozhi/ota/`，就把内容改成这个。
+   改成你自己的地址，例如，我的接口地址是`http://192.168.1.1115:8002/xiaozhi/ota/`，就把内容改成这个。
 
 修改前：
 ```
@@ -68,7 +68,7 @@ config OTA_URL
 ```
 config OTA_URL
     string "Default OTA URL"
-    default "http://192.168.1.25:8002/xiaozhi/ota/"
+    default "http://192.168.1.1115:8002/xiaozhi/ota/"
     help
         The application will access this URL to check for new firmwares and server address.
 ```

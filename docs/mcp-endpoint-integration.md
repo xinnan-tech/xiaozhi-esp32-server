@@ -52,13 +52,13 @@ Please copy the interface URL:
 
 **Important: Since you're using Docker deployment, DO NOT use the above address directly!**
 
-First copy the address and save it in a draft. You need to know your computer's local network IP. For example, if my computer's local IP is `192.168.1.25`, then the original interface address:
+First copy the address and save it in a draft. You need to know your computer's local network IP. For example, if my computer's local IP is `192.168.1.1115`, then the original interface address:
 ```
 http://172.1.1.1:8004/mcp_endpoint/health?key=xxxx
 ```
 should be changed to:
 ```
-http://192.168.1.25:8004/mcp_endpoint/health?key=xxxx
+http://192.168.1.1115:8004/mcp_endpoint/health?key=xxxx
 ```
 
 After making the change, please access this interface directly using your browser. When the browser displays code similar to this, it means success:

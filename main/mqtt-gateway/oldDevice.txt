@@ -1,0 +1,11 @@
+W (328178) MQTT: Mqtt client already started
+I (329128) MQTT: Connecting to endpoint 192.168.1.111:1883
+I (329146) MQTT: Connected to endpoint
+I (329146) MQTT: Subscribing to P2P topic: devices/p2p/GID_test@@@78_1c_3c_4c_43_60@@@d903b23c-3fd1-46c8-9fd3-5e297c186825
+I (329154) MQTT: Publishing to topic: device-server, message: {"type":"hello","client_id":"78_1c_3c_4c_43_60","version":3,"transport":"udp","features":{"mcp":true},"audio_params":{"format":"opus","sample_rate":16000,"channels":1,"frame_duration":60}}
+I (329698) MQTT: [MQTT] Received message on topic: devices/p2p/78_1c_3c_4c_43_60
+I (329698) MQTT: [MQTT] Raw payload: {"type":"hello","version":3,"session_id":"2747d6f9-2733-43eb-aa3f-f533265131d4","transport":"udp","udp":{"server":"192.168.1.111","port":8884,"encryption":"aes-128-ctr","key":"158f97dd962de460fc62d5e136217e4e","nonce":"01000000ef3f61c50000000000000000"},"audio_params":{"format":"opus","sample_rate":16000,"channels":1,"frame_duration":60}}
+I (329743) MQTT: [MQTT] Message type: hello
+I (329749) MQTT: [MQTT] Session ID: 2747d6f9-2733-43eb-aa3f-f533265131d4
+I (329759) MQTT: Session ID: 2747d6f9-2733-43eb-aa3f-f533265131d4
+I (329770) wifi:Set ps type: 0, coexist: 0

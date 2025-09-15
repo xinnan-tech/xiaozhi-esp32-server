@@ -338,10 +338,10 @@ class MQTTProtocol extends EventEmitter {
    * @param {Buffer} message - Complete PINGREQ message
    */
   parsePingReq(message) {
-    debug("Received heartbeat request");
-    // Send PINGRESP
-    this.sendPingResp();
-    debug("Sent heartbeat response");
+    // debug("Received heartbeat request");
+    // // Send PINGRESP
+    // this.sendPingResp();
+    // debug("Sent heartbeat response");
   }
 
   /**
