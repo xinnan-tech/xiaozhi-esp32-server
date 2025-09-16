@@ -1,2 +1,8 @@
 livekit-plugins-groq
 python-dotenv
+pydub
+aiohttp
+
+# Optional dependencies for enhanced semantic search
+qdrant-client
+sentence-transformers
