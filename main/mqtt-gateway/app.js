@@ -55,6 +55,7 @@ try {
   // Fallback: Disable Opus if init fails (will fall back to PCM)
 }
 
+const mqtt = require("mqtt");
 const { MQTTProtocol } = require("./mqtt-protocol");
 const { ConfigManager } = require("./utils/config-manager");
 const { validateMqttCredentials } = require("./utils/mqtt_config_v2");
@@ -450,7 +451,18 @@ class LiveKitBridge extends Emitter {
           `🎤 [PUBLISH] Published local audio track: ${publication.trackSid}`
         );
 
-        resolve({ session_id: this.room.sid });
+        // Use roomName as session_id - this is consistent with how LiveKit rooms work
+        // The room.sid might not be immediately available, but roomName is our session identifier
+        // Include audio_params that the client expects
+        resolve({
+          session_id: roomName,
+          audio_params: {
+            sample_rate: 16000,
+            channels: 1,
+            frame_duration: 20,
+            format: "opus"
+          }
+        });
       } catch (error) {
         console.error("[LiveKitBridge] Error connecting to LiveKit:", error);
         console.error("[LiveKitBridge] Error name:", error.name);
@@ -1239,15 +1251,332 @@ class MQTTConnection {
   }
 }
 
-class MQTTServer {
+/**
+ * Virtual MQTT connection class for EMQX broker connections
+ * Simulates the original MQTTConnection interface but works through EMQX
+ */
+class VirtualMQTTConnection {
+  constructor(deviceId, connectionId, gateway, helloPayload) {
+    this.deviceId = deviceId;
+    this.connectionId = connectionId;
+    this.gateway = gateway;
+    this.clientId = helloPayload.clientId || deviceId;
+    this.username = helloPayload.username;
+    this.password = helloPayload.password;
+     this.fullClientId = helloPayload.clientId;
+
+    this.bridge = null;
+    this.udp = {
+      remoteAddress: null,
+      cookie: null,
+      localSequence: 0,
+      remoteSequence: 0,
+    };
+    this.headerBuffer = Buffer.alloc(16);
+    this.closing = false;
+
+    // Parse device info from hello message
+    if (helloPayload.clientId) {
+      const parts = helloPayload.clientId.split("@@@");
+      if (parts.length === 3) {
+        // GID_test@@@mac_address@@@uuid format
+        this.groupId = parts[0];
+        this.macAddress = parts[1].replace(/_/g, ":");
+        this.uuid = parts[2];
+        this.userData = null; // Set to null since we don't have user data
+
+        console.log(`📱 [VIRTUAL] Parsed client info:`);
+        console.log(`   - Group ID: ${this.groupId}`);
+        console.log(`   - MAC Address: ${this.macAddress}`);
+        console.log(`   - UUID: ${this.uuid}`);
+
+        // Validate MAC address format
+        if (!MacAddressRegex.test(this.macAddress)) {
+          console.error(`❌ [VIRTUAL] Invalid macAddress: ${this.macAddress}`);
+          this.close();
+          return;
+        }
+
+        // For virtual connections, we can skip the full credential validation
+        // since we're working with EMQX and not the original MQTT protocol
+
+      } else if (parts.length === 2) {
+        this.groupId = parts[0];
+        this.macAddress = parts[1].replace(/_/g, ":");
+        this.uuid = `virtual-${Date.now()}`; // Generate a virtual UUID
+        this.userData = null;
+
+        if (!MacAddressRegex.test(this.macAddress)) {
+          console.error(`❌ [VIRTUAL] Invalid macAddress: ${this.macAddress}`);
+          this.close();
+          return;
+        }
+      } else {
+        console.error(`❌ [VIRTUAL] Invalid clientId format: ${helloPayload.clientId}`);
+        this.close();
+        return;
+      }
+
+      this.replyTo = `devices/p2p/${parts[1]}`;
+      console.log(`📱 [VIRTUAL] Reply topic set to: ${this.replyTo}`);
+    } else {
+      console.error(`❌ [VIRTUAL] No clientId provided in hello payload`);
+      this.close();
+      return;
+    }
+
+    debug(`Virtual connection created for device: ${this.deviceId}`);
+  }
+
+  handlePublish(publishData) {
+    try {
+      const json = JSON.parse(publishData.payload);
+      if (json.type === "hello") {
+        if (json.version !== 3) {
+          debug(
+            "Unsupported protocol version:",
+            json.version,
+            "closing connection"
+          );
+          this.close();
+          return;
+        }
+
+        this.parseHelloMessage(json).catch((error) => {
+          debug("Failed to process hello message:", error);
+          this.close();
+        });
+      } else {
+        this.parseOtherMessage(json).catch((error) => {
+          debug("Failed to process other message:", error);
+          this.close();
+        });
+      }
+    } catch (error) {
+      debug("Error parsing message:", error);
+    }
+  }
+
+  sendMqttMessage(payload) {
+    console.log(`📤 [VIRTUAL] sendMqttMessage called for device: ${this.deviceId}`);
+    console.log(`📤 [VIRTUAL] Payload: ${payload}`);
+    debug(`Sending message to ${this.deviceId}: ${payload}`);
+
+    try {
+      const parsedPayload = JSON.parse(payload);
+      console.log(`📤 [VIRTUAL] Parsed payload:`, parsedPayload);
+      this.gateway.publishToDevice(this.fullClientId, parsedPayload)
+      console.log(`📤 [VIRTUAL] Called publishToDevice for device: ${this.deviceId}`);
+    } catch (error) {
+      console.error(`❌ [VIRTUAL] Error in sendMqttMessage for device ${this.deviceId}:`, error);
+    }
+  }
+
+  sendUdpMessage(payload, timestamp) {
+    if (!this.udp.remoteAddress) {
+      debug(`Device ${this.deviceId} not connected, cannot send UDP message`);
+      return;
+    }
+
+    this.udp.localSequence++;
+    const header = this.generateUdpHeader(
+      payload.length,
+      timestamp,
+      this.udp.localSequence
+    );
+
+    const cipher = crypto.createCipheriv(
+      this.udp.encryption,
+      this.udp.key,
+      header
+    );
+    const encryptedPayload = Buffer.concat([
+      cipher.update(payload),
+      cipher.final(),
+    ]);
+    const message = Buffer.concat([header, encryptedPayload]);
+    this.gateway.sendUdpMessage(message, this.udp.remoteAddress);
+  }
+
+  generateUdpHeader(length, timestamp, sequence) {
+    this.headerBuffer.writeUInt8(1, 0);
+    this.headerBuffer.writeUInt8(0, 1);
+    this.headerBuffer.writeUInt16BE(length, 2);
+    this.headerBuffer.writeUInt32BE(this.connectionId, 4);
+    this.headerBuffer.writeUInt32BE(timestamp, 8);
+    this.headerBuffer.writeUInt32BE(sequence, 12);
+    return Buffer.from(this.headerBuffer);
+  }
+
+  async parseHelloMessage(json) {
+    this.udp = {
+      ...this.udp,
+      key: crypto.randomBytes(16),
+      nonce: this.generateUdpHeader(0, 0, 0),
+      encryption: "aes-128-ctr",
+      remoteSequence: 0,
+      localSequence: 0,
+      startTime: Date.now(),
+    };
+
+    if (this.bridge) {
+      debug(
+        `${this.deviceId} received duplicate hello message, closing previous bridge`
+      );
+      this.bridge.close();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    this.bridge = new LiveKitBridge(
+      this,
+      json.version,
+      this.macAddress,
+      this.uuid,
+      this.userData
+    );
+    this.bridge.on("close", () => {
+      const seconds = (Date.now() - this.udp.startTime) / 1000;
+      console.log(
+        `Call ended: ${this.deviceId} Session: ${this.udp.session_id} Duration: ${seconds}s`
+      );
+      this.sendMqttMessage(
+        JSON.stringify({ type: "goodbye", session_id: this.udp.session_id })
+      );
+      this.bridge = null;
+      if (this.closing) {
+        // Remove from gateway connections
+        this.gateway.connections.delete(this.connectionId);
+        this.gateway.deviceConnections.delete(this.deviceId);
+      }
+    });
+
+    try {
+      console.log(`Call started: ${this.deviceId} Protocol: ${json.version}`);
+      const helloReply = await this.bridge.connect(
+        json.audio_params,
+        json.features
+      );
+      console.log(`📡 [HELLO REPLY] Bridge connect response:`, helloReply);
+
+      this.udp.session_id = helloReply.session_id;
+      console.log(`📡 [SESSION ID] Set session_id to: ${this.udp.session_id}`);
+
+      this.sendMqttMessage(
+        JSON.stringify({
+          type: "hello",
+          version: json.version,
+          session_id: this.udp.session_id,
+          transport: "udp",
+          udp: {
+            server: this.gateway.publicIp,
+            port: this.gateway.udpPort,
+            encryption: this.udp.encryption,
+            key: this.udp.key.toString("hex"),
+            nonce: this.udp.nonce.toString("hex"),
+          },
+          audio_params: helloReply.audio_params,
+        })
+      );
+    } catch (error) {
+      this.sendMqttMessage(
+        JSON.stringify({
+          type: "error",
+          message: "Failed to process hello message",
+        })
+      );
+      console.error(
+        `${this.deviceId} failed to process hello message: ${error}`
+      );
+    }
+  }
+
+  async parseOtherMessage(json) {
+    if (!this.bridge) {
+      if (json.type !== "goodbye") {
+        this.sendMqttMessage(
+          JSON.stringify({ type: "goodbye", session_id: json.session_id })
+        );
+      }
+      return;
+    }
+
+    if (json.type === "goodbye") {
+      this.bridge.close();
+      this.bridge = null;
+      return;
+    }
+
+    debug("Received other message, not forwarding to LiveKit:", json);
+  }
+
+  onUdpMessage(rinfo, message, payloadLength, timestamp, sequence) {
+    if (!this.bridge) {
+      return;
+    }
+
+    if (this.udp.remoteAddress !== rinfo) {
+      this.udp.remoteAddress = rinfo;
+    }
+
+    if (sequence < this.udp.remoteSequence) {
+      return;
+    }
+
+    const header = message.slice(0, 16);
+    const encryptedPayload = message.slice(16, 16 + payloadLength);
+    const cipher = crypto.createDecipheriv(
+      this.udp.encryption,
+      this.udp.key,
+      header
+    );
+    const payload = Buffer.concat([
+      cipher.update(encryptedPayload),
+      cipher.final(),
+    ]);
+
+    const payloadStr = payload.toString();
+    if (payloadStr.startsWith("ping:")) {
+      console.log(
+        `🏓 [UDP PING] Received ping: ${payloadStr} from ${rinfo.address}:${rinfo.port}`
+      );
+      return;
+    }
+
+    this.bridge.sendAudio(payload, timestamp);
+    this.udp.remoteSequence = sequence;
+  }
+
+  checkKeepAlive() {
+    // Virtual connections don't need traditional keep-alive since EMQX handles it
+  }
+
+  close() {
+    this.closing = true;
+    if (this.bridge) {
+      this.bridge.close();
+      this.bridge = null;
+    }
+    // Remove from gateway maps
+    this.gateway.connections.delete(this.connectionId);
+    this.gateway.deviceConnections.delete(this.deviceId);
+  }
+
+  isAlive() {
+    return this.bridge && this.bridge.isAlive();
+  }
+}
+
+class MQTTGateway {
   constructor() {
-    this.mqttPort = parseInt(process.env.MQTT_PORT) || 1883;
-    this.udpPort = parseInt(process.env.UDP_PORT) || this.mqttPort;
-    this.publicIp = process.env.PUBLIC_IP || "broker.emqx.io";
+    this.udpPort = parseInt(process.env.UDP_PORT) || 1883;
+    this.publicIp = process.env.PUBLIC_IP || "127.0.0.1";
     this.connections = new Map(); // clientId -> MQTTConnection
     this.keepAliveTimer = null;
     this.keepAliveCheckInterval = 1000; // Check every 1 second by default
     this.headerBuffer = Buffer.alloc(16);
+    this.mqttClient = null;
+    this.deviceConnections = new Map(); // deviceId -> connection info
+    this.clientConnections = new Map(); // clientId -> device info (for tracking EMQX clients)
   }
 
   generateNewConnectionId() {
@@ -1260,17 +1589,8 @@ class MQTTServer {
   }
 
   start() {
-    this.mqttServer = net.createServer((socket) => {
-      const connectionId = this.generateNewConnectionId();
-      debug(`New client connection: ${connectionId}`);
-      new MQTTConnection(socket, connectionId, this);
-    });
-
-    this.mqttServer.listen(this.mqttPort, "192.168.1.111", () => {
-      console.warn(
-        `MQTT server listening on port ${this.mqttPort} (all interfaces)`
-      );
-    });
+    // Connect to EMQX broker
+    this.connectToEmqxBroker();
 
     this.udpServer = dgram.createSocket("udp4");
     this.udpServer.on("message", this.onUdpMessage.bind(this));
@@ -1288,6 +1608,204 @@ class MQTTServer {
     // Start global heartbeat check timer
     this.setupKeepAliveTimer();
   }
+
+  connectToEmqxBroker() {
+    const brokerConfig = configManager.get("mqtt_broker");
+    if (!brokerConfig) {
+      console.error("MQTT broker configuration not found in config");
+      process.exit(1);
+    }
+
+    const clientId = `mqtt-gateway-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const brokerUrl = `${brokerConfig.protocol}://${brokerConfig.host}:${brokerConfig.port}`;
+
+    console.log(`Connecting to EMQX broker: ${brokerUrl}`);
+
+    this.mqttClient = mqtt.connect(brokerUrl, {
+      clientId: clientId,
+      keepalive: brokerConfig.keepalive || 60,
+      clean: brokerConfig.clean !== false,
+      reconnectPeriod: brokerConfig.reconnectPeriod || 1000,
+      connectTimeout: brokerConfig.connectTimeout || 30000
+    });
+
+    this.mqttClient.on('connect', () => {
+      console.log(`✅ Connected to EMQX broker: ${brokerUrl}`);
+      // Subscribe to gateway control topics
+      this.mqttClient.subscribe('devices/+/hello', (err) => {
+        if (err) {
+          console.error('Failed to subscribe to device hello topic:', err);
+        } else {
+          console.log('📡 Subscribed to devices/+/hello');
+        }
+      });
+      this.mqttClient.subscribe('devices/+/data', (err) => {
+        if (err) {
+          console.error('Failed to subscribe to device data topic:', err);
+        } else {
+          console.log('📡 Subscribed to devices/+/data');
+        }
+      });
+      // Subscribe to the internal topic where EMQX republishes with client info
+      this.mqttClient.subscribe('internal/server-ingest', (err) => {
+        if (err) {
+          console.error('Failed to subscribe to internal/server-ingest topic:', err);
+        } else {
+          console.log('📡 Subscribed to internal/server-ingest');
+        }
+      });
+    });
+
+    this.mqttClient.on('error', (err) => {
+      console.error('MQTT connection error:', err);
+    });
+
+    this.mqttClient.on('offline', () => {
+      console.warn('MQTT client went offline');
+    });
+
+    this.mqttClient.on('reconnect', () => {
+      console.log('MQTT client reconnecting...');
+    });
+
+    this.mqttClient.on('message', (topic, message) => {
+      this.handleMqttMessage(topic, message);
+    });
+  }
+
+  handleMqttMessage(topic, message) {
+    // Add detailed logging for all incoming MQTT messages
+    console.log(`📨 [MQTT IN] Received message on topic: ${topic}`);
+    console.log(`📨 [MQTT IN] Message length: ${message.length} bytes`);
+
+    try {
+      const payload = JSON.parse(message.toString());
+      const topicParts = topic.split('/');
+
+      console.log(`📨 [MQTT IN] Parsed payload:`, JSON.stringify(payload, null, 2));
+      console.log(`📨 [MQTT IN] Topic parts:`, topicParts);
+
+      if (topic === 'internal/server-ingest') {
+        // Handle messages republished by EMQX with client ID info
+        console.log(`📨 [MQTT IN] Message from internal/server-ingest topic`);
+
+        // Extract client ID and original payload from EMQX republish rule
+        const clientId = payload.sender_client_id;
+        const originalPayload = payload.orginal_payload;
+
+        if (!clientId || !originalPayload) {
+          console.error(`❌ [MQTT IN] Invalid republished message format - missing clientId or originalPayload`);
+          return;
+        }
+
+        console.log(`📨 [MQTT IN] Client ID: ${clientId}`);
+        console.log(`📨 [MQTT IN] Original payload:`, JSON.stringify(originalPayload, null, 2));
+
+        // Extract device MAC from client ID
+        let deviceId = 'unknown-device';
+        const parts = clientId.split('@@@');
+        if (parts.length >= 2) {
+          deviceId = parts[1].replace(/_/g, ':'); // Convert MAC format
+        }
+
+        console.log(`📨 [MQTT IN] Device message from internal/server-ingest - Device: ${deviceId}, Message type: ${originalPayload.type}`);
+
+        // Create enhanced payload with client connection info for VirtualMQTTConnection
+        const enhancedPayload = {
+          ...originalPayload,
+          clientId: clientId,
+          username: 'extracted_from_emqx',
+          password: 'extracted_from_emqx'
+        };
+
+        if (originalPayload.type === 'hello') {
+          console.log(`👋 [HELLO] Processing hello message from internal/server-ingest: ${deviceId}`);
+          this.handleDeviceHello(deviceId, enhancedPayload);
+        } else {
+          console.log(`📊 [DATA] Processing data message from internal/server-ingest: ${deviceId}`);
+          this.handleDeviceData(deviceId, enhancedPayload);
+        }
+      } else if (topicParts.length >= 3 && topicParts[0] === 'devices') {
+        const deviceId = topicParts[1];
+        const messageType = topicParts[2];
+
+        console.log(`📨 [MQTT IN] Device message - Device: ${deviceId}, Type: ${messageType}`);
+        debug(`📨 Received MQTT message from device ${deviceId}: ${messageType}`);
+
+        if (messageType === 'hello') {
+          console.log(`👋 [HELLO] Processing hello message from device: ${deviceId}`);
+          this.handleDeviceHello(deviceId, payload);
+        } else if (messageType === 'data') {
+          console.log(`📊 [DATA] Processing data message from device: ${deviceId}`);
+          this.handleDeviceData(deviceId, payload);
+        } else {
+          console.log(`❓ [UNKNOWN] Unknown message type '${messageType}' from device: ${deviceId}`);
+        }
+      } else {
+        console.log(`❓ [MQTT IN] Message on unexpected topic format: ${topic}`);
+      }
+    } catch (error) {
+      console.error('❌ [MQTT IN] Error processing MQTT message:', error);
+      console.log(`📨 [MQTT IN] Raw message:`, message.toString());
+    }
+  }
+
+  handleDeviceHello(deviceId, payload) {
+    console.log(`📱 [HELLO] handleDeviceHello called for device: ${deviceId}`);
+
+    // Create a virtual connection for this device
+    const connectionId = this.generateNewConnectionId();
+    console.log(`📱 [HELLO] Generated connection ID: ${connectionId}`);
+
+    const virtualConnection = new VirtualMQTTConnection(deviceId, connectionId, this, payload);
+    console.log(`📱 [HELLO] Created VirtualMQTTConnection for device: ${deviceId}`);
+
+    this.connections.set(connectionId, virtualConnection);
+    this.deviceConnections.set(deviceId, { connectionId, connection: virtualConnection });
+
+    console.log(`📱 [HELLO] Device ${deviceId} connected via EMQX`);
+    console.log(`📱 [HELLO] Now calling handlePublish to process hello message...`);
+
+    // Manually trigger the hello message processing
+    try {
+      virtualConnection.handlePublish({ payload: JSON.stringify(payload) });
+      console.log(`📱 [HELLO] Successfully called handlePublish for device: ${deviceId}`);
+    } catch (error) {
+      console.error(`❌ [HELLO] Error in handlePublish for device ${deviceId}:`, error);
+    }
+  }
+
+  handleDeviceData(deviceId, payload) {
+    const deviceInfo = this.deviceConnections.get(deviceId);
+    if (deviceInfo && deviceInfo.connection) {
+      deviceInfo.connection.handlePublish({ payload: JSON.stringify(payload) });
+    } else {
+      console.warn(`📱 Received data from unknown device: ${deviceId}`);
+    }
+  }
+
+  publishToDevice(clientIdOrDeviceId, message) {
+  console.log(`📤 [MQTT OUT] publishToDevice called - Client/Device: ${clientIdOrDeviceId}`);
+  console.log(`📤 [MQTT OUT] Message:`, JSON.stringify(message, null, 2));
+
+  if (this.mqttClient && this.mqttClient.connected) {
+    // Use the full client ID directly in the topic
+    const topic = `devices/p2p/${clientIdOrDeviceId}`;
+    console.log(`📤 [MQTT OUT] Publishing to topic: ${topic}`);
+
+    this.mqttClient.publish(topic, JSON.stringify(message), (err) => {
+      if (err) {
+        console.error(`❌ [MQTT OUT] Failed to publish to client ${clientIdOrDeviceId}:`, err);
+      } else {
+        console.log(`✅ [MQTT OUT] Successfully published to client ${clientIdOrDeviceId} on topic ${topic}`);
+        debug(`📤 Published to client ${clientIdOrDeviceId}: ${JSON.stringify(message)}`);
+      }
+    });
+  } else {
+    console.error('❌ [MQTT OUT] MQTT client not connected, cannot publish message');
+    console.log(`📊 [MQTT OUT] Client connected: ${this.mqttClient ? this.mqttClient.connected : 'null'}`);
+  }
+}
 
   /**
    * Set up global heartbeat check timer
@@ -1431,6 +1949,7 @@ class MQTTServer {
     await new Promise((resolve) => setTimeout(resolve, 300));
     debug("Waiting for connections to close");
     this.connections.clear();
+    this.deviceConnections.clear();
 
     if (this.udpServer) {
       this.udpServer.close();
@@ -1438,22 +1957,22 @@ class MQTTServer {
       console.warn("UDP server stopped");
     }
 
-    // Close MQTT server
-    if (this.mqttServer) {
-      this.mqttServer.close();
-      this.mqttServer = null;
-      console.warn("MQTT server stopped");
+    // Close MQTT client
+    if (this.mqttClient) {
+      this.mqttClient.end();
+      this.mqttClient = null;
+      console.warn("MQTT client disconnected");
     }
 
     process.exit(0);
   }
 }
 
-// Create and start server
-const server = new MQTTServer();
-server.start();
+// Create and start gateway
+const gateway = new MQTTGateway();
+gateway.start();
 
 process.on("SIGINT", () => {
   console.warn("Received SIGINT signal, starting shutdown");
-  server.stop();
+  gateway.stop();
 });

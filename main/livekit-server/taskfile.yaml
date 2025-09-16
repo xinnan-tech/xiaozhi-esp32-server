@@ -1,0 +1,22 @@
+version: "3"
+output: interleaved
+dotenv: [".env.local"]
+
+tasks:
+  post_create:
+    desc: "Runs after this template is instantiated as a Sandbox or Bootstrap"
+    cmds:
+      - echo -e "To try the new agent directly in your terminal:\r\n"
+      - echo -e "\tcd {{.ROOT_DIR}}\r"
+      - echo -e "\tuv sync\r"
+      - echo -e "\tuv run src/agent.py download-files\r"
+      - echo -e "\tuv run src/agent.py console\r\n"
+
+  install:
+    desc: "Bootstrap application for local development"
+    cmds:
+      - "uv sync"
+  dev:
+    interactive: true
+    cmds:
+      - "uv run src/agent.py dev"

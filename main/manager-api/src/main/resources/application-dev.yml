@@ -10,7 +10,7 @@ knife4j:
 
 # Server configuration
 server:
-  secret: d153e93c-bb2f-42e7-8045-a1ee47a1dcfc
+  secret: a3c1734a-1efe-4ab7-8f43-98f88b874e4b
 spring:
   datasource:
     druid:
@@ -25,9 +25,9 @@ spring:
       # url: jdbc:mysql://crossover.proxy.rlwy.net:56145/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
       # username: root
       # password: XjOWQwtGNcoMIELTjoMoaaBTfKiBjVcA
-      url: jdbc:mysql://localhost:3306/cheeko
-      username: root
-      password:
+      url: jdbc:mysql://localhost:3307/manager_api?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=false&allowPublicKeyRetrieval=true
+      username: manager
+      password: managerpassword
 
       initial-size: 10
       max-active: 100
@@ -53,7 +53,8 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
+      port: 6380
+      password: redispassword
       database: 0
       timeout: 10000ms
       lettuce:

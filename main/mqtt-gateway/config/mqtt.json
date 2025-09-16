@@ -1,8 +1,17 @@
 {
   "debug": false,
+  "mqtt_broker": {
+    "host": "192.168.1.101",
+    "port": 1883,
+    "protocol": "mqtt",
+    "keepalive": 60,
+    "clean": true,
+    "reconnectPeriod": 1000,
+    "connectTimeout": 30000
+  },
   "livekit": {
-    "url": "wss://cheeko-ycahauzs.livekit.cloud",
-    "api_key": "APInJFs2nTcUxcE",
-    "api_secret": "CDpl09fZm8WCMHHYBdi6OBrMqjq5u7D78ROH02O6I8Z"
+    "url": "ws://192.168.1.101:7880",
+    "api_key": "devkey",
+    "api_secret": "secret"
   }
 }

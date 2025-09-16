@@ -18,7 +18,7 @@ manager-api:
   url: http://192.168.1.111:8002/toy
   # Server secret from database
   # secret: d153e93c-bb2f-42e7-8045-a1ee47a1dcfc
-  secret: 1b4414eb-d082-49b0-8e52-c9cae70afb8m
+  secret: a3c1734a-1efe-4ab7-8f43-98f88b874e4b
   timeout: 30
   max_retries: 3
   retry_delay: 5
