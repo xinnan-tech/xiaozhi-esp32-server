@@ -2333,6 +2333,9 @@ class ConnectionHandler:
         # Also reset listen start time
         if hasattr(self, 'listen_start_time'):
             self.listen_start_time = None
+        # Reset had_speaking_state flag used for ASR processing
+        if hasattr(self, 'had_speaking_state'):
+            self.had_speaking_state = False
         # Clear ASR audio queue for this specific connection only
         if hasattr(self, 'asr_audio_queue'):
             # Empty the queue by getting all items without blocking

@@ -1,8 +1,14 @@
 <template>
   <div class="device-item">
     <div style="display: flex;justify-content: space-between;">
-      <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
-        {{ device.agentName }}
+      <div>
+        <div style="font-weight: 700;font-size: 18px;text-align: left;color: #3d4566;">
+          {{ device.agentName }}
+        </div>
+        <!-- Admin-only: Show owner username -->
+        <div v-if="isAdmin" class="owner-info">
+          Owner: {{ device.ownerUsername || `User ID: ${device.userId}` }}
+        </div>
       </div>
       <div>
         <img src="@/assets/home/delete.png" alt="" class="action-icon delete-icon"
@@ -53,6 +59,9 @@ export default {
     return { switchValue: false }
   },
   computed: {
+    isAdmin() {
+      return this.$store.getters.getIsSuperAdmin;
+    },
     formattedLastConnectedTime() {
       if (!this.device.lastConnectedAt) return 'No conversations yet';
 
@@ -110,6 +119,14 @@ export default {
   font-size: 11px;
   color: #3d4566;
   text-align: left;
+}
+
+.owner-info {
+  font-weight: 400;
+  font-size: 12px;
+  color: #5778ff;
+  text-align: left;
+  margin-top: 5px;
 }
 
 .settings-btn {

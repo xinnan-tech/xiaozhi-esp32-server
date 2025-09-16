@@ -74,13 +74,6 @@ class ASRProviderBase(ABC):
                                      f"client_have_voice={conn.client_have_voice}, "
                                      f"audio_len={len(audio)}, asr_buffer_len={len(conn.asr_audio)}")
 
-        # Echo suppression: Ignore audio for a brief period after starting to listen
-        if hasattr(conn, 'listen_start_time') and conn.listen_start_time is not None:
-            time_since_listen_start = time.time() - conn.listen_start_time
-            if time_since_listen_start < 0.1:  # Ignore first 100ms of audio (echo period)
-                if have_voice:
-                    logger.bind(tag=TAG).debug(f"Ignoring potential echo audio ({time_since_listen_start:.2f}s after listen start)")
-                have_voice = False
 
         # Always add audio to pre-buffer (rolling buffer)
         conn.audio_pre_buffer.append(audio)
@@ -95,6 +88,17 @@ class ASRProviderBase(ABC):
             # Add pre-buffered audio to the beginning of ASR audio
             conn.asr_audio = list(conn.audio_pre_buffer) + conn.asr_audio
             conn.audio_pre_buffer.clear()
+            # Initialize flag to track if we've had actual SPEAKING state
+            conn.had_speaking_state = False
+        
+        # Check if we're in SPEAKING state (not just STARTING)
+        if hasattr(conn, 'vad') and hasattr(conn.vad, 'analyzer'):
+            from core.providers.vad.vad_analyzer import VADState
+            current_vad_state = conn.vad.analyzer._vad_state
+            if current_vad_state == VADState.SPEAKING:
+                if not hasattr(conn, 'had_speaking_state') or not conn.had_speaking_state:
+                    logger.bind(tag=TAG).info("Setting had_speaking_state = True (SPEAKING detected)")
+                conn.had_speaking_state = True
         
         conn.asr_audio.append(audio)
         if not have_voice and not conn.client_have_voice:
@@ -112,11 +116,22 @@ class ASRProviderBase(ABC):
                 
             asr_audio_task = conn.asr_audio.copy()
             conn.asr_audio.clear()
+            
+            # Check had_speaking_state BEFORE resetting VAD states
+            had_speaking = hasattr(conn, 'had_speaking_state') and conn.had_speaking_state
+            logger.bind(tag=TAG).info(f"ASR decision: had_speaking={had_speaking}, audio_chunks={len(asr_audio_task)}")
+            
             conn.reset_vad_states()
-
-            if len(asr_audio_task) > 20:  # Increased from 15 to 20 chunks (1.2 seconds)
-                logger.bind(tag=TAG).debug(f"Processing {len(asr_audio_task)} audio chunks")
+            
+            if had_speaking and len(asr_audio_task) > 20:
+                logger.bind(tag=TAG).info(f"Processing {len(asr_audio_task)} audio chunks (had speaking state)")
                 await self.handle_voice_stop(conn, asr_audio_task)
+            elif len(asr_audio_task) > 20:
+                logger.bind(tag=TAG).info(f"Discarding {len(asr_audio_task)} audio chunks (no speaking state detected)")
+            
+            # Reset the speaking state flag for next session
+            if hasattr(conn, 'had_speaking_state'):
+                conn.had_speaking_state = False
 
     # Handle voice stop
     async def handle_voice_stop(self, conn, asr_audio_task: List[bytes]):

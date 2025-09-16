@@ -183,3 +183,7 @@ main/xiaozhi-server/mysql
 uploadfile
 *.json
 .vscode
+
+# Spring Boot configuration files (contain sensitive data)
+main/manager-api/src/main/resources/application.yml
+main/manager-api/src/main/resources/application-dev.yml

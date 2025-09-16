@@ -22,12 +22,14 @@ spring:
       # password: cTefiuLmZSMqGpcQImUmBIsUBhNyUvrK
       driver-class-name: com.mysql.cj.jdbc.Driver
       # Railway MySQL Configuration - Updated for Railway database
+
       # url: jdbc:mysql://crossover.proxy.rlwy.net:56145/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=true&allowPublicKeyRetrieval=true
       # username: root
       # password: XjOWQwtGNcoMIELTjoMoaaBTfKiBjVcA
       url: jdbc:mysql://localhost:3307/manager_api?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&useSSL=false&allowPublicKeyRetrieval=true
       username: manager
       password: managerpassword
+
 
       initial-size: 10
       max-active: 100
@@ -63,3 +65,4 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
+

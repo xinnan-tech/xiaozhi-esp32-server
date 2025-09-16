@@ -24,7 +24,7 @@
                 </template>
               </el-table-column>
               <el-table-column label="User ID" prop="userid" align="center"></el-table-column>
-              <el-table-column label="Phone Number" prop="mobile" align="center"></el-table-column>
+              <el-table-column label="User Name" prop="mobile" align="center"></el-table-column>
               <el-table-column label="Device Count" prop="deviceCount" align="center"></el-table-column>
               <el-table-column label="Registration Time" prop="createDate" align="center"></el-table-column>
               <el-table-column label="Status" prop="status" align="center">

@@ -7,7 +7,7 @@ import struct
 import logging
 import pyaudio
 import keyboard
-
+#hjvk
 from typing import Dict, Optional, Tuple
 import requests
 import paho.mqtt.client as mqtt_client
@@ -22,6 +22,9 @@ import opuslib
 SERVER_IP = "139.59.7.72" # !!! UPDATE with your server's local IP address !!!
 OTA_PORT = 8002
 MQTT_BROKER_HOST = "139.59.7.72"  # Your EMQX instance
+
+
+
 
 
 MQTT_BROKER_PORT = 1883
