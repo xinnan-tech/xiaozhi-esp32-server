@@ -61,6 +61,7 @@ public class ServerSecretFilter extends AuthenticatingFilter {
 
         // 验证token是否匹配
         String serverSecret = getServerSecret();
+        
         if (StringUtils.isBlank(serverSecret) || !serverSecret.equals(token)) {
             // token无效，返回401
             this.sendUnauthorizedResponse((HttpServletResponse) servletResponse, "无效的服务器密钥");

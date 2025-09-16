@@ -1,0 +1,5 @@
+This indicates an issue with your network environment or the credentials in mqtt.json.
+Detailed Error: ConnectError: engine: signal failure: failed to retrieve region info: error decoding response body: expected value at line 1 column 1
+    at Room.connect (/Users/abilashs/development/xiaozhi-esp32-server/main/mqtt-gateway/node_modules/@livekit/rtc-node/dist/room.cjs:406:15)
+    at async testConnection (/Users/abilashs/development/xiaozhi-esp32-server/main/mqtt-gateway/test_livekit_connection.js:38:5)
+[16:12:11.116] DEBUG (lk-rtc/42200): Connect callback received

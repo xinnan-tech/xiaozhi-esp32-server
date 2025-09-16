@@ -44,11 +44,13 @@ def load_config():
 
 def get_config_from_api(config):
     """Get configuration from Java API"""
+    print("Fetching configuration from API...")
     # Initialize API client
     init_service(config)
-
+    print(config)
     # Get server configuration
     config_data = get_server_config()
+    print(config_data)
     if config_data is None:
         raise Exception("Failed to fetch server config from API")
 

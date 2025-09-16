@@ -1,0 +1,2 @@
+livekit-plugins-groq
+python-dotenv

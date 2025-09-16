@@ -1,15 +1,8 @@
 {
-    "production": {
-        "chat_servers": [
-            "ws://example:8080"
-        ]
-    },
-    "development": {
-        "chat_servers": [
-            "ws://example:8180"
-        ],
-        "mac_addresss": [
-        ]
-    },
-    "debug": false
+  "debug": true,
+  "livekit": {
+    "url": "wss://cheeko-ycahauzs.livekit.cloud",
+    "api_key": "APInJFs2nTcUxcE",
+    "api_secret": "CDpl09fZm8WCMHHYBdi6OBrMqjq5u7D78ROH02O6I8Z"
+  }
 }

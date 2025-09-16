@@ -10,8 +10,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@livekit/rtc-node": "^0.13.18",
+    "@voicehype/audify-plus": "^2.0.9",
     "debug": "^4.4.1",
     "dotenv": "^17.2.1",
+    "json5": "^2.2.3",
+    "livekit-server-sdk": "^2.13.3",
+    "mqtt": "^5.14.1",
     "ws": "^8.18.3"
   }
 }
