@@ -33,6 +33,12 @@ const routes = [
     }
   },
   {
+    path: '/device/camera',
+    name: 'DeviceCamera',
+    component: () => import('@/views/DeviceCamera.vue'),
+    meta: { title: '设备摄像头' }
+  },
+  {
     path: '/home',
     name: 'home',
     component: function () {

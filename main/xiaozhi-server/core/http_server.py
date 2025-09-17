@@ -3,6 +3,7 @@ from aiohttp import web
 from config.logger import setup_logging
 from core.api.ota_handler import OTAHandler
 from core.api.vision_handler import VisionHandler
+from core.api.camera_handler import CameraHandler
 
 TAG = __name__
 
@@ -13,6 +14,7 @@ class SimpleHttpServer:
         self.logger = setup_logging()
         self.ota_handler = OTAHandler(config)
         self.vision_handler = VisionHandler(config)
+        self.camera_handler = CameraHandler(config)
 
     def _get_websocket_url(self, local_ip: str, port: int) -> str:
         """获取websocket地址
@@ -56,6 +58,13 @@ class SimpleHttpServer:
                     web.get("/mcp/vision/explain", self.vision_handler.handle_get),
                     web.post("/mcp/vision/explain", self.vision_handler.handle_post),
                     web.options("/mcp/vision/explain", self.vision_handler.handle_post),
+                    # 摄像头控制端点
+                    web.post("/camera/{device_id}/start", self.camera_handler.handle_start_stream),
+                    web.options("/camera/{device_id}/start", self.camera_handler.handle_options),
+                    web.post("/camera/{device_id}/stop", self.camera_handler.handle_stop_stream),
+                    web.options("/camera/{device_id}/stop", self.camera_handler.handle_options),
+                    web.get("/camera/{device_id}/stream", self.camera_handler.handle_stream),
+                    web.options("/camera/{device_id}/stream", self.camera_handler.handle_options),
                 ]
             )
 
