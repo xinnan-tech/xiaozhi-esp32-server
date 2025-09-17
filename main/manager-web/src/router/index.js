@@ -124,6 +124,22 @@ const routes = [
       return import('../views/ProviderManagement.vue')
     }
   },
+  // 添加默认角色管理路由
+  {
+    path: '/agent-template-management',
+    name: 'AgentTemplateManagement',
+    component: function () {
+      return import('../views/AgentTemplateManagement.vue')
+    }
+  },
+  // 添加模板快速配置路由
+  {
+    path: '/template-quick-config',
+    name: 'TemplateQuickConfig',
+    component: function () {
+      return import('../views/TemplateQuickConfig.vue')
+    }
+  },
 ]
 const router = new VueRouter({
   base: process.env.VUE_APP_PUBLIC_PATH || '/',
@@ -145,7 +161,7 @@ VueRouter.prototype.push = function push(location) {
 }
 
 // 需要登录才能访问的路由
-const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig']
+const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig', 'TemplateQuickConfig']
 
 // 路由守卫
 router.beforeEach((to, from, next) => {

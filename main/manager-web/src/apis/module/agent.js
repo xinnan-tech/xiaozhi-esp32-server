@@ -84,7 +84,7 @@ export default {
     // 新增方法：获取智能体模板
     getAgentTemplate(callback) {  // 移除templateName参数
         RequestService.sendRequest()
-            .url(`${getServiceUrl()}/agent/template`)
+            .url(`${getServiceUrl()}/agent/template/all`)
             .method('GET')
             .success((res) => {
                 RequestService.clearRequestTime();
@@ -94,6 +94,24 @@ export default {
                 console.error('获取模板失败:', err);
                 RequestService.reAjaxFun(() => {
                     this.getAgentTemplate(callback);
+                });
+            }).send();
+    },
+    
+    // 新增：获取智能体模板分页列表
+    getAgentTemplatesPage(params, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/template/page`)
+            .method('GET')
+            .data(params)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail((err) => {
+                console.error('获取模板分页列表失败:', err);
+                RequestService.reAjaxFun(() => {
+                    this.getAgentTemplatesPage(params, callback);
                 });
             }).send();
     },
@@ -262,6 +280,73 @@ export default {
             .networkFail(() => {
                 RequestService.reAjaxFun(() => {
                     this.getContentByAudioId(id,callback);
+                });
+            }).send();
+    },
+    // 在文件末尾（在最后一个方法后，大括号前）添加以下方法：
+    // 新增智能体模板
+    addAgentTemplate(templateData, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/template`)
+            .method('POST')
+            .data(templateData)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.addAgentTemplate(templateData, callback);
+                });
+            }).send();
+    },
+    
+    // 更新智能体模板
+    updateAgentTemplate(templateData, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/template`)
+            .method('PUT')
+            .data(templateData)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.updateAgentTemplate(templateData, callback);
+                });
+            }).send();
+    },
+    
+    // 删除智能体模板
+    deleteAgentTemplate(id, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/template/${id}`)
+            .method('DELETE')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.deleteAgentTemplate(id, callback);
+                });
+            }).send();
+    },
+    
+    // 批量删除智能体模板
+    batchDeleteAgentTemplate(ids, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/template/batch-delete`)
+            .method('DELETE')
+            .data(ids)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.batchDeleteAgentTemplate(ids, callback);
                 });
             }).send();
     },

@@ -14,25 +14,25 @@
           @click="goHome">
           <img loading="lazy" alt="" src="@/assets/header/robot.png"
             :style="{ filter: $route.path === '/home' || $route.path === '/role-config' || $route.path === '/device-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          <span class="nav-text">{{ $t('header.smartManagement') }}</span>
+          智能体管理
         </div>
         <div v-if="isSuperAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }"
           @click="goModelConfig">
           <img loading="lazy" alt="" src="@/assets/header/model_config.png"
             :style="{ filter: $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None' }" />
-          <span class="nav-text">{{ $t('header.modelConfig') }}</span>
+          模型配置
         </div>
         <div v-if="isSuperAdmin" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/user-management' }" @click="goUserManagement">
           <img loading="lazy" alt="" src="@/assets/header/user_management.png"
             :style="{ filter: $route.path === '/user-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          <span class="nav-text">{{ $t('header.userManagement') }}</span>
+          用户管理
         </div>
         <div v-if="isSuperAdmin" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/ota-management' }" @click="goOtaManagement">
           <img loading="lazy" alt="" src="@/assets/header/firmware_update.png"
             :style="{ filter: $route.path === '/ota-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          <span class="nav-text">{{ $t('header.otaManagement') }}</span>
+          OTA管理
         </div>
         <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown"
           :class="{ 'active-tab': $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' }"
@@ -40,21 +40,25 @@
           <span class="el-dropdown-link">
             <img loading="lazy" alt="" src="@/assets/header/param_management.png"
               :style="{ filter: $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' ? 'brightness(0) invert(1)' : 'None' }" />
-            <span class="nav-text">{{ $t('header.paramDictionary') }}</span>
+            参数字典
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': paramDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="goParamManagement">
-              {{ $t('header.paramManagement') }}
+              参数管理
             </el-dropdown-item>
             <el-dropdown-item @click.native="goDictManagement">
-              {{ $t('header.dictManagement') }}
+              字典管理
             </el-dropdown-item>
             <el-dropdown-item @click.native="goProviderManagement">
-              {{ $t('header.providerManagement') }}
+              字段管理
             </el-dropdown-item>
             <el-dropdown-item @click.native="goServerSideManagement">
-              {{ $t('header.serverSideManagement') }}
+              服务端管理
+            </el-dropdown-item>
+            <!-- 添加默认角色管理菜单项 -->
+            <el-dropdown-item @click.native="goAgentTemplateManagement">
+              默认角色管理
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
@@ -63,31 +67,11 @@
       <!-- 右侧元素 -->
       <div class="header-right">
         <div class="search-container" v-if="$route.path === '/home' && !(isSuperAdmin && isSmallScreen)">
-          <el-input v-model="search" :placeholder="$t('header.searchPlaceholder')" class="custom-search-input"
+          <el-input v-model="search" placeholder="输入名称搜索.." class="custom-search-input"
             @keyup.enter.native="handleSearch">
             <i slot="suffix" class="el-icon-search search-icon" @click="handleSearch"></i>
           </el-input>
         </div>
-
-        <!-- 语言切换下拉菜单 -->
-        <el-dropdown trigger="click" class="language-dropdown" @visible-change="handleLanguageDropdownVisibleChange">
-          <span class="el-dropdown-link">
-            <span class="current-language-text">{{ currentLanguageText }}</span>
-            <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': languageDropdownVisible }"></i>
-          </span>
-          <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="changeLanguage('zh_CN')">
-              {{ $t('language.zhCN') }}
-            </el-dropdown-item>
-            <el-dropdown-item @click.native="changeLanguage('zh_TW')">
-              {{ $t('language.zhTW') }}
-            </el-dropdown-item>
-            <el-dropdown-item @click.native="changeLanguage('en')">
-              {{ $t('language.en') }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </el-dropdown>
-
         <img loading="lazy" alt="" src="@/assets/home/avatar.png" class="avatar-img" />
         <el-dropdown trigger="click" class="user-dropdown" @visible-change="handleUserDropdownVisibleChange">
           <span class="el-dropdown-link">
@@ -95,9 +79,8 @@
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': userDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="showChangePasswordDialog">{{ $t('header.changePassword')
-              }}</el-dropdown-item>
-            <el-dropdown-item @click.native="handleLogout">{{ $t('header.logout') }}</el-dropdown-item>
+            <el-dropdown-item @click.native="showChangePasswordDialog">修改密码</el-dropdown-item>
+            <el-dropdown-item @click.native="handleLogout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </div>
@@ -110,7 +93,6 @@
 
 <script>
 import userApi from '@/apis/module/user';
-import i18n, { changeLanguage } from '@/i18n';
 import { mapActions, mapGetters } from 'vuex';
 import ChangePasswordDialog from './ChangePasswordDialog.vue'; // 引入修改密码弹窗组件
 
@@ -130,7 +112,6 @@ export default {
       isChangePasswordDialogVisible: false, // 控制修改密码弹窗的显示
       userDropdownVisible: false,
       paramDropdownVisible: false,
-      languageDropdownVisible: false,
       isSmallScreen: false
     }
   },
@@ -138,24 +119,6 @@ export default {
     ...mapGetters(['getIsSuperAdmin']),
     isSuperAdmin() {
       return this.getIsSuperAdmin;
-    },
-    // 获取当前语言
-    currentLanguage() {
-      return i18n.locale || 'zh_CN';
-    },
-    // 获取当前语言显示文本
-    currentLanguageText() {
-      const currentLang = this.currentLanguage;
-      switch (currentLang) {
-        case 'zh_CN':
-          return this.$t('language.zhCN');
-        case 'zh_TW':
-          return this.$t('language.zhTW');
-        case 'en':
-          return this.$t('language.en');
-        default:
-          return this.$t('language.zhCN');
-      }
     }
   },
   mounted() {
@@ -193,6 +156,10 @@ export default {
     goServerSideManagement() {
       this.$router.push('/server-side-management')
     },
+    // 添加默认角色管理导航方法
+    goAgentTemplateManagement() {
+      this.$router.push('/agent-template-management')
+    },
     // 获取用户信息
     fetchUserInfo() {
       userApi.getUserInfo(({ data }) => {
@@ -223,7 +190,7 @@ export default {
       } catch (error) {
         console.error('正则表达式创建失败:', error);
         this.$message.error({
-          message: this.$t('message.error'),
+          message: '搜索关键词格式不正确',
           showClose: true
         });
       }
@@ -238,13 +205,13 @@ export default {
         // 调用 Vuex 的 logout action
         await this.logout();
         this.$message.success({
-          message: this.$t('message.success'),
+          message: '退出登录成功',
           showClose: true
         });
       } catch (error) {
         console.error('退出登录失败:', error);
         this.$message.error({
-          message: this.$t('message.error'),
+          message: '退出登录失败，请重试',
           showClose: true
         });
       }
@@ -255,19 +222,6 @@ export default {
     // 监听第二个下拉菜单的可见状态变化
     handleParamDropdownVisibleChange(visible) {
       this.paramDropdownVisible = visible;
-    },
-    // 监听语言下拉菜单的可见状态变化
-    handleLanguageDropdownVisibleChange(visible) {
-      this.languageDropdownVisible = visible;
-    },
-    // 切换语言
-    changeLanguage(lang) {
-      changeLanguage(lang);
-      this.languageDropdownVisible = false;
-      this.$message.success({
-        message: this.$t('message.success'),
-        showClose: true
-      });
     },
 
     // 使用 mapActions 引入 Vuex 的 logout action
@@ -283,7 +237,7 @@ export default {
   height: 63px !important;
   min-width: 900px;
   /* 设置最小宽度防止过度压缩 */
-  overflow: visible;
+  overflow: hidden;
 }
 
 .header-container {
@@ -315,7 +269,7 @@ export default {
   align-items: center;
   gap: 25px;
   position: absolute;
-  left: 44%;
+  left: 50%;
   transform: translateX(-50%);
 }
 
@@ -358,29 +312,29 @@ export default {
 }
 
 .search-container {
-  margin-right: 5px;
-  flex: 0.9;
-  min-width: 60px;
-  max-width: none;
+  margin-right: 15px;
+  min-width: 150px;
+  flex-grow: 1;
+  max-width: 220px;
 }
 
 .custom-search-input>>>.el-input__inner {
-  height: 18px;
-  border-radius: 9px;
+  height: 30px;
+  border-radius: 15px;
   background-color: #fff;
   border: 1px solid #e4e6ef;
-  padding-left: 8px;
-  font-size: 9px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  padding-left: 15px;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: 100%;
 }
 
 .search-icon {
   cursor: pointer;
   color: #909399;
-  margin-right: 3px;
-  font-size: 9px;
-  line-height: 18px;
+  margin-right: 8px;
+  font-size: 14px;
+  line-height: 30px;
 }
 
 .custom-search-input::v-deep .el-input__suffix-inner {
@@ -397,18 +351,6 @@ export default {
 
 .user-dropdown {
   flex-shrink: 0;
-}
-
-.language-dropdown {
-  flex-shrink: 0;
-  margin-right: 5px;
-}
-
-.current-language-text {
-  margin-left: 4px;
-  margin-right: 4px;
-  font-size: 12px;
-  color: #3d4566;
 }
 
 .more-dropdown {
@@ -428,14 +370,6 @@ export default {
 
 .el-icon-arrow-down {
   transition: transform 0.3s ease;
-}
-
-/* 导航文本样式 - 支持中英文换行 */
-.nav-text {
-  white-space: normal;
-  text-align: center;
-  max-width: 80px;
-  line-height: 1.2;
 }
 
 /* 响应式调整 */
