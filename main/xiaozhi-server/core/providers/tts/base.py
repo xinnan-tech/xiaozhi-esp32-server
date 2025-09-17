@@ -330,21 +330,11 @@ class TTSProviderBase(ABC):
                     continue
 
                 # 收到下一个文本开始或会话结束时进行上报
-                if sentence_type is not SentenceType.MIDDLE:
-                    # 重置音频流控状态（新句子开始或者结束）
-                    if hasattr(self.conn, 'audio_flow_control'):
-                        self.conn.audio_flow_control = {
-                            'last_send_time': 0,
-                            'packet_count': 0,
-                            'start_time': time.perf_counter(),
-                            'sequence': 0  # 添加序列号
-                        }
-                    
-                    # 上报TTS数据
-                    if enqueue_text is not None and enqueue_audio is not None:
-                        enqueue_tts_report(self.conn, enqueue_text, enqueue_audio)
-                    enqueue_audio = []
-                    enqueue_text = text
+                # 上报TTS数据
+                if enqueue_text is not None and enqueue_audio is not None:
+                    enqueue_tts_report(self.conn, enqueue_text, enqueue_audio)
+                enqueue_audio = []
+                enqueue_text = text
 
                 # 收集上报音频数据
                 if isinstance(audio_datas, bytes) and enqueue_audio is not None:
