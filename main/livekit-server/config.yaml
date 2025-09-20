@@ -1,0 +1,62 @@
+# LiveKit Agent Configuration
+# Set read_config_from_api to true to use manager-api, false to use local config below
+
+# CONFIGURATION SOURCE
+read_config_from_api: true  # Set to true to use manager-api, false to use local config
+
+# Manager-API Configuration (only used if read_config_from_api is true)
+manager-api:
+  # Manager API endpoint (matching xiaozhi-server configuration)
+  url: http://192.168.1.101:8002/toy
+  # Server secret from database (matching xiaozhi-server configuration)
+  secret: a3c1734a-1efe-4ab7-8f43-98f88b874e4b
+  timeout: 30
+  max_retries: 3
+  retry_delay: 5
+
+# LOCAL CONFIGURATION (only used if read_config_from_api is false)
+# Model provider configurations (matching your .env)
+llm:
+  provider: groq
+  model: openai/gpt-oss-20b
+
+stt:
+  provider: groq
+  model: whisper-large-v3-turbo
+  language: en
+
+tts:
+  provider: groq
+  model: playai-tts
+  voice: Aaliyah-PlayAI
+
+# LiveKit configuration (matching your .env)
+livekit:
+  url: ws://localhost:7880
+  api_key: devkey
+  api_secret: a-very-long-secret-key-for-development-purposes-only-replace-in-production
+
+# Agent settings (matching your .env)
+agent:
+  preemptive_generation: false
+  noise_cancellation: false
+
+# MQTT configuration (matching your .env)
+mqtt:
+  broker_host: 139.59.5.142
+  broker_port: 1883
+  client_id: GID_test@@@00:11:22:33:44:55
+  username: testuser
+  password: testpassword
+
+# Redis configuration (matching your .env)
+redis:
+  url: redis://:redispassword@localhost:6380
+  password: redispassword
+  host: localhost
+  port: 6380
+
+# API Keys (matching your .env)
+api_keys:
+  google: YOUR_GOOGLE_API_KEY_HERE
+  groq: YOUR_GROQ_API_KEY_HERE
