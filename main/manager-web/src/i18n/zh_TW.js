@@ -7,6 +7,7 @@ export default {
   'login.loginSuccess': '登錄成功！',
   
   // HeaderBar组件文本
+  // 在header相关翻译中添加
   'header.smartManagement': '智能體管理',
   'header.modelConfig': '模型配置',
   'header.userManagement': '用戶管理',
@@ -14,6 +15,7 @@ export default {
   'header.paramDictionary': '參數字典',
   'header.paramManagement': '參數管理',
   'header.dictManagement': '字典管理',
+  'header.agentTemplate': '預設角色模板', // 添加这一行
 
   // McpToolCallDialog组件文本
   'mcpToolCall.title': '工具調用',
@@ -998,4 +1000,68 @@ export default {
   'providerDialog.selectFieldsToDelete': '請先選擇要刪除的字段',
   'providerDialog.confirmBatchDeleteFields': '確定要刪除選中的{count}個字段嗎？',
   'providerDialog.batchDeleteFieldsSuccess': '成功刪除{count}個字段',
-};
+
+  // 預設角色管理頁面文本
+  'agentTemplateManagement.title': '預設角色管理',
+  'agentTemplateManagement.templateName': '模板名稱',
+  'agentTemplateManagement.description': '模板描述',
+  'agentTemplateManagement.createTime': '建立時間',
+  'agentTemplateManagement.action': '操作',
+  'agentTemplateManagement.createTemplate': '建立模板',
+  'agentTemplateManagement.editTemplate': '編輯模板',
+  'agentTemplateManagement.deleteTemplate': '刪除模板',
+  'agentTemplateManagement.deleteSuccess': '模板刪除成功',
+  'agentTemplateManagement.confirmDelete': '確定要刪除選取的模板嗎？',
+  'agentTemplateManagement.batchDelete': '批次刪除',
+  'agentTemplateManagement.batchDeleteSuccess': '批次刪除成功',
+  'agentTemplateManagement.selectTemplate': '請選擇模板',
+  'agentTemplateManagement.select': '選擇',
+  'agentTemplateManagement.searchPlaceholder': '請輸入模板名稱搜尋',
+  'agentTemplateManagement.search': '搜尋',
+  'agentTemplateManagement.serialNumber': '序號',
+  'agentTemplateManagement.selectAll': '全選',
+  'agentTemplateManagement.deselectAll': '取消全選',
+  'agentTemplateManagement.loading': '拼命加載中',
+  'agentTemplateManagement.confirmSingleDelete': '確定要刪除這個模板嗎？',
+  'agentTemplateManagement.confirmBatchDelete': '確定要刪除選中的 {count} 個模板嗎？',
+  'agentTemplateManagement.deleteFailed': '模板刪除失敗',
+  'agentTemplateManagement.batchDeleteFailed': '批次刪除失敗',
+  'agentTemplateManagement.deleteBackendError': '刪除失敗，請檢查後端服務是否正常',
+  'agentTemplateManagement.deleteCancelled': '已取消刪除',
+  
+  // 模板快速配置
+  'templateQuickConfig.title': '模組快速設定',
+  'templateQuickConfig.basicSettings': '基本設置',
+  'templateQuickConfig.agentSettings.agentName': '助手暱稱',
+  'templateQuickConfig.agentSettings.agentNamePlaceholder': '請輸入助手暱稱',
+  'templateQuickConfig.agentSettings.systemPrompt': '角色介紹',
+  'templateQuickConfig.agentSettings.systemPromptPlaceholder': '請輸入角色介紹',
+  'templateQuickConfig.modelSettings': '模型設置',
+  'templateQuickConfig.voiceSettings': '語音設置',
+  'templateQuickConfig.serviceSettings': '服務設置',
+  'templateQuickConfig.deviceSettings': '設備設置',
+  'templateQuickConfig.pluginSettings': '外掛設置',
+  'templateQuickConfig.saveConfig': '保存配置',
+  'templateQuickConfig.resetConfig': '重置配置',
+  'templateQuickConfig.configSaved': '配置保存成功',
+  'templateQuickConfig.configReset': '配置已重置',
+  'templateQuickConfig.confirmReset': '確定要重置配置嗎？',
+  'templateQuickConfig.success': '成功',
+  'templateQuickConfig.error': '錯誤',
+  'templateQuickConfig.configSaveFailed': '模板配置保存失敗',
+  'templateQuickConfig.saveBackendError': '保存失敗，請檢查後端服務是否正常',
+  'templateQuickConfig.confirm': '確定',
+  'templateQuickConfig.cancel': '取消',
+  'templateQuickConfig.templateNotFound': '未找到指定模板',
+  'templateQuickConfig.fetchTemplateFailed': '獲取模板失敗',
+  'templateQuickConfig.fetchTemplateBackendError': '獲取模板失敗，請檢查後端服務是否正常',
+  'error': '錯誤',
+  'warning': '警告',
+  'info': '提示',
+  
+  // agentTemplateManagement錯誤處理相關
+  'agentTemplateManagement.invalidResponse': '無效的回應物件:',
+  'agentTemplateManagement.apiCallFailed': 'API調用失敗:',
+  'agentTemplateManagement.apiCallException': '調用API時發生異常:',
+  'common.networkError': '網路請求失敗'
+}

@@ -124,6 +124,29 @@ const routes = [
       return import('../views/ProviderManagement.vue')
     }
   },
+  // 添加默认角色管理路由
+  {
+    path: '/agent-template-management',
+    name: 'AgentTemplateManagement',
+    component: function () {
+      return import('../views/AgentTemplateManagement.vue')
+    }
+  },
+  // 添加模板快速配置路由
+  {
+    path: '/template-quick-config',
+    name: 'TemplateQuickConfig',
+    component: function () {
+      return import('../views/TemplateQuickConfig.vue')
+    }
+  },
+  {
+    path: '/provider-management',
+    name: 'ProviderManagement',
+    component: function () {
+      return import('../views/ProviderManagement.vue')
+    }
+  },
 ]
 const router = new VueRouter({
   base: process.env.VUE_APP_PUBLIC_PATH || '/',
