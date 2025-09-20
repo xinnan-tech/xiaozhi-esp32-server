@@ -187,3 +187,6 @@ uploadfile
 # Spring Boot configuration files (contain sensitive data)
 main/manager-api/src/main/resources/application.yml
 main/manager-api/src/main/resources/application-dev.yml
+
+# LiveKit Qdrant RAG Agent
+main/livekit-qdrant-RAG-agent/
