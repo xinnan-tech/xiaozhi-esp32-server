@@ -90,6 +90,9 @@ public class ShiroConfig {
         filterMap.put("/agent/chat-history/report", "server");
         filterMap.put("/agent/saveMemory/**", "server");
         filterMap.put("/agent/play/**", "anon");
+        // 设备摄像头相关端点不需要Oauth2Filter拦截，因为它们在Controller中自己处理认证
+        filterMap.put("/device/camera/**", "anon");
+        // 其他所有接口都需要oauth2认证
         filterMap.put("/**", "oauth2");
         shiroFilter.setFilterChainDefinitionMap(filterMap);
 
