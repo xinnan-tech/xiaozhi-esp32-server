@@ -15,6 +15,7 @@ import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page; 
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.json.JSONObject;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
@@ -24,6 +25,7 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.common.utils.SensitiveDataUtils;
 import xiaozhi.modules.agent.dao.AgentDao;
 import xiaozhi.modules.agent.entity.AgentEntity;
 import xiaozhi.modules.model.dao.ModelConfigDao;
@@ -35,6 +37,8 @@ import xiaozhi.modules.model.dto.ModelProviderDTO;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.model.service.ModelProviderService;
+
+import java.io.Serializable;
 
 @Service
 @AllArgsConstructor
@@ -102,34 +106,23 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     }
 
     @Override
-    public ModelConfigDTO add(String modelType, String provideCode, ModelConfigBodyDTO modelConfigBodyDTO) {
-        // 先验证有没有供应器
-        if (StringUtils.isBlank(modelType) || StringUtils.isBlank(provideCode)) {
-            throw new RenException(ErrorCode.MODEL_TYPE_PROVIDE_CODE_NOT_NULL);
-        }
-        List<ModelProviderDTO> providerList = modelProviderService.getList(modelType, provideCode);
-        if (CollectionUtil.isEmpty(providerList)) {
-            throw new RenException(ErrorCode.MODEL_PROVIDER_NOT_EXIST);
-        }
-
-        // 再保存供应器提供的模型
-        ModelConfigEntity modelConfigEntity = ConvertUtils.sourceToTarget(modelConfigBodyDTO, ModelConfigEntity.class);
-        modelConfigEntity.setModelType(modelType);
-        modelConfigEntity.setIsDefault(0);
-        modelConfigDao.insert(modelConfigEntity);
-        return ConvertUtils.sourceToTarget(modelConfigEntity, ModelConfigDTO.class);
-    }
-
-    @Override
     public ModelConfigDTO edit(String modelType, String provideCode, String id, ModelConfigBodyDTO modelConfigBodyDTO) {
         // 先验证有没有供应器
         if (StringUtils.isBlank(modelType) || StringUtils.isBlank(provideCode)) {
-            throw new RenException(ErrorCode.MODEL_TYPE_PROVIDE_CODE_NOT_NULL);
+            throw new RenException("modelType和provideCode不能为空");
         }
         List<ModelProviderDTO> providerList = modelProviderService.getList(modelType, provideCode);
         if (CollectionUtil.isEmpty(providerList)) {
             throw new RenException(ErrorCode.MODEL_PROVIDER_NOT_EXIST);
         }
+        
+        // 获取原始配置
+        ModelConfigEntity originalEntity = modelConfigDao.selectById(id);
+        if (originalEntity == null) {
+            throw new RenException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        
+        // 验证LLM配置
         if (modelConfigBodyDTO.getConfigJson().containsKey("llm")) {
             String llm = modelConfigBodyDTO.getConfigJson().get("llm").toString();
             ModelConfigEntity modelConfigEntity = modelConfigDao.selectOne(new LambdaQueryWrapper<ModelConfigEntity>()
@@ -150,10 +143,58 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         ModelConfigEntity modelConfigEntity = ConvertUtils.sourceToTarget(modelConfigBodyDTO, ModelConfigEntity.class);
         modelConfigEntity.setId(id);
         modelConfigEntity.setModelType(modelType);
+    
+        // 检查敏感字段是否有变化
+        if (originalEntity.getConfigJson() != null && modelConfigBodyDTO.getConfigJson() != null) {
+            boolean sensitiveEqual = SensitiveDataUtils.isSensitiveDataEqual(
+                    originalEntity.getConfigJson(), 
+                    modelConfigBodyDTO.getConfigJson()
+            );
+            
+            if (sensitiveEqual) {
+                // 敏感数据没有变化，使用原始的configJson值
+                modelConfigEntity.setConfigJson(originalEntity.getConfigJson());
+            }
+        }
+        
         modelConfigDao.updateById(modelConfigEntity);
+        
         // 清除缓存
         redisUtils.delete(RedisKeys.getModelConfigById(modelConfigEntity.getId()));
-        return ConvertUtils.sourceToTarget(modelConfigEntity, ModelConfigDTO.class);
+        
+        // 返回数据前处理敏感字段
+        ModelConfigDTO dto = ConvertUtils.sourceToTarget(modelConfigEntity, ModelConfigDTO.class);
+        if (dto.getConfigJson() != null) {
+            dto.setConfigJson(SensitiveDataUtils.maskSensitiveFields(dto.getConfigJson()));
+        }
+        
+        return dto;
+    }
+
+    @Override
+    public ModelConfigDTO add(String modelType, String provideCode, ModelConfigBodyDTO modelConfigBodyDTO) {
+        // 先验证有没有供应器
+        if (StringUtils.isBlank(modelType) || StringUtils.isBlank(provideCode)) {
+            throw new RenException(ErrorCode.MODEL_TYPE_PROVIDE_CODE_NOT_NULL);
+        }
+        List<ModelProviderDTO> providerList = modelProviderService.getList(modelType, provideCode);
+        if (CollectionUtil.isEmpty(providerList)) {
+            throw new RenException(ErrorCode.MODEL_PROVIDER_NOT_EXIST);
+        }
+    
+        // 保存供应器提供的模型
+        ModelConfigEntity modelConfigEntity = ConvertUtils.sourceToTarget(modelConfigBodyDTO, ModelConfigEntity.class);
+        modelConfigEntity.setModelType(modelType);
+        modelConfigEntity.setIsDefault(0);
+        modelConfigDao.insert(modelConfigEntity);
+        
+        // 返回数据前处理敏感字段
+        ModelConfigDTO dto = ConvertUtils.sourceToTarget(modelConfigEntity, ModelConfigDTO.class);
+        if (dto.getConfigJson() != null) {
+            dto.setConfigJson(SensitiveDataUtils.maskSensitiveFields(dto.getConfigJson()));
+        }
+        
+        return dto;
     }
 
     @Override
@@ -243,28 +284,74 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     }
 
     @Override
-    public ModelConfigEntity getModelById(String id, boolean isCache) {
-        if (StringUtils.isBlank(id)) {
-            return null;
-        }
-        if (isCache) {
-            ModelConfigEntity cachedConfig = (ModelConfigEntity) redisUtils.get(RedisKeys.getModelConfigById(id));
-            if (cachedConfig != null) {
-                return ConvertUtils.sourceToTarget(cachedConfig, ModelConfigEntity.class);
-            }
-        }
-        ModelConfigEntity entity = modelConfigDao.selectById(id);
-        if (entity != null) {
-            redisUtils.set(RedisKeys.getModelConfigById(id), entity);
-        }
-        return entity;
-    }
-
-    @Override
     public void setDefaultModel(String modelType, int isDefault) {
         ModelConfigEntity entity = new ModelConfigEntity();
         entity.setIsDefault(isDefault);
         modelConfigDao.update(entity, new QueryWrapper<ModelConfigEntity>()
                 .eq("model_type", modelType));
+    }
+
+    @Override
+    public ModelConfigEntity selectById(Serializable id) {
+        ModelConfigEntity entity = super.selectById(id);
+        if (entity != null && entity.getConfigJson() != null) {
+            // 对配置中的敏感数据进行隐藏处理
+            JSONObject maskedConfigJson = SensitiveDataUtils.maskSensitiveFields(entity.getConfigJson());
+            entity.setConfigJson(maskedConfigJson);
+        }
+        return entity;
+    }
+
+    // 重写getPageData方法，添加敏感数据处理
+    @Override
+    protected <D> PageData<D> getPageData(IPage<?> page, Class<D> target) {
+        List<?> records = page.getRecords();
+        if (records != null && !records.isEmpty()) {
+            for (Object record : records) {
+                if (record instanceof ModelConfigEntity) {
+                    ModelConfigEntity entity = (ModelConfigEntity) record;
+                    if (entity.getConfigJson() != null) {
+                        // 对配置中的敏感数据进行隐藏处理
+                        JSONObject maskedConfigJson = SensitiveDataUtils.maskSensitiveFields(entity.getConfigJson());
+                        entity.setConfigJson(maskedConfigJson);
+                    }
+                }
+            }
+        }
+        return super.getPageData(page, target);
+    }
+
+    // 确保只有一个getModelById方法实现
+    @Override
+    public ModelConfigEntity getModelById(String id, boolean isCache) {
+        ModelConfigEntity entity = null;
+        if (isCache) {
+            String cacheKey = RedisKeys.getModelConfigById(id);
+            entity = (ModelConfigEntity) redisUtils.get(cacheKey);
+            if (entity != null) {
+                // 从缓存获取的数据也需要处理敏感信息
+                if (entity.getConfigJson() != null) {
+                    JSONObject maskedConfigJson = SensitiveDataUtils.maskSensitiveFields(entity.getConfigJson());
+                    entity.setConfigJson(maskedConfigJson);
+                }
+                return entity;
+            }
+        }
+        
+        // 从数据库获取数据
+        entity = modelConfigDao.selectById(id);
+        if (entity != null) {
+            // 处理敏感信息
+            if (entity.getConfigJson() != null) {
+                JSONObject maskedConfigJson = SensitiveDataUtils.maskSensitiveFields(entity.getConfigJson());
+                entity.setConfigJson(maskedConfigJson);
+            }
+            
+            if (isCache) {
+                // 缓存处理后的对象
+                redisUtils.set(RedisKeys.getModelConfigById(id), entity);
+            }
+        }
+        return entity;
     }
 }
