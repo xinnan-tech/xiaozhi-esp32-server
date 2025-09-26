@@ -4,6 +4,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { getAgentDetail, getModelOptions, getPluginFunctions, getRoleTemplates, getTTSVoices, updateAgent } from '@/api/agent/agent'
 import { usePluginStore } from '@/store'
 import { toast } from '@/utils/toast'
+import { t } from '@/i18n'
 
 defineOptions({
   name: 'AgentEdit',
@@ -37,14 +38,15 @@ const formData = ref<Partial<AgentDetail>>({
 
 // 显示名称数据
 const displayNames = ref({
-  vad: '请选择',
-  asr: '请选择',
-  llm: '请选择',
-  vllm: '请选择',
-  intent: '请选择',
-  memory: '请选择',
-  tts: '请选择',
-  voiceprint: '请选择',
+// 显示名称数据
+  vad: t('agent.pleaseSelect'),
+  asr: t('agent.pleaseSelect'),
+  llm: t('agent.pleaseSelect'),
+  vllm: t('agent.pleaseSelect'),
+  intent: t('agent.pleaseSelect'),
+  memory: t('agent.pleaseSelect'),
+  tts: t('agent.pleaseSelect'),
+  voiceprint: t('agent.pleaseSelect'),
 })
 
 // 角色模板数据
@@ -143,7 +145,7 @@ async function loadAgentDetail() {
   }
   catch (error) {
     console.error('加载智能体详情失败:', error)
-    toast.error('加载失败')
+    toast.error(t('agent.loadFail'))
   }
   finally {
     loading.value = false
@@ -358,12 +360,12 @@ function getModelDisplayName(modelType: string, modelId: string) {
 // 保存智能体
 async function saveAgent() {
   if (!formData.value.agentName?.trim()) {
-    toast.warning('请输入助手昵称')
+    toast.warning(t('agent.pleaseInputAgentName'))
     return
   }
 
   if (!formData.value.systemPrompt?.trim()) {
-    toast.warning('请输入角色介绍')
+    toast.warning(t('agent.pleaseInputRoleDescription'))
     return
   }
 
@@ -371,11 +373,11 @@ async function saveAgent() {
     saving.value = true
     await updateAgent(agentId.value, formData.value)
 
-    toast.success('保存成功')
+    toast.success(t('agent.saveSuccess'))
   }
   catch (error) {
     console.error('保存失败:', error)
-    toast.error('保存失败')
+    toast.error(t('agent.saveFail'))
   }
   finally {
     saving.value = false
@@ -441,10 +443,10 @@ onMounted(async () => {
 
 <template>
   <view class="bg-[#f5f7fb] px-[20rpx]">
-    <!-- 基础信息标题 -->
+    <!--// 基础信息标题
     <view class="pb-[20rpx] first:pt-[20rpx]">
       <text class="text-[32rpx] text-[#232338] font-bold">
-        基础信息
+        {{ t('agent.basicInfo') }}
       </text>
     </view>
 
@@ -452,20 +454,20 @@ onMounted(async () => {
     <view class="mb-[24rpx] border border-[#eeeeee] rounded-[20rpx] bg-[#fbfbfb] p-[24rpx]" style="box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);">
       <view class="mb-[24rpx] last:mb-0">
         <text class="mb-[12rpx] block text-[28rpx] text-[#232338] font-medium">
-          助手昵称
-        </text>
+            {{ t('agent.agentName') }}
+          </text>
         <input
           v-model="formData.agentName"
           class="box-border h-[80rpx] w-full border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[16rpx_20rpx] text-[28rpx] text-[#232338] leading-[1.4] outline-none focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
           type="text"
-          placeholder="请输入助手昵称"
+          :placeholder="t('agent.inputAgentName')"
         >
       </view>
 
       <view class="mb-[24rpx] last:mb-0">
         <text class="mb-[12rpx] block text-[28rpx] text-[#232338] font-medium">
-          角色模式
-        </text>
+            {{ t('agent.roleMode') }}
+          </text>
         <view class="mt-0 flex flex-wrap gap-[12rpx]">
           <view
             v-for="template in roleTemplates"
@@ -483,12 +485,12 @@ onMounted(async () => {
 
       <view class="mb-[24rpx] last:mb-0">
         <text class="mb-[12rpx] block text-[28rpx] text-[#232338] font-medium">
-          角色介绍
-        </text>
+            {{ t('agent.roleDescription') }}
+          </text>
         <textarea
           v-model="formData.systemPrompt"
           :maxlength="2000"
-          placeholder="请输入角色介绍"
+          :placeholder="t('agent.inputRoleDescription')"
           class="box-border h-[500rpx] w-full resize-none break-words break-all border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] text-[26rpx] text-[#232338] leading-[1.6] outline-none focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
         />
         <view class="mt-[8rpx] text-right text-[22rpx] text-[#9d9ea3]">
@@ -500,7 +502,7 @@ onMounted(async () => {
     <!-- 模型配置标题 -->
     <view class="pb-[20rpx]">
       <text class="text-[32rpx] text-[#232338] font-bold">
-        模型配置
+        {{ t('agent.modelConfig') }}
       </text>
     </view>
 
@@ -509,7 +511,7 @@ onMounted(async () => {
       <view class="flex flex-col gap-[16rpx]">
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('vad')">
           <text class="text-[28rpx] text-[#232338] font-medium">
-            语音活动检测
+            {{ t('agent.vad') }}
           </text>
           <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
             {{ displayNames.vad }}
@@ -519,7 +521,7 @@ onMounted(async () => {
 
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('asr')">
           <text class="text-[28rpx] text-[#232338] font-medium">
-            语音识别
+            {{ t('agent.asr') }}
           </text>
           <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
             {{ displayNames.asr }}
@@ -529,7 +531,7 @@ onMounted(async () => {
 
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('llm')">
           <text class="text-[28rpx] text-[#232338] font-medium">
-            大语言模型
+            {{ t('agent.llm') }}
           </text>
           <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
             {{ displayNames.llm }}
@@ -539,7 +541,7 @@ onMounted(async () => {
 
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('vllm')">
           <text class="text-[28rpx] text-[#232338] font-medium">
-            视觉大模型
+            {{ t('agent.vllm') }}
           </text>
           <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
             {{ displayNames.vllm }}
@@ -549,7 +551,7 @@ onMounted(async () => {
 
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('intent')">
           <text class="text-[28rpx] text-[#232338] font-medium">
-            意图识别
+            {{ t('agent.intent') }}
           </text>
           <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
             {{ displayNames.intent }}
@@ -559,7 +561,7 @@ onMounted(async () => {
 
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('memory')">
           <text class="text-[28rpx] text-[#232338] font-medium">
-            记忆
+            {{ t('agent.memory') }}
           </text>
           <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
             {{ displayNames.memory }}
@@ -572,7 +574,7 @@ onMounted(async () => {
     <!-- 语音设置标题 -->
     <view class="pb-[20rpx]">
       <text class="text-[32rpx] text-[#232338] font-bold">
-        语音设置
+        {{ t('agent.voiceSettings') }}
       </text>
     </view>
 
@@ -581,7 +583,7 @@ onMounted(async () => {
       <view class="flex flex-col gap-[16rpx]">
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('tts')">
           <text class="text-[28rpx] text-[#232338] font-medium">
-            语音合成
+            {{ t('agent.tts') }}
           </text>
           <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
             {{ displayNames.tts }}
@@ -591,7 +593,7 @@ onMounted(async () => {
 
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('voiceprint')">
           <text class="text-[28rpx] text-[#232338] font-medium">
-            角色音色
+            {{ t('agent.voiceprint') }}
           </text>
           <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
             {{ displayNames.voiceprint }}
@@ -601,10 +603,10 @@ onMounted(async () => {
 
         <view class="flex items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx]">
           <view class="text-[28rpx] text-[#232338] font-medium">
-            插件
+            {{ t('agent.plugins') }}
           </view>
           <view class="cursor-pointer rounded-[20rpx] bg-[rgba(51,108,255,0.1)] px-[24rpx] py-[12rpx] text-[24rpx] text-[#336cff] transition-all duration-300 active:bg-[#336cff] active:text-white" @click="handleTools">
-            <text>编辑功能</text>
+            <text>{{ t('agent.editFunctions') }}</text>
           </view>
         </view>
       </view>
@@ -613,7 +615,7 @@ onMounted(async () => {
     <!-- 记忆历史标题 -->
     <view class="pb-[20rpx]">
       <text class="text-[32rpx] text-[#232338] font-bold">
-        历史记忆
+        {{ t('agent.historyMemory') }}
       </text>
     </view>
 
@@ -622,7 +624,7 @@ onMounted(async () => {
       <view class="mb-[24rpx] last:mb-0">
         <textarea
           v-model="formData.summaryMemory"
-          placeholder="记忆内容"
+          :placeholder="t('agent.memoryContent')"
           disabled
           class="box-border h-[500rpx] w-full resize-none break-words break-all border border-[#eeeeee] rounded-[12rpx] bg-[#f0f0f0] p-[20rpx] text-[26rpx] text-[#65686f] leading-[1.6] opacity-80 outline-none"
         />
@@ -638,7 +640,7 @@ onMounted(async () => {
         custom-class="w-full h-[80rpx] rounded-[16rpx] text-[30rpx] font-semibold bg-[#336cff] active:bg-[#2d5bd1]"
         @click="saveAgent"
       >
-        {{ saving ? '保存中...' : '保存' }}
+        {{ saving ? t('agent.saving') : t('agent.save') }}
       </wd-button>
     </view>
     <!-- 模型选择器 -->

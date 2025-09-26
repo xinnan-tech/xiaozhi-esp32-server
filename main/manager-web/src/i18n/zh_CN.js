@@ -5,7 +5,7 @@ export default {
   'login.requiredCaptcha': '验证码不能为空',
   'login.requiredMobile': '请输入正确的手机号码',
   'login.loginSuccess': '登录成功！',
-  
+
   // HeaderBar组件文本
   'header.smartManagement': '智能体管理',
   'header.modelConfig': '模型配置',
@@ -38,7 +38,7 @@ export default {
   'mcpToolCall.copyResult': '复制结果',
   'mcpToolCall.noResultYet': '暂无执行结果',
   'mcpToolCall.loadingToolList': '正在获取工具列表...',
-  
+
   // 工具名称
   'mcpToolCall.toolName.getDeviceStatus': '查看设备状态',
   'mcpToolCall.toolName.setVolume': '设置音量',
@@ -52,7 +52,7 @@ export default {
   'mcpToolCall.toolName.snapshot': '屏幕截图',
   'mcpToolCall.toolName.previewImage': '预览图片',
   'mcpToolCall.toolName.setDownloadUrl': '设置下载地址',
-  
+
   // 工具分类
   'mcpToolCall.category.audio': '音频',
   'mcpToolCall.category.display': '显示',
@@ -60,7 +60,7 @@ export default {
   'mcpToolCall.category.system': '系统',
   'mcpToolCall.category.assets': '资源',
   'mcpToolCall.category.deviceInfo': '设备信息',
-  
+
   // 表格分类和属性
   'mcpToolCall.table.audioSpeaker': '音频扬声器',
   'mcpToolCall.table.screen': '屏幕',
@@ -80,7 +80,7 @@ export default {
   'mcpToolCall.table.component': '组件',
   'mcpToolCall.table.property': '属性',
   'mcpToolCall.table.value': '值',
-  
+
   'mcpToolCall.prop.volume': '音量',
   'mcpToolCall.prop.brightness': '亮度',
   'mcpToolCall.prop.theme': '主题',
@@ -112,7 +112,7 @@ export default {
   'mcpToolCall.prop.url': 'URL',
   'mcpToolCall.prop.quality': '质量',
   'mcpToolCall.prop.question': '问题',
-  
+
   // 工具帮助文本
   'mcpToolCall.help.getDeviceStatus': '查看设备的当前运行状态，包括音量、屏幕、电池等信息。',
   'mcpToolCall.help.setVolume': '调整设备的音量大小，请输入0-100之间的数值。',
@@ -126,7 +126,7 @@ export default {
   'mcpToolCall.help.snapshot': '对当前屏幕进行截图并上传到指定URL。',
   'mcpToolCall.help.previewImage': '在设备屏幕上预览指定URL的图片。',
   'mcpToolCall.help.setDownloadUrl': '设置设备资源文件的下载地址。',
-  
+
   // 其他文本
   'mcpToolCall.text.strong': '强',
   'mcpToolCall.text.medium': '中',
@@ -231,7 +231,7 @@ export default {
 
   // AddModelDialog组件相关
   'addModelDialog.requiredSupplier': '请选择供应器',
-  
+
   // 注册页面相关
   'register.title': '创建账号',
   'register.welcome': '欢迎使用小智AI',
@@ -259,7 +259,7 @@ export default {
   'register.requiredPassword': '密码不能为空',
   'register.requiredCaptcha': '验证码不能为空',
   'register.requiredMobileCaptcha': '请输入短信验证码',
-  
+
   'manualAddDeviceDialog.deviceType': '设备型号',
   'manualAddDeviceDialog.deviceTypePlaceholder': '请选择设备型号',
   'manualAddDeviceDialog.firmwareVersion': '固件版本',
@@ -631,7 +631,7 @@ export default {
   'providerManagement.selectToDelete': '请先选择需要删除的供应器',
   'providerManagement.confirmDelete': '确定要删除选中的{count}个供应器吗？',
   'providerManagement.viewFields': '查看字段',
-  
+
   // 公共文本
   'common.all': '全部',
   'common.search': '搜索',
@@ -1029,7 +1029,7 @@ export default {
   'agentTemplateManagement.deleteFailed': '模板删除失败',
   'agentTemplateManagement.batchDeleteFailed': '模板批量删除失败',
   'agentTemplateManagement.deleteBackendError': '删除失败，请检查后端服务是否正常',
-  
+
   // 模板快速配置页面文本
   'templateQuickConfig.title': '模块快速配置',
   'templateQuickConfig.agentSettings.agentName': '助手昵称',
@@ -1047,5 +1047,13 @@ export default {
   'templateQuickConfig.resetSuccess': '重置成功',
   'warning': '警告',
   'info': '提示',
-  'common.networkError': '网络请求失败'
+  'common.networkError': '网络请求失败',
+  // SM2加密相关错误消息
+  'sm2.publicKeyNotConfigured': 'SM2公钥未配置，请联系管理员',
+  'sm2.encryptionFailed': '密码加密失败',
+  'sm2.keyGenerationFailed': '密钥对生成失败',
+  'sm2.invalidPublicKey': '无效的公钥格式',
+  'sm2.encryptionError': '加密过程中发生错误',
+  'sm2.publicKeyRetry': '正在重试获取公钥...',
+  'sm2.publicKeyRetryFailed': '公钥获取重试失败'
 }

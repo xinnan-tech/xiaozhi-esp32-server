@@ -14,6 +14,8 @@ import { register, sendSmsCode } from '@/api/auth'
 import { useConfigStore } from '@/store'
 import { getEnvBaseUrl } from '@/utils'
 import { toast } from '@/utils/toast'
+// 导入国际化相关功能
+import { t, initI18n } from '@/i18n'
 
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets
@@ -134,18 +136,18 @@ async function refreshCaptcha() {
 // 发送短信验证码
 async function sendSmsVerification() {
   if (!formData.value.mobile) {
-    toast.warning('请输入手机号')
+    toast.warning(t('register.enterPhone'))
     return
   }
   if (!formData.value.captcha) {
-    toast.warning('请输入图形验证码')
+    toast.warning(t('register.enterCode'))
     return
   }
 
   // 手机号格式验证
   const phoneRegex = /^1[3-9]\d{9}$/
   if (!phoneRegex.test(formData.value.mobile)) {
-    toast.warning('请输入正确的手机号')
+    toast.warning(t('register.enterPhone'))
     return
   }
 
@@ -157,7 +159,7 @@ async function sendSmsVerification() {
       captchaId: formData.value.captchaId,
     })
 
-    toast.success('验证码发送成功')
+    toast.success(t('message.registerSuccess'))
 
     // 开始倒计时
     smsCountdown.value = 60
@@ -169,6 +171,10 @@ async function sendSmsVerification() {
     }, 1000)
   }
   catch (error: any) {
+    // 处理验证码错误 - 从error.message中解析错误码
+    if (error.message.includes('请求错误[10067]')) {
+      toast.warning(t('login.captchaError'))
+    }
     // 发送失败重新获取图形验证码
     refreshCaptcha()
   }
@@ -182,44 +188,44 @@ async function handleRegister() {
   // 表单验证
   if (registerType.value === 'username') {
     if (!formData.value.username) {
-      toast.warning('请输入用户名')
+      toast.warning(t('register.enterUsername'))
       return
     }
   }
   else {
     if (!formData.value.mobile) {
-      toast.warning('请输入手机号')
+      toast.warning(t('register.enterPhone'))
       return
     }
     // 手机号格式验证
     const phoneRegex = /^1[3-9]\d{9}$/
     if (!phoneRegex.test(formData.value.mobile)) {
-      toast.warning('请输入正确的手机号')
+      toast.warning(t('register.enterPhone'))
       return
     }
     if (!formData.value.mobileCaptcha) {
-      toast.warning('请输入短信验证码')
+      toast.warning(t('register.enterCode'))
       return
     }
   }
 
   if (!formData.value.password) {
-    toast.warning('请输入密码')
+    toast.warning(t('register.enterPassword'))
     return
   }
 
   if (!formData.value.confirmPassword) {
-    toast.warning('请确认密码')
+    toast.warning(t('register.confirmPassword'))
     return
   }
 
   if (formData.value.password !== formData.value.confirmPassword) {
-    toast.warning('两次输入的密码不一致')
+    toast.warning(t('register.confirmPassword'))
     return
   }
 
   if (!formData.value.captcha) {
-    toast.warning('请输入验证码')
+    toast.warning(t('register.enterCode'))
     return
   }
 
@@ -239,7 +245,7 @@ async function handleRegister() {
     }
 
     await register(registerData)
-    toast.success('注册成功')
+    toast.success(t('message.registerSuccess'))
 
     // 跳转到登录页
     setTimeout(() => {
@@ -247,6 +253,14 @@ async function handleRegister() {
     }, 1000)
   }
   catch (error: any) {
+    // 处理验证码错误 - 从error.message中解析错误码
+    if (error.message.includes('请求错误[10067]')) {
+      toast.warning(t('login.captchaError'))
+    }
+    // 处理手机号码已注册错误
+    else if (error.message.includes('请求错误[10070]')) {
+      toast.warning(t('message.phoneRegistered'))
+    }
     // 注册失败重新获取验证码
     refreshCaptcha()
   }
@@ -275,7 +289,11 @@ onMounted(async () => {
       console.error('获取配置失败:', error)
     }
   }
+  // 初始化国际化
+  initI18n()
 })
+
+
 </script>
 
 <template>
@@ -287,10 +305,10 @@ onMounted(async () => {
       <view class="logo-section">
         <wd-img :width="80" :height="80" round src="/static/logo.png" class="logo" />
         <text class="welcome-text">
-          欢迎注册
+          {{ t('register.pageTitle') }}
         </text>
         <text class="subtitle">
-          创建您的新账户
+          {{ t('register.createAccount') }}
         </text>
       </view>
     </view>
@@ -312,7 +330,7 @@ onMounted(async () => {
                   v-model="formData.mobile"
                   custom-class="styled-input"
                   no-border
-                  placeholder="请输入手机号码"
+                  :placeholder="t('register.enterPhone')"
                   type="number"
                   :maxlength="11"
                 />
@@ -329,7 +347,7 @@ onMounted(async () => {
                 v-model="formData.username"
                 custom-class="styled-input"
                 no-border
-                placeholder="请输入用户名"
+                :placeholder="t('register.enterUsername')"
               />
             </view>
           </view>
@@ -338,41 +356,41 @@ onMounted(async () => {
         <view class="input-group">
           <view class="input-wrapper">
             <wd-input
-              v-model="formData.password"
-              custom-class="styled-input"
-              no-border
-              placeholder="请输入密码"
-              show-password
-              :maxlength="20"
-            />
-          </view>
+                v-model="formData.password"
+                custom-class="styled-input"
+                no-border
+                :placeholder="t('register.enterPassword')"
+                show-password
+                :maxlength="20"
+              />
+            </view>
         </view>
 
         <view class="input-group">
           <view class="input-wrapper">
             <wd-input
-              v-model="formData.confirmPassword"
-              custom-class="styled-input"
-              no-border
-              placeholder="请确认密码"
-              show-password
-              :maxlength="20"
-            />
-          </view>
+                v-model="formData.confirmPassword"
+                custom-class="styled-input"
+                no-border
+                :placeholder="t('register.confirmPassword')"
+                show-password
+                :maxlength="20"
+              />
+            </view>
         </view>
 
         <view class="input-group">
           <view class="input-wrapper captcha-wrapper">
             <wd-input
-              v-model="formData.captcha"
-              custom-class="styled-input"
-              no-border
-              placeholder="请输入验证码"
-              :maxlength="6"
-            />
-            <view class="captcha-image" @click="refreshCaptcha">
-              <image :src="captchaImage" class="captcha-img" />
-            </view>
+                v-model="formData.captcha"
+                custom-class="styled-input"
+                no-border
+                :placeholder="t('register.enterCode')"
+                :maxlength="6"
+              />
+              <view class="captcha-image" @click="refreshCaptcha">
+                <image :src="captchaImage" class="captcha-img" />
+              </view>
           </view>
         </view>
 
@@ -380,21 +398,21 @@ onMounted(async () => {
         <view v-if="registerType === 'mobile'" class="input-group">
           <view class="input-wrapper sms-wrapper">
             <wd-input
-              v-model="formData.mobileCaptcha"
-              custom-class="styled-input"
-              no-border
-              placeholder="请输入短信验证码"
-              type="number"
-              :maxlength="6"
-            />
-            <wd-button
-              :loading="smsLoading"
-              :disabled="smsCountdown > 0"
-              custom-class="sms-btn"
-              @click="sendSmsVerification"
-            >
-              {{ smsCountdown > 0 ? `${smsCountdown}s` : '获取验证码' }}
-            </wd-button>
+                v-model="formData.mobileCaptcha"
+                custom-class="styled-input"
+                no-border
+                :placeholder="t('register.enterCode')"
+                type="number"
+                :maxlength="6"
+              />
+              <wd-button
+                :loading="smsLoading"
+                :disabled="smsCountdown > 0"
+                custom-class="sms-btn"
+                @click="sendSmsVerification"
+              >
+                {{ smsCountdown > 0 ? `${smsCountdown}s` : t('register.getCode') }}
+              </wd-button>
           </view>
         </view>
 
@@ -404,15 +422,15 @@ onMounted(async () => {
           :loading="loading"
           @click="handleRegister"
         >
-          {{ loading ? '注册中...' : '注册' }}
+          {{ loading ? t('register.registering') : t('register.registerButton') }}
         </view>
 
         <view class="login-hint">
           <text class="hint-text">
-            已有账户？
+            {{ t('register.haveAccount') }}
           </text>
           <text class="login-link" @click="goBack">
-            立即登录
+            {{ t('register.loginNow') }}
           </text>
         </view>
 
@@ -441,7 +459,7 @@ onMounted(async () => {
     <!-- 区号选择弹窗 -->
     <wd-action-sheet
       v-model="showAreaCodeSheet"
-      title="选择国家/地区"
+      :title="t('register.selectCountry')"
       :close-on-click-modal="true"
       @close="closeAreaCodeSheet"
     >
@@ -475,11 +493,13 @@ onMounted(async () => {
             custom-class="confirm-btn"
             @click="closeAreaCodeSheet"
           >
-            确认
+            {{ t('register.confirm') }}
           </wd-button>
         </view>
       </view>
     </wd-action-sheet>
+
+
   </view>
 </template>
 

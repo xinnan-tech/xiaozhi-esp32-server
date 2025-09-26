@@ -161,9 +161,8 @@ public interface ErrorCode {
     int MQTT_SECRET_LENGTH_INSECURE = 10123; // mqtt密钥长度不安全
     int MQTT_SECRET_CHARACTER_INSECURE = 10124; // mqtt密钥必须同时包含大小写字母
     int MQTT_SECRET_WEAK_PASSWORD = 10125; // mqtt密钥包含弱密码
-    
-    // 字典相关错误码
     int DICT_LABEL_DUPLICATE = 10128; // 字典标签重复
-    // 模型相关错误码
-    int MODEL_TYPE_PROVIDE_CODE_NOT_NULL = 10129; // modelType和provideCode不能为空
+    int SM2_KEY_NOT_CONFIGURED = 10129; // SM2密钥未配置
+    int SM2_DECRYPT_ERROR = 10130; // SM2解密失败
+    int MODEL_TYPE_PROVIDE_CODE_NOT_NULL = 10131; // modelType和provideCode不能为空
 }

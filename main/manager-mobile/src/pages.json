@@ -1,7 +1,7 @@
 {
   "globalStyle": {
     "navigationStyle": "default",
-    "navigationBarTitleText": "小智智控台",
+    "navigationBarTitleText": "小智",
     "navigationBarBackgroundColor": "#f8f8f8",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#FFFFFF"
@@ -104,7 +104,7 @@
       "path": "pages/device-config/index",
       "type": "page",
       "style": {
-        "navigationBarTitleText": "设备配网",
+        "navigationBarTitleText": "设备配置",
         "navigationStyle": "custom"
       }
     },
@@ -114,7 +114,7 @@
       "layout": "default",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "登陆"
+        "navigationBarTitleText": "Login"
       }
     },
     {

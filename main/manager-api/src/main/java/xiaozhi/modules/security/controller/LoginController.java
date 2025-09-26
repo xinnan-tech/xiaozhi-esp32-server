@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
@@ -31,6 +32,8 @@ import xiaozhi.modules.security.password.PasswordUtils;
 import xiaozhi.modules.security.service.CaptchaService;
 import xiaozhi.modules.security.service.SysUserTokenService;
 import xiaozhi.modules.security.user.SecurityUser;
+import xiaozhi.common.utils.SM2Utils;
+import org.apache.commons.lang3.StringUtils;
 import xiaozhi.modules.sys.dto.PasswordDTO;
 import xiaozhi.modules.sys.dto.RetrievePasswordDTO;
 import xiaozhi.modules.sys.dto.SysUserDTO;
@@ -42,6 +45,7 @@ import xiaozhi.modules.sys.vo.SysDictDataItem;
 /**
  * 登录控制层
  */
+@Slf4j
 @AllArgsConstructor
 @RestController
 @RequestMapping("/user")
@@ -70,6 +74,7 @@ public class LoginController {
         if (!validate) {
             throw new RenException(ErrorCode.SMS_CAPTCHA_ERROR);
         }
+
         Boolean isMobileRegister = sysParamsService
                 .getValueObject(Constant.SysMSMParam.SERVER_ENABLE_MOBILE_REGISTER.getValue(), Boolean.class);
         if (!isMobileRegister) {
@@ -83,11 +88,38 @@ public class LoginController {
     @PostMapping("/login")
     @Operation(summary = "登录")
     public Result<TokenDTO> login(@RequestBody LoginDTO login) {
-        // 验证是否正确输入验证码
-        boolean validate = captchaService.validate(login.getCaptchaId(), login.getCaptcha(), true);
-        if (!validate) {
-            throw new RenException(ErrorCode.SMS_CAPTCHA_ERROR);
+        String password = login.getPassword();
+        
+        // 获取SM2私钥
+        String privateKeyStr = sysParamsService.getValue(Constant.SM2_PRIVATE_KEY, true);
+        if (StringUtils.isBlank(privateKeyStr)) {
+            throw new RenException(ErrorCode.SM2_KEY_NOT_CONFIGURED);
         }
+        
+        // 使用SM2私钥解密密码
+        String decryptedContent;
+        try {
+            decryptedContent = SM2Utils.decrypt(privateKeyStr, password);
+        } catch (Exception e) {
+            throw new RenException(ErrorCode.SM2_DECRYPT_ERROR);
+        }
+        
+        // 分离验证码和密码：前5位是验证码，后面是密码
+        if (decryptedContent.length() > 5) {
+            String embeddedCaptcha = decryptedContent.substring(0, 5);
+            String actualPassword = decryptedContent.substring(5);
+            
+            // 验证嵌入的验证码是否正确
+            boolean embeddedCaptchaValid = captchaService.validate(login.getCaptchaId(), embeddedCaptcha, true);
+            if (!embeddedCaptchaValid) {
+                throw new RenException(ErrorCode.SMS_CAPTCHA_ERROR);
+            }
+            
+            login.setPassword(actualPassword);
+        } else {
+            throw new RenException(ErrorCode.SM2_DECRYPT_ERROR);
+        }
+        
         // 按照用户名获取用户
         SysUserDTO userDTO = sysUserService.getByUsername(login.getUsername());
         // 判断用户是否存在
@@ -100,6 +132,8 @@ public class LoginController {
         }
         return sysUserTokenService.createToken(userDTO.getId());
     }
+    
+
 
     @PostMapping("/register")
     @Operation(summary = "注册")
@@ -107,6 +141,45 @@ public class LoginController {
         if (!sysUserService.getAllowUserRegister()) {
             throw new RenException(ErrorCode.USER_REGISTER_DISABLED);
         }
+        
+        String password = login.getPassword();
+        
+        // SM2加密
+        String privateKeyStr;
+        try {
+            // 获取SM2私钥
+            privateKeyStr = sysParamsService.getValue(Constant.SM2_PRIVATE_KEY, true);
+            if (StringUtils.isBlank(privateKeyStr)) {
+                throw new RenException(ErrorCode.SM2_KEY_NOT_CONFIGURED);
+            }
+        } catch (Exception e) {
+            throw new RenException(ErrorCode.SM2_KEY_NOT_CONFIGURED);
+        }
+        
+        String decryptedContent;
+        try {
+            // 使用SM2私钥解密密码
+            decryptedContent = SM2Utils.decrypt(privateKeyStr, password);
+        } catch (Exception e) {
+            throw new RenException(ErrorCode.SM2_DECRYPT_ERROR);
+        }
+        
+        // 分离验证码和密码：前5位是验证码，后面是密码
+        if (decryptedContent.length() > 5) {
+            String embeddedCaptcha = decryptedContent.substring(0, 5);
+            String actualPassword = decryptedContent.substring(5);
+            
+            // 验证嵌入的验证码是否正确
+            boolean embeddedCaptchaValid = captchaService.validate(login.getCaptchaId(), embeddedCaptcha, true);
+            if (!embeddedCaptchaValid) {
+                throw new RenException(ErrorCode.SMS_CAPTCHA_ERROR);
+            }
+            
+            login.setPassword(actualPassword);
+        } else {
+            throw new RenException(ErrorCode.SM2_DECRYPT_ERROR);
+        }
+        
         // 是否开启手机注册
         Boolean isMobileRegister = sysParamsService
                 .getValueObject(Constant.SysMSMParam.SERVER_ENABLE_MOBILE_REGISTER.getValue(), Boolean.class);
@@ -121,12 +194,6 @@ public class LoginController {
             validate = captchaService.validateSMSValidateCode(login.getUsername(), login.getMobileCaptcha(), false);
             if (!validate) {
                 throw new RenException(ErrorCode.SMS_CODE_ERROR);
-            }
-        } else {
-            // 验证是否正确输入验证码
-            validate = captchaService.validate(login.getCaptchaId(), login.getCaptcha(), true);
-            if (!validate) {
-                throw new RenException(ErrorCode.SMS_CAPTCHA_ERROR);
             }
         }
 
@@ -208,6 +275,13 @@ public class LoginController {
         config.put("beianIcpNum", sysParamsService.getValue(Constant.SysBaseParam.BEIAN_ICP_NUM.getValue(), true));
         config.put("beianGaNum", sysParamsService.getValue(Constant.SysBaseParam.BEIAN_GA_NUM.getValue(), true));
         config.put("name", sysParamsService.getValue(Constant.SysBaseParam.SERVER_NAME.getValue(), true));
+        
+        // SM2公钥
+        String publicKey = sysParamsService.getValue(Constant.SM2_PUBLIC_KEY, true);
+        if (StringUtils.isBlank(publicKey)) {
+            throw new RenException(ErrorCode.SM2_KEY_NOT_CONFIGURED);
+        }
+        config.put("sm2PublicKey", publicKey);
 
         return new Result<Map<String, Object>>().ok(config);
     }

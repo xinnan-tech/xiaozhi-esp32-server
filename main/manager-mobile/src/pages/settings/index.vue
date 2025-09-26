@@ -11,6 +11,8 @@ import { clearServerBaseUrlOverride, getEnvBaseUrl, getServerBaseUrlOverride, se
 import { isMp } from '@/utils/platform'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useToast } from 'wot-design-uni'
+import { t, changeLanguage, getSupportedLanguages, getCurrentLanguage } from '@/i18n'
+import type { Language } from '@/store/lang'
 
 defineOptions({
   name: 'SettingsPage',
@@ -62,7 +64,7 @@ function validateUrl() {
   }
 
   if (!/^https?:\/\/.+\/xiaozhi$/.test(baseUrlInput.value)) {
-    urlError.value = '请输入有效的服务端地址（以 http 或 https 开头，并以 /xiaozhi 结尾）'
+    urlError.value = t('settings.validServerUrl')
   }
 }
 
@@ -85,12 +87,12 @@ async function testServerBaseUrl() {
     if (response.statusCode === 200) {
       return true
     } else {
-      toast.error('无效地址，请检查服务端是否启动或网络连接是否正常')
+      toast.error(t('message.invalidAddress'))
       return false
     }
   } catch (error) {
     console.error('测试服务端地址失败:', error)
-    toast.error('无效地址，请检查服务端是否启动或网络连接是否正常')
+    toast.error(t('message.invalidAddress'))
     return false
   }
 }
@@ -98,7 +100,7 @@ async function testServerBaseUrl() {
 // 保存服务端地址
 async function saveServerBaseUrl() {
   if (!baseUrlInput.value || !/^https?:\/\/.+\/xiaozhi$/.test(baseUrlInput.value)) {
-    toast.warning('请输入有效的服务端地址（以 http 或 https 开头，并以 /xiaozhi 结尾）')
+    toast.warning(t('settings.validServerUrl'))
     return
   }
 
@@ -113,19 +115,30 @@ async function saveServerBaseUrl() {
   clearAllCacheAfterUrlChange()
 
   uni.showModal({
-    title: '重启应用',
-    content: '服务端地址已保存并清空缓存，是否立即重启生效？',
-    confirmText: '立即重启',
-    cancelText: '稍后',
+    title: t('settings.restartApp'),
+    content: t('settings.serverUrlSavedAndCacheCleared'),
+    confirmText: t('settings.restartNow'),
+    cancelText: t('settings.restartLater'),
     success: (res) => {
       if (res.confirm) {
         restartApp()
       }
       else {
-        toast.success('已保存，可稍后手动重启应用')
+        toast.success(t('settings.restartSuccess'))
       }
     },
   })
+}
+
+// 语言切换
+const supportedLanguages = getSupportedLanguages()
+const currentLanguage = ref<Language>(getCurrentLanguage())
+const showLanguageSheet = ref(false)
+
+function handleLanguageChange(lang: Language) {
+  changeLanguage(lang)
+  showLanguageSheet.value = false
+  toast.success(t('settings.languageChanged'))
 }
 
 // 重置为 env 默认
@@ -137,16 +150,16 @@ function resetServerBaseUrl() {
   clearAllCacheAfterUrlChange()
 
   uni.showModal({
-    title: '重启应用',
-    content: '已重置为默认地址并清空缓存，是否立即重启生效？',
-    confirmText: '立即重启',
-    cancelText: '稍后',
+    title: t('settings.restartApp'),
+    content: t('settings.resetToDefaultAndCacheCleared'),
+    confirmText: t('settings.restartNow'),
+    cancelText: t('settings.restartLater'),
     success: (res) => {
       if (res.confirm) {
         restartApp()
       }
       else {
-        toast.success('已重置，可稍后手动重启应用')
+        toast.success(t('settings.resetSuccess'))
       }
     },
   })
@@ -185,8 +198,7 @@ function clearAllCacheAfterUrlChange() {
 
     // 重新获取缓存信息
     getCacheInfo()
-  }
-  catch (error) {
+  } catch (error) {
     console.error('清除缓存失败:', error)
   }
 }
@@ -195,12 +207,14 @@ function clearAllCacheAfterUrlChange() {
 async function clearCache() {
   try {
     uni.showModal({
-      title: '确认清除',
-      content: '确定要清除所有缓存吗？这将删除所有数据包括登录状态，需要重新登录。',
+      title: t('settings.confirmClear'),
+      content: t('settings.confirmClearMessage'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
       success: (res) => {
         if (res.confirm) {
           clearAllCacheAfterUrlChange()
-          toast.success('缓存清除成功，即将跳转到登录页')
+          toast.success(t('settings.cacheCleared'))
 
           // 延迟跳转到登录页
           setTimeout(() => {
@@ -209,22 +223,22 @@ async function clearCache() {
         }
       },
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('清除缓存失败:', error)
-    toast.error('清除缓存失败')
+    toast.error(t('settings.clearCacheFailed'))
   }
 }
 
 // 关于我们
 function showAbout() {
   uni.showModal({
-    title: `关于${import.meta.env.VITE_APP_TITLE}`,
-    content: `${import.meta.env.VITE_APP_TITLE}\n\n基于 Vue.js 3 + uni-app 构建的跨平台移动端管理应用，为小智ESP32智能硬件提供设备管理、智能体配置等功能。\n\n© 2025 xiaozhi-esp32-server`,
-    title: `关于小智智控台`,
-    content: `小智智控台\n\n基于 Vue.js 3 + uni-app 构建的跨平台移动端管理应用，为小智ESP32智能硬件提供设备管理、智能体配置等功能。\n\n© 2025 xiaozhi-esp32-server 0.8.3`,
+    title: t('settings.aboutApp', { appName: import.meta.env.VITE_APP_TITLE }),
+    content: t('settings.aboutContent', { 
+      appName: import.meta.env.VITE_APP_TITLE,
+      version: '0.8.3'
+    }),
     showCancel: false,
-    confirmText: '确定',
+    confirmText: t('common.confirm'),
   })
 }
 
@@ -234,19 +248,24 @@ onMounted(async () => {
     loadServerBaseUrl()
   }
   getCacheInfo()
+  
+  // 动态设置导航栏标题为国际化文本
+  uni.setNavigationBarTitle({
+    title: t('settings.title')
+  })
 })
 </script>
 
 <template>
   <view class="min-h-screen bg-[#f5f7fb]">
-    <wd-navbar title="设置" placeholder safe-area-inset-top fixed />
+    <wd-navbar :title="t('settings.title')" placeholder safe-area-inset-top fixed />
 
     <view class="p-[24rpx]">
       <!-- 网络设置 - 仅在非小程序环境显示 -->
       <view v-if="!isMp" class="mb-[32rpx]">
         <view class="mb-[24rpx] flex items-center">
           <text class="text-[32rpx] text-[#232338] font-bold">
-            网络设置
+            {{ t('settings.networkSettings') }}
           </text>
         </view>
 
@@ -254,19 +273,19 @@ onMounted(async () => {
           style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);">
           <view class="mb-[24rpx]">
             <text class="text-[28rpx] text-[#232338] font-semibold">
-              服务端接口地址
+              {{ t('settings.serverApiUrl') }}
             </text>
             <text class="mt-[8rpx] block text-[24rpx] text-[#9d9ea3]">
-              修改后将自动清空缓存并重启应用
+              {{ t('settings.modifyWillClearCache') }}
             </text>
           </view>
 
           <view class="mb-[24rpx]">
             <view class="w-full rounded-[16rpx] border border-[#eeeeee] bg-[#f5f7fb] overflow-hidden">
               <wd-input v-model="baseUrlInput" type="text" clearable :maxlength="200"
-                placeholder="输入服务端地址，如 https://example.com/xiaozhi"
-                custom-class="!border-none !bg-transparent h-[88rpx] px-[24rpx] items-center"
-                input-class="text-[28rpx] text-[#232338]" @input="validateUrl" @blur="validateUrl" />
+              :placeholder="t('settings.enterServerUrl')"
+              custom-class="!border-none !bg-transparent h-[64rpx] px-[24rpx] items-center"
+              input-class="text-[28rpx] text-[#232338]" @input="validateUrl" @blur="validateUrl" />
             </view>
             <text v-if="urlError" class="mt-[8rpx] block text-[24rpx] text-[#ff4d4f]">
               {{ urlError }}
@@ -277,12 +296,12 @@ onMounted(async () => {
             <wd-button type="primary"
               custom-class="flex-1 h-[88rpx] rounded-[20rpx] text-[28rpx] font-semibold bg-[#336cff] border-none shadow-[0_4rpx_16rpx_rgba(51,108,255,0.3)] active:shadow-[0_2rpx_8rpx_rgba(51,108,255,0.4)] active:scale-98"
               @click="saveServerBaseUrl">
-              保存设置
+              {{ t('settings.saveSettings') }}
             </wd-button>
             <wd-button type="default"
               custom-class="flex-1 h-[88rpx] rounded-[20rpx] text-[28rpx] font-semibold bg-white border-[#eeeeee] text-[#65686f] active:bg-[#f5f7fb]"
               @click="resetServerBaseUrl">
-              恢复默认
+              {{ t('settings.resetDefault') }}
             </wd-button>
           </view>
         </view>
@@ -292,7 +311,7 @@ onMounted(async () => {
       <view class="mb-[32rpx]">
         <view class="mb-[24rpx] flex items-center">
           <text class="text-[32rpx] text-[#232338] font-bold">
-            缓存管理
+            {{ t('settings.cacheManagement') }}
           </text>
         </view>
 
@@ -304,11 +323,11 @@ onMounted(async () => {
               class="flex items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]">
               <view>
                 <text class="text-[28rpx] text-[#232338] font-medium">
-                  总缓存大小
-                </text>
-                <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
-                  应用数据总大小
-                </text>
+              {{ t('settings.totalCacheSize') }}
+            </text>
+            <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
+              {{ t('settings.appDataSize') }}
+            </text>
               </view>
               <text class="text-[28rpx] text-[#65686f] font-semibold">
                 {{ cacheInfo.storageSize }}
@@ -320,16 +339,16 @@ onMounted(async () => {
               class="flex items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx]">
               <view>
                 <text class="text-[28rpx] text-[#232338] font-medium">
-                  缓存清理
-                </text>
-                <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
-                  清空所有缓存数据
-                </text>
+              {{ t('settings.cacheClear') }}
+            </text>
+            <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
+              {{ t('settings.clearAllCache') }}
+            </text>
               </view>
               <view
                 class="cursor-pointer rounded-[24rpx] bg-[rgba(255,107,107,0.1)] px-[28rpx] py-[16rpx] text-[24rpx] text-[#ff6b6b] font-semibold transition-all duration-300 active:scale-95 active:bg-[#ff6b6b] active:text-white"
                 @click="clearCache">
-                清除缓存
+                {{ t('settings.clearCache') }}
               </view>
             </view>
           </view>
@@ -340,8 +359,8 @@ onMounted(async () => {
       <view class="mb-[32rpx]">
         <view class="mb-[24rpx] flex items-center">
           <text class="text-[32rpx] text-[#232338] font-bold">
-            应用信息
-          </text>
+              {{ t('settings.appInfo') }}
+            </text>
         </view>
 
         <view class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
@@ -351,16 +370,67 @@ onMounted(async () => {
             @click="showAbout">
             <view>
               <text class="text-[28rpx] text-[#232338] font-medium">
-                关于我们
-              </text>
-              <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
-                应用版本与团队信息
-              </text>
+                  {{ t('settings.aboutUs') }}
+                </text>
+                <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
+                  {{ t('settings.appVersion') }}
+                </text>
             </view>
             <wd-icon name="arrow-right" custom-class="text-[32rpx] text-[#9d9ea3]" />
           </view>
         </view>
       </view>
+
+      <!-- 语言设置 -->
+      <view class="mb-[32rpx]">
+        <view class="mb-[24rpx] flex items-center">
+          <text class="text-[32rpx] text-[#232338] font-bold">
+              {{ t('settings.languageSettings') }}
+            </text>
+        </view>
+
+        <view class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
+          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);">
+          <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]" @click="showLanguageSheet = true">
+            <view>
+              <text class="text-[32rpx] text-[#232338] font-medium">
+                  {{ t('settings.language') }}
+                </text>
+                <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
+                  {{ t('settings.selectLanguage') }}
+                </text>
+            </view>
+            <view class="flex items-center">
+              <text class="text-[32rpx] text-[#9d9ea3] font-semibold mr-[16rpx]">
+                {{ supportedLanguages.find(lang => lang.code === currentLanguage.value)?.name }}
+              </text>
+              <wd-icon name="arrow-right" custom-class="text-[32rpx] text-[#9d9ea3]" />
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 语言选择弹窗 -->
+      <wd-action-sheet
+        v-model="showLanguageSheet"
+        :title="t('settings.selectLanguage')"
+        :close-on-click-modal="true"
+      >
+        <view class="language-sheet">
+          <scroll-view scroll-y class="language-list">
+            <view
+              v-for="lang in supportedLanguages"
+              :key="lang.code"
+              class="language-item"
+              @click="handleLanguageChange(lang.code)"
+            >
+              <text class="language-name">
+                {{ lang.name }}
+              </text>
+            </view>
+          </scroll-view>
+        </view>
+      </wd-action-sheet>
 
       <!-- 底部安全距离 -->
       <!-- 底部安全距离 -->
@@ -370,4 +440,27 @@ onMounted(async () => {
 </template>
 
 <style lang="scss" scoped>
-// 保持与 edit.vue 一致的风格，样式主要通过类名控制</style>
+// 保持与 edit.vue 一致的风格，样式主要通过类名控制
+
+// 语言选择弹窗样式
+.language-sheet {
+  .language-list {
+    max-height: 50vh;
+    .language-item {
+      padding: 30rpx 0;
+      text-align: center;
+      border-bottom: 1rpx solid #f0f0f0;
+      .language-name {
+        font-size: 28rpx;
+        color: #333;
+      }
+      &:last-child {
+        border-bottom: none;
+      }
+      &:active {
+        background-color: #f5f7fb;
+      }
+    }
+  }
+}
+</style>

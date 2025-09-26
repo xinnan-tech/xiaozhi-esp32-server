@@ -68,6 +68,7 @@ export interface PublicConfig {
   beianIcpNum: string
   beianGaNum: string
   name: string
+  sm2PublicKey: string
 }
 
 // 获取用户信息

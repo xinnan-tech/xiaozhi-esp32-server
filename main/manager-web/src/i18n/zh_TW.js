@@ -5,7 +5,7 @@ export default {
   'login.requiredCaptcha': '驗證碼不能為空',
   'login.requiredMobile': '請輸入正確的手機號碼',
   'login.loginSuccess': '登錄成功！',
-  
+
   // HeaderBar组件文本
   'header.smartManagement': '智能體管理',
   'header.modelConfig': '模型配置',
@@ -38,7 +38,7 @@ export default {
   'mcpToolCall.copyResult': '複製結果',
   'mcpToolCall.noResultYet': '暫無執行結果',
   'mcpToolCall.loadingToolList': '正在獲取工具列表...',
-  
+
   // 工具名稱
   'mcpToolCall.toolName.getDeviceStatus': '查看設備狀態',
   'mcpToolCall.toolName.setVolume': '設置音量',
@@ -52,7 +52,7 @@ export default {
   'mcpToolCall.toolName.snapshot': '螢幕截圖',
   'mcpToolCall.toolName.previewImage': '預覽圖片',
   'mcpToolCall.toolName.setDownloadUrl': '設置下載地址',
-  
+
   // 工具分類
   'mcpToolCall.category.audio': '音頻',
   'mcpToolCall.category.display': '顯示',
@@ -60,7 +60,7 @@ export default {
   'mcpToolCall.category.system': '系統',
   'mcpToolCall.category.assets': '資源',
   'mcpToolCall.category.deviceInfo': '設備資訊',
-  
+
   // 表格分類和屬性
   'mcpToolCall.table.audioSpeaker': '音頻揚聲器',
   'mcpToolCall.table.screen': '螢幕',
@@ -80,7 +80,7 @@ export default {
   'mcpToolCall.table.component': '組件',
   'mcpToolCall.table.property': '屬性',
   'mcpToolCall.table.value': '值',
-  
+
   'mcpToolCall.prop.volume': '音量',
   'mcpToolCall.prop.brightness': '亮度',
   'mcpToolCall.prop.theme': '主題',
@@ -112,7 +112,7 @@ export default {
   'mcpToolCall.prop.url': 'URL',
   'mcpToolCall.prop.quality': '品質',
   'mcpToolCall.prop.question': '問題',
-  
+
   // 工具幫助文本
   'mcpToolCall.help.getDeviceStatus': '查看設備的當前運行狀態，包括音量、螢幕、電池等資訊。',
   'mcpToolCall.help.setVolume': '調整設備的音量大小，請輸入0-100之間的數值。',
@@ -126,7 +126,7 @@ export default {
   'mcpToolCall.help.snapshot': '對當前螢幕進行截圖並上傳到指定URL。',
   'mcpToolCall.help.previewImage': '在設備螢幕上預覽指定URL的圖片。',
   'mcpToolCall.help.setDownloadUrl': '設置設備資源文件的下載地址。',
-  
+
   // 其他文本
   'mcpToolCall.text.strong': '強',
   'mcpToolCall.text.medium': '中',
@@ -231,7 +231,7 @@ export default {
 
   // AddModelDialog組件相關
   'addModelDialog.requiredSupplier': '請選擇供應器',
-  
+
   // 註冊頁面相關
   'register.title': '建立帳號',
   'register.welcome': '歡迎使用小智慧AI',
@@ -259,7 +259,7 @@ export default {
   'register.requiredPassword': '密碼不能為空',
   'register.requiredCaptcha': '驗證碼不能為空',
   'register.requiredMobileCaptcha': '請輸入簡訊驗證碼',
-  
+
   'manualAddDeviceDialog.deviceType': '設備型號',
   'manualAddDeviceDialog.deviceTypePlaceholder': '請選擇設備型號',
   'manualAddDeviceDialog.firmwareVersion': '固件版本',
@@ -548,41 +548,41 @@ export default {
   'voiceprint.delete': '刪除聲紋',
 
   // 字典管理頁面文本
-  'dictManagement.pageTitle': '字典管理', 
-  'dictManagement.searchPlaceholder': '請輸入字典值標籤查詢', 
-  'dictManagement.search': '搜索', 
-  'dictManagement.dictTypeName': '字典類型名稱', 
-  'dictManagement.operation': '操作', 
-  'dictManagement.edit': '編輯', 
-  'dictManagement.dictLabel': '字典標籤', 
-  'dictManagement.dictValue': '字典值', 
-  'dictManagement.sort': '排序', 
-  'dictManagement.delete': '刪除', 
-  'dictManagement.selectAll': '全選', 
-  'dictManagement.deselectAll': '取消全選', 
-  'dictManagement.addDictType': '新增字典類型', 
-  'dictManagement.batchDeleteDictType': '批量刪除字典類型', 
-  'dictManagement.addDictData': '新增字典數據', 
-  'dictManagement.batchDeleteDictData': '批量刪除字典數據', 
-  'dictManagement.itemsPerPage': '{items}條/頁', 
-  'dictManagement.firstPage': '首頁', 
-  'dictManagement.prevPage': '上一頁', 
-  'dictManagement.nextPage': '下一頁', 
-  'dictManagement.totalRecords': '共{total}條記錄', 
-  'dictManagement.editDictType': '編輯字典類型', 
-  'dictManagement.editDictData': '編輯字典數據', 
-  'dictManagement.saveSuccess': '保存成功', 
-  'dictManagement.deleteSuccess': '刪除成功', 
-  'dictManagement.selectDictTypeToDelete': '請選擇要刪除的字典類型', 
-  'dictManagement.confirmDeleteDictType': '確定要刪除選中的字典類型嗎?', 
-  'dictManagement.confirm': '確定', 
-  'dictManagement.cancel': '取消', 
-  'dictManagement.selectDictTypeFirst': '請先選擇字典類型', 
-  'dictManagement.confirmDeleteDictData': '確定要刪除該字典數據嗎?', 
-  'dictManagement.selectDictDataToDelete': '請選擇要刪除的字典數據', 
-  'dictManagement.confirmBatchDeleteDictData': '確定要刪除選中的{count}個字典數據嗎?', 
+  'dictManagement.pageTitle': '字典管理',
+  'dictManagement.searchPlaceholder': '請輸入字典值標籤查詢',
+  'dictManagement.search': '搜索',
+  'dictManagement.dictTypeName': '字典類型名稱',
+  'dictManagement.operation': '操作',
+  'dictManagement.edit': '編輯',
+  'dictManagement.dictLabel': '字典標籤',
+  'dictManagement.dictValue': '字典值',
+  'dictManagement.sort': '排序',
+  'dictManagement.delete': '刪除',
+  'dictManagement.selectAll': '全選',
+  'dictManagement.deselectAll': '取消全選',
+  'dictManagement.addDictType': '新增字典類型',
+  'dictManagement.batchDeleteDictType': '批量刪除字典類型',
+  'dictManagement.addDictData': '新增字典數據',
+  'dictManagement.batchDeleteDictData': '批量刪除字典數據',
+  'dictManagement.itemsPerPage': '{items}條/頁',
+  'dictManagement.firstPage': '首頁',
+  'dictManagement.prevPage': '上一頁',
+  'dictManagement.nextPage': '下一頁',
+  'dictManagement.totalRecords': '共{total}條記錄',
+  'dictManagement.editDictType': '編輯字典類型',
+  'dictManagement.editDictData': '編輯字典數據',
+  'dictManagement.saveSuccess': '保存成功',
+  'dictManagement.deleteSuccess': '刪除成功',
+  'dictManagement.selectDictTypeToDelete': '請選擇要刪除的字典類型',
+  'dictManagement.confirmDeleteDictType': '確定要刪除選中的字典類型嗎?',
+  'dictManagement.confirm': '確定',
+  'dictManagement.cancel': '取消',
+  'dictManagement.selectDictTypeFirst': '請先選擇字典類型',
+  'dictManagement.confirmDeleteDictData': '確定要刪除該字典數據嗎?',
+  'dictManagement.selectDictDataToDelete': '請選擇要刪除的字典數據',
+  'dictManagement.confirmBatchDeleteDictData': '確定要刪除選中的{count}個字典數據嗎?',
   'dictManagement.getDictDataFailed': '獲取字典數據失敗',
-  
+
   // 用户信息
   'user.info': '用戶信息',
   'user.username': '用戶名',
@@ -1005,31 +1005,31 @@ export default {
   'providerDialog.batchDeleteFieldsSuccess': '成功刪除{count}個字段',
 
   // 預設角色管理頁面文本
-  'agentTemplateManagement.title': '預設角色管理', 
-  'agentTemplateManagement.templateName': '模板名稱', 
-  'agentTemplateManagement.action': '操作', 
-  'templateQuickConfig.saveSuccess': '配置保存成功', 
-  'templateQuickConfig.saveFailed': '配置保存失敗', 
-  'agentTemplateManagement.createTemplate': '建立模板', 
-  'agentTemplateManagement.editTemplate': '編輯模板', 
-  'agentTemplateManagement.deleteTemplate': '刪除模板', 
-  'agentTemplateManagement.deleteSuccess': '模板刪除成功', 
-  'agentTemplateManagement.batchDelete': '批次刪除', 
-  'agentTemplateManagement.batchDeleteSuccess': '批次刪除成功', 
-  'agentTemplateManagement.selectTemplate': '請選擇模板', 
-  'agentTemplateManagement.select': '選擇', 
-  'agentTemplateManagement.searchPlaceholder': '請輸入模板名稱搜尋', 
-  'agentTemplateManagement.search': '搜尋', 
-  'agentTemplateManagement.serialNumber': '序號', 
-  'agentTemplateManagement.selectAll': '全選', 
-  'agentTemplateManagement.deselectAll': '取消全選', 
-  'agentTemplateManagement.loading': '拼命加載中', 
-  'agentTemplateManagement.confirmSingleDelete': '確定要刪除這個模板嗎？', 
-  'agentTemplateManagement.confirmBatchDelete': '確定要刪除選中的 {count} 個模板嗎？', 
-  'agentTemplateManagement.deleteFailed': '模板刪除失敗', 
-  'agentTemplateManagement.batchDeleteFailed': '模板批次刪除失敗', 
+  'agentTemplateManagement.title': '預設角色管理',
+  'agentTemplateManagement.templateName': '模板名稱',
+  'agentTemplateManagement.action': '操作',
+  'templateQuickConfig.saveSuccess': '配置保存成功',
+  'templateQuickConfig.saveFailed': '配置保存失敗',
+  'agentTemplateManagement.createTemplate': '建立模板',
+  'agentTemplateManagement.editTemplate': '編輯模板',
+  'agentTemplateManagement.deleteTemplate': '刪除模板',
+  'agentTemplateManagement.deleteSuccess': '模板刪除成功',
+  'agentTemplateManagement.batchDelete': '批次刪除',
+  'agentTemplateManagement.batchDeleteSuccess': '批次刪除成功',
+  'agentTemplateManagement.selectTemplate': '請選擇模板',
+  'agentTemplateManagement.select': '選擇',
+  'agentTemplateManagement.searchPlaceholder': '請輸入模板名稱搜尋',
+  'agentTemplateManagement.search': '搜尋',
+  'agentTemplateManagement.serialNumber': '序號',
+  'agentTemplateManagement.selectAll': '全選',
+  'agentTemplateManagement.deselectAll': '取消全選',
+  'agentTemplateManagement.loading': '拼命加載中',
+  'agentTemplateManagement.confirmSingleDelete': '確定要刪除這個模板嗎？',
+  'agentTemplateManagement.confirmBatchDelete': '確定要刪除選中的 {count} 個模板嗎？',
+  'agentTemplateManagement.deleteFailed': '模板刪除失敗',
+  'agentTemplateManagement.batchDeleteFailed': '模板批次刪除失敗',
   'agentTemplateManagement.deleteBackendError': '刪除失敗，請檢查後端服務是否正常',
-  
+
   // 模板快速配置
   'templateQuickConfig.title': '模組快速設定',
   'templateQuickConfig.agentSettings.agentName': '助手暱稱',
@@ -1047,5 +1047,14 @@ export default {
   'templateQuickConfig.newTemplate': '新模板',
   'warning': '警告',
   'info': '提示',
-  'common.networkError': '網路請求失敗'
+  'common.networkError': '網路請求失敗',
+
+  // SM2加密相關錯誤消息
+  'sm2.publicKeyNotConfigured': 'SM2公鑰未配置，請聯繫管理員',
+  'sm2.encryptionFailed': '密碼加密失敗',
+  'sm2.keyGenerationFailed': '金鑰對生成失敗',
+  'sm2.invalidPublicKey': '無效的公鑰格式',
+  'sm2.encryptionError': '加密過程中發生錯誤',
+  'sm2.publicKeyRetry': '正在重試獲取公鑰...',
+  'sm2.publicKeyRetryFailed': '公鑰獲取重試失敗'
 }

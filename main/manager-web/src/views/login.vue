@@ -148,7 +148,7 @@
 import Api from "@/apis/api";
 import VersionFooter from "@/components/VersionFooter.vue";
 import i18n, { changeLanguage } from "@/i18n";
-import { getUUID, goToPage, showDanger, showSuccess, validateMobile } from "@/utils";
+import { getUUID, goToPage, showDanger, showSuccess, sm2Encrypt, validateMobile } from "@/utils";
 import { mapState } from "vuex";
 
 export default {
@@ -161,6 +161,7 @@ export default {
       allowUserRegister: (state) => state.pubConfig.allowUserRegister,
       enableMobileRegister: (state) => state.pubConfig.enableMobileRegister,
       mobileAreaList: (state) => state.pubConfig.mobileAreaList,
+      sm2PublicKey: (state) => state.pubConfig.sm2PublicKey,
     }),
     // 获取当前语言
     currentLanguage() {
@@ -284,10 +285,31 @@ export default {
       if (!this.validateInput(this.form.captcha, 'login.requiredCaptcha')) {
         return;
       }
+      // 加密密码
+      let encryptedPassword;
+      try {
+        // 拼接验证码和密码
+        const captchaAndPassword = this.form.captcha + this.form.password;
+        encryptedPassword = sm2Encrypt(this.sm2PublicKey, captchaAndPassword);
+      } catch (error) {
+        console.error("密码加密失败:", error);
+        showDanger(this.$t('sm2.encryptionFailed'));
+        return;
+      }
+
+      const plainUsername = this.form.username;
 
       this.form.captchaId = this.captchaUuid;
+
+      // 加密
+      const loginData = {
+        username: plainUsername,
+        password: encryptedPassword,
+        captchaId: this.form.captchaId
+      };
+
       Api.user.login(
-        this.form,
+        loginData,
         ({ data }) => {
           showSuccess(this.$t('login.loginSuccess'));
           this.$store.commit("setToken", JSON.stringify(data.data));
@@ -296,7 +318,7 @@ export default {
         (err) => {
           // 直接使用后端返回的国际化消息
           let errorMessage = err.data.msg || "登录失败";
-          
+
           showDanger(errorMessage);
           if (
             err.data != null &&
@@ -319,7 +341,7 @@ export default {
     },
     goToForgetPassword() {
       goToPage("/retrieve-password");
-    },
+    }
   },
 };
 </script>
@@ -329,8 +351,7 @@ export default {
 .login-type-container {
   margin: 10px 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: center;
 }
 
 .title-language-dropdown {

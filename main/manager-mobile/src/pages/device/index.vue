@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useMessage } from 'wot-design-uni'
 import { bindDevice, getBindDevices, getFirmwareTypes, unbindDevice, updateDeviceAutoUpdate } from '@/api/device'
 import { toast } from '@/utils/toast'
+import { t } from '@/i18n'
 
 defineOptions({
   name: 'DeviceManage',
@@ -91,19 +92,19 @@ function getDeviceTypeName(boardKey: string): string {
 // 格式化时间
 function formatTime(timeStr: string) {
   if (!timeStr)
-    return '从未连接'
+    return t('device.neverConnected')
   const date = new Date(timeStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
 
   if (diff < 60000)
-    return '刚刚'
+    return t('device.justNow')
   if (diff < 3600000)
-    return `${Math.floor(diff / 60000)}分钟前`
+    return t('device.minutesAgo', { minutes: Math.floor(diff / 60000) })
   if (diff < 86400000)
-    return `${Math.floor(diff / 3600000)}小时前`
+    return t('device.hoursAgo', { hours: Math.floor(diff / 3600000) })
   if (diff < 604800000)
-    return `${Math.floor(diff / 86400000)}天前`
+    return t('device.daysAgo', { days: Math.floor(diff / 86400000) })
 
   return date.toLocaleDateString()
 }
@@ -114,11 +115,11 @@ async function toggleAutoUpdate(device: Device) {
     const newStatus = device.autoUpdate === 1 ? 0 : 1
     await updateDeviceAutoUpdate(device.id, newStatus)
     device.autoUpdate = newStatus
-    toast.success(newStatus === 1 ? 'OTA自动升级已开启' : 'OTA自动升级已关闭')
+    toast.success(newStatus === 1 ? t('device.otaAutoUpdateEnabled') : t('device.otaAutoUpdateDisabled'))
   }
   catch (error: any) {
     console.error('更新设备OTA状态失败:', error)
-    toast.error('操作失败，请重试')
+    toast.error(t('device.operationFailed'))
   }
 }
 
@@ -127,21 +128,21 @@ async function handleUnbindDevice(device: Device) {
   try {
     await unbindDevice(device.id)
     await loadDeviceList()
-    toast.success('设备已解绑')
+    toast.success(t('device.deviceUnbound'))
   }
   catch (error: any) {
     console.error('解绑设备失败:', error)
-    toast.error('解绑失败，请重试')
+    toast.error(t('device.unbindFailed'))
   }
 }
 
 // 确认解绑设备
 function confirmUnbindDevice(device: Device) {
   message.confirm({
-    title: '解绑设备',
-    msg: `确定要解绑设备 "${device.macAddress}" 吗？`,
-    confirmButtonText: '确定解绑',
-    cancelButtonText: '取消',
+    title: t('device.unbindDevice'),
+    msg: t('device.confirmUnbindDevice', { macAddress: device.macAddress }),
+    confirmButtonText: t('device.confirmUnbind'),
+    cancelButtonText: t('device.cancel'),
   }).then(() => {
     handleUnbindDevice(device)
   }).catch(() => {
@@ -153,18 +154,18 @@ function confirmUnbindDevice(device: Device) {
 async function handleBindDevice(code: string) {
   try {
     if (!currentAgentId.value) {
-      toast.error('请先选择智能体')
+      toast.error(t('device.pleaseSelectAgent'))
       return
     }
 
     await bindDevice(currentAgentId.value, code.trim())
     await loadDeviceList()
-    toast.success('设备绑定成功！')
+    toast.success(t('device.deviceBindSuccess'))
   }
   catch (error: any) {
     console.error('绑定设备失败:', error)
     const errorMessage = error?.message || '绑定失败，请检查验证码是否正确'
-    toast.error(errorMessage)
+    toast.error(errorMessage || t('device.bindFailed'))
   }
 }
 
@@ -172,12 +173,12 @@ async function handleBindDevice(code: string) {
 function openBindDialog() {
   message
     .prompt({
-      title: '绑定设备',
-      inputPlaceholder: '请输入设备验证码',
+      title: t('device.bindDevice'),
+      inputPlaceholder: t('device.enterDeviceCode'),
       inputValue: '',
       inputPattern: /^\d{6}$/,
-      confirmButtonText: '立即绑定',
-      cancelButtonText: '取消',
+      confirmButtonText: t('device.bindNow'),
+      cancelButtonText: t('device.cancel'),
     })
     .then(async (result: any) => {
       if (result.value && String(result.value).trim()) {
@@ -219,7 +220,7 @@ defineExpose({
     <view v-if="loading && deviceList.length === 0" class="loading-container">
       <wd-loading color="#336cff" />
       <text class="loading-text">
-        加载中...
+        {{ t('device.loading') }}
       </text>
     </view>
 
@@ -240,19 +241,19 @@ defineExpose({
 
                   <view class="mb-[20rpx]">
                     <text class="mb-[12rpx] block text-[28rpx] text-[#65686f] leading-[1.4]">
-                      MAC地址：{{ device.macAddress }}
-                    </text>
-                    <text class="mb-[12rpx] block text-[28rpx] text-[#65686f] leading-[1.4]">
-                      固件版本：{{ device.appVersion }}
-                    </text>
-                    <text class="block text-[28rpx] text-[#65686f] leading-[1.4]">
-                      最近对话：{{ formatTime(device.lastConnectedAt) }}
-                    </text>
+                    {{ t('device.macAddress') }}：{{ device.macAddress }}
+                  </text>
+                  <text class="mb-[12rpx] block text-[28rpx] text-[#65686f] leading-[1.4]">
+                    {{ t('device.firmwareVersion') }}：{{ device.appVersion }}
+                  </text>
+                  <text class="block text-[28rpx] text-[#65686f] leading-[1.4]">
+                    {{ t('device.lastConnection') }}：{{ formatTime(device.lastConnectedAt) }}
+                  </text>
                   </view>
 
                   <view class="flex items-center justify-between border-[1rpx] border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[16rpx_20rpx]">
                     <text class="text-[28rpx] text-[#232338] font-medium">
-                      OTA升级
+                      {{ t('device.otaUpdate') }}
                     </text>
                     <wd-switch
                       :model-value="device.autoUpdate === 1"
@@ -271,7 +272,7 @@ defineExpose({
                   @click.stop="confirmUnbindDevice(device)"
                 >
                   <wd-icon name="delete" />
-                  <text>解绑</text>
+                  <text>{{ t('device.unbind') }}</text>
                 </view>
               </view>
             </template>
@@ -285,10 +286,10 @@ defineExpose({
       <view class="flex flex-col items-center justify-center p-[100rpx_40rpx] text-center">
         <wd-icon name="phone" custom-class="text-[120rpx] text-[#d9d9d9] mb-[32rpx]" />
         <text class="mb-[16rpx] text-[32rpx] text-[#666666] font-medium">
-          暂无设备
+          {{ t('device.noDevice') }}
         </text>
         <text class="text-[26rpx] text-[#999999] leading-[1.5]">
-          点击右下角 + 号绑定您的第一个设备
+          {{ t('device.clickToBindFirstDevice') }}
         </text>
       </view>
     </view>

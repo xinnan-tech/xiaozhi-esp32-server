@@ -87,6 +87,16 @@ public interface Constant {
     String SERVER_SECRET = "server.secret";
 
     /**
+     * SM2公钥
+     */
+    String SM2_PUBLIC_KEY = "server.public_key";
+
+    /**
+     * SM2私钥
+     */
+    String SM2_PRIVATE_KEY = "server.private_key";
+
+    /**
      * websocket地址
      */
     String SERVER_WEBSOCKET = "server.websocket";

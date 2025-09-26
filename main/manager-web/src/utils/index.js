@@ -200,3 +200,59 @@ export function validateMobile(mobile, areaCode) {
     }
 }
 
+
+/**
+ * 生成SM2密钥对（十六进制格式）
+ * @returns {Object} 包含公钥和私钥的对象
+ */
+export function generateSm2KeyPairHex() {
+    // 使用sm-crypto库生成SM2密钥对
+    const sm2 = require('sm-crypto').sm2;
+    const keypair = sm2.generateKeyPairHex();
+    
+    return {
+        publicKey: keypair.publicKey,
+        privateKey: keypair.privateKey,
+        clientPublicKey: keypair.publicKey, // 客户端公钥
+        clientPrivateKey: keypair.privateKey // 客户端私钥
+    };
+}
+
+/**
+ * SM2公钥加密
+ * @param {string} publicKey 公钥（十六进制格式）
+ * @param {string} plainText 明文
+ * @returns {string} 加密后的密文（十六进制格式）
+ */
+export function sm2Encrypt(publicKey, plainText) {
+    if (!publicKey) {
+        throw new Error('公钥不能为null或undefined');
+    }
+    
+    if (!plainText) {
+        throw new Error('明文不能为空');
+    }
+    
+    const sm2 = require('sm-crypto').sm2;
+    // SM2加密，添加04前缀表示未压缩公钥
+    const encrypted = sm2.doEncrypt(plainText, publicKey, 1);
+    // 转换为十六进制格式（与后端保持一致，添加04前缀）
+    const result = "04" + encrypted;
+    
+    return result;
+}
+
+/**
+ * SM2私钥解密
+ * @param {string} privateKey 私钥（十六进制格式）
+ * @param {string} cipherText 密文（十六进制格式）
+ * @returns {string} 解密后的明文
+ */
+export function sm2Decrypt(privateKey, cipherText) {
+    const sm2 = require('sm-crypto').sm2;
+    // 移除04前缀（与后端保持一致）
+    const dataWithoutPrefix = cipherText.startsWith("04") ? cipherText.substring(2) : cipherText;
+    // SM2解密
+    return sm2.doDecrypt(dataWithoutPrefix, privateKey, 1);
+}
+
