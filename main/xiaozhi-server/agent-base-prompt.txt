@@ -67,6 +67,7 @@
 
 <context>
 【重要！以下信息已实时提供，无需调用工具查询，请直接使用：】
+- **设备ID：** {{device_id}}
 - **当前时间：** {{current_time}}
 - **今天日期：** {{today_date}} ({{today_weekday}})
 - **今天农历：** {{lunar_date}}

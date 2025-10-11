@@ -3,8 +3,8 @@
   "layout": "default",
   "style": {
     "navigationBarTitleText": "编辑功能",
-    "navigationStyle": "custom",
-  },
+    "navigationStyle": "custom"
+  }
 }
 </route>
 
@@ -12,12 +12,13 @@
 import { useMessage } from 'wot-design-uni'
 import { getMcpAddress, getMcpTools } from '@/api/agent/agent'
 import { usePluginStore } from '@/store'
+import { t } from '@/i18n'
 
 const message = useMessage()
 const pluginStore = usePluginStore()
 
-const segmentedList = ref<string[]>(['未选', '已选'])
-const currentSegmented = ref('未选')
+const segmentedList = ref<string[]>([t('agent.tools.notSelected'), t('agent.tools.selected')])
+const currentSegmented = ref(t('agent.tools.notSelected'))
 const notSelectedList = ref<any[]>([])
 const selectedList = ref<any[]>([])
 
@@ -191,7 +192,7 @@ function handleJsonChange(key: string, value: string, field: any) {
     }
   }
   catch {
-    message.alert('JSON格式错误')
+    message.alert(t('agent.tools.jsonFormatError'))
   }
 }
 
@@ -220,7 +221,7 @@ function goBack() {
 // 复制MCP地址
 function copyMcpAddress() {
   if (!mcpAddress.value) {
-    message.alert('暂无MCP地址可复制')
+    message.alert(t('agent.tools.noMcpAddressToCopy'))
     return
   }
 
@@ -228,11 +229,11 @@ function copyMcpAddress() {
     data: mcpAddress.value,
     showToast: false,
     success: () => {
-      message.alert('MCP地址已复制到剪贴板')
-    },
+        message.alert(t('agent.tools.mcpAddressCopied'))
+      },
     fail: () => {
-      message.alert('复制失败，请重试')
-    },
+        message.alert(t('agent.tools.copyFailed'))
+      },
   })
 }
 
@@ -248,7 +249,7 @@ function getFieldDisplayValue(field: any, value: any) {
 function getFieldRemark(field: any) {
   let description = field.label || ''
   if (field.default) {
-    description += `（默认值：${field.default}）`
+    description += `（${t('agent.tools.defaultValue')}：${field.default}）`
   }
   return description
 }
@@ -284,7 +285,7 @@ onMounted(async () => {
       <!-- 内置插件区域 -->
       <view class="mt-[20rpx] flex flex-1 flex-col">
         <view class="text-[32rpx] text-[#333] font-medium">
-          内置插件
+          {{ t('agent.tools.builtInPlugins') }}
         </view>
         <view
           class="mt-[20rpx] box-border flex flex-1 flex-col rounded-[10rpx] bg-white p-[20rpx]"
@@ -299,7 +300,7 @@ onMounted(async () => {
           <view class="mt-[20rpx] flex-1 overflow-hidden">
             <!-- 未选插件 -->
             <scroll-view
-              v-if="currentSegmented === '未选'"
+              v-if="currentSegmented === t('agent.tools.notSelected')"
               class="max-h-[600rpx] bg-transparent"
               scroll-y
             >
@@ -307,7 +308,7 @@ onMounted(async () => {
                 v-if="notSelectedList.length === 0"
                 class="h-[400rpx] flex items-center justify-center"
               >
-                <wd-status-tip image="content" tip="暂无更多插件" />
+                <wd-status-tip image="content" tip="{{ t('agent.tools.noMorePlugins') }}" />
               </view>
               <view v-else class="p-[20rpx] space-y-[20rpx]">
                 <view
@@ -343,7 +344,7 @@ onMounted(async () => {
                 v-if="selectedList.length === 0"
                 class="h-[400rpx] flex items-center justify-center"
               >
-                <wd-status-tip image="content" tip="请选择插件功能" />
+                <wd-status-tip image="content" tip="{{ t('agent.tools.pleaseSelectPlugin') }}" />
               </view>
               <view v-else class="p-[20rpx] space-y-[20rpx]">
                 <view
@@ -359,7 +360,7 @@ onMounted(async () => {
                         {{ func.name }}
                       </view>
                       <view class="text-[24rpx] text-[#1677ff]">
-                        点击配置参数
+                        {{ t('agent.tools.clickToConfigure') }}
                       </view>
                     </view>
                     <view class="flex space-x-[20rpx]">
@@ -393,7 +394,7 @@ onMounted(async () => {
       <!-- MCP接入点区域 -->
       <view class="mt-[20rpx] flex flex-1 flex-col">
         <view class="text-[32rpx] text-[#333] font-medium">
-          mcp接入点
+          {{ t('agent.tools.mcpEndpoint') }}
         </view>
         <view
           class="mt-[20rpx] box-border flex flex-1 flex-col rounded-[10rpx] bg-white p-[20rpx]"
@@ -406,11 +407,11 @@ onMounted(async () => {
               class="flex-1 rounded-[10rpx] bg-[#f5f7fb] p-[20rpx]"
             >
             <view
-              class="ml-[20rpx] h-[70rpx] flex items-center justify-center rounded-[10rpx] bg-[#1677ff] px-[20rpx] text-[24rpx] text-white"
-              @click="copyMcpAddress"
-            >
-              复制
-            </view>
+                class="ml-[20rpx] h-[70rpx] flex items-center justify-center rounded-[10rpx] bg-[#1677ff] px-[20rpx] text-[24rpx] text-white"
+                @click="copyMcpAddress"
+              >
+                {{ t('agent.tools.copy') }}
+              </view>
           </view>
           <!-- 工具列表 -->
           <view class="mt-[20rpx] flex-1 overflow-hidden">
@@ -419,7 +420,7 @@ onMounted(async () => {
                 v-if="mcpTools && mcpTools.length === 0"
                 class="h-[400rpx] flex items-center justify-center"
               >
-                <wd-status-tip image="content" tip="暂无工具" />
+                <wd-status-tip image="content" :tip="t('agent.tools.noTools')" />
               </view>
               <view v-else class="p-[20rpx]">
                 <view class="flex flex-wrap">
@@ -441,7 +442,7 @@ onMounted(async () => {
     <!-- 参数编辑弹窗 -->
     <wd-action-sheet
       v-model="showParamDialog"
-      :title="`参数配置 - ${currentFunction?.name || ''}`"
+      :title="`${t('agent.tools.paramConfiguration')} - ${currentFunction?.name || ''}`"
       custom-header-class="h-[75vh]"
       @close="closeParamEdit"
     >
@@ -460,7 +461,7 @@ onMounted(async () => {
             class="h-[400rpx] flex items-center justify-center"
           >
             <text class="text-[28rpx] text-[#999]">
-              {{ currentFunction?.name }} 无需配置参数
+              {{ currentFunction?.name }} {{ t('agent.tools.noParamsNeeded') }}
             </text>
           </view>
 
@@ -490,7 +491,7 @@ onMounted(async () => {
                   v-model="tempParams[field.key]"
                   class="box-border h-[80rpx] w-full border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[16rpx_20rpx] text-[28rpx] text-[#232338] focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
                   type="text"
-                  :placeholder="`请输入${field.label}`"
+                  :placeholder="`${t('agent.tools.pleaseInput')}${field.label}`"
                   @input="
                     handleParamChange(field.key, $event.detail.value, field)
                   "
@@ -499,12 +500,12 @@ onMounted(async () => {
                 <!-- 数组类型 -->
                 <view v-else-if="field.type === 'array'">
                   <text class="mb-[16rpx] block text-[24rpx] text-[#65686f]">
-                    每行输入一个项目
+                    {{ t('agent.tools.eachLineOneItem') }}
                   </text>
                   <textarea
                     v-model="arrayTextCache[field.key]"
                     class="box-border min-h-[200rpx] w-full border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] text-[26rpx] text-[#232338] leading-[1.6] focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
-                    :placeholder="`请输入${field.label}，每行一个`"
+                    :placeholder="`${t('agent.tools.pleaseInput')}${field.label}，${t('agent.tools.eachLineOneItem')}`"
                     @input="
                       handleArrayChange(field.key, $event.detail.value, field)
                     "
@@ -514,12 +515,12 @@ onMounted(async () => {
                 <!-- JSON类型 -->
                 <view v-else-if="field.type === 'json'">
                   <text class="mb-[16rpx] block text-[24rpx] text-[#65686f]">
-                    请输入有效的JSON格式
+                    {{ t('agent.tools.pleaseInputValidJson') }}
                   </text>
                   <textarea
                     v-model="jsonTextCache[field.key]"
                     class="box-border min-h-[300rpx] w-full border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] text-[26rpx] text-[#232338] leading-[1.6] font-mono focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
-                    placeholder="请输入合法的JSON格式"
+                    :placeholder="t('agent.tools.pleaseInputValidJson')"
                     @blur="
                       handleJsonChange(field.key, $event.detail.value, field)
                     "
@@ -532,7 +533,7 @@ onMounted(async () => {
                   v-model="tempParams[field.key]"
                   class="box-border h-[80rpx] w-full border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[16rpx_20rpx] text-[28rpx] text-[#232338] focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
                   type="number"
-                  :placeholder="`请输入${field.label}`"
+                  :placeholder="`${t('agent.tools.pleaseInput')}${field.label}`"
                   @input="
                     handleParamChange(
                       field.key,
@@ -549,10 +550,10 @@ onMounted(async () => {
                 >
                   <view class="flex-1">
                     <text class="mb-[8rpx] block text-[28rpx] text-[#232338]">
-                      启用功能
+                      {{ t('agent.tools.enableFunction') }}
                     </text>
                     <text class="block text-[24rpx] text-[#65686f]">
-                      开启或关闭此功能
+                      {{ t('agent.tools.toggleFunction') }}
                     </text>
                   </view>
                   <switch
@@ -569,7 +570,7 @@ onMounted(async () => {
                   v-model="tempParams[field.key]"
                   class="box-border h-[80rpx] w-full border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[16rpx_20rpx] text-[28rpx] text-[#232338] focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
                   type="text"
-                  :placeholder="`请输入${field.label}`"
+                  :placeholder="`${t('agent.tools.pleaseInput')}${field.label}`"
                   @input="
                     handleParamChange(field.key, $event.detail.value, field)
                   "

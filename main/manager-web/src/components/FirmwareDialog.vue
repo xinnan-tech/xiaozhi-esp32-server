@@ -1,11 +1,13 @@
 <template>
-  <el-dialog :title="title" :visible.sync="dialogVisible" :close-on-click-modal="false" @close="handleClose" @open="handleOpen">
+  <el-dialog :title="title" :visible.sync="dialogVisible" :close-on-click-modal="false" @close="handleClose"
+    @open="handleOpen">
     <el-form ref="form" :model="form" :rules="rules" label-width="auto">
       <el-form-item :label="$t('firmwareDialog.firmwareName')" prop="firmwareName">
         <el-input v-model="form.firmwareName" :placeholder="$t('firmwareDialog.firmwareNamePlaceholder')"></el-input>
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.firmwareType')" prop="type">
-        <el-select v-model="form.type" :placeholder="$t('firmwareDialog.firmwareTypePlaceholder')" style="width: 100%;" filterable :disabled="isTypeDisabled">
+        <el-select v-model="form.type" :placeholder="$t('firmwareDialog.firmwareTypePlaceholder')" style="width: 100%;"
+          filterable :disabled="isTypeDisabled">
           <el-option v-for="item in firmwareTypes" :key="item.key" :label="item.name" :value="item.key"></el-option>
         </el-select>
       </el-form-item>
@@ -14,7 +16,7 @@
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.firmwareFile')" prop="firmwarePath">
         <el-upload ref="upload" class="upload-demo" action="#" :http-request="handleUpload"
-          :before-upload="beforeUpload" :accept="'.bin,.apk'" :limit="1" :multiple="false" :auto-upload="true"
+          :before-upload="beforeUpload" :accept="'.bin,.apk,.wav'" :limit="1" :multiple="false" :auto-upload="true"
           :on-remove="handleRemove">
           <el-button size="small" type="primary">{{ $t('firmwareDialog.clickUpload') }}</el-button>
           <div slot="tip" class="el-upload__tip">{{ $t('firmwareDialog.uploadTip') }}</div>
@@ -26,7 +28,8 @@
         </div>
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.remark')" prop="remark">
-        <el-input type="textarea" v-model="form.remark" :placeholder="$t('firmwareDialog.remarkPlaceholder')"></el-input>
+        <el-input type="textarea" v-model="form.remark"
+          :placeholder="$t('firmwareDialog.remarkPlaceholder')"></el-input>
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
@@ -128,13 +131,13 @@ export default {
       const isValidType = ['.bin', '.apk'].some(ext => file.name.toLowerCase().endsWith(ext))
 
       if (!isValidType) {
-          this.$message.error(this.$t('firmwareDialog.invalidFileType'))
-          return false
-        }
-        if (!isValidSize) {
-          this.$message.error(this.$t('firmwareDialog.invalidFileSize'))
-          return false
-        }
+        this.$message.error(this.$t('firmwareDialog.invalidFileType'))
+        return false
+      }
+      if (!isValidSize) {
+        this.$message.error(this.$t('firmwareDialog.invalidFileSize'))
+        return false
+      }
       return true
     },
     handleUpload(options) {

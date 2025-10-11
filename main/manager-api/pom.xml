@@ -199,6 +199,12 @@
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <version>${knife4j.version}</version>
         </dependency>
+        <!-- BouncyCastle SM2加密 -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78</version>
+        </dependency>
         <!-- springdoc -->
         <dependency>
             <groupId>org.springdoc</groupId>

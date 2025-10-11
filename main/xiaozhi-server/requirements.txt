@@ -35,3 +35,4 @@ PyJWT==2.8.0
 psutil==7.0.0
 portalocker==3.2.0
 Jinja2==3.1.6
+vosk==0.3.45

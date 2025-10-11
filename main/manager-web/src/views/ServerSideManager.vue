@@ -72,7 +72,6 @@ export default {
     this.fetchParams();
   },
   mounted() {
-    this.getServerList();
     this.dialogTitle = this.$t('paramManagement.addParam');
   },
 

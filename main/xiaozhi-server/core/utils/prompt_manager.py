@@ -184,7 +184,7 @@ class PromptManager:
             self.logger.bind(tag=TAG).error(f"更新上下文信息失败: {e}")
 
     def build_enhanced_prompt(
-        self, user_prompt: str, device_id: str, client_ip: str = None
+        self, user_prompt: str, device_id: str, client_ip: str = None, *args, **kwargs
     ) -> str:
         """构建增强的系统提示词"""
         if not self.base_prompt_template:
@@ -224,6 +224,8 @@ class PromptManager:
                 local_address=local_address,
                 weather_info=weather_info,
                 emojiList=EMOJI_List,
+                device_id=device_id,
+                *args, **kwargs
             )
             device_cache_key = f"device_prompt:{device_id}"
             self.cache_manager.set(

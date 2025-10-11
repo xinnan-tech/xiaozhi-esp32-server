@@ -18,6 +18,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import lombok.AllArgsConstructor;
 import xiaozhi.common.exception.RenException;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
@@ -66,7 +67,7 @@ public class SysDictTypeServiceImpl extends BaseServiceImpl<SysDictTypeDao, SysD
     public SysDictTypeVO get(Long id) {
         SysDictTypeEntity entity = baseDao.selectById(id);
         if (entity == null) {
-            throw new RenException("字典类型不存在");
+            throw new RenException(ErrorCode.DICT_TYPE_NOT_EXIST);
         }
 
         return ConvertUtils.sourceToTarget(entity, SysDictTypeVO.class);
@@ -147,7 +148,7 @@ public class SysDictTypeServiceImpl extends BaseServiceImpl<SysDictTypeDao, SysD
         }
         boolean exists = baseDao.exists(queryWrapper);
         if (exists) {
-            throw new RenException("字典类型编码重复");
+            throw new RenException(ErrorCode.DICT_TYPE_DUPLICATE);
         }
     }
 }

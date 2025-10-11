@@ -4,6 +4,11 @@ import json
 import uuid
 import aiohttp
 import websockets
+import hmac
+import base64
+import hashlib
+import asyncio
+from urllib.parse import urlparse, urlencode
 from tabulate import tabulate
 from config.settings import load_config
 
@@ -285,6 +290,144 @@ class StreamTTSPerformanceTester:
                 latencies.append(0)
         
         return self._calculate_result("LinkeraiTTS", latencies, test_count)
+    
+    async def test_xunfei_tts(self, text=None, test_count=5):
+        """测试讯飞流式TTS首词延迟（测试多次取平均）"""
+        text = text or self.test_texts[0]
+        latencies = []
+        
+        for i in range(test_count):
+            try:
+                # 修正配置节点名称，与配置文件中的XunFeiTTS匹配
+                tts_config = self.config["TTS"]["XunFeiTTS"]
+                app_id = tts_config["app_id"]
+                api_key = tts_config["api_key"]
+                api_secret = tts_config["api_secret"]
+                api_url = tts_config.get("api_url", "wss://cbm01.cn-huabei-1.xf-yun.com/v1/private/mcd9m97e6")
+                voice = tts_config.get("voice", "x5_lingxiaoxuan_flow")
+                
+                # 生成认证URL
+                auth_url = self._create_xunfei_auth_url(api_key, api_secret, api_url)
+                
+                async with websockets.connect(
+                    auth_url,
+                    ping_interval=30,
+                    ping_timeout=10,
+                    close_timeout=10,
+                    max_size=1000000000
+                ) as ws:
+                    # 构造请求
+                    request = self._build_xunfei_request(app_id, text, voice)
+                    # 发送请求后立即计时，确保准确测量从发送文本到接收首块的时间
+                    await ws.send(json.dumps(request))
+                    start_time = time.time()
+                    
+                    # 等待第一个音频数据块
+                    first_audio_received = False
+                    while not first_audio_received:
+                        msg = await asyncio.wait_for(ws.recv(), timeout=10)
+                        data = json.loads(msg)
+                        header = data.get("header", {})
+                        code = header.get("code")
+                        
+                        if code != 0:
+                            message = header.get("message", "未知错误")
+                            raise Exception(f"合成失败: {code} - {message}")
+                        
+                        payload = data.get("payload", {})
+                        audio_payload = payload.get("audio", {})
+                        
+                        if audio_payload:
+                            status = audio_payload.get("status", 0)
+                            audio_data = audio_payload.get("audio", "")
+                            if status == 1 and audio_data:
+                                # 收到第一个音频数据块
+                                latency = time.time() - start_time
+                                latencies.append(latency)
+                                first_audio_received = True
+                                break
+            except Exception as e:
+                latencies.append(0)
+        
+        return self._calculate_result("讯飞TTS", latencies, test_count)
+    
+    def _create_xunfei_auth_url(self, api_key, api_secret, api_url):
+        """生成讯飞WebSocket认证URL"""
+        parsed_url = urlparse(api_url)
+        host = parsed_url.netloc
+        path = parsed_url.path
+        
+        # 获取UTC时间，讯飞要求使用RFC1123格式
+        now = time.gmtime()
+        date = time.strftime('%a, %d %b %Y %H:%M:%S GMT', now)
+        
+        # 构造签名字符串
+        signature_origin = f"host: {host}\ndate: {date}\nGET {path} HTTP/1.1"
+        
+        # 计算签名
+        signature_sha = hmac.new(
+            api_secret.encode('utf-8'),
+            signature_origin.encode('utf-8'),
+            digestmod=hashlib.sha256
+        ).digest()
+        signature_sha_base64 = base64.b64encode(signature_sha).decode(encoding='utf-8')
+        
+        # 构造authorization
+        authorization_origin = f'api_key="{api_key}", algorithm="hmac-sha256", headers="host date request-line", signature="{signature_sha_base64}"'
+        authorization = base64.b64encode(authorization_origin.encode('utf-8')).decode(encoding='utf-8')
+        
+        # 构造最终的WebSocket URL
+        v = {
+            "authorization": authorization,
+            "date": date,
+            "host": host
+        }
+        url = api_url + '?' + urlencode(v)
+        return url
+    
+    def _build_xunfei_request(self, app_id, text, voice):
+        """构建讯飞TTS请求结构"""
+        return {
+            "header": {
+                "app_id": app_id,
+                "status": 2,
+            },
+            "parameter": {
+                "oral": {
+                    "oral_level": "mid",
+                    "spark_assist": 1,
+                    "stop_split": 0,
+                    "remain": 0
+                },
+                "tts": {
+                    "vcn": voice,
+                    "speed": 50,
+                    "volume": 50,
+                    "pitch": 50,
+                    "bgs": 0,
+                    "reg": 0,
+                    "rdn": 0,
+                    "rhy": 0,
+                    "audio": {
+                        "encoding": "raw",
+                        "sample_rate": 24000,
+                        "channels": 1,
+                        "bit_depth": 16,
+                        "frame_size": 0
+                    }
+                }
+            },
+            "payload": {
+                "text": {
+                    "encoding": "utf8",
+                    "compress": "raw",
+                    "format": "plain",
+                    "status": 2,
+                    "seq": 1,
+                    "text": base64.b64encode(text.encode('utf-8')).decode('utf-8')
+                }
+            }
+        }
 
 
     def _calculate_result(self, service_name, latencies, test_count):
@@ -367,6 +510,11 @@ class StreamTTSPerformanceTester:
         # 测试IndexStreamTTS
         result = await self.test_indexstream_tts(test_text, test_count)
         self.results.append(result)
+        
+        # 测试讯飞TTS
+        if self.config.get("TTS", {}).get("XunFeiTTS"):
+            result = await self.test_xunfei_tts(test_text, test_count)
+            self.results.append(result)
         
         # 打印结果
         self._print_results(test_text, test_count)

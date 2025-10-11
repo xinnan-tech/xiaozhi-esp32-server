@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.agent.dto.AgentVoicePrintSaveDTO;
@@ -42,7 +43,7 @@ public class AgentVoicePrintController {
         if (b) {
             return new Result<>();
         }
-        return new Result<Void>().error("智能体的声纹创建失败");
+        return new Result<Void>().error(ErrorCode.AGENT_VOICEPRINT_CREATE_FAILED);
     }
 
     @PutMapping
@@ -54,7 +55,7 @@ public class AgentVoicePrintController {
         if (b) {
             return new Result<>();
         }
-        return new Result<Void>().error("智能体的对应声纹更新失败");
+        return new Result<Void>().error(ErrorCode.AGENT_VOICEPRINT_UPDATE_FAILED);
     }
 
     @DeleteMapping("/{id}")
@@ -67,7 +68,7 @@ public class AgentVoicePrintController {
         if (delete) {
             return new Result<>();
         }
-        return new Result<Void>().error("智能体的对应声纹删除失败");
+        return new Result<Void>().error(ErrorCode.AGENT_VOICEPRINT_DELETE_FAILED);
     }
 
     @GetMapping("/list/{id}")
@@ -76,7 +77,7 @@ public class AgentVoicePrintController {
     public Result<List<AgentVoicePrintVO>> list(@PathVariable String id) {
         String voiceprintUrl = sysParamsService.getValue("server.voice_print", true);
         if (StringUtils.isBlank(voiceprintUrl) || "null".equals(voiceprintUrl)) {
-            throw new RenException("声纹接口未配置，请先在参数配置中配置声纹接口地址(server.voice_print)");
+            throw new RenException(ErrorCode.VOICEPRINT_API_NOT_CONFIGURED);
         }
         Long userId = SecurityUser.getUserId();
         List<AgentVoicePrintVO> list = agentVoicePrintService.list(userId, id);

@@ -16,6 +16,7 @@ import com.wf.captcha.base.Captcha;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import xiaozhi.common.constant.Constant;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
@@ -88,7 +89,7 @@ public class CaptchaServiceImpl implements CaptchaService {
             long currentTime = System.currentTimeMillis();
             long timeDiff = currentTime - lastSendTimeLong;
             if (timeDiff < 60000) {
-                throw new RenException("发送太频繁,请" + (60000 - timeDiff) / 1000 + "秒后再试");
+                throw new RenException(ErrorCode.SMS_SEND_TOO_FREQUENTLY, String.valueOf((60000 - timeDiff) / 1000));
             }
         }
 
@@ -108,7 +109,7 @@ public class CaptchaServiceImpl implements CaptchaService {
         }
 
         if (todayCount >= maxSendCount) {
-            throw new RenException("今日发送次数已达上限");
+            throw new RenException(ErrorCode.TODAY_SMS_LIMIT_REACHED);
         }
 
         String key = RedisKeys.getSMSValidateCodeKey(phone);

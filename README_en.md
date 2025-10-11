@@ -63,6 +63,13 @@ Want to see the usage effects? Click the videos below 🎥
         </a>
     </td>
     <td>
+        <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
+         <picture>
+           <img alt="MQTT command issuance" src="docs/images/demo4.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
         <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
          <picture>
            <img alt="Custom voice timbre" src="docs/images/demo2.png" />
@@ -80,13 +87,6 @@ Want to see the usage effects? Click the videos below 🎥
         <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
          <picture>
            <img alt="Controlling home appliances" src="docs/images/demo5.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
-         <picture>
-           <img alt="Lowest cost configuration" src="docs/images/demo4.png" />
          </picture>
         </a>
     </td>
@@ -237,15 +237,16 @@ This project provides the following testing tools to help you verify the system 
 ![请参考-全模块安装架构图](docs/images/deploy2.png)
 | Feature Module | Description |
 |:---:|:---|
-| Core Architecture | Based on WebSocket and HTTP servers, provides complete console management and authentication system |
+| Core Architecture | Based on [MQTT+UDP gateway](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mqtt-gateway-integration.md), WebSocket and HTTP servers, provides complete console management and authentication system |
 | Voice Interaction | Supports streaming ASR(speech recognition), streaming TTS(speech synthesis), VAD(voice activity detection), supports multi-language recognition and voice processing |
 | Voiceprint Recognition | Supports multi-user voiceprint registration, management, and recognition, processes in parallel with ASR, real-time speaker identity recognition and passes to LLM for personalized responses |
 | Intelligent Dialogue | Supports multiple LLM(large language models), implements intelligent dialogue |
 | Visual Perception | Supports multiple VLLM(vision large models), implements multimodal interaction |
 | Intent Recognition | Supports LLM intent recognition, Function Call function calling, provides plugin-based intent processing mechanism |
 | Memory System | Supports local short-term memory, mem0ai interface memory, with memory summarization functionality |
+| Command Delivery | Supports MCP command delivery to ESP32 devices via MQTT protocol from Smart Console |
 | Tool Calling | Supports client IOT protocol, client MCP protocol, server MCP protocol, MCP endpoint protocol, custom tool functions |
-| Management Backend | Provides Web management interface, supports user management, system configuration, and device management |
+| Management Backend | Provides Web management interface, supports user management, system configuration and device management; Supports Simplified Chinese, Traditional Chinese and English display |
 | Testing Tools | Provides performance testing tools, vision model testing tools, and audio interaction testing tools |
 | Deployment Support | Supports Docker deployment and local deployment, provides complete configuration file management |
 | Plugin System | Supports functional plugin extensions, custom plugin development, and plugin hot-loading |
@@ -259,7 +260,7 @@ If you are a software developer, here is an [Open Letter to Developers](docs/con
 ---
 
 ## Product Ecosystem 👬
-Xiaozhi is an ecosystem. When using this product, you can also check out other excellent projects in this ecosystem
+Xiaozhi is an ecosystem. When using this product, you can also check out other [excellent projects](https://github.com/78/xiaozhi-esp32?tab=readme-ov-file#%E7%9B%B8%E5%85%B3%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE) in this ecosystem
 
 | Project Name | Project Address | Project Description |
 |:---------------------|:--------|:--------|
@@ -280,7 +281,7 @@ Xiaozhi is an ecosystem. When using this product, you can also check out other e
 | FastGPT interface calls | FastGPT | - |
 | Coze interface calls | Coze | - |
 
-In fact, any LLM that supports OpenAI interface calls can be integrated and used.
+In fact, any LLM that supports OpenAI interface calls can be integrated and used, including Xinference and HomeAssistant interfaces.
 
 ---
 
@@ -298,7 +299,7 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
-| Interface calls | EdgeTTS, Volcano Engine Doubao TTS, Tencent Cloud, Alibaba Cloud TTS, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi Streaming TTS | Lingxi Streaming TTS, EdgeTTS, CosyVoiceSiliconflow(partial) |
+| Interface calls | EdgeTTS, Volcano Engine Doubao TTS, Tencent Cloud, Alibaba Cloud TTS, AliYun Stream TTS, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi Streaming TTS, MinimaxTTS | Lingxi Streaming TTS, EdgeTTS, CosyVoiceSiliconflow(partial) |
 | Local services | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, MinimaxTTS | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, MinimaxTTS |
 
 ---

@@ -449,7 +449,6 @@ class TTSProvider(TTSProviderBase):
                         res.optional.event == EVENT_TTSResponse
                         and res.header.message_type == AUDIO_ONLY_RESPONSE
                     ):
-                        logger.bind(tag=TAG).debug(f"推送数据到队列里面～～")
                         self.wav_to_opus_data_audio_raw_stream(res.payload, callback=self.handle_opus)
                     elif res.optional.event == EVENT_TTSSentenceEnd:
                         logger.bind(tag=TAG).info(f"句子语音生成成功：{self.tts_text}")
@@ -616,12 +615,13 @@ class TTSProvider(TTSProviderBase):
                             "speech_rate": self.speech_rate,
                             "loudness_rate": self.loudness_rate
                         },
+                        "additions": json.dumps({
+                            "post_process": {
+                                "pitch": self.pitch
+                            }
+                        })
                     },
-                    "additions": {
-                        "post_process": {
-                            "pitch": self.pitch
-                        }
-                    }
+
                 }
             )
         )

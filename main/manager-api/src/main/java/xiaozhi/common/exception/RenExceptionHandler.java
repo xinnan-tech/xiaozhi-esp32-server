@@ -13,6 +13,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import xiaozhi.common.utils.MessageUtils;
 import xiaozhi.common.utils.Result;
 
 /**
@@ -62,7 +63,7 @@ public class RenExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public Result<Void> handleNoResourceFoundException(NoResourceFoundException ex) {
         log.warn("Resource not found: {}", ex.getMessage());
-        return new Result<Void>().error(404, "资源不存在");
+        return new Result<Void>().error(404, MessageUtils.getMessage(ErrorCode.RESOURCE_NOT_FOUND));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -76,7 +77,7 @@ public class RenExceptionHandler {
                 })
                 .filter(Objects::nonNull)
                 .findFirst()
-                .orElse("请求参数错误！");
+                .orElse(MessageUtils.getMessage(ErrorCode.PARAM_VALUE_NULL));
 
         return new Result<Void>().error(ErrorCode.PARAM_VALUE_NULL, errorMsg);
     }

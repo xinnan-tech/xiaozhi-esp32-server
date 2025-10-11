@@ -3,7 +3,7 @@
   "layout": "default",
   "style": {
     "navigationStyle": "custom",
-    "navigationBarTitleText": "登陆"
+    "navigationBarTitleText": "Login"
   }
 }
 </route>
@@ -15,6 +15,11 @@ import { login } from '@/api/auth'
 import { useConfigStore } from '@/store'
 import { getEnvBaseUrl } from '@/utils'
 import { toast } from '@/utils/toast'
+// 导入国际化相关功能
+import { t, changeLanguage, getSupportedLanguages, initI18n } from '@/i18n'
+import type { Language } from '@/store/lang'
+// 导入SM2加密工具
+import { sm2Encrypt } from '@/utils'
 
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets
@@ -39,7 +44,7 @@ systemInfo = uni.getSystemInfoSync()
 safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 // 表单数据
-const formData = ref<LoginData>({
+const formData = ref({
   username: '',
   password: '',
   captcha: '',
@@ -71,6 +76,11 @@ const enableMobileLogin = computed(() => {
 // 计算属性：区号列表
 const areaCodeList = computed(() => {
   return configStore.config.mobileAreaList || [{ name: '中国大陆', key: '+86' }]
+})
+
+// SM2公钥
+const sm2PublicKey = computed(() => {
+  return configStore.config.sm2PublicKey
 })
 
 // 切换登录方式
@@ -106,6 +116,13 @@ function goToRegister() {
   })
 }
 
+// 跳转到忘记密码页面
+function goToForgotPassword() {
+  uni.navigateTo({
+    url: '/pages/forgot-password/index',
+  })
+}
+
 // 生成UUID
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -136,40 +153,64 @@ async function handleLogin() {
   // 表单验证
   if (loginType.value === 'username') {
     if (!formData.value.username) {
-      toast.warning('请输入用户名')
+      toast.warning(t('login.enterUsername'))
       return
     }
   }
   else {
     if (!formData.value.mobile) {
-      toast.warning('请输入手机号')
+      toast.warning(t('login.enterPhone'))
       return
     }
     // 手机号格式验证
     const phoneRegex = /^1[3-9]\d{9}$/
     if (!phoneRegex.test(formData.value.mobile)) {
-      toast.warning('请输入正确的手机号')
+      toast.warning(t('login.enterPhone'))
       return
     }
   }
   if (!formData.value.password) {
-    toast.warning('请输入密码')
+    toast.warning(t('login.enterPassword'))
     return
   }
   if (!formData.value.captcha) {
-    toast.warning('请输入验证码')
+    toast.warning(t('login.enterCaptcha'))
+    return
+  }
+
+  // 检查SM2公钥是否配置
+  if (!sm2PublicKey.value) {
+    toast.warning(t('sm2.publicKeyNotConfigured'))
     return
   }
 
   try {
     loading.value = true
 
+    // 加密密码
+    let encryptedPassword
+    try {
+      // 拼接验证码和密码
+      const captchaAndPassword = formData.value.captcha + formData.value.password
+      encryptedPassword = sm2Encrypt(sm2PublicKey.value, captchaAndPassword)
+    } catch (error) {
+      console.error('密码加密失败:', error)
+      toast.warning(t('sm2.encryptionFailed'))
+      return
+    }
+
     // 构建登录数据
-    const loginData = { ...formData.value }
+    const loginData: LoginData = {
+      username: '',
+      password: encryptedPassword,
+      captchaId: formData.value.captchaId
+    }
 
     // 如果是手机号登录，将区号+手机号拼接到username字段
     if (loginType.value === 'mobile') {
       loginData.username = `${selectedAreaCode.value}${formData.value.mobile}`
+    } else {
+      loginData.username = formData.value.username
     }
 
     const response = await login(loginData)
@@ -177,7 +218,7 @@ async function handleLogin() {
     uni.setStorageSync('token', response.token)
     uni.setStorageSync('expire', response.expire)
 
-    toast.success('登录成功')
+    toast.success(t('message.loginSuccess'))
 
     // 跳转到主页
     setTimeout(() => {
@@ -189,6 +230,14 @@ async function handleLogin() {
   catch (error: any) {
     // 登录失败重新获取验证码
     refreshCaptcha()
+    // 处理验证码错误 - 从error.message中解析错误码
+    if (error.message.includes('请求错误[10067]')) {
+      toast.warning(t('login.captchaError'))
+    }
+    // 处理账号或密码错误
+    else if (error.message.includes('请求错误[10004]')) {
+      toast.warning(t('message.passwordError'))
+    }
   }
   finally {
     loading.value = false
@@ -200,14 +249,26 @@ onLoad(() => {
   refreshCaptcha()
 })
 
+// 语言切换相关
+const showLanguageSheet = ref(false)
+const supportedLanguages = getSupportedLanguages()
+
+// 初始化国际化
+initI18n()
+
+// 切换语言
+function handleLanguageChange(lang: Language) {
+  changeLanguage(lang)
+  showLanguageSheet.value = false
+}
+
 // 组件挂载时确保配置已加载
 onMounted(async () => {
   if (!configStore.config.name) {
     try {
       await configStore.fetchPublicConfig()
-    }
-    catch (error) {
-      console.error('获取配置失败:', error)
+    } catch (error) {
+      console.error(t('login.fetchConfigError'), error)
     }
   }
 })
@@ -219,21 +280,25 @@ onMounted(async () => {
       <view class="logo-section">
         <wd-img :width="80" :height="80" round src="/static/logo.png" class="logo" />
         <text class="welcome-text">
-          欢迎回来
+          {{ t('login.welcomeBack') }}
         </text>
         <text class="subtitle">
-          请登录您的账户
+          {{ t('login.pleaseLogin') }}
         </text>
       </view>
     </view>
 	
-	<!-- 右上角服务端设置按钮 -->
-	<view 
-	  class="server-btn" 
-	  :style="{ top: `${safeAreaInsets?.top + 10}px` }" 
-	  @click="goToServerSetting"
-	>
-	  <wd-icon name="setting" custom-class="server-icon" />
+	<!-- 右上角按钮组 -->
+	<view class="top-right-buttons" :style="{ top: `${safeAreaInsets?.top + 10}px` }">
+	  <!-- 语言切换按钮 -->
+	  <view class="lang-btn" @click="showLanguageSheet = true">
+      <text class="lang-text-icon">{{ t('login.selectLanguageTip') }}</text>
+	  </view>
+	  
+	  <!-- 服务端设置按钮 -->
+	  <view class="server-btn" @click="goToServerSetting">
+	    <wd-icon name="setting" custom-class="server-icon" />
+	  </view>
 	</view>
 
     <view class="form-container">
@@ -253,7 +318,7 @@ onMounted(async () => {
                   v-model="formData.mobile"
                   custom-class="styled-input"
                   no-border
-                  placeholder="请输入手机号码"
+                  :placeholder="t('login.enterPhone')"
                   type="number"
                   :maxlength="11"
                 />
@@ -270,7 +335,7 @@ onMounted(async () => {
                 v-model="formData.username"
                 custom-class="styled-input"
                 no-border
-                placeholder="请输入用户名"
+                :placeholder="t('login.enterUsername')"
               />
             </view>
           </view>
@@ -282,7 +347,7 @@ onMounted(async () => {
               v-model="formData.password"
               custom-class="styled-input"
               no-border
-              placeholder="请输入密码"
+              :placeholder="t('login.enterPassword')"
               clearable
               show-password
               :maxlength="20"
@@ -296,7 +361,7 @@ onMounted(async () => {
               v-model="formData.captcha"
               custom-class="styled-input"
               no-border
-              placeholder="请输入验证码"
+              :placeholder="t('login.enterCaptcha')"
               :maxlength="6"
             />
             <view class="captcha-image" @click="refreshCaptcha">
@@ -304,27 +369,25 @@ onMounted(async () => {
             </view>
           </view>
         </view>
-
-        <view class="forgot-password">
-          <text class="forgot-text">
-            忘记密码？
-          </text>
-        </view>
-
         <view
           class="login-btn"
           @click="handleLogin"
         >
-          {{ loading ? '登录中...' : '登录' }}
+          {{ loading ? t('login.loggingIn') : t('login.loginButton') }}
         </view>
 
-        <view class="register-hint">
-          <text class="hint-text">
-            还没有账户？
-          </text>
-          <text class="register-link" @click="goToRegister">
-            立即注册
-          </text>
+        <view class="hint-row">
+          <view class="register-hint">
+            <text class="register-link" @click="goToRegister">
+              {{ t('login.noAccount') }}
+            </text>
+          </view>
+
+          <view class="forgot-password">
+            <text class="forgot-text" @click="goToForgotPassword">
+              {{ t('login.forgotPassword') }}
+            </text>
+          </view>
         </view>
 
         <!-- 登录方式切换 -->
@@ -352,7 +415,7 @@ onMounted(async () => {
     <!-- 区号选择弹窗 -->
     <wd-action-sheet
       v-model="showAreaCodeSheet"
-      title="选择国家/地区"
+      :title="t('login.selectCountry')"
       :close-on-click-modal="true"
       @close="closeAreaCodeSheet"
     >
@@ -386,9 +449,31 @@ onMounted(async () => {
             custom-class="confirm-btn"
             @click="closeAreaCodeSheet"
           >
-            确认
+            {{ t('login.confirm') }}
           </wd-button>
         </view>
+      </view>
+    </wd-action-sheet>
+
+    <!-- 语言选择弹窗 -->
+    <wd-action-sheet
+      v-model="showLanguageSheet"
+      :title="t('login.selectLanguage')"
+      :close-on-click-modal="true"
+    >
+      <view class="language-sheet">
+        <scroll-view scroll-y class="language-list">
+          <view
+            v-for="lang in supportedLanguages"
+            :key="lang.code"
+            class="language-item"
+            @click="handleLanguageChange(lang.code)"
+          >
+            <text class="language-name">
+              {{ lang.name }}
+            </text>
+          </view>
+        </scroll-view>
       </view>
     </wd-action-sheet>
   </view>
@@ -498,7 +583,7 @@ onMounted(async () => {
         &.captcha-wrapper {
           .captcha-image {
             margin-left: 20rpx;
-            width: 120rpx;
+            width: 150rpx;
             height: 60rpx;
             border-radius: 8rpx;
             overflow: hidden;
@@ -592,10 +677,14 @@ onMounted(async () => {
       }
     }
 
-    .forgot-password {
-      text-align: right;
+    .hint-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 30rpx;
+    }
 
+    .forgot-password {
       .forgot-text {
         color: #667eea;
         font-size: 26rpx;
@@ -633,14 +722,6 @@ onMounted(async () => {
     }
 
     .register-hint {
-      text-align: center;
-
-      .hint-text {
-        color: #666666;
-        font-size: 26rpx;
-        margin-right: 8rpx;
-      }
-
       .register-link {
         color: #667eea;
         font-size: 26rpx;
@@ -793,20 +874,52 @@ onMounted(async () => {
     }
   }
 }
-.server-btn {
+// 右上角按钮组
+.top-right-buttons {
   position: absolute;
-  right: 20rpx;          // 距离右边距
-  top: 40rpx;            // 顶部稍微下移，不贴状态栏
+  right: 20rpx;
+  display: flex;
+  gap: 20rpx;
+  z-index: 999;
+}
+
+// 语言切换按钮
+.lang-btn {
   width: 48rpx;
   height: 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.15); // 半透明背景，更好看
-  border-radius: 24rpx;                  // 圆形按钮
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.2); // 阴影
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.2);
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  .lang-text-icon {
+    font-size: 18rpx;
+    color: #FFFFFF;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+
+// 服务端设置按钮
+.server-btn {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.2);
 
   &:active {
     transform: scale(0.95);
@@ -814,11 +927,45 @@ onMounted(async () => {
 
   .server-icon {
     font-size: 28rpx;
-    color: #FFFFFF; // 白色图标
+    color: #FFFFFF;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25); // 悬停效果
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+
+// 语言选择弹窗样式
+.language-sheet {
+  background: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  overflow: hidden;
+
+  .language-list {
+    max-height: 60vh;
+    padding: 0 40rpx;
+
+    .language-item {
+      display: flex;
+      align-items: center;
+      padding: 32rpx 0;
+      border-bottom: 1rpx solid #f8f9fa;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: #f8f9fa;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .language-name {
+        font-size: 32rpx;
+        color: #333333;
+      }
+    }
   }
 }
 </style>

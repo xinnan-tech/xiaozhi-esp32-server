@@ -73,10 +73,6 @@ export default {
       } else {
         return this.device.lastConnectedAt;
       }
-    },
-    // 判断是否为英文
-    isEnglish() {
-      return i18n.locale === 'en';
     }
   },
   methods: {

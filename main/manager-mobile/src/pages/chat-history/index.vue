@@ -2,6 +2,7 @@
 import type { ChatSession } from '@/api/chat-history/types'
 import { computed, onMounted, ref } from 'vue'
 import { getChatSessions } from '@/api/chat-history/chat-history'
+import { t } from '@/i18n'
 
 defineOptions({
   name: 'ChatHistory',
@@ -53,11 +54,11 @@ const currentAgentId = computed(() => {
 // 加载聊天会话列表
 async function loadChatSessions(page = 1, isRefresh = false) {
   try {
-    console.log('获取聊天会话列表', { page, isRefresh })
+    console.log(t('chatHistory.getChatSessions'), { page, isRefresh })
 
     // 检查是否有当前选中的智能体
     if (!currentAgentId.value) {
-      console.warn('没有选中的智能体')
+      console.warn(t('chatHistory.noSelectedAgent'))
       sessionList.value = []
       return
     }
@@ -86,7 +87,7 @@ async function loadChatSessions(page = 1, isRefresh = false) {
     currentPage.value = page
   }
   catch (error) {
-    console.error('获取聊天会话列表失败:', error)
+    console.error(t('chatHistory.getChatSessionsFailed'), error)
     if (page === 1) {
       sessionList.value = []
     }
@@ -115,48 +116,48 @@ async function loadMore() {
 // 格式化时间
 function formatTime(timeStr: string) {
   if (!timeStr)
-    return '未知时间'
-    
+    return t('chatHistory.unknownTime')
+
   // 处理时间字符串，确保格式正确
   const date = new Date(timeStr.replace(' ', 'T')) // 转换为ISO格式
   const now = new Date()
-  
+
   // 检查日期是否有效
   if (Number.isNaN(date.getTime())) {
     return timeStr // 如果解析失败，直接返回原字符串
   }
-  
+
   const diff = now.getTime() - date.getTime()
-  
+
   // 小于1分钟
   if (diff < 60000)
-    return '刚刚'
-    
+    return t('chatHistory.justNow')
+
   // 小于1小时
   if (diff < 3600000)
-    return `${Math.floor(diff / 60000)}分钟前`
-    
+    return t('chatHistory.minutesAgo', { minutes: Math.floor(diff / 60000) })
+
   // 小于1天（24小时）
   if (diff < 86400000)
-    return `${Math.floor(diff / 3600000)}小时前`
-    
+    return t('chatHistory.hoursAgo', { hours: Math.floor(diff / 3600000) })
+
   // 小于7天
   if (diff < 604800000) {
     const days = Math.floor(diff / 86400000)
-    return `${days}天前`
+    return t('chatHistory.daysAgo', { days })
   }
-  
+
   // 超过7天，显示具体日期
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   const currentYear = now.getFullYear()
-  
+
   // 如果是当前年份，不显示年份
   if (year === currentYear) {
     return `${month}-${day}`
   }
-  
+
   return `${year}-${month}-${day}`
 }
 
@@ -186,8 +187,8 @@ defineExpose({
     <view v-if="loading && sessionList.length === 0" class="loading-container">
       <wd-loading color="#336cff" />
       <text class="loading-text">
-        加载中...
-      </text>
+          {{ t('chatHistory.loading') }}
+        </text>
     </view>
 
     <!-- 会话列表 -->
@@ -204,7 +205,7 @@ defineExpose({
             <view class="session-info">
               <view class="session-header">
                 <text class="session-title">
-                  对话记录 {{ session.sessionId.substring(0, 8) }}...
+                  {{ t('chatHistory.conversationRecord') }} {{ session.sessionId.substring(0, 8) }}...
                 </text>
                 <text class="session-time">
                   {{ formatTime(session.createdAt) }}
@@ -212,7 +213,7 @@ defineExpose({
               </view>
               <view class="session-meta">
                 <text class="chat-count">
-                  共 {{ session.chatCount }} 条对话
+                  {{ t('chatHistory.totalChats', { count: session.chatCount }) }}
                 </text>
               </view>
             </view>
@@ -225,14 +226,14 @@ defineExpose({
       <view v-if="loadingMore" class="loading-more">
         <wd-loading color="#336cff" size="24" />
         <text class="loading-more-text">
-          加载中...
+          {{ t('chatHistory.loading') }}
         </text>
       </view>
 
       <!-- 没有更多数据 -->
       <view v-else-if="!hasMore && sessionList.length > 0" class="no-more">
         <text class="no-more-text">
-          没有更多数据了
+          {{ t('chatHistory.noMoreData') }}
         </text>
       </view>
     </view>
@@ -241,11 +242,11 @@ defineExpose({
     <view v-else-if="!loading" class="empty-state">
       <wd-icon name="chat" custom-class="empty-icon" />
       <text class="empty-text">
-        暂无聊天记录
-      </text>
-      <text class="empty-desc">
-        与智能体的对话记录会显示在这里
-      </text>
+          {{ t('chatHistory.noChatRecords') }}
+        </text>
+        <text class="empty-desc">
+          {{ t('chatHistory.chatRecordsDescription') }}
+        </text>
     </view>
   </view>
 </template>

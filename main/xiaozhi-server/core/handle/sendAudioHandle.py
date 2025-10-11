@@ -114,6 +114,9 @@ async def sendAudio(conn, audios, frame_duration=60):
         delay = expected_time - current_time
         if delay > 0:
             await asyncio.sleep(delay)
+        else:
+            # 纠正误差
+            flow_control["start_time"] += abs(delay)
 
         if conn.conn_from_mqtt_gateway:
             # 计算时间戳和序列号

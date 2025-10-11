@@ -16,8 +16,8 @@
         <div class="content-area">
           <el-card class="user-card" shadow="never">
             <el-table ref="userTable" :data="userList" class="transparent-table" v-loading="loading"
-                :element-loading-text="$t('modelConfig.loading')" element-loading-spinner="el-icon-loading"
-                element-loading-background="rgba(255, 255, 255, 0.7)">
+              :element-loading-text="$t('modelConfig.loading')" element-loading-spinner="el-icon-loading"
+              element-loading-background="rgba(255, 255, 255, 0.7)">
               <el-table-column :label="$t('modelConfig.select')" align="center" width="120">
                 <template slot-scope="scope">
                   <el-checkbox v-model="scope.row.selected"></el-checkbox>
@@ -36,13 +36,13 @@
               <el-table-column :label="$t('modelConfig.action')" align="center" width="300px">
                 <template slot-scope="scope">
                   <el-button size="mini" type="text" @click="resetPassword(scope.row)">{{ $t('user.resetPassword')
-                  }}</el-button>
+                    }}</el-button>
                   <el-button size="mini" type="text" v-if="scope.row.status === 1"
                     @click="handleChangeStatus(scope.row, 0)">{{ $t('user.disableAccount') }}</el-button>
                   <el-button size="mini" type="text" v-if="scope.row.status === 0"
                     @click="handleChangeStatus(scope.row, 1)">{{ $t('user.enableAccount') }}</el-button>
                   <el-button size="mini" type="text" @click="deleteUser(scope.row)">{{ $t('user.deleteUser')
-                  }}</el-button>
+                    }}</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -54,18 +54,18 @@
                 </el-button>
                 <el-button size="mini" type="success" icon="el-icon-circle-check" @click="batchEnable">{{
                   $t('user.enable')
-                }}</el-button>
+                  }}</el-button>
                 <el-button size="mini" type="warning" @click="batchDisable"><i
                     class="el-icon-remove-outline rotated-icon"></i>{{
                       $t('user.disable') }}</el-button>
                 <el-button size="mini" type="danger" icon="el-icon-delete" @click="batchDelete">{{ $t('user.delete')
-                }}</el-button>
+                  }}</el-button>
               </div>
               <div class="custom-pagination">
                 <el-select v-model="pageSize" @change="handlePageSizeChange"
-                  :class="['page-size-select', { 'page-size-select-en': isEnglish }]">
+                  :class="['page-size-select', { 'page-size-select-en': $i18n.locale === 'en' }]">
                   <el-option v-for="item in pageSizeOptions" :key="item"
-                    :label="$t('modelConfig.itemsPerPage', { count: item })" :value="item">
+                    :label="$t('modelConfig.itemsPerPage', { items: item })" :value="item">
                   </el-option>
                 </el-select>
 
@@ -81,7 +81,7 @@
                 </button> <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
                   {{ $t('modelConfig.nextPage') }}
                 </button>
-                <span class="total-text">{{ $t('modelConfig.totalRecords', { count: total }) }}</span>
+                <span class="total-text">{{ $t('modelConfig.totalRecords', { total: total }) }}</span>
               </div>
             </div>
           </el-card>
@@ -125,9 +125,6 @@ export default {
     pageCount() {
       return Math.ceil(this.total / this.pageSize);
     },
-    isEnglish() {
-      return i18n.locale === 'en';
-    },
     visiblePages() {
       const pages = [];
       const maxVisible = 3;
@@ -142,7 +139,7 @@ export default {
         pages.push(i);
       }
       return pages;
-    },
+    }
   },
   methods: {
     handlePageSizeChange(val) {
@@ -260,11 +257,17 @@ export default {
         cancelButtonText: this.$t('common.cancel'),
         type: 'warning'
       }).then(() => {
-        resetPassword(row.userId).then(() => {
-          this.$message.success(this.$t('user.resetPasswordSuccess'));
-          this.getList();
-        }).catch(() => {
-          this.$message.error(this.$t('user.operationFailed'));
+        Api.admin.resetUserPassword(row.userid, ({ data }) => {
+          if (data.code === 0) {
+            // 显示生成的默认密码
+            this.$alert(this.$t('user.resetPasswordSuccess') + '\n\n' + this.$t('user.generatedPassword') + ': ' + data.data, this.$t('common.success'), {
+              confirmButtonText: this.$t('common.confirm'),
+              dangerouslyUseHTMLString: true
+            });
+            this.fetchUsers();
+          } else {
+            this.$message.error(data.msg || this.$t('user.operationFailed'));
+          }
         });
       }).catch(() => {
         this.$message.info(this.$t('common.deleteCancelled'));
@@ -276,11 +279,13 @@ export default {
         cancelButtonText: this.$t('common.cancel'),
         type: 'warning'
       }).then(() => {
-        deleteUser(row.userId).then(() => {
-          this.$message.success(this.$t('user.deleteUserSuccess'));
-          this.getList();
-        }).catch(() => {
-          this.$message.error(this.$t('user.operationFailed'));
+        Api.admin.deleteUser(row.userid, ({ data }) => {
+          if (data.code === 0) {
+            this.$message.success(this.$t('user.deleteUserSuccess'));
+            this.fetchUsers();
+          } else {
+            this.$message.error(data.msg || this.$t('user.operationFailed'));
+          }
         });
       }).catch(() => {
         this.$message.info(this.$t('common.deleteCancelled'));
@@ -341,67 +346,20 @@ export default {
         // 用户取消操作
       });
     },
+    // 这个方法已被batchDelete替代，保留用于向后兼容
     handleBatchDelete() {
-      if (!this.selection || this.selection.length === 0) {
-        this.$message.warning(this.$t('user.selectUsersFirst'));
-        return;
-      }
-      
-      const userIds = this.selection.map(item => item.userId);
-      this.$confirm(this.$t('user.confirmDeleteSelected', { count: this.selection.length }), this.$t('common.warning'), {
-        confirmButtonText: this.$t('common.confirm'),
-        cancelButtonText: this.$t('common.cancel'),
-        type: 'warning'
-      }).then(() => {
-        this.loading = true;
-        batchDeleteUsers(userIds).then(res => {
-          this.loading = false;
-          this.getList();
-          this.selection = [];
-          if (res.successCount === userIds.length) {
-            this.$message.success(this.$t('user.deleteSuccess', { count: res.successCount }));
-          } else if (res.successCount === 0) {
-            this.$message.error(this.$t('user.deleteFailed'));
-          } else {
-            this.$message.warning(this.$t('user.partialDelete', { successCount: res.successCount, failCount: res.failCount }));
-          }
-        }).catch(() => {
-          this.loading = false;
-          this.$message.error(this.$t('user.deleteError'));
-        });
-      }).catch(() => {
-        this.loading = false;
-        this.$message.info(this.$t('user.deleteCancelled'));
-      });
+      this.batchDelete();
     },
+    // This method has been fixed to use existing functionality
     handleBatchStatusChange(status) {
-      if (!this.selection || this.selection.length === 0) {
+      const selectedUsers = this.userList.filter(user => user.selected);
+      if (selectedUsers.length === 0) {
         this.$message.warning(this.$t('user.selectUsersFirst'));
         return;
       }
       
-      const actionText = status === 1 ? this.$t('user.enable') : this.$t('user.disable');
-      const userIds = this.selection.map(item => item.userId);
-      
-      this.$confirm(this.$t('user.confirmStatusChange', { action: actionText, count: this.selection.length }), this.$t('common.warning'), {
-        confirmButtonText: this.$t('common.confirm'),
-        cancelButtonText: this.$t('common.cancel'),
-        type: 'warning'
-      }).then(() => {
-        this.loading = true;
-        updateUserStatus(userIds, status).then(() => {
-          this.loading = false;
-          this.getList();
-          this.selection = [];
-          this.$message.success(this.$t('user.statusChangeSuccess', { action: actionText, count: userIds.length }));
-        }).catch(() => {
-          this.loading = false;
-          this.$message.error(this.$t('user.operationFailed'));
-        });
-      }).catch(() => {
-        this.loading = false;
-        this.$message.info(this.$t('common.deleteCancelled'));
-      });
+      // Call the existing handleChangeStatus method which already handles both single and multiple users
+      this.handleChangeStatus(selectedUsers, status);
     },
   },
 };

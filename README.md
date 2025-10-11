@@ -64,6 +64,13 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
         </a>
     </td>
     <td>
+        <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
+         <picture>
+           <img alt="MQTT指令下发" src="docs/images/demo4.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
         <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
          <picture>
            <img alt="自定义音色" src="docs/images/demo2.png" />
@@ -81,13 +88,6 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
         <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
          <picture>
            <img alt="控制家电开关" src="docs/images/demo5.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV1kgA2eYEQ9" target="_blank">
-         <picture>
-           <img alt="成本最低配置" src="docs/images/demo4.png" />
          </picture>
         </a>
     </td>
@@ -241,7 +241,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 ![请参考-全模块安装架构图](docs/images/deploy2.png)
 | 功能模块 | 描述 |
 |:---:|:---|
-| 核心架构 | 基于MQTT+UDP网关、WebSocket、HTTP服务器，提供完整的控制台管理和认证系统 |
+| 核心架构 | 基于[MQTT+UDP网关](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mqtt-gateway-integration.md)、WebSocket、HTTP服务器，提供完整的控制台管理和认证系统 |
 | 语音交互 | 支持流式ASR(语音识别)、流式TTS(语音合成)、VAD(语音活动检测)，支持多语言识别和语音处理 |
 | 声纹识别 | 支持多用户声纹注册、管理和识别，与ASR并行处理，实时识别说话人身份并传递给LLM进行个性化回应 |
 | 智能对话 | 支持多种LLM(大语言模型)，实现智能对话 |
@@ -249,7 +249,8 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | 意图识别 | 支持LLM意图识别、Function Call函数调用，提供插件化意图处理机制 |
 | 记忆系统 | 支持本地短期记忆、mem0ai接口记忆，具备记忆总结功能 |
 | 工具调用 | 支持客户端IOT协议、客户MCP协议、服务端MCP协议、MCP接入点协议、自定义工具函数 |
-| 管理后台 | 提供Web管理界面，支持用户管理、系统配置和设备管理 |
+| 指令下发 | 依托MQTT协议，支持从智控台将MCP指令下发到ESP32设备 |
+| 管理后台 | 提供Web管理界面，支持用户管理、系统配置和设备管理；界面支持中文简体、中文繁体、英文显示 |
 | 测试工具 | 提供性能测试工具、视觉模型测试工具和音频交互测试工具 |
 | 部署支持 | 支持Docker部署和本地部署，提供完整的配置文件管理 |
 | 插件系统 | 支持功能插件扩展、自定义插件开发和插件热加载 |
@@ -263,13 +264,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 ---
 
 ## 产品生态 👬
-小智是一个生态，当你使用这个产品时，也可以看看其他在这个生态圈的优秀项目
-
-| 项目名称  | 项目地址 | 项目描述 |
-|:---------------------|:--------|:--------|
-| 小智安卓客户端  | [xiaozhi-android-client](https://github.com/TOM88812/xiaozhi-android-client) | 一个基于xiaozhi-server的Android、IOS语音对话应用,支持实时语音交互和文字对话。<br/>现在是flutter版本，打通IOS、Android端。 |
-| 小智电脑客户端  | [py-xiaozhi](https://github.com/Huang-junsen/py-xiaozhi) | 该项目提供了一个基于 Python 实现的小白 AI 客户端，使得在不具备实体硬件条件的情况下，<br/>依然能够体过代码体验小智 AI 的功能。 |
-| 小智Java服务端  | [xiaozhi-esp32-server-java](https://github.com/joey-zhou/xiaozhi-esp32-server-java) | 小智开源后端服务 Java 版本是一个基于 Java 的开源项目。<br/>它包括前后端的服务，旨在为用户提供一个完整的后端服务解决方案。 |
+小智是一个生态，当你使用这个产品时，也可以看看其他在这个生态圈的[优秀项目](https://github.com/78/xiaozhi-esp32?tab=readme-ov-file#%E7%9B%B8%E5%85%B3%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE)
 
 ---
 

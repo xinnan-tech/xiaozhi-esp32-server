@@ -1,51 +1,43 @@
 <template>
-  <el-dialog :title="title"
-    :visible.sync="visible"
-    width="520px"
-    class="param-dialog-wrapper"
-    :append-to-body="true"
-    :close-on-click-modal="false"
-    :key="dialogKey"
-    custom-class="custom-param-dialog"
-    :show-close="false"
-  >
+  <el-dialog :title="title" :visible.sync="visible" width="520px" class="param-dialog-wrapper" :append-to-body="true"
+    :close-on-click-modal="false" :key="dialogKey" custom-class="custom-param-dialog" :show-close="false">
     <div class="dialog-container">
       <div class="dialog-header">
         <h2 class="dialog-title">{{ title }}</h2>
         <button class="custom-close-btn" @click="cancel">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13 1L1 13M1 1L13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M13 1L1 13M1 1L13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
       </div>
 
       <el-form :model="form" :rules="rules" ref="form" label-width="auto" label-position="left" class="param-form">
         <el-form-item :label="$t('paramDialog.paramCode')" prop="paramCode" class="form-item">
-          <el-input v-model="form.paramCode" :placeholder="$t('paramDialog.paramCodePlaceholder')" class="custom-input"></el-input>
+          <el-input v-model="form.paramCode" :placeholder="$t('paramDialog.paramCodePlaceholder')"
+            class="custom-input"></el-input>
         </el-form-item>
 
         <el-form-item :label="$t('paramDialog.paramValue')" prop="paramValue" class="form-item">
-          <el-input v-model="form.paramValue" :placeholder="$t('paramDialog.paramValuePlaceholder')" class="custom-input"></el-input>
+          <el-input v-model="form.paramValue" :placeholder="$t('paramDialog.paramValuePlaceholder')"
+            class="custom-input"></el-input>
         </el-form-item>
 
         <el-form-item :label="$t('paramDialog.valueType')" prop="valueType" class="form-item">
-          <el-select v-model="form.valueType" :placeholder="$t('paramDialog.valueTypePlaceholder')" class="custom-select">
-            <el-option v-for="item in valueTypeOptions" :key="item.value" :label="$t(`paramDialog.${item.value}Type`)" :value="item.value"/>
+          <el-select v-model="form.valueType" :placeholder="$t('paramDialog.valueTypePlaceholder')"
+            class="custom-select">
+            <el-option v-for="item in valueTypeOptions" :key="item.value" :label="$t(`paramDialog.${item.value}Type`)"
+              :value="item.value" />
           </el-select>
         </el-form-item>
 
         <el-form-item :label="$t('paramDialog.remark')" prop="remark" class="form-item remark-item">
-          <el-input type="textarea" v-model="form.remark" :placeholder="$t('paramDialog.remarkPlaceholder')" :rows="3" class="custom-textarea"></el-input>
+          <el-input type="textarea" v-model="form.remark" :placeholder="$t('paramDialog.remarkPlaceholder')" :rows="3"
+            class="custom-textarea"></el-input>
         </el-form-item>
       </el-form>
 
       <div class="dialog-footer">
-        <el-button
-          type="primary"
-          @click="submit"
-          class="save-btn"
-          :loading="saving"
-          :disabled="saving">
+        <el-button type="primary" @click="submit" class="save-btn" :loading="saving" :disabled="saving">
           {{ $t('paramDialog.save') }}
         </el-button>
         <el-button @click="cancel" class="cancel-btn">
@@ -108,20 +100,26 @@ export default {
         if (valid) {
           this.saving = true; // 开始加载
           this.$emit('submit', this.form);
-
-          // 在父组件处理完成后，通过watch visible的变化来重置saving状态
         }
       });
     },
     cancel() {
       this.saving = false; // 取消时重置状态
       this.$emit('cancel');
+    },
+
+    // 提供给父组件调用以重置saving状态
+    resetSaving() {
+      this.saving = false;
     }
   },
   watch: {
     visible(newVal) {
       if (newVal) {
         this.dialogKey = Date.now();
+      } else {
+        // 当对话框关闭时，重置saving状态
+        this.saving = false;
       }
     }
   }

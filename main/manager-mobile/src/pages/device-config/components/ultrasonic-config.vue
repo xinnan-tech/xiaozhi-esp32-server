@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useToast } from 'wot-design-uni'
+import { t } from '@/i18n'
 
 // 类型定义
 interface WiFiNetwork {
@@ -53,7 +54,7 @@ const audioLengthText = computed(() => {
   const textBytes = stringToBytes(dataStr)
   const totalBits = (START_BYTES.length + textBytes.length + 1 + END_BYTES.length) * 8
   const duration = Math.ceil(totalBits / BIT_RATE)
-  return `约${duration}秒`
+  return `${t('deviceConfig.about')}${duration}${t('deviceConfig.seconds')}`
 })
 
 // 字符串转字节数组 - uniapp兼容版本
@@ -227,15 +228,15 @@ async function generateAndPlay() {
   generating.value = true
 
   try {
-    console.log('生成超声波配网音频...')
+    console.log(t('deviceConfig.generatingUltrasonicConfigAudio') + '...')
 
     // 准备配网数据 - 参考HTML文件格式
     const dataStr = `${props.selectedNetwork.ssid}\n${props.password}`
     const textBytes = stringToBytes(dataStr)
     const fullBytes = [...START_BYTES, ...textBytes, checksum(textBytes), ...END_BYTES]
 
-    console.log('配网数据:', { ssid: props.selectedNetwork.ssid, password: props.password })
-    console.log('数据字节长度:', textBytes.length)
+    console.log(t('deviceConfig.configData') + ':', { ssid: props.selectedNetwork.ssid, password: props.password })
+    console.log(t('deviceConfig.dataBytesLength') + ':', textBytes.length)
 
     // 转换为比特流
     let bits: number[] = []
@@ -243,7 +244,7 @@ async function generateAndPlay() {
       bits = bits.concat(toBits(b))
     })
 
-    console.log('比特流长度:', bits.length)
+    console.log(t('deviceConfig.bitStreamLength') + ':', bits.length)
 
     // AFSK调制 - 减少采样率降低文件大小
     const reducedSampleRate = 22050 // 降低采样率
@@ -266,19 +267,19 @@ async function generateAndPlay() {
     const base64 = arrayBufferToBase64(wavBuffer)
     const dataUri = `data:audio/wav;base64,${base64}`
 
-    console.log('base64长度:', base64.length, '约', Math.round(base64.length / 1024), 'KB')
+    console.log(t('deviceConfig.base64Length') + ':', base64.length, t('deviceConfig.about'), Math.round(base64.length / 1024), 'KB')
 
     // 检查数据大小
     if (base64.length > 1024 * 1024) { // 超过1MB
-      throw new Error('音频文件过大，请缩短SSID或密码长度')
+      throw new Error(t('deviceConfig.audioFileTooLarge'))
     }
 
     audioFilePath.value = dataUri
     audioGenerated.value = true
 
-    console.log('音频生成成功，比特流长度:', bits.length, '采样点数:', floatBuf.length)
+    console.log(t('deviceConfig.audioGenerationSuccess') + '，比特流长度:', bits.length, t('deviceConfig.samplePoints') + ':', floatBuf.length)
 
-    toast.success('声波生成成功')
+    toast.success(t('deviceConfig.soundWaveGenerationSuccess'))
 
     // 延迟播放
     setTimeout(async () => {
@@ -286,8 +287,8 @@ async function generateAndPlay() {
     }, 800) // 增加延迟时间
   }
   catch (error) {
-    console.error('音频生成失败:', error)
-    toast.error(`声波生成失败: ${error.message || error}`)
+    console.error(t('deviceConfig.audioGenerationFailed') + ':', error)
+      toast.error(`${t('deviceConfig.soundWaveGenerationFailed')}: ${error.message || error}`)
   }
   finally {
     generating.value = false
@@ -344,7 +345,7 @@ function buildWavOptimized(pcm: Uint8Array, sampleRate: number): ArrayBuffer {
 // 播放音频
 async function playAudio() {
   if (!audioFilePath.value) {
-    toast.error('请先生成音频')
+    toast.error(t('deviceConfig.pleaseGenerateAudioFirst'))
     return
   }
 
@@ -356,7 +357,7 @@ async function playAudio() {
     await new Promise(resolve => setTimeout(resolve, 200))
 
     playing.value = true
-    console.log('开始播放超声波配网音频')
+    console.log(t('deviceConfig.startPlayingUltrasonicConfigAudio'))
 
     // 创建新的音频上下文
     const innerAudioContext = uni.createInnerAudioContext()
@@ -370,12 +371,12 @@ async function playAudio() {
 
     // 简化的事件监听
     innerAudioContext.onPlay(() => {
-      console.log('超声波音频开始播放')
-      toast.success('开始播放配网声波')
+      console.log(t('deviceConfig.ultrasonicAudioStartedPlaying'))
+      toast.success(t('deviceConfig.startPlayingConfigSoundWave'))
     })
 
     innerAudioContext.onEnded(() => {
-      console.log('超声波音频播放结束')
+      console.log(t('deviceConfig.ultrasonicAudioPlaybackEnded'))
       if (!autoLoop.value) {
         playing.value = false
         cleanupAudio()
@@ -383,18 +384,18 @@ async function playAudio() {
     })
 
     innerAudioContext.onError((error) => {
-      console.error('音频播放失败:', error)
+      console.error(t('deviceConfig.audioPlaybackFailed') + ':', error)
       playing.value = false
 
-      let errorMsg = '音频播放失败'
+      let errorMsg = t('deviceConfig.audioPlaybackFailed')
       if (error.errCode === -99) {
-        errorMsg = '音频资源繁忙，请稍后重试'
+        errorMsg = t('deviceConfig.audioResourceBusy')
       }
       else if (error.errCode === 10004) {
-        errorMsg = '音频格式不支持，可能是data URI问题'
+        errorMsg = t('deviceConfig.audioFormatNotSupported')
       }
       else if (error.errCode === 10003) {
-        errorMsg = '音频文件错误'
+        errorMsg = t('deviceConfig.audioFileError')
       }
 
       toast.error(errorMsg)
@@ -416,10 +417,10 @@ async function playAudio() {
     }, 300)
   }
   catch (error) {
-    console.error('播放音频异常:', error)
-    playing.value = false
-    await cleanupAudio()
-    toast.error(`播放失败: ${error.message}`)
+    console.error(t('deviceConfig.audioPlaybackError') + ':', error)
+      playing.value = false
+      await cleanupAudio()
+      toast.error(`${t('deviceConfig.playbackFailed')}: ${error.message}`)
   }
 }
 
@@ -429,10 +430,10 @@ async function cleanupAudio() {
     try {
       audioContext.value.pause()
       audioContext.value.destroy()
-      console.log('清理音频上下文')
+      console.log(t('deviceConfig.cleaningUpAudioContext'))
     }
     catch (e) {
-      console.log('清理音频上下文失败:', e)
+      console.log(t('deviceConfig.cleaningUpAudioContextFailed') + ':', e)
     }
     finally {
       audioContext.value = null
@@ -445,8 +446,8 @@ async function stopAudio() {
   playing.value = false
   await cleanupAudio()
 
-  console.log('停止播放超声波音频')
-  toast.success('已停止播放')
+  console.log(t('deviceConfig.stoppedPlayingUltrasonicAudio'))
+  toast.success(t('deviceConfig.stoppedPlaying'))
 }
 </script>
 
@@ -456,18 +457,18 @@ async function stopAudio() {
     <view v-if="props.selectedNetwork" class="selected-network">
       <view class="network-info">
         <view class="network-name">
-          选中网络: {{ props.selectedNetwork.ssid }}
+          {{ t('deviceConfig.selectedNetwork') }}: {{ props.selectedNetwork.ssid }}
         </view>
         <view class="network-details">
           <text class="network-signal">
-            信号: {{ props.selectedNetwork.rssi }}dBm
+            {{ t('deviceConfig.signal') }}: {{ props.selectedNetwork.rssi }}dBm
           </text>
           <text class="network-security">
-            {{ props.selectedNetwork.authmode === 0 ? '开放网络' : '加密网络' }}
+            {{ props.selectedNetwork.authmode === 0 ? t('deviceConfig.openNetwork') : t('deviceConfig.encryptedNetwork') }}
           </text>
         </view>
         <view v-if="props.password" class="network-password">
-          密码: {{ '*'.repeat(props.password.length) }}
+          {{ t('deviceConfig.password') }}: {{ '*'.repeat(props.password.length) }}
         </view>
       </view>
     </view>
@@ -482,81 +483,81 @@ async function stopAudio() {
         :disabled="!canGenerate"
         @click="generateAndPlay"
       >
-        {{ generating ? '生成中...' : '🎵 生成并播放声波' }}
-      </wd-button>
+        {{ generating ? t('deviceConfig.generating') : '🎵 ' + t('deviceConfig.generateAndPlaySoundWave') }}
+        </wd-button>
 
-      <wd-button
-        v-if="audioGenerated"
-        type="success"
-        size="large"
-        block
-        :loading="playing"
-        @click="playAudio"
-      >
-        {{ playing ? '播放中...' : '🔊 播放声波' }}
-      </wd-button>
+        <wd-button
+          v-if="audioGenerated"
+          type="success"
+          size="large"
+          block
+          :loading="playing"
+          @click="playAudio"
+        >
+          {{ playing ? t('deviceConfig.playing') : '🔊 ' + t('deviceConfig.playSoundWave') }}
+        </wd-button>
 
-      <wd-button
-        v-if="playing"
-        type="warning"
-        size="large"
-        block
-        @click="stopAudio"
-      >
-        ⏹️ 停止播放
-      </wd-button>
+        <wd-button
+          v-if="playing"
+          type="warning"
+          size="large"
+          block
+          @click="stopAudio"
+        >
+          ⏹️ {{ t('deviceConfig.stopPlaying') }}
+        </wd-button>
     </view>
 
     <!-- 音频控制选项 -->
     <view v-if="audioGenerated" class="audio-options">
       <view class="option-item">
-        <wd-checkbox v-model="autoLoop">
-          自动循环播放声波
-        </wd-checkbox>
-      </view>
+          <wd-checkbox v-model="autoLoop">
+            {{ t('deviceConfig.autoLoopPlaySoundWave') }}
+          </wd-checkbox>
+        </view>
     </view>
 
     <!-- 音频播放器 -->
     <view v-if="audioGenerated" class="audio-player">
       <view class="player-info">
         <text class="audio-title">
-          配网音频文件
+          {{ t('deviceConfig.configAudioFile') }}
         </text>
         <text class="audio-duration">
-          时长: {{ audioLengthText }}
+          {{ t('deviceConfig.duration') }}: {{ audioLengthText }}
         </text>
       </view>
     </view>
 
     <!-- 使用说明 -->
     <view class="help-section">
-      <view class="help-title">
-        超声波配网说明
+        <view class="help-title">
+          {{ t('deviceConfig.ultrasonicConfigInstructions') }}
+        </view>
+        <view class="help-content">
+          <text class="help-item">
+            1. {{ t('deviceConfig.ensureWifiNetworkSelectedAndPasswordEntered') }}
+          </text>
+          <text class="help-item">
+            2. {{ t('deviceConfig.clickGenerateAndPlaySoundWave') }}
+          </text>
+          <text class="help-item">
+            3. {{ t('deviceConfig.bringPhoneCloseToXiaozhiDevice') }}
+          </text>
+          <text class="help-item">
+            4. {{ t('deviceConfig.duringAudioPlaybackXiaozhiWillReceive') }}
+          </text>
+          <text class="help-item">
+            5. {{ t('deviceConfig.afterConfigSuccessDeviceWillConnect') }}
+          </text>
+          <text class="help-tip">
+            {{ t('deviceConfig.usesAfskModulation') }}
+          </text>
+          <text class="help-tip">
+            {{ t('deviceConfig.ensureModeratePhoneVolume') }}
+          </text>
+        </view>
       </view>
-      <view class="help-content">
-        <text class="help-item">
-          1. 确保已选择WiFi网络并输入密码
-        </text>
-        <text class="help-item">
-          2. 点击生成并播放声波，系统会将配网信息编码为音频
-        </text>
-        <text class="help-item">
-          3. 将手机靠近xiaozhi设备（距离1-2米）
-        </text>
-        <text class="help-item">
-          4. 音频播放时，xiaozhi会接收并解码配网信息
-        </text>
-        <text class="help-item">
-          5. 配网成功后设备会自动连接WiFi网络
-        </text>
-        <text class="help-tip">
-          使用AFSK调制技术，通过1800Hz和1500Hz频率传输数据
-        </text>
-        <text class="help-tip">
-          请确保手机音量适中，避免环境噪音干扰
-        </text>
-      </view>
-    </view>
   </view>
 </template>
 

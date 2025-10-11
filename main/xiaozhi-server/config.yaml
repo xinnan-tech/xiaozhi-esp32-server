@@ -41,6 +41,12 @@ server:
     # 可选:设备白名单，如果设置了白名单，那么白名单的机器无论是什么token都可以连接。
     #allowed_devices:
     #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
+ # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port
+  mqtt_gateway: null
+  # MQTT签名密钥，用于生成MQTT连接密码，根据mqtt_gateway的.env文件配置
+  mqtt_signature_key: null
+  # UDP网关配置
+  udp_gateway: null
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
   log_format: "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{selected_module}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>"
@@ -427,7 +433,26 @@ ASR:
     enable_itn: true  # 逆文本归一化
     #language: "zh"  # 语种，支持zh、en、ja、ko等
     context: ""  # 上下文信息，用于提高识别准确率，不超过10000 Token
-
+  XunfeiStreamASR:
+    # 讯飞流式语音识别服务
+    # 需要先在讯飞开放平台创建应用，获取以下认证信息
+    # 讯飞开放平台地址：https://www.xfyun.cn/
+    # 创建应用后，在"我的应用"中获取：
+    # - APPID
+    # - APISecret  
+    # - APIKey
+    type: xunfei_stream
+    # 必填参数 - 讯飞开放平台应用信息
+    app_id: 你的APPID
+    api_key: 你的APIKey
+    api_secret: 你的APISecret
+    # 识别参数配置
+    domain: slm # 识别领域，iat:日常用语，medical:医疗，finance:金融等
+    language: zh_cn # 语言，zh_cn:中文，en_us:英文
+    accent: mandarin # 方言，mandarin:普通话
+    dwa: wpgs # 动态修正，wpgs:实时返回中间结果
+    # 调整音频处理参数以提高长语音识别质量
+    output_dir: tmp/
   
 VAD:
   SileroVAD:
@@ -585,6 +610,16 @@ VLLM:
     url: https://dashscope.aliyuncs.com/compatible-mode/v1
     # 可在这里找到你的api key https://bailian.console.aliyun.com/?apiKey=1#/api-key
     api_key: 你的api_key
+  XunfeiSparkLLM:
+    # 定义LLM API类型
+    type: openai
+    # 先新建应用，在下面的地址
+    # 开通应用地址：https://console.xfyun.cn/app/myapp
+    # 有免费额度，但也要开通服务，才能获取api_key
+    # 每一个模型都需要单独开通，每一个模型的api_password都不同，例如Lite模型在https://console.xfyun.cn/services/cbm 开通
+    base_url: https://ark.cn-beijing.volces.com/api/v3
+    model_name: lite
+    api_key: 你的api_password
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
@@ -922,3 +957,40 @@ TTS:
     # 默认音色，如需其他音色可到项目assets文件夹下注册
     voice: "jay_klee"
     output_dir: tmp/
+  AliBLTTS:
+    # 阿里百炼CosyVoice大模型流式文本语音合成
+    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    # cosyvoice-v3和部分音色需要申请开通
+    type: alibl_stream
+    api_key: 你的api_key
+    model: "cosyvoice-v2"
+    voice: "longcheng_v2"
+    output_dir: tmp/
+    # 以下可不用设置，使用默认设置
+    # format: pcm  # 音频格式：pcm、wav、mp3、opus
+    # sample_rate: 24000  # 采样率：16000, 24000, 48000
+    # volume: 50  # 音量：0-100
+    # rate: 1  # 语速：0.5~2
+    # pitch: 1  # 语调：0.5~2
+  XunFeiTTS:
+    # 讯飞TTS服务 官方网站：https://www.xfyun.cn/
+    # 登录讯飞语音技术平台 https://console.xfyun.cn/app/myapp 创建相关应用
+    # 选择需要的服务获取api相关配置 https://console.xfyun.cn/services/uts
+    # 为需要使用的应用(APPID)购买相关服务 例如：超拟人合成 https://console.xfyun.cn/services/uts
+    type: xunfei_stream
+    api_url: wss://cbm01.cn-huabei-1.xf-yun.com/v1/private/mcd9m97e6
+    app_id: 你的app_id
+    api_secret: 你的api_secret
+    api_key: 你的api_key
+    voice: x5_lingxiaoxuan_flow
+    output_dir: tmp/
+    # 以下可不用设置，使用默认设置，注意V5音色不支持口语化配置
+    # oral_level: mid  # 口语化等级：high, mid, low
+    # spark_assist: 1  # 是否通过大模型进行口语化 开启:1, 关闭:0
+    # stop_split: 0  # 关闭服务端拆句 不关闭：0，关闭：1
+    # remain: 0  # 是否保留原书面语的样子	保留:1, 不保留:0
+    # format: raw  # 音频格式：raw(PCM), lame(MP3), speex, opus, opus-wb, opus-swb, speex-wb
+    # sample_rate: 24000  # 采样率：16000, 8000, 24000
+    # volume: 50  # 音量：0-100
+    # speed: 50  # 语速：0-100
+    # pitch: 50  # 语调：0-100

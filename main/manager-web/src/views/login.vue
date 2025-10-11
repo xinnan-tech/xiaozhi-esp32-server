@@ -148,7 +148,7 @@
 import Api from "@/apis/api";
 import VersionFooter from "@/components/VersionFooter.vue";
 import i18n, { changeLanguage } from "@/i18n";
-import { getUUID, goToPage, showDanger, showSuccess, validateMobile } from "@/utils";
+import { getUUID, goToPage, showDanger, showSuccess, sm2Encrypt, validateMobile } from "@/utils";
 import { mapState } from "vuex";
 
 export default {
@@ -161,6 +161,7 @@ export default {
       allowUserRegister: (state) => state.pubConfig.allowUserRegister,
       enableMobileRegister: (state) => state.pubConfig.enableMobileRegister,
       mobileAreaList: (state) => state.pubConfig.mobileAreaList,
+      sm2PublicKey: (state) => state.pubConfig.sm2PublicKey,
     }),
     // 获取当前语言
     currentLanguage() {
@@ -252,9 +253,9 @@ export default {
     },
 
     // 封装输入验证逻辑
-    validateInput(input, message) {
+    validateInput(input, messageKey) {
       if (!input.trim()) {
-        showDanger(message);
+        showDanger(this.$t(messageKey));
         return false;
       }
       return true;
@@ -264,41 +265,65 @@ export default {
       if (this.isMobileLogin) {
         // 手机号登录验证
         if (!validateMobile(this.form.mobile, this.form.areaCode)) {
-          showDanger("请输入正确的手机号码");
+          showDanger(this.$t('login.requiredMobile'));
           return;
         }
         // 拼接手机号作为用户名
         this.form.username = this.form.areaCode + this.form.mobile;
       } else {
         // 用户名登录验证
-        if (!this.validateInput(this.form.username, "用户名不能为空")) {
+        if (!this.validateInput(this.form.username, 'login.requiredUsername')) {
           return;
         }
       }
 
       // 验证密码
-      if (!this.validateInput(this.form.password, "密码不能为空")) {
+      if (!this.validateInput(this.form.password, 'login.requiredPassword')) {
         return;
       }
       // 验证验证码
-      if (!this.validateInput(this.form.captcha, "验证码不能为空")) {
+      if (!this.validateInput(this.form.captcha, 'login.requiredCaptcha')) {
+        return;
+      }
+      // 加密密码
+      let encryptedPassword;
+      try {
+        // 拼接验证码和密码
+        const captchaAndPassword = this.form.captcha + this.form.password;
+        encryptedPassword = sm2Encrypt(this.sm2PublicKey, captchaAndPassword);
+      } catch (error) {
+        console.error("密码加密失败:", error);
+        showDanger(this.$t('sm2.encryptionFailed'));
         return;
       }
 
+      const plainUsername = this.form.username;
+
       this.form.captchaId = this.captchaUuid;
+
+      // 加密
+      const loginData = {
+        username: plainUsername,
+        password: encryptedPassword,
+        captchaId: this.form.captchaId
+      };
+
       Api.user.login(
-        this.form,
+        loginData,
         ({ data }) => {
-          showSuccess("登录成功！");
+          showSuccess(this.$t('login.loginSuccess'));
           this.$store.commit("setToken", JSON.stringify(data.data));
           goToPage("/home");
         },
         (err) => {
-          showDanger(err.data.msg || "登录失败");
+          // 直接使用后端返回的国际化消息
+          let errorMessage = err.data.msg || "登录失败";
+
+          showDanger(errorMessage);
           if (
             err.data != null &&
             err.data.msg != null &&
-            err.data.msg.indexOf("图形验证码") > -1
+            err.data.msg.indexOf("图形验证码") > -1 || err.data.msg.indexOf("Captcha") > -1
           ) {
             this.fetchCaptcha();
           }
@@ -316,7 +341,7 @@ export default {
     },
     goToForgetPassword() {
       goToPage("/retrieve-password");
-    },
+    }
   },
 };
 </script>
@@ -326,8 +351,7 @@ export default {
 .login-type-container {
   margin: 10px 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: center;
 }
 
 .title-language-dropdown {

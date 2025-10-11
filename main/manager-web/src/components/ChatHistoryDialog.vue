@@ -1,5 +1,6 @@
 <template>
-    <el-dialog :title="$t('chatHistory.with') + agentName + $t('chatHistory.dialogTitle') + (currentMacAddress ? '[' + currentMacAddress + ']' : '')"
+    <el-dialog
+        :title="$t('chatHistory.with') + agentName + $t('chatHistory.dialogTitle') + (currentMacAddress ? '[' + currentMacAddress + ']' : '')"
         :visible.sync="dialogVisible" width="80%" :before-close="handleClose" custom-class="chat-history-dialog">
         <div class="chat-container">
             <div class="session-list" @scroll="handleScroll">
@@ -35,6 +36,14 @@
                     {{ $t('chatHistory.selectSession') }}
                 </div>
             </div>
+        </div>
+        <div v-if="currentSessionId" class="download-buttons">
+            <el-button type="primary" plain size="small" @click="downloadCurrentSessionWithPrevious">
+                {{ $t('chatHistory.downloadCurrentWithPreviousSessions') }}
+            </el-button>
+            <el-button type="primary" plain size="small" @click="downloadCurrentSession">
+                {{ $t('chatHistory.downloadCurrentSession') }}
+            </el-button>
         </div>
     </el-dialog>
 </template>
@@ -292,6 +301,30 @@ export default {
 
             // 返回对应的头像图片
             return require(`@/assets/user-avatar${avatarIndex}.png`);
+        },
+
+        // 下载本会话聊天记录
+        downloadCurrentSession() {
+            Api.agent.getDownloadUrl(this.agentId, this.currentSessionId, (res) => {
+                if (res && res.data && res.data.code === 0 && res.data.data) {
+                    const uuid = res.data.data;
+                    window.open(`${Api.getServiceUrl()}/agent/chat-history/download/${uuid}/current`, '_blank');
+                } else {
+                    this.$message.error(this.$t('chatHistory.downloadLinkFailed'));
+                }
+            });
+        },
+
+        // 下载本会话及前20条会话聊天记录
+        downloadCurrentSessionWithPrevious() {
+            Api.agent.getDownloadUrl(this.agentId, this.currentSessionId, (res) => {
+                if (res && res.data && res.data.code === 0 && res.data.data) {
+                    const uuid = res.data.data;
+                    window.open(`${Api.getServiceUrl()}/agent/chat-history/download/${uuid}/previous`, '_blank');
+                } else {
+                    this.$message.error(this.$t('chatHistory.downloadLinkFailed'));
+                }
+            });
         }
     }
 };
@@ -441,6 +474,22 @@ export default {
     vertical-align: middle;
     margin: 0 10px;
 }
+
+.download-buttons {
+    padding: 20px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid #eee;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+}
+
+.download-buttons .el-button {
+    flex: 1;
+}
 </style>
 
 <style>
@@ -453,7 +502,7 @@ export default {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    height: 90vh;
+    height: 98vh;
     max-width: 85vw;
     border-radius: 12px;
     overflow: hidden;

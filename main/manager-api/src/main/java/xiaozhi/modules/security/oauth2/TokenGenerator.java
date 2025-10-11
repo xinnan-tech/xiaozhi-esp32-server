@@ -3,6 +3,7 @@ package xiaozhi.modules.security.oauth2;
 import java.security.MessageDigest;
 import java.util.UUID;
 
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 
 /**
@@ -38,7 +39,7 @@ public class TokenGenerator {
             byte[] messageDigest = algorithm.digest();
             return toHexString(messageDigest);
         } catch (Exception e) {
-            throw new RenException("token invalid", e);
+            throw new RenException(ErrorCode.TOKEN_GENERATE_ERROR, e);
         }
     }
 }

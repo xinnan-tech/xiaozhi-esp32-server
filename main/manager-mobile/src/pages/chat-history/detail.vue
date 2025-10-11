@@ -15,6 +15,7 @@ import { computed, ref } from 'vue'
 import { getAudioId, getChatHistory } from '@/api/chat-history/chat-history'
 import { getEnvBaseUrl } from '@/utils'
 import { toast } from '@/utils/toast'
+import { t } from '@/i18n'
 
 defineOptions({
   name: 'ChatDetail',
@@ -49,7 +50,7 @@ const agentId = ref('')
 const currentAgent = computed(() => {
   return {
     id: agentId.value,
-    agentName: '智能助手',
+    agentName: t('chatHistory.assistantName'),
   }
 })
 
@@ -80,7 +81,7 @@ async function loadChatHistory() {
   }
   catch (error) {
     console.error('获取聊天记录失败:', error)
-    toast.error('获取聊天记录失败')
+    toast.error(t('chatHistory.loadFailed'))
   }
   finally {
     loading.value = false
@@ -114,10 +115,10 @@ function getMessageContent(message: ChatMessage): string {
 function getSpeakerName(message: ChatMessage): string {
   if (message.chatType === 1) {
     const parsed = parseUserMessage(message.content)
-    return parsed ? parsed.speaker : '用户'
+    return parsed ? parsed.speaker : t('chatHistory.userName')
   }
   else {
-    return currentAgent.value?.agentName || 'AI助手'
+    return currentAgent.value?.agentName || t('chatHistory.aiAssistantName')
   }
 }
 
@@ -130,7 +131,7 @@ function formatTime(timeStr: string) {
 // 播放音频
 async function playAudio(audioId: string) {
   if (!audioId) {
-    toast.error('音频ID无效')
+    toast.error(t('chatHistory.invalidAudioId'))
     return
   }
 
@@ -168,7 +169,7 @@ async function playAudio(audioId: string) {
     // 监听播放错误
     audioContext.value.onError((error) => {
       console.error('音频播放失败:', error)
-      toast.error('音频播放失败')
+      toast.error(t('chatHistory.audioPlayFailed'))
       playingAudioId.value = null
       if (audioContext.value) {
         audioContext.value.destroy()
@@ -181,7 +182,7 @@ async function playAudio(audioId: string) {
   }
   catch (error) {
     console.error('播放音频失败:', error)
-    toast.error('播放音频失败')
+    toast.error(t('chatHistory.playAudioFailed'))
     playingAudioId.value = null
   }
 }
@@ -194,7 +195,7 @@ onLoad((options) => {
   }
   else {
     console.error('缺少必要参数')
-    toast.error('页面参数错误')
+    toast.error(t('chatHistory.parameterError'))
   }
 })
 
@@ -214,7 +215,7 @@ onUnload(() => {
     <view class="w-full bg-white" :style="{ height: `${safeAreaInsets?.top}px` }" />
 
     <!-- 导航栏 -->
-    <wd-navbar title="聊天详情">
+    <wd-navbar :title="t('chatHistory.pageTitle')">
       <template #left>
         <wd-icon name="arrow-left" size="18" @click="goBack" />
       </template>
@@ -230,7 +231,7 @@ onUnload(() => {
       <view v-if="loading" class="flex flex-col items-center justify-center gap-[20rpx] p-[100rpx_0]">
         <wd-loading />
         <text class="text-[28rpx] text-[#65686f]">
-          加载中...
+          {{ t('chatHistory.loading') }}
         </text>
       </view>
 

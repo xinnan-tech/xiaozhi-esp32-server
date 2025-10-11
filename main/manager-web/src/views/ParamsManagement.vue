@@ -5,8 +5,8 @@
         <div class="operation-bar">
             <h2 class="page-title">{{ $t('paramManagement.pageTitle') }}</h2>
             <div class="right-operations">
-                <el-input :placeholder="$t('paramManagement.searchPlaceholder')" v-model="searchCode" class="search-input"
-                    @keyup.enter.native="handleSearch" clearable />
+                <el-input :placeholder="$t('paramManagement.searchPlaceholder')" v-model="searchCode"
+                    class="search-input" @keyup.enter.native="handleSearch" clearable />
                 <el-button class="btn-search" @click="handleSearch">{{ $t('paramManagement.search') }}</el-button>
             </div>
         </div>
@@ -24,25 +24,32 @@
                                     <el-checkbox v-model="scope.row.selected"></el-checkbox>
                                 </template>
                             </el-table-column>
-                            <el-table-column :label="$t('paramManagement.paramCode')" prop="paramCode" align="center"></el-table-column>
-                            <el-table-column :label="$t('paramManagement.paramValue')" prop="paramValue" align="center" show-overflow-tooltip>
+                            <el-table-column :label="$t('paramManagement.paramCode')" prop="paramCode"
+                                align="center"></el-table-column>
+                            <el-table-column :label="$t('paramManagement.paramValue')" prop="paramValue" align="center"
+                                show-overflow-tooltip>
                                 <template slot-scope="scope">
                                     <div v-if="isSensitiveParam(scope.row.paramCode)">
-                                        <span v-if="!scope.row.showValue">{{ maskSensitiveValue(scope.row.paramValue)
-                                        }}</span>
+                                        <span v-if="!scope.row.showValue">
+                                            {{ maskSensitiveValue(scope.row.paramValue) }}
+                                        </span>
                                         <span v-else>{{ scope.row.paramValue }}</span>
                                         <el-button size="mini" type="text" @click="toggleSensitiveValue(scope.row)">
-                                            {{ scope.row.showValue ? $t('paramManagement.hide') : $t('paramManagement.view') }}
+                                            {{ scope.row.showValue ? $t('paramManagement.hide') :
+                                                $t('paramManagement.view') }}
                                         </el-button>
                                     </div>
                                     <span v-else>{{ scope.row.paramValue }}</span>
                                 </template>
                             </el-table-column>
-                            <el-table-column :label="$t('paramManagement.remark')" prop="remark" align="center"></el-table-column>
+                            <el-table-column :label="$t('paramManagement.remark')" prop="remark"
+                                align="center"></el-table-column>
                             <el-table-column :label="$t('paramManagement.operation')" align="center">
                                 <template slot-scope="scope">
-                                    <el-button size="mini" type="text" @click="editParam(scope.row)">{{ $t('paramManagement.edit') }}</el-button>
-                                    <el-button size="mini" type="text" @click="deleteParam(scope.row)">{{ $t('paramManagement.delete') }}</el-button>
+                                    <el-button size="mini" type="text" @click="editParam(scope.row)">{{
+                                        $t('paramManagement.edit') }}</el-button>
+                                    <el-button size="mini" type="text" @click="deleteParam(scope.row)">{{
+                                        $t('paramManagement.delete') }}</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -50,16 +57,19 @@
                         <div class="table_bottom">
                             <div class="ctrl_btn">
                                 <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
-                                    {{ isAllSelected ? $t('paramManagement.deselectAll') : $t('paramManagement.selectAll') }}
+                                    {{ isAllSelected ? $t('paramManagement.deselectAll') :
+                                        $t('paramManagement.selectAll') }}
                                 </el-button>
-                                <el-button size="mini" type="success" @click="showAddDialog">{{ $t('paramManagement.add') }}</el-button>
+                                <el-button size="mini" type="success" @click="showAddDialog">{{
+                                    $t('paramManagement.add') }}</el-button>
                                 <el-button size="mini" type="danger" icon="el-icon-delete"
-                                    @click="deleteSelectedParams">{{ $t('paramManagement.delete') }}</el-button>
+                                    @click="deleteSelectedParams">{{
+                                        $t('paramManagement.delete') }}</el-button>
                             </div>
                             <div class="custom-pagination">
                                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                                    <el-option v-for="item in pageSizeOptions" :key="item" :label="`${item}${$t('paramManagement.itemsPerPage')}`"
-                                        :value="item">
+                                    <el-option v-for="item in pageSizeOptions" :key="item"
+                                        :label="`${item}${$t('paramManagement.itemsPerPage')}`" :value="item">
                                     </el-option>
                                 </el-select>
                                 <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
@@ -84,8 +94,8 @@
         </div>
 
         <!-- 新增/编辑参数对话框 -->
-        <param-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="paramForm" @submit="handleSubmit"
-            @cancel="dialogVisible = false" />
+        <param-dialog ref="paramDialog" :title="dialogTitle" :visible.sync="dialogVisible" :form="paramForm"
+            @submit="handleSubmit" @cancel="dialogVisible = false" />
         <el-footer>
             <version-footer />
         </el-footer>
@@ -97,7 +107,6 @@ import Api from "@/apis/api";
 import HeaderBar from "@/components/HeaderBar.vue";
 import ParamDialog from "@/components/ParamDialog.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
-import i18n from '@/i18n';
 export default {
     components: { HeaderBar, ParamDialog, VersionFooter },
     data() {
@@ -112,13 +121,13 @@ export default {
             dialogVisible: false,
             dialogTitle: "新增参数",
             isAllSelected: false,
-            sensitive_keys: ["api_key", "personal_access_token", "access_token", "token", "secret", "access_key_secret", "secret_key"],
+            sensitive_keys: ["api_key", "personal_access_token", "access_token", "token", "secret", "access_key_secret", "secret_key", "password", "mqtt_signature_key", "private_key"],
             paramForm: {
                 id: null,
                 paramCode: "",
-            paramValue: "",
-            valueType: "string", 
-            remark: ""
+                paramValue: "",
+                valueType: "string",
+                remark: ""
             },
         };
     },
@@ -166,7 +175,7 @@ export default {
                     if (data.code === 0) {
                         this.paramsList = data.data.list.map(item => ({
                             ...item,
-                            valueType: item.valueType || "string", 
+                            valueType: item.valueType || "string",
                             selected: false,
                             showValue: false
                         }));
@@ -193,41 +202,43 @@ export default {
         showAddDialog() {
             this.dialogTitle = this.$t('paramManagement.addParam');
             this.paramForm = {
-            id: null,
-            paramCode: "",
-            paramValue: "",
-            valueType: "string", // 默认值
-            remark: ""
-        };
+                id: null,
+                paramCode: "",
+                paramValue: "",
+                valueType: "string", // 默认值
+                remark: ""
+            };
             this.dialogVisible = true;
         },
         editParam(row) {
             this.dialogTitle = this.$t('paramManagement.editParam');
             this.paramForm = {
-            id: row.id,
-            paramCode: row.paramCode,
-            paramValue: row.paramValue,
-            valueType: row.valueType || "string", // 确保有值
-            remark: row.remark
-        };
+                id: row.id,
+                paramCode: row.paramCode,
+                paramValue: row.paramValue,
+                valueType: row.valueType || "string", // 确保有值
+                remark: row.remark
+            };
             this.dialogVisible = true;
         },
         handleSubmit(form) {
             if (form.id) {
                 // 更新参数
                 Api.admin.updateParam(form, ({ data }) => {
-                    if (data.code === 0) {
-                        this.dialogVisible = false;
-                        this.fetchParams();
-                        this.$message.success({
-                            message: this.$t('paramManagement.updateSuccess'),
-                            showClose: true
-                        });
-                    } else {
-                        this.$message.error({
-                            message: data.msg || this.$t('paramManagement.updateFailed'),
-                            showClose: true
-                        });
+                    this.dialogVisible = false;
+                    this.fetchParams();
+                    this.$message.success({
+                        message: this.$t('paramManagement.updateSuccess'),
+                        showClose: true
+                    });
+                }, ({ data }) => {
+                    this.$message.error({
+                        message: data.msg || this.$t('paramManagement.updateFailed'),
+                        showClose: true
+                    });
+                    // 调用ParamDialog的resetSaving方法重置保存状态
+                    if (this.$refs.paramDialog && typeof this.$refs.paramDialog.resetSaving === 'function') {
+                        this.$refs.paramDialog.resetSaving();
                     }
                 });
             } else {
@@ -245,6 +256,10 @@ export default {
                             message: data.msg || this.$t('paramManagement.addFailed'),
                             showClose: true
                         });
+                        // 调用ParamDialog的resetSaving方法重置保存状态
+                        if (this.$refs.paramDialog && typeof this.$refs.paramDialog.resetSaving === 'function') {
+                            this.$refs.paramDialog.resetSaving();
+                        }
                     }
                 });
             }

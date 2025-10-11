@@ -457,7 +457,6 @@ class TTSProvider(TTSProviderBase):
                             logger.bind(tag=TAG).warning("收到无效的JSON消息")
                     # 二进制消息（音频数据）
                     elif isinstance(msg, (bytes, bytearray)):
-                        logger.bind(tag=TAG).debug(f"推送数据到队列里面～～")
                         self.opus_encoder.encode_pcm_to_opus_stream(msg, False, self.handle_opus)
                 except websockets.ConnectionClosed:
                     logger.bind(tag=TAG).warning("WebSocket连接已关闭")

@@ -20,7 +20,9 @@
                   <img loading="lazy" src="@/assets/home/info.png" alt="">
                   <span>{{ $t('roleConfig.restartNotice') }}</span>
                 </div>
-                <el-button type="primary" class="save-btn" @click="saveConfig">{{ $t('roleConfig.saveConfig') }}</el-button>
+                <el-button type="primary" class="save-btn" @click="saveConfig">
+                  {{ $t('roleConfig.saveConfig') }}
+                </el-button>
                 <el-button class="reset-btn" @click="resetConfig">{{ $t('roleConfig.reset') }}</el-button>
                 <button class="custom-close-btn" @click="goToHome">
                   ×
@@ -45,29 +47,31 @@
                       </div>
                     </el-form-item>
                     <el-form-item :label="$t('roleConfig.roleIntroduction') + '：'">
-                      <el-input type="textarea" rows="9" resize="none" :placeholder="$t('roleConfig.pleaseEnterContent')" v-model="form.systemPrompt"
-                        maxlength="2000" show-word-limit class="form-textarea" />
+                      <el-input type="textarea" rows="9" resize="none"
+                        :placeholder="$t('roleConfig.pleaseEnterContent')" v-model="form.systemPrompt" maxlength="2000"
+                        show-word-limit class="form-textarea" />
                     </el-form-item>
 
-                    <el-form-item :label="$t('roleConfig.memory') + '：'">
+                    <el-form-item :label="$t('roleConfig.memoryHis') + '：'">
                       <el-input type="textarea" rows="6" resize="none" v-model="form.summaryMemory" maxlength="2000"
                         show-word-limit class="form-textarea"
                         :disabled="form.model.memModelId !== 'Memory_mem_local_short'" />
                     </el-form-item>
                     <el-form-item :label="$t('roleConfig.languageCode') + '：'" style="display: none;">
-                      <el-input v-model="form.langCode" :placeholder="$t('roleConfig.pleaseEnterLangCode')" maxlength="10" show-word-limit
-                        class="form-input" />
+                      <el-input v-model="form.langCode" :placeholder="$t('roleConfig.pleaseEnterLangCode')"
+                        maxlength="10" show-word-limit class="form-input" />
                     </el-form-item>
                     <el-form-item :label="$t('roleConfig.interactionLanguage') + '：'" style="display: none;">
-                      <el-input v-model="form.language" :placeholder="$t('roleConfig.pleaseEnterLangName')" maxlength="10" show-word-limit
-                        class="form-input" />
+                      <el-input v-model="form.language" :placeholder="$t('roleConfig.pleaseEnterLangName')"
+                        maxlength="10" show-word-limit class="form-input" />
                     </el-form-item>
                   </div>
                   <div class="form-column">
                     <div class="model-row">
                       <el-form-item :label="$t('roleConfig.vad')" class="model-item">
                         <div class="model-select-wrapper">
-                          <el-select v-model="form.model.vadModelId" filterable :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
+                          <el-select v-model="form.model.vadModelId" filterable
+                            :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
                             @change="handleModelChange('VAD', $event)">
                             <el-option v-for="(item, optionIndex) in modelOptions['VAD']"
                               :key="`option-vad-${optionIndex}`" :label="item.label" :value="item.value" />
@@ -76,7 +80,8 @@
                       </el-form-item>
                       <el-form-item :label="$t('roleConfig.asr')" class="model-item">
                         <div class="model-select-wrapper">
-                          <el-select v-model="form.model.asrModelId" filterable :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
+                          <el-select v-model="form.model.asrModelId" filterable
+                            :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
                             @change="handleModelChange('ASR', $event)">
                             <el-option v-for="(item, optionIndex) in modelOptions['ASR']"
                               :key="`option-asr-${optionIndex}`" :label="item.label" :value="item.value" />
@@ -84,11 +89,12 @@
                         </div>
                       </el-form-item>
                     </div>
-                    <el-form-item v-for="(model, index) in models.slice(2)" :key="`model-${index}`" :label="$t('roleConfig.' + model.type.toLowerCase())"
-                      class="model-item">
+                    <el-form-item v-for="(model, index) in models.slice(2)" :key="`model-${index}`"
+                      :label="$t('roleConfig.' + model.type.toLowerCase())" class="model-item">
                       <div class="model-select-wrapper">
-                        <el-select v-model="form.model[model.key]" filterable :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
-                            @change="handleModelChange(model.type, $event)">
+                        <el-select v-model="form.model[model.key]" filterable
+                          :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
+                          @change="handleModelChange(model.type, $event)">
                           <el-option v-for="(item, optionIndex) in modelOptions[model.type]" v-if="!item.isHidden"
                             :key="`option-${index}-${optionIndex}`" :label="item.label" :value="item.value" />
                         </el-select>
@@ -110,14 +116,15 @@
                         <div v-if="model.type === 'Memory' && form.model.memModelId !== 'Memory_nomem'"
                           class="chat-history-options">
                           <el-radio-group v-model="form.chatHistoryConf" @change="updateChatHistoryConf">
-                              <el-radio-button :label="1">{{ $t('roleConfig.reportText') }}</el-radio-button>
-                              <el-radio-button :label="2">{{ $t('roleConfig.reportTextVoice') }}</el-radio-button>
-                            </el-radio-group>
+                            <el-radio-button :label="1">{{ $t('roleConfig.reportText') }}</el-radio-button>
+                            <el-radio-button :label="2">{{ $t('roleConfig.reportTextVoice') }}</el-radio-button>
+                          </el-radio-group>
                         </div>
                       </div>
                     </el-form-item>
                     <el-form-item :label="$t('roleConfig.voiceType')">
-                      <el-select v-model="form.ttsVoiceId" :placeholder="$t('roleConfig.pleaseSelect')" class="form-select">
+                      <el-select v-model="form.ttsVoiceId" :placeholder="$t('roleConfig.pleaseSelect')"
+                        class="form-select">
                         <el-option v-for="(item, index) in voiceOptions" :key="`voice-${index}`" :label="item.label"
                           :value="item.value" />
                       </el-select>

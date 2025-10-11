@@ -15,7 +15,8 @@ export default new Vuex.Store({
       version: '',
       beianIcpNum: 'null',
       beianGaNum: 'null',
-      allowUserRegister: false
+      allowUserRegister: false,
+      sm2PublicKey: ''
     }
   },
   getters: {

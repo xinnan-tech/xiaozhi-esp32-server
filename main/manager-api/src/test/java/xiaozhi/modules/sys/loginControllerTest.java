@@ -24,7 +24,6 @@ class loginControllerTest {
         LoginDTO loginDTO = new LoginDTO();
         loginDTO.setUsername("手机号码");
         loginDTO.setPassword("密码");
-        loginDTO.setCaptcha("123456");
         loginController.register(loginDTO);
     }
 

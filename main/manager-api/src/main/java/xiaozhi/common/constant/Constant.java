@@ -87,6 +87,16 @@ public interface Constant {
     String SERVER_SECRET = "server.secret";
 
     /**
+     * SM2公钥
+     */
+    String SM2_PUBLIC_KEY = "server.public_key";
+
+    /**
+     * SM2私钥
+     */
+    String SM2_PRIVATE_KEY = "server.private_key";
+
+    /**
      * websocket地址
      */
     String SERVER_WEBSOCKET = "server.websocket";
@@ -95,7 +105,6 @@ public interface Constant {
      * mqtt gateway 配置
      */
     String SERVER_MQTT_GATEWAY = "server.mqtt_gateway";
-    
 
     /**
      * ota地址
@@ -126,6 +135,11 @@ public interface Constant {
      * mcp接入点路径
      */
     String SERVER_VOICE_PRINT = "server.voice_print";
+
+    /**
+     * mqtt密钥
+     */
+    String SERVER_MQTT_SECRET = "server.mqtt_signature_key";
 
     /**
      * 无记忆
@@ -243,7 +257,7 @@ public interface Constant {
     /**
      * 版本号
      */
-    public static final String VERSION = "0.7.7";
+    public static final String VERSION = "0.8.4";
 
     /**
      * 无效固件URL

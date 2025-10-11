@@ -12,3 +12,7 @@ select:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
   background-color: transparent;
 }
+
+.el-footer {
+  height: 35px !important; /* 使用 !important 确保覆盖默认样式 */
+}

@@ -26,6 +26,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.constant.Constant;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.JsonUtils;
@@ -78,7 +79,7 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
             // 根据识别出的声纹ID查询对应的用户信息
             AgentVoicePrintEntity existingVoicePrint = baseMapper.selectById(response.getSpeakerId());
             String existingUserName = existingVoicePrint != null ? existingVoicePrint.getSourceName() : "未知用户";
-            throw new RenException("此声音声纹对应的人（" + existingUserName + "）已经注册，请选择其他声音注册");
+            throw new RenException(ErrorCode.VOICEPRINT_ALREADY_REGISTERED, existingUserName);
         }
         AgentVoicePrintEntity entity = ConvertUtils.sourceToTarget(dto, AgentVoicePrintEntity.class);
         // 开启事务
@@ -100,7 +101,7 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
             } catch (Exception e) {
                 status.setRollbackOnly(); // 标记事务回滚
                 log.error("保存声纹错误原因：{}", e.getMessage());
-                throw new RenException("保存声纹错误，请联系管理员");
+                throw new RenException(ErrorCode.VOICE_PRINT_SAVE_ERROR);
             }
         }));
     }
@@ -123,7 +124,7 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
             } catch (Exception e) {
                 status.setRollbackOnly(); // 标记事务回滚
                 log.error("删除声纹存在错误原因：{}", e.getMessage());
-                throw new RenException("删除声纹出现了错误");
+                throw new RenException(ErrorCode.VOICEPRINT_DELETE_ERROR);
             }
         }));
         // 数据库声纹数据删除成功才继续执行删除声纹服务的数据
@@ -179,7 +180,7 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
                     // 根据识别出的声纹ID查询对应的用户信息
                     AgentVoicePrintEntity existingVoicePrint = baseMapper.selectById(response.getSpeakerId());
                     String existingUserName = existingVoicePrint != null ? existingVoicePrint.getSourceName() : "未知用户";
-                    throw new RenException("此次修改不允许，此声音已经注册为声纹了（" + existingUserName + "）");
+                    throw new RenException(ErrorCode.VOICEPRINT_UPDATE_NOT_ALLOWED, existingUserName);
                 }
             }
         } else {
@@ -208,7 +209,7 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
             } catch (Exception e) {
                 status.setRollbackOnly(); // 标记事务回滚
                 log.error("修改声纹错误原因：{}", e.getMessage());
-                throw new RenException("修改声纹错误，请联系管理员");
+                throw new RenException(ErrorCode.VOICEPRINT_UPDATE_ADMIN_ERROR);
             }
         }));
     }
@@ -225,7 +226,7 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
             return new URI(voicePrint);
         } catch (URISyntaxException e) {
             log.error("路径格式不正确路径：{}，\n错误信息:{}", voicePrint, e.getMessage());
-            throw new RuntimeException("声纹接口的地址存在错误，请进入参数管理修改声纹接口地址");
+                throw new RenException(ErrorCode.VOICEPRINT_API_URI_ERROR);
         }
     }
 
@@ -270,13 +271,13 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
         // 判断这个音频是否属于当前智能体
         boolean b = agentChatHistoryService.isAudioOwnedByAgent(audioId, agentId);
         if (!b) {
-            throw new RenException("音频数据不属于这个智能体");
+            throw new RenException(ErrorCode.VOICEPRINT_AUDIO_NOT_BELONG_AGENT);
         }
         // 获取到音频数据
         byte[] audio = agentChatAudioService.getAudio(audioId);
         // 如果音频数据为空的直接报错不进行下去
         if (audio == null || audio.length == 0) {
-            throw new RenException("音频数据是空的请检查上传数据");
+            throw new RenException(ErrorCode.VOICEPRINT_AUDIO_EMPTY);
         }
         // 将字节数组包装为资源，返回
         return new ByteArrayResource(audio) {
@@ -314,13 +315,13 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
 
         if (response.getStatusCode() != HttpStatus.OK) {
             log.error("声纹注册失败,请求路径：{}", requestUrl);
-            throw new RenException("声纹保存失败,请求不成功");
+            throw new RenException(ErrorCode.VOICEPRINT_REGISTER_REQUEST_ERROR);
         }
         // 检查响应内容
         String responseBody = response.getBody();
         if (responseBody == null || !responseBody.contains("true")) {
             log.error("声纹注册失败,请求处理失败内容：{}", responseBody == null ? "空内容" : responseBody);
-            throw new RenException("声纹保存失败,请求处理失败");
+            throw new RenException(ErrorCode.VOICEPRINT_REGISTER_PROCESS_ERROR);
         }
     }
 
@@ -344,13 +345,13 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
                 String.class);
         if (response.getStatusCode() != HttpStatus.OK) {
             log.error("声纹注销失败,请求路径：{}", requestUrl);
-            throw new RenException("声纹注销失败,请求不成功");
+            throw new RenException(ErrorCode.VOICEPRINT_UNREGISTER_REQUEST_ERROR);
         }
         // 检查响应内容
         String responseBody = response.getBody();
         if (responseBody == null || !responseBody.contains("true")) {
             log.error("声纹注销失败,请求处理失败内容：{}", responseBody == null ? "空内容" : responseBody);
-            throw new RenException("声纹注销失败,请求处理失败");
+            throw new RenException(ErrorCode.VOICEPRINT_UNREGISTER_PROCESS_ERROR);
         }
     }
 
@@ -398,7 +399,7 @@ public class AgentVoicePrintServiceImpl extends ServiceImpl<AgentVoicePrintDao, 
 
         if (response.getStatusCode() != HttpStatus.OK) {
             log.error("声纹识别请求失败,请求路径：{}", requestUrl);
-            throw new RenException("声纹识别失败,请求不成功");
+            throw new RenException(ErrorCode.VOICEPRINT_IDENTIFY_REQUEST_ERROR);
         }
         // 检查响应内容
         String responseBody = response.getBody();

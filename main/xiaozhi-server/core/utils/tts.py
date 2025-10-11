@@ -6,6 +6,27 @@ import importlib
 
 logger = setup_logging()
 
+punctuation_set = {
+    "，",
+    ",",  # 中文逗号 + 英文逗号
+    "。",
+    ".",  # 中文句号 + 英文句号
+    "！",
+    "!",  # 中文感叹号 + 英文感叹号
+    "“",
+    "”",
+    '"',  # 中文双引号 + 英文引号
+    "：",
+    ":",  # 中文冒号 + 英文冒号
+    "-",
+    "－",  # 英文连字符 + 中文全角横线
+    "、",  # 中文顿号
+    "[",
+    "]",  # 方括号
+    "【",
+    "】",  # 中文方括号
+    "~",  # 波浪号
+}
 
 def create_instance(class_name, *args, **kwargs):
     # 创建TTS实例
@@ -107,6 +128,11 @@ class MarkdownCleaner:
         """
         主入口方法：依序执行所有正则，移除或替换 Markdown 元素
         """
+        # 检查文本是否全为英文和基本标点符号
+        if text and all((c.isascii() or c.isspace() or c in punctuation_set) for c in text):
+            # 保留原始空格，直接返回
+            return text
+
         for regex, replacement in MarkdownCleaner.REGEXES:
             text = regex.sub(replacement, text)
         return text.strip()

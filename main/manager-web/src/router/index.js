@@ -18,7 +18,7 @@ const routes = [
       return import('../views/roleConfig.vue')
     }
   },
-   {
+  {
     path: '/voice-print',
     name: 'VoicePrint',
     component: function () {
@@ -111,10 +111,55 @@ const routes = [
     }
   },
   {
+    path: '/voice-resource-management',
+    name: 'VoiceResourceManagement',
+    component: function () {
+      return import('../views/VoiceResourceManagement.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: '音色资源开通'
+    }
+  },
+  {
+    path: '/voice-clone-management',
+    name: 'VoiceCloneManagement',
+    component: function () {
+      return import('../views/VoiceCloneManagement.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: '音色克隆管理'
+    }
+  },
+  {
     path: '/dict-management',
     name: 'DictManagement',
     component: function () {
       return import('../views/DictManagement.vue')
+    }
+  },
+  {
+    path: '/provider-management',
+    name: 'ProviderManagement',
+    component: function () {
+      return import('../views/ProviderManagement.vue')
+    }
+  },
+  // 添加默认角色管理路由
+  {
+    path: '/agent-template-management',
+    name: 'AgentTemplateManagement',
+    component: function () {
+      return import('../views/AgentTemplateManagement.vue')
+    }
+  },
+  // 添加模板快速配置路由
+  {
+    path: '/template-quick-config',
+    name: 'TemplateQuickConfig',
+    component: function () {
+      return import('../views/TemplateQuickConfig.vue')
     }
   },
   {

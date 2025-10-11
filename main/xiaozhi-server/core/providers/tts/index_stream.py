@@ -190,7 +190,7 @@ class TTSProvider(TTSProviderBase):
         start_time = time.time()
         text = MarkdownCleaner.clean_markdown(text)
 
-        payload = {"text": text, "character": self.character}
+        payload = {"text": text, "character": self.voice}
 
         try:
             with requests.post(self.api_url, json=payload, timeout=5) as response:

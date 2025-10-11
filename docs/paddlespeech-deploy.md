@@ -1,5 +1,9 @@
 # PaddleSpeechTTS集成xiaozhi服务
 
+## 重点说明
+- 优点：本地离线部署、速度快
+- 缺点：截止2025年9月25日，默认的模型是中文模型，不支持英文转语音。如果含英文会发不出声音，如需同时支持中英文需要自己训练。
+
 ## 一、基础环境要求
 操作系统：Windows / Linux / WSL 2
 
@@ -16,15 +20,21 @@ git clone https://github.com/PaddlePaddle/PaddleSpeech.git
 ```
 ### 2.建立虚拟环境
 ```bash
-#请根据Paddle官方支持的python版本建立环境  ```https://www.paddlepaddle.org.cn/install```
+
 conda create -n paddle_env python=3.10 -y
 conda activate paddle_env
 ```
-### 3.进入paddlespeech目录
+### 3.安装paddle
+因CPU架构、GPU架构不同，请根据Paddle官方支持的python版本建立环境  
+```
+https://www.paddlepaddle.org.cn/install
+```
+
+### 4.进入paddlespeech目录
 ```bash
 cd PaddleSpeech
 ```
-### 4.安装paddlespeech
+### 5.安装paddlespeech
 ```bash
 pip install pytest-runner -i https://pypi.tuna.tsinghua.edu.cn/simple
 
@@ -32,17 +42,17 @@ pip install pytest-runner -i https://pypi.tuna.tsinghua.edu.cn/simple
 pip install paddlepaddle -i https://mirror.baidu.com/pypi/simple
 pip install paddlespeech -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
-### 5.使用命令自动下载语音模型
+### 6.使用命令自动下载语音模型
 ```bash
 paddlespeech tts --input "你好，这是一次测试"
 ```
 此步骤会自动下载模型缓存至本地 .paddlespeech/models 目录
 
-### 6.修改tts_online_application.yaml配置
+### 7.修改tts_online_application.yaml配置
 参考目录 ```"PaddleSpeech\demos\streaming_tts_server\conf\tts_online_application.yaml"```
 选择```tts_online_application.yaml```文件用编辑器打开，设置```protocol```为```websocket```
 
-### 7.启动服务
+### 8.启动服务
 ```yaml
 paddlespeech_server start --config_file ./demos/streaming_tts_server/conf/tts_online_application.yaml
 #官方默认启动命令：

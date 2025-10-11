@@ -17,6 +17,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import lombok.AllArgsConstructor;
 import xiaozhi.common.exception.RenException;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
@@ -153,7 +154,7 @@ public class SysDictDataServiceImpl extends BaseServiceImpl<SysDictDataDao, SysD
         }
         boolean exists = baseDao.exists(queryWrapper);
         if (exists) {
-            throw new RenException("字典标签重复");
+            throw new RenException(ErrorCode.DICT_LABEL_DUPLICATE);
         }
     }
 

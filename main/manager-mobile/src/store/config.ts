@@ -1,7 +1,7 @@
 import type { PublicConfig } from '@/api/auth'
+import { getPublicConfig } from '@/api/auth'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getPublicConfig } from '@/api/auth'
 
 // 初始化状态
 const initialConfigState: PublicConfig = {
@@ -12,6 +12,7 @@ const initialConfigState: PublicConfig = {
   mobileAreaList: [],
   beianIcpNum: '',
   beianGaNum: '',
+  sm2PublicKey: '',
   name: import.meta.env.VITE_APP_TITLE,
 }
 

@@ -151,9 +151,7 @@ export default {
         providerCode: [{ required: true, message: this.$t('providerDialog.requiredCode'), trigger: 'blur' }],
         name: [{ required: true, message: this.$t('providerDialog.requiredName'), trigger: 'blur' }]
       };
-    }
-  },
-  computed: {
+    },
     hasIncompleteFields() {
       return this.form.fields && this.form.fields.some(field =>
         !field.key || !field.label || !field.type

@@ -11,6 +11,12 @@ from tabulate import tabulate
 from config.settings import load_config
 import tempfile
 import wave
+import hmac
+import base64
+import hashlib
+from datetime import datetime
+from wsgiref.handlers import format_date_time
+from time import mktime
 description = "流式ASR首词延迟测试"
 try:
     import dashscope
@@ -259,6 +265,137 @@ class QwenASRFlashTester(BaseASRTester):
         return self._calculate_result("通义千问ASR", latencies, test_count)
 
 
+class XunfeiStreamASRTester(BaseASRTester):
+    def __init__(self):
+        super().__init__("XunfeiStreamASR")
+        
+    def _create_url(self):
+        """生成讯飞ASR认证URL"""
+        url = 'ws://iat.cn-huabei-1.xf-yun.com/v1'
+        # 生成RFC1123格式的时间戳
+        now = datetime.now()
+        date = format_date_time(mktime(now.timetuple()))
+
+        # 拼接字符串
+        signature_origin = "host: " + "iat.cn-huabei-1.xf-yun.com" + "\n"
+        signature_origin += "date: " + date + "\n"
+        signature_origin += "GET " + "/v1 " + "HTTP/1.1"
+
+        # 进行hmac-sha256进行加密
+        signature_sha = hmac.new(self.asr_config["api_secret"].encode('utf-8'), signature_origin.encode('utf-8'),
+                                 digestmod=hashlib.sha256).digest()
+        signature_sha = base64.b64encode(signature_sha).decode(encoding='utf-8')
+
+        authorization_origin = "api_key=\"%s\", algorithm=\"%s\", headers=\"%s\", signature=\"%s\"" % (
+            self.asr_config["api_key"], "hmac-sha256", "host date request-line", signature_sha)
+        authorization = base64.b64encode(authorization_origin.encode('utf-8')).decode(encoding='utf-8')
+
+        # 将请求的鉴权参数组合为字典
+        v = {
+            "authorization": authorization,
+            "date": date,
+            "host": "iat.cn-huabei-1.xf-yun.com"
+        }
+
+        # 拼接鉴权参数，生成url
+        url = url + '?' + parse.urlencode(v)
+        return url
+    
+    async def test(self, test_count=5):
+        if not self.test_audio_files:
+            return {"name": "讯飞流式ASR", "latency": 0, "status": "失败: 未找到测试音频"}
+        if not self.asr_config:
+            return {"name": "讯飞流式ASR", "latency": 0, "status": "失败: 未配置"}
+        
+        # 检查必要的配置参数
+        required_keys = ["app_id", "api_key", "api_secret"]
+        for key in required_keys:
+            if key not in self.asr_config:
+                return {"name": "讯飞流式ASR", "latency": 0, "status": f"失败: 缺少配置项 {key}"}
+    
+        latencies = []
+        STATUS_FIRST_FRAME = 0
+        
+        for i in range(test_count):
+            try:
+                # 生成认证URL
+                ws_url = self._create_url()
+                
+                # 获取音频数据
+                audio_data = self.test_audio_files[0]['data']
+                if audio_data.startswith(b'RIFF'):
+                    audio_data = audio_data[44:]  # 跳过WAV文件头
+                
+                # 识别参数
+                iat_params = {
+                    "domain": self.asr_config.get("domain", "slm"),
+                    "language": self.asr_config.get("language", "zh_cn"),
+                    "accent": self.asr_config.get("accent", "mandarin"),
+                    "dwa": self.asr_config.get("dwa", "wpgs"),
+                    "result": {
+                        "encoding": "utf8",
+                        "compress": "raw",
+                        "format": "plain"
+                    }
+                }
+                
+                # 准备首帧数据
+                first_frame_data = {
+                    "header": {
+                        "status": STATUS_FIRST_FRAME,
+                        "app_id": self.asr_config["app_id"]
+                    },
+                    "parameter": {
+                        "iat": iat_params
+                    },
+                    "payload": {
+                        "audio": {
+                            "audio": base64.b64encode(audio_data[:960]).decode('utf-8'),
+                            "sample_rate": 16000,
+                            "encoding": "raw"
+                        }
+                    }
+                }
+                
+                # 启动连接并测量时间
+                start_time = time.time()
+                
+                async with websockets.connect(
+                    ws_url,
+                    max_size=1000000000,
+                    ping_interval=None,
+                    ping_timeout=None,
+                    close_timeout=30,
+                ) as ws:
+                    # 发送首帧数据
+                    await ws.send(json.dumps(first_frame_data, ensure_ascii=False))
+                    print(f"[讯飞ASR] 第{i+1}次测试：已发送首帧，等待响应...")
+                    
+                    # 直接等待第一个响应并计算延迟
+                    # 参考豆包和通义千问的实现方式，简化逻辑
+                    response_received = False
+                    while not response_received:
+                        try:
+                            # 设置较大的超时时间
+                            response = await asyncio.wait_for(ws.recv(), timeout=30.0)
+                            
+                            # 收到响应立即计算延迟，不管内容是什么
+                            # 这样可以准确测量首包到达时间
+                            latency = time.time() - start_time
+                            latencies.append(latency)
+                            response_received = True
+                            
+                            print(f"[讯飞ASR] 第{i+1}次测试：收到首包响应，延迟: {latency:.3f}s")
+                            break
+                        except asyncio.TimeoutError:
+                            print(f"[讯飞ASR] 第{i+1}次测试：响应超时")
+                            raise Exception("获取响应超时")
+            except Exception as e:
+                print(f"[讯飞ASR] 第{i+1}次测试失败: {str(e)}")
+                latencies.append(0)
+        
+        return self._calculate_result("讯飞流式ASR", latencies, test_count)
+
 class ASRPerformanceSuite:
     def __init__(self):
         self.testers = []
@@ -272,7 +409,8 @@ class ASRPerformanceSuite:
         except Exception as e:
             name_map = {
                 "DoubaoStreamASRTester": "豆包流式ASR",
-                "QwenASRFlashTester": "通义千问ASR"
+                "QwenASRFlashTester": "通义千问ASR",
+                "XunfeiStreamASRTester": "讯飞流式ASR"
             }
             name = name_map.get(tester_class.__name__, tester_class.__name__)
             print(f"跳过 {name}: {str(e)}")
@@ -326,6 +464,7 @@ async def main():
     suite = ASRPerformanceSuite()
     suite.register_tester(DoubaoStreamASRTester)
     suite.register_tester(QwenASRFlashTester)
+    suite.register_tester(XunfeiStreamASRTester)
 
     await suite.run(args.count)
 

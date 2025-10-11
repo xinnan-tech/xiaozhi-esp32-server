@@ -2,6 +2,7 @@ import Fly from 'flyio/dist/npm/fly';
 import store from '../store/index';
 import Constant from '../utils/constant';
 import { goToPage, isNotNull, showDanger, showWarning } from '../utils/index';
+import i18n from '../i18n/index';
 
 const fly = new Fly()
 // 设置超时
@@ -27,6 +28,16 @@ function sendRequest() {
         _url: '',
         _responseType: undefined, // 新增响应类型字段
         'send'() {
+            // 设置语言请求头
+            const currentLang = i18n.locale;
+            // 转换语言代码格式，将zh_CN转换为zh-CN
+            let acceptLanguage = currentLang.replace('_', '-');
+            // 为英语添加默认地区代码
+            if (acceptLanguage === 'en') {
+                acceptLanguage = 'en-US';
+            }
+            this._header['Accept-Language'] = acceptLanguage;
+            
             if (isNotNull(store.getters.getToken)) {
                 this._header.Authorization = 'Bearer ' + (JSON.parse(store.getters.getToken)).token
             }
@@ -116,10 +127,13 @@ function httpHandlerError(info, failCallback, networkFailCallback) {
             goToPage(Constant.PAGE.LOGIN, true);
             return true
         } else {
+            // 直接使用后端返回的国际化消息
+            let errorMessage = info.data.msg;
+            
             if (failCallback) {
                 failCallback(info)
             } else {
-                showDanger(info.data.msg)
+                showDanger(errorMessage)
             }
             return true
         }

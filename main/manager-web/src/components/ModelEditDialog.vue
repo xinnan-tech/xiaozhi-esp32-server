@@ -1,98 +1,132 @@
 <template>
-  <el-dialog :visible.sync="dialogVisible" :close-on-click-modal="false" width="57%" center custom-class="custom-dialog" :show-close="false"
-    class="center-dialog" >
-    <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
-      <div style="font-size: 30px; color: #3d4566; margin-top: -10px; margin-bottom: 10px; text-align: center;">
-        {{ modelData.duplicateMode ? $t('modelConfigDialog.duplicateModel') : $t('modelConfigDialog.editModel') }}
+  <el-dialog :visible.sync="dialogVisible" :close-on-click-modal="false" width="57%" center custom-class="custom-dialog"
+    :show-close="false" class="center-dialog">
+    <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px">
+      <div style="
+          font-size: 30px;
+          color: #3d4566;
+          margin-top: -10px;
+          margin-bottom: 10px;
+          text-align: center;
+        ">
+        {{
+          modelData.duplicateMode
+            ? $t("modelConfigDialog.duplicateModel")
+            : $t("modelConfigDialog.editModel")
+        }}
       </div>
 
-      <button class="custom-close-btn" @click="dialogVisible = false">
-        ×
-      </button>
+      <button class="custom-close-btn" @click="dialogVisible = false">×</button>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <div style="font-size: 20px; font-weight: bold; color: #3d4566;">{{ $t('modelConfigDialog.modelInfo') }}</div>
-        <div style="display: flex; align-items: center; gap: 20px;">
-          <div style="display: flex; align-items: center;">
-            <span style="margin-right: 8px;">{{ $t('modelConfigDialog.enable') }}</span>
+      <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+        ">
+        <div style="font-size: 20px; font-weight: bold; color: #3d4566">
+          {{ $t("modelConfigDialog.modelInfo") }}
+        </div>
+        <div style="display: flex; align-items: center; gap: 20px">
+          <div style="display: flex; align-items: center">
+            <span style="margin-right: 8px">{{ $t("modelConfigDialog.enable") }}</span>
             <el-switch v-model="form.isEnabled" :active-value="1" :inactive-value="0" class="custom-switch"></el-switch>
           </div>
-          <div style="display: none; align-items: center;">
-            <span style="margin-right: 8px;">{{ $t('modelConfigDialog.setDefault') }}</span>
+          <div style="display: none; align-items: center">
+            <span style="margin-right: 8px">{{
+              $t("modelConfigDialog.setDefault")
+              }}</span>
             <el-switch v-model="form.isDefault" :active-value="1" :inactive-value="0" class="custom-switch"></el-switch>
           </div>
         </div>
       </div>
 
-      <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
+      <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px"></div>
 
       <el-form :model="form" ref="form" label-width="auto" label-position="left" class="custom-form">
-        <div style="display: flex; gap: 20px; margin-bottom: 0;">
-          <el-form-item :label="$t('modelConfigDialog.modelName')" prop="name" style="flex: 1;">
-            <el-input v-model="form.modelName" :placeholder="$t('modelConfigDialog.enterModelName')" class="custom-input-bg"></el-input>
+        <div style="display: flex; gap: 20px; margin-bottom: 0">
+          <el-form-item :label="$t('modelConfigDialog.modelName')" prop="name" style="flex: 1">
+            <el-input v-model="form.modelName" :placeholder="$t('modelConfigDialog.enterModelName')"
+              class="custom-input-bg"></el-input>
           </el-form-item>
-          <el-form-item :label="$t('modelConfigDialog.modelCode')" prop="code" style="flex: 1;">
-            <el-input v-model="form.modelCode" :placeholder="$t('modelConfigDialog.enterModelCode')" class="custom-input-bg"></el-input>
+          <el-form-item :label="$t('modelConfigDialog.modelCode')" prop="code" style="flex: 1">
+            <el-input v-model="form.modelCode" :placeholder="$t('modelConfigDialog.enterModelCode')"
+              class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
 
-        <div style="display: flex; gap: 20px; margin-bottom: 0;">
-          <el-form-item :label="$t('modelConfigDialog.supplier')" prop="supplier" style="flex: 1;">
-            <el-select v-model="form.configJson.type" :placeholder="$t('modelConfigDialog.selectSupplier')" class="custom-select custom-input-bg"
-              style="width: 100%;" @focus="loadProviders" filterable>
+        <div style="display: flex; gap: 20px; margin-bottom: 0">
+          <el-form-item :label="$t('modelConfigDialog.supplier')" prop="supplier" style="flex: 1">
+            <el-select v-model="form.configJson.type" :placeholder="$t('modelConfigDialog.selectSupplier')"
+              class="custom-select custom-input-bg" style="width: 100%" @focus="loadProviders" filterable>
               <el-option v-for="item in providers" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
-          <el-form-item :label="$t('modelConfigDialog.sortOrder')" prop="sort" style="flex: 1;">
-            <el-input v-model.number="form.sort" type="number" :placeholder="$t('modelConfigDialog.enterSortOrder')" class="custom-input-bg"></el-input>
+          <el-form-item :label="$t('modelConfigDialog.sortOrder')" prop="sort" style="flex: 1">
+            <el-input v-model.number="form.sort" type="number" :placeholder="$t('modelConfigDialog.enterSortOrder')"
+              class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
 
-        <el-form-item :label="$t('modelConfigDialog.docLink')" prop="docUrl" style="margin-bottom: 27px;">
-          <el-input v-model="form.docLink" :placeholder="$t('modelConfigDialog.enterDocLink')" class="custom-input-bg"></el-input>
+        <el-form-item :label="$t('modelConfigDialog.docLink')" prop="docUrl" style="margin-bottom: 27px">
+          <el-input v-model="form.docLink" :placeholder="$t('modelConfigDialog.enterDocLink')"
+            class="custom-input-bg"></el-input>
         </el-form-item>
 
         <el-form-item :label="$t('modelConfigDialog.remark')" prop="remark" class="prop-remark">
-          <el-input v-model="form.remark" type="textarea" :rows="3" :placeholder="$t('modelConfigDialog.enterRemark')" :autosize="{ minRows: 3, maxRows: 5 }"
-            class="custom-input-bg"></el-input>
+          <el-input v-model="form.remark" type="textarea" :rows="3" :placeholder="$t('modelConfigDialog.enterRemark')"
+            :autosize="{ minRows: 3, maxRows: 5 }" class="custom-input-bg"></el-input>
         </el-form-item>
       </el-form>
 
-      <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px;">{{ $t('modelConfigDialog.callInfo') }}</div>
-      <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
+      <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px">
+        {{ $t("modelConfigDialog.callInfo") }}
+      </div>
+      <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px"></div>
 
       <el-form :model="form.configJson" ref="callInfoForm" label-width="auto" class="custom-form">
         <template v-for="(row, rowIndex) in chunkedCallInfoFields">
-          <div :key="rowIndex" style="display: flex; gap: 20px; margin-bottom: 0;">
+          <div :key="rowIndex" style="display: flex; gap: 20px; margin-bottom: 0">
             <el-form-item v-for="field in row" :key="field.prop" :label="field.label" :prop="field.prop"
-              style="flex: 1;">
+              style="flex: 1">
               <template v-if="field.type === 'json-textarea'">
-                <el-input v-model="fieldJsonMap[field.prop]" type="textarea" :rows="3" :placeholder="$t('modelConfigDialog.enterJsonExample')"
-                  class="custom-input-bg" @change="(val) => handleJsonChange(field.prop, val)"></el-input>
+                <el-input v-model="fieldJsonMap[field.prop]" type="textarea" :rows="3"
+                  :placeholder="$t('modelConfigDialog.enterJsonExample')" class="custom-input-bg"
+                  @change="(val) => handleJsonChange(field.prop, val)" @focus="
+                    isSensitiveField(field.prop)
+                      ? handleJsonInputFocus(field.prop, fieldJsonMap[field.prop])
+                      : undefined
+                    " @blur="
+                    isSensitiveField(field.prop)
+                      ? handleJsonInputBlur(field.prop)
+                      : undefined
+                    "></el-input>
               </template>
+
               <el-input v-else v-model="form.configJson[field.prop]" :placeholder="field.placeholder" :type="field.type"
-                class="custom-input-bg" :show-password="field.type === 'password'"></el-input>
+                class="custom-input-bg" :show-password="field.type === 'password'" @focus="
+                  isSensitiveField(field.prop)
+                    ? handleInputFocus(field.prop, form.configJson[field.prop])
+                    : undefined
+                  " @blur="
+                  isSensitiveField(field.prop) ? handleInputBlur(field.prop) : undefined
+                  "></el-input>
             </el-form-item>
           </div>
         </template>
       </el-form>
     </div>
 
-    <div style="display: flex;justify-content: center;">
-      <el-button
-        type="primary"
-        @click="handleSave"
-        class="save-btn"
-        :loading="saving"
-        :disabled="saving">
-        {{ $t('modelConfigDialog.save') }}
+    <div style="display: flex; justify-content: center">
+      <el-button type="primary" @click="handleSave" class="save-btn" :loading="saving" :disabled="saving">
+        {{ $t("modelConfigDialog.save") }}
       </el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
-import Api from '@/apis/api';
+import Api from "@/apis/api";
 
 export default {
   name: "ModelEditDialog",
@@ -101,9 +135,9 @@ export default {
     modelData: {
       type: Object,
       default: () => ({}),
-      validator: value => typeof value === 'object' && !Array.isArray(value)
+      validator: (value) => typeof value === "object" && !Array.isArray(value),
     },
-    modelType: { type: String, required: true }
+    modelType: { type: String, required: true },
   },
   data() {
     return {
@@ -116,6 +150,16 @@ export default {
       pendingModelData: null,
       dynamicCallInfoFields: [],
       fieldJsonMap: {}, // 用于存储JSON字段的字符串形式
+      sensitive_keys: [
+        "api_key",
+        "personal_access_token",
+        "access_token",
+        "token",
+        "secret",
+        "access_key_secret",
+        "secret_key",
+      ],
+      originalValues: {}, // 存储原始值，用于失焦时恢复
       form: {
         id: "",
         modelType: "",
@@ -126,8 +170,8 @@ export default {
         docLink: "",
         remark: "",
         sort: 0,
-        configJson: {}
-      }
+        configJson: {},
+      },
     };
   },
   computed: {
@@ -146,7 +190,7 @@ export default {
       this.loadProviders();
     },
     dialogVisible(val) {
-      this.$emit('update:visible', val);
+      this.$emit("update:visible", val);
       if (!val) {
         this.resetForm();
       } else if (val && this.modelData.id) {
@@ -159,11 +203,11 @@ export default {
         this.loadProviders();
       }
     },
-    'form.configJson.type'(newVal) {
+    "form.configJson.type"(newVal) {
       if (newVal && this.providersLoaded) {
         this.loadProviderFields(newVal);
       }
-    }
+    },
   },
   methods: {
     resetForm() {
@@ -177,7 +221,7 @@ export default {
         docLink: "",
         remark: "",
         sort: 0,
-        configJson: {}
+        configJson: {},
       };
       this.fieldJsonMap = {};
     },
@@ -189,11 +233,23 @@ export default {
       if (this.modelData.id) {
         Api.model.getModelConfig(this.modelData.id, ({ data }) => {
           if (data.code === 0 && data.data) {
-            const model = data.data;
+            let model = data.data;
 
             if (this.modelData.duplicateMode) {
-              model.modelName = this.modelData.modelName + '_副本';
-              model.modelCode = this.modelData.modelCode + '_副本';
+              model.modelName =
+                this.modelData.modelName + this.$t("modelConfigDialog.copySuffix");
+              model.modelCode =
+                this.modelData.modelCode + this.$t("modelConfigDialog.copySuffix");
+
+              // 处理敏感字段
+              if (model.configJson) {
+                Object.keys(model.configJson).forEach((key) => {
+                  if (this.isSensitiveField(key) && model.configJson[key]) {
+                    const sensitiveName = this.getSensitiveFieldName(key);
+                    model.configJson[key] = `你的${sensitiveName}`;
+                  }
+                });
+              }
             }
             this.pendingProviderType = model.configJson.type;
             this.pendingModelData = model;
@@ -211,7 +267,7 @@ export default {
       this.saving = true; // 开始保存加载
 
       // 处理所有JSON字段
-      Object.keys(this.fieldJsonMap).forEach(key => {
+      Object.keys(this.fieldJsonMap).forEach((key) => {
         const parsed = this.validateJson(this.fieldJsonMap[key]);
         if (parsed !== null) {
           this.form.configJson[key] = parsed;
@@ -227,7 +283,7 @@ export default {
         docLink: this.form.docLink,
         remark: this.form.remark,
         sort: this.form.sort || 0,
-        configJson: { ...this.form.configJson }
+        configJson: { ...this.form.configJson },
       };
 
       this.$emit("save", {
@@ -235,7 +291,7 @@ export default {
         formData,
         done: () => {
           this.saving = false; // 保存完成后回调
-        }
+        },
       });
 
       // 如果父组件不处理done回调，3秒后自动关闭加载状态
@@ -247,9 +303,9 @@ export default {
       if (this.providersLoaded) return;
 
       Api.model.getModelProviders(this.modelType, (data) => {
-        this.providers = data.map(item => ({
+        this.providers = data.map((item) => ({
           label: item.name,
-          value: String(item.providerCode)
+          value: String(item.providerCode),
         }));
         this.providersLoaded = true;
         this.allProvidersData = data;
@@ -261,13 +317,20 @@ export default {
     },
     loadProviderFields(providerCode) {
       if (this.allProvidersData) {
-        const provider = this.allProvidersData.find(p => p.providerCode === providerCode);
+        const provider = this.allProvidersData.find(
+          (p) => p.providerCode === providerCode
+        );
         if (provider) {
-          this.dynamicCallInfoFields = JSON.parse(provider.fields || '[]').map(f => ({
+          this.dynamicCallInfoFields = JSON.parse(provider.fields || "[]").map((f) => ({
             label: f.label,
             prop: f.key,
-            type: f.type === 'dict' ? 'json-textarea' : (f.type === 'password' ? 'password' : 'text'),
-            placeholder: `请输入${f.label}`
+            type:
+              f.type === "dict"
+                ? "json-textarea"
+                : f.type === "password"
+                  ? "password"
+                  : "text",
+            placeholder: `请输入${f.key}`,
           }));
 
           if (this.pendingModelData && this.pendingProviderType === providerCode) {
@@ -280,13 +343,17 @@ export default {
     },
     processModelData(model) {
       let configJson = model.configJson || {};
-      this.dynamicCallInfoFields.forEach(field => {
+      this.dynamicCallInfoFields.forEach((field) => {
         if (!configJson.hasOwnProperty(field.prop)) {
-          configJson[field.prop] = '';
-        } else if (field.type === 'json-textarea') {
-          this.$set(this.fieldJsonMap, field.prop, this.formatJson(configJson[field.prop]));
+          configJson[field.prop] = "";
+        } else if (field.type === "json-textarea") {
+          this.$set(
+            this.fieldJsonMap,
+            field.prop,
+            this.formatJson(configJson[field.prop])
+          );
           configJson[field.prop] = this.ensureObject(configJson[field.prop]);
-        } else if (typeof configJson[field.prop] !== 'string') {
+        } else if (typeof configJson[field.prop] !== "string") {
           configJson[field.prop] = String(configJson[field.prop]);
         }
       });
@@ -301,7 +368,7 @@ export default {
         docLink: model.docLink,
         remark: model.remark,
         sort: Number(model.sort) || 0,
-        configJson: { ...configJson }
+        configJson: { ...configJson },
       };
     },
     handleJsonChange(field, value) {
@@ -313,18 +380,18 @@ export default {
     validateJson(value) {
       try {
         const parsed = JSON.parse(value);
-        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
           return parsed;
         }
         this.$message.error({
           message: '必须输入字典格式（如 {"key":"value"}），保存则使用原数据',
-          showClose: true
+          showClose: true,
         });
         return null;
       } catch (e) {
         this.$message.error({
           message: 'JSON格式错误（如 {"key":"value"}），保存则使用原数据',
-          showClose: true
+          showClose: true,
         });
         return null;
       }
@@ -333,13 +400,82 @@ export default {
       try {
         return JSON.stringify(obj, null, 2);
       } catch {
-        return '';
+        return "";
       }
     },
     ensureObject(value) {
-      return typeof value === 'object' ? value : {};
-    }
-  }
+      return typeof value === "object" ? value : {};
+    },
+
+    // 检测字段是否为敏感字段
+    isSensitiveField(fieldName) {
+      // 将字段名转换为小写进行比较
+      const lowerFieldName = fieldName.toLowerCase();
+      // 精确匹配keyMap中定义的7个敏感词
+      return this.sensitive_keys.includes(lowerFieldName);
+    },
+
+    // 获取敏感字段对应的中文名称
+    getSensitiveFieldName(fieldName) {
+      const keyMap = {
+        api_key: "API密钥",
+        personal_access_token: "个人访问令牌",
+        access_token: "访问令牌",
+        token: "令牌",
+        secret: "密钥",
+        access_key_secret: "访问密钥",
+        secret_key: "密钥",
+      };
+
+      for (const [key, value] of Object.entries(keyMap)) {
+        if (fieldName.toLowerCase().includes(key)) {
+          return value;
+        }
+      }
+      return "敏感信息";
+    },
+
+    // 处理input聚焦事件
+    handleInputFocus(field, value) {
+      // 如果值包含星号，清空显示
+      if (value && value.includes("*")) {
+        // 存储原始值，用于失焦时恢复
+        this.$set(this.originalValues, field, this.form.configJson[field]);
+        this.$set(this.form.configJson, field, "");
+      }
+    },
+
+    // 处理input失焦事件
+    handleInputBlur(field) {
+      // 检查是否为敏感字段
+      if (this.isSensitiveField(field)) {
+        // 如果值为空，恢复掩码值
+        if (!this.form.configJson[field] || this.form.configJson[field].trim() === "") {
+          // 如果有原始值，则恢复原始值；否则设置为掩码提示
+          if (this.originalValues[field]) {
+            this.$set(this.form.configJson, field, this.originalValues[field]);
+          } else {
+            const sensitiveName = this.getSensitiveFieldName(field);
+            this.$set(this.form.configJson, field, `你的${sensitiveName}`);
+          }
+          // 清除临时存储的原始值
+          this.$delete(this.originalValues, field);
+        }
+      }
+    },
+
+    // 处理JSON字段的聚焦事件
+    handleJsonInputFocus(field, value) {
+      if (value && value.includes("*")) {
+        this.$set(this.fieldJsonMap, field, "");
+      }
+    },
+
+    // 处理JSON字段的失焦事件
+    handleJsonInputBlur(field) {
+      // JSON字段不做特殊处理，因为它们通常不包含简单的敏感信息
+    },
+  },
 };
 </script>
 
@@ -385,8 +521,8 @@ export default {
 }
 
 .custom-close-btn:hover {
-  color: #409EFF;
-  border-color: #409EFF;
+  color: #409eff;
+  border-color: #409eff;
 }
 
 .custom-select .el-input__suffix {
@@ -475,7 +611,7 @@ export default {
   background-color: white;
   top: 3px;
   left: 4px;
-  transition: all .3s;
+  transition: all 0.3s;
 }
 
 .custom-switch.is-checked .el-switch__core {
