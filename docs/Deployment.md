@@ -1,24 +1,58 @@
-# 部署架构图
-![请参考-最简化架构图](../docs/images/deploy1.png)
-# 方式一：Docker只运行Server
+# デプロイアーキテクチャ図
+![最簡化アーキテクチャ図を参照してください](../docs/images/deploy1.png)
+# 方法1：DockerでServerのみを実行
 
-`0.8.2`版本开始，本项目发行的docker镜像只支持`x86架构`，如果需要在`arm64架构`的CPU上部署，可按照[这个教程](docker-build.md)在本机编译`arm64的镜像`。
+Dockerイメージはx86アーキテクチャ、arm64アーキテクチャのCPUをサポートしており、国産OS上での実行もサポートしています。
 
-## 1. 安装docker
+## 1. Dockerのインストール
 
-如果您的电脑还没安装docker，可以按照这里的教程安装：[docker安装](https://www.runoob.com/docker/ubuntu-docker-install.html)
+お使いのPCにDockerがまだインストールされていない場合は、こちらのチュートリアルに従ってインストールしてください：[Dockerのインストール](https://www.runoob.com/docker/ubuntu-docker-install.html)
 
-安装好docker后，进继续。
+Dockerが既にインストールされている場合は、[1.1 簡単スクリプトの使用](#11-簡単スクリプト)で必要なファイルと設定ファイルを自動的にダウンロードするか、Dockerを使用して[1.2 手動デプロイ](#12-手動デプロイ)を行うことができます。
 
-### 1.1 手动部署
+### 1.1 簡単スクリプト
 
-#### 1.1.1 创建目录
+次のコマンドを使用して、デプロイスクリプトをワンクリックでダウンロードして実行できます：
+GitHubに正常にアクセスできる環境であることを確認してください。そうでない場合、スクリプトをダウンロードできません。
+```bash
+curl -L -o docker-setup.sh https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/docker-setup.sh
+```
 
-安装完docker后，你需要为这个项目找一个安放配置文件的目录，例如我们可以新建一个文件夹叫`xiaozhi-server`。
+Windowsシステムの場合は、Git Bash、WSL、PowerShell、またはCMDを使用して次のコマンドを実行してください：
+```bash
+# Git Bash または WSL
+sh docker-setup.sh
+# PowerShell または CMD
+.\docker-setup.sh
+```
 
-创建好目录后，你需要在`xiaozhi-server`下面创建`data`文件夹和`models`文件夹，`models`下面还要再创建`SenseVoiceSmall`文件夹。
+LinuxまたはmacOSシステムの場合は、ターミナルで次のコマンドを実行してください：
+```bash
+chmod +x docker-setup.sh
+./docker-setup.sh
+```
 
-最终目录结构如下所示：
+スクリプトは自動的に次の操作を完了します：
+> 1. 必要なディレクトリ構造の作成
+> 2. 音声認識モデルのダウンロード
+> 3. 設定ファイルのダウンロード
+> 4. ファイルの整合性チェック
+>
+> 実行後、プロンプトに従ってAPIキーを設定してください。
+
+上記の手順をすべて正常に完了したら、[プロジェクトファイルの設定](#2-プロジェクトファイルの設定)に進んでください。
+
+### 1.2 手動デプロイ
+
+簡単スクリプトが正常に実行できない場合は、このセクション1.2に従って手動でデプロイしてください。
+
+#### 1.2.1 ディレクトリの作成
+
+インストール後、このプロジェクトの設定ファイルを配置するディレクトリが必要です。例えば、`xiaozhi-server`という名前の新しいフォルダを作成します。
+
+ディレクトリを作成したら、`xiaozhi-server`の下に`data`フォルダと`models`フォルダを作成し、`models`の下にさらに`SenseVoiceSmall`フォルダを作成する必要があります。
+
+最終的なディレクトリ構造は次のようになります：
 
 ```
 xiaozhi-server
@@ -27,34 +61,32 @@ xiaozhi-server
      ├─ SenseVoiceSmall
 ```
 
-#### 1.1.2 下载语音识别模型文件
+#### 1.2.2 音声認識モデルファイルのダウンロード
 
-你需要下载语音识别的模型文件，因为本项目的默认语音识别用的是本地离线语音识别方案。可通过这个方式下载
-[跳转到下载语音识别模型文件](#模型文件)
+音声認識のモデルファイルをダウンロードする必要があります。このプロジェクトのデフォルトの音声認識はローカルオフライン音声認識ソリューションを使用しているためです。この方法でダウンロードできます。
+[音声認識モデルファイルのダウンロードにジャンプ](#モデルファイル)
 
-下载完后，回到本教程。
+ダウンロードが完了したら、このチュートリアルに戻ってください。
 
-#### 1.1.3 下载配置文件
+#### 1.2.3 設定ファイルのダウンロード
 
-你需要下载两个配置文件：`docker-compose.yaml` 和 `config.yaml`。需要从项目仓库下载这两个文件。
+`docker-compose.yaml`と`config.yaml`の2つの設定ファイルをダウンロードする必要があります。これらのファイルはプロジェクトリポジトリからダウンロードする必要があります。
 
-##### 1.1.3.1 下载 docker-compose.yaml
+##### 1.2.3.1 docker-compose.yamlのダウンロード
 
-用浏览器打开[这个链接](../main/xiaozhi-server/docker-compose.yml)。
+ブラウザで[このリンク](../main/xiaozhi-server/docker-compose.yml)を開きます。
 
-在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`docker-compose.yml`文件。 把文件下载到你的
-`xiaozhi-server`中。
+ページの右側にある`RAW`という名前のボタンを見つけ、その隣にあるダウンロードアイコンをクリックして`docker-compose.yml`ファイルをダウンロードします。ファイルを`xiaozhi-server`にダウンロードしてください。
 
-下载完后，回到本教程继续往下。
+ダウンロードが完了したら、このチュートリアルに戻って続行してください。
 
-##### 1.1.3.2 创建 config.yaml
+##### 1.2.3.2 config.yamlの作成
 
-用浏览器打开[这个链接](../main/xiaozhi-server/config.yaml)。
+ブラウザで[このリンク](../main/xiaozhi-server/config.yaml)を開きます。
 
-在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`config.yaml`文件。 把文件下载到你的
-`xiaozhi-server`下面的`data`文件夹中，然后把`config.yaml`文件重命名为`.config.yaml`。
+ページの右側にある`RAW`という名前のボタンを見つけ、その隣にあるダウンロードアイコンをクリックして`config.yaml`ファイルをダウンロードします。ファイルを`xiaozhi-server`の下の`data`フォルダにダウンロードし、`config.yaml`ファイルの名前を`.config.yaml`に変更します。
 
-下载完配置文件后，我们确认一下整个`xiaozhi-server`里面的文件如下所示：
+設定ファイルをダウンロードした後、`xiaozhi-server`内のファイルが次のようになっていることを確認してください：
 
 ```
 xiaozhi-server
@@ -66,39 +98,39 @@ xiaozhi-server
        ├─ model.pt
 ```
 
-如果你的文件目录结构也是上面的，就继续往下。如果不是，你就再仔细看看是不是漏操作了什么。
+ファイルディレクトリ構造が上記と同じであれば、次に進んでください。そうでなければ、何か操作を忘れていないかもう一度確認してください。
 
-## 2. 配置项目文件
+## 2. プロジェクトファイルの設定
 
-接下里，程序还不能直接运行，你需要配置一下，你到底使用的是什么模型。你可以看这个教程：
-[跳转到配置项目文件](#配置项目)
+次に、プログラムを直接実行することはまだできません。どのモデルを使用するかを設定する必要があります。このチュートリアルを参照してください：
+[プロジェクトファイルの設定にジャンプ](#プロジェクトの設定)
 
-配置完项目文件后，回到本教程继续往下。
+プロジェクトファイルの設定が完了したら、このチュートリアルに戻って続行してください。
 
-## 3. 执行docker命令
+## 3. Dockerコマンドの実行
 
-打开命令行工具，使用`终端`或`命令行`工具 进入到你的`xiaozhi-server`，执行以下命令
+コマンドラインツールを開き、`ターミナル`または`コマンドプロンプト`ツールを使用して`xiaozhi-server`に移動し、次のコマンドを実行します。
 
 ```
 docker-compose up -d
 ```
 
-执行完后，再执行以下命令，查看日志信息。
+実行後、次のコマンドを実行してログ情報を表示します。
 
 ```
 docker logs -f xiaozhi-esp32-server
 ```
 
-这时，你就要留意日志信息，可以根据这个教程，判断是否成功了。[跳转到运行状态确认](#运行状态确认)
+この時、ログ情報に注意を払い、このチュートリアルに従って成功したかどうかを判断できます。[実行状態の確認にジャンプ](#実行状態の確認)
 
-## 5. 版本升级操作
+## 5. バージョンアップグレード操作
 
-如果后期想升级版本，可以这么操作
+後でバージョンをアップグレードしたい場合は、次のように操作できます。
 
-5.1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
-请注意是对关键密钥逐个复制，不要直接覆盖。因为新的`.config.yaml`文件可能有一些新的配置项，旧的`.config.yaml`文件不一定有。
+5.1. `data`フォルダ内の`.config.yaml`ファイルをバックアップし、いくつかの重要な設定を新しい`.config.yaml`ファイルにコピーします。
+重要なキーを1つずつコピーすることに注意してください。直接上書きしないでください。新しい`.config.yaml`ファイルには新しい設定項目がある可能性があり、古い`.config.yaml`ファイルにはない可能性があるためです。
 
-5.2、执行以下命令
+5.2. 次のコマンドを実行します。
 
 ```
 docker stop xiaozhi-esp32-server
@@ -109,21 +141,21 @@ docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
 docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
 ```
 
-5.3、重新按docker方式部署
+5.3. Docker方式で再デプロイします。
 
-# 方式二：本地源码只运行Server
+# 方法2：ローカルソースコードでServerのみを実行
 
-## 1.安装基础环境
+## 1. 基本環境のインストール
 
-本项目使用`conda`管理依赖环境。如果不方便安装`conda`，需要根据实际的操作系统安装好`libopus`和`ffmpeg`。
-如果确定使用`conda`，则安装好后，开始执行以下命令。
+このプロジェクトは`conda`を使用して依存関係環境を管理します。`conda`のインストールが不便な場合は、実際のオペレーティングシステムに応じて`libopus`と`ffmpeg`をインストールする必要があります。
+`conda`を使用することが確定している場合は、インストール後に次のコマンドの実行を開始します。
 
-重要提示！windows 用户，可以通过安装`Anaconda`来管理环境。安装好`Anaconda`后，在`开始`那里搜索`anaconda`相关的关键词，
-找到`Anaconda Prpmpt`，使用管理员身份运行它。如下图。
+重要なお知らせ！Windowsユーザーは、`Anaconda`をインストールして環境を管理できます。`Anaconda`をインストールした後、`スタート`で`anaconda`関連のキーワードを検索し、
+`Anaconda Prompt`を見つけて管理者として実行します。下の図のように。
 
 ![conda_prompt](./images/conda_env_1.png)
 
-运行之后，如果你能看到命令行窗口前面有一个(base)字样，说明你成功进入了`conda`环境。那么你就可以执行以下命令了。
+実行後、コマンドラインウィンドウの前に(base)という文字が表示されれば、`conda`環境に正常に入ったことを意味します。これで、次のコマンドを実行できます。
 
 ![conda_env](./images/conda_env_2.png)
 
@@ -132,7 +164,7 @@ conda remove -n xiaozhi-esp32-server --all -y
 conda create -n xiaozhi-esp32-server python=3.10 -y
 conda activate xiaozhi-esp32-server
 
-# 添加清华源通道
+# 清華大学のソースチャネルを追加
 conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
 conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free
 conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
@@ -141,29 +173,29 @@ conda install libopus -y
 conda install ffmpeg -y
 ```
 
-请注意，以上命令，不是一股脑执行就成功的，你需要一步步执行，每一步执行完后，都检查一下输出的日志，查看是否成功。
+上記のコマンドは、一度にすべて実行して成功するわけではないことに注意してください。一歩一歩実行し、各ステップの実行後に、出力ログをチェックして成功したかどうかを確認する必要があります。
 
-## 2.安装本项目依赖
+## 2. このプロジェクトの依存関係のインストール
 
-你先要下载本项目源码，源码可以通过`git clone`命令下载，如果你不熟悉`git clone`命令。
+まず、このプロジェクトのソースコードをダウンロードする必要があります。ソースコードは`git clone`コマンドでダウンロードできます。`git clone`コマンドに慣れていない場合。
 
-你可以用浏览器打开这个地址`https://github.com/xinnan-tech/xiaozhi-esp32-server.git`
+ブラウザでこのアドレスを開くことができます`https://github.com/xinnan-tech/xiaozhi-esp32-server.git`
 
-打开完，找到页面中一个绿色的按钮，写着`Code`的按钮，点开它，然后你就看到`Download ZIP`的按钮。
+開いたら、ページにある緑色の`Code`というボタンを見つけてクリックし、`Download ZIP`ボタンが表示されます。
 
-点击它，下载本项目源码压缩包。下载到你电脑后，解压它，此时它的名字可能叫`xiaozhi-esp32-server-main`
-你需要把它重命名成`xiaozhi-esp32-server`，在这个文件里，进入到`main`文件夹，再进入到`xiaozhi-server`，好了请记住这个目录`xiaozhi-server`。
+それをクリックして、このプロジェクトのソースコードの圧縮パッケージをダウンロードします。PCにダウンロードして解凍すると、名前が`xiaozhi-esp32-server-main`になっている可能性があります。
+これを`xiaozhi-esp32-server`にリネームし、このファイル内の`main`フォルダに移動し、さらに`xiaozhi-server`に移動します。この`xiaozhi-server`ディレクトリを覚えておいてください。
 
 ```
-# 继续使用conda环境
+# conda環境を継続して使用
 conda activate xiaozhi-esp32-server
-# 进入到你的项目根目录，再进入main/xiaozhi-server
+# プロジェクトのルートディレクトリに移動し、main/xiaozhi-serverに移動
 cd main/xiaozhi-server
 pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip install -r requirements.txt
 ```
 
-## 3.下载语音识别模型文件
+## 3. 音声認識モデルファイルのダウンロード
 
 你需要下载语音识别的模型文件，因为本项目的默认语音识别用的是本地离线语音识别方案。可通过这个方式下载
 [跳转到下载语音识别模型文件](#模型文件)
@@ -226,7 +258,7 @@ LLM:
 文件放在`models/SenseVoiceSmall`
 目录下。下面两个下载路线任选一个。
 
-- 线路一：阿里魔搭下载[SenseVoiceSmall](https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt)
+- 线路一：阿里魔塔下载[SenseVoiceSmall](https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt)
 - 线路二：百度网盘下载[SenseVoiceSmall](https://pan.baidu.com/share/init?surl=QlgM58FHhYv1tFnUT_A8Sg&pwd=qvna) 提取码:
   `qvna`
 
@@ -256,30 +288,19 @@ LLM:
 
 2、 [基于虾哥编译好的固件配置自定义服务器](firmware-setting.md)了。
 
-# 常见问题
+
 以下是一些常见问题，供参考：
 
-1、[为什么我说的话，小智识别出来很多韩文、日文、英文](./FAQ.md)<br/>
-2、[为什么会出现“TTS 任务出错 文件不存在”？](./FAQ.md)<br/>
-3、[TTS 经常失败，经常超时](./FAQ.md)<br/>
-4、[使用Wifi能连接自建服务器，但是4G模式却接不上](./FAQ.md)<br/>
-5、[如何提高小智对话响应速度？](./FAQ.md)<br/>
-6、[我说话很慢，停顿时小智老是抢话](./FAQ.md)<br/>
-## 部署相关教程
-1、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
-2、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
-## 拓展相关教程
-1、[如何开启手机号码注册智控台](./ali-sms-integration.md)<br/>
-2、[如何集成HomeAssistant实现智能家居控制](./homeassistant-integration.md)<br/>
-3、[如何开启视觉模型实现拍照识物](./mcp-vision-integration.md)<br/>
-4、[如何部署MCP接入点](./mcp-endpoint-enable.md)<br/>
-5、[如何接入MCP接入点](./mcp-endpoint-integration.md)<br/>
-6、[如何开启声纹识别](./voiceprint-integration.md)<br/>
-10、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
-## 语音克隆、本地语音部署相关教程
-1、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
-2、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>
-3、[如何部署集成PaddleSpeech本地语音](./paddlespeech-deploy.md)<br/>
-## 性能测试教程
-1、[各组件速度测试指南](./performance_tester.md)<br/>
-2、[定期公开测试结果](https://github.com/xinnan-tech/xiaozhi-performance-research)<br/>
+[1、为什么我说的话，小智识别出来很多韩文、日文、英文](./FAQ.md)
+
+[2、为什么会出现“TTS 任务出错 文件不存在”？](./FAQ.md)
+
+[3、TTS 经常失败，经常超时](./FAQ.md)
+
+[4、使用Wifi能连接自建服务器，但是4G模式却接不上](./FAQ.md)
+
+[5、如何提高小智对话响应速度？](./FAQ.md)
+
+[6、我说话很慢，停顿时小智老是抢话](./FAQ.md)
+
+[7、我想通过小智控制电灯、空调、远程开关机等操作](./FAQ.md)

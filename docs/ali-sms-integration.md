@@ -1,44 +1,44 @@
-# 阿里云短信集成指南
+# Alibaba Cloud SMS統合ガイド
 
-登录阿里云控制台，进入“短信服务”页面：https://dysms.console.aliyun.com/overview
+Alibaba Cloudコンソールにログインし、「SMSサービス」ページに移動します：https://dysms.console.aliyun.com/overview
 
-## 第一步 添加签名
-![步骤](images/alisms/sms-01.png)
-![步骤](images/alisms/sms-02.png)
+## ステップ1：署名の追加
+![ステップ](images/alisms/sms-01.png)
+![ステップ](images/alisms/sms-02.png)
 
-以上步骤，会得到签名，请把它写入到智控台参数，`aliyun.sms.sign_name`
+上記の手順で署名が取得できます。これをインテリジェントコントロールパネルのパラメータ `aliyun.sms.sign_name` に書き込んでください。
 
-## 第二步 添加模版
-![步骤](images/alisms/sms-11.png)
+## ステップ2：テンプレートの追加
+![ステップ](images/alisms/sms-11.png)
 
-以上步骤，会得到模版code，请把它写入到智控台参数，`aliyun.sms.sms_code_template_code`
+上記の手順でテンプレートコードが取得できます。これをインテリジェントコントロールパネルのパラメータ `aliyun.sms.sms_code_template_code` に書き込んでください。
 
-注意，签名要等7个工作日，等运营商报备成功后才能发送成功。
+注意：署名は通信事業者への登録が成功するまで7営業日かかり、その後でないと送信できません。
 
-注意，签名要等7个工作日，等运营商报备成功后才能发送成功。
+注意：署名は通信事業者への登録が成功するまで7営業日かかり、その後でないと送信できません。
 
-注意，签名要等7个工作日，等运营商报备成功后才能发送成功。
+注意：署名は通信事業者への登録が成功するまで7営業日かかり、その後でないと送信できません。
 
-可以等报备成功后，再继续往下操作。
+登録が成功してから、次の操作に進んでください。
 
-## 第三步 创建短信账户和开通权限
+## ステップ3：SMSアカウントの作成と権限の付与
 
-登录阿里云控制台，进入“访问控制”页面：https://ram.console.aliyun.com/overview?activeTab=overview
+Alibaba Cloudコンソールにログインし、「アクセス制御」ページに移動します：https://ram.console.aliyun.com/overview?activeTab=overview
 
-![步骤](images/alisms/sms-21.png)
-![步骤](images/alisms/sms-22.png)
-![步骤](images/alisms/sms-23.png)
-![步骤](images/alisms/sms-24.png)
-![步骤](images/alisms/sms-25.png)
+![ステップ](images/alisms/sms-21.png)
+![ステップ](images/alisms/sms-22.png)
+![ステップ](images/alisms/sms-23.png)
+![ステップ](images/alisms/sms-24.png)
+![ステップ](images/alisms/sms-25.png)
 
-以上步骤，会得到access_key_id和access_key_secret，请把它写入到智控台参数，`aliyun.sms.access_key_id`、`aliyun.sms.access_key_secret`
-## 第四步 启动手机注册功能
+上記の手順でaccess_key_idとaccess_key_secretが取得できます。これらをインテリジェントコントロールパネルのパラメータ `aliyun.sms.access_key_id`、`aliyun.sms.access_key_secret` に書き込んでください。
+## ステップ4：携帯電話登録機能の有効化
 
-1、正常来说，以上信息都填完后，会有这个效果，如果没有，可能缺少了某个步骤
+1. 通常、上記の情報がすべて入力されると、このようになります。もしそうでなければ、いずれかの手順が抜けている可能性があります。
 
-![步骤](images/alisms/sms-31.png)
+![ステップ](images/alisms/sms-31.png)
 
-2、开启允许非管理员用户可注册，将参数`server.allow_user_register`设置成`true`
+2. 非管理者ユーザーの登録を許可するには、パラメータ `server.allow_user_register` を `true` に設定します。
 
-3、开启手机注册功能，将参数`server.enable_mobile_register`设置成`true`
-![步骤](images/alisms/sms-32.png)
+3. 携帯電話登録機能を有効にするには、パラメータ `server.enable_mobile_register` を `true` に設定します。
+![ステップ](images/alisms/sms-32.png)

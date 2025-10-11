@@ -1,23 +1,23 @@
-# MCP 接入点部署使用指南
+# MCPエンドポイントデプロイガイド
 
-本教程包含3个部分
-- 1、如何部署MCP接入点这个服务
-- 2、全模块部署时，怎么配置MCP接入点
-- 3、单模块部署时，怎么配置MCP接入点
+このチュートリアルは2つのパートで構成されています
+- 1、MCPエンドポイントサービスのデプロイ方法
+- 2、全モジュールデプロイ時のMCPエンドポイント設定方法
+- 3、単一モジュールデプロイ時のMCPエンドポイント設定方法
 
-# 1、如何部署MCP接入点这个服务
+# 1、MCPエンドポイントサービスのデプロイ方法
 
-## 第一步，下载mcp接入点项目源码
+## ステップ1: MCPエンドポイントプロジェクトのソースコードをダウンロード
 
-浏览器打开[mcp接入点项目地址](https://github.com/xinnan-tech/mcp-endpoint-server)
+ブラウザで[MCPエンドポイントプロジェクトのURL](https://github.com/xinnan-tech/mcp-endpoint-server)を開きます
 
-打开完，找到页面中一个绿色的按钮，写着`Code`的按钮，点开它，然后你就看到`Download ZIP`的按钮。
+ページ内の緑色の`Code`ボタンをクリックし、`Download ZIP`ボタンを選択します。
 
-点击它，下载本项目源码压缩包。下载到你电脑后，解压它，此时它的名字可能叫`mcp-endpoint-server-main`
-你需要把它重命名成`mcp-endpoint-server`。
+ZIPファイルをダウンロード後、解凍します。解凍後のフォルダ名が`mcp-endpoint-server-main`の場合、`mcp-endpoint-server`にリネームしてください。
 
-## 第二步，启动程序
-这个项目是一个很简单的项目，建议使用docker运行。不过如果你不想使用docker运行，你可以参考[这个页面](https://github.com/xinnan-tech/mcp-endpoint-server/blob/main/README_dev.md)使用源码运行。以下是docker运行的方法
+## ステップ2: プログラムの起動
+
+このプロジェクトはシンプルな構成なので、Dockerを使用することを推奨します。Dockerを使用しない場合は、[このページ](https://github.com/xinnan-tech/mcp-endpoint-server/blob/main/README_dev.md)を参考にソースコードから実行してください。以下はDockerを使用する方法です
 
 ```
 # 进入本项目源码根目录
@@ -70,56 +70,57 @@ docker logs -f mcp-endpoint-server
 
 请你保留好上面两个`接口地址`，下一步要用到。
 
-# 2、全模块部署时，怎么配置MCP接入点
+# 2、全モジュールデプロイ時のMCPエンドポイント設定方法
 
-如果你是全模块部署，使用管理员账号，登录智控台，点击顶部`参数字典`，选择`参数管理`功能。
+全モジュールデプロイの場合、管理者アカウントで智控台にログインし、上部の`参数字典`をクリック、`参数管理`機能を選択します。
 
-然后搜索参数`server.mcp_endpoint`，此时，它的值应该是`null`值。
-点击修改按钮，把上一步得来的`智控台MCP参数配置`粘贴到`参数值`里。然后保存。
+`server.mcp_endpoint`パラメータを検索し、値が`null`になっていることを確認します。
+編集ボタンをクリックし、前のステップで取得した`智控台MCP参数配置`を`参数値`に貼り付けて保存します。
 
-如果能保存成功，说明一切顺利，你可以去智能体查看效果了。如果不成功，说明智控台无法访问mcp接入点，很大概率是网络防火墙，或者没有填写正确的局域网ip。
+保存が成功すれば設定は完了です。失敗した場合、智控台がMCPエンドポイントにアクセスできないことを意味し、ネットワークファイアウォールや正しいローカルIPが設定されていない可能性があります。
 
-# 3、单模块部署时，怎么配置MCP接入点
+# 3、単一モジュールデプロイ時のMCPエンドポイント設定方法
 
-如果你是单模块部署，找到你的配置文件`data/.config.yaml`。
-在配置文件搜索`mcp_endpoint`，如果没有找到，你就增加`mcp_endpoint`配置。类似我是就是这样
+単一モジュールデプロイの場合、設定ファイル`data/.config.yaml`を開きます。
+`mcp_endpoint`を検索し、見つからない場合は以下のように追加します。
 ```
 server:
-  websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
+  websocket: ws://あなたのIPまたはドメイン:ポート番号/xiaozhi/v1/
   http_port: 8002
 log:
   log_level: INFO
 
-# 此处可能还更多配置..
+# その他の設定がここにある場合もあります
 
-mcp_endpoint: 你的接入点websocket地址
+mcp_endpoint: あなたのエンドポイントwebsocketアドレス
 ```
-这时，请你把`如何部署MCP接入点这个服务`中得到的`单模块部署MCP接入点` 粘贴到 `mcp_endpoint`中。类似这样
+
+`MCPエンドポイントサービスのデプロイ方法`で取得した`単一モジュールデプロイMCPエンドポイント`を`mcp_endpoint`に貼り付けます。例:
 
 ```
 server:
-  websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
+  websocket: ws://あなたのIPまたはドメイン:ポート番号/xiaozhi/v1/
   http_port: 8002
 log:
   log_level: INFO
 
-# 此处可能还更多配置
+# その他の設定がここにある場合もあります
 
 mcp_endpoint: ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=def
 ```
 
-配置好后，启动单模块会输出如下的日志。
+設定後、単一モジュールを起動すると以下のようなログが出力されます。
 ```
-250705[__main__]-INFO-初始化组件: vad成功 SileroVAD
-250705[__main__]-INFO-初始化组件: asr成功 FunASRServer
-250705[__main__]-INFO-OTA接口是          http://192.168.1.25:8002/xiaozhi/ota/
-250705[__main__]-INFO-视觉分析接口是     http://192.168.1.25:8002/mcp/vision/explain
-250705[__main__]-INFO-mcp接入点是        ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
-250705[__main__]-INFO-Websocket地址是    ws://192.168.1.25:8000/xiaozhi/v1/
-250705[__main__]-INFO-=======上面的地址是websocket协议地址，请勿用浏览器访问=======
-250705[__main__]-INFO-如想测试websocket请用谷歌浏览器打开test目录下的test_page.html
+250705[__main__]-INFO-初期化コンポーネント: vad成功 SileroVAD
+250705[__main__]-INFO-初期化コンポーネント: asr成功 FunASRServer
+250705[__main__]-INFO-OTAインターフェース:          http://192.168.1.25:8002/xiaozhi/ota/
+250705[__main__]-INFO-視覚分析インターフェース:     http://192.168.1.25:8002/mcp/vision/explain
+250705[__main__]-INFO-MCPエンドポイント:        ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
+250705[__main__]-INFO-Websocketアドレス:    ws://192.168.1.25:8000/xiaozhi/v1/
+250705[__main__]-INFO-=======上記のアドレスはwebsocketプロトコルアドレスです、ブラウザで直接アクセスしないでください=======
+250705[__main__]-INFO-Websocketをテストする場合はGoogle Chromeでtestディレクトリのtest_page.htmlを開いてください
 250705[__main__]-INFO-=============================================================
 ```
 
-如上，如果能输出类似的`mcp接入点是`中`ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc`说明配置成功了。
+上記のように`MCPエンドポイント: ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc`が出力されれば設定は成功です。
 

@@ -1,46 +1,19 @@
-# 部署架构图
-![请参考-全模块安装架构图](../docs/images/deploy2.png)
-# 方式一：Docker运行全模块
-`0.8.2`版本开始，本项目发行的docker镜像只支持`x86架构`，如果需要在`arm64架构`的CPU上部署，可按照[这个教程](docker-build.md)在本机编译`arm64的镜像`。
+# デプロイアーキテクチャ図
+![全モジュールインストールアーキテクチャ図を参照してください](../docs/images/deploy2.png)
+# 方法1：Dockerで全モジュールを実行
+Dockerイメージはx86アーキテクチャ、arm64アーキテクチャのCPUをサポートしており、国産OS上での実行もサポートしています。
 
-## 1. 安装docker
+## 1. Dockerのインストール
 
-如果您的电脑还没安装docker，可以按照这里的教程安装：[docker安装](https://www.runoob.com/docker/ubuntu-docker-install.html)
+お使いのPCにDockerがまだインストールされていない場合は、こちらのチュートリアルに従ってインストールしてください：[Dockerのインストール](https://www.runoob.com/docker/ubuntu-docker-install.html)
 
-docker 安装全模块有两种方式，你可以[使用懒人脚本](./Deployment_all.md#11-懒人脚本)（作者[@VanillaNahida](https://github.com/VanillaNahida)）  
-脚本会自动帮你下载所需的文件和配置文件，你也可以使用[手动部署](./Deployment_all.md#12-手动部署)从零搭建。
+#### 1.1 ディレクトリの作成
 
+インストール後、このプロジェクトの設定ファイルを配置するディレクトリが必要です。例えば、`xiaozhi-server`という名前の新しいフォルダを作成します。
 
+ディレクトリを作成したら、`xiaozhi-server`の下に`data`フォルダと`models`フォルダを作成し、`models`の下にさらに`SenseVoiceSmall`フォルダを作成する必要があります。
 
-### 1.1 懒人脚本
-部署简便，可以参考[视频教程](https://www.bilibili.com/video/BV17bbvzHExd/) ，文字版教程如下：
-> [!NOTE]  
-> 暂且只支持Ubuntu服务器一键部署，其他系统未尝试，可能会有一些奇怪的bug
-
-使用SSH工具连接到服务器，以root权限执行如下脚本
-```bash
-sudo bash -c "$(wget -qO- https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/main/docker-setup.sh)"
-```
-
-脚本会自动完成以下操作：
-> 1. 安装Docker
-> 2. 配置镜像源
-> 3. 下载/拉取镜像
-> 4. 下载语音识别模型文件
-> 5. 引导配置服务端
->
-
-执行完成后简单配置后，再参照[4. 运行程序](#4. 运行程序)和[5.重启xiaozhi-esp32-server](#5.重启xiaozhi-esp32-server)里提到的最重要的3件事情，完成3这三项配置后即可使用。
-
-### 1.2 手动部署
-
-#### 1.2.1 创建目录
-
-安装完后，你需要为这个项目找一个安放配置文件的目录，例如我们可以新建一个文件夹叫`xiaozhi-server`。
-
-创建好目录后，你需要在`xiaozhi-server`下面创建`data`文件夹和`models`文件夹，`models`下面还要再创建`SenseVoiceSmall`文件夹。
-
-最终目录结构如下所示：
+最終的なディレクトリ構造は次のようになります：
 
 ```
 xiaozhi-server
@@ -49,42 +22,37 @@ xiaozhi-server
      ├─ SenseVoiceSmall
 ```
 
-#### 1.2.2 下载语音识别模型文件
+#### 1.2 音声認識モデルファイルのダウンロード
 
-本项目语音识别模型，默认使用`SenseVoiceSmall`模型，进行语音转文字。因为模型较大，需要独立下载，下载后把`model.pt`
-文件放在`models/SenseVoiceSmall`
-目录下。下面两个下载路线任选一个。
+このプロジェクトの音声認識モデルは、デフォルトで`SenseVoiceSmall`モデルを使用して音声からテキストへの変換を行います。モデルが大きいため、個別にダウンロードする必要があります。ダウンロード後、`model.pt`ファイルを`models/SenseVoiceSmall`ディレクトリに配置してください。以下の2つのダウンロードルートのいずれかを選択してください。
 
-- 线路一：阿里魔搭下载[SenseVoiceSmall](https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt)
-- 线路二：百度网盘下载[SenseVoiceSmall](https://pan.baidu.com/share/init?surl=QlgM58FHhYv1tFnUT_A8Sg&pwd=qvna) 提取码:
-  `qvna`
+- ルート1：Alibaba ModelScopeからダウンロード[SenseVoiceSmall](https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt)
+- ルート2：Baidu Netdiskからダウンロード[SenseVoiceSmall](https://pan.baidu.com/share/init?surl=QlgM58FHhYv1tFnUT_A8Sg&pwd=qvna) 抽出コード: `qvna`
 
 
-#### 1.2.3 下载配置文件
+#### 1.3 設定ファイルのダウンロード
 
-你需要下载两个配置文件：`docker-compose_all.yaml` 和 `config_from_api.yaml`。需要从项目仓库下载这两个文件。
+`docker-compose_all.yaml`と`config_from_api.yaml`の2つの設定ファイルをダウンロードする必要があります。これらのファイルはプロジェクトリポジトリからダウンロードする必要があります。
 
-##### 1.2.3.1 下载 docker-compose_all.yaml
+##### 1.3.1 docker-compose_all.yamlのダウンロード
 
-用浏览器打开[这个链接](../main/xiaozhi-server/docker-compose_all.yml)。
+ブラウザで[このリンク](../main/xiaozhi-server/docker-compose_all.yml)を開きます。
 
-在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`docker-compose_all.yml`文件。 把文件下载到你的
-`xiaozhi-server`中。
+ページの右側にある`RAW`という名前のボタンを見つけ、その隣にあるダウンロードアイコンをクリックして`docker-compose_all.yml`ファイルをダウンロードします。ファイルを`xiaozhi-server`にダウンロードしてください。
 
-或者直接执行 `wget https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml` 下载。
+または、`wget https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml`を直接実行してダウンロードします。
 
-下载完后，回到本教程继续往下。
+ダウンロードが完了したら、このチュートリアルに戻って続行してください。
 
-##### 1.2.3.2 下载 config_from_api.yaml
+##### 1.3.2 config_from_api.yamlのダウンロード
 
-用浏览器打开[这个链接](../main/xiaozhi-server/config_from_api.yaml)。
+ブラウザで[このリンク](../main/xiaozhi-server/config_from_api.yaml)を開きます。
 
-在页面的右侧找到名称为`RAW`按钮，在`RAW`按钮的旁边，找到下载的图标，点击下载按钮，下载`config_from_api.yaml`文件。 把文件下载到你的
-`xiaozhi-server`下面的`data`文件夹中，然后把`config_from_api.yaml`文件重命名为`.config.yaml`。
+ページの右側にある`RAW`という名前のボタンを見つけ、その隣にあるダウンロードアイコンをクリックして`config_from_api.yaml`ファイルをダウンロードします。ファイルを`xiaozhi-server`の下の`data`フォルダにダウンロードし、`config_from_api.yaml`ファイルの名前を`.config.yaml`に変更します。
 
-或者直接执行 `wget https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml` 下载保存。
+または、`wget https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml`を直接実行してダウンロードして保存します。
 
-下载完配置文件后，我们确认一下整个`xiaozhi-server`里面的文件如下所示：
+設定ファイルをダウンロードした後、`xiaozhi-server`内のファイルが次のようになっていることを確認してください：
 
 ```
 xiaozhi-server
@@ -96,14 +64,14 @@ xiaozhi-server
        ├─ model.pt
 ```
 
-如果你的文件目录结构也是上面的，就继续往下。如果不是，你就再仔细看看是不是漏操作了什么。
+ファイルディレクトリ構造が上記と同じであれば、次に進んでください。そうでなければ、何か操作を忘れていないかもう一度確認してください。
 
-## 2. 备份数据
+## 2. データのバックアップ
 
-如果你之前已经成功运行智控台，如果上面保存有你的密钥信息，请先从智控台上拷贝重要数据下来。因为升级过程中，有可能会覆盖原来的数据。
+以前にインテリジェントコントロールパネルを正常に実行しており、そこにキー情報が保存されている場合は、まずインテリジェントコントロールパネルから重要なデータをコピーしてください。アップグレード中に元のデータが上書きされる可能性があるためです。
 
-## 3. 清除历史版本镜像和容器
-接下来打开命令行工具，使用`终端`或`命令行`工具 进入到你的`xiaozhi-server`，执行以下命令
+## 3. 過去のバージョンのイメージとコンテナの削除
+次に、コマンドラインツールを開き、`ターミナル`または`コマンドプロンプト`ツールを使用して`xiaozhi-server`に移動し、次のコマンドを実行します。
 
 ```
 docker compose -f docker-compose_all.yml down
@@ -124,20 +92,20 @@ docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
 docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
 ```
 
-## 4. 运行程序
-执行以下命令启动新版本容器
+## 4. プログラムの実行
+次のコマンドを実行して、新しいバージョンのコンテナを起動します。
 
 ```
 docker compose -f docker-compose_all.yml up -d
 ```
 
-执行完后，再执行以下命令，查看日志信息。
+実行後、次のコマンドを実行してログ情報を表示します。
 
 ```
 docker logs -f xiaozhi-esp32-server-web
 ```
 
-当你看到输出日志时，说明你的`智控台`启动成功了。
+出力ログが表示されたら、`インテリジェントコントロールパネル`が正常に起動したことを意味します。
 
 ```
 2025-xx-xx 22:11:12.445 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - Init DruidDataSource
@@ -145,86 +113,86 @@ docker logs -f xiaozhi-esp32-server-web
 http://localhost:8002/xiaozhi/doc.html
 ```
 
-请注意此刻仅是`智控台`能运行，如果8000端口`xiaozhi-esp32-server`报错，先不要理会。
+この時点では`インテリジェントコントロールパネル`のみが実行可能であり、8000ポートの`xiaozhi-esp32-server`でエラーが発生しても、今は無視してください。
 
-这时，你需要使用浏览器，打开`智控台`，链接：http://127.0.0.1:8002 ，注册第一个用户。第一个用户即是超级管理员，以后的用户都是普通用户。普通用户只能绑定设备和配置智能体;超级管理员可以进行模型管理、用户管理、参数配置等功能。
+この時、ブラウザを使用して`インテリジェントコントロールパネル`を開く必要があります。リンク：http://127.0.0.1:8002 で、最初のユーザーを登録します。最初のユーザーがスーパー管理者となり、それ以降のユーザーは一般ユーザーとなります。一般ユーザーはデバイスのバインドとエージェントの設定のみが可能で、スーパー管理者はモデル管理、ユーザー管理、パラメータ設定などの機能を利用できます。
 
-接下来要做三件重要的事情：
+次に、3つの重要なことを行う必要があります：
 
-### 第一件重要的事情
+### 最初の重要なこと
 
-使用超级管理员账号，登录智控台，在顶部菜单找到`参数管理`，找到列表中第一条数据，参数编码是`server.secret`，复制它到`参数值`。
+スーパー管理者アカウントでインテリジェントコントロールパネルにログインし、トップメニューから`パラメータ管理`を見つけ、リストの最初のデータであるパラメータコード`server.secret`を見つけ、その`パラメータ値`をコピーします。
 
-`server.secret`需要说明一下，这个`参数值`很重要，作用是让我们的`Server`端连接`manager-api`。`server.secret`是每次从零部署manager模块时，会自动随机生成的密钥。
+`server.secret`について説明すると、この`パラメータ値`は非常に重要で、`Server`側が`manager-api`に接続するために使用されます。`server.secret`は、managerモジュールをゼロからデプロイするたびに自動的にランダム生成されるキーです。
 
-复制`参数值`后，打开`xiaozhi-server`下的`data`目录的`.config.yaml`文件。此刻你的配置文件内容应该是这样的：
+`パラメータ値`をコピーした後、`xiaozhi-server`の下の`data`ディレクトリにある`.config.yaml`ファイルを開きます。この時点での設定ファイルの内容は次のようになっているはずです：
 
 ```
 manager-api:
   url:  http://127.0.0.1:8002/xiaozhi
-  secret: 你的server.secret值
+  secret: あなたのserver.secret値
 ```
-1、把你刚才从`智控台`复制过来的`server.secret`的`参数值`复制到`.config.yaml`文件里的`secret`里。
+1. 先ほど`インテリジェントコントロールパネル`からコピーした`server.secret`の`パラメータ値`を`.config.yaml`ファイルの`secret`にコピーします。
 
-2、因为你是docker部署，把`url`改成下面的`http://xiaozhi-esp32-server-web:8002/xiaozhi`
+2. Dockerでデプロイしているため、`url`を`http://xiaozhi-esp32-server-web:8002/xiaozhi`に変更します。
 
-3、因为你是docker部署，把`url`改成下面的`http://xiaozhi-esp32-server-web:8002/xiaozhi`
+3. Dockerでデプロイしているため、`url`を`http://xiaozhi-esp32-server-web:8002/xiaozhi`に変更します。
 
-4、因为你是docker部署，把`url`改成下面的`http://xiaozhi-esp32-server-web:8002/xiaozhi`
+4. Dockerでデプロイしているため、`url`を`http://xiaozhi-esp32-server-web:8002/xiaozhi`に変更します。
 
-类似这样的效果
+次のような効果になります。
 ```
 manager-api:
   url: http://xiaozhi-esp32-server-web:8002/xiaozhi
   secret: 12345678-xxxx-xxxx-xxxx-123456789000
 ```
 
-保存好后，继续往下做第二件重要的事情
+保存したら、2番目の重要なことに進みます。
 
-### 第二件重要的事情
+### 2番目の重要なこと
 
-使用超级管理员账号，登录智控台，在顶部菜单找到`模型配置`，然后在左侧栏点击`大语言模型`，找到第一条数据`智谱AI`，点击`修改`按钮，
-弹出修改框后，将你注册到的`智谱AI`的密钥填写到`API密钥`中。然后点击保存。
+スーパー管理者アカウントでインテリジェントコントロールパネルにログインし、トップメニューから`モデル設定`を見つけ、左側のサイドバーで`大規模言語モデル`をクリックし、最初のデータ`Zhipu AI`を見つけ、`変更`ボタンをクリックします。
+変更ダイアログが表示されたら、登録した`Zhipu AI`のキーを`APIキー`に入力し、保存をクリックします。
 
-## 5.重启xiaozhi-esp32-server
+## 5. xiaozhi-esp32-serverの再起動
 
-接下来打开命令行工具，使用`终端`或`命令行`工具 输入
+次に、コマンドラインツールを開き、`ターミナル`または`コマンドプロンプト`ツールで次のように入力します。
 ```
 docker restart xiaozhi-esp32-server
 docker logs -f xiaozhi-esp32-server
 ```
-如果你能看到，类似以下日志,则是Server启动成功的标志。
+次のようなログが表示されれば、Serverが正常に起動したことを示します。
 
 ```
-25-02-23 12:01:09[core.websocket_server] - INFO - Websocket地址是      ws://xxx.xx.xx.xx:8000/xiaozhi/v1/
-25-02-23 12:01:09[core.websocket_server] - INFO - =======上面的地址是websocket协议地址，请勿用浏览器访问=======
-25-02-23 12:01:09[core.websocket_server] - INFO - 如想测试websocket请用谷歌浏览器打开test目录下的test_page.html
+25-02-23 12:01:09[core.websocket_server] - INFO - Websocketアドレスは      ws://xxx.xx.xx.xx:8000/xiaozhi/v1/
+25-02-23 12:01:09[core.websocket_server] - INFO - =======上記のアドレスはwebsocketプロトコルアドレスです。ブラウザでアクセスしないでください=======
+25-02-23 12:01:09[core.websocket_server] - INFO - websocketをテストしたい場合は、Google Chromeでtestディレクトリのtest_page.htmlを開いてください
 25-02-23 12:01:09[core.websocket_server] - INFO - =======================================================
 ```
 
-由于你是全模块部署，因此你有两个重要的接口需要写入到esp32中。
+全モジュールをデプロイしているため、esp32に書き込む必要がある2つの重要なインターフェースがあります。
 
-OTA接口：
+OTAインターフェース：
 ```
-http://你宿主机局域网的ip:8002/xiaozhi/ota/
-```
-
-Websocket接口：
-```
-ws://你宿主机的ip:8000/xiaozhi/v1/
+http://あなたのPCのローカルネットワークIP:8002/xiaozhi/ota/
 ```
 
-### 第三件重要的事情
+Websocketインターフェース：
+```
+ws://あなたのPCのローカルネットワークIP:8000/xiaozhi/v1/
+```
 
-使用超级管理员账号，登录智控台，在顶部菜单找到`参数管理`，找到参数编码是`server.websocket`，输入你的`Websocket接口`。
+### 3番目の重要なこと
 
-使用超级管理员账号，登录智控台，在顶部菜单找到`参数管理`，找到数编码是`server.ota`，输入你的`OTA接口`。
+スーパー管理者アカウントでインテリジェントコントロールパネルにログインし、トップメニューから`パラメータ管理`を見つけ、パラメータコード`server.websocket`を見つけ、あなたの`Websocketインターフェース`を入力します。
 
-接下来，你就可以开始操作你的esp32设备了，你可以`自行编译esp32固件`也可以配置使用`虾哥编译好的1.6.1以上版本的固件`。两个任选一个
+スーパー管理者アカウントでインテリジェントコントロールパネルにログインし、トップメニューから`パラメータ管理`を見つけ、パラメータコード`server.ota`を見つけ、あなたの`OTAインターフェース`を入力します。
 
-1、 [编译自己的esp32固件](firmware-build.md)了。
+これで、esp32デバイスの操作を開始できます。`esp32ファームウェアを自分でコンパイルする`か、`虾哥がコンパイルした1.6.1以上のバージョンのファームウェアを使用して設定する`ことができます。どちらかを選択してください。
 
-2、 [基于虾哥编译好的固件配置自定义服务器](firmware-setting.md)了。
+1. [自分のesp32ファームウェアをコンパイルする](firmware-build.md)
+
+2. [虾哥がコンパイルしたファームウェアに基づいてカスタムサーバーを設定する](firmware-setting.md)
 
 
 # 方式二：本地源码运行全模块
@@ -385,7 +353,7 @@ pip install -r requirements.txt
 文件放在`models/SenseVoiceSmall`
 目录下。下面两个下载路线任选一个。
 
-- 线路一：阿里魔搭下载[SenseVoiceSmall](https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt)
+- 线路一：阿里魔塔下载[SenseVoiceSmall](https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt)
 - 线路二：百度网盘下载[SenseVoiceSmall](https://pan.baidu.com/share/init?surl=QlgM58FHhYv1tFnUT_A8Sg&pwd=qvna) 提取码:
   `qvna`
 
@@ -458,30 +426,19 @@ ws://你电脑局域网的ip:8000/xiaozhi/v1/
 2、 [基于虾哥编译好的固件配置自定义服务器](firmware-setting.md)了。
 
 # 常见问题
+
 以下是一些常见问题，供参考：
 
-1、[为什么我说的话，小智识别出来很多韩文、日文、英文](./FAQ.md)<br/>
-2、[为什么会出现“TTS 任务出错 文件不存在”？](./FAQ.md)<br/>
-3、[TTS 经常失败，经常超时](./FAQ.md)<br/>
-4、[使用Wifi能连接自建服务器，但是4G模式却接不上](./FAQ.md)<br/>
-5、[如何提高小智对话响应速度？](./FAQ.md)<br/>
-6、[我说话很慢，停顿时小智老是抢话](./FAQ.md)<br/>
-## 部署相关教程
-1、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
-2、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
-## 拓展相关教程
-1、[如何开启手机号码注册智控台](./ali-sms-integration.md)<br/>
-2、[如何集成HomeAssistant实现智能家居控制](./homeassistant-integration.md)<br/>
-3、[如何开启视觉模型实现拍照识物](./mcp-vision-integration.md)<br/>
-4、[如何部署MCP接入点](./mcp-endpoint-enable.md)<br/>
-5、[如何接入MCP接入点](./mcp-endpoint-integration.md)<br/>
-6、[如何开启声纹识别](./voiceprint-integration.md)<br/>
-7、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
-8、[天气插件使用指南](./weather-integration.md)<br/>
-## 语音克隆、本地语音部署相关教程
-1、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
-2、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>
-3、[如何部署集成PaddleSpeech本地语音](./paddlespeech-deploy.md)<br/>
-## 性能测试教程
-1、[各组件速度测试指南](./performance_tester.md)<br/>
-2、[定期公开测试结果](https://github.com/xinnan-tech/xiaozhi-performance-research)<br/>
+[1、为什么我说的话，小智识别出来很多韩文、日文、英文](./FAQ.md)
+
+[2、为什么会出现“TTS 任务出错 文件不存在”？](./FAQ.md)
+
+[3、TTS 经常失败，经常超时](./FAQ.md)
+
+[4、使用Wifi能连接自建服务器，但是4G模式却接不上](./FAQ.md)
+
+[5、如何提高小智对话响应速度？](./FAQ.md)
+
+[6、我说话很慢，停顿时小智老是抢话](./FAQ.md)
+
+[7、我想通过小智控制电灯、空调、远程开关机等操作](./FAQ.md)
