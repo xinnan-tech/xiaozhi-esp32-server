@@ -16,7 +16,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import cn.hutool.json.JSONArray;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
-import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
@@ -95,7 +94,7 @@ public class ModelProviderServiceImpl extends BaseServiceImpl<ModelProviderDao, 
     public static void main(String[] args) {
         String jsonString = "\"[]\"";
         JSONArray jsonArray = new JSONArray(jsonString);
-        System.out.println("字符串转 JSONArray: " + jsonArray.toString());
+        System.out.println("文字列をJSONArrayに変換: " + jsonArray.toString());
     }
 
     @Override
@@ -105,12 +104,12 @@ public class ModelProviderServiceImpl extends BaseServiceImpl<ModelProviderDao, 
         modelProviderDTO.setUpdater(user.getId());
         modelProviderDTO.setCreateDate(new Date());
         modelProviderDTO.setUpdateDate(new Date());
-        // 去除Fields左右的双引号
+        // Fieldsの左右のダブルクォートを削除
 
         modelProviderDTO.setFields(modelProviderDTO.getFields());
         ModelProviderEntity entity = ConvertUtils.sourceToTarget(modelProviderDTO, ModelProviderEntity.class);
         if (modelProviderDao.insert(entity) == 0) {
-            throw new RenException(ErrorCode.ADD_DATA_FAILED);
+            throw new RenException("データの追加に失敗しました");
         }
 
         return ConvertUtils.sourceToTarget(modelProviderDTO, ModelProviderDTO.class);
@@ -123,7 +122,7 @@ public class ModelProviderServiceImpl extends BaseServiceImpl<ModelProviderDao, 
         modelProviderDTO.setUpdateDate(new Date());
         if (modelProviderDao
                 .updateById(ConvertUtils.sourceToTarget(modelProviderDTO, ModelProviderEntity.class)) == 0) {
-            throw new RenException(ErrorCode.UPDATE_DATA_FAILED);
+            throw new RenException("データの変更に失敗しました");
         }
         return ConvertUtils.sourceToTarget(modelProviderDTO, ModelProviderDTO.class);
     }
@@ -131,14 +130,14 @@ public class ModelProviderServiceImpl extends BaseServiceImpl<ModelProviderDao, 
     @Override
     public void delete(String id) {
         if (modelProviderDao.deleteById(id) == 0) {
-            throw new RenException(ErrorCode.DELETE_DATA_FAILED);
+            throw new RenException("データの削除に失敗しました");
         }
     }
 
     @Override
     public void delete(List<String> ids) {
         if (modelProviderDao.deleteBatchIds(ids) == 0) {
-            throw new RenException(ErrorCode.DELETE_DATA_FAILED);
+            throw new RenException("データの削除に失敗しました");
         }
     }
 

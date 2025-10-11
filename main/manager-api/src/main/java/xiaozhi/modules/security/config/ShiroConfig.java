@@ -88,10 +88,8 @@ public class ShiroConfig {
         // 将config路径使用server服务过滤器
         filterMap.put("/config/**", "server");
         filterMap.put("/agent/chat-history/report", "server");
-        filterMap.put("/agent/chat-history/download/**", "anon");
         filterMap.put("/agent/saveMemory/**", "server");
         filterMap.put("/agent/play/**", "anon");
-        filterMap.put("/voiceClone/play/**", "anon");
         filterMap.put("/**", "oauth2");
         shiroFilter.setFilterChainDefinitionMap(filterMap);
 

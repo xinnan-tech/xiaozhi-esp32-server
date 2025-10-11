@@ -29,7 +29,7 @@ import xiaozhi.modules.timbre.service.TimbreService;
 import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
 
 /**
- * 音色的业务层的实现
+ * 音色のビジネス層の実装
  * 
  * @author zjy
  * @since 2025-3-21
@@ -129,7 +129,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     }
 
     /**
-     * 处理是不是tts模型的id
+     * TTSモデルのIDかどうかを処理
      */
     private void isTtsModelId(String ttsModelId) {
         // 等模型配置那边写好调用方法判断

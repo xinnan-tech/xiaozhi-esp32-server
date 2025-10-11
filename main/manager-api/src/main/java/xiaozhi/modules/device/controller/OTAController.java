@@ -77,10 +77,6 @@ public class OTAController {
     @GetMapping
     @Hidden
     public ResponseEntity<String> getOTA() {
-        String mqttUdpConfig = sysParamsService.getValue(Constant.SERVER_MQTT_GATEWAY, false);
-        if (StringUtils.isBlank(mqttUdpConfig)) {
-            return ResponseEntity.ok("OTA接口不正常，缺少mqtt_gateway地址，请登录智控台，在参数管理找到【server.mqtt_gateway】配置");
-        }
         String wsUrl = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
         if (StringUtils.isBlank(wsUrl) || wsUrl.equals("null")) {
             return ResponseEntity.ok("OTA接口不正常，缺少websocket地址，请登录智控台，在参数管理找到【server.websocket】配置");

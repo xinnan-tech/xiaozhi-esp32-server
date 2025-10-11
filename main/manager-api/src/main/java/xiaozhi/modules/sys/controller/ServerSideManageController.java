@@ -22,7 +22,6 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.annotation.LogOperation;
 import xiaozhi.common.constant.Constant;
-import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.sys.dto.EmitSeverActionDTO;
@@ -65,17 +64,17 @@ public class ServerSideManageController {
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Boolean> emitServerAction(@RequestBody @Valid EmitSeverActionDTO emitSeverActionDTO) {
         if (emitSeverActionDTO.getAction() == null) {
-            throw new RenException(ErrorCode.INVALID_SERVER_ACTION);
+            throw new RenException("无效服务端操作");
         }
         String wsText = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
         if (StringUtils.isBlank(wsText)) {
-            throw new RenException(ErrorCode.SERVER_WEBSOCKET_NOT_CONFIGURED);
+            throw new RenException("未配置服务端WebSocket地址");
         }
         String targetWs = emitSeverActionDTO.getTargetWs();
         String[] wsList = wsText.split(";");
         // 找到需要发起的
         if (StringUtils.isBlank(targetWs) || !Arrays.asList(wsList).contains(targetWs)) {
-            throw new RenException(ErrorCode.TARGET_WEBSOCKET_NOT_EXIST);
+            throw new RenException("目标WebSocket地址不存在");
         }
         return new Result<Boolean>().ok(emitServerActionByWs(targetWs, emitSeverActionDTO.getAction()));
     }
@@ -115,7 +114,7 @@ public class ServerSideManageController {
             });
         } catch (Exception e) {
             // 捕获全部错误，由全局异常处理器返回
-            throw new RenException(ErrorCode.WEB_SOCKET_CONNECT_FAILED);
+            throw new RenException("WebSocket连接失败或连接超时");
         }
         return true;
     }

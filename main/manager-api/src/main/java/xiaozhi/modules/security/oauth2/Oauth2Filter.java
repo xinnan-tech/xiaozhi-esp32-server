@@ -18,7 +18,6 @@ import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.utils.HttpContextUtils;
 import xiaozhi.common.utils.JsonUtils;
-import xiaozhi.common.utils.MessageUtils;
 import xiaozhi.common.utils.Result;
 
 /**
@@ -83,8 +82,8 @@ public class Oauth2Filter extends AuthenticatingFilter {
         httpResponse.setHeader("Access-Control-Allow-Credentials", "true");
         httpResponse.setHeader("Access-Control-Allow-Origin", HttpContextUtils.getOrigin());
         try {
-            // 使用国际化消息替代直接使用异常消息
-            Result<Void> r = new Result<Void>().error(ErrorCode.UNAUTHORIZED);
+            Throwable throwable = e.getCause() == null ? e : e.getCause();
+            Result<Void> r = new Result<Void>().error(ErrorCode.UNAUTHORIZED, throwable.getMessage());
 
             String json = JsonUtils.toJsonString(r);
             httpResponse.getWriter().print(json);

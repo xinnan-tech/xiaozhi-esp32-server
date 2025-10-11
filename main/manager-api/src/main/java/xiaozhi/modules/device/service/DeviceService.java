@@ -15,86 +15,86 @@ import xiaozhi.modules.device.vo.UserShowDeviceListVO;
 public interface DeviceService extends BaseService<DeviceEntity> {
 
     /**
-     * 检查设备是否激活
+     * デバイスがアクティブかどうかをチェック
      */
     DeviceReportRespDTO checkDeviceActive(String macAddress, String clientId,
             DeviceReportReqDTO deviceReport);
 
     /**
-     * 获取用户指定智能体的设备列表，
+     * ユーザー指定エージェントのデバイスリストを取得
      */
     List<DeviceEntity> getUserDevices(Long userId, String agentId);
 
     /**
-     * 解绑设备
+     * デバイスのバインド解除
      */
     void unbindDevice(Long userId, String deviceId);
 
     /**
-     * 设备激活
+     * デバイスアクティベーション
      */
     Boolean deviceActivation(String agentId, String activationCode);
 
     /**
-     * 删除此用户的所有设备
+     * このユーザーのすべてのデバイスを削除
      * 
-     * @param userId 用户id
+     * @param userId ユーザーID
      */
     void deleteByUserId(Long userId);
 
     /**
-     * 删除指定智能体关联的所有设备
+     * 指定エージェントに関連するすべてのデバイスを削除
      * 
-     * @param agentId 智能体id
+     * @param agentId エージェントID
      */
     void deleteByAgentId(String agentId);
 
     /**
-     * 获取指定用户的设备数量
+     * 指定ユーザーのデバイス数を取得
      * 
-     * @param userId 用户id
-     * @return 设备数量
+     * @param userId ユーザーID
+     * @return デバイス数
      */
     Long selectCountByUserId(Long userId);
 
     /**
-     * 分页获取全部设备信息
+     * すべてのデバイス情報をページング取得
      *
-     * @param dto 分页查找参数
-     * @return 用户列表分页数据
+     * @param dto ページング検索パラメータ
+     * @return ユーザーリストページングデータ
      */
     PageData<UserShowDeviceListVO> page(DevicePageUserDTO dto);
 
     /**
-     * 根据MAC地址获取设备信息
+     * MACアドレスによりデバイス情報を取得
      * 
-     * @param macAddress MAC地址
-     * @return 设备信息
+     * @param macAddress MACアドレス
+     * @return デバイス情報
      */
     DeviceEntity getDeviceByMacAddress(String macAddress);
 
     /**
-     * 根据设备ID获取激活码
+     * デバイスIDによりアクティベーションコードを取得
      * 
-     * @param deviceId 设备ID
-     * @return 激活码
+     * @param deviceId デバイスID
+     * @return アクティベーションコード
      */
     String geCodeByDeviceId(String deviceId);
 
     /**
-     * 获取这个智能体设备理的最近的最后连接时间
-     * @param agentId 智能体id
-     * @return 返回设备最近的最后连接时间
+     * このエージェントデバイスの最新の最終接続時間を取得
+     * @param agentId エージェントID
+     * @return デバイスの最新の最終接続時間を返す
      */
     Date getLatestLastConnectionTime(String agentId);
 
     /**
-     * 手动添加设备
+     * 手動でデバイスを追加
      */
     void manualAddDevice(Long userId, DeviceManualAddDTO dto);
 
     /**
-     * 更新设备连接信息
+     * デバイス接続情報を更新
      */
     void updateDeviceConnectionInfo(String agentId, String deviceId, String appVersion);
 

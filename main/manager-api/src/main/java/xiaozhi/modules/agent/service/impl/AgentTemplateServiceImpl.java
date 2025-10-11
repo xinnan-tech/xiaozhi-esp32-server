@@ -10,11 +10,6 @@ import xiaozhi.modules.agent.dao.AgentTemplateDao;
 import xiaozhi.modules.agent.entity.AgentTemplateEntity;
 import xiaozhi.modules.agent.service.AgentTemplateService;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-
 /**
  * @author chenerlei
  * @description 针对表【ai_agent_template(智能体配置模板表)】的数据库操作Service实现
@@ -73,49 +68,5 @@ public class AgentTemplateServiceImpl extends ServiceImpl<AgentTemplateDao, Agen
         }
         wrapper.ge("sort", 0);
         update(wrapper);
-    }
-
-    @Override
-    public void reorderTemplatesAfterDelete(Integer deletedSort) {
-        if (deletedSort == null) {
-            return;
-        }
-        
-        // 查询所有排序值大于被删除模板的记录
-        UpdateWrapper<AgentTemplateEntity> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.gt("sort", deletedSort)
-                    .setSql("sort = sort - 1");
-        
-        // 执行批量更新，将这些记录的排序值减1
-        this.update(updateWrapper);
-    }
-
-    @Override
-    public Integer getNextAvailableSort() {
-        // 查询所有已存在的排序值并按升序排序
-        List<Integer> sortValues = baseMapper.selectList(new QueryWrapper<AgentTemplateEntity>())
-                .stream()
-                .map(AgentTemplateEntity::getSort)
-                .filter(Objects::nonNull)
-                .sorted()
-                .collect(Collectors.toList());
-        
-        // 如果没有排序值，返回1
-        if (sortValues.isEmpty()) {
-            return 1;
-        }
-        
-        // 寻找最小的未使用序号
-        int expectedSort = 1;
-        for (Integer sort : sortValues) {
-            if (sort > expectedSort) {
-                // 找到空缺的序号
-                return expectedSort;
-            }
-            expectedSort = sort + 1;
-        }
-        
-        // 如果没有空缺，返回最大序号+1
-        return expectedSort;
     }
 }

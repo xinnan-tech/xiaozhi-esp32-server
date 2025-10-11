@@ -25,7 +25,6 @@ import lombok.AllArgsConstructor;
 import xiaozhi.common.annotation.LogOperation;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.RenException;
-import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.validator.AssertUtils;
@@ -108,12 +107,6 @@ public class SysParamsController {
         // 验证MCP地址
         validateMcpUrl(dto.getParamCode(), dto.getParamValue());
 
-        // 验证声纹地址
-        validateVoicePrint(dto.getParamCode(), dto.getParamValue());
-
-        // 校验mqtt密钥长度
-        validateMqttSecretLength(dto.getParamCode(), dto.getParamValue());
-
         sysParamsService.update(dto);
         configService.getConfig(false);
         return new Result<Void>();
@@ -131,23 +124,23 @@ public class SysParamsController {
         }
         String[] wsUrls = urls.split("\\;");
         if (wsUrls.length == 0) {
-            throw new RenException(ErrorCode.WEBSOCKET_URLS_EMPTY);
+            throw new RenException("WebSocket地址列表不能为空");
         }
         for (String url : wsUrls) {
             if (StringUtils.isNotBlank(url)) {
                 // 检查是否包含localhost或127.0.0.1
                 if (url.contains("localhost") || url.contains("127.0.0.1")) {
-                    throw new RenException(ErrorCode.WEBSOCKET_URL_LOCALHOST);
+                    throw new RenException("WebSocket地址不能使用localhost或127.0.0.1");
                 }
 
                 // 验证WebSocket地址格式
                 if (!WebSocketValidator.validateUrlFormat(url)) {
-                    throw new RenException(ErrorCode.WEBSOCKET_URL_FORMAT_ERROR);
+                    throw new RenException("WebSocket地址格式不正确: " + url);
                 }
 
                 // 测试WebSocket连接
                 if (!WebSocketValidator.testConnection(url)) {
-                    throw new RenException(ErrorCode.WEBSOCKET_CONNECTION_FAILED);
+                    throw new RenException("WebSocket连接测试失败: " + url);
                 }
             }
         }
@@ -174,35 +167,35 @@ public class SysParamsController {
             return;
         }
         if (StringUtils.isBlank(url) || url.equals("null")) {
-            throw new RenException(ErrorCode.OTA_URL_EMPTY);
+            throw new RenException("OTA地址不能为空");
         }
 
         // 检查是否包含localhost或127.0.0.1
         if (url.contains("localhost") || url.contains("127.0.0.1")) {
-            throw new RenException(ErrorCode.OTA_URL_LOCALHOST);
+            throw new RenException("OTA地址不能使用localhost或127.0.0.1");
         }
 
         // 验证URL格式
         if (!url.toLowerCase().startsWith("http")) {
-            throw new RenException(ErrorCode.OTA_URL_PROTOCOL_ERROR);
+            throw new RenException("OTA地址必须以http或https开头");
         }
         if (!url.endsWith("/ota/")) {
-            throw new RenException(ErrorCode.OTA_URL_FORMAT_ERROR);
+            throw new RenException("OTA地址必须以/ota/结尾");
         }
 
         try {
             // 发送GET请求
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             if (response.getStatusCode() != HttpStatus.OK) {
-                throw new RenException(ErrorCode.OTA_INTERFACE_ACCESS_FAILED);
+                throw new RenException("OTA接口访问失败，状态码：" + response.getStatusCode());
             }
             // 检查响应内容是否包含OTA相关信息
             String body = response.getBody();
             if (body == null || !body.contains("OTA")) {
-                throw new RenException(ErrorCode.OTA_INTERFACE_FORMAT_ERROR);
+                throw new RenException("OTA接口返回内容格式不正确，可能不是一个真实的OTA接口");
             }
         } catch (Exception e) {
-            throw new RenException(ErrorCode.OTA_INTERFACE_VALIDATION_FAILED);
+            throw new RenException("OTA接口验证失败：" + e.getMessage());
         }
     }
 
@@ -211,86 +204,27 @@ public class SysParamsController {
             return;
         }
         if (StringUtils.isBlank(url) || url.equals("null")) {
-            throw new RenException(ErrorCode.MCP_URL_EMPTY);
+            throw new RenException("MCP地址不能为空");
         }
         if (url.contains("localhost") || url.contains("127.0.0.1")) {
-            throw new RenException(ErrorCode.MCP_URL_LOCALHOST);
+            throw new RenException("MCP地址不能使用localhost或127.0.0.1");
         }
         if (!url.toLowerCase().contains("key")) {
-            throw new RenException(ErrorCode.MCP_URL_INVALID);
+            throw new RenException("不是正确的MCP地址");
         }
-
         try {
             // 发送GET请求
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             if (response.getStatusCode() != HttpStatus.OK) {
-                throw new RenException(ErrorCode.MCP_INTERFACE_ACCESS_FAILED);
+                throw new RenException("MCP接口访问失败，状态码：" + response.getStatusCode());
             }
             // 检查响应内容是否包含mcp相关信息
             String body = response.getBody();
             if (body == null || !body.contains("success")) {
-                throw new RenException(ErrorCode.MCP_INTERFACE_FORMAT_ERROR);
+                throw new RenException("MCP接口返回内容格式不正确，可能不是一个真实的MCP接口");
             }
         } catch (Exception e) {
-            throw new RenException(ErrorCode.MCP_INTERFACE_VALIDATION_FAILED);
-        }
-    }
-
-    // 验证声纹接口地址是否正常
-    private void validateVoicePrint(String paramCode, String url) {
-        if (!paramCode.equals(Constant.SERVER_VOICE_PRINT)) {
-            return;
-        }
-        if (StringUtils.isBlank(url) || url.equals("null")) {
-            throw new RenException(ErrorCode.VOICEPRINT_URL_EMPTY);
-        }
-        if (url.contains("localhost") || url.contains("127.0.0.1")) {
-            throw new RenException(ErrorCode.VOICEPRINT_URL_LOCALHOST);
-        }
-        if (!url.toLowerCase().contains("key")) {
-            throw new RenException(ErrorCode.VOICEPRINT_URL_INVALID);
-        }
-        // 验证URL格式
-        if (!url.toLowerCase().startsWith("http")) {
-            throw new RenException(ErrorCode.VOICEPRINT_URL_PROTOCOL_ERROR);
-        }
-        try {
-            // 发送GET请求
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-            if (response.getStatusCode() != HttpStatus.OK) {
-                throw new RenException(ErrorCode.VOICEPRINT_INTERFACE_ACCESS_FAILED);
-            }
-            // 检查响应内容
-            String body = response.getBody();
-            if (body == null || !body.contains("healthy")) {
-                throw new RenException(ErrorCode.VOICEPRINT_INTERFACE_FORMAT_ERROR);
-            }
-        } catch (Exception e) {
-            throw new RenException(ErrorCode.VOICEPRINT_INTERFACE_VALIDATION_FAILED);
-        }
-    }
-
-    // 校验mqtt密钥长度和复杂度
-    private void validateMqttSecretLength(String paramCode, String secret) {
-        if (!paramCode.equals(Constant.SERVER_MQTT_SECRET)) {
-            return;
-        }
-        if (StringUtils.isBlank(secret) || secret.equals("null")) {
-            throw new RenException(ErrorCode.MQTT_SECRET_EMPTY);
-        }
-        if (secret.length() < 8) {
-            throw new RenException(ErrorCode.MQTT_SECRET_LENGTH_INSECURE);
-        }
-        // 检查是否同时包含大小写字母
-        if (!secret.matches(".*[a-z].*") || !secret.matches(".*[A-Z].*")) {
-            throw new RenException(ErrorCode.MQTT_SECRET_CHARACTER_INSECURE);
-        }
-        // 不允许包含弱密码
-        String[] weakPasswords = { "test", "1234", "admin", "password", "qwerty", "xiaozhi" };
-        for (String weakPassword : weakPasswords) {
-            if (secret.toLowerCase().contains(weakPassword)) {
-                throw new RenException(ErrorCode.MQTT_SECRET_WEAK_PASSWORD);
-            }
+            throw new RenException("MCP接口验证失败：" + e.getMessage());
         }
     }
 }

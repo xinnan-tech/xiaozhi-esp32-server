@@ -115,7 +115,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
 
         // 判断旧密码是否正确
         if (!PasswordUtils.matches(passwordDTO.getPassword(), sysUserEntity.getPassword())) {
-            throw new RenException(ErrorCode.OLD_PASSWORD_ERROR);
+            throw new RenException("旧密码输入错误");
         }
 
         // 新密码强度
@@ -197,31 +197,10 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
      */
     private String generatePassword() {
         StringBuilder password = new StringBuilder();
-        
-        // 确保包含至少一个数字
-        password.append("0123456789".charAt(random.nextInt(10)));
-        // 确保包含至少一个小写字母
-        password.append("abcdefghijklmnopqrstuvwxyz".charAt(random.nextInt(26)));
-        // 确保包含至少一个大写字母
-        password.append("ABCDEFGHIJKLMNOPQRSTUVWXYZ".charAt(random.nextInt(26)));
-        // 确保包含至少一个特殊符号
-        password.append("!@#$%^&*()".charAt(random.nextInt(10)));
-        
-        // 生成剩余的8个字符
-        for (int i = 4; i < 12; i++) {
+        for (int i = 0; i < 12; i++) {
             password.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
         }
-        
-        // 打乱密码中字符的顺序
-        char[] passwordChars = password.toString().toCharArray();
-        for (int i = 0; i < passwordChars.length; i++) {
-            int randomIndex = random.nextInt(passwordChars.length);
-            char temp = passwordChars[i];
-            passwordChars[i] = passwordChars[randomIndex];
-            passwordChars[randomIndex] = temp;
-        }
-        
-        return new String(passwordChars);
+        return password.toString();
     }
 
     @Override

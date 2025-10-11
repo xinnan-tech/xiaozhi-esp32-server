@@ -21,7 +21,6 @@ import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.JsonUtils;
-import xiaozhi.common.utils.SM2Utils;
 import xiaozhi.modules.sys.dao.SysParamsDao;
 import xiaozhi.modules.sys.dto.SysParamsDTO;
 import xiaozhi.modules.sys.entity.SysParamsEntity;
@@ -206,31 +205,6 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
         if (StringUtils.isBlank(secretParam) || "null".equals(secretParam)) {
             String newSecret = UUID.randomUUID().toString();
             updateValueByCode(Constant.SERVER_SECRET, newSecret);
-        }
-
-        // 初始化SM2密钥对
-        initSM2KeyPair();
-    }
-
-    /**
-     * 初始化SM2密钥对
-     */
-    private void initSM2KeyPair() {
-        // 获取SM2公钥
-        String publicKey = getValue(Constant.SM2_PUBLIC_KEY, false);
-        // 获取SM2私钥
-        String privateKey = getValue(Constant.SM2_PRIVATE_KEY, false);
-
-        // 如果公钥或私钥为空，则生成新的密钥对
-        if (StringUtils.isBlank(publicKey) || StringUtils.isBlank(privateKey) || 
-            "null".equals(publicKey) || "null".equals(privateKey)) {
-            Map<String, String> keyPair = SM2Utils.createKey();
-            String newPublicKey = keyPair.get(SM2Utils.KEY_PUBLIC_KEY);
-            String newPrivateKey = keyPair.get(SM2Utils.KEY_PRIVATE_KEY);
-
-            // 更新数据库中的密钥对
-            updateValueByCode(Constant.SM2_PUBLIC_KEY, newPublicKey);
-            updateValueByCode(Constant.SM2_PRIVATE_KEY, newPrivateKey);
         }
     }
 

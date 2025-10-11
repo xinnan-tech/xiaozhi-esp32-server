@@ -139,17 +139,4 @@ public class RedisKeys {
         return "sms:Validate:Code:" + phone + ":today_count";
     }
 
-    /**
-     * 聊天记录UUID映射的Key
-     */
-    public static String getChatHistoryKey(String uuid) {
-        return "agent:chat:history:" + uuid;
-    }
-
-    /**
-     * 获取音色克隆音频ID的缓存key
-     */
-    public static String getVoiceCloneAudioIdKey(String uuid) {
-        return "voiceClone:audio:id:" + uuid;
-    }
 }

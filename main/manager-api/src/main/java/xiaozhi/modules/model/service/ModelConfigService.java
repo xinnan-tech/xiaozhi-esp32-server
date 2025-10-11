@@ -1,11 +1,9 @@
 package xiaozhi.modules.model.service;
 
 import java.util.List;
-import java.util.Map;
 
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.BaseService;
-import xiaozhi.modules.model.dto.LlmModelBasicInfoDTO;
 import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
 import xiaozhi.modules.model.dto.ModelConfigDTO;
@@ -14,8 +12,6 @@ import xiaozhi.modules.model.entity.ModelConfigEntity;
 public interface ModelConfigService extends BaseService<ModelConfigEntity> {
 
     List<ModelBasicInfoDTO> getModelCodeList(String modelType, String modelName);
-
-    List<LlmModelBasicInfoDTO> getLlmModelCodeList(String modelName);
 
     PageData<ModelConfigDTO> getPageList(String modelType, String modelName, String page, String limit);
 
@@ -26,33 +22,27 @@ public interface ModelConfigService extends BaseService<ModelConfigEntity> {
     void delete(String id);
 
     /**
-     * 根据ID获取模型名称
+     * IDによりモデル名を取得
      * 
-     * @param id 模型ID
-     * @return 模型名称
+     * @param id モデルID
+     * @return モデル名
      */
     String getModelNameById(String id);
 
     /**
-     * 根据ID获取模型配置
+     * IDによりモデル設定を取得
      * 
-     * @param id 模型ID
-     * @return 模型配置实体
+     * @param id      モデルID
+     * @param isCache キャッシュするかどうか
+     * @return モデル設定エンティティ
      */
-    ModelConfigEntity getModelByIdFromCache(String id);
+    ModelConfigEntity getModelById(String id, boolean isCache);
 
     /**
-     * 设置默认模型
-     *
-     * @param modelType 模型类型
-     * @param isDefault 是否默认（1:是，0:否）
+     * デフォルトモデルを設定
+     * 
+     * @param modelType モデルタイプ
+     * @param isDefault デフォルトかどうか
      */
     void setDefaultModel(String modelType, int isDefault);
-
-    /**
-     * 获取符合条件的TTS平台列表
-     *
-     * @return TTS平台列表(id和modelName)
-     */
-    List<Map<String, Object>> getTtsPlatformList();
 }

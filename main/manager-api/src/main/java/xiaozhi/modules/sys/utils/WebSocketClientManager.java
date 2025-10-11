@@ -86,13 +86,9 @@ public class WebSocketClientManager implements Closeable {
         if (sess == null || !sess.isOpen()) {
             throw new IOException("握手失败或会话未打开");
         }
-        // 设置缓冲区
-        sess.setTextMessageSizeLimit(b.bufferSize);
-        sess.setBinaryMessageSizeLimit(b.bufferSize);
         ws.session = sess;
         return ws;
     }
-
 
     /**
      * 发送 Text
@@ -312,11 +308,10 @@ public class WebSocketClientManager implements Closeable {
             if (stopWatch.isRunning()) {
                 stopWatch.stop();
             }
-            log.info("ws连接关闭, 目标URI: {}, 关闭时间: {}, 连接总时长: {}s,断开原因：{}",
+            log.info("ws连接关闭, 目标URI: {}, 关闭时间: {}, 连接总时长: {}s",
                     targetUri, DateUtils.getDateTimeNow(DateUtils.DATE_TIME_MILLIS_PATTERN),
-                    DateUtils.millsToSecond(stopWatch.getTotalTimeMillis()),status);
+                    DateUtils.millsToSecond(stopWatch.getTotalTimeMillis()));
         }
-
     }
 
     public static class Builder {
@@ -326,7 +321,6 @@ public class WebSocketClientManager implements Closeable {
         private long maxSessionDuration = 5; // 最大连线时间，默认5秒
         private TimeUnit maxSessionDurationUnit = TimeUnit.SECONDS; // 最大连线时间单位
         private int queueCapacity = 100; // 消息队列容量
-        private int bufferSize = 8 * 1024; //默认 8kb
         private WebSocketHttpHeaders headers; // 请求头
 
         /**
@@ -356,10 +350,6 @@ public class WebSocketClientManager implements Closeable {
 
         public Builder queueCapacity(int c) {
             this.queueCapacity = c;
-            return this;
-        }
-        public Builder bufferSize(int c) {
-            this.bufferSize = c;
             return this;
         }
 

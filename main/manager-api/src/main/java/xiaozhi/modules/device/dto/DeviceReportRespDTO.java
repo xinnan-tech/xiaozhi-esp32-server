@@ -23,9 +23,6 @@ public class DeviceReportRespDTO {
     @Schema(description = "WebSocket配置")
     private Websocket websocket;
 
-    @Schema(description = "MQTT Gateway配置")
-    private MQTT mqtt;
-
     @Getter
     @Setter
     public static class Firmware {
@@ -72,22 +69,5 @@ public class DeviceReportRespDTO {
     public static class Websocket {
         @Schema(description = "WebSocket服务器地址")
         private String url;
-    }
-
-    @Getter
-    @Setter
-    public static class MQTT {
-        @Schema(description = "MQTT 配置网址")
-        private String endpoint;
-        @Schema(description = "MQTT 客户端唯一标识符")
-        private String client_id;
-        @Schema(description = "MQTT 认证用户名")
-        private String username;
-        @Schema(description = "MQTT 认证密码")
-        private String password;
-        @Schema(description = "ESP32 发布消息的主题")
-        private String publish_topic;
-        @Schema(description = "ESP32 订阅的主题")
-        private String subscribe_topic;
     }
 }

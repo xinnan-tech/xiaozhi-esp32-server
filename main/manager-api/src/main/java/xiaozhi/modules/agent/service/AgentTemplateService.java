@@ -25,18 +25,4 @@ public interface AgentTemplateService extends IService<AgentTemplateEntity> {
      * @param modelId   模型ID
      */
     void updateDefaultTemplateModelId(String modelType, String modelId);
-
-    /**
-     * 删除模板后重新排序剩余模板
-     * 
-     * @param deletedSort 被删除模板的排序值
-     */
-    void reorderTemplatesAfterDelete(Integer deletedSort);
-
-    /**
-     * 获取下一个可用的排序序号（寻找最小的未使用序号）
-     * 
-     * @return 下一个可用的排序序号
-     */
-    Integer getNextAvailableSort();
 }

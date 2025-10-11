@@ -9,7 +9,7 @@ import xiaozhi.modules.sys.entity.SysUserEntity;
 import xiaozhi.modules.sys.vo.AdminPageUserVO;
 
 /**
- * 系统用户
+ * システムユーザー
  */
 public interface SysUserService extends BaseService<SysUserEntity> {
 
@@ -20,56 +20,56 @@ public interface SysUserService extends BaseService<SysUserEntity> {
     void save(SysUserDTO dto);
 
     /**
-     * 删除指定用户，且有关联的数据设备和智能体
+     * 指定ユーザーを削除し、関連するデータデバイスとエージェントも削除
      * 
      * @param ids
      */
     void deleteById(Long ids);
 
     /**
-     * 验证是否允许修改密码更改
+     * パスワード変更が許可されているかを検証
      * 
-     * @param userId      用户id
-     * @param passwordDTO 验证密码的参数
+     * @param userId      ユーザーID
+     * @param passwordDTO パスワード検証パラメータ
      */
     void changePassword(Long userId, PasswordDTO passwordDTO);
 
     /**
-     * 直接修改密码，不需要验证
+     * パスワードを直接変更、検証不要
      * 
-     * @param userId   用户id
-     * @param password 密码
+     * @param userId   ユーザーID
+     * @param password パスワード
      */
     void changePasswordDirectly(Long userId, String password);
 
     /**
-     * 重置密码
+     * パスワードをリセット
      * 
-     * @param userId 用户id
-     * @return 随机生成符合规范的密码
+     * @param userId ユーザーID
+     * @return ランダムに生成された規範に準拠したパスワード
      */
     String resetPassword(Long userId);
 
     /**
-     * 管理员分页用户信息
+     * 管理者ページングユーザー情報
      * 
-     * @param dto 分页查找参数
-     * @return 用户列表分页数据
+     * @param dto ページング検索パラメータ
+     * @return ユーザーリストページングデータ
      */
     PageData<AdminPageUserVO> page(AdminPageUserDTO dto);
 
     /**
-     * 批量修改用户状态
+     * ユーザーステータスを一括変更
      * 
-     * @param status  用户状态
-     * @param userIds 用户ID数组
+     * @param status  ユーザーステータス
+     * @param userIds ユーザーID配列
      */
     void changeStatus(Integer status, String[] userIds);
 
     /**
-     * 获取是否允许用户注册
+     * ユーザー登録が許可されているかを取得
      * 
-     * @return 是否允许用户注册
+     * @return ユーザー登録が許可されているか
      */
     boolean getAllowUserRegister();
 }
