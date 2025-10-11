@@ -31,6 +31,8 @@ server:
   auth:
     # 是否启用认证
     enabled: false
+    # token签名秘钥
+    signature_key: "your-token-signature-key"
     # 设备的token，可以在编译固件的环节，写入你自己定义的token
     # 固件上的token和以下的token如果能对应，才能连接本服务端
     tokens:

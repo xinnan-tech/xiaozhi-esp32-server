@@ -10,6 +10,7 @@ import threading
 import traceback
 import subprocess
 import websockets
+
 from core.utils.util import (
     extract_json_from_string,
     check_vad_update,
@@ -67,7 +68,6 @@ class ConnectionHandler:
         self.logger = setup_logging()
         self.server = server  # 保存server实例的引用
 
-        self.auth = AuthMiddleware(config)
         self.need_bind = False
         self.bind_code = None
         self.read_config_from_api = self.config.get("read_config_from_api", False)
@@ -194,12 +194,10 @@ class ConnectionHandler:
                 f"{self.client_ip} conn - Headers: {self.headers}"
             )
 
-            # 进行认证
-            await self.auth.authenticate(self.headers)
+            self.device_id = self.headers.get("device-id", None)
 
             # 认证通过,继续处理
             self.websocket = ws
-            self.device_id = self.headers.get("device-id", None)
 
             # 检查是否来自MQTT连接
             request_path = ws.request.path

@@ -4,6 +4,8 @@ import base64
 import hashlib
 import hmac
 from aiohttp import web
+
+from core.ota_auth import AuthManager
 from core.utils.util import get_local_ip
 from core.api.base_handler import BaseHandler
 
@@ -13,6 +15,15 @@ TAG = __name__
 class OTAHandler(BaseHandler):
     def __init__(self, config: dict):
         super().__init__(config)
+        auth_config = config["server"].get("auth", {})
+        self.auth_enable = auth_config.get("enabled", False)
+        # 设备白名单
+        self.allowed_devices = set(
+            auth_config.get("allowed_devices", [])
+        )
+        secret_key = auth_config.get("signature_key", "")
+        expire_seconds = auth_config.get("expire_seconds")
+        self.auth = AuthManager(secret_key=secret_key, expire_seconds=expire_seconds)
         
     def generate_password_signature(self, content: str, secret_key: str) -> str:
         """生成MQTT密码签名
@@ -63,6 +74,12 @@ class OTAHandler(BaseHandler):
                 self.logger.bind(tag=TAG).info(f"OTA请求设备ID: {device_id}")
             else:
                 raise Exception("OTA请求设备ID为空")
+
+            client_id = request.headers.get("client-id", "")
+            if client_id:
+                self.logger.bind(tag=TAG).info(f"OTA请求ClientID: {client_id}")
+            else:
+                raise Exception("OTA请求ClientID为空")
 
             data_json = json.loads(data)
 
@@ -134,10 +151,20 @@ class OTAHandler(BaseHandler):
                 
                 
             else:  # 未配置 mqtt_gateway，下发 WebSocket
+                # 如果开启了认证，则进行认证校验
+                token = ""
+                if self.auth_enable:
+                    if self.allowed_devices:
+                        if device_id in self.allowed_devices:
+                            token = self.auth.generate_token(client_id, device_id)
+                    else:
+                        token = self.auth.generate_token(client_id, device_id)
                 return_json["websocket"] = {
                     "url": self._get_websocket_url(local_ip, port),
+                    "token": token
                 }
                 self.logger.bind(tag=TAG).info(f"未配置MQTT网关，为设备 {device_id} 下发WebSocket配置")
+                self.logger.bind(tag=TAG).info(f"{return_json}")
             
             response = web.Response(
                 text=json.dumps(return_json, separators=(",", ":")),
