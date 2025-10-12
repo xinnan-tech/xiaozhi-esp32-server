@@ -1,50 +1,50 @@
-# 致开发者的公开信
+# Open Letter to Developers
 
-"春江水暖鸭先知，正是河豚欲上时！"
+"The ducks know first when the river water warms in spring, and that's when the pufferfish are about to come up!"
 
-亲爱的朋友，我是John，是一名普通公司里的Java程序员，今天，我怀着无比真挚的心情，向热爱AI技术与创新的你发出这封公开信。
+Dear friends, I’m John, a Java programmer working in an ordinary company. Today, with my deepest sincerity, I’m writing this open letter to you who love AI technology and innovation.
 
-半年前我看到很多优秀的项目，比如`Dify`、`Chat2DB`等人工智能相关的项目，我在想，我要是能参与这些项目多好，可惜“报国无门，空打十年代码”。
+Half a year ago, I saw many excellent projects, such as `Dify`, `Chat2DB` and other artificial intelligence-related projects. I thought, how great it would be if I could participate in these projects. Unfortunately, "I have no way to serve my country and have wasted ten years writing code."
 
-我是2025年初刷到虾哥团队的视频，我非常好奇他是怎么实现的，我想复刻他们的后端服务，打造一个低成本民用贾维斯。很可惜现在做的作品依然只是一个人工智障，它并发低、没有灵魂，响应很慢，bug很多。
+I came across a video by Xia Ge's team in early 2025 and was very curious about how they achieved this. I wanted to replicate their backend services and build a low-cost civilian Jarvis. Unfortunately, the work I've done so far is still just a dumb artificial intelligence: low concurrency, soulless, slow to respond, and full of bugs.
 
-虾哥团队是我们学习的对象，我很想拥有像虾哥团队一样智能的小智后端服务。但是我也能理解虾哥不开源的决定。“一花独放不是春，百花齐放春满园”，人工智能遍地开花的时代，也许就在我们这代实现，我们可以用自己的双手，实现低成本民用贾维斯。我个人认为，他能实现的，我们也能实现，只是时间问题而已，我称之为“我们的取经之路”。
+The Xia Ge team is a role model for us to learn from. I'd love to have a Xiaozhi backend service as intelligent as theirs. However, I also understand Xia Ge's decision not to open source. As the saying goes, "A single flower does not make spring; a hundred flowers in full bloom make the garden full of spring." Perhaps the era of widespread AI will arrive in our generation. We can use our own hands to create a low-cost civilian Jarvis. Personally, I believe that what they can achieve, we can too; it's just a matter of time. I call this "our journey to learn from them."
 
-那么这条取经之路，我们会遇到什么困难？我想应该不少于八十一难。这一路必然会出现各种妖怪，当然也有神仙暗中帮助我们，也有人加入取经队伍。
+So what difficulties will we encounter on this journey to obtain the scriptures? I believe there will be no fewer than eighty-one. Along the way, various monsters will inevitably appear, but there will also be gods secretly helping us, and some people will join the journey to obtain the scriptures.
 
-以上内容，如果你觉得好笑。那我也觉得非常的幸运。我能够在你人生3万多天里博你笑五秒，也算是为你做了一次贡献。
+If you find the above funny, then I feel very lucky. I was able to make you laugh for five seconds in your 30,000-plus days of life, which is a contribution I made to you.
 
-民用低成本贾维斯这个想法，会失败吗，我不知道，但是我们普通人的一生，这种失败不是很常见吗？
+I don’t know whether the idea of ​​a low-cost civilian Jarvis will fail, but isn’t this kind of failure very common in the lives of ordinary people like us?
 
-未来，有一点是可以确定的，就一定会有人完全复刻虾哥团队的功能，实现民用低成本贾维斯。这个项目会是我们吗？
+One thing is certain: someone will completely replicate the functionality of the Xiage team and create a low-cost civilian Jarvis. Will that project be ours?
 
-期待与你携手前行，共创未来。
+We look forward to working with you to create a better future.
 
-John，2025.3.11，广州
+John, March 11, 2025, Guangzhou
 
-# 附 开发贡献指南
-## 项目目标
+# Attached Development Contribution Guide
+## Project Goals
 
-1. **民用低成本贾维斯解决方案**  
+1. **Civilian low-cost Jarvis solution**  
 
-2. **智能联动周边硬件的解决方案**  
+2. **Intelligent linkage solutions for peripheral hardware**  
 
-## 加入我们
+## Join us
 
-我们热忱欢迎志同道合的朋友加入，共同为项目贡献力量。您可在[这个链接](https://github.com/users/xinnan-tech/projects/3)查看我们近期要实现的功能，功能列表中还没指派相关人员处理的，正是急需您的参与。参与方式如下：
+We warmly welcome like-minded friends to join us and contribute to the project. You can check out the features we are working on in the near future at [this link](https://github.com/users/xinnan-tech/projects/3). There are some features on the list that have not yet been assigned to relevant personnel, and we urgently need your participation. How to participate is as follows:
 
-### 1、成为普通贡献者
+### 1. Become a regular contributor
 
-Fork 项目，提交 PR，由开发者审核后合入主分支。
+Fork the project, submit a PR, and have it reviewed by the developer before being merged into the main branch.
 
-### 2、成为开发者
+2. Become a Developer
 
-当你累计提交 3 次有效 PR 后，可以联系群主申请成为开发者，群主将邀请你加入独立的开发者群，共同探讨项目未来。
+After you have submitted 3 valid PRs in total, you can contact the group owner to apply to become a developer. The group owner will invite you to join the independent developer group to discuss the future of the project together.
 
-## 开发者开发流程
+## Developer Development Process
 
-1. **创建新分支**  
-   每个功能点请以新分支方式开发，分支名称应简洁明了，让人一眼看出所实现的功能，避免功能撞车。
+1. **Create a new branch**  
+   Please develop each functional point in a new branch. The branch name should be concise and clear so that people can see the implemented function at a glance to avoid functional conflicts.
 
-2. **提交 PR 审核**  
-   功能开发完成后，请在 GitHub 上提交 PR，由其他开发者审核，审核通过后合并入主分支。
+2. **Submit PR for review**  
+   After the function development is completed, please submit a PR on GitHub, which will be reviewed by other developers and merged into the main branch after passing the review.
