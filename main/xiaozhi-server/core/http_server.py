@@ -15,14 +15,14 @@ class SimpleHttpServer:
         self.vision_handler = VisionHandler(config)
 
     def _get_websocket_url(self, local_ip: str, port: int) -> str:
-        """Get the websocket address
+        """获取websocket地址
 
         Args:
-            local_ip: local IP address
-            port: port number
+            local_ip: 本地IP地址
+            port: 端口号
 
         Returns:
-            str: websocket address
+            str: websocket地址
         """
         server_config = self.config["server"]
         websocket_config = server_config.get("websocket")
@@ -42,7 +42,7 @@ class SimpleHttpServer:
             app = web.Application()
 
             if not read_config_from_api:
-                # If the smart console is not enabled and only a single module is running, you need to add a simple OTA interface to send the websocket interface
+                # 如果没有开启智控台，只是单模块运行，就需要再添加简单OTA接口，用于下发websocket接口
                 app.add_routes(
                     [
                         web.get("/xiaozhi/ota/", self.ota_handler.handle_get),
@@ -50,7 +50,7 @@ class SimpleHttpServer:
                         web.options("/xiaozhi/ota/", self.ota_handler.handle_post),
                     ]
                 )
-            # Add routes
+            # 添加路由
             app.add_routes(
                 [
                     web.get("/mcp/vision/explain", self.vision_handler.handle_get),
@@ -59,12 +59,12 @@ class SimpleHttpServer:
                 ]
             )
 
-            # Run the service
+            # 运行服务
             runner = web.AppRunner(app)
             await runner.setup()
             site = web.TCPSite(runner, host, port)
             await site.start()
 
-            # Keep the service running
+            # 保持服务运行
             while True:
-                await asyncio.sleep(3600) # Check every 1 hour
+                await asyncio.sleep(3600)  # 每隔 1 小时检查一次

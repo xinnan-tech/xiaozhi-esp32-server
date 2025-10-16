@@ -6,7 +6,7 @@ from core.handle.textMessageType import TextMessageType
 
 
 class AbortTextMessageHandler(TextMessageHandler):
-    """Abort message handler"""
+    """Abort消息处理器"""
 
     @property
     def message_type(self) -> TextMessageType:

@@ -12,14 +12,14 @@ TAG = __name__
 
 
 class TextMessageHandlerRegistry:
-    """Message Processor Registry"""
+    """消息处理器注册表"""
 
     def __init__(self):
         self._handlers: Dict[str, TextMessageHandler] = {}
         self._register_default_handlers()
 
     def _register_default_handlers(self) -> None:
-        """Register the default message handler"""
+        """注册默认的消息处理器"""
         handlers = [
             HelloTextMessageHandler(),
             AbortTextMessageHandler(),
@@ -33,13 +33,13 @@ class TextMessageHandlerRegistry:
             self.register_handler(handler)
 
     def register_handler(self, handler: TextMessageHandler) -> None:
-        """Register message handler"""
+        """注册消息处理器"""
         self._handlers[handler.message_type.value] = handler
 
     def get_handler(self, message_type: str) -> Optional[TextMessageHandler]:
-        """Get the message handler"""
+        """获取消息处理器"""
         return self._handlers.get(message_type)
 
     def get_supported_types(self) -> list:
-        """Get supported message types"""
+        """获取支持的消息类型"""
         return list(self._handlers.keys())

@@ -1,54 +1,72 @@
-from config.logger import setup_logging
-
-TAG = __name__
-logger = setup_logging()
+import hmac
+import base64
+import hashlib
+import time
 
 
 class AuthenticationError(Exception):
-    """Authentication exception"""
+    """认证异常"""
+
     pass
 
 
-class AuthMiddleware:
-    def __init__(self, config):
-        self.config = config
-        self.auth_config = config["server"].get("auth", {})
-        # Build a token lookup table
-        self.tokens = {
-            item["token"]: item["name"]
-            for item in self.auth_config.get("tokens", [])
-        }
-        # Device Whitelist
-        self.allowed_devices = set(
-            self.auth_config.get("allowed_devices", [])
-        )
+class AuthManager:
+    """
+    统一授权认证管理器
+    生成与验证 client_id device_id token（HMAC-SHA256）认证三元组
+    token 中不含明文 client_id/device_id，只携带签名 + 时间戳; client_id/device_id在连接时传递
+    在 MQTT 中 client_id: client_id, username: device_id, password: token
+    在 Websocket 中，header:{Device-ID: device_id, Client-ID: client_id, Authorization: Bearer token, ......}
+    """
 
-    async def authenticate(self, headers):
-        """Verify connection request"""
-        # Check if authentication is enabled
-        if not self.auth_config.get("enabled", False):
+    def __init__(self, secret_key: str, expire_seconds: int = 60 * 60 * 24 * 30):
+        if not expire_seconds or expire_seconds < 0:
+            self.expire_seconds = 60 * 60 * 24 * 30
+        else:
+            self.expire_seconds = expire_seconds
+        self.secret_key = secret_key
+
+    def _sign(self, content: str) -> str:
+        """HMAC-SHA256签名并Base64编码"""
+        sig = hmac.new(
+            self.secret_key.encode("utf-8"), content.encode("utf-8"), hashlib.sha256
+        ).digest()
+        return base64.urlsafe_b64encode(sig).decode("utf-8").rstrip("=")
+
+    def generate_token(self, client_id: str, username: str) -> str:
+        """
+        生成 token
+        Args:
+            client_id: 设备连接ID
+            username: 设备用户名（通常为deviceId）
+        Returns:
+            str: token字符串
+        """
+        ts = int(time.time())
+        content = f"{client_id}|{username}|{ts}"
+        signature = self._sign(content)
+        # token仅包含签名与时间戳，不包含明文信息
+        token = f"{signature}.{ts}"
+        return token
+
+    def verify_token(self, token: str, client_id: str, username: str) -> bool:
+        """
+        验证token有效性
+        Args:
+            token: 客户端传入的token
+            client_id: 连接使用的client_id
+            username: 连接使用的username
+        """
+        try:
+            sig_part, ts_str = token.split(".")
+            ts = int(ts_str)
+            if int(time.time()) - ts > self.expire_seconds:
+                return False  # 过期
+
+            expected_sig = self._sign(f"{client_id}|{username}|{ts}")
+            if not hmac.compare_digest(sig_part, expected_sig):
+                return False
+
             return True
-
-        # Check if the device is in the whitelist
-        device_id = headers.get("device-id", "")
-
-        if self.allowed_devices and device_id in self.allowed_devices:
-            return True
-
-        Verify the Authorization header
-        auth_header = headers.get("authorization", "")
-        if not auth_header.startswith("Bearer "):
-            logger.bind(tag=TAG).error("Missing or invalid Authorization header")
-            raise AuthenticationError("Missing or invalid Authorization header")
-
-        token = auth_header.split(" ")[1]
-        if token not in self.tokens:
-            logger.bind(tag=TAG).error(f"Invalid token: {token}")
-            raise AuthenticationError("Invalid token")
-
-        logger.bind(tag=TAG).info(f"Authentication successful - Device: {device_id}, Token: {self.tokens[token]}")
-        return True
-
-    def get_token_name(self, token):
-        """Get the device name corresponding to the token"""
-        return self.tokens.get(token)
+        except Exception:
+            return False

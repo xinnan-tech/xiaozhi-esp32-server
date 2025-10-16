@@ -6,36 +6,36 @@ TAG = __name__
 
 
 class TextMessageProcessor:
-    """Message handler main class"""
+    """消息处理器主类"""
 
     def __init__(self, registry: TextMessageHandlerRegistry):
         self.registry = registry
 
     async def process_message(self, conn, message: str) -> None:
-        """The main entry point for processing messages"""
+        """处理消息的主入口"""
         try:
-            # Parsing JSON messages
+            # 解析JSON消息
             msg_json = json.loads(message)
 
-            # Processing JSON messages
+            # 处理JSON消息
             if isinstance(msg_json, dict):
                 message_type = msg_json.get("type")
 
-                # Logging
-                conn.logger.bind(tag=TAG).info(f"Received {message_type} message: {message}")
+                # 记录日志
+                conn.logger.bind(tag=TAG).info(f"收到{message_type}消息：{message}")
 
-                # Get and execute the processor
+                # 获取并执行处理器
                 handler = self.registry.get_handler(message_type)
                 if handler:
                     await handler.handle(conn, msg_json)
                 else:
-                    conn.logger.bind(tag=TAG).error(f"Received unknown type message: {message}")
-            # Processing pure numeric messages
+                    conn.logger.bind(tag=TAG).error(f"收到未知类型消息：{message}")
+            # 处理纯数字消息
             elif isinstance(msg_json, int):
-                conn.logger.bind(tag=TAG).info(f"Received digital message: {message}")
+                conn.logger.bind(tag=TAG).info(f"收到数字消息：{message}")
                 await conn.websocket.send(message)
 
         except json.JSONDecodeError:
-            # Directly forward non-JSON messages
-            conn.logger.bind(tag=TAG).error(f"Parsed error message: {message}")
+            # 非JSON消息直接转发
+            conn.logger.bind(tag=TAG).error(f"解析到错误的消息：{message}")
             await conn.websocket.send(message)

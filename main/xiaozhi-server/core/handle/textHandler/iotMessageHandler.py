@@ -7,7 +7,7 @@ from core.providers.tools.device_iot import handleIotStatus, handleIotDescriptor
 
 
 class IotTextMessageHandler(TextMessageHandler):
-    """IoT message processor"""
+    """IOT消息处理器"""
 
     @property
     def message_type(self) -> TextMessageType:

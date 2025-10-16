@@ -10,8 +10,8 @@ _logger_initialized = False
 
 
 def get_module_abbreviation(module_name, module_dict):
-    """Get the module name abbreviation, if it is empty, return 00
-    If the name contains an underscore, the first two characters after the underscore are returned.
+    """获取模块名称的缩写，如果为空则返回00
+    如果名称中包含下划线，则返回下划线后面的前两个字符
     """
     module_value = module_dict.get(module_name, "")
     if not module_value:
@@ -23,7 +23,7 @@ def get_module_abbreviation(module_name, module_dict):
 
 
 def build_module_string(selected_module):
-    """Building module string"""
+    """构建模块字符串"""
     return (
         get_module_abbreviation("VAD", selected_module)
         + get_module_abbreviation("ASR", selected_module)
@@ -36,25 +36,25 @@ def build_module_string(selected_module):
 
 
 def formatter(record):
-    """Add default values ​​for logs without tags and handle dynamic module strings"""
+    """为没有 tag 的日志添加默认值，并处理动态模块字符串"""
     record["extra"].setdefault("tag", record["name"])
-    # If selected_module is not set, use the default value
+    # 如果没有设置 selected_module，使用默认值
     record["extra"].setdefault("selected_module", "00000000000000")
-    # Extract selected_module from extra to top level to support {selected_module} format
+    # 将 selected_module 从 extra 提取到顶级，以支持 {selected_module} 格式
     record["selected_module"] = record["extra"]["selected_module"]
     return record["message"]
 
 
 def setup_logging():
     check_config_file()
-    """Read the log configuration from the configuration file and set the log output format and level"""
+    """从配置文件中读取日志配置，并设置日志输出格式和级别"""
     config = load_config()
     log_config = config["log"]
     global _logger_initialized
 
-    #Configure logging during first initialization
+    # 第一次初始化时配置日志
     if not _logger_initialized:
-        # Initialize with default module string
+        # 使用默认的模块字符串进行初始化
         logger.configure(
             extra={
                 "selected_module": log_config.get("selected_module", "00000000000000"),
@@ -80,35 +80,35 @@ def setup_logging():
         os.makedirs(log_dir, exist_ok=True)
         os.makedirs(data_dir, exist_ok=True)
 
-        # Configure log output
+        # 配置日志输出
         logger.remove()
 
-        # Output to console
+        # 输出到控制台
         logger.add(sys.stdout, format=log_format, level=log_level, filter=formatter)
 
-        # Output to file - unified directory, rotate by size
-        # Full path to the log file
+        # 输出到文件 - 统一目录，按大小轮转
+        # 日志文件完整路径
         log_file_path = os.path.join(log_dir, log_file)
 
-        # Add a log processor
+        # 添加日志处理器
         logger.add(
             log_file_path,
             format=log_format_file,
             level=log_level,
             filter=formatter,
-            rotation="10 MB", # Each file is up to 10MB
-            retention="30 days", # retain for 30 days
+            rotation="10 MB",  # 每个文件最大10MB
+            retention="30 days",  # 保留30天
             compression=None,
             encoding="utf-8",
-            enqueue=True, # Asynchronous safety
+            enqueue=True,  # 异步安全
             backtrace=True,
             diagnose=True,
         )
-        _logger_initialized = True # Mark as initialized
+        _logger_initialized = True  # 标记为已初始化
 
     return logger
 
 
 def create_connection_logger(selected_module_str):
-    """Create a separate logger for the connection, binding the specified module string"""
+    """为连接创建独立的日志器，绑定特定的模块字符串"""
     return logger.bind(selected_module=selected_module_str)
