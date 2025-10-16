@@ -11,17 +11,17 @@ from core.utils.util import remove_punctuation_and_length
 TAG = __name__
 
 class ListenTextMessageHandler(TextMessageHandler):
-    """Listen消息处理器"""
+    """Listen message processor"""
 
     @property
     def message_type(self) -> TextMessageType:
-        return TextMessageType.LISTEN
+        return TextMessageType.LIST
 
     async def handle(self, conn, msg_json: Dict[str, Any]) -> None:
         if "mode" in msg_json:
             conn.client_listen_mode = msg_json["mode"]
             conn.logger.bind(tag=TAG).debug(
-                f"客户端拾音模式：{conn.client_listen_mode}"
+                f"Client pickup mode: {conn.client_listen_mode}"
             )
         if msg_json["state"] == "start":
             conn.client_have_voice = True
@@ -36,28 +36,28 @@ class ListenTextMessageHandler(TextMessageHandler):
             conn.asr_audio.clear()
             if "text" in msg_json:
                 conn.last_activity_time = time.time() * 1000
-                original_text = msg_json["text"]  # 保留原始文本
+                original_text = msg_json["text"] # Keep the original text
                 filtered_len, filtered_text = remove_punctuation_and_length(
                     original_text
                 )
 
-                # 识别是否是唤醒词
+                # Identify whether it is a wake-up word
                 is_wakeup_words = filtered_text in conn.config.get("wakeup_words")
-                # 是否开启唤醒词回复
+                # Whether to enable wake-up word reply
                 enable_greeting = conn.config.get("enable_greeting", True)
 
                 if is_wakeup_words and not enable_greeting:
-                    # 如果是唤醒词，且关闭了唤醒词回复，就不用回答
+                    # If it is a wake-up word and the wake-up word reply is turned off, there is no need to answer
                     await send_stt_message(conn, original_text)
                     await send_tts_message(conn, "stop", None)
                     conn.client_is_speaking = False
                 elif is_wakeup_words:
                     conn.just_woken_up = True
-                    # 上报纯文字数据（复用ASR上报功能，但不提供音频数据）
-                    enqueue_asr_report(conn, "嘿，你好呀", [])
-                    await startToChat(conn, "嘿，你好呀")
+                    # Report pure text data (reuse ASR reporting function, but do not provide audio data)
+                    enqueue_asr_report(conn, "Hey, hello", [])
+                    await startToChat(conn, "Hey, hello")
                 else:
-                    # 上报纯文字数据（复用ASR上报功能，但不提供音频数据）
+                    # Report pure text data (reuse ASR reporting function, but do not provide audio data)
                     enqueue_asr_report(conn, original_text, [])
-                    # 否则需要LLM对文字内容进行答复
+                    # Otherwise, LLM needs to respond to the text content
                     await startToChat(conn, original_text)

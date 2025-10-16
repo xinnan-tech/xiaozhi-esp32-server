@@ -8,7 +8,7 @@ class BaseHandler:
         self.logger = setup_logging()
 
     def _add_cors_headers(self, response):
-        """添加CORS头信息"""
+        """Add cors header information"""
         response.headers["Access-Control-Allow-Headers"] = (
             "client-id, content-type, device-id"
         )

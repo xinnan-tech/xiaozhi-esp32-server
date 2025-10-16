@@ -43,76 +43,76 @@ class WebSocketServer:
             await asyncio.Future()
 
     async def _handle_connection(self, websocket):
-        """处理新连接，每次创建独立的ConnectionHandler"""
-        # 创建ConnectionHandler时传入当前server实例
+        """Handle new connections, creating a separate ConnectionHandler each time"""
+        # Pass in the current server instance when creating a ConnectionHandler
         handler = ConnectionHandler(
             self.config,
-            self._vad,
+            self._what,
             self._asr,
             self._llm,
             self._memory,
             self._intent,
-            self,  # 传入server实例
+            self, # pass in server instance
         )
         self.active_connections.add(handler)
         try:
             await handler.handle_connection(websocket)
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"处理连接时出错: {e}")
+            self.logger.bind(tag=TAG).error(f"Error while processing connection: {e}")
         finally:
-            # 确保从活动连接集合中移除
+            # Make sure to remove from the set of active connections
             self.active_connections.discard(handler)
-            # 强制关闭连接（如果还没有关闭的话）
+            # Forcefully close the connection (if it hasn't already been closed)
             try:
-                # 安全地检查WebSocket状态并关闭
+                # Safely check WebSocket status and close
                 if hasattr(websocket, "closed") and not websocket.closed:
                     await websocket.close()
                 elif hasattr(websocket, "state") and websocket.state.name != "CLOSED":
                     await websocket.close()
                 else:
-                    # 如果没有closed属性，直接尝试关闭
+                    # If there is no closed attribute, try to close it directly
                     await websocket.close()
             except Exception as close_error:
                 self.logger.bind(tag=TAG).error(
-                    f"服务器端强制关闭连接时出错: {close_error}"
+                    f"Error when the server forcibly closed the connection: {close_error}"
                 )
 
     async def _http_response(self, websocket, request_headers):
-        # 检查是否为 WebSocket 升级请求
+        # Check if it is a WebSocket upgrade request
         if request_headers.headers.get("connection", "").lower() == "upgrade":
-            # 如果是 WebSocket 请求，返回 None 允许握手继续
+            # If it is a WebSocket request, return None to allow the handshake to continue
             return None
         else:
-            # 如果是普通 HTTP 请求，返回 "server is running"
+            # If it is a normal HTTP request, return "server is running"
             return websocket.respond(200, "Server is running\n")
 
     async def update_config(self) -> bool:
-        """更新服务器配置并重新初始化组件
+        """Update server configuration and reinitialize components
 
         Returns:
-            bool: 更新是否成功
+            bool: whether the update is successful
         """
         try:
             async with self.config_lock:
-                # 重新获取配置
+                # Re-obtain configuration
                 new_config = get_config_from_api(self.config)
                 if new_config is None:
-                    self.logger.bind(tag=TAG).error("获取新配置失败")
+                    self.logger.bind(tag=TAG).error("Failed to get new configuration")
                     return False
-                self.logger.bind(tag=TAG).info(f"获取新配置成功")
-                # 检查 VAD 和 ASR 类型是否需要更新
+                self.logger.bind(tag=TAG).info(f"Get new configuration successfully")
+                # Check if VAD and ASR types need to be updated
                 update_vad = check_vad_update(self.config, new_config)
                 update_asr = check_asr_update(self.config, new_config)
                 self.logger.bind(tag=TAG).info(
-                    f"检查VAD和ASR类型是否需要更新: {update_vad} {update_asr}"
+                    f"Check if VAD and ASR types need to be updated: {update_vad} {update_asr}"
                 )
-                # 更新配置
+                # Update configuration
                 self.config = new_config
-                # 重新初始化组件
+                # Reinitialize components
                 modules = initialize_modules(
                     self.logger,
                     new_config,
-                    update_vad,
+                    update_what,
                     update_asr,
                     "LLM" in new_config["selected_module"],
                     False,
@@ -120,7 +120,7 @@ class WebSocketServer:
                     "Intent" in new_config["selected_module"],
                 )
 
-                # 更新组件实例
+                # Update component instance
                 if "vad" in modules:
                     self._vad = modules["vad"]
                 if "asr" in modules:
@@ -131,8 +131,8 @@ class WebSocketServer:
                     self._intent = modules["intent"]
                 if "memory" in modules:
                     self._memory = modules["memory"]
-                self.logger.bind(tag=TAG).info(f"更新配置任务执行完毕")
+                self.logger.bind(tag=TAG).info(f"Update configuration task completed")
                 return True
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"更新服务器配置失败: {str(e)}")
+            self.logger.bind(tag=TAG).error(f"Failed to update server configuration: {str(e)}")
             return False
