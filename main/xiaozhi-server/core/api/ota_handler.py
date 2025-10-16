@@ -17,21 +17,21 @@ class OTAHandler(BaseHandler):
         super().__init__(config)
         auth_config = config["server"].get("auth", {})
         self.auth_enable = auth_config.get("enabled", False)
-        # 设备白名单
+        # Device whitelist
         self.allowed_devices = set(auth_config.get("allowed_devices", []))
         secret_key = config["server"]["auth_key"]
         expire_seconds = auth_config.get("expire_seconds")
         self.auth = AuthManager(secret_key=secret_key, expire_seconds=expire_seconds)
 
     def generate_password_signature(self, content: str, secret_key: str) -> str:
-        """生成MQTT密码签名
+        """Generate MQTT cryptographic signature
 
         Args:
-            content: 签名内容 (clientId + '|' + username)
-            secret_key: 密钥
+            content: signature content (clientId + '|' + username)
+            secret_key: key
 
         Returns:
-            str: Base64编码的HMAC-SHA256签名
+            str: Base64 encoded HMAC-SHA256 signature
         """
         try:
             hmac_obj = hmac.new(
@@ -40,46 +40,46 @@ class OTAHandler(BaseHandler):
             signature = hmac_obj.digest()
             return base64.b64encode(signature).decode("utf-8")
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"生成MQTT密码签名失败: {e}")
+            self.logger.bind(tag=TAG).error(f"Failed to generate mqtt password signature: {e}")
             return ""
 
     def _get_websocket_url(self, local_ip: str, port: int) -> str:
-        """获取websocket地址
+        """Get websocket address
 
         Args:
-            local_ip: 本地IP地址
-            port: 端口号
+            local_ip: local IP address
+            port: port number
 
         Returns:
-            str: websocket地址
+            str: websocket address
         """
         server_config = self.config["server"]
         websocket_config = server_config.get("websocket", "")
 
-        if "你的" not in websocket_config:
+        if "your" not in websocket_config:
             return websocket_config
         else:
             return f"ws://{local_ip}:{port}/xiaozhi/v1/"
 
     async def handle_post(self, request):
-        """处理 OTA POST 请求"""
+        """Handling OTA POST requests"""
         try:
             data = await request.text()
-            self.logger.bind(tag=TAG).debug(f"OTA请求方法: {request.method}")
-            self.logger.bind(tag=TAG).debug(f"OTA请求头: {request.headers}")
-            self.logger.bind(tag=TAG).debug(f"OTA请求数据: {data}")
+            self.logger.bind(tag=TAG).debug(f"Ota request method: {request.method}")
+            self.logger.bind(tag=TAG).debug(f"Ota request header: {request.headers}")
+            self.logger.bind(tag=TAG).debug(f"Ota request data: {data}")
 
             device_id = request.headers.get("device-id", "")
             if device_id:
-                self.logger.bind(tag=TAG).info(f"OTA请求设备ID: {device_id}")
+                self.logger.bind(tag=TAG).info(f"Ota requests device id: {device_id}")
             else:
-                raise Exception("OTA请求设备ID为空")
+                raise Exception("Ota request device id is empty")
 
             client_id = request.headers.get("client-id", "")
             if client_id:
-                self.logger.bind(tag=TAG).info(f"OTA请求ClientID: {client_id}")
+                self.logger.bind(tag=TAG).info(f"Ota requests client id: {client_id}")
             else:
-                raise Exception("OTA请求ClientID为空")
+                raise Exception("Ota request client id is empty")
 
             data_json = json.loads(data)
 
@@ -100,8 +100,8 @@ class OTAHandler(BaseHandler):
 
             mqtt_gateway_endpoint = server_config.get("mqtt_gateway")
 
-            if mqtt_gateway_endpoint:  # 如果配置了非空字符串
-                # 尝试从请求数据中获取设备型号
+            if mqtt_gateway_endpoint:  # If a non-empty string is configured
+                # Try to get the device model from the request data
                 device_model = "default"
                 try:
                     if "device" in data_json and isinstance(data_json["device"], dict):
@@ -110,13 +110,13 @@ class OTAHandler(BaseHandler):
                         device_model = data_json["model"]
                     group_id = f"GID_{device_model}".replace(":", "_").replace(" ", "_")
                 except Exception as e:
-                    self.logger.bind(tag=TAG).error(f"获取设备型号失败: {e}")
+                    self.logger.bind(tag=TAG).error(f"Failed to obtain device model: {e}")
                     group_id = "GID_default"
 
                 mac_address_safe = device_id.replace(":", "_")
                 mqtt_client_id = f"{group_id}@@@{mac_address_safe}@@@{mac_address_safe}"
 
-                # 构建用户数据
+                # Build user data
                 user_data = {"ip": "unknown"}
                 try:
                     user_data_json = json.dumps(user_data)
@@ -124,10 +124,10 @@ class OTAHandler(BaseHandler):
                         "utf-8"
                     )
                 except Exception as e:
-                    self.logger.bind(tag=TAG).error(f"生成用户名失败: {e}")
+                    self.logger.bind(tag=TAG).error(f"Failed to generate username: {e}")
                     username = ""
 
-                # 生成密码
+                # Generate password
                 password = ""
                 signature_key = server_config.get("mqtt_signature_key", "")
                 if signature_key:
@@ -135,11 +135,11 @@ class OTAHandler(BaseHandler):
                         mqtt_client_id + "|" + username, signature_key
                     )
                     if not password:
-                        password = ""  # 签名失败则留空，由设备决定是否允许无密码
+                        password = ""  # If the signature fails, leave it blank and the device will decide whether to allow no password.
                 else:
                     self.logger.bind(tag=TAG).warning("缺少MQTT签名密钥，密码留空")
 
-                # 构建MQTT配置（直接使用 mqtt_gateway 字符串）
+                #Build MQTT configuration (using mqtt_gateway string directly)
                 return_json["mqtt_gateway"] = {
                     "endpoint": mqtt_gateway_endpoint,
                     "client_id": mqtt_client_id,
@@ -150,8 +150,8 @@ class OTAHandler(BaseHandler):
                 }
                 self.logger.bind(tag=TAG).info(f"为设备 {device_id} 下发MQTT网关配置")
 
-            else:  # 未配置 mqtt_gateway，下发 WebSocket
-                # 如果开启了认证，则进行认证校验
+            else:  # mqtt_gateway is not configured, and WebSocket is delivered
+                # If authentication is turned on, perform authentication verification
                 token = ""
                 if self.auth_enable:
                     if self.allowed_devices:
@@ -164,7 +164,7 @@ class OTAHandler(BaseHandler):
                     "token": token,
                 }
                 self.logger.bind(tag=TAG).info(
-                    f"未配置MQTT网关，为设备 {device_id} 下发WebSocket配置"
+                    f"The MQTT gateway is not configured, and the WebSocket configuration is delivered to the device {device_id}."
                 )
                 self.logger.bind(tag=TAG).info(f"{return_json}")
 
@@ -183,17 +183,17 @@ class OTAHandler(BaseHandler):
             return response
 
     async def handle_get(self, request):
-        """处理 OTA GET 请求"""
+        """Handling OTA GET requests"""
         try:
             server_config = self.config["server"]
             local_ip = get_local_ip()
             port = int(server_config.get("port", 8000))
             websocket_url = self._get_websocket_url(local_ip, port)
-            message = f"OTA接口运行正常，向设备发送的websocket地址是：{websocket_url}"
+            message = f"The Ota interface is running normally, and the websocket address sent to the device is: {websocket url}"
             response = web.Response(text=message, content_type="text/plain")
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"OTA GET请求异常: {e}")
-            response = web.Response(text="OTA接口异常", content_type="text/plain")
+            self.logger.bind(tag=TAG).error(f"OTA GET request exception: {e}")
+            response = web.Response(text="Ota interface exception", content_type="text/plain")
         finally:
             self._add_cors_headers(response)
             return response
