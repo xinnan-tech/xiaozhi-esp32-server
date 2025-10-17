@@ -126,6 +126,17 @@ export function randomNum(min, max) {
     return Math.round(Math.random() * (max - min) + min)
 }
 
+
+/**
+ * 获取uuid
+ */
+export function getUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        return (c === 'x' ? (Math.random() * 16 | 0) : ('r&0x3' | '0x8')).toString(16)
+    })
+}
+
+
 /**
  * 验证手机号格式
  * @param {string} mobile 手机号

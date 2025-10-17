@@ -57,9 +57,23 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
 <table>
   <tr>
     <td>
+        <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
+         <picture>
+           <img alt="响应速度感受" src="docs/images/demo9.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
+         <picture>
+           <img alt="速度优化秘诀" src="docs/images/demo6.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
         <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
          <picture>
-           <img alt="小智医疗救护车场景" src="docs/images/demo1.png" />
+           <img alt="复杂医疗场景" src="docs/images/demo1.png" />
          </picture>
         </a>
     </td>
@@ -71,19 +85,14 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
          <picture>
-           <img alt="自定义音色" src="docs/images/demo2.png" />
+           <img alt="声纹识别" src="docs/images/demo14.png" />
          </picture>
         </a>
     </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
-         <picture>
-           <img alt="使用粤语交流" src="docs/images/demo3.png" />
-         </picture>
-        </a>
-    </td>
+  </tr>
+  <tr>
     <td>
         <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
          <picture>
@@ -91,12 +100,17 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
          </picture>
         </a>
     </td>
-  </tr>
-  <tr>
     <td>
-        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
          <picture>
-           <img alt="自定义音色" src="docs/images/demo6.png" />
+           <img alt="MCP接入点" src="docs/images/demo13.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+         <picture>
+           <img alt="多指令任务" src="docs/images/demo11.png" />
          </picture>
         </a>
     </td>
@@ -111,20 +125,6 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
         <a href="https://www.bilibili.com/video/BV1Z8XuYZEAS" target="_blank">
          <picture>
            <img alt="天气插件" src="docs/images/demo8.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV178XuYfEpi" target="_blank">
-         <picture>
-           <img alt="IOT指令控制设备" src="docs/images/demo9.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
-         <picture>
-           <img alt="播报新闻" src="docs/images/demo0.png" />
          </picture>
         </a>
     </td>
@@ -145,23 +145,23 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
         </a>
     </td>
     <td>
-      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
          <picture>
-           <img alt="多指令任务" src="docs/images/demo11.png" />
+           <img alt="自定义音色" src="docs/images/demo2.png" />
          </picture>
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
+        <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
          <picture>
-           <img alt="MCP接入点" src="docs/images/demo13.png" />
+           <img alt="使用粤语交流" src="docs/images/demo3.png" />
          </picture>
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
+        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
          <picture>
-           <img alt="声纹识别" src="docs/images/demo14.png" />
+           <img alt="播报新闻" src="docs/images/demo0.png" />
          </picture>
         </a>
     </td>

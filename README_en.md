@@ -58,72 +58,72 @@ Want to see the usage effects? Click the videos below 🎥
     <td>
         <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
          <picture>
-           <img alt="Xiaozhi ESP32 connecting to own backend model" src="docs/images/demo1.png" />
+           <img alt="响应速度感受" src="docs/images/demo9.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
+         <picture>
+           <img alt="速度优化秘诀" src="docs/images/demo6.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
+         <picture>
+           <img alt="复杂医疗场景" src="docs/images/demo1.png" />
          </picture>
         </a>
     </td>
     <td>
         <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
          <picture>
-           <img alt="MQTT command issuance" src="docs/images/demo4.png" />
+           <img alt="MQTT指令下发" src="docs/images/demo4.png" />
          </picture>
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
          <picture>
-           <img alt="Custom voice timbre" src="docs/images/demo2.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
-         <picture>
-           <img alt="Using Cantonese for communication" src="docs/images/demo3.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
-         <picture>
-           <img alt="Controlling home appliances" src="docs/images/demo5.png" />
+           <img alt="声纹识别" src="docs/images/demo14.png" />
          </picture>
         </a>
     </td>
   </tr>
   <tr>
     <td>
-        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
          <picture>
-           <img alt="Custom voice timbre" src="docs/images/demo6.png" />
+           <img alt="控制家电开关" src="docs/images/demo5.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
+         <picture>
+           <img alt="MCP接入点" src="docs/images/demo13.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+         <picture>
+           <img alt="多指令任务" src="docs/images/demo11.png" />
          </picture>
         </a>
     </td>
     <td>
         <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
          <picture>
-           <img alt="Playing music" src="docs/images/demo7.png" />
+           <img alt="播放音乐" src="docs/images/demo7.png" />
          </picture>
         </a>
     </td>
     <td>
         <a href="https://www.bilibili.com/video/BV1Z8XuYZEAS" target="_blank">
          <picture>
-           <img alt="Weather plugin" src="docs/images/demo8.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV178XuYfEpi" target="_blank">
-         <picture>
-           <img alt="IOT command control devices" src="docs/images/demo9.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
-         <picture>
-           <img alt="News broadcasting" src="docs/images/demo0.png" />
+           <img alt="天气插件" src="docs/images/demo8.png" />
          </picture>
         </a>
     </td>
@@ -132,35 +132,35 @@ Want to see the usage effects? Click the videos below 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV12J7WzBEaH" target="_blank">
          <picture>
-           <img alt="Real-time interruption" src="docs/images/demo10.png" />
+           <img alt="实时打断" src="docs/images/demo10.png" />
          </picture>
         </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Co76z7EvK" target="_blank">
          <picture>
-           <img alt="Photo recognition of objects" src="docs/images/demo12.png" />
+           <img alt="拍照识物品" src="docs/images/demo12.png" />
          </picture>
         </a>
     </td>
     <td>
-      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
          <picture>
-           <img alt="Multi-command tasks" src="docs/images/demo11.png" />
+           <img alt="自定义音色" src="docs/images/demo2.png" />
          </picture>
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
+        <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
          <picture>
-           <img alt="MCP endpoint" src="docs/images/demo13.png" />
+           <img alt="使用粤语交流" src="docs/images/demo3.png" />
          </picture>
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
+        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
          <picture>
-           <img alt="Voiceprint recognition" src="docs/images/demo14.png" />
+           <img alt="播报新闻" src="docs/images/demo0.png" />
          </picture>
         </a>
     </td>

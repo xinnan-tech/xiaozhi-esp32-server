@@ -148,7 +148,7 @@
 import Api from "@/apis/api";
 import VersionFooter from "@/components/VersionFooter.vue";
 import i18n, { changeLanguage } from "@/i18n";
-import { goToPage, showDanger, showSuccess, sm2Encrypt, validateMobile } from "@/utils";
+import { getUUID, goToPage, showDanger, showSuccess, sm2Encrypt, validateMobile } from "@/utils";
 import { mapState } from "vuex";
 
 export default {
@@ -213,7 +213,7 @@ export default {
           this.$router.push("/home");
         }
       } else {
-        this.captchaUuid = crypto.randomUUID();
+        this.captchaUuid = getUUID();
 
         Api.user.getCaptcha(this.captchaUuid, (res) => {
           if (res.status === 200) {

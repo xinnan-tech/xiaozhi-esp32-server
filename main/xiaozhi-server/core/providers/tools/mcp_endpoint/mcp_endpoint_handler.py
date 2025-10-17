@@ -349,6 +349,11 @@ async def call_mcp_endpoint_tool(
             raise ValueError(f"参数处理失败: {str(e)}")
         raise e
 
+    # 加入MAC地址
+    if mcp_client.conn and mcp_client.conn.device_id:
+        arguments['mac_address'] = mcp_client.conn.device_id
+        logger.bind(tag=TAG).info(f"已将设备MAC地址 {mcp_client.conn.device_id} 加入到MCP接入点工具调用参数中")
+
     actual_name = mcp_client.name_mapping.get(tool_name, tool_name)
     payload = {
         "jsonrpc": "2.0",
@@ -358,7 +363,7 @@ async def call_mcp_endpoint_tool(
     }
 
     message = json.dumps(payload)
-    logger.bind(tag=TAG).info(f"发送MCP接入点工具调用请求: {actual_name}，参数: {args}")
+    logger.bind(tag=TAG).info(f"发送MCP接入点工具调用请求: {actual_name}，参数: {json.dumps(arguments, ensure_ascii=False)}")
     await mcp_client.send_message(message)
 
     try:
