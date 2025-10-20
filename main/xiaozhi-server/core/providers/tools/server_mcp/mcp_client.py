@@ -40,13 +40,15 @@ class ServerMCPClient:
         self.tools_dict: Dict[str, Any] = {}
         self.name_mapping: Dict[str, str] = {}
 
-    async def initialize(self):
+    async def initialize(self, headers=None):
         """初始化MCP客户端连接"""
+        if headers is None:
+            headers = {}
         if self._worker_task:
             return
 
         self._worker_task = asyncio.create_task(
-            self._worker(), name="ServerMCPClientWorker"
+            self._worker(headers), name="ServerMCPClientWorker"
         )
         await self._ready_evt.wait()
 
@@ -143,7 +145,7 @@ class ServerMCPClient:
         # 所有检查都通过，连接正常
         return True
 
-    async def _worker(self):
+    async def _worker(self, headers: dict):
         """MCP客户端工作协程"""
         async with AsyncExitStack() as stack:
             try:
@@ -167,13 +169,18 @@ class ServerMCPClient:
 
                 # 建立SSEClient
                 elif "url" in self.config:
-                    headers = dict(self.config.get("headers", {}))
+                    proxy_headers = dict(self.config.get("headers", {}))
                     # TODO 兼容旧版本
                     if "API_ACCESS_TOKEN" in self.config:
-                        headers["Authorization"] = f"Bearer {self.config['API_ACCESS_TOKEN']}"
-                        self.logger.bind(tag=TAG).warning(f"你正在使用旧过时的配置 API_ACCESS_TOKEN ，请在.mcp_server_settings.json中将API_ACCESS_TOKEN直接设置在headers中，例如 'Authorization': 'Bearer API_ACCESS_TOKEN'")
+                        proxy_headers["Authorization"] = f"Bearer {self.config['API_ACCESS_TOKEN']}"
+                        self.logger.bind(tag=TAG).warning(
+                            f"你正在使用旧过时的配置 API_ACCESS_TOKEN ，请在.mcp_server_settings.json中将API_ACCESS_TOKEN直接设置在headers中，例如 'Authorization': 'Bearer API_ACCESS_TOKEN'")
+                    # 统一使用小写请求头进行合并
+                    proxy_headers = {k.lower(): v for k, v in proxy_headers.items()}
+                    headers = {k.lower(): v for k, v in headers.items()}
+                    proxy_headers = {**proxy_headers, **headers}
                     sse_r, sse_w = await stack.enter_async_context(
-                        sse_client(self.config["url"], headers=headers, timeout=self.config.get("timeout", 5), sse_read_timeout=self.config.get("sse_read_timeout", 60 * 5))
+                        sse_client(self.config["url"], headers=proxy_headers, timeout=self.config.get("timeout", 5), sse_read_timeout=self.config.get("sse_read_timeout", 60 * 5))
                     )
                     read_stream, write_stream = sse_r, sse_w
 

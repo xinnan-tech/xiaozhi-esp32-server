@@ -56,7 +56,12 @@ class ServerMCPManager:
                 # 初始化服务端MCP客户端
                 logger.bind(tag=TAG).info(f"初始化服务端MCP客户端: {name}")
                 client = ServerMCPClient(srv_config)
-                await client.initialize()
+                # 透传DeviceId ClientId等信息给MCP 服务器，进行个性化处理
+                headers = {
+                    "device-id": self.conn.headers.get("device-id", ""),
+                    "client-id": self.conn.headers.get("client-id", ""),
+                }
+                await client.initialize(headers)
                 self.clients[name] = client
                 client_tools = client.get_available_tools()
                 self.tools.extend(client_tools)
@@ -131,7 +136,12 @@ class ServerMCPManager:
                     config = self.load_config()
                     if client_name in config:
                         client = ServerMCPClient(config[client_name])
-                        await client.initialize()
+                        # 透传DeviceId ClientId等信息给MCP 服务器，进行个性化处理
+                        headers = {
+                            "device-id": self.conn.headers.get("device-id", ""),
+                            "client-id": self.conn.headers.get("client-id", ""),
+                        }
+                        await client.initialize(headers)
                         self.clients[client_name] = client
                         target_client = client
                         logger.bind(tag=TAG).info(
