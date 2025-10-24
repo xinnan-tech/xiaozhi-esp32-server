@@ -351,8 +351,12 @@ async def call_mcp_endpoint_tool(
 
     # 加入MAC地址
     if mcp_client.conn and mcp_client.conn.device_id:
-        arguments['mac_address'] = mcp_client.conn.device_id
-        logger.bind(tag=TAG).info(f"已将设备MAC地址 {mcp_client.conn.device_id} 加入到MCP接入点工具调用参数中")
+        tool_data = mcp_client.tools.get(tool_name)
+        if tool_data and isinstance(tool_data.get('inputSchema'), dict):
+            properties = tool_data['inputSchema'].get('properties', {})
+            if 'mac_address' in properties:
+                arguments['mac_address'] = mcp_client.conn.device_id
+                logger.bind(tag=TAG).info(f"已将设备MAC地址 {mcp_client.conn.device_id} 加入到MCP接入点工具调用参数中")
 
     actual_name = mcp_client.name_mapping.get(tool_name, tool_name)
     payload = {
