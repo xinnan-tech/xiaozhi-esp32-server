@@ -55,7 +55,7 @@ class ServerMCPManager:
             try:
                 # 初始化服务端MCP客户端
                 logger.bind(tag=TAG).info(f"初始化服务端MCP客户端: {name}")
-                client = ServerMCPClient(srv_config)
+                client = ServerMCPClient(srv_config, self.conn)
                 await client.initialize()
                 self.clients[name] = client
                 client_tools = client.get_available_tools()
@@ -130,7 +130,7 @@ class ServerMCPManager:
                     # 重新初始化客户端
                     config = self.load_config()
                     if client_name in config:
-                        client = ServerMCPClient(config[client_name])
+                        client = ServerMCPClient(config[client_name], self.conn)
                         await client.initialize()
                         self.clients[client_name] = client
                         target_client = client

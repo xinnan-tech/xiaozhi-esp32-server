@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import asyncio
+import json
 import os
 import shutil
 import concurrent.futures
@@ -23,14 +24,16 @@ TAG = __name__
 class ServerMCPClient:
     """服务端MCP客户端，用于连接和管理MCP服务"""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], conn=None):
         """初始化服务端MCP客户端
 
         Args:
             config: MCP服务配置字典
+            conn: 连接对象,用于获取设备信息
         """
         self.logger = setup_logging()
         self.config = config
+        self.conn = conn
 
         self._worker_task: Optional[asyncio.Task] = None
         self._ready_evt = asyncio.Event()
@@ -113,7 +116,23 @@ class ServerMCPClient:
         if not self.session:
             raise RuntimeError("服务端MCP客户端未初始化")
 
+        # 加入MAC地址
+        if self.conn and hasattr(self.conn, 'device_id') and self.conn.device_id:
+            tool_data = self.tools_dict.get(name)
+            if tool_data and hasattr(tool_data, 'inputSchema') and isinstance(tool_data.inputSchema, dict):
+                properties = tool_data.inputSchema.get('properties', {})
+                if 'mac_address' in properties:
+                    args['mac_address'] = self.conn.device_id
+                    self.logger.bind(tag=TAG).info(
+                        f"已将设备MAC地址 {self.conn.device_id} 加入到服务端MCP工具调用参数中"
+                    )
+
         real_name = self.name_mapping.get(name, name)
+
+        self.logger.bind(tag=TAG).info(
+            f"调用服务端MCP工具: {real_name}，参数: {json.dumps(args, ensure_ascii=False)}"
+        )
+
         loop = self._worker_task.get_loop()
         coro = self.session.call_tool(real_name, args)
 
