@@ -17,7 +17,6 @@ class LLMProvider(LLMProviderBase):
             self.base_url = config.get("base_url")
         else:
             self.base_url = config.get("url")
-        # 增加timeout的配置项，单位为秒
         timeout = config.get("timeout", 300)
         self.timeout = int(timeout) if timeout else 300
 
@@ -46,13 +45,34 @@ class LLMProvider(LLMProviderBase):
         model_key_msg = check_model_key("LLM", self.api_key)
         if model_key_msg:
             logger.bind(tag=TAG).error(model_key_msg)
-        self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=httpx.Timeout(self.timeout))
 
+        self.client = openai.OpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            timeout=httpx.Timeout(self.timeout),
+        )
+
+    # =============== 修正版 response() =================
     def response(self, session_id, dialogue, **kwargs):
         try:
+            # ✅ 清理 messages 中缺失 content 的项，防止 400 错误
+            clean_dialogue = []
+            fixed_count = 0
+            for msg in dialogue:
+                if "role" not in msg:
+                    continue
+                if "content" not in msg or msg["content"] is None:
+                    msg["content"] = ""
+                    fixed_count += 1
+                clean_dialogue.append(msg)
+            if fixed_count > 0:
+                logger.bind(tag=TAG).warning(
+                    f"修正了 {fixed_count} 条对话消息（缺失 content 已补空字符串）"
+                )
+
             responses = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=dialogue,
+                messages=clean_dialogue,
                 stream=True,
                 max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 temperature=kwargs.get("temperature", self.temperature),
@@ -65,7 +85,6 @@ class LLMProvider(LLMProviderBase):
             is_active = True
             for chunk in responses:
                 try:
-                    # 检查是否存在有效的choice且content不为空
                     delta = (
                         chunk.choices[0].delta
                         if getattr(chunk, "choices", None)
@@ -75,7 +94,6 @@ class LLMProvider(LLMProviderBase):
                 except IndexError:
                     content = ""
                 if content:
-                    # 处理标签跨多个chunk的情况
                     if "<think>" in content:
                         is_active = False
                         content = content.split("<think>")[0]
@@ -88,19 +106,36 @@ class LLMProvider(LLMProviderBase):
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in response generation: {e}")
 
+    # =============== 修正版 response_with_functions() =================
     def response_with_functions(self, session_id, dialogue, functions=None):
         try:
+            # ✅ 清理消息列表
+            clean_dialogue = []
+            fixed_count = 0
+            for msg in dialogue:
+                if "role" not in msg:
+                    continue
+                if "content" not in msg or msg["content"] is None:
+                    msg["content"] = ""
+                    fixed_count += 1
+                clean_dialogue.append(msg)
+            if fixed_count > 0:
+                logger.bind(tag=TAG).warning(
+                    # f"修正了 {fixed_count} 条函数调用消息（缺失 content 已补空字符串）"
+                )
+
             stream = self.client.chat.completions.create(
-                model=self.model_name, messages=dialogue, stream=True, tools=functions
+                model=self.model_name,
+                messages=clean_dialogue,
+                stream=True,
+                tools=functions,
             )
 
             for chunk in stream:
-                # 检查是否存在有效的choice且content不为空
                 if getattr(chunk, "choices", None):
                     yield chunk.choices[0].delta.content, chunk.choices[
                         0
                     ].delta.tool_calls
-                # 存在 CompletionUsage 消息时，生成 Token 消耗 log
                 elif isinstance(getattr(chunk, "usage", None), CompletionUsage):
                     usage_info = getattr(chunk, "usage", None)
                     logger.bind(tag=TAG).info(
