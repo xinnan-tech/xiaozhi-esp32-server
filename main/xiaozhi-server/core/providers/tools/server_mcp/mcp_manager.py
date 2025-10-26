@@ -54,8 +54,10 @@ class ServerMCPManager:
 
             # 验证密钥
             if not device_id_encrypt_key or "你" in device_id_encrypt_key:
-                error_msg = "you need to set up device_id_encrypt_key"
-                logger.bind(tag=TAG).error(error_msg)
+                encrypt_device_id = "you need to set up device_id_encrypt_key"
+                logger.bind(tag=TAG).error(encrypt_device_id)
+                return encrypt_device_id
+
             # 获取设备ID
             device_id = self.conn.headers.get("device-id") or getattr(self.conn, 'device_id', None)
             if not device_id:
@@ -139,7 +141,6 @@ class ServerMCPManager:
         # 注入加密的设备ID到参数中
         if self.encrypted_device_id:
             tool_data = target_client.tools_dict.get(tool_name)
-            print("target_client", target_client)
             if tool_data and hasattr(tool_data, 'inputSchema') and isinstance(tool_data.inputSchema, dict):
                 properties = tool_data.inputSchema.get('properties', {})
                 if 'encrypted_device_id' in properties:    
