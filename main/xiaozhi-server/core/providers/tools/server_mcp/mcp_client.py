@@ -116,17 +116,6 @@ class ServerMCPClient:
         if not self.session:
             raise RuntimeError("服务端MCP客户端未初始化")
 
-        # 加入MAC地址
-        if self.conn and hasattr(self.conn, 'device_id') and self.conn.device_id:
-            tool_data = self.tools_dict.get(name)
-            if tool_data and hasattr(tool_data, 'inputSchema') and isinstance(tool_data.inputSchema, dict):
-                properties = tool_data.inputSchema.get('properties', {})
-                if 'mac_address' in properties:
-                    args['mac_address'] = self.conn.device_id
-                    self.logger.bind(tag=TAG).info(
-                        f"已将设备MAC地址 {self.conn.device_id} 加入到服务端MCP工具调用参数中"
-                    )
-
         real_name = self.name_mapping.get(name, name)
 
         self.logger.bind(tag=TAG).info(

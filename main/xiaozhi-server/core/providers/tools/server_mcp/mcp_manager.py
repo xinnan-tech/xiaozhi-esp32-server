@@ -6,6 +6,7 @@ import json
 from typing import Dict, Any, List
 from config.config_loader import get_project_dir
 from config.logger import setup_logging
+from core.utils.auth import AuthToken
 from .mcp_client import ServerMCPClient
 
 TAG = __name__
@@ -27,6 +28,9 @@ class ServerMCPManager:
         self.clients: Dict[str, ServerMCPClient] = {}
         self.tools = []
 
+        # 初始化加密的设备ID
+        self.encrypted_device_id = self._get_encrypted_device_id()
+
     def load_config(self) -> Dict[str, Any]:
         """加载MCP服务配置"""
         if len(self.config_path) == 0:
@@ -41,6 +45,32 @@ class ServerMCPManager:
                 f"Error loading MCP config from {self.config_path}: {e}"
             )
             return {}
+
+    def _get_encrypted_device_id(self) -> str:
+        """获取加密后的设备ID"""
+        try:
+            # 获取加密密钥
+            device_id_encrypt_key = self.conn.config.get("device_id_encrypt_key")
+
+            # 验证密钥
+            if not device_id_encrypt_key or "你" in device_id_encrypt_key:
+                error_msg = "you need to set up device_id_encrypt_key"
+                logger.bind(tag=TAG).error(error_msg)
+            # 获取设备ID
+            device_id = self.conn.headers.get("device-id") or getattr(self.conn, 'device_id', None)
+            if not device_id:
+                logger.bind(tag=TAG).error("无法获取设备ID")
+                return "device_id not found"
+
+            # 生成加密Token
+            auth = AuthToken(device_id_encrypt_key)
+            encrypt_device_id = auth.generate_token(device_id)
+            logger.bind(tag=TAG).debug(f"设备ID已加密: {device_id}, Token长度: {len(encrypt_device_id)}")
+            return encrypt_device_id
+
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"设备ID加密失败: {e}")
+            return f"encryption_error: {str(e)}"
 
     async def initialize_servers(self) -> None:
         """初始化所有MCP服务"""
@@ -105,6 +135,16 @@ class ServerMCPManager:
 
         if not target_client:
             raise ValueError(f"工具 {tool_name} 在任意MCP服务中未找到")
+        
+        # 注入加密的设备ID到参数中
+        if self.encrypted_device_id:
+            tool_data = target_client.tools_dict.get(tool_name)
+            print("target_client", target_client)
+            if tool_data and hasattr(tool_data, 'inputSchema') and isinstance(tool_data.inputSchema, dict):
+                properties = tool_data.inputSchema.get('properties', {})
+                if 'encrypted_device_id' in properties:    
+                    arguments['encrypted_device_id'] = self.encrypted_device_id
+                    logger.bind(tag=TAG).info(f"已注入加密设备ID到MCP工具参数中")
 
         # 带重试机制的工具调用
         for attempt in range(max_retries):
