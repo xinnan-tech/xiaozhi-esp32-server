@@ -5,10 +5,40 @@ import asyncio
 import re
 import websockets
 from config.logger import setup_logging
+from core.utils.auth import AuthToken
 from .mcp_endpoint_client import MCPEndpointClient
 
 TAG = __name__
 logger = setup_logging()
+
+
+def _get_encrypted_device_id(conn) -> str:
+    """获取加密后的设备ID"""
+    try:
+        # 获取加密密钥
+        device_id_encrypt_key = conn.config.get("device_id_encrypt_key")
+
+        # 验证密钥
+        if not device_id_encrypt_key or "你" in device_id_encrypt_key:
+            encrypt_device_id = "you need to set up device_id_encrypt_key"
+            logger.bind(tag=TAG).error(encrypt_device_id)
+            return encrypt_device_id
+
+        # 获取设备ID
+        device_id = conn.headers.get("device-id") or getattr(conn, 'device_id', None)
+        if not device_id:
+            logger.bind(tag=TAG).error("无法获取设备ID")
+            return "device_id not found"
+
+        # 生成加密Token
+        auth = AuthToken(device_id_encrypt_key)
+        encrypt_device_id = auth.generate_token(device_id)
+        logger.bind(tag=TAG).debug(f"MCP接入点设备ID已加密: {device_id}, Token长度: {len(encrypt_device_id)}")
+        return encrypt_device_id
+
+    except Exception as e:
+        logger.bind(tag=TAG).error(f"MCP接入点设备ID加密失败: {e}")
+        return f"encryption_error: {str(e)}"
 
 
 async def connect_mcp_endpoint(mcp_endpoint_url: str, conn=None) -> MCPEndpointClient:
@@ -349,14 +379,18 @@ async def call_mcp_endpoint_tool(
             raise ValueError(f"参数处理失败: {str(e)}")
         raise e
 
-    # 加入MAC地址
-    if mcp_client.conn and mcp_client.conn.device_id:
+    # 加入加密的设备ID
+    if mcp_client.conn:
+        # 获取加密的设备ID
+        encrypted_device_id = _get_encrypted_device_id(mcp_client.conn)
+
+        # 检查工具是否需要encrypted_device_id
         tool_data = mcp_client.tools.get(tool_name)
         if tool_data and isinstance(tool_data.get('inputSchema'), dict):
             properties = tool_data['inputSchema'].get('properties', {})
-            if 'mac_address' in properties:
-                arguments['mac_address'] = mcp_client.conn.device_id
-                logger.bind(tag=TAG).info(f"已将设备MAC地址 {mcp_client.conn.device_id} 加入到MCP接入点工具调用参数中")
+            if 'encrypted_device_id' in properties:
+                arguments['encrypted_device_id'] = encrypted_device_id
+                logger.bind(tag=TAG).info(f"已将加密设备ID注入到MCP接入点工具调用参数中")
 
     actual_name = mcp_client.name_mapping.get(tool_name, tool_name)
     payload = {
