@@ -4,7 +4,7 @@
     "后面不断测试补充好用的mcp服务，欢迎大家一起补充。",
     "记得删除注释行,des属性仅为说明,不会被解析。",
     "des和link属性，仅为说明安装方式，方便大家查看原始链接，不是必须项。",
-    "当前支持stdio/sse两种模式。"
+    "当前支持三种传输模式：stdio(标准输入输出), sse(Server-Sent Events), streamable-http(流式HTTP)。"
   ],
   "mcpServers": {
     "Home Assistant": {
@@ -41,7 +41,16 @@
       "url": "http://localhost:8080/sse",
       "headers": {
         "Authorization": "Bearer YOUR TOKEN"
-      }
+      },
+      "des": "使用SSE传输模式（默认）"
+    },
+    "streamable-http-mcp-server": {
+      "url": "http://localhost:8000/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "Authorization": "Bearer YOUR TOKEN"
+      },
+      "des": "使用Streamable HTTP传输模式，适用于生产环境的Web部署"
     }
   }
 }
