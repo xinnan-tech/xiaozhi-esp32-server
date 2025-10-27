@@ -77,7 +77,8 @@ VAD:
 4、[如何部署MCP接入点](./mcp-endpoint-enable.md)<br/>
 5、[如何接入MCP接入点](./mcp-endpoint-integration.md)<br/>
 6、[如何开启声纹识别](./voiceprint-integration.md)<br/>
-10、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
+7、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
+8、[如何通过MCP传递设备ID（MAC地址）信息](./mcp-device_id-transfer.md)<br/>
 
 ### 9、语音克隆、本地语音部署相关教程
 1、[如何在智控台克隆音色](./huoshan-streamTTS-voice-cloning.md)<br/>

@@ -21,7 +21,7 @@ def _get_encrypted_device_id(conn) -> str:
         # 验证密钥
         if not device_id_encrypt_key or "你" in device_id_encrypt_key:
             encrypt_device_id = "you need to set up device_id_encrypt_key"
-            logger.bind(tag=TAG).error(encrypt_device_id)
+            logger.bind(tag=TAG).warning(encrypt_device_id)
             return encrypt_device_id
 
         # 获取设备ID
