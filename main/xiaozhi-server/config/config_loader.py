@@ -67,6 +67,7 @@ def get_config_from_api(config):
             "http_port": config["server"].get("http_port", ""),
             "vision_explain": config["server"].get("vision_explain", ""),
             "auth_key": config["server"].get("auth_key", ""),
+            "device_id_encrypt_key": config_data["server"].get("device_id_encrypt_key", "")
         }
     return config_data
 
