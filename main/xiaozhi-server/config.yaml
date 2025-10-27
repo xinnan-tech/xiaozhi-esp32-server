@@ -41,6 +41,10 @@ server:
   mqtt_signature_key: null
   # UDP网关配置
   udp_gateway: null
+  # 服务端MCP的设备ID加密配置
+  # device_id_encrypt_key: 用于设备ID加密的密钥
+  device_id_encrypt_key: "你的mac地址加密密钥"
+
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
   log_format: "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{selected_module}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>"

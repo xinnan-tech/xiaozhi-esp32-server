@@ -16,7 +16,7 @@ def _get_encrypted_device_id(conn) -> str:
     """获取加密后的设备ID"""
     try:
         # 获取加密密钥
-        device_id_encrypt_key = conn.config.get("device_id_encrypt_key")
+        device_id_encrypt_key = conn.config.get("server", {}).get("device_id_encrypt_key")
 
         # 验证密钥
         if not device_id_encrypt_key or "你" in device_id_encrypt_key:
