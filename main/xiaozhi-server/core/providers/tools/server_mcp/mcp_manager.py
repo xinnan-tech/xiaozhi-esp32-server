@@ -28,9 +28,6 @@ class ServerMCPManager:
         self.clients: Dict[str, ServerMCPClient] = {}
         self.tools = []
 
-        # 初始化加密的设备ID
-        self.encrypted_device_id = self._get_encrypted_device_id()
-
     def load_config(self) -> Dict[str, Any]:
         """加载MCP服务配置"""
         if len(self.config_path) == 0:
@@ -139,12 +136,13 @@ class ServerMCPManager:
             raise ValueError(f"工具 {tool_name} 在任意MCP服务中未找到")
         
         # 注入加密的设备ID到参数中
-        if self.encrypted_device_id:
+        encrypted_device_id = self._get_encrypted_device_id()
+        if encrypted_device_id:
             tool_data = target_client.tools_dict.get(tool_name)
             if tool_data and hasattr(tool_data, 'inputSchema') and isinstance(tool_data.inputSchema, dict):
                 properties = tool_data.inputSchema.get('properties', {})
                 if 'encrypted_device_id' in properties:    
-                    arguments['encrypted_device_id'] = self.encrypted_device_id
+                    arguments['encrypted_device_id'] = encrypted_device_id
                     logger.bind(tag=TAG).info(f"已注入加密设备ID到MCP工具参数中")
 
         # 带重试机制的工具调用
