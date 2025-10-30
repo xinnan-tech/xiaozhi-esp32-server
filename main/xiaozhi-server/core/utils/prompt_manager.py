@@ -1,13 +1,12 @@
 """
 系统提示词管理器模块
 负责管理和更新系统提示词，包括快速初始化和异步增强功能
+使用新的模块化架构构建系统提示词
 """
 
 import os
-import cnlunar
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from config.logger import setup_logging
-from jinja2 import Template
 
 TAG = __name__
 
@@ -52,7 +51,6 @@ class PromptManager:
     def __init__(self, config: Dict[str, Any], logger=None):
         self.config = config
         self.logger = logger or setup_logging()
-        self.base_prompt_template = None
         self.last_update_time = 0
 
         # 导入全局缓存管理器
@@ -60,37 +58,6 @@ class PromptManager:
 
         self.cache_manager = cache_manager
         self.CacheType = CacheType
-
-        self._load_base_template()
-
-    def _load_base_template(self):
-        """加载基础提示词模板"""
-        try:
-            template_path = self.config.get("prompt_template", "agent-base-prompt.txt")
-            cache_key = f"prompt_template:{template_path}"
-
-            # 先从缓存获取
-            cached_template = self.cache_manager.get(self.CacheType.CONFIG, cache_key)
-            if cached_template is not None:
-                self.base_prompt_template = cached_template
-                self.logger.bind(tag=TAG).debug("从缓存加载基础提示词模板")
-                return
-
-            # 缓存未命中，从文件读取
-            if os.path.exists(template_path):
-                with open(template_path, "r", encoding="utf-8") as f:
-                    template_content = f.read()
-
-                # 存入缓存（CONFIG类型默认不自动过期，需要手动失效）
-                self.cache_manager.set(
-                    self.CacheType.CONFIG, cache_key, template_content
-                )
-                self.base_prompt_template = template_content
-                self.logger.bind(tag=TAG).debug("成功加载基础提示词模板并缓存")
-            else:
-                self.logger.bind(tag=TAG).warning(f"未找到{template_path}文件")
-        except Exception as e:
-            self.logger.bind(tag=TAG).error(f"加载提示词模板失败: {e}")
 
     def get_quick_prompt(self, user_prompt: str, device_id: str = None) -> str:
         """快速获取系统提示词（使用用户配置）"""
@@ -184,17 +151,41 @@ class PromptManager:
             self.logger.bind(tag=TAG).error(f"更新上下文信息失败: {e}")
 
     def build_enhanced_prompt(
-        self, user_prompt: str, device_id: str, client_ip: str = None, *args, **kwargs
+        self,
+        user_prompt: str,
+        device_id: str,
+        client_ip: str = None,
+        user_persona: str = None,
+        *args,
+        **kwargs
     ) -> str:
-        """构建增强的系统提示词"""
-        if not self.base_prompt_template:
-            return user_prompt
-
+        """构建增强的系统提示词（使用新的模块化架构）"""
         try:
+            from core.roles.prompts.builder import build_system_prompt
+            from core.roles import get_role_config_loader
+            
+            # 加载 role 配置
+            role_id = self.config.get("role_id", "default")
+            loader = get_role_config_loader()
+            
+            try:
+                role_config = loader.load(role_id)
+                # 使用 role 配置中的 profile、timezone、language
+                profile = role_config.profile
+                timezone = role_config.timezone
+                language = role_config.language
+                self.logger.bind(tag=TAG).info(f"使用 role 配置: {role_id}")
+            except Exception as e:
+                # 如果加载失败，回退到使用传入的 user_prompt 和配置文件
+                self.logger.bind(tag=TAG).warning(f"加载 role 配置失败: {e}，使用默认配置")
+                profile = user_prompt
+                timezone = self.config.get("timezone", "Asia/Shanghai")
+                language = self.config.get("language", "zh")
+            
             # 获取最新的时间信息（不缓存）
-            today_date, today_weekday, lunar_date = (
-                self._get_current_time_info()
-            )
+            today_date, today_weekday, lunar_date = self._get_current_time_info()
+            # 清理 lunar_date 的换行符
+            lunar_date = lunar_date.strip() if lunar_date else None
 
             # 获取缓存的上下文信息
             local_address = ""
@@ -213,30 +204,32 @@ class PromptManager:
                         or ""
                     )
 
-            # 替换模板变量
-            template = Template(self.base_prompt_template)
-            enhanced_prompt = template.render(
-                base_prompt=user_prompt,
-                current_time="{{current_time}}",
+            # 使用新的模块化架构构建 prompt
+            enhanced_prompt = build_system_prompt(
+                profile=profile,
+                timezone=timezone,
+                language=language,
+                user_persona=user_persona,
                 today_date=today_date,
                 today_weekday=today_weekday,
                 lunar_date=lunar_date,
                 local_address=local_address,
                 weather_info=weather_info,
-                emojiList=EMOJI_List,
                 device_id=device_id,
-                client_ip=client_ip,
-                *args, **kwargs
+                **kwargs
             )
+            
+            # 缓存增强后的 prompt
             device_cache_key = f"device_prompt:{device_id}"
             self.cache_manager.set(
                 self.CacheType.DEVICE_PROMPT, device_cache_key, enhanced_prompt
             )
+            
             self.logger.bind(tag=TAG).info(
                 f"构建增强提示词成功，长度: {len(enhanced_prompt)}"
             )
             return enhanced_prompt
 
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"构建增强提示词失败: {e}")
+            self.logger.bind(tag=TAG).error(f"构建增强提示词失败: {e}", exc_info=True)
             return user_prompt

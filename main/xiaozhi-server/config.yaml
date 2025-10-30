@@ -182,6 +182,23 @@ prompt: |
 # 默认系统提示词模板文件
 prompt_template: agent-base-prompt.txt
 
+# Role 配置
+# 指定要加载的 role 配置文件（位于 core/roles/data/目录）
+# 如果不指定或加载失败，将使用 prompt 字段的内容作为 profile
+role_id: hospital_assistant
+
+# 时区配置（用于系统提示词中的时间显示）
+# 支持的时区格式：Asia/Shanghai, America/New_York, Europe/London 等
+# 默认：Asia/Shanghai
+# 注意：如果 role 配置文件中指定了 timezone，将优先使用 role 配置中的值
+timezone: Asia/Shanghai
+
+# 语言配置（用于系统提示词中的语言特定提示）
+# 支持：zh（中文）、en（英文）
+# 默认：zh
+# 注意：如果 role 配置文件中指定了 language，将优先使用 role 配置中的值
+language: zh
+
 # 结束语prompt
 end_prompt:
   enable: true # 是否开启结束语

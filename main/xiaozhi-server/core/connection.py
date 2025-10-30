@@ -439,11 +439,28 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
 
     def _init_prompt_enhancement(self):
+        """初始化并更新系统提示词"""
         # 更新上下文信息
         self.prompt_manager.update_context_info(self, self.client_ip)
+        
+        # 获取用户画像（如果 Memory 模块已初始化）
+        user_persona = None
+        if self.memory and hasattr(self.memory, 'get_user_persona'):
+            try:
+                user_persona = self.memory.get_user_persona()
+                if user_persona:
+                    self.logger.bind(tag=TAG).debug(f"获取到用户画像，长度: {len(user_persona)}")
+            except Exception as e:
+                self.logger.bind(tag=TAG).warning(f"获取用户画像失败: {e}")
+        
+        # 构建增强的系统提示词
         enhanced_prompt = self.prompt_manager.build_enhanced_prompt(
-            self.config["prompt"], self.device_id, self.client_ip
+            self.config["prompt"],
+            self.device_id,
+            self.client_ip,
+            user_persona=user_persona,
         )
+        
         if enhanced_prompt:
             self.change_system_prompt(enhanced_prompt)
             self.logger.bind(tag=TAG).info("系统提示词已增强更新")
@@ -753,24 +770,97 @@ class ConnectionHandler:
                 )
                 memory_str = future.result()
 
+            # 获取对话历史
+            dialogue_history = self.dialogue.get_llm_dialogue_with_memory(
+                memory_str, self.config.get("voiceprint", {})
+            )
+            
             if self.intent_type == "function_call" and functions is not None:
                 # 使用支持functions的streaming接口
-                llm_responses = self.llm.response_with_functions(
-                    self.session_id,
-                    self.dialogue.get_llm_dialogue_with_memory(
-                        memory_str, self.config.get("voiceprint", {})
-                    ),
-                    functions=functions,
+                # response_with_functions 是异步生成器，使用队列在线程间传递
+                response_queue = queue.Queue()
+                stop_flag = threading.Event()
+                
+                async def consume_async_generator():
+                    try:
+                        async_gen = self.llm.response_with_functions(
+                            self.session_id,
+                            dialogue_history,
+                            functions=functions,
+                        )
+                        async for item in async_gen:
+                            if stop_flag.is_set():
+                                break
+                            response_queue.put(item)
+                        response_queue.put(None)  # 结束标记
+                    except Exception as e:
+                        self.logger.bind(tag=TAG).error(f"异步生成器消费出错: {e}", exc_info=True)
+                        response_queue.put(None)
+                        response_queue.put(("ERROR", str(e)))
+                
+                asyncio.run_coroutine_threadsafe(
+                    consume_async_generator(), self.loop
                 )
+                
+                # 从队列中获取响应
+                def get_responses():
+                    while True:
+                        try:
+                            item = response_queue.get(timeout=300)  # 5分钟超时
+                            if item is None:
+                                break
+                            if isinstance(item, tuple) and item[0] == "ERROR":
+                                raise Exception(item[1])
+                            yield item
+                        except queue.Empty:
+                            self.logger.bind(tag=TAG).warning("等待 LLM 响应超时")
+                            stop_flag.set()
+                            break
+                
+                llm_responses = get_responses()
             else:
-                llm_responses = self.llm.response(
-                    self.session_id,
-                    self.dialogue.get_llm_dialogue_with_memory(
-                        memory_str, self.config.get("voiceprint", {})
-                    ),
+                # response 也是异步生成器，使用队列在线程间传递
+                response_queue = queue.Queue()
+                stop_flag = threading.Event()
+                
+                async def consume_async_generator():
+                    try:
+                        async_gen = self.llm.response(
+                            self.session_id,
+                            dialogue_history,
+                        )
+                        async for item in async_gen:
+                            if stop_flag.is_set():
+                                break
+                            response_queue.put(item)
+                        response_queue.put(None)  # 结束标记
+                    except Exception as e:
+                        self.logger.bind(tag=TAG).error(f"异步生成器消费出错: {e}", exc_info=True)
+                        response_queue.put(None)
+                        response_queue.put(("ERROR", str(e)))
+                
+                asyncio.run_coroutine_threadsafe(
+                    consume_async_generator(), self.loop
                 )
+                
+                # 从队列中获取响应
+                def get_responses():
+                    while True:
+                        try:
+                            item = response_queue.get(timeout=300)  # 5分钟超时
+                            if item is None:
+                                break
+                            if isinstance(item, tuple) and item[0] == "ERROR":
+                                raise Exception(item[1])
+                            yield item
+                        except queue.Empty:
+                            self.logger.bind(tag=TAG).warning("等待 LLM 响应超时")
+                            stop_flag.set()
+                            break
+                
+                llm_responses = get_responses()
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
+            self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}", exc_info=True)
             return None
 
         # 处理流式响应
@@ -781,6 +871,7 @@ class ConnectionHandler:
         content_arguments = ""
         self.client_abort = False
         emotion_flag = True
+        
         for response in llm_responses:
             if self.client_abort:
                 break

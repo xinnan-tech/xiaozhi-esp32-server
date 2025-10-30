@@ -80,6 +80,15 @@ class WebSocketServer:
                     "authorization"
                 ][0]
 
+            if "sample_rate" in query_params:
+                websocket.request.headers["audio-sample-rate"] = query_params["sample_rate"][0]
+            if "channels" in query_params:
+                websocket.request.headers["audio-channels"] = query_params["channels"][0]
+            if "codec" in query_params:
+                websocket.request.headers["audio-codec"] = query_params["codec"][0]
+            if "frame_duration" in query_params:
+                websocket.request.headers["audio-frame-duration"] = query_params["frame_duration"][0]
+
         """处理新连接，每次创建独立的ConnectionHandler"""
         # 先认证，后建立连接
         try:
