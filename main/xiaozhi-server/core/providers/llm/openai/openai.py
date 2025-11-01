@@ -17,7 +17,6 @@ class LLMProvider(LLMProviderBase):
             self.base_url = config.get("base_url")
         else:
             self.base_url = config.get("url")
-        # 增加timeout的配置项，单位为秒
         timeout = config.get("timeout", 300)
         self.timeout = int(timeout) if timeout else 300
 
@@ -48,8 +47,18 @@ class LLMProvider(LLMProviderBase):
             logger.bind(tag=TAG).error(model_key_msg)
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=httpx.Timeout(self.timeout))
 
+    @staticmethod
+    def normalize_dialogue(dialogue):
+        """自动修复 dialogue 中缺失 content 的消息"""
+        for msg in dialogue:
+            if "role" in msg and "content" not in msg:
+                msg["content"] = ""
+        return dialogue
+
     def response(self, session_id, dialogue, **kwargs):
         try:
+            dialogue = self.normalize_dialogue(dialogue)
+
             responses = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=dialogue,
@@ -65,17 +74,11 @@ class LLMProvider(LLMProviderBase):
             is_active = True
             for chunk in responses:
                 try:
-                    # 检查是否存在有效的choice且content不为空
-                    delta = (
-                        chunk.choices[0].delta
-                        if getattr(chunk, "choices", None)
-                        else None
-                    )
-                    content = delta.content if hasattr(delta, "content") else ""
+                    delta = chunk.choices[0].delta if getattr(chunk, "choices", None) else None
+                    content = getattr(delta, "content", "") if delta else ""
                 except IndexError:
                     content = ""
                 if content:
-                    # 处理标签跨多个chunk的情况
                     if "<think>" in content:
                         is_active = False
                         content = content.split("<think>")[0]
@@ -90,17 +93,18 @@ class LLMProvider(LLMProviderBase):
 
     def response_with_functions(self, session_id, dialogue, functions=None):
         try:
+            dialogue = self.normalize_dialogue(dialogue)
+
             stream = self.client.chat.completions.create(
                 model=self.model_name, messages=dialogue, stream=True, tools=functions
             )
 
             for chunk in stream:
-                # 检查是否存在有效的choice且content不为空
                 if getattr(chunk, "choices", None):
-                    yield chunk.choices[0].delta.content, chunk.choices[
-                        0
-                    ].delta.tool_calls
-                # 存在 CompletionUsage 消息时，生成 Token 消耗 log
+                    delta = chunk.choices[0].delta
+                    content = getattr(delta, "content", "")
+                    tool_calls = getattr(delta, "tool_calls", None)
+                    yield content, tool_calls
                 elif isinstance(getattr(chunk, "usage", None), CompletionUsage):
                     usage_info = getattr(chunk, "usage", None)
                     logger.bind(tag=TAG).info(
