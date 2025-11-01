@@ -841,6 +841,8 @@ export default {
   'modelConfigDialog.modelInfo': 'Model Information',
   'modelConfigDialog.enable': 'Enable',
   'modelConfigDialog.setDefault': 'Set as Default',
+  'modelConfigDialog.modelId': 'Model ID',
+  'modelConfigDialog.enterModelId': 'If not filled in, it will be generated automatically',
   'modelConfigDialog.modelName': 'Model Name',
   'modelConfigDialog.enterModelName': 'Please enter model name',
   'modelConfigDialog.modelCode': 'Model Code',

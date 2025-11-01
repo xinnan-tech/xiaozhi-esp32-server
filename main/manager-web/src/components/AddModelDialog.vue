@@ -28,6 +28,10 @@
       <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
       <el-form :model="formData" label-width="100px" label-position="left" class="custom-form">
         <div style="display: flex; gap: 20px; margin-bottom: 0;">
+          <el-form-item :label="$t('modelConfigDialog.modelId')" prop="id" style="flex: 1;">
+            <el-input v-model="formData.id" :placeholder="$t('modelConfigDialog.enterModelId')"
+              class="custom-input-bg"></el-input>
+          </el-form-item>
           <el-form-item :label="$t('modelConfigDialog.modelName')" prop="modelName" style="flex: 1;">
             <el-input v-model="formData.modelName" :placeholder="$t('modelConfigDialog.enterModelName')"
               class="custom-input-bg"></el-input>
@@ -107,6 +111,7 @@ export default {
       providerFields: [],
       currentProvider: null,
       formData: {
+        id: '',
         modelName: '',
         modelCode: '',
         supplier: '',
@@ -202,6 +207,7 @@ export default {
       }
 
       const submitData = {
+        id: this.formData.id || '',
         modelName: this.formData.modelName || '',
         modelCode: this.formData.modelCode || '',
         supplier: this.formData.supplier,
@@ -230,6 +236,7 @@ export default {
     resetForm() {
       this.saving = false;
       this.formData = {
+        id: '',
         modelName: '',
         modelCode: '',
         supplier: '',

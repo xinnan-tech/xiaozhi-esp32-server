@@ -47,6 +47,7 @@ export default {
   addModel(params, callback) {
     const { modelType, provideCode, formData } = params;
     const postData = {
+      id: formData.id,
       modelCode: formData.modelCode,
       modelName: formData.modelName,
       isDefault: formData.isDefault ? 1 : 0,

@@ -841,6 +841,8 @@ export default {
   'modelConfigDialog.modelInfo': '模型信息',
   'modelConfigDialog.enable': '是否启用',
   'modelConfigDialog.setDefault': '设为默认',
+  'modelConfigDialog.modelId': '模型ID',
+  'modelConfigDialog.enterModelId': '未填写将自动生成模型ID',
   'modelConfigDialog.modelName': '模型名称',
   'modelConfigDialog.enterModelName': '请输入模型名称',
   'modelConfigDialog.modelCode': '模型编码',

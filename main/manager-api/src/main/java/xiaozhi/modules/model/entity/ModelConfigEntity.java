@@ -18,7 +18,6 @@ import lombok.Data;
 @Schema(description = "模型配置表")
 public class ModelConfigEntity {
 
-    @TableId(type = IdType.ASSIGN_UUID)
     @Schema(description = "主键")
     private String id;
 

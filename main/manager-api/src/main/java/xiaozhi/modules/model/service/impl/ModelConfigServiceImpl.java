@@ -1,23 +1,16 @@
 package xiaozhi.modules.model.service.impl;
 
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.json.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.incrementer.DefaultIdentifierGenerator;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
-import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.json.JSONObject;
 import lombok.AllArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
@@ -30,14 +23,16 @@ import xiaozhi.common.utils.SensitiveDataUtils;
 import xiaozhi.modules.agent.dao.AgentDao;
 import xiaozhi.modules.agent.entity.AgentEntity;
 import xiaozhi.modules.model.dao.ModelConfigDao;
-import xiaozhi.modules.model.dto.LlmModelBasicInfoDTO;
-import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
-import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
-import xiaozhi.modules.model.dto.ModelConfigDTO;
-import xiaozhi.modules.model.dto.ModelProviderDTO;
+import xiaozhi.modules.model.dto.*;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.model.service.ModelProviderService;
+
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -230,7 +225,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
      * 验证编辑参数
      */
     private void validateEditParameters(String modelType, String provideCode, String id,
-            ModelConfigBodyDTO modelConfigBodyDTO) {
+                                        ModelConfigBodyDTO modelConfigBodyDTO) {
         if (StringUtils.isBlank(modelType) || StringUtils.isBlank(provideCode)) {
             throw new RenException(ErrorCode.MODEL_TYPE_PROVIDE_CODE_NOT_NULL);
         }
@@ -251,6 +246,10 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         }
         if (modelConfigBodyDTO == null) {
             throw new RenException(ErrorCode.PARAMS_GET_ERROR);
+        }
+        if (StringUtils.isBlank(modelConfigBodyDTO.getId())) {
+            // 参照 MP @TableId AutoUUID 策略使用 com.baomidou.mybatisplus.core.incrementer.DefaultIdentifierGenerator(UUID.replace("-","")) 进行分配默认模型ID
+            modelConfigBodyDTO.setId(DefaultIdentifierGenerator.getInstance().nextUUID(ModelConfigEntity.class));
         }
     }
 
@@ -327,9 +326,9 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
      * 准备更新实体，处理敏感数据
      */
     private ModelConfigEntity prepareUpdateEntity(ModelConfigBodyDTO modelConfigBodyDTO,
-            ModelConfigEntity originalEntity,
-            String modelType,
-            String id) {
+                                                  ModelConfigEntity originalEntity,
+                                                  String modelType,
+                                                  String id) {
         // 1. 复制原始实体，保留所有原始数据（包括敏感信息）
         ModelConfigEntity modelConfigEntity = ConvertUtils.sourceToTarget(originalEntity, ModelConfigEntity.class);
         modelConfigEntity.setId(id);
