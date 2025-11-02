@@ -1,0 +1,32 @@
+[project]
+name = "live-agent-api"
+version = "0.1.0"
+description = "Live Agent Dashboard API - Agent configuration and management service"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy>=2.0.36",
+    "asyncpg>=0.30.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "openai>=1.54.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.27.0",
+    "snowflake-id>=1.0.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "black>=24.10.0",
+    "ruff>=0.7.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["config", "models", "schemas", "router", "services", "utils"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

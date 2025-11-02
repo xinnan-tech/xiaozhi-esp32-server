@@ -1,0 +1,19 @@
+# Copy this file to .env and fill in your values
+
+# Database Configuration
+DATABASE_URL=postgresql+asyncpg://live_agent:password@localhost:5432/live_agent_db
+
+# OpenAI Configuration
+OPENAI_API_KEY=sk-your-api-key-here
+OPENAI_MODEL=gpt-4o
+
+# Snowflake ID Generator Configuration
+# TODO: For production deployment, configure unique instance ID (0-1023) for each service instance
+INSTANCE_ID=1
+
+# Application Configuration
+APP_ENV=development
+LOG_LEVEL=DEBUG
+
+# API Configuration
+API_PREFIX=/api/v1
