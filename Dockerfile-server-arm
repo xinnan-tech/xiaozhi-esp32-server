@@ -1,0 +1,6 @@
+FROM xiaozhi-esp32-server:server-base
+
+WORKDIR /opt/xiaozhi-esp32-server
+COPY main/xiaozhi-server .
+
+CMD ["python", "app.py"]
