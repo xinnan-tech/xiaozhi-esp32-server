@@ -776,89 +776,18 @@ class ConnectionHandler:
             )
             
             if self.intent_type == "function_call" and functions is not None:
-                # 使用支持functions的streaming接口
-                # response_with_functions 是异步生成器，使用队列在线程间传递
-                response_queue = queue.Queue()
-                stop_flag = threading.Event()
-                
-                async def consume_async_generator():
-                    try:
-                        async_gen = self.llm.response_with_functions(
-                            self.session_id,
-                            dialogue_history,
-                            functions=functions,
-                        )
-                        async for item in async_gen:
-                            if stop_flag.is_set():
-                                break
-                            response_queue.put(item)
-                        response_queue.put(None)  # 结束标记
-                    except Exception as e:
-                        self.logger.bind(tag=TAG).error(f"异步生成器消费出错: {e}", exc_info=True)
-                        response_queue.put(None)
-                        response_queue.put(("ERROR", str(e)))
-                
-                asyncio.run_coroutine_threadsafe(
-                    consume_async_generator(), self.loop
+                # 直接使用同步生成器（response_with_functions 是同步方法）
+                llm_responses = self.llm.response_with_functions(
+                    self.session_id,
+                    dialogue_history,
+                    functions=functions,
                 )
-                
-                # 从队列中获取响应
-                def get_responses():
-                    while True:
-                        try:
-                            item = response_queue.get(timeout=300)  # 5分钟超时
-                            if item is None:
-                                break
-                            if isinstance(item, tuple) and item[0] == "ERROR":
-                                raise Exception(item[1])
-                            yield item
-                        except queue.Empty:
-                            self.logger.bind(tag=TAG).warning("等待 LLM 响应超时")
-                            stop_flag.set()
-                            break
-                
-                llm_responses = get_responses()
             else:
-                # response 也是异步生成器，使用队列在线程间传递
-                response_queue = queue.Queue()
-                stop_flag = threading.Event()
-                
-                async def consume_async_generator():
-                    try:
-                        async_gen = self.llm.response(
-                            self.session_id,
-                            dialogue_history,
-                        )
-                        async for item in async_gen:
-                            if stop_flag.is_set():
-                                break
-                            response_queue.put(item)
-                        response_queue.put(None)  # 结束标记
-                    except Exception as e:
-                        self.logger.bind(tag=TAG).error(f"异步生成器消费出错: {e}", exc_info=True)
-                        response_queue.put(None)
-                        response_queue.put(("ERROR", str(e)))
-                
-                asyncio.run_coroutine_threadsafe(
-                    consume_async_generator(), self.loop
+                # 直接使用同步生成器（response 是同步方法）
+                llm_responses = self.llm.response(
+                    self.session_id,
+                    dialogue_history,
                 )
-                
-                # 从队列中获取响应
-                def get_responses():
-                    while True:
-                        try:
-                            item = response_queue.get(timeout=300)  # 5分钟超时
-                            if item is None:
-                                break
-                            if isinstance(item, tuple) and item[0] == "ERROR":
-                                raise Exception(item[1])
-                            yield item
-                        except queue.Empty:
-                            self.logger.bind(tag=TAG).warning("等待 LLM 响应超时")
-                            stop_flag.set()
-                            break
-                
-                llm_responses = get_responses()
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}", exc_info=True)
             return None
