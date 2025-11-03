@@ -17,13 +17,13 @@ class Agent(Base):
     
     Represents a voice assistant agent with its configuration.
     """
-    __tablename__ = "agents"
+    __tablename__ = "live_agents"
     
     # Primary Key
     id: Mapped[str] = mapped_column(
         String(64),
         primary_key=True,
-        comment="Agent unique ID (Snowflake ID)"
+        comment="Agent unique ID"
     )
     
     # Basic Information
@@ -31,13 +31,6 @@ class Agent(Base):
         String(255),
         nullable=False,
         comment="Agent display name"
-    )
-    
-    template: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-        default="blank",
-        comment="Agent template type (e.g., personal-assistant, blank)"
     )
     
     language: Mapped[str] = mapped_column(
@@ -96,7 +89,6 @@ class Agent(Base):
         return {
             "id": self.id,
             "name": self.name,
-            "template": self.template,
             "language": self.language,
             "firstMessage": self.first_message,
             "systemPrompt": self.system_prompt,

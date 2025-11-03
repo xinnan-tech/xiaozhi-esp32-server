@@ -6,7 +6,7 @@ Encapsulates all database operations for Agent.
 """
 
 from typing import Optional
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from orm.agent.model import Agent
@@ -43,18 +43,14 @@ class AgentRepository:
         search: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
-        sort_by: str = "created_at",
-        sort_order: str = "desc",
     ) -> tuple[list[Agent], int]:
         """
-        Find all agents with filtering, pagination and sorting
+        Find all agents with filtering and pagination (sorted by creation time desc)
         
         Args:
             search: Search keyword (searches in name and system_prompt)
             page: Page number (starting from 1)
             page_size: Number of items per page
-            sort_by: Field to sort by
-            sort_order: Sort direction ('asc' or 'desc')
             
         Returns:
             Tuple of (agents list, total count)
@@ -65,12 +61,7 @@ class AgentRepository:
         # Apply search filter
         if search:
             search_pattern = f"%{search}%"
-            stmt = stmt.where(
-                or_(
-                    Agent.name.ilike(search_pattern),
-                    Agent.system_prompt.ilike(search_pattern),
-                )
-            )
+            stmt = stmt.where(Agent.name.ilike(search_pattern))
         
         # Get total count
         count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -78,11 +69,7 @@ class AgentRepository:
         total = total_result.scalar_one()
         
         # Apply sorting
-        sort_column = getattr(Agent, sort_by, Agent.created_at)
-        if sort_order == "desc":
-            stmt = stmt.order_by(sort_column.desc())
-        else:
-            stmt = stmt.order_by(sort_column.asc())
+        stmt = stmt.order_by(Agent.created_at.desc())
         
         # Apply pagination
         offset = (page - 1) * page_size

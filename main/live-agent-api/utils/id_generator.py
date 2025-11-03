@@ -1,125 +1,75 @@
 """
-Snowflake ID Generator
+ULID ID Generator
 
-Wrapper around the snowflake-id library for generating distributed unique IDs.
-Uses Twitter's Snowflake algorithm to generate 64-bit IDs.
+ULID (Universally Unique Lexicographically Sortable Identifier) generator.
+- Zero configuration: No instance ID or epoch setup needed
+- Time-sortable: IDs are naturally ordered by creation time
+- URL-safe: Base32 encoded
+- 128-bit: Extremely low collision probability
+- Format: 26 characters (e.g., 01ARZ3NDEKTSV4RRFFQ69G5FAV)
 """
-
+from __future__ import annotations
 from typing import Optional
-from snowflake import SnowflakeGenerator
-
+from ulid import ULID
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Global ID generator instance
-_id_generator: Optional[SnowflakeGenerator] = None
 
-
-def get_id_generator() -> SnowflakeGenerator:
+class ULIDGenerator:
     """
-    Get the global ID generator instance
+    ULID ID Generator
     
-    Returns:
-        Snowflake ID generator instance
+    A singleton class for generating distributed unique IDs using ULID.
+    Thread-safe and requires no configuration.
+    
+    Usage:
+        generator = ULIDGenerator()
+        id_str = generator.generate()
+        id_int = generator.generate_int()
+        id_uuid = generator.generate_uuid()
+    """
+    
+    _instance: Optional['ULIDGenerator'] = None
+    _initialized: bool = False
+    
+    def __new__(cls) -> ULIDGenerator:
+        """Ensure singleton pattern"""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        """
+        Initialize ULID generator
         
-    Raises:
-        RuntimeError: If generator is not initialized
-    """
-    global _id_generator
+        Note: Due to singleton pattern, __init__ is called every time
+        ULIDGenerator() is invoked, but initialization only happens once.
+        """
+        if not self._initialized:
+            logger.info("Initializing ULID generator (singleton)")
+            self.__class__._initialized = True
+            logger.info("ULID generator initialized successfully")
     
-    if _id_generator is None:
-        raise RuntimeError(
-            "ID generator not initialized. "
-            "Call init_id_generator() in application lifespan."
-        )
+    def generate(self) -> str:
+        """
+        Generate a unique ULID as string
+        
+        Returns:
+            26-character ULID string (e.g., '01ARZ3NDEKTSV4RRFFQ69G5FAV')
+            
+        Example:
+            >>> generator = ULIDGenerator()
+            >>> id_str = generator.generate()
+            >>> print(id_str)
+            '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+        """
+        return str(ULID())
     
-    return _id_generator
+    def __repr__(self) -> str:
+        """String representation"""
+        return f"<ULIDGenerator (singleton)>"
 
 
-def generate_id() -> str:
-    """
-    Generate a unique Snowflake ID as string
-    
-    Returns:
-        Unique ID as string
-    """
-    generator = get_id_generator()
-    return str(next(generator))
-
-
-def generate_id_int() -> int:
-    """
-    Generate a unique Snowflake ID as integer
-    
-    Returns:
-        Unique 64-bit integer ID
-    """
-    generator = get_id_generator()
-    return next(generator)
-
-
-def init_id_generator(instance_id: int = 1) -> None:
-    """
-    Initialize global Snowflake ID generator
-    
-    Should be called once during application startup in lifespan.
-    
-    Args:
-        instance_id: Unique instance ID for this service (0-1023)
-                    In production, this should be:
-                    - Stored in a distributed configuration center (e.g., etcd, Consul)
-                    - Automatically assigned when service instances start
-                    - Managed by orchestration system (e.g., Kubernetes StatefulSet)
-    
-    Raises:
-        ValueError: If instance_id is out of valid range
-    """
-    global _id_generator
-    
-    # Already initialized
-    if _id_generator is not None:
-        logger.warning("ID generator already initialized, skipping")
-        return
-    
-    # Validate instance_id
-    if instance_id < 0 or instance_id > 1023:
-        raise ValueError(
-            f"Instance ID must be between 0 and 1023, got {instance_id}"
-        )
-    
-    _id_generator = SnowflakeGenerator(instance_id)
-    logger.info(f"ID generator initialized with instance_id={instance_id}")
-
-
-def close_id_generator() -> None:
-    """
-    Close and cleanup ID generator
-    
-    Optional cleanup function for application shutdown.
-    """
-    global _id_generator
-    
-    if _id_generator is not None:
-        logger.info("Closing ID generator...")
-        _id_generator = None
-        logger.info("ID generator closed")
-
-
-if __name__ == "__main__":
-    # Test ID generation
-    print("Testing Snowflake ID Generator")
-    print("=" * 50)
-    
-    # Initialize with instance ID 1
-    init_id_generator(instance_id=1)
-    
-    print("\nGenerating 10 sample IDs:")
-    for i in range(10):
-        id_str = generate_id()
-        print(f"  {i+1:2d}. {id_str}")
-    
-    print("\nAll IDs generated successfully!")
-    
-    # Cleanup
-    close_id_generator()
+# Create global singleton instance
+id_generator = ULIDGenerator()

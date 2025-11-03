@@ -18,12 +18,25 @@ from schemas.agent import (
     AgentListQuery,
     GeneratePromptRequest,
 )
-from utils.id_generator import generate_id
+from utils import id_generator
+from templates import TemplateLoader
 from config.settings import settings
 
 
 logger = logging.getLogger(__name__)
-
+BLANK_TEMPLATE = "blank"
+SYSTEM_PROMPT_INSTRUCTION = """
+You are an AI assistant that helps create system prompts for voice assistant agents.
+Generate a clear, professional system prompt that strictly follows this 6-module structure:
+1. **Personality**: Define the agent's character, traits, and communication style
+2. **Environment**: Describe the context and setting where the agent operates
+3. **Tone**: Specify the language tone and manner of interaction
+4. **Goal**: State the primary objectives and purposes of the agent
+5. **Guardrails**: Define rules, limitations, and ethical boundaries
+6. **Tools**: List available capabilities, APIs, or functions the agent can use
+Each section should be clearly labeled with markdown headers (##). 
+The prompt should be comprehensive yet concise, suitable for a voice assistant.
+"""
 
 class AgentService:
     """Service class for Agent business logic"""
@@ -43,7 +56,7 @@ class AgentService:
         query: AgentListQuery
     ) -> tuple[list[Agent], int]:
         """
-        Get paginated list of agents with optional search
+        Get paginated list of agents with optional search (sorted by creation time desc)
         
         Args:
             query: Query parameters for filtering and pagination
@@ -55,8 +68,6 @@ class AgentService:
             search=query.search,
             page=query.page,
             page_size=query.page_size,
-            sort_by=query.sort_by,
-            sort_order=query.sort_order,
         )
         
         logger.info(
@@ -93,20 +104,42 @@ class AgentService:
             
         Returns:
             Created agent instance
+            
+        Raises:
+            ValueError: If template does not exist
         """
-        # Business logic: Generate unique ID
-        agent_id = generate_id()
+        # 1. Generate unique ID
+        agent_id = id_generator.generate()
         
-        # Business logic: Create agent instance
+        # 2. Create blank agent first
         agent = Agent(
             id=agent_id,
             name=agent_data.name,
-            template=agent_data.template,
             language=agent_data.language,
             first_message=agent_data.first_message,
             system_prompt=agent_data.system_prompt,
             wake_word=agent_data.wake_word,
         )
+        
+        # 3. If not blank template, load and populate from template
+        if agent_data.template != BLANK_TEMPLATE:
+            try:
+                template = TemplateLoader.load(agent_data.template)
+                
+                if template is None:
+                    raise ValueError(f"Failed to load template: {agent_data.template}")
+                
+                # Populate agent from template (template values are applied if user didn't provide)
+                agent.language = template.language
+                agent.first_message = template.greeting
+                agent.system_prompt = template.profile
+                agent.wake_word = template.wake_word
+                
+                logger.info(f"Populated agent from template: {agent_data.template}")
+                
+            except ValueError as e:
+                logger.error(f"Error loading template: {e}")
+                raise
         
         # Persist to database
         agent = await self.repo.save(agent)
@@ -201,11 +234,10 @@ class AgentService:
             return None
         
         # Business logic: Create duplicate with new ID and name
-        new_id = generate_id()
+        new_id = id_generator.generate()
         duplicate_agent = Agent(
             id=new_id,
             name=new_name,
-            template=source_agent.template,
             language=source_agent.language,
             first_message=source_agent.first_message,
             system_prompt=source_agent.system_prompt,
@@ -229,42 +261,52 @@ class AgentService:
         Generate system prompt using AI
         
         Args:
-            request: Prompt generation request with description
+            request: Prompt generation request with description and optional existing prompt
             
         Returns:
-            Generated system prompt
+            Generated system prompt following the 6-module structure
         """
         logger.info(f"Generating prompt for: {request.description}")
         
         try:
+            system_instruction = SYSTEM_PROMPT_INSTRUCTION
+            
+            # Build user message based on whether existing prompt is provided
+            if request.current_prompt:
+                user_message = (
+                    f"I need help refining or regenerating a system prompt.\n\n"
+                    f"**User Requirements/Description:**\n{request.description}\n\n"
+                    f"**Current Prompt:**\n{request.current_prompt}\n\n"
+                    f"Please create an improved system prompt that incorporates the requirements "
+                    f"and builds upon the existing prompt, following the 6-module structure."
+                )
+            else:
+                user_message = (
+                    f"Create a new system prompt for: {request.description}\n\n"
+                    f"Please structure it according to the 6 modules (Personality, Environment, Tone, Goal, Guardrails, Tools)."
+                )
+            
+            # Create prompt using OpenAI API
+            # Note: Using chat.completions for now, ready to migrate to response.create when available
             response = await self.openai_client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are an AI assistant that helps create system prompts "
-                            "for voice assistant agents. Generate a clear, concise, "
-                            "and professional system prompt based on the user's description. "
-                            "The prompt should define the agent's role, capabilities, "
-                            "and behavior guidelines."
-                        )
+                        "content": system_instruction
                     },
                     {
                         "role": "user",
-                        "content": (
-                            f"Create a system prompt for {request.description}. "
-                            f"The prompt should be suitable for a voice assistant agent."
-                        )
+                        "content": user_message
                     }
                 ],
                 temperature=0.7,
-                max_tokens=500,
+                max_tokens=1500,
             )
             
             generated_prompt = response.choices[0].message.content.strip()
             
-            logger.info("Successfully generated system prompt")
+            logger.info("Successfully generated system prompt with 6-module structure")
             
             return generated_prompt
             

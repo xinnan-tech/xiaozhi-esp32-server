@@ -10,13 +10,12 @@ from orm.base import (
     get_db,
     init_database,
     close_database,
+    get_session_maker,
 )
 
 from orm.agent import Agent, AgentRepository
-
-# Future imports:
-# from orm.device import Device, DeviceRepository
-# from orm.binding import Binding, BindingRepository
+from orm.device import Device, DeviceRepository
+from orm.binding import DeviceAgentBinding, DeviceAgentBindingRepository
 
 __all__ = [
     # Base infrastructure
@@ -24,15 +23,17 @@ __all__ = [
     "get_db",
     "init_database",
     "close_database",
+    "get_session_maker",
     
     # Agent domain
     "Agent",
     "AgentRepository",
     
-    # Future domains
-    # "Device",
-    # "DeviceRepository",
-    # "Binding",
-    # "BindingRepository",
+    # Device domain
+    "Device",
+    "DeviceRepository",
+    
+    # Binding domain
+    "DeviceAgentBinding",
+    "DeviceAgentBindingRepository",
 ]
-

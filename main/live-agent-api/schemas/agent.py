@@ -18,11 +18,6 @@ class AgentBase(BaseModel):
         max_length=255,
         description="Agent display name"
     )
-    template: str = Field(
-        default="blank",
-        max_length=100,
-        description="Agent template type"
-    )
     language: str = Field(
         default="en",
         max_length=10,
@@ -50,7 +45,6 @@ class AgentBase(BaseModel):
         "json_schema_extra": {
             "example": {
                 "name": "My Assistant",
-                "template": "personal-assistant",
                 "language": "en",
                 "firstMessage": "Hello! How can I help you today?",
                 "systemPrompt": "You are a helpful assistant.",
@@ -62,6 +56,12 @@ class AgentBase(BaseModel):
 
 class AgentCreate(AgentBase):
     """Schema for creating a new Agent"""
+    
+    template: str = Field(
+        default="blank",
+        max_length=100,
+        description="Agent template type (blank, personal_assistant, learning_companion, health_wellness, hospital_assistant)"
+    )
     
     @field_validator('name')
     @classmethod
@@ -84,14 +84,8 @@ class AgentCreate(AgentBase):
 
 
 class AgentUpdate(BaseModel):
-    """Schema for updating an Agent (all fields optional)"""
+    """Schema for updating an Agent (all fields optional, name is immutable)"""
     
-    name: Optional[str] = Field(
-        None,
-        min_length=1,
-        max_length=255,
-        description="Agent display name"
-    )
     language: Optional[str] = Field(
         None,
         max_length=10,
@@ -118,7 +112,6 @@ class AgentUpdate(BaseModel):
         "populate_by_name": True,
         "json_schema_extra": {
             "example": {
-                "name": "Updated Agent Name",
                 "language": "zh",
                 "firstMessage": "你好！有什么可以帮助你的吗？",
                 "systemPrompt": "You are a helpful Chinese assistant.",
@@ -126,16 +119,6 @@ class AgentUpdate(BaseModel):
             }
         }
     }
-    
-    @field_validator('name')
-    @classmethod
-    def validate_name(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and clean agent name"""
-        if v is not None:
-            v = v.strip()
-            if not v:
-                raise ValueError("Agent name cannot be empty")
-        return v
     
     @field_validator('language')
     @classmethod
@@ -189,7 +172,6 @@ class AgentResponse(AgentBase):
             "example": {
                 "id": "1234567890",
                 "name": "My Assistant",
-                "template": "personal-assistant",
                 "language": "en",
                 "firstMessage": "Hello! How can I help you today?",
                 "systemPrompt": "You are a helpful assistant.",
@@ -202,7 +184,7 @@ class AgentResponse(AgentBase):
 
 
 class AgentListQuery(BaseModel):
-    """Schema for Agent list query parameters"""
+    """Schema for Agent list query parameters (sorted by creation time desc)"""
     
     search: Optional[str] = Field(
         None,
@@ -221,17 +203,6 @@ class AgentListQuery(BaseModel):
         le=100,
         description="Number of items per page"
     )
-    sort_by: str = Field(
-        default="createdAt",
-        alias="sortBy",
-        description="Sort field"
-    )
-    sort_order: str = Field(
-        default="desc",
-        alias="sortOrder",
-        pattern="^(asc|desc)$",
-        description="Sort order (asc or desc)"
-    )
     
     model_config = {
         "populate_by_name": True
@@ -244,14 +215,22 @@ class GeneratePromptRequest(BaseModel):
     description: str = Field(
         ...,
         min_length=1,
-        max_length=1000,
-        description="Description of the agent's purpose"
+        max_length=500,
+        description="Description of the agent's purpose and requirements"
+    )
+    current_prompt: Optional[str] = Field(
+        None,
+        alias="currentPrompt",
+        max_length=10000,
+        description="Existing system prompt to refine or build upon (optional)"
     )
     
     model_config = {
+        "populate_by_name": True,
         "json_schema_extra": {
             "example": {
-                "description": "a customer support agent for PLAUD"
+                "description": "a customer support agent for PLAUD that handles technical questions",
+                "currentPrompt": "You are a helpful assistant for PLAUD customers."
             }
         }
     }

@@ -11,8 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import settings
 from orm import init_database, close_database
-from utils.id_generator import init_id_generator, close_id_generator
-from router import agent_router
+from utils import id_generator
+from router import agent_router, device_router, binding_router
 
 
 # Configure logging
@@ -30,9 +30,8 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Live Agent Dashboard API...")
     
-    # Initialize ID generator
-    init_id_generator(instance_id=settings.instance_id)
-    logger.info(f"Initialized ID generator (instance={settings.instance_id})")
+    # Initialize ID generator (singleton, automatically initialized on first use)
+    logger.info(f"ID generator ready: {id_generator}")
     
     # Initialize database
     await init_database()
@@ -44,7 +43,6 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Live Agent Dashboard API...")
     await close_database()
-    close_id_generator()
     logger.info("Application shutdown complete")
 
 
@@ -74,6 +72,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(agent_router, prefix=settings.api_prefix)
+app.include_router(device_router, prefix=settings.api_prefix)
+app.include_router(binding_router, prefix=settings.api_prefix)
 
 
 @app.get("/")
