@@ -5,7 +5,7 @@ Defines the Device database table structure and basic data operations.
 """
 
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, DateTime, Boolean
+from sqlalchemy import String, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
 from orm.base import Base
@@ -41,10 +41,10 @@ class Device(Base):
         comment="Device hardware ID"
     )
     
-    model: Mapped[str] = mapped_column(
+    device_model: Mapped[str] = mapped_column(
         String(100),
         nullable=True,
-        comment="Device model (e.g., PLAUD NOTE)"
+        comment="Device model name (e.g., PLAUD NOTE, ESP32-S3)"
     )
     
     firmware_version: Mapped[str] = mapped_column(
@@ -57,15 +57,8 @@ class Device(Base):
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        default="active",
-        comment="Device status (active, inactive, offline)"
-    )
-    
-    is_online: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-        comment="Whether device is currently online"
+        default="offline",
+        comment="Device connection status (online, offline)"
     )
     
     last_seen_at: Mapped[datetime] = mapped_column(
@@ -74,17 +67,16 @@ class Device(Base):
         comment="Last seen timestamp"
     )
     
-    # Additional Information
     description: Mapped[str] = mapped_column(
         Text,
         nullable=True,
         comment="Device description"
     )
     
-    extra_data: Mapped[str] = mapped_column(
+    meta_data: Mapped[str] = mapped_column(
         Text,
         nullable=True,
-        comment="Additional metadata (JSON format)"
+        comment="Device metadata (JSON format)"
     )
     
     # Timestamps
@@ -117,13 +109,12 @@ class Device(Base):
             "id": self.id,
             "name": self.name,
             "deviceId": self.device_id,
-            "model": self.model,
+            "deviceModel": self.device_model,
             "firmwareVersion": self.firmware_version,
             "status": self.status,
-            "isOnline": self.is_online,
             "lastSeenAt": self.last_seen_at.isoformat() if self.last_seen_at else None,
             "description": self.description,
-            "extraData": self.extra_data,
+            "metaData": self.meta_data,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
             "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
         }

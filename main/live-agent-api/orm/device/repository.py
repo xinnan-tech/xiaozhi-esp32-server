@@ -6,7 +6,7 @@ Encapsulates all database operations for Device.
 """
 
 from typing import Optional
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from orm.device.model import Device
@@ -58,19 +58,15 @@ class DeviceRepository:
         status: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
-        sort_by: str = "created_at",
-        sort_order: str = "desc",
     ) -> tuple[list[Device], int]:
         """
-        Find all devices with filtering, pagination and sorting
+        Find all devices with filtering and pagination (sorted by creation time desc)
         
         Args:
             search: Search keyword (searches in name and device_id)
             status: Filter by status
             page: Page number (starting from 1)
             page_size: Number of items per page
-            sort_by: Field to sort by
-            sort_order: Sort direction ('asc' or 'desc')
             
         Returns:
             Tuple of (devices list, total count)
@@ -81,13 +77,7 @@ class DeviceRepository:
         # Apply search filter
         if search:
             search_pattern = f"%{search}%"
-            stmt = stmt.where(
-                or_(
-                    Device.name.ilike(search_pattern),
-                    Device.device_id.ilike(search_pattern),
-                    Device.model.ilike(search_pattern),
-                )
-            )
+            stmt = stmt.where(Device.name.ilike(search_pattern))
         
         # Apply status filter
         if status:
@@ -98,12 +88,8 @@ class DeviceRepository:
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
         
-        # Apply sorting
-        sort_column = getattr(Device, sort_by, Device.created_at)
-        if sort_order == "desc":
-            stmt = stmt.order_by(sort_column.desc())
-        else:
-            stmt = stmt.order_by(sort_column.asc())
+        # Apply sorting (fixed: created_at desc)
+        stmt = stmt.order_by(Device.created_at.desc())
         
         # Apply pagination
         offset = (page - 1) * page_size

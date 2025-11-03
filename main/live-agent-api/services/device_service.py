@@ -48,8 +48,6 @@ class DeviceService:
             status=query.status,
             page=query.page,
             page_size=query.page_size,
-            sort_by=query.sort_by,
-            sort_order=query.sort_order,
         )
         
         logger.info(
@@ -121,11 +119,11 @@ class DeviceService:
             id=device_id,
             name=device_data.name,
             device_id=device_data.device_id,
-            model=device_data.model,
+            device_model=device_data.device_model,
             firmware_version=device_data.firmware_version,
             status=device_data.status,
             description=device_data.description,
-            extra_data=device_data.extra_data,
+            meta_data=device_data.meta_data,
         )
         
         # Persist to database
@@ -160,14 +158,13 @@ class DeviceService:
         for field, value in update_data.items():
             # Convert camelCase to snake_case
             db_field = field.replace("firmwareVersion", "firmware_version")
-            db_field = db_field.replace("isOnline", "is_online")
-            db_field = db_field.replace("extraData", "extra_data")
+            db_field = db_field.replace("metaData", "meta_data")
             
             if hasattr(device, db_field):
                 setattr(device, db_field, value)
         
         # Business logic: Update last_seen_at if device comes online
-        if device_data.is_online is True:
+        if "status" in update_data and update_data["status"] == "online":
             device.last_seen_at = datetime.now(timezone.utc)
         
         # Business logic: Update timestamp
@@ -207,14 +204,14 @@ class DeviceService:
     async def update_device_status(
         self,
         device_id: str,
-        is_online: bool
+        status: str
     ) -> Optional[Device]:
         """
-        Update device online status
+        Update device connection status
         
         Args:
             device_id: Device unique ID
-            is_online: Whether device is online
+            status: Device connection status (online, offline)
             
         Returns:
             Updated device instance or None if not found
@@ -223,13 +220,13 @@ class DeviceService:
         if not device:
             return None
         
-        device.is_online = is_online
+        device.status = status
         device.last_seen_at = datetime.now(timezone.utc)
         device.updated_at = datetime.now(timezone.utc)
         
         device = await self.repo.save(device)
         
-        logger.info(f"Updated device status: {device_id} (online={is_online})")
+        logger.info(f"Updated device status: {device_id} (status={status})")
         
         return device
 

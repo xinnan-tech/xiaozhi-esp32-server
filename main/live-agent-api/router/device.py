@@ -35,22 +35,18 @@ async def get_device_list(
     search: Annotated[str | None, Query(description="Search keyword")] = None,
     status: Annotated[str | None, Query(description="Filter by status")] = None,
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
-    pageSize: Annotated[int, Query(ge=1, le=100, alias="pageSize", description="Items per page")] = 10,
-    sortBy: Annotated[str, Query(alias="sortBy", description="Sort field")] = "createdAt",
-    sortOrder: Annotated[str, Query(alias="sortOrder", pattern="^(asc|desc)$", description="Sort order")] = "desc",
+    pageSize: Annotated[int, Query(ge=1, le=100, alias="pageSize", description="Items per page")] = 20,
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse:
     """
-    Get Device list with search, filtering, pagination and sorting
+    Get Device list with search, filtering and pagination (sorted by creation time desc)
     
-    - **search**: Search keyword (searches in name, device_id, and model)
-    - **status**: Filter by status (active, inactive, offline)
+    - **search**: Search keyword (searches in device name only)
+    - **status**: Filter by status (online, offline)
     - **page**: Page number (starting from 1)
-    - **pageSize**: Number of items per page (1-100)
-    - **sortBy**: Field to sort by (default: createdAt)
-    - **sortOrder**: Sort order - asc or desc (default: desc)
+    - **pageSize**: Number of items per page (1-100, default: 20)
     
-    Returns paginated list of devices with total count.
+    Returns paginated list of devices sorted by creation time (newest first) with total count.
     """
     try:
         # Create query object
@@ -59,8 +55,6 @@ async def get_device_list(
             status=status,
             page=page,
             page_size=pageSize,
-            sort_by=sortBy,
-            sort_order=sortOrder,
         )
         
         # Get service
@@ -181,14 +175,13 @@ async def update_device(
     
     - **device_id**: Device unique ID
     
-    Request body (all fields optional):
-    - **name**: Device display name
-    - **model**: Device model
+    Request body:
     - **firmwareVersion**: Firmware version
-    - **status**: Device status
-    - **isOnline**: Whether device is online
+    - **status**: Device connection status (online, offline)
     - **description**: Device description
-    - **metadata**: Additional metadata
+    - **metaData**: Additional metadata (JSON format)
+    
+    Note: Device name and model cannot be modified after creation.
     
     Returns the updated device information.
     """
