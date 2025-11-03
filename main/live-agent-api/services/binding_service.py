@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from orm.binding import DeviceAgentBinding, DeviceAgentBindingRepository
 from orm.device import DeviceRepository
 from orm.agent import AgentRepository
-from schemas.binding import BindingCreate, BindingUpdate, BindingListQuery
+from schemas.binding import BindingOperation, BindingUpdate, BindingListQuery
 from utils import id_generator
 
 
@@ -117,49 +117,67 @@ class BindingService:
         
         return bindings
     
-    async def create_binding(self, binding_data: BindingCreate) -> DeviceAgentBinding:
+    async def create_binding(self, binding_data: BindingOperation) -> DeviceAgentBinding:
         """
-        Create a new device-agent binding
+        Create or reactivate a device-agent binding
         
         Args:
             binding_data: Binding creation data
             
         Returns:
-            Created binding instance
+            Created or updated binding instance
             
         Raises:
-            ValueError: If device or agent not found, or device already has binding
+            ValueError: If device or agent not found, or device already bound to this agent
         """
-        # Business logic: Validate device exists
+        # 1. Validate device exists
         device = await self.device_repo.find_by_id(binding_data.device_id)
         if not device:
             raise ValueError(f"Device not found: {binding_data.device_id}")
         
-        # Business logic: Validate agent exists
+        # 2. Validate agent exists
         agent = await self.agent_repo.find_by_id(binding_data.agent_id)
         if not agent:
             raise ValueError(f"Agent not found: {binding_data.agent_id}")
         
-        # Business logic: Check if device already has a binding
-        if await self.repo.device_has_binding(binding_data.device_id):
-            raise ValueError(f"Device already has a binding: {binding_data.device_id}")
-        
-        # Business logic: Generate unique ID
-        binding_id = id_generator.generate()
-        
-        # Business logic: Create binding instance
-        binding = DeviceAgentBinding(
-            id=binding_id,
-            device_id=binding_data.device_id,
-            agent_id=binding_data.agent_id,
+        # 3. Check if binding already exists for this device-agent pair
+        existing_binding = await self.repo.find_by_device_and_agent(
+            binding_data.device_id,
+            binding_data.agent_id
         )
         
-        # Persist to database
-        binding = await self.repo.save(binding)
-        
-        logger.info(f"Created binding: {binding_id} (device={binding_data.device_id}, agent={binding_data.agent_id})")
-        
-        return binding
+        if existing_binding:
+            # Binding record exists
+            if existing_binding.status == "bound":
+                # Already bound - return error
+                raise ValueError(
+                    f"Device {binding_data.device_id} is already bound to agent {binding_data.agent_id}"
+                )
+            else:
+                # Status is "unbound" - reactivate the binding
+                existing_binding.status = "bound"
+                existing_binding.updated_at = datetime.now(timezone.utc)
+                binding = await self.repo.save(existing_binding)
+                logger.info(
+                    f"Reactivated binding: {existing_binding.id} "
+                    f"(device={binding_data.device_id}, agent={binding_data.agent_id})"
+                )
+                return binding
+        else:
+            # No existing binding - create new one
+            binding_id = id_generator.generate()
+            binding = DeviceAgentBinding(
+                id=binding_id,
+                device_id=binding_data.device_id,
+                agent_id=binding_data.agent_id,
+                status="bound",
+            )
+            binding = await self.repo.save(binding)
+            logger.info(
+                f"Created new binding: {binding_id} "
+                f"(device={binding_data.device_id}, agent={binding_data.agent_id})"
+            )
+            return binding
     
     async def update_binding(
         self,
@@ -225,23 +243,34 @@ class BindingService:
         
         return True
     
-    async def unbind_device(self, device_id: str) -> bool:
+    async def unbind_device(self, device_id: str, agent_id: str) -> bool:
         """
-        Remove binding for a device
+        Unbind a device from an agent (update status to unbound)
         
         Args:
             device_id: Device unique ID
+            agent_id: Agent unique ID
             
         Returns:
-            True if unbound, False if no binding found
+            True if unbound successfully, False if no active binding found
         """
-        binding = await self.repo.find_by_device_id(device_id)
+        # Find the specific device-agent binding
+        binding = await self.repo.find_by_device_and_agent(device_id, agent_id)
         if not binding:
+            logger.warning(f"No binding found for device {device_id} and agent {agent_id}")
             return False
         
-        await self.repo.delete(binding)
+        # Check if already unbound
+        if binding.status == "unbound":
+            logger.info(f"Device {device_id} is already unbound from agent {agent_id}")
+            return False
         
-        logger.info(f"Unbound device: {device_id}")
+        # Update status to unbound instead of deleting
+        binding.status = "unbound"
+        binding.updated_at = datetime.now(timezone.utc)
+        await self.repo.save(binding)
+        
+        logger.info(f"Unbound device {device_id} from agent {agent_id}")
         
         return True
 

@@ -66,6 +66,28 @@ class DeviceAgentBindingRepository:
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
     
+    async def find_by_device_and_agent(
+        self,
+        device_id: str,
+        agent_id: str
+    ) -> Optional[DeviceAgentBinding]:
+        """
+        Find binding by device ID and agent ID
+        
+        Args:
+            device_id: Device unique ID
+            agent_id: Agent unique ID
+            
+        Returns:
+            DeviceAgentBinding instance or None if not found
+        """
+        stmt = select(DeviceAgentBinding).where(
+            DeviceAgentBinding.device_id == device_id,
+            DeviceAgentBinding.agent_id == agent_id
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+    
     async def find_all(
         self,
         device_id: Optional[str] = None,

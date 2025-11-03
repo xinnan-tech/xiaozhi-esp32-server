@@ -9,8 +9,12 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class BindingCreate(BaseModel):
-    """Schema for creating a new DeviceAgentBinding"""
+class BindingOperation(BaseModel):
+    """
+    Schema for device-agent binding operations (bind/unbind)
+    
+    This schema represents the device-agent pair for all binding operations.
+    """
     
     device_id: str = Field(
         ...,
@@ -51,7 +55,7 @@ class BindingUpdate(BaseModel):
     status: Optional[str] = Field(
         None,
         max_length=20,
-        description="Binding status (active, inactive)"
+        description="Binding status (bound, unbound)"
     )
     
     model_config = {
@@ -59,7 +63,7 @@ class BindingUpdate(BaseModel):
         "json_schema_extra": {
             "example": {
                 "agentId": "0987654321",
-                "status": "active"
+                "status": "bound"
             }
         }
     }
@@ -91,7 +95,7 @@ class BindingResponse(BaseModel):
                 "id": "1122334455",
                 "deviceId": "1234567890",
                 "agentId": "0987654321",
-                "status": "active",
+                "status": "bound",
                 "createdAt": "2024-01-01T00:00:00",
                 "updatedAt": "2024-01-01T00:00:00"
             }
@@ -113,7 +117,7 @@ class BindingWithDetails(BindingResponse):
                 "id": "1122334455",
                 "deviceId": "1234567890",
                 "agentId": "0987654321",
-                "status": "active",
+                "status": "bound",
                 "deviceName": "My PLAUD Device",
                 "agentName": "My Assistant",
                 "createdAt": "2024-01-01T00:00:00",

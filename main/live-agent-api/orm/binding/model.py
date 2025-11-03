@@ -52,8 +52,8 @@ class DeviceAgentBinding(Base):
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        default="active",
-        comment="Binding status (active, inactive)"
+        default="bound",
+        comment="Binding status (bound, unbound)"
     )
     
     # Timestamps
@@ -72,8 +72,6 @@ class DeviceAgentBinding(Base):
         comment="Last update timestamp"
     )
     
-    def __repr__(self) -> str:
-        return f"<DeviceAgentBinding(id={self.id}, device_id={self.device_id}, agent_id={self.agent_id})>"
     
     def to_dict(self) -> dict:
         """

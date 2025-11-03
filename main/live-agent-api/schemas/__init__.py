@@ -27,7 +27,7 @@ from schemas.device import (
 
 # Binding schemas
 from schemas.binding import (
-    BindingCreate,
+    BindingOperation,
     BindingUpdate,
     BindingResponse,
     BindingWithDetails,
@@ -53,7 +53,7 @@ __all__ = [
     "DeviceListQuery",
     
     # Binding schemas
-    "BindingCreate",
+    "BindingOperation",
     "BindingUpdate",
     "BindingResponse",
     "BindingWithDetails",
