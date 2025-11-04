@@ -192,6 +192,7 @@ def build_system_prompt(
     
     # Step 6: 填充主模板
     template_vars = {
+        "profile": profile,
         "system_context": system_context,
         "user_persona_prompt": user_persona_prompt,
         "language_specific_prompt": language_specific_prompt
