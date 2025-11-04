@@ -45,16 +45,16 @@ class ManageApiClient:
             raise Exception("请先配置manager-api的secret")
 
         # 根据aws服务器所在机房路由不同secret
-        region = os.getenv("REGION")
-        if region == "LOCAL":
-            cls._secret = cls.config.get("secret")
-        elif region == "SINGAPORE":
+        region = os.getenv("REGION", "LOCAL")  # 默认 LOCAL
+        if region == "SINGAPORE":
             cls._secret = "a1c50356-4307-4bb7-8c16-c661d06ec17b"
         elif region == "US-WEST-2":
             cls._secret = "ff22d758-79dd-47ff-a897-c6e39983e0e1"
+        else:
+            # LOCAL 或其他未知区域，使用配置文件中的 secret
+            cls._secret = cls.config.get("secret")
 
-        print(f"region: {region}, secret: {cls._secret}")
-        # cls._secret = cls.config.get("secret")
+        print(f"[ManageApiClient] Region: {region}, Secret: {cls._secret[:8]}...")
         cls.max_retries = cls.config.get("max_retries", 6)  # 最大重试次数
         cls.retry_delay = cls.config.get("retry_delay", 10)  # 初始重试延迟(秒)
         # NOTE(goody): 2025/4/16 http相关资源统一管理，后续可以增加线程池或者超时
