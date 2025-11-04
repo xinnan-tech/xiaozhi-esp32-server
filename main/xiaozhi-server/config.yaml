@@ -647,6 +647,49 @@ TTS:
     type: edge
     voice: zh-CN-XiaoxiaoNeural
     output_dir: tmp/
+  # ============== SDK 版本TTS（推荐）==============
+  # 使用官方SDK，代码更简洁、性能更好、维护成本更低
+  CartesiaSDK:
+    # Cartesia TTS - SDK版本（推荐）
+    # 官方SDK实现，低延迟，支持流式合成
+    # API Key获取地址：https://play.cartesia.ai/console
+    # 或设置环境变量：export CARTESIA_API_KEY=your-api-key
+    type: cartesia_sdk
+    api_key: 你的Cartesia API密钥
+    # Voice ID或voice embedding
+    voice_id: 你的语音ID
+    # 模型选择：sonic-english, sonic-multilingual等
+    model: sonic-english
+    # 语言代码：en, zh, es等
+    language: en
+    # 音频编码：pcm_s16le, pcm_f32le, pcm_mulaw等
+    encoding: pcm_s16le
+    # 采样率：8000, 16000, 22050, 24000, 44100等
+    sample_rate: 24000
+    output_dir: tmp/
+  ElevenLabsSDK:
+    # ElevenLabs TTS - SDK版本（推荐）
+    # 官方SDK实现，代码更简洁，维护成本更低，性能更好
+    # API Key获取地址：https://elevenlabs.io/app/settings/api-keys
+    # 或设置环境变量：export ELEVEN_API_KEY=your-api-key
+    type: elevenlabs_sdk
+    api_key: 你的ElevenLabs API密钥
+    # Voice ID获取：https://elevenlabs.io/app/voice-library
+    # 默认：21m00Tcm4TlvDq8ikWAM (Rachel)
+    voice_id: 21m00Tcm4TlvDq8ikWAM
+    # 模型选择：eleven_multilingual_v2, eleven_turbo_v2_5等
+    model: eleven_multilingual_v2
+    # 音频输出格式：pcm_16000, pcm_22050, pcm_24000, mp3_44100等
+    output_format: pcm_16000
+    # 语音稳定性：0-1，越高越稳定
+    stability: 0.5
+    # 相似度增强：0-1，越高越接近原音色
+    similarity_boost: 0.75
+    # 风格夸张：0-1
+    style: 0.0
+    # 启用说话人增强
+    use_speaker_boost: true
+    output_dir: tmp/
   DoubaoTTS:
     # 定义TTS API类型
     type: doubao
