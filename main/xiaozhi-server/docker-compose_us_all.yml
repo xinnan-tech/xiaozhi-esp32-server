@@ -26,6 +26,8 @@ services:
       - "8003:8003"
     security_opt:
       - seccomp:unconfined
+    healthcheck:
+      disable: true
     environment:
       - TZ=Asia/Shanghai
       - PYTHONUNBUFFERED=1

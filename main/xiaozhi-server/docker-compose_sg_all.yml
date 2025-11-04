@@ -31,6 +31,8 @@ services:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO
       - REGION=SINGAPORE
+    healthcheck:
+      disable: true
     volumes:
       # Configuration directory
       - ./data:/opt/xiaozhi-esp32-server/data
