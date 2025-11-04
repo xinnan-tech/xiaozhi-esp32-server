@@ -24,18 +24,18 @@ def load_config():
     if cached_config is not None:
         return cached_config
 
-    default_config_path = get_project_dir() + "config.yaml"
-    custom_config_path = get_project_dir() + "data/.config.yaml"
+    # default_config_path = get_project_dir() + "config.yaml"
+    custom_config_path = get_project_dir() + "custom_config.yaml"
 
     # 加载默认配置
-    default_config = read_config(default_config_path)
+    # default_config = read_config(default_config_path)
     custom_config = read_config(custom_config_path)
 
     if custom_config.get("manager-api", {}).get("url"):
         config = get_config_from_api(custom_config)
-    else:
-        # 合并配置
-        config = merge_configs(default_config, custom_config)
+    # else:
+    #     # 合并配置
+    #     config = merge_configs(default_config, custom_config)
     # 初始化目录
     ensure_directories(config)
 
