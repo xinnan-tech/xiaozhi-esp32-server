@@ -37,7 +37,8 @@ server:
 
 manager-api:
   url: http://xiaozhi-esp32-server-web:8002/xiaozhi
-  secret: 613be043-dc7e-4f5e-b775-e318e5bc87a3
+  # This secret is used for local development, it will be replaced by the actual secret when the server is deployed
+  secret: 613be043-dc7e-4f5e-b775-e318e5bc87a3 
 
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
@@ -203,7 +204,7 @@ end_prompt:
   # 结束语
   prompt: |
     请你以"时间过得真快"未来头，用富有感情、依依不舍的话来结束这场对话吧！
-    
+
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
   # 不使用意图识别

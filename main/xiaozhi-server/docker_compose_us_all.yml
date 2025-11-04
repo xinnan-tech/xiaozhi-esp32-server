@@ -30,7 +30,7 @@ services:
       - TZ=Asia/Shanghai
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO
-      - REGION=LOCAL
+      - REGION=SINGAPORE
     volumes:
       # Configuration directory
       - ./data:/opt/xiaozhi-esp32-server/data

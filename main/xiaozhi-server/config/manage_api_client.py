@@ -44,6 +44,15 @@ class ManageApiClient:
         if "你" in cls.config.get("secret"):
             raise Exception("请先配置manager-api的secret")
 
+        # 根据aws服务器所在机房路由不同secret
+        region = os.getenv("REGION")
+        if region == "LOCAL":
+            cls._secret = cls.config.get("secret")
+        elif region == "SINGAPORE":
+            cls._secret = "a1c50356-4307-4bb7-8c16-c661d06ec17b"
+        elif region == "US-WEST-2":
+            cls._secret = "ff22d758-79dd-47ff-a897-c6e39983e0e1"
+
         cls._secret = cls.config.get("secret")
         cls.max_retries = cls.config.get("max_retries", 6)  # 最大重试次数
         cls.retry_delay = cls.config.get("retry_delay", 10)  # 初始重试延迟(秒)
