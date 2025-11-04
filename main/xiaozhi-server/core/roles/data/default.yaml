@@ -1,4 +1,4 @@
-id: hospital_assistant
+id: default
 version: 4
 wake_word: Alice
 language: en
@@ -57,10 +57,10 @@ profile: |
   # Tools
 
   No tools provided.
-# tts:
+#tts:
 #   voice_id: 7a5d4663-88ae-47b7-808e-8f9b9ee4127b
 #   provider: cartesia
 tts:
-   voice_id: f786b574-daa5-4673-aa0c-cbe3e8534c02
-   provider: elevenlabs
+  voice_id: ByhETIclHirOlWnWKhHc
+  provider: elevenlabs
 timezone: Asia/Shanghai

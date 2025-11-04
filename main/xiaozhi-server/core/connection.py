@@ -419,6 +419,15 @@ class ConnectionHandler:
             asyncio.run_coroutine_threadsafe(
                 self.asr.open_audio_channels(self), self.loop
             )
+
+            """加载记忆"""
+            self._initialize_memory()
+            """加载意图识别"""
+            self._initialize_intent()
+            """更新系统提示词（必须在 TTS 初始化前，以便加载 role 的 TTS 配置）"""
+            self._init_prompt_enhancement()
+
+            # 初始化 TTS（在 prompt 初始化之后，以便使用 role 的 TTS 配置）
             if self.tts is None:
                 self.tts = self._initialize_tts()
             # 打开语音合成通道
@@ -426,14 +435,8 @@ class ConnectionHandler:
                 self.tts.open_audio_channels(self), self.loop
             )
 
-            """加载记忆"""
-            self._initialize_memory()
-            """加载意图识别"""
-            self._initialize_intent()
             """初始化上报线程"""
             self._init_report_threads()
-            """更新系统提示词"""
-            self._init_prompt_enhancement()
 
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
@@ -453,13 +456,26 @@ class ConnectionHandler:
             except Exception as e:
                 self.logger.bind(tag=TAG).warning(f"获取用户画像失败: {e}")
         
-        # 构建增强的系统提示词
-        enhanced_prompt = self.prompt_manager.build_enhanced_prompt(
+        # 构建增强的系统提示词（返回 (enhanced_prompt, role_tts_config)）
+        result = self.prompt_manager.build_enhanced_prompt(
             self.config["prompt"],
             self.device_id,
             self.client_ip,
             user_persona=user_persona,
         )
+        
+        # 解包返回值
+        if isinstance(result, tuple):
+            enhanced_prompt, role_tts_config = result
+            # 保存 role 的 TTS 配置到 self.config（供 TTS 初始化使用）
+            if role_tts_config:
+                self.config["_role_tts_config"] = role_tts_config
+                self.logger.bind(tag=TAG).info(
+                    f"保存 Role TTS 配置到 config: {role_tts_config}"
+                )
+        else:
+            # 兼容旧版本返回值（仅返回 prompt 字符串）
+            enhanced_prompt = result
         
         if enhanced_prompt:
             self.change_system_prompt(enhanced_prompt)
@@ -479,15 +495,90 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).info("TTS上报线程已启动")
 
     def _initialize_tts(self):
-        """初始化TTS"""
+        """
+        初始化TTS（支持三级优先级配置）
+        
+        优先级：
+        1. API 下发的 TTS 配置（在 _initialize_private_config 中已应用）
+        2. Role 中的 TTS 配置
+        3. selected_module.TTS（兜底配置）
+        """
         tts = None
         if not self.need_bind:
+            # 检查是否有 role 的 TTS 配置（优先级2）
+            role_tts_config = self.config.get("_role_tts_config")
+            self.logger.bind(tag=TAG).info(f"🔍 检查 _role_tts_config: {role_tts_config}")
+            if role_tts_config:
+                self.logger.bind(tag=TAG).info("✅ 发现 Role TTS 配置，准备应用")
+                self._apply_role_tts_config(role_tts_config)
+            else:
+                self.logger.bind(tag=TAG).info("ℹ️  没有 Role TTS 配置，使用默认配置")
+            
+            # 初始化 TTS（优先级1和3在这里统一处理）
             tts = initialize_tts(self.config)
 
         if tts is None:
             tts = DefaultTTS(self.config, delete_audio_file=True)
 
         return tts
+    
+    def _apply_role_tts_config(self, role_tts_config: dict):
+        """应用 role 中的 TTS 配置"""
+        self.logger.bind(tag=TAG).debug(f"开始应用 Role TTS 配置: {role_tts_config}")
+        provider = role_tts_config.get("provider")
+        voice_id = role_tts_config.get("voice_id")
+        
+        if not provider or not voice_id:
+            self.logger.bind(tag=TAG).warning("Role TTS 配置不完整，跳过应用")
+            return
+        
+        # 检查当前 selected_module.TTS 是否已经被 API 覆盖
+        # 如果 API 已经设置了 TTS，则不应用 role 配置（API 优先级更高）
+        current_tts = self.config["selected_module"]["TTS"]
+        if self.config.get("_api_tts_applied"):
+            self.logger.bind(tag=TAG).info(
+                f"API 已设置 TTS 配置（优先级1），跳过 Role TTS 配置: {provider}"
+            )
+            return
+        
+        # 应用 role 的 TTS 配置
+        # 根据 provider 映射到实际的 TTS 模块名
+        tts_module_map = {
+            "elevenlabs": "ElevenLabsSDK",
+            "cartesia": "CartesiaSDK",
+            "edge": "EdgeTTS",
+            "doubao": "VolcanoStreamTTS",
+            # 可以继续添加更多映射...
+        }
+        
+        tts_module = tts_module_map.get(provider.lower())
+        if not tts_module:
+            self.logger.bind(tag=TAG).warning(
+                f"未知的 TTS provider: {provider}，使用默认配置"
+            )
+            return
+        
+        # 检查该 TTS 模块是否在配置中存在
+        if tts_module not in self.config.get("TTS", {}):
+            self.logger.bind(tag=TAG).warning(
+                f"TTS 模块 {tts_module} 未在配置中定义，跳过应用"
+            )
+            return
+        
+        # 更新 selected_module.TTS
+        self.config["selected_module"]["TTS"] = tts_module
+        
+        # 更新 voice_id（如果该 TTS 模块支持）
+        if "voice_id" in self.config["TTS"][tts_module]:
+            self.config["TTS"][tts_module]["voice_id"] = voice_id
+            self.logger.bind(tag=TAG).info(
+                f"✅ 应用 Role TTS 配置: provider={provider}, "
+                f"module={tts_module}, voice_id={voice_id[:16]}..."
+            )
+        else:
+            self.logger.bind(tag=TAG).warning(
+                f"TTS 模块 {tts_module} 不支持 voice_id 配置"
+            )
 
     def _initialize_asr(self):
         """初始化ASR"""
@@ -572,6 +663,8 @@ class ConnectionHandler:
             self.config["selected_module"]["TTS"] = private_config["selected_module"][
                 "TTS"
             ]
+            # 标记 API 已设置 TTS 配置（优先级1）
+            self.config["_api_tts_applied"] = True
         if private_config.get("LLM", None) is not None:
             init_llm = True
             self.config["LLM"] = private_config["LLM"]

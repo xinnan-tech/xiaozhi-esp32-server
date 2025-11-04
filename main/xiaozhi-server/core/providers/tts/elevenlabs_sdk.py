@@ -190,7 +190,8 @@ class TTSProvider(TTSProviderBase):
             )
             
         except Exception as e:
-            logger.bind(tag=TAG).error(f"TTS 合成失败: {e}", exc_info=True)
+            error_msg = str(e).replace("{", "{{").replace("}", "}}")
+            logger.bind(tag=TAG).error(f"TTS 合成失败: {error_msg}", exc_info=True)
             raise
     
     async def close(self):
