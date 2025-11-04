@@ -165,6 +165,7 @@ class PromptManager:
             from core.roles import get_role_config_loader
             
             # 优先级：API 传入的 user_prompt > 本地 role 配置 > 空字符串
+            role_tts_config = None  # 保存 role 的 TTS 配置供后续使用
             if user_prompt and user_prompt.strip():
                 # 优先使用 API 传入的 prompt（正式部署场景）
                 profile = user_prompt
@@ -181,6 +182,16 @@ class PromptManager:
                     profile = role_config.profile
                     timezone = role_config.timezone
                     language = role_config.language
+                    # 提取 TTS 配置（如果有）
+                    if role_config.tts:
+                        role_tts_config = {
+                            "voice_id": role_config.tts.voice_id,
+                            "provider": role_config.tts.provider
+                        }
+                        self.logger.bind(tag=TAG).info(
+                            f"检测到 Role TTS 配置: provider={role_config.tts.provider}, "
+                            f"voice_id={role_config.tts.voice_id[:16]}..."
+                        )
                     self.logger.bind(tag=TAG).info(f"使用本地 role 配置: {role_id}")
                 except Exception as e:
                     # 兜底方案：使用空 profile
@@ -235,8 +246,10 @@ class PromptManager:
             self.logger.bind(tag=TAG).info(
                 f"构建增强提示词成功，长度: {len(enhanced_prompt)}"
             )
-            return enhanced_prompt
+            
+            # 返回 (enhanced_prompt, role_tts_config)
+            return (enhanced_prompt, role_tts_config)
 
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"构建增强提示词失败: {e}", exc_info=True)
-            return user_prompt
+            return (user_prompt, None)
