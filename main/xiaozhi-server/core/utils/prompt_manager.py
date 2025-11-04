@@ -164,23 +164,30 @@ class PromptManager:
             from core.roles.prompts.builder import build_system_prompt
             from core.roles import get_role_config_loader
             
-            # 加载 role 配置
-            role_id = self.config.get("role_id", "default")
-            loader = get_role_config_loader()
-            
-            try:
-                role_config = loader.load(role_id)
-                # 使用 role 配置中的 profile、timezone、language
-                profile = role_config.profile
-                timezone = role_config.timezone
-                language = role_config.language
-                self.logger.bind(tag=TAG).info(f"使用 role 配置: {role_id}")
-            except Exception as e:
-                # 如果加载失败，回退到使用传入的 user_prompt 和配置文件
-                self.logger.bind(tag=TAG).warning(f"加载 role 配置失败: {e}，使用默认配置")
+            # 优先级：API 传入的 user_prompt > 本地 role 配置 > 空字符串
+            if user_prompt and user_prompt.strip():
+                # 优先使用 API 传入的 prompt（正式部署场景）
                 profile = user_prompt
                 timezone = self.config.get("timezone", "Asia/Shanghai")
                 language = self.config.get("language", "zh")
+                self.logger.bind(tag=TAG).info("使用 API 下发的 profile")
+            else:
+                # API 未提供 prompt，尝试加载本地 role 配置（本地开发场景）
+                role_id = self.config.get("role_id", "default")
+                loader = get_role_config_loader()
+                
+                try:
+                    role_config = loader.load(role_id)
+                    profile = role_config.profile
+                    timezone = role_config.timezone
+                    language = role_config.language
+                    self.logger.bind(tag=TAG).info(f"使用本地 role 配置: {role_id}")
+                except Exception as e:
+                    # 兜底方案：使用空 profile
+                    self.logger.bind(tag=TAG).warning(f"加载 role 配置失败: {e}，使用空 profile")
+                    profile = ""
+                    timezone = self.config.get("timezone", "Asia/Shanghai")
+                    language = self.config.get("language", "zh")
             
             # 获取最新的时间信息（不缓存）
             today_date, today_weekday, lunar_date = self._get_current_time_info()
