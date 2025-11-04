@@ -53,7 +53,7 @@ class ManageApiClient:
         elif region == "US-WEST-2":
             cls._secret = "ff22d758-79dd-47ff-a897-c6e39983e0e1"
 
-        cls._secret = cls.config.get("secret")
+        # cls._secret = cls.config.get("secret")
         cls.max_retries = cls.config.get("max_retries", 6)  # 最大重试次数
         cls.retry_delay = cls.config.get("retry_delay", 10)  # 初始重试延迟(秒)
         # NOTE(goody): 2025/4/16 http相关资源统一管理，后续可以增加线程池或者超时
