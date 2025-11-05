@@ -145,11 +145,11 @@ echo ""
 if [ "$ACTION" = "server" ] || [ "$ACTION" = "SERVER" ]; then
     echo -e "${YELLOW}→ Restarting xiaozhi-esp32-server...${NC}"
     echo ""
-    docker-compose -f "$COMPOSE_FILE" restart xiaozhi-esp32-server
+    docker compose -f "$COMPOSE_FILE" restart xiaozhi-esp32-server
 else
     echo -e "${YELLOW}→ Starting all services...${NC}"
     echo ""
-    docker-compose -f "$COMPOSE_FILE" up -d
+    docker compose -f "$COMPOSE_FILE" up -d
 fi
 
 echo ""
@@ -164,9 +164,9 @@ echo ""
 # Show logs option
 echo -e "${CYAN}To view logs, run:${NC}"
 if [ "$ACTION" = "server" ] || [ "$ACTION" = "SERVER" ]; then
-    echo "  docker-compose -f $COMPOSE_FILE logs -f xiaozhi-esp32-server"
+    echo "  docker compose -f $COMPOSE_FILE logs -f xiaozhi-esp32-server"
 else
-    echo "  docker-compose -f $COMPOSE_FILE logs -f"
+    echo "  docker compose -f $COMPOSE_FILE logs -f"
 fi
 echo ""
 
