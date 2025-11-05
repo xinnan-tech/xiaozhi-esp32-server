@@ -649,12 +649,12 @@ TTS:
     output_dir: tmp/
   # ============== SDK 版本TTS（推荐）==============
   # 使用官方SDK，代码更简洁、性能更好、维护成本更低
-  CartesiaSDK:
+  Cartesia:
     # Cartesia TTS - SDK版本（推荐）
     # 官方SDK实现，低延迟，支持流式合成
     # API Key获取地址：https://play.cartesia.ai/console
     # 或设置环境变量：export CARTESIA_API_KEY=your-api-key
-    type: cartesia_sdk
+    type: cartesia
     api_key: 你的Cartesia API密钥
     # Voice ID或voice embedding
     voice_id: 你的语音ID
@@ -667,12 +667,12 @@ TTS:
     # 采样率：8000, 16000, 22050, 24000, 44100等
     sample_rate: 24000
     output_dir: tmp/
-  ElevenLabsSDK:
+  ElevenLabs:
     # ElevenLabs TTS - SDK版本（推荐）
     # 官方SDK实现，代码更简洁，维护成本更低，性能更好
     # API Key获取地址：https://elevenlabs.io/app/settings/api-keys
     # 或设置环境变量：export ELEVEN_API_KEY=your-api-key
-    type: elevenlabs_sdk
+    type: elevenlabs
     api_key: 你的ElevenLabs API密钥
     # Voice ID获取：https://elevenlabs.io/app/voice-library
     # 默认：21m00Tcm4TlvDq8ikWAM (Rachel)

@@ -33,7 +33,7 @@ show_usage() {
     echo "                          Values: sg, us, local"
     echo ""
     echo "  -a, --action <action>   Action to perform"
-    echo "                          Values: server, all"
+    echo "                          Values: server, web, all"
     echo ""
     echo "  -h, --help              Show this help message"
     echo ""
@@ -43,13 +43,14 @@ show_usage() {
     echo "  local  - Local development (REGION=LOCAL)"
     echo ""
     echo "Action details:"
-    echo "  server - Restart only xiaozhi-esp32-server"
-    echo "  all    - Start/restart all services (server, web, db, redis)"
+    echo "  server - Rebuild and restart xiaozhi-esp32-server"
+    echo "  web    - Rebuild and restart xiaozhi-esp32-server-web (manager-api + manager-web)"
+    echo "  all    - Rebuild and restart server + web (does not rebuild db/redis)"
     echo ""
     echo "Examples:"
     echo "  $0 --region sg --action server"
-    echo "  $0 -r us -a all"
-    echo "  $0 --region local --action server"
+    echo "  $0 -r local -a web"
+    echo "  $0 --region local --action all"
     exit 1
 }
 
@@ -113,13 +114,17 @@ case $ACTION in
         ACTION_NAME="Server Only"
         SERVICES="xiaozhi-esp32-server"
         ;;
+    web|WEB)
+        ACTION_NAME="Web Only (Manager API + Web)"
+        SERVICES="xiaozhi-esp32-server-web"
+        ;;
     all|ALL)
-        ACTION_NAME="All Services"
-        SERVICES=""
+        ACTION_NAME="Server + Web"
+        SERVICES="xiaozhi-esp32-server xiaozhi-esp32-server-web"
         ;;
     *)
         echo -e "${RED}Error: Invalid action '${ACTION}'${NC}"
-        echo "Valid actions: server, all"
+        echo "Valid actions: server, web, all"
         exit 1
         ;;
 esac
@@ -141,16 +146,13 @@ echo -e "${BLUE}Current container status:${NC}"
 docker ps --filter name=xiaozhi --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "No containers running"
 echo ""
 
-# Confirm action
-if [ "$ACTION" = "server" ] || [ "$ACTION" = "SERVER" ]; then
-    echo -e "${YELLOW}→ Restarting xiaozhi-esp32-server...${NC}"
-    echo ""
-    docker compose -f "$COMPOSE_FILE" restart xiaozhi-esp32-server
-else
-    echo -e "${YELLOW}→ Starting all services...${NC}"
-    echo ""
-    docker compose -f "$COMPOSE_FILE" up -d
-fi
+# Execute action with rebuild
+echo -e "${YELLOW}→ Rebuilding and starting: ${ACTION_NAME}${NC}"
+echo -e "${CYAN}   Services: ${SERVICES}${NC}"
+echo ""
+
+# Use up --build -d to rebuild images and start containers
+docker compose -f "$COMPOSE_FILE" up --build -d $SERVICES
 
 echo ""
 echo -e "${GREEN}✓ Operation completed${NC}"
@@ -163,8 +165,8 @@ echo ""
 
 # Show logs option
 echo -e "${CYAN}To view logs, run:${NC}"
-if [ "$ACTION" = "server" ] || [ "$ACTION" = "SERVER" ]; then
-    echo "  docker compose -f $COMPOSE_FILE logs -f xiaozhi-esp32-server"
+if [ -n "$SERVICES" ]; then
+    echo "  docker compose -f $COMPOSE_FILE logs -f $SERVICES"
 else
     echo "  docker compose -f $COMPOSE_FILE logs -f"
 fi
