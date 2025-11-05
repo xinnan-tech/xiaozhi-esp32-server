@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: live-agent-db
+    environment:
+      POSTGRES_DB: live_agent_db
+      POSTGRES_USER: live_agent
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U live_agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - live-agent-network
+
+  # Live Agent Dashboard API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: live-agent-api
+    environment:
+      # Database
+      DATABASE_URL: postgresql+asyncpg://live_agent:password@postgres:5432/live_agent_db
+      
+      # OpenAI (use your own API key)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-your-api-key-here}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
+      
+      # Snowflake ID Generator
+      INSTANCE_ID: ${INSTANCE_ID:-1}
+      
+      # Application
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      API_PREFIX: /api/v1
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - live-agent-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  live-agent-network:
+    driver: bridge
+

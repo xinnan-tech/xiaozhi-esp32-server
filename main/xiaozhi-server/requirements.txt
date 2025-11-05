@@ -36,3 +36,9 @@ psutil==7.0.0
 portalocker==3.2.0
 Jinja2==3.1.6
 vosk==0.3.44
+
+redis>=4.0.0,<5.0.0
+
+# TTS SDKs
+elevenlabs>=1.11.0
+cartesia>=1.0.0
