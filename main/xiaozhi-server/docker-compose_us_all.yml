@@ -10,7 +10,6 @@ services:
       context: .
       dockerfile: Dockerfile
     image: xiaozhi-esp32-server:local
-    container_name: xiaozhi-esp32-server
     depends_on:
       xiaozhi-esp32-server-db:
         condition: service_healthy
@@ -62,7 +61,6 @@ services:
     # image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
     # platform: linux/amd64  # Uncomment to force x86 emulation on ARM64
     
-    container_name: xiaozhi-esp32-server-web
     restart: unless-stopped
     networks:
       - xiaozhi-network
@@ -99,7 +97,6 @@ services:
   # ============================================================================
   xiaozhi-esp32-server-db:
     image: mysql:8.0
-    container_name: xiaozhi-esp32-server-db
     restart: unless-stopped
     networks:
       - xiaozhi-network
@@ -139,7 +136,6 @@ services:
   # ============================================================================
   xiaozhi-esp32-server-redis:
     image: redis:7-alpine
-    container_name: xiaozhi-esp32-server-redis
     restart: unless-stopped
     networks:
       - xiaozhi-network
@@ -170,7 +166,6 @@ services:
 networks:
   xiaozhi-network:
     driver: bridge
-    name: xiaozhi-local-network
 
 # ============================================================================
 # Volumes (optional - for named volumes instead of bind mounts)
