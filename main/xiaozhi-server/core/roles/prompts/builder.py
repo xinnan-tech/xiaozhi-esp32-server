@@ -61,6 +61,7 @@ def _build_system_context(
     Returns:
         格式化的系统上下文字符串
     """
+    # TODO: Here, we need to use the client ip to figure out the timezone
     try:
         tz = ZoneInfo(timezone)
     except Exception:
@@ -72,14 +73,10 @@ def _build_system_context(
     
     # 如果未提供日期信息，则自动计算
     if not today_date:
-        # 根据语言格式化日期
-        if language == "zh":
-            today_date = now.strftime("%Y年%m月%d日")
-        else:
-            day = now.strftime("%d")
-            month = now.strftime("%B")
-            year = now.strftime("%Y")
-            today_date = f"{day} {month} {year}"
+        day = now.strftime("%d")
+        month = now.strftime("%B")
+        year = now.strftime("%Y")
+        today_date = f"{day} {month} {year}"
     
     if not today_weekday:
         day_of_week = now.strftime("%A")
@@ -94,29 +91,15 @@ def _build_system_context(
     # 构建系统上下文规则
     system_rules = []
     
-    if language == "zh":
-        system_rules.append(f"- 用户开始对话的时间：{time_str}")
-        system_rules.append(f"- 今天日期：{today_date} ({today_weekday})")
-        if lunar_date:
-            system_rules.append(f"- 今天农历：{lunar_date}")
-        if local_address:
-            system_rules.append(f"- 用户所在城市：{local_address}")
-        if weather_info:
-            system_rules.append(f"- 当地未来7天天气：{weather_info}")
-        if device_id:
-            system_rules.append(f"- 设备ID：{device_id}")
-        system_rules.append(f"- 当前语言：**{language}**")
-        system_rules.append(f"- 时区：{timezone}")
-    else:
-        formatted_datetime = f"{now.strftime('%A')}, {time_str} {today_date} ({timezone})"
-        system_rules.append(f"- The user started this conversation on {formatted_datetime}")
-        if local_address:
-            system_rules.append(f"- User location: {local_address}")
-        if weather_info:
-            system_rules.append(f"- Local weather forecast: {weather_info}")
-        if device_id:
-            system_rules.append(f"- Device ID: {device_id}")
-        system_rules.append(f"- Your current language is: **{language}**")
+    formatted_datetime = f"{now.strftime('%A')}, {time_str} {today_date} ({timezone})"
+    system_rules.append(f"- The user started this conversation on {formatted_datetime}")
+    if local_address:
+        system_rules.append(f"- User location: {local_address}")
+    if weather_info:
+        system_rules.append(f"- Local weather forecast: {weather_info}")
+    if device_id:
+        system_rules.append(f"- Device ID: {device_id}")
+    system_rules.append(f"- Your current language is: **{language}**")
 
     return "\n".join(system_rules)
 
@@ -200,15 +183,9 @@ def build_system_prompt(
     
     # Step 7: 填充模板（不包含 profile）
     try:
-        template_content = ROLE_TEXT.format(**template_vars)
+        system_prompt= ROLE_TEXT.format(**template_vars)
     except KeyError as e:
         logger.bind(tag=TAG).error(f"模板变量缺失: {e}")
-        template_content = ""
-    
-    # Step 8: 如果有 profile，将其放在最前面；否则只返回模板内容
-    if profile_content and profile_content.strip():
-        system_prompt = f"{profile_content.strip()}\n\n{template_content}"
-    else:
-        system_prompt = template_content
+        system_prompt = profile_content
     
     return system_prompt
