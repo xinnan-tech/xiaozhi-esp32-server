@@ -38,7 +38,7 @@ server:
 manager-api:
   url: http://xiaozhi-esp32-server-web:8002/xiaozhi
   # This secret is used for local development, it will be replaced by the actual secret when the server is deployed
-  secret: 613be043-dc7e-4f5e-b775-e318e5bc87a3 
+  secret: e8f02a3c-0d93-4824-9346-a813e56d6895
 
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息

@@ -38,7 +38,7 @@ class TTSProvider(TTSProviderBase):
             type: cartesia_sdk
             api_key: your_api_key
             voice_id: your_voice_id  # 或 voice_embedding
-            model: sonic-english
+            model: sonic-3
             language: en
             encoding: pcm_s16le
             sample_rate: 24000
@@ -50,6 +50,8 @@ class TTSProvider(TTSProviderBase):
         
         # 标记为单流式接口
         self.interface_type = InterfaceType.SINGLE_STREAM
+        # 设置音频文件类型为 WAV
+        self.audio_file_type = "wav"
         
         # 获取 API Key
         self.api_key = config.get("api_key") or os.environ.get("CARTESIA_API_KEY")
@@ -73,12 +75,14 @@ class TTSProvider(TTSProviderBase):
                 self.voice_id = voice_config
         
         # 模型和语言配置
-        self.model = config.get("model", "sonic-english")
+        self.model = config.get("model", "sonic-3")
         self.language = config.get("language", "en")
         
         # 音频配置
         self.encoding = config.get("encoding", "pcm_s16le")
-        self.sample_rate = config.get("sample_rate", 24000)
+        # 确保 sample_rate 是整数类型（配置文件可能返回字符串）
+        sample_rate_value = config.get("sample_rate", 24000)
+        self.sample_rate = int(sample_rate_value) if isinstance(sample_rate_value, str) else sample_rate_value
         
         # 验证至少有一个 voice 配置
         if not self.voice_id and not self.voice_embedding:
@@ -121,18 +125,25 @@ class TTSProvider(TTSProviderBase):
     
     async def text_to_speak(self, text: str, output_file: Optional[str] = None) -> Optional[bytes]:
         """
-        非流式方法：将完整文本转换为音频
+        将文本转换为 WAV 格式音频（完整音频，非流式）
         
-        注意：Cartesia 主要设计为流式使用，此方法会等待完整音频生成
-        建议使用 to_tts_stream() 方法以获得更低的延迟
+        Args:
+            text: 要合成的文本
+            output_file: 输出文件路径（未使用，保留兼容性）
+            
+        Returns:
+            WAV 格式的完整音频字节数据
         """
+        import io
+        import wave
+        
         try:
             ws = await self._get_ws_client()
             
-            audio_chunks = []
+            pcm_chunks = []
             voice = self._prepare_voice_param()
             
-            # 发送流式请求
+            # 发送流式请求，获取 PCM 数据
             for output in ws.send(
                 model_id=self.model,
                 transcript=text,
@@ -140,129 +151,33 @@ class TTSProvider(TTSProviderBase):
                 stream=True,
                 output_format={
                     "container": "raw",
-                    "encoding": self.encoding,
-                    "sample_rate": self.sample_rate
+                    "encoding": self.encoding,  # pcm_s16le
+                    "sample_rate": self.sample_rate  # 16000 or 24000
                 }
             ):
                 # Cartesia SDK 返回 WebSocketTtsOutput 对象
-                # 从 output.audio 获取音频数据
+                # 从 output.audio 获取 PCM 音频数据
                 if output and hasattr(output, 'audio') and output.audio:
-                    audio_chunks.append(output.audio)
+                    pcm_chunks.append(output.audio)
             
-            # 合并所有音频块
-            audio_data = b''.join(audio_chunks)
+            # 合并所有 PCM 音频块
+            pcm_data = b''.join(pcm_chunks)
             
-            # 保存到文件或返回
-            if output_file:
-                with open(output_file, 'wb') as f:
-                    f.write(audio_data)
-                logger.bind(tag=TAG).info(f"Audio saved to {output_file}, size: {len(audio_data)} bytes")
-                return None
-            else:
-                return audio_data
+            # 将 PCM 转换为 WAV 格式
+            wav_buffer = io.BytesIO()
+            with wave.open(wav_buffer, 'wb') as wav_file:
+                wav_file.setnchannels(1)  # 单声道
+                wav_file.setsampwidth(2)  # 16-bit = 2 bytes
+                wav_file.setframerate(self.sample_rate)  # 使用配置的采样率
+                wav_file.writeframes(pcm_data)
+            
+            wav_bytes = wav_buffer.getvalue()
+            
+            # 返回完整的 WAV 字节数据
+            return wav_bytes
                 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Cartesia TTS failed: {e}", exc_info=True)
-            raise
-    
-    def to_tts_stream(self, text: str, opus_handler: Optional[Callable] = None):
-        """
-        流式生成音频（核心方法）
-        
-        注意：浏览器端使用 Web Audio API 播放，直接发送 PCM 数据
-        ESP32 等嵌入式设备使用 Opus，需要编码
-        
-        Args:
-            text: 要合成的文本
-            opus_handler: 音频数据回调函数 (接收 bytes)
-        """
-        try:
-            from core.providers.tts.dto.dto import SentenceType
-            
-            start_time = time.time()
-            text_preview = text[:30] + "..." if len(text) > 30 else text
-            logger.bind(tag=TAG).info(f"🎙️ TTS开始: [{text_preview}]")
-            
-            # 发送句子开始标记
-            self.tts_audio_queue.put((SentenceType.FIRST, None, text))
-            
-            # 在异步事件循环中运行
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            try:
-                # 运行异步合成
-                chunk_count = loop.run_until_complete(
-                    self._stream_synthesis(text, opus_handler, start_time)
-                )
-            finally:
-                loop.close()
-            
-            # 发送句子结束标记
-            self.tts_audio_queue.put((SentenceType.LAST, None, text))
-            
-            end_time = time.time()
-            total_time = (end_time - start_time) * 1000
-            logger.bind(tag=TAG).info(
-                f"✅ TTS完成: {chunk_count}块, 耗时 {total_time:.0f}ms"
-            )
-                
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"TTS 合成失败: {e}", exc_info=True)
-            raise
-    
-    async def _stream_synthesis(self, text: str, opus_handler: Optional[Callable], start_time: float) -> int:
-        """
-        异步流式合成实现
-        
-        Args:
-            text: 要合成的文本
-            opus_handler: 音频数据回调函数
-            start_time: 开始时间（用于计算首包延迟）
-            
-        Returns:
-            生成的音频块数量
-        """
-        try:
-            ws = await self._get_ws_client()
-            voice = self._prepare_voice_param()
-            
-            first_chunk_time = None
-            chunk_count = 0
-            
-            # 发送流式请求并处理响应
-            for output in ws.send(
-                model_id=self.model,
-                transcript=text,
-                voice=voice,
-                stream=True,
-                output_format={
-                    "container": "raw",
-                    "encoding": self.encoding,
-                    "sample_rate": self.sample_rate
-                },
-                language=self.language
-            ):
-                # Cartesia SDK 返回 WebSocketTtsOutput 对象
-                # 需要从 output.audio 获取实际的音频数据
-                if output and hasattr(output, 'audio'):
-                    audio_data = output.audio
-                    
-                    if audio_data:
-                        if first_chunk_time is None:
-                            first_chunk_time = time.time()
-                            ttfb = (first_chunk_time - start_time) * 1000
-                            logger.bind(tag=TAG).info(f"⚡ 首包延迟: {ttfb:.0f}ms")
-                        
-                        # 发送音频数据（bytes）
-                        if opus_handler:
-                            opus_handler(audio_data)
-                            chunk_count += 1
-            
-            return chunk_count
-            
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Stream synthesis error: {e}", exc_info=True)
             raise
     
     async def close(self):

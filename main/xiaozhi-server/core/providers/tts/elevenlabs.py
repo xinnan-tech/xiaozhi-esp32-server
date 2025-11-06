@@ -11,7 +11,6 @@ from typing import Optional, Callable
 from config.logger import setup_logging
 from core.providers.tts.base import TTSProviderBase
 from core.providers.tts.dto.dto import InterfaceType
-from core.utils import opus_encoder_utils
 
 try:
     from elevenlabs.client import ElevenLabs
@@ -53,6 +52,8 @@ class TTSProvider(TTSProviderBase):
         
         # 标记为单流式接口
         self.interface_type = InterfaceType.SINGLE_STREAM
+        # 设置音频文件类型为 MP3
+        self.audio_file_type = "mp3"
         
         # 获取 API Key
         self.api_key = config.get("api_key") or os.environ.get("ELEVEN_API_KEY")
@@ -91,107 +92,52 @@ class TTSProvider(TTSProviderBase):
             use_speaker_boost=self.use_speaker_boost
         )
         
-        # 初始化 Opus 编码器（ElevenLabs pcm_16000 是 16kHz PCM）
-        self.opus_encoder = opus_encoder_utils.OpusEncoderUtils(
-            sample_rate=16000, channels=1, frame_size_ms=60
-        )
-        
-        # PCM 缓冲区（用于累积不完整的帧）
-        self.pcm_buffer = bytearray()
-        
         logger.bind(tag=TAG).info(
             f"ElevenLabs SDK initialized: model={self.model}, "
             f"voice_id={self.voice_id[:8]}..., "
-            f"format={self.output_format}"
+            f"format=mp3_44100"
         )
     
     async def text_to_speak(self, text: str, output_file: Optional[str] = None) -> Optional[bytes]:
         """
-        非流式方法：将完整文本转换为音频
-        
-        注意：此方法会等待完整音频生成
-        建议使用 to_tts_stream() 方法以获得更低的延迟
-        """
-        try:
-            # 使用 SDK 的 convert 方法生成完整音频
-            audio_data = self.client.text_to_speech.convert(
-                voice_id=self.voice_id,
-                text=text,
-                model_id=self.model,
-                output_format=self.output_format,
-                voice_settings=self.voice_settings
-            )
-            
-            # 保存到文件或返回
-            if output_file:
-                with open(output_file, 'wb') as f:
-                    f.write(audio_data)
-                logger.bind(tag=TAG).info(f"Audio saved to {output_file}, size: {len(audio_data)} bytes")
-                return None
-            else:
-                return audio_data
-                
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"ElevenLabs TTS failed: {e}", exc_info=True)
-            raise
-    
-    def to_tts_stream(self, text: str, opus_handler: Optional[Callable] = None):
-        """
-        流式生成音频（核心方法）
-        
-        注意：浏览器端使用 Web Audio API 播放，直接发送 PCM 数据
-        ESP32 等嵌入式设备使用 Opus，需要编码
+        将文本转换为 MP3 格式音频（完整音频，非流式）
         
         Args:
             text: 要合成的文本
-            opus_handler: 音频数据回调函数 (接收 bytes)
+            output_file: 输出文件路径（未使用，保留兼容性）
+            
+        Returns:
+            MP3 格式的完整音频字节数据
         """
-        import time
         try:
-            from core.providers.tts.dto.dto import SentenceType
-            
-            start_time = time.time()
-            text_preview = text[:30] + "..." if len(text) > 30 else text
-            logger.bind(tag=TAG).info(f"🎙️ TTS开始: [{text_preview}]")
-            
-            # 发送句子开始标记
-            self.tts_audio_queue.put((SentenceType.FIRST, None, text))
-            
-            # 使用 SDK 的 stream 方法（返回 Iterator[bytes] PCM 数据）
-            audio_stream = self.client.text_to_speech.stream(
+            # 使用 SDK 的 convert 方法生成完整音频（返回 generator）
+            # 强制使用 mp3_44100 格式（忽略配置中的 output_format）
+            # 因为 base.py 需要完整的音频文件格式（MP3/WAV），而不是原始 PCM
+            audio_result = self.client.text_to_speech.convert(
                 voice_id=self.voice_id,
                 text=text,
                 model_id=self.model,
-                output_format=self.output_format,
-                voice_settings=self.voice_settings,
-                optimize_streaming_latency=self.optimize_streaming_latency
+                output_format="mp3_44100",  # 强制 MP3 格式，44.1kHz
+                voice_settings=self.voice_settings
             )
             
-            first_chunk_time = None
-            chunk_count = 0
-            
-            # 直接发送 PCM 数据（浏览器端可以直接播放）
-            for pcm_chunk in audio_stream:
-                if pcm_chunk and opus_handler:
-                    if first_chunk_time is None:
-                        first_chunk_time = time.time()
-                        ttfb = (first_chunk_time - start_time) * 1000
-                        logger.bind(tag=TAG).info(f"⚡ 首包延迟: {ttfb:.0f}ms")
-                    chunk_count += 1
-                    opus_handler(pcm_chunk)
-            
-            # 发送句子结束标记
-            self.tts_audio_queue.put((SentenceType.LAST, None, text))
-            
-            end_time = time.time()
-            total_time = (end_time - start_time) * 1000
-            logger.bind(tag=TAG).info(
-                f"✅ TTS完成: {chunk_count}块, 耗时 {total_time:.0f}ms"
-            )
-            
+            # 检查返回类型
+            if isinstance(audio_result, bytes):
+                # 直接返回 bytes
+                return audio_result
+            else:
+                # 是 generator，需要收集所有音频块
+                audio_chunks = []
+                for chunk in audio_result:
+                    if chunk:
+                        audio_chunks.append(chunk)
+                
+                # 合并为完整的 MP3 数据
+                mp3_data = b''.join(audio_chunks)
+                return mp3_data
+                
         except Exception as e:
-            error_msg = str(e).replace("{", "{{").replace("}", "}}")
-            logger.bind(tag=TAG).error(f"TTS 合成失败: {error_msg}", exc_info=True)
+            logger.bind(tag=TAG).error(f"ElevenLabs TTS failed: {e}", exc_info=True)
             raise
     
     async def close(self):
