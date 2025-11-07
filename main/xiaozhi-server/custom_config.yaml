@@ -1,13 +1,6 @@
-# 在开发中，请在项目根目录创建data目录，然后在data目录创建名称为【.config.yaml】的空文件
-# 然后你想修改覆盖修改什么配置，就修改【.config.yaml】文件，而不是修改【config.yaml】文件
-# 系统会优先读取【data/.config.yaml】文件的配置，如果【.config.yaml】文件里的配置不存在，系统会自动去读取【config.yaml】文件的配置。
-# 这样做，可以最简化配置，保护您的密钥安全。
-# 如果你使用了智控台，那么以下所有配置，都不会生效，请在智控台中修改配置
 
-# #####################################################################################
-# #############################以下是服务器基本运行配置####################################
 server:
-  # 服务器监听地址和端口(Server listening address and port)
+  # Server listening address and port
   ip: 0.0.0.0
   port: 8000
   # http服务的端口，用于简单OTA接口(单服务部署)，以及视觉分析接口
@@ -41,6 +34,12 @@ server:
   mqtt_signature_key: null
   # UDP网关配置
   udp_gateway: null
+
+manager-api:
+  url: http://xiaozhi-esp32-server-web:8002/xiaozhi
+  # This secret is used for local development, it will be replaced by the actual secret when the server is deployed
+  secret: 613be043-dc7e-4f5e-b775-e318e5bc87a3 
+
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
   log_format: "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{selected_module}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>"
@@ -205,27 +204,6 @@ end_prompt:
   # 结束语
   prompt: |
     请你以"时间过得真快"未来头，用富有感情、依依不舍的话来结束这场对话吧！
-
-# 具体处理时选择的模块(The module selected for specific processing)
-selected_module:
-  # 语音活动检测模块，默认使用SileroVAD模型
-  VAD: SileroVAD
-  # 语音识别模块，默认使用FunASR本地模型
-  ASR: FunASR
-  # 将根据配置名称对应的type调用实际的LLM适配器
-  LLM: ChatGLMLLM
-  # 视觉语言大模型
-  VLLM: ChatGLMVLLM
-  # TTS将根据配置名称对应的type调用实际的TTS适配器
-  TTS: EdgeTTS
-  # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
-  Memory: nomem
-  # 意图识别模块开启后，可以播放音乐、控制音量、识别退出指令。
-  # 不想开通意图识别，就设置成：nointent
-  # 意图识别可使用intent_llm。优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间，支持控制音量大小等iot操作
-  # 意图识别可使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快，理论上能全部操作所有iot指令
-  # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-1-5-pro-32k-250115
-  Intent: function_call
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:

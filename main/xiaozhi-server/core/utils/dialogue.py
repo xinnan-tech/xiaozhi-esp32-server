@@ -71,12 +71,8 @@ class Dialogue:
         )
 
         if system_message:
-            # 基础系统提示
+            # 基础系统提示（新架构已处理时间信息，无需替换 {{current_time}}）
             enhanced_system_prompt = system_message.content
-            # 替换时间占位符
-            enhanced_system_prompt = enhanced_system_prompt.replace(
-                "{{current_time}}", datetime.now().strftime("%H:%M")
-            )
 
             # 添加说话人个性化描述
             try:

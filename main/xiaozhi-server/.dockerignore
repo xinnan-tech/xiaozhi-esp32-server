@@ -1,0 +1,80 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Test files
+test/
+tests/
+performance_tester/
+performance_tester.py
+
+# Data directories (should be mounted as volumes)
+# Note: data/ directory should be mounted as volume for persistent config
+# But we exclude some files that shouldn't be in the image
+data/.config.yaml
+data/*.log
+data/tmp/
+mysql/
+redis/
+uploadfile/
+logs/
+
+# Temporary files
+tmp/
+*.tmp
+*.log
+
+# Model files (should be mounted as volumes)
+models/*/model.pt
+
+# Music files (optional, can be mounted)
+music/
+
+# Backup and old files
+*.bak
+*.backup
+*.old
+# Note: custom_config.yaml is required in the image as default config
+# config_from_api.yaml is generated at runtime, exclude it
+config_from_api.yaml
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+

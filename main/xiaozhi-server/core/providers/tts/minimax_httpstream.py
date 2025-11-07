@@ -37,8 +37,7 @@ class TTSProvider(TTSProviderBase):
         }
         default_pronunciation_dict = {"tone": ["处理/(chu3)(li3)", "危险/dangerous"]}
         defult_audio_setting = {
-            "sample_rate": 24000,
-            "bitrate": 128000,
+            "sample_rate": 16000,
             "format": "pcm",
             "channel": 1,
         }
@@ -56,8 +55,8 @@ class TTSProvider(TTSProviderBase):
         if self.voice:
             self.voice_setting["voice_id"] = self.voice
 
-        self.host = "api.minimaxi.com"  # 备用地址：api-bj.minimaxi.com
-        self.api_url = f"https://{self.host}/v1/t2a_v2?GroupId={self.group_id}"
+        self.host = "api.minimax.io"
+        self.api_url = f"https://{self.host}/v1/t2a_v2"
         self.header = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
