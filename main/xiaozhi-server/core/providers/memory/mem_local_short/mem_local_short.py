@@ -3,6 +3,7 @@ import time
 import json
 import os
 import yaml
+from typing import Optional
 from config.config_loader import get_project_dir
 from config.manage_api_client import save_mem_local_short
 from core.utils.util import check_model_key
@@ -200,3 +201,57 @@ class MemoryProvider(MemoryProviderBase):
 
     async def query_memory(self, query: str) -> str:
         return self.short_memory
+
+    def get_user_persona(self) -> Optional[str]:
+        """获取格式化的用户画像信息（用于 prompt）
+        
+        Returns:
+            格式化后的用户画像字符串，如果无记忆则返回 None
+        """
+        if not self.short_memory:
+            return None
+        
+        try:
+            # 尝试解析 JSON 格式的记忆
+            memory_data = json.loads(self.short_memory)
+            
+            # 提取关键信息
+            persona_items = []
+            
+            # 提取身份信息
+            if "时空档案" in memory_data:
+                identity = memory_data["时空档案"].get("身份图谱", {})
+                if identity.get("现用名"):
+                    persona_items.append(f"- 名字：{identity['现用名']}")
+                if identity.get("特征标记"):
+                    tags = identity["特征标记"]
+                    if isinstance(tags, list) and tags:
+                        persona_items.append(f"- 特征：{', '.join(tags)}")
+            
+            # 提取记忆立方中的关键事件
+            if "时空档案" in memory_data and "记忆立方" in memory_data["时空档案"]:
+                events = memory_data["时空档案"]["记忆立方"]
+                if isinstance(events, list) and events:
+                    persona_items.append("\n重要事件：")
+                    for event in events[:5]:  # 只取前5个事件
+                        if isinstance(event, dict) and event.get("事件"):
+                            persona_items.append(f"  - {event['事件']}")
+            
+            # 提取高光语录
+            if "高光语录" in memory_data and memory_data["高光语录"]:
+                quotes = memory_data["高光语录"]
+                if isinstance(quotes, list) and quotes:
+                    persona_items.append("\n高光语录：")
+                    for quote in quotes[:3]:  # 只取前3条
+                        if quote:
+                            persona_items.append(f"  - {quote}")
+            
+            return "\n".join(persona_items) if persona_items else None
+            
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            # 如果解析失败，可能是纯文本格式，直接返回
+            logger.bind(tag=TAG).debug(f"记忆不是 JSON 格式，使用原始文本: {e}")
+            # 如果 short_memory 是纯文本，直接返回（但限制长度）
+            if isinstance(self.short_memory, str) and len(self.short_memory) > 0:
+                return self.short_memory[:500]  # 限制长度避免 prompt 过长
+            return None

@@ -86,7 +86,11 @@ class LLMProvider(LLMProviderBase):
                         yield content
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in response generation: {e}")
+            try:
+                error_msg = repr(e)[:200]
+            except:
+                error_msg = "encoding error"
+            logger.bind(tag=TAG).error(f"Error in response generation: {error_msg}")
 
     def response_with_functions(self, session_id, dialogue, functions=None):
         try:
@@ -97,18 +101,22 @@ class LLMProvider(LLMProviderBase):
             for chunk in stream:
                 # 检查是否存在有效的choice且content不为空
                 if getattr(chunk, "choices", None):
-                    yield chunk.choices[0].delta.content, chunk.choices[
-                        0
-                    ].delta.tool_calls
+                    content = chunk.choices[0].delta.content
+                    tool_calls = chunk.choices[0].delta.tool_calls
+                    yield content, tool_calls
                 # 存在 CompletionUsage 消息时，生成 Token 消耗 log
                 elif isinstance(getattr(chunk, "usage", None), CompletionUsage):
                     usage_info = getattr(chunk, "usage", None)
-                    logger.bind(tag=TAG).info(
+                    logger.bind(tag=TAG).debug(
                         f"Token 消耗：输入 {getattr(usage_info, 'prompt_tokens', '未知')}，"
                         f"输出 {getattr(usage_info, 'completion_tokens', '未知')}，"
                         f"共计 {getattr(usage_info, 'total_tokens', '未知')}"
                     )
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in function call streaming: {e}")
-            yield f"【OpenAI服务响应异常: {e}】", None
+            try:
+                error_msg = repr(e)[:200]
+            except:
+                error_msg = "encoding error"
+            logger.bind(tag=TAG).error(f"Error in function call streaming: {error_msg}")
+            yield "OpenAI service error", None

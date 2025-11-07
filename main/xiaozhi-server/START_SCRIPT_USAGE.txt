@@ -1,0 +1,134 @@
+Xiaozhi Server Startup Script Usage
+====================================
+
+QUICK START
+-----------
+
+1. Start server only (most common for development):
+   ./start.sh --region <region> --action server
+   ./start.sh -r <region> -a server
+
+2. Start all services (first time or full restart):
+   ./start.sh --region <region> --action all
+   ./start.sh -r <region> -a all
+
+
+COMMAND LINE OPTIONS
+--------------------
+
+  -r, --region <region>   Deployment region (required)
+                          Values: sg, us, local
+
+  -a, --action <action>   Action to perform (required)
+                          Values: server, all
+
+  -h, --help              Show help message
+
+
+REGION OPTIONS
+--------------
+
+sg     - Singapore deployment (uses docker-compose_sg_all.yml)
+         REGION=SINGAPORE, secret: a1c50356-4307-4bb7-8c16-c661d06ec17b
+
+us     - US West 2 deployment (uses docker-compose_us_all.yml)
+         REGION=US-WEST-2, secret: ff22d758-79dd-47ff-a897-c6e39983e0e1
+
+local  - Local development (uses docker-compose_local_all.yml)
+         REGION=LOCAL, secret: from custom_config.yaml
+
+
+ACTION OPTIONS
+--------------
+
+server - Restart ONLY xiaozhi-esp32-server
+         Other services (web, db, redis) keep running
+         Fast restart for code iteration
+         ✓ Preserves database data
+         ✓ Preserves Redis cache
+         ✓ Avoids web service restart
+
+all    - Start/restart ALL services
+         Runs: docker compose up -d
+         Use when:
+         - First time setup
+         - After modifying docker-compose files
+         - Need to restart web/db/redis
+
+
+COMMON USAGE EXAMPLES
+---------------------
+
+# Development iteration (most frequent)
+./start.sh --region local --action server  # Local dev, restart server only
+./start.sh -r sg -a server                 # Singapore, restart server only
+
+# First time or full restart
+./start.sh --region local --action all     # Start everything locally
+./start.sh -r sg -a all                    # Deploy to Singapore
+./start.sh -r us -a all                    # Deploy to US West 2
+
+# Show help
+./start.sh --help
+./start.sh -h
+
+
+WORKFLOW EXAMPLE
+----------------
+
+1. Initial setup:
+   ./start.sh --region local --action all
+
+2. Make code changes in xiaozhi-server
+
+3. Quick restart to test:
+   ./start.sh -r local -a server
+
+4. View logs:
+   docker compose -f docker-compose_local_all.yml logs -f xiaozhi-esp32-server
+
+5. Repeat steps 2-4 for rapid development
+
+
+TIPS
+----
+
+* Server restart takes ~10 seconds
+* All services restart takes ~1-2 minutes
+* Database and Redis data persist between restarts
+* Check container status: docker ps --filter name=xiaozhi
+* Stop all services: docker compose -f docker-compose_<region>_all.yml down
+* Both long (--region) and short (-r) options are supported
+* Requires Docker Compose v2 (uses 'docker compose' without hyphen)
+
+
+TROUBLESHOOTING
+---------------
+
+Q: "docker: 'compose' is not a docker command"
+A: You need Docker Compose v2. Install it:
+   - Ubuntu/Debian: sudo apt-get install docker-compose-plugin
+   - macOS: Install Docker Desktop (includes Compose v2)
+   - Or see: https://docs.docker.com/compose/install/
+
+Q: "Error: Invalid region 'XX'"
+A: Use only: sg, us, or local (case insensitive)
+
+Q: "Error: Invalid action 'XX'"
+A: Use only: server or all (case insensitive)
+
+Q: "Error: Unknown option"
+A: Check syntax: ./start.sh --region <region> --action <action>
+   Or use short form: ./start.sh -r <region> -a <action>
+
+Q: "Error: Compose file not found"
+A: Make sure you run the script from xiaozhi-server directory
+
+Q: Container not starting
+A: Check logs with:
+   docker compose -f docker-compose_<region>_all.yml logs xiaozhi-esp32-server
+
+Q: Need to rebuild image after code changes
+A: docker compose -f docker-compose_<region>_all.yml build xiaozhi-esp32-server
+   Then run: ./start.sh -r <region> -a server
+
