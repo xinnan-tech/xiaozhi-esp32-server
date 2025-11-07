@@ -8,6 +8,7 @@ from typing import Literal
 from core.utils.util import check_model_key, parse_string_to_list
 from core.providers.tts.base import TTSProviderBase
 from config.logger import setup_logging
+from fish_audio_sdk import Session, TTSRequest, ReferenceAudio
 
 TAG = __name__
 logger = setup_logging()
@@ -82,6 +83,7 @@ class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
 
+        self.model = config.get("model", "s1")
         self.reference_id = (
             None if not config.get("reference_id") else config.get("reference_id")
         )
@@ -91,13 +93,13 @@ class TTSProvider(TTSProviderBase):
         self.reference_text = parse_string_to_list(
              config.get('ref_text')if config.get('ref_text') else config.get("reference_text")
         )
-        self.format = config.get("response_format", "wav")
-        self.audio_file_type = config.get("response_format", "wav")
+        self.format = config.get("response_format", "pcm")
+        self.audio_file_type = config.get("response_format", "pcm")
         self.api_key = config.get("api_key", "YOUR_API_KEY")
-        model_key_msg = check_model_key("FishSpeech TTS", self.api_key)
-        if model_key_msg:
-            logger.bind(tag=TAG).error(model_key_msg)
-            return
+        if self.api_key is None:
+            raise ValueError("FishSpeech API key is required")
+        self.session = Session(self.api_key)
+        
         self.normalize = str(config.get("normalize", True)).lower() in (
             "true",
             "1",
@@ -133,56 +135,25 @@ class TTSProvider(TTSProviderBase):
         )
         self.use_memory_cache = config.get("use_memory_cache", "on")
         self.seed = int(config.get("seed")) if config.get("seed") else None
-        self.api_url = config.get("api_url", "http://127.0.0.1:8080/v1/tts")
 
     async def text_to_speak(self, text, output_file):
         # Prepare reference data
         byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
         ref_texts = [read_ref_text(ref_text) for ref_text in self.reference_text]
 
-        data = {
-            "text": text,
-            "references": [
-                ServeReferenceAudio(audio=audio if audio else b"", text=ref_text)
-                for ref_text, audio in zip(ref_texts, byte_audios)
-            ],
-            "reference_id": self.reference_id,
-            "normalize": self.normalize,
-            "format": self.format,
-            "max_new_tokens": self.max_new_tokens,
-            "chunk_length": self.chunk_length,
-            "top_p": self.top_p,
-            "repetition_penalty": self.repetition_penalty,
-            "temperature": self.temperature,
-            "streaming": self.streaming,
-            "use_memory_cache": self.use_memory_cache,
-            "seed": self.seed,
-        }
-
-        pydantic_data = ServeTTSRequest(**data)
-
-        response = requests.post(
-            self.api_url,
-            data=ormsgpack.packb(
-                pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC
-            ),
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/msgpack",
-            },
+        request = TTSRequest(
+            text=text,
+            references=[ReferenceAudio(audio=audio if audio else b"", text=ref_text) for ref_text, audio in zip(ref_texts, byte_audios)],
+            reference_id=self.reference_id,
+            sample_rate=self.sample_rate,
+            format=self.format,
+            normalize=self.normalize,
         )
+        audio_stream = self.session.tts(request, backend=self.model)
+        audio_bytes = b''.join(chunk for chunk in audio_stream if chunk)
 
-        if response.status_code == 200:
-            audio_content = response.content
-
-            if output_file:
-                with open(output_file, "wb") as audio_file:
-                    audio_file.write(audio_content)
-            else:
-                return audio_content
-
+        if output_file:
+            with open(output_file, "wb") as audio_file:
+                audio_file.write(audio_bytes)
         else:
-            error_msg = f"Request failed with status code {response.status_code}"
-            print(error_msg)
-            print(response.json())
-            raise Exception(error_msg)
+            return audio_bytes
