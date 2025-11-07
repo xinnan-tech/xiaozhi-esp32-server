@@ -1,6 +1,6 @@
 [![Banners](docs/images/banner1.png)](https://github.com/xinnan-tech/xiaozhi-esp32-server)
 
-<h1 align="center">小智后端服务xiaozhi-esp32-server</h1>
+<h1 align="center">小智后端服务xiaozhi-esp32-server</h1>  
 
 <p align="center">
 本项目基于人机共生智能理论和技术研发智能终端软硬件体系<br/>为开源智能硬件项目
