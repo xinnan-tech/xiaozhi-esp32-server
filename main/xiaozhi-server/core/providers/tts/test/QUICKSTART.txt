@@ -1,0 +1,68 @@
+TTS Test Quick Start Guide
+==========================
+
+1. Set API Keys (one-time setup)
+---------------------------------
+
+Add to ~/.zshrc for permanent access:
+
+echo 'export DEEPGRAM_API_KEY="sk-your-key"' >> ~/.zshrc
+echo 'export ELEVENLABS_API_KEY="sk-your-key"' >> ~/.zshrc  
+echo 'export CARTESIA_API_KEY="your-key"' >> ~/.zshrc
+echo 'export MINIMAX_API_KEY="your-key"' >> ~/.zshrc
+echo 'export MINIMAX_GROUP_ID="your-group-id"' >> ~/.zshrc
+source ~/.zshrc
+
+
+2. Run Tests
+------------
+
+cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
+
+# Test Deepgram
+python3 -m core.providers.tts.test.test_deepgram
+
+# Test ElevenLabs  
+python3 -m core.providers.tts.test.test_elevenlabs
+
+# Test Cartesia
+python3 -m core.providers.tts.test.test_cartesia
+
+# Test Minimax
+python3 -m core.providers.tts.test.test_minimax
+
+# Custom text
+python3 -m core.providers.tts.test.test_deepgram "你好世界"
+python3 -m core.providers.tts.test.test_minimax "你好世界"
+
+
+3. Check Output
+---------------
+
+Generated audio files are in:
+core/providers/tts/test/tmp/
+  - deepgram_test.wav
+  - elevenlabs_test.wav
+  - cartesia_test.wav
+  - minimax_test.wav
+
+
+4. Troubleshooting
+------------------
+
+If SDK not installed:
+  pip install deepgram-sdk elevenlabs cartesia aiohttp
+
+If API key error:
+  echo $DEEPGRAM_API_KEY    # Check if set
+  echo $MINIMAX_API_KEY     # Check Minimax key
+  echo $MINIMAX_GROUP_ID    # Check Minimax group ID
+  source ~/.zshrc           # Reload config
+
+If module not found:
+  cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
+  # Make sure you're in the right directory!
+
+
+That's it! 🎉
+

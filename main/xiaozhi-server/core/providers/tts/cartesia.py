@@ -12,13 +12,7 @@ from typing import Optional, Callable, Dict, Any
 from config.logger import setup_logging
 from core.providers.tts.base import TTSProviderBase
 from core.providers.tts.dto.dto import InterfaceType
-
-try:
-    import cartesia
-except ImportError:
-    raise ImportError(
-        "Cartesia SDK not installed. Install with: pip install cartesia"
-    )
+import cartesia
 
 TAG = __name__
 logger = setup_logging()
@@ -51,7 +45,7 @@ class TTSProvider(TTSProviderBase):
         # 标记为单流式接口
         self.interface_type = InterfaceType.SINGLE_STREAM
         # 设置音频文件类型为 WAV
-        self.audio_file_type = "wav"
+        self.audio_file_type = "pcm"
         
         # 获取 API Key
         self.api_key = config.get("api_key") or os.environ.get("CARTESIA_API_KEY")
@@ -81,7 +75,7 @@ class TTSProvider(TTSProviderBase):
         # 音频配置
         self.encoding = config.get("encoding", "pcm_s16le")
         # 确保 sample_rate 是整数类型（配置文件可能返回字符串）
-        sample_rate_value = config.get("sample_rate", 24000)
+        sample_rate_value = config.get("sample_rate", 16000)
         self.sample_rate = int(sample_rate_value) if isinstance(sample_rate_value, str) else sample_rate_value
         
         # 验证至少有一个 voice 配置
@@ -102,7 +96,7 @@ class TTSProvider(TTSProviderBase):
             f"encoding={self.encoding}, sample_rate={self.sample_rate}"
         )
     
-    async def _get_ws_client(self):
+    def _get_ws_client(self):
         """获取或创建 WebSocket 客户端（复用连接）"""
         if self._ws_client is None:
             self._ws_client = self.client.tts.websocket()
@@ -133,12 +127,9 @@ class TTSProvider(TTSProviderBase):
             
         Returns:
             WAV 格式的完整音频字节数据
-        """
-        import io
-        import wave
-        
+        """        
         try:
-            ws = await self._get_ws_client()
+            ws = self._get_ws_client()
             
             pcm_chunks = []
             voice = self._prepare_voice_param()
@@ -162,19 +153,7 @@ class TTSProvider(TTSProviderBase):
             
             # 合并所有 PCM 音频块
             pcm_data = b''.join(pcm_chunks)
-            
-            # 将 PCM 转换为 WAV 格式
-            wav_buffer = io.BytesIO()
-            with wave.open(wav_buffer, 'wb') as wav_file:
-                wav_file.setnchannels(1)  # 单声道
-                wav_file.setsampwidth(2)  # 16-bit = 2 bytes
-                wav_file.setframerate(self.sample_rate)  # 使用配置的采样率
-                wav_file.writeframes(pcm_data)
-            
-            wav_bytes = wav_buffer.getvalue()
-            
-            # 返回完整的 WAV 字节数据
-            return wav_bytes
+            return pcm_data
                 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Cartesia TTS failed: {e}", exc_info=True)

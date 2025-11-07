@@ -40,3 +40,4 @@ vosk==0.3.44
 # TTS SDKs
 elevenlabs>=1.11.0
 cartesia>=1.0.0
+deepgram-sdk>=3.0.0

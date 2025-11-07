@@ -53,7 +53,7 @@ class TTSProvider(TTSProviderBase):
         # 标记为单流式接口
         self.interface_type = InterfaceType.SINGLE_STREAM
         # 设置音频文件类型为 MP3
-        self.audio_file_type = "mp3"
+        self.audio_file_type = "pcm"
         
         # 获取 API Key
         self.api_key = config.get("api_key") or os.environ.get("ELEVEN_API_KEY")
@@ -113,28 +113,24 @@ class TTSProvider(TTSProviderBase):
             # 使用 SDK 的 convert 方法生成完整音频（返回 generator）
             # 强制使用 mp3_44100 格式（忽略配置中的 output_format）
             # 因为 base.py 需要完整的音频文件格式（MP3/WAV），而不是原始 PCM
-            audio_result = self.client.text_to_speech.convert(
+            audio_stream = self.client.text_to_speech.convert(
                 voice_id=self.voice_id,
                 text=text,
                 model_id=self.model,
-                output_format="mp3_44100",  # 强制 MP3 格式，44.1kHz
+                output_format=self.output_format,
                 voice_settings=self.voice_settings
             )
             
             # 检查返回类型
-            if isinstance(audio_result, bytes):
-                # 直接返回 bytes
-                return audio_result
+            if output_file:
+                with open(output_file, 'wb') as f:
+                    for chunk in audio_stream:
+                        f.write(chunk)
             else:
-                # 是 generator，需要收集所有音频块
-                audio_chunks = []
-                for chunk in audio_result:
-                    if chunk:
-                        audio_chunks.append(chunk)
-                
-                # 合并为完整的 MP3 数据
-                mp3_data = b''.join(audio_chunks)
-                return mp3_data
+                audio_bytes = b""
+                for chunk in audio_stream:
+                    audio_bytes += chunk["data"]
+                return audio_bytes
                 
         except Exception as e:
             logger.bind(tag=TAG).error(f"ElevenLabs TTS failed: {e}", exc_info=True)
