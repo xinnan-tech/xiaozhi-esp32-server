@@ -68,7 +68,6 @@ if __name__ == "__main__":
             wf.setsampwidth(2)       # 16-bit (2 bytes) per sample
             wf.setframerate(16000)        # Sample rate (e.g., 16000 Hz)
             wf.writeframes(audio_bytes) 
-        wav_buffer.getvalue()
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
         output_file = os.path.join(script_dir, "tmp", "elevenlabs_test.wav")

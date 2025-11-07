@@ -11,6 +11,11 @@ echo 'export ELEVENLABS_API_KEY="sk-your-key"' >> ~/.zshrc
 echo 'export CARTESIA_API_KEY="your-key"' >> ~/.zshrc
 echo 'export MINIMAX_API_KEY="your-key"' >> ~/.zshrc
 echo 'export MINIMAX_GROUP_ID="your-group-id"' >> ~/.zshrc
+
+# FishSpeech
+echo 'export FISH_API_KEY="your-key"' >> ~/.zshrc
+echo 'export FISH_REFERENCE_ID="reference-id"' >> ~/.zshrc  # optional
+
 source ~/.zshrc
 
 
@@ -31,9 +36,13 @@ python3 -m core.providers.tts.test.test_cartesia
 # Test Minimax
 python3 -m core.providers.tts.test.test_minimax
 
+# Test FishSpeech
+python3 -m core.providers.tts.test.test_fishspeech
+
 # Custom text
 python3 -m core.providers.tts.test.test_deepgram "你好世界"
 python3 -m core.providers.tts.test.test_minimax "你好世界"
+python3 -m core.providers.tts.test.test_fishspeech "你好世界"
 
 
 3. Check Output
@@ -45,19 +54,21 @@ core/providers/tts/test/tmp/
   - elevenlabs_test.wav
   - cartesia_test.wav
   - minimax_test.wav
+  - fishspeech_test.wav
 
 
 4. Troubleshooting
 ------------------
 
 If SDK not installed:
-  pip install deepgram-sdk elevenlabs cartesia aiohttp
+  pip install deepgram-sdk elevenlabs cartesia aiohttp fish-audio-sdk
 
 If API key error:
-  echo $DEEPGRAM_API_KEY    # Check if set
-  echo $MINIMAX_API_KEY     # Check Minimax key
-  echo $MINIMAX_GROUP_ID    # Check Minimax group ID
-  source ~/.zshrc           # Reload config
+  echo $DEEPGRAM_API_KEY        # Check if set
+  echo $MINIMAX_API_KEY         # Check Minimax key
+  echo $MINIMAX_GROUP_ID        # Check Minimax group ID
+  echo $FISH_API_KEY            # Check FishSpeech key
+  source ~/.zshrc               # Reload config
 
 If module not found:
   cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
