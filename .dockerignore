@@ -1,7 +1,0 @@
-.git
-__pycache__
-*.pyc
-.env
-Dockerfile
-tmp/
-data/
