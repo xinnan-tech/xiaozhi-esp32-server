@@ -1,11 +1,9 @@
 import base64
-import requests
-import ormsgpack
 from pathlib import Path
 from pydantic import BaseModel, Field, conint, model_validator
 from typing_extensions import Annotated
 from typing import Literal
-from core.utils.util import check_model_key, parse_string_to_list
+from core.utils.util import parse_string_to_list
 from core.providers.tts.base import TTSProviderBase
 from config.logger import setup_logging
 from fish_audio_sdk import Session, TTSRequest, ReferenceAudio
