@@ -12,7 +12,8 @@ from io import BytesIO
 from core.utils import p3
 from pydub import AudioSegment
 from typing import Callable, Any
-
+from config.logger import setup_logging
+logger = setup_logging()
 TAG = __name__
 emoji_map = {
     "neutral": "😶",
@@ -317,13 +318,12 @@ def audio_bytes_to_data_stream(audio_bytes, file_type, is_opus, callback: Callab
     """
     transfer audio bytes to opus/pcm data, support wav、mp3、p3、pcm
     """
+    logger.bind(tag=TAG).info(f"audio_bytes_to_data_stream: {file_type}")
     if file_type == "p3":
         # 直接用p3解码
         return p3.decode_opus_from_bytes_stream(audio_bytes, callback)
     elif file_type == "pcm":
-        audio = AudioSegment.from_raw(
-            BytesIO(audio_bytes),
-        ) 
+        return pcm_to_data_stream(audio_bytes, is_opus, callback)
     else:
         # other formats use pydub
         audio = AudioSegment.from_file(
