@@ -52,7 +52,7 @@ class TTSProvider(TTSProviderBase):
         
         # 标记为单流式接口
         self.interface_type = InterfaceType.SINGLE_STREAM
-        # 设置音频文件类型为 MP3
+        # 设置音频文件类型为 PCM
         self.audio_file_type = "pcm"
         
         # 获取 API Key
@@ -95,24 +95,23 @@ class TTSProvider(TTSProviderBase):
         logger.bind(tag=TAG).info(
             f"ElevenLabs SDK initialized: model={self.model}, "
             f"voice_id={self.voice_id[:8]}..., "
-            f"format=mp3_44100"
+            f"format={self.output_format}"
         )
     
     async def text_to_speak(self, text: str, output_file: Optional[str] = None) -> Optional[bytes]:
         """
-        将文本转换为 MP3 格式音频（完整音频，非流式）
+        将文本转换为 PCM 格式音频（完整音频，非流式）
         
         Args:
             text: 要合成的文本
             output_file: 输出文件路径（未使用，保留兼容性）
             
         Returns:
-            MP3 格式的完整音频字节数据
+            PCM 格式的完整音频字节数据
         """
         try:
             # 使用 SDK 的 convert 方法生成完整音频（返回 generator）
-            # 强制使用 mp3_44100 格式（忽略配置中的 output_format）
-            # 因为 base.py 需要完整的音频文件格式（MP3/WAV），而不是原始 PCM
+            # 使用配置的 output_format（如 pcm_16000）
             audio_stream = self.client.text_to_speech.convert(
                 voice_id=self.voice_id,
                 text=text,
@@ -127,9 +126,7 @@ class TTSProvider(TTSProviderBase):
                     for chunk in audio_stream:
                         f.write(chunk)
             else:
-                audio_bytes = b""
-                for chunk in audio_stream:
-                    audio_bytes += chunk["data"]
+                audio_bytes = b''.join(chunk for chunk in audio_stream if chunk)
                 return audio_bytes
                 
         except Exception as e:

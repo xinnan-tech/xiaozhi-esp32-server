@@ -44,7 +44,7 @@ class TTSProvider(TTSProviderBase):
         
         # 标记为单流式接口
         self.interface_type = InterfaceType.SINGLE_STREAM
-        # 设置音频文件类型为 WAV
+        # 设置音频文件类型为 PCM
         self.audio_file_type = "pcm"
         
         # 获取 API Key
@@ -119,14 +119,14 @@ class TTSProvider(TTSProviderBase):
     
     async def text_to_speak(self, text: str, output_file: Optional[str] = None) -> Optional[bytes]:
         """
-        将文本转换为 WAV 格式音频（完整音频，非流式）
+        将文本转换为 PCM 格式音频（完整音频，非流式）
         
         Args:
             text: 要合成的文本
             output_file: 输出文件路径（未使用，保留兼容性）
             
         Returns:
-            WAV 格式的完整音频字节数据
+            PCM 格式的完整音频字节数据
         """        
         try:
             ws = self._get_ws_client()
