@@ -51,10 +51,7 @@ class TTSProvider(TTSProviderBase):
                     for chunk in audio_stream:
                         f.write(chunk)
             else:
-                audio_bytes = b""
-                for chunk in audio_stream:
-                    audio_bytes += chunk["data"]
-                return audio_bytes
+                return b''.join(audio_stream)
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Deepgram TTS failed: {e}", exc_info=True)
