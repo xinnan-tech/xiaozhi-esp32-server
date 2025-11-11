@@ -170,7 +170,7 @@ services:
 networks:
   xiaozhi-network:
     driver: bridge
-    name: xiaozhi-local-network
+    name: xiaozhi-network
 
 # ============================================================================
 # Volumes (optional - for named volumes instead of bind mounts)
