@@ -57,7 +57,10 @@ class TTSProvider(TTSProviderBase):
         
         # Voice 配置（支持 voice_id 或 voice_embedding）
         # 优先读取顶层 voice_id，然后检查嵌套的 voice.id 和 voice.embedding
-        self.voice_id = config.get("voice_id", "")
+        if config.get("private_voice"):
+            self.voice_id = config.get("private_voice")
+        else:
+            self.voice_id = config.get("voice_id", "")
         self.voice_embedding = None
         
         if not self.voice_id:
