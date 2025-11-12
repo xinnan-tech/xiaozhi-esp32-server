@@ -1,0 +1,147 @@
+LLM Model Benchmark Guide
+=========================
+
+This benchmark script tests multiple LLM models from different providers
+and generates a detailed performance comparison report.
+
+1. Prerequisites
+----------------
+
+# Set API keys
+export GROQ_API_KEY="gsk_your_key_here"
+export OPENROUTER_API_KEY="sk-or-v1-your_key_here"
+
+# Install dependencies
+pip install openai
+
+
+2. Quick Start
+--------------
+
+cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
+
+# Run the benchmark
+python3 -m core.providers.llm.test.benchmark
+
+# Output file: core/providers/llm/test/benchmark_report.md
+
+
+3. What Gets Tested
+-------------------
+
+Groq Models:
+- llama-3.3-70b-versatile
+- openai/gpt-oss-120b
+- groq/compound
+
+OpenRouter Models:
+- openai/gpt-4o
+- anthropic/claude-sonnet-4.5
+- openai/gpt-5
+- google/gemini-2.5
+
+
+4. Metrics Collected
+--------------------
+
+For each model:
+✅ TTFT (Time to First Token) - How fast the model starts responding
+✅ Total Latency - Complete response time
+✅ Response Length - Character count
+✅ Token Chunks - Number of streaming chunks
+✅ Avg Token Time - Average generation speed per token
+
+
+5. Customizing the Test
+-----------------------
+
+Edit benchmark.py to customize:
+
+# Change test prompt
+TEST_PROMPT = "Your custom question here"
+
+# Add/remove models
+GROQ_MODELS = [
+    "llama-3.3-70b-versatile",
+    "your-custom-model",
+]
+
+OPENROUTER_MODELS = [
+    "openai/gpt-4o",
+    "your-custom-model",
+]
+
+
+6. Output Report Structure
+--------------------------
+
+The generated markdown report includes:
+
+📊 Performance Metrics Summary
+   - Ranked table by TTFT (fastest to slowest)
+   - Failed model information
+
+📈 Detailed Performance Metrics
+   - Per-provider breakdown
+   - All performance metrics
+
+📝 Response Samples
+   - Preview of each model's response
+
+🏆 Performance Analysis
+   - Fastest/slowest models
+   - Provider comparison
+   - Speed differences
+
+
+7. Example Output
+-----------------
+
+See benchmark_report_example.md for a sample output.
+
+Key insights from example:
+- Groq models: 234-289ms TTFT
+- OpenRouter models: 412-612ms TTFT
+- Groq is ~50% faster on average
+
+
+8. Tips
+-------
+
+✅ Run during off-peak hours for consistent results
+✅ Multiple runs recommended for averaging
+✅ Script includes 1-second delay between tests (rate limiting)
+✅ Failed models are tracked but don't stop the benchmark
+✅ Results saved automatically to benchmark_report.md
+
+
+9. Troubleshooting
+------------------
+
+If models fail:
+- Check API key validity
+- Verify model names are correct
+- Check rate limits
+- Review error messages in report
+
+If script hangs:
+- Press Ctrl+C to stop
+- Partial results may be incomplete
+- Re-run for complete benchmark
+
+
+10. Advanced Usage
+------------------
+
+# Test specific providers only
+unset OPENROUTER_API_KEY  # Skip OpenRouter models
+
+# Run multiple times for averaging
+for i in {1..3}; do
+  python3 -m core.providers.llm.test.benchmark
+  mv benchmark_report.md benchmark_report_$i.md
+done
+
+
+That's it! 🚀
+
