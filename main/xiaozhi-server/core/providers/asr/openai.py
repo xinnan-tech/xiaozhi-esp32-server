@@ -50,7 +50,7 @@ class ASRProvider(ASRProviderBase):
                     file=audio_file,
                     response_format="text"
                 )
-                logger.bind(tag=TAG).info(
+                logger.bind(tag=TAG).debug(
                     f"Audio transcription latency: {time.time() - start_time:.3f}s | Result: {transcription}"
                 )
 
