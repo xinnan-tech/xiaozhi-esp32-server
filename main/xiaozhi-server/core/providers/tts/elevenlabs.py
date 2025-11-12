@@ -64,7 +64,10 @@ class TTSProvider(TTSProviderBase):
             )
         
         # Voice 配置
-        self.voice_id = config.get("voice_id", "21m00Tcm4TlvDq8ikWAM")  # Rachel (default)
+        if config.get("private_voice"):
+            self.voice_id = config.get("private_voice")
+        else:
+            self.voice_id = config.get("voice_id", "21m00Tcm4TlvDq8ikWAM")  # Rachel (default)
         
         # 模型配置
         self.model = config.get("model", "eleven_multilingual_v2")
