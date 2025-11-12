@@ -45,16 +45,16 @@ class ASRProvider(ASRProviderBase):
             with open(file_path, "rb") as audio_file:  # with open to ensure file is closed
 
                 start_time = time.time()
-                transcription: Transcription = self._client.audio.transcriptions.create(
+                transcription: str = self._client.audio.transcriptions.create(
                     model=self.model,
                     file=audio_file,
                     response_format="text"
                 )
                 logger.bind(tag=TAG).debug(
-                    f"Audio transcription latency: {time.time() - start_time:.3f}s | Result: {transcription.text}"
+                    f"Audio transcription latency: {time.time() - start_time:.3f}s | Result: {transcription}"
                 )
 
-            return transcription.text, file_path
+            return transcription, file_path
                 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Audio transcription failed: {e}")

@@ -1430,6 +1430,12 @@
                     };
 
                     log('使用AudioWorklet处理音频', 'success');
+                    // 需要连接输出，否则不会触发处理
+                    // 我们创建一个静音通道
+                    const silent = audioContext.createGain();
+                    silent.gain.value = 0;
+                    audioProcessor.connect(silent);
+                    silent.connect(audioContext.destination);
                     return { node: audioProcessor, type: 'worklet' };
                 } else {
                     // 使用旧版ScriptProcessorNode作为回退方案
@@ -1603,6 +1609,11 @@
 
                 // 创建音频上下文和分析器
                 audioContext = getAudioContextInstance();
+
+                // 浏览器出于安全和性能考虑，新创建的 AudioContext 默认处于 suspended 状态，必须显式调用 resume() 才会开始处理音频。
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
 
                 // 创建音频处理器
                 const processorResult = await createAudioProcessor();
