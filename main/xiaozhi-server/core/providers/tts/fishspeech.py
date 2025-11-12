@@ -82,9 +82,12 @@ class TTSProvider(TTSProviderBase):
         super().__init__(config, delete_audio_file)
 
         self.model = config.get("model", "s1")
-        self.reference_id = (
-            None if not config.get("reference_id") else config.get("reference_id")
-        )
+        if config.get("private_voice"):
+            self.reference_id = config.get("private_voice")
+        else:    
+            self.reference_id = (
+                None if not config.get("reference_id") else config.get("reference_id")
+            )
         self.reference_audio = parse_string_to_list(
              config.get('ref_audio')if config.get('ref_audio') else config.get("reference_audio")
         )
