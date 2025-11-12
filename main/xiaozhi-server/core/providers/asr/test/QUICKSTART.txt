@@ -1,0 +1,126 @@
+ASR Test Quick Start Guide
+==========================
+
+1. Set API Keys (one-time setup)
+---------------------------------
+
+Add to ~/.zshrc for permanent access:
+
+# Groq
+echo 'export GROQ_API_KEY="gsk_your_key_here"' >> ~/.zshrc
+
+# OpenAI
+echo 'export OPENAI_API_KEY="sk-proj-your_key_here"' >> ~/.zshrc
+
+source ~/.zshrc
+
+
+2. Install Dependencies
+-----------------------
+
+# Install required packages
+pip install openai pyaudio
+
+
+3. Run Tests
+------------
+
+cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
+
+# Test Groq ASR (with recording)
+python3 -m core.providers.asr.test.test_groq
+
+# Test Groq ASR (with existing audio file)
+python3 -m core.providers.asr.test.test_groq /path/to/audio.wav
+
+# Test OpenAI ASR (with recording)
+python3 -m core.providers.asr.test.test_openai
+
+# Test OpenAI ASR (with existing audio file)
+python3 -m core.providers.asr.test.test_openai /path/to/audio.wav
+
+# Test audio recorder only
+python3 -m core.providers.asr.test.audio_recorder
+
+
+4. Available Models
+-------------------
+
+Groq Models:
+- whisper-large-v3 (default, best accuracy)
+- whisper-large-v3-turbo (faster)
+
+OpenAI Models:
+- whisper-1 (official OpenAI Whisper)
+
+
+5. Recording Instructions
+-------------------------
+
+When running the test:
+1. Press Enter to START recording
+2. Speak into your microphone
+3. Press Enter to STOP recording
+4. Wait for transcription result
+
+
+6. Example Output
+-----------------
+
+🤖 OpenAI ASR Test
+   API: https://api.openai.com/v1
+   Model: whisper-1
+   Audio: core/providers/asr/test/tmp/recording_20251111_143022.wav
+   Size: 256.3 KB
+
+⏳ Transcribing audio...
+============================================================
+✅ Transcription Result:
+============================================================
+
+Hello, this is a test of OpenAI Whisper speech recognition.
+
+============================================================
+⏱️  Latency: 1523 ms (1.52s)
+============================================================
+
+✅ Test completed successfully!
+
+
+7. Check Output
+---------------
+
+Generated audio files are in:
+core/providers/asr/test/tmp/
+  - recording_YYYYMMDD_HHMMSS.wav
+
+
+8. Troubleshooting
+------------------
+
+If API key error:
+  echo $GROQ_API_KEY              # Check Groq key
+  echo $OPENAI_API_KEY            # Check OpenAI key
+  source ~/.zshrc                 # Reload config
+
+If pyaudio not installed:
+  pip install pyaudio
+  
+  # macOS (if pip install fails):
+  brew install portaudio
+  pip install pyaudio
+
+If OpenAI SDK not installed:
+  pip install openai
+
+If module not found:
+  cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
+  # Make sure you're in the right directory!
+
+Get API keys:
+  Groq: https://console.groq.com/keys
+  OpenAI: https://platform.openai.com/api-keys
+
+
+That's it! 🎉
+

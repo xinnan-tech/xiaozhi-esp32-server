@@ -78,7 +78,8 @@ class VADProvider(VADProviderBase):
                 if conn.client_have_voice and not client_have_voice:
                     stop_duration = time.time() * 1000 - conn.last_activity_time
                     if stop_duration >= self.silence_threshold_ms:
-                        conn.client_voice_stop = True
+                        if conn.client_listen_mode != "manual":
+                            conn.client_voice_stop = True
                 if client_have_voice:
                     conn.client_have_voice = True
                     conn.last_activity_time = time.time() * 1000

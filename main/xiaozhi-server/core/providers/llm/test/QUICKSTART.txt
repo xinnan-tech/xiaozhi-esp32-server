@@ -1,0 +1,182 @@
+LLM Test Quick Start Guide
+==========================
+
+1. Set API Keys (one-time setup)
+---------------------------------
+
+Add to ~/.zshrc for permanent access:
+
+# Groq
+echo 'export GROQ_API_KEY="gsk_your_key_here"' >> ~/.zshrc
+echo 'export GROQ_MODEL="openai/gpt-oss-120b"' >> ~/.zshrc  # optional
+
+# OpenRouter
+echo 'export OPENROUTER_API_KEY="sk-or-v1-your_key_here"' >> ~/.zshrc
+echo 'export OPENROUTER_MODEL="openai/gpt-4o"' >> ~/.zshrc  # optional
+
+# OpenAI
+echo 'export OPENAI_API_KEY="sk-proj-your_key_here"' >> ~/.zshrc
+echo 'export OPENAI_MODEL="gpt-4o-mini"' >> ~/.zshrc  # optional
+
+# Google Gemini
+echo 'export GOOGLE_API_KEY="your_api_key_here"' >> ~/.zshrc
+echo 'export GOOGLE_MODEL="gemini-2.0-flash-exp"' >> ~/.zshrc  # optional
+
+source ~/.zshrc
+
+
+2. Install Dependencies
+-----------------------
+
+# Install required packages
+pip install openai google-generativeai
+
+
+3. Run Tests
+------------
+
+cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
+
+# Test with default prompt and model
+python3 -m core.providers.llm.test.test_groq
+python3 -m core.providers.llm.test.test_openrouter
+python3 -m core.providers.llm.test.test_openai
+python3 -m core.providers.llm.test.test_google
+
+# Test with custom prompt
+python3 -m core.providers.llm.test.test_groq "What is machine learning?"
+python3 -m core.providers.llm.test.test_openai "解释一下什么是人工智能"
+
+# Test with custom model (specify model via --model flag)
+python3 -m core.providers.llm.test.test_groq --model llama-3.1-8b-instant
+python3 -m core.providers.llm.test.test_openrouter --model anthropic/claude-3.5-sonnet
+python3 -m core.providers.llm.test.test_openai --model gpt-4o
+python3 -m core.providers.llm.test.test_google --model gemini-1.5-pro
+
+# Test with custom prompt and model
+python3 -m core.providers.llm.test.test_groq "Tell me a joke" --model mixtral-8x7b-32768
+python3 -m core.providers.llm.test.test_openai "讲个笑话" --model gpt-4o-mini
+
+
+4. Available Models
+-------------------
+
+Groq Models:
+- openai/gpt-oss-120b (default, fast)
+- llama-3.3-70b-versatile (best balance)
+- llama-3.1-8b-instant (fastest)
+- mixtral-8x7b-32768 (large context)
+
+OpenRouter Models:
+- openai/gpt-4o (default, best quality)
+- openai/gpt-4o-mini (faster, cheaper)
+- anthropic/claude-3.5-sonnet
+- google/gemini-pro-1.5
+- meta-llama/llama-3.3-70b-instruct
+
+OpenAI Models:
+- gpt-4o-mini (default, fast & cheap)
+- gpt-4o (best quality)
+- gpt-4-turbo
+- gpt-3.5-turbo
+
+Google Gemini Models:
+- gemini-2.0-flash-exp (default, fastest, experimental)
+- gemini-1.5-pro (best quality)
+- gemini-1.5-flash (fast & balanced)
+- gemini-1.0-pro (stable)
+
+Set models:
+export GROQ_MODEL="llama-3.1-8b-instant"
+export OPENROUTER_MODEL="openai/gpt-4o-mini"
+export OPENAI_MODEL="gpt-4o"
+export GOOGLE_MODEL="gemini-1.5-flash"
+
+
+5. Output Metrics
+-----------------
+
+Test measures streaming performance:
+- ⚡ TTFT (Time to First Token): How fast the model starts responding
+- ⏱️  Total Latency: Total time to complete the response
+- 📝 Response Length: Character count
+- 🔢 Token Chunks: Number of chunks received
+- 🚀 Avg Time per Token: Average generation speed
+
+
+6. Example Output
+-----------------
+
+🤖 Groq LLM Test (Streaming)
+   API: https://api.groq.com/openai/v1
+   Model: llama-3.3-70b-versatile
+   Prompt: Hello! Please introduce yourself briefly in 2-3...
+
+⏳ Generating response...
+
+============================================================
+Hello! I'm an AI assistant powered by Groq. I'm designed 
+to be helpful, informative, and conversational. How can I 
+assist you today?
+============================================================
+
+📊 Performance Metrics:
+   ⚡ TTFT (Time to First Token): 234 ms
+   ⏱️  Total Latency: 1567 ms (1.57s)
+   📝 Response Length: 123 characters
+   🔢 Token Chunks: 45
+   🚀 Avg Time per Token: 29.6 ms
+
+✅ Test completed successfully!
+
+
+7. Troubleshooting
+------------------
+
+If API key error:
+  echo $GROQ_API_KEY              # Check Groq key
+  echo $OPENROUTER_API_KEY        # Check OpenRouter key
+  echo $OPENAI_API_KEY            # Check OpenAI key
+  echo $GOOGLE_API_KEY            # Check Google key
+  source ~/.zshrc                 # Reload config
+
+If packages not installed:
+  pip install openai google-generativeai
+
+If module not found:
+  cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
+  # Make sure you're in the right directory!
+
+Get API keys:
+  Groq: https://console.groq.com/keys
+  OpenRouter: https://openrouter.ai/keys
+  OpenAI: https://platform.openai.com/api-keys
+  Google: https://aistudio.google.com/apikey
+
+
+8. Benchmark Multiple Models
+----------------------------
+
+Run benchmark to test multiple models and generate performance report:
+
+cd /Users/harold/Projects/live-agent/main/xiaozhi-server/
+
+# Run benchmark (requires both GROQ_API_KEY and OPENROUTER_API_KEY)
+python3 -m core.providers.llm.test.benchmark
+
+# Output: benchmark_report.md with detailed performance comparison
+
+
+9. Tips
+-------
+
+- TTFT is crucial for chat applications (aim for <500ms)
+- Groq is known for extremely fast inference speed
+- Lower TTFT = better user experience
+- Token chunks count may vary based on response length
+- Adjust temperature (0-2) in code for creativity control
+- Use benchmark script to compare multiple models at once
+
+
+That's it! 🎉
+
