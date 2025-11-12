@@ -14,6 +14,8 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
+from mcp.types import LoggingMessageNotificationParams
+
 from config.logger import setup_logging
 from core.utils.util import sanitize_tool_name
 
@@ -40,6 +42,12 @@ class ServerMCPClient:
         self.tools: List = []  # 原始工具对象
         self.tools_dict: Dict[str, Any] = {}
         self.name_mapping: Dict[str, str] = {}
+
+    async def logging_callback(self, params: LoggingMessageNotificationParams):
+        self.logger.bind(tag=TAG).info(f"[Server Log - {params.level.upper()}] {params.data}")
+
+    async def progress_callback(self, progress: float, total: float | None, message: str | None) -> None:
+        self.logger.bind(tag=TAG).info(f"[Progress {progress}/{total}]: {message}")
 
     async def initialize(self):
         """初始化MCP客户端连接"""
@@ -115,7 +123,7 @@ class ServerMCPClient:
 
         real_name = self.name_mapping.get(name, name)
         loop = self._worker_task.get_loop()
-        coro = self.session.call_tool(real_name, args)
+        coro = self.session.call_tool(real_name, arguments=args, progress_callback=self.progress_callback)
 
         if loop is asyncio.get_running_loop():
             return await coro
@@ -209,6 +217,7 @@ class ServerMCPClient:
                         read_stream=read_stream,
                         write_stream=write_stream,
                         read_timeout_seconds=timedelta(seconds=15),
+                        logging_callback=self.logging_callback
                     )
                 )
                 await self.session.initialize()
