@@ -12,7 +12,6 @@ Author: Huynh Tran
    / _ \ | |_) || |\/| |
   / ___ \|  _ < | |  | |
  /_/   \_\_| \_\|_|  |_|
-
 EOF
 echo -e "\e[0m"  # Reset color
 echo -e "\e[1;36m  ARM64 Architecture Deployment Script - Author: Huynh Tran \e[0m\n"
@@ -59,7 +58,7 @@ fi
 IMAGE_NAME="xiaozhi-esp32-server:server-base"
 if ! docker image inspect $IMAGE_NAME >/dev/null 2>&1; then
     echo "🏗️ Building backend Docker image for ARM64..."
-    docker buildx build --platform linux/arm64 \
+    docker buildx build --no-cache --platform linux/arm64 \
         -t $IMAGE_NAME \
         -f ./Dockerfile-server-base \
         .
