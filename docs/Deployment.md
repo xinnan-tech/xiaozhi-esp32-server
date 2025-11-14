@@ -1,6 +1,73 @@
 # 部署架构图
 ![请参考-最简化架构图](../docs/images/deploy1.png)
-# 方式一：Docker只运行Server
+
+# 方式一: [使用一键安装脚本](https://github.com/haotianshouwang/xiaozhi-server-installer-docker.sh)
+
+### 方式一：通过 curl 或 wget 下载并执行（一行命令）
+- 这个脚本会自动安装Docker、Docker管理器、配置ASR/LLM/VLLM/TTS、启动服务，并带有服务器监控面板
+  
+### 使用 curl
+```bash
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/haotianshouwang/xiaozhi-server-installer-docker.sh/refs/heads/main/xiaozhi-server-installer-docker.sh | sudo tee /tmp/xiaozhi-installer.sh > /dev/null && sudo bash /tmp/xiaozhi-installer.sh
+```
+
+### 使用 wget
+```bash
+wget -qO- https://gh-proxy.com/https://raw.githubusercontent.com/haotianshouwang/xiaozhi-server-installer-docker.sh/refs/heads/main/xiaozhi-server-installer-docker.sh | sudo tee /tmp/xiaozhi-installer.sh > /dev/null && sudo bash /tmp/xiaozhi-installer.sh
+```
+
+### 方式二：管道执行
+```bash
+# 直接通过管道执行，无需下载文件
+curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/haotianshouwang/xiaozhi-server-installer-docker.sh/refs/heads/main/xiaozhi-server-installer-docker.sh| sudo bash
+```
+
+```bash
+# 备用加速站点
+curl -fsSL https://gh.llkk.cc/https://raw.githubusercontent.com/haotianshouwang/xiaozhi-server-installer-docker.sh/refs/heads/main/xiaozhi-server-installer-docker.sh | sudo bash
+```
+
+```bash
+# GitHub 链接
+curl -fsSL https://raw.githubusercontent.com/haotianshouwang/xiaozhi-server-installer-docker.sh/refs/heads/main/xiaozhi-server-installer-docker.sh | sudo bash
+```
+
+### 方式三：下载后执行
+```bash
+# 1. 下载脚本
+curl -O https://gh-proxy.org/https://raw.githubusercontent.com/haotianshouwang/xiaozhi-server-installer-docker.sh/refs/heads/main/xiaozhi-server-installer-docker.sh
+
+# 2. 添加执行权限
+chmod +x xiaozhi-server-installer-docker.sh
+
+# 3. 以root权限执行
+sudo ./xiaozhi-server-installer-docker.sh
+```
+```bash
+#备用加速站点
+# 1. 下载脚本
+curl -O https://gh.llkk.cc/https://raw.githubusercontent.com/haotianshouwang/xiaozhi-server-installer-docker.sh/refs/heads/main/xiaozhi-server-installer-docker.sh
+
+# 2. 添加执行权限
+chmod +x xiaozhi-server-installer-docker.sh
+
+# 3. 以root权限执行
+sudo ./xiaozhi-server-installer-docker.sh
+```
+
+```bash
+# GitHub链接
+# 1. 下载脚本
+curl -O https://raw.githubusercontent.com/haotianshouwang/xiaozhi-server-installer-docker.sh/refs/heads/main/xiaozhi-server-installer-docker.sh
+
+# 2. 添加执行权限
+chmod +x xiaozhi-server-installer-docker.sh
+
+# 3. 以root权限执行
+sudo ./xiaozhi-server-installer-docker.sh
+```
+
+# 方式二：Docker只运行Server
 
 `0.8.2`版本开始，本项目发行的docker镜像只支持`x86架构`，如果需要在`arm64架构`的CPU上部署，可按照[这个教程](docker-build.md)在本机编译`arm64的镜像`。
 
