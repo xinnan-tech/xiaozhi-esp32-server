@@ -178,7 +178,7 @@ docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
 
 5.3、重新按docker方式部署
 
-# 方式二：本地源码只运行Server
+# 方式三：本地源码只运行Server
 
 ## 1.安装基础环境
 
