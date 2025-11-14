@@ -97,8 +97,8 @@ CONFIG_FILE="$DATA_DIR/.config.yaml"
 if [ -n "$SECRET_KEY" ]; then
     echo "🔑 Checking if pyyaml is installed..."
     if ! python3 -c "import yaml" >/dev/null 2>&1; then
-        echo "⚠️ Module pyyaml not found. Installing now..."
-        python3 -m pip install --user pyyaml
+        echo "⚠️ Module pyyaml not found. Installing with apt..."
+        sudo apt-get install -y python3-yaml
     else
         echo "✅ pyyaml is already installed."
     fi
