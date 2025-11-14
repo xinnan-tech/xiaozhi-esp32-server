@@ -3,6 +3,22 @@
 
 set -e  # Exit immediately if any command fails
 
+# ==== ARM64 Banner & Author ====
+echo -e "\e[1;32m"  # Bright green color
+cat << "EOF"
+Author: Huynh Tran
+     _    ____   __  __ 
+    / \  |  _ \ |  \/  |
+   / _ \ | |_) || |\/| |
+  / ___ \|  _ < | |  | |
+ /_/   \_\_| \_\|_|  |_|
+
+EOF
+echo -e "\e[0m"  # Reset color
+echo -e "\e[1;36m  ARM64 Architecture Deployment Script - Author: Huynh Tran \e[0m\n"
+sleep 1
+# ==== End of Banner ====
+
 # ========== 1. Create required directories ==========
 BASE_DIR="/main/xiaozhi-server"
 DATA_DIR="$BASE_DIR/data"
@@ -27,8 +43,6 @@ fi
 if ! command -v docker >/dev/null 2>&1; then
     echo "🐳 Docker not found. Installing Docker..."
     curl -fsSL https://get.docker.com | sh
-    sudo usermod -aG docker $USER
-    newgrp docker
 else
     echo "✅ Docker already installed. Skipping..."
 fi
@@ -72,7 +86,7 @@ echo "  - Local: http://127.0.0.1:8002/"
 echo "  - Public: http://$PUBLIC_IP:8002/"
 echo ""
 echo "Open the above link in your browser and register the first admin account."
-echo "Then log in → Go to 'Parameter Dictionary' → 'Parameter Management' → Find entry with Code: server.secret"
+echo "Then log in → Go to 'More' → 'Parameter Management' → Find entry with Code: server.secret"
 echo "Copy its value and paste it below."
 echo ""
 
