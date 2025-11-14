@@ -6,6 +6,7 @@ set -e  # Exit immediately if any command fails
 # ==== ARM64 Banner & Author ====
 echo -e "\e[1;32m"  # Bright green color
 cat << "EOF"
+Reference: VanillaNahida
 Author: Huynh Tran
      _    ____   __  __ 
     / \  |  _ \ |  \/  |
@@ -94,6 +95,13 @@ read -p "Please enter server.secret (leave blank to skip): " SECRET_KEY
 # ========== 7. Write secret-key into config ==========
 CONFIG_FILE="$DATA_DIR/.config.yaml"
 if [ -n "$SECRET_KEY" ]; then
+    echo "🔑 Checking if pyyaml is installed..."
+    if ! python3 -c "import yaml" >/dev/null 2>&1; then
+        echo "⚠️ Module pyyaml not found. Installing now..."
+        python3 -m pip install --user pyyaml
+    else
+        echo "✅ pyyaml is already installed."
+    fi
     echo "🔑 Writing secret key into $CONFIG_FILE ..."
     python3 - <<EOF
 import yaml, os
