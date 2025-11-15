@@ -1,6 +1,6 @@
 #!/bin/sh
 # Script author @VanillaNahida
-This file is for automatically downloading the files required for this project with one click and automatically creating the directory.
+# This file is for automatically downloading the files required for this project with one click and automatically creating the directory.
 # Currently only supports x86 versions of Ubuntu; other systems have not been tested.
 
 # Define interrupt handler function
@@ -27,7 +27,7 @@ stty -icanon -echo min 1 time 0
         # Esc key detected, interrupt handling triggered
         kill -SIGINT $$
         break
-    be
+    fi
 done) &
 
 # Restore terminal settings when the script ends
