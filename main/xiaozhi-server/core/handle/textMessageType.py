@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class TextMessageType(Enum):
-    """消息类型枚举"""
+    """Message type enum"""
     HELLO = "hello"
     ABORT = "abort"
     LISTEN = "listen"

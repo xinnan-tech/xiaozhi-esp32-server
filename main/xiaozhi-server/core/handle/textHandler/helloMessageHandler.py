@@ -6,7 +6,7 @@ from core.handle.textMessageType import TextMessageType
 
 
 class HelloTextMessageHandler(TextMessageHandler):
-    """Hello消息处理器"""
+    """Hello message handler"""
 
     @property
     def message_type(self) -> TextMessageType:

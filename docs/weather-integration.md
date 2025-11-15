@@ -1,64 +1,63 @@
-# 天气插件使用指南
+# Weather Plugin Usage Guide
 
-## 概述
+## Overview
 
-天气插件 `get_weather` 是小智ESP32语音助手的核心功能之一，支持通过语音查询全国各地的天气信息。插件基于和风天气API，提供实时天气和7天天气预报功能。
+The `get_weather` weather plugin is a core feature of Xiaozhi's ESP32 voice assistant, allowing you to query weather information for locations across the country via voice. Based on the Hefeng Weather API, the plugin provides real-time weather and a 7-day forecast.
 
-## API Key 申请指南
+## API Key Application Guide
 
-### 1. 注册和风天气账号
+### 1. Register a Hefeng Weather account
 
-1. 访问 [和风天气控制台](https://console.qweather.com/)
-2. 注册账号并完成邮箱验证
-3. 登录控制台
+1. Visit the QWeather console
+2. Register an account and complete email verification
+3. Log in to the console
 
-### 2. 创建应用获取API Key
+### 2. Create an application and obtain an API Key
 
-1. 进入控制台后，点击右侧["项目管理"](https://console.qweather.com/project?lang=zh) → "创建项目"
-2. 填写项目信息：
-   - **项目名称**：如"小智语音助手"
-3. 点击保存
-4. 项目创建完成后，在该项目中点击"创建凭据"
-5. 填写凭据信息：
-    - **凭据名称**：如"小智语音助手"
-    - **身份认证方式**：选择"API Key"
-6. 点击保存
-7. 在凭据中复制`API Key`，这是第一个关键的配置信息
+1. After entering the console, click ["Project Management"](https://console.qweather.com/project?lang=zh) on the right → "Create Project"
+2. Fill in the project information:
+   - **Project Name**: such as "Xiaozhi Voice Assistant"
+3. Click Save
+4. After the project is created, click "Create Credentials" in the project
+5. Fill in the credentials:
+    - **Credential Name**: such as "Xiaozhi Voice Assistant"
+    - **Authentication method**: Select "API Key"
+6. Click Save
+7. Copy the `API Key` in the credentials, which is the first key configuration information
 
-### 3. 获取API Host
+### 3. Get the API Host
 
-1. 在控制台中点击["设置"](https://console.qweather.com/setting?lang=zh) → "API Host"
-2. 查看分配给你的专属`API Host`地址，这个是第二个关键的配置信息
+1. In the console, click "Settings" → "API Host"
+2. Check the dedicated `API Host` address assigned to you. This is the second key configuration information.
 
-以上操作，会得到两个重要的配置信息:`API Key`和`API Host`
+The above operation will get two important configuration information: `API Key` and `API Host`
 
-## 配置方式(任选一种)
+## Configuration method (choose one)
 
-### 方式1. 如果你使用了智控台部署（推荐）
+### Method 1. If you use the Smart Console deployment (recommended)
 
-1. 登录智控台
-2. 进入"角色配置"页面
-3. 选择要配置的智能体
-4. 点击"编辑功能"按钮
-5. 在右侧参数配置区域找到"天气查询"插件
-6. 勾选"天气查询"
-7. 将复制过来的第一个关键配置`API Key`,填入到`天气插件 API 密钥`里
-8. 将复制过来的第二个关键配置`API Host`,填入到`开发者 API Host`里
-9. 保存配置，再保存智能体配置
+1. Log in to the smart console
+2. Enter the "Role Configuration" page
+3. Select the agent to configure
+4. Click the "Edit Function" button
+5. Find the "Weather Query" plug-in in the parameter configuration area on the right
+6. Check "Weather Query"
+7. Fill in the copied first key configuration `API Key` into the `Weather Plugin API Key`
+8. Fill in the copied second key configuration `API Host` into `Developer API Host`
+9. Save the configuration, then save the agent configuration
 
-### 方式2. 如果你只是单模块xiaozhi-server部署
+### Method 2. If you only deploy a single module xiaozhi-server
 
-在 `data/.config.yaml` 中配置：
+Configure in `data/.config.yaml`:
 
-1. 将复制过来的第一个关键配置`API Key`,填入到`api_key`里
-2. 将复制过来的第二个关键配置`API Host`,填入到`api_host`里
-3. 将你所在的城市填入到`default_location`里，例如`广州`
+1. Fill in the copied first key configuration `API Key` into `api_key`
+2. Fill in the copied second key configuration `API Host` into `api_host`
+3. Fill in your city in `default_location`, for example, `Guangzhou`
 
 ```yaml
 plugins:
   get_weather:
-    api_key: "你的和风天气API密钥"
-    api_host: "你的和风天气API主机地址"
-    default_location: "你的默认查询城市"
+    api_key: "Your Zephyr Weather API key"
+    api_host: "Your Zefeng Weather API host address"
+    default_location: "Your default query city"
 ```
-

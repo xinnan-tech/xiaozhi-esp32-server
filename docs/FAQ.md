@@ -1,62 +1,62 @@
-# 常见问题 ❓
+# FAQ❓
 
-### 1、为什么我说的话，小智识别出来很多韩文、日文、英文？🇰🇷
+### 1. Why does Xiaozhi recognize a lot of Korean, Japanese, and English when I speak? 🇰🇷
 
-建议：检查一下`models/SenseVoiceSmall`是否已经有`model.pt`
-文件，如果没有就要下载，查看这里[下载语音识别模型文件](Deployment.md#模型文件)
+Suggestion: Check if `models/SenseVoiceSmall` already has `model.pt`
+If you don't have the file, you need to download it. See here [Download the speech recognition model file](Deployment.md#Model file)
 
-### 2、为什么会出现"TTS 任务出错 文件不存在"？📁
+### 2. Why does "TTS task error file does not exist" appear? 📁
 
-建议：检查一下是否正确使用`conda` 安装了`libopus`和`ffmpeg`库。
+Suggestion: Check whether `conda` is used to install `libopus` and `ffmpeg` libraries correctly.
 
-如果没有安装，就安装
+If not installed, install it
 
 ```
 conda install conda-forge::libopus
 conda install conda-forge::ffmpeg
 ```
 
-### 3、TTS 经常失败，经常超时 ⏰
+### 3. TTS often fails and times out ⏰
 
-建议：如果 `EdgeTTS` 经常失败，请先检查是否使用了代理（梯子）。如果使用了，请尝试关闭代理后再试；  
-如果用的是火山引擎的豆包 TTS，经常失败时建议使用付费版本，因为测试版本仅支持 2 个并发。
+Recommendation: If `EdgeTTS` frequently fails, please check whether you are using a proxy (router). If so, try disabling the proxy and try again.  
+If you are using Doubao TTS with Volcano Engine and it often fails, it is recommended to use the paid version because the test version only supports 2 concurrent users.
 
-### 4、使用Wifi能连接自建服务器，但是4G模式却接不上 🔐
+### 4. I can connect to my own server using Wifi, but I can't connect using 4G mode🔐
 
-原因：虾哥的固件，4G模式需要使用安全连接。
+Reason: In Xia Ge's firmware, 4G mode requires a secure connection.
 
-解决方法：目前有两种方法可以解决。任选一种：
+Solution: There are currently two solutions. Choose one:
 
-1、改代码。参考这个视频解决 https://www.bilibili.com/video/BV18MfTYoE85
+1. Change the code. Refer to this video to solve the problem https://www.bilibili.com/video/BV18MfTYoE85
 
-2、使用nginx配置ssl证书。参考教程 https://icnt94i5ctj4.feishu.cn/docx/GnYOdMNJOoRCljx1ctecsj9cnRe
+2. Use nginx to configure SSL certificate. Refer to the tutorial https://icnt94i5ctj4.feishu.cn/docx/GnYOdMNJOoRCljx1ctecsj9cnRe
 
-### 5、如何提高小智对话响应速度？ ⚡
+### 5. How to improve Xiaozhi's dialogue response speed? ⚡
 
-本项目默认配置为低成本方案，建议初学者先使用默认免费模型，解决"跑得动"的问题，再优化"跑得快"。  
-如需提升响应速度，可尝试更换各组件。自`0.5.2`版本起，项目支持流式配置，相比早期版本，响应速度提升约`2.5秒`，显著改善用户体验。
+The default configuration of this project is a low-cost solution. It is recommended that beginners use the default free model first to solve the problem of "running well" and then optimize the "running fast".  
+If you need to improve response speed, you can try replacing various components. Since version 0.5.2, the project supports streaming configuration, which improves response speed by about 2.5 seconds compared to earlier versions, significantly improving the user experience.
 
-| 模块名称 | 入门全免费设置 | 流式配置 |
+| Module Name | Get Started with Free Setup | Streaming Configuration |
 |:---:|:---:|:---:|
-| ASR(语音识别) | FunASR(本地) | 👍FunASR(本地GPU模式) |
-| LLM(大模型) | ChatGLMLLM(智谱glm-4-flash) | 👍AliLLM(qwen3-235b-a22b-instruct-2507) 或 👍DoubaoLLM(doubao-1-5-pro-32k-250115) |
-| VLLM(视觉大模型) | ChatGLMVLLM(智谱glm-4v-flash) | 👍QwenVLVLLM(千问qwen2.5-vl-3b-instructh) |
-| TTS(语音合成) | ✅LinkeraiTTS(灵犀流式) | 👍HuoshanDoubleStreamTTS(火山双流式语音合成) 或 👍AliyunStreamTTS(阿里云流式语音合成) |
-| Intent(意图识别) | function_call(函数调用) | function_call(函数调用) |
-| Memory(记忆功能) | mem_local_short(本地短期记忆） | mem_local_short（本地短期记忆） |
+| ASR (Speech Recognition) | FunASR (Local) | 👍FunASR (Local GPU Mode) |
+| LLM (Large Model) | ChatGLMLLM (Zhipuglm-4-flash) | 👍AliLLM (qwen3-235b-a22b-instruct-2507) or 👍DoubaoLLM (doubao-1-5-pro-32k-250115) |
+| VLLM (Visual Large Model) | ChatGLMVLLM (Zhipu glm-4v-flash) | 👍QwenVLVLLM (Qianwen qwen2.5-vl-3b-instructh) |
+| TTS (Text-to-Speech) | ✅LinkeraiTTS (Lingxi Streaming) | 👍HuoshanDoubleStreamTTS (Huoshan Double Stream Text-to-Speech) or 👍AliyunStreamTTS (Aliyun Stream Text-to-Speech) |
+| Intent (intent recognition) | function_call (function call) | function_call (function call) |
+| Memory (memory function) | mem_local_short (local short-term memory) | mem_local_short (local short-term memory) |
 
-如果您关心各组件的耗时，请查阅[小智各组件性能测试报告](https://github.com/xinnan-tech/xiaozhi-performance-research)，可按报告中的测试方法在您的环境中实际测试。
+If you are concerned about the time consumption of each component, please refer to the [Xiaozhi Component Performance Test Report](https://github.com/xinnan-tech/xiaozhi-performance-research) and conduct actual tests in your environment according to the test methods in the report.
 
-### 6、我说话很慢，停顿时小智老是抢话 🗣️
+### 6. I speak very slowly, and when I pause, Xiaozhi always interrupts me.
 
-建议：在配置文件中找到如下部分，将 `min_silence_duration_ms` 的值调大（例如改为 `1000`）：
+Suggestion: Find the following section in the configuration file and increase the value of `min_silence_duration_ms` (for example, to `1000`):
 
 ```yaml
 VAD:
   SileroVAD:
     threshold: 0.5
     model_dir: models/snakers4_silero-vad
-    min_silence_duration_ms: 700  # 如果说话停顿较长，可将此值调大
+    min_silence_duration_ms: 700 # If the pauses in speaking are long, you can increase this value
 ```
 
 ### 7、部署相关教程

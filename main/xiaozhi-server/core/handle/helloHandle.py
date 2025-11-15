@@ -31,15 +31,15 @@ WAKEUP_CONFIG = {
     ],
 }
 
-# 创建全局的唤醒词配置管理器
+# Create a global wake word configuration manager
 wakeup_words_config = WakeupWordsConfig()
 
-# 用于防止并发调用wakeupWordsResponse的锁
+# Lock used to prevent concurrent calls to wakeup words response
 _wakeup_response_lock = asyncio.Lock()
 
 
 async def handleHelloMessage(conn, msg_json):
-    """处理hello消息"""
+    """Handle hello message"""
     audio_params = msg_json.get("audio_params")
     if audio_params:
         format = audio_params.get("format")
@@ -53,9 +53,9 @@ async def handleHelloMessage(conn, msg_json):
         if features.get("mcp"):
             conn.logger.bind(tag=TAG).debug("客户端支持MCP")
             conn.mcp_client = MCPClient()
-            # 发送初始化
+            # Send initialization
             asyncio.create_task(send_mcp_initialize_message(conn))
-            # 发送mcp消息，获取tools列表
+            # Send mcp message and get tools list
             asyncio.create_task(send_mcp_tools_list_request(conn))
 
     await conn.websocket.send(json.dumps(conn.welcome_msg))
@@ -66,7 +66,7 @@ async def checkWakeupWords(conn, text):
         "enable_wakeup_words_response_cache"
     ]
 
-    # 等待tts初始化，最多等待3秒
+    # Wait for tts to initialize, up to 3 seconds
     start_time = time.time()
     while time.time() - start_time < 3:
         if conn.tts:
@@ -85,12 +85,12 @@ async def checkWakeupWords(conn, text):
     conn.just_woken_up = True
     await send_tts_message(conn, "start")
 
-    # 获取当前音色
+    # Get the current sound
     voice = getattr(conn.tts, "voice", "default")
     if not voice:
         voice = "default"
 
-    # 获取唤醒词回复配置
+    # Get wake word reply configuration
     response = wakeup_words_config.get_wakeup_response(voice)
     if not response or not response.get("file_path"):
         response = {
@@ -100,19 +100,19 @@ async def checkWakeupWords(conn, text):
             "text": "我在这里哦！",
         }
 
-    # 获取音频数据
+    # Get audio data
     opus_packets = audio_to_data(response.get("file_path"))
-    # 播放唤醒词回复
+    # Play wake word reply
     conn.client_abort = False
 
-    conn.logger.bind(tag=TAG).info(f"播放唤醒词回复: {response.get('text')}")
+    conn.logger.bind(tag=TAG).info(f"Play wake word reply: {response.get('text')}")
     await sendAudioMessage(conn, SentenceType.FIRST, opus_packets, response.get("text"))
     await sendAudioMessage(conn, SentenceType.LAST, [], None)
 
-    # 补充对话
+    # Supplementary dialogue
     conn.dialogue.put(Message(role="assistant", content=response.get("text")))
 
-    # 检查是否需要更新唤醒词回复
+    # Check if wake word reply needs to be updated
     if time.time() - response.get("time", 0) > WAKEUP_CONFIG["refresh_time"]:
         if not _wakeup_response_lock.locked():
             asyncio.create_task(wakeupWordsResponse(conn))
@@ -124,7 +124,7 @@ async def wakeupWordsResponse(conn):
         return
 
     try:
-        # 尝试获取锁，如果获取不到就返回
+        # Try to acquire the lock, and return if unable
         if not await _wakeup_response_lock.acquire():
             return
 
@@ -133,21 +133,21 @@ async def wakeupWordsResponse(conn):
         if not result or len(result) == 0:
             return
 
-        # 生成TTS音频
+        # Generate tts audio
         tts_result = await asyncio.to_thread(conn.tts.to_tts, result)
         if not tts_result:
             return
 
-        # 获取当前音色
+        # Get the current sound
         voice = getattr(conn.tts, "voice", "default")
 
         wav_bytes = opus_datas_to_wav_bytes(tts_result, sample_rate=16000)
         file_path = wakeup_words_config.generate_file_path(voice)
         with open(file_path, "wb") as f:
             f.write(wav_bytes)
-        # 更新配置
+        # Update configuration
         wakeup_words_config.update_wakeup_response(voice, file_path, result)
     finally:
-        # 确保在任何情况下都释放锁
+        # Make sure the lock is released under any circumstances
         if _wakeup_response_lock.locked():
             _wakeup_response_lock.release()

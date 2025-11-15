@@ -1,125 +1,124 @@
-# MCP 接入点部署使用指南
+# MCP Access Point Deployment Guide
 
-本教程包含3个部分
-- 1、如何部署MCP接入点这个服务
-- 2、全模块部署时，怎么配置MCP接入点
-- 3、单模块部署时，怎么配置MCP接入点
+This tutorial consists of 3 parts
+- 1. How to deploy the MCP access point service
+- 2. How to configure MCP access points when deploying all modules
+- 3. How to configure the MCP access point when deploying a single module
 
-# 1、如何部署MCP接入点这个服务
+# 1. How to deploy the MCP access point service
 
-## 第一步，下载mcp接入点项目源码
+## The first step is to download the mcp access point project source code
 
-浏览器打开[mcp接入点项目地址](https://github.com/xinnan-tech/mcp-endpoint-server)
+Open the [mcp access point project address](https://github.com/xinnan-tech/mcp-endpoint-server) in the browser
 
-打开完，找到页面中一个绿色的按钮，写着`Code`的按钮，点开它，然后你就看到`Download ZIP`的按钮。
+After opening, find a green button on the page with the word `Code` written on it, click it, and then you will see the `Download ZIP` button.
 
-点击它，下载本项目源码压缩包。下载到你电脑后，解压它，此时它的名字可能叫`mcp-endpoint-server-main`
-你需要把它重命名成`mcp-endpoint-server`。
+Click it to download the source code compressed package of this project. After downloading it to your computer, unzip it. At this time, its name may be `mcp-endpoint-server-main`
+You need to rename it to `mcp-endpoint-server`.
 
-## 第二步，启动程序
-这个项目是一个很简单的项目，建议使用docker运行。不过如果你不想使用docker运行，你可以参考[这个页面](https://github.com/xinnan-tech/mcp-endpoint-server/blob/main/README_dev.md)使用源码运行。以下是docker运行的方法
+## Step 2: Start the program
+This project is a very simple one and it is recommended to run it using docker. However, if you do not want to use docker, you can refer to [this page](https://github.com/xinnan-tech/mcp-endpoint-server/blob/main/README_dev.md) to run it using the source code. The following is how to run it using docker
 
 ```
-# 进入本项目源码根目录
+# Enter the source code root directory of this project
 cd mcp-endpoint-server
 
-# 清除缓存
+# Clear the cache
 docker compose -f docker-compose.yml down
 docker stop mcp-endpoint-server
 docker rm mcp-endpoint-server
 docker rmi ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server:latest
 
-# 启动docker容器
+# Start the docker container
 docker compose -f docker-compose.yml up -d
-# 查看日志
+# View logs
 docker logs -f mcp-endpoint-server
 ```
 
-此时，日志里会输出类似以下的日志
+At this point, the log will output a log similar to the following
 ```
-250705 INFO-=====下面的地址分别是智控台/单模块MCP接入点地址====
-250705 INFO-智控台MCP参数配置: http://172.22.0.2:8004/mcp_endpoint/health?key=abc
-250705 INFO-单模块部署MCP接入点: ws://172.22.0.2:8004/mcp_endpoint/mcp/?token=def
-250705 INFO-=====请根据具体部署选择使用，请勿泄露给任何人======
-```
-
-请你把两个接口地址复制出来：
-
-由于你是docker部署，切不可直接使用上面的地址！
-
-由于你是docker部署，切不可直接使用上面的地址！
-
-由于你是docker部署，切不可直接使用上面的地址！
-
-你先把地址复制出来，放在一个草稿里，你要知道你的电脑的局域网ip是什么，例如我的电脑局域网ip是`192.168.1.25`，那么
-原来我的接口地址
-```
-智控台MCP参数配置: http://172.22.0.2:8004/mcp_endpoint/health?key=abc
-单模块部署MCP接入点: ws://172.22.0.2:8004/mcp_endpoint/mcp/?token=def
-```
-就要改成
-```
-智控台MCP参数配置: http://192.168.1.25:8004/mcp_endpoint/health?key=abc
-单模块部署MCP接入点: ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=def
+250705 INFO-=====The following addresses are the access point addresses of the intelligent control console/single module MCP====
+250705 INFO - Intelligent Control Station MCP parameter configuration: http://172.22.0.2:8004/mcp_endpoint/health?key=abc
+250705 INFO-Single module deployment MCP access point: ws://172.22.0.2:8004/mcp_endpoint/mcp/?token=def
+250705 INFO-=====Please choose to use according to the specific deployment, do not disclose to anyone======
 ```
 
-改好后，请使用浏览器直接访问`智控台MCP参数配置`。当浏览器出现类似这样的代码，说明是成功了。
+Please copy the two interface addresses:
+
+Since you are deploying with docker, do not use the above address directly!
+
+Since you are deploying with docker, do not use the above address directly!
+
+Since you are deploying with docker, do not use the above address directly!
+
+First, copy the address and put it in a draft. You need to know what your computer's LAN IP is. For example, my computer's LAN IP is `192.168.1.25`, then
+It turns out that my interface address
+```
+Intelligent control console MCP parameter configuration: http://172.22.0.2:8004/mcp_endpoint/health?key=abc
+Single module deployment MCP access point: ws://172.22.0.2:8004/mcp_endpoint/mcp/?token=def
+```
+It should be changed to
+```
+Intelligent control console MCP parameter configuration: http://192.168.1.25:8004/mcp_endpoint/health?key=abc
+Single module deployment MCP access point: ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=def
+```
+
+After the modification, please use your browser to directly access the MCP parameter configuration of the intelligent control console. When the browser displays a code similar to this, it means that it is successful.
 ```
 {"result":{"status":"success","connections":{"tool_connections":0,"robot_connections":0,"total_connections":0}},"error":null,"id":null,"jsonrpc":"2.0"}
 ```
 
-请你保留好上面两个`接口地址`，下一步要用到。
+Please keep the above two `Interface Addresses`, as they will be used in the next step.
 
-# 2、全模块部署时，怎么配置MCP接入点
+# 2. How to configure MCP access points when deploying all modules
 
-如果你是全模块部署，使用管理员账号，登录智控台，点击顶部`参数字典`，选择`参数管理`功能。
+If you are deploying a full module deployment, use the administrator account to log in to the intelligent console, click the `Parameter Dictionary` at the top, and select the `Parameter Management` function.
 
-然后搜索参数`server.mcp_endpoint`，此时，它的值应该是`null`值。
-点击修改按钮，把上一步得来的`智控台MCP参数配置`粘贴到`参数值`里。然后保存。
+Then search for the parameter `server.mcp_endpoint`. At this point, its value should be `null`.
+Click the Modify button and paste the MCP Parameter Configuration from the previous step into the Parameter Value field. Then save the value.
 
-如果能保存成功，说明一切顺利，你可以去智能体查看效果了。如果不成功，说明智控台无法访问mcp接入点，很大概率是网络防火墙，或者没有填写正确的局域网ip。
+If it saves successfully, everything goes well and you can check the effect in the smart body. If it fails, it means that the smart console cannot access the MCP access point. It is likely that there is a network firewall or the correct LAN IP address is not entered.
 
-# 3、单模块部署时，怎么配置MCP接入点
+# 3. How to configure the MCP access point when deploying a single module
 
-如果你是单模块部署，找到你的配置文件`data/.config.yaml`。
-在配置文件搜索`mcp_endpoint`，如果没有找到，你就增加`mcp_endpoint`配置。类似我是就是这样
+If you are deploying a single module, find your configuration file `data/.config.yaml`.
+Search `mcp_endpoint` in the configuration file. If you don't find it, add `mcp_endpoint` configuration.
 ```
 server:
-  websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
+  websocket: ws://your ip or domain name:port number/xiaozhi/v1/
   http_port: 8002
 log:
   log_level: INFO
 
-# 此处可能还更多配置..
+# There may be more configuration here..
 
-mcp_endpoint: 你的接入点websocket地址
+mcp_endpoint: your access point websocket address
 ```
-这时，请你把`如何部署MCP接入点这个服务`中得到的`单模块部署MCP接入点` 粘贴到 `mcp_endpoint`中。类似这样
+At this time, please paste the `Single Module Deployment of MCP Access Point` obtained from `How to Deploy MCP Access Point Service` into `mcp_endpoint`.
 
 ```
 server:
-  websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
+  websocket: ws://your ip or domain name:port number/xiaozhi/v1/
   http_port: 8002
 log:
   log_level: INFO
 
-# 此处可能还更多配置
+# There may be more configuration here
 
 mcp_endpoint: ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=def
 ```
 
-配置好后，启动单模块会输出如下的日志。
+After configuration, starting a single module will output the following log.
 ```
-250705[__main__]-INFO-初始化组件: vad成功 SileroVAD
-250705[__main__]-INFO-初始化组件: asr成功 FunASRServer
-250705[__main__]-INFO-OTA接口是          http://192.168.1.25:8002/xiaozhi/ota/
-250705[__main__]-INFO-视觉分析接口是     http://192.168.1.25:8002/mcp/vision/explain
-250705[__main__]-INFO-mcp接入点是        ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
-250705[__main__]-INFO-Websocket地址是    ws://192.168.1.25:8000/xiaozhi/v1/
-250705[__main__]-INFO-=======上面的地址是websocket协议地址，请勿用浏览器访问=======
-250705[__main__]-INFO-如想测试websocket请用谷歌浏览器打开test目录下的test_page.html
-250705[__main__]-INFO-=============================================================
+250705[__main__]-INFO-Initialization component: vad successful SileroVAD
+250705[__main__]-INFO-Initialization component: asr successful FunASRServer
+250705[__main__]-INFO-OTA interface is http://192.168.1.25:8002/xiaozhi/ota/
+250705[__main__]-INFO-The visual analysis interface is http://192.168.1.25:8002/mcp/vision/explain
+250705[__main__]-INFO-mcp access point is ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
+250705[__main__]-INFO-Websocket address is ws://192.168.1.25:8000/xiaozhi/v1/
+250705[__main__]-INFO-=======The above address is the websocket protocol address, please do not access it with a browser=======
+250705[__main__]-INFO-If you want to test websocket, please use Google Chrome to open the test_page.html in the test directory
+250705[__main__]-INFO-================================================================
 ```
 
-如上，如果能输出类似的`mcp接入点是`中`ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc`说明配置成功了。
-
+As shown above, if `mcp access point is` similar to `ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc` is output, it means the configuration is successful.
