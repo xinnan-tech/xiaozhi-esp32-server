@@ -63,7 +63,7 @@ check_whiptail() {
 check_whiptail
 
 # Create a confirmation dialog box
-whiptail --title "Installation Confirmed" --yesno "Xiaozhi server is about to be installed, continue?"
+whiptail --title "Installation Confirmed" --yesno "Xiaozhi server is about to be installed, continue?" \
   --yes-button "Continue" --no-button "Exit" 10 50
 
 # Perform the operation based on the user's selection.
