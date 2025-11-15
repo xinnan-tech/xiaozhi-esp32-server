@@ -136,6 +136,7 @@ export function getUUID() {
     })
 }
 
+
 /**
  * 验证手机号格式
  * @param {string} mobile 手机号

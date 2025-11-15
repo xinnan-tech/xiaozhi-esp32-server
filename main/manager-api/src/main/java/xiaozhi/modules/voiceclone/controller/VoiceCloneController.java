@@ -116,6 +116,7 @@ public class VoiceCloneController {
             checkPermission(id);
 
             voiceCloneService.updateName(id, name);
+            redisUtils.delete(RedisKeys.getTimbreNameById(id));
             return new Result<String>();
         } catch (Exception e) {
             return new Result<String>().error(ErrorCode.UPDATE_DATA_FAILED, "更新失败: " + e.getMessage());
@@ -175,6 +176,8 @@ public class VoiceCloneController {
     public Result<String> cloneAudio(@RequestBody Map<String, String> params) {
         String cloneId = params.get("cloneId");
         checkPermission(cloneId);
+        // 调用服务层进行语音克隆训练
+        voiceCloneService.cloneAudio(cloneId);
         return new Result<String>();
     }
 

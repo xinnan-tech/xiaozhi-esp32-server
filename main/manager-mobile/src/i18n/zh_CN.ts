@@ -19,8 +19,7 @@ export default {
   'login.enterCaptcha': '请输入验证码',
   'login.loginButton': '登录',
   'login.loggingIn': '登录中...',
-  'login.noAccount': '还没有账户？',
-  'login.registerNow': '立即注册',
+  'login.noAccount': '新用户注册',
   'login.enterPhone': '请输入手机号码',
   'login.selectCountry': '选择国家/地区',
   'login.confirm': '确认',
@@ -30,6 +29,7 @@ export default {
   'login.requiredCaptcha': '验证码不能为空',
   'login.requiredMobile': '请输入正确的手机号码',
   'login.captchaError': '图形验证码错误',
+  'login.forgotPassword': '忘记密码',
 
   // 注册页面
   'register.pageTitle': '注册',
@@ -264,6 +264,27 @@ export default {
   'settings.language': '语言',
   'settings.selectLanguage': '选择语言',
   'settings.languageChanged': '语言切换成功',
+
+  // 重置密码页面
+  'retrievePassword.title': '重置密码',
+  'retrievePassword.subtitle': '通过手机号找回您的账户密码',
+  'retrievePassword.mobileRequired': '请输入手机号码',
+  'retrievePassword.inputCorrectMobile': '请输入正确的手机号码',
+  'retrievePassword.captchaRequired': '请输入图形验证码',
+  'retrievePassword.mobileCaptchaRequired': '请输入短信验证码',
+  'retrievePassword.newPasswordRequired': '请输入新密码',
+  'retrievePassword.confirmNewPasswordRequired': '请确认新密码',
+  'retrievePassword.passwordsNotMatch': '两次输入的密码不一致',
+  'retrievePassword.mobilePlaceholder': '请输入手机号码',
+  'retrievePassword.captchaPlaceholder': '请输入图形验证码',
+  'retrievePassword.mobileCaptchaPlaceholder': '请输入短信验证码',
+  'retrievePassword.newPasswordPlaceholder': '请输入新密码',
+  'retrievePassword.confirmNewPasswordPlaceholder': '请确认新密码',
+  'retrievePassword.getMobileCaptcha': '获取验证码',
+  'retrievePassword.captchaSendSuccess': '验证码发送成功',
+  'retrievePassword.passwordUpdateSuccess': '密码重置成功',
+  'retrievePassword.resetButton': '重置密码',
+  'retrievePassword.goToLogin': '返回登录',
 
   // 消息提示
   'message.loginSuccess': '登录成功！',

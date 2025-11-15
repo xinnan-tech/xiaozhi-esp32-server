@@ -31,17 +31,11 @@ server:
   auth:
     # Whether to enable authentication
     enabled: false
-    # The token of the device can be written into your own defined token during the firmware compilation process
-    # Only if the token on the firmware matches the following token can you connect to this server
-    tokens:
-      - token: "your-token1" # Device 1's token
-        name: "your-device-name1" # Device 1 ID
-      - token: "your-token2" # Device 2's token
-        name: "your-device-name2" # Device 2 ID
-    # Optional: Device whitelist. If a whitelist is set, all devices on the whitelist can connect regardless of their token.
-    #allowed_devices:
-    # - "24:0A:C4:1D:3B:F0" # MAC address list
- #MQTT gateway configuration, used to send data to the device via OTA, configured according to the .env file of mqtt_gateway, in the format of host:port
+    # 白名单设备ID列表
+    # 如果属于白名单内的设备，不校验token，直接放行
+    allowed_devices:
+      - "11:22:33:44:55:66"
+ # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port
   mqtt_gateway: null
   #MQTT signature key, used to generate the MQTT connection password, configured according to the .env file of mqtt_gateway
   mqtt_signature_key: null
@@ -75,6 +69,12 @@ enable_greeting: true
 enable_stop_tts_notify: false
 # Whether to turn on the prompt sound after speaking, sound effect address
 stop_tts_notify_voice: "config/assets/tts_notify.mp3"
+
+# TTS音频发送延迟配置
+# tts_audio_send_delay: 控制音频包发送间隔
+#   0: 使用精确时间控制，严格匹配音频帧率（默认，运行时按音频帧率计算）
+#   > 0: 使用固定延迟（毫秒）发送，例如: 60
+tts_audio_send_delay: 0
 
 exit_commands:
   - "quit"
@@ -146,9 +146,17 @@ plugins:
       - ".mp3"
       - ".wav"
       - ".p3"
-    refresh_time: 300 # The time interval for refreshing the music list, in seconds
-
-# Voiceprint Recognition Configuration
+    refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
+  search_from_ragflow:
+    # 知识库的描述信息，方便大语言模型知道什么时候调用
+    description: "当用户问xxx时，调用本方法，使用知识库中的信息回答问题"
+    # ragflow接口配置
+    base_url: "http://192.168.0.8"
+    # ragflow api访问令牌
+    api_key: "ragflow-xxx"
+    # ragflow知识库id
+    dataset_ids: ["123456789"]
+# 声纹识别配置
 voiceprint:
   # Voiceprint interface address
   url:
@@ -179,7 +187,10 @@ prompt: |
   - Long-winded, rambling speeches
   - Long and serious conversations
 
-# Ending prompt
+# 默认系统提示词模板文件
+prompt_template: agent-base-prompt.txt
+
+# 结束语prompt
 end_prompt:
   enable: true # Whether to enable the closing statement
   # Conclusion
@@ -236,6 +247,7 @@ Intent:
     functions:
       -change_role
       - get_weather
+      # - search_from_ragflow
       # - get_news_from_chinanews
       - get_news_from_newsnow
       # play_music is the music player that comes with the server, hass_play_music is an independent external program music player controlled by home assistant
@@ -984,13 +996,13 @@ TTS:
     api_key: your api_key
     voice: x5_lingxiaoxuan_flow
     output_dir: tmp/
-    # The following settings are not required, use the default settings, please note that V5 timbre does not support spoken language configuration
-    # oral_level: mid # Oral level: high, mid, low
-    # spark_assist: 1 # Whether to use the large model for spoken language: open: 1, close: 0
-    # stop_split: 0 # Turn off server-side splitting. Do not turn off: 0, turn off: 1
-    # remain: 0 # Whether to keep the original written language: 1, not: 0
-    # format: raw # Audio formats: raw(PCM), lame(MP3), speex, opus, opus-wb, opus-swb, speex-wb
-    # sample_rate: 24000 # Sampling rate: 16000, 8000, 24000
-    # volume: 50 # Volume: 0-100
-    # speed: 50 # Speech speed: 0-100
-    # pitch: 50 # Intonation: 0-100
+    # 以下可不用设置，使用默认设置，注意V5音色不支持口语化配置
+    # oral_level: mid  # 口语化等级：high, mid, low
+    # spark_assist: 1  # 是否通过大模型进行口语化 开启:1, 关闭:0
+    # stop_split: 0  # 关闭服务端拆句 不关闭：0，关闭：1
+    # remain: 0  # 是否保留原书面语的样子	保留:1, 不保留:0
+    # format: raw  # 音频格式：raw(PCM), lame(MP3), speex, opus, opus-wb, opus-swb, speex-wb
+    # sample_rate: 24000  # 采样率：16000, 8000, 24000
+    # volume: 50  # 音量：0-100
+    # speed: 50  # 语速：0-100
+    # pitch: 50  # 语调：0-100

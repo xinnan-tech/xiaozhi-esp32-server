@@ -93,7 +93,7 @@ public class DeviceController {
     }
 
     @PostMapping("/bind/{agentId}")
-    @Operation(summary = "转发POST请求到MQTT网关")
+    @Operation(summary = "设备在线接口")
     @RequiresPermissions("sys:role:normal")
     public Result<String> forwardToMqttGateway(@PathVariable String agentId, @RequestBody String requestBody) {
         try {
@@ -207,64 +207,5 @@ public class DeviceController {
         UserDetail user = SecurityUser.getUser();
         deviceService.manualAddDevice(user.getId(), dto);
         return new Result<>();
-    }
-
-    @PostMapping("/commands/{deviceId}")
-    @Operation(summary = "发送设备指令")
-    @RequiresPermissions("sys:role:normal")
-    public Result<String> sendDeviceCommand(@PathVariable String deviceId, @RequestBody String command) {
-        try {
-            // 从系统参数中获取MQTT网关地址
-            String mqttGatewayUrl = sysParamsService.getValue("server.mqtt_manager_api", true);
-            if (StringUtils.isBlank(mqttGatewayUrl) || "null".equals(mqttGatewayUrl)) {
-                return new Result<String>().error("MQTT网关地址未配置");
-            }
-
-            // 构建完整的URL
-            // 获取设备信息以构建mqttClientId
-            DeviceEntity deviceById = deviceService.selectById(deviceId);
-
-            if (!deviceById.getUserId().equals(SecurityUser.getUser().getId())) {
-                return new Result<String>().error("设备不存在");
-            }
-            String macAddress = deviceById != null ? deviceById.getMacAddress() : "unknown";
-            String groupId = deviceById != null ? deviceById.getBoard() : null;
-            if (groupId == null) {
-                groupId = "GID_default";
-            }
-            groupId = groupId.replace(":", "_");
-            macAddress = macAddress.replace(":", "_");
-
-            // 拼接为groupId@@@macAddress@@@deviceId格式
-            String mqttClientId = groupId + "@@@" + macAddress + "@@@" + macAddress;
-
-            String url = "http://" + mqttGatewayUrl + "/api/commands/" + mqttClientId;
-
-            // 设置请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/json");
-
-            // 生成Bearer令牌
-            String dateStr = java.time.LocalDate.now()
-                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String signatureKey = sysParamsService.getValue("server.mqtt_signature_key", false);
-            if (StringUtils.isBlank(signatureKey)) {
-                return new Result<String>().error("MQTT签名密钥未配置");
-            }
-            String tokenContent = dateStr + signatureKey;
-            String token = org.apache.commons.codec.digest.DigestUtils.sha256Hex(tokenContent);
-            headers.set("Authorization", "Bearer " + token);
-
-            // 构建请求体
-            HttpEntity<String> requestEntity = new HttpEntity<>(command, headers);
-
-            // 发送POST请求
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
-
-            // 返回响应
-            return new Result<String>().ok(response.getBody());
-        } catch (Exception e) {
-            return new Result<String>().error("发送指令失败: " + e.getMessage());
-        }
     }
 }

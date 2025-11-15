@@ -9,15 +9,15 @@
 </route>
 
 <script lang="ts" setup>
-import type { LoginData } from '@/api/auth'
-import { computed, onMounted, ref } from 'vue'
-import { login } from '@/api/auth'
-import { useConfigStore } from '@/store'
-import { getEnvBaseUrl } from '@/utils'
-import { toast } from '@/utils/toast'
+import type { LoginData } from '@/api/auth';
+import { computed, onMounted, ref } from 'vue';
+import { login } from '@/api/auth';
+import { useConfigStore } from '@/store';
+import { getEnvBaseUrl } from '@/utils';
+import { toast } from '@/utils/toast';
 // 导入国际化相关功能
-import { t, changeLanguage, getSupportedLanguages, initI18n } from '@/i18n'
-import type { Language } from '@/store/lang'
+import { t, changeLanguage, getSupportedLanguages, initI18n } from '@/i18n';
+import type { Language } from '@/store/lang';
 // 导入SM2加密工具
 import { sm2Encrypt } from '@/utils'
 
@@ -116,6 +116,13 @@ function goToRegister() {
   })
 }
 
+// 跳转到忘记密码页面
+function goToForgotPassword() {
+  uni.navigateTo({
+    url: '/pages/forgot-password/index',
+  })
+}
+
 // 生成UUID
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -136,9 +143,9 @@ function goToServerSetting() {
 
 // 获取验证码
 async function refreshCaptcha() {
-  const uuid = generateUUID()
-  formData.value.captchaId = uuid
-  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`
+  const uuid = generateUUID();
+  formData.value.captchaId = uuid;
+  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`;
 }
 
 // 登录
@@ -369,13 +376,18 @@ onMounted(async () => {
           {{ loading ? t('login.loggingIn') : t('login.loginButton') }}
         </view>
 
-        <view class="register-hint">
-          <text class="hint-text">
-            {{ t('login.noAccount') }}
-          </text>
-          <text class="register-link" @click="goToRegister">
-            {{ t('login.registerNow') }}
-          </text>
+        <view class="hint-row">
+          <view class="register-hint">
+            <text class="register-link" @click="goToRegister">
+              {{ t('login.noAccount') }}
+            </text>
+          </view>
+
+          <view class="forgot-password">
+            <text class="forgot-text" @click="goToForgotPassword">
+              {{ t('login.forgotPassword') }}
+            </text>
+          </view>
         </view>
 
         <!-- 登录方式切换 -->
@@ -665,10 +677,14 @@ onMounted(async () => {
       }
     }
 
-    .forgot-password {
-      text-align: right;
+    .hint-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 30rpx;
+    }
 
+    .forgot-password {
       .forgot-text {
         color: #667eea;
         font-size: 26rpx;
@@ -706,14 +722,6 @@ onMounted(async () => {
     }
 
     .register-hint {
-      text-align: center;
-
-      .hint-text {
-        color: #666666;
-        font-size: 26rpx;
-        margin-right: 8rpx;
-      }
-
       .register-link {
         color: #667eea;
         font-size: 26rpx;

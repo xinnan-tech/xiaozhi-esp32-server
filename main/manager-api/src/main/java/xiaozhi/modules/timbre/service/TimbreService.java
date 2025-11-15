@@ -64,4 +64,13 @@ public interface TimbreService extends BaseService<TimbreEntity> {
      * @return 音色名称
      */
     String getTimbreNameById(String id);
+
+    /**
+     * 根据音色编码获取音色信息
+     * 
+     * @param ttsModelId 音色模型ID
+     * @param voiceCode  音色编码
+     * @return 音色信息
+     */
+    VoiceDTO getByVoiceCode(String ttsModelId, String voiceCode);
 }

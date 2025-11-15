@@ -38,7 +38,7 @@ class LLMPerformanceTester:
         """加载系统提示词"""
         try:
             prompt_file = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), "agent-base-prompt.txt"
+                os.path.dirname(os.path.dirname(__file__)), self.config.get("prompt_template", "agent-base-prompt.txt")
             )
             with open(prompt_file, "r", encoding="utf-8") as f:
                 content = f.read()

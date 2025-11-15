@@ -45,6 +45,10 @@ public class AgentTemplateServiceImpl extends ServiceImpl<AgentTemplateDao, Agen
     @Override
     public void updateDefaultTemplateModelId(String modelType, String modelId) {
         modelType = modelType.toUpperCase();
+        // 如果是rag模型，不需要更新
+        if (modelType.equals("RAG")) {
+            return;
+        }
 
         UpdateWrapper<AgentTemplateEntity> wrapper = new UpdateWrapper<>();
         switch (modelType) {

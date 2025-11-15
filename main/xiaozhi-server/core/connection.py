@@ -115,9 +115,9 @@ class ConnectionHandler:
         # vad相关变量
         self.client_audio_buffer = bytearray()
         self.client_have_voice = False
+        self.client_voice_window = deque(maxlen=5)
         self.last_activity_time = 0.0  # 统一的活动时间戳（毫秒）
         self.client_voice_stop = False
-        self.client_voice_window = deque(maxlen=5)
         self.last_is_voice = False
 
         # asr相关变量
@@ -446,7 +446,7 @@ class ConnectionHandler:
         )
         if enhanced_prompt:
             self.change_system_prompt(enhanced_prompt)
-            self.logger.bind(tag=TAG).info("系统提示词已增强更新")
+            self.logger.bind(tag=TAG).debug("系统提示词已增强更新")
 
     def _init_report_threads(self):
         """初始化ASR和TTS上报线程"""
@@ -798,9 +798,9 @@ class ConnectionHandler:
 
                 if tools_call is not None and len(tools_call) > 0:
                     tool_call_flag = True
-                    if tools_call[0].id is not None:
+                    if tools_call[0].id is not None and tools_call[0].id != "":
                         function_id = tools_call[0].id
-                    if tools_call[0].function.name is not None:
+                    if tools_call[0].function.name is not None and tools_call[0].function.name != "":
                         function_name = tools_call[0].function.name
                     if tools_call[0].function.arguments is not None:
                         function_arguments += tools_call[0].function.arguments

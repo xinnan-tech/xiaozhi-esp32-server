@@ -96,7 +96,9 @@ class ASRProvider(ASRProviderBase):
         self.delete_audio_file = delete_audio_file
         self.expire_time = None
 
-        # Token management
+        self.task_id = uuid.uuid4().hex
+
+        # Token管理
         if self.access_key_id and self.access_key_secret:
             self._refresh_token()
         elif not self.token:
@@ -169,19 +171,23 @@ class ASRProvider(ASRProviderBase):
             ping_timeout=None,
             close_timeout=5,
         )
-        
+
+        self.task_id = uuid.uuid4().hex
+
+        logger.bind(tag=TAG).debug(f"WebSocket连接建立成功, task_id: {self.task_id}")
+
         self.is_processing = True
         self.server_ready = False  # Reset server readiness status
         self.forward_task = asyncio.create_task(self._forward_results(conn))
-        
-        # Send start request
+
+        # 发送开始请求
         start_request = {
             "header": {
                 "namespace": "SpeechTranscriber",
                 "name": "StartTranscription",
                 "status": 20000000,
-                "message_id": ''.join(random.choices('0123456789abcdef', k=32)),
-                "task_id": ''.join(random.choices('0123456789abcdef', k=32)),
+                "message_id": uuid.uuid4().hex,
+                "task_id": self.task_id,
                 "status_text": "Gateway:SUCCESS:Success.",
                 "appkey": self.appkey
             },
@@ -196,7 +202,7 @@ class ASRProvider(ASRProviderBase):
             }
         }
         await self.asr_ws.send(json.dumps(start_request, ensure_ascii=False))
-        logger.bind(tag=TAG).info("Start request sent, waiting for server to prepare...")
+        logger.bind(tag=TAG).debug("已发送开始请求，等待服务器准备...")
 
     async def _forward_results(self, conn):
         """Forward recognition results"""
@@ -225,7 +231,7 @@ class ASRProvider(ASRProviderBase):
                     # Receiving transcription started indicates that the server is ready to receive audio data
                     if message_name == "TranscriptionStarted":
                         self.server_ready = True
-                        logger.bind(tag=TAG).info("The server is ready to start sending cached audio...")
+                        logger.bind(tag=TAG).debug("服务器已准备，开始发送缓存音频...")
                         
                         # Send buffered audio
                         if conn.asr_audio:
@@ -274,8 +280,8 @@ class ASRProvider(ASRProviderBase):
             await self._cleanup(conn)
 
     async def _cleanup(self, conn):
-        """Clean up resources"""
-        logger.bind(tag=TAG).info(f"Start asr session cleanup | Current status: processing={self.is_processing}, server_ready={self.server_ready}")
+        """清理资源"""
+        logger.bind(tag=TAG).debug(f"开始ASR会话清理 | 当前状态: processing={self.is_processing}, server_ready={self.server_ready}")
         
         # Clear connected audio cache
         if conn and hasattr(conn, 'asr_audio_for_voiceprint'):
@@ -292,22 +298,23 @@ class ASRProvider(ASRProviderBase):
                         "namespace": "SpeechTranscriber",
                         "name": "StopTranscription",
                         "status": 20000000,
-                        "message_id": ''.join(random.choices('0123456789abcdef', k=32)),
+                        "message_id": uuid.uuid4().hex,
+                        "task_id": self.task_id,
                         "status_text": "Client:Stop",
                         "appkey": self.appkey
                     }
                 }
-                logger.bind(tag=TAG).info("Sending asr termination request")
+                logger.bind(tag=TAG).debug("正在发送ASR终止请求")
                 await self.asr_ws.send(json.dumps(stop_msg, ensure_ascii=False))
                 await asyncio.sleep(0.1)
-                logger.bind(tag=TAG).info("Asr termination request sent")
+                logger.bind(tag=TAG).debug("ASR终止请求已发送")
             except Exception as e:
                 logger.bind(tag=TAG).error(f"Asr termination request failed to send: {e}")
         
         # Status reset (after termination request sent)
         self.is_processing = False
         self.server_ready = False
-        logger.bind(tag=TAG).info("Asr status has been reset")
+        logger.bind(tag=TAG).debug("ASR状态已重置")
 
         # Cleanup tasks
         if self.forward_task and not self.forward_task.done():
@@ -330,7 +337,7 @@ class ASRProvider(ASRProviderBase):
             finally:
                 self.asr_ws = None
         
-        logger.bind(tag=TAG).info("Asr session cleanup completed")
+        logger.bind(tag=TAG).debug("ASR会话清理完成")
 
     async def speech_to_text(self, opus_data, session_id, audio_format):
         """Get recognition results"""

@@ -358,7 +358,9 @@ async def call_mcp_endpoint_tool(
     }
 
     message = json.dumps(payload)
-    logger.bind(tag=TAG).info(f"发送MCP接入点工具调用请求: {actual_name}，参数: {args}")
+    logger.bind(tag=TAG).info(
+        f"发送MCP接入点工具调用请求: {actual_name}，参数: {json.dumps(arguments, ensure_ascii=False)}"
+    )
     await mcp_client.send_message(message)
 
     try:

@@ -104,8 +104,8 @@
                             <div slot="content">
                               <div><strong>功能名称:</strong> {{ func.name }}</div>
                             </div>
-                            <div class="icon-dot" :style="{ backgroundColor: getFunctionColor(func.name) }">
-                              {{ func.name.charAt(0) }}
+                            <div class="icon-dot">
+                              {{ getFunctionDisplayChar(func.name) }}
                             </div>
                           </el-tooltip>
                           <el-button class="edit-function-btn" @click="openFunctionDialog"
@@ -189,10 +189,6 @@ export default {
       voiceOptions: [],
       showFunctionDialog: false,
       currentFunctions: [],
-      functionColorMap: [
-        '#FF6B6B', '#4ECDC4', '#45B7D1',
-        '#96CEB4', '#FFEEAD', '#D4A5A5', '#A2836E'
-      ],
       allFunctions: [],
       originalFunctions: [],
     }
@@ -428,9 +424,18 @@ export default {
         }
       });
     },
-    getFunctionColor(name) {
-      const hash = [...name].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return this.functionColorMap[hash % this.functionColorMap.length];
+    getFunctionDisplayChar(name) {
+      if (!name || name.length === 0) return '';
+
+      for (let i = 0; i < name.length; i++) {
+        const char = name[i];
+        if (/[\u4e00-\u9fa5a-zA-Z0-9]/.test(char)) {
+          return char;
+        }
+      }
+
+      // 如果没有找到有效字符，返回第一个字符
+      return name.charAt(0);
     },
     showFunctionIcons(type) {
       return type === 'Intent' &&
@@ -755,11 +760,12 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #5778ff;
   font-weight: bold;
   font-size: 12px;
   margin-right: 8px;
   position: relative;
+  background-color: #e6ebff;
 }
 
 ::v-deep .el-form-item__label {

@@ -11,12 +11,12 @@ Prepare the `mqtt-websocket` connection address of your `xiaozhi-server`. Based 
 
 1. If you are deploying from source code, your `mqtt-websocket` address is:
 ```
-ws://127.0.0.1:8000/xiaozhi/v1?from=mqtt_gateway
+ws://127.0.0.1:8000/xiaozhi/v1/?from=mqtt_gateway
 ```
 
 2. If you are deploying with docker, your `mqtt-websocket` address is
 ```
-ws://your host LAN IP:8000/xiaozhi/v1?from=mqtt_gateway
+ws://你宿主机局域网IP:8000/xiaozhi/v1/?from=mqtt_gateway
 ```
 
 ## Important Note
@@ -53,7 +53,7 @@ cp config/mqtt.json.example config/mqtt.json
 {
     "production": {
         "chat_servers": [
-            "ws://127.0.0.1:8000/xiaozhi/v1?from=mqtt_gateway"
+            "ws://127.0.0.1:8000/xiaozhi/v1/?from=mqtt_gateway"
         ]
     },
     "debug": false,

@@ -19,15 +19,15 @@ TAG = __name__
 WAKEUP_CONFIG = {
     "refresh_time": 10,
     "responses": [
-        "I'm always here, please tell me.",
-        "I'm here, please give me orders at any time.",
-        "Come on, come on, please tell me.",
-        "Please speak, I am listening.",
-        "Please speak, I'm ready.",
-        "Please give the command.",
-        "I'm listening carefully. Please speak.",
-        "What help do you need?",
-        "I'm here, waiting for your instructions.",
+        "我一直都在呢，您请说。",
+        "在的呢，请随时吩咐我。",
+        "来啦来啦，请告诉我吧。",
+        "您请说，我正听着。",
+        "请您讲话，我准备好了。",
+        "请您说出指令吧。",
+        "我认真听着呢，请讲。",
+        "请问您需要什么帮助？",
+        "我在这里，等候您的指令。",
     ],
 }
 
@@ -43,15 +43,15 @@ async def handleHelloMessage(conn, msg_json):
     audio_params = msg_json.get("audio_params")
     if audio_params:
         format = audio_params.get("format")
-        conn.logger.bind(tag=TAG).info(f"Client audio format: {format}")
+        conn.logger.bind(tag=TAG).debug(f"客户端音频格式: {format}")
         conn.audio_format = format
         conn.welcome_msg["audio_params"] = audio_params
     features = msg_json.get("features")
     if features:
-        conn.logger.bind(tag=TAG).info(f"Client features: {features}")
+        conn.logger.bind(tag=TAG).debug(f"客户端特性: {features}")
         conn.features = features
         if features.get("mcp"):
-            conn.logger.bind(tag=TAG).info("Client supports mcp")
+            conn.logger.bind(tag=TAG).debug("客户端支持MCP")
             conn.mcp_client = MCPClient()
             # Send initialization
             asyncio.create_task(send_mcp_initialize_message(conn))
@@ -97,7 +97,7 @@ async def checkWakeupWords(conn, text):
             "voice": "default",
             "file_path": "config/assets/wakeup_words_short.wav",
             "time": 0,
-            "text": "I'm here!",
+            "text": "我在这里哦！",
         }
 
     # Get audio data
@@ -128,7 +128,7 @@ async def wakeupWordsResponse(conn):
         if not await _wakeup_response_lock.acquire():
             return
 
-        # Randomly select a reply from a list of predefined replies
+        # 从预定义回复列表中随机选择一个回复
         result = random.choice(WAKEUP_CONFIG["responses"])
         if not result or len(result) == 0:
             return

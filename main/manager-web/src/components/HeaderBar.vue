@@ -9,80 +9,125 @@
 
       <!-- 中间导航菜单 -->
       <div class="header-center">
-        <div class="equipment-management"
-          :class="{ 'active-tab': $route.path === '/home' || $route.path === '/role-config' || $route.path === '/device-management' }"
-          @click="goHome">
-          <img loading="lazy" alt="" src="@/assets/header/robot.png"
-            :style="{ filter: $route.path === '/home' || $route.path === '/role-config' || $route.path === '/device-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          <span class="nav-text">{{ $t('header.smartManagement') }}</span>
+        <div class="equipment-management" :class="{
+          'active-tab':
+            $route.path === '/home' ||
+            $route.path === '/role-config' ||
+            $route.path === '/device-management',
+        }" @click="goHome">
+          <img loading="lazy" alt="" src="@/assets/header/robot.png" :style="{
+            filter:
+              $route.path === '/home' ||
+                $route.path === '/role-config' ||
+                $route.path === '/device-management'
+                ? 'brightness(0) invert(1)'
+                : 'None',
+          }" />
+          <span class="nav-text">{{ $t("header.smartManagement") }}</span>
         </div>
         <!-- 普通用户显示音色克隆 -->
         <div v-if="!isSuperAdmin" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/voice-clone-management' }" @click="goVoiceCloneManagement">
-          <img loading="lazy" alt="" src="@/assets/header/voice.png"
-            :style="{ filter: $route.path === '/voice-clone-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          <span class="nav-text">{{ $t('header.voiceCloneManagement') }}</span>
+          <img loading="lazy" alt="" src="@/assets/header/voice.png" :style="{
+            filter:
+              $route.path === '/voice-clone-management'
+                ? 'brightness(0) invert(1)'
+                : 'None',
+          }" />
+          <span class="nav-text">{{ $t("header.voiceCloneManagement") }}</span>
         </div>
 
         <!-- 超级管理员显示音色克隆下拉菜单 -->
-        <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown"
-          :class="{ 'active-tab': $route.path === '/voice-clone-management' || $route.path === '/voice-resource-management' }"
-          @visible-change="handleVoiceCloneDropdownVisibleChange">
+        <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown" :class="{
+          'active-tab':
+            $route.path === '/voice-clone-management' ||
+            $route.path === '/voice-resource-management',
+        }" @visible-change="handleVoiceCloneDropdownVisibleChange">
           <span class="el-dropdown-link">
-            <img loading="lazy" alt="" src="@/assets/header/voice.png"
-              :style="{ filter: $route.path === '/voice-clone-management' || $route.path === '/voice-resource-management' ? 'brightness(0) invert(1)' : 'None' }" />
-            <span class="nav-text">{{ $t('header.voiceCloneManagement') }}</span>
+            <img loading="lazy" alt="" src="@/assets/header/voice.png" :style="{
+              filter:
+                $route.path === '/voice-clone-management' ||
+                  $route.path === '/voice-resource-management'
+                  ? 'brightness(0) invert(1)'
+                  : 'None',
+            }" />
+            <span class="nav-text">{{ $t("header.voiceCloneManagement") }}</span>
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': voiceCloneDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="goVoiceCloneManagement">
-              {{ $t('header.voiceCloneManagement') }}
+              {{ $t("header.voiceCloneManagement") }}
             </el-dropdown-item>
             <el-dropdown-item @click.native="goVoiceResourceManagement">
-              {{ $t('header.voiceResourceManagement') }}
+              {{ $t("header.voiceResourceManagement") }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
 
         <div v-if="isSuperAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }"
           @click="goModelConfig">
-          <img loading="lazy" alt="" src="@/assets/header/model_config.png"
-            :style="{ filter: $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None' }" />
-          <span class="nav-text">{{ $t('header.modelConfig') }}</span>
+          <img loading="lazy" alt="" src="@/assets/header/model_config.png" :style="{
+            filter:
+              $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None',
+          }" />
+          <span class="nav-text">{{ $t("header.modelConfig") }}</span>
         </div>
-        <div v-if="isSuperAdmin" class="equipment-management"
-          :class="{ 'active-tab': $route.path === '/user-management' }" @click="goUserManagement">
-          <img loading="lazy" alt="" src="@/assets/header/user_management.png"
-            :style="{ filter: $route.path === '/user-management' ? 'brightness(0) invert(1)' : 'None' }" />
-          <span class="nav-text">{{ $t('header.userManagement') }}</span>
+        <div class="equipment-management"
+          :class="{ 'active-tab': $route.path === '/knowledge-base-management' || $route.path === '/knowledge-file-upload' }"
+          @click="goKnowledgeBaseManagement">
+          <img loading="lazy" alt="" src="@/assets/header/knowledge_base.png" :style="{
+            filter:
+              $route.path === '/knowledge-base-management' || $route.path === '/knowledge-file-upload' ? 'brightness(0) invert(1)' : 'None',
+          }" />
+          <span class="nav-text">{{ $t("header.knowledgeBase") }}</span>
         </div>
-        <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown"
-          :class="{ 'active-tab': $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' || $route.path === '/agent-template-management' || $route.path === '/ota-management' }"
-          @visible-change="handleParamDropdownVisibleChange">
+        <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown" :class="{
+          'active-tab':
+            $route.path === '/dict-management' ||
+            $route.path === '/params-management' ||
+            $route.path === '/provider-management' ||
+            $route.path === '/server-side-management' ||
+            $route.path === '/agent-template-management' ||
+            $route.path === '/ota-management' ||
+            $route.path === '/user-management',
+        }" @visible-change="handleParamDropdownVisibleChange">
           <span class="el-dropdown-link">
-            <img loading="lazy" alt="" src="@/assets/header/param_management.png"
-              :style="{ filter: $route.path === '/dict-management' || $route.path === '/params-management' || $route.path === '/provider-management' || $route.path === '/server-side-management' || $route.path === '/agent-template-management' || $route.path === '/ota-management' ? 'brightness(0) invert(1)' : 'None' }" />
-            <span class="nav-text">{{ $t('header.paramDictionary') }}</span>
+            <img loading="lazy" alt="" src="@/assets/header/param_management.png" :style="{
+              filter:
+                $route.path === '/dict-management' ||
+                  $route.path === '/params-management' ||
+                  $route.path === '/provider-management' ||
+                  $route.path === '/server-side-management' ||
+                  $route.path === '/agent-template-management' ||
+                  $route.path === '/ota-management' ||
+                  $route.path === '/user-management'
+                  ? 'brightness(0) invert(1)'
+                  : 'None',
+            }" />
+            <span class="nav-text">{{ $t("header.paramDictionary") }}</span>
             <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': paramDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="goOtaManagement">
-              {{ $t('header.otaManagement') }}
-            </el-dropdown-item>
             <el-dropdown-item @click.native="goParamManagement">
-              {{ $t('header.paramManagement') }}
+              {{ $t("header.paramManagement") }}
+            </el-dropdown-item>
+            <el-dropdown-item @click.native="goUserManagement">
+              {{ $t("header.userManagement") }}
+            </el-dropdown-item>
+            <el-dropdown-item @click.native="goOtaManagement">
+              {{ $t("header.otaManagement") }}
             </el-dropdown-item>
             <el-dropdown-item @click.native="goDictManagement">
-              {{ $t('header.dictManagement') }}
+              {{ $t("header.dictManagement") }}
             </el-dropdown-item>
             <el-dropdown-item @click.native="goProviderManagement">
-              {{ $t('header.providerManagement') }}
+              {{ $t("header.providerManagement") }}
             </el-dropdown-item>
             <el-dropdown-item @click.native="goAgentTemplateManagement">
-              {{ $t('header.agentTemplate') }}
+              {{ $t("header.agentTemplate") }}
             </el-dropdown-item>
             <el-dropdown-item @click.native="goServerSideManagement">
-              {{ $t('header.serverSideManagement') }}
+              {{ $t("header.serverSideManagement") }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
@@ -100,9 +145,9 @@
             <!-- 搜索历史下拉框 -->
             <div v-if="showHistory && searchHistory.length > 0" class="search-history-dropdown">
               <div class="search-history-header">
-                <span>{{ $t('header.searchHistory') }}</span>
+                <span>{{ $t("header.searchHistory") }}</span>
                 <el-button type="text" size="small" class="clear-history-btn" @click="clearSearchHistory">
-                  {{ $t('header.clearHistory') }}
+                  {{ $t("header.clearHistory") }}
                 </el-button>
               </div>
               <div class="search-history-list">
@@ -118,12 +163,12 @@
 
         <img loading="lazy" alt="" src="@/assets/home/avatar.png" class="avatar-img" @click="handleAvatarClick" />
         <span class="el-dropdown-link" @click="handleAvatarClick">
-          {{ userInfo.username || '加载中...' }}
-          <i class="el-icon-arrow-down el-icon--right"></i>
+          {{ userInfo.username || "加载中..." }}
+          <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': userMenuVisible }"></i>
         </span>
         <el-cascader :options="userMenuOptions" trigger="click" :props="cascaderProps"
-          style="width: 0px;overflow: hidden;" :show-all-levels="false" @change="handleCascaderChange"
-          ref="userCascader">
+          style="width: 0px; overflow: hidden" :show-all-levels="false" @change="handleCascaderChange"
+          @visible-change="handleUserMenuVisibleChange" ref="userCascader">
           <template slot-scope="{ data }">
             <span>{{ data.label }}</span>
           </template>
@@ -137,63 +182,64 @@
 </template>
 
 <script>
-import userApi from '@/apis/module/user';
-import i18n, { changeLanguage } from '@/i18n';
-import { mapActions, mapGetters } from 'vuex';
-import ChangePasswordDialog from './ChangePasswordDialog.vue'; // 引入修改密码弹窗组件
+import userApi from "@/apis/module/user";
+import i18n, { changeLanguage } from "@/i18n";
+import { mapActions, mapGetters } from "vuex";
+import ChangePasswordDialog from "./ChangePasswordDialog.vue"; // 引入修改密码弹窗组件
 
 export default {
-  name: 'HeaderBar',
+  name: "HeaderBar",
   components: {
-    ChangePasswordDialog
+    ChangePasswordDialog,
   },
-  props: ['devices'],  // 接收父组件设备列表
+  props: ["devices"], // 接收父组件设备列表
   data() {
     return {
-      search: '',
+      search: "",
       userInfo: {
-        username: '',
-        mobile: ''
+        username: "",
+        mobile: "",
       },
       isChangePasswordDialogVisible: false, // 控制修改密码弹窗的显示
       paramDropdownVisible: false,
       voiceCloneDropdownVisible: false,
+      userMenuVisible: false, // 添加用户菜单可见状态
       isSmallScreen: false,
       // 搜索历史相关
       searchHistory: [],
       showHistory: false,
-      SEARCH_HISTORY_KEY: 'xiaozhi_search_history',
+      SEARCH_HISTORY_KEY: "xiaozhi_search_history",
       MAX_HISTORY_COUNT: 3,
       // Cascader 配置
       cascaderProps: {
-        expandTrigger: 'click',
-        value: 'value',
-        label: 'label',
-        children: 'children'
-      }
-    }
+        expandTrigger: "click",
+        value: "value",
+        label: "label",
+        children: "children",
+      },
+    };
   },
   computed: {
-    ...mapGetters(['getIsSuperAdmin']),
+    ...mapGetters(["getIsSuperAdmin"]),
     isSuperAdmin() {
       return this.getIsSuperAdmin;
     },
     // 获取当前语言
     currentLanguage() {
-      return i18n.locale || 'zh_CN';
+      return i18n.locale || "zh_CN";
     },
     // 获取当前语言显示文本
     currentLanguageText() {
       const currentLang = this.currentLanguage;
       switch (currentLang) {
-        case 'zh_CN':
-          return this.$t('language.zhCN');
-        case 'zh_TW':
-          return this.$t('language.zhTW');
-        case 'en':
-          return this.$t('language.en');
+        case "zh_CN":
+          return this.$t("language.zhCN");
+        case "zh_TW":
+          return this.$t("language.zhTW");
+        case "en":
+          return this.$t("language.en");
         default:
-          return this.$t('language.zhCN');
+          return this.$t("language.zhCN");
       }
     },
     // 用户菜单选项
@@ -201,90 +247,93 @@ export default {
       return [
         {
           label: this.currentLanguageText,
-          value: 'language',
+          value: "language",
           children: [
             {
-              label: this.$t('language.zhCN'),
-              value: 'zh_CN'
+              label: this.$t("language.zhCN"),
+              value: "zh_CN",
             },
             {
-              label: this.$t('language.zhTW'),
-              value: 'zh_TW'
+              label: this.$t("language.zhTW"),
+              value: "zh_TW",
             },
             {
-              label: this.$t('language.en'),
-              value: 'en'
-            }
-          ]
+              label: this.$t("language.en"),
+              value: "en",
+            },
+          ],
         },
         {
-          label: this.$t('header.changePassword'),
-          value: 'changePassword'
+          label: this.$t("header.changePassword"),
+          value: "changePassword",
         },
         {
-          label: this.$t('header.logout'),
-          value: 'logout'
-        }
+          label: this.$t("header.logout"),
+          value: "logout",
+        },
       ];
-    }
+    },
   },
   mounted() {
     this.fetchUserInfo();
     this.checkScreenSize();
-    window.addEventListener('resize', this.checkScreenSize);
+    window.addEventListener("resize", this.checkScreenSize);
     // 从localStorage加载搜索历史
     this.loadSearchHistory();
   },
   //移除事件监听器
   beforeDestroy() {
-    window.removeEventListener('resize', this.checkScreenSize);
+    window.removeEventListener("resize", this.checkScreenSize);
   },
   methods: {
     goHome() {
       // 跳转到首页
-      this.$router.push('/home')
+      this.$router.push("/home");
     },
     goUserManagement() {
-      this.$router.push('/user-management')
+      this.$router.push("/user-management");
     },
     goModelConfig() {
-      this.$router.push('/model-config')
+      this.$router.push("/model-config");
+    },
+    goKnowledgeBaseManagement() {
+      this.$router.push("/knowledge-base-management");
     },
     goVoiceCloneManagement() {
-      this.$router.push('/voice-clone-management')
+      this.$router.push("/voice-clone-management");
     },
     goParamManagement() {
-      this.$router.push('/params-management')
+      this.$router.push("/params-management");
     },
     goOtaManagement() {
-      this.$router.push('/ota-management')
+      this.$router.push("/ota-management");
     },
     goDictManagement() {
-      this.$router.push('/dict-management')
+      this.$router.push("/dict-management");
     },
     goProviderManagement() {
-      this.$router.push('/provider-management')
+      this.$router.push("/provider-management");
     },
     goServerSideManagement() {
-      this.$router.push('/server-side-management')
+      this.$router.push("/server-side-management");
     },
 
     // 跳转到音色资源管理
     goVoiceResourceManagement() {
-      this.$router.push('/voice-resource-management')
+      this.$router.push("/voice-resource-management");
     },
     // 添加默认角色模板管理导航方法
     goAgentTemplateManagement() {
-      this.$router.push('/agent-template-management')
+      this.$router.push("/agent-template-management");
     },
     // 获取用户信息
     fetchUserInfo() {
       userApi.getUserInfo(({ data }) => {
-        this.userInfo = data.data
+        this.userInfo = data.data;
         if (data.data.superAdmin !== undefined) {
-          this.$store.commit('setUserInfo', data.data);
+          this.$store.commit("setUserInfo", data.data);
         }
-      })
+      });
     },
     checkScreenSize() {
       this.isSmallScreen = window.innerWidth <= 1386;
@@ -295,7 +344,7 @@ export default {
 
       // 如果搜索内容为空，触发重置事件
       if (!searchValue) {
-        this.$emit('search-reset');
+        this.$emit("search-reset");
         return;
       }
 
@@ -304,14 +353,14 @@ export default {
 
       try {
         // 创建不区分大小写的正则表达式
-        const regex = new RegExp(searchValue, 'i');
+        const regex = new RegExp(searchValue, "i");
         // 触发搜索事件，将正则表达式传递给父组件
-        this.$emit('search', regex);
+        this.$emit("search", regex);
       } catch (error) {
-        console.error('正则表达式创建失败:', error);
+        console.error("正则表达式创建失败:", error);
         this.$message.error({
-          message: this.$t('message.error'),
-          showClose: true
+          message: this.$t("message.error"),
+          showClose: true,
         });
       }
 
@@ -342,7 +391,7 @@ export default {
           this.searchHistory = JSON.parse(history);
         }
       } catch (error) {
-        console.error('加载搜索历史失败:', error);
+        console.error("加载搜索历史失败:", error);
         this.searchHistory = [];
       }
     },
@@ -365,7 +414,7 @@ export default {
       try {
         localStorage.setItem(this.SEARCH_HISTORY_KEY, JSON.stringify(this.searchHistory));
       } catch (error) {
-        console.error('保存搜索历史失败:', error);
+        console.error("保存搜索历史失败:", error);
       }
     },
 
@@ -381,7 +430,7 @@ export default {
       try {
         localStorage.setItem(this.SEARCH_HISTORY_KEY, JSON.stringify(this.searchHistory));
       } catch (error) {
-        console.error('更新搜索历史失败:', error);
+        console.error("更新搜索历史失败:", error);
       }
     },
 
@@ -391,12 +440,14 @@ export default {
       try {
         localStorage.removeItem(this.SEARCH_HISTORY_KEY);
       } catch (error) {
-        console.error('清空搜索历史失败:', error);
+        console.error("清空搜索历史失败:", error);
       }
     },
     // 显示修改密码弹窗
     showChangePasswordDialog() {
       this.isChangePasswordDialogVisible = true;
+      // 添加：显示修改密码弹窗后重置用户菜单可见状态
+      this.userMenuVisible = false;
     },
     // 退出登录
     async handleLogout() {
@@ -404,14 +455,14 @@ export default {
         // 调用 Vuex 的 logout action
         await this.logout();
         this.$message.success({
-          message: this.$t('message.success'),
-          showClose: true
+          message: this.$t("message.success"),
+          showClose: true,
         });
       } catch (error) {
-        console.error('退出登录失败:', error);
+        console.error("退出登录失败:", error);
         this.$message.error({
-          message: this.$t('message.error'),
-          showClose: true
+          message: this.$t("message.error"),
+          showClose: true,
         });
       }
     },
@@ -424,6 +475,7 @@ export default {
     handleVoiceCloneDropdownVisibleChange(visible) {
       this.voiceCloneDropdownVisible = visible;
     },
+    // 在data中添加一个key用于强制重新渲染组件
     // 处理 Cascader 选择变化
     handleCascaderChange(value) {
       if (!value || value.length === 0) {
@@ -433,41 +485,117 @@ export default {
       const action = value[value.length - 1];
 
       // 处理语言切换
-      if (value.length === 2 && value[0] === 'language') {
+      if (value.length === 2 && value[0] === "language") {
         this.changeLanguage(action);
-        return;
+      } else {
+        // 处理其他操作
+        switch (action) {
+          case "changePassword":
+            this.showChangePasswordDialog();
+            break;
+          case "logout":
+            this.handleLogout();
+            break;
+        }
       }
 
-      // 处理其他操作
-      switch (action) {
-        case 'changePassword':
-          this.showChangePasswordDialog();
-          break;
-        case 'logout':
-          this.handleLogout();
-          break;
-      }
+      // 操作完成后立即清空选择
+      setTimeout(() => {
+        this.completeResetCascader();
+      }, 300);
     },
+
     // 切换语言
     changeLanguage(lang) {
       changeLanguage(lang);
       this.$message.success({
-        message: this.$t('message.success'),
-        showClose: true
+        message: this.$t("message.success"),
+        showClose: true,
       });
+      // 添加：切换语言后重置用户菜单可见状态
+      this.userMenuVisible = false;
+    },
+
+    // 完全重置级联选择器
+    completeResetCascader() {
+      if (this.$refs.userCascader) {
+        try {
+          // 尝试所有可能的方法来清空选择
+          // 1. 尝试使用组件提供的clearValue方法
+          if (this.$refs.userCascader.clearValue) {
+            this.$refs.userCascader.clearValue();
+          }
+
+          // 2. 直接清空内部属性
+          if (this.$refs.userCascader.$data) {
+            this.$refs.userCascader.$data.selectedPaths = [];
+            this.$refs.userCascader.$data.displayLabels = [];
+            this.$refs.userCascader.$data.inputValue = "";
+            this.$refs.userCascader.$data.checkedValue = [];
+            this.$refs.userCascader.$data.showAllLevels = false;
+          }
+
+          // 3. 操作DOM清除选中状态
+          const menuElement = this.$refs.userCascader.$refs.menu;
+          if (menuElement && menuElement.$el) {
+            const activeItems = menuElement.$el.querySelectorAll(
+              ".el-cascader-node.is-active"
+            );
+            activeItems.forEach((item) => item.classList.remove("is-active"));
+
+            const checkedItems = menuElement.$el.querySelectorAll(
+              ".el-cascader-node.is-checked"
+            );
+            checkedItems.forEach((item) => item.classList.remove("is-checked"));
+          }
+
+          console.log("Cascader values cleared");
+        } catch (error) {
+          console.error("清空选择值失败:", error);
+        }
+      }
     },
 
     // 点击头像触发cascader下拉菜单
     handleAvatarClick() {
       if (this.$refs.userCascader) {
-        this.$refs.userCascader.toggleDropDownVisible();
+        // 切换菜单可见状态
+        this.userMenuVisible = !this.userMenuVisible;
+
+        // 菜单收起时清空选择值
+        if (!this.userMenuVisible) {
+          this.completeResetCascader();
+        }
+
+        // 直接设置菜单的显隐状态
+        try {
+          // 尝试使用toggleDropDownVisible方法
+          this.$refs.userCascader.toggleDropDownVisible(this.userMenuVisible);
+        } catch (error) {
+          // 如果toggle方法失败，尝试直接设置属性
+          if (this.$refs.userCascader.$refs.menu) {
+            this.$refs.userCascader.$refs.menu.showMenu(this.userMenuVisible);
+          } else {
+            console.error("Cannot access menu component");
+          }
+        }
+      }
+    },
+
+    // 处理用户菜单可见性变化
+    handleUserMenuVisibleChange(visible) {
+      this.userMenuVisible = visible;
+
+      // 如果菜单关闭了，也要清空选择值
+      if (!visible) {
+        this.completeResetCascader();
       }
     },
 
     // 使用 mapActions 引入 Vuex 的 logout action
-    ...mapActions(['logout'])
-  }
-}
+    ...mapActions(["logout"]),
+  },
+};
 </script>
 
 <style lang="scss" scoped>
@@ -627,7 +755,6 @@ export default {
   gap: 7px;
 }
 
-
 .search-history-item:hover .clear-item-icon {
   visibility: visible;
 }
@@ -705,5 +832,15 @@ export default {
   font-size: 14px;
   color: #606266;
   white-space: nowrap;
+}
+
+/* 添加倒三角旋转样式 */
+.rotate-down {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+.el-icon-arrow-down {
+  transition: transform 0.3s ease;
 }
 </style>

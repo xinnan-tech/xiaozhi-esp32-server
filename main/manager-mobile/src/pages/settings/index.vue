@@ -7,12 +7,12 @@
 }</route>
 
 <script lang="ts" setup>
+import { changeLanguage, getCurrentLanguage, getSupportedLanguages, t } from '@/i18n'
+import type { Language } from '@/store/lang'
 import { clearServerBaseUrlOverride, getEnvBaseUrl, getServerBaseUrlOverride, setServerBaseUrlOverride } from '@/utils'
 import { isMp } from '@/utils/platform'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useToast } from 'wot-design-uni'
-import { t, changeLanguage, getSupportedLanguages, getCurrentLanguage } from '@/i18n'
-import type { Language } from '@/store/lang'
 
 defineOptions({
   name: 'SettingsPage',
@@ -233,9 +233,9 @@ async function clearCache() {
 function showAbout() {
   uni.showModal({
     title: t('settings.aboutApp', { appName: import.meta.env.VITE_APP_TITLE }),
-    content: t('settings.aboutContent', { 
+    content: t('settings.aboutContent', {
       appName: import.meta.env.VITE_APP_TITLE,
-      version: '0.8.4'
+      version: '0.8.8'
     }),
     showCancel: false,
     confirmText: t('common.confirm'),
@@ -248,7 +248,7 @@ onMounted(async () => {
     loadServerBaseUrl()
   }
   getCacheInfo()
-  
+
   // 动态设置导航栏标题为国际化文本
   uni.setNavigationBarTitle({
     title: t('settings.title')
@@ -283,9 +283,9 @@ onMounted(async () => {
           <view class="mb-[24rpx]">
             <view class="w-full rounded-[16rpx] border border-[#eeeeee] bg-[#f5f7fb] overflow-hidden">
               <wd-input v-model="baseUrlInput" type="text" clearable :maxlength="200"
-              :placeholder="t('settings.enterServerUrl')"
-              custom-class="!border-none !bg-transparent h-[64rpx] px-[24rpx] items-center"
-              input-class="text-[28rpx] text-[#232338]" @input="validateUrl" @blur="validateUrl" />
+                :placeholder="t('settings.enterServerUrl')"
+                custom-class="!border-none !bg-transparent h-[64rpx] px-[24rpx] items-center"
+                input-class="text-[28rpx] text-[#232338]" @input="validateUrl" @blur="validateUrl" />
             </view>
             <text v-if="urlError" class="mt-[8rpx] block text-[24rpx] text-[#ff4d4f]">
               {{ urlError }}
@@ -323,11 +323,11 @@ onMounted(async () => {
               class="flex items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]">
               <view>
                 <text class="text-[28rpx] text-[#232338] font-medium">
-              {{ t('settings.totalCacheSize') }}
-            </text>
-            <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
-              {{ t('settings.appDataSize') }}
-            </text>
+                  {{ t('settings.totalCacheSize') }}
+                </text>
+                <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
+                  {{ t('settings.appDataSize') }}
+                </text>
               </view>
               <text class="text-[28rpx] text-[#65686f] font-semibold">
                 {{ cacheInfo.storageSize }}
@@ -339,11 +339,11 @@ onMounted(async () => {
               class="flex items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx]">
               <view>
                 <text class="text-[28rpx] text-[#232338] font-medium">
-              {{ t('settings.cacheClear') }}
-            </text>
-            <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
-              {{ t('settings.clearAllCache') }}
-            </text>
+                  {{ t('settings.cacheClear') }}
+                </text>
+                <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
+                  {{ t('settings.clearAllCache') }}
+                </text>
               </view>
               <view
                 class="cursor-pointer rounded-[24rpx] bg-[rgba(255,107,107,0.1)] px-[28rpx] py-[16rpx] text-[24rpx] text-[#ff6b6b] font-semibold transition-all duration-300 active:scale-95 active:bg-[#ff6b6b] active:text-white"
@@ -359,8 +359,8 @@ onMounted(async () => {
       <view class="mb-[32rpx]">
         <view class="mb-[24rpx] flex items-center">
           <text class="text-[32rpx] text-[#232338] font-bold">
-              {{ t('settings.appInfo') }}
-            </text>
+            {{ t('settings.appInfo') }}
+          </text>
         </view>
 
         <view class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
@@ -370,11 +370,11 @@ onMounted(async () => {
             @click="showAbout">
             <view>
               <text class="text-[28rpx] text-[#232338] font-medium">
-                  {{ t('settings.aboutUs') }}
-                </text>
-                <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
-                  {{ t('settings.appVersion') }}
-                </text>
+                {{ t('settings.aboutUs') }}
+              </text>
+              <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
+                {{ t('settings.appVersion') }}
+              </text>
             </view>
             <wd-icon name="arrow-right" custom-class="text-[32rpx] text-[#9d9ea3]" />
           </view>
@@ -385,24 +385,26 @@ onMounted(async () => {
       <view class="mb-[32rpx]">
         <view class="mb-[24rpx] flex items-center">
           <text class="text-[32rpx] text-[#232338] font-bold">
-              {{ t('settings.languageSettings') }}
-            </text>
+            {{ t('settings.languageSettings') }}
+          </text>
         </view>
 
         <view class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
           style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);">
-          <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]" @click="showLanguageSheet = true">
+          <view
+            class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]"
+            @click="showLanguageSheet = true">
             <view>
               <text class="text-[32rpx] text-[#232338] font-medium">
-                  {{ t('settings.language') }}
-                </text>
-                <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
-                  {{ t('settings.selectLanguage') }}
-                </text>
+                {{ t('settings.language') }}
+              </text>
+              <text class="mt-[4rpx] block text-[24rpx] text-[#9d9ea3]">
+                {{ t('settings.selectLanguage') }}
+              </text>
             </view>
             <view class="flex items-center">
               <text class="text-[32rpx] text-[#9d9ea3] font-semibold mr-[16rpx]">
-                {{ supportedLanguages.find(lang => lang.code === currentLanguage)?.name }}
+                {{supportedLanguages.find(lang => lang.code === currentLanguage)?.name}}
               </text>
               <wd-icon name="arrow-right" custom-class="text-[32rpx] text-[#9d9ea3]" />
             </view>
@@ -411,19 +413,11 @@ onMounted(async () => {
       </view>
 
       <!-- 语言选择弹窗 -->
-      <wd-action-sheet
-        v-model="showLanguageSheet"
-        :title="t('settings.selectLanguage')"
-        :close-on-click-modal="true"
-      >
+      <wd-action-sheet v-model="showLanguageSheet" :title="t('settings.selectLanguage')" :close-on-click-modal="true">
         <view class="language-sheet">
           <scroll-view scroll-y class="language-list">
-            <view
-              v-for="lang in supportedLanguages"
-              :key="lang.code"
-              class="language-item"
-              @click="handleLanguageChange(lang.code)"
-            >
+            <view v-for="lang in supportedLanguages" :key="lang.code" class="language-item"
+              @click="handleLanguageChange(lang.code)">
               <text class="language-name">
                 {{ lang.name }}
               </text>
@@ -446,17 +440,21 @@ onMounted(async () => {
 .language-sheet {
   .language-list {
     max-height: 50vh;
+
     .language-item {
       padding: 30rpx 0;
       text-align: center;
       border-bottom: 1rpx solid #f0f0f0;
+
       .language-name {
         font-size: 28rpx;
         color: #333;
       }
+
       &:last-child {
         border-bottom: none;
       }
+
       &:active {
         background-color: #f5f7fb;
       }

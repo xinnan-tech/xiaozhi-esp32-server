@@ -11,5 +11,9 @@ CREATE TABLE `ai_voice_clone` (
     `train_error` VARCHAR(255) COMMENT '训练错误原因',
     `creator` BIGINT COMMENT '创建者 ID',
     `create_date` DATETIME COMMENT '创建时间',
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    INDEX idx_ai_voice_clone_user_id_model_id_train_status (model_id,user_id, train_status),
+    INDEX idx_ai_voice_clone_voice_id (voice_id),
+    INDEX idx_ai_voice_clone_user_id (user_id),
+    INDEX idx_ai_voice_clone_model_id_voice_id (model_id, voice_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='声音克隆表';

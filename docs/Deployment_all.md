@@ -355,6 +355,9 @@ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/
 
 conda install libopus -y
 conda install ffmpeg -y
+
+# 在 Linux 环境下进行部署时,如出现类似缺失 libiconv.so.2 动态库的报错 请通过以下命令进行安装
+conda install libiconv -y
 ```
 
 Please note that the above commands are not executed successfully all at once. You need to execute them step by step. After each step, check the output log to see if it is successful.
@@ -460,28 +463,30 @@ Next, you can start operating your ESP32 device. You can either compile the ESP3
 # FAQ
 Here are some frequently asked questions for your reference:
 
-1. [Why does Xiaozhi recognize a lot of Korean, Japanese, and English when I say something?](./FAQ.md)
-2. [Why does the error "TTS task error file does not exist" appear?](./FAQ.md)<br/>
-3. [TTS often fails and times out](./FAQ.md)<br/>
-4. [I can connect to my own server using Wi-Fi, but not using 4G](./FAQ.md)<br/>
-5. [How to improve Xiaozhi's dialogue response speed? ](./FAQ.md)<br/>
-6. [I speak very slowly, and Xiaozhi always interrupts me when I pause](./FAQ.md)
-## Deployment related tutorials
-1. [How to automatically pull the latest code of this project, compile and start it](./dev-ops-integration.md)<br/>
-2. [How to integrate with Nginx](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)
-## Expand related tutorials
-1. [How to enable mobile phone number registration smart console](./ali-sms-integration.md)<br/>
-2. [How to integrate HomeAssistant to achieve smart home control](./homeassistant-integration.md)
-3. [How to enable the vision model to realize photo recognition](./mcp-vision-integration.md)
-4. [How to deploy MCP access points](./mcp-endpoint-enable.md)
-5. [How to access the MCP access point](./mcp-endpoint-integration.md)
-6. [How to enable voiceprint recognition](./voiceprint-integration.md)
-7. [News plugin source configuration guide](./newsnow_plugin_config.md)<br/>
-8. [Weather Plugin Usage Guide](./weather-integration.md)
-## Tutorials on voice cloning and local voice deployment
-1. [How to deploy and integrate index-tts local voice](./index-stream-integration.md)<br/>
-2. [How to deploy integrated fish-speech local voice](./fish-speech-integration.md)<br/>
-3. [How to deploy and integrate PaddleSpeech local voice](./paddlespeech-deploy.md)<br/>
-## Performance Testing Tutorial
-1. [Component Speed ​​Test Guide](./performance_tester.md)<br/>
-2. [Publish test results regularly](https://github.com/xinnan-tech/xiaozhi-performance-research)
+1、[为什么我说的话，小智识别出来很多韩文、日文、英文](./FAQ.md)<br/>
+2、[为什么会出现“TTS 任务出错 文件不存在”？](./FAQ.md)<br/>
+3、[TTS 经常失败，经常超时](./FAQ.md)<br/>
+4、[使用Wifi能连接自建服务器，但是4G模式却接不上](./FAQ.md)<br/>
+5、[如何提高小智对话响应速度？](./FAQ.md)<br/>
+6、[我说话很慢，停顿时小智老是抢话](./FAQ.md)<br/>
+## 部署相关教程
+1、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
+2、[如何部署MQTT网关开启MQTT+UDP协议](./mqtt-gateway-integration.md)<br/>
+3、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
+## 拓展相关教程
+1、[如何开启手机号码注册智控台](./ali-sms-integration.md)<br/>
+2、[如何集成HomeAssistant实现智能家居控制](./homeassistant-integration.md)<br/>
+3、[如何开启视觉模型实现拍照识物](./mcp-vision-integration.md)<br/>
+4、[如何部署MCP接入点](./mcp-endpoint-enable.md)<br/>
+5、[如何接入MCP接入点](./mcp-endpoint-integration.md)<br/>
+6、[如何开启声纹识别](./voiceprint-integration.md)<br/>
+7、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
+8、[天气插件使用指南](./weather-integration.md)<br/>
+## 语音克隆、本地语音部署相关教程
+1、[如何在智控台克隆音色](./huoshan-streamTTS-voice-cloning.md)<br/>
+2、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
+3、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>
+4、[如何部署集成PaddleSpeech本地语音](./paddlespeech-deploy.md)<br/>
+## 性能测试教程
+1、[各组件速度测试指南](./performance_tester.md)<br/>
+2、[定期公开测试结果](https://github.com/xinnan-tech/xiaozhi-performance-research)<br/>

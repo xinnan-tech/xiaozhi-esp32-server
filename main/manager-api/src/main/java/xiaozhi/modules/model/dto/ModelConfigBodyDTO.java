@@ -13,9 +13,9 @@ public class ModelConfigBodyDTO {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    // @Schema(description = "模型类型(Memory/ASR/VAD/LLM/TTS)")
-    // private String modelType;
-    //
+    @Schema(description = "模型ID,未填写将自动生成")
+    private String id;
+
     @Schema(description = "模型编码(如AliLLM、DoubaoTTS)")
     private String modelCode;
 

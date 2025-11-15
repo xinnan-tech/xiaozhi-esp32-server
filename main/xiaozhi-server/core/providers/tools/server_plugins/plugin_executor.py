@@ -71,6 +71,19 @@ class ServerPluginExecutor(ToolExecutor):
         for func_name in all_required_functions:
             func_item = all_function_registry.get(func_name)
             if func_item:
+                # 从函数注册中获取描述
+                fun_description = (
+                    self.config.get("plugins", {})
+                    .get(func_name, {})
+                    .get("description", "")
+                )
+                if fun_description is not None and len(fun_description) > 0:
+                    if "function" in func_item.description and isinstance(
+                        func_item.description["function"], dict
+                    ):
+                        func_item.description["function"][
+                            "description"
+                        ] = fun_description
                 tools[func_name] = ToolDefinition(
                     name=func_name,
                     description=func_item.description,
