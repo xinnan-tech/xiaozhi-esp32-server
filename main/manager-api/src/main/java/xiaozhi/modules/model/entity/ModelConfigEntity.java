@@ -3,9 +3,7 @@ package xiaozhi.modules.model.entity;
 import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 
@@ -18,7 +16,6 @@ import lombok.Data;
 @Schema(description = "模型配置表")
 public class ModelConfigEntity {
 
-    @TableId(type = IdType.ASSIGN_UUID)
     @Schema(description = "主键")
     private String id;
 

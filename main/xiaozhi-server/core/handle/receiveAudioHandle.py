@@ -13,7 +13,7 @@ TAG = __name__
 async def handleAudioMessage(conn, audio):
     # Is anyone speaking in the current segment?
     have_voice = conn.vad.is_vad(conn, audio)
-    # If the device has just been woken up, briefly ignore vad detection
+    # 如果设备刚刚被唤醒，短暂忽略VAD检测
     if hasattr(conn, "just_woken_up") and conn.just_woken_up:
         have_voice = False
         # Resume vad detection after setting a short delay
@@ -21,7 +21,7 @@ async def handleAudioMessage(conn, audio):
         if not hasattr(conn, "vad_resume_task") or conn.vad_resume_task.done():
             conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
         return
-    # manual Do not interrupt the content being played in mode
+    # manual 模式下不打断正在播放的内容
     if have_voice:
         if conn.client_is_speaking and conn.client_listen_mode != "manual":
             await handleAbortMessage(conn)
@@ -32,8 +32,8 @@ async def handleAudioMessage(conn, audio):
 
 
 async def resume_vad_detection(conn):
-    # Wait 2 seconds before resuming vad detection
-    await asyncio.sleep(1)
+    # 等待2秒后恢复VAD检测
+    await asyncio.sleep(2)
     conn.just_woken_up = False
 
 
@@ -74,7 +74,7 @@ async def startToChat(conn, text):
         ):
             await max_out_size(conn)
             return
-    # manual Do not interrupt the content being played in mode
+    # manual 模式下不打断正在播放的内容
     if conn.client_is_speaking and conn.client_listen_mode != "manual":
         await handleAbortMessage(conn)
 

@@ -69,7 +69,7 @@ class UnifiedToolHandler:
             self._initialize_home_assistant()
 
             self.finish_init = True
-            self.logger.info("统一工具处理器初始化完成")
+            self.logger.debug("统一工具处理器初始化完成")
 
             # 输出当前支持的所有工具列表
             self.current_support_functions()

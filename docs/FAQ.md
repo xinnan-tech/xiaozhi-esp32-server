@@ -59,35 +59,38 @@ VAD:
     min_silence_duration_ms: 700 # If the pauses in speaking are long, you can increase this value
 ```
 
-### 7. Deployment related tutorials
-1. [How to perform the simplest deployment](./Deployment.md)
-2. [How to deploy all modules](./Deployment_all.md)<br/>
-2. [How to deploy an MQTT gateway and enable the MQTT+UDP protocol](./mqtt-gateway-integration.md)
-3. [How to automatically pull the latest code of this project, compile and start it](./dev-ops-integration.md)<br/>
-4. [How to integrate with Nginx](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)
+### 7、部署相关教程
+1、[如何进行最简化部署](./Deployment.md)<br/>
+2、[如何进行全模块部署](./Deployment_all.md)<br/>
+3、[如何部署MQTT网关开启MQTT+UDP协议](./mqtt-gateway-integration.md)<br/>
+4、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
+5、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
 
-### 8. Compile firmware related tutorials
-1. [How to compile Xiaozhi firmware yourself](./firmware-build.md)<br/>
-2. [How to modify the OTA address based on the firmware compiled by Xia Ge](./firmware-setting.md)<br/>
+### 9、编译固件相关教程
+1、[如何自己编译小智固件](./firmware-build.md)<br/>
+2、[如何基于虾哥编译好的固件修改OTA地址](./firmware-setting.md)<br/>
 
-### 8. Expand related tutorials
-1. [How to enable mobile phone number registration smart console](./ali-sms-integration.md)<br/>
-2. [How to integrate HomeAssistant to achieve smart home control](./homeassistant-integration.md)
-3. [How to enable the vision model to realize photo recognition](./mcp-vision-integration.md)
-4. [How to deploy MCP access points](./mcp-endpoint-enable.md)
-5. [How to access the MCP access point](./mcp-endpoint-integration.md)
-6. [How to enable voiceprint recognition](./voiceprint-integration.md)
-10. [News plugin source configuration guide](./newsnow_plugin_config.md)<br/>
+### 10、拓展相关教程
+1、[如何开启手机号码注册智控台](./ali-sms-integration.md)<br/>
+2、[如何集成HomeAssistant实现智能家居控制](./homeassistant-integration.md)<br/>
+3、[如何开启视觉模型实现拍照识物](./mcp-vision-integration.md)<br/>
+4、[如何部署MCP接入点](./mcp-endpoint-enable.md)<br/>
+5、[如何接入MCP接入点](./mcp-endpoint-integration.md)<br/>
+6、[MCP方法如何获取设备信息](./mcp-get-device-info.md)<br/>
+7、[如何开启声纹识别](./voiceprint-integration.md)<br/>
+8、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
+9、[知识库ragflow集成指南](./ragflow-integration.md)<br/>
 
-### 9. Tutorials on voice cloning and local voice deployment
-1. [How to deploy and integrate index-tts local voice](./index-stream-integration.md)<br/>
-2. [How to deploy integrated fish-speech local voice](./fish-speech-integration.md)<br/>
-3. [How to deploy and integrate PaddleSpeech local voice](./paddlespeech-deploy.md)<br/>
+### 11、语音克隆、本地语音部署相关教程
+1、[如何在智控台克隆音色](./huoshan-streamTTS-voice-cloning.md)<br/>
+2、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
+3、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>
+4、[如何部署集成PaddleSpeech本地语音](./paddlespeech-deploy.md)<br/>
 
-### 10. Performance Testing Tutorial
-1. [Component Speed ​​Test Guide](./performance_tester.md)<br/>
-2. [Publish test results regularly](https://github.com/xinnan-tech/xiaozhi-performance-research)
+### 12、性能测试教程
+1、[各组件速度测试指南](./performance_tester.md)<br/>
+2、[定期公开测试结果](https://github.com/xinnan-tech/xiaozhi-performance-research)<br/>
 
-### 13. For more questions, please contact us for feedback💬
+### 13、更多问题，可联系我们反馈 💬
 
-Please submit your issues at [issues](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues).
+可以在[issues](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues)提交您的问题。

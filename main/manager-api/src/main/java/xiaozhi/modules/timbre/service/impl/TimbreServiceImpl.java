@@ -1,9 +1,11 @@
 package xiaozhi.modules.timbre.service.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -15,18 +17,23 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import cn.hutool.core.collection.CollectionUtil;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.common.utils.MessageUtils;
 import xiaozhi.modules.model.dto.VoiceDTO;
+import xiaozhi.modules.security.user.SecurityUser;
 import xiaozhi.modules.timbre.dao.TimbreDao;
 import xiaozhi.modules.timbre.dto.TimbreDataDTO;
 import xiaozhi.modules.timbre.dto.TimbrePageDTO;
 import xiaozhi.modules.timbre.entity.TimbreEntity;
 import xiaozhi.modules.timbre.service.TimbreService;
 import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
+import xiaozhi.modules.voiceclone.dao.VoiceCloneDao;
+import xiaozhi.modules.voiceclone.entity.VoiceCloneEntity;
 
 /**
  * 音色的业务层的实现
@@ -39,6 +46,7 @@ import xiaozhi.modules.timbre.vo.TimbreDetailsVO;
 public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> implements TimbreService {
 
     private final TimbreDao timbreDao;
+    private final VoiceCloneDao voiceCloneDao;
     private final RedisUtils redisUtils;
 
     @Override
@@ -121,11 +129,30 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
             queryWrapper.like("name", voiceName);
         }
         List<TimbreEntity> timbreEntities = timbreDao.selectList(queryWrapper);
-        if (CollectionUtil.isEmpty(timbreEntities)) {
-            return null;
+        if (timbreEntities == null) {
+            timbreEntities = new ArrayList<>();
+        }
+        List<VoiceDTO> voiceDTOs = timbreEntities.stream()
+                .map(entity -> new VoiceDTO(entity.getId(), entity.getName()))
+                .collect(Collectors.toList());
+
+        // 获取当前登录用户ID
+        Long currentUserId = SecurityUser.getUser().getId();
+        if (currentUserId != null) {
+            // 查询用户的所有克隆音色记录
+            List<VoiceDTO> cloneEntities = voiceCloneDao.getTrainSuccess(ttsModelId, currentUserId);
+            for (VoiceDTO entity : cloneEntities) {
+                // 只添加训练成功的克隆音色，且模型ID匹配
+                VoiceDTO voiceDTO = new VoiceDTO();
+                voiceDTO.setId(entity.getId());
+                voiceDTO.setName(MessageUtils.getMessage(ErrorCode.VOICE_CLONE_PREFIX) + entity.getName());
+                redisUtils.set(RedisKeys.getTimbreNameById(voiceDTO.getId()), voiceDTO.getName(),
+                        RedisUtils.NOT_EXPIRE);
+                voiceDTOs.add(0, voiceDTO);
+            }
         }
 
-        return ConvertUtils.sourceToTarget(timbreEntities, VoiceDTO.class);
+        return CollectionUtil.isEmpty(voiceDTOs) ? null : voiceDTOs;
     }
 
     /**
@@ -154,8 +181,30 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
                 redisUtils.set(RedisKeys.getTimbreNameById(id), name);
             }
             return name;
+        } else {
+            VoiceCloneEntity cloneEntity = voiceCloneDao.selectById(id);
+            if (cloneEntity != null) {
+                String name = MessageUtils.getMessage(ErrorCode.VOICE_CLONE_PREFIX) + cloneEntity.getName();
+                redisUtils.set(RedisKeys.getTimbreNameById(id), name);
+                return name;
+            }
         }
 
         return null;
+    }
+
+    @Override
+    public VoiceDTO getByVoiceCode(String ttsModelId, String voiceCode) {
+        if (StringUtils.isBlank(voiceCode)) {
+            return null;
+        }
+        QueryWrapper<TimbreEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("tts_model_id", ttsModelId);
+        queryWrapper.eq("tts_voice", voiceCode);
+        List<TimbreEntity> list = timbreDao.selectList(queryWrapper);
+        if (list.isEmpty()) {
+            return null;
+        }
+        return new VoiceDTO(list.get(0).getId(), list.get(0).getName());
     }
 }

@@ -152,4 +152,11 @@ public class RedisKeys {
     public static String getVoiceCloneAudioIdKey(String uuid) {
         return "voiceClone:audio:id:" + uuid;
     }
+
+    /**
+     * 获取知识库缓存key
+     */
+    public static String getKnowledgeBaseCacheKey(String datasetId) {
+        return "knowledge:base:" + datasetId;
+    }
 }

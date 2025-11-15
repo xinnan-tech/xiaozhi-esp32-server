@@ -90,33 +90,47 @@ async def sendAudio(conn, audios, frame_duration=60):
     if audios is None or len(audios) == 0:
         return
 
+    # 获取发送延迟配置
+    send_delay = conn.config.get("tts_audio_send_delay", -1) / 1000.0
+
     if isinstance(audios, bytes):
+        # 重置流控状态,第一次读取和会话发生转变时
+        if not hasattr(conn, "audio_flow_control") or conn.audio_flow_control.get("sentence_id") != conn.sentence_id:
+            conn.audio_flow_control = {
+                "last_send_time": 0,
+                "packet_count": 0,
+                "start_time": time.perf_counter(),
+                "sequence": 0,  # 添加序列号
+                "sentence_id": conn.sentence_id,
+            }
+
         if conn.client_abort:
             return
 
         conn.last_activity_time = time.time() * 1000
 
-        # Get or initialize flow control status
-        if not hasattr(conn, "audio_flow_control"):
-            conn.audio_flow_control = {
-                "last_send_time": 0,
-                "packet_count": 0,
-                "start_time": time.perf_counter(),
-                "sequence": 0,  # Add serial number
-            }
-
+        # 预缓冲：前5个包直接发送，不做延迟
+        pre_buffer_count = 5
         flow_control = conn.audio_flow_control
         current_time = time.perf_counter()
-        # Calculate expected delivery time
-        expected_time = flow_control["start_time"] + (
-            flow_control["packet_count"] * frame_duration / 1000
-        )
-        delay = expected_time - current_time
-        if delay > 0:
-            await asyncio.sleep(delay)
+
+        if flow_control["packet_count"] < pre_buffer_count:
+            # 预缓冲阶段，直接发送不延迟
+            pass
+        elif send_delay > 0:
+            # 使用固定延迟
+            await asyncio.sleep(send_delay)
         else:
-            # correct errors
-            flow_control["start_time"] += abs(delay)
+            effective_packet = flow_control["packet_count"] - pre_buffer_count
+            expected_time = flow_control["start_time"] + (
+                effective_packet * frame_duration / 1000
+            )
+            delay = expected_time - current_time
+            if delay > 0:
+                await asyncio.sleep(delay)
+            else:
+                # 纠正误差
+                flow_control["start_time"] += abs(delay)
 
         if conn.conn_from_mqtt_gateway:
             # Calculate timestamps and sequence numbers
@@ -141,8 +155,8 @@ async def sendAudio(conn, audios, frame_duration=60):
         start_time = time.perf_counter()
         play_position = 0
 
-        # Perform prebuffering
-        pre_buffer_frames = min(3, len(audios))
+        # 执行预缓冲
+        pre_buffer_frames = min(5, len(audios))
         for i in range(pre_buffer_frames):
             if conn.conn_from_mqtt_gateway:
                 # Calculate timestamps and sequence numbers
@@ -164,12 +178,16 @@ async def sendAudio(conn, audios, frame_duration=60):
             # Reset no sound status
             conn.last_activity_time = time.time() * 1000
 
-            # Calculate expected delivery time
-            expected_time = start_time + (play_position / 1000)
-            current_time = time.perf_counter()
-            delay = expected_time - current_time
-            if delay > 0:
-                await asyncio.sleep(delay)
+            if send_delay > 0:
+                # 固定延迟模式
+                await asyncio.sleep(send_delay)
+            else:
+                 # 计算预期发送时间
+                expected_time = start_time + (play_position / 1000)
+                current_time = time.perf_counter()
+                delay = expected_time - current_time
+                if delay > 0:
+                    await asyncio.sleep(delay)
 
             if conn.conn_from_mqtt_gateway:
                 # Calculate timestamps and sequence numbers (using current packet index to ensure continuity)

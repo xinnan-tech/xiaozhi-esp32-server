@@ -147,7 +147,8 @@ export default {
         { value: "Intent", labelKey: 'providerManagement.modelType.Intent' },
         { value: "Memory", labelKey: 'providerManagement.modelType.Memory' },
         { value: "VAD", labelKey: 'providerManagement.modelType.VAD' },
-        { value: "Plugin", labelKey: 'providerManagement.modelType.Plugin' }
+        { value: "Plugin", labelKey: 'providerManagement.modelType.Plugin' },
+        { value: "RAG", labelKey: 'providerManagement.modelType.RAG' }
       ],
       currentPage: 1,
       loading: false,
@@ -369,7 +370,8 @@ export default {
         'LLM': 'danger',
         'Intent': 'info',
         'Memory': '',
-        'VAD': 'primary'
+        'VAD': 'primary',
+        'RAG': 'warning'
       };
       return typeMap[type] || '';
     },

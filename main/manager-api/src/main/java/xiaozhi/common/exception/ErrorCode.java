@@ -55,7 +55,7 @@ public interface ErrorCode {
 
     int OTA_DEVICE_NOT_FOUND = 10041;
     int OTA_DEVICE_NEED_BIND = 10042;
-    
+
     // 新增错误编码
     int DELETE_DATA_FAILED = 10043;
     int USER_NOT_LOGIN = 10044;
@@ -66,7 +66,7 @@ public interface ErrorCode {
     int INVALID_LLM_TYPE = 10049;
     int TOKEN_GENERATE_ERROR = 10050;
     int RESOURCE_NOT_FOUND = 10051;
-    
+
     // 新增错误编码
     int DEFAULT_AGENT_NOT_FOUND = 10052;
     int AGENT_NOT_FOUND = 10053;
@@ -82,14 +82,6 @@ public interface ErrorCode {
     int DEVICE_ALREADY_ACTIVATED = 10063;
     // 默认模型删除错误
     int DEFAULT_MODEL_DELETE_ERROR = 10064;
-    // 设备相关错误码
-    int MAC_ADDRESS_ALREADY_EXISTS = 10090; // Mac地址已存在
-    // 模型相关错误码
-    int MODEL_PROVIDER_NOT_EXIST = 10091; // 供应器不存在
-    int LLM_NOT_EXIST = 10092; // 设置的LLM不存在
-    int MODEL_REFERENCED_BY_AGENT = 10093; // 该模型配置已被智能体引用，无法删除
-    int LLM_REFERENCED_BY_INTENT = 10094; // 该LLM模型已被意图识别配置引用，无法删除
-    
     // 登录相关错误码
     int ADD_DATA_FAILED = 10065; // 新增数据失败
     int UPDATE_DATA_FAILED = 10066; // 修改数据失败
@@ -102,17 +94,17 @@ public interface ErrorCode {
     int RETRIEVE_PASSWORD_DISABLED = 10073; // 未开启找回密码功能
     int PHONE_FORMAT_ERROR = 10074; // 手机号码格式不正确
     int SMS_CODE_ERROR = 10075; // 手机验证码错误
-    
+
     // 字典类型相关错误码
     int DICT_TYPE_NOT_EXIST = 10076; // 字典类型不存在
     int DICT_TYPE_DUPLICATE = 10077; // 字典类型编码重复
-    
+
     // 资源处理相关错误码
     int RESOURCE_READ_ERROR = 10078; // 读取资源失败
-    
+
     // 智能体相关错误码
     int LLM_INTENT_PARAMS_MISMATCH = 10079; // LLM大模型和Intent意图识别，选择参数不匹配
-    
+
     // 声纹相关错误码
     int VOICEPRINT_ALREADY_REGISTERED = 10080; // 此声音声纹已经注册
     int VOICEPRINT_DELETE_ERROR = 10081; // 删除声纹出现错误
@@ -126,12 +118,16 @@ public interface ErrorCode {
     int VOICEPRINT_UNREGISTER_REQUEST_ERROR = 10089; // 声纹注销请求失败
     int VOICEPRINT_UNREGISTER_PROCESS_ERROR = 10090; // 声纹注销处理失败
     int VOICEPRINT_IDENTIFY_REQUEST_ERROR = 10091; // 声纹识别请求失败
-    
+
+    int LLM_NOT_EXIST = 10092; // 设置的LLM不存在
+    int MODEL_REFERENCED_BY_AGENT = 10093; // 该模型配置已被智能体引用，无法删除
+    int LLM_REFERENCED_BY_INTENT = 10094; // 该LLM模型已被意图识别配置引用，无法删除
+
     // 服务端管理相关错误码
     int INVALID_SERVER_ACTION = 10095; // 无效服务端操作
     int SERVER_WEBSOCKET_NOT_CONFIGURED = 10096; // 未配置服务端WebSocket地址
     int TARGET_WEBSOCKET_NOT_EXIST = 10097; // 目标WebSocket地址不存在
-    
+
     // 参数验证相关错误码
     int WEBSOCKET_URLS_EMPTY = 10098; // WebSocket地址列表不能为空
     int WEBSOCKET_URL_LOCALHOST = 10099; // WebSocket地址不能使用localhost或127.0.0.1
@@ -175,7 +171,7 @@ public interface ErrorCode {
     int DOWNLOAD_LINK_INVALID = 10137; // 下载链接无效
     int CHAT_ROLE_USER = 10138; // 用户角色
     int CHAT_ROLE_AGENT = 10139; // 智能体角色
-    
+
     // 声音克隆相关错误码
     int VOICE_CLONE_AUDIO_EMPTY = 10140; // 音频文件不能为空
     int VOICE_CLONE_NOT_AUDIO_FILE = 10141; // 只支持音频文件
@@ -188,4 +184,33 @@ public interface ErrorCode {
     int VOICE_RESOURCE_ACCOUNT_EMPTY = 10148; // 归属账号不能为空
     int VOICE_RESOURCE_DELETE_ID_EMPTY = 10149; // 删除的音色资源ID不能为空
     int VOICE_RESOURCE_NO_PERMISSION = 10150; // 您没有权限操作该记录
+    int VOICE_CLONE_AUDIO_NOT_UPLOADED = 10151; // 请先上传音频文件
+    int VOICE_CLONE_MODEL_CONFIG_NOT_FOUND = 10152; // 模型配置未找到
+    int VOICE_CLONE_MODEL_TYPE_NOT_FOUND = 10153; // 模型类型未找到
+    int VOICE_CLONE_TRAINING_FAILED = 10154; // 训练失败
+    int VOICE_CLONE_HUOSHAN_CONFIG_MISSING = 10155; // 火山引擎缺少配置
+    int VOICE_CLONE_RESPONSE_FORMAT_ERROR = 10156; // 响应格式错误
+    int VOICE_CLONE_REQUEST_FAILED = 10157; // 请求失败
+    int VOICE_CLONE_PREFIX = 10158; // 复刻音色前缀
+    int VOICE_ID_ALREADY_EXISTS = 10159; // 音色ID已存在
+    int VOICE_CLONE_HUOSHAN_VOICE_ID_ERROR = 10160; // 火山引擎音色ID格式错误
+
+    // 设备相关错误码
+    int MAC_ADDRESS_ALREADY_EXISTS = 10161; // Mac地址已存在
+    // 模型相关错误码
+    int MODEL_PROVIDER_NOT_EXIST = 10162; // 供应器不存在
+
+    // 知识库相关错误码
+    int Knowledge_Base_RECORD_NOT_EXISTS = 10163; // 知识库记录不存在
+    int RAG_CONFIG_NOT_FOUND = 10164; // RAG配置未找到
+    int RAG_CONFIG_TYPE_ERROR = 10165; // RAG配置类型错误
+    int RAG_DEFAULT_CONFIG_NOT_FOUND = 10166; // 默认RAG配置未找到
+    int RAG_API_ERROR = 10167; // RAG调用失败
+    int UPLOAD_FILE_ERROR = 10168; // 上传文件失败
+    int NO_PERMISSION = 10169; // 没有权限
+    int KNOWLEDGE_BASE_NAME_EXISTS = 10170; // 同名知识库已存在
+    int RAG_API_ERROR_URL_NULL = 10171; // RAG配置中base_url为空，请完善配置
+    int RAG_API_ERROR_API_KEY_NULL = 10172; // RAG配置中api_key为空，请完善配置
+    int RAG_API_ERROR_API_KEY_INVALID = 10173; // RAG配置中api_key包含占位符，请替换为实际的API密钥
+    int RAG_API_ERROR_URL_INVALID = 10174; // RAG配置中base_url格式不正确，请检查协议是否正确
 }

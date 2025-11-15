@@ -17,5 +17,5 @@ docker build -t xiaozhi-esp32-server:web_latest -f ./Dockerfile-web .
 # After compilation is complete, you can use docker-compose to start the project
 # You need to modify docker-compose.yml to the image version you compiled yourself
 cd main/xiaozhi-server
-docker-compose up -d
+docker compose up -d
 ```

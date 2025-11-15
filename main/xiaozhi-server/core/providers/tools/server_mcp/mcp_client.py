@@ -13,6 +13,7 @@ from typing import Optional, List, Dict, Any
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
+from mcp.client.streamable_http import streamablehttp_client
 from config.logger import setup_logging
 from core.utils.util import sanitize_tool_name
 
@@ -172,10 +173,33 @@ class ServerMCPClient:
                     if "API_ACCESS_TOKEN" in self.config:
                         headers["Authorization"] = f"Bearer {self.config['API_ACCESS_TOKEN']}"
                         self.logger.bind(tag=TAG).warning(f"你正在使用旧过时的配置 API_ACCESS_TOKEN ，请在.mcp_server_settings.json中将API_ACCESS_TOKEN直接设置在headers中，例如 'Authorization': 'Bearer API_ACCESS_TOKEN'")
-                    sse_r, sse_w = await stack.enter_async_context(
-                        sse_client(self.config["url"], headers=headers, timeout=self.config.get("timeout", 5), sse_read_timeout=self.config.get("sse_read_timeout", 60 * 5))
-                    )
-                    read_stream, write_stream = sse_r, sse_w
+                   
+                    # 根据transport类型选择不同的客户端，默认为SSE
+                    transport_type = self.config.get("transport", "sse")
+
+                    if transport_type == "streamable-http" or transport_type == "http":
+                        # 使用 Streamable HTTP 传输
+                        http_r, http_w, get_session_id = await stack.enter_async_context(
+                            streamablehttp_client(
+                                url=self.config["url"],
+                                headers=headers,
+                                timeout=self.config.get("timeout", 30),
+                                sse_read_timeout=self.config.get("sse_read_timeout", 60 * 5),
+                                terminate_on_close=self.config.get("terminate_on_close", True)
+                            )
+                        )
+                        read_stream, write_stream = http_r, http_w
+                    else:
+                        # 使用传统的 SSE 传输
+                        sse_r, sse_w = await stack.enter_async_context(
+                            sse_client(
+                                url=self.config["url"],
+                                headers=headers,
+                                timeout=self.config.get("timeout", 5),
+                                sse_read_timeout=self.config.get("sse_read_timeout", 60 * 5)
+                            )
+                        )
+                        read_stream, write_stream = sse_r, sse_w
 
                 else:
                     raise ValueError("MCP客户端配置必须包含'command'或'url'")

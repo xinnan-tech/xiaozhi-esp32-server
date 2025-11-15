@@ -56,6 +56,163 @@
         #fileProtocolWarning button:hover {
             background-color: #45a049;
         }
+
+        /* MCP 工具管理样式 */
+        .mcp-tools-container {
+            display: grid;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .mcp-tool-card {
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+
+        .mcp-tool-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .mcp-tool-card.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .mcp-tool-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .mcp-tool-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .mcp-tool-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .mcp-tool-description {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .mcp-tool-info {
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 12px;
+        }
+
+        .mcp-tool-info-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 4px;
+        }
+
+        .mcp-tool-info-label {
+            color: #999;
+            min-width: 60px;
+        }
+
+        .mcp-tool-info-value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .mcp-property-item {
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .mcp-property-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .mcp-property-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .mcp-property-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .mcp-property-row-full {
+            margin-bottom: 8px;
+        }
+
+        .mcp-small-label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .mcp-small-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .mcp-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .mcp-error {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .mcp-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .mcp-badge-required {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .mcp-badge-optional {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
     </style>
     <script>
         // 检测是否使用file://协议打开
@@ -133,10 +290,8 @@
             <div class="connection-controls">
                 <input type="text" id="otaUrl" value="http://127.0.0.1:8002/xiaozhi/ota/"
                     placeholder="OTA服务器地址，如：http://127.0.0.1:8002/xiaozhi/ota/" />
-                <input type="text" id="serverUrl" value="ws://127.0.0.1:8000/xiaozhi/v1/"
-                    placeholder="WebSocket服务器地址，如：ws://127.0.0.1:8000/xiaozhi/v1/" />
+                <input type="text" id="serverUrl" value="" readonly disabled placeholder="点击连接按钮后，自动从OTA接口获取" />
                 <button id="connectButton">连接</button>
-                <button id="authTestButton">测试认证</button>
             </div>
         </div>
 
@@ -168,6 +323,83 @@
                 <div id="logContainer">
                     <div class="log-entry log-info">准备就绪，请连接服务器开始测试...</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- MCP 工具管理区域 -->
+        <div class="section">
+            <h2>
+                MCP 工具管理
+                <span class="connection-status">
+                    <span id="mcpToolsCount">0 个工具</span>
+                </span>
+                <button class="toggle-button" id="toggleMcpTools">展开</button>
+            </h2>
+            <div class="config-panel" id="mcpToolsPanel">
+                <div id="mcpToolsContainer" class="mcp-tools-container">
+                    <!-- 工具列表将动态插入这里 -->
+                </div>
+                <div style="text-align: center; padding: 15px 0;">
+                    <button class="btn" id="addMcpToolBtn" style="background-color: #4caf50;">
+                        ➕ 添加新工具
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MCP 工具编辑模态框 -->
+        <div id="mcpToolModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; overflow-y: auto;">
+            <div style="background-color: white; border-radius: 10px; padding: 25px; width: 90%; max-width: 700px; margin: 50px auto; max-height: 85vh; overflow-y: auto;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0;">
+                    <h2 id="mcpModalTitle" style="font-size: 20px; font-weight: bold; color: #333; margin: 0;">添加工具</h2>
+                    <button id="closeMcpModalBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666; padding: 0; width: 30px; height: 30px;">&times;</button>
+                </div>
+
+                <div id="mcpErrorContainer"></div>
+
+                <form id="mcpToolForm">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">工具名称 *</label>
+                        <input type="text" id="mcpToolName" placeholder="例如: self.get_device_status" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">工具描述 *</label>
+                        <textarea id="mcpToolDescription" placeholder="详细描述工具的功能和使用场景..." required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; min-height: 80px; resize: vertical;"></textarea>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">输入参数</label>
+                        <div style="background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; padding: 15px;">
+                            <div id="mcpPropertiesContainer">
+                                <div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">暂无参数，点击下方按钮添加参数</div>
+                            </div>
+                            <button type="button" id="addMcpPropertyBtn" 
+                                style="width: 100%; margin-top: 10px; padding: 8px 15px; border: none; border-radius: 5px; background-color: #2196f3; color: white; cursor: pointer; font-size: 14px;">
+                                ➕ 添加参数
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">
+                            模拟返回结果 (JSON 格式，可选)
+                            <span style="font-size: 12px; color: #999; font-weight: normal;">- 留空则返回默认成功消息</span>
+                        </label>
+                        <textarea id="mcpMockResponse" placeholder='{"success": true, "data": "执行成功"}'
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; font-family: 'Courier New', monospace; min-height: 100px; resize: vertical;"></textarea>
+                        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                            💡 提示：如果设置了模拟返回结果，工具调用时将返回这个 JSON 对象
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
+                        <button type="button" id="cancelMcpBtn" style="padding: 8px 15px; border: none; border-radius: 5px; background-color: #9e9e9e; color: white; cursor: pointer; font-size: 14px;">取消</button>
+                        <button type="submit" style="padding: 8px 15px; border: none; border-radius: 5px; background-color: #4caf50; color: white; cursor: pointer; font-size: 14px;">保存</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -714,7 +946,7 @@
             localStorage.setItem('wsUrl', url);
 
             try {
-                const ws = await webSocketConnect(otaUrl, url, config)
+                const ws = await webSocketConnect(otaUrl, config)
                 if (ws === undefined) {
                     return
                 }
@@ -756,7 +988,7 @@
                     messageInput.disabled = true;
                     sendTextButton.disabled = true;
                     recordButton.disabled = true;
-                    stopButton.disabled = true;
+                    // stopButton.disabled = true;
                 };
 
                 websocket.onerror = (error) => {
@@ -812,74 +1044,63 @@
                             } else if (message.type === 'mcp') {
                                 const payload = message.payload || {};
                                 log(`服务器下发: ${JSON.stringify(message)}`, 'info');
-                                if (payload) {
-                                    // 模拟小智客户端行为
-                                    if (payload.method === 'tools/list') {
-                                        const replay_message = JSON.stringify({
-                                            "session_id": "", "type": "mcp", "payload": {
-                                                "jsonrpc": "2.0", "id": 2, "result": {
-                                                    "tools": [{
-                                                        "name": "self.get_device_status",
-                                                        "description": "Provides the real-time information of the device, including the current status of the audio speaker, screen, battery, network, etc.\nUse this tool for: \n1. Answering questions about current condition (e.g. what is the current volume of the audio speaker?)\n2. As the first step to control the device (e.g. turn up / down the volume of the audio speaker, etc.)",
-                                                        "inputSchema": { "type": "object", "properties": {} }
-                                                    }, {
-                                                        "name": "self.audio_speaker.set_volume",
-                                                        "description": "Set the volume of the audio speaker. If the current volume is unknown, you must call `self.get_device_status` tool first and then call this tool.",
-                                                        "inputSchema": {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                "volume": {
-                                                                    "type": "integer",
-                                                                    "minimum": 0,
-                                                                    "maximum": 100
-                                                                }
-                                                            },
-                                                            "required": ["volume"]
-                                                        }
-                                                    }, {
-                                                        "name": "self.screen.set_brightness",
-                                                        "description": "Set the brightness of the screen.",
-                                                        "inputSchema": {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                "brightness": {
-                                                                    "type": "integer",
-                                                                    "minimum": 0,
-                                                                    "maximum": 100
-                                                                }
-                                                            },
-                                                            "required": ["brightness"]
-                                                        }
-                                                    }, {
-                                                        "name": "self.screen.set_theme",
-                                                        "description": "Set the theme of the screen. The theme can be 'light' or 'dark'.",
-                                                        "inputSchema": {
-                                                            "type": "object",
-                                                            "properties": { "theme": { "type": "string" } },
-                                                            "required": ["theme"]
-                                                        }
-                                                    }]
-                                                }
+                                
+                                if (payload.method === 'tools/list') {
+                                    // 返回工具列表
+                                    const tools = getMcpTools();
+                                    
+                                    const replyMessage = JSON.stringify({
+                                        "session_id": message.session_id || "",
+                                        "type": "mcp",
+                                        "payload": {
+                                            "jsonrpc": "2.0",
+                                            "id": payload.id,
+                                            "result": {
+                                                "tools": tools
                                             }
-                                        })
-                                        websocket.send(replay_message);
-                                        log(`回复MCP消息: ${replay_message}`, 'info');
-                                    } else if (payload.method === 'tools/call') {
-                                        // 模拟回复
-                                        const replay_message = JSON.stringify({
-                                            "session_id": "9f261599",
-                                            "type": "mcp",
-                                            "payload": {
-                                                "jsonrpc": "2.0",
-                                                "id": payload.id,
-                                                "result": { "content": [{ "type": "text", "text": "true" }], "isError": false }
+                                        }
+                                    });
+                                    log(`客户端上报: ${replyMessage}`, 'info');
+                                    websocket.send(replyMessage);
+                                    log(`回复MCP工具列表: ${tools.length} 个工具`, 'info');
+                                    
+                                } else if (payload.method === 'tools/call') {
+                                    // 调用工具
+                                    const toolName = payload.params?.name;
+                                    const toolArgs = payload.params?.arguments;
+                                    
+                                    log(`调用工具: ${toolName} 参数: ${JSON.stringify(toolArgs)}`, 'info');
+                                    
+                                    // 执行工具
+                                    const result = executeMcpTool(toolName, toolArgs);
+                                    
+                                    const replyMessage = JSON.stringify({
+                                        "session_id": message.session_id || "",
+                                        "type": "mcp",
+                                        "payload": {
+                                            "jsonrpc": "2.0",
+                                            "id": payload.id,
+                                            "result": {
+                                                "content": [
+                                                    { 
+                                                        "type": "text", 
+                                                        "text": JSON.stringify(result)
+                                                    }
+                                                ],
+                                                "isError": false
                                             }
-                                        })
-                                        websocket.send(replay_message);
-                                        log(`回复MCP消息: ${replay_message}`, 'info');
-                                    }
-                                }
+                                        }
+                                    });
 
+                                    log(`客户端上报: ${replyMessage}`, 'info');
+                                    
+                                    websocket.send(replyMessage);
+                                } else if(payload.method === 'initialize') {
+                                    log(`收到工具初始化请求: ${JSON.stringify(payload.params)}`, 'info');
+                                    // 目前仅记录日志
+                                } else {
+                                    log(`未知的MCP方法: ${payload.method}`, 'warning');
+                                }
                             } else {
                                 // 未知消息类型
                                 log(`未知消息类型: ${message.type}`, 'info');
@@ -1009,7 +1230,6 @@
         // 初始化事件监听器
         function initEventListeners() {
             connectButton.addEventListener('click', connectToServer);
-            document.getElementById('authTestButton').addEventListener('click', testAuthentication);
 
             // 设备配置面板折叠/展开
             const toggleButton = document.getElementById('toggleConfig');
@@ -1049,11 +1269,6 @@
                 document.getElementById('otaUrl').value = savedOtaUrl;
             }
 
-            const savedWsUrl = localStorage.getItem('wsUrl');
-            if (savedWsUrl) {
-                document.getElementById('serverUrl').value = savedWsUrl;
-            }
-
             // 切换面板显示
             toggleButton.addEventListener('click', () => {
                 const isExpanded = configPanel.classList.contains('expanded');
@@ -1089,107 +1304,6 @@
             });
 
             window.addEventListener('resize', initVisualizer);
-        }
-
-        // 测试认证
-        async function testAuthentication() {
-            log('开始测试认证...', 'info');
-
-            const config = getConfig();
-
-            // 显示服务器配置
-            log('-------- 服务器认证配置检查 --------', 'info');
-            log('请确认config.yaml中的auth配置：', 'info');
-            log('1. server.auth.enabled 为 false 或服务器已正确配置认证', 'info');
-            log('2. 如果启用了认证，请确认使用了正确的token', 'info');
-            log(`3. 或者在allowed_devices中添加了测试设备MAC：${config.deviceMac}`, 'info');
-
-            const serverUrl = serverUrlInput.value.trim();
-            if (!serverUrl) {
-                log('请输入服务器地址', 'error');
-                return;
-            }
-
-            // 测试连接
-            log('尝试不同认证参数的连接：', 'info');
-
-            // 测试1: 无参数连接
-            try {
-                log('测试1: 尝试无参数连接...', 'info');
-                const ws1 = new WebSocket(serverUrl);
-
-                ws1.onopen = () => {
-                    log('测试1成功: 无参数可连接，服务器可能没有启用认证', 'success');
-                    ws1.close();
-                };
-
-                ws1.onerror = (error) => {
-                    log('测试1失败: 无参数连接被拒绝，服务器可能启用了认证', 'error');
-                };
-
-                // 5秒后关闭测试连接
-                setTimeout(() => {
-                    if (ws1.readyState === WebSocket.CONNECTING || ws1.readyState === WebSocket.OPEN) {
-                        ws1.close();
-                    }
-                }, 5000);
-            } catch (error) {
-                log(`测试1出错: ${error.message}`, 'error');
-            }
-
-            // 测试2: 带参数连接
-            setTimeout(async () => {
-                try {
-                    log('测试2: 尝试带token参数连接...', 'info');
-
-                    let url = new URL(serverUrl);
-                    url.searchParams.append('token', config.token);
-                    url.searchParams.append('device_id', config.deviceId);
-                    url.searchParams.append('device_mac', config.deviceMac);
-
-                    const ws2 = new WebSocket(url.toString());
-
-                    ws2.onopen = () => {
-                        log('测试2成功: 带token参数可连接', 'success');
-
-                        // 尝试发送hello消息
-                        const helloMsg = {
-                            type: 'hello',
-                            device_id: config.deviceId,
-                            device_mac: config.deviceMac,
-                            token: config.token
-                        };
-
-                        ws2.send(JSON.stringify(helloMsg));
-                        log('已发送hello测试消息', 'info');
-
-                        // 监听响应
-                        ws2.onmessage = (event) => {
-                            try {
-                                const response = JSON.parse(event.data);
-                                if (response.type === 'hello' && response.session_id) {
-                                    log(`测试完全成功! 收到hello响应，会话ID: ${response.session_id}`, 'success');
-                                    ws2.close();
-                                }
-                            } catch (e) {
-                                log(`收到非JSON响应: ${event.data}`, 'info');
-                            }
-                        };
-
-                        // 5秒后关闭
-                        setTimeout(() => ws2.close(), 5000);
-                    };
-
-                    ws2.onerror = (error) => {
-                        log('测试2失败: 带token参数连接被拒绝', 'error');
-                        log('请检查token是否正确，或服务器是否接受URL参数认证', 'error');
-                    };
-                } catch (error) {
-                    log(`测试2出错: ${error.message}`, 'error');
-                }
-            }, 6000);
-
-            log('认证测试已启动，请查看测试结果...', 'info');
         }
 
         // 帮助函数：ArrayBuffer转Base64
@@ -1316,6 +1430,13 @@
                     };
 
                     log('使用AudioWorklet处理音频', 'success');
+
+                    // 需要连接输出，否则不会触发处理
+                    // 我们创建一个静音通道
+                    const silent = audioContext.createGain();
+                    silent.gain.value = 0;
+                    audioProcessor.connect(silent);
+                    silent.connect(audioContext.destination);
                     return { node: audioProcessor, type: 'worklet' };
                 } else {
                     // 使用旧版ScriptProcessorNode作为回退方案
@@ -1489,6 +1610,11 @@
 
                 // 创建音频上下文和分析器
                 audioContext = getAudioContextInstance();
+
+                // 浏览器出于安全和性能考虑，新创建的 AudioContext 默认处于 suspended 状态，必须显式调用 resume() 才会开始处理音频。
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
 
                 // 创建音频处理器
                 const processorResult = await createAudioProcessor();
@@ -1675,7 +1801,435 @@
             };
         }
 
+        // ==========================================
+        // MCP 工具管理逻辑
+        // ==========================================
+
+        // 默认工具数据
+        const defaultMcpTools = await fetch("default-mcp-tools.json").then(res => res.json());
+
+        // 全局变量
+        let mcpTools = [];
+        let mcpEditingIndex = null;
+        let mcpProperties = [];
+
+        // 初始化 MCP 工具
+        function initMcpTools() {
+            const savedTools = localStorage.getItem('mcpTools');
+            if (savedTools) {
+                try {
+                    mcpTools = JSON.parse(savedTools);
+                } catch (e) {
+                    log('加载MCP工具失败，使用默认工具', 'warning');
+                    mcpTools = [...defaultMcpTools];
+                }
+            } else {
+                mcpTools = [...defaultMcpTools];
+            }
+            
+            renderMcpTools();
+            setupMcpEventListeners();
+        }
+
+        // 渲染工具列表
+        function renderMcpTools() {
+            const container = document.getElementById('mcpToolsContainer');
+            const countSpan = document.getElementById('mcpToolsCount');
+            
+            countSpan.textContent = `${mcpTools.length} 个工具`;
+            
+            if (mcpTools.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 30px; color: #999;">暂无工具，点击下方按钮添加新工具</div>';
+                return;
+            }
+
+            container.innerHTML = mcpTools.map((tool, index) => {
+                const paramCount = tool.inputSchema.properties ? Object.keys(tool.inputSchema.properties).length : 0;
+                const requiredCount = tool.inputSchema.required ? tool.inputSchema.required.length : 0;
+                const hasMockResponse = tool.mockResponse && Object.keys(tool.mockResponse).length > 0;
+                
+                return `
+                    <div class="mcp-tool-card">
+                        <div class="mcp-tool-header">
+                            <div class="mcp-tool-name">${tool.name}</div>
+                            <div class="mcp-tool-actions">
+                                <button onclick="editMcpTool(${index})"
+                                    style="padding: 4px 10px; border: none; border-radius: 4px; background-color: #2196f3; color: white; cursor: pointer; font-size: 12px;">
+                                    ✏️ 编辑
+                                </button>
+                                <button onclick="deleteMcpTool(${index})"
+                                    style="padding: 4px 10px; border: none; border-radius: 4px; background-color: #f44336; color: white; cursor: pointer; font-size: 12px;">
+                                    🗑️ 删除
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mcp-tool-description">${tool.description}</div>
+                        <div class="mcp-tool-info">
+                            <div class="mcp-tool-info-row">
+                                <span class="mcp-tool-info-label">参数数量:</span>
+                                <span class="mcp-tool-info-value">${paramCount} 个 ${requiredCount > 0 ? `(${requiredCount} 个必填)` : ''}</span>
+                            </div>
+                            <div class="mcp-tool-info-row">
+                                <span class="mcp-tool-info-label">模拟返回:</span>
+                                <span class="mcp-tool-info-value">${hasMockResponse ? '✅ 已配置: ' + JSON.stringify(tool.mockResponse) : '⚪ 使用默认'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 渲染参数列表
+        function renderMcpProperties() {
+            const container = document.getElementById('mcpPropertiesContainer');
+            
+            if (mcpProperties.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">暂无参数，点击下方按钮添加参数</div>';
+                return;
+            }
+
+            container.innerHTML = mcpProperties.map((prop, index) => `
+                <div class="mcp-property-item">
+                    <div class="mcp-property-header">
+                        <span class="mcp-property-name">${prop.name}</span>
+                        <button type="button" onclick="deleteMcpProperty(${index})"
+                            style="padding: 3px 8px; border: none; border-radius: 3px; background-color: #f44336; color: white; cursor: pointer; font-size: 11px;">
+                            删除
+                        </button>
+                    </div>
+                    <div class="mcp-property-row">
+                        <div>
+                            <label class="mcp-small-label">参数名称 *</label>
+                            <input type="text" class="mcp-small-input" value="${prop.name}" 
+                                onchange="updateMcpProperty(${index}, 'name', this.value)" required>
+                        </div>
+                        <div>
+                            <label class="mcp-small-label">数据类型 *</label>
+                            <select class="mcp-small-input" onchange="updateMcpProperty(${index}, 'type', this.value)">
+                                <option value="string" ${prop.type === 'string' ? 'selected' : ''}>字符串</option>
+                                <option value="integer" ${prop.type === 'integer' ? 'selected' : ''}>整数</option>
+                                <option value="number" ${prop.type === 'number' ? 'selected' : ''}>数字</option>
+                                <option value="boolean" ${prop.type === 'boolean' ? 'selected' : ''}>布尔值</option>
+                                <option value="array" ${prop.type === 'array' ? 'selected' : ''}>数组</option>
+                                <option value="object" ${prop.type === 'object' ? 'selected' : ''}>对象</option>
+                            </select>
+                        </div>
+                    </div>
+                    ${(prop.type === 'integer' || prop.type === 'number') ? `
+                    <div class="mcp-property-row">
+                        <div>
+                            <label class="mcp-small-label">最小值</label>
+                            <input type="number" class="mcp-small-input" value="${prop.minimum !== undefined ? prop.minimum : ''}" 
+                                placeholder="可选" onchange="updateMcpProperty(${index}, 'minimum', this.value ? parseFloat(this.value) : undefined)">
+                        </div>
+                        <div>
+                            <label class="mcp-small-label">最大值</label>
+                            <input type="number" class="mcp-small-input" value="${prop.maximum !== undefined ? prop.maximum : ''}" 
+                                placeholder="可选" onchange="updateMcpProperty(${index}, 'maximum', this.value ? parseFloat(this.value) : undefined)">
+                        </div>
+                    </div>
+                    ` : ''}
+                    <div class="mcp-property-row-full">
+                        <label class="mcp-small-label">参数描述</label>
+                        <input type="text" class="mcp-small-input" value="${prop.description || ''}" 
+                            placeholder="可选" onchange="updateMcpProperty(${index}, 'description', this.value)">
+                    </div>
+                    <label class="mcp-checkbox-label">
+                        <input type="checkbox" ${prop.required ? 'checked' : ''} 
+                            onchange="updateMcpProperty(${index}, 'required', this.checked)">
+                        必填参数
+                    </label>
+                </div>
+            `).join('');
+        }
+
+        // 添加参数
+        function addMcpProperty() {
+            mcpProperties.push({
+                name: `param_${mcpProperties.length + 1}`,
+                type: 'string',
+                required: false,
+                description: ''
+            });
+            renderMcpProperties();
+        }
+
+        // 更新参数
+        window.updateMcpProperty = function(index, field, value) {
+            if (field === 'name') {
+                const isDuplicate = mcpProperties.some((p, i) => i !== index && p.name === value);
+                if (isDuplicate) {
+                    alert('参数名称已存在，请使用不同的名称');
+                    renderMcpProperties();
+                    return;
+                }
+            }
+            
+            mcpProperties[index][field] = value;
+            
+            if (field === 'type' && value !== 'integer' && value !== 'number') {
+                delete mcpProperties[index].minimum;
+                delete mcpProperties[index].maximum;
+                renderMcpProperties();
+            }
+        };
+
+        // 删除参数
+        window.deleteMcpProperty = function(index) {
+            mcpProperties.splice(index, 1);
+            renderMcpProperties();
+        };
+
+        // 设置事件监听
+        function setupMcpEventListeners() {
+            const toggleBtn = document.getElementById('toggleMcpTools');
+            const panel = document.getElementById('mcpToolsPanel');
+            const addBtn = document.getElementById('addMcpToolBtn');
+            const modal = document.getElementById('mcpToolModal');
+            const closeBtn = document.getElementById('closeMcpModalBtn');
+            const cancelBtn = document.getElementById('cancelMcpBtn');
+            const form = document.getElementById('mcpToolForm');
+            const addPropertyBtn = document.getElementById('addMcpPropertyBtn');
+            
+            toggleBtn.addEventListener('click', () => {
+                const isExpanded = panel.classList.contains('expanded');
+                panel.classList.toggle('expanded');
+                toggleBtn.textContent = isExpanded ? '展开' : '收起';
+            });
+            
+            addBtn.addEventListener('click', () => openMcpModal());
+            closeBtn.addEventListener('click', closeMcpModal);
+            cancelBtn.addEventListener('click', closeMcpModal);
+            addPropertyBtn.addEventListener('click', addMcpProperty);
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeMcpModal();
+            });
+            
+            form.addEventListener('submit', handleMcpSubmit);
+        }
+
+        // 打开模态框
+        function openMcpModal(index = null) {
+            const isConnected = websocket && websocket.readyState === WebSocket.OPEN;
+            if (isConnected) {
+                alert('WebSocket 已连接，无法编辑工具');
+                return;
+            }
+            
+            mcpEditingIndex = index;
+            const errorContainer = document.getElementById('mcpErrorContainer');
+            errorContainer.innerHTML = '';
+            
+            if (index !== null) {
+                document.getElementById('mcpModalTitle').textContent = '编辑工具';
+                const tool = mcpTools[index];
+                document.getElementById('mcpToolName').value = tool.name;
+                document.getElementById('mcpToolDescription').value = tool.description;
+                document.getElementById('mcpMockResponse').value = tool.mockResponse ? JSON.stringify(tool.mockResponse, null, 2) : '';
+                
+                mcpProperties = [];
+                const schema = tool.inputSchema;
+                if (schema.properties) {
+                    Object.keys(schema.properties).forEach(key => {
+                        const prop = schema.properties[key];
+                        mcpProperties.push({
+                            name: key,
+                            type: prop.type || 'string',
+                            minimum: prop.minimum,
+                            maximum: prop.maximum,
+                            description: prop.description || '',
+                            required: schema.required && schema.required.includes(key)
+                        });
+                    });
+                }
+            } else {
+                document.getElementById('mcpModalTitle').textContent = '添加工具';
+                document.getElementById('mcpToolForm').reset();
+                mcpProperties = [];
+            }
+            
+            renderMcpProperties();
+            document.getElementById('mcpToolModal').style.display = 'block';
+        }
+
+        // 关闭模态框
+        function closeMcpModal() {
+            document.getElementById('mcpToolModal').style.display = 'none';
+            mcpEditingIndex = null;
+            document.getElementById('mcpToolForm').reset();
+            mcpProperties = [];
+            document.getElementById('mcpErrorContainer').innerHTML = '';
+        }
+
+        // 处理表单提交
+        function handleMcpSubmit(e) {
+            e.preventDefault();
+            const errorContainer = document.getElementById('mcpErrorContainer');
+            errorContainer.innerHTML = '';
+            
+            const name = document.getElementById('mcpToolName').value.trim();
+            const description = document.getElementById('mcpToolDescription').value.trim();
+            const mockResponseText = document.getElementById('mcpMockResponse').value.trim();
+            
+            // 检查名称重复
+            const isDuplicate = mcpTools.some((tool, index) => 
+                tool.name === name && index !== mcpEditingIndex
+            );
+            
+            if (isDuplicate) {
+                showMcpError('工具名称已存在，请使用不同的名称');
+                return;
+            }
+            
+            // 解析模拟返回结果
+            let mockResponse = null;
+            if (mockResponseText) {
+                try {
+                    mockResponse = JSON.parse(mockResponseText);
+                } catch (e) {
+                    showMcpError('模拟返回结果不是有效的 JSON 格式: ' + e.message);
+                    return;
+                }
+            }
+            
+            // 构建 inputSchema
+            const inputSchema = {
+                type: "object",
+                properties: {},
+                required: []
+            };
+            
+            mcpProperties.forEach(prop => {
+                const propSchema = { type: prop.type };
+                
+                if (prop.description) {
+                    propSchema.description = prop.description;
+                }
+                
+                if ((prop.type === 'integer' || prop.type === 'number')) {
+                    if (prop.minimum !== undefined && prop.minimum !== '') {
+                        propSchema.minimum = prop.minimum;
+                    }
+                    if (prop.maximum !== undefined && prop.maximum !== '') {
+                        propSchema.maximum = prop.maximum;
+                    }
+                }
+                
+                inputSchema.properties[prop.name] = propSchema;
+                
+                if (prop.required) {
+                    inputSchema.required.push(prop.name);
+                }
+            });
+            
+            if (inputSchema.required.length === 0) {
+                delete inputSchema.required;
+            }
+            
+            const tool = { name, description, inputSchema, mockResponse };
+            
+            if (mcpEditingIndex !== null) {
+                mcpTools[mcpEditingIndex] = tool;
+                log(`已更新工具: ${name}`, 'success');
+            } else {
+                mcpTools.push(tool);
+                log(`已添加工具: ${name}`, 'success');
+            }
+            
+            saveMcpTools();
+            renderMcpTools();
+            closeMcpModal();
+        }
+
+        // 显示错误
+        function showMcpError(message) {
+            const errorContainer = document.getElementById('mcpErrorContainer');
+            errorContainer.innerHTML = `<div class="mcp-error">${message}</div>`;
+        }
+
+        // 编辑工具
+        window.editMcpTool = function(index) {
+            openMcpModal(index);
+        };
+
+        // 删除工具
+        window.deleteMcpTool = function(index) {
+            const isConnected = websocket && websocket.readyState === WebSocket.OPEN;
+            if (isConnected) {
+                alert('WebSocket 已连接，无法编辑工具');
+                return;
+            }
+            if (confirm(`确定要删除工具 "${mcpTools[index].name}" 吗？`)) {
+                const toolName = mcpTools[index].name;
+                mcpTools.splice(index, 1);
+                saveMcpTools();
+                renderMcpTools();
+                log(`已删除工具: ${toolName}`, 'info');
+            }
+        };
+
+        // 保存工具
+        function saveMcpTools() {
+            localStorage.setItem('mcpTools', JSON.stringify(mcpTools));
+        }
+
+        // 获取工具列表
+        function getMcpTools() {
+            return mcpTools.map(tool => ({
+                name: tool.name,
+                description: tool.description,
+                inputSchema: tool.inputSchema
+            }));
+        }
+
+        // 执行工具调用
+        function executeMcpTool(toolName, toolArgs) {
+            const tool = mcpTools.find(t => t.name === toolName);
+            
+            if (!tool) {
+                log(`未找到工具: ${toolName}`, 'error');
+                return {
+                    success: false,
+                    error: `未知工具: ${toolName}`
+                };
+            }
+            
+            // 如果有模拟返回结果，使用它
+            if (tool.mockResponse) {
+                // 替换模板变量
+                let responseStr = JSON.stringify(tool.mockResponse);
+                
+                // 替换 ${paramName} 格式的变量
+                if (toolArgs) {
+                    Object.keys(toolArgs).forEach(key => {
+                        const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
+                        responseStr = responseStr.replace(regex, toolArgs[key]);
+                    });
+                }
+                
+                try {
+                    const response = JSON.parse(responseStr);
+                    log(`工具 ${toolName} 执行成功，返回模拟结果: ${responseStr}`, 'success');
+                    return response;
+                } catch (e) {
+                    log(`解析模拟返回结果失败: ${e.message}`, 'error');
+                    return tool.mockResponse;
+                }
+            }
+            
+            // 没有模拟返回结果，返回默认成功消息
+            log(`工具 ${toolName} 执行成功，返回默认结果`, 'success');
+            return {
+                success: true,
+                message: `工具 ${toolName} 执行成功`,
+                tool: toolName,
+                arguments: toolArgs
+            };
+        }
+
         initApp();
+        initMcpTools();
     </script>
 </body>
 

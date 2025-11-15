@@ -102,21 +102,4 @@ export default {
                 });
             }).send();
     },
-    // 发送设备指令
-    sendDeviceCommand(deviceId, mcpData, callback) {
-        RequestService.sendRequest()
-            .url(`${getServiceUrl()}/device/commands/${deviceId}`)
-            .method('POST')
-            .data(mcpData)
-            .success((res) => {
-                RequestService.clearRequestTime();
-                callback(res);
-            })
-            .networkFail((err) => {
-                console.error('发送设备指令失败:', err);
-                RequestService.reAjaxFun(() => {
-                    this.sendDeviceCommand(deviceId, mcpData, callback);
-                });
-            }).send();
-    },
 }

@@ -17,18 +17,18 @@ class OTAHandler(BaseHandler):
         super().__init__(config)
         auth_config = config["server"].get("auth", {})
         self.auth_enable = auth_config.get("enabled", False)
-        # Device whitelist
+        # 设备白名单
         self.allowed_devices = set(auth_config.get("allowed_devices", []))
         secret_key = config["server"]["auth_key"]
         expire_seconds = auth_config.get("expire_seconds")
         self.auth = AuthManager(secret_key=secret_key, expire_seconds=expire_seconds)
 
     def generate_password_signature(self, content: str, secret_key: str) -> str:
-        """Generate MQTT cryptographic signature
+        """生成MQTT密码签名
 
         Args:
-            content: signature content (clientId + '|' + username)
-            secret_key: key
+            content: 签名内容 (clientId + '|' + username)
+            secret_key: 密钥
 
         Returns:
             str: Base64 encoded HMAC-SHA256 signature
@@ -81,6 +81,12 @@ class OTAHandler(BaseHandler):
             else:
                 raise Exception("Ota request client id is empty")
 
+            client_id = request.headers.get("client-id", "")
+            if client_id:
+                self.logger.bind(tag=TAG).info(f"OTA请求ClientID: {client_id}")
+            else:
+                raise Exception("OTA请求ClientID为空")
+
             data_json = json.loads(data)
 
             server_config = self.config["server"]
@@ -100,8 +106,8 @@ class OTAHandler(BaseHandler):
 
             mqtt_gateway_endpoint = server_config.get("mqtt_gateway")
 
-            if mqtt_gateway_endpoint:  # If a non-empty string is configured
-                # Try to get the device model from the request data
+            if mqtt_gateway_endpoint:  # 如果配置了非空字符串
+                # 尝试从请求数据中获取设备型号
                 device_model = "default"
                 try:
                     if "device" in data_json and isinstance(data_json["device"], dict):
@@ -116,7 +122,7 @@ class OTAHandler(BaseHandler):
                 mac_address_safe = device_id.replace(":", "_")
                 mqtt_client_id = f"{group_id}@@@{mac_address_safe}@@@{mac_address_safe}"
 
-                # Build user data
+                # 构建用户数据
                 user_data = {"ip": "unknown"}
                 try:
                     user_data_json = json.dumps(user_data)
@@ -139,8 +145,8 @@ class OTAHandler(BaseHandler):
                 else:
                     self.logger.bind(tag=TAG).warning("缺少MQTT签名密钥，密码留空")
 
-                #Build MQTT configuration (using mqtt_gateway string directly)
-                return_json["mqtt_gateway"] = {
+                # 构建MQTT配置（直接使用 mqtt_gateway 字符串）
+                return_json["mqtt"] = {
                     "endpoint": mqtt_gateway_endpoint,
                     "client_id": mqtt_client_id,
                     "username": username,
@@ -150,8 +156,8 @@ class OTAHandler(BaseHandler):
                 }
                 self.logger.bind(tag=TAG).info(f"为设备 {device_id} 下发MQTT网关配置")
 
-            else:  # mqtt_gateway is not configured, and WebSocket is delivered
-                # If authentication is turned on, perform authentication verification
+            else:  # 未配置 mqtt_gateway，下发 WebSocket
+                # 如果开启了认证，则进行认证校验
                 token = ""
                 if self.auth_enable:
                     if self.allowed_devices:
@@ -164,7 +170,7 @@ class OTAHandler(BaseHandler):
                     "token": token,
                 }
                 self.logger.bind(tag=TAG).info(
-                    f"The MQTT gateway is not configured, and the WebSocket configuration is delivered to the device {device_id}."
+                    f"未配置MQTT网关，为设备 {device_id} 下发WebSocket配置"
                 )
                 self.logger.bind(tag=TAG).info(f"{return_json}")
 

@@ -28,7 +28,7 @@ If you can access port 3306, please ignore the following content and go directly
 
 If you can't access it, you need to recall how you installed `mysql`.
 
-If you installed MySQL using a package yourself, it means your MySQL server is isolated from the network. You may need to first resolve the issue of accessing port 3306 of MySQL server.
+如果你的mysql是通过自己使用安装包安装的，说明你的`mysql`做了网络隔离。你可能先解决访问`mysql`的`3306`端口这个问题。
 
 If you installed `mysql` through `docker-compose_all.yml` of this project, you need to find the `docker-compose_all.yml` file where you created the database and modify the following content
 

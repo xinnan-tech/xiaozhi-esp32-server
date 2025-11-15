@@ -97,7 +97,7 @@ This string, which we call "device list string", needs to be saved as it will be
 
 Log in to the Smart Console using an administrator account. In Agent Management, find your agent and click Configure Role.
 
-Set intent recognition to `Function Call` or `LLM Intent Recognition`. You will see an `Edit Function` button on the right. Click the `Edit Function` button and the `Function Management` dialog box will pop up.
+将意图识别设置成`外挂的大模型意图识别`或`大模型自主函数调用`。这时你会看到右侧有一个`编辑功能`。点击`编辑功能`按钮，会弹出`功能管理`的框。
 
 In the `Feature Management` box, you need to check `HomeAssistant device status query` and `HomeAssistant device status modification`.
 

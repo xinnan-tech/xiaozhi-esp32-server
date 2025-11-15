@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*.*.*'  # 只在以 v 开头的标签推送时触发，例如 v1.0.0
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Build Base Image"]
+    types:
+      - completed
 
 jobs:
   release:

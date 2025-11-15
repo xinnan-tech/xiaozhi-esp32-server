@@ -123,3 +123,21 @@ export function register(data: RegisterData) {
     },
   })
 }
+
+// 忘记密码数据类型
+export interface ForgotPasswordData {
+  phone: string
+  code: string
+  password: string
+  captchaId: string
+}
+
+// 忘记密码（找回密码）
+export function retrievePassword(data: ForgotPasswordData) {
+  return http.Put('/user/retrieve-password', data, {
+    meta: {
+      ignoreAuth: true,
+      toast: true,
+    },
+  })
+}

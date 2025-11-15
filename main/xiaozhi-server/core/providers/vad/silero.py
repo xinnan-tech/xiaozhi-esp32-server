@@ -70,7 +70,9 @@ class VADProvider(VADProviderBase):
 
                 # 更新滑动窗口
                 conn.client_voice_window.append(is_voice)
-                client_have_voice = (conn.client_voice_window.count(True) >= self.frame_window_threshold)
+                client_have_voice = (
+                    conn.client_voice_window.count(True) >= self.frame_window_threshold
+                )
 
                 # 如果之前有声音，但本次没有声音，且与上次有声音的时间差已经超过了静默阈值，则认为已经说完一句话
                 if conn.client_have_voice and not client_have_voice:
