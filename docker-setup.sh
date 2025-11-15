@@ -57,7 +57,7 @@ check_whiptail() {
         echo "Installing whiptail..."
         apt update
         apt install -y whiptail
-    be
+    fi
 }
 
 check_whiptail
@@ -79,7 +79,7 @@ esac
 if [ $EUID -ne 0 ]; then
     whiptail --title "Permission error" --msgbox "Please run this script with root privileges" 10 50
     exit 1
-be
+fi
 
 # Check system version
 if [ -f /etc/os-release ]; then
@@ -87,11 +87,11 @@ if [ -f /etc/os-release ]; then
     if [ "$ID" != "debian" ] && [ "$ID" != "ubuntu" ]; then
         whiptail --title "System Error" --msgbox "This script only supports Debian/Ubuntu systems" 10 60
         exit 1
-    be
+    fi
 else
     whiptail --title "System Error" --msgbox "Unable to determine system version. This script only supports Debian/Ubuntu systems" 10 60
     exit 1
-be
+fi
 
 # Download configuration file function
 check_and_download() {
@@ -101,10 +101,10 @@ check_and_download() {
         if ! curl -fL --progress-bar "$url" -o "$filepath"; then
             whiptail --title "Error" --msgbox "Download of file ${filepath} failed" 10 50
             exit 1
-        be
+        fi
     else
         echo "The file ${filepath} already exists; skip downloading."
-    be
+    fi
 }
 
 # Check if it is installed
@@ -114,21 +114,21 @@ check_installed() {
         DIR_CHECK=1
     else
         DIR_CHECK=0
-    be
+    fi
     
     # Check if the container exists
     if docker inspect xiaozhi-esp32-server > /dev/null 2>&1; then
         CONTAINER_CHECK=1
     else
         CONTAINER_CHECK=0
-    be
+    fi
     
     # Both checks passed
     if [ $DIR_CHECK -eq 1 ] && [ $CONTAINER_CHECK -eq 1 ]; then
         return 0 # Installed
     else
         return 1 # Not installed
-    be
+    fi
 }
 
 # Update related
@@ -155,7 +155,7 @@ if check_installed; then
                 echo "Container successfully removed: $container"
             else
                 echo "Container does not exist, skip: $container"
-            be
+            fi
         done
         
         # Delete a specific image (considering the possibility that the image may not exist).
@@ -170,7 +170,7 @@ if check_installed; then
                 echo "Mirror image successfully deleted: $image"
             else
                 echo "Image does not exist, skip: $image"
-            be
+            fi
         done
         
         echo "All cleanup operations completed"
@@ -180,7 +180,7 @@ if check_installed; then
         if [ -f /opt/xiaozhi-server/data/.config.yaml ]; then
             cp /opt/xiaozhi-server/data/.config.yaml /opt/xiaozhi-server/backup/.config.yaml
             echo "The original configuration file has been backed up to /opt/xiaozhi-server/backup/.config.yaml"
-        be
+        fi
         
         # Download the latest configuration file
         check_and_download "/opt/xiaozhi-server/docker-compose_all.yml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml"
@@ -194,8 +194,8 @@ if check_installed; then
     else
           whiptail --title "Skip upgrade" --msgbox "Upgrade canceled, will continue using the current version." 10 50
           # Skip the upgrade and continue with the subsequent installation process.
-    be
-be
+    fi
+fi
 
 
 # Check curl installation
@@ -207,7 +207,7 @@ if ! command -v curl &> /dev/null; then
 else
     echo "------------------------------------------------------------"
     echo "curl is already installed, skip the installation steps"
-be
+fi
 
 # Check Docker installation
 if ! command -v docker &> /dev/null; then
@@ -250,10 +250,10 @@ if ! command -v docker &> /dev/null; then
     else
         whiptail --title "Error" --msgbox "Docker installation failed, please check the logs." 10 50
         exit 1
-    be
+    fi
 else
     echo "Docker is already installed, skip the installation steps"
-be
+fi
 
 # Docker image source configuration
 MIRROR_OPTIONS=(
@@ -288,7 +288,7 @@ if [ -n "$MIRROR_URL" ]; then
     mkdir -p /etc/docker
     if [ -f /etc/docker/daemon.json ]; then
         cp /etc/docker/daemon.json /etc/docker/daemon.json.bak
-    be
+    fi
     cat > /etc/docker/daemon.json <<EOF
 {
     "dns": ["8.8.8.8", "114.114.114.114"],
@@ -299,7 +299,7 @@ EOF
     echo "------------------------------------------------------------"
     echo "Starting to restart Docker service..."
     systemctl restart docker.service
-be
+fi
 
 # Create installation directory
 echo "------------------------------------------------------------"
@@ -310,7 +310,7 @@ if [ ! -d /opt/xiaozhi-server/data ]; then
     echo "Data directory created: /opt/xiaozhi-server/data"
 else
     echo "Directory xiaozhi-server/data already exists, skip creation"
-be
+fi
 
 # Check and create the model catalog
 if [ ! -d /opt/xiaozhi-server/models/SenseVoiceSmall ]; then
@@ -318,7 +318,7 @@ if [ ! -d /opt/xiaozhi-server/models/SenseVoiceSmall ]; then
     echo "Model directory created: /opt/xiaozhi-server/models/SenseVoiceSmall"
 else
     echo "Directory xiaozhi-server/models/SenseVoiceSmall already exists, skipping creation"
-be
+fi
 
 echo "------------------------------------------------------------"
 echo "Start downloading speech recognition model"
@@ -337,13 +337,13 @@ if [ ! -f "$MODEL_PATH" ]; then
     }
 else
     echo "model.pt file already exists, skip downloading"
-be
+fi
 
 # Download will only proceed if the upgrade is not complete.
 if [ -z "$UPGRADE_COMPLETED" ]; then
     check_and_download "/opt/xiaozhi-server/docker-compose_all.yml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml"
     check_and_download "/opt/xiaozhi-server/data/.config.yaml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml"
-be
+fi
 
 # Start Docker service
 (
@@ -355,7 +355,7 @@ docker compose -f /opt/xiaozhi-server/docker-compose_all.yml up -d
 if [ $? -ne 0 ]; then
     whiptail --title "Error" --msgbox "Docker service failed to start. Please try changing the image source and re-execute this script." 10 60
     exit 1
-be
+fi
 
 echo "------------------------------------------------------------"
 echo "Checking service startup status..."
@@ -366,11 +366,11 @@ while true; do
     if [ $((CURRENT_TIME - START_TIME)) -gt $TIMEOUT ]; then
         whiptail --title "Error" --msgbox "Service startup timed out, expected log content not found within the specified time" 10 60
         exit 1
-    be
+    fi
     
     if docker logs xiaozhi-esp32-server-web 2>&1 | grep -q "Started AdminApplication in"; then
         break
-    be
+    fi
     sleep 1
 done
 
@@ -398,7 +398,7 @@ with open(config_path, 'w') as f:
     yaml.dump(config, f); 
 "
     docker restart xiaozhi-esp32-server
-be
+fi
 
 # Get and display address information
 LOCAL_IP=$(hostname -I | awk '{print $1}')
