@@ -110,7 +110,8 @@ class ASRProviderBase(ABC):
                     logger.bind(tag=TAG).error(f"ASR失败: {e}")
                     return ("", None)
             
-            # 定义声纹识别任务
+            # Define the voiceprint recognition task
+
             def run_voiceprint():
                 if not wav_data:
                     return None

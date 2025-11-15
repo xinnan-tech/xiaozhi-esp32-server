@@ -1,43 +1,43 @@
 #!/bin/sh
-# Script author @VanillaNahida
-# This file is for automatically downloading the files required for this project with one click and automatically creating the directory.
-# Currently only supports x86 versions of Ubuntu; other systems have not been tested.
+# Script by @VanillaNahida
+# This file is used to automatically download the files required for this project with one click and automatically create a directory.
+# For the time being, only the X86 version of Ubuntu system is supported, and other systems have not been tested.e X86 version of Ubuntu system is supported, and other systems have not been tested.
 
 # Define interrupt handler function
 handle_interrupt() {
     echo ""
-    echo "Installation was interrupted by the user (Ctrl+C or Esc)"
-    echo "To reinstall, please run the script again."
+    echo "The installation has been interrupted by the user (ctrl+c or esc)"
+    echo "To reinstall, run the script again"
     exit 1
 }
 
-# Configure signal capture, handle Ctrl+C
+# Set signal capture, handle ctrl+c
 trap handle_interrupt SIGINT
 
 # Handling the Esc key
 # Save terminal settings
 old_stty_settings=$(stty -g)
-# Configure the terminal to respond immediately without echoing.
+# Set the terminal to respond immediately without echoing
 stty -icanon -echo min 1 time 0
 
-# Background process detection using the Esc key
+# Background process detects esc key
 (while true; do
     read -r key
     if [[ $key == $'\e' ]]; then
-        # Esc key detected, interrupt handling triggered
+        # The esc key is detected and interrupt processing is triggered.
         kill -SIGINT $$
         break
     fi
 done) &
 
-# Restore terminal settings when the script ends
+# Restore terminal settings when script ends
 trap 'stty "$old_stty_settings"' EXIT
 
 
-# Print Color Character Artwork
-echo -e "\e[1;32m" # Set the color to bright green
+# Print colorful character paintings
+echo -e "\e[1;32m"  # Set color to bright green
 cat << "EOF"
-Script author: @Bilibili Vanilla-flavored Naxi Da Miao
+脚本作者：@Bilibili 香草味的纳西妲喵
  __      __            _  _  _            _   _         _      _      _        
  \ \    / /           (_)| || |          | \ | |       | |    (_)    | |       
   \ \  / /__ _  _ __   _ | || |  __ _    |  \| |  __ _ | |__   _   __| |  __ _ 
@@ -45,8 +45,8 @@ Script author: @Bilibili Vanilla-flavored Naxi Da Miao
     \  /| (_| || | | || || || || (_| |   | |\  || (_| || | | || || (_| || (_| |
      \/  \__,_||_| |_||_||_||_| \__,_|   |_| \_| \__,_||_| |_||_| \__,_| \__,_|                                                                                                                                                                                                                               
 EOF
-echo -e "\e[0m" # Reset colors
-echo -e "\e[1;36m Xiaozhi Server Full Deployment One-Click Installation Script Ver 0.2 Updated August 20, 2025\e[0m\n"
+echo -e "\e[0m"  # reset color
+echo -e "\e[1;36m Jahanshahlou server fully deploys one-click installation script Ver 0.2 updated on August 20, 2025 \e[0m\n"
 sleep 1
 
 
@@ -62,11 +62,11 @@ check_whiptail() {
 
 check_whiptail
 
-# Create a confirmation dialog box
-whiptail --title "Installation Confirmed" --yesno "Xiaozhi server is about to be installed, continue?" \
-  --yes-button "Continue" --no-button "Exit" 10 50
+# Create confirmation dialog
+whiptail --title "Installation confirmation" --yesno "Xiaozhi server is about to be installed. Do you want to continue?" \
+  --yes-button "continue" --no-button "quit" 10 50
 
-# Perform the operation based on the user's selection.
+# Perform actions based on user selections
 case $? in
   0)
     ;;
@@ -75,9 +75,9 @@ case $? in
     ;;
 esac
 
-# Check root privileges
+# Check root permissions
 if [ $EUID -ne 0 ]; then
-    whiptail --title "Permission error" --msgbox "Please run this script with root privileges" 10 50
+    whiptail --title "Permission error" --msgbox "Please use root privileges to run this script" 10 50
     exit 1
 fi
 
@@ -85,11 +85,11 @@ fi
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     if [ "$ID" != "debian" ] && [ "$ID" != "ubuntu" ]; then
-        whiptail --title "System Error" --msgbox "This script only supports Debian/Ubuntu systems" 10 60
+        whiptail --title "System error" --msgbox "This script only supports execution on debian/ubuntu systems" 10 60
         exit 1
     fi
 else
-    whiptail --title "System Error" --msgbox "Unable to determine system version. This script only supports Debian/Ubuntu systems" 10 60
+    whiptail --title "System error" --msgbox "The system version cannot be determined. This script only supports debian/ubuntu system execution." 10 60
     exit 1
 fi
 
@@ -99,11 +99,11 @@ check_and_download() {
     local url=$2
     if [ ! -f "$filepath" ]; then
         if ! curl -fL --progress-bar "$url" -o "$filepath"; then
-            whiptail --title "Error" --msgbox "Download of file ${filepath} failed" 10 50
+            whiptail --title "mistake" --msgbox "${filepath}File download failed" 10 50
             exit 1
         fi
     else
-        echo "The file ${filepath} already exists; skip downloading."
+        echo "${filepath}File already exists, skip download"
     fi
 }
 
@@ -123,28 +123,28 @@ check_installed() {
         CONTAINER_CHECK=0
     fi
     
-    # Both checks passed
+    # Passed both inspections
     if [ $DIR_CHECK -eq 1 ] && [ $CONTAINER_CHECK -eq 1 ]; then
-        return 0 # Installed
+        return 0  # Installed
     else
-        return 1 # Not installed
+        return 1  # Not installed
     fi
 }
 
 # Update related
 if check_installed; then
-    If whiptail --title "Installation Detection" --yesno "Xiaozhi server detected, upgrade?" 10 60; then
-        # The user selects to upgrade and performs a cleanup operation.
-        echo "Initiating upgrade operation..."
+    if whiptail --title "Detection installed" --yesno "It is detected that the Xiaozhi server has been installed. Do you want to upgrade it?" 10 60; then
+        # The user chooses to upgrade and perform a cleanup operation
+        echo "Start the upgrade operation..."
         
-        # Stop and remove all docker-compose services
+        #Stop and remove all docker compose services
         docker compose -f /opt/xiaozhi-server/docker-compose_all.yml down
         
-        # Stop and delete a specific container (considering the possibility that the container may not exist).
+        # Stop and delete a specific container (considering the case where the container may not exist)
         containers=(
             "xiaozhi-esp32-server"
             "xiaozhi-esp32-server-web"
-            "xiaozhi-esp32-server-db
+            "xiaozhi-esp32-server-db"
             "xiaozhi-esp32-server-redis"
         )
         
@@ -152,13 +152,13 @@ if check_installed; then
             if docker ps -a --format '{{.Names}}' | grep -q "^${container}$"; then
                 docker stop "$container" >/dev/null 2>&1 && \
                 docker rm "$container" >/dev/null 2>&1 && \
-                echo "Container successfully removed: $container"
+                echo "Container removed successfully: $container"
             else
                 echo "Container does not exist, skip: $container"
             fi
         done
         
-        # Delete a specific image (considering the possibility that the image may not exist).
+        # Delete a specific image (consider that the image may not exist)
         images=(
             "ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest"
             "ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest"
@@ -167,15 +167,15 @@ if check_installed; then
         for image in "${images[@]}"; do
             if docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^${image}$"; then
                 docker rmi "$image" >/dev/null 2>&1 && \
-                echo "Mirror image successfully deleted: $image"
+                echo "Image deleted successfully: $image"
             else
-                echo "Image does not exist, skip: $image"
+                echo "Mirror does not exist, skip: $image"
             fi
         done
         
         echo "All cleanup operations completed"
         
-        # Backup existing configuration files
+        # Back up original configuration files
         mkdir -p /opt/xiaozhi-server/backup/
         if [ -f /opt/xiaozhi-server/data/.config.yaml ]; then
             cp /opt/xiaozhi-server/data/.config.yaml /opt/xiaozhi-server/backup/.config.yaml
@@ -186,14 +186,14 @@ if check_installed; then
         check_and_download "/opt/xiaozhi-server/docker-compose_all.yml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml"
         check_and_download "/opt/xiaozhi-server/data/.config.yaml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml"
         
-        # Start Docker service
-        echo "Starting the latest version service..."
-        # Mark the page after the upgrade is complete to skip subsequent download steps.
+        # Start docker service
+        echo "Start launching the latest version of the service..."
+        # Mark after the upgrade is complete to skip subsequent download steps
         UPGRADE_COMPLETED=1
         docker compose -f /opt/xiaozhi-server/docker-compose_all.yml up -d
     else
-          whiptail --title "Skip upgrade" --msgbox "Upgrade canceled, will continue using the current version." 10 50
-          # Skip the upgrade and continue with the subsequent installation process.
+          whiptail --title "Skip upgrade" --msgbox "The upgrade has been canceled and the current version will continue to be used." 10 50
+          # Skip the upgrade and continue with the subsequent installation process
     fi
 fi
 
@@ -206,15 +206,15 @@ if ! command -v curl &> /dev/null; then
     apt install -y curl
 else
     echo "------------------------------------------------------------"
-    echo "curl is already installed, skip the installation steps"
+    echo "Curl is already installed, skip the installation steps"
 fi
 
-# Check Docker installation
+# Check docker installation
 if ! command -v docker &> /dev/null; then
     echo "------------------------------------------------------------"
-    echo "Docker not detected, installing..."
+    echo "docker not detected, installing..."
     
-    # Use a domestic mirror source instead of the official source
+    # Use domestic mirror sources instead of official sources
     DISTRO=$(lsb_release -cs)
     MIRROR_URL="https://mirrors.aliyun.com/docker-ce/linux/ubuntu"
     GPG_URL="https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg"
@@ -223,7 +223,7 @@ if ! command -v docker &> /dev/null; then
     apt update
     apt install -y apt-transport-https ca-certificates curl software-properties-common gnupg
     
-    # Create a key directory and add domestic mirror source keys
+    # Create a key directory and add the domestic image source key
     mkdir -p /etc/apt/keyrings
     curl -fsSL "$GPG_URL" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     
@@ -231,11 +231,11 @@ if ! command -v docker &> /dev/null; then
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] $MIRROR_URL $DISTRO stable" \
         > /etc/apt/sources.list.d/docker.list
     
-    # Add a backup official source key (to avoid verification failures using domestic source keys)
+    # Add alternate official source key (to avoid domestic source key verification failure)
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 7EA0A9C3F273FCD8 2>/dev/null || \
-    echo "Warning: Partial key addition failed, continue trying to install..."
+    echo "Warning: Some keys failed to be added, continue to try to install..."
     
-    # Install Docker
+    # Install docker
     apt update
     apt install -y docker-ce docker-ce-cli containerd.io
     
@@ -243,12 +243,12 @@ if ! command -v docker &> /dev/null; then
     systemctl start docker
     systemctl enable docker
     
-    # Check if the installation was successful
+    # Check if the installation is successful
     if docker --version; then
         echo "------------------------------------------------------------"
-        echo "Docker installation complete!"
+        echo "Docker installation is complete!"
     else
-        whiptail --title "Error" --msgbox "Docker installation failed, please check the logs." 10 50
+        whiptail --title "mistake" --msgbox "Docker installation failed, please check the logs." 10 50
         exit 1
     fi
 else
@@ -257,19 +257,19 @@ fi
 
 # Docker image source configuration
 MIRROR_OPTIONS=(
-    "1" "Xuanyuan Mirror (Recommended)"
-    "2" "Tencent Cloud Mirror Source"
-    "3" "USTC Mirror Source"
-    "4" "NetEase 163 Mirror Source"
+    "1" "Xuanyuan Mirror (recommended)"
+    "2" "Tencent cloud mirror source"
+    "3" "University of Science and Technology of China Mirror Source"
+    "4" "NetEase 163 mirror source"
     "5" "Huawei Cloud Mirror Source"
     "6" "Alibaba Cloud Mirror Source"
-    "7" "Custom Mirror Source"
-    "8" "Skip Configuration"
+    "7" "Custom image source"
+    "8" "Skip configuration"
 )
 
-MIRROR_CHOICE=$(whiptail --title "Select Docker image source" --menu "Please select the Docker image source to use" 20 60 10 \
+MIRROR_CHOICE=$(whiptail --title "Select docker image source" --menu "Please select the docker image source to use" 20 60 10 \
 "${MIRROR_OPTIONS[@]}" 3>&1 1>&2 2>&3) || {
-    echo "User canceled selection, exit script"
+    echo "User cancels selection and exits script"
     exit 1
 }
 
@@ -280,7 +280,7 @@ case $MIRROR_CHOICE in
     4) MIRROR_URL="https://hub-mirror.c.163.com" ;; 
     5) MIRROR_URL="https://05f073ad3c0010ea0f4bc00b7105ec20.mirror.swr.myhuaweicloud.com" ;; 
     6) MIRROR_URL="https://registry.aliyuncs.com" ;; 
-    7) MIRROR_URL=$(whiptail --title "Custom Mirror Source" --inputbox "Please enter the complete mirror source URL:" 10 60 3>&1 1>&2 2>&3) ;;
+    7) MIRROR_URL=$(whiptail --title "Custom image source" --inputbox "Please enter the complete mirror source URL:" 10 60 3>&1 1>&2 2>&3) ;; 
     8) MIRROR_URL="" ;; 
 esac
 
@@ -295,29 +295,29 @@ if [ -n "$MIRROR_URL" ]; then
     "registry-mirrors": ["$MIRROR_URL"]
 }
 EOF
-    whiptail --title "Configuration successful" --msgbox "Image source added successfully: $MIRROR_URL\nPlease press Enter to restart the Docker service and continue..." 12 60
+    whiptail --title "Configuration successful" --msgbox "Mirror source added successfully: $MIRROR_URL\NPlease press the enter key to restart the docker service and continue..." 12 60
     echo "------------------------------------------------------------"
-    echo "Starting to restart Docker service..."
+    echo "Start restarting the docker service..."
     systemctl restart docker.service
 fi
 
 # Create installation directory
 echo "------------------------------------------------------------"
-echo "Starting to create installation directory..."
-# Check and create the data directory
+echo "Start creating the installation directory..."
+# Check and create data directory
 if [ ! -d /opt/xiaozhi-server/data ]; then
     mkdir -p /opt/xiaozhi-server/data
     echo "Data directory created: /opt/xiaozhi-server/data"
 else
-    echo "Directory xiaozhi-server/data already exists, skip creation"
+    echo "The directory xiaozhi server/data already exists, skip creation."
 fi
 
-# Check and create the model catalog
+# Check and create model catalog
 if [ ! -d /opt/xiaozhi-server/models/SenseVoiceSmall ]; then
     mkdir -p /opt/xiaozhi-server/models/SenseVoiceSmall
     echo "Model directory created: /opt/xiaozhi-server/models/SenseVoiceSmall"
 else
-    echo "Directory xiaozhi-server/models/SenseVoiceSmall already exists, skipping creation"
+    echo "The directory xiaozhi server/models/sense voice small already exists, skip creation"
 fi
 
 echo "------------------------------------------------------------"
@@ -330,30 +330,30 @@ if [ ! -f "$MODEL_PATH" ]; then
         echo $((i*5))
         sleep 0.5
     done
-    ) | whiptail --title "Downloading" --gauge "Starting to download speech recognition model..." 10 60 0
+    ) | whiptail --title "Downloading" --gauge "Start downloading speech recognition model..." 10 60 0
     curl -fL --progress-bar https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.pt -o "$MODEL_PATH" || {
-        whiptail --title "Error" --msgbox "Failed to download model.pt file" 10 50
+        whiptail --title "mistake" --msgbox "model.Pt file download failed" 10 50
         exit 1
     }
 else
-    echo "model.pt file already exists, skip downloading"
+    echo "Model.pt file already exists, skip downloading"
 fi
 
-# Download will only proceed if the upgrade is not complete.
+# If the upgrade is not completed, the download will be executed.
 if [ -z "$UPGRADE_COMPLETED" ]; then
     check_and_download "/opt/xiaozhi-server/docker-compose_all.yml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml"
     check_and_download "/opt/xiaozhi-server/data/.config.yaml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml"
 fi
 
-# Start Docker service
+# Start docker service
 (
 echo "------------------------------------------------------------"
-echo "Pulling Docker image..."
-This may take a few minutes, please wait patiently.
+echo "Pulling docker image..."
+echo "This may take a few minutes, please be patient"
 docker compose -f /opt/xiaozhi-server/docker-compose_all.yml up -d
 
 if [ $? -ne 0 ]; then
-    whiptail --title "Error" --msgbox "Docker service failed to start. Please try changing the image source and re-execute this script." 10 60
+    whiptail --title "mistake" --msgbox "The Docker service failed to start. Please try changing the image source and re-executing this script." 10 60
     exit 1
 fi
 
@@ -364,7 +364,7 @@ START_TIME=$(date +%s)
 while true; do
     CURRENT_TIME=$(date +%s)
     if [ $((CURRENT_TIME - START_TIME)) -gt $TIMEOUT ]; then
-        whiptail --title "Error" --msgbox "Service startup timed out, expected log content not found within the specified time" 10 60
+        whiptail --title "mistake" --msgbox "The service startup timed out and the expected log content was not found within the specified time." 10 60
         exit 1
     fi
     
@@ -374,18 +374,18 @@ while true; do
     sleep 1
 done
 
-    echo "Server started successfully! Completing configuration..."
+    echo "The server started successfully! Completing configuration..."
     echo "Starting service..."
     docker compose -f /opt/xiaozhi-server/docker-compose_all.yml up -d
-    echo "Service startup complete!"
+    echo "Service startup is complete!"
 )
 
-# Key Configuration
+# Key configuration
 
-# Get the server's public IP address
+# Get the server public network address
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
-whiptail --title "Configure Server Key" --msgbox "Please use a browser to access the link below, open the smart console, and register an account:\n\nInternal network address: http://127.0.0.1:8002/\nPublic network address: http://$PUBLIC_IP:8002/ (If it is a cloud server, please allow ports 8000, 8001, and 8002 in the server security group).\n\nThe first user registered is the super administrator; subsequent users are ordinary users. Ordinary users can only bind devices and configure smart agents; super administrators can perform model management, user management, parameter configuration, and other functions.\n\nPlease press Enter to continue after registration." 18 70
-SECRET_KEY=$(whiptail --title "Configure Server Key" --inputbox "Please log in to the smart console using the super administrator account\nInternal network address: http://127.0.0.1:8002/\nPublic network address: http://$PUBLIC_IP:8002/\nFind the parameter code: server.secret (server key) in the top menu Parameter Dictionary → Parameter Management\nCopy this parameter value and enter it into the input box below\n\nPlease enter the key (leave blank to skip configuration):" 15 60 3>&1 1>&2 2>&3)
+whiptail --title "Configure server key" --msgbox "Please use a browser, visit the link below, open the smart console and register an account: \n\nIntranet address: http://127.0.0.1:8002/\nPublic address: http://$PUBLIC_IP:8002/(If it is a cloud server, please release port 8000 8001 8002 in the server security group). \n\nThe first registered user is the super administrator, and subsequent registered users are ordinary users. Ordinary users can only bind devices and configure agents; super administrators can perform model management, user management, parameter configuration and other functions. \n\nAfter registering, please press Enter to continue." 18 70
+SECRET_KEY=$(whiptail --title "Configure server key" --inputbox "Please use the super administrator account to log in to the intelligent console\nIntranet address: http://127.0.0.1:8002/\nPublic network address: http://$PUBLIC_IP:8002/\nIn the top menu Parameter Dictionary → Parameter Management Find the parameter encoding: server.secret (server key) \nCopy the parameter value and enter it into the input box below\n\nPlease enter the secret key (leave it blank to skip the configuration):" 15 60 3>&1 1>&2 2>&3)
 
 if [ -n "$SECRET_KEY" ]; then
     python3 -c "
@@ -403,11 +403,11 @@ fi
 # Get and display address information
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 
-# Fixed the issue of not being able to retrieve the ws file from the log file; changed it to hard encoding.
-whiptail --title "Installation complete!" --msgbox "\
-The server-side address is as follows:\n\
-Admin panel access address: http://$LOCAL_IP:8002\n\
-OTA Location: http://$LOCAL_IP:8002/xiaozhi/ota/\n\
-Visual analytics interface address: http://$LOCAL_IP:8003/mcp/vision/explain\n\
+# Fixed the problem that the log file could not obtain ws and changed it to hard coding.
+whiptail --title "The installation is complete!" --msgbox "\
+The relevant addresses of the server are as follows:\n\
+Management backend access address: http://$LOCAL_IP:8002\n\
+OTA address: http://$LOCAL_IP:8002/xiaozhi/ota/\n\
+Visual analysis interface address: http://$LOCAL_IP:8003/mcp/vision/explain\n\
 WebSocket address: ws://$LOCAL_IP:8000/xiaozhi/v1/\n\
-Installation complete! Thank you for using our service! Press Enter to exit... 16 70
+\nInstallation completed! Thank you for your use! \nPress enter to exit..." 16 70
