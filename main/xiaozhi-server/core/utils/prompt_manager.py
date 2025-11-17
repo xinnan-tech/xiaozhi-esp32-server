@@ -170,7 +170,7 @@ class PromptManager:
                 # 优先使用 API 传入的 prompt（正式部署场景）
                 profile = user_prompt
                 timezone = self.config.get("timezone", "Asia/Shanghai")
-                language = self.config.get("language", "zh")
+                language = self.config.get("language", "en")
                 self.logger.bind(tag=TAG).info("使用 API 下发的 profile")
             else:
                 # API 未提供 prompt，尝试加载本地 role 配置（本地开发场景）

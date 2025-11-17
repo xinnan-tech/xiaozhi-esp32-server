@@ -1,0 +1,10 @@
+# Scenario 06: Conversational Speech Test
+# Test natural speech patterns, filler words, hesitation markers, and flow
+
+Can you help me decide between two job offers?
+What if the new job doesn't work out though?
+I'm really worried about the salary difference.
+Should I negotiate the offer or just accept it as is?
+You really think I should take that risk?
+That makes sense. Thanks for talking this through with me!
+

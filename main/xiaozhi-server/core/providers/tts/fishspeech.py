@@ -139,19 +139,20 @@ class TTSProvider(TTSProviderBase):
         self.seed = int(config.get("seed")) if config.get("seed") else None
 
     async def text_to_speak(self, text, output_file):
+        logger.bind(tag=TAG).info(f"[DEBUG] 原始文本: {repr(text)}")
+        logger.bind(tag=TAG).info(f"fish speech synthesize text: {text}")
         # Prepare reference data
         byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
         ref_texts = [read_ref_text(ref_text) for ref_text in self.reference_text]
 
         request = TTSRequest(
             text=text,
-            references=[ReferenceAudio(audio=audio if audio else b"", text=ref_text) for ref_text, audio in zip(ref_texts, byte_audios)],
             reference_id=self.reference_id,
             sample_rate=self.sample_rate,
             format=self.format,
-            normalize=self.normalize,
+            normalize=True,
         )
-        audio_stream = self.session.tts(request, backend=self.model)
+        audio_stream = self.session.tts(request, backend="s1")
         audio_bytes = b''.join(chunk for chunk in audio_stream if chunk)
 
         if output_file:
