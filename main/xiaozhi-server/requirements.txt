@@ -19,6 +19,7 @@ loguru==0.7.3
 requests==2.32.5
 cozepy==0.19.0
 mem0ai==1.0.0
+memu-py
 bs4==0.0.2
 modelscope==1.23.2
 sherpa_onnx==1.12.11

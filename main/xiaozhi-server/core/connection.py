@@ -230,6 +230,14 @@ class ConnectionHandler:
         """保存记忆并关闭连接"""
         try:
             if self.memory:
+                # 准备上下文信息
+                context = {
+                    "session_id": self.session_id,
+                    "device_id": self.device_id,
+                    "mac_address": getattr(self, 'mac_address', None),
+                    "agent_id": getattr(self, 'agent_id', None),
+                }
+                
                 # 使用线程池异步保存记忆
                 def save_memory_task():
                     try:
@@ -237,7 +245,7 @@ class ConnectionHandler:
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
                         loop.run_until_complete(
-                            self.memory.save_memory(self.dialogue.dialogue)
+                            self.memory.save_memory(self.dialogue.dialogue, context)
                         )
                     except Exception as e:
                         self.logger.bind(tag=TAG).error(f"保存记忆失败: {e}")

@@ -219,7 +219,7 @@ selected_module:
   # TTS将根据配置名称对应的type调用实际的TTS适配器
   TTS: EdgeTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
-  Memory: nomem
+  Memory: memu
   # 意图识别模块开启后，可以播放音乐、控制音量、识别退出指令。
   # 不想开通意图识别，就设置成：nointent
   # 意图识别可使用intent_llm。优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间，支持控制音量大小等iot操作
@@ -271,6 +271,14 @@ Memory:
     # https://app.mem0.ai/dashboard/api-keys
     # 每月有1000次免费调用
     api_key: 你的mem0ai api key
+  memu:
+    type: memu
+    # https://app.memu.so/api-key/
+    # MemU AI记忆框架 - 提供长期记忆管理服务
+    api_key: mu_SJPB0t8dtY0IwL0B0RjpiVKbTEI4w8MD8YkYSVItNzxe-t3DlOtHIJnp53tJ-kr6BL06-uPN0U5WPGs4EpT5iuMZMsrfI1KYvVfg1w
+    base_url: https://api.memu.so
+    user_name: 用户
+    agent_name: 小智
   nomem:
     # 不想使用记忆功能，可以使用nomem
     type: nomem
