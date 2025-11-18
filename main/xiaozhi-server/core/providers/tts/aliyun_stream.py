@@ -285,8 +285,9 @@ class TTSProvider(TTSProviderBase):
     async def text_to_speak(self, text, _):
         try:
             if self.ws is None:
-                logger.bind(tag=TAG).warning(f"WebSocket连接不存在，终止发送文本")
-                return
+                logger.bind(tag=TAG).debug(f"WebSocket连接不存在，重新启动TTS会话...")
+                await self.start_session(self.task_id)
+                logger.bind(tag=TAG).debug("TTS会话启动成功")
             filtered_text = MarkdownCleaner.clean_markdown(text)
             run_request = {
                 "header": {
