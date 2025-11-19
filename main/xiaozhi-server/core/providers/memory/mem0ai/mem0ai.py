@@ -29,7 +29,7 @@ class MemoryProvider(MemoryProviderBase):
             logger.bind(tag=TAG).error(f"详细错误: {traceback.format_exc()}")
             self.use_mem0 = False
 
-    async def save_memory(self, msgs):
+    async def save_memory(self, msgs, context=None):
         if not self.use_mem0:
             return None
         if len(msgs) < 2:

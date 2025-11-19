@@ -144,7 +144,7 @@ class MemoryProvider(MemoryProviderBase):
         with open(self.memory_path, "w", encoding="utf-8") as f:
             yaml.dump(all_memory, f, allow_unicode=True)
 
-    async def save_memory(self, msgs):
+    async def save_memory(self, msgs, context=None):
         # 打印使用的模型信息
         model_info = getattr(self.llm, "model_name", str(self.llm.__class__.__name__))
         logger.bind(tag=TAG).debug(f"使用记忆保存模型: {model_info}")
