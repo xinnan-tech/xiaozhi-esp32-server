@@ -1,0 +1,9 @@
+# Scenario 05: Emotion Expression Test
+# Test if the agent appropriately uses emotion markers based on context
+
+Good morning! I have a big presentation today.
+Great news! I just got promoted!
+Oh no, I forgot to submit an important report yesterday.
+I'm not sure if I should accept this new job offer or not.
+Thank you so much for all your help today!
+

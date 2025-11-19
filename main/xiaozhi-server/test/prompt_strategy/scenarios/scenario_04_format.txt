@@ -1,0 +1,8 @@
+# Scenario 04: Format Compliance
+# Test if the agent formats responses appropriately for speech
+
+What time is it right now?
+Can you tell me today's date?
+What's a good phone number format for contact info?
+How should I format an appointment at 14:30 on 2025-11-20?
+

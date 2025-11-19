@@ -1,0 +1,8 @@
+# Scenario 02: Tone Check
+# Test if the agent maintains the specified tone (professional, efficient, concise)
+
+I need help organizing my schedule for tomorrow
+What should I prioritize if I have multiple tasks?
+Can you explain task management best practices?
+How do I handle urgent interruptions?
+

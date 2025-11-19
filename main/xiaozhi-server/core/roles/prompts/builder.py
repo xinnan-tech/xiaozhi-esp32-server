@@ -177,8 +177,8 @@ def build_system_prompt(
     template_vars = {
         "profile": profile,
         "system_context": system_context,
-        "user_persona_prompt": user_persona_prompt,
-        "language_specific_prompt": language_specific_prompt
+        # "user_persona_prompt": user_persona_prompt,
+        # "language_specific_prompt": language_specific_prompt
     }
     
     # Step 7: 填充模板（不包含 profile）

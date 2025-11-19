@@ -1,0 +1,11 @@
+# Scenario 07: Conversational Speech Test (Chinese)
+# Test natural speech patterns, filler words, hesitation markers, and flow with emotion tags
+# 测试自然对话模式、口语填充词、犹豫标记、语流以及 emotion tag 在中文场景的表现
+
+嗯，你能帮我参谋参谋，我该选哪个工作offer吗？
+可是呢，万一新工作不适合我怎么办啊？
+哎，我真的很担心薪资差距这个问题...
+你说我是应该跟HR谈一谈待遇，还是直接接受算了？
+啊？你真觉得我应该冒这个险？
+对哦，你说得对。谢谢你陪我聊这么久！
+

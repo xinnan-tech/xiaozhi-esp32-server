@@ -1,5 +1,7 @@
 import json
 
+from urllib3 import Retry
+
 TAG = __name__
 EMOJI_MAP = {
     "😂": "laughing",
@@ -72,7 +74,9 @@ def is_punctuation_or_emoji(char):
         "【",
         "】",  # 中文方括号
     }
-    if char.isspace() or char in punctuation_set:
+    # if char.isspace() or char in punctuation_set:
+    #     return True
+    if char.isspace():
         return True
     return is_emoji(char)
 

@@ -1,0 +1,6 @@
+# Ignore test outputs
+outputs/
+tmp/
+__pycache__/
+*.pyc
+

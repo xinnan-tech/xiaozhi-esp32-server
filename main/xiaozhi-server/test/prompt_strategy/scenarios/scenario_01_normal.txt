@@ -1,0 +1,8 @@
+# Scenario 01: Normal Conversation
+# Test basic conversation flow and naturalness
+
+Hi, how are you today?
+What can you help me with?
+Can you tell me about the weather?
+Thank you for your help
+
