@@ -726,17 +726,18 @@ class ConnectionHandler:
         self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
         self.llm_finish_task = False
 
-        # 为最顶层时新建会话ID和发送FIRST请求
+        # depth!=0目前只能表示是非用户发起的请求，与对话逻辑无关，这里所有tts对话都应该发送FIRST和LAST，没有例外
         if depth == 0:
-            self.sentence_id = str(uuid.uuid4().hex)
             self.dialogue.put(Message(role="user", content=query))
-            self.tts.tts_text_queue.put(
-                TTSMessageDTO(
-                    sentence_id=self.sentence_id,
-                    sentence_type=SentenceType.FIRST,
-                    content_type=ContentType.ACTION,
-                )
+        # 发送开始标记
+        self.sentence_id = str(uuid.uuid4().hex)
+        self.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=self.sentence_id,
+                sentence_type=SentenceType.FIRST,
+                content_type=ContentType.ACTION,
             )
+        )
 
         # Define intent functions
         functions = None
@@ -826,6 +827,14 @@ class ConnectionHandler:
                             content_detail=content,
                         )
                     )
+        # 发送结束标记
+        self.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=self.sentence_id,
+                sentence_type=SentenceType.LAST,
+                content_type=ContentType.ACTION,
+            )
+        )
         # 处理function call
         if tool_call_flag:
             bHasError = False
@@ -879,14 +888,7 @@ class ConnectionHandler:
             text_buff = "".join(response_message)
             self.tts_MessageText = text_buff
             self.dialogue.put(Message(role="assistant", content=text_buff))
-        if depth == 0:
-            self.tts.tts_text_queue.put(
-                TTSMessageDTO(
-                    sentence_id=self.sentence_id,
-                    sentence_type=SentenceType.LAST,
-                    content_type=ContentType.ACTION,
-                )
-            )
+
         self.llm_finish_task = True
         # 使用lambda延迟计算，只有在DEBUG级别时才执行get_llm_dialogue()
         self.logger.bind(tag=TAG).debug(
