@@ -68,13 +68,14 @@ class FileRepository:
             Bucket=settings.S3_BUCKET_NAME,
             Key=s3_key,
             Body=content,
-            ContentType=file.content_type or 'application/octet-stream'
+            ContentType=file.content_type or 'application/octet-stream',
         )
         
         # Generate public URL
-        url = f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
+        url = f"{settings.S3_PUBLIC_BASE_URL}/{settings.S3_BUCKET_NAME}/{s3_key}"
         return url
-    
+
+
     @staticmethod
     async def delete(s3, url: str) -> bool:
         """
@@ -89,7 +90,7 @@ class FileRepository:
         """
         try:
             # Extract S3 key from URL
-            key = url.split(f"{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/")[-1]
+            key = url.split(f"{settings.S3_PUBLIC_BASE_URL}/{settings.S3_BUCKET_NAME}/")[-1]
             
             await s3.delete_object(
                 Bucket=settings.S3_BUCKET_NAME,

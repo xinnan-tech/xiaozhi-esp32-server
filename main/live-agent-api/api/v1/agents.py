@@ -111,5 +111,5 @@ async def delete_agent(
         agent_id=agent_id,
         owner_id=current_user_id
     )
-    return success_response(data=None, message="Agent deleted successfully")
+    return success_response(data={}, message="Agent deleted successfully")
 

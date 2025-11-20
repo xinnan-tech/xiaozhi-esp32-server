@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     AWS_REGION: str = "us-east-1"
     S3_BUCKET_NAME: str
     S3_ENDPOINT_URL: str | None = None
+    S3_PUBLIC_BASE_URL: str | None = None
     
     # Security
     SECRET_KEY: str
