@@ -38,7 +38,15 @@ server:
 manager-api:
   url: http://xiaozhi-esp32-server-web:8002/xiaozhi
   # This secret is used for local development, it will be replaced by the actual secret when the server is deployed
-  secret: 613be043-dc7e-4f5e-b775-e318e5bc87a3 
+  secret: 613be043-dc7e-4f5e-b775-e318e5bc87a3
+
+# MySQL配置(用于聊天记录和记忆关联)
+mysql:
+  host: localhost
+  port: 3306
+  user: root
+  password: ""
+  database: xiaozhi 
 
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
@@ -249,6 +257,20 @@ Memory:
     # https://app.mem0.ai/dashboard/api-keys
     # 每月有1000次免费调用
     api_key: 你的mem0ai api key
+  memu:
+    type: memu
+    # https://app.memu.so/api-key/
+    # MemU AI记忆框架 - 提供长期记忆管理服务
+    api_key: mu_SJPB0t8dtY0IwL0B0RjpiVKbTEI4w8MD8YkYSVItNzxe-t3DlOtHIJnp53tJ-kr6BL06-uPN0U5WPGs4EpT5iuMZMsrfI1KYvVfg1w
+    base_url: https://api.memu.so
+    user_name: 用户
+    agent_name: 小智
+    # 默认用于管理后台查询的 user_id / agent_id，可选
+    default_user_id: "51:3F:8D:59:D3:DB"
+    default_agent_id: xiaozhi_agent
+    # 如果管理后台仍使用占位ID，可通过别名映射到真实 device_id
+    user_id_aliases:
+      xiaozhi-web-test: "51:3F:8D:59:D3:DB"
   nomem:
     # 不想使用记忆功能，可以使用nomem
     type: nomem
