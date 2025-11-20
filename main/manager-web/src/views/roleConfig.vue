@@ -1170,7 +1170,8 @@ export default {
 
 .template-item {
   height: 4vh;
-  width: 76px;
+  min-width: 60px;
+  padding: 0 12px;
   border-radius: 8px;
   background: #e6ebff;
   line-height: 4vh;
@@ -1180,6 +1181,7 @@ export default {
   color: #5778ff;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  white-space: nowrap;
 }
 
 .template-item:hover {

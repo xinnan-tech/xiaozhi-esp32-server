@@ -23,7 +23,7 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
         conn.logger.bind(tag=TAG).info(f"发送音频消息: {sentenceType}, {text}")
 
     # 发送结束消息（如果是最后一个文本）
-    if conn.llm_finish_task and sentenceType == SentenceType.LAST:
+    if sentenceType == SentenceType.LAST:
         await send_tts_message(conn, "stop", None)
         conn.client_is_speaking = False
         if conn.close_after_chat:
@@ -145,6 +145,7 @@ async def sendAudio(conn, audios, frame_duration=60):
         else:
             # 直接发送opus数据包，不添加头部
             await conn.websocket.send(audios)
+        conn.client_is_speaking = True
 
         # 更新流控状态
         flow_control["packet_count"] += 1
@@ -168,6 +169,7 @@ async def sendAudio(conn, audios, frame_duration=60):
             else:
                 # 直接发送预缓冲包，不添加头部
                 await conn.websocket.send(audios[i])
+            conn.client_is_speaking = True
         remaining_audios = audios[pre_buffer_frames:]
 
         # 播放剩余音频帧
@@ -200,6 +202,8 @@ async def sendAudio(conn, audios, frame_duration=60):
             else:
                 # 直接发送opus数据包，不添加头部
                 await conn.websocket.send(opus_packet)
+
+            conn.client_is_speaking = True
 
             play_position += frame_duration
 
@@ -255,5 +259,4 @@ async def send_stt_message(conn, text):
     await conn.websocket.send(
         json.dumps({"type": "stt", "text": stt_text, "session_id": conn.session_id})
     )
-    conn.client_is_speaking = True
     await send_tts_message(conn, "start")
