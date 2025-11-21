@@ -160,8 +160,8 @@ if check_installed; then
         
         # 删除特定镜像（考虑镜像可能不存在的情况）
         images=(
-            "ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest"
-            "ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest"
+            "ghcr.nju.edu.cn/BladeRunner18/xiaozhi-esp32-server:server_latest"
+            "ghcr.nju.edu.cn/BladeRunner18/xiaozhi-esp32-server:web_latest"
         )
         
         for image in "${images[@]}"; do
@@ -182,9 +182,9 @@ if check_installed; then
             echo "已备份原有配置文件到 /opt/xiaozhi-server/backup/.config.yaml"
         fi
         
-        # 下载最新版配置文件
-        check_and_download "/opt/xiaozhi-server/docker-compose_all.yml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml"
-        check_and_download "/opt/xiaozhi-server/data/.config.yaml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml"
+        # 下载最新版配置文件（改为从你的 Fork 下载）
+        check_and_download "/opt/xiaozhi-server/docker-compose_all.yml" "https://ghfast.top/https://raw.githubusercontent.com/BladeRunner18/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml"
+        check_and_download "/opt/xiaozhi-server/data/.config.yaml" "https://ghfast.top/https://raw.githubusercontent.com/BladeRunner18/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml"
         
         # 启动Docker服务
         echo "开始启动最新版本服务..."
@@ -341,8 +341,8 @@ fi
 
 # 如果不是升级完成，才执行下载
 if [ -z "$UPGRADE_COMPLETED" ]; then
-    check_and_download "/opt/xiaozhi-server/docker-compose_all.yml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml"
-    check_and_download "/opt/xiaozhi-server/data/.config.yaml" "https://ghfast.top/https://raw.githubusercontent.com/xinnan-tech/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml"
+    check_and_download "/opt/xiaozhi-server/docker-compose_all.yml" "https://ghfast.top/https://raw.githubusercontent.com/BladeRunner18/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/docker-compose_all.yml"
+    check_and_download "/opt/xiaozhi-server/data/.config.yaml" "https://ghfast.top/https://raw.githubusercontent.com/BladeRunner18/xiaozhi-esp32-server/refs/heads/main/main/xiaozhi-server/config_from_api.yaml"
 fi
 
 # 启动Docker服务
