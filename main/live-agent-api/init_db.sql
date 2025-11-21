@@ -1,0 +1,153 @@
+-- Active: 1763538755357@@127.0.0.1@5432@live_agent
+-- Live Agent API Database Initialization Script
+-- PostgreSQL 16
+
+-- ==================== Extensions ====================
+-- Enable required PostgreSQL extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ==================== Table: user ====================
+-- User account table
+CREATE TABLE IF NOT EXISTS "user" (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(50) UNIQUE NOT NULL,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+);
+
+-- Indexes for user table
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_userid ON "user"(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_username ON "user"(username);
+
+-- Comments for user table
+COMMENT ON TABLE "user" IS 'User account information';
+COMMENT ON COLUMN "user".user_id IS 'External unique identifier (e.g., ULID)';
+COMMENT ON COLUMN "user".username IS 'Unique username for login';
+COMMENT ON COLUMN "user".password IS 'Hashed password';
+
+-- ==================== Table: agents ====================
+-- AI Agent configuration table
+CREATE TABLE IF NOT EXISTS agents (
+    id SERIAL PRIMARY KEY,
+    agent_id VARCHAR(50) UNIQUE NOT NULL,
+    owner_id VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    avatar_url TEXT,
+    description TEXT,
+    voice_id VARCHAR(50),
+    instruction TEXT NOT NULL,
+    voice_opening TEXT,
+    voice_closing TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    CONSTRAINT fk_agents_owner FOREIGN KEY (owner_id) 
+        REFERENCES "user"(user_id) ON DELETE CASCADE
+);
+
+-- Indexes for agents table
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_agent_id ON agents(agent_id);
+CREATE INDEX IF NOT EXISTS idx_agents_owner_id ON agents(owner_id);
+
+-- Comments for agents table
+COMMENT ON TABLE agents IS 'AI agent configurations';
+COMMENT ON COLUMN agents.agent_id IS 'External unique identifier (e.g., ULID)';
+COMMENT ON COLUMN agents.owner_id IS 'User ID of the agent owner';
+COMMENT ON COLUMN agents.instruction IS 'System prompt/instruction for the agent';
+COMMENT ON COLUMN agents.voice_opening IS 'Opening message when conversation starts';
+COMMENT ON COLUMN agents.voice_closing IS 'Closing message when conversation ends';
+
+-- ==================== Table: voices ====================
+-- Voice configuration table
+CREATE TABLE IF NOT EXISTS voices (
+    id SERIAL PRIMARY KEY,
+    voice_id VARCHAR(50) NOT NULL,
+    owner_id VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    "desc" TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    CONSTRAINT fk_voices_owner FOREIGN KEY (owner_id) 
+        REFERENCES "user"(user_id) ON DELETE CASCADE,
+    CONSTRAINT uk_voices_owner_voice UNIQUE (voice_id, owner_id)
+);
+
+-- Indexes for voices table
+CREATE INDEX IF NOT EXISTS idx_voices_voice_id ON voices(voice_id);
+CREATE INDEX IF NOT EXISTS idx_voices_owner_id ON voices(owner_id);
+CREATE INDEX IF NOT EXISTS idx_voices_created_at ON voices(created_at);
+
+-- Comments for voices table
+COMMENT ON TABLE voices IS 'Voice configurations for agents';
+COMMENT ON COLUMN voices.voice_id IS 'Fish Audio voice ID';
+COMMENT ON COLUMN voices.owner_id IS 'User ID of voice owner';
+COMMENT ON COLUMN voices.name IS 'Voice display name';
+COMMENT ON COLUMN voices."desc" IS 'Voice description';
+
+-- ==================== Table: agent_templates ====================
+-- Pre-configured agent templates
+CREATE TABLE IF NOT EXISTS agent_templates (
+    id SERIAL PRIMARY KEY,
+    template_id VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    avatar_url TEXT,
+    description TEXT,
+    voice_id VARCHAR(50),
+    instruction TEXT,
+    voice_opening TEXT,
+    voice_closing TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+);
+
+-- Indexes for agent_templates table
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_templates_template_id ON agent_templates(template_id);
+
+-- Comments for agent_templates table
+COMMENT ON TABLE agent_templates IS 'Pre-configured agent templates for quick setup';
+COMMENT ON COLUMN agent_templates.template_id IS 'External unique identifier (e.g., ULID)';
+COMMENT ON COLUMN agent_templates.voice_id IS 'Default voice ID for this template';
+
+-- ==================== Functions ====================
+-- Function to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC';
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers for updated_at on user table
+CREATE TRIGGER update_user_updated_at
+    BEFORE UPDATE ON "user"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create triggers for updated_at on agents table
+CREATE TRIGGER update_agents_updated_at
+    BEFORE UPDATE ON agents
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create triggers for updated_at on voices table
+CREATE TRIGGER update_voices_updated_at
+    BEFORE UPDATE ON voices
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create triggers for updated_at on agent_templates table
+CREATE TRIGGER update_agent_templates_updated_at
+    BEFORE UPDATE ON agent_templates
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- ==================== Grant Permissions ====================
+-- Grant necessary permissions to postgres user
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
+
+-- ==================== Initialization Complete ====================
+-- Database schema initialization completed successfully
+
