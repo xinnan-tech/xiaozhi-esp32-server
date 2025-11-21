@@ -1,3 +1,4 @@
+import re
 import time
 import json
 import asyncio
@@ -41,6 +42,32 @@ async def startToChat(conn, text):
     # 检查输入是否是JSON格式（包含说话人信息）
     speaker_name = None
     actual_text = text
+    language_tag = None
+
+    # 检查当前使用的ASR是否为FunASR（本地或服务版本）
+    is_funasr = False
+    if hasattr(conn, 'asr') and conn.asr:
+        asr_module = conn.asr.__class__.__module__
+        if 'fun_local' in asr_module or 'fun_server' in asr_module:
+            is_funasr = True
+            conn.logger.bind(tag=TAG).debug(f"检测到FunASR语音识别: {asr_module}")
+
+    # 只有在使用FunASR时才处理语言标签
+    if is_funasr:
+        # 检查是否包含语言标签（如<|zh|>、<|en|>等）
+        lang_pattern = r'<\|([a-z]{2,3})\|>'
+        lang_match = re.search(lang_pattern, text)
+        if lang_match:
+            language_tag = lang_match.group(1)
+            conn.current_language_tag = language_tag
+            conn.logger.bind(tag=TAG).info(f"检测到FunASR语言标签: {language_tag}")
+
+            # 移除语言标签，保留纯文本内容
+            actual_text = re.sub(lang_pattern, '', text).strip()
+            conn.logger.bind(tag=TAG).debug(f"移除语言标签后的文本: {actual_text}")
+        else:
+            # 没有检测到语言标签时，清空之前的标签
+            conn.current_language_tag = None
 
     try:
         # 尝试解析JSON格式的输入
@@ -62,6 +89,10 @@ async def startToChat(conn, text):
         conn.current_speaker = speaker_name
     else:
         conn.current_speaker = None
+
+    # 如果不是FunASR，清空语言标签，不影响其他ASR
+    if not is_funasr:
+        conn.current_language_tag = None
 
     if conn.need_bind:
         await check_bind_device(conn)
