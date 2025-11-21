@@ -28,6 +28,7 @@ async def get_discover_voices(
     title: Optional[str] = Query(None, description="Filter by voice title/name"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    language: Optional[str] = Query(None, description="Filter by language"),
     fish_client = Depends(get_fish_audio)
 ):
     """
@@ -41,7 +42,7 @@ async def get_discover_voices(
         title=title,
         page=page,
         page_size=page_size,
-        language="en"
+        language=language
     )
     
     # Convert Fish Audio Voice objects to VoiceResponse in API layer
@@ -61,10 +62,8 @@ async def get_discover_voices(
             voice_id=voice.id,
             name=voice.title,
             desc=voice.description,
-            tags=voice.tags,
-            task_count=voice.task_count,
-            like_count=voice.like_count,
             samples=samples,
+            created_at=voice.created_at,
         ))
     
     # Build response

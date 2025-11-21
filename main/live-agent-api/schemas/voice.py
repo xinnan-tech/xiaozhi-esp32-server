@@ -37,11 +37,6 @@ class LiveAgentVoice(BaseModel):
     voice_id: str
     name: str
     desc: Optional[str] = None
-    tags: Optional[List[str]] = None
-    
-    # Additional fields for Fish Audio voices
-    like_count: Optional[int] = None
-    task_count: Optional[int] = None  # Used for sorting in discover
 
     samples: Optional[List[AudioSample]] = None
 
