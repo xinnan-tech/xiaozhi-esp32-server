@@ -23,20 +23,34 @@ class AgentService:
         self, 
         db: AsyncSession, 
         owner_id: str,
-        page: int = 1,
+        cursor: Optional[str] = None,
         page_size: int = 10
     ) -> AgentListResponse:
-        """Get user's agent list"""
-        skip = (page - 1) * page_size
-        agents = await Agent.get_agents_by_owner(
+        """
+        Get user's agent list with cursor-based pagination
+        
+        Args:
+            db: Database session
+            owner_id: User ID
+            cursor: Pagination cursor (ISO datetime string)
+            page_size: Number of items per page
+            
+        Returns:
+            AgentListResponse with agents, next_cursor, and has_more
+        """
+        agents, next_cursor, has_more = await Agent.get_agents_by_owner(
             db, 
-            owner_id=owner_id, 
-            skip=skip, 
+            owner_id=owner_id,
+            cursor=cursor,
             limit=page_size
         )
         
         agent_responses = [AgentResponse.model_validate(a) for a in agents]
-        return AgentListResponse(agents=agent_responses)
+        return AgentListResponse(
+            agents=agent_responses,
+            next_cursor=next_cursor,
+            has_more=has_more
+        )
     
     async def get_agent_detail(
         self, 

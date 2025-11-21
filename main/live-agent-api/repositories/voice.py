@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from sqlalchemy import String, Text, TIMESTAMP, ForeignKey, Index, select, func, update
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,10 +71,21 @@ class Voice:
     async def get_list(
         db: AsyncSession,
         owner_id: Optional[str] = None,
-        skip: int = 0,
+        cursor: Optional[str] = None,
         limit: int = 100
-    ) -> List[VoiceModel]:
-        """Get voices with filters"""
+    ) -> Tuple[List[VoiceModel], Optional[str], bool]:
+        """
+        Get voices with cursor-based pagination
+        
+        Args:
+            db: Database session
+            owner_id: Filter by owner ID
+            cursor: ISO datetime string of last item's created_at
+            limit: Number of items to return
+            
+        Returns:
+            (voices, next_cursor, has_more)
+        """
         query = select(VoiceModel)
         
         if owner_id:
@@ -83,10 +94,37 @@ class Voice:
                 VoiceModel.owner_id == owner_id
             )
         
-        query = query.offset(skip).limit(limit).order_by(VoiceModel.created_at.desc())
+        # Apply cursor filter if provided
+        if cursor:
+            try:
+                cursor_time = datetime.fromisoformat(cursor)
+                # Get records created before cursor time
+                query = query.where(VoiceModel.created_at < cursor_time)
+            except (ValueError, TypeError):
+                # Invalid cursor, ignore and start from beginning
+                pass
+        
+        # Order by created_at DESC, voice_id DESC for stable sorting
+        # Fetch limit + 1 to check if there are more records
+        query = query.order_by(
+            VoiceModel.created_at.desc(),
+            VoiceModel.voice_id.desc()
+        ).limit(limit + 1)
         
         result = await db.execute(query)
-        return result.scalars().all()
+        voices = list(result.scalars().all())
+        
+        # Check if there are more records
+        has_more = len(voices) > limit
+        if has_more:
+            voices = voices[:limit]
+        
+        # Generate next cursor from last item
+        next_cursor = None
+        if has_more and voices:
+            next_cursor = voices[-1].created_at.isoformat()
+        
+        return voices, next_cursor, has_more
     
     async def count(
         db: AsyncSession,

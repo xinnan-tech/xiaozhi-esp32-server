@@ -45,6 +45,8 @@ class LiveAgentVoice(BaseModel):
 
     samples: Optional[List[AudioSample]] = None
 
+    created_at: datetime
+
 
 
 class FishAudioVoiceResponse(BaseModel):
@@ -65,9 +67,10 @@ class DiscoverVoiceResponse(BaseModel):
     has_more: bool
 
 class MyVoiceResponse(BaseModel):
-    """My voice response"""
+    """My voice response with cursor-based pagination"""
     voices: List[LiveAgentVoice]
-    has_more: bool
+    next_cursor: Optional[str] = None
+    has_more: bool = False
 
 
 class VoiceCloneStatusResponse(BaseModel):

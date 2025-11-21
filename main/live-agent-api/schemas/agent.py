@@ -42,8 +42,10 @@ class AgentResponse(BaseModel):
 
 
 class AgentListResponse(BaseModel):
-    """Agent list response"""
+    """Agent list response with cursor-based pagination"""
     agents: list[AgentResponse]
+    next_cursor: Optional[str] = None
+    has_more: bool = False
 
 
 class AgentConfigResponse(BaseModel):

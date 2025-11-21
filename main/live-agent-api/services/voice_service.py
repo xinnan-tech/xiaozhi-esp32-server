@@ -2,7 +2,7 @@ from typing import Optional, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import UploadFile
 from fishaudio import AsyncFishAudio
-from fishaudio.types import PaginatedResponse, Voice as FishVoice
+from fishaudio.types import PaginatedResponse, Voice as FishVoice, Sample as FishSample
 
 from repositories import VoiceModel, Voice
 from utils.ulid import generate_voice_id
@@ -64,32 +64,36 @@ class VoiceService:
         self,
         db: AsyncSession,
         owner_id: str,
-        page: int = 1,
+        cursor: Optional[str] = None,
         page_size: int = 20
-    ) -> Tuple[List[VoiceModel], int]:
+    ) -> Tuple[List[VoiceModel], Optional[str], bool]:
         """
-        Get user's custom voices (my_voices tab)
+        Get user's custom voices with cursor-based pagination
         
+        Args:
+            db: Database session
+            owner_id: User ID
+            cursor: Pagination cursor (ISO datetime string)
+            page_size: Number of items per page
+            
         Returns:
-            List of VoiceModel objects
+            Tuple of (voices, next_cursor, has_more)
         """
-        skip = (page - 1) * page_size
-        voices = await Voice.get_list(
+        voices, next_cursor, has_more = await Voice.get_list(
             db,
             owner_id=owner_id,
-            skip=skip,
+            cursor=cursor,
             limit=page_size
         )
 
-        count = await Voice.count(db, owner_id=owner_id)
-        return voices, count
+        return voices, next_cursor, has_more
     
     async def clone_voice(
         self,
         fish_client: AsyncFishAudio,
         audio_file: UploadFile,
         text: Optional[str] = None
-    ) -> VoiceModel:
+    ) -> Tuple[str, List[FishSample]]:
         """
         Clone a voice using Fish Audio API
         
@@ -117,8 +121,7 @@ class VoiceService:
             visibility="private",
             enhance_audio_quality=True
         )
-        
-        return fish_voice.id
+        return fish_voice.id, fish_voice.samples
     
     async def add_voice(
         self,

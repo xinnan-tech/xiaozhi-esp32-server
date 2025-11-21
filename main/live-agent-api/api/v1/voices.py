@@ -91,20 +91,27 @@ async def get_default_voices(
 
 @router.get("/", summary="Get My Voices")
 async def get_my_voices(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    cursor: Optional[str] = Query(None, description="Pagination cursor (ISO datetime from previous response)"),
+    page_size: int = Query(10, ge=1, le=50, description="Number of items per page"),
     current_user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get user's custom voices (my_voices tab)
-    Returns voices created/cloned by the current user
+    Get user's custom voices with cursor-based pagination
+    
+    Cursor-based pagination prevents data drift when adding/removing voices:
+    - **First request**: No cursor parameter needed
+    - **Subsequent requests**: Use `next_cursor` from previous response
+    - **Returns**: List of voices with `next_cursor` and `has_more` flag
+    
+    Voices are ordered by creation time (newest first).
+    Returns voices created/cloned/added by the current user.
     """
     # Get raw data from service layer
-    voices, count = await voice_service.get_my_voices(
+    voices, next_cursor, has_more = await voice_service.get_my_voices(
         db=db,
         owner_id=current_user_id,
-        page=page,
+        cursor=cursor,
         page_size=page_size
     )
     
@@ -114,13 +121,15 @@ async def get_my_voices(
         voice_responses.append(LiveAgentVoice(
             voice_id=voice.voice_id,
             name=voice.name,
-            tags=voice.tags or [],
+            desc=voice.desc,
+            created_at=voice.created_at,
         ))
     
     # Build response
     voice_list = MyVoiceResponse(
         voices=voice_responses,
-        has_more=count > page * page_size
+        next_cursor=next_cursor,
+        has_more=has_more
     )
     
     return success_response(data=voice_list.model_dump())
@@ -140,16 +149,26 @@ async def clone_voice(
     """
     
     # Clone voice
-    voice_id = await voice_service.clone_voice(
+    voice_id, samples = await voice_service.clone_voice(
         fish_client=fish_client,
         audio_file=audio_file,
         text=text
     )
     
     # Build response
+    if samples:
+        sample = AudioSample(
+            title=samples[0].title,
+            text=samples[0].text,
+            audio=samples[0].audio
+        )
+    else:
+        sample = None
+    
     return success_response(
         data={
             "voice_id": voice_id,
+            "sample": sample,
         },
         message="Voice cloned successfully"
     )

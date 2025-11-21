@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from sqlalchemy import String, Text, TIMESTAMP, ForeignKey, Index, select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,18 +75,54 @@ class Agent:
     async def get_agents_by_owner(
         db: AsyncSession,
         owner_id: str,
-        skip: int = 0,
+        cursor: Optional[str] = None,
         limit: int = 20
-    ) -> List[AgentModel]:
-        """Get all agents owned by a user"""
-        result = await db.execute(
-            select(AgentModel)
-            .where(AgentModel.owner_id == owner_id)
-            .offset(skip)
-            .limit(limit)
-            .order_by(AgentModel.created_at.desc())
-        )
-        return result.scalars().all()
+    ) -> Tuple[List[AgentModel], Optional[str], bool]:
+        """
+        Get agents owned by a user with cursor-based pagination
+        
+        Args:
+            db: Database session
+            owner_id: User ID
+            cursor: ISO datetime string of last item's created_at
+            limit: Number of items to return
+            
+        Returns:
+            (agents, next_cursor, has_more)
+        """
+        query = select(AgentModel).where(AgentModel.owner_id == owner_id)
+        
+        # Apply cursor filter if provided
+        if cursor:
+            try:
+                cursor_time = datetime.fromisoformat(cursor)
+                # Get records created before cursor time
+                query = query.where(AgentModel.created_at < cursor_time)
+            except (ValueError, TypeError):
+                # Invalid cursor, ignore and start from beginning
+                pass
+        
+        # Order by created_at DESC, agent_id DESC for stable sorting
+        # Fetch limit + 1 to check if there are more records
+        query = query.order_by(
+            AgentModel.created_at.desc(),
+            AgentModel.agent_id.desc()
+        ).limit(limit + 1)
+        
+        result = await db.execute(query)
+        agents: List[AgentModel] = result.scalars().all()
+        
+        # Check if there are more records
+        has_more = len(agents) > limit
+        if has_more:
+            agents = agents[:limit]
+        
+        # Generate next cursor from last item
+        next_cursor = None
+        if has_more and agents:
+            next_cursor = agents[-1].created_at.isoformat()
+        
+        return agents, next_cursor, has_more
 
     @staticmethod
     async def create(

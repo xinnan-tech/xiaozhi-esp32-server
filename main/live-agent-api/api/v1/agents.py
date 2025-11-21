@@ -12,16 +12,25 @@ router = APIRouter()
 
 @router.get("", summary="Get user's agent list")
 async def get_agent_list(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=20),
+    cursor: Optional[str] = Query(None, description="Pagination cursor"),
+    page_size: int = Query(10, ge=1, le=20, description="Number of items per page"),
     current_user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get user's agent list"""
+    """
+    Get user's agent list with cursor-based pagination
+    
+    Cursor-based pagination prevents data drift when creating/deleting agents:
+    - **First request**: No cursor parameter needed
+    - **Subsequent requests**: Use `next_cursor` from previous response
+    - **Returns**: List of agents with `next_cursor` and `has_more` flag
+    
+    Agents are ordered by creation time (newest first).
+    """
     agent_list = await agent_service.get_agent_list(
         db=db,
         owner_id=current_user_id,
-        page=page,
+        cursor=cursor,
         page_size=page_size
     )
     return success_response(data=agent_list.model_dump())
