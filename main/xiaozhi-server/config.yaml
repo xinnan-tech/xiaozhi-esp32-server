@@ -669,6 +669,8 @@ TTS:
     access_token: 你的火山引擎语音合成服务access_token
     resource_id: volc.service_type.10029
     speaker: zh_female_wanwanxiaohe_moon_bigtts
+    # 开启WebSocket连接复用，默认复用（注意：复用后设备处于聆听状态时空闲链接会占并发数）
+    enable_ws_reuse: True
     speech_rate: 0
     loudness_rate: 0
     pitch: 0
