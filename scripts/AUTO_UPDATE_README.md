@@ -140,7 +140,7 @@ docker compose -f docker-compose_all.yml ps
 ping ghcr.io
 
 # 2. 检查镜像是否存在且为公开
-docker pull ghcr.nju.edu.cn/BladeRunner18/xiaozhi-esp32-server:server_latest
+docker pull ghcr.nju.edu.en/bladeRunner18/xiaozhi-esp32-server:server_latest
 
 # 3. 如果是私有镜像，需要登录
 docker login ghcr.io -u BladeRunner18
@@ -161,7 +161,7 @@ docker logs xiaozhi-esp32-server-web
 docker exec -it xiaozhi-esp32-server-db mysql -uroot -p123456
 
 # 3. 如果需要回滚，恢复旧镜像
-docker tag <旧镜像ID> ghcr.nju.edu.cn/BladeRunner18/xiaozhi-esp32-server:server_latest
+docker tag <旧镜像ID> ghcr.nju.edu.en/bladeRunner18/xiaozhi-esp32-server:server_latest
 docker compose -f /opt/xiaozhi-server/docker-compose_all.yml up -d
 ```
 

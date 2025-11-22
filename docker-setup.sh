@@ -160,8 +160,8 @@ if check_installed; then
         
         # 删除特定镜像（考虑镜像可能不存在的情况）
         images=(
-            "ghcr.nju.edu.cn/BladeRunner18/xiaozhi-esp32-server:server_latest"
-            "ghcr.nju.edu.cn/BladeRunner18/xiaozhi-esp32-server:web_latest"
+            "ghcr.nju.edu.en/bladeRunner18/xiaozhi-esp32-server:server_latest"
+            "ghcr.nju.edu.en/bladeRunner18/xiaozhi-esp32-server:web_latest"
         )
         
         for image in "${images[@]}"; do

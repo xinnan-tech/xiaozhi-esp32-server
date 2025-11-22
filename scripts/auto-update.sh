@@ -11,8 +11,8 @@ LOG_FILE="/opt/xiaozhi-server/logs/auto-update.log"
 BACKUP_DIR="/opt/xiaozhi-server/backup"
 
 # 镜像配置
-SERVER_IMAGE="ghcr.nju.edu.cn/BladeRunner18/xiaozhi-esp32-server:server_latest"
-WEB_IMAGE="ghcr.nju.edu.cn/BladeRunner18/xiaozhi-esp32-server:web_latest"
+SERVER_IMAGE="ghcr.nju.edu.en/bladeRunner18/xiaozhi-esp32-server:server_latest"
+WEB_IMAGE="ghcr.nju.edu.en/bladeRunner18/xiaozhi-esp32-server:web_latest"
 
 # 颜色定义
 RED='\033[0;31m'
