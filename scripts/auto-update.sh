@@ -207,13 +207,13 @@ enter_project_dir() {
 record_current_images() {
     log INFO "记录当前镜像信息..."
     
-    # 记录镜像 ID
-    OLD_SERVER_IMAGE=$(docker images --format "{{.ID}}" "$SERVER_IMAGE" 2>/dev/null | head -1 || echo "none")
-    OLD_WEB_IMAGE=$(docker images --format "{{.ID}}" "$WEB_IMAGE" 2>/dev/null | head -1 || echo "none")
+    # 记录镜像 ID（使用 grep 过滤更可靠）
+    OLD_SERVER_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | grep "^${SERVER_IMAGE} " | awk '{print $2}' || echo "none")
+    OLD_WEB_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | grep "^${WEB_IMAGE} " | awk '{print $2}' || echo "none")
     
     # 记录镜像 Digest（用于完整性验证）
-    OLD_SERVER_DIGEST=$(docker images --digests --format "{{.Digest}}" "$SERVER_IMAGE" 2>/dev/null | head -1 || echo "none")
-    OLD_WEB_DIGEST=$(docker images --digests --format "{{.Digest}}" "$WEB_IMAGE" 2>/dev/null | head -1 || echo "none")
+    OLD_SERVER_DIGEST=$(docker images --digests --format "{{.Repository}}:{{.Tag}} {{.Digest}}" | grep "^${SERVER_IMAGE} " | awk '{print $2}' || echo "none")
+    OLD_WEB_DIGEST=$(docker images --digests --format "{{.Repository}}:{{.Tag}} {{.Digest}}" | grep "^${WEB_IMAGE} " | awk '{print $2}' || echo "none")
     
     log INFO "当前 Server 镜像 ID: $OLD_SERVER_IMAGE"
     log INFO "当前 Web 镜像 ID: $OLD_WEB_IMAGE"
@@ -248,11 +248,12 @@ pull_latest_images() {
 check_image_updates() {
     log INFO "检查镜像是否有更新..."
     
-    NEW_SERVER_IMAGE=$(docker images --format "{{.ID}}" "$SERVER_IMAGE" 2>/dev/null | head -1 || echo "none")
-    NEW_WEB_IMAGE=$(docker images --format "{{.ID}}" "$WEB_IMAGE" 2>/dev/null | head -1 || echo "none")
+    # 使用 grep 过滤更可靠
+    NEW_SERVER_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | grep "^${SERVER_IMAGE} " | awk '{print $2}' || echo "none")
+    NEW_WEB_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | grep "^${WEB_IMAGE} " | awk '{print $2}' || echo "none")
     
-    NEW_SERVER_DIGEST=$(docker images --digests --format "{{.Digest}}" "$SERVER_IMAGE" 2>/dev/null | head -1 || echo "none")
-    NEW_WEB_DIGEST=$(docker images --digests --format "{{.Digest}}" "$WEB_IMAGE" 2>/dev/null | head -1 || echo "none")
+    NEW_SERVER_DIGEST=$(docker images --digests --format "{{.Repository}}:{{.Tag}} {{.Digest}}" | grep "^${SERVER_IMAGE} " | awk '{print $2}' || echo "none")
+    NEW_WEB_DIGEST=$(docker images --digests --format "{{.Repository}}:{{.Tag}} {{.Digest}}" | grep "^${WEB_IMAGE} " | awk '{print $2}' || echo "none")
     
     log INFO "新 Server 镜像 ID: $NEW_SERVER_IMAGE"
     log INFO "新 Web 镜像 ID: $NEW_WEB_IMAGE"
