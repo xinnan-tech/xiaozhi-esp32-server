@@ -14,9 +14,9 @@ LOG_FILE="/opt/xiaozhi-server/logs/auto-update.log"
 BACKUP_DIR="/opt/xiaozhi-server/backup"
 LOCK_FILE="/tmp/xiaozhi-auto-update.lock"
 
-# 镜像配置（已修正为正确的地址）
-SERVER_IMAGE="ghcr.io/bladerunner18/xiaozhi-esp32-server:server_latest"
-WEB_IMAGE="ghcr.io/bladerunner18/xiaozhi-esp32-server:web_latest"
+# 镜像配置（已修正为正确的地址，使用国内镜像加速）
+SERVER_IMAGE="ghcr.nju.edu.cn/bladerunner18/xiaozhi-esp32-server:server_latest"
+WEB_IMAGE="ghcr.nju.edu.cn/bladerunner18/xiaozhi-esp32-server:web_latest"
 
 # 健康检查配置
 HEALTH_CHECK_TIMEOUT=120  # 健康检查超时时间（秒）
