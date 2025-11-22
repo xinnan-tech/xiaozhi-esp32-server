@@ -12,19 +12,19 @@ const logContainer = document.getElementById('logContainer');
 let visualizerCanvas = document.getElementById('audioVisualizer');
 
 // ota 是否连接成功，修改成对应的样式
-export function otaStatusStyle (flan) {
-    if(flan){
-        document.getElementById('otaStatus').textContent = 'ota已连接';
+export function otaStatusStyle(flan) {
+    if (flan) {
+        document.getElementById('otaStatus').textContent = 'OTA已连接';
         document.getElementById('otaStatus').style.color = 'green';
-    }else{
-        document.getElementById('otaStatus').textContent = 'ota未连接';
+    } else {
+        document.getElementById('otaStatus').textContent = 'OTA未连接';
         document.getElementById('otaStatus').style.color = 'red';
     }
 }
 
 // ota 是否连接成功，修改成对应的样式
-export function getLogContainer (flan) {
-    return  logContainer;
+export function getLogContainer(flan) {
+    return logContainer;
 }
 
 // 更新Opus库状态显示

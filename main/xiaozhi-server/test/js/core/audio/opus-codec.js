@@ -1,5 +1,5 @@
-import { log } from './utils/logger.js';
-import { updateScriptStatus } from './document.js'
+import { log } from '../../utils/logger.js';
+import { updateScriptStatus } from '../../ui/dom-helper.js'
 
 
 // 检查Opus库是否已加载

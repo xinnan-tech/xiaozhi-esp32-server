@@ -35,6 +35,8 @@ import xiaozhi.common.utils.MessageUtils;
 import xiaozhi.modules.knowledge.dao.KnowledgeBaseDao;
 import xiaozhi.modules.knowledge.dto.KnowledgeBaseDTO;
 import xiaozhi.modules.knowledge.entity.KnowledgeBaseEntity;
+import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapter;
+import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapterFactory;
 import xiaozhi.modules.knowledge.service.KnowledgeBaseService;
 import xiaozhi.modules.model.dao.ModelConfigDao;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
@@ -106,7 +108,7 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
         if (pageData != null && pageData.getList() != null) {
             for (KnowledgeBaseDTO knowledgeBase : pageData.getList()) {
                 try {
-                    Integer documentCount = getDocumentCountFromRAGFlow(knowledgeBase.getDatasetId(),
+                    Integer documentCount = getDocumentCountFromRAG(knowledgeBase.getDatasetId(),
                             knowledgeBase.getRagModelId());
                     knowledgeBase.setDocumentCount(documentCount);
                 } catch (Exception e) {
@@ -146,10 +148,10 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
         checkDuplicateKnowledgeBaseName(knowledgeBaseDTO, null);
 
         String datasetId = null;
-        // 调用RAGFlow API创建数据集
+        // 调用RAG API创建数据集
         try {
             Map<String, Object> ragConfig = getValidatedRAGConfig(knowledgeBaseDTO.getRagModelId());
-            datasetId = createDatasetInRAGFlow(
+            datasetId = createDatasetInRAG(
                     knowledgeBaseDTO.getName(),
                     knowledgeBaseDTO.getDescription(),
                     ragConfig);
@@ -162,13 +164,13 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
         KnowledgeBaseEntity existingEntity = knowledgeBaseDao.selectOne(
                 new QueryWrapper<KnowledgeBaseEntity>().eq("dataset_id", datasetId));
         if (existingEntity != null) {
-            // 如果datasetId已存在，删除RAGFlow中的数据集并抛出异常
+            // 如果datasetId已存在，删除RAG中的数据集并抛出异常
             try {
                 Map<String, Object> ragConfig = getValidatedRAGConfig(knowledgeBaseDTO.getRagModelId());
-                deleteDatasetInRAGFlow(datasetId, ragConfig);
+                deleteDatasetInRAG(datasetId, ragConfig);
             } catch (Exception deleteException) {
                 // 提供更详细的错误信息，包括异常类型和消息
-                String errorMessage = "删除重复datasetId的RAGFlow数据集失败: " + deleteException.getClass().getSimpleName();
+                String errorMessage = "删除重复datasetId的RAG数据集失败: " + deleteException.getClass().getSimpleName();
                 if (deleteException.getMessage() != null) {
                     errorMessage += " - " + deleteException.getMessage();
                 }
@@ -219,17 +221,17 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
                 // 先校验RAG配置
                 Map<String, Object> ragConfig = getValidatedRAGConfig(knowledgeBaseDTO.getRagModelId());
 
-                // 调用RAGFlow API更新数据集
-                updateDatasetInRAGFlow(
+                // 调用RAG API更新数据集
+                updateDatasetInRAG(
                         knowledgeBaseDTO.getDatasetId(),
                         knowledgeBaseDTO.getName(),
                         knowledgeBaseDTO.getDescription(),
                         ragConfig);
 
-                log.info("RAGFlow API更新成功，datasetId: {}", knowledgeBaseDTO.getDatasetId());
+                log.info("RAG API更新成功，datasetId: {}", knowledgeBaseDTO.getDatasetId());
             } catch (Exception e) {
                 // 提供更详细的错误信息，包括异常类型和消息
-                String errorMessage = "更新RAGFlow数据集失败: " + e.getClass().getSimpleName();
+                String errorMessage = "更新RAG数据集失败: " + e.getClass().getSimpleName();
                 if (e.getMessage() != null) {
                     errorMessage += " - " + e.getMessage();
                 }
@@ -237,7 +239,7 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
                 throw e;
             }
         } else {
-            log.warn("datasetId或ragModelId为空，跳过RAGFlow更新");
+            log.warn("datasetId或ragModelId为空，跳过RAG更新");
         }
 
         KnowledgeBaseEntity entity = ConvertUtils.sourceToTarget(knowledgeBaseDTO, KnowledgeBaseEntity.class);
@@ -288,19 +290,19 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
         log.info("找到记录: ID={}, datasetId={}, ragModelId={}",
                 entity.getId(), entity.getDatasetId(), entity.getRagModelId());
 
-        // 先调用RAGFlow API删除数据集
+        // 先调用RAG API删除数据集
         boolean apiDeleteSuccess = false;
         if (StringUtils.isNotBlank(entity.getDatasetId()) && StringUtils.isNotBlank(entity.getRagModelId())) {
             try {
-                log.info("开始调用RAGFlow API删除数据集");
+                log.info("开始调用RAG API删除数据集");
                 // 在删除前进行RAG配置校验
                 Map<String, Object> ragConfig = getValidatedRAGConfig(entity.getRagModelId());
-                deleteDatasetInRAGFlow(entity.getDatasetId(), ragConfig);
-                log.info("RAGFlow API删除调用完成");
+                deleteDatasetInRAG(entity.getDatasetId(), ragConfig);
+                log.info("RAG API删除调用完成");
                 apiDeleteSuccess = true;
             } catch (Exception e) {
                 // 提供更详细的错误信息，包括异常类型和消息
-                String errorMessage = "删除RAGFlow数据集失败: " + e.getClass().getSimpleName();
+                String errorMessage = "删除RAG数据集失败: " + e.getClass().getSimpleName();
                 if (e.getMessage() != null) {
                     errorMessage += " - " + e.getMessage();
                 }
@@ -308,7 +310,7 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
                 throw e;
             }
         } else {
-            log.warn("datasetId或ragModelId为空，跳过RAGFlow删除");
+            log.warn("datasetId或ragModelId为空，跳过RAG删除");
             apiDeleteSuccess = true; // 没有RAG数据集，视为成功
         }
 
@@ -356,7 +358,7 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
     @Override
     public Map<String, Object> getRAGConfigByDatasetId(String datasetId) {
         if (StringUtils.isBlank(datasetId)) {
-            throw new RenException(ErrorCode.PARAMS_GET_ERROR, "datasetId不能为空");
+            throw new RenException(ErrorCode.RAG_DATASET_ID_NOT_NULL);
         }
 
         // 根据datasetId查询知识库信息
@@ -370,7 +372,7 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
         String ragModelId = knowledgeBase.getRagModelId();
         if (StringUtils.isBlank(ragModelId)) {
             log.warn("知识库datasetId为{}未配置ragModelId", datasetId);
-            throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND, "知识库未配置RAG模型");
+            throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND);
         }
 
         // 获取并返回RAG配置
@@ -403,7 +405,7 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
      */
     private void validateRagConfig(Map<String, Object> config) {
         if (config == null) {
-            throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND, "RAG配置为空，请检查配置");
+            throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND);
         }
 
         // 从配置中提取必要的参数
@@ -432,292 +434,133 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
     }
 
     /**
-     * 调用RAGFlow API创建数据集
+     * 从RAG配置中提取适配器类型
+     * 
+     * @param config RAG配置
+     * @return 适配器类型
      */
-    private String createDatasetInRAGFlow(String name, String description, Map<String, Object> ragConfig) {
-        String datasetId = null;
-        String baseUrl = (String) ragConfig.get("base_url");
-        String apiKey = (String) ragConfig.get("api_key");
-
-        log.info("开始调用RAGFlow API创建数据集, name: {}", name);
-        log.debug("RAGFlow配置 - baseUrl: {}, apiKey: {}", baseUrl, StringUtils.isBlank(apiKey) ? "未配置" : "已配置");
-
-        // 构建请求URL
-        String url = baseUrl + "/api/v1/datasets";
-        log.debug("请求URL: {}", url);
-
-        // 构建请求体
-        Map<String, Object> requestBody = new HashMap<>();
-        String username = SecurityUser.getUser().getUsername();
-        requestBody.put("name", username + "_" + name);
-        if (StringUtils.isNotBlank(description)) {
-            requestBody.put("description", description);
-        }
-        log.debug("请求体: {}", requestBody);
-
-        // 设置请求头
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + apiKey);
-
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-
-        // 发送POST请求
-        log.info("发送POST请求到RAGFlow API...");
-        ResponseEntity<String> response;
-        try {
-            response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
-        } catch (Exception e) {
-            String errorMessage = url + e.getMessage();
-            log.error(errorMessage, e);
-            throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
+    private String extractAdapterType(Map<String, Object> config) {
+        if (config == null) {
+            throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND);
         }
 
-        log.info("RAGFlow API响应状态码: {}", response.getStatusCode());
-        log.debug("RAGFlow API响应内容: {}", response.getBody());
+        // 从配置中提取适配器类型
+        String adapterType = (String) config.get("type");
 
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            String errorMessage = response.getStatusCode() + ", 响应内容: " + response.getBody();
-            log.error(errorMessage);
-            throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
+        // 验证适配器类型是否存在且非空
+        if (StringUtils.isBlank(adapterType)) {
+            throw new RenException(ErrorCode.RAG_ADAPTER_TYPE_NOT_FOUND);
         }
 
-        // 解析响应体，提取datasetId
-        String responseBody = response.getBody();
-        if (StringUtils.isNotBlank(responseBody)) {
-            try {
-                // 解析RAGFlow API响应，支持多种可能的字段名
-                ObjectMapper objectMapper = new ObjectMapper();
-                Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
-
-                log.debug("RAGFlow API响应解析结果: {}", responseMap);
-
-                // 首先检查响应码
-                Integer code = (Integer) responseMap.get("code");
-                String message = (String) responseMap.get("message");
-                if (code != null && code == 0) {
-                    // 响应码为0表示成功，从data字段中获取datasetId
-                    Object dataObj = responseMap.get("data");
-                    if (dataObj instanceof Map) {
-                        Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-                        datasetId = (String) dataMap.get("id");
-
-                        if (StringUtils.isBlank(datasetId)) {
-                            // 如果id字段为空，尝试其他可能的字段名
-                            datasetId = (String) dataMap.get("dataset_id");
-                            datasetId = (String) dataMap.get("datasetId");
-                        }
-                    }
-                } else {
-                    // 如果响应码不为0，说明API调用失败
-                    String errorMessage = "RAGFlow API调用失败，响应码: " + code + ", 消息: "
-                            + (message != null ? message : "未知错误");
-                    log.error(errorMessage);
-                    throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-                }
-
-                log.info("从RAGFlow API响应中解析出datasetId: {}", datasetId);
-                log.debug("完整响应内容: {}", responseBody);
-            } catch (IOException e) {
-                // 构建详细的错误信息，包含异常类型和消息
-                String baseErrorMessage = e.getClass().getSimpleName() + " - 解析RAGFlow API响应时发生IO异常";
-                String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
-                log.error(errorMessage, e);
-                throw new RenException(ErrorCode.RAG_API_ERROR, "RAGFlow API响应解析失败: " + errorMessage);
-            } catch (Exception e) {
-                // 构建详细的错误信息，包含异常类型和消息
-                String baseErrorMessage = e.getClass().getSimpleName() + " - 解析RAGFlow API响应失败";
-                String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
-                log.error(errorMessage, e);
-                // 如果解析失败，但响应体不为空，尝试直接使用响应体作为错误信息
-                String finalErrorMessage = responseBody;
-                if (e.getMessage() != null) {
-                    finalErrorMessage += "，解析错误: " + errorMessage;
-                }
-                throw new RenException(ErrorCode.RAG_API_ERROR, finalErrorMessage);
-            }
+        // 验证适配器类型是否已注册
+        if (!KnowledgeBaseAdapterFactory.isAdapterTypeRegistered(adapterType)) {
+            throw new RenException(ErrorCode.RAG_ADAPTER_TYPE_NOT_SUPPORTED,
+                    "不支持的适配器类型: " + adapterType);
         }
 
-        if (StringUtils.isBlank(datasetId)) {
-            log.error("无法从RAGFlow API响应中获取datasetId，响应内容: {}", responseBody);
-            throw new RenException(ErrorCode.RAG_API_ERROR, "RAGFlow API响应中未包含datasetId");
-        }
-        log.info("RAGFlow数据集创建成功，datasetId: {}", datasetId);
-
-        return datasetId;
+        return adapterType;
     }
 
     /**
-     * 调用RAGFlow API更新数据集
+     * 使用适配器创建数据集
      */
-    private void updateDatasetInRAGFlow(String datasetId, String name, String description,
+    private String createDatasetInRAG(String name, String description, Map<String, Object> ragConfig) {
+        log.info("开始使用适配器创建数据集, name: {}", name);
+
+        try {
+            // 从RAG配置中提取适配器类型
+            String adapterType = extractAdapterType(ragConfig);
+
+            // 使用适配器工厂获取适配器实例
+            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
+
+            // 构建数据集创建参数
+            Map<String, Object> createParams = new HashMap<>();
+            String username = SecurityUser.getUser().getUsername();
+            createParams.put("name", username + "_" + name);
+            if (StringUtils.isNotBlank(description)) {
+                createParams.put("description", description);
+            }
+
+            // 调用适配器的创建数据集方法
+            String datasetId = adapter.createDataset(createParams);
+
+            log.info("数据集创建成功，datasetId: {}", datasetId);
+            return datasetId;
+
+        } catch (Exception e) {
+            // 直接传递底层适配器的详细错误信息
+            log.error("创建数据集失败", e);
+            if (e instanceof RenException) {
+                throw (RenException) e;
+            }
+            throw new RenException(ErrorCode.RAG_API_ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 使用适配器更新数据集
+     */
+    private void updateDatasetInRAG(String datasetId, String name, String description,
             Map<String, Object> ragConfig) {
-        String baseUrl = (String) ragConfig.get("base_url");
-        String apiKey = (String) ragConfig.get("api_key");
+        log.info("开始使用适配器更新数据集，datasetId: {}, name: {}", datasetId, name);
 
-        log.info("开始调用RAGFlow API更新数据集，datasetId: {}, name: {}", datasetId, name);
-        log.debug("RAGFlow配置 - baseUrl: {}, apiKey: {}", baseUrl, StringUtils.isBlank(apiKey) ? "未配置" : "已配置");
-
-        // 构建请求URL
-        String url = baseUrl + "/api/v1/datasets/" + datasetId;
-        log.debug("请求URL: {}", url);
-        // 构建请求体
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("dataset_id", datasetId);
-        String username = SecurityUser.getUser().getUsername();
-        requestBody.put("name", username + "_" + name);
-        if (StringUtils.isNotBlank(description)) {
-            requestBody.put("description", description);
-        }
-        log.debug("请求体: {}", requestBody);
-
-        // 设置请求头
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + apiKey);
-
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-
-        // 发送PUT请求
-        log.info("发送PUT请求到RAGFlow API...");
-        ResponseEntity<String> response;
         try {
-            response = restTemplate.exchange(url, HttpMethod.PUT, requestEntity, String.class);
-        } catch (Exception e) {
-            String errorMessage = url + e.getMessage();
-            log.error(errorMessage, e);
-            throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-        }
+            // 从RAG配置中提取适配器类型
+            String adapterType = extractAdapterType(ragConfig);
 
-        log.info("RAGFlow API响应状态码: {}", response.getStatusCode());
-        log.debug("RAGFlow API响应内容: {}", response.getBody());
+            // 使用适配器工厂获取适配器实例
+            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
 
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            String errorMessage = response.getStatusCode() + ", 响应内容: " + response.getBody();
-            log.error(errorMessage);
-            throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-        }
-
-        // 解析响应体，验证操作是否真正成功
-        String responseBody = response.getBody();
-        if (responseBody != null) {
-            try {
-                Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
-                Integer code = (Integer) responseMap.get("code");
-                String message = (String) responseMap.get("message");
-
-                if (code != null && code != 0) {
-                    String errorMessage = "RAGFlow API调用失败，响应码: " + code + ", 消息: "
-                            + (message != null ? message : "未知错误");
-                    log.error(errorMessage);
-                    throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-                }
-            } catch (IOException e) {
-                // 构建详细的错误信息，包含异常类型和消息
-                String baseErrorMessage = e.getClass().getSimpleName() + " - 解析RAGFlow API响应时发生IO异常";
-                String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
-                log.error(errorMessage, e);
-                throw new RenException(ErrorCode.RAG_API_ERROR, "RAGFlow API响应解析失败: " + errorMessage);
-            } catch (Exception e) {
-                // 构建详细的错误信息，包含异常类型和消息
-                String baseErrorMessage = e.getClass().getSimpleName() + " - 解析RAGFlow API响应失败";
-                String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
-                log.error(errorMessage, e);
-                // 如果解析失败，但响应体不为空，尝试直接使用响应体作为错误信息
-                String finalErrorMessage = responseBody;
-                if (e.getMessage() != null) {
-                    finalErrorMessage += "，解析错误: " + errorMessage;
-                }
-                throw new RenException(ErrorCode.RAG_API_ERROR, finalErrorMessage);
+            // 构建数据集更新参数
+            Map<String, Object> updateParams = new HashMap<>();
+            String username = SecurityUser.getUser().getUsername();
+            updateParams.put("name", username + "_" + name);
+            if (StringUtils.isNotBlank(description)) {
+                updateParams.put("description", description);
             }
+
+            // 调用适配器的更新数据集方法
+            adapter.updateDataset(datasetId, updateParams);
+
+            log.info("数据集更新成功，datasetId: {}", datasetId);
+
+        } catch (Exception e) {
+            // 直接传递底层适配器的详细错误信息
+            log.error("更新数据集失败", e);
+            if (e instanceof RenException) {
+                throw (RenException) e;
+            }
+            throw new RenException(ErrorCode.RAG_API_ERROR, e.getMessage());
         }
-
-        log.info("RAGFlow数据集更新成功，datasetId: {}", datasetId);
-
     }
 
     /**
-     * 调用RAGFlow API删除数据集
+     * 使用适配器删除数据集
      */
-    private void deleteDatasetInRAGFlow(String datasetId, Map<String, Object> ragConfig) {
-        String baseUrl = (String) ragConfig.get("base_url");
-        String apiKey = (String) ragConfig.get("api_key");
+    private void deleteDatasetInRAG(String datasetId, Map<String, Object> ragConfig) {
+        log.info("开始使用适配器删除数据集，datasetId: {}", datasetId);
 
-        log.info("开始调用RAGFlow API删除数据集，datasetId: {}", datasetId);
-        log.debug("RAGFlow配置 - baseUrl: {}, apiKey: {}", baseUrl, StringUtils.isBlank(apiKey) ? "未配置" : "已配置");
-
-        // 构建请求URL
-        String url = baseUrl + "/api/v1/datasets";
-        log.debug("请求URL: {}", url);
-
-        // 构建请求体
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("ids", List.of(datasetId));
-        log.debug("请求体: {}", requestBody);
-
-        // 设置请求头
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + apiKey);
-
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-
-        // 发送DELETE请求
-        log.info("发送DELETE请求到RAGFlow API...");
-        ResponseEntity<String> response;
         try {
-            response = restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, String.class);
+            // 从RAG配置中提取适配器类型
+            String adapterType = extractAdapterType(ragConfig);
+
+            // 使用适配器工厂获取适配器实例
+            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
+
+            // 调用适配器的删除数据集方法
+            adapter.deleteDataset(datasetId);
+
+            log.info("数据集删除成功，datasetId: {}", datasetId);
+
         } catch (Exception e) {
-            String errorMessage = url + e.getMessage();
-            log.error(errorMessage, e);
-            throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-        }
-
-        log.info("RAGFlow API响应状态码: {}", response.getStatusCode());
-        log.debug("RAGFlow API响应内容: {}", response.getBody());
-
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            String errorMessage = response.getStatusCode() + ", 响应内容: " + response.getBody();
-            log.error(errorMessage);
-            throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-        }
-
-        // 解析响应体，验证操作是否真正成功
-        String responseBody = response.getBody();
-        if (responseBody != null) {
-            try {
-                Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
-                Integer code = (Integer) responseMap.get("code");
-                String message = (String) responseMap.get("message");
-
-                if (code != null && code != 0) {
-                    String errorMessage = "RAGFlow API调用失败，响应码: " + code + ", 消息: "
-                            + (message != null ? message : "未知错误");
-                    log.error(errorMessage);
-                    throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-                }
-            } catch (IOException e) {
-                // 构建详细的错误信息，包含异常类型和消息
-                String baseErrorMessage = e.getClass().getSimpleName() + " - 解析RAGFlow API响应时发生IO异常";
-                String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
-                log.error(errorMessage, e);
-                throw new RenException(ErrorCode.RAG_API_ERROR, "RAGFlow API响应解析失败: " + errorMessage);
-            } catch (Exception e) {
-                // 构建详细的错误信息，包含异常类型和消息
-                String baseErrorMessage = e.getClass().getSimpleName() + " - 解析RAGFlow API响应失败";
-                String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
-                log.error(errorMessage, e);
-                // 如果解析失败，但响应体不为空，尝试直接使用响应体作为错误信息
-                String finalErrorMessage = responseBody;
-                if (e.getMessage() != null) {
-                    finalErrorMessage += "，解析错误: " + errorMessage;
-                }
-                throw new RenException(ErrorCode.RAG_API_ERROR, finalErrorMessage);
+            // 直接传递底层适配器的详细错误信息
+            log.error("删除数据集失败", e);
+            if (e instanceof RenException) {
+                throw (RenException) e;
             }
+            throw new RenException(ErrorCode.RAG_API_ERROR, e.getMessage());
         }
-
-        log.info("RAGFlow数据集删除成功，datasetId: {}", datasetId);
-
     }
 
     /**
@@ -725,7 +568,7 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
      */
     private Map<String, Object> getValidatedRAGConfig(String ragModelId) {
         if (StringUtils.isBlank(ragModelId)) {
-            throw new RenException(ErrorCode.PARAMS_GET_ERROR, "ragModelId不能为空");
+            throw new RenException(ErrorCode.RAG_MODEL_ID_NOT_NULL);
         }
 
         Map<String, Object> ragConfig = getRAGConfig(ragModelId);
@@ -763,9 +606,9 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
     }
 
     /**
-     * 从RAGFlow API获取知识库的文档数量
+     * 从适配器获取知识库的文档数量
      */
-    private Integer getDocumentCountFromRAGFlow(String datasetId, String ragModelId) {
+    private Integer getDocumentCountFromRAG(String datasetId, String ragModelId) {
         if (StringUtils.isBlank(datasetId) || StringUtils.isBlank(ragModelId)) {
             log.warn("datasetId或ragModelId为空，无法获取文档数量");
             return 0;
@@ -773,79 +616,29 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
 
         log.info("开始获取知识库 {} 的文档数量", datasetId);
 
-        // 获取RAG配置
-        Map<String, Object> ragConfig = getValidatedRAGConfig(ragModelId);
-        String baseUrl = (String) ragConfig.get("base_url");
-        String apiKey = (String) ragConfig.get("api_key");
-
-        // 构建请求URL - 调用RAGFlow API获取文档列表，但不返回文档详情，只获取总数
-        String url = baseUrl + "/api/v1/datasets/" + datasetId + "/documents?page=1&size=1";
-        log.debug("请求URL: {}", url);
-
-        // 设置请求头
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + apiKey);
-
-        HttpEntity<String> requestEntity = new HttpEntity<>(headers);
-
-        // 发送GET请求
-        log.info("发送GET请求到RAGFlow API获取文档数量...");
-        ResponseEntity<String> response;
         try {
-            response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class);
+            // 获取RAG配置
+            Map<String, Object> ragConfig = getValidatedRAGConfig(ragModelId);
+
+            // 从RAG配置中提取适配器类型
+            String adapterType = extractAdapterType(ragConfig);
+
+            // 使用适配器工厂获取适配器实例
+            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
+
+            // 调用适配器的获取文档数量方法
+            Integer documentCount = adapter.getDocumentCount(datasetId);
+
+            log.info("获取知识库 {} 的文档数量成功: {}", datasetId, documentCount);
+            return documentCount;
+
         } catch (Exception e) {
-            String errorMessage = url + e.getMessage();
+            // 构建详细的错误信息，包含异常类型和消息
+            String baseErrorMessage = e.getClass().getSimpleName() + " - 获取知识库文档数量失败";
+            String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
             log.error(errorMessage, e);
             return 0;
         }
-
-        log.info("RAGFlow API响应状态码: {}", response.getStatusCode());
-
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            log.error("RAGFlow API调用失败，状态码: {}, 响应内容: {}", response.getStatusCode(), response.getBody());
-            return 0;
-        }
-
-        String responseBody = response.getBody();
-        log.debug("RAGFlow API响应内容: {}", responseBody);
-
-        // 解析响应
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
-            Integer code = (Integer) responseMap.get("code");
-
-            if (code != null && code == 0) {
-                Object dataObj = responseMap.get("data");
-                if (dataObj instanceof Map) {
-                    Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-                    Object totalObj = dataMap.get("total");
-                    if (totalObj instanceof Integer) {
-                        Integer documentCount = (Integer) totalObj;
-                        log.info("获取知识库 {} 的文档数量成功: {}", datasetId, documentCount);
-                        return documentCount;
-                    } else if (totalObj instanceof Long) {
-                        Long documentCount = (Long) totalObj;
-                        log.info("获取知识库 {} 的文档数量成功: {}", datasetId, documentCount);
-                        return documentCount.intValue();
-                    }
-                }
-            } else {
-                log.error("RAGFlow API调用失败，响应码: {}, 响应内容: {}", code, responseBody);
-            }
-        } catch (IOException e) {
-            // 构建详细的错误信息，包含异常类型和消息
-            String baseErrorMessage = e.getClass().getSimpleName() + " - 解析RAGFlow API响应时发生IO异常";
-            String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
-            log.error(errorMessage, e);
-        } catch (Exception e) {
-            // 构建详细的错误信息，包含异常类型和消息
-            String baseErrorMessage = e.getClass().getSimpleName() + " - 解析RAGFlow API响应失败";
-            String errorMessage = baseErrorMessage + (e.getMessage() != null ? ": " + e.getMessage() : "");
-            log.error(errorMessage, e);
-        }
-        return 0;
     }
 
 }

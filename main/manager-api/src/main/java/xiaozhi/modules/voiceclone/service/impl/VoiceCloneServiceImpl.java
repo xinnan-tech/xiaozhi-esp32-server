@@ -100,7 +100,7 @@ public class VoiceCloneServiceImpl extends BaseServiceImpl<VoiceCloneDao, VoiceC
             wrapper.eq("model_id", dto.getModelId());
             Long count = baseDao.selectCount(wrapper);
             if (count > 0) {
-                throw new RenException(ErrorCode.VOICE_ID_ALREADY_EXISTS, "音色ID " + voiceId + " 已存在");
+                throw new RenException(ErrorCode.VOICE_ID_ALREADY_EXISTS);
             }
         }
 
@@ -164,6 +164,9 @@ public class VoiceCloneServiceImpl extends BaseServiceImpl<VoiceCloneDao, VoiceC
         if (entity.getUserId() != null) {
             dto.setUserName(sysUserService.getByUserId(entity.getUserId()).getUsername());
         }
+        
+        // 确保trainStatus字段被正确设置，前端需要这个字段来判断是否为克隆音频
+        dto.setTrainStatus(entity.getTrainStatus());
 
         return dto;
     }
@@ -197,6 +200,9 @@ public class VoiceCloneServiceImpl extends BaseServiceImpl<VoiceCloneDao, VoiceC
             if (entity.getUserId() != null) {
                 dto.setUserName(sysUserService.getByUserId(entity.getUserId()).getUsername());
             }
+            
+            // 确保trainStatus字段被正确设置，前端需要这个字段来判断是否为克隆音频
+            dto.setTrainStatus(entity.getTrainStatus());
 
             // 设置是否有音频数据
             dto.setHasVoice(entity.getVoice() != null);

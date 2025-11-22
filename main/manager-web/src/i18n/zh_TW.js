@@ -639,6 +639,8 @@ export default {
   'language.zhCN': '中文简体',
   'language.zhTW': '中文繁體',
   'language.en': 'English',
+  'language.de': 'Deutsch',
+  'language.vi': 'Tiếng Việt',
 
   // 首頁文本
   'home.addAgent': '添加智能體',
@@ -847,6 +849,7 @@ export default {
   'modelConfigDialog.setDefault': '設為默認',
   'modelConfigDialog.modelId': '模型ID',
   'modelConfigDialog.enterModelId': '未填冩將自動生成模型ID',
+  'modelConfigDialog.invalidModelId': '模型ID不能為純文字或空格，請使用字母、數字、底線或連字符組合',
   'modelConfigDialog.modelName': '模型名稱',
   'modelConfigDialog.enterModelName': '請輸入模型名稱',
   'modelConfigDialog.modelCode': '模型編碼',
@@ -992,6 +995,7 @@ export default {
   'agentTemplateManagement.templateName': '模板名稱',
   'agentTemplateManagement.action': '操作',
   'templateQuickConfig.saveSuccess': '配置保存成功',
+  'templateQuickConfig.resetSuccess': '配置重置成功',
   'templateQuickConfig.saveFailed': '配置保存失敗',
   'agentTemplateManagement.createTemplate': '建立模板',
   'agentTemplateManagement.editTemplate': '編輯模板',
@@ -1021,8 +1025,6 @@ export default {
   'templateQuickConfig.agentSettings.systemPromptPlaceholder': '請輸入角色介紹',
   'templateQuickConfig.saveConfig': '保存配置',
   'templateQuickConfig.resetConfig': '重置配置',
-  'templateQuickConfig.configSaved': '配置保存成功',
-  'templateQuickConfig.configReset': '配置已重置',
   'templateQuickConfig.confirmReset': '確定要重置配置嗎？',
   'templateQuickConfig.confirm': '確定',
   'templateQuickConfig.cancel': '取消',

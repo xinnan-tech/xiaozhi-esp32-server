@@ -3,7 +3,7 @@
 
 <mapper namespace="xiaozhi.modules.voiceclone.dao.VoiceCloneDao">
     <select id="getTrainSuccess" resultType="xiaozhi.modules.model.dto.VoiceDTO">
-        select id, name
+        select id, name, voice_id as voiceDemo
         from ai_voice_clone
         where model_id = #{modelId} and user_id = #{userId} and train_status = 2
     </select>

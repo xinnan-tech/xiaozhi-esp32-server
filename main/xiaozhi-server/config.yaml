@@ -487,8 +487,7 @@ LLM:
     temperature: 0.7
     max_tokens: 500 # Maximum number of generated tokens
     top_p: 1
-    top_k: 50
-    frequency_penalty: 0 # frequency penalty
+    frequency_penalty: 0  # 频率惩罚
   AliAppLLM:
     # Define LLM API type
     type: AliBL

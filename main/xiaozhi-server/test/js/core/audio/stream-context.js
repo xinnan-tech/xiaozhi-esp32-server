@@ -1,5 +1,5 @@
-import BlockingQueue from './utils/BlockingQueue.js';
-import { log } from './utils/logger.js';
+import BlockingQueue from '../../utils/blocking-queue.js';
+import { log } from '../../utils/logger.js';
 
 // 音频流播放上下文类
 export class StreamingContext {
@@ -48,8 +48,8 @@ export class StreamingContext {
     convertInt16ToFloat32(int16Data) {
         const float32Data = new Float32Array(int16Data.length);
         for (let i = 0; i < int16Data.length; i++) {
-            // 将[-32768,32767]范围转换为[-1,1]
-            float32Data[i] = int16Data[i] / (int16Data[i] < 0 ? 0x8000 : 0x7FFF);
+            // 将[-32768,32767]范围转换为[-1,1]，统一使用32768.0避免不对称失真
+            float32Data[i] = int16Data[i] / 32768.0;
         }
         return float32Data;
     }
@@ -97,18 +97,26 @@ export class StreamingContext {
 
     // 开始播放音频
     async startPlaying() {
+        let scheduledEndTime = this.audioContext.currentTime; // 跟踪已调度音频的结束时间
+
         while (true) {
-            // 如果累积了至少0.3秒的音频，开始播放
-            const minSamples = this.sampleRate * this.minAudioDuration * 3;
+            // 初始缓冲：等待足够的样本再开始播放
+            const minSamples = this.sampleRate * this.minAudioDuration * 2;
             if (!this.playing && this.queue.length < minSamples) {
                 await this.getQueue(minSamples);
             }
             this.playing = true;
-            while (this.playing && this.queue.length) {
-                // 创建新的音频缓冲区
-                const minPlaySamples = Math.min(this.queue.length, this.sampleRate);
-                const currentSamples = this.queue.splice(0, minPlaySamples);
 
+            // 持续播放队列中的音频，每次播放一个小块
+            while (this.playing && this.queue.length > 0) {
+                // 每次播放120ms的音频（2个Opus包）
+                const playDuration = 0.12;
+                const targetSamples = Math.floor(this.sampleRate * playDuration);
+                const actualSamples = Math.min(this.queue.length, targetSamples);
+
+                if (actualSamples === 0) break;
+
+                const currentSamples = this.queue.splice(0, actualSamples);
                 const audioBuffer = this.audioContext.createBuffer(this.channels, currentSamples.length, this.sampleRate);
                 audioBuffer.copyToChannel(new Float32Array(currentSamples), 0);
 
@@ -116,28 +124,28 @@ export class StreamingContext {
                 this.source = this.audioContext.createBufferSource();
                 this.source.buffer = audioBuffer;
 
-                // 创建增益节点用于平滑过渡
-                const gainNode = this.audioContext.createGain();
+                // 精确调度播放时间
+                const currentTime = this.audioContext.currentTime;
+                const startTime = Math.max(scheduledEndTime, currentTime);
 
-                // 应用淡入淡出效果避免爆音
-                const fadeDuration = 0.02; // 20毫秒
-                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + fadeDuration);
+                // 直接连接到输出
+                this.source.connect(this.audioContext.destination);
 
+                log(`调度播放 ${currentSamples.length} 个样本，约 ${(currentSamples.length / this.sampleRate).toFixed(2)} 秒`, 'debug');
+                this.source.start(startTime);
+
+                // 更新下一个音频块的调度时间
                 const duration = audioBuffer.duration;
-                if (duration > fadeDuration * 2) {
-                    gainNode.gain.setValueAtTime(1, this.audioContext.currentTime + duration - fadeDuration);
-                    gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + duration);
+                scheduledEndTime = startTime + duration;
+                this.lastPlayTime = startTime;
+
+                // 如果队列中数据不足，等待新数据
+                if (this.queue.length < targetSamples) {
+                    break;
                 }
-
-                // 连接节点并开始播放
-                this.source.connect(gainNode);
-                gainNode.connect(this.audioContext.destination);
-
-                this.lastPlayTime = this.audioContext.currentTime;
-                log(`开始播放 ${currentSamples.length} 个样本，约 ${(currentSamples.length / this.sampleRate).toFixed(2)} 秒`, 'info');
-                this.source.start();
             }
+
+            // 等待新数据
             await this.getQueue(minSamples);
         }
     }

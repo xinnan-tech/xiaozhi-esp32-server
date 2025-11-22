@@ -723,11 +723,12 @@ class ConnectionHandler:
         self.dialogue.update_system_message(self.prompt)
 
     def chat(self, query, depth=0):
-        self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
-        self.llm_finish_task = False
+        if query is not None:
+            self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
 
         # 为最顶层时新建会话ID和发送FIRST请求
         if depth == 0:
+            self.llm_finish_task = False
             self.sentence_id = str(uuid.uuid4().hex)
             self.dialogue.put(Message(role="user", content=query))
             self.tts.tts_text_queue.put(
@@ -738,9 +739,23 @@ class ConnectionHandler:
                 )
             )
 
+        # 设置最大递归深度，避免无限循环，可根据实际需求调整
+        MAX_DEPTH = 5
+        force_final_answer = False  # 标记是否强制最终回答
+
+        if depth >= MAX_DEPTH:
+            self.logger.bind(tag=TAG).debug(f"已达到最大工具调用深度 {MAX_DEPTH}，将强制基于现有信息回答")
+            force_final_answer = True
+            # 添加系统指令，要求 LLM 基于现有信息回答
+            self.dialogue.put(Message(
+                role="user",
+                content="[系统提示] 已达到最大工具调用次数限制，请你基于目前已经获取的所有信息，直接给出最终答案。不要再尝试调用任何工具。"
+            ))
+
         # Define intent functions
         functions = None
-        if self.intent_type == "function_call" and hasattr(self, "func_handler"):
+        # 达到最大深度时，禁用工具调用，强制 LLM 直接回答
+        if self.intent_type == "function_call" and hasattr(self, "func_handler") and not force_final_answer:
             functions = self.func_handler.get_functions()
         response_message = []
 
@@ -775,9 +790,8 @@ class ConnectionHandler:
 
         # 处理流式响应
         tool_call_flag = False
-        function_name = None
-        function_id = None
-        function_arguments = ""
+        # 支持多个并行工具调用 - 使用列表存储
+        tool_calls_list = []  # 格式: [{"id": "", "name": "", "arguments": ""}]
         content_arguments = ""
         self.client_abort = False
         emotion_flag = True
@@ -798,12 +812,7 @@ class ConnectionHandler:
 
                 if tools_call is not None and len(tools_call) > 0:
                     tool_call_flag = True
-                    if tools_call[0].id is not None and tools_call[0].id != "":
-                        function_id = tools_call[0].id
-                    if tools_call[0].function.name is not None and tools_call[0].function.name != "":
-                        function_name = tools_call[0].function.name
-                    if tools_call[0].function.arguments is not None:
-                        function_arguments += tools_call[0].function.arguments
+                    self._merge_tool_calls(tool_calls_list, tools_call)
             else:
                 content = response
 
@@ -829,16 +838,17 @@ class ConnectionHandler:
         # 处理function call
         if tool_call_flag:
             bHasError = False
-            if function_id is None:
+            # 处理基于文本的工具调用格式
+            if len(tool_calls_list) == 0 and content_arguments:
                 a = extract_json_from_string(content_arguments)
                 if a is not None:
                     try:
                         content_arguments_json = json.loads(a)
-                        function_name = content_arguments_json["name"]
-                        function_arguments = json.dumps(
-                            content_arguments_json["arguments"], ensure_ascii=False
-                        )
-                        function_id = str(uuid.uuid4().hex)
+                        tool_calls_list.append({
+                            "id": str(uuid.uuid4().hex),
+                            "name": content_arguments_json["name"],
+                            "arguments": json.dumps(content_arguments_json["arguments"], ensure_ascii=False)
+                        })
                     except Exception as e:
                         bHasError = True
                         response_message.append(a)
@@ -849,30 +859,41 @@ class ConnectionHandler:
                     self.logger.bind(tag=TAG).error(
                         f"function call error: {content_arguments}"
                     )
-            if not bHasError:
+
+            if not bHasError and len(tool_calls_list) > 0:
                 # 如需要大模型先处理一轮，添加相关处理后的日志情况
                 if len(response_message) > 0:
                     text_buff = "".join(response_message)
                     self.tts_MessageText = text_buff
                     self.dialogue.put(Message(role="assistant", content=text_buff))
                 response_message.clear()
-                self.logger.bind(tag=TAG).debug(
-                    f"function_name={function_name}, function_id={function_id}, function_arguments={function_arguments}"
-                )
-                function_call_data = {
-                    "name": function_name,
-                    "id": function_id,
-                    "arguments": function_arguments,
-                }
 
-                # 使用统一工具处理器处理所有工具调用
-                result = asyncio.run_coroutine_threadsafe(
-                    self.func_handler.handle_llm_function_call(
-                        self, function_call_data
-                    ),
-                    self.loop,
-                ).result()
-                self._handle_function_result(result, function_call_data, depth=depth)
+                self.logger.bind(tag=TAG).debug(
+                    f"检测到 {len(tool_calls_list)} 个工具调用"
+                )
+
+                # 收集所有工具调用的 Future
+                futures_with_data = []
+                for tool_call_data in tool_calls_list:
+                    self.logger.bind(tag=TAG).debug(
+                        f"function_name={tool_call_data['name']}, function_id={tool_call_data['id']}, function_arguments={tool_call_data['arguments']}"
+                    )
+
+                    future = asyncio.run_coroutine_threadsafe(
+                        self.func_handler.handle_llm_function_call(self, tool_call_data),
+                        self.loop,
+                    )
+                    futures_with_data.append((future, tool_call_data))
+
+                # 等待协程结束（实际等待时长为最慢的那个）
+                tool_results = []
+                for future, tool_call_data in futures_with_data:
+                    result = future.result()  
+                    tool_results.append((result, tool_call_data))
+
+                # 统一处理所有工具调用结果
+                if tool_results:
+                    self._handle_function_result(tool_results, depth=depth)
 
         # 存储对话内容
         if len(response_message) > 0:
@@ -887,64 +908,61 @@ class ConnectionHandler:
                     content_type=ContentType.ACTION,
                 )
             )
-        self.llm_finish_task = True
-        # 使用lambda延迟计算，只有在DEBUG级别时才执行get_llm_dialogue()
-        self.logger.bind(tag=TAG).debug(
-            lambda: json.dumps(
-                self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False
+            self.llm_finish_task = True
+            # 使用lambda延迟计算，只有在DEBUG级别时才执行get_llm_dialogue()
+            self.logger.bind(tag=TAG).debug(
+                lambda: json.dumps(
+                    self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False
+                )
             )
-        )
 
         return True
 
-    def _handle_function_result(self, result, function_call_data, depth):
-        if result.action == Action.RESPONSE:  # 直接回复前端
-            text = result.response
-            self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
-            self.dialogue.put(Message(role="assistant", content=text))
-        elif result.action == Action.REQLLM:  # 调用函数后再请求llm生成回复
-            text = result.result
-            if text is not None and len(text) > 0:
-                function_id = function_call_data["id"]
-                function_name = function_call_data["name"]
-                function_arguments = function_call_data["arguments"]
-                self.dialogue.put(
-                    Message(
-                        role="assistant",
-                        tool_calls=[
-                            {
-                                "id": function_id,
-                                "function": {
-                                    "arguments": (
-                                        "{}"
-                                        if function_arguments == ""
-                                        else function_arguments
-                                    ),
-                                    "name": function_name,
-                                },
-                                "type": "function",
-                                "index": 0,
-                            }
-                        ],
-                    )
-                )
+    def _handle_function_result(self, tool_results, depth):
+        need_llm_tools = []
 
-                self.dialogue.put(
-                    Message(
-                        role="tool",
-                        tool_call_id=(
-                            str(uuid.uuid4()) if function_id is None else function_id
+        for result, tool_call_data in tool_results:
+            if result.action in [Action.RESPONSE, Action.NOTFOUND, Action.ERROR]:  # 直接回复前端
+                text = result.response if result.response else result.result
+                self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
+                self.dialogue.put(Message(role="assistant", content=text))
+            elif result.action == Action.REQLLM:
+                # 收集需要 LLM 处理的工具
+                need_llm_tools.append((result, tool_call_data))
+            else:
+                pass
+
+        if need_llm_tools:
+            all_tool_calls = [
+                {
+                    "id": tool_call_data["id"],
+                    "function": {
+                        "arguments": (
+                            "{}"
+                            if tool_call_data["arguments"] == ""
+                            else tool_call_data["arguments"]
                         ),
-                        content=text,
+                        "name": tool_call_data["name"],
+                    },
+                    "type": "function",
+                    "index": idx,
+                }
+                for idx, (_, tool_call_data) in enumerate(need_llm_tools)
+            ]
+            self.dialogue.put(Message(role="assistant", tool_calls=all_tool_calls))
+
+            for result, tool_call_data in need_llm_tools:
+                text = result.result
+                if text is not None and len(text) > 0:
+                    self.dialogue.put(
+                        Message(
+                            role="tool",
+                            tool_call_id=str(uuid.uuid4()) if tool_call_data["id"] is None else tool_call_data["id"],
+                            content=text,
+                        )
                     )
-                )
-                self.chat(text, depth=depth + 1)
-        elif result.action == Action.NOTFOUND or result.action == Action.ERROR:
-            text = result.response if result.response else result.result
-            self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
-            self.dialogue.put(Message(role="assistant", content=text))
-        else:
-            pass
+
+            self.chat(None, depth=depth + 1)
 
     def _report_worker(self):
         """聊天记录上报工作线程"""
@@ -1144,3 +1162,31 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"超时检查任务出错: {e}")
         finally:
             self.logger.bind(tag=TAG).info("超时检查任务已退出")
+
+    def _merge_tool_calls(self, tool_calls_list, tools_call):
+        """合并工具调用列表
+
+        Args:
+            tool_calls_list: 已收集的工具调用列表
+            tools_call: 新的工具调用
+        """
+        for tool_call in tools_call:
+            tool_index = getattr(tool_call, 'index', None)
+            if tool_index is None:
+                if tool_call.function.name:
+                    # 有 function_name，说明是新的工具调用
+                    tool_index = len(tool_calls_list)
+                else:
+                    tool_index = len(tool_calls_list) - 1 if tool_calls_list else 0
+
+            # 确保列表有足够的位置
+            if tool_index >= len(tool_calls_list):
+                tool_calls_list.append({"id": "", "name": "", "arguments": ""})
+
+            # 更新工具调用信息
+            if tool_call.id:
+                tool_calls_list[tool_index]["id"] = tool_call.id
+            if tool_call.function.name:
+                tool_calls_list[tool_index]["name"] = tool_call.function.name
+            if tool_call.function.arguments:
+                tool_calls_list[tool_index]["arguments"] += tool_call.function.arguments

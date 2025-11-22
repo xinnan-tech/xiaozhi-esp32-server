@@ -42,7 +42,7 @@
                                 </template>
                             </el-table-column>
 
-                            <el-table-column :label="$t('voiceClone.Details')" align="center" width="80">
+                            <el-table-column :label="$t('voiceClone.Details')" align="center" width="120">
                                 <template slot-scope="scope">
                                     <el-tooltip :content="getTooltipContent(scope.row)" placement="top">
                                         <el-button size="mini" type="text" icon="el-icon-info"

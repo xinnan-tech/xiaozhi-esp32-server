@@ -3,7 +3,7 @@
     <HeaderBar />
 
     <div class="operation-bar">
-      <h2 class="page-title">{{ $t('roleConfig.title') }}</h2>
+      <h2 class="page-title">{{ $t("roleConfig.title") }}</h2>
     </div>
 
     <div class="main-wrapper">
@@ -12,21 +12,21 @@
           <el-card class="config-card" shadow="never">
             <div class="config-header">
               <div class="header-icon">
-                <img loading="lazy" src="@/assets/home/setting-user.png" alt="">
+                <img loading="lazy" src="@/assets/home/setting-user.png" alt="" />
               </div>
               <span class="header-title">{{ form.agentName }}</span>
               <div class="header-actions">
                 <div class="hint-text">
-                  <img loading="lazy" src="@/assets/home/info.png" alt="">
-                  <span>{{ $t('roleConfig.restartNotice') }}</span>
+                  <img loading="lazy" src="@/assets/home/info.png" alt="" />
+                  <span>{{ $t("roleConfig.restartNotice") }}</span>
                 </div>
                 <el-button type="primary" class="save-btn" @click="saveConfig">
-                  {{ $t('roleConfig.saveConfig') }}
+                  {{ $t("roleConfig.saveConfig") }}
                 </el-button>
-                <el-button class="reset-btn" @click="resetConfig">{{ $t('roleConfig.reset') }}</el-button>
-                <button class="custom-close-btn" @click="goToHome">
-                  ×
-                </button>
+                <el-button class="reset-btn" @click="resetConfig">{{
+                  $t("roleConfig.reset")
+                }}</el-button>
+                <button class="custom-close-btn" @click="goToHome">×</button>
               </div>
             </div>
             <div class="divider"></div>
@@ -36,71 +36,144 @@
                 <div class="form-grid">
                   <div class="form-column">
                     <el-form-item :label="$t('roleConfig.agentName') + '：'">
-                      <el-input v-model="form.agentName" class="form-input" maxlength="10" />
+                      <el-input
+                        v-model="form.agentName"
+                        class="form-input"
+                        maxlength="10"
+                      />
                     </el-form-item>
                     <el-form-item :label="$t('roleConfig.roleTemplate') + '：'">
                       <div class="template-container">
-                        <div v-for="(template, index) in templates" :key="`template-${index}`" class="template-item"
-                          :class="{ 'template-loading': loadingTemplate }" @click="selectTemplate(template)">
+                        <div
+                          v-for="(template, index) in templates"
+                          :key="`template-${index}`"
+                          class="template-item"
+                          :class="{ 'template-loading': loadingTemplate }"
+                          @click="selectTemplate(template)"
+                        >
                           {{ template.agentName }}
                         </div>
                       </div>
                     </el-form-item>
                     <el-form-item :label="$t('roleConfig.roleIntroduction') + '：'">
-                      <el-input type="textarea" rows="9" resize="none"
-                        :placeholder="$t('roleConfig.pleaseEnterContent')" v-model="form.systemPrompt" maxlength="2000"
-                        show-word-limit class="form-textarea" />
+                      <el-input
+                        type="textarea"
+                        rows="9"
+                        resize="none"
+                        :placeholder="$t('roleConfig.pleaseEnterContent')"
+                        v-model="form.systemPrompt"
+                        maxlength="2000"
+                        show-word-limit
+                        class="form-textarea"
+                      />
                     </el-form-item>
 
                     <el-form-item :label="$t('roleConfig.memoryHis') + '：'">
-                      <el-input type="textarea" rows="6" resize="none" v-model="form.summaryMemory" maxlength="2000"
-                        show-word-limit class="form-textarea"
-                        :disabled="form.model.memModelId !== 'Memory_mem_local_short'" />
+                      <el-input
+                        type="textarea"
+                        rows="6"
+                        resize="none"
+                        v-model="form.summaryMemory"
+                        maxlength="2000"
+                        show-word-limit
+                        class="form-textarea"
+                        :disabled="form.model.memModelId !== 'Memory_mem_local_short'"
+                      />
                     </el-form-item>
-                    <el-form-item :label="$t('roleConfig.languageCode') + '：'" style="display: none;">
-                      <el-input v-model="form.langCode" :placeholder="$t('roleConfig.pleaseEnterLangCode')"
-                        maxlength="10" show-word-limit class="form-input" />
+                    <el-form-item
+                      :label="$t('roleConfig.languageCode') + '：'"
+                      style="display: none"
+                    >
+                      <el-input
+                        v-model="form.langCode"
+                        :placeholder="$t('roleConfig.pleaseEnterLangCode')"
+                        maxlength="10"
+                        show-word-limit
+                        class="form-input"
+                      />
                     </el-form-item>
-                    <el-form-item :label="$t('roleConfig.interactionLanguage') + '：'" style="display: none;">
-                      <el-input v-model="form.language" :placeholder="$t('roleConfig.pleaseEnterLangName')"
-                        maxlength="10" show-word-limit class="form-input" />
+                    <el-form-item
+                      :label="$t('roleConfig.interactionLanguage') + '：'"
+                      style="display: none"
+                    >
+                      <el-input
+                        v-model="form.language"
+                        :placeholder="$t('roleConfig.pleaseEnterLangName')"
+                        maxlength="10"
+                        show-word-limit
+                        class="form-input"
+                      />
                     </el-form-item>
                   </div>
                   <div class="form-column">
                     <div class="model-row">
                       <el-form-item :label="$t('roleConfig.vad')" class="model-item">
                         <div class="model-select-wrapper">
-                          <el-select v-model="form.model.vadModelId" filterable
-                            :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
-                            @change="handleModelChange('VAD', $event)">
-                            <el-option v-for="(item, optionIndex) in modelOptions['VAD']"
-                              :key="`option-vad-${optionIndex}`" :label="item.label" :value="item.value" />
+                          <el-select
+                            v-model="form.model.vadModelId"
+                            filterable
+                            :placeholder="$t('roleConfig.pleaseSelect')"
+                            class="form-select"
+                            @change="handleModelChange('VAD', $event)"
+                          >
+                            <el-option
+                              v-for="(item, optionIndex) in modelOptions['VAD']"
+                              :key="`option-vad-${optionIndex}`"
+                              :label="item.label"
+                              :value="item.value"
+                            />
                           </el-select>
                         </div>
                       </el-form-item>
                       <el-form-item :label="$t('roleConfig.asr')" class="model-item">
                         <div class="model-select-wrapper">
-                          <el-select v-model="form.model.asrModelId" filterable
-                            :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
-                            @change="handleModelChange('ASR', $event)">
-                            <el-option v-for="(item, optionIndex) in modelOptions['ASR']"
-                              :key="`option-asr-${optionIndex}`" :label="item.label" :value="item.value" />
+                          <el-select
+                            v-model="form.model.asrModelId"
+                            filterable
+                            :placeholder="$t('roleConfig.pleaseSelect')"
+                            class="form-select"
+                            @change="handleModelChange('ASR', $event)"
+                          >
+                            <el-option
+                              v-for="(item, optionIndex) in modelOptions['ASR']"
+                              :key="`option-asr-${optionIndex}`"
+                              :label="item.label"
+                              :value="item.value"
+                            />
                           </el-select>
                         </div>
                       </el-form-item>
                     </div>
-                    <el-form-item v-for="(model, index) in models.slice(2)" :key="`model-${index}`"
-                      :label="$t('roleConfig.' + model.type.toLowerCase())" class="model-item">
+                    <el-form-item
+                      v-for="(model, index) in models.slice(2)"
+                      :key="`model-${index}`"
+                      :label="$t('roleConfig.' + model.type.toLowerCase())"
+                      class="model-item"
+                    >
                       <div class="model-select-wrapper">
-                        <el-select v-model="form.model[model.key]" filterable
-                          :placeholder="$t('roleConfig.pleaseSelect')" class="form-select"
-                          @change="handleModelChange(model.type, $event)">
-                          <el-option v-for="(item, optionIndex) in modelOptions[model.type]" v-if="!item.isHidden"
-                            :key="`option-${index}-${optionIndex}`" :label="item.label" :value="item.value" />
+                        <el-select
+                          v-model="form.model[model.key]"
+                          filterable
+                          :placeholder="$t('roleConfig.pleaseSelect')"
+                          class="form-select"
+                          @change="handleModelChange(model.type, $event)"
+                        >
+                          <el-option
+                            v-for="(item, optionIndex) in modelOptions[model.type]"
+                            v-if="!item.isHidden"
+                            :key="`option-${index}-${optionIndex}`"
+                            :label="item.label"
+                            :value="item.value"
+                          />
                         </el-select>
                         <div v-if="showFunctionIcons(model.type)" class="function-icons">
-                          <el-tooltip v-for="func in currentFunctions" :key="func.name" effect="dark" placement="top"
-                            popper-class="custom-tooltip">
+                          <el-tooltip
+                            v-for="func in currentFunctions"
+                            :key="func.name"
+                            effect="dark"
+                            placement="top"
+                            popper-class="custom-tooltip"
+                          >
                             <div slot="content">
                               <div><strong>功能名称:</strong> {{ func.name }}</div>
                             </div>
@@ -108,25 +181,74 @@
                               {{ getFunctionDisplayChar(func.name) }}
                             </div>
                           </el-tooltip>
-                          <el-button class="edit-function-btn" @click="openFunctionDialog"
-                            :class="{ 'active-btn': showFunctionDialog }">
-                            {{ $t('roleConfig.editFunctions') }}
+                          <el-button
+                            class="edit-function-btn"
+                            @click="openFunctionDialog"
+                            :class="{ 'active-btn': showFunctionDialog }"
+                          >
+                            {{ $t("roleConfig.editFunctions") }}
                           </el-button>
                         </div>
-                        <div v-if="model.type === 'Memory' && form.model.memModelId !== 'Memory_nomem'"
-                          class="chat-history-options">
-                          <el-radio-group v-model="form.chatHistoryConf" @change="updateChatHistoryConf">
-                            <el-radio-button :label="1">{{ $t('roleConfig.reportText') }}</el-radio-button>
-                            <el-radio-button :label="2">{{ $t('roleConfig.reportTextVoice') }}</el-radio-button>
+                        <div
+                          v-if="
+                            model.type === 'Memory' &&
+                            form.model.memModelId !== 'Memory_nomem'
+                          "
+                          class="chat-history-options"
+                        >
+                          <el-radio-group
+                            v-model="form.chatHistoryConf"
+                            @change="updateChatHistoryConf"
+                          >
+                            <el-radio-button :label="1">{{
+                              $t("roleConfig.reportText")
+                            }}</el-radio-button>
+                            <el-radio-button :label="2">{{
+                              $t("roleConfig.reportTextVoice")
+                            }}</el-radio-button>
                           </el-radio-group>
                         </div>
                       </div>
                     </el-form-item>
                     <el-form-item :label="$t('roleConfig.voiceType')">
-                      <el-select v-model="form.ttsVoiceId" :placeholder="$t('roleConfig.pleaseSelect')"
-                        class="form-select">
-                        <el-option v-for="(item, index) in voiceOptions" :key="`voice-${index}`" :label="item.label"
-                          :value="item.value" />
+                      <el-select
+                        v-model="form.ttsVoiceId"
+                        filterable
+                        :placeholder="$t('roleConfig.pleaseSelect')"
+                        class="form-select"
+                      >
+                        <el-option
+                          v-for="(item, index) in voiceOptions"
+                          :key="`voice-${index}`"
+                          :label="item.label"
+                          :value="item.value"
+                        >
+                          <div
+                            style="
+                              display: flex;
+                              justify-content: space-between;
+                              align-items: center;
+                            "
+                          >
+                            <span>{{ item.label }}</span>
+                            <template v-if="hasAudioPreview(item)">
+                              <el-button
+                                type="text"
+                                :icon="
+                                  playingVoice &&
+                                  currentPlayingVoiceId === item.value &&
+                                  !isPaused
+                                    ? 'el-icon-video-pause'
+                                    : 'el-icon-video-play'
+                                "
+                                size="small"
+                                @click.stop="toggleAudioPlayback(item.value)"
+                                :loading="false"
+                                class="play-button"
+                              />
+                            </template>
+                          </div>
+                        </el-option>
                       </el-select>
                     </el-form-item>
                   </div>
@@ -137,19 +259,27 @@
         </div>
       </div>
     </div>
-    <function-dialog v-model="showFunctionDialog" :functions="currentFunctions" :all-functions="allFunctions"
-      :agent-id="$route.query.agentId" @update-functions="handleUpdateFunctions" @dialog-closed="handleDialogClosed" />
+    <function-dialog
+      v-model="showFunctionDialog"
+      :functions="currentFunctions"
+      :all-functions="allFunctions"
+      :agent-id="$route.query.agentId"
+      @update-functions="handleUpdateFunctions"
+      @dialog-closed="handleDialogClosed"
+    />
   </div>
 </template>
 
 <script>
-import Api from '@/apis/api';
+import Api from "@/apis/api";
+import { getServiceUrl } from "@/apis/api";
+import RequestService from "@/apis/httpRequest";
 import FunctionDialog from "@/components/FunctionDialog.vue";
 import HeaderBar from "@/components/HeaderBar.vue";
-import i18n from '@/i18n';
+import i18n from "@/i18n";
 
 export default {
-  name: 'RoleConfigPage',
+  name: "RoleConfigPage",
   components: { HeaderBar, FunctionDialog },
   data() {
     return {
@@ -171,31 +301,36 @@ export default {
           vllmModelId: "",
           memModelId: "",
           intentModelId: "",
-        }
+        },
       },
       models: [
-        { label: this.$t('roleConfig.vad'), key: 'vadModelId', type: 'VAD' },
-        { label: this.$t('roleConfig.asr'), key: 'asrModelId', type: 'ASR' },
-        { label: this.$t('roleConfig.llm'), key: 'llmModelId', type: 'LLM' },
-        { label: this.$t('roleConfig.vllm'), key: 'vllmModelId', type: 'VLLM' },
-        { label: this.$t('roleConfig.intent'), key: 'intentModelId', type: 'Intent' },
-        { label: this.$t('roleConfig.memory'), key: 'memModelId', type: 'Memory' },
-        { label: this.$t('roleConfig.tts'), key: 'ttsModelId', type: 'TTS' }
+        { label: this.$t("roleConfig.vad"), key: "vadModelId", type: "VAD" },
+        { label: this.$t("roleConfig.asr"), key: "asrModelId", type: "ASR" },
+        { label: this.$t("roleConfig.llm"), key: "llmModelId", type: "LLM" },
+        { label: this.$t("roleConfig.vllm"), key: "vllmModelId", type: "VLLM" },
+        { label: this.$t("roleConfig.intent"), key: "intentModelId", type: "Intent" },
+        { label: this.$t("roleConfig.memory"), key: "memModelId", type: "Memory" },
+        { label: this.$t("roleConfig.tts"), key: "ttsModelId", type: "TTS" },
       ],
       llmModeTypeMap: new Map(),
       modelOptions: {},
       templates: [],
       loadingTemplate: false,
       voiceOptions: [],
+      voiceDetails: {}, // 保存完整的音色信息
       showFunctionDialog: false,
       currentFunctions: [],
       allFunctions: [],
       originalFunctions: [],
-    }
+      playingVoice: false,
+      isPaused: false,
+      currentAudio: null,
+      currentPlayingVoiceId: null,
+    };
   },
   methods: {
     goToHome() {
-      this.$router.push('/home');
+      this.$router.push("/home");
     },
     saveConfig() {
       const configData = {
@@ -215,67 +350,68 @@ export default {
         langCode: this.form.langCode,
         language: this.form.language,
         sort: this.form.sort,
-        functions: this.currentFunctions.map(item => {
-          return ({
+        functions: this.currentFunctions.map((item) => {
+          return {
             pluginId: item.id,
-            paramInfo: item.params
-          })
-        })
+            paramInfo: item.params,
+          };
+        }),
       };
       Api.agent.updateAgentConfig(this.$route.query.agentId, configData, ({ data }) => {
         if (data.code === 0) {
           this.$message.success({
-            message: i18n.t('roleConfig.saveSuccess'),
-            showClose: true
+            message: i18n.t("roleConfig.saveSuccess"),
+            showClose: true,
           });
         } else {
           this.$message.error({
-            message: data.msg || i18n.t('roleConfig.saveFailed'),
-            showClose: true
+            message: data.msg || i18n.t("roleConfig.saveFailed"),
+            showClose: true,
           });
         }
       });
     },
     resetConfig() {
-      this.$confirm(i18n.t('roleConfig.confirmReset'), i18n.t('message.info'), {
-        confirmButtonText: i18n.t('button.ok'),
-        cancelButtonText: i18n.t('button.cancel'),
-        type: 'warning'
-      }).then(() => {
-        this.form = {
-          agentCode: "",
-          agentName: "",
-          ttsVoiceId: "",
-          chatHistoryConf: 0,
-          systemPrompt: "",
-          summaryMemory: "",
-          langCode: "",
-          language: "",
-          sort: "",
-          model: {
-            ttsModelId: "",
-            vadModelId: "",
-            asrModelId: "",
-            llmModelId: "",
-            vllmModelId: "",
-            memModelId: "",
-            intentModelId: "",
-          }
-        }
-        this.currentFunctions = [];
-        this.$message.success({
-          message: i18n.t('roleConfig.resetSuccess'),
-          showClose: true
+      this.$confirm(i18n.t("roleConfig.confirmReset"), i18n.t("message.info"), {
+        confirmButtonText: i18n.t("button.ok"),
+        cancelButtonText: i18n.t("button.cancel"),
+        type: "warning",
+      })
+        .then(() => {
+          this.form = {
+            agentCode: "",
+            agentName: "",
+            ttsVoiceId: "",
+            chatHistoryConf: 0,
+            systemPrompt: "",
+            summaryMemory: "",
+            langCode: "",
+            language: "",
+            sort: "",
+            model: {
+              ttsModelId: "",
+              vadModelId: "",
+              asrModelId: "",
+              llmModelId: "",
+              vllmModelId: "",
+              memModelId: "",
+              intentModelId: "",
+            },
+          };
+          this.currentFunctions = [];
+          this.$message.success({
+            message: i18n.t("roleConfig.resetSuccess"),
+            showClose: true,
+          });
         })
-      }).catch(() => {
-      });
+        .catch(() => {});
     },
     fetchTemplates() {
       Api.agent.getAgentTemplate(({ data }) => {
         if (data.code === 0) {
           this.templates = data.data;
         } else {
-          this.$message.error(data.msg || i18n.t('roleConfig.fetchTemplatesFailed'));
+          this.$message.error(data.msg || i18n.t("roleConfig.fetchTemplatesFailed"));
         }
       });
     },
@@ -285,15 +421,15 @@ export default {
       try {
         this.applyTemplateData(template);
         this.$message.success({
-          message: `${template.agentName}${i18n.t('roleConfig.templateApplied')}`,
-          showClose: true
+          message: `${template.agentName}${i18n.t("roleConfig.templateApplied")}`,
+          showClose: true,
         });
       } catch (error) {
         this.$message.error({
-          message: i18n.t('roleConfig.applyTemplateFailed'),
-          showClose: true
+          message: i18n.t("roleConfig.applyTemplateFailed"),
+          showClose: true,
         });
-        console.error('应用模板失败:', error);
+        console.error("应用模板失败:", error);
       } finally {
         this.loadingTemplate = false;
       }
@@ -314,8 +450,8 @@ export default {
           llmModelId: templateData.llmModelId || this.form.model.llmModelId,
           vllmModelId: templateData.vllmModelId || this.form.model.vllmModelId,
           memModelId: templateData.memModelId || this.form.model.memModelId,
-          intentModelId: templateData.intentModelId || this.form.model.intentModelId
-        }
+          intentModelId: templateData.intentModelId || this.form.model.intentModelId,
+        },
       };
     },
     fetchAgentConfig(agentId) {
@@ -331,8 +467,8 @@ export default {
               llmModelId: data.data.llmModelId,
               vllmModelId: data.data.vllmModelId,
               memModelId: data.data.memModelId,
-              intentModelId: data.data.intentModelId
-            }
+              intentModelId: data.data.intentModelId,
+            },
           };
           // 后端只给了最小映射：[{ id, agentId, pluginId }, ...]
           const savedMappings = data.data.functions || [];
@@ -344,8 +480,8 @@ export default {
 
           ensureFuncs.then(() => {
             // 合并：按照 pluginId（id 字段）把全量元数据信息补齐
-            this.currentFunctions = savedMappings.map(mapping => {
-              const meta = this.allFunctions.find(f => f.id === mapping.pluginId);
+            this.currentFunctions = savedMappings.map((mapping) => {
+              const meta = this.allFunctions.find((f) => f.id === mapping.pluginId);
               if (!meta) {
                 // 插件定义没找到，退化处理
                 return { id: mapping.pluginId, name: mapping.pluginId, params: {} };
@@ -355,7 +491,7 @@ export default {
                 name: meta.name,
                 // 后端如果还有 paramInfo 字段就用 mapping.paramInfo，否则用 meta.params 默认值
                 params: mapping.paramInfo || { ...meta.params },
-                fieldsMeta: meta.fieldsMeta  // 保留以便对话框渲染 tooltip
+                fieldsMeta: meta.fieldsMeta, // 保留以便对话框渲染 tooltip
               };
             });
             // 备份原始，以备取消时恢复
@@ -365,44 +501,48 @@ export default {
             this.updateIntentOptionsVisibility();
           });
         } else {
-          this.$message.error(data.msg || i18n.t('roleConfig.fetchConfigFailed'));
+          this.$message.error(data.msg || i18n.t("roleConfig.fetchConfigFailed"));
         }
       });
     },
     fetchModelOptions() {
-      this.models.forEach(model => {
+      this.models.forEach((model) => {
         if (model.type != "LLM") {
-          Api.model.getModelNames(model.type, '', ({ data }) => {
+          Api.model.getModelNames(model.type, "", ({ data }) => {
             if (data.code === 0) {
-              this.$set(this.modelOptions, model.type, data.data.map(item => ({
-                value: item.id,
-                label: item.modelName,
-                isHidden: false
-              })));
+              this.$set(
+                this.modelOptions,
+                model.type,
+                data.data.map((item) => ({
+                  value: item.id,
+                  label: item.modelName,
+                  isHidden: false,
+                }))
+              );
 
               // 如果是意图识别选项，需要根据当前LLM类型更新可见性
-              if (model.type === 'Intent') {
+              if (model.type === "Intent") {
                 this.updateIntentOptionsVisibility();
               }
             } else {
-              this.$message.error(data.msg || i18n.t('roleConfig.fetchModelsFailed'));
+              this.$message.error(data.msg || i18n.t("roleConfig.fetchModelsFailed"));
             }
           });
         } else {
-          Api.model.getLlmModelCodeList('', ({ data }) => {
+          Api.model.getLlmModelCodeList("", ({ data }) => {
             if (data.code === 0) {
-              let LLMdata = []
-              data.data.forEach(item => {
+              let LLMdata = [];
+              data.data.forEach((item) => {
                 LLMdata.push({
                   value: item.id,
                   label: item.modelName,
-                  isHidden: false
-                })
-                this.llmModeTypeMap.set(item.id, item.type)
-              })
+                  isHidden: false,
+                });
+                this.llmModeTypeMap.set(item.id, item.type);
+              });
               this.$set(this.modelOptions, model.type, LLMdata);
             } else {
-              this.$message.error(data.msg || '获取LLM模型列表失败');
+              this.$message.error(data.msg || "获取LLM模型列表失败");
             }
           });
         }
@@ -411,21 +551,41 @@ export default {
     fetchVoiceOptions(modelId) {
       if (!modelId) {
         this.voiceOptions = [];
+        this.voiceDetails = {};
         return;
       }
-      Api.model.getModelVoices(modelId, '', ({ data }) => {
+      Api.model.getModelVoices(modelId, "", ({ data }) => {
         if (data.code === 0 && data.data) {
-          this.voiceOptions = data.data.map(voice => ({
+          this.voiceOptions = data.data.map((voice) => ({
             value: voice.id,
-            label: voice.name
+            label: voice.name,
+            // 复制音频相关字段，确保hasAudioPreview能检测到
+            voiceDemo: voice.voiceDemo,
+            demoUrl: voice.demoUrl,
+            audioUrl: voice.audioUrl,
+            voice_demo: voice.voice_demo,
+            sample_voice: voice.sample_voice,
+            referenceAudio: voice.referenceAudio,
+            // 新增：添加克隆音频相关字段
+            cloneAudioUrl: voice.cloneAudioUrl,
+            hasCloneAudio: voice.hasCloneAudio || false,
+            // 保存训练状态字段，用于判断是否为克隆音频
+            train_status: voice.trainStatus,
           }));
+          // 保存完整的音色信息，添加调试信息
+          console.log("获取到的音色数据:", data.data);
+          this.voiceDetails = data.data.reduce((acc, voice) => {
+            acc[voice.id] = voice;
+            return acc;
+          }, {});
         } else {
           this.voiceOptions = [];
+          this.voiceDetails = {};
         }
       });
     },
     getFunctionDisplayChar(name) {
-      if (!name || name.length === 0) return '';
+      if (!name || name.length === 0) return "";
 
       for (let i = 0; i < name.length; i++) {
         const char = name[i];
@@ -438,20 +598,22 @@ export default {
       return name.charAt(0);
     },
     showFunctionIcons(type) {
-      return type === 'Intent' &&
-        this.form.model.intentModelId !== 'Intent_nointent';
+      return type === "Intent" && this.form.model.intentModelId !== "Intent_nointent";
     },
     handleModelChange(type, value) {
-      if (type === 'Intent' && value !== 'Intent_nointent') {
+      if (type === "Intent" && value !== "Intent_nointent") {
         this.fetchAllFunctions();
       }
-      if (type === 'Memory' && value === 'Memory_nomem') {
-        this.form.chatHistoryConf = 0;
+      if (type === "Memory") {
+        if (value === "Memory_nomem") {
+          // 无记忆功能的模型，默认不记录聊天记录
+          this.form.chatHistoryConf = 0;
+        } else {
+          // 有记忆功能的模型，默认记录文本和语音
+          this.form.chatHistoryConf = 2;
+        }
       }
-      if (type === 'Memory' && value !== 'Memory_nomem' && (this.form.chatHistoryConf === 0 || this.form.chatHistoryConf === null)) {
-        this.form.chatHistoryConf = 2;
-      }
-      if (type === 'LLM') {
+      if (type === "LLM") {
         // 当LLM类型改变时，更新意图识别选项的可见性
         this.updateIntentOptionsVisibility();
       }
@@ -460,8 +622,8 @@ export default {
       return new Promise((resolve, reject) => {
         Api.model.getPluginFunctionList(null, ({ data }) => {
           if (data.code === 0) {
-            this.allFunctions = data.data.map(item => {
-              const meta = JSON.parse(item.fields || '[]');
+            this.allFunctions = data.data.map((item) => {
+              const meta = JSON.parse(item.fields || "[]");
               const params = meta.reduce((m, f) => {
                 m[f.key] = f.default;
                 return m;
@@ -470,7 +632,7 @@ export default {
             });
             resolve();
           } else {
-            this.$message.error(data.msg || i18n.t('roleConfig.fetchPluginsFailed'));
+            this.$message.error(data.msg || i18n.t("roleConfig.fetchPluginsFailed"));
             reject();
           }
         });
@@ -479,7 +641,7 @@ export default {
     openFunctionDialog() {
       // 显示编辑对话框时，确保 allFunctions 已经加载
       if (this.allFunctions.length === 0) {
-        this.fetchAllFunctions().then(() => this.showFunctionDialog = true);
+        this.fetchAllFunctions().then(() => (this.showFunctionDialog = true));
       } else {
         this.showFunctionDialog = true;
       }
@@ -498,12 +660,12 @@ export default {
     updateIntentOptionsVisibility() {
       // 根据当前选择的LLM类型更新意图识别选项的可见性
       const currentLlmId = this.form.model.llmModelId;
-      if (!currentLlmId || !this.modelOptions['Intent']) return;
+      if (!currentLlmId || !this.modelOptions["Intent"]) return;
 
       const llmType = this.llmModeTypeMap.get(currentLlmId);
       if (!llmType) return;
 
-      this.modelOptions['Intent'].forEach(item => {
+      this.modelOptions["Intent"].forEach((item) => {
         if (item.value === "Intent_function_call") {
           // 如果llmType是openai或ollama，允许选择function_call
           // 否则隐藏function_call选项
@@ -519,35 +681,317 @@ export default {
       });
 
       // 如果当前选择的意图识别是function_call，但LLM类型不支持，则设置为可选的第一项
-      if (this.form.model.intentModelId === "Intent_function_call" &&
-        llmType !== "openai" && llmType !== "ollama") {
+      if (
+        this.form.model.intentModelId === "Intent_function_call" &&
+        llmType !== "openai" &&
+        llmType !== "ollama"
+      ) {
         // 找到第一个可见的选项
-        const firstVisibleOption = this.modelOptions['Intent'].find(item => !item.isHidden);
+        const firstVisibleOption = this.modelOptions["Intent"].find(
+          (item) => !item.isHidden
+        );
         if (firstVisibleOption) {
           this.form.model.intentModelId = firstVisibleOption.value;
         } else {
           // 如果没有可见选项，设置为Intent_nointent
-          this.form.model.intentModelId = 'Intent_nointent';
+          this.form.model.intentModelId = "Intent_nointent";
         }
       }
     },
+    // 检查是否有音频预览
+    hasAudioPreview(item) {
+      // 检查item中是否包含有效的音频URL字段或克隆音频字段
+      // 克隆音频通过hasCloneAudio标志或ID格式判断（非TTS开头的ID）
+      const isCloneAudio =
+        item.hasCloneAudio || (item.value && !item.value.startsWith("TTS"));
+
+      const audioFields = [
+        item.voiceDemo,
+        item.demoUrl,
+        item.audioUrl,
+        item.voice_demo,
+        item.sample_voice,
+        item.referenceAudio,
+        item.cloneAudioUrl, // 克隆音频的URL
+      ];
+
+      // 检查是否有任何音频字段是有效的URL
+      const hasUrlAudio = audioFields.some(
+        (field) =>
+          field !== undefined &&
+          field !== null &&
+          typeof field === "string" &&
+          field.trim() !== "" &&
+          field.toLowerCase().startsWith("http")
+      );
+
+      return hasUrlAudio || isCloneAudio;
+    },
+
+    // 播放/暂停音频切换
+    toggleAudioPlayback(voiceId) {
+      // 如果点击的是当前正在播放的音频，则切换暂停/播放状态
+      if (this.playingVoice && this.currentPlayingVoiceId === voiceId) {
+        if (this.isPaused) {
+          // 从暂停状态恢复播放
+          this.currentAudio.play().catch((error) => {
+            console.error("恢复播放失败:", error);
+            this.$message.warning("无法恢复播放音频");
+          });
+          this.isPaused = false;
+        } else {
+          // 暂停播放
+          this.currentAudio.pause();
+          this.isPaused = true;
+        }
+        return;
+      }
+
+      // 否则开始播放新的音频
+      this.playVoicePreview(voiceId);
+    },
+
+    // 播放音色预览
+    playVoicePreview(voiceId = null) {
+      // 如果传入了voiceId，则使用传入的，否则使用当前选中的
+      const targetVoiceId = voiceId || this.form.ttsVoiceId;
+
+      if (!targetVoiceId) {
+        this.$message.warning("请先选择一个音色");
+        return;
+      }
+
+      // 停止当前正在播放的音频
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+
+      // 重置播放状态
+      this.isPaused = false;
+      this.currentPlayingVoiceId = targetVoiceId;
+
+      try {
+        // 从保存的音色详情中获取音频URL
+        const voiceDetail = this.voiceDetails[targetVoiceId];
+
+        // 添加调试信息
+        console.log("当前选择的音色ID:", targetVoiceId);
+        console.log("音色详情:", voiceDetail);
+
+        // 尝试多种可能的音频属性名
+        let audioUrl = null;
+        let isCloneAudio = false;
+
+        if (voiceDetail) {
+          // 首先检查是否是克隆音频（通过ID格式判断，非TTS开头的ID）
+          isCloneAudio =
+            voiceDetail.hasCloneAudio ||
+            (voiceDetail.id && !voiceDetail.id.startsWith("TTS"));
+          console.log(
+            "克隆音频判断结果:",
+            isCloneAudio,
+            "训练状态:",
+            voiceDetail.train_status
+          );
+
+          // 获取音频URL
+          if (isCloneAudio && voiceDetail.id) {
+            // 对于克隆音频，使用后端提供的正确接口
+            // 注意：这里需要通过两步获取音频URL
+            // 1. 首先获取音频下载ID
+            // 2. 然后使用这个ID构建播放URL
+            // 由于异步操作，我们需要先请求getAudioId
+            console.log("检测到克隆音频，准备获取音频URL:", voiceDetail.id);
+
+            // 创建一个Promise来处理异步获取音频URL的操作
+            const getCloneAudioUrl = () => {
+              return new Promise((resolve) => {
+                // 首先调用getAudioId接口获取临时UUID
+                RequestService.sendRequest()
+                  .url(`${getServiceUrl()}/voiceClone/audio/${voiceDetail.id}`)
+                  .method("POST")
+                  .success((res) => {
+                    if (res.data.code === 0 && res.data.data) {
+                      // 处理返回的数据格式，在res.data基础上再套一层.data
+                      const audioId = res.data.data;
+                      console.log("获取到的音频ID:", audioId);
+                      // 使用返回的UUID构建播放URL
+                      const playUrl = `${getServiceUrl()}/voiceClone/play/${audioId}`;
+                      console.log("构建克隆音频播放URL:", playUrl);
+                      resolve(playUrl);
+                    } else {
+                      console.error("获取音频ID失败:", res.msg);
+                      resolve(null);
+                    }
+                  })
+                  .networkFail((err) => {
+                    console.error("请求音频ID接口失败:", err);
+                    resolve(null);
+                  })
+                  .send();
+              });
+            };
+
+            // 设置播放状态
+            this.playingVoice = true;
+            // 创建Audio实例
+            this.currentAudio = new Audio();
+            // 设置音量
+            this.currentAudio.volume = 1.0;
+
+            // 设置超时，防止加载过长时间
+            const timeoutId = setTimeout(() => {
+              if (this.currentAudio && this.playingVoice) {
+                this.$message.warning("音频加载时间较长，请稍后重试");
+                this.playingVoice = false;
+              }
+            }, 10000); // 10秒超时
+
+            // 监听播放错误
+            this.currentAudio.onerror = () => {
+              clearTimeout(timeoutId);
+              console.error("克隆音频播放错误");
+              this.$message.warning("克隆音频播放失败");
+              this.playingVoice = false;
+            };
+
+            // 监听播放开始，清除超时
+            this.currentAudio.onplay = () => {
+              clearTimeout(timeoutId);
+            };
+
+            // 监听播放结束
+            this.currentAudio.onended = () => {
+              this.playingVoice = false;
+            };
+
+            // 处理异步获取URL并播放
+            getCloneAudioUrl().then((url) => {
+              if (url) {
+                // 设置音频URL并播放
+                this.currentAudio.src = url;
+                this.currentAudio.play().catch((error) => {
+                  clearTimeout(timeoutId);
+                  console.error("播放克隆音频失败:", error);
+                  this.$message.warning("无法播放克隆音频");
+                  this.playingVoice = false;
+                });
+              } else {
+                clearTimeout(timeoutId);
+                this.$message.warning("获取克隆音频失败");
+                this.playingVoice = false;
+              }
+            });
+
+            // 返回，避免继续执行下面的普通音频播放逻辑
+            return;
+          } else {
+            // 对于普通音频，尝试各种可能的URL字段
+            audioUrl =
+              voiceDetail.voiceDemo ||
+              voiceDetail.demoUrl ||
+              voiceDetail.audioUrl ||
+              voiceDetail.voice_demo ||
+              voiceDetail.sample_voice ||
+              voiceDetail.cloneAudioUrl; // 克隆音频URL
+          }
+
+          // 如果没有找到，尝试检查是否有URL格式的字段
+          if (!audioUrl) {
+            for (const key in voiceDetail) {
+              const value = voiceDetail[key];
+              if (
+                typeof value === "string" &&
+                (value.startsWith("http://") ||
+                  value.startsWith("https://") ||
+                  value.endsWith(".mp3") ||
+                  value.endsWith(".wav") ||
+                  value.endsWith(".ogg"))
+              ) {
+                audioUrl = value;
+                console.log(`发现可能的音频URL在字段 '${key}':`, audioUrl);
+                break;
+              }
+            }
+          }
+        }
+
+        if (!audioUrl) {
+          // 如果没有音频URL，显示友好的提示
+          this.$message.warning("该音色暂无可预览的音频");
+          return;
+        }
+
+        // 非克隆音频的处理逻辑
+        if (!isCloneAudio) {
+          // 设置播放状态
+          this.playingVoice = true;
+
+          // 创建并播放音频
+          this.currentAudio = new Audio();
+          this.currentAudio.src = audioUrl;
+
+          // 设置音量
+          this.currentAudio.volume = 1.0;
+
+          // 设置超时，防止加载过长时间
+          const timeoutId = setTimeout(() => {
+            if (this.currentAudio && this.playingVoice) {
+              this.$message.warning("音频加载时间较长，请稍后重试");
+              this.playingVoice = false;
+            }
+          }, 10000); // 10秒超时
+
+          // 监听播放错误
+          this.currentAudio.onerror = () => {
+            clearTimeout(timeoutId);
+            console.error("音频播放错误");
+            this.$message.warning("音频播放失败");
+            this.playingVoice = false;
+          };
+
+          // 监听播放开始，清除超时
+          this.currentAudio.onplay = () => {
+            clearTimeout(timeoutId);
+          };
+
+          // 监听播放结束
+          this.currentAudio.onended = () => {
+            this.playingVoice = false;
+          };
+
+          // 开始播放音频
+          this.currentAudio.play().catch((error) => {
+            clearTimeout(timeoutId);
+            console.error("播放失败:", error);
+            this.$message.warning("无法播放音频");
+            this.playingVoice = false;
+          });
+        }
+      } catch (error) {
+        console.error("播放音频过程出错:", error);
+        this.$message.error("播放音频过程出错");
+        this.playingVoice = false;
+      }
+    },
     updateChatHistoryConf() {
-      if (this.form.model.memModelId === 'Memory_nomem') {
+      if (this.form.model.memModelId === "Memory_nomem") {
         this.form.chatHistoryConf = 0;
       }
     },
   },
   watch: {
-    'form.model.ttsModelId': {
+    "form.model.ttsModelId": {
       handler(newVal, oldVal) {
         if (oldVal && newVal !== oldVal) {
-          this.form.ttsVoiceId = '';
+          this.form.ttsVoiceId = "";
           this.fetchVoiceOptions(newVal);
         } else {
           this.fetchVoiceOptions(newVal);
         }
       },
-      immediate: true
+      immediate: true,
     },
     voiceOptions: {
       handler(newVal) {
@@ -555,8 +999,8 @@ export default {
           this.form.ttsVoiceId = newVal[0].value;
         }
       },
-      immediate: true
-    }
+      immediate: true,
+    },
   },
   mounted() {
     const agentId = this.$route.query.agentId;
@@ -566,8 +1010,8 @@ export default {
     }
     this.fetchModelOptions();
     this.fetchTemplates();
-  }
-}
+  },
+};
 </script>
 
 <style scoped>
@@ -691,10 +1135,30 @@ export default {
 
 .form-select {
   width: 100%;
+  height: 36px;
+}
+
+.play-button {
+  color: #409eff;
+  transition: color 0.3s;
+}
+
+.play-button:hover {
+  color: #66b1ff;
+}
+
+.play-button.is-loading {
+  color: #909399;
 }
 
 .form-textarea {
   width: 100%;
+}
+
+.voice-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .template-container {
@@ -705,7 +1169,8 @@ export default {
 
 .template-item {
   height: 4vh;
-  width: 76px;
+  min-width: 60px;
+  padding: 0 12px;
   border-radius: 8px;
   background: #e6ebff;
   line-height: 4vh;
@@ -715,6 +1180,7 @@ export default {
   color: #5778ff;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  white-space: nowrap;
 }
 
 .template-item:hover {
@@ -807,8 +1273,8 @@ export default {
 }
 
 .custom-close-btn:hover {
-  color: #409EFF;
-  border-color: #409EFF;
+  color: #409eff;
+  border-color: #409eff;
 }
 
 .edit-function-btn {

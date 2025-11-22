@@ -213,4 +213,31 @@ public interface ErrorCode {
     int RAG_API_ERROR_API_KEY_NULL = 10172; // RAG配置中api_key为空，请完善配置
     int RAG_API_ERROR_API_KEY_INVALID = 10173; // RAG配置中api_key包含占位符，请替换为实际的API密钥
     int RAG_API_ERROR_URL_INVALID = 10174; // RAG配置中base_url格式不正确，请检查协议是否正确
+    int RAG_DATASET_ID_NOT_NULL = 10176; // RAG配置中dataset_id不能为空
+    int RAG_MODEL_ID_NOT_NULL = 10177; // RAG配置中model_id不能为空
+    int RAG_DATASET_ID_AND_MODEL_ID_NOT_NULL = 10178; // RAG配置中dataset_id和model_id不能为空
+    int RAG_FILE_NAME_NOT_NULL = 10179; // 文件名称不能为空
+    int RAG_FILE_CONTENT_EMPTY = 10180; // 文件内容不能为空
+
+    // 设备相关错误码（补充）
+    int MCA_NOT_NULL = 10175; // mac地址不能为空
+
+    // 音色克隆（补充）
+    int VOICE_CLONE_NAME_NOT_NULL = 10181; // 音色克隆名称不能为空
+    int VOICE_CLONE_AUDIO_NOT_FOUND = 10182; // 音色克隆音频不存在
+
+    // 智能体模板相关错误码(补充)
+    int AGENT_TEMPLATE_NOT_FOUND = 10183; // 默认智能体未找到
+
+    // 知识库适配器相关错误码
+    int RAG_ADAPTER_TYPE_NOT_SUPPORTED = 10184; // 不支持的适配器类型
+    int RAG_CONFIG_VALIDATION_FAILED = 10185; // RAG配置验证失败
+    int RAG_ADAPTER_CREATION_FAILED = 10186; // 适配器创建失败
+    int RAG_ADAPTER_INIT_FAILED = 10187; // 适配器初始化失败
+    int RAG_ADAPTER_CONNECTION_FAILED = 10188; // 适配器连接测试失败
+    int RAG_ADAPTER_OPERATION_FAILED = 10189; // 适配器操作失败
+    int RAG_ADAPTER_NOT_FOUND = 10190; // 适配器未找到
+    int RAG_ADAPTER_CACHE_ERROR = 10191; // 适配器缓存错误
+    int RAG_ADAPTER_TYPE_NOT_FOUND = 10192; // 适配器类型未找到
+
 }

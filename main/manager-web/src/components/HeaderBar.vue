@@ -238,6 +238,10 @@ export default {
           return this.$t("language.zhTW");
         case "en":
           return this.$t("language.en");
+        case "de":
+          return this.$t("language.de");
+        case "vi":
+          return this.$t("language.vi");
         default:
           return this.$t("language.zhCN");
       }
@@ -260,6 +264,14 @@ export default {
             {
               label: this.$t("language.en"),
               value: "en",
+            },
+            {
+              label: this.$t("language.de"),
+              value: "de",
+            },
+            {
+              label: this.$t("language.vi"),
+              value: "vi",
             },
           ],
         },

@@ -1,5 +1,5 @@
-import { otaStatusStyle } from './document.js';
-import { log } from './utils/logger.js';
+import { otaStatusStyle } from '../../ui/dom-helper.js';
+import { log } from '../../utils/logger.js';
 
 // WebSocket 连接
 export async function webSocketConnect(otaUrl, config) {

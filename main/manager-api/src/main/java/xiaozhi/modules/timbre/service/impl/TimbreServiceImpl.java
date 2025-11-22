@@ -133,7 +133,11 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
             timbreEntities = new ArrayList<>();
         }
         List<VoiceDTO> voiceDTOs = timbreEntities.stream()
-                .map(entity -> new VoiceDTO(entity.getId(), entity.getName()))
+                .map(entity -> {
+                    VoiceDTO dto = new VoiceDTO(entity.getId(), entity.getName());
+                    dto.setVoiceDemo(entity.getVoiceDemo());
+                    return dto;
+                })
                 .collect(Collectors.toList());
 
         // 获取当前登录用户ID
@@ -146,6 +150,8 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
                 VoiceDTO voiceDTO = new VoiceDTO();
                 voiceDTO.setId(entity.getId());
                 voiceDTO.setName(MessageUtils.getMessage(ErrorCode.VOICE_CLONE_PREFIX) + entity.getName());
+                // 保留从数据库查询到的voiceDemo字段
+                voiceDTO.setVoiceDemo(entity.getVoiceDemo());
                 redisUtils.set(RedisKeys.getTimbreNameById(voiceDTO.getId()), voiceDTO.getName(),
                         RedisUtils.NOT_EXPIRE);
                 voiceDTOs.add(0, voiceDTO);
@@ -205,6 +211,9 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
         if (list.isEmpty()) {
             return null;
         }
-        return new VoiceDTO(list.get(0).getId(), list.get(0).getName());
+        TimbreEntity entity = list.get(0);
+        VoiceDTO dto = new VoiceDTO(entity.getId(), entity.getName());
+        dto.setVoiceDemo(entity.getVoiceDemo());
+        return dto;
     }
 }
