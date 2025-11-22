@@ -604,15 +604,14 @@ export default {
       if (type === "Intent" && value !== "Intent_nointent") {
         this.fetchAllFunctions();
       }
-      if (type === "Memory" && value === "Memory_nomem") {
-        this.form.chatHistoryConf = 0;
-      }
-      if (
-        type === "Memory" &&
-        value !== "Memory_nomem" &&
-        (this.form.chatHistoryConf === 0 || this.form.chatHistoryConf === null)
-      ) {
-        this.form.chatHistoryConf = 2;
+      if (type === "Memory") {
+        if (value === "Memory_nomem") {
+          // 无记忆功能的模型，默认不记录聊天记录
+          this.form.chatHistoryConf = 0;
+        } else {
+          // 有记忆功能的模型，默认记录文本和语音
+          this.form.chatHistoryConf = 2;
+        }
       }
       if (type === "LLM") {
         // 当LLM类型改变时，更新意图识别选项的可见性

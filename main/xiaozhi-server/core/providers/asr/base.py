@@ -68,7 +68,7 @@ class ASRProviderBase(ABC):
             conn.asr_audio.clear()
             conn.reset_vad_states()
 
-            if len(asr_audio_task) > 15 or conn.client_listen_mode == "manual":
+            if len(asr_audio_task) > 15:
                 await self.handle_voice_stop(conn, asr_audio_task)
 
     # 处理语音停止

@@ -33,8 +33,6 @@ class WebSocketServer:
         self._intent = modules["intent"] if "intent" in modules else None
         self._memory = modules["memory"] if "memory" in modules else None
 
-        self.active_connections = set()
-
         auth_config = self.config["server"].get("auth", {})
         self.auth_enable = auth_config.get("enabled", False)
         # 设备白名单
@@ -98,14 +96,11 @@ class WebSocketServer:
             self._intent,
             self,  # 传入server实例
         )
-        self.active_connections.add(handler)
         try:
             await handler.handle_connection(websocket)
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"处理连接时出错: {e}")
         finally:
-            # 确保从活动连接集合中移除
-            self.active_connections.discard(handler)
             # 强制关闭连接（如果还没有关闭的话）
             try:
                 # 安全地检查WebSocket状态并关闭
