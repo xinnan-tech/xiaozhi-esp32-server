@@ -249,9 +249,9 @@ export default {
             }
 
             const itemCount = items.length;
-            this.$confirm(this.$t('voiceClone.confirmDelete', { count: itemCount }), 'Warning', {
-                confirmButtonText: 'OK',
-                cancelButtonText: 'Cancel',
+            this.$confirm(this.$t('voiceClone.confirmDelete', { count: itemCount }), this.$t('voiceClone.warning'), {
+                confirmButtonText: this.$t('voiceClone.ok'),
+                cancelButtonText: this.$t('voiceClone.cancel'),
                 type: 'warning',
                 distinguishCancelAndClose: true
             }).then(() => {

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.knowledge.dao.KnowledgeBaseDao">
+
+    <resultMap id="BaseResultMap" type="xiaozhi.modules.knowledge.entity.KnowledgeBaseEntity">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="datasetId" column="dataset_id" jdbcType="VARCHAR"/>
+        <result property="ragModelId" column="rag_model_id" jdbcType="VARCHAR"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="description" column="description" jdbcType="VARCHAR"/>
+        <result property="status" column="status" jdbcType="TINYINT"/>
+        <result property="creator" column="creator" jdbcType="BIGINT"/>
+        <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+        <result property="updater" column="updater" jdbcType="BIGINT"/>
+        <result property="updatedAt" column="updated_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 根据知识库ID删除相关的插件映射记录 -->
+    <delete id="deletePluginMappingByKnowledgeBaseId">
+        DELETE FROM ai_agent_plugin_mapping 
+        WHERE plugin_id = #{knowledgeBaseId}
+    </delete>
+
+</mapper>

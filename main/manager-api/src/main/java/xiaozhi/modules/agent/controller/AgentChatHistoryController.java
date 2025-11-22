@@ -139,14 +139,14 @@ public class AgentChatHistoryController {
         // 从Redis获取agentId和sessionId
         String agentSessionInfo = (String) redisUtils.get(RedisKeys.getChatHistoryKey(uuid));
         if (StringUtils.isBlank(agentSessionInfo)) {
-            throw new RenException("下载链接已过期或无效");
+            throw new RenException(ErrorCode.DOWNLOAD_LINK_EXPIRED);
         }
 
         try {
             // 解析agentId和sessionId
             String[] parts = agentSessionInfo.split(":");
             if (parts.length != 2) {
-                throw new RenException("下载链接无效");
+                throw new RenException(ErrorCode.DOWNLOAD_LINK_INVALID);
             }
             String agentId = parts[0];
             String sessionId = parts[1];

@@ -47,6 +47,7 @@ export default {
   addModel(params, callback) {
     const { modelType, provideCode, formData } = params;
     const postData = {
+      id: formData.id,
       modelCode: formData.modelCode,
       modelName: formData.modelName,
       isDefault: formData.isDefault ? 1 : 0,
@@ -334,6 +335,24 @@ export default {
         this.$message.error(err.msg || '获取插件列表失败')
         RequestService.reAjaxFun(() => {
           this.getPluginFunctionList(params, callback)
+        })
+      }).send()
+  },
+
+  // 获取RAG模型列表
+  getRAGModels(callback) {
+    RequestService.sendRequest()
+      .url(`${getServiceUrl()}/datasets/rag-models`)
+      .method('GET')
+      .success((res) => {
+        RequestService.clearRequestTime()
+        callback(res)
+      })
+      .networkFail((err) => {
+        console.error('获取RAG模型列表失败:', err)
+        this.$message.error(err.msg || '获取RAG模型列表失败')
+        RequestService.reAjaxFun(() => {
+          this.getRAGModels(callback)
         })
       }).send()
   }

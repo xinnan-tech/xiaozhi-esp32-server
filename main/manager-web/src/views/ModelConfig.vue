@@ -52,6 +52,9 @@
           <el-menu-item index="memory">
             <span class="menu-text">{{ $t("modelConfig.memory") }}</span>
           </el-menu-item>
+          <el-menu-item index="rag">
+            <span class="menu-text">{{ $t("modelConfig.rag") }}</span>
+          </el-menu-item>
         </el-menu>
 
         <!-- 右侧内容 -->
@@ -471,6 +474,7 @@ export default {
       const id = formData.id;
 
       if (this.editModelData.duplicateMode) {
+        formData.id = "";
         Api.model.addModel({ modelType, provideCode, formData }, ({ data }) => {
           if (data.code === 0) {
             this.$message.success(this.$t("modelConfig.duplicateSuccess"));

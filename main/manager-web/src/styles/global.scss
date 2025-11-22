@@ -16,3 +16,7 @@ select:-webkit-autofill:focus {
 .el-footer {
   height: 35px !important; /* 使用 !important 确保覆盖默认样式 */
 }
+
+.el-icon-video-play, .el-icon-video-pause { 
+  font-size: 18px !important;
+}

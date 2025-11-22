@@ -68,6 +68,9 @@ def get_config_from_api(config):
             "vision_explain": config["server"].get("vision_explain", ""),
             "auth_key": config["server"].get("auth_key", ""),
         }
+    # 如果服务器没有prompt_template，则从本地配置读取
+    if not config_data.get("prompt_template"):
+        config_data["prompt_template"] = config.get("prompt_template")
     return config_data
 
 

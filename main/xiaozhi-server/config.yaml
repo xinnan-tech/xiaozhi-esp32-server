@@ -31,16 +31,10 @@ server:
   auth:
     # 是否启用认证
     enabled: false
-    # 设备的token，可以在编译固件的环节，写入你自己定义的token
-    # 固件上的token和以下的token如果能对应，才能连接本服务端
-    tokens:
-      - token: "your-token1" # 设备1的token
-        name: "your-device-name1"  # 设备1标识
-      - token: "your-token2"  # 设备2的token
-        name: "your-device-name2" # 设备2标识
-    # 可选:设备白名单，如果设置了白名单，那么白名单的机器无论是什么token都可以连接。
-    #allowed_devices:
-    #  - "24:0A:C4:1D:3B:F0"  # MAC地址列表
+    # 白名单设备ID列表
+    # 如果属于白名单内的设备，不校验token，直接放行
+    allowed_devices:
+      - "11:22:33:44:55:66"
  # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port
   mqtt_gateway: null
   # MQTT签名密钥，用于生成MQTT连接密码，根据mqtt_gateway的.env文件配置
@@ -75,6 +69,12 @@ enable_greeting: true
 enable_stop_tts_notify: false
 # 说完话是否开启提示音，音效地址
 stop_tts_notify_voice: "config/assets/tts_notify.mp3"
+
+# TTS音频发送延迟配置
+# tts_audio_send_delay: 控制音频包发送间隔
+#   0: 使用精确时间控制，严格匹配音频帧率（默认，运行时按音频帧率计算）
+#   > 0: 使用固定延迟（毫秒）发送，例如: 60
+tts_audio_send_delay: 0
 
 exit_commands:
   - "退出"
@@ -147,7 +147,15 @@ plugins:
       - ".wav"
       - ".p3"
     refresh_time: 300 # 刷新音乐列表的时间间隔，单位为秒
-
+  search_from_ragflow:
+    # 知识库的描述信息，方便大语言模型知道什么时候调用
+    description: "当用户问xxx时，调用本方法，使用知识库中的信息回答问题"
+    # ragflow接口配置
+    base_url: "http://192.168.0.8"
+    # ragflow api访问令牌
+    api_key: "ragflow-xxx"
+    # ragflow知识库id
+    dataset_ids: ["123456789"]
 # 声纹识别配置
 voiceprint:
   # 声纹接口地址
@@ -178,6 +186,9 @@ prompt: |
   绝不：
   - 长篇大论，叽叽歪歪
   - 长时间严肃对话
+
+# 默认系统提示词模板文件
+prompt_template: agent-base-prompt.txt
 
 # 结束语prompt
 end_prompt:
@@ -236,6 +247,7 @@ Intent:
     functions:
       - change_role
       - get_weather
+      # - search_from_ragflow
       # - get_news_from_chinanews
       - get_news_from_newsnow
       # play_music是服务器自带的音乐播放，hass_play_music是通过home assistant控制的独立外部程序音乐播放
@@ -475,7 +487,6 @@ LLM:
     temperature: 0.7  # 温度值
     max_tokens: 500   # 最大生成token数
     top_p: 1
-    top_k: 50
     frequency_penalty: 0  # 频率惩罚
   AliAppLLM:
     # 定义LLM API类型

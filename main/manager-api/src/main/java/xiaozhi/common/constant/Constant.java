@@ -146,6 +146,16 @@ public interface Constant {
      */
     String MEMORY_NO_MEM = "Memory_nomem";
 
+    /**
+     * 火山引擎双声道语音克隆
+     */
+    String VOICE_CLONE_HUOSHAN_DOUBLE_STREAM = "huoshan_double_stream";
+
+    /**
+     * RAG配置类型
+     */
+    String RAG_CONFIG_TYPE = "RAG";
+
     enum SysBaseParam {
         /**
          * ICP备案号
@@ -168,6 +178,38 @@ public interface Constant {
 
         public String getValue() {
             return value;
+        }
+    }
+
+    /**
+     * 训练状态
+     */
+    enum TrainStatus {
+        /**
+         * 未训练
+         */
+        NOT_TRAINED(0),
+        /**
+         * 训练中
+         */
+        TRAINING(1),
+        /**
+         * 已训练
+         */
+        TRAINED(2),
+        /**
+         * 训练失败
+         */
+        TRAIN_FAILED(3);
+
+        private final int code;
+
+        TrainStatus(int code) {
+            this.code = code;
+        }
+
+        public int getCode() {
+            return code;
         }
     }
 
@@ -257,7 +299,7 @@ public interface Constant {
     /**
      * 版本号
      */
-    public static final String VERSION = "0.8.4";
+    public static final String VERSION = "0.8.8";
 
     /**
      * 无效固件URL

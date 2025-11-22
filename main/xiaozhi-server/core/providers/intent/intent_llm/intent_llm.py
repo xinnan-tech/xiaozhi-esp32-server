@@ -55,7 +55,6 @@ class IntentProvider(IntentProviderBase):
         prompt = (
             "【严格格式要求】你必须只能返回JSON格式，绝对不能返回任何自然语言！\n\n"
             "你是一个意图识别助手。请分析用户的最后一句话，判断用户意图并调用相应的函数。\n\n"
-
             "【重要规则】以下类型的查询请直接返回result_for_context，无需调用函数：\n"
             "- 询问当前时间（如：现在几点、当前时间、查询时间等）\n"
             "- 询问今天日期（如：今天几号、今天星期几、今天是什么日期等）\n"
@@ -202,7 +201,7 @@ class IntentProvider(IntentProviderBase):
         # 记录LLM调用完成时间
         llm_time = time.time() - llm_start_time
         logger.bind(tag=TAG).debug(
-            f"LLM意图识别完成, 模型: {model_info}, 调用耗时: {llm_time:.4f}秒"
+            f"外挂的大模型意图识别完成, 模型: {model_info}, 调用耗时: {llm_time:.4f}秒"
         )
 
         # 记录后处理开始时间
@@ -238,8 +237,10 @@ class IntentProvider(IntentProviderBase):
                 # 处理不同类型的意图
                 if function_name == "result_for_context":
                     # 处理基础信息查询，直接从context构建结果
-                    logger.bind(tag=TAG).info("检测到result_for_context意图，将使用上下文信息直接回答")
-                    
+                    logger.bind(tag=TAG).info(
+                        "检测到result_for_context意图，将使用上下文信息直接回答"
+                    )
+
                 elif function_name == "continue_chat":
                     # 处理普通对话
                     # 保留非工具相关的消息
@@ -249,7 +250,7 @@ class IntentProvider(IntentProviderBase):
                         if msg.role not in ["tool", "function"]
                     ]
                     conn.dialogue.dialogue = clean_history
-                    
+
                 else:
                     # 处理函数调用
                     logger.bind(tag=TAG).info(f"检测到函数调用意图: {function_name}")

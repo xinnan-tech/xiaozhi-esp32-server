@@ -6,28 +6,23 @@
 本项目基于人机共生智能理论和技术研发智能终端软硬件体系<br/>为开源智能硬件项目
 <a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a>提供后端服务<br/>
 根据<a href="https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh">小智通信协议</a>使用Python、Java、Vue实现<br/>
-支持MQTT+UDP协议、Websocket协议、MCP接入点、声纹识别
+支持MQTT+UDP协议、Websocket协议、MCP接入点、声纹识别、知识库
 </p>
 
 <p align="center">
-<a href="./README_en.md">English</a>
-· <a href="./docs/FAQ.md">常见问题</a>
+<a href="./docs/FAQ.md">常见问题</a>
 · <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/issues">反馈问题</a>
 · <a href="./README.md#%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3">部署文档</a>
 · <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">更新日志</a>
 </p>
+
 <p align="center">
+  <a href="./README.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-DBEDFA"></a>
+  <a href="./README_en.md"><img alt="README in English" src="https://img.shields.io/badge/English-DFE0E5"></a>
+  <a href="./README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Tiếng Việt-DFE0E5"></a>
+  <a href="./README_de.md"><img alt="Deutsch" src="https://img.shields.io/badge/Deutsch-DFE0E5"></a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">
     <img alt="GitHub Contributors" src="https://img.shields.io/github/v/release/xinnan-tech/xiaozhi-esp32-server?logo=docker" />
-  </a>
-  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors">
-    <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/xinnan-tech/xiaozhi-esp32-server?logo=github" />
-  </a>
-  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/issues">
-    <img alt="Issues" src="https://img.shields.io/github/issues/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
-  </a>
-  <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/pulls">
-    <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/xinnan-tech/xiaozhi-esp32-server?color=0088ff" />
   </a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/LICENSE">
     <img alt="GitHub pull requests" src="https://img.shields.io/badge/license-MIT-white?labelColor=black" />
@@ -57,9 +52,23 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
 <table>
   <tr>
     <td>
+        <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
+         <picture>
+           <img alt="响应速度感受" src="docs/images/demo9.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
+         <picture>
+           <img alt="速度优化秘诀" src="docs/images/demo6.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
         <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
          <picture>
-           <img alt="小智医疗救护车场景" src="docs/images/demo1.png" />
+           <img alt="复杂医疗场景" src="docs/images/demo1.png" />
          </picture>
         </a>
     </td>
@@ -71,19 +80,14 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
          <picture>
-           <img alt="自定义音色" src="docs/images/demo2.png" />
+           <img alt="声纹识别" src="docs/images/demo14.png" />
          </picture>
         </a>
     </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
-         <picture>
-           <img alt="使用粤语交流" src="docs/images/demo3.png" />
-         </picture>
-        </a>
-    </td>
+  </tr>
+  <tr>
     <td>
         <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
          <picture>
@@ -91,12 +95,17 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
          </picture>
         </a>
     </td>
-  </tr>
-  <tr>
     <td>
-        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
          <picture>
-           <img alt="自定义音色" src="docs/images/demo6.png" />
+           <img alt="MCP接入点" src="docs/images/demo13.png" />
+         </picture>
+        </a>
+    </td>
+    <td>
+      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+         <picture>
+           <img alt="多指令任务" src="docs/images/demo11.png" />
          </picture>
         </a>
     </td>
@@ -111,20 +120,6 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
         <a href="https://www.bilibili.com/video/BV1Z8XuYZEAS" target="_blank">
          <picture>
            <img alt="天气插件" src="docs/images/demo8.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV178XuYfEpi" target="_blank">
-         <picture>
-           <img alt="IOT指令控制设备" src="docs/images/demo9.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
-         <picture>
-           <img alt="播报新闻" src="docs/images/demo0.png" />
          </picture>
         </a>
     </td>
@@ -145,23 +140,23 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
         </a>
     </td>
     <td>
-      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+        <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
          <picture>
-           <img alt="多指令任务" src="docs/images/demo11.png" />
+           <img alt="自定义音色" src="docs/images/demo2.png" />
          </picture>
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
+        <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
          <picture>
-           <img alt="MCP接入点" src="docs/images/demo13.png" />
+           <img alt="使用粤语交流" src="docs/images/demo3.png" />
          </picture>
         </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
+        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
          <picture>
-           <img alt="声纹识别" src="docs/images/demo14.png" />
+           <img alt="播报新闻" src="docs/images/demo0.png" />
          </picture>
         </a>
     </td>
@@ -246,8 +241,9 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | 声纹识别 | 支持多用户声纹注册、管理和识别，与ASR并行处理，实时识别说话人身份并传递给LLM进行个性化回应 |
 | 智能对话 | 支持多种LLM(大语言模型)，实现智能对话 |
 | 视觉感知 | 支持多种VLLM(视觉大模型)，实现多模态交互 |
-| 意图识别 | 支持LLM意图识别、Function Call函数调用，提供插件化意图处理机制 |
+| 意图识别 | 支持外挂的大模型意图识别、大模型自主函数调用，提供插件化意图处理机制 |
 | 记忆系统 | 支持本地短期记忆、mem0ai接口记忆，具备记忆总结功能 |
+| 知识库 | 支持RAGFlow知识库，让大模型判断需要调度知识库后再回答 |
 | 工具调用 | 支持客户端IOT协议、客户MCP协议、服务端MCP协议、MCP接入点协议、自定义工具函数 |
 | 指令下发 | 依托MQTT协议，支持从智控台将MCP指令下发到ESP32设备 |
 | 管理后台 | 提供Web管理界面，支持用户管理、系统配置和设备管理；界面支持中文简体、中文繁体、英文显示 |
@@ -273,7 +269,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
-| openai 接口调用 | 阿里百炼、火山引擎豆包、深度求索、智谱ChatGLM、Gemini | 智谱ChatGLM、Gemini |
+| openai 接口调用 | 阿里百炼、火山引擎、DeepSeek、智谱、Gemini、科大讯飞 | 智谱、Gemini |
 | ollama 接口调用 | Ollama | - |
 | dify 接口调用 | Dify | - |
 | fastgpt 接口调用 | Fastgpt | - |
@@ -299,7 +295,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
-| 接口调用 | EdgeTTS、火山引擎豆包TTS、腾讯云、阿里云TTS、阿里云流式TTS、CosyVoiceSiliconflow、TTS302AI、CozeCnTTS、GizwitsTTS、ACGNTTS、OpenAITTS、灵犀流式TTS、MinimaxTTS、火山双流式TTS | 灵犀流式TTS、EdgeTTS、CosyVoiceSiliconflow(部分) |
+| 接口调用 | EdgeTTS、科大讯飞、火山引擎、腾讯云、阿里云及百炼、CosyVoiceSiliconflow、TTS302AI、CozeCnTTS、GizwitsTTS、ACGNTTS、OpenAITTS、灵犀流式TTS、MinimaxTTS | 灵犀流式TTS、EdgeTTS、CosyVoiceSiliconflow(部分) |
 | 本地服务 | FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3、Index-TTS、PaddleSpeech | Index-TTS、PaddleSpeech、FishSpeech、GPT_SOVITS_V2、GPT_SOVITS_V3 |
 
 ---
@@ -317,7 +313,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
 | 本地使用 | FunASR、SherpaASR | FunASR、SherpaASR |
-| 接口调用 | DoubaoASR、Doubao流式ASR、FunASRServer、TencentASR、AliyunASR、Aliyun流式ASR、百度ASR、OpenAI ASR | FunASRServer |
+| 接口调用 | FunASRServer、火山引擎、科大讯飞、腾讯云、阿里云、百度云、OpenAI ASR | FunASRServer |
 
 ---
 
@@ -346,6 +342,14 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | Intent |  intent_llm   | 接口调用 | 根据LLM收费 |    通过大模型识别意图，通用性强     |
 | Intent | function_call | 接口调用 | 根据LLM收费 | 通过大模型函数调用完成意图，速度快，效果好 |
 | Intent |    nointent   | 无意图模式 |    免费     |    不进行意图识别，直接返回对话结果     |
+
+---
+
+### Rag 检索增强生成
+
+|   类型   |     平台名称      | 使用方式 |  收费模式   |          备注           |
+|:------:|:-------------:|:----:|:-------:|:---------------------:|
+| Rag |  ragflow   | 接口调用 | 根据切片、分词消耗的token收费 |    借助RagFlow的检索增强生成功能，提供更准确的对话回复     |
 
 ---
 

@@ -62,29 +62,32 @@ VAD:
 ### 7、部署相关教程
 1、[如何进行最简化部署](./Deployment.md)<br/>
 2、[如何进行全模块部署](./Deployment_all.md)<br/>
-2、[如何部署MQTT网关开启MQTT+UDP协议](./mqtt-gateway-integration.md)<br/>
-3、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
-4、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
+3、[如何部署MQTT网关开启MQTT+UDP协议](./mqtt-gateway-integration.md)<br/>
+4、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
+5、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
 
-### 8、编译固件相关教程
+### 9、编译固件相关教程
 1、[如何自己编译小智固件](./firmware-build.md)<br/>
 2、[如何基于虾哥编译好的固件修改OTA地址](./firmware-setting.md)<br/>
 
-### 8、拓展相关教程
+### 10、拓展相关教程
 1、[如何开启手机号码注册智控台](./ali-sms-integration.md)<br/>
 2、[如何集成HomeAssistant实现智能家居控制](./homeassistant-integration.md)<br/>
 3、[如何开启视觉模型实现拍照识物](./mcp-vision-integration.md)<br/>
 4、[如何部署MCP接入点](./mcp-endpoint-enable.md)<br/>
 5、[如何接入MCP接入点](./mcp-endpoint-integration.md)<br/>
-6、[如何开启声纹识别](./voiceprint-integration.md)<br/>
-10、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
+6、[MCP方法如何获取设备信息](./mcp-get-device-info.md)<br/>
+7、[如何开启声纹识别](./voiceprint-integration.md)<br/>
+8、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
+9、[知识库ragflow集成指南](./ragflow-integration.md)<br/>
 
-### 9、语音克隆、本地语音部署相关教程
-1、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
-2、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>
-3、[如何部署集成PaddleSpeech本地语音](./paddlespeech-deploy.md)<br/>
+### 11、语音克隆、本地语音部署相关教程
+1、[如何在智控台克隆音色](./huoshan-streamTTS-voice-cloning.md)<br/>
+2、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
+3、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>
+4、[如何部署集成PaddleSpeech本地语音](./paddlespeech-deploy.md)<br/>
 
-### 10、性能测试教程
+### 12、性能测试教程
 1、[各组件速度测试指南](./performance_tester.md)<br/>
 2、[定期公开测试结果](https://github.com/xinnan-tech/xiaozhi-performance-research)<br/>
 

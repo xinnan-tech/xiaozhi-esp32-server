@@ -23,3 +23,5 @@ manager-api:
   url: http://127.0.0.1:8002/xiaozhi
   # 你的manager-api的token，就是刚才复制出来的server.secret
   secret: 你的server.secret值
+# 默认系统提示词模板文件
+prompt_template: agent-base-prompt.txt

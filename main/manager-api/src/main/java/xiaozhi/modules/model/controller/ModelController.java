@@ -21,7 +21,12 @@ import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.config.service.ConfigService;
-import xiaozhi.modules.model.dto.*;
+import xiaozhi.modules.model.dto.LlmModelBasicInfoDTO;
+import xiaozhi.modules.model.dto.ModelBasicInfoDTO;
+import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
+import xiaozhi.modules.model.dto.ModelConfigDTO;
+import xiaozhi.modules.model.dto.ModelProviderDTO;
+import xiaozhi.modules.model.dto.VoiceDTO;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.model.service.ModelProviderService;
@@ -124,6 +129,8 @@ public class ModelController {
         if (entity == null) {
             return new Result<Void>().error("模型配置不存在");
         }
+        // 不更新ConfigJson字段
+        entity.setConfigJson(null);
         entity.setIsEnabled(status);
         modelConfigService.updateById(entity);
         return new Result<Void>();
@@ -141,6 +148,8 @@ public class ModelController {
         modelConfigService.setDefaultModel(entity.getModelType(), 0);
         entity.setIsEnabled(1);
         entity.setIsDefault(1);
+        // 不更新ConfigJson字段
+        entity.setConfigJson(null);
         modelConfigService.updateById(entity);
 
         // 更新模板表中对应的模型ID

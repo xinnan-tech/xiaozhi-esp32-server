@@ -101,7 +101,7 @@ class ASRProviderBase(ABC):
                             self.speech_to_text(asr_audio_task, conn.session_id, conn.audio_format)
                         )
                         end_time = time.monotonic()
-                        logger.bind(tag=TAG).info(f"ASR耗时: {end_time - start_time:.3f}s")
+                        logger.bind(tag=TAG).debug(f"ASR耗时: {end_time - start_time:.3f}s")
                         return result
                     finally:
                         loop.close()
@@ -158,7 +158,7 @@ class ASRProviderBase(ABC):
             
             # 性能监控
             total_time = time.monotonic() - total_start_time
-            logger.bind(tag=TAG).info(f"总处理耗时: {total_time:.3f}s")
+            logger.bind(tag=TAG).debug(f"总处理耗时: {total_time:.3f}s")
             
             # 检查文本长度
             text_len, _ = remove_punctuation_and_length(raw_text)

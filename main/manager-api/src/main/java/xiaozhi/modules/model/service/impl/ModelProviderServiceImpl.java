@@ -22,6 +22,8 @@ import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
+import xiaozhi.modules.knowledge.dao.KnowledgeBaseDao;
+import xiaozhi.modules.knowledge.entity.KnowledgeBaseEntity;
 import xiaozhi.modules.model.dao.ModelProviderDao;
 import xiaozhi.modules.model.dto.ModelProviderDTO;
 import xiaozhi.modules.model.entity.ModelProviderEntity;
@@ -34,13 +36,43 @@ public class ModelProviderServiceImpl extends BaseServiceImpl<ModelProviderDao, 
         implements ModelProviderService {
 
     private final ModelProviderDao modelProviderDao;
+    private final KnowledgeBaseDao knowledgeBaseDao;
 
     @Override
     public List<ModelProviderDTO> getPluginList() {
+        // 1. 获取插件列表
         LambdaQueryWrapper<ModelProviderEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ModelProviderEntity::getModelType, "Plugin");
         List<ModelProviderEntity> providerEntities = modelProviderDao.selectList(queryWrapper);
-        return ConvertUtils.sourceToTarget(providerEntities, ModelProviderDTO.class);
+        List<ModelProviderDTO> resultList = ConvertUtils.sourceToTarget(providerEntities, ModelProviderDTO.class);
+
+        // 2. 获取当前用户的知识库列表并追加到结果中
+        UserDetail userDetail = SecurityUser.getUser();
+        if (userDetail != null && userDetail.getId() != null) {
+            // 查询当前用户的知识库
+            LambdaQueryWrapper<KnowledgeBaseEntity> kbQueryWrapper = new LambdaQueryWrapper<>();
+            kbQueryWrapper.eq(KnowledgeBaseEntity::getCreator, userDetail.getId());
+            kbQueryWrapper.eq(KnowledgeBaseEntity::getStatus, 1); // 只获取启用状态的知识库
+            List<KnowledgeBaseEntity> knowledgeBases = knowledgeBaseDao.selectList(kbQueryWrapper);
+
+            // 将知识库转换为ModelProviderDTO格式并添加到结果列表
+            for (KnowledgeBaseEntity kb : knowledgeBases) {
+                ModelProviderDTO dto = new ModelProviderDTO();
+                dto.setId(kb.getId());
+                dto.setModelType("Rag");
+                dto.setName("[知识库]" + kb.getName());
+                dto.setProviderCode("ragflow"); // 假设所有RAG都使用ragflow
+                dto.setFields("[]");
+                dto.setSort(0);
+                dto.setCreateDate(kb.getCreatedAt());
+                dto.setUpdateDate(kb.getUpdatedAt());
+                dto.setCreator(0L);
+                dto.setUpdater(0L);
+                resultList.add(dto);
+            }
+        }
+
+        return resultList;
     }
 
     @Override

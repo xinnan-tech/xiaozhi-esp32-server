@@ -176,31 +176,67 @@ def parse_string_to_list(value, separator=";"):
     return []
 
 
-def check_ffmpeg_installed():
-    ffmpeg_installed = False
+def check_ffmpeg_installed() -> bool:
+    """
+    检查当前环境中是否已正确安装并可执行 ffmpeg。
+
+    Returns:
+        bool: 如果 ffmpeg 正常可用，返回 True；否则抛出 ValueError 异常。
+
+    Raises:
+        ValueError: 当检测到 ffmpeg 未安装或依赖缺失时，抛出详细的提示信息。
+    """
     try:
-        # 执行ffmpeg -version命令，并捕获输出
+        # 尝试执行 ffmpeg 命令
         result = subprocess.run(
             ["ffmpeg", "-version"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True,  # 如果返回码非零则抛出异常
+            check=True,  # 非零退出码会触发 CalledProcessError
         )
-        # 检查输出中是否包含版本信息（可选）
-        output = result.stdout + result.stderr
-        if "ffmpeg version" in output.lower():
-            ffmpeg_installed = True
-        return False
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        # 命令执行失败或未找到
-        ffmpeg_installed = False
-    if not ffmpeg_installed:
-        error_msg = "您的电脑还没正确安装ffmpeg\n"
-        error_msg += "\n建议您：\n"
-        error_msg += "1、按照项目的安装文档，正确进入conda环境\n"
-        error_msg += "2、查阅安装文档，如何在conda环境中安装ffmpeg\n"
-        raise ValueError(error_msg)
+
+        output = (result.stdout + result.stderr).lower()
+        if "ffmpeg version" in output:
+            return True
+
+        # 如果未检测到版本信息，也视为异常情况
+        raise ValueError("未检测到有效的 ffmpeg 版本输出。")
+
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        # 提取错误输出
+        stderr_output = ""
+        if isinstance(e, subprocess.CalledProcessError):
+            stderr_output = (e.stderr or "").strip()
+        else:
+            stderr_output = str(e).strip()
+
+        # 构建基础错误提示
+        error_msg = [
+            "❌ 检测到 ffmpeg 无法正常运行。\n",
+            "建议您：",
+            "1. 确认已正确激活 conda 环境；",
+            "2. 查阅项目安装文档，了解如何在 conda 环境中安装 ffmpeg。\n",
+        ]
+
+        # 🎯 针对具体错误信息提供额外提示
+        if "libiconv.so.2" in stderr_output:
+            error_msg.append("⚠️ 发现缺少依赖库：libiconv.so.2")
+            error_msg.append("解决方法：在当前 conda 环境中执行：")
+            error_msg.append("   conda install -c conda-forge libiconv\n")
+        elif (
+            "no such file or directory" in stderr_output
+            and "ffmpeg" in stderr_output.lower()
+        ):
+            error_msg.append("⚠️ 系统未找到 ffmpeg 可执行文件。")
+            error_msg.append("解决方法：在当前 conda 环境中执行：")
+            error_msg.append("   conda install -c conda-forge ffmpeg\n")
+        else:
+            error_msg.append("错误详情：")
+            error_msg.append(stderr_output or "未知错误。")
+
+        # 抛出详细异常信息
+        raise ValueError("\n".join(error_msg)) from e
 
 
 def extract_json_from_string(input_string):
@@ -212,7 +248,9 @@ def extract_json_from_string(input_string):
     return None
 
 
-def audio_to_data_stream(audio_file_path, is_opus=True, callback: Callable[[Any], Any]=None) -> None:
+def audio_to_data_stream(
+    audio_file_path, is_opus=True, callback: Callable[[Any], Any] = None
+) -> None:
     # 获取文件后缀名
     file_type = os.path.splitext(audio_file_path)[1]
     if file_type:
@@ -228,6 +266,7 @@ def audio_to_data_stream(audio_file_path, is_opus=True, callback: Callable[[Any]
     # 获取原始PCM数据（16位小端）
     raw_data = audio.raw_data
     pcm_to_data_stream(raw_data, is_opus, callback)
+
 
 def audio_to_data(audio_file_path: str, is_opus: bool = True) -> list[bytes]:
     """
@@ -280,7 +319,10 @@ def audio_to_data(audio_file_path: str, is_opus: bool = True) -> list[bytes]:
 
     return datas
 
-def audio_bytes_to_data_stream(audio_bytes, file_type, is_opus, callback: Callable[[Any], Any]) -> None:
+
+def audio_bytes_to_data_stream(
+    audio_bytes, file_type, is_opus, callback: Callable[[Any], Any]
+) -> None:
     """
     直接用音频二进制数据转为opus/pcm数据，支持wav、mp3、p3
     """
@@ -324,6 +366,7 @@ def pcm_to_data_stream(raw_data, is_opus=True, callback: Callable[[Any], Any] = 
             frame_data = chunk if isinstance(chunk, bytes) else bytes(chunk)
             callback(frame_data)
 
+
 def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
     """
     将opus帧列表解码为wav字节流
@@ -349,6 +392,7 @@ def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
         wf.setframerate(sample_rate)
         wf.writeframes(pcm_bytes)
     return wav_buffer.getvalue()
+
 
 def check_vad_update(before_config, new_config):
     if (
@@ -423,6 +467,17 @@ def filter_sensitive_info(config: dict) -> dict:
                 filtered[k] = _filter_dict(v)
             elif isinstance(v, list):
                 filtered[k] = [_filter_dict(i) if isinstance(i, dict) else i for i in v]
+            elif isinstance(v, str):
+                try:
+                    json_data = json.loads(v)
+                    if isinstance(json_data, dict):
+                        filtered[k] = json.dumps(
+                            _filter_dict(json_data), ensure_ascii=False
+                        )
+                    else:
+                        filtered[k] = v
+                except (json.JSONDecodeError, TypeError):
+                    filtered[k] = v
             else:
                 filtered[k] = v
         return filtered

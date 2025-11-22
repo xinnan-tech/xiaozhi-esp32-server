@@ -76,7 +76,7 @@ services:
       - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
   # redis模块
   xiaozhi-esp32-server-redis:
-    image: redis
+    image: redis:8.0
     expose:
       - 6379
     container_name: xiaozhi-esp32-server-redis

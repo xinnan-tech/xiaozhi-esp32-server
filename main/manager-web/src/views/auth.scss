@@ -21,6 +21,8 @@
   font-size: 25px;
   text-align: left;
   color: #3d4566;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .login-welcome {
@@ -36,11 +38,11 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  right: 18%;
+  right: 15%;
   background-color: #fff;
   border-radius: 20px;
   padding: 35px 0;
-  width: 450px;
+  width: 550px;
   box-sizing: border-box;
 }
 

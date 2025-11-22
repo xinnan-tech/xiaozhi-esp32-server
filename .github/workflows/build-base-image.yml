@@ -1,0 +1,49 @@
+name: Build Base Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'main/xiaozhi-server/requirements.txt'
+      - 'Dockerfile-server-base'
+      - '.github/workflows/build-base-image.yml'
+
+jobs:
+  build-base:
+    name: Build and push server base image
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.TOKEN }}
+
+      - name: Build and push server-base
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-server-base
+          push: true
+          tags: ghcr.io/${{ github.repository }}:server-base
+          platforms: linux/amd64
+          cache-from: type=gha,scope=server-base
+          cache-to: type=gha,mode=max,scope=server-base
+          build-args: |
+            BUILDKIT_PROGRESS=plain
+
+      - name: Output image info
+        run: |
+          echo "✅ Base image built and pushed successfully!"
+          echo "📦 Tag: ghcr.io/${{ github.repository }}:server-base"

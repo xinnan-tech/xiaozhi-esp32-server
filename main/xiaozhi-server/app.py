@@ -46,12 +46,18 @@ async def main():
     check_ffmpeg_installed()
     config = load_config()
 
-    # 默认使用manager-api的secret作为auth_key
-    # 如果secret为空，则生成随机密钥
-    # auth_key用于jwt认证，比如视觉分析接口的jwt认证
-    auth_key = config.get("manager-api", {}).get("secret", "")
+    # auth_key优先级：配置文件server.auth_key > manager-api.secret > 自动生成
+    # auth_key用于jwt认证，比如视觉分析接口的jwt认证、ota接口的token生成与websocket认证
+    # 获取配置文件中的auth_key
+    auth_key = config["server"].get("auth_key", "")
+    
+    # 验证auth_key，无效则尝试使用manager-api.secret
     if not auth_key or len(auth_key) == 0 or "你" in auth_key:
-        auth_key = str(uuid.uuid4().hex)
+        auth_key = config.get("manager-api", {}).get("secret", "")
+        # 验证secret，无效则生成随机密钥
+        if not auth_key or len(auth_key) == 0 or "你" in auth_key:
+            auth_key = str(uuid.uuid4().hex)
+    
     config["server"]["auth_key"] = auth_key
 
     # 添加 stdin 监控任务

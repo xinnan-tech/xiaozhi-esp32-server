@@ -100,7 +100,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         converter.setObjectMapper(mapper);
         return converter;
     }
-    
+
     /**
      * 国际化配置 - 根据请求头中的Accept-Language设置语言环境
      */
@@ -113,14 +113,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 if (acceptLanguage == null || acceptLanguage.isEmpty()) {
                     return Locale.getDefault();
                 }
-                
+
                 // 解析Accept-Language请求头中的首选语言
                 String[] languages = acceptLanguage.split(",");
                 if (languages.length > 0) {
                     // 提取第一个语言代码，去除可能的质量值(q=...)
                     String[] parts = languages[0].split(";" + "\\s*");
                     String primaryLanguage = parts[0].trim();
-                     
+
                     // 根据前端发送的语言代码直接创建Locale对象
                     if (primaryLanguage.equals("zh-CN")) {
                         return Locale.SIMPLIFIED_CHINESE;
@@ -128,15 +128,25 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         return Locale.TRADITIONAL_CHINESE;
                     } else if (primaryLanguage.equals("en-US")) {
                         return Locale.US;
+                    } else if (primaryLanguage.equals("de-DE")) {
+                        return Locale.GERMANY;
+                    } else if (primaryLanguage.equals("vi-VN")) {
+                        return Locale.forLanguageTag("vi-VN");
                     } else if (primaryLanguage.startsWith("zh")) {
                         // 对于其他中文变体，默认使用简体中文
                         return Locale.SIMPLIFIED_CHINESE;
                     } else if (primaryLanguage.startsWith("en")) {
                         // 对于其他英文变体，默认使用美式英语
                         return Locale.US;
+                    } else if (primaryLanguage.startsWith("de")) {
+                        // 对于其他德语变体，默认使用德语
+                        return Locale.GERMANY;
+                    } else if (primaryLanguage.startsWith("vi")) {
+                        // 对于其他越南语变体，默认使用越南语
+                        return Locale.forLanguageTag("vi-VN");
                     }
                 }
-                
+
                 // 如果没有匹配的语言，使用默认语言
                 return Locale.getDefault();
             }

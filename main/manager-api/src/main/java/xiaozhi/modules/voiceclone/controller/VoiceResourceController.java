@@ -80,6 +80,8 @@ public class VoiceResourceController {
         try {
             voiceCloneService.save(dto);
             return new Result<Void>();
+        } catch (xiaozhi.common.exception.RenException e) {
+            return new Result<Void>().error(e.getCode(), e.getMsg());
         } catch (RuntimeException e) {
             return new Result<Void>().error(ErrorCode.ADD_DATA_FAILED, e.getMessage());
         }

@@ -19,7 +19,7 @@ public class DeviceReportRespDTO {
 
     @Schema(description = "固件版本信息")
     private Firmware firmware;
-    
+
     @Schema(description = "WebSocket配置")
     private Websocket websocket;
 
@@ -66,12 +66,14 @@ public class DeviceReportRespDTO {
         @Schema(description = "时区偏移量，单位为分钟")
         private Integer timezone_offset;
     }
-    
+
     @Getter
     @Setter
     public static class Websocket {
         @Schema(description = "WebSocket服务器地址")
         private String url;
+        @Schema(description = "WebSocket 认证 token")
+        private String token;
     }
 
     @Getter

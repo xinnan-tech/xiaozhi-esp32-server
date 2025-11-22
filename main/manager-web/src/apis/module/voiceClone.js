@@ -79,7 +79,7 @@ export default {
     },
 
     // 复刻音频
-    cloneAudio(params, callback) {
+    cloneAudio(params, callback, errorCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/voiceClone/cloneAudio`)
             .method('POST')
@@ -88,10 +88,19 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
+            .fail((res) => {
+                // 业务失败回调
+                RequestService.clearRequestTime();
+                if (errorCallback) {
+                    errorCallback(res);
+                } else {
+                    callback(res);
+                }
+            })
             .networkFail((err) => {
                 console.error('上传失败:', err);
                 RequestService.reAjaxFun(() => {
-                    this.cloneAudio(params, callback);
+                    this.cloneAudio(params, callback, errorCallback);
                 });
             }).send();
     }

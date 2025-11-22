@@ -20,7 +20,7 @@ class ToolManager:
         """注册工具执行器"""
         self.executors[tool_type] = executor
         self._invalidate_cache()
-        self.logger.info(f"注册工具执行器: {tool_type.value}")
+        self.logger.debug(f"注册工具执行器: {tool_type.value}")
 
     def _invalidate_cache(self):
         """使缓存失效"""
@@ -109,7 +109,7 @@ class ToolManager:
     def refresh_tools(self):
         """刷新工具缓存"""
         self._invalidate_cache()
-        self.logger.info("工具缓存已刷新")
+        self.logger.debug("工具缓存已刷新")
 
     def get_tool_statistics(self) -> Dict[str, int]:
         """获取工具统计信息"""

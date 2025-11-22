@@ -355,6 +355,9 @@ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/
 
 conda install libopus -y
 conda install ffmpeg -y
+
+# 在 Linux 环境下进行部署时,如出现类似缺失 libiconv.so.2 动态库的报错 请通过以下命令进行安装
+conda install libiconv -y
 ```
 
 请注意，以上命令，不是一股脑执行就成功的，你需要一步步执行，每一步执行完后，都检查一下输出的日志，查看是否成功。
@@ -468,7 +471,8 @@ ws://你电脑局域网的ip:8000/xiaozhi/v1/
 6、[我说话很慢，停顿时小智老是抢话](./FAQ.md)<br/>
 ## 部署相关教程
 1、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
-2、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
+2、[如何部署MQTT网关开启MQTT+UDP协议](./mqtt-gateway-integration.md)<br/>
+3、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
 ## 拓展相关教程
 1、[如何开启手机号码注册智控台](./ali-sms-integration.md)<br/>
 2、[如何集成HomeAssistant实现智能家居控制](./homeassistant-integration.md)<br/>
@@ -479,9 +483,10 @@ ws://你电脑局域网的ip:8000/xiaozhi/v1/
 7、[新闻插件源配置指南](./newsnow_plugin_config.md)<br/>
 8、[天气插件使用指南](./weather-integration.md)<br/>
 ## 语音克隆、本地语音部署相关教程
-1、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
-2、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>
-3、[如何部署集成PaddleSpeech本地语音](./paddlespeech-deploy.md)<br/>
+1、[如何在智控台克隆音色](./huoshan-streamTTS-voice-cloning.md)<br/>
+2、[如何部署集成index-tts本地语音](./index-stream-integration.md)<br/>
+3、[如何部署集成fish-speech本地语音](./fish-speech-integration.md)<br/>
+4、[如何部署集成PaddleSpeech本地语音](./paddlespeech-deploy.md)<br/>
 ## 性能测试教程
 1、[各组件速度测试指南](./performance_tester.md)<br/>
 2、[定期公开测试结果](https://github.com/xinnan-tech/xiaozhi-performance-research)<br/>

@@ -1,4 +1,4 @@
-import { getLogContainer } from '../document.js'
+import { getLogContainer } from '../ui/dom-helper.js'
 
 const logContainer = getLogContainer();
 // 日志记录函数

@@ -33,19 +33,22 @@ public interface VoiceCloneService extends BaseService<VoiceCloneEntity> {
 
     /**
      * 根据用户ID查询声音克隆列表
+     * 
+     * @param userId 用户ID
+     * @return 声音克隆列表
      */
     List<VoiceCloneEntity> getByUserId(Long userId);
-    
+
     /**
      * 分页查询带模型名称和用户名称的声音克隆列表
      */
     PageData<VoiceCloneResponseDTO> pageWithNames(Map<String, Object> params);
-    
+
     /**
      * 根据ID查询带模型名称和用户名称的声音克隆信息
      */
     VoiceCloneResponseDTO getByIdWithNames(String id);
-    
+
     /**
      * 根据用户ID查询带模型名称的声音克隆列表
      */
@@ -65,4 +68,11 @@ public interface VoiceCloneService extends BaseService<VoiceCloneEntity> {
      * 获取音频数据
      */
     byte[] getVoiceData(String id);
+
+    /**
+     * 克隆音频，调用火山引擎进行语音复刻训练
+     * 
+     * @param cloneId 语音克隆记录ID
+     */
+    void cloneAudio(String cloneId);
 }

@@ -64,9 +64,6 @@
                   <el-button size="mini" type="text" @click="handleUnbind(scope.row.device_id)">
                     {{ $t('device.unbind') }}
                   </el-button>
-                  <el-button v-if="scope.row.deviceStatus === 'online'" size="mini" type="text" @click="handleMcpToolCall(scope.row.device_id)">
-                    {{ $t('device.toolCall') }}
-                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -82,9 +79,9 @@
                 <el-button type="success" size="mini" class="add-device-btn" @click="handleManualAddDevice">
                   {{ $t('device.manualAdd') }}
                 </el-button>
-                <el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteSelected">{{
-                  $t('device.unbind')
-                }}</el-button>
+                <el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteSelected">
+                  {{ $t('device.unbind') }}
+                </el-button>
               </div>
               <div class="custom-pagination">
                 <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
@@ -92,20 +89,22 @@
                     :label="$t('dictManagement.itemsPerPage').replace('{items}', item)" :value="item">
                   </el-option>
                 </el-select>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">{{
-                  $t('dictManagement.firstPage')
-                }}</button>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">{{
-                  $t('dictManagement.prevPage')
-                }}</button>
+                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
+                  {{ $t('dictManagement.firstPage') }}
+                </button>
+                <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
+                  {{ $t('dictManagement.prevPage') }}
+                </button>
                 <button v-for="page in visiblePages" :key="page" class="pagination-btn"
                   :class="{ active: page === currentPage }" @click="goToPage(page)">
                   {{ page }}
                 </button>
-                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">{{
-                  $t('dictManagement.nextPage') }}</button>
-                <span class="total-text">{{ $t('dictManagement.totalRecords').replace('{total}', deviceList.length)
-                }}</span>
+                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
+                  {{ $t('dictManagement.nextPage') }}
+                </button>
+                <span class="total-text">
+                  {{ $t('dictManagement.totalRecords').replace('{total}', deviceList.length) }}
+                </span>
               </div>
             </div>
           </el-card>
@@ -117,7 +116,6 @@
       @refresh="fetchBindDevices(currentAgentId)" />
     <ManualAddDeviceDialog :visible.sync="manualAddDeviceDialogVisible" :agent-id="currentAgentId"
       @refresh="fetchBindDevices(currentAgentId)" />
-    <McpToolCallDialog :visible.sync="mcpToolCallDialogVisible" :device-id="selectedDeviceId" />
 
   </div>
 </template>
@@ -127,20 +125,17 @@ import Api from '@/apis/api';
 import AddDeviceDialog from "@/components/AddDeviceDialog.vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import ManualAddDeviceDialog from "@/components/ManualAddDeviceDialog.vue";
-import McpToolCallDialog from "@/components/McpToolCallDialog.vue";
 
 export default {
   components: {
     HeaderBar,
     AddDeviceDialog,
-    ManualAddDeviceDialog,
-    McpToolCallDialog
+    ManualAddDeviceDialog
   },
   data() {
     return {
       addDeviceDialogVisible: false,
       manualAddDeviceDialogVisible: false,
-      mcpToolCallDialogVisible: false,
       selectedDeviceId: '',
       searchKeyword: "",
       activeSearchKeyword: "",
@@ -280,11 +275,6 @@ export default {
     handleManualAddDevice() {
       this.manualAddDeviceDialogVisible = true;
     },
-
-    handleMcpToolCall(deviceId) {
-      this.selectedDeviceId = deviceId;
-      this.mcpToolCallDialogVisible = true;
-    },
     submitRemark(row) {
       if (row._submitting) return;
 
@@ -383,7 +373,7 @@ export default {
             .sort((a, b) => a.rawBindTime - b.rawBindTime);
           this.activeSearchKeyword = "";
           this.searchKeyword = "";
-          
+
           // 获取设备列表后，立即获取设备状态
           this.fetchDeviceStatus(agentId);
         } else {
@@ -391,7 +381,7 @@ export default {
         }
       });
     },
-    
+
     // 获取设备状态
     fetchDeviceStatus(agentId) {
       Api.device.getDeviceStatus(agentId, ({ data }) => {
@@ -399,7 +389,7 @@ export default {
           try {
             // 解析后端返回的设备状态JSON
             const statusData = JSON.parse(data.data);
-            
+
             // 直接使用解析后的数据作为设备状态映射（不需要devices字段包装）
             if (statusData && typeof statusData === 'object') {
               // 更新设备状态
@@ -411,7 +401,7 @@ export default {
         }
       });
     },
-    
+
     // 根据API响应更新设备状态
     updateDeviceStatusFromResponse(deviceStatusMap) {
       this.deviceList.forEach(device => {
@@ -419,11 +409,11 @@ export default {
         const macAddress = device.macAddress ? device.macAddress.replace(/:/g, '_') : 'unknown';
         const groupId = device.model ? device.model.replace(/:/g, '_') : 'GID_default';
         const mqttClientId = `${groupId}@@@${macAddress}@@@${macAddress}`;
-        
+
         // 从状态映射中获取设备状态
         if (deviceStatusMap[mqttClientId]) {
           const statusInfo = deviceStatusMap[mqttClientId];
-          
+
           let isOnline = false;
           if (statusInfo.isAlive === true) {
             isOnline = true;
@@ -434,7 +424,7 @@ export default {
           } else {
             isOnline = false;
           }
-          
+
           device.deviceStatus = isOnline ? 'online' : 'offline';
         } else {
           // 如果没有找到对应的状态信息，默认为离线

@@ -11,12 +11,12 @@
 
 1、如果你是源码部署，你的`mqtt-websocket`地址是：
 ```
-ws://127.0.0.1:8000/xiaozhi/v1?from=mqtt_gateway
+ws://127.0.0.1:8000/xiaozhi/v1/?from=mqtt_gateway
 ```
 
 2、如果你是docker部署，你的`mqtt-websocket`地址是
 ```
-ws://你宿主机局域网IP:8000/xiaozhi/v1?from=mqtt_gateway
+ws://你宿主机局域网IP:8000/xiaozhi/v1/?from=mqtt_gateway
 ```
 
 ## 重要提示
@@ -53,7 +53,7 @@ cp config/mqtt.json.example config/mqtt.json
 {
     "production": {
         "chat_servers": [
-            "ws://127.0.0.1:8000/xiaozhi/v1?from=mqtt_gateway"
+            "ws://127.0.0.1:8000/xiaozhi/v1/?from=mqtt_gateway"
         ]
     },
     "debug": false,
