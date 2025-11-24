@@ -23,6 +23,8 @@ class VoiceAddRequest(BaseModel):
     """Voice add request"""
     name: str = Field(..., min_length=1, max_length=100, description="Voice name")
     desc: str = Field(..., max_length=500, description="Voice description")
+    sample_url: Optional[str] = Field(None, description="URL of stored audio sample (for cloned voices)")
+    sample_text: Optional[str] = Field(None, description="Transcription text (for cloned voices)")
 
 # ==================== Response Schemas ====================
 
@@ -40,7 +42,7 @@ class LiveAgentVoice(BaseModel):
 
     samples: Optional[List[AudioSample]] = None
 
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 
 

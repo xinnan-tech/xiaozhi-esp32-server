@@ -29,6 +29,10 @@ class VoiceModel(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     desc: Mapped[str] = mapped_column(Text, nullable=False)
     
+    # Audio sample information (for cloned voices)
+    sample_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sample_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), 
@@ -161,14 +165,18 @@ class Voice:
         voice_id: str,
         owner_id: str,
         name: str,
-        desc: str
+        desc: str,
+        sample_url: Optional[str] = None,
+        sample_text: Optional[str] = None
     ) -> VoiceModel:
         """Create a new voice"""
         voice = VoiceModel(
             voice_id=voice_id,
             owner_id=owner_id,
             name=name,
-            desc=desc
+            desc=desc,
+            sample_url=sample_url,
+            sample_text=sample_text
         )
         db.add(voice)
         await db.commit()
@@ -180,18 +188,30 @@ class Voice:
         db: AsyncSession,
         voice_id: str,
         owner_id: str,
-        name: str,
-        desc: str
+        name: Optional[str] = None,
+        desc: Optional[str] = None
     ) -> VoiceModel:
-        """Update a voice"""
+        """Update a voice (only updates provided fields)"""
+        # Build update values dict with only non-None values
+        update_values = {}
+        if name is not None:
+            update_values['name'] = name
+        if desc is not None:
+            update_values['desc'] = desc
+        
+        # If no fields to update, just return the existing voice
+        if not update_values:
+            voice = await Voice.get_by_voice_and_owner(db, voice_id, owner_id)
+            return voice
+        
         stmt = (
             update(VoiceModel)
             .where(VoiceModel.voice_id == voice_id)
             .where(VoiceModel.owner_id == owner_id)
-            .values(name=name, desc=desc)
+            .values(**update_values)
             .returning(VoiceModel)
         )
-        result =await db.execute(stmt)
+        result = await db.execute(stmt)
         await db.commit()
         return result.scalar_one()
     
