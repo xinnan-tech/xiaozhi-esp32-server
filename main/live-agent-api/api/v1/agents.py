@@ -6,6 +6,7 @@ from infra import get_db, get_s3
 from services.agent_service import agent_service
 from utils.response import success_response
 from api.auth import get_current_user_id
+from schemas.agent import AgentResponse
 
 router = APIRouter()
 
@@ -43,7 +44,20 @@ async def get_agent_detail(
 ):
     """Get agent detail"""
     agent = await agent_service.get_agent_detail(db=db, agent_id=agent_id)
-    return success_response(data=agent.model_dump())
+
+
+    agent_response = AgentResponse(
+        agent_id=agent.agent_id,
+        name=agent.name,
+        avatar_url=agent.avatar_url,
+        description=agent.description,
+        voice_id=agent.voice_id,
+        instruction=agent.instruction,
+        voice_opening=agent.voice_opening,
+        voice_closing=agent.voice_closing,
+        created_at=agent.created_at,
+    )
+    return success_response(data=agent_response.model_dump())
 
 
 @router.post("", summary="Create Agent")

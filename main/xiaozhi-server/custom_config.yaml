@@ -40,6 +40,9 @@ manager-api:
   # This secret is used for local development, it will be replaced by the actual secret when the server is deployed
   secret: 613be043-dc7e-4f5e-b775-e318e5bc87a3
 
+live-agent-api:
+  url: http://live-agent-api:8080/api/live_agent/v1
+
 # MySQL配置(用于聊天记录和记忆关联)
 mysql:
   host: localhost
@@ -188,11 +191,6 @@ prompt: |
 
 # 默认系统提示词模板文件
 prompt_template: agent-base-prompt.txt
-
-# Role 配置
-# 指定要加载的 role 配置文件（位于 core/roles/data/目录）
-# 如果不指定或加载失败，将使用 prompt 字段的内容作为 profile
-role_id: hospital_assistant
 
 # 时区配置（用于系统提示词中的时间显示）
 # 支持的时区格式：Asia/Shanghai, America/New_York, Europe/London 等
@@ -407,7 +405,7 @@ ASR:
     # 3.模型可以选择gpt-4o-transcribe或GPT-4o mini Transcribe
     type: openai
     api_key: 你的OpenAI API密钥
-    base_url: https://api.openai.com/v1/audio/transcriptions
+    base_url: https://api.openai.com/v1
     model_name: gpt-4o-mini-transcribe
     output_dir: tmp/
   GroqASR:
@@ -417,8 +415,8 @@ ASR:
     # 2.创建api-key  https://console.groq.com/keys
     # 3.模型可以选择whisper-large-v3-turbo或whisper-large-v3（distil-whisper-large-v3-en仅支持英语转录）
     type: openai
-    api_key: 你的Groq API密钥
-    base_url: https://api.groq.com/openai/v1/audio/transcriptions
+    api_key: your groq api key
+    base_url: https://api.groq.com/openai/v1
     model_name: whisper-large-v3-turbo
     output_dir: tmp/
   VoskASR:
@@ -534,6 +532,11 @@ LLM:
     model_name: glm-4-flash
     url: https://open.bigmodel.cn/api/paas/v4/
     api_key: 你的chat-glm web key
+  GroqLLM:  
+    type: openai
+    model_name: openai/gpt-oss-20b
+    base_url: https://api.groq.com/openai/v1
+    api_key: your groq api key
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -759,10 +762,8 @@ TTS:
     # 参照教程：https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/fish-speech-integration.md
     type: fishspeech
     output_dir: tmp/
-    response_format: wav
+    response_format: pcm
     reference_id: null
-    reference_audio: ["config/assets/wakeup_words.wav",]
-    reference_text: ["哈啰啊，我是小智啦，声音好听的台湾女孩一枚，超开心认识你耶，最近在忙啥，别忘了给我来点有趣的料哦，我超爱听八卦的啦",]
     normalize: true
     max_new_tokens: 1024
     chunk_length: 200
@@ -774,8 +775,8 @@ TTS:
     seed: null
     channels: 1
     rate: 44100
-    api_key: "你的api_key"
-    api_url: "http://127.0.0.1:8080/v1/tts"
+    sample_rate: 16000
+    api_key: "your fish speech api key"
   GPT_SOVITS_V2:
     # 定义TTS API类型
     #启动tts方法：
@@ -1057,3 +1058,14 @@ TTS:
     # volume: 50  # 音量：0-100
     # speed: 50  # 语速：0-100
     # pitch: 50  # 语调：0-100
+# ===============================================================================
+# ============================= Module Selection ================================
+# ===============================================================================
+selected_module:
+  VAD: SileroVAD
+  ASR: GroqASR
+  LLM: GroqLLM
+  VLLM: ChatGLMVLLM
+  TTS: FishSpeech
+  Memory: memu
+  Intent: function_call

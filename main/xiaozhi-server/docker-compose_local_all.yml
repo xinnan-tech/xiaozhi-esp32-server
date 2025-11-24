@@ -164,6 +164,71 @@ services:
       retries: 3
       start_period: 10s
 
+  # ============================================================================
+  # live-agent-api Services
+  # ============================================================================
+  
+  live-agent-postgres:
+    image: postgres:16-alpine
+    container_name: live-agent-postgres
+    environment:
+      POSTGRES_DB: live_agent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../live-agent-api/data/postgres:/var/lib/postgresql/data
+      - ../live-agent-api/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    networks:
+      - xiaozhi-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  live-agent-minio:
+    image: minio/minio:latest
+    container_name: live-agent-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ../live-agent-api/data/minio:/data
+    networks:
+      - xiaozhi-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  live-agent-api:
+    build:
+      context: ../live-agent-api
+      dockerfile: Dockerfile
+    container_name: live-agent-api
+    env_file:
+      - ../live-agent-api/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@live-agent-postgres:5432/live_agent
+      S3_ENDPOINT_URL: http://live-agent-minio:9000
+      DEBUG: "True"
+    ports:
+      - "8080:8080"
+    networks:
+      - xiaozhi-network
+    depends_on:
+      live-agent-postgres:
+        condition: service_healthy
+      live-agent-minio:
+        condition: service_healthy
+
 # ============================================================================
 # Networks
 # ============================================================================
