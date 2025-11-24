@@ -6,6 +6,7 @@ from core.handle.abortHandle import handleAbortMessage
 from core.handle.intentHandler import handle_user_intent
 from core.utils.output_counter import check_device_output_limit
 from core.handle.sendAudioHandle import send_stt_message, SentenceType
+from core.providers.tts.dto.dto import SentenceType, ContentType, TTSMessageDTO
 
 TAG = __name__
 

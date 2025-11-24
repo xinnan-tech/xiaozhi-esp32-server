@@ -445,6 +445,16 @@ class ConnectionHandler:
             """初始化上报线程"""
             self._init_report_threads()
 
+            if self._voice_opening:
+                self.logger.bind(tag=TAG).info(f"send the opening message: {self._voice_opening}")
+                self.tts.tts_text_queue.put(TTSMessageDTO(
+                    sentence_id=str(uuid.uuid4().hex),
+                    sentence_type=SentenceType.MIDDLE,
+                    content_type=ContentType.TEXT,
+                    content_detail=self._voice_opening,
+                    )
+                )
+
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
 

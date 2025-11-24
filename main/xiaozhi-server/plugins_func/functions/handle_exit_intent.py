@@ -29,7 +29,10 @@ handle_exit_intent_function_desc = {
 def handle_exit_intent(conn, say_goodbye: str | None = None):
     # 处理退出意图
     try:
-        if say_goodbye is None:
+        if hasattr(conn, '_voice_closing') and conn._voice_closing:
+            say_goodbye = conn._voice_closing
+        else:
+            # 如果没有自定义结束语，使用默认的
             say_goodbye = "再见，祝您生活愉快！"
         conn.close_after_chat = True
         logger.bind(tag=TAG).info(f"退出意图已处理:{say_goodbye}")
