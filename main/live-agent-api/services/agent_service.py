@@ -40,7 +40,7 @@ class AgentService:
         """
         agents, next_cursor, has_more = await Agent.get_agents_by_owner(
             db, 
-            owner_id=owner_id,
+            owner_id=owner_id, 
             cursor=cursor,
             limit=page_size
         )
@@ -56,13 +56,13 @@ class AgentService:
         self, 
         db: AsyncSession, 
         agent_id: str
-    ) -> AgentResponse:
+    ) -> AgentModel:
         """Get agent detail"""
         agent = await Agent.get_by_id(db, agent_id)
         if not agent:
             raise NotFoundException("Agent not found")
         
-        return AgentResponse.model_validate(agent)
+        return agent
     
     async def create_agent(
         self,
@@ -178,18 +178,7 @@ class AgentService:
         
         # Delete agent
         await Agent.delete(db, agent_id)
-    
-    async def get_agent_config(
-        self, 
-        db: AsyncSession, 
-        agent_id: str
-    ) -> AgentConfigResponse:
-        """Get agent configuration for xiaozhi-server"""
-        agent = await Agent.get_by_id(db, agent_id)
-        if not agent:
-            raise NotFoundException("Agent not found")
         
-        return AgentConfigResponse.model_validate(agent)
 
 
 agent_service = AgentService()

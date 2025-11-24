@@ -275,6 +275,10 @@
                         <label for="token">认证Token:</label>
                         <input type="text" id="token" value="your-token1" placeholder="认证Token">
                     </div>
+                    <div class="config-item">
+                        <label for="agentId">Agent ID:</label>
+                        <input type="text" id="agentId" value="agent_01KAGYH1ABYDV5JME6WEN45FBY" placeholder="Agent ID">
+                    </div>
                 </div>
             </div>
         </div>
@@ -1791,12 +1795,14 @@
         // 获取配置值
         function getConfig() {
             const deviceMac = document.getElementById('deviceMac').value.trim();
+            log(`AgentID: ${document.getElementById('agentId').value.trim()}`, 'info');
             return {
                 deviceId: deviceMac,  // 使用MAC地址作为deviceId
                 deviceName: document.getElementById('deviceName').value.trim(),
                 deviceMac: deviceMac,
                 clientId: document.getElementById('clientId').value.trim(),
-                token: document.getElementById('token').value.trim()
+                token: document.getElementById('token').value.trim(),
+                agentId: document.getElementById('agentId').value.trim()
             };
         }
 

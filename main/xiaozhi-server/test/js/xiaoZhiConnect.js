@@ -37,7 +37,7 @@ export async function webSocketConnect(otaUrl, config) {
     // 添加认证参数（保持原有逻辑）
     connUrl.searchParams.append('device-id', config.deviceId);
     connUrl.searchParams.append('client-id', config.clientId);
-
+    connUrl.searchParams.append('agent-id', config.agentId);
     const wsurl = connUrl.toString()
 
     log(`正在连接: ${wsurl}`, 'info');
@@ -82,7 +82,8 @@ async function sendOTA(otaUrl, config) {
             headers: {
                 'Content-Type': 'application/json',
                 'Device-Id': config.deviceId,
-                'Client-Id': config.clientId
+                'Client-Id': config.clientId,
+                'Agent-Id': config.agentId
             },
             body: JSON.stringify({
                 version: 0,

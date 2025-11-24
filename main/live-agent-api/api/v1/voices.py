@@ -3,7 +3,7 @@ from botocore.args import logger
 from fastapi import APIRouter, Depends, Query, Form, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infra import get_db
+from infra import get_db, get_s3
 from infra.fishaudio import get_fish_audio
 from services.voice_service import voice_service
 from schemas.voice import ( 
@@ -138,36 +138,36 @@ async def get_my_voices(
 async def clone_voice(
     audio_file: UploadFile = File(..., description="Audio file for cloning"),
     text: Optional[str] = Form(None, description="Optional transcription text"),
-    fish_client = Depends(get_fish_audio)
+    current_user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    fish_client = Depends(get_fish_audio),
+    s3 = Depends(get_s3)
 ):
     """
     Clone a voice from uploaded audio file
-    - Supports both direct audio upload and recorded audio
-    - Text parameter is optional (required for recorded audio)
+    - Requires authentication
+    - Stores the original audio in S3
+    - Creates voice record in database with default name
+    - Use PUT /{voice_id} to update name and description later
     - Uses Fish Audio's fast training mode (typically 30s-2min)
     """
     
-    # Clone voice
-    voice_id, samples = await voice_service.clone_voice(
+    # Clone voice, upload to S3, and save to database
+    voice = await voice_service.clone_voice(
+        db=db,
+        s3=s3,
         fish_client=fish_client,
+        owner_id=current_user_id,
         audio_file=audio_file,
         text=text
     )
     
-    # Build response
-    if samples:
-        sample = AudioSample(
-            title=samples[0].title,
-            text=samples[0].text,
-            audio=samples[0].audio
-        )
-    else:
-        sample = None
     
     return success_response(
         data={
-            "voice_id": voice_id,
-            "sample": sample,
+            "voice_id": voice.voice_id,
+            "sample_url": voice.sample_url,  # S3 URL of stored audio
+            "sample_text": voice.sample_text  # Transcription text
         },
         message="Voice cloned successfully"
     )
@@ -185,6 +185,7 @@ async def add_voice(
     Add a Fish Audio voice to user's my voices
     - Creates a reference to the Fish Audio voice
     - Name is provided by client (from Fish voice title)
+    - For cloned voices, can include sample_url and sample_text
     """
     voice = await voice_service.add_voice(
         db=db,
@@ -192,7 +193,9 @@ async def add_voice(
         owner_id=current_user_id,
         voice_id=voice_id,
         name=request.name,
-        desc=request.desc
+        desc=request.desc,
+        sample_url=request.sample_url,
+        sample_text=request.sample_text
     )
     
     # Build response
@@ -200,6 +203,8 @@ async def add_voice(
         data=LiveAgentVoice(
             voice_id=voice.voice_id,
             name=voice.name,
+            desc=voice.desc,
+            created_at=voice.created_at,
         ).model_dump(exclude_none=True),
         message="Voice added successfully"
     )

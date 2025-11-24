@@ -21,8 +21,8 @@ class WebSocketServer:
             self.logger,
             self.config,
             "VAD" in self.config["selected_module"],
-            "ASR" in self.config["selected_module"],
-            "LLM" in self.config["selected_module"],
+            False,
+            False,
             False,
             "Memory" in self.config["selected_module"],
             "Intent" in self.config["selected_module"],
@@ -75,6 +75,8 @@ class WebSocketServer:
                 websocket.request.headers["device-id"] = query_params["device-id"][0]
             if "client-id" in query_params:
                 websocket.request.headers["client-id"] = query_params["client-id"][0]
+            if "agent-id" in query_params:
+                websocket.request.headers["agent-id"] = query_params["agent-id"][0]
             if "authorization" in query_params:
                 websocket.request.headers["authorization"] = query_params[
                     "authorization"

@@ -80,7 +80,7 @@ class OTAHandler(BaseHandler):
                 self.logger.bind(tag=TAG).info(f"OTA请求ClientID: {client_id}")
             else:
                 raise Exception("OTA请求ClientID为空")
-
+            
             data_json = json.loads(data)
 
             server_config = self.config["server"]

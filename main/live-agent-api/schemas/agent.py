@@ -35,7 +35,6 @@ class AgentResponse(BaseModel):
     voice_opening: Optional[str] = None
     voice_closing: Optional[str] = None
     created_at: datetime
-    updated_at: datetime
     
     class Config:
         from_attributes = True
@@ -53,10 +52,8 @@ class AgentConfigResponse(BaseModel):
     agent_id: str
     name: str
     voice_id: Optional[str] = None
+    language: Optional[str] = None  # Voice language from Fish Audio
     instruction: str
     voice_opening: Optional[str] = None
     voice_closing: Optional[str] = None
-    
-    class Config:
-        from_attributes = True
 

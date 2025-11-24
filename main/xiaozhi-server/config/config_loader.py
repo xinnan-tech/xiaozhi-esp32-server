@@ -2,7 +2,7 @@ import os
 import yaml
 from collections.abc import Mapping
 from config.manage_api_client import init_service, get_server_config, get_agent_models
-
+from dotenv import load_dotenv
 
 def get_project_dir():
     """获取项目根目录"""
@@ -29,10 +29,24 @@ def load_config():
 
     # 加载默认配置
     # default_config = read_config(default_config_path)
-    custom_config = read_config(custom_config_path)
-
-    if custom_config.get("manager-api", {}).get("url"):
-        config = get_config_from_api(custom_config)
+    config = read_config(custom_config_path)
+    config["read_config_from_live_agent_api"] = True
+    # load environment variables
+    load_dotenv()
+    # tts
+    select_tts_module = config["selected_module"]["TTS"]
+    if os.environ.get("REGION") == "LOCAL" and select_tts_module == "FishSpeech":
+        config["TTS"][select_tts_module]["api_key"] = os.environ.get("FISH_API_KEY")
+    # asr
+    select_asr_module = config["selected_module"]["ASR"]
+    if os.environ.get("REGION") == "LOCAL" and select_asr_module == "GroqASR":
+        config["ASR"][select_asr_module]["api_key"] = os.environ.get("GROQ_API_KEY")
+    # llm
+    select_llm_module = config["selected_module"]["LLM"]
+    if os.environ.get("REGION") == "LOCAL" and select_llm_module == "GroqLLM":
+        config["LLM"][select_llm_module]["api_key"] = os.environ.get("GROQ_API_KEY")
+    # if custom_config.get("manager-api", {}).get("url"):
+    #     config = get_config_from_api(custom_config)
     # else:
     #     # 合并配置
     #     config = merge_configs(default_config, custom_config)

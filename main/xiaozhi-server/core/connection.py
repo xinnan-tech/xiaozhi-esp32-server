@@ -41,9 +41,9 @@ from config.manage_api_client import DeviceNotFoundException, DeviceBindExceptio
 from core.utils.prompt_manager import PromptManager
 from core.utils.voiceprint_provider import VoiceprintProvider
 from core.utils import textUtils
+from config.live_agent_api_client import get_agent_config_from_api
 
 TAG = __name__
-
 auto_import_modules("plugins_func.functions")
 
 
@@ -71,6 +71,7 @@ class ConnectionHandler:
         self.need_bind = False
         self.bind_code = None
         self.read_config_from_api = self.config.get("read_config_from_api", False)
+        self.read_config_from_live_agent_api = self.config.get("read_config_from_live_agent_api", False)
 
         self.websocket = None
         self.headers = None
@@ -160,6 +161,12 @@ class ConnectionHandler:
         # 初始化提示词管理器
         self.prompt_manager = PromptManager(config, self.logger)
 
+        # agent-related configs
+        self._instruction = None
+        self._voice_opening = None
+        self._voice_closing = None
+        self._language = None
+
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
@@ -176,6 +183,7 @@ class ConnectionHandler:
             )
 
             self.device_id = self.headers.get("device-id", None)
+            self.agent_id = self.headers.get("agent-id", None)
 
             # 认证通过,继续处理
             self.websocket = ws
@@ -192,11 +200,12 @@ class ConnectionHandler:
             # 启动超时检查任务
             self.timeout_task = asyncio.create_task(self._check_timeout())
 
+            # todo: welcome message need to be set after private config is loaded
             self.welcome_msg = self.config["xiaozhi"]
             self.welcome_msg["session_id"] = self.session_id
 
             # 获取差异化配置
-            self._initialize_private_config()
+            self._initialize_agent_config()
             # 异步初始化
             self.executor.submit(self._initialize_components)
 
@@ -404,16 +413,6 @@ class ConnectionHandler:
             )
             self.logger = create_connection_logger(self.selected_module_str)
 
-            """初始化组件"""
-            if self.config.get("prompt") is not None:
-                user_prompt = self.config["prompt"]
-                # 使用快速提示词进行初始化
-                prompt = self.prompt_manager.get_quick_prompt(user_prompt)
-                self.change_system_prompt(prompt)
-                self.logger.bind(tag=TAG).info(
-                    f"快速初始化组件: prompt成功 {prompt[:50]}..."
-                )
-
             """初始化本地组件"""
             if self.vad is None:
                 self.vad = self._vad
@@ -446,6 +445,16 @@ class ConnectionHandler:
             """初始化上报线程"""
             self._init_report_threads()
 
+            if self._voice_opening:
+                self.logger.bind(tag=TAG).info(f"send the opening message: {self._voice_opening}")
+                self.tts.tts_text_queue.put(TTSMessageDTO(
+                    sentence_id=str(uuid.uuid4().hex),
+                    sentence_type=SentenceType.MIDDLE,
+                    content_type=ContentType.TEXT,
+                    content_detail=self._voice_opening,
+                    )
+                )
+
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
 
@@ -466,9 +475,10 @@ class ConnectionHandler:
         
         # 构建增强的系统提示词（返回 (enhanced_prompt, role_tts_config)）
         result = self.prompt_manager.build_enhanced_prompt(
-            self.config["prompt"],
-            self.device_id,
-            self.client_ip,
+            user_prompt=self._instruction,
+            device_id=self.device_id,
+            client_ip=self.client_ip,
+            language=self._language,
             user_persona=user_persona,
         )
         
@@ -655,35 +665,6 @@ class ConnectionHandler:
         init_vad = check_vad_update(self.common_config, private_config)
         init_asr = check_asr_update(self.common_config, private_config)
 
-        if init_vad:
-            self.config["VAD"] = private_config["VAD"]
-            self.config["selected_module"]["VAD"] = private_config["selected_module"][
-                "VAD"
-            ]
-        if init_asr:
-            self.config["ASR"] = private_config["ASR"]
-            self.config["selected_module"]["ASR"] = private_config["selected_module"][
-                "ASR"
-            ]
-        if private_config.get("TTS", None) is not None:
-            init_tts = True
-            self.config["TTS"] = private_config["TTS"]
-            self.config["selected_module"]["TTS"] = private_config["selected_module"][
-                "TTS"
-            ]
-            # 标记 API 已设置 TTS 配置（优先级1）
-            self.config["_api_tts_applied"] = True
-        if private_config.get("LLM", None) is not None:
-            init_llm = True
-            self.config["LLM"] = private_config["LLM"]
-            self.config["selected_module"]["LLM"] = private_config["selected_module"][
-                "LLM"
-            ]
-        if private_config.get("VLLM", None) is not None:
-            self.config["VLLM"] = private_config["VLLM"]
-            self.config["selected_module"]["VLLM"] = private_config["selected_module"][
-                "VLLM"
-            ]
         if private_config.get("Memory", None) is not None:
             init_memory = True
             self.config["Memory"] = private_config["Memory"]
@@ -834,6 +815,56 @@ class ConnectionHandler:
         # 异步初始化工具处理器
         if hasattr(self, "loop") and self.loop:
             asyncio.run_coroutine_threadsafe(self.func_handler._initialize(), self.loop)
+
+    def _initialize_agent_config(self):
+        """initialize agent config"""
+        if not self.read_config_from_live_agent_api:
+            return
+        private_config = get_agent_config_from_api(self.agent_id, self.config)
+        # self.logger.bind(tag=TAG).info(f"private_config: {private_config}")
+        # self.logger.bind(tag=TAG).info(f"self.config: {self.config}")
+        self.config["TTS"]["FishSpeech"]["reference_id"] = private_config["voice_id"]
+        self._instruction = private_config["instruction"]
+        self._voice_opening = private_config["voice_opening"]
+        self._voice_closing = private_config["voice_closing"]
+        self._language = private_config["language"]
+        
+        init_llm, init_tts, init_memory, init_intent = (
+            True,
+            True,
+            False,
+            False,
+        )
+
+        init_vad = False
+        init_asr = True
+
+        try:
+            modules = initialize_modules(
+                self.logger,
+                self.config,
+                init_vad,
+                init_asr,
+                init_llm,
+                init_tts,
+                init_memory,
+                init_intent,
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"初始化组件失败: {e}")
+            modules = {}
+        if modules.get("tts", None) is not None:
+            self.tts = modules["tts"]
+        if modules.get("vad", None) is not None:
+            self.vad = modules["vad"]
+        if modules.get("asr", None) is not None:
+            self.asr = modules["asr"]
+        if modules.get("llm", None) is not None:
+            self.llm = modules["llm"]
+        if modules.get("intent", None) is not None:
+            self.intent = modules["intent"]
+        if modules.get("memory", None) is not None:
+            self.memory = modules["memory"]
 
     def change_system_prompt(self, prompt):
         self.prompt = prompt

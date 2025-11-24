@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS voices (
     owner_id VARCHAR(50) NOT NULL,
     name VARCHAR(100) NOT NULL,
     "desc" TEXT NOT NULL DEFAULT '',
+    sample_url TEXT,
+    sample_text TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     CONSTRAINT fk_voices_owner FOREIGN KEY (owner_id) 
@@ -84,6 +86,8 @@ COMMENT ON COLUMN voices.voice_id IS 'Fish Audio voice ID';
 COMMENT ON COLUMN voices.owner_id IS 'User ID of voice owner';
 COMMENT ON COLUMN voices.name IS 'Voice display name';
 COMMENT ON COLUMN voices."desc" IS 'Voice description';
+COMMENT ON COLUMN voices.sample_url IS 'S3 URL of the original audio sample (for cloned voices)';
+COMMENT ON COLUMN voices.sample_text IS 'Transcription text of the audio sample (for cloned voices)';
 
 -- ==================== Table: agent_templates ====================
 -- Pre-configured agent templates

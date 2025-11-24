@@ -1,6 +1,8 @@
 from typing import Dict, Any
 from config.logger import setup_logging
 from core.utils import tts, llm, intent, memory, vad, asr
+from dotenv import load_dotenv
+import os
 
 TAG = __name__
 logger = setup_logging()
