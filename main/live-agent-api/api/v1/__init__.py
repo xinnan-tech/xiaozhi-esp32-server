@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.v1 import user, templates, agents, voices, internal
+from api.v1 import user, templates, agents, voices, internal, chat
 
 api_router = APIRouter()
 
@@ -36,5 +36,12 @@ api_router.include_router(
     internal.router,
     prefix="/internal",
     tags=["Internal"]
+)
+
+# Chat routes
+api_router.include_router(
+    chat.router,
+    prefix="/chat",
+    tags=["Chat"]
 )
 

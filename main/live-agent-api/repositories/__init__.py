@@ -7,12 +7,14 @@ from .user import UserModel
 from .agent import AgentModel
 from .agent_template import AgentTemplateModel
 from .voice import VoiceModel
+from .chat import ChatMessageModel
 
 # Import Repository classes
 from .user import User
 from .agent import Agent
 from .agent_template import AgentTemplate
 from .voice import Voice
+from .chat import ChatMessage
 from .file import FileRepository
 
 __all__ = [
@@ -21,11 +23,13 @@ __all__ = [
     "AgentModel",
     "AgentTemplateModel",
     "VoiceModel",
+    "ChatMessageModel",
     # Repository classes
     "User",
     "Agent",
     "AgentTemplate",
     "Voice",
+    "ChatMessage",
     "FileRepository",
 ]
 
