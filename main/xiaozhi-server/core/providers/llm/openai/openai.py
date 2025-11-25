@@ -24,7 +24,6 @@ class LLMProvider(LLMProviderBase):
             "max_tokens": int,
             "temperature": lambda x: round(float(x), 1),
             "top_p": lambda x: round(float(x), 1),
-            "top_k": int,
             "frequency_penalty": lambda x: round(float(x), 1),
         }
 
@@ -40,7 +39,7 @@ class LLMProvider(LLMProviderBase):
                 setattr(self, param, None)
 
         logger.debug(
-            f"意图识别参数初始化: {self.temperature}, {self.max_tokens}, {self.top_p}, {self.top_k}, {self.frequency_penalty}"
+            f"意图识别参数初始化: {self.temperature}, {self.max_tokens}, {self.top_p}, {self.frequency_penalty}"
         )
 
         model_key_msg = check_model_key("LLM", self.api_key)
@@ -71,7 +70,6 @@ class LLMProvider(LLMProviderBase):
                 "max_tokens": kwargs.get("max_tokens", self.max_tokens),
                 "temperature": kwargs.get("temperature", self.temperature),
                 "top_p": kwargs.get("top_p", self.top_p),
-                "top_k": kwargs.get("top_k", self.top_k),
                 "frequency_penalty": kwargs.get("frequency_penalty", self.frequency_penalty),
             }
 
@@ -116,7 +114,6 @@ class LLMProvider(LLMProviderBase):
                 "max_tokens": kwargs.get("max_tokens", self.max_tokens),
                 "temperature": kwargs.get("temperature", self.temperature),
                 "top_p": kwargs.get("top_p", self.top_p),
-                "top_k": kwargs.get("top_k", self.top_k),
                 "frequency_penalty": kwargs.get("frequency_penalty", self.frequency_penalty),
             }
 

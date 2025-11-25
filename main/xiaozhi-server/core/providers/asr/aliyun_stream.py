@@ -5,6 +5,7 @@ import hmac
 import base64
 import hashlib
 import asyncio
+import gc
 import requests
 import websockets
 import opuslib_next
@@ -347,4 +348,12 @@ class ASRProvider(ASRProviderBase):
 
     async def close(self):
         """关闭资源"""
-        await self._cleanup()
+        await self._cleanup(None)
+        if hasattr(self, 'decoder') and self.decoder is not None:
+            try:
+                del self.decoder
+                self.decoder = None
+                gc.collect()
+                logger.bind(tag=TAG).debug("Aliyun decoder resources released")
+            except Exception as e:
+                logger.bind(tag=TAG).debug(f"释放Aliyun decoder资源时出错: {e}")

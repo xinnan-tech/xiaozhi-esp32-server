@@ -77,7 +77,7 @@ public class KnowledgeFilesDTO implements Serializable {
             return STATUS_UNSTART;
         }
 
-        // 根据run字段的值直接映射到对应的状态码
+        // RAGFlow根据run字段的值直接映射到对应的状态码
         switch (run.toUpperCase()) {
             case "RUNNING":
                 return STATUS_RUNNING;

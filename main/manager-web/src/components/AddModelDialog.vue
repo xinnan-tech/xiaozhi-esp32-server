@@ -200,6 +200,13 @@ export default {
     confirm() {
       this.saving = true;
 
+      // 校验模型ID不能为纯文字或空格
+      if (this.formData.id && !this.validateModelId(this.formData.id)) {
+        this.$message.error(this.$t('modelConfigDialog.invalidModelId'));
+        this.saving = false;
+        return;
+      }
+
       if (!this.formData.supplier) {
         this.$message.error(this.$t('addModelDialog.requiredSupplier'));
         this.saving = false;
@@ -254,6 +261,38 @@ export default {
       this.providerFields = [];
       this.currentProvider = null;
     },
+    
+    // 校验模型ID：不能为纯文字或空格
+    validateModelId(modelId) {
+      if (!modelId || typeof modelId !== 'string') {
+        return false;
+      }
+      
+      // 去除首尾空格
+      const trimmedId = modelId.trim();
+      
+      // 检查是否为空或纯空格
+      if (trimmedId === '') {
+        return false;
+      }
+      
+      // 检查是否只包含字母（纯文字）
+      if (/^[a-zA-Z]+$/.test(trimmedId)) {
+        return false;
+      }
+      
+      // 检查是否包含空格
+      if (/\s/.test(trimmedId)) {
+        return false;
+      }
+      
+      // 允许字母、数字、下划线、连字符
+      if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
+        return false;
+      }
+      
+      return true;
+    }
   }
 }
 </script>

@@ -849,6 +849,7 @@ export default {
   'modelConfigDialog.setDefault': '设为默认',
   'modelConfigDialog.modelId': '模型ID',
   'modelConfigDialog.enterModelId': '未填写将自动生成模型ID',
+  'modelConfigDialog.invalidModelId': '模型ID不能为纯文字或空格，请使用字母、数字、下划线或连字符组合',
   'modelConfigDialog.modelName': '模型名称',
   'modelConfigDialog.enterModelName': '请输入模型名称',
   'modelConfigDialog.modelCode': '模型编码',

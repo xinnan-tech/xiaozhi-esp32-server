@@ -3,7 +3,14 @@
 import asyncio
 import os
 import json
+from datetime import timedelta
 from typing import Dict, Any, List
+
+from mcp import Implementation
+from mcp.client.session import SamplingFnT, ElicitationFnT, ListRootsFnT, LoggingFnT, MessageHandlerFnT
+from mcp.shared.session import ProgressFnT
+from mcp.types import LoggingMessageNotificationParams
+
 from config.config_loader import get_project_dir
 from config.logger import setup_logging
 from .mcp_client import ServerMCPClient
@@ -56,7 +63,7 @@ class ServerMCPManager:
                 # 初始化服务端MCP客户端
                 logger.bind(tag=TAG).info(f"初始化服务端MCP客户端: {name}")
                 client = ServerMCPClient(srv_config)
-                await client.initialize()
+                await client.initialize(logging_callback=self.logging_callback)
                 self.clients[name] = client
                 client_tools = client.get_available_tools()
                 self.tools.extend(client_tools)
@@ -109,7 +116,7 @@ class ServerMCPManager:
         # 带重试机制的工具调用
         for attempt in range(max_retries):
             try:
-                return await target_client.call_tool(tool_name, arguments)
+                return await target_client.call_tool(tool_name, arguments, progress_callback=self.progress_callback)
             except Exception as e:
                 # 最后一次尝试失败时直接抛出异常
                 if attempt == max_retries - 1:
@@ -131,7 +138,7 @@ class ServerMCPManager:
                     config = self.load_config()
                     if client_name in config:
                         client = ServerMCPClient(config[client_name])
-                        await client.initialize()
+                        await client.initialize(logging_callback=self.logging_callback)
                         self.clients[client_name] = client
                         target_client = client
                         logger.bind(tag=TAG).info(
@@ -159,3 +166,11 @@ class ServerMCPManager:
             except (asyncio.TimeoutError, Exception) as e:
                 logger.bind(tag=TAG).error(f"关闭服务端MCP客户端 {name} 时出错: {e}")
         self.clients.clear()
+
+    # 可选回调方法
+
+    async def logging_callback(self, params: LoggingMessageNotificationParams):
+        logger.bind(tag=TAG).info(f"[Server Log - {params.level.upper()}] {params.data}")
+
+    async def progress_callback(self, progress: float, total: float | None, message: str | None) -> None:
+        logger.bind(tag=TAG).info(f"[Progress {progress}/{total}]: {message}")

@@ -217,7 +217,8 @@
         <el-form :model="retrievalTestForm" label-width="80px">
           <el-form-item :label="$t('knowledgeFileUpload.testQuestion')" required>
             <el-input v-model="retrievalTestForm.question"
-              :placeholder="$t('knowledgeFileUpload.testQuestionPlaceholder')" style="width: 100%; max-height: 80px;">
+              :placeholder="$t('knowledgeFileUpload.testQuestionPlaceholder')" style="width: 100%; max-height: 80px;"
+              @keyup.enter.native="runRetrievalTest">
             </el-input>
           </el-form-item>
         </el-form>

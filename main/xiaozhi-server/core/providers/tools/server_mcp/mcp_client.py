@@ -10,10 +10,13 @@ import concurrent.futures
 from contextlib import AsyncExitStack
 from typing import Optional, List, Dict, Any
 
-from mcp import ClientSession, StdioServerParameters
+from mcp import ClientSession, StdioServerParameters, Implementation
+from mcp.client.session import SamplingFnT, ElicitationFnT, ListRootsFnT, LoggingFnT, MessageHandlerFnT
 from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
+from mcp.shared.session import ProgressFnT
+
 from config.logger import setup_logging
 from core.utils.util import sanitize_tool_name
 
@@ -41,13 +44,25 @@ class ServerMCPClient:
         self.tools_dict: Dict[str, Any] = {}
         self.name_mapping: Dict[str, str] = {}
 
-    async def initialize(self):
+    async def initialize(self, read_timeout_seconds: timedelta | None = None,
+             sampling_callback: SamplingFnT | None = None,
+             elicitation_callback: ElicitationFnT | None = None,
+             list_roots_callback: ListRootsFnT | None = None,
+             logging_callback: LoggingFnT | None = None,
+             message_handler: MessageHandlerFnT | None = None,
+             client_info: Implementation | None = None):
         """初始化MCP客户端连接"""
         if self._worker_task:
             return
 
         self._worker_task = asyncio.create_task(
-            self._worker(), name="ServerMCPClientWorker"
+            self._worker(read_timeout_seconds=read_timeout_seconds,
+                        sampling_callback=sampling_callback,
+                        elicitation_callback=elicitation_callback,
+                        list_roots_callback=list_roots_callback,
+                        logging_callback=logging_callback,
+                        message_handler=message_handler,
+                        client_info=client_info), name="ServerMCPClientWorker"
         )
         await self._ready_evt.wait()
 
@@ -97,12 +112,15 @@ class ServerMCPClient:
             for name, tool in self.tools_dict.items()
         ]
 
-    async def call_tool(self, name: str, args: dict) -> Any:
+    async def call_tool(self, name: str, arguments: dict, read_timeout_seconds: timedelta | None = None, progress_callback: ProgressFnT | None = None, *, meta: dict[str, Any] | None = None) -> Any:
         """调用指定工具
 
         Args:
             name: 工具名称
-            args: 工具参数
+            arguments: 工具参数
+            read_timeout_seconds:
+            progress_callback: 进度回调函数
+            meta:
 
         Returns:
             Any: 工具执行结果
@@ -115,7 +133,7 @@ class ServerMCPClient:
 
         real_name = self.name_mapping.get(name, name)
         loop = self._worker_task.get_loop()
-        coro = self.session.call_tool(real_name, args)
+        coro = self.session.call_tool(real_name, arguments=arguments, read_timeout_seconds=read_timeout_seconds, progress_callback=progress_callback, meta=meta)
 
         if loop is asyncio.get_running_loop():
             return await coro
@@ -144,7 +162,13 @@ class ServerMCPClient:
         # 所有检查都通过，连接正常
         return True
 
-    async def _worker(self):
+    async def _worker(self, read_timeout_seconds: timedelta | None = None,
+             sampling_callback: SamplingFnT | None = None,
+             elicitation_callback: ElicitationFnT | None = None,
+             list_roots_callback: ListRootsFnT | None = None,
+             logging_callback: LoggingFnT | None = None,
+             message_handler: MessageHandlerFnT | None = None,
+             client_info: Implementation | None = None):
         """MCP客户端工作协程"""
         async with AsyncExitStack() as stack:
             try:
@@ -208,7 +232,13 @@ class ServerMCPClient:
                     ClientSession(
                         read_stream=read_stream,
                         write_stream=write_stream,
-                        read_timeout_seconds=timedelta(seconds=15),
+                        read_timeout_seconds=read_timeout_seconds,
+                        sampling_callback=sampling_callback,
+                        elicitation_callback=elicitation_callback,
+                        list_roots_callback=list_roots_callback,
+                        logging_callback=logging_callback,
+                        message_handler=message_handler,
+                        client_info=client_info
                     )
                 )
                 await self.session.initialize()

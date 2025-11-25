@@ -8,6 +8,7 @@ import requests
 import subprocess
 import numpy as np
 import opuslib_next
+import gc
 from io import BytesIO
 from core.utils import p3
 from pydub import AudioSegment
@@ -372,26 +373,34 @@ def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
     将opus帧列表解码为wav字节流
     """
     decoder = opuslib_next.Decoder(sample_rate, channels)
-    pcm_datas = []
+    try:
+        pcm_datas = []
 
-    frame_duration = 60  # ms
-    frame_size = int(sample_rate * frame_duration / 1000)  # 960
+        frame_duration = 60  # ms
+        frame_size = int(sample_rate * frame_duration / 1000)  # 960
 
-    for opus_frame in opus_datas:
-        # 解码为PCM（返回bytes，2字节/采样点）
-        pcm = decoder.decode(opus_frame, frame_size)
-        pcm_datas.append(pcm)
+        for opus_frame in opus_datas:
+            # 解码为PCM（返回bytes，2字节/采样点）
+            pcm = decoder.decode(opus_frame, frame_size)
+            pcm_datas.append(pcm)
 
-    pcm_bytes = b"".join(pcm_datas)
+        pcm_bytes = b"".join(pcm_datas)
 
-    # 写入wav字节流
-    wav_buffer = BytesIO()
-    with wave.open(wav_buffer, "wb") as wf:
-        wf.setnchannels(channels)
-        wf.setsampwidth(2)  # 16bit
-        wf.setframerate(sample_rate)
-        wf.writeframes(pcm_bytes)
-    return wav_buffer.getvalue()
+        # 写入wav字节流
+        wav_buffer = BytesIO()
+        with wave.open(wav_buffer, "wb") as wf:
+            wf.setnchannels(channels)
+            wf.setsampwidth(2)  # 16bit
+            wf.setframerate(sample_rate)
+            wf.writeframes(pcm_bytes)
+        return wav_buffer.getvalue()
+    finally:
+        if decoder is not None:
+            try:
+                del decoder
+                gc.collect()
+            except Exception:
+                pass
 
 
 def check_vad_update(before_config, new_config):

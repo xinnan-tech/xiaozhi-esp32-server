@@ -10,7 +10,7 @@ TTS上报功能已集成到ConnectionHandler类中。
 """
 
 import time
-
+import gc
 import opuslib_next
 
 from config.manage_api_client import report as manage_report
@@ -56,41 +56,50 @@ def opus_to_wav(conn, opus_data):
     Returns:
         bytes: WAV格式的音频数据
     """
-    decoder = opuslib_next.Decoder(16000, 1)  # 16kHz, 单声道
-    pcm_data = []
+    decoder = None
+    try:
+        decoder = opuslib_next.Decoder(16000, 1)  # 16kHz, 单声道
+        pcm_data = []
 
-    for opus_packet in opus_data:
-        try:
-            pcm_frame = decoder.decode(opus_packet, 960)  # 960 samples = 60ms
-            pcm_data.append(pcm_frame)
-        except opuslib_next.OpusError as e:
-            conn.logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
+        for opus_packet in opus_data:
+            try:
+                pcm_frame = decoder.decode(opus_packet, 960)  # 960 samples = 60ms
+                pcm_data.append(pcm_frame)
+            except opuslib_next.OpusError as e:
+                conn.logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
 
-    if not pcm_data:
-        raise ValueError("没有有效的PCM数据")
+        if not pcm_data:
+            raise ValueError("没有有效的PCM数据")
 
-    # 创建WAV文件头
-    pcm_data_bytes = b"".join(pcm_data)
-    num_samples = len(pcm_data_bytes) // 2  # 16-bit samples
+        # 创建WAV文件头
+        pcm_data_bytes = b"".join(pcm_data)
+        num_samples = len(pcm_data_bytes) // 2  # 16-bit samples
 
-    # WAV文件头
-    wav_header = bytearray()
-    wav_header.extend(b"RIFF")  # ChunkID
-    wav_header.extend((36 + len(pcm_data_bytes)).to_bytes(4, "little"))  # ChunkSize
-    wav_header.extend(b"WAVE")  # Format
-    wav_header.extend(b"fmt ")  # Subchunk1ID
-    wav_header.extend((16).to_bytes(4, "little"))  # Subchunk1Size
-    wav_header.extend((1).to_bytes(2, "little"))  # AudioFormat (PCM)
-    wav_header.extend((1).to_bytes(2, "little"))  # NumChannels
-    wav_header.extend((16000).to_bytes(4, "little"))  # SampleRate
-    wav_header.extend((32000).to_bytes(4, "little"))  # ByteRate
-    wav_header.extend((2).to_bytes(2, "little"))  # BlockAlign
-    wav_header.extend((16).to_bytes(2, "little"))  # BitsPerSample
-    wav_header.extend(b"data")  # Subchunk2ID
-    wav_header.extend(len(pcm_data_bytes).to_bytes(4, "little"))  # Subchunk2Size
+        # WAV文件头
+        wav_header = bytearray()
+        wav_header.extend(b"RIFF")  # ChunkID
+        wav_header.extend((36 + len(pcm_data_bytes)).to_bytes(4, "little"))  # ChunkSize
+        wav_header.extend(b"WAVE")  # Format
+        wav_header.extend(b"fmt ")  # Subchunk1ID
+        wav_header.extend((16).to_bytes(4, "little"))  # Subchunk1Size
+        wav_header.extend((1).to_bytes(2, "little"))  # AudioFormat (PCM)
+        wav_header.extend((1).to_bytes(2, "little"))  # NumChannels
+        wav_header.extend((16000).to_bytes(4, "little"))  # SampleRate
+        wav_header.extend((32000).to_bytes(4, "little"))  # ByteRate
+        wav_header.extend((2).to_bytes(2, "little"))  # BlockAlign
+        wav_header.extend((16).to_bytes(2, "little"))  # BitsPerSample
+        wav_header.extend(b"data")  # Subchunk2ID
+        wav_header.extend(len(pcm_data_bytes).to_bytes(4, "little"))  # Subchunk2Size
 
-    # 返回完整的WAV数据
-    return bytes(wav_header) + pcm_data_bytes
+        # 返回完整的WAV数据
+        return bytes(wav_header) + pcm_data_bytes
+    finally:
+        if decoder is not None:
+            try:
+                del decoder
+                gc.collect()
+            except Exception as e:
+                conn.logger.bind(tag=TAG).debug(f"释放decoder资源时出错: {e}")
 
 
 def enqueue_tts_report(conn, text, opus_data):

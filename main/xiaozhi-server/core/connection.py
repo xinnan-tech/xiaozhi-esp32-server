@@ -68,8 +68,11 @@ class ConnectionHandler:
         self.logger = setup_logging()
         self.server = server  # 保存server实例的引用
 
-        self.need_bind = False
-        self.bind_code = None
+        self.need_bind = False  # 是否需要绑定设备
+        self.bind_code = None  # 绑定设备的验证码
+        self.last_bind_prompt_time = 0  # 上次播放绑定提示的时间戳(秒)
+        self.bind_prompt_interval = 30  # 绑定提示播放间隔(秒)
+
         self.read_config_from_api = self.config.get("read_config_from_api", False)
 
         self.websocket = None
@@ -116,6 +119,7 @@ class ConnectionHandler:
         self.client_audio_buffer = bytearray()
         self.client_have_voice = False
         self.client_voice_window = deque(maxlen=5)
+        self.first_activity_time = 0.0  # 记录首次活动的时间（毫秒）
         self.last_activity_time = 0.0  # 统一的活动时间戳（毫秒）
         self.client_voice_stop = False
         self.last_is_voice = False
@@ -188,6 +192,7 @@ class ConnectionHandler:
                 self.logger.bind(tag=TAG).info("连接来自:MQTT网关")
 
             # 初始化活动时间戳
+            self.first_activity_time = time.time() * 1000
             self.last_activity_time = time.time() * 1000
 
             # 启动超时检查任务
@@ -267,6 +272,22 @@ class ConnectionHandler:
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
             if self.vad is None or self.asr is None:
+                return
+
+            # 未绑定设备直接丢弃所有音频，不进行ASR处理
+            if self.need_bind:
+                current_time = time.time()
+                # 检查是否需要播放绑定提示
+                if (
+                    current_time - self.last_bind_prompt_time
+                    >= self.bind_prompt_interval
+                ):
+                    self.last_bind_prompt_time = current_time
+                    # 复用现有的绑定提示逻辑
+                    from core.handle.receiveAudioHandle import check_bind_device
+
+                    asyncio.create_task(check_bind_device(self))
+                # 直接丢弃音频，不进行ASR处理
                 return
 
             # 处理来自MQTT网关的音频包
@@ -745,18 +766,26 @@ class ConnectionHandler:
         force_final_answer = False  # 标记是否强制最终回答
 
         if depth >= MAX_DEPTH:
-            self.logger.bind(tag=TAG).debug(f"已达到最大工具调用深度 {MAX_DEPTH}，将强制基于现有信息回答")
+            self.logger.bind(tag=TAG).debug(
+                f"已达到最大工具调用深度 {MAX_DEPTH}，将强制基于现有信息回答"
+            )
             force_final_answer = True
             # 添加系统指令，要求 LLM 基于现有信息回答
-            self.dialogue.put(Message(
-                role="user",
-                content="[系统提示] 已达到最大工具调用次数限制，请你基于目前已经获取的所有信息，直接给出最终答案。不要再尝试调用任何工具。"
-            ))
+            self.dialogue.put(
+                Message(
+                    role="user",
+                    content="[系统提示] 已达到最大工具调用次数限制，请你基于目前已经获取的所有信息，直接给出最终答案。不要再尝试调用任何工具。",
+                )
+            )
 
         # Define intent functions
         functions = None
         # 达到最大深度时，禁用工具调用，强制 LLM 直接回答
-        if self.intent_type == "function_call" and hasattr(self, "func_handler") and not force_final_answer:
+        if (
+            self.intent_type == "function_call"
+            and hasattr(self, "func_handler")
+            and not force_final_answer
+        ):
             functions = self.func_handler.get_functions()
         response_message = []
 
@@ -845,11 +874,16 @@ class ConnectionHandler:
                 if a is not None:
                     try:
                         content_arguments_json = json.loads(a)
-                        tool_calls_list.append({
-                            "id": str(uuid.uuid4().hex),
-                            "name": content_arguments_json["name"],
-                            "arguments": json.dumps(content_arguments_json["arguments"], ensure_ascii=False)
-                        })
+                        tool_calls_list.append(
+                            {
+                                "id": str(uuid.uuid4().hex),
+                                "name": content_arguments_json["name"],
+                                "arguments": json.dumps(
+                                    content_arguments_json["arguments"],
+                                    ensure_ascii=False,
+                                ),
+                            }
+                        )
                     except Exception as e:
                         bHasError = True
                         response_message.append(a)
@@ -881,7 +915,9 @@ class ConnectionHandler:
                     )
 
                     future = asyncio.run_coroutine_threadsafe(
-                        self.func_handler.handle_llm_function_call(self, tool_call_data),
+                        self.func_handler.handle_llm_function_call(
+                            self, tool_call_data
+                        ),
                         self.loop,
                     )
                     futures_with_data.append((future, tool_call_data))
@@ -889,7 +925,7 @@ class ConnectionHandler:
                 # 等待协程结束（实际等待时长为最慢的那个）
                 tool_results = []
                 for future, tool_call_data in futures_with_data:
-                    result = future.result()  
+                    result = future.result()
                     tool_results.append((result, tool_call_data))
 
                 # 统一处理所有工具调用结果
@@ -923,7 +959,11 @@ class ConnectionHandler:
         need_llm_tools = []
 
         for result, tool_call_data in tool_results:
-            if result.action in [Action.RESPONSE, Action.NOTFOUND, Action.ERROR]:  # 直接回复前端
+            if result.action in [
+                Action.RESPONSE,
+                Action.NOTFOUND,
+                Action.ERROR,
+            ]:  # 直接回复前端
                 text = result.response if result.response else result.result
                 self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
                 self.dialogue.put(Message(role="assistant", content=text))
@@ -958,7 +998,11 @@ class ConnectionHandler:
                     self.dialogue.put(
                         Message(
                             role="tool",
-                            tool_call_id=str(uuid.uuid4()) if tool_call_data["id"] is None else tool_call_data["id"],
+                            tool_call_id=(
+                                str(uuid.uuid4())
+                                if tool_call_data["id"] is None
+                                else tool_call_data["id"]
+                            ),
                             content=text,
                         )
                     )
@@ -1138,13 +1182,14 @@ class ConnectionHandler:
         """检查连接超时"""
         try:
             while not self.stop_event.is_set():
+                last_activity_time = self.last_activity_time
+                if self.need_bind:
+                    last_activity_time = self.first_activity_time
+
                 # 检查是否超时（只有在时间戳已初始化的情况下）
-                if self.last_activity_time > 0.0:
+                if last_activity_time > 0.0:
                     current_time = time.time() * 1000
-                    if (
-                        current_time - self.last_activity_time
-                        > self.timeout_seconds * 1000
-                    ):
+                    if current_time - last_activity_time > self.timeout_seconds * 1000:
                         if not self.stop_event.is_set():
                             self.logger.bind(tag=TAG).info("连接超时，准备关闭")
                             # 设置停止事件，防止重复处理
@@ -1172,7 +1217,7 @@ class ConnectionHandler:
             tools_call: 新的工具调用
         """
         for tool_call in tools_call:
-            tool_index = getattr(tool_call, 'index', None)
+            tool_index = getattr(tool_call, "index", None)
             if tool_index is None:
                 if tool_call.function.name:
                     # 有 function_name，说明是新的工具调用

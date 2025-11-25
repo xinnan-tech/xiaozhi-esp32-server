@@ -5,6 +5,7 @@ import hashlib
 import asyncio
 import websockets
 import opuslib_next
+import gc
 from time import mktime
 from datetime import datetime
 from urllib.parse import urlencode
@@ -512,6 +513,17 @@ class ASRProvider(ASRProviderBase):
                 pass
             self.forward_task = None
         self.is_processing = False
+        
+        # 显式释放decoder资源
+        if hasattr(self, 'decoder') and self.decoder is not None:
+            try:
+                del self.decoder
+                self.decoder = None
+                gc.collect()
+                logger.bind(tag=TAG).debug("Xunfei decoder resources released")
+            except Exception as e:
+                logger.bind(tag=TAG).debug(f"释放Xunfei decoder资源时出错: {e}")
+
         # 清理所有连接的音频缓冲区
         if hasattr(self, "_connections"):
             for conn in self._connections.values():

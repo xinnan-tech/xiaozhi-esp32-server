@@ -228,4 +228,16 @@ public interface ErrorCode {
 
     // 智能体模板相关错误码(补充)
     int AGENT_TEMPLATE_NOT_FOUND = 10183; // 默认智能体未找到
+
+    // 知识库适配器相关错误码
+    int RAG_ADAPTER_TYPE_NOT_SUPPORTED = 10184; // 不支持的适配器类型
+    int RAG_CONFIG_VALIDATION_FAILED = 10185; // RAG配置验证失败
+    int RAG_ADAPTER_CREATION_FAILED = 10186; // 适配器创建失败
+    int RAG_ADAPTER_INIT_FAILED = 10187; // 适配器初始化失败
+    int RAG_ADAPTER_CONNECTION_FAILED = 10188; // 适配器连接测试失败
+    int RAG_ADAPTER_OPERATION_FAILED = 10189; // 适配器操作失败
+    int RAG_ADAPTER_NOT_FOUND = 10190; // 适配器未找到
+    int RAG_ADAPTER_CACHE_ERROR = 10191; // 适配器缓存错误
+    int RAG_ADAPTER_TYPE_NOT_FOUND = 10192; // 适配器类型未找到
+
 }
