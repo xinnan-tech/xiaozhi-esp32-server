@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.v1 import user, templates, agents, voices, internal, chat
+from api.v1 import user, templates, agents, voices, internal, files, chat
 
 api_router = APIRouter()
 
@@ -36,6 +36,13 @@ api_router.include_router(
     internal.router,
     prefix="/internal",
     tags=["Internal"]
+)
+
+# File upload routes (for App only)
+api_router.include_router(
+    files.router,
+    prefix="/files",
+    tags=["Files"]
 )
 
 # Chat routes

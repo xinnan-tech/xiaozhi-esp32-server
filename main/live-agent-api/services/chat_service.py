@@ -47,10 +47,16 @@ class ChatService:
             if message.message_type != "audio":
                 continue
             
+            # Decode base64 audio to bytes (service layer handles data transformation)
+            try:
+                audio_bytes = base64.b64decode(message.message_content)
+            except Exception as e:
+                raise ValueError(f"Invalid base64 audio data: {e}")
+            
             # Upload to S3 using FileRepository with message_id
             audio_url = await FileRepository.upload_chat_audio(
                 s3,
-                message.message_content,
+                audio_bytes,
                 request.agent_id,
                 message_id=message_id,
                 file_ext="opus"

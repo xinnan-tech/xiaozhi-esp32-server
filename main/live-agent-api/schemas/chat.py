@@ -10,7 +10,7 @@ import enum
 class MessageBody(BaseModel):
     """Individual message content part (text, audio, image, or file)"""
     message_type: Literal["text", "audio", "image", "file"]
-    message_content: str | bytes  # Text content or S3 URL
+    message_content: str  # Text content or S3 URL
 
 class ChatRole(enum.Enum):
     USER = 1
