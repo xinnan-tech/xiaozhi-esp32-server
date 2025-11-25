@@ -12,6 +12,76 @@ from typing import List, Dict, Any
 TAG = __name__
 
 
+async def _smart_interrupt_handler(conn, text: str) -> bool:
+    """
+    智能打断处理
+
+    Args:
+        conn: ConnectionHandler
+        text: ASR 识别的文本
+
+    Returns:
+        bool: True=继续处理, False=跳过（反馈信号）
+    """
+    try:
+        from core.parallel.smart_interruption import (
+            SmartInterruptionManager,
+            InterruptionDecision,
+            InterruptionType,
+        )
+        from core.parallel.feature_flags import FeatureFlag, get_feature_manager
+
+        # 检查是否启用智能打断
+        if not get_feature_manager().is_enabled(FeatureFlag.SMART_INTERRUPTION):
+            # 未启用智能打断，使用传统逻辑
+            await handleAbortMessage(conn)
+            return True
+
+        # 获取或创建管理器
+        if not hasattr(conn, '_smart_interruption_manager'):
+            conn._smart_interruption_manager = SmartInterruptionManager(
+                logger=conn.logger if hasattr(conn, 'logger') else None,
+            )
+
+        manager = conn._smart_interruption_manager
+
+        # 检测打断意图
+        decision, int_type = await manager.should_interrupt_on_text(
+            text=text,
+            is_speaking=conn.client_is_speaking,
+            listen_mode=conn.client_listen_mode,
+        )
+
+        # 反馈信号：不打断，也不处理
+        if int_type == InterruptionType.BACKCHANNEL and decision == InterruptionDecision.CONTINUE:
+            return False
+
+        # 需要打断
+        if decision == InterruptionDecision.INTERRUPT:
+            await handleAbortMessage(conn)
+
+        return True
+
+    except ImportError:
+        # 模块未安装，使用传统逻辑
+        await handleAbortMessage(conn)
+        return True
+    except Exception as e:
+        conn.logger.bind(tag=TAG).error(f"智能打断处理失败: {e}")
+        # 出错时使用传统逻辑
+        await handleAbortMessage(conn)
+        return True
+
+
+def _is_smart_interruption_enabled() -> bool:
+    """检查智能打断是否启用"""
+    try:
+        from core.parallel.feature_flags import FeatureFlag, get_feature_manager
+        return get_feature_manager().is_enabled(FeatureFlag.SMART_INTERRUPTION)
+    except ImportError:
+        return False
+
+
 async def handleAudioMessage(conn, audio):
     # 当前片段是否有人说话
     have_voice = conn.vad.is_vad(conn, audio)
@@ -23,10 +93,14 @@ async def handleAudioMessage(conn, audio):
         if not hasattr(conn, "vad_resume_task") or conn.vad_resume_task.done():
             conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
         return
-    # manual 模式下不打断正在播放的内容
-    if have_voice:
-        if conn.client_is_speaking and conn.client_listen_mode != "manual":
+
+    # 打断处理逻辑
+    if have_voice and conn.client_is_speaking and conn.client_listen_mode != "manual":
+        # 智能打断模式：延迟到 ASR 识别完成后再决定是否打断
+        # 传统模式：VAD 检测到声音立即打断
+        if not _is_smart_interruption_enabled():
             await handleAbortMessage(conn)
+
     # 设备长时间空闲检测，用于say goodbye
     await no_voice_close_connect(conn, have_voice)
     # 接收音频
@@ -84,9 +158,14 @@ async def startToChat(conn, text: str, multimodal_content: List[Dict[str, Any]] 
         ):
             await max_out_size(conn)
             return
-    # manual 模式下不打断正在播放的内容
+
+    # 智能打断处理
     if conn.client_is_speaking and conn.client_listen_mode != "manual":
-        await handleAbortMessage(conn)
+        should_continue = await _smart_interrupt_handler(conn, actual_text)
+        if not should_continue:
+            # 反馈信号（嗯、好的等），不打断也不处理
+            conn.logger.bind(tag=TAG).debug(f"跳过反馈信号: {actual_text}")
+            return
 
     # 首先进行意图分析，使用实际文本内容
     intent_handled = await handle_user_intent(conn, actual_text)
