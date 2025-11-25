@@ -1,9 +1,12 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, Form, File, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infra import get_db, get_s3
+from infra.openai import get_openai
 from services.agent_service import agent_service
+from services.llm_service import llm_service
 from utils.response import success_response
 from api.auth import get_current_user_id
 from schemas.agent import AgentResponse
@@ -135,4 +138,42 @@ async def delete_agent(
         owner_id=current_user_id
     )
     return success_response(data={}, message="Agent deleted successfully")
+
+
+@router.post("/instructions", summary="Optimize Agent Instruction")
+async def optimize_instruction(
+    instruction: str = Form(..., description="Original instruction text"),
+    current_user_id: str = Depends(get_current_user_id),
+    openai_client = Depends(get_openai)
+):
+    """
+    Optimize agent instruction using LLM (streaming)
+    
+    - **instruction**: Original instruction text from user
+    - Returns streaming optimized instruction text
+    
+    The optimization process:
+    - Enhances role definition and clarity
+    - Adds behavior guidelines and tone specification
+    - Structures the instruction professionally
+    - Ensures helpful, focused, and actionable content
+    """
+    
+    async def instruction_generator():
+        """Generate optimized instruction chunks"""
+        try:
+            async for chunk in llm_service.optimize_instruction_stream(
+                openai_client=openai_client,
+                original_instruction=instruction
+            ):
+                yield chunk
+        except Exception as e:
+            # Error already yielded in service, just log
+            import logging
+            logging.error(f"Instruction optimization failed: {e}")
+    
+    return StreamingResponse(
+        instruction_generator(),
+        media_type="text/plain; charset=utf-8"
+    )
 

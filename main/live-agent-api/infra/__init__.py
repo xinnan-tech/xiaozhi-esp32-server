@@ -21,6 +21,11 @@ from .fishaudio import (
     init_fish_audio,
     close_fish_audio,
 )
+from .openai import (
+    get_openai,
+    init_openai,
+    close_openai,
+)
 
 __all__ = [
     # Database
@@ -39,5 +44,9 @@ __all__ = [
     "get_fish_audio",
     "init_fish_audio",
     "close_fish_audio",
+    # OpenAI
+    "get_openai",
+    "init_openai",
+    "close_openai",
 ]
 
