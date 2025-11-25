@@ -19,6 +19,7 @@ dependencies = [
     "aioboto3>=15.5.0",
     "pyjwt>=2.9.0",
     "fish-audio-sdk>=1.1.0",
+    "openai>=1.54.0",
 ]
 
 [project.optional-dependencies]

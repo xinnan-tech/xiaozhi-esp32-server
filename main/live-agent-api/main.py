@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import settings
-from infra import init_db, close_db, init_s3, close_s3, init_fish_audio, close_fish_audio
+from infra import init_db, close_db, init_s3, close_s3, init_fish_audio, close_fish_audio, init_openai, close_openai
 from api.v1 import api_router
 from utils.exceptions import APIException
 
@@ -20,6 +20,8 @@ async def lifespan(app: FastAPI):
     print("S3 connection initialized")
     await init_fish_audio()
     print("Fish Audio client initialized")
+    await init_openai()
+    print("OpenAI client initialized")
     
     yield
     
@@ -31,6 +33,8 @@ async def lifespan(app: FastAPI):
     print("S3 connections closed")
     await close_fish_audio()
     print("Fish Audio client closed")
+    await close_openai()
+    print("OpenAI client closed")
 
 
 # Create FastAPI application

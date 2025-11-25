@@ -1,11 +1,14 @@
 from typing import Optional, List
 from botocore.args import logger
 from fastapi import APIRouter, Depends, Query, Form, File, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infra import get_db, get_s3
 from infra.fishaudio import get_fish_audio
+from infra.openai import get_openai
 from services.voice_service import voice_service
+from services.llm_service import llm_service
 from schemas.voice import ( 
     LiveAgentVoice, 
     DiscoverVoiceResponse, 
@@ -265,4 +268,42 @@ async def remove_voice(
     return success_response(
         data={"voice_id": voice_id},
         message="Voice removed successfully"
+    )
+
+
+@router.post("/sample_text", summary="Generate Voice Sample Text")
+async def generate_voice_sample_text(
+    language: str = Form(..., description="Language code (zh, en, ja, etc.)"),
+    current_user_id: str = Depends(get_current_user_id),
+    openai_client = Depends(get_openai)
+):
+    """
+    Generate expressive text sample for voice cloning (streaming)
+    
+    - **language**: Target language code (zh, en, ja, ko, etc.)
+    - Returns streaming text with rich emotional expression
+    - Supports regenerate by calling again with same parameters
+    
+    The generated text is optimized for voice cloning with:
+    - Varied tone and emotional expression
+    - Appropriate length (80-150 characters)
+    - Natural, engaging content
+    """
+    
+    async def text_generator():
+        """Generate text chunks"""
+        try:
+            async for chunk in llm_service.generate_voice_sample_text_stream(
+                openai_client=openai_client,
+                language=language
+            ):
+                yield chunk
+        except Exception as e:
+            # Error already yielded in service, just log
+            import logging
+            logging.error(f"Voice sample text generation failed: {e}")
+    
+    return StreamingResponse(
+        text_generator(),
+        media_type="text/plain; charset=utf-8"
     )
