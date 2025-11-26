@@ -838,6 +838,16 @@ TTS:
     access_key_secret: 你的阿里云账号access_key_secret
     # 截至2025年7月21日大模型音色只有北京节点采用，其他节点暂不支持
     host: nls-gateway-cn-beijing.aliyuncs.com
+    
+    # 多语言音色配置 - 根据ASR识别的语言标签自动切换音色
+    # 多语言仅限搭配FunASR SenseVoiceSmall模型使用
+    voice_zh: longxiaochun   # 中文音色
+    voice_en: longchen       # 英文音色  
+    voice_yue: longyu        # 粤语音色
+    voice_ja: longchen       # 日语音色
+    voice_ko: longchen       # 韩语音色
+    default_voice: longxiaochun  # 默认音色（当语言标签不匹配或无语言标签时使用）
+    
     # 以下可不用设置，使用默认设置
     # format: pcm  # 音频格式：pcm、wav、mp3
     # sample_rate: 16000  # 采样率：8000、16000、24000
