@@ -1653,8 +1653,8 @@
                     // 使用与服务端期望的listen消息格式
                     const listenMessage = {
                         type: 'listen',
-                        mode: 'manual',  // 使用手动模式，由我们控制开始/停止
-                        state: 'start'   // 表示开始录音
+                        mode: 'auto',  // 使用自动模式，服务器VAD检测说话结束
+                        state: 'start'
                     };
 
                     log(`发送录音开始消息: ${JSON.stringify(listenMessage)}`, 'info');
@@ -1739,7 +1739,7 @@
                     // 发送监听结束消息
                     const stopMessage = {
                         type: 'listen',
-                        mode: 'manual',
+                        mode: 'auto',
                         state: 'stop'
                     };
 

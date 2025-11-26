@@ -161,10 +161,87 @@ def fetch_news_detail(url):
             logger.bind(tag=TAG).warning(f"清理后的新闻内容为空: {url}")
             return "无法解析新闻详情内容，可能是网站结构特殊或内容受限。"
 
+        # 清理无用内容：移除页面导航、版权、下载链接等
+        clean_text = _clean_news_content(clean_text)
+
         return clean_text
     except Exception as e:
         logger.bind(tag=TAG).error(f"获取新闻详情失败: {e}")
         return "无法获取详细内容"
+
+
+def _clean_news_content(text: str) -> str:
+    """清理新闻内容，移除页面垃圾信息"""
+    import re
+    
+    lines = text.split('\n')
+    cleaned_lines = []
+    
+    # 需要过滤的关键词（页面元素、导航等）
+    skip_patterns = [
+        r'^\s*$',  # 空行
+        r'下载客户端',
+        r'登录',
+        r'无障碍',
+        r'扫码下载',
+        r'Android版|iPhone版|iPad版',
+        r'关于澎湃|加入澎湃|联系我们|广告合作|法律声明|隐私政策',
+        r'澎湃新闻报料',
+        r'澎湃新闻，未经授权不得转载',
+        r'沪ICP备|沪公网安备|互联网新闻信息服务许可证|增值电信业务经营许可证',
+        r'©.*上海东方报业',
+        r'反馈',
+        r'收藏',
+        r'我要举报',
+        r'查看更多',
+        r'开始答题',
+        r'新闻报料',
+        r'报料热线|报料邮箱',
+        r'澎湃矩阵',
+        r'澎湃新闻微博|澎湃新闻公众号|澎湃新闻抖音号',
+        r'派生万物开放平台|IP SHANGHAI|SIXTH TONE',
+        r'^\*\s*\+\d+',  # 点赞数
+        r'^\[\!\[.*\]\(.*\)\]',  # markdown 图片链接
+        r'^\!\[.*\]\(data:image',  # base64 图片
+        r'^#\s*$',  # 空标题
+        r'字号',
+    ]
+    
+    skip_regex = re.compile('|'.join(skip_patterns), re.IGNORECASE)
+    
+    in_content = False
+    for line in lines:
+        stripped = line.strip()
+        
+        # 检测正文开始（通常在日期/来源之后）
+        if re.match(r'^\d{4}-\d{2}-\d{2}', stripped):
+            in_content = True
+            continue
+        
+        # 检测正文结束标志
+        if '责任编辑' in stripped or '校对' in stripped:
+            break
+            
+        # 跳过匹配的垃圾内容
+        if skip_regex.search(stripped):
+            continue
+            
+        # 跳过纯链接行
+        if stripped.startswith('[') and stripped.endswith(')'):
+            continue
+            
+        # 保留有意义的内容
+        if stripped and len(stripped) > 5:
+            cleaned_lines.append(stripped)
+    
+    result = '\n'.join(cleaned_lines)
+    
+    # 限制最大长度（避免 token 过多）
+    max_length = 2000
+    if len(result) > max_length:
+        result = result[:max_length] + "...(内容已截断)"
+    
+    return result
 
 
 @register_function(
