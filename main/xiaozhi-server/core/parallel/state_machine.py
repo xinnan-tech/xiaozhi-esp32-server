@@ -37,6 +37,7 @@ class ConversationState(Enum):
 
 
 # 合法的状态转换映射
+# 优化：支持并发场景下的状态转换（如工具调用触发新查询、用户打断等）
 VALID_TRANSITIONS: Dict[ConversationState, List[ConversationState]] = {
     ConversationState.IDLE: [
         ConversationState.PROCESSING_INTENT,
@@ -54,6 +55,7 @@ VALID_TRANSITIONS: Dict[ConversationState, List[ConversationState]] = {
     ConversationState.PLAYING_TRANSITION: [
         ConversationState.EXECUTING_TOOLS,
         ConversationState.GENERATING_RESPONSE,
+        ConversationState.SPEAKING,  # 过渡响应后可直接进入播放
         ConversationState.IDLE,
         ConversationState.INTERRUPTED,
         ConversationState.ERROR,
@@ -61,17 +63,22 @@ VALID_TRANSITIONS: Dict[ConversationState, List[ConversationState]] = {
     ConversationState.EXECUTING_TOOLS: [
         ConversationState.GENERATING_RESPONSE,
         ConversationState.SPEAKING,
+        ConversationState.PROCESSING_INTENT,  # 工具执行后可能触发新查询
         ConversationState.IDLE,
         ConversationState.INTERRUPTED,
         ConversationState.ERROR,
     ],
     ConversationState.GENERATING_RESPONSE: [
         ConversationState.SPEAKING,
+        ConversationState.PROCESSING_INTENT,  # 工具调用后触发新查询（递归调用）
+        ConversationState.PLAYING_TRANSITION,  # 并发场景：生成响应时播放过渡
+        ConversationState.EXECUTING_TOOLS,     # 并发场景：响应中触发工具调用
         ConversationState.IDLE,
         ConversationState.INTERRUPTED,
         ConversationState.ERROR,
     ],
     ConversationState.SPEAKING: [
+        ConversationState.PROCESSING_INTENT,  # 播放时用户新查询
         ConversationState.IDLE,
         ConversationState.INTERRUPTED,
         ConversationState.ERROR,
@@ -83,12 +90,14 @@ VALID_TRANSITIONS: Dict[ConversationState, List[ConversationState]] = {
     ],
     ConversationState.BACKCHANNELING: [
         ConversationState.SPEAKING,
+        ConversationState.PROCESSING_INTENT,
         ConversationState.IDLE,
         ConversationState.INTERRUPTED,
         ConversationState.ERROR,
     ],
     ConversationState.ERROR: [
         ConversationState.IDLE,
+        ConversationState.PROCESSING_INTENT,  # 错误恢复后可处理新查询
     ],
 }
 

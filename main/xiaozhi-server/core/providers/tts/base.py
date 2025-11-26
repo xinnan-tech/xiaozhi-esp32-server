@@ -6,6 +6,7 @@ import queue
 import asyncio
 import threading
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from core.utils import p3
 from datetime import datetime
 from core.utils import textUtils
@@ -26,6 +27,9 @@ from core.providers.tts.dto.dto import (
 
 TAG = __name__
 logger = setup_logging()
+
+# TTS 生成线程池（全局共享，避免频繁创建）
+_tts_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="tts_gen_")
 
 
 class TTSProviderBase(ABC):
@@ -52,10 +56,10 @@ class TTSProviderBase(ABC):
             "：",
         )
         self.first_sentence_punctuations = (
-            # "，",
+            "，",  # 启用逗号，让首段更快播放
             "~",
             "、",
-            # ",",
+            ",",  # 启用英文逗号
             "。",
             "？",
             "?",
@@ -312,6 +316,9 @@ class TTSProviderBase(ABC):
         # 需要上报的文本和音频列表
         enqueue_text = None
         enqueue_audio = None
+        # 用于跟踪上一个发送任务，确保顺序但不阻塞
+        last_send_future = None
+        
         while not self.conn.stop_event.is_set():
             text = None
             try:
@@ -327,6 +334,7 @@ class TTSProviderBase(ABC):
                 if self.conn.client_abort:
                     logger.bind(tag=TAG).debug("收到打断信号，跳过当前音频数据")
                     enqueue_text, enqueue_audio = None, []
+                    last_send_future = None
                     continue
 
                 # 收到下一个文本开始或会话结束时进行上报
@@ -341,12 +349,18 @@ class TTSProviderBase(ABC):
                 if isinstance(audio_datas, bytes) and enqueue_audio is not None:
                     enqueue_audio.append(audio_datas)
 
-                # 发送音频
-                future = asyncio.run_coroutine_threadsafe(
+                # 等待上一个发送完成（保持顺序），但使用短超时避免长时间阻塞
+                if last_send_future is not None:
+                    try:
+                        last_send_future.result(timeout=5.0)
+                    except Exception as e:
+                        logger.bind(tag=TAG).warning(f"上一个音频发送超时或失败: {e}")
+
+                # 异步发送音频（不阻塞等待）
+                last_send_future = asyncio.run_coroutine_threadsafe(
                     sendAudioMessage(self.conn, sentence_type, audio_datas, text),
                     self.conn.loop,
                 )
-                future.result()
 
                 # 记录输出和报告
                 if self.conn.max_output_size > 0 and text:
@@ -371,6 +385,9 @@ class TTSProviderBase(ABC):
         full_text = "".join(self.tts_text_buff)
         current_text = full_text[self.processed_chars :]  # 从未处理的位置开始
         last_punct_pos = -1
+        
+        # 首句最小字符数（避免首句太短如"好的，"）
+        MIN_FIRST_SEGMENT_CHARS = 8
 
         # 根据是否是第一句话选择不同的标点符号集合
         punctuations_to_use = (
@@ -388,6 +405,11 @@ class TTSProviderBase(ABC):
 
         if last_punct_pos != -1:
             segment_text_raw = current_text[: last_punct_pos + 1]
+            
+            # 首句长度检查：如果太短，等待更多文本
+            if self.is_first_sentence and len(segment_text_raw) < MIN_FIRST_SEGMENT_CHARS:
+                return None  # 继续等待更多文本
+            
             segment_text = textUtils.get_string_no_punctuation_or_emoji(
                 segment_text_raw
             )

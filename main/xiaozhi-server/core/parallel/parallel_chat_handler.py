@@ -187,20 +187,24 @@ class ParallelChatHandler:
             if depth == 0:
                 self.conn.sentence_id = str(uuid.uuid4().hex)
                 self.conn.llm_finish_task = False
-                self.conn.dialogue.put_message("user", query)
+                # 保存原始用户查询，用于 memory 查询（递归调用时使用）
+                self._original_query = query
+                from core.utils.dialogue import Message
+                self.conn.dialogue.put(Message(role="user", content=query))
                 self._send_first_message()
 
             # 获取 LLM 响应
             result = await self._process_with_llm(query, depth)
 
-            # 记录性能
-            duration_ms = (time.time() - start_time) * 1000
-            self.degradation_manager.record_request(
-                latency_ms=duration_ms,
-                success=result,
-            )
+            # 只在顶层调用时记录性能和打印日志，避免递归调用重复记录
+            if depth == 0:
+                duration_ms = (time.time() - start_time) * 1000
+                self.degradation_manager.record_request(
+                    latency_ms=duration_ms,
+                    success=result,
+                )
 
-            if self.tracer:
+            if self.tracer and depth == 0:
                 metrics = self.tracer.finish_trace()
                 self.logger.bind(tag=TAG).info(
                     f"[{self.session_id}] 聊天完成: "
@@ -262,71 +266,182 @@ class ParallelChatHandler:
             )
 
     async def _process_with_llm(self, query: str, depth: int) -> bool:
-        """使用 LLM 处理查询"""
+        """
+        使用 LLM 处理查询（流式）
+        
+        优化策略：
+        1. Memory 查询与 LLM 并行启动，减少串行等待
+        2. 条件过渡响应：LLM 首 token 超时才发送，避免割裂感
+        3. depth > 0 时复用缓存的 memory，避免用工具结果查询 memory
+        """
         from core.utils.dialogue import Message
         from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
 
-        # 获取对话历史
-        memory_str = None
-        if self.conn.memory:
-            try:
-                memory_str = await self.conn.memory.query_memory(query)
-            except Exception as e:
-                self.logger.bind(tag=TAG).warning(f"记忆查询失败: {e}")
-
-        dialogue_history = self.conn.dialogue.get_llm_dialogue_with_memory(
-            memory_str, self.conn.config.get("voiceprint", {})
-        )
-
-        # 获取可用函数
+        # 获取可用函数（本地操作，很快）
         functions = None
         if self.conn.intent_type == "function_call" and hasattr(self.conn, 'func_handler'):
             functions = self.conn.func_handler.get_functions()
 
-        # 调用 LLM
+        # 优化: depth=0 时查询 Memory 并缓存；depth > 0 时复用缓存
+        memory_str = None
+        if self.conn.memory:
+            if depth == 0:
+                # 首次调用：使用原始用户查询进行 memory 查询
+                memory_task = asyncio.create_task(
+                    self._query_memory_with_timeout(query)
+                )
+                try:
+                    memory_str = await memory_task
+                    # 缓存 memory 结果，供后续递归调用使用
+                    self._cached_memory_str = memory_str
+                except Exception as e:
+                    self.logger.bind(tag=TAG).warning(f"记忆查询失败: {e}")
+                    self._cached_memory_str = None
+            else:
+                # 递归调用：复用缓存的 memory，避免用工具结果做查询
+                memory_str = getattr(self, '_cached_memory_str', None)
+
+        # 构建对话历史
+        dialogue_history = self.conn.dialogue.get_llm_dialogue_with_memory(
+            memory_str, self.conn.config.get("voiceprint", {})
+        )
+        
+        self.logger.bind(tag=TAG).info(
+            f"[{self.session_id}] 准备调用 LLM, dialogue_len={len(dialogue_history)}, has_functions={functions is not None}"
+        )
+
+        # 流式处理响应（带条件过渡）
         if self.tracer:
             with self.tracer.trace(TracePhase.RESPONSE_GENERATION):
-                llm_responses = await self._call_llm(dialogue_history, functions)
+                return await self._process_llm_response_with_transition(
+                    query, dialogue_history, functions, depth
+                )
         else:
-            llm_responses = await self._call_llm(dialogue_history, functions)
+            return await self._process_llm_response_with_transition(
+                query, dialogue_history, functions, depth
+            )
 
-        # 处理响应
-        return await self._process_llm_response(query, llm_responses, functions, depth)
+    async def _query_memory_with_timeout(self, query: str, timeout: float = 2.0) -> Optional[str]:
+        """
+        带超时的 Memory 查询
+        
+        避免 Memory 服务慢时阻塞整个流程
+        """
+        try:
+            return await asyncio.wait_for(
+                self.conn.memory.query_memory(query),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            self.logger.bind(tag=TAG).warning(
+                f"Memory 查询超时 ({timeout}s)，跳过记忆注入"
+            )
+            return None
+        except Exception as e:
+            self.logger.bind(tag=TAG).warning(f"Memory 查询异常: {e}")
+            return None
 
-    async def _call_llm(
+
+    async def _call_llm_streaming(
         self,
         dialogue_history: List[Dict],
         functions: Optional[List[Dict]],
-    ) -> Any:
-        """调用 LLM"""
+    ):
+        """
+        流式调用 LLM（异步生成器）
+        
+        与原始 chat 方法保持一致，实现真正的流式处理
+        """
         loop = asyncio.get_event_loop()
-
-        if self.conn.intent_type == "function_call" and functions:
-            return await loop.run_in_executor(
-                None,
-                lambda: list(self.conn.llm.response_with_functions(
-                    self.conn.session_id,
-                    dialogue_history,
-                    functions=functions,
-                ))
+        
+        # 创建一个队列用于线程间通信
+        response_queue = asyncio.Queue()
+        
+        def run_llm():
+            """在线程中运行 LLM 并将结果放入队列"""
+            response_count = 0
+            try:
+                self.logger.bind(tag=TAG).info(
+                    f"[{self.session_id}] LLM 调用开始, intent_type={self.conn.intent_type}"
+                )
+                if self.conn.intent_type == "function_call" and functions:
+                    llm_gen = self.conn.llm.response_with_functions(
+                        self.conn.session_id,
+                        dialogue_history,
+                        functions=functions,
+                    )
+                else:
+                    llm_gen = self.conn.llm.response(
+                        self.conn.session_id,
+                        dialogue_history,
+                    )
+                
+                for response in llm_gen:
+                    response_count += 1
+                    # 检查是否被打断
+                    if self.conn.client_abort:
+                        self.logger.bind(tag=TAG).info(
+                            f"[{self.session_id}] LLM 被打断，已收到 {response_count} 个响应"
+                        )
+                        break
+                    # 使用线程安全的方式放入队列
+                    asyncio.run_coroutine_threadsafe(
+                        response_queue.put(response), loop
+                    ).result(timeout=5.0)
+                
+                self.logger.bind(tag=TAG).info(
+                    f"[{self.session_id}] LLM 调用完成，共收到 {response_count} 个响应"
+                )
+            except Exception as e:
+                self.logger.bind(tag=TAG).error(
+                    f"[{self.session_id}] LLM 调用异常: {e}"
+                )
+                asyncio.run_coroutine_threadsafe(
+                    response_queue.put(e), loop
+                ).result(timeout=5.0)
+            finally:
+                # 发送结束标记
+                asyncio.run_coroutine_threadsafe(
+                    response_queue.put(None), loop
+                ).result(timeout=5.0)
+        
+        # 在线程池中启动 LLM 调用
+        if not self.conn.executor:
+            # 连接已关闭，提前退出
+            self.logger.bind(tag=TAG).warning(
+                f"[{self.session_id}] executor 为 None，跳过 LLM 调用"
             )
+            await response_queue.put(None)
         else:
-            return await loop.run_in_executor(
-                None,
-                lambda: list(self.conn.llm.response(
-                    self.conn.session_id,
-                    dialogue_history,
-                ))
+            self.logger.bind(tag=TAG).info(
+                f"[{self.session_id}] 提交 LLM 任务到线程池"
             )
+            self.conn.executor.submit(run_llm)
+        
+        # 异步生成响应
+        while True:
+            response = await response_queue.get()
+            if response is None:
+                break
+            if isinstance(response, Exception):
+                raise response
+            yield response
 
-    async def _process_llm_response(
+    async def _process_llm_response_with_transition(
         self,
         query: str,
-        llm_responses: List,
+        dialogue_history: List[Dict],
         functions: Optional[List[Dict]],
         depth: int,
     ) -> bool:
-        """处理 LLM 响应"""
+        """
+        流式处理 LLM 响应（带条件过渡响应）
+        
+        策略：
+        - 首 token 在 300ms 内到达 → 直接播放（够快，无需过渡）
+        - 首 token 超过 300ms → 先发过渡响应，再播放 LLM 内容
+        - 这样在 LLM 快时无割裂感，LLM 慢时也有反馈
+        """
         from core.utils.dialogue import Message
         from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
         from core.utils.util import extract_json_from_string
@@ -338,10 +453,180 @@ class ParallelChatHandler:
         function_id = None
         function_arguments = ""
         content_arguments = ""
+        first_content_sent = False
+        transition_sent = False
+        
+        # 首 token 超时阈值（秒）- 超过此时间才发送过渡响应
+        FIRST_TOKEN_TIMEOUT = 0.35
 
-        for response in llm_responses:
+        self.logger.bind(tag=TAG).info(
+            f"[{self.session_id}] 开始 LLM 流式处理, depth={depth}"
+        )
+
+        # 启动定时器：如果超时还没收到首 token，发送过渡响应
+        start_time = time.time()
+        timer_task = None
+        if depth == 0 and self.transition_generator:
+            async def send_transition_after_delay():
+                await asyncio.sleep(FIRST_TOKEN_TIMEOUT)
+                nonlocal transition_sent
+                if not first_content_sent and not transition_sent:
+                    self._send_quick_transition(query)
+                    transition_sent = True
+                    if self.tracer:
+                        self.tracer.record_ttfr()
+            timer_task = asyncio.create_task(send_transition_after_delay())
+
+        # 启动 LLM 流式生成器
+        llm_gen = self._call_llm_streaming(dialogue_history, functions)
+        
+        try:
+            async for response in llm_gen:
+                # 首次收到响应时取消定时器
+                if timer_task and not timer_task.done():
+                    timer_task.cancel()
+                    try:
+                        await timer_task
+                    except asyncio.CancelledError:
+                        pass
+                    timer_task = None
+
+                # 检查打断
+                if self.conn.client_abort:
+                    self.logger.bind(tag=TAG).info("LLM 响应被用户打断")
+                    break
+
+                # 解析 response
+                content = None
+                if self.conn.intent_type == "function_call" and functions:
+                    content, tools_call = response
+                    if "content" in response:
+                        content = response["content"]
+                        tools_call = None
+
+                    if content:
+                        content_arguments += content
+
+                    if not tool_call_flag and content_arguments.startswith("<tool_call>"):
+                        tool_call_flag = True
+
+                    if tools_call:
+                        tool_call_flag = True
+                        if tools_call[0].id:
+                            function_id = tools_call[0].id
+                        if tools_call[0].function.name:
+                            function_name = tools_call[0].function.name
+                        if tools_call[0].function.arguments:
+                            function_arguments += tools_call[0].function.arguments
+                else:
+                    content = response
+
+                # 发送文本到 TTS（非工具调用时）
+                if content and not tool_call_flag:
+                    response_message.append(content)
+
+                    # 记录 TTFR（首次响应时间）
+                    if self.tracer and not first_content_sent:
+                        self.tracer.record_ttfr()
+                    first_content_sent = True
+
+                    # 立即发送到 TTS 队列
+                    self.conn.tts.tts_text_queue.put(
+                        TTSMessageDTO(
+                            sentence_id=self.conn.sentence_id,
+                            sentence_type=SentenceType.MIDDLE,
+                            content_type=ContentType.TEXT,
+                            content_detail=content,
+                        )
+                    )
+        finally:
+            # 确保定时器被清理
+            if timer_task and not timer_task.done():
+                timer_task.cancel()
+
+        # 处理工具调用
+        if tool_call_flag:
+            return await self._handle_tool_call(
+                query, function_name, function_id, function_arguments,
+                content_arguments, response_message, depth
+            )
+
+        # 存储对话
+        if response_message:
+            text_buff = "".join(response_message)
+            self.conn.tts_MessageText = text_buff
+            self.conn.dialogue.put(Message(role="assistant", content=text_buff))
+
+        # 发送结束标记
+        if depth == 0:
+            self.conn.tts.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=self.conn.sentence_id,
+                    sentence_type=SentenceType.LAST,
+                    content_type=ContentType.ACTION,
+                )
+            )
+
+        return True
+
+    def _send_quick_transition(self, query: str) -> None:
+        """
+        发送简短过渡响应
+        
+        仅在 LLM 首 token 超时时调用，保持简短自然
+        """
+        from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
+        
+        # 根据问题类型选择过渡词（保持简短，易于衔接）
+        if any(kw in query for kw in ["天气", "新闻", "查询", "搜索", "帮我查", "帮我找"]):
+            transition = "好的，"
+        elif any(kw in query for kw in ["什么是", "怎么", "如何", "为什么"]):
+            transition = "嗯，"
+        elif any(kw in query for kw in ["音乐", "播放", "放首"]):
+            transition = "好嘞，"
+        else:
+            transition = "嗯，"
+        
+        # 发送到 TTS
+        self.conn.tts.tts_text_queue.put(
+            TTSMessageDTO(
+                sentence_id=self.conn.sentence_id,
+                sentence_type=SentenceType.MIDDLE,
+                content_type=ContentType.TEXT,
+                content_detail=transition,
+            )
+        )
+        
+        self.logger.bind(tag=TAG).debug(
+            f"[{self.session_id}] LLM 首 token 超时，发送过渡: {transition}"
+        )
+    
+    async def _process_llm_response_streaming(
+        self,
+        query: str,
+        dialogue_history: List[Dict],
+        functions: Optional[List[Dict]],
+        depth: int,
+    ) -> bool:
+        """流式处理 LLM 响应（无过渡版本，供工具结果处理使用）"""
+        from core.utils.dialogue import Message
+        from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
+        from core.utils.util import extract_json_from_string
+        from plugins_func.register import Action
+
+        response_message = []
+        tool_call_flag = False
+        function_name = None
+        function_id = None
+        function_arguments = ""
+        content_arguments = ""
+        first_content_sent = False
+
+        # 使用流式生成器
+        async for response in self._call_llm_streaming(dialogue_history, functions):
             # 检查打断
             if self.conn.client_abort:
+                self.logger.bind(tag=TAG).info("LLM 响应被用户打断")
                 break
 
             if self.conn.intent_type == "function_call" and functions:
@@ -371,9 +656,9 @@ class ParallelChatHandler:
             if content and not tool_call_flag:
                 response_message.append(content)
 
-                # 记录 TTFR
-                if self.tracer and len(response_message) == 1:
+                if self.tracer and not first_content_sent:
                     self.tracer.record_ttfr()
+                    first_content_sent = True
 
                 self.conn.tts.tts_text_queue.put(
                     TTSMessageDTO(
@@ -626,5 +911,7 @@ class ParallelChatHandler:
             stats["security"] = self.security.get_statistics()
 
         return stats
+
+
 
 

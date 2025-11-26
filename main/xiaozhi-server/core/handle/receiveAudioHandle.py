@@ -1,6 +1,8 @@
 import time
 import json
 import asyncio
+import threading
+import concurrent.futures
 from core.utils.util import audio_to_data
 from core.handle.abortHandle import handleAbortMessage
 from core.handle.intentHandler import handle_user_intent
@@ -8,8 +10,67 @@ from core.utils.output_counter import check_device_output_limit
 from core.handle.sendAudioHandle import send_stt_message, SentenceType
 from core.providers.tts.dto.dto import SentenceType, ContentType, TTSMessageDTO
 from typing import List, Dict, Any
+from config.logger import setup_logging
 
 TAG = __name__
+logger = setup_logging()
+
+
+def _get_parallel_chat_handler(conn):
+    """
+    获取或创建 ParallelChatHandler 实例
+    
+    缓存在 conn 对象上，避免重复创建
+    """
+    if hasattr(conn, '_parallel_chat_handler') and conn._parallel_chat_handler is not None:
+        return conn._parallel_chat_handler
+    
+    try:
+        from core.parallel import ParallelChatHandler, FeatureFlag, get_feature_manager
+        
+        # 检查是否启用 LLMCompiler
+        if not get_feature_manager().is_enabled(FeatureFlag.LLM_COMPILER):
+            return None
+        
+        conn._parallel_chat_handler = ParallelChatHandler(conn)
+        conn.logger.bind(tag=TAG).info("ParallelChatHandler 已初始化")
+        return conn._parallel_chat_handler
+    except ImportError as e:
+        conn.logger.bind(tag=TAG).warning(f"并行优化模块未安装: {e}")
+        return None
+    except Exception as e:
+        conn.logger.bind(tag=TAG).error(f"ParallelChatHandler 初始化失败: {e}")
+        return None
+
+
+def _is_parallel_enabled() -> bool:
+    """检查并行优化是否启用"""
+    try:
+        from core.parallel.feature_flags import FeatureFlag, get_feature_manager
+        return get_feature_manager().is_enabled(FeatureFlag.LLM_COMPILER)
+    except ImportError:
+        return False
+
+# ============== 打断检测配置 ==============
+# 业界最佳实践：持续语音检测 + 分层打断
+
+# 持续语音检测阈值（避免短暂噪音、回声、咳嗽等误触发）
+# 需要连续检测到语音的帧数才触发打断
+CONTINUOUS_VOICE_THRESHOLD = 3  # 连续 3 帧（约 180ms @ 60ms/帧）
+
+# 智能打断配置（用于 ASR 意图识别）
+INTERRUPT_BUFFER_SIZE = 5  # 累积 5 个音频包（约 300ms @ 60ms/包）
+INTERRUPT_ASR_TIMEOUT = 0.8  # 快速 ASR 超时时间（秒）
+INTERRUPT_DEBOUNCE_MS = 500  # 打断防抖时间（毫秒）
+
+# 打断意图关键词
+INTERRUPTION_KEYWORDS = [
+    "停", "等等", "打住", "不对", "算了", "别说了",
+    "我想问", "我要", "帮我", "听我说", "等一下"
+]
+
+# 强制停止关键词（即使 TTS 未播放也会取消当前任务）
+FORCE_STOP_KEYWORDS = ["停止", "取消", "算了", "不要了", "停下"]
 
 
 async def _smart_interrupt_handler(conn, text: str) -> bool:
@@ -58,6 +119,12 @@ async def _smart_interrupt_handler(conn, text: str) -> bool:
 
         # 需要打断
         if decision == InterruptionDecision.INTERRUPT:
+            # 通知 ParallelChatHandler 处理打断（如果存在）
+            parallel_handler = _get_parallel_chat_handler(conn)
+            if parallel_handler is not None:
+                await parallel_handler.handle_user_interruption(text)
+            
+            # 同时执行传统的打断处理
             await handleAbortMessage(conn)
 
         return True
@@ -82,6 +149,151 @@ def _is_smart_interruption_enabled() -> bool:
         return False
 
 
+def _is_interruption_intent(text: str) -> bool:
+    """检测是否是打断意图"""
+    if not text:
+        return False
+    return any(keyword in text for keyword in INTERRUPTION_KEYWORDS)
+
+
+def _is_force_stop_intent(text: str) -> bool:
+    """检测是否是强制停止意图（即使 TTS 未播放也生效）"""
+    if not text:
+        return False
+    return any(keyword in text for keyword in FORCE_STOP_KEYWORDS)
+
+
+def _init_interrupt_state(conn):
+    """初始化打断检测状态"""
+    if not hasattr(conn, '_interrupt_buffer'):
+        conn._interrupt_buffer = []
+    if not hasattr(conn, '_interrupt_check_running'):
+        conn._interrupt_check_running = False
+    if not hasattr(conn, '_last_interrupt_time'):
+        conn._last_interrupt_time = 0
+    # 持续语音检测计数器
+    if not hasattr(conn, '_continuous_voice_count'):
+        conn._continuous_voice_count = 0
+
+
+async def _parallel_interruption_check(conn, audio_chunk):
+    """
+    并行打断检测（目标 <400ms）
+    
+    流程：
+    1. 累积音频到打断检测缓冲区
+    2. 累积足够音频后触发快速 ASR
+    3. 检测打断意图
+    4. 如果是打断，立即停止 TTS
+    """
+    _init_interrupt_state(conn)
+    
+    # 防抖检查
+    current_time = time.time() * 1000
+    if (current_time - conn._last_interrupt_time) < INTERRUPT_DEBOUNCE_MS:
+        return
+    
+    # 累积音频到缓冲区
+    conn._interrupt_buffer.append(audio_chunk)
+    
+    # 检查是否已经有正在运行的检测任务
+    if conn._interrupt_check_running:
+        return
+    
+    # 累积足够音频后触发快速识别
+    if len(conn._interrupt_buffer) >= INTERRUPT_BUFFER_SIZE:
+        conn._interrupt_check_running = True
+        audio_to_check = conn._interrupt_buffer.copy()
+        conn._interrupt_buffer.clear()
+        
+        # 启动异步检测任务
+        asyncio.create_task(_quick_asr_and_check(conn, audio_to_check))
+
+
+async def _quick_asr_and_check(conn, audio_chunks):
+    """
+    快速 ASR + 打断意图检测
+    
+    在独立线程中执行 ASR，不阻塞主流程
+    目标：<400ms 完成打断响应
+    """
+    try:
+        start_time = time.time()
+        
+        # 使用线程池执行 ASR（避免阻塞事件循环）
+        loop = asyncio.get_event_loop()
+        
+        def run_quick_asr():
+            """在线程中执行快速 ASR"""
+            try:
+                # 创建新的事件循环
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    # 调用现有 ASR 接口
+                    result = new_loop.run_until_complete(
+                        conn.asr.speech_to_text(
+                            audio_chunks, 
+                            conn.session_id + "_interrupt", 
+                            conn.audio_format
+                        )
+                    )
+                    return result[0] if result else ""
+                finally:
+                    new_loop.close()
+            except Exception as e:
+                logger.bind(tag=TAG).debug(f"快速 ASR 失败: {e}")
+                return ""
+        
+        # 在线程池中执行，设置超时
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            try:
+                future = executor.submit(run_quick_asr)
+                text = future.result(timeout=INTERRUPT_ASR_TIMEOUT)
+            except concurrent.futures.TimeoutError:
+                logger.bind(tag=TAG).debug("快速 ASR 超时，跳过本次检测")
+                return
+        
+        elapsed_ms = (time.time() - start_time) * 1000
+        
+        # 检测打断意图
+        if text and _is_interruption_intent(text):
+            # 再次检查是否还在说话（可能在 ASR 期间已经停止了）
+            if conn.client_is_speaking:
+                logger.bind(tag=TAG).info(
+                    f"智能打断触发: '{text}' (耗时 {elapsed_ms:.0f}ms)"
+                )
+                conn._last_interrupt_time = time.time() * 1000
+                
+                # 通知 ParallelChatHandler 处理打断
+                parallel_handler = _get_parallel_chat_handler(conn)
+                if parallel_handler is not None:
+                    await parallel_handler.handle_user_interruption(text)
+                
+                # 执行传统的打断处理
+                await handleAbortMessage(conn)
+                
+                # 记录打断响应时间
+                total_elapsed_ms = (time.time() - start_time) * 1000
+                if total_elapsed_ms > 400:
+                    logger.bind(tag=TAG).warning(
+                        f"打断响应超时: {total_elapsed_ms:.0f}ms > 400ms"
+                    )
+                else:
+                    logger.bind(tag=TAG).info(
+                        f"打断响应完成: {total_elapsed_ms:.0f}ms (目标 <400ms)"
+                    )
+        elif text:
+            logger.bind(tag=TAG).debug(
+                f"快速 ASR 识别: '{text}'，非打断意图 (耗时 {elapsed_ms:.0f}ms)"
+            )
+            
+    except Exception as e:
+        logger.bind(tag=TAG).error(f"快速打断检测失败: {e}")
+    finally:
+        conn._interrupt_check_running = False
+
+
 async def handleAudioMessage(conn, audio):
     # 当前片段是否有人说话
     have_voice = conn.vad.is_vad(conn, audio)
@@ -94,12 +306,30 @@ async def handleAudioMessage(conn, audio):
             conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
         return
 
-    # 打断处理逻辑
-    if have_voice and conn.client_is_speaking and conn.client_listen_mode != "manual":
-        # 智能打断模式：延迟到 ASR 识别完成后再决定是否打断
-        # 传统模式：VAD 检测到声音立即打断
-        if not _is_smart_interruption_enabled():
-            await handleAbortMessage(conn)
+    # ============== 打断处理逻辑（业界最佳实践：持续语音检测） ==============
+    # 只有 TTS 正在播放且非手动监听模式时才检测打断
+    if conn.client_is_speaking and conn.client_listen_mode != "manual":
+        # 初始化打断检测状态
+        _init_interrupt_state(conn)
+        
+        if have_voice:
+            # 检测到语音，增加连续语音帧计数
+            conn._continuous_voice_count += 1
+            
+            # 当连续语音帧达到阈值时，触发打断
+            # 这样可以过滤短暂噪音、回声、咳嗽等误触发
+            if conn._continuous_voice_count >= CONTINUOUS_VOICE_THRESHOLD:
+                logger.bind(tag=TAG).info(
+                    f"持续语音检测触发打断: 连续 {conn._continuous_voice_count} 帧 "
+                    f"(阈值 {CONTINUOUS_VOICE_THRESHOLD} 帧, 约 {CONTINUOUS_VOICE_THRESHOLD * 60}ms)"
+                )
+                # 重置计数器
+                conn._continuous_voice_count = 0
+                # 触发打断
+                await handleAbortMessage(conn)
+        else:
+            # 没有检测到语音，重置连续语音帧计数
+            conn._continuous_voice_count = 0
 
     # 设备长时间空闲检测，用于say goodbye
     await no_voice_close_connect(conn, have_voice)
@@ -159,7 +389,31 @@ async def startToChat(conn, text: str, multimodal_content: List[Dict[str, Any]] 
             await max_out_size(conn)
             return
 
-    # 智能打断处理
+    # 提取用于检测的纯文本（去除JSON包装）
+    check_text = actual_text
+    try:
+        if actual_text.strip().startswith("{"):
+            parsed = json.loads(actual_text)
+            if "content" in parsed:
+                check_text = parsed["content"]
+    except (json.JSONDecodeError, KeyError):
+        pass
+
+    # 强制停止检测：即使 TTS 未播放，如果有正在进行的 LLM 任务也要停止
+    if _is_force_stop_intent(check_text):
+        # 检查是否有正在进行的 LLM 任务
+        if not conn.llm_finish_task:
+            conn.logger.bind(tag=TAG).info(f"强制停止意图检测到: '{check_text}'，取消当前任务")
+            await handleAbortMessage(conn)
+            # 不继续处理，直接返回
+            return
+        # 如果 TTS 正在播放也要停止
+        if conn.client_is_speaking:
+            conn.logger.bind(tag=TAG).info(f"强制停止 TTS 播放: '{check_text}'")
+            await handleAbortMessage(conn)
+            return
+
+    # 智能打断处理（TTS 正在播放时）
     if conn.client_is_speaking and conn.client_listen_mode != "manual":
         should_continue = await _smart_interrupt_handler(conn, actual_text)
         if not should_continue:
@@ -180,7 +434,30 @@ async def startToChat(conn, text: str, multimodal_content: List[Dict[str, Any]] 
     # if multimodal content is provided, use it, otherwise use text
     # in multimodal content, text is included in the content list
     chat_content = multimodal_content if multimodal_content else actual_text
-    conn.executor.submit(conn.chat, chat_content)
+    
+    # 尝试使用并行优化的聊天处理器
+    parallel_handler = _get_parallel_chat_handler(conn)
+    if parallel_handler is not None and not multimodal_content:
+        # 使用并行优化的异步 chat 方法（仅支持文本，不支持 multimodal_content）
+        conn.logger.bind(tag=TAG).debug("使用 ParallelChatHandler 处理消息")
+        asyncio.create_task(_run_parallel_chat(conn, parallel_handler, actual_text))
+    else:
+        # 降级到原始的同步 chat 方法（支持 multimodal_content）
+        conn.executor.submit(conn.chat, chat_content)
+
+
+async def _run_parallel_chat(conn, handler, text: str):
+    """
+    运行并行聊天处理
+    
+    包装 ParallelChatHandler.chat() 的异步调用，处理异常并降级
+    """
+    try:
+        await handler.chat(text)
+    except Exception as e:
+        conn.logger.bind(tag=TAG).error(f"并行聊天处理失败: {e}，降级到原始方法")
+        # 降级到原始方法
+        conn.executor.submit(conn.chat, text)
 
 
 async def no_voice_close_connect(conn, have_voice):

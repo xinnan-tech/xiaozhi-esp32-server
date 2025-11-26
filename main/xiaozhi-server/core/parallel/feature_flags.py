@@ -62,7 +62,7 @@ class FeatureFlagManager:
             description="启用过渡响应",
         ),
         FeatureFlag.SMART_INTERRUPTION: FeatureConfig(
-            enabled=True,
+            enabled=True,  # 已修复：VAD 检测到声音后立即启动并行打断检测
             description="启用智能打断（<400ms）",
             requires=[FeatureFlag.STATE_MACHINE],
         ),
@@ -330,5 +330,7 @@ def enable(flag: FeatureFlag) -> bool:
 def disable(flag: FeatureFlag) -> bool:
     """禁用特性（全局函数）"""
     return get_feature_manager().disable(flag)
+
+
 
 
