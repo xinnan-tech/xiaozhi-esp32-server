@@ -8,9 +8,9 @@ from core.handle.abortHandle import handleAbortMessage
 from core.handle.intentHandler import handle_user_intent
 from core.utils.output_counter import check_device_output_limit
 from core.handle.sendAudioHandle import send_stt_message, SentenceType
-from core.providers.tts.dto.dto import SentenceType, ContentType, TTSMessageDTO
-from typing import List, Dict, Any
 from config.logger import setup_logging
+from core.providers.tts.dto.dto import ContentType, TTSMessageDTO
+from typing import List, Dict, Any
 
 TAG = __name__
 logger = setup_logging()
@@ -431,33 +431,37 @@ async def startToChat(conn, text: str, multimodal_content: List[Dict[str, Any]] 
     # 意图未被处理，继续常规聊天流程
     await send_stt_message(conn, actual_text)
     
-    # if multimodal content is provided, use it, otherwise use text
-    # in multimodal content, text is included in the content list
+    # 确定聊天内容：multimodal 优先
     chat_content = multimodal_content if multimodal_content else actual_text
     
     # 尝试使用并行优化的聊天处理器
     parallel_handler = _get_parallel_chat_handler(conn)
-    if parallel_handler is not None and not multimodal_content:
-        # 使用并行优化的异步 chat 方法（仅支持文本，不支持 multimodal_content）
+    if parallel_handler is not None:
+        # 使用并行优化的异步 chat 方法
         conn.logger.bind(tag=TAG).debug("使用 ParallelChatHandler 处理消息")
-        asyncio.create_task(_run_parallel_chat(conn, parallel_handler, actual_text))
+        asyncio.create_task(_run_parallel_chat(conn, parallel_handler, chat_content))
     else:
-        # 降级到原始的同步 chat 方法（支持 multimodal_content）
+        # 降级到原始的同步 chat 方法
         conn.executor.submit(conn.chat, chat_content)
 
 
-async def _run_parallel_chat(conn, handler, text: str):
+async def _run_parallel_chat(conn, handler, content):
     """
     运行并行聊天处理
     
     包装 ParallelChatHandler.chat() 的异步调用，处理异常并降级
+    
+    Args:
+        conn: 连接对象
+        handler: ParallelChatHandler 实例
+        content: 文本或 multimodal 内容
     """
     try:
-        await handler.chat(text)
+        await handler.chat(content)
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"并行聊天处理失败: {e}，降级到原始方法")
         # 降级到原始方法
-        conn.executor.submit(conn.chat, text)
+        conn.executor.submit(conn.chat, content)
 
 
 async def no_voice_close_connect(conn, have_voice):
