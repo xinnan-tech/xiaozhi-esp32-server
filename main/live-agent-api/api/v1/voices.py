@@ -125,6 +125,10 @@ async def get_my_voices(
             name=voice.name,
             desc=voice.desc,
             created_at=voice.created_at,
+            samples=[AudioSample(
+                text=voice.sample_text,
+                audio=voice.sample_url
+            )] if voice.sample_text and voice.sample_url else None
         ))
     
     # Build response

@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from core.handle.receiveAudioHandle import handleAudioMessage, startToChat
 from core.handle.reportHandle import enqueue_asr_report
@@ -9,6 +9,54 @@ from core.handle.textMessageType import TextMessageType
 from core.utils.util import remove_punctuation_and_length
 
 TAG = __name__
+
+
+def build_multimodal_content(text: str, attachments: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+    """
+    Build multimodal content (Groq/OpenAI Responses API format)
+    
+    Args:
+        text: Text content
+        attachments: Attachments list, format:
+            [
+                {"type": "image", "url": "https://..."},
+                {"type": "file", "url": "https://..."}
+            ]
+    
+    Returns:
+        Responses API compatible multimodal content:
+        [
+            {"type": "input_text", "text": "..."},
+            {"type": "input_image", "image_url": "https://..."},
+            {"type": "input_file", "file_url": "https://..."}
+        ]
+    """
+    content = []
+    
+    # add attachments(images first, let LLM "see" them first)
+    for attachment in attachments:
+        att_type = attachment.get("type")
+        url = attachment.get("url")
+        
+        if not att_type or not url:
+            continue
+            
+        if att_type == "image":
+            content.append({
+                "type": "input_image",
+                "image_url": url
+            })
+        elif att_type == "file":
+            content.append({
+                "type": "input_file",
+                "file_url": url
+            })
+    
+    # add text content at last
+    if text:
+        content.append({"type": "input_text", "text": text})
+    
+    return content
 
 class ListenTextMessageHandler(TextMessageHandler):
     """Listen消息处理器"""
@@ -57,7 +105,18 @@ class ListenTextMessageHandler(TextMessageHandler):
                     enqueue_asr_report(conn, "嘿，你好呀", [])
                     await startToChat(conn, "嘿，你好呀")
                 else:
-                    # 上报纯文字数据（复用ASR上报功能，但不提供音频数据）
-                    enqueue_asr_report(conn, original_text, [])
-                    # 否则需要LLM对文字内容进行答复
-                    await startToChat(conn, original_text)
+                    # check if there are attachments(eg. images, files) in text mode
+                    attachments = msg_json.get("attachments", [])
+                    
+                    if attachments:
+                        # build multimodal content
+                        multimodal_content = build_multimodal_content(original_text, attachments)
+                        # report text data with attachments
+                        enqueue_asr_report(conn, original_text, [], attachments)
+                        # use multimodal content to chat
+                        await startToChat(conn, original_text, multimodal_content)
+                    else:
+                        # 上报纯文字数据（复用ASR上报功能，但不提供音频数据）
+                        enqueue_asr_report(conn, original_text, [])
+                        # 否则需要LLM对文字内容进行答复
+                        await startToChat(conn, original_text)

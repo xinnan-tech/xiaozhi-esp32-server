@@ -7,6 +7,7 @@ from core.handle.intentHandler import handle_user_intent
 from core.utils.output_counter import check_device_output_limit
 from core.handle.sendAudioHandle import send_stt_message, SentenceType
 from core.providers.tts.dto.dto import SentenceType, ContentType, TTSMessageDTO
+from typing import List, Dict, Any
 
 TAG = __name__
 
@@ -38,8 +39,16 @@ async def resume_vad_detection(conn):
     conn.just_woken_up = False
 
 
-async def startToChat(conn, text):
-    # 检查输入是否是JSON格式（包含说话人信息）
+async def startToChat(conn, text: str, multimodal_content: List[Dict[str, Any]] | None = None):
+    """
+    start to chat
+    
+    Args:
+        conn: Session Connection 
+        text: Text content
+        multimodal_content: Optional multimodal content
+    """
+    # check if input is JSON format (contains speaker information)
     speaker_name = None
     actual_text = text
 
@@ -86,9 +95,13 @@ async def startToChat(conn, text):
         # 如果意图已被处理，不再进行聊天
         return
 
-    # 意图未被处理，继续常规聊天流程，使用实际文本内容
+    # 意图未被处理，继续常规聊天流程
     await send_stt_message(conn, actual_text)
-    conn.executor.submit(conn.chat, actual_text)
+    
+    # if multimodal content is provided, use it, otherwise use text
+    # in multimodal content, text is included in the content list
+    chat_content = multimodal_content if multimodal_content else actual_text
+    conn.executor.submit(conn.chat, chat_content)
 
 
 async def no_voice_close_connect(conn, have_voice):

@@ -30,9 +30,8 @@ class VoiceAddRequest(BaseModel):
 
 class AudioSample(BaseModel):
     """Audio sample"""
-    title: str
-    text: str
-    audio: str
+    text: Optional[str] = None
+    audio: Optional[str] = None
 
 class LiveAgentVoice(BaseModel):
     """Voice Entity for Live Agent"""

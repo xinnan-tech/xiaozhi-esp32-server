@@ -96,9 +96,10 @@ class ConnectionHandler:
         # 添加上报线程池
         self.report_queue = queue.Queue()
         self.report_thread = None
-        # 未来可以通过修改此处，调节asr的上报和tts的上报，目前默认都开启
-        self.report_asr_enable = self.read_config_from_api
-        self.report_tts_enable = self.read_config_from_api
+        # Enable report for both manager-api and live-agent-api modes
+        self._report_enabled = self.read_config_from_api or self.read_config_from_live_agent_api
+        self.report_asr_enable = self._report_enabled
+        self.report_tts_enable = self._report_enabled
 
         # 依赖的组件
         self.vad = None
@@ -500,8 +501,9 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).info("系统提示词已增强更新")
 
     def _init_report_threads(self):
-        """初始化ASR和TTS上报线程"""
-        if not self.read_config_from_api or self.need_bind:
+        """Initialize chat message report thread for live-agent-api"""
+        # Only enable for live-agent-api mode
+        if not self.read_config_from_live_agent_api or self.need_bind:
             return
         if self.chat_history_conf == 0:
             return
@@ -510,7 +512,7 @@ class ConnectionHandler:
                 target=self._report_worker, daemon=True
             )
             self.report_thread.start()
-            self.logger.bind(tag=TAG).info("TTS上报线程已启动")
+            self.logger.bind(tag=TAG).info("Chat report thread started")
 
     def _initialize_tts(self):
         """
@@ -817,10 +819,13 @@ class ConnectionHandler:
             asyncio.run_coroutine_threadsafe(self.func_handler._initialize(), self.loop)
 
     def _initialize_agent_config(self):
-        """initialize agent config"""
+        """initialize agent config from live-agent-api"""
         if not self.read_config_from_live_agent_api:
             return
         private_config = get_agent_config_from_api(self.agent_id, self.config)
+        if not private_config:
+            self.logger.bind(tag=TAG).error(f"Failed to get agent config for {self.agent_id}")
+            return
         # self.logger.bind(tag=TAG).info(f"private_config: {private_config}")
         # self.logger.bind(tag=TAG).info(f"self.config: {self.config}")
         self.config["TTS"]["FishSpeech"]["reference_id"] = private_config["voice_id"]
@@ -828,6 +833,11 @@ class ConnectionHandler:
         self._voice_opening = private_config["voice_opening"]
         self._voice_closing = private_config["voice_closing"]
         self._language = private_config["language"]
+        
+        # Set chat history config for live-agent-api mode
+        # 0: disable, 1: text only, 2: text + audio
+        live_api_config = self.config.get("live-agent-api", {})
+        self.chat_history_conf = live_api_config.get("chat_history_conf", 2)
         
         init_llm, init_tts, init_memory, init_intent = (
             True,
@@ -872,8 +882,25 @@ class ConnectionHandler:
         self.dialogue.update_system_message(self.prompt)
 
     def chat(self, query, depth=0):
+        """
+        Process user message and generate response
+        
+        Args:
+            query: User message, can be:
+                - str: Text content
+                - List[Dict]: Multimodal content
+            depth: Recursive depth, for function calling
+        """
         self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
         self.llm_finish_task = False
+
+        # extract text content for memory query
+        if isinstance(query, list):
+            # multimodal content: extract text part
+            text_parts = [item.get("text", "") for item in query if item.get("type") == "text"]
+            query_text = " ".join(text_parts)
+        else:
+            query_text = query
 
         # 为最顶层时新建会话ID和发送FIRST请求
         if depth == 0:
@@ -894,11 +921,11 @@ class ConnectionHandler:
         response_message = []
 
         try:
-            # 使用带记忆的对话
+            # use dialogue with memory (use text for memory query)
             memory_str = None
             if self.memory is not None:
                 future = asyncio.run_coroutine_threadsafe(
-                    self.memory.query_memory(query), self.loop
+                    self.memory.query_memory(query_text), self.loop
                 )
                 memory_str = future.result()
 
@@ -1111,7 +1138,8 @@ class ConnectionHandler:
                     if self.executor is None:
                         continue
                     # 提交任务到线程池
-                    self.executor.submit(self._process_report, *item)
+                    # self.executor.submit(self._process_report, *item)
+                    self._process_report(*item)
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"聊天记录上报线程异常: {e}")
             except queue.Empty:
@@ -1121,11 +1149,11 @@ class ConnectionHandler:
 
         self.logger.bind(tag=TAG).info("聊天记录上报线程已退出")
 
-    def _process_report(self, type, text, audio_data, report_time):
+    def _process_report(self, role, text, audio_data, report_time, attachments=None):
         """处理上报任务"""
         try:
-            # 执行上报（传入二进制数据）
-            report(self, type, text, audio_data, report_time)
+            # 执行上报（传入二进制数据和附件）
+            report(self, role, text, audio_data, report_time, attachments)
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"上报处理异常: {e}")
         finally:

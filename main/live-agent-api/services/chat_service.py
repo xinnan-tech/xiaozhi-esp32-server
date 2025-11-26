@@ -73,7 +73,7 @@ class ChatService:
             db=db,
             message_id=message_id,
             agent_id=request.agent_id,
-            role=request.role.value,
+            role=request.role,
             content=content_dicts
         )
         

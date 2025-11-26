@@ -9,7 +9,7 @@ from core.utils.util import get_local_ip, validate_mcp_endpoint
 from core.http_server import SimpleHttpServer
 from core.websocket_server import WebSocketServer
 from core.utils.util import check_ffmpeg_installed
-
+from config.live_agent_api_client import init_live_agent_api, live_agent_api_safe_close
 TAG = __name__
 logger = setup_logging()
 
@@ -45,6 +45,9 @@ async def monitor_stdin():
 async def main():
     check_ffmpeg_installed()
     config = load_config()
+
+    if config.get("read_config_from_live_agent_api", False):
+        init_live_agent_api(config)
 
     # auth_key优先级：配置文件server.auth_key > manager-api.secret > 自动生成
     # auth_key用于jwt认证，比如视觉分析接口的jwt认证、ota接口的token生成与websocket认证
@@ -122,6 +125,8 @@ async def main():
     except asyncio.CancelledError:
         print("任务被取消，清理资源中...")
     finally:
+        if config.get("read_config_from_live_agent_api", False):
+            live_agent_api_safe_close()
         # 取消所有任务（关键修复点）
         stdin_task.cancel()
         ws_task.cancel()
