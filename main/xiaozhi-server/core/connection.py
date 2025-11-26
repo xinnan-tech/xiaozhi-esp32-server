@@ -1138,7 +1138,8 @@ class ConnectionHandler:
                     if self.executor is None:
                         continue
                     # 提交任务到线程池
-                    self.executor.submit(self._process_report, *item)
+                    # self.executor.submit(self._process_report, *item)
+                    self._process_report(*item)
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"聊天记录上报线程异常: {e}")
             except queue.Empty:
