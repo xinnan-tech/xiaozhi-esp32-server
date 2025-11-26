@@ -538,6 +538,11 @@ LLM:
     model_name: openai/gpt-oss-20b
     base_url: https://api.groq.com/openai/v1
     api_key: your groq api key
+  OpenaiLLM:  
+    type: openai
+    model_name: gpt-4o
+    base_url: https://api.openai.com/v1
+    api_key: your openai api key
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -1065,7 +1070,7 @@ TTS:
 selected_module:
   VAD: SileroVAD
   ASR: GroqASR
-  LLM: GroqLLM
+  LLM: OpenaiLLM
   VLLM: ChatGLMVLLM
   TTS: FishSpeech
   Memory: memu

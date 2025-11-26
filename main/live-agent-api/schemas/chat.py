@@ -19,7 +19,7 @@ class ChatRole(enum.Enum):
 class ReportChatMessageRequest(BaseModel):
     """Request schema for reporting a chat message from dialogue server"""
     agent_id: str = Field(..., max_length=50, description="Agent ID")
-    role: ChatRole = Field(..., description="1: user, 2: agent")
+    role: int = Field(..., ge=1, le=2, description="1: user, 2: agent")
     content: List[MessageBody] = Field(..., description="Message content parts")
 
 
@@ -27,7 +27,7 @@ class ChatMessage(BaseModel):
     """Response schema for a single chat message"""
     message_id: str
     agent_id: str
-    role: ChatRole
+    role: int  # 1: user, 2: agent
     content: List[MessageBody]
     created_at: datetime
 

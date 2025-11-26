@@ -45,6 +45,8 @@ def load_config():
     select_llm_module = config["selected_module"]["LLM"]
     if os.environ.get("REGION") == "LOCAL" and select_llm_module == "GroqLLM":
         config["LLM"][select_llm_module]["api_key"] = os.environ.get("GROQ_API_KEY")
+    if os.environ.get("REGION") == "LOCAL" and select_llm_module == "OpenaiLLM":
+        config["LLM"][select_llm_module]["api_key"] = os.environ.get("OPENAI_API_KEY")
     # if custom_config.get("manager-api", {}).get("url"):
     #     config = get_config_from_api(custom_config)
     # else:

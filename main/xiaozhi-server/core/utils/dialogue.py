@@ -1,6 +1,6 @@
 import uuid
 import re
-from typing import List, Dict
+from typing import List, Dict, Union, Any
 from datetime import datetime
 
 
@@ -8,11 +8,28 @@ class Message:
     def __init__(
         self,
         role: str,
-        content: str = None,
+        content: Union[str, List[Dict[str, Any]]] = None,
         uniq_id: str = None,
         tool_calls=None,
         tool_call_id=None,
     ):
+        """
+        Message in Live Agent System
+        
+        Args:
+            role: Message role (system, user, assistant, tool)
+            content: Message content, can be:
+                - str: Text content
+                - List[Dict]: Multimodal content
+                  For example: [
+                      {"type": "text", "text": "Please, describe this image."},
+                      {"type": "image", "image": {"url": "https://..."}},
+                      {"type": "file", "file": {"url": "https://..."}}
+                  ]
+            uniq_id: Message unique identifier
+            tool_calls: Tool call information
+            tool_call_id: Tool call ID
+        """
         self.uniq_id = uniq_id if uniq_id is not None else str(uuid.uuid4())
         self.role = role
         self.content = content

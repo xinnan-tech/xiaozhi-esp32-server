@@ -10,8 +10,9 @@ See core/connection.py for implementation details.
 import re
 import time
 import base64
-
+from typing import List, Dict, Any
 from config.live_agent_api_client import report_chat_message
+
 
 TAG = __name__
 
@@ -47,7 +48,7 @@ def strip_emotion_tags(text: str) -> str:
     return result.strip()
 
 
-def report(conn, role, text, opus_data, report_time):
+def report(conn, role, text: str, opus_data: List[bytes] | None = None, report_time: int = 0, attachments: List[Dict[str, Any]] | None = None):
     """Execute chat message report to live-agent-api
     
     Args:
@@ -56,6 +57,11 @@ def report(conn, role, text, opus_data, report_time):
         text: Message text content
         opus_data: Opus audio data (list of opus packets)
         report_time: Report timestamp (currently unused, kept for compatibility)
+        attachments: Optional list of attachments (multimodal content), format:
+            [
+                {"type": "image", "url": "https://..."},
+                {"type": "file", "url": "https://..."}
+            ]
     """
     try:
         # Build content items for new API format
@@ -78,6 +84,17 @@ def report(conn, role, text, opus_data, report_time):
                 "message_type": "audio",
                 "message_content": audio_base64
             })
+        
+        # Add attachments if exists (images and files)
+        if attachments:
+            for attachment in attachments:
+                att_type = attachment.get("type")
+                url = attachment.get("url")
+                if att_type and url:
+                    content_items.append({
+                        "message_type": att_type,  # "image" or "file"
+                        "message_content": url
+                    })
         
         # Skip if no content to report
         if not content_items:
@@ -115,14 +132,14 @@ def enqueue_tts_report(conn, text, opus_data):
         
         # Use connection's queue, pass text and binary data
         if conn.chat_history_conf == 2:
-            # Report with audio
-            conn.report_queue.put((2, clean_text, opus_data, int(time.time())))
+            # Report with audio (TTS never has attachments)
+            conn.report_queue.put((2, clean_text, opus_data, int(time.time()), None))
             conn.logger.bind(tag=TAG).debug(
                 f"TTS data enqueued: agent_id={conn.agent_id}, audio packets: {len(opus_data)}"
             )
         else:
             # Report without audio (text only)
-            conn.report_queue.put((2, clean_text, None, int(time.time())))
+            conn.report_queue.put((2, clean_text, None, int(time.time()), None))
             conn.logger.bind(tag=TAG).debug(
                 f"TTS data enqueued: agent_id={conn.agent_id}, no audio"
             )
@@ -130,7 +147,7 @@ def enqueue_tts_report(conn, text, opus_data):
         conn.logger.bind(tag=TAG).error(f"Failed to enqueue TTS report: {text}, {e}")
 
 
-def enqueue_asr_report(conn, text, opus_data):
+def enqueue_asr_report(conn, text, opus_data, attachments=None):
     """Enqueue ASR data for reporting (User message)
     
     Args:
@@ -145,18 +162,19 @@ def enqueue_asr_report(conn, text, opus_data):
         return
     
     try:
-        # Use connection's queue, pass text and binary data
+        # Use connection's queue, pass text, audio data, and attachments
+        # Queue format: (role, text, opus_data, timestamp, attachments)
         if conn.chat_history_conf == 2:
             # Report with audio
-            conn.report_queue.put((1, text, opus_data, int(time.time())))
+            conn.report_queue.put((1, text, opus_data, int(time.time()), attachments))
             conn.logger.bind(tag=TAG).debug(
-                f"ASR data enqueued: agent_id={conn.agent_id}, audio packets: {len(opus_data)}"
+                f"ASR data enqueued: agent_id={conn.agent_id}, audio packets: {len(opus_data)}, attachments: {len(attachments) if attachments else 0}"
             )
         else:
-            # Report without audio (text only)
-            conn.report_queue.put((1, text, None, int(time.time())))
+            # Report without audio (text only, but may have attachments)
+            conn.report_queue.put((1, text, None, int(time.time()), attachments))
             conn.logger.bind(tag=TAG).debug(
-                f"ASR data enqueued: agent_id={conn.agent_id}, no audio"
+                f"ASR data enqueued: agent_id={conn.agent_id}, no audio, attachments: {len(attachments) if attachments else 0}"
             )
     except Exception as e:
         conn.logger.bind(tag=TAG).debug(f"Failed to enqueue ASR report: {text}, {e}")

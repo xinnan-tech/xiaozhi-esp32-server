@@ -1,9 +1,19 @@
 import httpx
 import openai
 from openai.types import CompletionUsage
+from openai.types.responses import Response
+from openai.types.responses import (
+    ResponseOutputItemAddedEvent,
+    ResponseOutputItemDoneEvent,
+    ResponseTextDeltaEvent, 
+    ResponseFunctionCallArgumentsDeltaEvent, 
+    ResponseFunctionCallArgumentsDoneEvent
+)
 from config.logger import setup_logging
 from core.utils.util import check_model_key
 from core.providers.llm.base import LLMProviderBase
+from types import SimpleNamespace
+
 
 TAG = __name__
 logger = setup_logging()
@@ -50,72 +60,84 @@ class LLMProvider(LLMProviderBase):
 
     def response(self, session_id, dialogue, **kwargs):
         try:
-            responses = self.client.chat.completions.create(
+            responses = self.client.responses.create(
                 model=self.model_name,
-                messages=dialogue,
+                input=dialogue,
                 stream=True,
-                max_tokens=kwargs.get("max_tokens", self.max_tokens),
+                max_output_tokens=kwargs.get("max_tokens", self.max_tokens),
                 temperature=kwargs.get("temperature", self.temperature),
                 top_p=kwargs.get("top_p", self.top_p),
-                frequency_penalty=kwargs.get(
-                    "frequency_penalty", self.frequency_penalty
-                ),
             )
 
-            is_active = True
             for chunk in responses:
-                try:
-                    # 检查是否存在有效的choice且content不为空
-                    delta = (
-                        chunk.choices[0].delta
-                        if getattr(chunk, "choices", None)
-                        else None
-                    )
-                    content = delta.content if hasattr(delta, "content") else ""
-                except IndexError:
-                    content = ""
-                if content:
-                    # 处理标签跨多个chunk的情况
-                    if "<think>" in content:
-                        is_active = False
-                        content = content.split("<think>")[0]
-                    if "</think>" in content:
-                        is_active = True
-                        content = content.split("</think>")[-1]
-                    if is_active:
-                        yield content
+                if isinstance(chunk, ResponseTextDeltaEvent):
+                    yield chunk.delta
 
         except Exception as e:
             try:
-                error_msg = repr(e)[:200]
+                error_msg = repr(e)
             except:
                 error_msg = "encoding error"
             logger.bind(tag=TAG).error(f"Error in response generation: {error_msg}")
 
     def response_with_functions(self, session_id, dialogue, functions=None):
+        tools = None
+        if functions:
+            tools = []
+            for f in functions:
+                if f.get("type") == "function" and "function" in f:
+                    func = f["function"]
+                    tools.append({
+                        "type": "function",
+                        "name": func["name"],
+                        "description": func.get("description", ""),
+                        "parameters": func.get("parameters", {}),
+
+                    })
+                else:
+                    # 已经是 Responses API 格式，移除不支持的字段
+                    tool = {k: v for k, v in f.items() if k != "strict"}
+                    tools.append(tool)
+
         try:
-            stream = self.client.chat.completions.create(
-                model=self.model_name, messages=dialogue, stream=True, tools=functions
-            )
+            # 构建请求参数
+            request_params = {
+                "model": self.model_name,
+                "input": dialogue,
+                "stream": True,
+                "max_output_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "top_p": self.top_p,
+            }
+            
+            # 只有在有 tools 时才添加 tools 参数
+            if tools:
+                request_params["tools"] = tools
+            
+            stream = self.client.responses.create(**request_params)
 
             for chunk in stream:
-                # 检查是否存在有效的choice且content不为空
-                if getattr(chunk, "choices", None):
-                    content = chunk.choices[0].delta.content
-                    tool_calls = chunk.choices[0].delta.tool_calls
-                    yield content, tool_calls
-                # 存在 CompletionUsage 消息时，生成 Token 消耗 log
-                elif isinstance(getattr(chunk, "usage", None), CompletionUsage):
-                    usage_info = getattr(chunk, "usage", None)
-                    logger.bind(tag=TAG).debug(
-                        f"Token 消耗：输入 {getattr(usage_info, 'prompt_tokens', '未知')}，"
-                        f"输出 {getattr(usage_info, 'completion_tokens', '未知')}，"
-                        f"共计 {getattr(usage_info, 'total_tokens', '未知')}"
-                    )
+                if isinstance(chunk, ResponseOutputItemAddedEvent):
+                    if chunk.item.type == "function_call":
+                        yield None, [SimpleNamespace(
+                            id=chunk.item.call_id,
+                            type="function",
+                            function=SimpleNamespace(
+                                name=chunk.item.name,
+                            ),
+                        )]
+                elif isinstance(chunk, ResponseFunctionCallArgumentsDeltaEvent):
+                    yield None, [SimpleNamespace(
+                            function=SimpleNamespace(
+                                arguments=chunk.item.arguments,
+                            ),
+                        )]
+                elif isinstance(chunk, ResponseTextDeltaEvent):
+                    yield chunk.delta, None
 
         except Exception as e:
             try:
-                error_msg = repr(e)[:200]
+                error_msg = repr(e)
             except:
                 error_msg = "encoding error"
             logger.bind(tag=TAG).error(f"Error in function call streaming: {error_msg}")

@@ -9,3 +9,4 @@ class TextMessageType(Enum):
     IOT = "iot"
     MCP = "mcp"
     SERVER = "server"
+    ATTACHMENT = "attachment"

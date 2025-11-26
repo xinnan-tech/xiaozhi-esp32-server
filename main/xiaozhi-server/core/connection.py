@@ -882,8 +882,25 @@ class ConnectionHandler:
         self.dialogue.update_system_message(self.prompt)
 
     def chat(self, query, depth=0):
+        """
+        Process user message and generate response
+        
+        Args:
+            query: User message, can be:
+                - str: Text content
+                - List[Dict]: Multimodal content
+            depth: Recursive depth, for function calling
+        """
         self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
         self.llm_finish_task = False
+
+        # extract text content for memory query
+        if isinstance(query, list):
+            # multimodal content: extract text part
+            text_parts = [item.get("text", "") for item in query if item.get("type") == "text"]
+            query_text = " ".join(text_parts)
+        else:
+            query_text = query
 
         # 为最顶层时新建会话ID和发送FIRST请求
         if depth == 0:
@@ -904,11 +921,11 @@ class ConnectionHandler:
         response_message = []
 
         try:
-            # 使用带记忆的对话
+            # use dialogue with memory (use text for memory query)
             memory_str = None
             if self.memory is not None:
                 future = asyncio.run_coroutine_threadsafe(
-                    self.memory.query_memory(query), self.loop
+                    self.memory.query_memory(query_text), self.loop
                 )
                 memory_str = future.result()
 
@@ -1131,11 +1148,11 @@ class ConnectionHandler:
 
         self.logger.bind(tag=TAG).info("聊天记录上报线程已退出")
 
-    def _process_report(self, type, text, audio_data, report_time):
+    def _process_report(self, role, text, audio_data, report_time, attachments=None):
         """处理上报任务"""
         try:
-            # 执行上报（传入二进制数据）
-            report(self, type, text, audio_data, report_time)
+            # 执行上报（传入二进制数据和附件）
+            report(self, role, text, audio_data, report_time, attachments)
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"上报处理异常: {e}")
         finally:

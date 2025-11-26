@@ -12,11 +12,11 @@ from schemas.chat import (
     ChatMessage,
     ChatMessagesListResponse
 )
-
+from utils.response import success_response
 router = APIRouter()
 
 
-@router.post("/report", response_model=ChatMessage)
+@router.post("/report", summary="Report a new chat message")
 async def report_message(
     request: ReportChatMessageRequest,
     db: AsyncSession = Depends(get_db),
@@ -39,10 +39,11 @@ async def report_message(
     Returns:
         Created message with S3 URLs
     """
-    return await chat_service.report_message(db=db, s3=s3, request=request)
+    message = await chat_service.report_message(db=db, s3=s3, request=request)
+    return success_response(data=message)
 
 
-@router.get("/{agent_id}/messages", response_model=ChatMessagesListResponse)
+@router.get("/{agent_id}/messages", summary="Get chat messages for an agent")
 async def get_agent_messages(
     agent_id: str,
     cursor: Optional[str] = Query(None, description="Message ID (ULID) cursor for pagination"),
@@ -98,9 +99,9 @@ async def get_agent_messages(
         include_audio=include_audio
     )
     
-    return ChatMessagesListResponse(
+    return success_response(data=ChatMessagesListResponse(
         messages=messages,
         next_cursor=next_cursor,
         has_more=has_more
-    )
+    ))
 
