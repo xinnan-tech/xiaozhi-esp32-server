@@ -42,6 +42,7 @@ manager-api:
 
 live-agent-api:
   url: http://live-agent-api:8080/api/live_agent/v1
+  chat_history_conf: 2
 
 # MySQL配置(用于聊天记录和记忆关联)
 mysql:

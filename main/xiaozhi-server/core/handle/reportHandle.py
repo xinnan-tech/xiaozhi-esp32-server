@@ -1,149 +1,162 @@
 """
-TTS上报功能已集成到ConnectionHandler类中。
+Report features:
+1. Each connection has its own report queue and processing thread
+2. Report thread lifecycle bound to connection object
+3. Use ConnectionHandler.enqueue_tts_report method for reporting
 
-上报功能包括：
-1. 每个连接对象拥有自己的上报队列和处理线程
-2. 上报线程的生命周期与连接对象绑定
-3. 使用ConnectionHandler.enqueue_tts_report方法进行上报
-
-具体实现请参考core/connection.py中的相关代码。
+See core/connection.py for implementation details.
 """
 
+import re
 import time
+import base64
 
-import opuslib_next
-
-from config.manage_api_client import report as manage_report
+from config.live_agent_api_client import report_chat_message
 
 TAG = __name__
 
+# Regex pattern to match emotion tags anywhere in text
+# Format: (emotion) e.g., "(happy)", "(sincere)", "(curious)"
+# Matches: optional whitespace + (word) + optional whitespace
+EMOTION_TAG_PATTERN = re.compile(r'\s*\([a-zA-Z_]+\)\s*')
 
-def report(conn, type, text, opus_data, report_time):
-    """执行聊天记录上报操作
 
+def strip_emotion_tags(text: str) -> str:
+    """
+    Remove all emotion tags from TTS text.
+    
+    Emotion tags are in format: (emotion) typically at the start of sentences.
+    Examples:
+        "(happy) Hello!" -> "Hello!"
+        "(sincere) That's great. (curious) What next?" -> "That's great. What next?"
+        "Hello (happy) world" -> "Hello world"
+    
     Args:
-        conn: 连接对象
-        type: 上报类型，1为用户，2为智能体
-        text: 合成文本
-        opus_data: opus音频数据
-        report_time: 上报时间
+        text: Text with potential emotion tags
+        
+    Returns:
+        Text with all emotion tags removed
+    """
+    if not text:
+        return text
+    
+    # Remove all emotion tags from the text
+    result = EMOTION_TAG_PATTERN.sub(' ', text)
+    # Clean up multiple spaces and trim
+    result = re.sub(r'\s+', ' ', result)
+    return result.strip()
+
+
+def report(conn, role, text, opus_data, report_time):
+    """Execute chat message report to live-agent-api
+    
+    Args:
+        conn: Connection object
+        role: Message role, 1=user, 2=agent
+        text: Message text content
+        opus_data: Opus audio data (list of opus packets)
+        report_time: Report timestamp (currently unused, kept for compatibility)
     """
     try:
+        # Build content items for new API format
+        content_items = []
+        
+        # Add text content if exists
+        if text:
+            content_items.append({
+                "message_type": "text",
+                "message_content": text
+            })
+        
+        # Add audio content if exists (convert opus packets to base64)
         if opus_data:
-            audio_data = opus_to_wav(conn, opus_data)
-        else:
-            audio_data = None
-        # 执行上报
-        manage_report(
-            mac_address=conn.device_id,
-            session_id=conn.session_id,
-            chat_type=type,
-            content=text,
-            audio=audio_data,
-            report_time=report_time,
+            # Concatenate all opus packets
+            opus_bytes = b"".join(opus_data)
+            # Convert to base64
+            audio_base64 = base64.b64encode(opus_bytes).decode("utf-8")
+            content_items.append({
+                "message_type": "audio",
+                "message_content": audio_base64
+            })
+        
+        # Skip if no content to report
+        if not content_items:
+            conn.logger.bind(tag=TAG).warning("No content to report, skipping")
+            return
+        
+        # Report to live-agent-api (client already initialized at startup)
+        report_chat_message(
+            agent_id=conn.agent_id,
+            role=role,
+            content_items=content_items
         )
+        
     except Exception as e:
-        conn.logger.bind(tag=TAG).error(f"聊天记录上报失败: {e}")
-
-
-def opus_to_wav(conn, opus_data):
-    """将Opus数据转换为WAV格式的字节流
-
-    Args:
-        output_dir: 输出目录（保留参数以保持接口兼容）
-        opus_data: opus音频数据
-
-    Returns:
-        bytes: WAV格式的音频数据
-    """
-    decoder = opuslib_next.Decoder(16000, 1)  # 16kHz, 单声道
-    pcm_data = []
-
-    for opus_packet in opus_data:
-        try:
-            pcm_frame = decoder.decode(opus_packet, 960)  # 960 samples = 60ms
-            pcm_data.append(pcm_frame)
-        except opuslib_next.OpusError as e:
-            conn.logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
-
-    if not pcm_data:
-        raise ValueError("没有有效的PCM数据")
-
-    # 创建WAV文件头
-    pcm_data_bytes = b"".join(pcm_data)
-    num_samples = len(pcm_data_bytes) // 2  # 16-bit samples
-
-    # WAV文件头
-    wav_header = bytearray()
-    wav_header.extend(b"RIFF")  # ChunkID
-    wav_header.extend((36 + len(pcm_data_bytes)).to_bytes(4, "little"))  # ChunkSize
-    wav_header.extend(b"WAVE")  # Format
-    wav_header.extend(b"fmt ")  # Subchunk1ID
-    wav_header.extend((16).to_bytes(4, "little"))  # Subchunk1Size
-    wav_header.extend((1).to_bytes(2, "little"))  # AudioFormat (PCM)
-    wav_header.extend((1).to_bytes(2, "little"))  # NumChannels
-    wav_header.extend((16000).to_bytes(4, "little"))  # SampleRate
-    wav_header.extend((32000).to_bytes(4, "little"))  # ByteRate
-    wav_header.extend((2).to_bytes(2, "little"))  # BlockAlign
-    wav_header.extend((16).to_bytes(2, "little"))  # BitsPerSample
-    wav_header.extend(b"data")  # Subchunk2ID
-    wav_header.extend(len(pcm_data_bytes).to_bytes(4, "little"))  # Subchunk2Size
-
-    # 返回完整的WAV数据
-    return bytes(wav_header) + pcm_data_bytes
+        conn.logger.bind(tag=TAG).error(f"Chat message report failed: {e}")
 
 
 def enqueue_tts_report(conn, text, opus_data):
-    if not conn.read_config_from_api or conn.need_bind or not conn.report_tts_enable:
+    """Enqueue TTS data for reporting (Agent message)
+    
+    Args:
+        conn: Connection object
+        text: Synthesized text (may contain emotion tags)
+        opus_data: Opus audio data (list of opus packets)
+    """
+    # Check if reporting is enabled for live-agent-api mode
+    if not conn.read_config_from_live_agent_api or conn.need_bind or not conn.report_tts_enable:
         return
     if conn.chat_history_conf == 0:
         return
-    """将TTS数据加入上报队列
-
-    Args:
-        conn: 连接对象
-        text: 合成文本
-        opus_data: opus音频数据
-    """
+    
     try:
-        # 使用连接对象的队列，传入文本和二进制数据而非文件路径
+        # Remove emotion tags from text before reporting
+        clean_text = strip_emotion_tags(text)
+        
+        # Use connection's queue, pass text and binary data
         if conn.chat_history_conf == 2:
-            conn.report_queue.put((2, text, opus_data, int(time.time())))
+            # Report with audio
+            conn.report_queue.put((2, clean_text, opus_data, int(time.time())))
             conn.logger.bind(tag=TAG).debug(
-                f"TTS数据已加入上报队列: {conn.device_id}, 音频大小: {len(opus_data)} "
+                f"TTS data enqueued: agent_id={conn.agent_id}, audio packets: {len(opus_data)}"
             )
         else:
-            conn.report_queue.put((2, text, None, int(time.time())))
+            # Report without audio (text only)
+            conn.report_queue.put((2, clean_text, None, int(time.time())))
             conn.logger.bind(tag=TAG).debug(
-                f"TTS数据已加入上报队列: {conn.device_id}, 不上报音频"
+                f"TTS data enqueued: agent_id={conn.agent_id}, no audio"
             )
     except Exception as e:
-        conn.logger.bind(tag=TAG).error(f"加入TTS上报队列失败: {text}, {e}")
+        conn.logger.bind(tag=TAG).error(f"Failed to enqueue TTS report: {text}, {e}")
 
 
 def enqueue_asr_report(conn, text, opus_data):
-    if not conn.read_config_from_api or conn.need_bind or not conn.report_asr_enable:
+    """Enqueue ASR data for reporting (User message)
+    
+    Args:
+        conn: Connection object
+        text: Recognized text
+        opus_data: Opus audio data (list of opus packets)
+    """
+    # Check if reporting is enabled for live-agent-api mode
+    if not conn.read_config_from_live_agent_api or conn.need_bind or not conn.report_asr_enable:
         return
     if conn.chat_history_conf == 0:
         return
-    """将ASR数据加入上报队列
-
-    Args:
-        conn: 连接对象
-        text: 合成文本
-        opus_data: opus音频数据
-    """
+    
     try:
-        # 使用连接对象的队列，传入文本和二进制数据而非文件路径
+        # Use connection's queue, pass text and binary data
         if conn.chat_history_conf == 2:
+            # Report with audio
             conn.report_queue.put((1, text, opus_data, int(time.time())))
             conn.logger.bind(tag=TAG).debug(
-                f"ASR数据已加入上报队列: {conn.device_id}, 音频大小: {len(opus_data)} "
+                f"ASR data enqueued: agent_id={conn.agent_id}, audio packets: {len(opus_data)}"
             )
         else:
+            # Report without audio (text only)
             conn.report_queue.put((1, text, None, int(time.time())))
             conn.logger.bind(tag=TAG).debug(
-                f"ASR数据已加入上报队列: {conn.device_id}, 不上报音频"
+                f"ASR data enqueued: agent_id={conn.agent_id}, no audio"
             )
     except Exception as e:
-        conn.logger.bind(tag=TAG).debug(f"加入ASR上报队列失败: {text}, {e}")
+        conn.logger.bind(tag=TAG).debug(f"Failed to enqueue ASR report: {text}, {e}")
