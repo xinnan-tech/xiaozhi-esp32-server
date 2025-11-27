@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile
     image: xiaozhi-esp32-server:local
     container_name: xiaozhi-esp32-server
+    env_file:
+      - .env
     depends_on:
       xiaozhi-esp32-server-db:
         condition: service_healthy
@@ -211,7 +213,7 @@ services:
       dockerfile: Dockerfile
     container_name: live-agent-api
     env_file:
-      - ./live-agent-api/.env
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@live-agent-postgres:5432/live_agent
       S3_ENDPOINT_URL: http://live-agent-minio:9000
