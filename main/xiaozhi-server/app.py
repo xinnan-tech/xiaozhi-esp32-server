@@ -48,7 +48,11 @@ async def main():
 
     if config.get("read_config_from_live_agent_api", False):
         init_live_agent_api(config)
-
+    
+    # disable all parallel features
+    # TODO: find a better way to control
+    from core.parallel import get_feature_manager
+    get_feature_manager().disable_all()
     # auth_key优先级：配置文件server.auth_key > manager-api.secret > 自动生成
     # auth_key用于jwt认证，比如视觉分析接口的jwt认证、ota接口的token生成与websocket认证
     # 获取配置文件中的auth_key
