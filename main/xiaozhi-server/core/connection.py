@@ -602,6 +602,10 @@ class ConnectionHandler:
 
     def _initialize_asr(self):
         """初始化ASR"""
+        # 检查 _asr 是否为 None
+        if self._asr is None:
+            return initialize_asr(self.config)
+        
         if self._asr.interface_type == InterfaceType.LOCAL:
             # 如果公共ASR是本地服务，则直接返回
             # 因为本地一个实例ASR，可以被多个连接共享
@@ -892,6 +896,12 @@ class ConnectionHandler:
             depth: Recursive depth, for function calling
         """
         self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
+        
+        # 检查 TTS 是否已初始化
+        if self.tts is None:
+            self.logger.bind(tag=TAG).error("TTS 未初始化，无法处理聊天请求")
+            return False
+        
         self.llm_finish_task = False
 
         # extract text content for memory query

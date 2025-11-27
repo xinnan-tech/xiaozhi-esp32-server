@@ -176,6 +176,127 @@ def _init_interrupt_state(conn):
         conn._continuous_voice_count = 0
 
 
+# 在用户开始说话时，提前预取 Memory，利用说话时间掩盖网络延迟
+
+async def _trigger_memory_prefetch_on_voice_start(conn, have_voice: bool):
+    """
+    检测语音开始边缘，触发 Memory 预取
+    
+    策略：
+    - 当检测到从"无声"到"有声"的边缘时，启动预取
+    - 基于最近对话上下文构建查询
+    - 预取结果缓存在 conn._prefetched_memory_task
+    - ASR 完成后，ParallelChatHandler 使用预取结果
+    
+    优势：
+    - 用户说话时间（1~3秒）> Memory 查询时间（0.3~2秒）
+    - 理想情况下，ASR 完成时 Memory 已就绪
+    """
+    # 检查是否有 Memory 组件
+    if not hasattr(conn, 'memory') or conn.memory is None:
+        return
+    
+    # 获取上一帧的语音状态
+    prev_have_voice = getattr(conn, '_prev_have_voice_for_prefetch', False)
+    conn._prev_have_voice_for_prefetch = have_voice
+    
+    # 检测边缘：从无声到有声
+    if have_voice and not prev_have_voice:
+        # 如果已有正在进行的预取任务，不重复启动
+        if hasattr(conn, '_prefetched_memory_task'):
+            task = conn._prefetched_memory_task
+            if task and not task.done():
+                return
+        
+        # 启动预取
+        logger.bind(tag=TAG).debug("检测到语音开始，启动 Memory 预取")
+        conn._prefetched_memory_task = asyncio.create_task(
+            _prefetch_memory(conn)
+        )
+
+
+async def _prefetch_memory(conn) -> None:
+    """
+    预取 Memory（基于最近对话上下文）
+    
+    查询策略：
+    - 使用最近 2-3 轮用户发言作为查询上下文
+    - 结果缓存到 conn._prefetched_memory_result
+    - 设置 1.5 秒超时，避免阻塞过久
+    """
+    try:
+        import time
+        start_time = time.time()
+        
+        # 构建查询上下文：最近的用户发言
+        context_query = _build_prefetch_query(conn)
+        if not context_query:
+            logger.bind(tag=TAG).debug("无有效对话上下文，跳过 Memory 预取")
+            conn._prefetched_memory_result = None
+            return
+        
+        # 执行预取（带超时）
+        try:
+            result = await asyncio.wait_for(
+                conn.memory.query_memory(context_query),
+                timeout=1.5  # 预取超时 1.5 秒
+            )
+            conn._prefetched_memory_result = result
+            elapsed_ms = (time.time() - start_time) * 1000
+            logger.bind(tag=TAG).info(
+                f"Memory 预取完成: {elapsed_ms:.0f}ms, 结果长度: {len(result) if result else 0}"
+            )
+        except asyncio.TimeoutError:
+            logger.bind(tag=TAG).debug("Memory 预取超时，将在 LLM 调用时重新查询")
+            conn._prefetched_memory_result = None
+        
+    except Exception as e:
+        logger.bind(tag=TAG).warning(f"Memory 预取异常: {e}")
+        conn._prefetched_memory_result = None
+
+
+def _build_prefetch_query(conn) -> str:
+    """
+    构建预取查询字符串
+    
+    策略：
+    - 有历史对话：使用最近 2-3 轮用户发言拼接
+    - 无历史对话（第一轮）：使用通用查询，预取最近记忆
+    """
+    try:
+        if not hasattr(conn, 'dialogue') or conn.dialogue is None:
+            # 第一轮：使用通用查询
+            return "最近的对话记忆"
+        
+        # 获取最近的对话消息
+        messages = conn.dialogue.get_llm_dialogue()
+        if not messages:
+            # 第一轮：使用通用查询，预取最近记忆
+            return "最近的对话记忆"
+        
+        # 提取最近 3 条用户消息
+        user_messages = []
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                content = msg.get("content", "")
+                if content:
+                    user_messages.append(content)
+                if len(user_messages) >= 3:
+                    break
+        
+        if not user_messages:
+            # 没有用户消息：使用通用查询
+            return "最近的对话记忆"
+        
+        # 反转回正序，拼接
+        user_messages.reverse()
+        return " ".join(user_messages)
+        
+    except Exception as e:
+        logger.bind(tag=TAG).debug(f"构建预取查询失败: {e}")
+        return "最近的对话记忆"
+
+
 async def _parallel_interruption_check(conn, audio_chunk):
     """
     并行打断检测（目标 <400ms）
@@ -305,6 +426,10 @@ async def handleAudioMessage(conn, audio):
         if not hasattr(conn, "vad_resume_task") or conn.vad_resume_task.done():
             conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
         return
+
+    # ============== Memory 预取（方案 A2）==============
+    # 检测语音开始边缘（从无声到有声），提前预取 Memory
+    await _trigger_memory_prefetch_on_voice_start(conn, have_voice)
 
     # ============== 打断处理逻辑（业界最佳实践：持续语音检测） ==============
     # 只有 TTS 正在播放且非手动监听模式时才检测打断

@@ -162,7 +162,8 @@ class PerformanceTracer:
         finally:
             span.finish()
             with self._lock:
-                self._span_stack.pop()
+                if self._span_stack:
+                    self._span_stack.pop()
                 self._current_span = (
                     self._span_stack[-1] if self._span_stack else None
                 )
