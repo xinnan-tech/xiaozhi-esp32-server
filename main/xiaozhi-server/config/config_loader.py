@@ -1,8 +1,50 @@
 import os
+import re
 import yaml
 from collections.abc import Mapping
 from config.manage_api_client import init_service, get_server_config, get_agent_models
 from dotenv import load_dotenv
+
+
+# Environment variable pattern: ${VAR_NAME} or ${VAR_NAME:-default_value}
+ENV_VAR_PATTERN = re.compile(r'\$\{([^}:]+)(?::-([^}]*))?\}')
+
+
+def expand_env_vars(config):
+    """
+    Recursively expand environment variable placeholders in config.
+    
+    Supports two formats:
+    - ${VAR_NAME}              - Required, raises error if not set
+    - ${VAR_NAME:-default}     - Optional, uses default if not set
+    
+    Examples:
+        api_key: ${OPENAI_API_KEY}
+        base_url: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+    """
+    if isinstance(config, dict):
+        return {k: expand_env_vars(v) for k, v in config.items()}
+    elif isinstance(config, list):
+        return [expand_env_vars(item) for item in config]
+    elif isinstance(config, str):
+        def replace_env_var(match):
+            var_name = match.group(1)
+            default_value = match.group(2)  # None if no default specified
+            
+            env_value = os.environ.get(var_name)
+            
+            if env_value is not None:
+                return env_value
+            elif default_value is not None:
+                return default_value
+            else:
+                # Keep original placeholder if env var not set and no default
+                # This allows optional configs to remain as placeholders
+                return match.group(0)
+        
+        return ENV_VAR_PATTERN.sub(replace_env_var, config)
+    return config
+
 
 def get_project_dir():
     """获取项目根目录"""
@@ -24,34 +66,19 @@ def load_config():
     if cached_config is not None:
         return cached_config
 
-    # default_config_path = get_project_dir() + "config.yaml"
     custom_config_path = get_project_dir() + "custom_config.yaml"
 
-    # 加载默认配置
-    # default_config = read_config(default_config_path)
-    config = read_config(custom_config_path)
-    config["read_config_from_live_agent_api"] = True
-    # load environment variables
+    # Load environment variables from .env file
     load_dotenv()
-    # tts
-    select_tts_module = config["selected_module"]["TTS"]
-    if os.environ.get("REGION") == "LOCAL" and select_tts_module == "FishSpeech":
-        config["TTS"][select_tts_module]["api_key"] = os.environ.get("FISH_API_KEY")
-    # asr
-    select_asr_module = config["selected_module"]["ASR"]
-    if os.environ.get("REGION") == "LOCAL" and select_asr_module == "GroqASR":
-        config["ASR"][select_asr_module]["api_key"] = os.environ.get("GROQ_API_KEY")
-    # llm
-    select_llm_module = config["selected_module"]["LLM"]
-    if os.environ.get("REGION") == "LOCAL" and select_llm_module == "GroqLLM":
-        config["LLM"][select_llm_module]["api_key"] = os.environ.get("GROQ_API_KEY")
-    if os.environ.get("REGION") == "LOCAL" and select_llm_module == "OpenaiLLM":
-        config["LLM"][select_llm_module]["api_key"] = os.environ.get("OPENAI_API_KEY")
-    # if custom_config.get("manager-api", {}).get("url"):
-    #     config = get_config_from_api(custom_config)
-    # else:
-    #     # 合并配置
-    #     config = merge_configs(default_config, custom_config)
+    
+    # Read YAML config
+    config = read_config(custom_config_path)
+    
+    # Expand environment variable placeholders (e.g., ${OPENAI_API_KEY})
+    config = expand_env_vars(config)
+    
+    config["read_config_from_live_agent_api"] = True
+
     # 初始化目录
     ensure_directories(config)
 

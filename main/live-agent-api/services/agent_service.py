@@ -9,8 +9,10 @@ from schemas.agent import (
     AgentResponse, 
     AgentListResponse, 
     AgentTemplateResponse,
-    AgentConfigResponse
+    AgentConfigResponse,
+    AgentWithLatestMessage
 )
+from utils.ulid import generate_template_id
 class AgentService:
     """Agent service layer"""
     
@@ -18,6 +20,38 @@ class AgentService:
         """Get all agent templates"""
         templates = await AgentTemplate.get_all(db)
         return [AgentTemplateResponse.model_validate(t) for t in templates]
+
+    async def create_template(
+        self,
+        db: AsyncSession,
+        s3,
+        name: str,
+        description: str,
+        voice_id: str,
+        instruction: str,
+        voice_opening: str,
+        voice_closing: str,
+        avatar: UploadFile
+    ) -> AgentTemplateResponse:
+        """Create a new agent template (all fields required)"""
+        # Generate template_id
+        template_id = generate_template_id()
+        
+        # Upload avatar
+        avatar_url = await FileRepository.upload_avatar(s3, avatar, template_id)
+        
+        template = await AgentTemplate.create(
+            db=db,
+            template_id=template_id,
+            name=name,
+            avatar_url=avatar_url,
+            description=description,
+            voice_id=voice_id,
+            instruction=instruction,
+            voice_opening=voice_opening,
+            voice_closing=voice_closing
+        )
+        return AgentTemplateResponse.model_validate(template)
     
     async def get_agent_list(
         self, 
@@ -27,27 +61,47 @@ class AgentService:
         page_size: int = 10
     ) -> AgentListResponse:
         """
-        Get user's agent list with cursor-based pagination
+        Get user's agent list with cursor-based pagination, ordered by latest message time
         
         Args:
             db: Database session
             owner_id: User ID
-            cursor: Pagination cursor (ISO datetime string)
+            cursor: Pagination cursor (ISO datetime string of sort_time)
             page_size: Number of items per page
             
         Returns:
-            AgentListResponse with agents, next_cursor, and has_more
+            AgentListResponse with agents (including latest message), next_cursor, and has_more
         """
-        agents, next_cursor, has_more = await Agent.get_agents_by_owner(
+        rows, next_cursor, has_more = await Agent.get_agents_with_latest_message(
             db, 
             owner_id=owner_id, 
             cursor=cursor,
             limit=page_size
         )
         
-        agent_responses = [AgentResponse.model_validate(a) for a in agents]
+        # Process rows into response format
+        agents = []
+        for row in rows:
+            agent = row[0]  # AgentModel instance
+            
+            # Extract text content from latest message if exists
+            latest_message_text = None
+            if row.latest_message_content:
+                for item in row.latest_message_content:
+                    if item.get('message_type') == 'text':
+                        latest_message_text = item.get('message_content')
+                        break
+            
+            agents.append(AgentWithLatestMessage(
+                agent_id=agent.agent_id,
+                name=agent.name,
+                avatar_url=agent.avatar_url,
+                last_activity_time=row.sort_time,
+                latest_message_text=latest_message_text
+            ))
+        
         return AgentListResponse(
-            agents=agent_responses,
+            agents=agents,
             next_cursor=next_cursor,
             has_more=has_more
         )

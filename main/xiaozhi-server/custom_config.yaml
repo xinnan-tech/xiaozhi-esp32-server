@@ -416,7 +416,7 @@ ASR:
     # 2.创建api-key  https://console.groq.com/keys
     # 3.模型可以选择whisper-large-v3-turbo或whisper-large-v3（distil-whisper-large-v3-en仅支持英语转录）
     type: openai
-    api_key: your groq api key
+    api_key: ${GROQ_API_KEY}
     base_url: https://api.groq.com/openai/v1
     model_name: whisper-large-v3-turbo
     output_dir: tmp/
@@ -542,7 +542,7 @@ LLM:
     type: openai
     model_name: gpt-4o
     base_url: https://api.openai.com/v1
-    api_key: your openai api key
+    api_key: ${OPENAI_API_KEY}
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -782,7 +782,7 @@ TTS:
     channels: 1
     rate: 44100
     sample_rate: 16000
-    api_key: "your fish speech api key"
+    api_key: ${FISH_API_KEY}
   GPT_SOVITS_V2:
     # 定义TTS API类型
     #启动tts方法：
