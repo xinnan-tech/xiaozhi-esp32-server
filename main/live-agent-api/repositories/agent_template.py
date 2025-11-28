@@ -71,3 +71,31 @@ class AgentTemplate:
         result = await db.execute(stmt)
         return result.scalars().all()
 
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        template_id: str,
+        name: str,
+        avatar_url: Optional[str] = None,
+        description: Optional[str] = None,
+        voice_id: Optional[str] = None,
+        instruction: Optional[str] = None,
+        voice_opening: Optional[str] = None,
+        voice_closing: Optional[str] = None
+    ) -> AgentTemplateModel:
+        """Create a new agent template"""
+        template = AgentTemplateModel(
+            template_id=template_id,
+            name=name,
+            avatar_url=avatar_url,
+            description=description,
+            voice_id=voice_id,
+            instruction=instruction,
+            voice_opening=voice_opening,
+            voice_closing=voice_closing
+        )
+        db.add(template)
+        await db.commit()
+        await db.refresh(template)
+        return template
+

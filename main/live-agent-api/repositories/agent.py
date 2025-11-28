@@ -1,10 +1,11 @@
-from datetime import datetime
-from typing import Optional, List, Tuple
-from sqlalchemy import String, Text, TIMESTAMP, ForeignKey, Index, select, delete
+from datetime import datetime, timezone
+from typing import Optional, List, Tuple, Any
+from sqlalchemy import String, Text, TIMESTAMP, ForeignKey, Index, select, delete, func
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infra.database import Base, utc_now
+from repositories.chat import ChatMessageModel
 
 
 # ==================== ORM Model ====================
@@ -181,4 +182,89 @@ class Agent:
         )
         await db.commit()
         return result.rowcount > 0
+
+    @staticmethod
+    async def get_agents_with_latest_message(
+        db: AsyncSession,
+        owner_id: str,
+        cursor: Optional[str] = None,
+        limit: int = 20
+    ) -> Tuple[List[Tuple[Any, ...]], Optional[str], bool]:
+        """
+        Get agents with their latest message, ordered by latest activity time
+        
+        Args:
+            db: Database session
+            owner_id: User ID
+            cursor: ISO datetime string of last item's sort_time
+            limit: Number of items to return
+            
+        Returns:
+            Tuple of (rows, next_cursor, has_more)
+            Each row contains: (AgentModel, latest_message_id, latest_message_role, 
+                               latest_message_content, latest_message_time, sort_time)
+        """
+        # Subquery: get latest message per agent using DISTINCT ON
+        latest_msg_subq = (
+            select(
+                ChatMessageModel.agent_id,
+                ChatMessageModel.message_id,
+                ChatMessageModel.role,
+                ChatMessageModel.content,
+                ChatMessageModel.created_at.label('message_time')
+            )
+            .distinct(ChatMessageModel.agent_id)
+            .order_by(ChatMessageModel.agent_id, ChatMessageModel.message_id.desc())
+            .subquery('latest_messages')
+        )
+        
+        # Sort time: use message time if available, otherwise agent created_at
+        sort_time_expr = func.coalesce(
+            latest_msg_subq.c.message_time, 
+            AgentModel.created_at
+        )
+        
+        sort_time = sort_time_expr.label('sort_time')
+        
+        # Main query: join agents with latest messages
+        query = (
+            select(
+                AgentModel,
+                latest_msg_subq.c.message_id.label('latest_message_id'),
+                latest_msg_subq.c.role.label('latest_message_role'),
+                latest_msg_subq.c.content.label('latest_message_content'),
+                latest_msg_subq.c.message_time.label('latest_message_time'),
+                sort_time
+            )
+            .outerjoin(latest_msg_subq, AgentModel.agent_id == latest_msg_subq.c.agent_id)
+            .where(AgentModel.owner_id == owner_id)
+        )
+        
+        # Apply cursor filter
+        if cursor:
+            try:
+                cursor_time = datetime.fromisoformat(cursor)
+                query = query.where(sort_time_expr < cursor_time)
+            except (ValueError, TypeError):
+                pass
+        
+        # Order by sort_time DESC, agent_id DESC for stable sorting
+        query = query.order_by(sort_time.desc(), AgentModel.agent_id.desc()).limit(limit + 1)
+        
+        result = await db.execute(query)
+        rows = result.all()
+        
+        # Check if there are more records
+        has_more = len(rows) > limit
+        if has_more:
+            rows = rows[:limit]
+        
+        # Generate next cursor from last item's sort_time
+        next_cursor = None
+        if has_more and rows:
+            last_sort_time = rows[-1].sort_time
+            if last_sort_time:
+                next_cursor = last_sort_time.replace(tzinfo=None).isoformat()
+        
+        return rows, next_cursor, has_more
 
