@@ -366,12 +366,20 @@ class ParallelChatHandler:
             str: Memory 结果，如果预取成功
             None: 如果预取未启动、未完成或失败
         """
+        # 获取预取的 ASR 文本
+        prefetch_asr_text = getattr(self.conn, '_prefetch_asr_text', None)
+        
         # 检查是否有预取结果（已完成的结果）
         if hasattr(self.conn, '_prefetched_memory_result'):
             result = self.conn._prefetched_memory_result
             # 清理，避免下次复用旧结果
             delattr(self.conn, '_prefetched_memory_result')
             if result is not None:
+                if prefetch_asr_text:
+                    self.logger.bind(tag=TAG).debug(
+                        f"[{self.session_id}] 使用预取 Memory, "
+                        f"预取 query: '{prefetch_asr_text}'"
+                    )
                 return result
         
         # 检查是否有正在进行的预取任务
@@ -398,6 +406,11 @@ class ParallelChatHandler:
                 if hasattr(self.conn, '_prefetched_memory_result'):
                     result = self.conn._prefetched_memory_result
                     delattr(self.conn, '_prefetched_memory_result')
+                    if result is not None and prefetch_asr_text:
+                        self.logger.bind(tag=TAG).debug(
+                            f"[{self.session_id}] 使用预取 Memory, "
+                            f"预取 query: '{prefetch_asr_text}'"
+                        )
                     return result
         
         return None
