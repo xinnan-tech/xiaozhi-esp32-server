@@ -38,16 +38,16 @@ class AttachmentTextMessageHandler(TextMessageHandler):
         if attachment_type == "image":
             content = [
                 {
-                    "type": "image",
-                    "image_url": {"url": url}
+                    "type": "input_image",
+                    "image_url": url
                 }
             ]
-        else:
+        elif attachment_type == "file":
             # File type: store as custom format, LLM layer needs special handling
             content = [
                 {
-                    "type": "file",
-                    "file_url": {"url": url}
+                    "type": "input_file",
+                    "file_url": url
                 }
             ]
         

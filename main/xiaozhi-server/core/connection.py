@@ -448,6 +448,16 @@ class ConnectionHandler:
 
             if self._voice_opening:
                 self.logger.bind(tag=TAG).info(f"send the opening message: {self._voice_opening}")
+                
+                opening_sentence_id = str(uuid.uuid4().hex)
+    
+                # FIRST: Start session
+                self.tts.tts_text_queue.put(TTSMessageDTO(
+                    sentence_id=opening_sentence_id,
+                    sentence_type=SentenceType.FIRST,
+                    content_type=ContentType.ACTION,
+                ))
+
                 self.tts.tts_text_queue.put(TTSMessageDTO(
                     sentence_id=str(uuid.uuid4().hex),
                     sentence_type=SentenceType.MIDDLE,
@@ -455,6 +465,12 @@ class ConnectionHandler:
                     content_detail=self._voice_opening,
                     )
                 )
+
+                self.tts.tts_text_queue.put(TTSMessageDTO(
+                    sentence_id=opening_sentence_id,
+                    sentence_type=SentenceType.LAST,
+                    content_type=ContentType.ACTION,
+                ))
 
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
@@ -829,6 +845,7 @@ class ConnectionHandler:
         # self.logger.bind(tag=TAG).info(f"private_config: {private_config}")
         # self.logger.bind(tag=TAG).info(f"self.config: {self.config}")
         self.config["TTS"]["FishSpeech"]["reference_id"] = private_config["voice_id"]
+        self.config["TTS"]["FishDualStreamTTS"]["reference_id"] = private_config["voice_id"]
         self._instruction = private_config["instruction"]
         self._voice_opening = private_config["voice_opening"]
         self._voice_closing = private_config["voice_closing"]

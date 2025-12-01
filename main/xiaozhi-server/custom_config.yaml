@@ -767,6 +767,7 @@ TTS:
   FishSpeech:
     # 参照教程：https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/fish-speech-integration.md
     type: fishspeech
+    model: s1
     output_dir: tmp/
     response_format: pcm
     reference_id: null
@@ -779,6 +780,19 @@ TTS:
     streaming: false
     use_memory_cache: "on"
     seed: null
+    channels: 1
+    rate: 44100
+    sample_rate: 16000
+    api_key: ${FISH_API_KEY}
+  FishDualStreamTTS:
+    type: fish_dual_stream
+    model: s1
+    output_dir: tmp/
+    response_format: pcm
+    normalize: true
+    chunk_length: 200
+    top_p: 0.7
+    temperature: 0.7
     channels: 1
     rate: 44100
     sample_rate: 16000
@@ -1072,6 +1086,8 @@ selected_module:
   ASR: GroqASR
   LLM: OpenaiLLM
   VLLM: ChatGLMVLLM
+  # TTS: FishDualStreamTTS
+  # TODO: temporarily, fish speech doesn't reuse the wesocket connection, need to discuss further.
   TTS: FishSpeech
   Memory: memu
   Intent: function_call

@@ -1,63 +1,12 @@
-import base64
 from pathlib import Path
-from pydantic import BaseModel, Field, conint, model_validator
-from typing_extensions import Annotated
-from typing import Literal
 from core.utils.util import parse_string_to_list
 from core.providers.tts.base import TTSProviderBase
 from config.logger import setup_logging
-from fish_audio_sdk import Session, TTSRequest, ReferenceAudio
+from fishaudio import FishAudio, TTSConfig
 
 TAG = __name__
 logger = setup_logging()
 
-
-class ServeReferenceAudio(BaseModel):
-    audio: bytes
-    text: str
-
-    @model_validator(mode="before")
-    def decode_audio(cls, values):
-        audio = values.get("audio")
-        if (
-            isinstance(audio, str) and len(audio) > 255
-        ):  # Check if audio is a string (Base64)
-            try:
-                values["audio"] = base64.b64decode(audio)
-            except Exception as e:
-                # If the audio is not a valid base64 string, we will just ignore it and let the server handle it
-                pass
-        return values
-
-    def __repr__(self) -> str:
-        return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
-
-
-class ServeTTSRequest(BaseModel):
-    text: str
-    chunk_length: Annotated[int, conint(ge=100, le=300, strict=True)] = 200
-    # Audio format
-    format: Literal["wav", "pcm", "mp3"] = "wav"
-    # References audios for in-context learning
-    references: list[ServeReferenceAudio] = []
-    # Reference id
-    # For example, if you want use https://fish.audio/m/7f92f8afb8ec43bf81429cc1c9199cb1/
-    # Just pass 7f92f8afb8ec43bf81429cc1c9199cb1
-    reference_id: str | None = None
-    seed: int | None = None
-    use_memory_cache: Literal["on", "off"] = "off"
-    # Normalize text for en & zh, this increase stability for numbers
-    normalize: bool = True
-    # not usually used below
-    streaming: bool = False
-    max_new_tokens: int = 1024
-    top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
-    repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.2
-    temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
-
-    class Config:
-        # Allow arbitrary types for pytorch related types
-        arbitrary_types_allowed = True
 
 
 def audio_to_bytes(file_path):
@@ -82,12 +31,6 @@ class TTSProvider(TTSProviderBase):
         super().__init__(config, delete_audio_file)
 
         self.model = config.get("model", "s1")
-        # if config.get("private_voice"):
-        #     self.reference_id = config.get("private_voice")
-        # else:    
-        #     self.reference_id = (
-        #         None if not config.get("reference_id") else config.get("reference_id")
-        #     )
         if config.get("reference_id"):
             self.reference_id = config.get("reference_id")
         else:
@@ -104,7 +47,7 @@ class TTSProvider(TTSProviderBase):
         self.api_key = config.get("api_key", "YOUR_API_KEY")
         if self.api_key is None:
             raise ValueError("FishSpeech API key is required")
-        self.session = Session(self.api_key)
+        self._client = FishAudio(api_key=self.api_key)
         
         self.normalize = str(config.get("normalize", True)).lower() in (
             "true",
@@ -143,22 +86,26 @@ class TTSProvider(TTSProviderBase):
         self.seed = int(config.get("seed")) if config.get("seed") else None
 
     async def text_to_speak(self, text, output_file):
-        logger.bind(tag=TAG).info(f"[DEBUG] 原始文本: {repr(text)}")
         logger.bind(tag=TAG).info(f"fish speech synthesize text: {text}")
-        # Prepare reference data
-        byte_audios = [audio_to_bytes(ref_audio) for ref_audio in self.reference_audio]
-        ref_texts = [read_ref_text(ref_text) for ref_text in self.reference_text]
 
-        request = TTSRequest(
+        audio_stream = self._client.tts.stream(
             text=text,
             reference_id=self.reference_id,
-            sample_rate=self.sample_rate,
-            format=self.format,
-            normalize=True,
+            model=self.model,
+            config=TTSConfig(
+                format=self.format,
+                sample_rate=self.sample_rate,
+                normalize=self.normalize,
+                latency="balanced",
+            ),
         )
-        audio_stream = self.session.tts(request, backend="s1")
-        audio_bytes = b''.join(chunk for chunk in audio_stream if chunk)
 
+        audio_bytes = b''
+    
+        for chunk in audio_stream:
+            if chunk:
+                audio_bytes += chunk
+       
         if output_file:
             with open(output_file, "wb") as audio_file:
                 audio_file.write(audio_bytes)
