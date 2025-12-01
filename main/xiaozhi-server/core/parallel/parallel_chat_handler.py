@@ -133,6 +133,13 @@ class ParallelChatHandler:
         if hasattr(self.conn, 'clear_queues'):
             self.conn.clear_queues()
 
+    def _put_tts_message(self, message) -> bool:
+        """安全地向 TTS 队列发送消息，防止 conn.tts 为 None 时崩溃"""
+        if hasattr(self.conn, 'tts') and self.conn.tts is not None:
+            self.conn.tts.tts_text_queue.put(message)
+            return True
+        return False
+
     async def _request_user_confirmation(self, prompt: str) -> str:
         """请求用户确认"""
         # 播放确认提示
@@ -246,6 +253,10 @@ class ParallelChatHandler:
         if self.degradation_manager.current_level >= DegradationLevel.MINIMAL:
             return False
 
+        # 检查 TTS 是否已初始化（必须在 TTS 就绪后才能使用并行优化）
+        if not hasattr(self.conn, 'tts') or self.conn.tts is None:
+            return False
+
         # 检查必要组件
         if not hasattr(self.conn, 'func_handler') or not self.conn.func_handler:
             return False
@@ -256,23 +267,23 @@ class ParallelChatHandler:
         """发送首条消息标记"""
         from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
 
-        if hasattr(self.conn, 'tts') and self.conn.tts:
-            self.conn.tts.tts_text_queue.put(
-                TTSMessageDTO(
-                    sentence_id=self.conn.sentence_id,
-                    sentence_type=SentenceType.FIRST,
-                    content_type=ContentType.ACTION,
-                )
+        self._put_tts_message(
+            TTSMessageDTO(
+                sentence_id=self.conn.sentence_id,
+                sentence_type=SentenceType.FIRST,
+                content_type=ContentType.ACTION,
             )
+        )
 
     async def _process_with_llm(self, query: str, depth: int) -> bool:
         """
         使用 LLM 处理查询（流式）
         
         优化策略：
-        1. Memory 查询与 LLM 并行启动，减少串行等待
-        2. 条件过渡响应：LLM 首 token 超时才发送，避免割裂感
+        1. 优先使用 VAD 阶段预取的 Memory
+        2. 预取未命中时，短窗口等待查询
         3. depth > 0 时复用缓存的 memory，避免用工具结果查询 memory
+        4. 条件过渡响应：LLM 首 token 超时才发送，避免割裂感
         """
         from core.utils.dialogue import Message
         from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
@@ -282,21 +293,14 @@ class ParallelChatHandler:
         if self.conn.intent_type == "function_call" and hasattr(self.conn, 'func_handler'):
             functions = self.conn.func_handler.get_functions()
 
-        # 优化: depth=0 时查询 Memory 并缓存；depth > 0 时复用缓存
+        # 优化: 优先使用预取的 Memory，未命中再查询
         memory_str = None
         if self.conn.memory:
             if depth == 0:
-                # 首次调用：使用原始用户查询进行 memory 查询
-                memory_task = asyncio.create_task(
-                    self._query_memory_with_timeout(query)
-                )
-                try:
-                    memory_str = await memory_task
-                    # 缓存 memory 结果，供后续递归调用使用
-                    self._cached_memory_str = memory_str
-                except Exception as e:
-                    self.logger.bind(tag=TAG).warning(f"记忆查询失败: {e}")
-                    self._cached_memory_str = None
+                # 首次调用：尝试使用 VAD 阶段预取的 Memory
+                memory_str = await self._get_memory_with_prefetch(query)
+                # 缓存 memory 结果，供后续递归调用使用
+                self._cached_memory_str = memory_str
             else:
                 # 递归调用：复用缓存的 memory，避免用工具结果做查询
                 memory_str = getattr(self, '_cached_memory_str', None)
@@ -321,11 +325,101 @@ class ParallelChatHandler:
                 query, dialogue_history, functions, depth
             )
 
-    async def _query_memory_with_timeout(self, query: str, timeout: float = 2.0) -> Optional[str]:
+    async def _get_memory_with_prefetch(self, query: str) -> Optional[str]:
+        """
+        获取 Memory（优先使用预取结果）
+        
+        策略：
+        1. 检查 VAD 阶段是否已预取 Memory
+        2. 如果预取任务存在且已完成，直接使用结果
+        3. 如果预取任务存在但未完成，短暂等待（300ms）
+        4. 如果预取未命中或超时，用当前 query 重新查询
+        
+        """
+        import time
+        start_time = time.time()
+        
+        # 1. 尝试获取预取结果
+        prefetch_result = await self._try_get_prefetched_memory()
+        if prefetch_result is not None:
+            elapsed_ms = (time.time() - start_time) * 1000
+            self.logger.bind(tag=TAG).info(
+                f"[{self.session_id}] 使用预取的 Memory, 等待耗时: {elapsed_ms:.0f}ms"
+            )
+            return prefetch_result
+        
+        # 2. 预取未命中，用当前 query 查询（短窗口）
+        self.logger.bind(tag=TAG).debug(
+            f"[{self.session_id}] 预取未命中，执行 Memory 查询"
+        )
+        return await self._query_memory_with_timeout(query, timeout=1.5)
+    
+    async def _try_get_prefetched_memory(self) -> Optional[str]:
+        """
+        尝试获取预取的 Memory 结果
+        
+        Returns:
+            str: Memory 结果，如果预取成功
+            None: 如果预取未启动、未完成或失败
+        """
+        # 获取预取的 ASR 文本
+        prefetch_asr_text = getattr(self.conn, '_prefetch_asr_text', None)
+        
+        # 检查是否有预取结果（已完成的结果）
+        if hasattr(self.conn, '_prefetched_memory_result'):
+            result = self.conn._prefetched_memory_result
+            # 清理，避免下次复用旧结果
+            delattr(self.conn, '_prefetched_memory_result')
+            if result is not None:
+                if prefetch_asr_text:
+                    self.logger.bind(tag=TAG).debug(
+                        f"[{self.session_id}] 使用预取 Memory, "
+                        f"预取 query: '{prefetch_asr_text}'"
+                    )
+                return result
+        
+        # 检查是否有正在进行的预取任务
+        if hasattr(self.conn, '_prefetched_memory_task'):
+            task = self.conn._prefetched_memory_task
+            if task and not task.done():
+                # 预取任务还在进行，短暂等待
+                try:
+                    await asyncio.wait_for(
+                        asyncio.shield(task),
+                        timeout=0.3  # 最多等 300ms
+                    )
+                except asyncio.TimeoutError:
+                    self.logger.bind(tag=TAG).debug(
+                        f"[{self.session_id}] 预取任务未完成，跳过等待"
+                    )
+                    return None
+            
+            # 任务已完成，获取结果
+            if task and task.done():
+                # 清理任务引用
+                delattr(self.conn, '_prefetched_memory_task')
+                # 检查是否有结果
+                if hasattr(self.conn, '_prefetched_memory_result'):
+                    result = self.conn._prefetched_memory_result
+                    delattr(self.conn, '_prefetched_memory_result')
+                    if result is not None and prefetch_asr_text:
+                        self.logger.bind(tag=TAG).debug(
+                            f"[{self.session_id}] 使用预取 Memory, "
+                            f"预取 query: '{prefetch_asr_text}'"
+                        )
+                    return result
+        
+        return None
+
+    async def _query_memory_with_timeout(self, query: str, timeout: float = 1.5) -> Optional[str]:
         """
         带超时的 Memory 查询
         
         避免 Memory 服务慢时阻塞整个流程
+        
+        Args:
+            query: 查询字符串
+            timeout: 超时时间（秒），默认 1.5s（部署到 us-west-2 后足够）
         """
         try:
             return await asyncio.wait_for(
@@ -512,12 +606,14 @@ class ParallelChatHandler:
 
                     if tools_call:
                         tool_call_flag = True
-                        if tools_call[0].id:
-                            function_id = tools_call[0].id
-                        if tools_call[0].function.name:
-                            function_name = tools_call[0].function.name
-                        if tools_call[0].function.arguments:
-                            function_arguments += tools_call[0].function.arguments
+                        tc = tools_call[0]
+                        if hasattr(tc, 'id') and tc.id:
+                            function_id = tc.id
+                        if hasattr(tc, 'function') and tc.function:
+                            if hasattr(tc.function, 'name') and tc.function.name:
+                                function_name = tc.function.name
+                            if hasattr(tc.function, 'arguments') and tc.function.arguments:
+                                function_arguments += tc.function.arguments
                 else:
                     content = response
 
@@ -531,7 +627,7 @@ class ParallelChatHandler:
                     first_content_sent = True
 
                     # 立即发送到 TTS 队列
-                    self.conn.tts.tts_text_queue.put(
+                    self._put_tts_message(
                         TTSMessageDTO(
                             sentence_id=self.conn.sentence_id,
                             sentence_type=SentenceType.MIDDLE,
@@ -559,7 +655,7 @@ class ParallelChatHandler:
 
         # 发送结束标记
         if depth == 0:
-            self.conn.tts.tts_text_queue.put(
+            self._put_tts_message(
                 TTSMessageDTO(
                     sentence_id=self.conn.sentence_id,
                     sentence_type=SentenceType.LAST,
@@ -588,7 +684,7 @@ class ParallelChatHandler:
             transition = "嗯，"
         
         # 发送到 TTS
-        self.conn.tts.tts_text_queue.put(
+        self._put_tts_message(
             TTSMessageDTO(
                 sentence_id=self.conn.sentence_id,
                 sentence_type=SentenceType.MIDDLE,
@@ -643,12 +739,14 @@ class ParallelChatHandler:
 
                 if tools_call:
                     tool_call_flag = True
-                    if tools_call[0].id:
-                        function_id = tools_call[0].id
-                    if tools_call[0].function.name:
-                        function_name = tools_call[0].function.name
-                    if tools_call[0].function.arguments:
-                        function_arguments += tools_call[0].function.arguments
+                    tc = tools_call[0]
+                    if hasattr(tc, 'id') and tc.id:
+                        function_id = tc.id
+                    if hasattr(tc, 'function') and tc.function:
+                        if hasattr(tc.function, 'name') and tc.function.name:
+                            function_name = tc.function.name
+                        if hasattr(tc.function, 'arguments') and tc.function.arguments:
+                            function_arguments += tc.function.arguments
             else:
                 content = response
 
@@ -660,7 +758,7 @@ class ParallelChatHandler:
                     self.tracer.record_ttfr()
                     first_content_sent = True
 
-                self.conn.tts.tts_text_queue.put(
+                self._put_tts_message(
                     TTSMessageDTO(
                         sentence_id=self.conn.sentence_id,
                         sentence_type=SentenceType.MIDDLE,
@@ -684,7 +782,7 @@ class ParallelChatHandler:
 
         # 发送结束标记
         if depth == 0:
-            self.conn.tts.tts_text_queue.put(
+            self._put_tts_message(
                 TTSMessageDTO(
                     sentence_id=self.conn.sentence_id,
                     sentence_type=SentenceType.LAST,

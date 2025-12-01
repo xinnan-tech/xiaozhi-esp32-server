@@ -176,6 +176,184 @@ def _init_interrupt_state(conn):
         conn._continuous_voice_count = 0
 
 
+
+# 伪流式预取配置
+PSEUDO_STREAM_BUFFER_THRESHOLD = 8  # 触发预取的音频帧数阈值（约 500ms @ 60ms/帧）
+PSEUDO_STREAM_ASR_TIMEOUT = 2.0  # 预取 ASR 超时时间（秒）
+PSEUDO_STREAM_MEMORY_TIMEOUT = 1.5  # 预取 Memory 超时时间（秒）
+
+
+def _init_pseudo_stream_state(conn):
+    """初始化伪流式预取状态"""
+    if not hasattr(conn, '_pseudo_stream_buffer'):
+        conn._pseudo_stream_buffer = []
+    if not hasattr(conn, '_pseudo_stream_prefetch_triggered'):
+        conn._pseudo_stream_prefetch_triggered = False
+    if not hasattr(conn, '_prefetch_asr_text'):
+        conn._prefetch_asr_text = None
+
+
+def _reset_pseudo_stream_state(conn):
+    """重置伪流式预取状态（VAD 静默后调用）"""
+    conn._pseudo_stream_buffer = []
+    conn._pseudo_stream_prefetch_triggered = False
+    conn._prefetch_asr_text = None
+
+
+async def _trigger_pseudo_streaming_prefetch(conn, audio: bytes, have_voice: bool):
+    """
+    伪流式 ASR Memory 预取
+    
+    策略：
+    - 检测语音开始时，开始累积音频 buffer
+    - buffer 累积到 ~500ms（约 8 帧）时，发送预取 ASR
+    - 用 ASR 部分结果预取 Memory
+    - 预取 query 来自用户当前说的话，天然与最终 query 相关
+    
+
+    """
+    # 检查是否有 Memory 组件
+    if not hasattr(conn, 'memory') or conn.memory is None:
+        return
+    
+    _init_pseudo_stream_state(conn)
+    
+    # 获取上一帧的语音状态
+    prev_have_voice = getattr(conn, '_prev_have_voice_for_prefetch', False)
+    conn._prev_have_voice_for_prefetch = have_voice
+    
+    # 检测边缘：从无声到有声 → 重置状态，开始新一轮预取
+    if have_voice and not prev_have_voice:
+        _reset_pseudo_stream_state(conn)
+        logger.bind(tag=TAG).debug("检测到语音开始，开始累积音频 buffer")
+    
+    # 检测边缘：从有声到无声 → 重置状态（静默后清理）
+    if not have_voice and prev_have_voice:
+        # 不立即重置，让 parallel_chat_handler 有机会使用预取结果
+        pass
+    
+    # 累积音频到 buffer（仅在有声时）
+    if have_voice:
+        conn._pseudo_stream_buffer.append(audio)
+        
+        # 检查是否达到预取阈值
+        if (len(conn._pseudo_stream_buffer) >= PSEUDO_STREAM_BUFFER_THRESHOLD 
+            and not conn._pseudo_stream_prefetch_triggered):
+            
+            conn._pseudo_stream_prefetch_triggered = True
+            
+            # 复制当前 buffer 用于预取（不影响后续累积）
+            prefetch_buffer = conn._pseudo_stream_buffer.copy()
+            
+            logger.bind(tag=TAG).info(
+                f"触发伪流式预取: buffer={len(prefetch_buffer)} 帧 "
+                f"(~{len(prefetch_buffer) * 60}ms)"
+            )
+            
+            # 异步启动预取任务
+            conn._prefetched_memory_task = asyncio.create_task(
+                _pseudo_stream_prefetch_memory(conn, prefetch_buffer)
+            )
+
+
+async def _pseudo_stream_prefetch_memory(conn, audio_buffer: List[bytes]) -> None:
+    """
+    伪流式预取 Memory
+    
+
+    """
+    try:
+        start_time = time.time()
+        
+        # Step 1: 预取 ASR（用部分音频获取部分文本）
+        partial_text = await _quick_asr_for_prefetch(conn, audio_buffer)
+        
+        if not partial_text or len(partial_text.strip()) < 2:
+            logger.bind(tag=TAG).debug("预取 ASR 结果太短，跳过 Memory 预取")
+            conn._prefetched_memory_result = None
+            conn._prefetch_asr_text = None
+            return
+        
+        # 保存预取的 ASR 文本（用于日志和调试）
+        conn._prefetch_asr_text = partial_text
+        
+        asr_elapsed_ms = (time.time() - start_time) * 1000
+        logger.bind(tag=TAG).info(
+            f"预取 ASR 完成: {asr_elapsed_ms:.0f}ms, 部分文本: '{partial_text}'"
+        )
+        
+        # Step 2: 用部分文本预取 Memory
+        memory_start = time.time()
+        try:
+            result = await asyncio.wait_for(
+                conn.memory.query_memory(partial_text),
+                timeout=PSEUDO_STREAM_MEMORY_TIMEOUT
+            )
+            conn._prefetched_memory_result = result
+            
+            memory_elapsed_ms = (time.time() - memory_start) * 1000
+            total_elapsed_ms = (time.time() - start_time) * 1000
+            
+            logger.bind(tag=TAG).info(
+                f"Memory 预取完成: ASR={asr_elapsed_ms:.0f}ms, "
+                f"Memory={memory_elapsed_ms:.0f}ms, 总计={total_elapsed_ms:.0f}ms, "
+                f"结果长度: {len(result) if result else 0}"
+            )
+            
+        except asyncio.TimeoutError:
+            logger.bind(tag=TAG).debug("Memory 预取超时")
+            conn._prefetched_memory_result = None
+            
+    except Exception as e:
+        logger.bind(tag=TAG).warning(f"伪流式预取异常: {e}")
+        conn._prefetched_memory_result = None
+        conn._prefetch_asr_text = None
+
+
+async def _quick_asr_for_prefetch(conn, audio_buffer: List[bytes]) -> str:
+    """
+    快速 ASR（用于伪流式预取）
+    
+    复用现有 ASR 服务，对部分音频进行识别。
+    在线程池中执行，避免阻塞事件循环。
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        
+        def run_asr():
+            """在线程中执行 ASR"""
+            try:
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    result = new_loop.run_until_complete(
+                        conn.asr.speech_to_text(
+                            audio_buffer,
+                            conn.session_id + "_prefetch",
+                            conn.audio_format
+                        )
+                    )
+                    return result[0] if result else ""
+                finally:
+                    new_loop.close()
+            except Exception as e:
+                logger.bind(tag=TAG).debug(f"预取 ASR 失败: {e}")
+                return ""
+        
+        # 在线程池中执行，设置超时
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            try:
+                future = executor.submit(run_asr)
+                return future.result(timeout=PSEUDO_STREAM_ASR_TIMEOUT)
+            except concurrent.futures.TimeoutError:
+                logger.bind(tag=TAG).debug("预取 ASR 超时")
+                return ""
+                
+    except Exception as e:
+        logger.bind(tag=TAG).warning(f"快速 ASR 异常: {e}")
+        return ""
+
+
 async def _parallel_interruption_check(conn, audio_chunk):
     """
     并行打断检测（目标 <400ms）
@@ -306,7 +484,9 @@ async def handleAudioMessage(conn, audio):
             conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
         return
 
-    # ============== 打断处理逻辑（业界最佳实践：持续语音检测） ==============
+    # 当音频 buffer 累积到 ~500ms 时，用部分 ASR 结果预取 Memory
+    await _trigger_pseudo_streaming_prefetch(conn, audio, have_voice)
+
     # 只有 TTS 正在播放且非手动监听模式时才检测打断
     if conn.client_is_speaking and conn.client_listen_mode != "manual":
         # 初始化打断检测状态
