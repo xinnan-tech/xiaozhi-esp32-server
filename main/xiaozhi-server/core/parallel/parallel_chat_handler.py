@@ -280,7 +280,7 @@ class ParallelChatHandler:
         使用 LLM 处理查询（流式）
         
         优化策略：
-        1. 优先使用 VAD 阶段预取的 Memory（方案 A2）
+        1. 优先使用 VAD 阶段预取的 Memory
         2. 预取未命中时，短窗口等待查询
         3. depth > 0 时复用缓存的 memory，避免用工具结果查询 memory
         4. 条件过渡响应：LLM 首 token 超时才发送，避免割裂感
@@ -329,16 +329,12 @@ class ParallelChatHandler:
         """
         获取 Memory（优先使用预取结果）
         
-        策略（方案 A2）：
+        策略：
         1. 检查 VAD 阶段是否已预取 Memory
         2. 如果预取任务存在且已完成，直接使用结果
         3. 如果预取任务存在但未完成，短暂等待（300ms）
         4. 如果预取未命中或超时，用当前 query 重新查询
         
-        优势：
-        - 用户说话时间（1~3秒）通常 > Memory 查询时间
-        - 大部分情况下，ASR 完成时 Memory 已就绪
-        - 最坏情况退化为短窗口等待
         """
         import time
         start_time = time.time()
