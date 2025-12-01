@@ -210,14 +210,7 @@ async def _trigger_pseudo_streaming_prefetch(conn, audio: bytes, have_voice: boo
     - 用 ASR 部分结果预取 Memory
     - 预取 query 来自用户当前说的话，天然与最终 query 相关
     
-    时间线示例：
-        t=0ms     VAD 检测到语音开始
-        t=500ms   buffer 累积 500ms → 发送预取 ASR → "帮我查"
-                                                      ↓
-                                            触发 Memory 预取(query="帮我查")
-        t=1500ms  VAD 检测到静默 → 完整 ASR → "帮我查一下今天的股票行情"
-                                                      ↓
-                                            使用预取的 Memory（天然相关）
+
     """
     # 检查是否有 Memory 组件
     if not hasattr(conn, 'memory') or conn.memory is None:
@@ -491,11 +484,9 @@ async def handleAudioMessage(conn, audio):
             conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
         return
 
-    # ============== Memory 预取（方案 B：伪流式 ASR）==============
     # 当音频 buffer 累积到 ~500ms 时，用部分 ASR 结果预取 Memory
     await _trigger_pseudo_streaming_prefetch(conn, audio, have_voice)
 
-    # ============== 打断处理逻辑（业界最佳实践：持续语音检测） ==============
     # 只有 TTS 正在播放且非手动监听模式时才检测打断
     if conn.client_is_speaking and conn.client_listen_mode != "manual":
         # 初始化打断检测状态
