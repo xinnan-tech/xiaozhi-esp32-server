@@ -1,5 +1,6 @@
 """LLM service for text generation"""
-from typing import AsyncGenerator
+import json
+from typing import AsyncGenerator, Optional
 from openai import AsyncOpenAI
 from config import settings
 
@@ -22,24 +23,46 @@ Requirements:
 
 Output ONLY the text sample, no explanations or metadata."""
 
-    INSTRUCTION_OPTIMIZATION_SYSTEM_PROMPT = """You are an expert AI prompt engineer specializing in agent instruction optimization.
+    # Quick mode: concise persona for initial creation
+    PERSONA_QUICK_SYSTEM_PROMPT = """You are a creative character designer. Create a concise persona based on the name and optional image.
 
-Your task: Transform user's basic instruction into a professional, comprehensive agent system prompt.
+**instruction**: MUST start with "You are [name]..." - a brief role-play instruction (1-2 sentences, 25-40 words)
+- Describe their personality, vibe, and how they communicate
+- Write in second person as if instructing an AI to role-play this character
 
-Optimization guidelines:
-1. **Role Definition**: Clearly define the agent's persona and expertise
-2. **Behavior Guidelines**: Specify tone, communication style, and interaction patterns
-3. **Task Scope**: Define what the agent should and shouldn't do
-4. **Response Format**: Suggest how responses should be structured
-5. **Helpful & On-Task**: Keep the agent focused, supportive, and practical
+**voice_opening**: A characteristic greeting when starting a conversation (5-15 words)
+- How would this character say hello?
 
-Output format:
-- Write in second person ("You are...")
-- Be clear, specific, and actionable
-- Length: 100-300 words
-- Professional yet accessible tone
+**voice_closing**: A characteristic FAREWELL/GOODBYE when ending a conversation (5-15 words)
+- How would this character say goodbye? (NOT a catchphrase, but an actual farewell)
 
-Output ONLY the optimized instruction, no explanations or metadata."""
+Example output:
+{
+  "instruction": "...",
+  "voice_opening": "...",
+  "voice_closing": "..."
+}
+
+Output valid JSON only. Be creative and authentic."""
+
+    # Optimize mode: detailed persona for iterative refinement
+    PERSONA_OPTIMIZE_SYSTEM_PROMPT = """You are a creative character designer who enriches AI agent personas.
+
+Your task: Take the existing instruction and enhance it into a rich, narrative persona.
+
+DO NOT write like a typical AI prompt. Write like you're describing a REAL PERSON with soul and character.
+
+Expand on these dimensions:
+- Who is this person? What's their vibe, their energy?
+- How do they talk? Street-smart? Elegant? Nerdy? Chill?
+- What's their worldview? What do they care about?
+- How do they connect with people? Warm, sarcastic, mysterious?
+- Give them a unique angle or perspective on life
+
+Example style (Dave - The Witty Commentator, a Black stand-up comedian):
+"You are Dave, a stand-up comedian with a relaxed, soulful vibe and a sharp eye for the absurdities of life. You view the world through a lens of 'real talk' and observational humor, acting as the user's witty friend who loves to chat about pop culture, daily grinds, or random thoughts. Your style is street-smart and medium-sharp—playful enough to roast a situation, but always good-natured and safe, keeping the conversation flowing like a late-night backstage hang."
+
+Output ONLY the enhanced instruction text (100-200 words). No JSON, no explanations, no metadata."""
 
     async def generate_voice_sample_text_stream(
         self,
@@ -104,40 +127,106 @@ Output ONLY the optimized instruction, no explanations or metadata."""
             yield f"\n\n{error_message}"
             raise
     
-    async def optimize_instruction_stream(
+    async def generate_persona_quick(
         self,
         openai_client: AsyncOpenAI,
-        original_instruction: str
-    ) -> AsyncGenerator[str, None]:
+        name: str,
+        avatar_base64: Optional[str] = None,
+        avatar_media_type: Optional[str] = None
+    ) -> dict:
         """
-        Optimize agent instruction with streaming
+        Quick mode: Non-streaming generation of instruction + voice_opening + voice_closing
         
         Args:
             openai_client: OpenAI client instance
-            original_instruction: Original instruction text from user
+            name: Agent name (required)
+            avatar_base64: Optional base64-encoded avatar image
+            avatar_media_type: Optional media type of avatar (e.g., image/jpeg)
+            
+        Returns:
+            dict with instruction, voice_opening, voice_closing
+        """
+        user_prompt = f"Create a persona for: {name}"
+        
+        messages = [
+            {"role": "system", "content": self.PERSONA_QUICK_SYSTEM_PROMPT}
+        ]
+        
+        if avatar_base64 and avatar_media_type:
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_prompt + "\n\nUse the image to inform the persona's character and style."},
+                    {"type": "image_url", "image_url": {"url": f"data:{avatar_media_type};base64,{avatar_base64}"}}
+                ]
+            })
+        else:
+            messages.append({"role": "user", "content": user_prompt})
+        
+        response = await openai_client.chat.completions.create(
+            model=settings.QUICK_PERSONA_MODEL,
+            messages=messages,
+            temperature=0.6,
+            max_tokens=500
+        )
+        
+        content = response.choices[0].message.content.strip()
+        # Handle markdown code blocks if model wraps JSON
+        if content.startswith("```"):
+            lines = content.split("\n")
+            # Remove first line (```json) and last line (```)
+            content = "\n".join(lines[1:-1])
+        
+        return json.loads(content)
+
+    async def optimize_persona_stream(
+        self,
+        openai_client: AsyncOpenAI,
+        name: str,
+        instruction: str,
+        avatar_base64: Optional[str] = None,
+        avatar_media_type: Optional[str] = None
+    ) -> AsyncGenerator[str, None]:
+        """
+        Optimize mode: Streaming generation of detailed instruction
+        
+        Args:
+            openai_client: OpenAI client instance
+            name: Agent name (required)
+            instruction: Existing instruction to enhance
+            avatar_base64: Optional base64-encoded avatar image
+            avatar_media_type: Optional media type of avatar (e.g., image/jpeg)
             
         Yields:
-            Optimized instruction chunks as they are generated
-            
-        Raises:
-            Exception: If OpenAI API call fails
+            Enhanced instruction text chunks
         """
-        user_prompt = f"""Optimize this agent instruction:
+        user_prompt = f"""Agent name: {name}
 
-Original instruction:
-{original_instruction}
+Current instruction to enhance:
+{instruction}
 
-Provide an improved, professional version."""
+Create a richer, more detailed persona."""
+        
+        messages = [
+            {"role": "system", "content": self.PERSONA_OPTIMIZE_SYSTEM_PROMPT}
+        ]
+        
+        if avatar_base64 and avatar_media_type:
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_prompt + "\n\nAlso consider the visual appearance from the image."},
+                    {"type": "image_url", "image_url": {"url": f"data:{avatar_media_type};base64,{avatar_base64}"}}
+                ]
+            })
+        else:
+            messages.append({"role": "user", "content": user_prompt})
         
         try:
             stream = await openai_client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": self.INSTRUCTION_OPTIMIZATION_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.7,  # Balanced creativity and consistency
-                max_tokens=500,
+                model=settings.OPTIMIZE_PERSONA_MODEL,
+                messages=messages,
+                temperature=0.75,
                 stream=True
             )
             
@@ -146,8 +235,7 @@ Provide an improved, professional version."""
                     yield chunk.choices[0].delta.content
                     
         except Exception as e:
-            # In streaming mode, we yield an error marker
-            error_message = f"[ERROR] Failed to optimize instruction: {str(e)}"
+            error_message = f"[ERROR] Failed to optimize persona: {str(e)}"
             yield f"\n\n{error_message}"
             raise
 

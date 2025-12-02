@@ -10,8 +10,8 @@ async def init_openai():
     """Initialize OpenAI client"""
     global _openai_client
     _openai_client = AsyncOpenAI(
-        api_key=settings.OPENAI_API_KEY,
-        base_url=settings.OPENAI_BASE_URL
+        api_key=settings.OPENROUTER_API_KEY,
+        base_url=settings.OPENROUTER_BASE_URL
     )
 
 
