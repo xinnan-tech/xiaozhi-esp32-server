@@ -274,14 +274,13 @@ class WebSocketTester:
 
         async def init_websocket():
             yield ""
-        
+        start_time = time.perf_counter()
         self.client.tts.stream_websocket(
             init_websocket(),
             reference_id=self.config.reference_id,
             config=tts_config,
         )
 
-        start_time = time.perf_counter()
         first_chunk_time = None
         audio_bytes = b''
         
@@ -298,7 +297,7 @@ class WebSocketTester:
                 
                 for token in tokens:
                     await asyncio.sleep(delay_ms / 1000)  # Simulate LLM generation delay
-                    
+                    # yield token
                     # Accumulate token and check for segment completion
                     segment = segmenter.add_token(token)
                     
