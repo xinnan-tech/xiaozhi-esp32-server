@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
     
+    # OpenRouter Configuration
+    OPENROUTER_API_KEY: str
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    QUICK_PERSONA_MODEL: str = "google/gemini-2.5-flash"
+    OPTIMIZE_PERSONA_MODEL: str = "google/gemini-3-pro-preview"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
