@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
     
+    # MemU Configuration
+    MEMU_API_KEY: str = ""
+    MEMU_BASE_URL: str = "https://api.memu.so"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

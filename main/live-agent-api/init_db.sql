@@ -178,6 +178,56 @@ CREATE TRIGGER update_agent_templates_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- ==================== Table: memory_sharing ====================
+-- Memory sharing configuration per user-agent
+CREATE TABLE IF NOT EXISTS memory_sharing (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    agent_id VARCHAR(50) NOT NULL,
+    share_type VARCHAR(20) NOT NULL CHECK (share_type IN ('none', 'specific', 'all')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    CONSTRAINT uk_memory_sharing_user_agent UNIQUE (user_id, agent_id)
+);
+
+-- Indexes for memory_sharing table
+CREATE INDEX IF NOT EXISTS idx_memory_sharing_user_id ON memory_sharing(user_id);
+CREATE INDEX IF NOT EXISTS idx_memory_sharing_agent_id ON memory_sharing(agent_id);
+CREATE INDEX IF NOT EXISTS idx_memory_sharing_share_type ON memory_sharing(share_type);
+
+-- Comments for memory_sharing table
+COMMENT ON TABLE memory_sharing IS 'Memory sharing configuration per user-agent pair';
+COMMENT ON COLUMN memory_sharing.user_id IS 'User who owns the memories';
+COMMENT ON COLUMN memory_sharing.agent_id IS 'Source agent whose memories are being shared';
+COMMENT ON COLUMN memory_sharing.share_type IS 'none=no sharing, specific=share with specific agents, all=share with all agents';
+
+-- ==================== Table: memory_sharing_targets ====================
+-- Target agents for specific sharing type
+CREATE TABLE IF NOT EXISTS memory_sharing_targets (
+    id SERIAL PRIMARY KEY,
+    sharing_id INT NOT NULL,
+    target_agent_id VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    CONSTRAINT fk_memory_sharing_targets_sharing FOREIGN KEY (sharing_id)
+        REFERENCES memory_sharing(id) ON DELETE CASCADE,
+    CONSTRAINT uk_memory_sharing_targets UNIQUE (sharing_id, target_agent_id)
+);
+
+-- Indexes for memory_sharing_targets table
+CREATE INDEX IF NOT EXISTS idx_memory_sharing_targets_sharing_id ON memory_sharing_targets(sharing_id);
+CREATE INDEX IF NOT EXISTS idx_memory_sharing_targets_target_agent_id ON memory_sharing_targets(target_agent_id);
+
+-- Comments for memory_sharing_targets table
+COMMENT ON TABLE memory_sharing_targets IS 'Target agents for specific memory sharing';
+COMMENT ON COLUMN memory_sharing_targets.sharing_id IS 'Reference to memory_sharing record';
+COMMENT ON COLUMN memory_sharing_targets.target_agent_id IS 'Agent ID that can access the shared memories';
+
+-- Create triggers for updated_at on memory_sharing table
+CREATE TRIGGER update_memory_sharing_updated_at
+    BEFORE UPDATE ON memory_sharing
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ==================== Grant Permissions ====================
 -- Grant necessary permissions to postgres user
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
