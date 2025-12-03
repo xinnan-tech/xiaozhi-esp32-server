@@ -95,38 +95,58 @@ class TTSProvider(TTSProviderBase):
             self._ws_connected = False 
             raise
 
-    async def _ensure_connection(self):
-        """Ensure WebSocket connection is established"""
+    async def _ensure_connection(self, max_retries: int = 2):
+        """Ensure WebSocket connection is established with retry logic"""
         if self.ws and self._ws_connected:
             logger.bind(tag=TAG).debug("Using existing WebSocket connection")
             return
-        
-        logger.bind(tag=TAG).info("Establishing new WebSocket connection...")
         
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "model": self.model,
         }
         
-        self.ws = await websockets.connect(
-            FISH_WS_URL,
-            additional_headers=headers,
-            max_size=10 * 1024 * 1024,  # 10MB max message size
-        )
-        self._ws_connected = True
+        last_error = None
+        for attempt in range(max_retries + 1):
+            try:
+                logger.bind(tag=TAG).info(f"Establishing WebSocket connection (attempt {attempt + 1}/{max_retries + 1})...")
+                
+                self.ws = await websockets.connect(
+                    FISH_WS_URL,
+                    additional_headers=headers,
+                    max_size=10 * 1024 * 1024,  # 10MB max message size
+                    open_timeout=10,  # 10s connection timeout
+                    close_timeout=5,  # 5s close timeout
+                )
+                self._ws_connected = True
+                
+                # Start response monitor task
+                if self._monitor_task is None or self._monitor_task.done():
+                    logger.bind(tag=TAG).info("Starting WebSocket monitor task...")
+                    self._monitor_task = asyncio.create_task(self._monitor_ws_response())
+                
+                return  # Success
+                
+            except Exception as e:
+                last_error = e
+                logger.bind(tag=TAG).warning(f"WebSocket connection attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries:
+                    await asyncio.sleep(0.5)  # Brief delay before retry
         
-        # Start response monitor task
-        if self._monitor_task is None or self._monitor_task.done():
-            logger.bind(tag=TAG).info("Starting WebSocket monitor task...")
-            self._monitor_task = asyncio.create_task(self._monitor_ws_response())
+        # All retries failed
+        raise last_error
 
 
     def tts_text_priority_thread(self):
         """
         Override: dual stream TTS text processing thread
         
-        Manages session lifecycle based on FIRST/LAST signals,
-        similar to Huoshan's implementation.
+        Manages session lifecycle based on FIRST/LAST signals.
+        
+        Key insights from Fish Audio WebSocket API:
+        1. stop_event triggers WebSocket close, so only use it for interruptions
+        2. For normal LAST, send flush event to force remaining text generation
+        3. Fish has no multi-context management, interruption requires reconnection
         """
         while not self.conn.stop_event.is_set():
             try:
@@ -141,16 +161,17 @@ class TTSProvider(TTSProviderBase):
 
                 elif self.conn.client_abort:
                     # ========== Interruption ==========
-                    logger.bind(tag=TAG).info("Received interruption, canceling session")
+                    # Only send stop event on interruption (this will close the connection)
+                    logger.bind(tag=TAG).info("Received interruption, sending stop event")
                     try:
                         future = asyncio.run_coroutine_threadsafe(
-                            self._finish_session(self.conn.sentence_id),
+                            self._abort_session(),
                             self.conn.loop
                         )
                         future.result()
                     except Exception as e:
-                        logger.bind(tag=TAG).error(f"Failed to cancel session: {e}")
-                        continue
+                        logger.bind(tag=TAG).error(f"Failed to abort session: {e}")
+                    continue
                 
                 # when user doesn't trigger interruption, start new TTS session
                 if message.sentence_type == SentenceType.FIRST:
@@ -168,7 +189,7 @@ class TTSProvider(TTSProviderBase):
                 elif ContentType.TEXT == message.content_type:
                     # ========== Text content ==========
                     if message.content_detail:
-                        # 累积文本用于上报（支持 voice_opening/closing 和 LLM 生成内容）
+                        # Accumulate text for reporting (supports voice_opening/closing and LLM content)
                         self._session_text_buffer.append(message.content_detail)
                         
                         try:
@@ -195,15 +216,17 @@ class TTSProvider(TTSProviderBase):
                         self._process_audio_file_stream(message.content_file, callback=lambda audio_data: self.handle_audio_file(audio_data, message.content_detail))
 
                 if message.sentence_type == SentenceType.LAST:
-                    # ========== Dialogue round ends ==========
+                    # ========== Dialogue round ends (normal) ==========
+                    # DO NOT send stop event here! Just send flush to force remaining text.
+                    # The finish event from Fish will trigger LAST in audio queue.
                     try:
                         future = asyncio.run_coroutine_threadsafe(
-                            self._finish_session(self.conn.sentence_id),
+                            self._flush_session(),
                             loop=self.conn.loop,
                         )
                         future.result()
                     except Exception as e:
-                        logger.bind(tag=TAG).error(f"Failed to finish session: {e}")
+                        logger.bind(tag=TAG).error(f"Failed to flush session: {e}")
                         continue
 
             except queue.Empty:
@@ -213,7 +236,6 @@ class TTSProvider(TTSProviderBase):
                     f"TTS text processing failed: {str(e)}, type: {type(e).__name__}, "
                     f"stack: {traceback.format_exc()}"
                 )
-                continue
         
     async def close(self):
         """Clean up WebSocket resources"""
@@ -271,6 +293,7 @@ class TTSProvider(TTSProviderBase):
                             )
                     
                     elif event_type == "finish":
+                        logger.bind(tag=TAG).info(f"TTS session finished")
                         # Session completed
                         reason = response.get("reason", "unknown")
                         if reason == "error":
@@ -334,18 +357,6 @@ class TTSProvider(TTSProviderBase):
         """
         Start a new TTS session
         """
-        
-        # Wait for previous session to finish
-        # Avoid the latency of the finish event of the previous session
-        if self._session_active:
-            for _ in range(3):
-                if not self._session_active:
-                    break
-                logger.bind(tag=TAG).debug("Waiting for previous session to finish...")
-                await asyncio.sleep(0.1)
-            else:
-                logger.bind(tag=TAG).debug("Previous session timeout, clearing connection state...")
-                await self.close()
         # Reset state for new session
         self.opus_encoder.reset_state()
         self._session_text_buffer = []
@@ -376,28 +387,52 @@ class TTSProvider(TTSProviderBase):
             
             await self._send_event(start_event)
             self._session_active = True
-            logger.bind(tag=TAG).info(f"TTS session started, sentence_id: {self.conn.sentence_id}")
             
         except Exception as e:
             logger.bind(tag=TAG).error(f"Failed to start session: {e}")
             raise
 
-    async def _finish_session(self, session_id: str = None):
+    async def _flush_session(self):
         """
-        Finish current TTS session gracefully        
+        Flush current TTS session - force generation of remaining text
+        
+        Send flush event to force Fish Audio to generate audio for any buffered text.
+        This does NOT close the connection - the finish event from Fish will do that.
         """
-        logger.bind(tag=TAG).info(f"Finishing TTS session: {session_id}")
+        logger.bind(tag=TAG).debug("Flushing TTS session...")
+        
+        try:
+            if self.ws and self._session_active:
+                # Send flush event to force remaining text generation
+                flush_event = {"event": "flush"}
+                await self._send_event(flush_event)
+                logger.bind(tag=TAG).debug("TTS flush event sent")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Failed to flush session: {e}")
+
+    async def _abort_session(self):
+        """
+        Abort current TTS session due to interruption
+        
+        Send stop event which will close the WebSocket connection.
+        This is only used when user interrupts the conversation.
+        """
+        logger.bind(tag=TAG).info("Aborting TTS session due to interruption...")
         
         try:
             if self.ws and self._session_active:
                 stop_event = {"event": "stop"}
                 await self._send_event(stop_event)
-                logger.bind(tag=TAG).info("TTS session stop sent")
+                logger.bind(tag=TAG).info("TTS session stop sent (abort)")
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Failed to finish session: {e}")
+            logger.bind(tag=TAG).error(f"Failed to abort session: {e}")
         finally:
+            # Clean up state
             self._session_active = False
-            self.conn.sentence_id = None
+            self._session_text_buffer = []
+            self._first_sent = False
+            # Connection will be closed by Fish Audio after stop event
+
             
     async def text_to_speak(self, text, output_file):
         """

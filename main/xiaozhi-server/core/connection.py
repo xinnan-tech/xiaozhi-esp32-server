@@ -950,11 +950,14 @@ class ConnectionHandler:
         try:
             # use dialogue with memory (use text for memory query)
             memory_str = None
-            if self.memory is not None:
-                future = asyncio.run_coroutine_threadsafe(
-                    self.memory.query_memory(query_text), self.loop
-                )
-                memory_str = future.result()
+            # if self.memory is not None:
+            #     memory_start_time = time.time() * 1000
+            #     future = asyncio.run_coroutine_threadsafe(
+            #         self.memory.query_memory(query_text), self.loop
+            #     )
+            #     memory_str = future.result()
+            #     memory_duration = (time.time() * 1000 - memory_start_time) / 1000
+            #     self.logger.bind(tag=TAG).info(f"[Latency] Memory查询完成, 耗时: {memory_duration:.3f}s")
 
             # 获取对话历史
             dialogue_history = self.dialogue.get_llm_dialogue_with_memory(

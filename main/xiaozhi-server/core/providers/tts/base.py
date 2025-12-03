@@ -54,6 +54,8 @@ class TTSProviderBase(ABC):
             "；",
             ";",
             "：",
+            ".",
+            "!"
         )
         self.first_sentence_punctuations = (
             "，",  # 启用逗号，让首段更快播放
@@ -407,8 +409,8 @@ class TTSProviderBase(ABC):
             segment_text_raw = current_text[: last_punct_pos + 1]
             
             # 首句长度检查：如果太短，等待更多文本
-            if self.is_first_sentence and len(segment_text_raw) < MIN_FIRST_SEGMENT_CHARS:
-                return None  # 继续等待更多文本
+            # if self.is_first_sentence and len(segment_text_raw) < MIN_FIRST_SEGMENT_CHARS:
+            #     return None  # 继续等待更多文本
             
             segment_text = textUtils.get_string_no_punctuation_or_emoji(
                 segment_text_raw
