@@ -8,6 +8,7 @@ from .agent import AgentModel
 from .agent_template import AgentTemplateModel
 from .voice import VoiceModel
 from .chat import ChatMessageModel
+from .memory_sharing import MemorySharingModel, MemorySharingTargetModel
 
 # Import Repository classes
 from .user import User
@@ -16,6 +17,7 @@ from .agent_template import AgentTemplate
 from .voice import Voice
 from .chat import ChatMessage
 from .file import FileRepository
+from .memory_sharing import MemorySharingRepository
 
 __all__ = [
     # ORM Models
@@ -24,6 +26,8 @@ __all__ = [
     "AgentTemplateModel",
     "VoiceModel",
     "ChatMessageModel",
+    "MemorySharingModel",
+    "MemorySharingTargetModel",
     # Repository classes
     "User",
     "Agent",
@@ -31,5 +35,6 @@ __all__ = [
     "Voice",
     "ChatMessage",
     "FileRepository",
+    "MemorySharingRepository",
 ]
 

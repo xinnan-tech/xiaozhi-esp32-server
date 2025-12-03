@@ -1,5 +1,4 @@
 import os
-import time
 from memu import MemuClient
 
 # Initialize MemU client
