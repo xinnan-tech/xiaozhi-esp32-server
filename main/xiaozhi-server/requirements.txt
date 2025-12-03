@@ -43,6 +43,6 @@ redis>=4.0.0,<5.0.0
 elevenlabs>=1.11.0
 cartesia>=1.0.0
 deepgram-sdk>=3.0.0
-fish-audio-sdk==2025.6.3
+fish-audio-sdk>=1.0.0
 
 python-dotenv>=1.0.0

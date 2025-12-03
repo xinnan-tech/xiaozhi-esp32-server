@@ -10,6 +10,9 @@ from services.llm_service import llm_service
 from utils.response import success_response
 from api.auth import get_current_user_id
 from schemas.agent import AgentResponse
+import base64
+import logging
+from fastapi import HTTPException
 
 router = APIRouter()
 
@@ -140,40 +143,80 @@ async def delete_agent(
     return success_response(data={}, message="Agent deleted successfully")
 
 
-@router.post("/instructions", summary="Optimize Agent Instruction")
-async def optimize_instruction(
-    instruction: str = Form(..., description="Original instruction text"),
+@router.post("/persona", summary="Generate or Optimize Agent Persona")
+async def generate_persona(
+    name: str = Form(..., description="Agent name (required)"),
+    instruction: Optional[str] = Form(None, description="Existing instruction (required for optimize mode)"),
+    avatar: Optional[UploadFile] = File(None, description="Optional avatar image"),
+    mode: str = Form("quick", description="Mode: 'quick' (non-streaming) or 'optimize' (streaming)"),
     current_user_id: str = Depends(get_current_user_id),
     openai_client = Depends(get_openai)
 ):
     """
-    Optimize agent instruction using LLM (streaming)
+    Generate or optimize agent persona
     
-    - **instruction**: Original instruction text from user
-    - Returns streaming optimized instruction text
+    **Modes:**
+    - `quick`: Fast non-streaming, returns JSON with instruction + voice_opening + voice_closing (for initial creation)
+    - `optimize`: Streaming, returns detailed instruction text (for iterative refinement)
     
-    The optimization process:
-    - Enhances role definition and clarity
-    - Adds behavior guidelines and tone specification
-    - Structures the instruction professionally
-    - Ensures helpful, focused, and actionable content
+    **Parameters:**
+    - **name**: Agent name (required) - e.g., "Dave", "Elon Musk", "Labubu"
+    - **instruction**: Existing instruction text (required for optimize mode)
+    - **avatar**: Optional avatar image to inform persona's visual characteristics
+    - **mode**: "quick" (default) or "optimize"
+    
+    **Returns:**
+    - quick mode: `{"code": 0, "data": {"instruction": "...", "voice_opening": "...", "voice_closing": "..."}}`
+    - optimize mode: Streaming text with enhanced instruction
     """
     
-    async def instruction_generator():
-        """Generate optimized instruction chunks"""
-        try:
-            async for chunk in llm_service.optimize_instruction_stream(
-                openai_client=openai_client,
-                original_instruction=instruction
-            ):
-                yield chunk
-        except Exception as e:
-            # Error already yielded in service, just log
-            import logging
-            logging.error(f"Instruction optimization failed: {e}")
+    # Process avatar if provided
+    avatar_base64 = None
+    avatar_media_type = None
     
-    return StreamingResponse(
-        instruction_generator(),
-        media_type="text/plain; charset=utf-8"
-    )
+    if avatar:
+        try:
+            content = await avatar.read()
+            avatar_base64 = base64.b64encode(content).decode("utf-8")
+            avatar_media_type = avatar.content_type or "image/jpeg"
+        except Exception as e:
+            logging.warning(f"Failed to process avatar: {e}")
+    
+    if mode == "optimize":
+        # Optimize mode: streaming with SSE format, requires existing instruction
+        if not instruction:
+            raise HTTPException(status_code=400, detail="instruction is required for optimize mode")
+        
+        async def stream_generator():
+            try:
+                async for chunk in llm_service.optimize_persona_stream(
+                    openai_client=openai_client,
+                    name=name,
+                    instruction=instruction,
+                    avatar_base64=avatar_base64,
+                    avatar_media_type=avatar_media_type
+                ):
+                    # SSE format: data: <content>\n\n
+                    yield f"data: {chunk}\n\n"
+            except Exception as e:
+                logging.error(f"Persona optimization failed: {e}")
+                yield f"data: [ERROR] {str(e)}\n\n"
+        
+        return StreamingResponse(
+            stream_generator(),
+            media_type="text/event-stream"
+        )
+    else:
+        # Quick mode: non-streaming, returns JSON
+        try:
+            result = await llm_service.generate_persona_quick(
+                openai_client=openai_client,
+                name=name,
+                avatar_base64=avatar_base64,
+                avatar_media_type=avatar_media_type
+            )
+            return success_response(data=result)
+        except Exception as e:
+            logging.error(f"Persona generation failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
 

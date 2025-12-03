@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     MEMU_API_KEY: str = ""
     MEMU_BASE_URL: str = "https://api.memu.so"
     
+    # OpenRouter Configuration
+    OPENROUTER_API_KEY: str
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    QUICK_PERSONA_MODEL: str = "google/gemini-2.5-flash"
+    OPTIMIZE_PERSONA_MODEL: str = "google/gemini-3-pro-preview"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
