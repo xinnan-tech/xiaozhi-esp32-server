@@ -158,6 +158,9 @@ class TTSProvider(TTSProviderBase):
                 if message.sentence_type == SentenceType.FIRST:
                     # ========== New dialogue round starts ==========
                     self.conn.client_abort = False
+                    self.tts_audio_first_sentence = True
+                    self._first_sent = False
+                    self._session_text_buffer = []
 
                 elif self.conn.client_abort:
                     # ========== Interruption ==========

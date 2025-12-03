@@ -914,6 +914,10 @@ class ConnectionHandler:
         """
         self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
         
+        # 记录 LLM 开始处理时间
+        llm_start_time = time.time() * 1000
+        llm_first_token_time = None
+        
         # 检查 TTS 是否已初始化
         if self.tts is None:
             self.logger.bind(tag=TAG).error("TTS 未初始化，无法处理聊天请求")
@@ -1016,6 +1020,21 @@ class ConnectionHandler:
             else:
                 content = response
 
+            # 记录首个 token 时间（首字延迟）
+            if llm_first_token_time is None and content is not None and len(content) > 0:
+                llm_first_token_time = time.time() * 1000
+                first_token_delay = llm_first_token_time - llm_start_time
+                
+                # 计算从用户说完到首 token 的延迟
+                e2e_first_token = 0
+                if hasattr(self, '_latency_voice_end_time'):
+                    e2e_first_token = llm_first_token_time - self._latency_voice_end_time
+                
+                self.logger.bind(tag=TAG).info(
+                    f"🤖 [延迟追踪] LLM首token: {first_token_delay:.0f}ms | "
+                    f"用户说完→首token: {e2e_first_token:.0f}ms"
+                )
+
             # 在llm回复中获取情绪表情，一轮对话只在开头获取一次
             # if emotion_flag and content is not None and content.strip():
             #     asyncio.run_coroutine_threadsafe(
@@ -1083,6 +1102,20 @@ class ConnectionHandler:
                 ).result()
                 self._handle_function_result(result, function_call_data, depth=depth)
 
+        # 记录 LLM 完成时间
+        llm_end_time = time.time() * 1000
+        llm_total_delay = llm_end_time - llm_start_time
+        
+        # 计算从用户说完到 LLM 完成的延迟
+        e2e_llm_complete = 0
+        if hasattr(self, '_latency_voice_end_time'):
+            e2e_llm_complete = llm_end_time - self._latency_voice_end_time
+        
+        self.logger.bind(tag=TAG).info(
+            f"🤖 [延迟追踪] LLM完成: {llm_total_delay:.0f}ms | "
+            f"用户说完→LLM完成: {e2e_llm_complete:.0f}ms"
+        )
+        
         # 存储对话内容
         if len(response_message) > 0:
             text_buff = "".join(response_message)

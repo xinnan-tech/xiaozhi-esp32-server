@@ -512,6 +512,7 @@ async def handleAudioMessage(conn, audio):
     #         conn._continuous_voice_count = 0
     if have_voice:
         if conn.client_is_speaking and conn.client_listen_mode != "manual":
+            logger.bind(tag=TAG).info("检测到语音，触发打断")
             await handleAbortMessage(conn)
 
     # 设备长时间空闲检测，用于say goodbye
