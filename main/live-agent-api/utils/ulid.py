@@ -44,3 +44,14 @@ def generate_voice_id() -> str:
     """
     return f"voice_{ULID()}"
 
+
+def generate_device_id() -> str:
+    """
+    Generate unique device ID with 'device_' prefix and ULID
+    
+    Format: device_01JD8X0000ABC123DEF456GH (33 chars total)
+    - Prefix: device_
+    - ULID: 26 chars (128-bit unique, time-sortable)
+    """
+    return f"device_{ULID()}"
+

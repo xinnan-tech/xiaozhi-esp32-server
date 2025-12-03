@@ -144,39 +144,52 @@ COMMENT ON COLUMN chat_messages.role IS 'Message role: 1=user, 2=agent';
 COMMENT ON COLUMN chat_messages.content IS 'JSONB array: [{"message_type": "text|audio|image|file", "message_content": "text or S3 URL"}]';
 COMMENT ON COLUMN chat_messages.created_at IS 'Message creation timestamp (UTC)';
 
--- ==================== Functions ====================
--- Function to automatically update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC';
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- ==================== Table: devices ====================
+-- Device registry table
+CREATE TABLE IF NOT EXISTS devices (
+    id SERIAL PRIMARY KEY,
+    device_id VARCHAR(50) UNIQUE NOT NULL,
+    sn VARCHAR(100) UNIQUE NOT NULL,
+    owner_id VARCHAR(50),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    CONSTRAINT fk_devices_owner FOREIGN KEY (owner_id) 
+        REFERENCES "user"(user_id) ON DELETE SET NULL
+);
 
--- Create triggers for updated_at on user table
-CREATE TRIGGER update_user_updated_at
-    BEFORE UPDATE ON "user"
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- Indexes for devices table
+CREATE UNIQUE INDEX IF NOT EXISTS idx_devices_device_id ON devices(device_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_devices_sn ON devices(sn);
+CREATE INDEX IF NOT EXISTS idx_devices_owner_id ON devices(owner_id);
 
--- Create triggers for updated_at on agents table
-CREATE TRIGGER update_agents_updated_at
-    BEFORE UPDATE ON agents
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- Comments for devices table
+COMMENT ON TABLE devices IS 'Device registry for hardware devices';
+COMMENT ON COLUMN devices.device_id IS 'External unique identifier (ULID)';
+COMMENT ON COLUMN devices.sn IS 'Hardware serial number (globally unique)';
+COMMENT ON COLUMN devices.owner_id IS 'User ID of device owner (null if unbound)';
 
--- Create triggers for updated_at on voices table
-CREATE TRIGGER update_voices_updated_at
-    BEFORE UPDATE ON voices
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- ==================== Table: agent_device_bindings ====================
+-- Agent-Device binding relationship table
+CREATE TABLE IF NOT EXISTS agent_device_bindings (
+    id SERIAL PRIMARY KEY,
+    device_id VARCHAR(50) NOT NULL,
+    agent_id VARCHAR(50) NOT NULL,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    CONSTRAINT fk_bindings_device FOREIGN KEY (device_id) 
+        REFERENCES devices(device_id) ON DELETE CASCADE,
+    CONSTRAINT fk_bindings_agent FOREIGN KEY (agent_id) 
+        REFERENCES agents(agent_id) ON DELETE CASCADE,
+    CONSTRAINT uk_device_agent UNIQUE (device_id, agent_id)
+);
 
--- Create triggers for updated_at on agent_templates table
-CREATE TRIGGER update_agent_templates_updated_at
-    BEFORE UPDATE ON agent_templates
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- Indexes for agent_device_bindings table
+CREATE INDEX IF NOT EXISTS idx_bindings_device_id ON agent_device_bindings(device_id);
+CREATE INDEX IF NOT EXISTS idx_bindings_agent_id ON agent_device_bindings(agent_id);
+
+-- Comments for agent_device_bindings table
+COMMENT ON TABLE agent_device_bindings IS 'Many-to-many relationship between devices and agents';
+COMMENT ON COLUMN agent_device_bindings.is_default IS 'Whether this agent is the default for the device';
 
 -- ==================== Table: memory_sharing ====================
 -- Memory sharing configuration per user-agent
@@ -222,6 +235,46 @@ COMMENT ON TABLE memory_sharing_targets IS 'Target agents for specific memory sh
 COMMENT ON COLUMN memory_sharing_targets.sharing_id IS 'Reference to memory_sharing record';
 COMMENT ON COLUMN memory_sharing_targets.target_agent_id IS 'Agent ID that can access the shared memories';
 
+-- ==================== Functions ====================
+-- Function to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC';
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers for updated_at on user table
+CREATE TRIGGER update_user_updated_at
+    BEFORE UPDATE ON "user"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create triggers for updated_at on agents table
+CREATE TRIGGER update_agents_updated_at
+    BEFORE UPDATE ON agents
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create triggers for updated_at on voices table
+CREATE TRIGGER update_voices_updated_at
+    BEFORE UPDATE ON voices
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create triggers for updated_at on agent_templates table
+CREATE TRIGGER update_agent_templates_updated_at
+    BEFORE UPDATE ON agent_templates
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create triggers for updated_at on devices table
+CREATE TRIGGER update_devices_updated_at
+    BEFORE UPDATE ON devices
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Create triggers for updated_at on memory_sharing table
 CREATE TRIGGER update_memory_sharing_updated_at
     BEFORE UPDATE ON memory_sharing
@@ -235,4 +288,3 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
 
 -- ==================== Initialization Complete ====================
 -- Database schema initialization completed successfully
-

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.v1 import user, templates, agents, voices, internal, files, chat, memories
+from api.v1 import user, templates, agents, voices, internal, files, chat, memories, devices
 
 api_router = APIRouter()
 
@@ -59,3 +59,9 @@ api_router.include_router(
     tags=["Chat"]
 )
 
+# Device routes
+api_router.include_router(
+    devices.router,
+    prefix="/devices",
+    tags=["Devices"]
+)
