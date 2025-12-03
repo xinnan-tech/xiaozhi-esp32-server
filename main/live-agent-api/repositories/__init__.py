@@ -9,6 +9,7 @@ from .agent_template import AgentTemplateModel
 from .voice import VoiceModel
 from .chat import ChatMessageModel
 from .device import DeviceModel, AgentDeviceBindingModel
+from .memory_sharing import MemorySharingModel, MemorySharingTargetModel
 
 # Import Repository classes
 from .user import User
@@ -18,6 +19,7 @@ from .voice import Voice
 from .chat import ChatMessage
 from .file import FileRepository
 from .device import Device, AgentDeviceBinding
+from .memory_sharing import MemorySharingRepository
 
 __all__ = [
     # ORM Models
@@ -28,6 +30,8 @@ __all__ = [
     "ChatMessageModel",
     "DeviceModel",
     "AgentDeviceBindingModel",
+    "MemorySharingModel",
+    "MemorySharingTargetModel",
     # Repository classes
     "User",
     "Agent",
@@ -37,5 +41,5 @@ __all__ = [
     "FileRepository",
     "Device",
     "AgentDeviceBinding",
+    "MemorySharingRepository",
 ]
-
