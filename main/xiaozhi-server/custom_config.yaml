@@ -68,8 +68,8 @@ log:
 
 # 使用完声音文件后删除文件(Delete the sound file when you are done using it)
 delete_audio: true
-# 没有语音输入多久后断开连接(秒)，默认2分钟，即120秒
-close_connection_no_voice_time: 120
+# 没有语音输入多久后断开连接(秒)，默认15分钟，即900秒
+close_connection_no_voice_time: 900
 # TTS请求超时时间(秒)
 tts_timeout: 10
 # 开启唤醒词加速
@@ -476,7 +476,7 @@ ASR:
 VAD:
   SileroVAD:
     type: silero
-    threshold: 0.5
+    threshold: 0.6
     threshold_low: 0.3
     model_dir: models/snakers4_silero-vad
     min_silence_duration_ms: 200  # 如果说话停顿比较长，可以把这个值设置大一些
@@ -535,12 +535,12 @@ LLM:
     api_key: 你的chat-glm web key
   GroqLLM:  
     type: openai
-    model_name: openai/gpt-oss-20b
+    model_name: meta-llama/llama-4-scout-17b-16e-instruct
     base_url: https://api.groq.com/openai/v1
-    api_key: your groq api key
+    api_key: ${GROQ_API_KEY}
   OpenaiLLM:  
     type: openai
-    model_name: gpt-4o
+    model_name: gpt-4o-mini
     base_url: https://api.openai.com/v1
     api_key: ${OPENAI_API_KEY}
   OllamaLLM:
@@ -1084,10 +1084,10 @@ TTS:
 selected_module:
   VAD: SileroVAD
   ASR: GroqASR
-  LLM: OpenaiLLM
+  LLM: GroqLLM
   VLLM: ChatGLMVLLM
-  # TTS: FishDualStreamTTS
+  TTS: FishDualStreamTTS
   # TODO: temporarily, fish speech doesn't reuse the wesocket connection, need to discuss further.
-  TTS: FishSpeech
+  # TTS: FishSpeech
   Memory: memu
   Intent: function_call

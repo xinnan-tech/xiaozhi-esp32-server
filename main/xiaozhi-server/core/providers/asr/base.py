@@ -101,7 +101,17 @@ class ASRProviderBase(ABC):
                             self.speech_to_text(asr_audio_task, conn.session_id, conn.audio_format)
                         )
                         end_time = time.monotonic()
-                        logger.bind(tag=TAG).info(f"ASR耗时: {end_time - start_time:.3f}s")
+                        asr_elapsed_ms = (end_time - start_time) * 1000
+                        
+                        # 计算从用户说完到 ASR 完成的延迟
+                        e2e_asr_delay = 0
+                        if hasattr(conn, '_latency_voice_end_time'):
+                            e2e_asr_delay = time.time() * 1000 - conn._latency_voice_end_time
+                        
+                        logger.bind(tag=TAG).info(
+                            f"🎙️ [延迟追踪] ASR完成: {asr_elapsed_ms:.0f}ms | "
+                            f"用户说完→ASR完成: {e2e_asr_delay:.0f}ms"
+                        )
                         return result
                     finally:
                         loop.close()

@@ -54,6 +54,8 @@ class TTSProviderBase(ABC):
             "；",
             ";",
             "：",
+            ".",
+            "!"
         )
         self.first_sentence_punctuations = (
             "，",  # 启用逗号，让首段更快播放
@@ -286,10 +288,16 @@ class TTSProviderBase(ABC):
                     self.tts_text_buff = []
                     self.is_first_sentence = True
                     self.tts_audio_first_sentence = True
+                    self.conn._latency_tts_first_text_time = None  # Reset TTS input time
                 elif ContentType.TEXT == message.content_type:
                     self.tts_text_buff.append(message.content_detail)
                     segment_text = self._get_segment_text()
                     if segment_text:
+                        # Record TTS first text input time (for latency tracking)
+                        if not hasattr(self.conn, '_latency_tts_first_text_time') or self.conn._latency_tts_first_text_time is None:
+                            import time
+                            self.conn._latency_tts_first_text_time = time.time() * 1000
+                            logger.bind(tag=TAG).debug("📝 [延迟追踪] TTS首次接收文本")
                         self.to_tts_stream(segment_text, opus_handler=self.handle_opus)
                 elif ContentType.FILE == message.content_type:
                     self._process_remaining_text_stream(opus_handler=self.handle_opus)
@@ -407,8 +415,8 @@ class TTSProviderBase(ABC):
             segment_text_raw = current_text[: last_punct_pos + 1]
             
             # 首句长度检查：如果太短，等待更多文本
-            if self.is_first_sentence and len(segment_text_raw) < MIN_FIRST_SEGMENT_CHARS:
-                return None  # 继续等待更多文本
+            # if self.is_first_sentence and len(segment_text_raw) < MIN_FIRST_SEGMENT_CHARS:
+            #     return None  # 继续等待更多文本
             
             segment_text = textUtils.get_string_no_punctuation_or_emoji(
                 segment_text_raw

@@ -488,28 +488,32 @@ async def handleAudioMessage(conn, audio):
     await _trigger_pseudo_streaming_prefetch(conn, audio, have_voice)
 
     # 只有 TTS 正在播放且非手动监听模式时才检测打断
-    if conn.client_is_speaking and conn.client_listen_mode != "manual":
-        # 初始化打断检测状态
-        _init_interrupt_state(conn)
+    # if conn.client_is_speaking and conn.client_listen_mode != "manual":
+    #     # 初始化打断检测状态
+    #     _init_interrupt_state(conn)
         
-        if have_voice:
-            # 检测到语音，增加连续语音帧计数
-            conn._continuous_voice_count += 1
+    #     if have_voice:
+    #         # 检测到语音，增加连续语音帧计数
+    #         conn._continuous_voice_count += 1
             
-            # 当连续语音帧达到阈值时，触发打断
-            # 这样可以过滤短暂噪音、回声、咳嗽等误触发
-            if conn._continuous_voice_count >= CONTINUOUS_VOICE_THRESHOLD:
-                logger.bind(tag=TAG).info(
-                    f"持续语音检测触发打断: 连续 {conn._continuous_voice_count} 帧 "
-                    f"(阈值 {CONTINUOUS_VOICE_THRESHOLD} 帧, 约 {CONTINUOUS_VOICE_THRESHOLD * 60}ms)"
-                )
-                # 重置计数器
-                conn._continuous_voice_count = 0
-                # 触发打断
-                await handleAbortMessage(conn)
-        else:
-            # 没有检测到语音，重置连续语音帧计数
-            conn._continuous_voice_count = 0
+    #         # 当连续语音帧达到阈值时，触发打断
+    #         # 这样可以过滤短暂噪音、回声、咳嗽等误触发
+    #         if conn._continuous_voice_count >= CONTINUOUS_VOICE_THRESHOLD:
+    #             logger.bind(tag=TAG).info(
+    #                 f"持续语音检测触发打断: 连续 {conn._continuous_voice_count} 帧 "
+    #                 f"(阈值 {CONTINUOUS_VOICE_THRESHOLD} 帧, 约 {CONTINUOUS_VOICE_THRESHOLD * 60}ms)"
+    #             )
+    #             # 重置计数器
+    #             conn._continuous_voice_count = 0
+    #             # 触发打断
+    #             await handleAbortMessage(conn)
+    #     else:
+    #         # 没有检测到语音，重置连续语音帧计数
+    #         conn._continuous_voice_count = 0
+    if have_voice:
+        if conn.client_is_speaking and conn.client_listen_mode != "manual":
+            logger.bind(tag=TAG).info("检测到语音，触发打断")
+            await handleAbortMessage(conn)
 
     # 设备长时间空闲检测，用于say goodbye
     await no_voice_close_connect(conn, have_voice)
