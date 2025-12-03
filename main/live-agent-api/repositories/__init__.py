@@ -8,6 +8,7 @@ from .agent import AgentModel
 from .agent_template import AgentTemplateModel
 from .voice import VoiceModel
 from .chat import ChatMessageModel
+from .device import DeviceModel, AgentDeviceBindingModel
 
 # Import Repository classes
 from .user import User
@@ -16,6 +17,7 @@ from .agent_template import AgentTemplate
 from .voice import Voice
 from .chat import ChatMessage
 from .file import FileRepository
+from .device import Device, AgentDeviceBinding
 
 __all__ = [
     # ORM Models
@@ -24,6 +26,8 @@ __all__ = [
     "AgentTemplateModel",
     "VoiceModel",
     "ChatMessageModel",
+    "DeviceModel",
+    "AgentDeviceBindingModel",
     # Repository classes
     "User",
     "Agent",
@@ -31,5 +35,7 @@ __all__ = [
     "Voice",
     "ChatMessage",
     "FileRepository",
+    "Device",
+    "AgentDeviceBinding",
 ]
 
