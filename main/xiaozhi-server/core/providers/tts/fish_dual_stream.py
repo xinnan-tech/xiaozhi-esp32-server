@@ -161,6 +161,7 @@ class TTSProvider(TTSProviderBase):
                     self.tts_audio_first_sentence = True
                     self._first_sent = False
                     self._session_text_buffer = []
+                    self.conn._latency_tts_first_text_time = None  # Reset TTS input time
 
                 elif self.conn.client_abort:
                     # ========== Interruption ==========
@@ -194,6 +195,12 @@ class TTSProvider(TTSProviderBase):
                     if message.content_detail:
                         # Accumulate text for reporting (supports voice_opening/closing and LLM content)
                         self._session_text_buffer.append(message.content_detail)
+                        
+                        # Record TTS first text input time (for latency tracking)
+                        if not hasattr(self.conn, '_latency_tts_first_text_time') or self.conn._latency_tts_first_text_time is None:
+                            import time
+                            self.conn._latency_tts_first_text_time = time.time() * 1000
+                            logger.bind(tag=TAG).debug("📝 [延迟追踪] TTS首次接收文本")
                         
                         try:
                             logger.bind(tag=TAG).debug(

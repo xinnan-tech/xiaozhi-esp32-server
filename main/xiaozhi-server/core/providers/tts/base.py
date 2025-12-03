@@ -288,10 +288,16 @@ class TTSProviderBase(ABC):
                     self.tts_text_buff = []
                     self.is_first_sentence = True
                     self.tts_audio_first_sentence = True
+                    self.conn._latency_tts_first_text_time = None  # Reset TTS input time
                 elif ContentType.TEXT == message.content_type:
                     self.tts_text_buff.append(message.content_detail)
                     segment_text = self._get_segment_text()
                     if segment_text:
+                        # Record TTS first text input time (for latency tracking)
+                        if not hasattr(self.conn, '_latency_tts_first_text_time') or self.conn._latency_tts_first_text_time is None:
+                            import time
+                            self.conn._latency_tts_first_text_time = time.time() * 1000
+                            logger.bind(tag=TAG).debug("📝 [延迟追踪] TTS首次接收文本")
                         self.to_tts_stream(segment_text, opus_handler=self.handle_opus)
                 elif ContentType.FILE == message.content_type:
                     self._process_remaining_text_stream(opus_handler=self.handle_opus)

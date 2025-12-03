@@ -16,14 +16,22 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
         # 记录首句 TTS 播放时间（端到端延迟的终点）
         first_audio_time = time.time() * 1000
         
+        # 计算 TTS 首包延迟（输入到输出）
+        tts_first_package_delay = 0
+        if hasattr(conn, '_latency_tts_first_text_time') and conn._latency_tts_first_text_time:
+            tts_first_package_delay = first_audio_time - conn._latency_tts_first_text_time
+        
         # 计算端到端延迟
+        e2e_total_delay = 0
         if hasattr(conn, '_latency_voice_end_time'):
             e2e_total_delay = first_audio_time - conn._latency_voice_end_time
-            conn.logger.bind(tag=TAG).info(
-                f"🔊 [延迟追踪] 首句TTS开始播放 | "
-                f"⏱️  端到端总延迟: {e2e_total_delay:.0f}ms (用户说完→首句播放) | "
-                f"文本: {text if text else '(无文本)'}"
-            )
+        
+        conn.logger.bind(tag=TAG).info(
+            f"🔊 [延迟追踪] 首句TTS开始播放 | "
+            f"TTS首包延迟: {tts_first_package_delay:.0f}ms | "
+            f"⏱️  端到端总延迟: {e2e_total_delay:.0f}ms (用户说完→首句播放) | "
+            f"文本: {text if text else '(无文本)'}"
+        )
 
     if sentenceType == SentenceType.FIRST:
         await send_tts_message(conn, "sentence_start", text)
