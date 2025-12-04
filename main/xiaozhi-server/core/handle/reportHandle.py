@@ -7,45 +7,14 @@ Report features:
 See core/connection.py for implementation details.
 """
 
-import re
 import time
 import base64
 from typing import List, Dict, Any
 from config.live_agent_api_client import report_chat_message
 from core.providers.tts.dto.dto import MessageTag
+from core.utils.textUtils import strip_emotion_tags
 
 TAG = __name__
-
-# Regex pattern to match emotion tags anywhere in text
-# Format: (emotion) e.g., "(happy)", "(sincere)", "(curious)"
-# Matches: optional whitespace + (word) + optional whitespace
-EMOTION_TAG_PATTERN = re.compile(r'\s*\([a-zA-Z_]+\)\s*')
-
-
-def strip_emotion_tags(text: str) -> str:
-    """
-    Remove all emotion tags from TTS text.
-    
-    Emotion tags are in format: (emotion) typically at the start of sentences.
-    Examples:
-        "(happy) Hello!" -> "Hello!"
-        "(sincere) That's great. (curious) What next?" -> "That's great. What next?"
-        "Hello (happy) world" -> "Hello world"
-    
-    Args:
-        text: Text with potential emotion tags
-        
-    Returns:
-        Text with all emotion tags removed
-    """
-    if not text:
-        return text
-    
-    # Remove all emotion tags from the text
-    result = EMOTION_TAG_PATTERN.sub(' ', text)
-    # Clean up multiple spaces and trim
-    result = re.sub(r'\s+', ' ', result)
-    return result.strip()
 
 
 def report(conn, role, text: str, opus_data: List[bytes] | None = None, report_time: int = 0, attachments: List[Dict[str, Any]] | None = None):

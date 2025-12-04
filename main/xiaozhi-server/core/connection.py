@@ -1204,14 +1204,10 @@ class ConnectionHandler:
             try:
                 # 从队列获取数据，设置超时以便定期检查停止事件
                 item = self.report_queue.get(timeout=1)
-                if item is None:  # 检测毒丸对象
+                if item is None:  # detect poison pill object
+                    self.report_queue.task_done()
                     break
                 try:
-                    # 检查线程池状态
-                    if self.executor is None:
-                        continue
-                    # 提交任务到线程池
-                    # self.executor.submit(self._process_report, *item)
                     self._process_report(*item)
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"聊天记录上报线程异常: {e}")
@@ -1219,6 +1215,21 @@ class ConnectionHandler:
                 continue
             except Exception as e:
                 self.logger.bind(tag=TAG).error(f"聊天记录上报工作线程异常: {e}")
+
+        # stop_event is set, continue processing remaining messages in report_queue
+        self.logger.bind(tag=TAG).info("processing remaining report messages...")
+        while True:
+            try:
+                item = self.report_queue.get_nowait()
+                if item is None:  # detect poison pill object
+                    self.report_queue.task_done()
+                    break
+                try:
+                    self._process_report(*item)
+                except Exception as e:
+                    self.logger.bind(tag=TAG).error(f"processing remaining report messages failed: {e}")
+            except queue.Empty:
+                break
 
         self.logger.bind(tag=TAG).info("聊天记录上报线程已退出")
 
@@ -1266,8 +1277,20 @@ class ConnectionHandler:
             if self.stop_event:
                 self.stop_event.set()
 
-            # 清空任务队列
+            # clear TTS text queue and audio queue, except report_queue
             self.clear_queues()
+
+            # process remaining messages in report_queue
+            if self._report_enabled and self.report_queue:
+                try:
+                    self.logger.bind(tag=TAG).info("waiting for report queue to be processed...")
+                    # send poison pill object to notify report_worker to exit and process remaining messages
+                    self.report_queue.put(None)
+                    # wait for all messages to be processed
+                    self.report_queue.join()
+                    self.logger.bind(tag=TAG).info("report queue processed")
+                except Exception as e:
+                    self.logger.bind(tag=TAG).warning(f"waiting for report queue timeout or failed: {e}")
 
             # 关闭WebSocket连接
             try:
@@ -1327,17 +1350,16 @@ class ConnectionHandler:
                 self.stop_event.set()
 
     def clear_queues(self):
-        """清空所有任务队列"""
+        """clear TTS task queues (except report_queue, which is handled by close method)"""
         if self.tts:
             self.logger.bind(tag=TAG).debug(
                 f"开始清理: TTS队列大小={self.tts.tts_text_queue.qsize()}, 音频队列大小={self.tts.tts_audio_queue.qsize()}"
             )
 
-            # 使用非阻塞方式清空队列
+            # use non-blocking way to clear TTS queues
             for q in [
                 self.tts.tts_text_queue,
                 self.tts.tts_audio_queue,
-                self.report_queue,
             ]:
                 if not q:
                     continue

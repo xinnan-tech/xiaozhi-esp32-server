@@ -7,7 +7,8 @@ from core.providers.tts.dto.dto import (
     SentenceType,
     MessageTag,
 )
-
+from core.utils.textUtils import strip_emotion_tags
+from core.utils.opus import pack_opus_with_header
 
 TAG = __name__
 
@@ -102,11 +103,7 @@ async def _send_to_mqtt_gateway(conn, opus_packet, timestamp, sequence):
 async def _send_audio_with_header(conn, audios, message_tag=MessageTag.NORMAL):
     if audios is None or len(audios) == 0:
         return
-    header = bytearray(16)
-    header[0] = 1 # default value is 1 for audio message
-    header[1] = message_tag.value
-    # 3-15 bytes is reserved for future use, currently not used
-    complete_packet = bytes(header) + audios
+    complete_packet = pack_opus_with_header(audios, message_tag)
     await conn.websocket.send(complete_packet)
 
 
@@ -243,7 +240,9 @@ async def send_tts_message(conn, state, text=None, message_tag=MessageTag.NORMAL
         "message_tag": message_tag.value,
     }
     if text is not None:
-        message["text"] = textUtils.check_emoji(text)
+        text = textUtils.check_emoji(text)
+        text = strip_emotion_tags(text)
+        message["text"] = text
 
     # TTS播放结束
     if state == "stop":

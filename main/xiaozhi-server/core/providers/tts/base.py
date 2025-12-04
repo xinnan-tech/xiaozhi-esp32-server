@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from config.logger import setup_logging
 from core.utils.tts import MarkdownCleaner
 from core.utils.output_counter import add_device_output
+from core.utils.opus import pack_opus_with_header
 from core.handle.reportHandle import enqueue_tts_report
 from core.handle.sendAudioHandle import sendAudioMessage
 from core.utils.util import audio_bytes_to_data_stream, audio_to_data_stream
@@ -378,6 +379,7 @@ class TTSProviderBase(ABC):
 
                 # 收集上报音频数据
                 if isinstance(audio_datas, bytes) and enqueue_audio is not None:
+                    audio_datas = pack_opus_with_header(audio_datas, message_tag)
                     enqueue_audio.append(audio_datas)
 
                 # 等待上一个发送完成（保持顺序），但使用短超时避免长时间阻塞
@@ -399,6 +401,14 @@ class TTSProviderBase(ABC):
 
             except Exception as e:
                 logger.bind(tag=TAG).error(f"audio_play_priority_thread: {text} {e}")
+
+        # when connection session is closing, report the remaining TTS data(latest message)
+        if enqueue_text is not None and enqueue_audio is not None and len(enqueue_audio) > 0:
+            try:
+                enqueue_tts_report(self.conn, enqueue_text, enqueue_audio, message_tag)
+                logger.bind(tag=TAG).info(f"connection closing, report the remaining TTS data: {enqueue_text}")
+            except Exception as e:
+                logger.bind(tag=TAG).warning(f"connection closing, report the remaining TTS data failed: {e}")
 
     async def start_session(self, session_id):
         pass
