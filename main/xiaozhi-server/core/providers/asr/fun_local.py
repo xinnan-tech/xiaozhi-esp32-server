@@ -6,6 +6,7 @@ import psutil
 from config.logger import setup_logging
 from typing import Optional, Tuple, List
 from core.providers.asr.base import ASRProviderBase
+from core.providers.asr.utils import custom_lang_filter
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 import shutil
@@ -99,7 +100,11 @@ class ASRProvider(ASRProviderBase):
                     use_itn=True,
                     batch_size_s=60,
                 )
-                text = rich_transcription_postprocess(result[0]["text"])
+
+                # text = rich_transcription_postprocess(result[0]["text"])
+
+                # Handle language tags
+                text = custom_lang_filter(result[0]["text"])
                 logger.bind(tag=TAG).debug(
                     f"语音识别耗时: {time.time() - start_time:.3f}s | 结果: {text}"
                 )
