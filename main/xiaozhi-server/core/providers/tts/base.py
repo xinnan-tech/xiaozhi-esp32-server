@@ -88,7 +88,12 @@ class TTSProviderBase(ABC):
 
     def handle_opus(self, opus_data: bytes):
         logger.bind(tag=TAG).debug(f"推送数据到队列里面帧数～～ {len(opus_data)}")
-        self.tts_audio_queue.put((SentenceType.MIDDLE, opus_data, None))
+        self.tts_audio_queue.put(TTSAudioDTO(
+            sentence_type=SentenceType.MIDDLE,
+            audio_data=opus_data,
+            text=None,
+            message_tag=self._message_tag,
+        ))
 
     def handle_audio_file(self, file_audio: bytes, text):
         self.before_stop_play_files.append((file_audio, text))
@@ -479,9 +484,19 @@ class TTSProviderBase(ABC):
 
     def _process_before_stop_play_files(self):
         for audio_datas, text in self.before_stop_play_files:
-            self.tts_audio_queue.put((SentenceType.MIDDLE, audio_datas, text))
+            self.tts_audio_queue.put(TTSAudioDTO(
+                sentence_type=SentenceType.MIDDLE,
+                audio_data=audio_datas,
+                text=text,
+                message_tag=self._message_tag,
+            ))
         self.before_stop_play_files.clear()
-        self.tts_audio_queue.put((SentenceType.LAST, [], None))
+        self.tts_audio_queue.put(TTSAudioDTO(
+            sentence_type=SentenceType.LAST,
+            audio_data=[],
+            text=None,
+            message_tag=self._message_tag,
+        ))
 
     def _process_remaining_text_stream(
         self, opus_handler: Callable[[bytes], None] = None
