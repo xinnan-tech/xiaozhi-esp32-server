@@ -98,14 +98,15 @@ class MemoryService:
             return {"success": True}
         raise NotFoundException("Memory not found")
 
-    def _mock_search(self, user_id: str, agent_ids: List[str], query: str) -> dict:
-        """Mock: 搜索记忆"""
+    def _mock_search(self, user_id: str, agent_ids: List[str], query: Optional[str] = None) -> dict:
+        """Mock: 搜索记忆（query 为空时返回全量）"""
         items = []
         for agent_id in agent_ids:
             key = self._mock_key(user_id, agent_id)
             if key in self._mock_memories:
                 for item in self._mock_memories[key].values():
-                    if query.lower() in item.get("summary", "").lower():
+                    # query 为空返回全部，否则按关键词过滤
+                    if not query or query.lower() in item.get("summary", "").lower():
                         items.append(item)
         return {"memory_items": items}
 
@@ -150,14 +151,19 @@ class MemoryService:
                 return self._mock_delete(user_id, agent_id, memory_item_id)
             raise
 
-    async def _memu_search(self, user_id: str, agent_ids: List[str], summary: str) -> dict:
-        """POST /memory-items/search（失败时 fallback 到 mock）"""
+    async def _memu_search(self, user_id: str, agent_ids: List[str], summary: Optional[str] = None) -> dict:
+        """POST /memory-items/search（失败时 fallback 到 mock）
+        
+        summary 为空时返回该 agent 的全量记忆
+        """
         try:
             payload = {
                 "user_id": user_id,
                 "agent_ids": agent_ids,
-                "summary": summary
             }
+            # 只有 summary 有值时才加入 payload
+            if summary:
+                payload["summary"] = summary
             return await self._request("POST", "/memory-items/search", payload=payload)
         except Exception:
             if self.use_mock:
@@ -182,9 +188,9 @@ class MemoryService:
         1. 从 DB 查询共享给该 agent 的源 agent 列表
         2. 合并自己的 agent_id，构建查询列表
         3. 一次性调用 MemU 批量查询
+        
+        注意：query 为空时返回该 agent 的全量记忆
         """
-        if not query:
-            return MemoryListResponse(memories=[], next_cursor=None, has_more=False)
         
         # 1. 构建需要查询的 agent 列表（自己 + 共享源）
         agent_ids_to_query = [agent_id]  # 自己
