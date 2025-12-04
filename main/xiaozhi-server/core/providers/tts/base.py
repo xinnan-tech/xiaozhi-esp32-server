@@ -6,6 +6,7 @@ import queue
 import asyncio
 import threading
 import traceback
+from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
 from core.utils import p3
 from datetime import datetime
@@ -23,6 +24,8 @@ from core.providers.tts.dto.dto import (
     SentenceType,
     ContentType,
     InterfaceType,
+    TTSAudioDTO,
+    MessageTag,
 )
 
 TAG = __name__
@@ -39,10 +42,12 @@ class TTSProviderBase(ABC):
         self.delete_audio_file = delete_audio_file
         self.audio_file_type = "wav"
         self.output_file = config.get("output_dir", "tmp/")
-        self.tts_text_queue = queue.Queue()
-        self.tts_audio_queue = queue.Queue()
+        self.tts_text_queue = queue.Queue[TTSMessageDTO]()
+        # TODO: for long-term, we need to use TTSAudioDTO instead of tuple[SentenceType, Optional[bytes], Optional[str]]
+        self.tts_audio_queue = queue.Queue[TTSAudioDTO | tuple[SentenceType, Optional[bytes], Optional[str]]]()
         self.tts_audio_first_sentence = True
         self.before_stop_play_files = []
+        self._message_tag = MessageTag.NORMAL
 
         self.tts_text_buff = []
         self.punctuations = (
@@ -331,9 +336,22 @@ class TTSProviderBase(ABC):
             text = None
             try:
                 try:
-                    sentence_type, audio_datas, text = self.tts_audio_queue.get(
+                    tts_audio_message = self.tts_audio_queue.get(
                         timeout=0.1
                     )
+                    if isinstance(tts_audio_message, TTSAudioDTO):
+                        sentence_type = tts_audio_message.sentence_type
+                        audio_datas = tts_audio_message.audio_data
+                        text = tts_audio_message.text
+                        message_tag = tts_audio_message.message_tag
+                    elif isinstance(tts_audio_message, tuple):
+                        sentence_type = tts_audio_message[0]
+                        audio_datas = tts_audio_message[1]
+                        text = tts_audio_message[2]
+                        message_tag = MessageTag.NORMAL  # tuple format doesn't have message_tag
+                    else:
+                        logger.bind(tag=TAG).warning(f"Unknown tts_audio_message type: {type(tts_audio_message)}")
+                        continue
                 except queue.Empty:
                     if self.conn.stop_event.is_set():
                         break
@@ -349,7 +367,7 @@ class TTSProviderBase(ABC):
                 if sentence_type is not SentenceType.MIDDLE:
                     # 上报TTS数据
                     if enqueue_text is not None and enqueue_audio is not None:
-                        enqueue_tts_report(self.conn, enqueue_text, enqueue_audio)
+                        enqueue_tts_report(self.conn, enqueue_text, enqueue_audio, message_tag)
                     enqueue_audio = []
                     enqueue_text = text
 
@@ -366,7 +384,7 @@ class TTSProviderBase(ABC):
 
                 # 异步发送音频（不阻塞等待）
                 last_send_future = asyncio.run_coroutine_threadsafe(
-                    sendAudioMessage(self.conn, sentence_type, audio_datas, text),
+                    sendAudioMessage(self.conn, sentence_type, audio_datas, text, message_tag),
                     self.conn.loop,
                 )
 

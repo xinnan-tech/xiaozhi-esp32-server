@@ -1009,20 +1009,40 @@
 
                             if (message.type === 'hello') {
                                 log(`服务器回应：${JSON.stringify(message, null, 2)}`, 'success');
+                                // Check if this is a reconnect - if opening was played before, skip it
+                                if (openingPlayedInSession) {
+                                    skipCurrentOpening = true;
+                                    log('检测到重连，将跳过开场白', 'info');
+                                }
                             } else if (message.type === 'tts') {
                                 // TTS状态消息
+                                const msgTag = message.message_tag !== undefined ? message.message_tag : MESSAGE_TAG.NORMAL;
+                                const tagName = msgTag === MESSAGE_TAG.OPENING ? '[开场白]' : 
+                                               msgTag === MESSAGE_TAG.CLOSING ? '[结束语]' : '';
+                                
                                 if (message.state === 'start') {
-                                    log('服务器开始发送语音', 'info');
+                                    log(`服务器开始发送语音 ${tagName}`, 'info');
                                 } else if (message.state === 'sentence_start') {
-                                    log(`服务器发送语音段: ${message.text}`, 'info');
-                                    // 添加文本到会话记录
-                                    if (message.text) {
-                                        addMessage(message.text);
+                                    log(`服务器发送语音段${tagName}: ${message.text}`, 'info');
+                                    // Handle opening text - skip if this is a reconnect
+                                    if (msgTag === MESSAGE_TAG.OPENING && skipCurrentOpening) {
+                                        log('跳过重复的开场白文本显示', 'debug');
+                                    } else {
+                                        if (message.text) {
+                                            addMessage(message.text);
+                                        }
                                     }
                                 } else if (message.state === 'sentence_end') {
-                                    log(`语音段结束: ${message.text}`, 'info');
+                                    log(`语音段结束${tagName}: ${message.text}`, 'info');
                                 } else if (message.state === 'stop') {
                                     log('服务器语音传输结束', 'info');
+                                    // Mark opening as played after TTS completes
+                                    if (!openingPlayedInSession) {
+                                        openingPlayedInSession = true;
+                                        log('开场白播放完成，后续重连将跳过', 'debug');
+                                    }
+                                    // Reset skip flag for next session
+                                    skipCurrentOpening = false;
                                     // 结束后更新UI状态
                                     if (recordButton.disabled) {
                                         recordButton.disabled = false;
@@ -1760,32 +1780,62 @@
             }
         }
 
+        // Message tag constants (sync with server MessageTag enum)
+        const MESSAGE_TAG = {
+            NORMAL: 0,
+            OPENING: 1,
+            CLOSING: 2
+        };
+        
+        // Track opening state across reconnections
+        let openingPlayedInSession = false;  // Has opening been played in this page session?
+        let skipCurrentOpening = false;      // Should we skip the current opening (on reconnect)?
+
         async function handleBinaryMessage(data) {
             try {
                 let arrayBuffer;
-                // 根据数据类型进行处理
+                // Convert to ArrayBuffer based on data type
                 if (data instanceof ArrayBuffer) {
                     arrayBuffer = data;
-                    log(`收到ArrayBuffer音频数据，大小: ${data.byteLength}字节`, 'debug');
                 } else if (data instanceof Blob) {
-                    // 如果是Blob类型，转换为ArrayBuffer
                     arrayBuffer = await data.arrayBuffer();
-                    log(`收到Blob音频数据，大小: ${arrayBuffer.byteLength}字节`, 'debug');
                 } else {
                     log(`收到未知类型的二进制数据: ${typeof data}`, 'warning');
                     return;
                 }
-                // 创建Uint8Array用于处理
-                const opusData = new Uint8Array(arrayBuffer);
-                if (opusData.length > 0) {
-                    // 将数据添加到缓冲队列
-                    queue.enqueue(opusData);
-                } else {
+
+                // Parse 16-byte header + opus payload
+                // Header structure:
+                //   byte 0: type (1 = audio)
+                //   byte 1: message_tag (0=normal, 1=opening, 2=notification)
+                //   bytes 2-15: reserved
+                const HEADER_SIZE = 16;
+                
+                if (arrayBuffer.byteLength <= HEADER_SIZE) {
                     log('收到空音频数据帧，可能是结束标志', 'warning');
-                    // 如果正在播放，发送结束信号
                     if (isAudioPlaying && streamingContext) {
                         streamingContext.endOfStream = true;
                     }
+                    return;
+                }
+
+                const headerView = new DataView(arrayBuffer);
+                const type = headerView.getUint8(0);
+                const messageTag = headerView.getUint8(1);
+                
+                // Extract opus data (skip 16-byte header)
+                const opusData = new Uint8Array(arrayBuffer, HEADER_SIZE);
+                
+                log(`收到音频数据: type=${type}, tag=${messageTag}, payload=${opusData.length}字节`, 'debug');
+
+                // Handle opening message - skip if this is a reconnect
+                if (messageTag === MESSAGE_TAG.OPENING && skipCurrentOpening) {
+                    log('跳过重复的开场白音频', 'debug');
+                    return;
+                }
+
+                if (opusData.length > 0) {
+                    queue.enqueue(opusData);
                 }
             } catch (error) {
                 log(`处理二进制消息出错: ${error.message}`, 'error');

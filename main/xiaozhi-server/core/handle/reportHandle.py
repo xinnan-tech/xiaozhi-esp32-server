@@ -12,7 +12,7 @@ import time
 import base64
 from typing import List, Dict, Any
 from config.live_agent_api_client import report_chat_message
-
+from core.providers.tts.dto.dto import MessageTag
 
 TAG = __name__
 
@@ -112,7 +112,7 @@ def report(conn, role, text: str, opus_data: List[bytes] | None = None, report_t
         conn.logger.bind(tag=TAG).error(f"Chat message report failed: {e}")
 
 
-def enqueue_tts_report(conn, text, opus_data):
+def enqueue_tts_report(conn, text, opus_data, message_tag=MessageTag.NORMAL):
     """Enqueue TTS data for reporting (Agent message)
     
     Args:
@@ -125,6 +125,10 @@ def enqueue_tts_report(conn, text, opus_data):
         return
     if conn.chat_history_conf == 0:
         return
+    # if the message is opening and the connection is reconnected, skip the report
+    if message_tag == MessageTag.OPENING and conn.reconnected:
+        conn.logger.bind(tag=TAG).info(f"Opening message is reconnected, skipping report")
+        return 
     
     try:
         # Remove emotion tags from text before reporting

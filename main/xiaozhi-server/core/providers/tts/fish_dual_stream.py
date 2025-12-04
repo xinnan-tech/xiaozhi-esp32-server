@@ -22,7 +22,13 @@ from core.utils.tts import MarkdownCleaner
 from core.utils import opus_encoder_utils
 from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
-from core.providers.tts.dto.dto import SentenceType, ContentType, InterfaceType
+from core.providers.tts.dto.dto import (
+    SentenceType, 
+    ContentType, 
+    InterfaceType,
+    TTSAudioDTO,
+    MessageTag,
+)
 from config.logger import setup_logging
 
 TAG = __name__
@@ -162,6 +168,7 @@ class TTSProvider(TTSProviderBase):
                     self._first_sent = False
                     self._session_text_buffer = []
                     self.conn._latency_tts_first_text_time = None  # Reset TTS input time
+                    self._message_tag = message.message_tag
 
                 elif self.conn.client_abort:
                     # ========== Interruption ==========
@@ -295,7 +302,13 @@ class TTSProvider(TTSProviderBase):
                             if not self._first_sent:
                                 self._first_sent = True
                                 report_text = ''.join(self._session_text_buffer) if self._session_text_buffer else None
-                                self.tts_audio_queue.put((SentenceType.FIRST, None, report_text))
+
+                                self.tts_audio_queue.put(TTSAudioDTO(
+                                    sentence_type=SentenceType.FIRST,
+                                    audio_data=None,
+                                    text=report_text,
+                                    message_tag=self._message_tag,
+                                ))
                             
                             # PCM -> Opus conversion
                             self.opus_encoder.encode_pcm_to_opus_stream(
@@ -318,8 +331,12 @@ class TTSProvider(TTSProviderBase):
                         
                         # 发送 LAST 触发客户端 stop 和最终上报
                         # 不再发送 FIRST，避免清空之前累积的音频
-                        self.tts_audio_queue.put((SentenceType.LAST, None, None))
-                        
+                        self.tts_audio_queue.put(TTSAudioDTO(
+                            sentence_type=SentenceType.LAST,
+                            audio_data=None,
+                            text=None,
+                            message_tag=self._message_tag,
+                        ))
                         # 清理状态
                         self._session_text_buffer = []
                         self.conn.tts_MessageText = None

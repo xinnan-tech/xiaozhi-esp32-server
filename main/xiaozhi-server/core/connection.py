@@ -29,6 +29,7 @@ from core.providers.tts.default import DefaultTTS
 from concurrent.futures import ThreadPoolExecutor
 from core.utils.dialogue import Message, Dialogue
 from core.providers.asr.dto.dto import InterfaceType
+from core.providers.tts.dto.dto import MessageTag
 from core.handle.textHandle import handleTextMessage
 from core.providers.tools.unified_tool_handler import UnifiedToolHandler
 from plugins_func.loadplugins import auto_import_modules
@@ -168,6 +169,9 @@ class ConnectionHandler:
         self._voice_closing = None
         self._language = None
 
+        # reconnected flag
+        self.reconnected: bool = False
+
     async def handle_connection(self, ws):
         try:
             # 获取并验证headers
@@ -189,6 +193,9 @@ class ConnectionHandler:
             # 认证通过,继续处理
             self.websocket = ws
 
+            # check if the connection is reconnected by the mobile-end
+            self.reconnected = self.headers.get("reconnected", "0") == "1"
+            self.logger.bind(tag=TAG).info(f"reconnected: {self.reconnected}")
             # 检查是否来自MQTT连接
             request_path = ws.request.path
             self.conn_from_mqtt_gateway = request_path.endswith("?from=mqtt_gateway")
@@ -450,12 +457,13 @@ class ConnectionHandler:
                 self.logger.bind(tag=TAG).info(f"send the opening message: {self._voice_opening}")
                 
                 opening_sentence_id = str(uuid.uuid4().hex)
-    
+                message_tag = MessageTag.OPENING
                 # FIRST: Start session
                 self.tts.tts_text_queue.put(TTSMessageDTO(
                     sentence_id=opening_sentence_id,
                     sentence_type=SentenceType.FIRST,
                     content_type=ContentType.ACTION,
+                    message_tag=message_tag,
                 ))
 
                 self.tts.tts_text_queue.put(TTSMessageDTO(
@@ -463,6 +471,7 @@ class ConnectionHandler:
                     sentence_type=SentenceType.MIDDLE,
                     content_type=ContentType.TEXT,
                     content_detail=self._voice_opening,
+                    message_tag=message_tag,
                     )
                 )
 
@@ -470,6 +479,7 @@ class ConnectionHandler:
                     sentence_id=opening_sentence_id,
                     sentence_type=SentenceType.LAST,
                     content_type=ContentType.ACTION,
+                    message_tag=message_tag,
                 ))
 
         except Exception as e:

@@ -49,7 +49,10 @@ class WebSocketServer:
         port = int(server_config.get("port", 8000))
 
         async with websockets.serve(
-            self._handle_connection, host, port, process_request=self._http_response
+            self._handle_connection, host, port, process_request=self._http_response,
+            ping_interval=30, # Interval between keepalive pings in seconds
+            ping_timeout=20, # Timeout for keepalive pings in seconds
+            close_timeout=10, # Timeout for closing the connection in seconds
         ):
             await asyncio.Future()
 
