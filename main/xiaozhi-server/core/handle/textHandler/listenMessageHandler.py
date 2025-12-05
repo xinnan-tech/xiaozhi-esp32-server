@@ -101,22 +101,26 @@ class ListenTextMessageHandler(TextMessageHandler):
                     conn.client_is_speaking = False
                 elif is_wakeup_words:
                     conn.just_woken_up = True
+                    # Record timestamp for correct message ordering
+                    report_time = int(time.time())
                     # 上报纯文字数据（复用ASR上报功能，但不提供音频数据）
-                    enqueue_asr_report(conn, "嘿，你好呀", [])
+                    enqueue_asr_report(conn, "嘿，你好呀", [], report_time=report_time)
                     await startToChat(conn, "嘿，你好呀")
                 else:
                     # check if there are attachments(eg. images, files) in text mode
                     attachments = msg_json.get("attachments", [])
+                    # Record timestamp for correct message ordering
+                    report_time = int(time.time())
                     
                     if attachments:
                         # build multimodal content
                         multimodal_content = build_multimodal_content(original_text, attachments)
                         # report text data with attachments
-                        enqueue_asr_report(conn, original_text, [], attachments)
+                        enqueue_asr_report(conn, original_text, [], attachments, report_time=report_time)
                         # use multimodal content to chat
                         await startToChat(conn, original_text, multimodal_content)
                     else:
                         # 上报纯文字数据（复用ASR上报功能，但不提供音频数据）
-                        enqueue_asr_report(conn, original_text, [])
+                        enqueue_asr_report(conn, original_text, [], report_time=report_time)
                         # 否则需要LLM对文字内容进行答复
                         await startToChat(conn, original_text)

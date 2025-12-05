@@ -2,6 +2,7 @@
 Chat service - Business logic for chat messages
 """
 import base64
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from copy import deepcopy
@@ -68,13 +69,19 @@ class ChatService:
         # Convert Pydantic models to dict for JSONB storage
         content_dicts = [msg.model_dump() for msg in contents]
         
+        # Convert message_time from unix timestamp to datetime
+        message_time = None
+        if request.message_time:
+            message_time = datetime.fromtimestamp(request.message_time, tz=timezone.utc)
+        
         # Store in database
         chat_message = await ChatMessageRepo.create(
             db=db,
             message_id=message_id,
             agent_id=request.agent_id,
             role=request.role,
-            content=content_dicts
+            content=content_dicts,
+            message_time=message_time
         )
         
         return ChatMessageSchema(
@@ -82,7 +89,7 @@ class ChatService:
             agent_id=chat_message.agent_id,
             role=chat_message.role,
             content=chat_message.content,
-            created_at=chat_message.created_at
+            message_time=chat_message.message_time,
         )
 
     async def get_agent_messages(
@@ -125,7 +132,7 @@ class ChatService:
                 agent_id=message.agent_id,
                 role=message.role,
                 content=message.content,
-                created_at=message.created_at
+                message_time=message.message_time,
             ))
         
         return response_messages, next_cursor, has_more

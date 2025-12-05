@@ -114,6 +114,7 @@ def report_chat_message(
     agent_id: str,
     role: int,
     content_items: List[Dict[str, str]],
+    message_time: int = None,
     config: dict = None
 ) -> Optional[dict]:
     """
@@ -129,6 +130,7 @@ def report_chat_message(
                 {"message_type": "image", "message_content": "s3_url"},
                 {"message_type": "file", "message_content": "s3_url"}
             ]
+        message_time: Unix timestamp when message actually occurred (for correct ordering)
         config: System config (optional if client already initialized)
     
     Returns:
@@ -147,6 +149,10 @@ def report_chat_message(
             "role": role,
             "content": content_items
         }
+        
+        # Add message_time if provided (for correct message ordering)
+        if message_time is not None:
+            payload["message_time"] = message_time
         
         result = LiveAgentApiClient._request("POST", "/chat/report", json=payload)
         

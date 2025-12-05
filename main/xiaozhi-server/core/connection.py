@@ -1220,7 +1220,7 @@ class ConnectionHandler:
         self.logger.bind(tag=TAG).info("processing remaining report messages...")
         while True:
             try:
-                item = self.report_queue.get_nowait()
+                item = self.report_queue.get(timeout=1)
                 if item is None:  # detect poison pill object
                     self.report_queue.task_done()
                     break

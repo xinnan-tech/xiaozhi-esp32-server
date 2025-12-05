@@ -9,7 +9,6 @@ from infra import get_db, get_s3
 from services.chat_service import chat_service
 from schemas.chat import (
     ReportChatMessageRequest,
-    ChatMessage,
     ChatMessagesListResponse
 )
 from utils.response import success_response
@@ -46,7 +45,7 @@ async def report_message(
 @router.get("/{agent_id}/messages", summary="Get chat messages for an agent")
 async def get_agent_messages(
     agent_id: str,
-    cursor: Optional[str] = Query(None, description="Message ID (ULID) cursor for pagination"),
+    cursor: Optional[str] = Query(None, description="Composite cursor (message_time) for pagination"),
     limit: int = Query(50, ge=1, le=100, description="Number of messages to fetch"),
     include_audio: bool = Query(False, description="Load audio base64 from S3"),
     db: AsyncSession = Depends(get_db),
@@ -56,19 +55,19 @@ async def get_agent_messages(
     Get chat messages for an agent using cursor-based pagination (chat style)
     
     Features:
-    - Returns latest messages first (DESC order, newest at top)
+    - Returns latest messages first (DESC order by message_time, newest at top)
     - Scroll up to load older messages (typical chat UI behavior)
-    - Cursor-based pagination for efficient real-time chat
+    - Cursor-based pagination using message_time for correct ordering
     - Lazy audio loading (only when include_audio=True)
     
     Query Parameters:
-        - cursor: Message ID (ULID) to load messages before. If None, load latest messages
+        - cursor: ISO format timestamp to load messages before. If None, load latest messages
         - limit: Number of messages to fetch (1-100, default 50)
         - include_audio: If True, downloads opus from S3 and returns as base64
     
     Returns:
-        - messages: List of chat messages (newest first in each batch)
-        - next_cursor: Message ID for loading older messages (None if no more history)
+        - messages: List of chat messages (newest first in each batch, ordered by message_time)
+        - next_cursor: ISO timestamp for loading older messages (None if no more history)
         - has_more: Whether there are more older messages
     
     Example:
@@ -76,15 +75,15 @@ async def get_agent_messages(
         GET /chat/agent_123/messages?limit=50
         Response: {
             messages: [newest_msg, ..., oldest_msg_in_batch], 
-            next_cursor: "01JD8X0000ABC",  # ID of oldest message in this batch
+            next_cursor: "2024-01-15T10:30:00+00:00",
             has_more: true
         }
         
         # Scroll up - load older messages before cursor
-        GET /chat/agent_123/messages?cursor=01JD8X0000ABC&limit=50
+        GET /chat/agent_123/messages?cursor=2024-01-15T10:30:00%2B00:00&limit=50
         Response: {
             messages: [newer_old_msg, ..., older_msg], 
-            next_cursor: "01JD8W0000XYZ",
+            next_cursor: "2024-01-15T09:15:00+00:00",
             has_more: true
         }
         

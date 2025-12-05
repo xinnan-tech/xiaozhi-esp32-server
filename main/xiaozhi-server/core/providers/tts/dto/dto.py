@@ -58,8 +58,10 @@ class TTSAudioDTO:
         audio_data: Optional[bytes] = None,
         text: Optional[str] = None,
         message_tag: MessageTag = MessageTag.NORMAL,
+        report_time: Optional[int] = None,
     ):
         self.sentence_type = sentence_type
         self.audio_data = audio_data
         self.text = text
         self.message_tag = message_tag
+        self.report_time = report_time
