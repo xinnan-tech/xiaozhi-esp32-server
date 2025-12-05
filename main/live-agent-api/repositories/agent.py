@@ -36,6 +36,7 @@ class AgentModel(Base):
     instruction: Mapped[str] = mapped_column(Text, nullable=False)
     voice_opening: Mapped[str | None] = mapped_column(Text, nullable=True)
     voice_closing: Mapped[str | None] = mapped_column(Text, nullable=True)
+    wake_word: Mapped[str | None] = mapped_column(String(50), nullable=True)  # Required for device binding
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
@@ -136,7 +137,8 @@ class Agent:
         description: Optional[str] = None,
         voice_id: Optional[str] = None,
         voice_opening: Optional[str] = None,
-        voice_closing: Optional[str] = None
+        voice_closing: Optional[str] = None,
+        wake_word: Optional[str] = None
     ) -> AgentModel:
         """Create a new agent"""
         agent = AgentModel(
@@ -148,7 +150,8 @@ class Agent:
             voice_id=voice_id,
             instruction=instruction,
             voice_opening=voice_opening,
-            voice_closing=voice_closing
+            voice_closing=voice_closing,
+            wake_word=wake_word
         )
         db.add(agent)
         await db.commit()
@@ -182,6 +185,32 @@ class Agent:
         )
         await db.commit()
         return result.rowcount > 0
+
+    @staticmethod
+    async def get_bindable_agents(
+        db: AsyncSession,
+        owner_id: str
+    ) -> List[AgentModel]:
+        """
+        Get agents that can be bound to device (must have wake_word configured)
+        
+        Args:
+            db: Database session
+            owner_id: User ID
+            
+        Returns:
+            List of agents with wake_word configured
+        """
+        result = await db.execute(
+            select(AgentModel)
+            .where(
+                AgentModel.owner_id == owner_id,
+                AgentModel.wake_word.isnot(None),
+                AgentModel.wake_word != ''
+            )
+            .order_by(AgentModel.created_at.desc())
+        )
+        return list(result.scalars().all())
 
     @staticmethod
     async def get_agents_with_latest_message(

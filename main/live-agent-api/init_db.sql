@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS agents (
     instruction TEXT NOT NULL,
     voice_opening TEXT,
     voice_closing TEXT,
+    wake_word VARCHAR(50),
     created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     CONSTRAINT fk_agents_owner FOREIGN KEY (owner_id) 
@@ -57,6 +58,7 @@ COMMENT ON COLUMN agents.owner_id IS 'User ID of the agent owner';
 COMMENT ON COLUMN agents.instruction IS 'System prompt/instruction for the agent';
 COMMENT ON COLUMN agents.voice_opening IS 'Opening message when conversation starts';
 COMMENT ON COLUMN agents.voice_closing IS 'Closing message when conversation ends';
+COMMENT ON COLUMN agents.wake_word IS 'Wake word for device binding (required for device binding)';
 
 -- ==================== Table: voices ====================
 -- Voice configuration table
@@ -149,7 +151,6 @@ COMMENT ON COLUMN chat_messages.created_at IS 'Message creation timestamp (UTC)'
 CREATE TABLE IF NOT EXISTS devices (
     id SERIAL PRIMARY KEY,
     device_id VARCHAR(50) UNIQUE NOT NULL,
-    sn VARCHAR(100) UNIQUE NOT NULL,
     owner_id VARCHAR(50),
     created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
@@ -159,13 +160,11 @@ CREATE TABLE IF NOT EXISTS devices (
 
 -- Indexes for devices table
 CREATE UNIQUE INDEX IF NOT EXISTS idx_devices_device_id ON devices(device_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_devices_sn ON devices(sn);
 CREATE INDEX IF NOT EXISTS idx_devices_owner_id ON devices(owner_id);
 
 -- Comments for devices table
 COMMENT ON TABLE devices IS 'Device registry for hardware devices';
 COMMENT ON COLUMN devices.device_id IS 'External unique identifier (ULID)';
-COMMENT ON COLUMN devices.sn IS 'Hardware serial number (globally unique)';
 COMMENT ON COLUMN devices.owner_id IS 'User ID of device owner (null if unbound)';
 
 -- ==================== Table: agent_device_bindings ====================
