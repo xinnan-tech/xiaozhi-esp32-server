@@ -1229,7 +1229,7 @@ class ConnectionHandler:
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"processing remaining report messages failed: {e}")
             except queue.Empty:
-                break
+                continue
 
         self.logger.bind(tag=TAG).info("聊天记录上报线程已退出")
 
