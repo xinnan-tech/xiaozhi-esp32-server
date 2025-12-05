@@ -2,9 +2,10 @@
 import json
 from typing import AsyncGenerator, Optional
 from openai import AsyncOpenAI
-from config import settings
+from config import settings, get_logger
+import time
 
-
+logger = get_logger(__name__)
 class LLMService:
     """Service for LLM-based text generation"""
     
@@ -232,6 +233,7 @@ Create a richer, more detailed persona."""
             
             async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
+                    logger.info(f"Optimize persona chunk time: {time.time()}")
                     yield chunk.choices[0].delta.content
                     
         except Exception as e:

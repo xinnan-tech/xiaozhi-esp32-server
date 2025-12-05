@@ -234,16 +234,17 @@ class Agent:
                                latest_message_content, latest_message_time, sort_time)
         """
         # Subquery: get latest message per agent using DISTINCT ON
+        # Use message_time for ordering (when message actually occurred)
         latest_msg_subq = (
             select(
                 ChatMessageModel.agent_id,
                 ChatMessageModel.message_id,
                 ChatMessageModel.role,
                 ChatMessageModel.content,
-                ChatMessageModel.created_at.label('message_time')
+                ChatMessageModel.message_time.label('message_time')
             )
             .distinct(ChatMessageModel.agent_id)
-            .order_by(ChatMessageModel.agent_id, ChatMessageModel.message_id.desc())
+            .order_by(ChatMessageModel.agent_id, ChatMessageModel.message_time.desc())
             .subquery('latest_messages')
         )
         
@@ -272,7 +273,12 @@ class Agent:
         # Apply cursor filter
         if cursor:
             try:
-                cursor_time = datetime.fromisoformat(cursor)
+                # Handle URL encoding issues: '+' in URL becomes space
+                cursor_str = cursor.replace(' ', '+')
+                cursor_time = datetime.fromisoformat(cursor_str)
+                # Ensure timezone-aware for proper comparison
+                if cursor_time.tzinfo is None:
+                    cursor_time = cursor_time.replace(tzinfo=timezone.utc)
                 query = query.where(sort_time_expr < cursor_time)
             except (ValueError, TypeError):
                 pass
@@ -288,12 +294,12 @@ class Agent:
         if has_more:
             rows = rows[:limit]
         
-        # Generate next cursor from last item's sort_time
+        # Generate next cursor from last item's sort_time (keep timezone info)
         next_cursor = None
         if has_more and rows:
             last_sort_time = rows[-1].sort_time
             if last_sort_time:
-                next_cursor = last_sort_time.replace(tzinfo=None).isoformat()
+                next_cursor = last_sort_time.isoformat()
         
         return rows, next_cursor, has_more
 

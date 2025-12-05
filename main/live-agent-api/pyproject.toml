@@ -20,6 +20,7 @@ dependencies = [
     "pyjwt>=2.9.0",
     "fish-audio-sdk>=1.1.0",
     "openai>=1.54.0",
+    "loguru>=0.7.0",
 ]
 
 [project.optional-dependencies]

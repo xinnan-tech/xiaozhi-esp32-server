@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     agent_id VARCHAR(50) NOT NULL,
     role SMALLINT NOT NULL CHECK (role IN (1, 2)),
     content JSONB NOT NULL,
+    message_time TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     CONSTRAINT fk_chat_messages_agent FOREIGN KEY (agent_id) 
         REFERENCES agents(agent_id) ON DELETE CASCADE
@@ -135,6 +136,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_messages_message_id ON chat_messages(
 CREATE INDEX IF NOT EXISTS idx_chat_messages_agent_id ON chat_messages(agent_id);
 -- Composite index for cursor-based pagination (agent_id + message_id for efficient range queries)
 CREATE INDEX IF NOT EXISTS idx_chat_messages_agent_message_composite ON chat_messages(agent_id, message_id);
+-- Composite index for message_time based pagination (agent_id + message_time for correct ordering)
+CREATE INDEX IF NOT EXISTS idx_chat_messages_agent_message_time ON chat_messages(agent_id, message_time);
 -- GIN index for JSONB content search (future feature: search by message type, content, etc.)
 CREATE INDEX IF NOT EXISTS idx_chat_messages_content_gin ON chat_messages USING GIN (content);
 
@@ -144,7 +147,8 @@ COMMENT ON COLUMN chat_messages.message_id IS 'External unique identifier (ULID)
 COMMENT ON COLUMN chat_messages.agent_id IS 'Agent ID this message belongs to';
 COMMENT ON COLUMN chat_messages.role IS 'Message role: 1=user, 2=agent';
 COMMENT ON COLUMN chat_messages.content IS 'JSONB array: [{"message_type": "text|audio|image|file", "message_content": "text or S3 URL"}]';
-COMMENT ON COLUMN chat_messages.created_at IS 'Message creation timestamp (UTC)';
+COMMENT ON COLUMN chat_messages.message_time IS 'When message actually occurred (for correct ordering)';
+COMMENT ON COLUMN chat_messages.created_at IS 'When message was stored in database (UTC)';
 
 -- ==================== Table: devices ====================
 -- Device registry table

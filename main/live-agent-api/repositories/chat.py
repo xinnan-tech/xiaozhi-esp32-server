@@ -1,7 +1,7 @@
 """
 Chat messages repository - Database operations for chat messages
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy import String, SmallInteger, TIMESTAMP, ForeignKey, Index, select, insert
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,7 +35,14 @@ class ChatMessageModel(Base):
     # JSONB content: [{"message_type": "text|audio|image|file", "message_content": "..."}]
     content: Mapped[List[dict]] = mapped_column(JSONB, nullable=False)
     
-    # Timestamp
+    # Message time - when message actually occurred (for correct ordering)
+    message_time: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), 
+        default=utc_now, 
+        nullable=False
+    )
+    
+    # Timestamp - when message was stored in database
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), 
         default=utc_now, 
@@ -47,6 +54,7 @@ class ChatMessageModel(Base):
         Index('idx_chat_messages_agent_id', 'agent_id'),
         Index('idx_chat_messages_agent_message_composite', 'agent_id', 'message_id'),
         Index('idx_chat_messages_content_gin', 'content', postgresql_using='gin'),
+        Index('idx_chat_messages_agent_message_time', 'agent_id', 'message_time'),
     )
 
     def __repr__(self):
@@ -66,7 +74,8 @@ class ChatMessage:
         message_id: str,
         agent_id: str,
         role: int,
-        content: List[dict]  # Already processed with S3 URLs
+        content: List[dict],  # Already processed with S3 URLs
+        message_time: datetime = None  # When message actually occurred
     ) -> ChatMessageModel:
         """
         Create new chat message
@@ -77,6 +86,7 @@ class ChatMessage:
             agent_id: Agent ID
             role: 1=user, 2=agent
             content: List of message parts with S3 URLs
+            message_time: When message actually occurred (for ordering)
             
         Returns:
             Created message model
@@ -85,7 +95,8 @@ class ChatMessage:
             message_id=message_id,
             agent_id=agent_id,
             role=role,
-            content=content
+            content=content,
+            message_time=message_time or utc_now()
         )
         db.add(message)
         await db.commit()
@@ -103,13 +114,13 @@ class ChatMessage:
         Get messages by agent_id using cursor-based pagination (chat style)
         
         Behavior:
-        - First load (no cursor): Returns the latest messages (DESC order)
-        - Scroll up (with cursor): Returns older messages before the cursor
+        - First load (no cursor): Returns the latest messages (DESC order by message_time)
+        - Scroll up (with cursor): Returns older messages before the cursor timestamp
         
         Args:
             db: Database session
             agent_id: Agent ID
-            cursor: Message ID (ULID) to load messages before. If None, load latest messages
+            cursor: ISO format timestamp to load messages before. If None, load latest messages
             limit: Number of messages to fetch
             
         Returns:
@@ -118,13 +129,24 @@ class ChatMessage:
         # Build query with cursor
         query = select(ChatMessageModel).where(ChatMessageModel.agent_id == agent_id)
         
-        # Apply cursor filter if provided - load messages BEFORE cursor (older messages)
+        # Apply cursor filter if provided - load messages BEFORE cursor timestamp (older messages)
         if cursor:
-            query = query.where(ChatMessageModel.message_id < cursor)
+            try:
+                # Parse ISO format timestamp
+                # Handle URL encoding issues: '+' in URL becomes space, so convert space back to '+'
+                cursor_str = cursor.replace(' ', '+')
+                cursor_time = datetime.fromisoformat(cursor_str)
+                # Ensure timezone-aware for proper comparison
+                if cursor_time.tzinfo is None:
+                    cursor_time = cursor_time.replace(tzinfo=timezone.utc)
+                query = query.where(ChatMessageModel.message_time < cursor_time)
+            except (ValueError, TypeError) as e:
+                # Invalid cursor format, ignore and load latest
+                pass
         
-        # Order by message_id DESC to get latest messages first
+        # Order by message_time DESC to get latest messages first
         # Fetch limit + 1 to check if there are more records
-        query = query.order_by(ChatMessageModel.message_id.desc()).limit(limit + 1)
+        query = query.order_by(ChatMessageModel.message_time.desc()).limit(limit + 1)
         
         result = await db.execute(query)
         messages: List[ChatMessageModel] = result.scalars().all()
@@ -134,10 +156,10 @@ class ChatMessage:
         if has_more:
             messages = messages[:limit]
         
-        # Get next cursor (oldest message_id in current batch for loading earlier messages)
+        # Get next cursor (message_time of oldest message in batch)
         next_cursor = None
         if has_more and messages:
-            next_cursor = messages[-1].message_id
+            next_cursor = messages[-1].message_time.isoformat()
         
         return messages, next_cursor, has_more
 

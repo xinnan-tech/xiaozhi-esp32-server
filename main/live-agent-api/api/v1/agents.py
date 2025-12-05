@@ -10,10 +10,12 @@ from services.llm_service import llm_service
 from utils.response import success_response
 from api.auth import get_current_user_id
 from schemas.agent import AgentResponse, BindableAgentResponse, BindableAgentListResponse
+from config import get_logger
 import base64
-import logging
 from fastapi import HTTPException
+import asyncio
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -201,7 +203,7 @@ async def generate_persona(
             avatar_base64 = base64.b64encode(content).decode("utf-8")
             avatar_media_type = avatar.content_type or "image/jpeg"
         except Exception as e:
-            logging.warning(f"Failed to process avatar: {e}")
+            logger.warning(f"Failed to process avatar: {e}")
     
     if mode == "optimize":
         # Optimize mode: streaming with SSE format, requires existing instruction
@@ -220,7 +222,7 @@ async def generate_persona(
                     # SSE format: data: <content>\n\n
                     yield f"data: {chunk}\n\n"
             except Exception as e:
-                logging.error(f"Persona optimization failed: {e}")
+                logger.error(f"Persona optimization failed: {e}")
                 yield f"data: [ERROR] {str(e)}\n\n"
         
         return StreamingResponse(
@@ -238,6 +240,6 @@ async def generate_persona(
             )
             return success_response(data=result)
         except Exception as e:
-            logging.error(f"Persona generation failed: {e}")
+            logger.error(f"Persona generation failed: {e}")
             raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
 

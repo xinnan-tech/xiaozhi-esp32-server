@@ -1,6 +1,7 @@
 import json
-
+import re
 from urllib3 import Retry
+
 
 TAG = __name__
 EMOJI_MAP = {
@@ -115,3 +116,34 @@ def is_emoji(char):
 def check_emoji(text):
     """去除文本中的所有emoji表情"""
     return ''.join(char for char in text if not is_emoji(char) and char != "\n")
+
+# Regex pattern to match emotion tags anywhere in text
+# Format: (emotion) e.g., "(happy)", "(sincere)", "(curious)"
+# Matches: optional whitespace + (word) + optional whitespace
+EMOTION_TAG_PATTERN = re.compile(r'\s*\([a-zA-Z_]+\)\s*')
+
+
+def strip_emotion_tags(text: str) -> str:
+    """
+    Remove all emotion tags from TTS text.
+    
+    Emotion tags are in format: (emotion) typically at the start of sentences.
+    Examples:
+        "(happy) Hello!" -> "Hello!"
+        "(sincere) That's great. (curious) What next?" -> "That's great. What next?"
+        "Hello (happy) world" -> "Hello world"
+    
+    Args:
+        text: Text with potential emotion tags
+        
+    Returns:
+        Text with all emotion tags removed
+    """
+    if not text:
+        return text
+    
+    # Remove all emotion tags from the text
+    result = EMOTION_TAG_PATTERN.sub(' ', text)
+    # Clean up multiple spaces and trim
+    result = re.sub(r'\s+', ' ', result)
+    return result.strip()
