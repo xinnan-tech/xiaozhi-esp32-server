@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     QUICK_PERSONA_MODEL: str = "google/gemini-2.5-flash"
     OPTIMIZE_PERSONA_MODEL: str = "google/gemini-3-pro-preview"
     
+    # Groq Configuration (for STT)
+    GROQ_API_KEY: str
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    GROQ_STT_MODEL: str = "whisper-large-v3"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -3,38 +3,64 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from config import settings
-from infra import init_db, close_db, init_s3, close_s3, init_fish_audio, close_fish_audio, init_openai, close_openai
+from config import settings, setup_logging, get_logger
+from infra import init_db, close_db, init_s3, close_s3, init_fish_audio, close_fish_audio, init_openai, close_openai, init_groq, close_groq
 from api.v1 import api_router
 from utils.exceptions import APIException
 
+# Initialize logger at application startup
+setup_logging(
+    log_level="INFO" if not settings.DEBUG else "DEBUG",
+    log_dir="logs",
+    log_file="api.log",
+    enable_file_logging=True
+)
+
+logger = get_logger(__name__)
+import logging
+import sys
+
+# Configure logging at application startup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
-    print("Starting up Live Agent API...")
+    logger.info("Starting up Live Agent API...")
     await init_db()
-    print("Database initialized")
+    logger.info("Database initialized")
     await init_s3()
-    print("S3 connection initialized")
+    logger.info("S3 connection initialized")
     await init_fish_audio()
-    print("Fish Audio client initialized")
+    logger.info("Fish Audio client initialized")
     await init_openai()
-    print("OpenAI client initialized")
+    logger.info("OpenAI client initialized")
+    await init_groq()
+    logger.info("Groq client initialized")
     
     yield
     
     # Shutdown
-    print("Shutting down Live Agent API...")
+    logger.info("Shutting down Live Agent API...")
     await close_db()
-    print("Database connections closed")
+    logger.info("Database connections closed")
     await close_s3()
-    print("S3 connections closed")
+    logger.info("S3 connections closed")
     await close_fish_audio()
-    print("Fish Audio client closed")
+    logger.info("Fish Audio client closed")
     await close_openai()
-    print("OpenAI client closed")
+    logger.info("OpenAI client closed")
+    await close_groq()
+    logger.info("Groq client closed")
 
 
 # Create FastAPI application

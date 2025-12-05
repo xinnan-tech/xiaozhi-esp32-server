@@ -207,7 +207,7 @@ language: zh
 
 # 结束语prompt
 end_prompt:
-  enable: true # 是否开启结束语
+  enable: false # 是否开启结束语
   # 结束语
   prompt: |
     请你以"时间过得真快"未来头，用富有感情、依依不舍的话来结束这场对话吧！

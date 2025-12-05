@@ -11,6 +11,7 @@ Reference: https://docs.fish.audio/api-reference/endpoint/websocket/tts-live
 """
 
 import os
+import time
 import uuid
 import queue
 import asyncio
@@ -22,8 +23,18 @@ from core.utils.tts import MarkdownCleaner
 from core.utils import opus_encoder_utils
 from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
-from core.providers.tts.dto.dto import SentenceType, ContentType, InterfaceType
+from core.providers.tts.dto.dto import (
+    SentenceType, 
+    ContentType, 
+    InterfaceType,
+    TTSAudioDTO,
+    MessageTag,
+)
 from config.logger import setup_logging
+from core.utils.opus import pack_opus_with_header
+from core.handle.reportHandle import enqueue_tts_report
+from core.handle.sendAudioHandle import sendAudioMessage
+from core.utils.output_counter import add_device_output
 
 TAG = __name__
 logger = setup_logging()
@@ -162,6 +173,7 @@ class TTSProvider(TTSProviderBase):
                     self._first_sent = False
                     self._session_text_buffer = []
                     self.conn._latency_tts_first_text_time = None  # Reset TTS input time
+                    self._message_tag = message.message_tag
 
                 elif self.conn.client_abort:
                     # ========== Interruption ==========
@@ -246,7 +258,90 @@ class TTSProvider(TTSProviderBase):
                     f"TTS text processing failed: {str(e)}, type: {type(e).__name__}, "
                     f"stack: {traceback.format_exc()}"
                 )
+
+    def _audio_play_priority_thread(self):
+        # the buffer of text and audio that needs to be reported
+        enqueue_text = None
+        enqueue_audio = None
+        enqueue_report_time = None  # timestamp when TTS session started (for correct ordering)
+        # 用于跟踪上一个发送任务，确保顺序但不阻塞
+        last_send_future = None
         
+        while not self.conn.stop_event.is_set():
+            text = None
+            report_time = None
+            try:
+                try:
+                    tts_audio_message = self.tts_audio_queue.get_nowait()
+
+                    if isinstance(tts_audio_message, TTSAudioDTO):
+                        sentence_type = tts_audio_message.sentence_type
+                        audio_datas = tts_audio_message.audio_data
+                        text = tts_audio_message.text
+                        message_tag = tts_audio_message.message_tag
+                        report_time = tts_audio_message.report_time
+                    elif isinstance(tts_audio_message, tuple):
+                        sentence_type = tts_audio_message[0]
+                        audio_datas = tts_audio_message[1]
+                        text = tts_audio_message[2]
+                        message_tag = MessageTag.NORMAL  # tuple format doesn't have message_tag
+                        report_time = None
+                    else:
+                        logger.bind(tag=TAG).warning(f"Unknown tts_audio_message type: {type(tts_audio_message)}")
+                        continue
+                except queue.Empty:
+                    if self.conn.stop_event.is_set():
+                        break
+                    continue
+
+                if self.conn.client_abort:
+                    logger.bind(tag=TAG).debug("received interruption, skip current audio data")
+                    enqueue_text, enqueue_audio, enqueue_report_time = None, [], None
+                    last_send_future = None
+                    continue
+
+                # report TTS data when next text starts or session ends
+                if sentence_type is not SentenceType.MIDDLE:
+                    # report TTS data with the recorded timestamp
+                    if enqueue_text is not None and enqueue_audio is not None:
+                        enqueue_tts_report(self.conn, enqueue_text, enqueue_audio, message_tag, enqueue_report_time)
+                    enqueue_audio = []
+                    enqueue_text = text
+                    enqueue_report_time = report_time  # save timestamp from FIRST for later reporting
+
+                # collect TTS audio data for reporting
+                if isinstance(audio_datas, bytes) and enqueue_audio is not None:
+                    audio_datas = pack_opus_with_header(audio_datas, message_tag)
+                    enqueue_audio.append(audio_datas)
+
+                # wait for the previous send to complete (maintain order) but use short timeout to avoid long blocking
+                if last_send_future is not None:
+                    try:
+                        last_send_future.result(timeout=5.0)
+                    except Exception as e:
+                        logger.bind(tag=TAG).warning(f"previous audio send timeout or failed: {e}")
+
+                # async send audio (without blocking wait)
+                last_send_future = asyncio.run_coroutine_threadsafe(
+                    sendAudioMessage(self.conn, sentence_type, audio_datas, text, message_tag),
+                    self.conn.loop,
+                )
+
+                # record output and report
+                if self.conn.max_output_size > 0 and text:
+                    add_device_output(self.conn.headers.get("device-id"), len(text))
+
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"audio_play_priority_thread: {text} {e}")
+
+        # when connection session is closing, report the remaining TTS data(latest message)
+        if enqueue_text is not None and enqueue_audio is not None and len(enqueue_audio) > 0:
+            try:
+                enqueue_tts_report(self.conn, enqueue_text, enqueue_audio, message_tag, enqueue_report_time)
+                logger.bind(tag=TAG).info(f"connection closing, report the remaining TTS data: {enqueue_text}")
+            except Exception as e:
+                logger.bind(tag=TAG).warning(f"connection closing, report the remaining TTS data failed: {e}")
+
     async def close(self):
         """Clean up WebSocket resources"""
         self._session_active = False
@@ -294,8 +389,17 @@ class TTSProvider(TTSProviderBase):
                             # 这样后续音频通过 MIDDLE 累积时，enqueue_audio 不会被清空
                             if not self._first_sent:
                                 self._first_sent = True
+                                # Record the timestamp when TTS starts (for correct message ordering)
+                                self._message_report_time = int(time.time())
                                 report_text = ''.join(self._session_text_buffer) if self._session_text_buffer else None
-                                self.tts_audio_queue.put((SentenceType.FIRST, None, report_text))
+
+                                self.tts_audio_queue.put(TTSAudioDTO(
+                                    sentence_type=SentenceType.FIRST,
+                                    audio_data=None,
+                                    text=report_text,
+                                    message_tag=self._message_tag,
+                                    report_time=self._message_report_time,
+                                ))
                             
                             # PCM -> Opus conversion
                             self.opus_encoder.encode_pcm_to_opus_stream(
@@ -318,8 +422,12 @@ class TTSProvider(TTSProviderBase):
                         
                         # 发送 LAST 触发客户端 stop 和最终上报
                         # 不再发送 FIRST，避免清空之前累积的音频
-                        self.tts_audio_queue.put((SentenceType.LAST, None, None))
-                        
+                        self.tts_audio_queue.put(TTSAudioDTO(
+                            sentence_type=SentenceType.LAST,
+                            audio_data=None,
+                            text=None,
+                            message_tag=self._message_tag,
+                        ))
                         # 清理状态
                         self._session_text_buffer = []
                         self.conn.tts_MessageText = None

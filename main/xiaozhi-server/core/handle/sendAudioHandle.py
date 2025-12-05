@@ -3,15 +3,20 @@ import time
 import asyncio
 from core.utils import textUtils
 from core.utils.util import audio_to_data
-from core.providers.tts.dto.dto import SentenceType
+from core.providers.tts.dto.dto import (
+    SentenceType,
+    MessageTag,
+)
+from core.utils.textUtils import strip_emotion_tags
+from core.utils.opus import pack_opus_with_header
 
 TAG = __name__
 
 
-async def sendAudioMessage(conn, sentenceType, audios, text):
+async def sendAudioMessage(conn, sentenceType, audios, text, message_tag=MessageTag.NORMAL):
     if conn.tts.tts_audio_first_sentence:
         conn.tts.tts_audio_first_sentence = False
-        await send_tts_message(conn, "start", None)
+        await send_tts_message(conn, "start", None, message_tag)
         
         # 记录首句 TTS 播放时间（端到端延迟的终点）
         first_audio_time = time.time() * 1000
@@ -34,16 +39,16 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
         )
 
     if sentenceType == SentenceType.FIRST:
-        await send_tts_message(conn, "sentence_start", text)
+        await send_tts_message(conn, "sentence_start", text, message_tag)
 
-    await sendAudio(conn, audios)
+    await sendAudio(conn, audios, message_tag=message_tag)
     # 发送句子开始消息
     if sentenceType is not SentenceType.MIDDLE:
         conn.logger.bind(tag=TAG).info(f"发送音频消息: {sentenceType}, {text}")
 
     # 发送结束消息（如果是最后一个文本）
     if conn.llm_finish_task and sentenceType == SentenceType.LAST:
-        await send_tts_message(conn, "stop", None)
+        await send_tts_message(conn, "stop", None, message_tag)
         conn.client_is_speaking = False
         if conn.close_after_chat:
             await conn.close()
@@ -95,9 +100,15 @@ async def _send_to_mqtt_gateway(conn, opus_packet, timestamp, sequence):
     complete_packet = bytes(header) + opus_packet
     await conn.websocket.send(complete_packet)
 
+async def _send_audio_with_header(conn, audios, message_tag=MessageTag.NORMAL):
+    if audios is None or len(audios) == 0:
+        return
+    complete_packet = pack_opus_with_header(audios, message_tag)
+    await conn.websocket.send(complete_packet)
+
 
 # 播放音频
-async def sendAudio(conn, audios, frame_duration=60):
+async def sendAudio(conn, audios, frame_duration=60, message_tag=MessageTag.NORMAL):
     """
     发送单个opus包，支持流控
     Args:
@@ -157,7 +168,7 @@ async def sendAudio(conn, audios, frame_duration=60):
             await _send_to_mqtt_gateway(conn, audios, timestamp, sequence)
         else:
             # 直接发送opus数据包，不添加头部
-            await conn.websocket.send(audios)
+            await _send_audio_with_header(conn, audios, message_tag)
 
         # 更新流控状态
         flow_control["packet_count"] += 1
@@ -180,7 +191,7 @@ async def sendAudio(conn, audios, frame_duration=60):
                 await _send_to_mqtt_gateway(conn, audios[i], timestamp, sequence)
             else:
                 # 直接发送预缓冲包，不添加头部
-                await conn.websocket.send(audios[i])
+                await _send_audio_with_header(conn, audios[i], message_tag)
         remaining_audios = audios[pre_buffer_frames:]
 
         # 播放剩余音频帧
@@ -212,18 +223,26 @@ async def sendAudio(conn, audios, frame_duration=60):
                 await _send_to_mqtt_gateway(conn, opus_packet, timestamp, sequence)
             else:
                 # 直接发送opus数据包，不添加头部
-                await conn.websocket.send(opus_packet)
+                await _send_audio_with_header(conn, opus_packet, message_tag)
 
             play_position += frame_duration
 
 
-async def send_tts_message(conn, state, text=None):
+async def send_tts_message(conn, state, text=None, message_tag=MessageTag.NORMAL):
     """发送 TTS 状态消息"""
     if text is None and state == "sentence_start":
         return
-    message = {"type": "tts", "state": state, "session_id": conn.session_id}
+    
+    message = {
+        "type": "tts", 
+        "state": state,
+        "session_id": conn.session_id,
+        "message_tag": message_tag.value,
+    }
     if text is not None:
-        message["text"] = textUtils.check_emoji(text)
+        text = textUtils.check_emoji(text)
+        text = strip_emotion_tags(text)
+        message["text"] = text
 
     # TTS播放结束
     if state == "stop":

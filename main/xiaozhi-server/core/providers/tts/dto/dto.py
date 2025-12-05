@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Union, Optional
+from typing import Literal
 
 
 class SentenceType(Enum):
@@ -22,6 +23,11 @@ class InterfaceType(Enum):
     SINGLE_STREAM = "SINGLE_STREAM"  # 单流式
     NON_STREAM = "NON_STREAM"  # 非流式
 
+class MessageTag(Enum):
+    NORMAL = 0
+    OPENING = 1
+    CLOSING = 2
+
 
 class TTSMessageDTO:
     def __init__(
@@ -35,9 +41,27 @@ class TTSMessageDTO:
         content_detail: Optional[str] = None,
         # 如果内容类型为文件，则需要传入文件路径
         content_file: Optional[str] = None,
+        # message tag: identify the tag of the message
+        message_tag: MessageTag = MessageTag.NORMAL,
     ):
         self.sentence_id = sentence_id
         self.sentence_type = sentence_type
         self.content_type = content_type
         self.content_detail = content_detail
         self.content_file = content_file
+        self.message_tag = message_tag
+
+class TTSAudioDTO:
+    def __init__(
+        self,
+        sentence_type: SentenceType,
+        audio_data: Optional[bytes] = None,
+        text: Optional[str] = None,
+        message_tag: MessageTag = MessageTag.NORMAL,
+        report_time: Optional[int] = None,
+    ):
+        self.sentence_type = sentence_type
+        self.audio_data = audio_data
+        self.text = text
+        self.message_tag = message_tag
+        self.report_time = report_time

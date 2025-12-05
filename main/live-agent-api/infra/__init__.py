@@ -26,6 +26,11 @@ from .openai import (
     init_openai,
     close_openai,
 )
+from .groq import (
+    get_groq,
+    init_groq,
+    close_groq,
+)
 
 __all__ = [
     # Database
@@ -48,5 +53,9 @@ __all__ = [
     "get_openai",
     "init_openai",
     "close_openai",
+    # Groq
+    "get_groq",
+    "init_groq",
+    "close_groq",
 ]
 

@@ -1,5 +1,4 @@
 from typing import Optional, List
-from botocore.args import logger
 from fastapi import APIRouter, Depends, Query, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,12 +18,10 @@ from schemas.voice import (
 )
 from utils.response import success_response
 from api.auth import get_current_user_id
+from config import get_logger
 
-import logging
-
+logger = get_logger(__name__)
 router = APIRouter()
-
-logging.getLogger(__name__)
 
 @router.get("/discover", summary="Get Discover Voices")
 async def get_discover_voices(
@@ -304,8 +301,7 @@ async def generate_voice_sample_text(
                 yield chunk
         except Exception as e:
             # Error already yielded in service, just log
-            import logging
-            logging.error(f"Voice sample text generation failed: {e}")
+            logger.error(f"Voice sample text generation failed: {e}")
     
     return StreamingResponse(
         text_generator(),
