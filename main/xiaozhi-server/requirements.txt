@@ -36,7 +36,7 @@ aioconsole==0.8.2
 markitdown==0.1.3
 mcp-proxy==0.10.0
 PyJWT==2.10.1
-psutil==7.0.0
+psutil==7.1.3
 portalocker==3.2.0
 Jinja2==3.1.6
 vosk==0.3.45
