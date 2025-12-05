@@ -32,10 +32,27 @@ class AgentResponse(BaseModel):
     instruction: str
     voice_opening: Optional[str] = None
     voice_closing: Optional[str] = None
+    wake_word: Optional[str] = None
     created_at: datetime
     
     class Config:
         from_attributes = True
+
+
+class BindableAgentResponse(BaseModel):
+    """Agent that can be bound to device (has wake_word)"""
+    agent_id: str
+    name: str
+    avatar_url: Optional[str] = None
+    wake_word: str  # Required for bindable agents
+    
+    class Config:
+        from_attributes = True
+
+
+class BindableAgentListResponse(BaseModel):
+    """List of agents that can be bound to device"""
+    agents: list[BindableAgentResponse]
 
 
 class AgentWithLatestMessage(BaseModel):

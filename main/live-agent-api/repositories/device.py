@@ -18,7 +18,7 @@ class DeviceModel(Base):
     # Device unique identifier (external)
     device_id: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     
-    # Hardware serial number (globally unique)
+    # Device serial number
     sn: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     
     # Owner user ID (null if unbound)
@@ -43,12 +43,11 @@ class DeviceModel(Base):
 
     __table_args__ = (
         Index('idx_devices_device_id', 'device_id', unique=True),
-        Index('idx_devices_sn', 'sn', unique=True),
         Index('idx_devices_owner_id', 'owner_id'),
     )
 
     def __repr__(self):
-        return f"<DeviceModel(id={self.id}, device_id={self.device_id}, sn={self.sn})>"
+        return f"<DeviceModel(id={self.id}, device_id={self.device_id})>"
 
 
 class AgentDeviceBindingModel(Base):
@@ -101,12 +100,6 @@ class Device:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_by_sn(db: AsyncSession, sn: str) -> Optional[DeviceModel]:
-        """Get device by SN"""
-        result = await db.execute(select(DeviceModel).where(DeviceModel.sn == sn))
-        return result.scalar_one_or_none()
-
-    @staticmethod
     async def get_by_owner(db: AsyncSession, owner_id: str) -> List[DeviceModel]:
         """Get all devices owned by a user"""
         result = await db.execute(
@@ -120,13 +113,11 @@ class Device:
     async def create(
         db: AsyncSession,
         device_id: str,
-        sn: str,
         owner_id: Optional[str] = None
     ) -> DeviceModel:
         """Create a new device"""
         device = DeviceModel(
             device_id=device_id,
-            sn=sn,
             owner_id=owner_id
         )
         db.add(device)

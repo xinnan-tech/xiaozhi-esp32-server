@@ -9,7 +9,7 @@ from services.agent_service import agent_service
 from services.llm_service import llm_service
 from utils.response import success_response
 from api.auth import get_current_user_id
-from schemas.agent import AgentResponse
+from schemas.agent import AgentResponse, BindableAgentResponse, BindableAgentListResponse
 from config import get_logger
 import base64
 from fastapi import HTTPException
@@ -68,6 +68,23 @@ async def get_agent_detail(
     return success_response(data=agent_response.model_dump())
 
 
+@router.get("/bindable", summary="Get bindable agents for device")
+async def get_bindable_agents(
+    current_user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get agents that can be bound to device.
+    
+    Only agents with wake_word configured can be bound to device.
+    """
+    agents = await agent_service.get_bindable_agents(db=db, owner_id=current_user_id)
+    response = BindableAgentListResponse(
+        agents=[BindableAgentResponse.model_validate(a) for a in agents]
+    )
+    return success_response(data=response.model_dump())
+
+
 @router.post("", summary="Create Agent")
 async def create_agent(
     name: str = Form(...),
@@ -76,6 +93,7 @@ async def create_agent(
     voice_id: Optional[str] = Form(None),
     voice_opening: Optional[str] = Form(None),
     voice_closing: Optional[str] = Form(None),
+    wake_word: Optional[str] = Form(None),
     avatar: Optional[UploadFile] = File(None),
     current_user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
@@ -92,6 +110,7 @@ async def create_agent(
         voice_id=voice_id,
         voice_opening=voice_opening,
         voice_closing=voice_closing,
+        wake_word=wake_word,
         avatar=avatar
     )
     return success_response(data=agent.model_dump())
@@ -106,6 +125,7 @@ async def update_agent(
     instruction: Optional[str] = Form(None),
     voice_opening: Optional[str] = Form(None),
     voice_closing: Optional[str] = Form(None),
+    wake_word: Optional[str] = Form(None),
     avatar: Optional[UploadFile] = File(None),
     current_user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
@@ -123,6 +143,7 @@ async def update_agent(
         instruction=instruction,
         voice_opening=voice_opening,
         voice_closing=voice_closing,
+        wake_word=wake_word,
         avatar=avatar
     )
     return success_response(data=agent.model_dump())

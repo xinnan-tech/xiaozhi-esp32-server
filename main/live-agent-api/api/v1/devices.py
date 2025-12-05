@@ -7,8 +7,7 @@ from utils.response import success_response
 from api.auth import get_current_user_id
 from schemas.device import (
     DeviceBindRequest,
-    DeviceAddAgentRequest,
-    DeviceSetDefaultAgentRequest
+    DeviceAddAgentRequest
 )
 
 router = APIRouter()
@@ -21,17 +20,15 @@ async def bind_device(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Bind a device to user with an agent.
+    Bind a device to user by device_id.
     
-    - If device (SN) doesn't exist, creates it
+    - If device doesn't exist, creates it
     - If device exists but unbound, binds to current user
-    - First agent bound becomes default
     """
     device = await device_service.bind_device(
         db=db,
         owner_id=current_user_id,
-        sn=request.sn,
-        agent_id=request.agent_id
+        device_id=request.device_id
     )
     return success_response(data=device.model_dump())
 
@@ -107,20 +104,4 @@ async def remove_agent_from_device(
     )
     return success_response(data=device.model_dump())
 
-
-@router.put("/{device_id}/default-agent", summary="Set default agent")
-async def set_default_agent(
-    device_id: str,
-    request: DeviceSetDefaultAgentRequest,
-    current_user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
-):
-    """Set an agent as default for device"""
-    device = await device_service.set_default_agent(
-        db=db,
-        owner_id=current_user_id,
-        device_id=device_id,
-        agent_id=request.agent_id
-    )
-    return success_response(data=device.model_dump())
 

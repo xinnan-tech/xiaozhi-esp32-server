@@ -118,6 +118,23 @@ class AgentService:
         
         return agent
     
+    async def get_bindable_agents(
+        self,
+        db: AsyncSession,
+        owner_id: str
+    ) -> List[AgentModel]:
+        """
+        Get agents that can be bound to device (must have wake_word configured)
+        
+        Args:
+            db: Database session
+            owner_id: User ID
+            
+        Returns:
+            List of agents with wake_word configured
+        """
+        return await Agent.get_bindable_agents(db, owner_id)
+
     async def create_agent(
         self,
         db: AsyncSession,
@@ -129,6 +146,7 @@ class AgentService:
         voice_id: Optional[str] = None,
         voice_opening: Optional[str] = None,
         voice_closing: Optional[str] = None,
+        wake_word: Optional[str] = None,
         avatar: Optional[UploadFile] = None
     ) -> AgentResponse:
         """Create a new agent"""
@@ -151,7 +169,8 @@ class AgentService:
             description=description,
             voice_id=voice_id,
             voice_opening=voice_opening,
-            voice_closing=voice_closing
+            voice_closing=voice_closing,
+            wake_word=wake_word
         )
         
         return AgentResponse.model_validate(agent)
@@ -168,6 +187,7 @@ class AgentService:
         instruction: Optional[str] = None,
         voice_opening: Optional[str] = None,
         voice_closing: Optional[str] = None,
+        wake_word: Optional[str] = None,
         avatar: Optional[UploadFile] = None
     ) -> AgentResponse:
         """Update agent"""
@@ -194,6 +214,8 @@ class AgentService:
             update_data['voice_opening'] = voice_opening
         if voice_closing is not None:
             update_data['voice_closing'] = voice_closing
+        if wake_word is not None:
+            update_data['wake_word'] = wake_word
         
         # Upload new avatar if provided (using agent_id as filename)
         # Note: Since we use agent_id as filename, uploading will automatically

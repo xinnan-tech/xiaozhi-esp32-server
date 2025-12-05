@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from repositories.device import Device, AgentDeviceBinding, DeviceModel
 from repositories.agent import Agent
 from utils.exceptions import NotFoundException, BadRequestException
-from utils.ulid import generate_device_id
 from schemas.device import (
     DeviceResponse,
     DeviceWithBindingsResponse,
@@ -20,23 +19,14 @@ class DeviceService:
         self,
         db: AsyncSession,
         owner_id: str,
-        sn: str,
-        agent_id: str
+        device_id: str
     ) -> DeviceWithBindingsResponse:
         """
-        Bind a device to user with an agent.
-        If device exists but unbound, update owner and add binding.
+        Bind a device to user by device_id.
+        If device exists but unbound, update owner.
         If device doesn't exist, create it.
         """
-        # Verify agent exists and belongs to user
-        agent = await Agent.get_by_id(db, agent_id)
-        if not agent:
-            raise NotFoundException("Agent not found")
-        if agent.owner_id != owner_id:
-            raise BadRequestException("Agent does not belong to you")
-        
-        # Check if device exists
-        device = await Device.get_by_sn(db, sn)
+        device = await Device.get_by_id(db, device_id)
         
         if device:
             # Device exists
@@ -45,19 +35,10 @@ class DeviceService:
             
             # Update owner if not set
             if not device.owner_id:
-                device = await Device.update_owner(db, device.device_id, owner_id)
+                device = await Device.update_owner(db, device_id, owner_id)
         else:
             # Create new device
-            device_id = generate_device_id()
-            device = await Device.create(db, device_id, sn, owner_id)
-        
-        # Check if binding already exists
-        existing_binding = await AgentDeviceBinding.get_binding(db, device.device_id, agent_id)
-        if not existing_binding:
-            # Check if device has any bindings (for setting default)
-            bindings = await AgentDeviceBinding.get_bindings_by_device(db, device.device_id)
-            is_default = len(bindings) == 0  # First binding is default
-            await AgentDeviceBinding.create(db, device.device_id, agent_id, is_default)
+            device = await Device.create(db, device_id, owner_id)
         
         return await self._build_device_with_bindings(db, device)
     
@@ -115,6 +96,10 @@ class DeviceService:
         if agent.owner_id != owner_id:
             raise BadRequestException("Agent does not belong to you")
         
+        # Verify agent has wake_word configured (required for device binding)
+        if not agent.wake_word:
+            raise BadRequestException("Agent must have a wake word configured to bind to device")
+        
         # Check if binding already exists
         existing = await AgentDeviceBinding.get_binding(db, device_id, agent_id)
         if existing:
@@ -155,30 +140,6 @@ class DeviceService:
         
         return await self._build_device_with_bindings(db, device)
     
-    async def set_default_agent(
-        self,
-        db: AsyncSession,
-        owner_id: str,
-        device_id: str,
-        agent_id: str
-    ) -> DeviceWithBindingsResponse:
-        """Set an agent as default for device"""
-        device = await Device.get_by_id(db, device_id)
-        if not device:
-            raise NotFoundException("Device not found")
-        
-        if device.owner_id != owner_id:
-            raise BadRequestException("Device does not belong to you")
-        
-        # Check if binding exists
-        binding = await AgentDeviceBinding.get_binding(db, device_id, agent_id)
-        if not binding:
-            raise NotFoundException("Agent is not bound to this device")
-        
-        await AgentDeviceBinding.set_default(db, device_id, agent_id)
-        
-        return await self._build_device_with_bindings(db, device)
-    
     async def _build_device_with_bindings(
         self,
         db: AsyncSession,
@@ -189,7 +150,6 @@ class DeviceService:
         
         return DeviceWithBindingsResponse(
             device_id=device.device_id,
-            sn=device.sn,
             owner_id=device.owner_id,
             created_at=device.created_at,
             updated_at=device.updated_at,
