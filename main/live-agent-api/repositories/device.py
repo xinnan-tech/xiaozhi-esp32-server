@@ -18,9 +18,6 @@ class DeviceModel(Base):
     # Device unique identifier (external)
     device_id: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     
-    # Device serial number
-    sn: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    
     # Owner user ID (null if unbound)
     owner_id: Mapped[str | None] = mapped_column(
         String(50), 

@@ -105,3 +105,18 @@ async def remove_agent_from_device(
     return success_response(data=device.model_dump())
 
 
+@router.get("/{device_id}/agents", summary="Get device's bound agents")
+async def get_device_bound_agents(
+    device_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all agents bound to a specific device"""
+    result = await device_service.get_device_bound_agents(
+        db=db,
+        owner_id=current_user_id,
+        device_id=device_id
+    )
+    return success_response(data=result.model_dump())
+
+
