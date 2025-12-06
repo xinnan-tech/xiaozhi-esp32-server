@@ -8,7 +8,8 @@ from schemas.device import (
     DeviceResponse,
     DeviceWithBindingsResponse,
     DeviceListResponse,
-    AgentBindingResponse
+    AgentBindingResponse,
+    DeviceBoundAgentsResponse
 )
 
 
@@ -140,6 +141,33 @@ class DeviceService:
         
         return await self._build_device_with_bindings(db, device)
     
+    async def get_device_bound_agents(
+        self,
+        db: AsyncSession,
+        owner_id: str,
+        device_id: str
+    ) -> DeviceBoundAgentsResponse:
+        """Get all agents bound to a device"""
+        device = await Device.get_by_id(db, device_id)
+        if not device:
+            raise NotFoundException("Device not found")
+        if device.owner_id != owner_id:
+            raise BadRequestException("Device does not belong to you")
+        
+        bindings = await AgentDeviceBinding.get_bindings_by_device(db, device_id)
+        
+        return DeviceBoundAgentsResponse(
+            device_id=device_id,
+            agents=[
+                AgentBindingResponse(
+                    agent_id=b.agent_id,
+                    is_default=b.is_default,
+                    created_at=b.created_at
+                )
+                for b in bindings
+            ]
+        )
+
     async def _build_device_with_bindings(
         self,
         db: AsyncSession,

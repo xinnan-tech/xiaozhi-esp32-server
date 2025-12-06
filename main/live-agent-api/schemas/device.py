@@ -52,3 +52,9 @@ class DeviceListResponse(BaseModel):
     """Device list response"""
     devices: List[DeviceWithBindingsResponse]
 
+
+class DeviceBoundAgentsResponse(BaseModel):
+    """Response for device's bound agents"""
+    device_id: str
+    agents: List[AgentBindingResponse] = []
+
