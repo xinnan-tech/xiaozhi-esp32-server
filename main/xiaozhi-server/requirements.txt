@@ -26,7 +26,7 @@ mem0ai==1.0.0
 bs4==0.0.2
 modelscope==1.23.2
 sherpa_onnx==1.12.17
-mcp==1.20.0
+mcp==1.22.0
 cnlunar==0.2.0
 PySocks==1.7.1
 dashscope==1.25.2
