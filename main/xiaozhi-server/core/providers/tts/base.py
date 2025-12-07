@@ -377,10 +377,10 @@ class TTSProviderBase(ABC):
                     enqueue_audio = []
                     enqueue_text = text
 
-                # 收集上报音频数据
+                # 收集上报音频数据（使用副本，不修改原始 audio_datas）
                 if isinstance(audio_datas, bytes) and enqueue_audio is not None:
-                    audio_datas = pack_opus_with_header(audio_datas, message_tag)
-                    enqueue_audio.append(audio_datas)
+                    audio_with_header = pack_opus_with_header(audio_datas, message_tag)
+                    enqueue_audio.append(audio_with_header)
 
                 # 等待上一个发送完成（保持顺序），但使用短超时避免长时间阻塞
                 if last_send_future is not None:

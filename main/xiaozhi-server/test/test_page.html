@@ -1808,7 +1808,8 @@
                 // Header structure:
                 //   byte 0: type (1 = audio)
                 //   byte 1: message_tag (0=normal, 1=opening, 2=notification)
-                //   bytes 2-15: reserved
+                //   bytes 2-5: opus data length (big-endian uint32)
+                //   bytes 6-15: reserved
                 const HEADER_SIZE = 16;
                 
                 if (arrayBuffer.byteLength <= HEADER_SIZE) {
@@ -1822,11 +1823,26 @@
                 const headerView = new DataView(arrayBuffer);
                 const type = headerView.getUint8(0);
                 const messageTag = headerView.getUint8(1);
+                // Read opus data length from bytes 2-5 (big-endian)
+                const opusLength = headerView.getUint32(2, false);  // false = big-endian
                 
-                // Extract opus data (skip 16-byte header)
-                const opusData = new Uint8Array(arrayBuffer, HEADER_SIZE);
+                // Debug: print header bytes
+                const headerBytes = new Uint8Array(arrayBuffer, 0, Math.min(16, arrayBuffer.byteLength));
+                log(`Header bytes: [${Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join(' ')}]`, 'debug');
+                log(`Parsed: type=${type}, tag=${messageTag}, opusLength=${opusLength}, totalSize=${arrayBuffer.byteLength}`, 'debug');
                 
-                log(`收到音频数据: type=${type}, tag=${messageTag}, payload=${opusData.length}字节`, 'debug');
+                // Validate length
+                if (opusLength <= 0 || opusLength > arrayBuffer.byteLength - HEADER_SIZE) {
+                    log(`无效的opus数据长度: ${opusLength}, 包大小: ${arrayBuffer.byteLength}`, 'warning');
+                    return;
+                }
+                
+                // Extract opus data based on length from header
+                const opusData = new Uint8Array(arrayBuffer, HEADER_SIZE, opusLength);
+                
+                // Debug: print first few bytes of opus data (TOC byte is important)
+                const opusPreview = Array.from(opusData.slice(0, 5)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                log(`Opus data preview: [${opusPreview}], length=${opusData.length}字节`, 'debug');
 
                 // Handle opening message - skip if this is a reconnect
                 if (messageTag === MESSAGE_TAG.OPENING && skipCurrentOpening) {
