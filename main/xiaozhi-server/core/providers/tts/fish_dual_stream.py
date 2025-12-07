@@ -309,10 +309,10 @@ class TTSProvider(TTSProviderBase):
                     enqueue_text = text
                     enqueue_report_time = report_time  # save timestamp from FIRST for later reporting
 
-                # collect TTS audio data for reporting
+                # collect TTS audio data for reporting (use copy, don't modify original audio_datas)
                 if isinstance(audio_datas, bytes) and enqueue_audio is not None:
-                    audio_datas = pack_opus_with_header(audio_datas, message_tag)
-                    enqueue_audio.append(audio_datas)
+                    audio_with_header = pack_opus_with_header(audio_datas, message_tag)
+                    enqueue_audio.append(audio_with_header)
 
                 # wait for the previous send to complete (maintain order) but use short timeout to avoid long blocking
                 if last_send_future is not None:
