@@ -477,8 +477,8 @@ VAD:
   SileroVAD:
     type: silero
     model_dir: models/snakers4_silero-vad
-    threshold: 0.5                    # high threshold to confirm voice
-    threshold_low: 0.3                # low threshold to confirm silence
+    threshold: 0.6                    # high threshold to confirm voice
+    threshold_low: 0.4                # low threshold to confirm silence
     min_silence_duration_ms: 200      # silence detection duration (ms)
     frame_window_threshold: 3         # sliding window threshold
 

@@ -103,8 +103,7 @@ class VADProvider(VADProviderBase):
                     conn._latency_voice_start_time = time.time() * 1000
                     logger.bind(tag=TAG).info(f"🎤 [延迟追踪] 用户开始说话")
                 
-                # 如果之前有声音，但本次没有声音，且尚未触发voice_stop，检查是否说完
-                if conn.client_have_voice and not client_have_voice and not conn.client_voice_stop:
+                if conn.client_have_voice and not client_have_voice:
                     stop_duration = time.time() * 1000 - conn.last_activity_time
                     if stop_duration >= self.silence_threshold_ms:
                         if conn.client_listen_mode != "manual":
