@@ -9,6 +9,31 @@ TAG = __name__
 logger = setup_logging()
 
 
+class ExpFilter:
+    """Exponential filter for smoothing probability values (from LiveKit)
+    
+    Smooths noisy VAD probability outputs to reduce false triggers.
+    Formula: smoothed = α × current + (1-α) × previous
+    
+    Args:
+        alpha: Smoothing factor (0-1). Higher = faster response, less smoothing.
+               LiveKit default is 0.35.
+    """
+    def __init__(self, alpha: float = 0.35):
+        self._alpha = alpha
+        self._filtered_value: float | None = None
+
+    def apply(self, sample: float) -> float:
+        if self._filtered_value is None:
+            self._filtered_value = sample
+        else:
+            self._filtered_value = self._alpha * sample + (1 - self._alpha) * self._filtered_value
+        return self._filtered_value
+
+    def reset(self):
+        self._filtered_value = None
+
+
 class VADProvider(VADProviderBase):
     def __init__(self, config):
         logger.bind(tag=TAG).info("SileroVAD", config)
@@ -21,43 +46,43 @@ class VADProvider(VADProviderBase):
 
         self.decoder = opuslib_next.Decoder(16000, 1)
 
-        # 处理空字符串的情况
+        # VAD parameters
         threshold = config.get("threshold", "0.6")
         threshold_low = config.get("threshold_low", "0.3")
         min_silence_duration_ms = config.get("min_silence_duration_ms", "200")
 
         self.vad_threshold = float(threshold) if threshold else 0.5
         self.vad_threshold_low = float(threshold_low) if threshold_low else 0.3
-
         self.silence_threshold_ms = (
             int(min_silence_duration_ms) if min_silence_duration_ms else 200
         )
 
-        # 至少要多少帧才算有语音
-        self.frame_window_threshold = 5
+        # sliding window threshold
+        frame_window_threshold = config.get("frame_window_threshold", "3")
+        self.frame_window_threshold = int(frame_window_threshold) if frame_window_threshold else 3
 
     def is_vad(self, conn, opus_packet):
         try:
             pcm_frame = self.decoder.decode(opus_packet, 960)
-            conn.client_audio_buffer.extend(pcm_frame)  # 将新数据加入缓冲区
+            conn.client_audio_buffer.extend(pcm_frame)
 
-            # 处理缓冲区中的完整帧（每次处理512采样点）
+            # process complete frames in buffer (512 samples per frame)
             client_have_voice = False
             while len(conn.client_audio_buffer) >= 512 * 2:
-                # 提取前512个采样点（1024字节）
+                # extract first 512 samples (1024 bytes)
                 chunk = conn.client_audio_buffer[: 512 * 2]
                 conn.client_audio_buffer = conn.client_audio_buffer[512 * 2 :]
 
-                # 转换为模型需要的张量格式
+                # convert to tensor format for model
                 audio_int16 = np.frombuffer(chunk, dtype=np.int16)
                 audio_float32 = audio_int16.astype(np.float32) / 32768.0
                 audio_tensor = torch.from_numpy(audio_float32)
 
-                # 检测语音活动
+                # run VAD inference
                 with torch.no_grad():
                     speech_prob = self.model(audio_tensor, 16000).item()
 
-                # 双阈值判断
+                # dual threshold judgment (hysteresis)
                 if speech_prob >= self.vad_threshold:
                     is_voice = True
                 elif speech_prob <= self.vad_threshold_low:
@@ -65,10 +90,9 @@ class VADProvider(VADProviderBase):
                 else:
                     is_voice = conn.last_is_voice
 
-                # 声音没低于最低值则延续前一个状态，判断为有声音
                 conn.last_is_voice = is_voice
 
-                # 更新滑动窗口
+                # update sliding window
                 conn.client_voice_window.append(is_voice)
                 client_have_voice = (
                     conn.client_voice_window.count(True) >= self.frame_window_threshold
@@ -79,8 +103,8 @@ class VADProvider(VADProviderBase):
                     conn._latency_voice_start_time = time.time() * 1000
                     logger.bind(tag=TAG).info(f"🎤 [延迟追踪] 用户开始说话")
                 
-                # 如果之前有声音，但本次没有声音，且与上次有声音的时间差已经超过了静默阈值，则认为已经说完一句话
-                if conn.client_have_voice and not client_have_voice:
+                # 如果之前有声音，但本次没有声音，且尚未触发voice_stop，检查是否说完
+                if conn.client_have_voice and not client_have_voice and not conn.client_voice_stop:
                     stop_duration = time.time() * 1000 - conn.last_activity_time
                     if stop_duration >= self.silence_threshold_ms:
                         if conn.client_listen_mode != "manual":

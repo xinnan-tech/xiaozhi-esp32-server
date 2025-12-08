@@ -877,7 +877,7 @@ class ConnectionHandler:
             False,
         )
 
-        init_vad = False
+        init_vad = True
         init_asr = True
 
         try:
@@ -1377,6 +1377,9 @@ class ConnectionHandler:
         self.client_audio_buffer = bytearray()
         self.client_have_voice = False
         self.client_voice_stop = False
+        # reset VAD exponential filter
+        # if self.vad:
+        #     self.vad.reset_filter()
         self.logger.bind(tag=TAG).debug("VAD states reset.")
 
     def chat_and_close(self, text):

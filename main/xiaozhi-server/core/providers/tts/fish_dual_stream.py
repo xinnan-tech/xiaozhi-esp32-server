@@ -165,17 +165,10 @@ class TTSProvider(TTSProviderBase):
                 logger.bind(tag=TAG).debug(
                     f"Received TTS task | {message.sentence_type.name} | {message.content_type.name}"
                 )
-
                 if message.sentence_type == SentenceType.FIRST:
-                    # ========== New dialogue round starts ==========
                     self.conn.client_abort = False
-                    self.tts_audio_first_sentence = True
-                    self._first_sent = False
-                    self._session_text_buffer = []
-                    self.conn._latency_tts_first_text_time = None  # Reset TTS input time
-                    self._message_tag = message.message_tag
 
-                elif self.conn.client_abort:
+                if self.conn.client_abort:
                     # ========== Interruption ==========
                     # Only send stop event on interruption (this will close the connection)
                     logger.bind(tag=TAG).info("Received interruption, sending stop event")
@@ -188,9 +181,13 @@ class TTSProvider(TTSProviderBase):
                     except Exception as e:
                         logger.bind(tag=TAG).error(f"Failed to abort session: {e}")
                     continue
-                
-                # when user doesn't trigger interruption, start new TTS session
                 if message.sentence_type == SentenceType.FIRST:
+                    # ========== New dialogue round starts ==========
+                    self.tts_audio_first_sentence = True
+                    self._first_sent = False
+                    self._session_text_buffer = []
+                    self.conn._latency_tts_first_text_time = None  # Reset TTS input time
+                    self._message_tag = message.message_tag
                     # Start new TTS session
                     try:
                         future = asyncio.run_coroutine_threadsafe(
@@ -295,7 +292,11 @@ class TTSProvider(TTSProviderBase):
                     continue
 
                 if self.conn.client_abort:
-                    logger.bind(tag=TAG).debug("received interruption, skip current audio data")
+                    logger.bind(tag=TAG).debug("received interruption, report played content and skip remaining")
+                    # Report already accumulated audio (represents played portion) before clearing
+                    if enqueue_text is not None and enqueue_audio is not None and len(enqueue_audio) > 0:
+                        enqueue_tts_report(self.conn, enqueue_text, enqueue_audio, message_tag, enqueue_report_time)
+                        logger.bind(tag=TAG).info(f"Interruption: reported played content: {enqueue_text[:50] if enqueue_text else ''}...")
                     enqueue_text, enqueue_audio, enqueue_report_time = None, [], None
                     last_send_future = None
                     continue
@@ -545,11 +546,13 @@ class TTSProvider(TTSProviderBase):
         except Exception as e:
             logger.bind(tag=TAG).error(f"Failed to abort session: {e}")
         finally:
-            # Clean up state
+            # Clean up state immediately (don't wait for monitor task)
             self._session_active = False
             self._session_text_buffer = []
             self._first_sent = False
-            # Connection will be closed by Fish Audio after stop event
+            # Clear connection state so _ensure_connection will create a new one
+            self.ws = None
+            self._ws_connected = False
 
             
     async def text_to_speak(self, text, output_file):
