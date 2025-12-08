@@ -41,6 +41,13 @@
                   <el-tag v-else type="danger">{{ $t('device.offline') }}</el-tag>
                 </template>
               </el-table-column>
+              <el-table-column :label="$t('device.customTheme')" align="center" width="140">
+                <template #default="{ row }">
+                  <el-button type="text" size="mini" @click="handleCustomThemeConfig(row)">
+                    {{ $t('device.customThemeConfig') }}
+                  </el-button>
+                </template>
+              </el-table-column>
               <el-table-column :label="$t('device.remark')" align="center">
                 <template #default="{ row }">
                   <el-input v-show="row.isEdit" v-model="row.remark" size="mini" maxlength="64" show-word-limit
@@ -116,6 +123,10 @@
       @refresh="fetchBindDevices(currentAgentId)" />
     <ManualAddDeviceDialog :visible.sync="manualAddDeviceDialogVisible" :agent-id="currentAgentId"
       @refresh="fetchBindDevices(currentAgentId)" />
+    <CustomThemeDialog
+      :visible.sync="customThemeDialogVisible"
+      :device="selectedDeviceForTheme"
+    />
 
   </div>
 </template>
@@ -125,17 +136,21 @@ import Api from '@/apis/api';
 import AddDeviceDialog from "@/components/AddDeviceDialog.vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import ManualAddDeviceDialog from "@/components/ManualAddDeviceDialog.vue";
+import CustomThemeDialog from '@/components/CustomThemeDialog.vue';
 
 export default {
   components: {
     HeaderBar,
     AddDeviceDialog,
-    ManualAddDeviceDialog
+    ManualAddDeviceDialog,
+    CustomThemeDialog
   },
   data() {
     return {
       addDeviceDialogVisible: false,
       manualAddDeviceDialogVisible: false,
+      customThemeDialogVisible: false,
+      selectedDeviceForTheme: null,
       selectedDeviceId: '',
       searchKeyword: "",
       activeSearchKeyword: "",
@@ -198,6 +213,11 @@ export default {
     this.getFirmwareTypes()
   },
   methods: {
+    handleCustomThemeConfig(row) {
+      console.log('[DeviceManagement] open custom theme for device', row);
+      this.selectedDeviceForTheme = row;
+      this.customThemeDialogVisible = true;
+    },
     async getFirmwareTypes() {
       try {
         const res = await Api.dict.getDictDataByType('FIRMWARE_TYPE')
