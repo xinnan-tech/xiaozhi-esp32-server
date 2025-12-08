@@ -364,7 +364,11 @@ class TTSProviderBase(ABC):
                     continue
 
                 if self.conn.client_abort:
-                    logger.bind(tag=TAG).debug("收到打断信号，跳过当前音频数据")
+                    logger.bind(tag=TAG).debug("receive interruption, report the played content and skip the subsequent audio")
+                    # report the played content when interruption occurs
+                    if enqueue_text is not None and enqueue_audio is not None and len(enqueue_audio) > 0:
+                        enqueue_tts_report(self.conn, enqueue_text, enqueue_audio, message_tag)
+                        logger.bind(tag=TAG).info(f"report the played content when interruption occurs: {enqueue_text[:50] if enqueue_text else ''}...")
                     enqueue_text, enqueue_audio = None, []
                     last_send_future = None
                     continue

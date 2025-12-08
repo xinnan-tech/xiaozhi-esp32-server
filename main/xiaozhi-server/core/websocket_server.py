@@ -20,7 +20,7 @@ class WebSocketServer:
         modules = initialize_modules(
             self.logger,
             self.config,
-            "VAD" in self.config["selected_module"],
+            False,
             False,
             False,
             False,
