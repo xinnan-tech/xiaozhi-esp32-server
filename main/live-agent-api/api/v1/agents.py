@@ -13,7 +13,6 @@ from schemas.agent import AgentResponse, BindableAgentResponse, BindableAgentLis
 from config import get_logger
 import base64
 from fastapi import HTTPException
-import asyncio
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -45,29 +44,6 @@ async def get_agent_list(
     return success_response(data=agent_list.model_dump())
 
 
-@router.get("/{agent_id}", summary="Get Agent Detail")
-async def get_agent_detail(
-    agent_id: str,
-    db: AsyncSession = Depends(get_db)
-):
-    """Get agent detail"""
-    agent = await agent_service.get_agent_detail(db=db, agent_id=agent_id)
-
-
-    agent_response = AgentResponse(
-        agent_id=agent.agent_id,
-        name=agent.name,
-        avatar_url=agent.avatar_url,
-        description=agent.description,
-        voice_id=agent.voice_id,
-        instruction=agent.instruction,
-        voice_opening=agent.voice_opening,
-        voice_closing=agent.voice_closing,
-        created_at=agent.created_at,
-    )
-    return success_response(data=agent_response.model_dump())
-
-
 @router.get("/bindable", summary="Get bindable agents for device")
 async def get_bindable_agents(
     current_user_id: str = Depends(get_current_user_id),
@@ -83,6 +59,19 @@ async def get_bindable_agents(
         agents=[BindableAgentResponse.model_validate(a) for a in agents]
     )
     return success_response(data=response.model_dump())
+
+
+@router.get("/{agent_id}", summary="Get Agent Detail")
+async def get_agent_detail(
+    agent_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get agent detail"""
+    agent = await agent_service.get_agent_detail(db=db, agent_id=agent_id)
+
+    # 使用 model_validate 自动映射所有字段，避免遗漏
+    agent_response = AgentResponse.model_validate(agent)
+    return success_response(data=agent_response.model_dump())
 
 
 @router.post("", summary="Create Agent")
