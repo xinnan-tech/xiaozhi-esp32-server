@@ -1,10 +1,11 @@
 import json
 
+from config.logger import setup_logging
 TAG = __name__
-
+logger = setup_logging()
 
 async def handleAbortMessage(conn):
-    conn.logger.bind(tag=TAG).info("Abort message received")
+    logger.bind(tag=TAG).info(f"客户端{conn.client_listen_mode}模式下，收到打断消息")
     # 设置成打断状态，会自动打断llm、tts任务
     conn.client_abort = True
     conn.clear_queues()

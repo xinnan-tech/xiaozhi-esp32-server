@@ -68,7 +68,7 @@ class ListenTextMessageHandler(TextMessageHandler):
     async def handle(self, conn, msg_json: Dict[str, Any]) -> None:
         if "mode" in msg_json:
             conn.client_listen_mode = msg_json["mode"]
-            conn.logger.bind(tag=TAG).debug(
+            conn.logger.bind(tag=TAG).info(
                 f"客户端拾音模式：{conn.client_listen_mode}"
             )
         if msg_json["state"] == "start":

@@ -1210,9 +1210,6 @@ class ConnectionHandler:
             try:
                 # 从队列获取数据，设置超时以便定期检查停止事件
                 item = self.report_queue.get(timeout=1)
-                if item is None:  # detect poison pill object
-                    self.report_queue.task_done()
-                    break
                 try:
                     self._process_report(*item)
                 except Exception as e:
@@ -1224,18 +1221,15 @@ class ConnectionHandler:
 
         # stop_event is set, continue processing remaining messages in report_queue
         self.logger.bind(tag=TAG).info("processing remaining report messages...")
-        while True:
+        while not self.report_queue.empty():
             try:
-                item = self.report_queue.get(timeout=1)
-                if item is None:  # detect poison pill object
-                    self.report_queue.task_done()
-                    break
+                item = self.report_queue.get(timeout=0.1)
                 try:
                     self._process_report(*item)
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"processing remaining report messages failed: {e}")
             except queue.Empty:
-                continue
+                break  # Queue is empty, exit
 
         self.logger.bind(tag=TAG).info("聊天记录上报线程已退出")
 
@@ -1290,8 +1284,6 @@ class ConnectionHandler:
             if self._report_enabled and self.report_queue:
                 try:
                     self.logger.bind(tag=TAG).info("waiting for report queue to be processed...")
-                    # send poison pill object to notify report_worker to exit and process remaining messages
-                    self.report_queue.put(None)
                     # wait for all messages to be processed
                     self.report_queue.join()
                     self.logger.bind(tag=TAG).info("report queue processed")
