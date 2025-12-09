@@ -63,6 +63,9 @@ class VADProvider(VADProviderBase):
 
     def is_vad(self, conn, opus_packet):
         try:
+            now_ms = time.time() * 1000
+            conn._vad_frame_count = getattr(conn, '_vad_frame_count', 0) + 1
+            
             pcm_frame = self.decoder.decode(opus_packet, 960)
             conn.client_audio_buffer.extend(pcm_frame)
 
@@ -92,6 +95,10 @@ class VADProvider(VADProviderBase):
 
                 conn.last_is_voice = is_voice
 
+                # record first voice frame time (when is_voice becomes True)
+                if is_voice and not hasattr(conn, '_vad_first_voice_time'):
+                    conn._vad_first_voice_time = now_ms
+
                 # update sliding window
                 conn.client_voice_window.append(is_voice)
                 client_have_voice = (
@@ -101,8 +108,18 @@ class VADProvider(VADProviderBase):
                 # 检测语音开始（边缘检测）
                 if not conn.client_have_voice and client_have_voice:
                     conn._latency_voice_start_time = time.time() * 1000
-                    logger.bind(tag=TAG).info(f"🎤 [延迟追踪] 用户开始说话")
+                    # calculate delay from first voice frame to VAD confirmation
+                    first_voice_time = getattr(conn, '_vad_first_voice_time', None)
+                    if first_voice_time:
+                        voice_to_confirm = conn._latency_voice_start_time - first_voice_time
+                        logger.bind(tag=TAG).info(
+                            f"🎤 [延迟追踪] VAD检测到开始说话 | "
+                            f"首个声音帧到确认: {voice_to_confirm:.0f}ms"
+                        )
+                    else:
+                        logger.bind(tag=TAG).info(f"🎤 [延迟追踪] VAD检测到开始说话")
                 
+                # 检测语音结束（需要确保开始时间已设置）
                 if conn.client_have_voice and not client_have_voice:
                     stop_duration = time.time() * 1000 - conn.last_activity_time
                     if stop_duration >= self.silence_threshold_ms:
@@ -110,10 +127,22 @@ class VADProvider(VADProviderBase):
                             conn.client_voice_stop = True
                             # 记录用户说完的时间（端到端延迟的起点）
                             conn._latency_voice_end_time = time.time() * 1000
-                            voice_duration = conn._latency_voice_end_time - conn._latency_voice_start_time
-                            logger.bind(tag=TAG).info(
-                                f"🎤 [延迟追踪] 用户说完，语音时长: {voice_duration:.0f}ms"
-                            )
+                            
+                            # 安全检查：确保时间戳已设置
+                            start_time = getattr(conn, '_latency_voice_start_time', None)
+                            
+                            if start_time:
+                                voice_duration = conn._latency_voice_end_time - start_time
+                                logger.bind(tag=TAG).info(
+                                    f"🎤 [延迟追踪] VAD检测到说话结束 | "
+                                    f"语音时长: {voice_duration:.0f}ms"
+                                )
+                            
+                            # reset for next utterance
+                            conn._latency_voice_start_time = None
+                            if hasattr(conn, '_vad_first_voice_time'):
+                                del conn._vad_first_voice_time
+                            
                 if client_have_voice:
                     conn.client_have_voice = True
                     conn.last_activity_time = time.time() * 1000

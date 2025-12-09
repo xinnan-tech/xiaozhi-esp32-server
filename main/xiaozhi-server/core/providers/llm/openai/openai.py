@@ -33,11 +33,18 @@ class LLMProvider(LLMProviderBase):
         self.timeout = int(timeout) if timeout else 300
 
         param_defaults = {
-            "max_tokens": (500, int),
+            "max_tokens": (1000, int),
             "temperature": (0.7, lambda x: round(float(x), 1)),
             "top_p": (1.0, lambda x: round(float(x), 1)),
             "frequency_penalty": (0, lambda x: round(float(x), 1)),
         }
+
+        provider = config.get("provider", None)
+        allow_fallback = config.get("allow_fallback", False)
+        reasoning_effort = config.get("reasoning_effort", None)
+        self.provider = provider
+        self.allow_fallback = allow_fallback
+        self.reasoning_effort = reasoning_effort
 
         for param, (default, converter) in param_defaults.items():
             value = config.get(param)
@@ -109,8 +116,17 @@ class LLMProvider(LLMProviderBase):
                 "max_output_tokens": self.max_tokens,
                 "temperature": self.temperature,
                 "top_p": self.top_p,
+                "reasoning": {
+                    "effort": self.reasoning_effort if self.reasoning_effort else "none"
+                },
+                "extra_body": {
+                    "provider": {
+                        "allow_fallbacks": self.allow_fallback,
+                        "order": [self.provider] if self.provider else None,
+                    }
+                }
             }
-            
+
             # 只有在有 tools 时才添加 tools 参数
             if tools:
                 request_params["tools"] = tools
