@@ -300,6 +300,7 @@ class ConnectionHandler:
                     return
 
             # 不需要头部处理或没有头部时，直接处理原始消息
+            
             self.asr_audio_queue.put(message)
 
     async def _process_mqtt_audio_message(self, message):

@@ -477,9 +477,9 @@ VAD:
   SileroVAD:
     type: silero
     model_dir: models/snakers4_silero-vad
-    threshold: 0.6                    # high threshold to confirm voice
-    threshold_low: 0.4                # low threshold to confirm silence
-    min_silence_duration_ms: 200      # silence detection duration (ms)
+    threshold: 0.5                    # high threshold to confirm voice
+    threshold_low: 0.35                # low threshold to confirm silence
+    min_silence_duration_ms: 400      # silence detection duration (ms)
     frame_window_threshold: 3         # sliding window threshold
 
 LLM:
@@ -539,11 +539,21 @@ LLM:
     model_name: meta-llama/llama-4-scout-17b-16e-instruct
     base_url: https://api.groq.com/openai/v1
     api_key: ${GROQ_API_KEY}
+    max_tokens: 1000
   OpenaiLLM:  
     type: openai
     model_name: gpt-4o-mini
     base_url: https://api.openai.com/v1
     api_key: ${OPENAI_API_KEY}
+  OpenRouterLLM:
+    type: openai
+    model_name: google/gemini-2.5-flash
+    base_url: https://openrouter.ai/api/v1
+    api_key: ${OPENROUTER_API_KEY}
+    provider: vertex-ai-global
+    allow_fallback: true
+    reasoning_effort: none
+    max_tokens: 2000
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
@@ -1085,7 +1095,8 @@ TTS:
 selected_module:
   VAD: SileroVAD
   ASR: GroqASR
-  LLM: GroqLLM
+  # LLM: GroqLLM
+  LLM: OpenRouterLLM
   VLLM: ChatGLMVLLM
   TTS: FishDualStreamTTS
   # TODO: temporarily, fish speech doesn't reuse the wesocket connection, need to discuss further.
