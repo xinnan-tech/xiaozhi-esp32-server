@@ -57,23 +57,25 @@
               </div>
             </div>
 
-            <div v-if="modelValue.light.backgroundType === 'image'" class="upload-side">
-              <el-upload
-                class="dashed-upload"
-                action=""
-                  :auto-upload="false"
-                  :on-change="(f)=>handleBgUpload(f, 'light')"
-                  accept=".png,.jpg,.jpeg"
-                  :show-file-list="false"
-                  drag
-                >
-                  <i class="el-icon-upload"></i>
-                  <div class="el-upload__text">{{ $t('device.customThemeBackgroundImageUpload') }}</div>
-                </el-upload>
-              <span class="file-name" v-if="modelValue.light.backgroundImage">{{ fileName(modelValue.light.backgroundImage) }}</span>
-              <el-button v-if="modelValue.light.backgroundImage" size="mini" type="text" @click="clearBg('light')">
-                {{ $t('device.customThemeRemoveImage') }}
-              </el-button>
+            <div v-if="modelValue.light.backgroundType === 'image'" class="upload-center">
+              <div class="upload-side">
+                <el-upload
+                  class="dashed-upload"
+                  action=""
+                    :auto-upload="false"
+                    :on-change="(f)=>handleBgUpload(f, 'light')"
+                    accept=".png,.jpg,.jpeg"
+                    :show-file-list="false"
+                    drag
+                  >
+                    <i class="el-icon-upload"></i>
+                    <div class="el-upload__text">{{ $t('device.customThemeBackgroundImageUpload') }}</div>
+                  </el-upload>
+                <span class="file-name" v-if="modelValue.light.backgroundImage">{{ fileName(modelValue.light.backgroundImage) }}</span>
+                <el-button v-if="modelValue.light.backgroundImage" size="mini" type="text" @click="clearBg('light')">
+                  {{ $t('device.customThemeRemoveImage') }}
+                </el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -130,23 +132,25 @@
               </div>
             </div>
 
-            <div v-if="modelValue.dark.backgroundType === 'image'" class="upload-side">
-              <el-upload
-                class="dashed-upload"
-                action=""
-                  :auto-upload="false"
-                  :on-change="(f)=>handleBgUpload(f, 'dark')"
-                  accept=".png,.jpg,.jpeg"
-                  :show-file-list="false"
-                  drag
-                >
-                  <i class="el-icon-upload"></i>
-                  <div class="el-upload__text">{{ $t('device.customThemeBackgroundImageUpload') }}</div>
-                </el-upload>
-              <span class="file-name" v-if="modelValue.dark.backgroundImage">{{ fileName(modelValue.dark.backgroundImage) }}</span>
-              <el-button v-if="modelValue.dark.backgroundImage" size="mini" type="text" @click="clearBg('dark')">
-                {{ $t('device.customThemeRemoveImage') }}
-              </el-button>
+            <div v-if="modelValue.dark.backgroundType === 'image'" class="upload-center">
+              <div class="upload-side">
+                <el-upload
+                  class="dashed-upload"
+                  action=""
+                    :auto-upload="false"
+                    :on-change="(f)=>handleBgUpload(f, 'dark')"
+                    accept=".png,.jpg,.jpeg"
+                    :show-file-list="false"
+                    drag
+                  >
+                    <i class="el-icon-upload"></i>
+                    <div class="el-upload__text">{{ $t('device.customThemeBackgroundImageUpload') }}</div>
+                  </el-upload>
+                <span class="file-name" v-if="modelValue.dark.backgroundImage">{{ fileName(modelValue.dark.backgroundImage) }}</span>
+                <el-button v-if="modelValue.dark.backgroundImage" size="mini" type="text" @click="clearBg('dark')">
+                  {{ $t('device.customThemeRemoveImage') }}
+                </el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -408,6 +412,8 @@ export default {
   border-radius: 8px;
   padding: 8px;
   height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .mode-buttons {
   margin-bottom: 10px;
@@ -418,12 +424,29 @@ export default {
   align-items: stretch;
   gap: 12px;
   flex-wrap: nowrap;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .color-stack {
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+.upload-center {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  min-width: 120px;
+  max-width: 100%;
+  overflow: visible;
+  box-sizing: border-box;
+  padding: 0 10px;
 }
 .color-item {
   display: flex;
@@ -453,24 +476,27 @@ export default {
   border-radius: 4px;
 }
 .dashed-upload {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
   border: none;
   padding: 0;
-}
-.dashed-upload {
-  display: flex;
-  flex: 1;
+  justify-content: center;
 }
 .dashed-upload .el-upload-dragger {
   border: 2px dashed #909399;
   border-radius: 4px;
   padding: 2px 0;
   width: 100px;
+  min-width: 100px;
+  max-width: 100px;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 .upload-row .file-name,
 .inline-upload .file-name,
@@ -483,9 +509,14 @@ export default {
   flex-direction: column;
   justify-content: center;
   gap: 4px;
+  width: 120px;
   min-width: 120px;
+  max-width: 120px;
+  flex-shrink: 0;
+  flex-grow: 0;
   align-items: flex-start;
-  align-self: stretch;
+  box-sizing: border-box;
+  overflow: visible;
 }
 .dashed-upload .el-upload__text {
   font-size: 12px;
