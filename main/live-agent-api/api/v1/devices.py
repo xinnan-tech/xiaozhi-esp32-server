@@ -120,3 +120,24 @@ async def get_device_bound_agents(
     return success_response(data=result.model_dump())
 
 
+@router.put("/{device_id}/default-agent", summary="Set default agent for device")
+async def set_default_agent(
+    device_id: str,
+    request: DeviceAddAgentRequest,
+    current_user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Set the default agent for this device.
+    
+    The agent must already be bound to the device.
+    """
+    device = await device_service.set_default_agent(
+        db=db,
+        owner_id=current_user_id,
+        device_id=device_id,
+        agent_id=request.agent_id
+    )
+    return success_response(data=device.model_dump())
+
+
