@@ -553,6 +553,7 @@ LLM:
     provider: vertex-ai-global
     allow_fallback: true
     reasoning_effort: none
+    max_tokens: 2000
   OllamaLLM:
     # 定义LLM API类型
     type: ollama
