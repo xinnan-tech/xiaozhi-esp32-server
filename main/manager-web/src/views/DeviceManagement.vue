@@ -126,6 +126,15 @@
     <CustomThemeDialog
       :visible.sync="customThemeDialogVisible"
       :device="selectedDeviceForTheme"
+      @generate="handleGenerateAssets"
+    />
+
+    <!-- 生成模态框 -->
+    <component
+      v-if="showGenerateModal && generateModalComponent"
+      :is="generateModalComponent"
+      :visible.sync="showGenerateModal"
+      :config="generateConfig"
     />
 
   </div>
@@ -151,6 +160,9 @@ export default {
       manualAddDeviceDialogVisible: false,
       customThemeDialogVisible: false,
       selectedDeviceForTheme: null,
+      showGenerateModal: false,
+      generateModalComponent: null,
+      generateConfig: null,
       selectedDeviceId: '',
       searchKeyword: "",
       activeSearchKeyword: "",
@@ -214,9 +226,25 @@ export default {
   },
   methods: {
     handleCustomThemeConfig(row) {
-      console.log('[DeviceManagement] open custom theme for device', row);
       this.selectedDeviceForTheme = row;
       this.customThemeDialogVisible = true;
+    },
+    async handleGenerateAssets(config) {
+      // 动态加载生成模态框组件
+      if (!this.generateModalComponent) {
+        try {
+          const module = await import('@/components/custom-theme/CustomThemeGenerateModal.vue');
+          this.generateModalComponent = module.default;
+        } catch (error) {
+          console.error('[DeviceManagement] Failed to load generate modal:', error);
+          this.$message.error('加载生成组件失败: ' + error.message);
+          return;
+        }
+      }
+      // 保存配置并显示生成模态框
+      this.generateConfig = config;
+      await this.$nextTick();
+      this.showGenerateModal = true;
     },
     async getFirmwareTypes() {
       try {

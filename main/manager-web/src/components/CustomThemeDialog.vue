@@ -45,11 +45,6 @@
         @generate="handleGenerate"
       />
     </div>
-
-    <CustomThemeGenerateModal
-      :visible.sync="generateModalVisible"
-      :config="config"
-    />
   </el-dialog>
 </template>
 
@@ -57,15 +52,13 @@
 import CustomThemeChipConfig from './custom-theme/CustomThemeChipConfig.vue';
 import CustomThemeDesign from './custom-theme/CustomThemeDesign.vue';
 import CustomThemeSummary from './custom-theme/CustomThemeSummary.vue';
-import CustomThemeGenerateModal from './custom-theme/CustomThemeGenerateModal.vue';
 
 export default {
   name: 'CustomThemeDialog',
   components: {
     CustomThemeChipConfig,
     CustomThemeDesign,
-    CustomThemeSummary,
-    CustomThemeGenerateModal
+    CustomThemeSummary
   },
   props: {
     visible: {
@@ -80,7 +73,6 @@ export default {
   data() {
     return {
       currentStep: 1,
-      generateModalVisible: false,
       config: {
         chip: {
           model: '',
@@ -104,12 +96,7 @@ export default {
             dark: { backgroundType: 'color', backgroundColor: '#121212', textColor: '#ffffff', backgroundImage: '' }
           }
         }
-      },
-      steps: [
-        { id: 1, title: this.$t('device.customThemeStep1'), desc: this.$t('device.customThemeChipConfigDesc') },
-        { id: 2, title: this.$t('device.customThemeStep2'), desc: this.$t('device.customThemeDesignDesc') },
-        { id: 3, title: this.$t('device.customThemeStep3'), desc: this.$t('device.customThemeSummaryDesc') }
-      ]
+      }
     };
   },
   computed: {
@@ -120,6 +107,13 @@ export default {
       set(val) {
         this.$emit('update:visible', val);
       }
+    },
+    steps() {
+      return [
+        { id: 1, title: this.$t('device.customThemeStep1'), desc: this.$t('device.customThemeChipConfigDesc') },
+        { id: 2, title: this.$t('device.customThemeStep2'), desc: this.$t('device.customThemeDesignDesc') },
+        { id: 3, title: this.$t('device.customThemeStep3'), desc: this.$t('device.customThemeSummaryDesc') }
+      ];
     }
   },
   methods: {
@@ -130,7 +124,8 @@ export default {
       if (this.currentStep > 1) this.currentStep -= 1;
     },
     handleGenerate() {
-      this.generateModalVisible = true;
+      // 通过事件通知父组件打开生成模态框
+      this.$emit('generate', this.config);
     },
     handleClose() {
       this.dialogVisible = false;
@@ -223,4 +218,3 @@ export default {
   min-height: 420px;
 }
 </style>
-

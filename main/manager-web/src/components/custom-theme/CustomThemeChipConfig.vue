@@ -58,7 +58,7 @@
                 v-model="customConfig.display.width"
                 :min="128"
                 :max="800"
-                :placeholder="320"
+                placeholder="320"
                 @change="handleCustomConfigChange"
               />
             </div>
@@ -68,7 +68,7 @@
                 v-model="customConfig.display.height"
                 :min="128"
                 :max="600"
-                :placeholder="240"
+                placeholder="240"
                 @change="handleCustomConfigChange"
               />
             </div>

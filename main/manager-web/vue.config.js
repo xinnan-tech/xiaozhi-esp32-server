@@ -93,6 +93,15 @@ module.exports = defineConfig({
     config.optimization.minimize(true);
   },
   configureWebpack: config => {
+    // 配置 webpack 忽略 Node.js 内置模块（用于浏览器环境）
+    config.resolve = config.resolve || {};
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      crypto: false
+    };
+
     if (process.env.NODE_ENV === 'production') {
       // 开启多线程编译
       config.optimization = {
