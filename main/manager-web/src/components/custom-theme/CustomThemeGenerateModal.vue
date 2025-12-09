@@ -116,10 +116,10 @@
         <div class="result-item">生成时间: {{ generationTime }}</div>
       </div>
       <div class="action-buttons column">
-        <el-button type="primary" @click="downloadFile" :disabled="!generatedBlob" class="action-btn">
+        <el-button type="primary" @click="downloadFile" :disabled="!generatedBlob" class="action-btn full">
           下载 assets.bin
         </el-button>
-        <el-button @click="startOnlineFlash" :disabled="!generatedBlob" class="action-btn secondary">
+        <el-button type="primary" plain @click="startOnlineFlash" :disabled="!generatedBlob" class="action-btn secondary full">
           在线烧录到设备
         </el-button>
       </div>
@@ -142,6 +142,7 @@
 </template>
 
 <script>
+import Api from '@/apis/api';
 // 延迟导入 AssetsBuilder，避免组件加载时出错
 let AssetsBuilder = null;
 const loadAssetsBuilder = async () => {
@@ -162,6 +163,14 @@ export default {
     visible: {
       type: Boolean,
       default: false
+    },
+    device: {
+      type: Object,
+      default: null
+    },
+    agentId: {
+      type: [String, Number],
+      default: ''
     },
     config: {
       type: Object,
@@ -525,13 +534,290 @@ export default {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     },
-    startOnlineFlash() {
-      // 占位实现：只提示，后续按需求接入真正烧录流程
+    async startOnlineFlash() {
       if (!this.generatedBlob) {
         this.$message.error('请先生成文件');
         return;
       }
-      this.$message.info('在线烧录功能待接入设备联调');
+      const online = await this.checkDeviceOnline();
+      if (!online) return;
+
+      try {
+        // 先上传 assets.bin 到 8003
+        const downloadUrl = await this.uploadAssetsBin();
+        await this.sendSetDownloadUrl(downloadUrl);
+        await this.sendRebootCommand();
+        this.$message.success('下载URL已下发，重启命令已发送');
+      } catch (e) {
+        console.error('[Flash] 烧录流程失败', e);
+        this.$message.error('烧录流程失败: ' + (e.message || e));
+      }
+    },
+    async uploadAssetsBin() {
+      if (!this.generatedBlob) throw new Error('没有生成好的 assets.bin');
+      const url = `${window.location.protocol}//${window.location.hostname}:8003/xiaozhi/trans/upload`;
+      const form = new FormData();
+      form.append('file', this.generatedBlob, 'assets.bin');
+      const res = await fetch(url, { method: 'POST', body: form });
+      if (!res.ok) {
+        throw new Error(`上传失败 HTTP ${res.status}`);
+      }
+      return `${window.location.protocol}//${window.location.hostname}:8003/xiaozhi/trans/assets.bin`;
+    },
+    buildClientId(device) {
+      const mac = (device && device.macAddress) ? device.macAddress : '';
+      const model = (device && device.model) ? device.model : 'esp32';
+      const macUnderscore = mac.replace(/:/g, '_');
+      return `${model}@@@${macUnderscore}@@@${macUnderscore}`;
+    },
+    getGatewayBaseCandidates() {
+      const params = new URLSearchParams(window.location.search || '');
+      const override = params.get('mqttGatewayUrl');
+      const bases = [];
+      if (override) bases.push(override.replace(/\/$/, ''));
+      bases.push(`${window.location.protocol}//${window.location.hostname}:8007`); // 与脚本一致
+      bases.push(window.location.origin); // 若有同源反代可避开 CORS
+      return bases;
+    },
+    computeToken(dateStr, key) {
+      return crypto.subtle && window.TextEncoder
+        ? null // will handle async in list builder
+        : btoa(dateStr + key).slice(0, 64);
+    },
+    async buildSha256(content) {
+      const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(content));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    },
+    async getGatewayTokensList() {
+      const params = new URLSearchParams(window.location.search || '');
+
+      // 多渠道覆盖 token，优先已算好的值，避免浏览器计算差异
+      const tokenFromUrl = params.get('mqttToken') || params.get('token');
+      const list = [];
+      if (tokenFromUrl) list.push(tokenFromUrl);
+
+      const tokenFromLS = typeof localStorage !== 'undefined' ? localStorage.getItem('mqttToken') : '';
+      if (tokenFromLS) list.push(tokenFromLS);
+
+      if (window.__MQTT_TOKEN__) list.push(window.__MQTT_TOKEN__);
+
+      const key =
+        params.get('mqttKey') ||
+        window.__MQTT_SIGNATURE_KEY__ ||
+        process.env.VUE_APP_MQTT_SIGNATURE_KEY ||
+        'Jiangli.2014';
+
+      const dateOverride =
+        params.get('mqttDate') ||
+        params.get('date') ||
+        window.__MQTT_DATE__;
+      const dates = [];
+      const makeDateStr = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+      if (dateOverride) {
+        dates.push(dateOverride);
+      } else {
+        const today = new Date();
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        dates.push(makeDateStr(today), makeDateStr(yesterday), makeDateStr(tomorrow));
+      }
+
+      for (const ds of dates) {
+        if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+          list.push(await this.buildSha256(ds + key));
+        } else {
+          list.push(btoa(ds + key).slice(0, 64));
+        }
+      }
+
+      // 去重
+      return Array.from(new Set(list)).filter(Boolean);
+    },
+    async checkDeviceOnline() {
+      const dev = this.device || (this.$parent && this.$parent.selectedDeviceForTheme);
+      if (!dev) {
+        console.warn('[Flash] 无设备信息，无法查询在线状态');
+        this.$message.error('缺少设备信息，无法查询在线状态');
+        return false;
+      }
+      const agentId = this.agentId || (this.$route && this.$route.query && this.$route.query.agentId) || '';
+      if (!agentId) {
+        this.$message.error('缺少 agentId，无法查询在线状态');
+        console.warn('[Flash] 缺少 agentId');
+        return false;
+      }
+      const clientId = this.buildClientId(dev);
+      try {
+        const data = await new Promise((resolve, reject) => {
+          Api.device.getDeviceStatus(agentId, ({ data }) => resolve(data), reject);
+        });
+        if (data.code === 0) {
+          const statusData = JSON.parse(data.data || '{}');
+          const status = statusData[clientId];
+          let isOnline = false;
+          if (status) {
+            if (status.isAlive === true) isOnline = true;
+            else if (status.isAlive === false) isOnline = false;
+            else if (status.isAlive === null && status.exists === true) isOnline = true;
+          }
+          this.deviceOnline = isOnline;
+          dev.deviceStatus = isOnline ? 'online' : 'offline';
+          console.log('[Flash] 设备在线查询（同设备管理接口）', { agentId, clientId, status, online: isOnline });
+          if (isOnline) {
+            this.$message.success('设备在线，可以开始烧录');
+          } else {
+            this.$message.error('设备不在线，无法烧录');
+          }
+          return isOnline;
+        }
+        this.$message.error(data.msg || '查询设备在线状态失败');
+        console.error('[Flash] 查询设备在线失败', data);
+      } catch (e) {
+        console.error('[Flash] 查询设备在线失败', e);
+        this.$message.error('查询设备在线状态失败');
+      }
+      return false;
+    },
+    buildDownloadUrl() {
+      const params = new URLSearchParams(window.location.search || '');
+      return params.get('downloadUrl') ||
+        `${window.location.protocol}//${window.location.hostname}:8003/xiaozhi/trans/assets.bin`;
+    },
+    async sendSetDownloadUrl(downloadUrl) {
+      const dev = this.device || (this.$parent && this.$parent.selectedDeviceForTheme);
+      const clientId = this.buildClientId(dev);
+      const topic = `devices/p2p/${clientId.split('@@@')[1]}`;
+      const tokens = await this.getGatewayTokensList();
+      const params = new URLSearchParams(window.location.search || '');
+      const override = params.get('mqttGatewayUrl') || params.get('gateway');
+      const useGatewayOnly = params.get('useGatewayOnly') !== 'false'; // 默认只尝试网关
+      const bases = [];
+      if (override) bases.push(override.replace(/\/$/, ''));
+      bases.push(`${window.location.protocol}//${window.location.hostname}:8007`); // 脚本默认
+      if (!useGatewayOnly) bases.push(window.location.origin); // 显式允许再试同源
+      const payload = {
+        type: 'mcp',
+        payload: {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: Date.now(),
+          params: {
+            name: 'self.assets.set_download_url',
+            arguments: { url: downloadUrl }
+          }
+        }
+      };
+      let lastErr = '';
+      for (const base of bases) {
+        try {
+          // 先尝试 Bearer，再尝试裸 Authorization，避免自定义 token 头触发 CORS 拒绝
+          let ok = false;
+          for (const token of tokens) {
+            const headerVariants = [
+              { Authorization: `Bearer ${token}` },
+              { Authorization: token }
+            ];
+            for (const headers of headerVariants) {
+              const res = await fetch(`${base}/api/messages/publish`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...headers
+                },
+                body: JSON.stringify({
+                  topic,
+                  clientId,
+                  message: JSON.stringify(payload),
+                  qos: 1
+                })
+              });
+              if (res.ok || res.type === 'opaque') {
+                ok = true;
+                break;
+              }
+              lastErr = `HTTP ${res.status}`;
+            }
+            if (ok) break;
+          }
+          if (ok) {
+            console.log('[Flash] set_download_url 下发成功', { base, topic, clientId, downloadUrl });
+            return;
+          }
+        } catch (e) {
+          lastErr = e.message || String(e);
+        }
+      }
+      throw new Error('下发下载URL失败: ' + lastErr);
+    },
+    async sendRebootCommand() {
+      const dev = this.device || (this.$parent && this.$parent.selectedDeviceForTheme);
+      const clientId = this.buildClientId(dev);
+      const topic = `devices/p2p/${clientId.split('@@@')[1]}`;
+      const tokens = await this.getGatewayTokensList();
+      const params = new URLSearchParams(window.location.search || '');
+      const override = params.get('mqttGatewayUrl') || params.get('gateway');
+      const useGatewayOnly = params.get('useGatewayOnly') !== 'false';
+      const bases = [];
+      if (override) bases.push(override.replace(/\/$/, ''));
+      bases.push(`${window.location.protocol}//${window.location.hostname}:8007`);
+      if (!useGatewayOnly) bases.push(window.location.origin);
+      const payload = {
+        type: 'mcp',
+        payload: {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: Date.now(),
+          params: {
+            name: 'self.reboot',
+            arguments: {}
+          }
+        }
+      };
+      let lastErr = '';
+      for (const base of bases) {
+        try {
+          let ok = false;
+          for (const token of tokens) {
+            const headerVariants = [
+              { Authorization: `Bearer ${token}` },
+              { Authorization: token }
+            ];
+            for (const headers of headerVariants) {
+              const res = await fetch(`${base}/api/messages/publish`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...headers
+                },
+                body: JSON.stringify({
+                  topic,
+                  clientId,
+                  message: JSON.stringify(payload),
+                  qos: 1
+                })
+              });
+              if (res.ok || res.type === 'opaque') {
+                ok = true;
+                break;
+              }
+              lastErr = `HTTP ${res.status}`;
+            }
+            if (ok) break;
+          }
+          if (ok) {
+            console.log('[Flash] reboot 下发成功', { base, topic, clientId });
+            return;
+          }
+        } catch (e) {
+          lastErr = e.message || String(e);
+        }
+      }
+      throw new Error('下发重启失败: ' + lastErr);
     }
   }
 };
@@ -749,10 +1035,11 @@ export default {
   align-items: stretch;
 }
 
-.action-btn {
+.action-btn.full {
   width: 100%;
   height: 40px;
   font-size: 14px;
+  justify-content: center;
 }
 
 .action-btn.secondary {

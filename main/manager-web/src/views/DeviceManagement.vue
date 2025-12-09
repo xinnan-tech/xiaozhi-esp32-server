@@ -135,6 +135,8 @@
       :is="generateModalComponent"
       :visible.sync="showGenerateModal"
       :config="generateConfig"
+      :device="selectedDeviceForTheme"
+      :agent-id="currentAgentId"
     />
 
   </div>
