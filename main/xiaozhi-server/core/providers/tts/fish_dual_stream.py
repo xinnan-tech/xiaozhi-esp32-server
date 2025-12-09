@@ -73,7 +73,6 @@ class TTSProvider(TTSProviderBase):
         
         # WebSocket connection state
         self.ws = None
-        self._ws_connected = False
         self._session_active = False
         self._monitor_task = None
         
@@ -103,12 +102,11 @@ class TTSProvider(TTSProviderBase):
         except Exception as e:
             logger.bind(tag=TAG).error(f"Failed to open audio channels: {str(e)}")
             self.ws = None
-            self._ws_connected = False 
             raise
 
     async def _ensure_connection(self, max_retries: int = 2):
         """Ensure WebSocket connection is established with retry logic"""
-        if self.ws and self._ws_connected:
+        if self.ws:
             logger.bind(tag=TAG).debug("Using existing WebSocket connection")
             return
         
@@ -128,8 +126,9 @@ class TTSProvider(TTSProviderBase):
                     max_size=10 * 1024 * 1024,  # 10MB max message size
                     open_timeout=10,  # 10s connection timeout
                     close_timeout=5,  # 5s close timeout
+                    ping_interval=5,  # 5s ping interval
+                    ping_timeout=5,  # 5s ping timeout
                 )
-                self._ws_connected = True
                 
                 # Start response monitor task
                 if self._monitor_task is None or self._monitor_task.done():
@@ -345,28 +344,41 @@ class TTSProvider(TTSProviderBase):
 
     async def close(self):
         """Clean up WebSocket resources"""
-        self._session_active = False
-        self._ws_connected = False
+        try:
+            if self.ws and self._session_active:
+                stop_event = {"event": "stop"}
+                await self._send_event(stop_event)
+                logger.bind(tag=TAG).info("TTS session close")
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Failed to close session: {e}")
         
         # Cancel monitor task
-        if self._monitor_task:
+        if self._monitor_task and not self._monitor_task.done():
             try:
+                await asyncio.wait_for(self._monitor_task, timeout=2)
+            except asyncio.TimeoutError:
+                logger.bind(tag=TAG).warning("Monitor task timeout, need to force close the connection")
                 self._monitor_task.cancel()
-                await self._monitor_task
-            except asyncio.CancelledError:
-                pass
+                try:
+                    await self._monitor_task
+                except asyncio.CancelledError:
+                    pass
             except Exception as e:
                 logger.bind(tag=TAG).warning(f"Error canceling monitor task: {e}")
-            self._monitor_task = None
+            finally:
+                self._monitor_task = None
         
         # Close WebSocket
         if self.ws:
             try:
                 await self.ws.close()
-            except:
+            except websockets.ConnectionClosed:
+                logger.bind(tag=TAG).warning("WebSocket connection has already been closed")
+                pass
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"Failed to close WebSocket: {e}")
                 pass
             self.ws = None
-            self._ws_connected = False 
         
         await super().close()
 
@@ -436,7 +448,6 @@ class TTSProvider(TTSProviderBase):
                         self._session_active = False
                         self._process_before_stop_play_files()
                         self.ws = None
-                        self._ws_connected = False
                         self._first_sent = False
                         
                 except websockets.ConnectionClosed:
@@ -454,14 +465,13 @@ class TTSProvider(TTSProviderBase):
                 except:
                     pass
                 self.ws = None
-                self._ws_connected = False
                 
         finally:
             self._monitor_task = None
 
     async def _send_event(self, event: dict):
         """Send event to Fish Audio WebSocket using MessagePack serialization"""
-        if not self.ws or not self._ws_connected:
+        if not self.ws:
             logger.bind(tag=TAG).warning("WebSocket not connected, cannot send event")
             return
         
@@ -552,7 +562,6 @@ class TTSProvider(TTSProviderBase):
             self._first_sent = False
             # Clear connection state so _ensure_connection will create a new one
             self.ws = None
-            self._ws_connected = False
 
             
     async def text_to_speak(self, text, output_file):
@@ -579,5 +588,4 @@ class TTSProvider(TTSProviderBase):
                 except:
                     pass
                 self.ws = None
-                self._ws_connected = False 
             raise

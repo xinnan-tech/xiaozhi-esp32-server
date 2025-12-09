@@ -30,6 +30,7 @@ from concurrent.futures import ThreadPoolExecutor
 from core.utils.dialogue import Message, Dialogue
 from core.providers.asr.dto.dto import InterfaceType
 from core.providers.tts.dto.dto import MessageTag
+from core.providers.llm.base import LLMProviderBase
 from core.handle.textHandle import handleTextMessage
 from core.providers.tools.unified_tool_handler import UnifiedToolHandler
 from plugins_func.loadplugins import auto_import_modules
@@ -435,6 +436,10 @@ class ConnectionHandler:
             asyncio.run_coroutine_threadsafe(
                 self.asr.open_audio_channels(self), self.loop
             )
+
+            # prewarm LLM first connection
+            if isinstance(self.llm, LLMProviderBase):
+                self.llm.prewarm()     
 
             """加载记忆"""
             self._initialize_memory()

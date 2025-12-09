@@ -10,6 +10,11 @@ class LLMProviderBase(ABC):
         """LLM response generator"""
         pass
 
+    @abstractmethod
+    def prewarm(self):
+        """Prewarm the LLM model"""
+        pass
+
     def response_no_stream(self, system_prompt, user_prompt, **kwargs):
         try:
             # 构造对话格式

@@ -14,7 +14,7 @@ from core.utils.util import check_model_key
 from core.providers.llm.base import LLMProviderBase
 from types import SimpleNamespace
 import time
-
+from typing import List
 
 TAG = __name__
 logger = setup_logging()
@@ -39,12 +39,18 @@ class LLMProvider(LLMProviderBase):
             "frequency_penalty": (0, lambda x: round(float(x), 1)),
         }
 
-        provider = config.get("provider", None)
-        allow_fallback = config.get("allow_fallback", False)
-        reasoning_effort = config.get("reasoning_effort", None)
-        self.provider = provider
-        self.allow_fallback = allow_fallback
-        self.reasoning_effort = reasoning_effort
+        order = config.get("order", None)
+        allow_fallbacks = config.get("allow_fallbacks", False)
+        reasoning_effort = config.get("reasoning_effort", "none")
+        self._reasoning_effort = reasoning_effort
+
+        self._provider = None
+        if order is not None:
+            orders: List[str] = order.split(",")
+            self._provider = {
+                "order": orders, 
+                "allow_fallbacks": allow_fallbacks
+            }
 
         for param, (default, converter) in param_defaults.items():
             value = config.get(param)
@@ -66,6 +72,23 @@ class LLMProvider(LLMProviderBase):
             logger.bind(tag=TAG).error(model_key_msg)
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=httpx.Timeout(self.timeout))
 
+    def prewarm(self):
+
+        self.client.responses.create(
+            model=self.model_name,
+            input="test",
+            stream=True,
+            max_output_tokens=1,
+            temperature=0.0,
+            top_p=0.0,
+            reasoning={
+                "effort": self._reasoning_effort if self._reasoning_effort else "none"
+            },
+            extra_body={
+                "provider": self._provider
+            } if self._provider is not None else None
+        )
+
     def response(self, session_id, dialogue, **kwargs):
         try:
             responses = self.client.responses.create(
@@ -75,6 +98,12 @@ class LLMProvider(LLMProviderBase):
                 max_output_tokens=kwargs.get("max_tokens", self.max_tokens),
                 temperature=kwargs.get("temperature", self.temperature),
                 top_p=kwargs.get("top_p", self.top_p),
+                reasoning={
+                    "effort": self._reasoning_effort if self._reasoning_effort else "none"
+                },
+                extra_body={
+                    "provider": self._provider
+                } if self._provider is not None else None
             )
 
             for chunk in responses:
@@ -117,14 +146,11 @@ class LLMProvider(LLMProviderBase):
                 "temperature": self.temperature,
                 "top_p": self.top_p,
                 "reasoning": {
-                    "effort": self.reasoning_effort if self.reasoning_effort else "none"
+                    "effort": self._reasoning_effort if self._reasoning_effort else "none"
                 },
                 "extra_body": {
-                    "provider": {
-                        "allow_fallbacks": self.allow_fallback,
-                        "order": [self.provider] if self.provider else None,
-                    }
-                }
+                    "provider": self._provider
+                } if self._provider is not None else None
             }
 
             # 只有在有 tools 时才添加 tools 参数
