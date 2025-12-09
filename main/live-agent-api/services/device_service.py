@@ -141,6 +141,28 @@ class DeviceService:
         
         return await self._build_device_with_bindings(db, device)
     
+    async def set_default_agent(
+        self,
+        db: AsyncSession,
+        owner_id: str,
+        device_id: str,
+        agent_id: str
+    ) -> DeviceWithBindingsResponse:
+        """Set an agent as default for device"""
+        device = await Device.get_by_id(db, device_id)
+        if not device:
+            raise NotFoundException("Device not found")
+        if device.owner_id != owner_id:
+            raise BadRequestException("Device does not belong to you")
+        
+        # Verify binding exists
+        binding = await AgentDeviceBinding.get_binding(db, device_id, agent_id)
+        if not binding:
+            raise NotFoundException("Agent is not bound to this device")
+        
+        await AgentDeviceBinding.set_default(db, device_id, agent_id)
+        return await self._build_device_with_bindings(db, device)
+
     async def get_device_bound_agents(
         self,
         db: AsyncSession,
