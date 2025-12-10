@@ -85,7 +85,7 @@ async def main():
         working_memory_max_size=5,       # Max working memory capacity (small value to trigger memory transfer quickly)
         episodic_memory_refresh_rate=3,  # Episodic memory refresh rate
         output_dir="./memory_storage",   # Memory storage directory
-        number_of_retrieval_pieces=15,   # Number of retrieval pieces (must be >= 10, internal uses top_k-9)
+        number_of_retrieval_pieces=15,   # Number of retrieval pieces
         drop_threshold=0.1               # Similarity threshold
     )
     
@@ -477,4 +477,5 @@ if __name__ == "__main__":
     # Usage:
     # python example_usage.py          # Run full example
     # python example_usage.py simple   # Run simplified example
+
 
