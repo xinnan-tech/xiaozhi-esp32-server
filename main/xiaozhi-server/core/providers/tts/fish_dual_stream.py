@@ -126,8 +126,6 @@ class TTSProvider(TTSProviderBase):
                     max_size=10 * 1024 * 1024,  # 10MB max message size
                     open_timeout=10,  # 10s connection timeout
                     close_timeout=5,  # 5s close timeout
-                    ping_interval=5,  # 5s ping interval
-                    ping_timeout=5,  # 5s ping timeout
                 )
                 
                 # Start response monitor task
@@ -382,12 +380,39 @@ class TTSProvider(TTSProviderBase):
         
         await super().close()
 
+    def _cleanup_session_state(self, flush_opus: bool = True):
+        """Clean up session state after finish or abnormal exit
+        
+        Args:
+            flush_opus: Whether to flush remaining opus buffer (skip on abnormal exit)
+        """
+        if flush_opus:
+            # Flush remaining opus buffer
+            self.opus_encoder.encode_pcm_to_opus_stream(
+                b'', end_of_stream=True, callback=self.handle_opus
+            )
+        
+        # Send LAST to trigger client stop and final report
+        self.tts_audio_queue.put(TTSAudioDTO(
+            sentence_type=SentenceType.LAST,
+            audio_data=None,
+            text=None,
+            message_tag=self._message_tag,
+        ))
+        
+        # Clean up state
+        self._session_text_buffer = []
+        self.conn.tts_MessageText = None
+        self._session_active = False
+        self._process_before_stop_play_files()
+        self._first_sent = False
+
     async def _monitor_ws_response(self):
         """Monitor WebSocket responses - long running task (MessagePack serialization)"""
         try:
             while not self.conn.stop_event.is_set():
                 try:
-                    if not self.ws:
+                    if not self._session_active:
                         break
                     
                     msg = await self.ws.recv()
@@ -428,44 +453,25 @@ class TTSProvider(TTSProviderBase):
                         else:
                             logger.bind(tag=TAG).debug(f"TTS session finished")
                         
-                        # Flush remaining opus buffer
-                        self.opus_encoder.encode_pcm_to_opus_stream(
-                            b'', end_of_stream=True, callback=self.handle_opus
-                        )
-                        
-                        # 发送 LAST 触发客户端 stop 和最终上报
-                        # 不再发送 FIRST，避免清空之前累积的音频
-                        self.tts_audio_queue.put(TTSAudioDTO(
-                            sentence_type=SentenceType.LAST,
-                            audio_data=None,
-                            text=None,
-                            message_tag=self._message_tag,
-                        ))
-                        # 清理状态
-                        self._session_text_buffer = []
-                        self.conn.tts_MessageText = None
-                        
-                        self._session_active = False
-                        self._process_before_stop_play_files()
-                        self.ws = None
-                        self._first_sent = False
-                        
-                except websockets.ConnectionClosed:
-                    logger.bind(tag=TAG).warning("WebSocket connection closed")
-                    break
+                        # Normal finish: flush opus and clean up state
+                        self._cleanup_session_state(flush_opus=True)
                 except Exception as e:
+                    if isinstance(e, websockets.ConnectionClosed):
+                        logger.bind(tag=TAG).warning("WebSocket connection closed unexpectedly")
                     logger.bind(tag=TAG).error(f"Error in monitor task: {e}")
-                    traceback.print_exc()
+                    # Abnormal exit: clean up state without flushing opus
+                    if self._session_active:
+                        self._cleanup_session_state(flush_opus=False)
                     break
             
-            # Clean up on exit
+            # Clean up WebSocket on exit (regardless of exit reason)
             if self.ws:
                 try:
                     await self.ws.close()
-                except:
-                    pass
-                self.ws = None
-                
+                except websockets.ConnectionClosed:
+                    logger.bind(tag=TAG).debug("WebSocket connection has already been closed")
+                finally:
+                    self.ws = None
         finally:
             self._monitor_task = None
 
@@ -560,8 +566,6 @@ class TTSProvider(TTSProviderBase):
             self._session_active = False
             self._session_text_buffer = []
             self._first_sent = False
-            # Clear connection state so _ensure_connection will create a new one
-            self.ws = None
 
             
     async def text_to_speak(self, text, output_file):
