@@ -230,6 +230,26 @@ export default {
   'voicePrintDialog.requiredName': 'Bitte Namen eingeben',
   'voicePrintDialog.requiredAudioVector': 'Bitte Audio-Vektor auswählen',
 
+  // Context provider dialog related
+  'contextProviderDialog.title': 'Quelle bearbeiten',
+  'contextProviderDialog.noContextApi': 'Keine Kontext-API',
+  'contextProviderDialog.add': 'Hinzufügen',
+  'contextProviderDialog.apiUrl': 'API-URL',
+  'contextProviderDialog.apiUrlPlaceholder': 'http://api.example.com/data',
+  'contextProviderDialog.requestHeaders': 'Anfrage-Header',
+  'contextProviderDialog.headerKeyPlaceholder': 'Schlüssel',
+  'contextProviderDialog.headerValuePlaceholder': 'Wert',
+  'contextProviderDialog.noHeaders': 'Keine Headers',
+  'contextProviderDialog.addHeader': 'Header hinzufügen',
+  'contextProviderDialog.cancel': 'Abbrechen',
+  'contextProviderDialog.confirm': 'Bestätigen',
+
+  // Role config page - context provider related
+  'roleConfig.contextProvider': 'Kontext',
+  'roleConfig.contextProviderSuccess': '{count} Quellen erfolgreich hinzugefügt.',
+  'roleConfig.contextProviderDocLink': 'Wie man Kontextquellen bereitstellt',
+  'roleConfig.editContextProvider': 'Quelle bearbeiten',
+
   // Voice print page related
   'voicePrint.pageTitle': 'Stimmabdruck-Erkennung',
   'voicePrint.name': 'Name',

@@ -230,6 +230,26 @@ export default {
   'voicePrintDialog.requiredName': 'Please enter name',
   'voicePrintDialog.requiredAudioVector': 'Please select audio vector',
 
+  // Context provider dialog related
+  'contextProviderDialog.title': 'Edit Source',
+  'contextProviderDialog.noContextApi': 'No Context API',
+  'contextProviderDialog.add': 'Add',
+  'contextProviderDialog.apiUrl': 'API URL',
+  'contextProviderDialog.apiUrlPlaceholder': 'http://api.example.com/data',
+  'contextProviderDialog.requestHeaders': 'Request Headers',
+  'contextProviderDialog.headerKeyPlaceholder': 'Key',
+  'contextProviderDialog.headerValuePlaceholder': 'Value',
+  'contextProviderDialog.noHeaders': 'No Headers',
+  'contextProviderDialog.addHeader': 'Add Header',
+  'contextProviderDialog.cancel': 'Cancel',
+  'contextProviderDialog.confirm': 'Confirm',
+
+  // Role config page - context provider related
+  'roleConfig.contextProvider': 'Context',
+  'roleConfig.contextProviderSuccess': 'Successfully added {count} sources.',
+  'roleConfig.contextProviderDocLink': 'How to deploy context provider',
+  'roleConfig.editContextProvider': 'Edit Source',
+
   // Voice print page related
   'voicePrint.pageTitle': 'Voice Print Recognition',
   'voicePrint.name': 'Name',

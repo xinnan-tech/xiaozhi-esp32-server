@@ -55,17 +55,17 @@
                         </div>
                       </div>
                     </el-form-item>
-                    <el-form-item label="上下文源：" class="context-provider-item">
+                    <el-form-item :label="$t('roleConfig.contextProvider') + '：'" class="context-provider-item">
                       <div style="display: flex; align-items: center; justify-content: space-between;">
                         <span style="color: #606266; font-size: 13px;">
-                          已成功添加 {{ currentContextProviders.length }} 个源。<a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/context-provider-integration.md" target="_blank" class="doc-link">如何部署上下文源</a>
+                          {{ $t('roleConfig.contextProviderSuccess', { count: currentContextProviders.length }) }}<a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/context-provider-integration.md" target="_blank" class="doc-link">{{ $t('roleConfig.contextProviderDocLink') }}</a>
                         </span>
                         <el-button
                           class="edit-function-btn"
                           size="small"
                           @click="openContextProviderDialog"
                         >
-                          编辑源
+                          {{ $t('roleConfig.editContextProvider') }}
                         </el-button>
                       </div>
                     </el-form-item>

@@ -230,6 +230,26 @@ export default {
   'voicePrintDialog.requiredName': '请输入姓名',
   'voicePrintDialog.requiredAudioVector': '请选择音频向量',
 
+  // 上下文源对话框相关
+  'contextProviderDialog.title': '编辑源',
+  'contextProviderDialog.noContextApi': '暂无上下文API',
+  'contextProviderDialog.add': '添加',
+  'contextProviderDialog.apiUrl': '接口地址',
+  'contextProviderDialog.apiUrlPlaceholder': 'http://api.example.com/data',
+  'contextProviderDialog.requestHeaders': '请求头',
+  'contextProviderDialog.headerKeyPlaceholder': 'Key',
+  'contextProviderDialog.headerValuePlaceholder': 'Value',
+  'contextProviderDialog.noHeaders': '暂无 Headers',
+  'contextProviderDialog.addHeader': '添加 Header',
+  'contextProviderDialog.cancel': '取消',
+  'contextProviderDialog.confirm': '确定',
+
+  // 角色配置页面-上下文源相关
+  'roleConfig.contextProvider': '上下文源',
+  'roleConfig.contextProviderSuccess': '已成功添加 {count} 个源。',
+  'roleConfig.contextProviderDocLink': '如何部署上下文源',
+  'roleConfig.editContextProvider': '编辑源',
+
   // 声纹页面相关
   'voicePrint.pageTitle': '声纹识别',
   'voicePrint.name': '姓名',

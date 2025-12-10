@@ -29,7 +29,7 @@ class ContextDataProvider:
             try:
                 headers = headers.copy() if isinstance(headers, dict) else {}
                 # 将 device_id 添加到请求头
-                headers["device_id"] = device_id
+                headers["device-id"] = device_id
                 
                 # 发送请求
                 response = httpx.get(url, headers=headers, timeout=3)

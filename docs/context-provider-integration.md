@@ -27,7 +27,7 @@
 为了让小智正确解析数据，您的 API 需要满足以下规范：
 
 - **请求方式**：`GET`
-- **请求头**：系统会自动添加 `device_id` 字段到 Request Header。
+- **请求头**：系统会自动添加 `device-id` 字段到 Request Header。
 - **响应格式**：必须返回 JSON 格式，且包含 `code` 和 `data` 字段。
 
 ### 响应示例
@@ -143,7 +143,7 @@ class MockRequestHandler(http.server.SimpleHTTPRequestHandler):
         # 路径参数风格: /health
         # device_id 从 Header 获取
         if path == "/health":
-            device_id = self.headers.get("device_id", "unknown_device")
+            device_id = self.headers.get("device-id", "unknown_device")
             print(f"device_id: {device_id}")
             response_data = {
                 "code": 0,
@@ -182,7 +182,7 @@ class MockRequestHandler(http.server.SimpleHTTPRequestHandler):
         # 参数风格: /device/info
         # device_id 从 Header 获取
         elif path == "/device/info":
-            device_id = self.headers.get("device_id", "unknown_device")
+            device_id = self.headers.get("device-id", "unknown_device")
             response_data = {
                 "code": 0,
                 "msg": "success",

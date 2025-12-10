@@ -114,8 +114,9 @@ wakeup_words:
 # 详细教程 https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-integration.md
 mcp_endpoint: 你的接入点 websocket地址
 
-# 数据上下文填充配置
+# 上下文源配置
 # 用于在系统提示词中注入动态数据，如健康数据、股票信息等
+# 可以添加多个上下文源
 context_providers:
   - url: ""
     headers:

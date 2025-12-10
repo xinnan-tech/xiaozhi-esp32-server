@@ -50,7 +50,9 @@ class BaseASRTester:
         raise NotImplementedError
 
     def _calculate_result(self, service_name, latencies, test_count):
-        valid_latencies = [l for l in latencies if l > 0]
+        """计算测试结果（修复：正确处理None值，剔除失败测试）"""
+        # 剔除None值（失败的测试）和无效延迟，只统计有效延迟
+        valid_latencies = [l for l in latencies if l is not None and l > 0]
         if valid_latencies:
             avg_latency = sum(valid_latencies) / len(valid_latencies)
             status = f"成功（{len(valid_latencies)}/{test_count}次有效）"
@@ -64,16 +66,45 @@ class DoubaoStreamASRTester(BaseASRTester):
     def __init__(self):
         super().__init__("DoubaoStreamASR")
 
-    def _generate_header(self):
+    def _generate_header(
+        self,
+        version=0x01,
+        message_type=0x01,
+        message_type_specific_flags=0x00,
+        serial_method=0x01,
+        compression_type=0x01,
+        reserved_data=0x00,
+        extension_header: bytes = b"",
+    ):
+        """生成协议头（修复：使用正确的Header格式）"""
         header = bytearray()
-        header.append((0x01 << 4) | 0x01)
-        header.append((0x01 << 4) | 0x00)
-        header.append((0x01 << 4) | 0x01)
-        header.append(0x00)
+        header_size = int(len(extension_header) / 4) + 1
+        header.append((version << 4) | header_size)
+        header.append((message_type << 4) | message_type_specific_flags)
+        header.append((serial_method << 4) | compression_type)
+        header.append(reserved_data)
+        header.extend(extension_header)
         return header
 
     def _generate_audio_default_header(self):
-        return self._generate_header()
+        """生成音频数据Header"""
+        return self._generate_header(
+            version=0x01,
+            message_type=0x02,
+            message_type_specific_flags=0x00,  # 普通音频帧
+            serial_method=0x01,
+            compression_type=0x01,
+        )
+
+    def _generate_last_audio_header(self):
+        """生成最后一帧音频的Header（标记音频结束）"""
+        return self._generate_header(
+            version=0x01,
+            message_type=0x02,
+            message_type_specific_flags=0x02,  # 0x02表示这是最后一帧
+            serial_method=0x01,
+            compression_type=0x01,
+        )
 
     def _parse_response(self, res: bytes) -> dict:
         try:
@@ -110,6 +141,7 @@ class DoubaoStreamASRTester(BaseASRTester):
                 ws_url = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel"
                 appid = self.asr_config["appid"]
                 access_token = self.asr_config["access_token"]
+                cluster = self.asr_config.get("cluster", "volcengine_input_common")
                 uid = self.asr_config.get("uid", "streaming_asr_service")
 
                 start_time = time.time()
@@ -130,7 +162,7 @@ class DoubaoStreamASRTester(BaseASRTester):
                     close_timeout=10
                 ) as ws:
                     request_params = {
-                        "app": {"appid": appid, "token": access_token},
+                        "app": {"appid": appid, "cluster": cluster, "token": access_token},
                         "user": {"uid": uid},
                         "request": {
                             "reqid": str(uuid.uuid4()),
@@ -166,8 +198,9 @@ class DoubaoStreamASRTester(BaseASRTester):
                     if audio_data.startswith(b'RIFF'):
                         audio_data = audio_data[44:]
 
+                    # 发送音频数据（使用最后一帧标记，告诉服务端音频已结束）
                     payload = gzip.compress(audio_data)
-                    audio_request = bytearray(self._generate_audio_default_header())
+                    audio_request = bytearray(self._generate_last_audio_header())  # 修复：使用最后一帧Header
                     audio_request.extend(len(payload).to_bytes(4, "big"))
                     audio_request.extend(payload)
                     await ws.send(audio_request)
@@ -175,11 +208,12 @@ class DoubaoStreamASRTester(BaseASRTester):
                     first_chunk = await ws.recv()
                     latency = time.time() - start_time
                     latencies.append(latency)
+                    print(f"[豆包ASR] 第{i+1}次 首词延迟: {latency:.3f}s")
                     await ws.close()
 
             except Exception as e:
                 print(f"[豆包ASR] 第{i+1}次测试失败: {str(e)}")
-                latencies.append(0)
+                latencies.append(None)
 
         return self._calculate_result("豆包流式ASR", latencies, test_count)
 
@@ -189,11 +223,12 @@ class QwenASRFlashTester(BaseASRTester):
         super().__init__("Qwen3ASRFlash")
 
     async def _test_single(self, audio_file_info):
-        start_time = time.time()
         temp_file_path = None
 
         try:
             audio_data = audio_file_info['data']
+
+            # 优化：将临时文件准备工作移到计时前，减少磁盘IO对性能测试的影响
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
                 temp_file_path = f.name
 
@@ -220,6 +255,9 @@ class QwenASRFlashTester(BaseASRTester):
                 raise RuntimeError("未安装 dashscope 库")
 
             dashscope.api_key = api_key
+
+            # 统一计时起点：在API调用前开始计时（但文件准备已完成）
+            start_time = time.time()
 
             response = dashscope.MultiModalConversation.call(
                 model="qwen3-asr-flash",
@@ -257,10 +295,10 @@ class QwenASRFlashTester(BaseASRTester):
                 # print(f"\n[通义ASR] 开始第 {i+1} 次测试...")
                 latency = await self._test_single(self.test_audio_files[0])
                 latencies.append(latency)
-                # print(f"[通义ASR] 第{i+1}次成功 延迟: {latency:.3f}s")
+                print(f"[通义ASR] 第{i+1}次 首词延迟: {latency:.3f}s")
             except Exception as e:
                 # print(f"[通义ASR] 第{i+1}次测试失败: {str(e)}")
-                latencies.append(0)
+                latencies.append(None)
 
         return self._calculate_result("通义千问ASR", latencies, test_count)
 
@@ -268,134 +306,115 @@ class QwenASRFlashTester(BaseASRTester):
 class XunfeiStreamASRTester(BaseASRTester):
     def __init__(self):
         super().__init__("XunfeiStreamASR")
-        
+
     def _create_url(self):
-        """生成讯飞ASR认证URL"""
-        url = 'ws://iat.cn-huabei-1.xf-yun.com/v1'
-        # 生成RFC1123格式的时间戳
+        url = "wss://iat-api.xfyun.cn/v2/iat"
         now = datetime.now()
         date = format_date_time(mktime(now.timetuple()))
 
-        # 拼接字符串
-        signature_origin = "host: " + "iat.cn-huabei-1.xf-yun.com" + "\n"
-        signature_origin += "date: " + date + "\n"
-        signature_origin += "GET " + "/v1 " + "HTTP/1.1"
+        signature_origin = f"host: iat-api.xfyun.cn\ndate: {date}\nGET /v2/iat HTTP/1.1"
+        signature_sha = hmac.new(
+            self.asr_config["api_secret"].encode('utf-8'),
+            signature_origin.encode('utf-8'),
+            hashlib.sha256
+        ).digest()
+        signature_sha = base64.b64encode(signature_sha).decode()
 
-        # 进行hmac-sha256进行加密
-        signature_sha = hmac.new(self.asr_config["api_secret"].encode('utf-8'), signature_origin.encode('utf-8'),
-                                 digestmod=hashlib.sha256).digest()
-        signature_sha = base64.b64encode(signature_sha).decode(encoding='utf-8')
+        authorization_origin = f'api_key="{self.asr_config["api_key"]}", algorithm="hmac-sha256", headers="host date request-line", signature="{signature_sha}"'
+        authorization = base64.b64encode(authorization_origin.encode()).decode()
 
-        authorization_origin = "api_key=\"%s\", algorithm=\"%s\", headers=\"%s\", signature=\"%s\"" % (
-            self.asr_config["api_key"], "hmac-sha256", "host date request-line", signature_sha)
-        authorization = base64.b64encode(authorization_origin.encode('utf-8')).decode(encoding='utf-8')
+        v = {"authorization": authorization, "date": date, "host": "iat-api.xfyun.cn"}
+        return url + "?" + parse.urlencode(v)
 
-        # 将请求的鉴权参数组合为字典
-        v = {
-            "authorization": authorization,
-            "date": date,
-            "host": "iat.cn-huabei-1.xf-yun.com"
-        }
-
-        # 拼接鉴权参数，生成url
-        url = url + '?' + parse.urlencode(v)
-        return url
-    
-    async def test(self, test_count=5):
+    async def test(self, test_count: int = 5):
         if not self.test_audio_files:
             return {"name": "讯飞流式ASR", "latency": 0, "status": "失败: 未找到测试音频"}
         if not self.asr_config:
             return {"name": "讯飞流式ASR", "latency": 0, "status": "失败: 未配置"}
-        
-        # 检查必要的配置参数
-        required_keys = ["app_id", "api_key", "api_secret"]
-        for key in required_keys:
-            if key not in self.asr_config:
-                return {"name": "讯飞流式ASR", "latency": 0, "status": f"失败: 缺少配置项 {key}"}
-    
+
+        required = ["app_id", "api_key", "api_secret"]
+        for k in required:
+            if k not in self.asr_config:
+                return {"name": "讯飞流式ASR", "latency": 0, "status": f"失败: 缺少配置 {k}"}
+
         latencies = []
-        STATUS_FIRST_FRAME = 0
-        
+        frame_size = 1280
+        audio_raw = self.test_audio_files[0]['data']
+        if audio_raw.startswith(b'RIFF'):
+            audio_raw = audio_raw[44:]
+
         for i in range(test_count):
             try:
-                # 生成认证URL
-                ws_url = self._create_url()
-                
-                # 获取音频数据
-                audio_data = self.test_audio_files[0]['data']
-                if audio_data.startswith(b'RIFF'):
-                    audio_data = audio_data[44:]  # 跳过WAV文件头
-                
-                # 识别参数
-                iat_params = {
-                    "domain": self.asr_config.get("domain", "slm"),
-                    "language": self.asr_config.get("language", "zh_cn"),
-                    "accent": self.asr_config.get("accent", "mandarin"),
-                    "dwa": self.asr_config.get("dwa", "wpgs"),
-                    "result": {
-                        "encoding": "utf8",
-                        "compress": "raw",
-                        "format": "plain"
-                    }
-                }
-                
-                # 准备首帧数据
-                first_frame_data = {
-                    "header": {
-                        "status": STATUS_FIRST_FRAME,
-                        "app_id": self.asr_config["app_id"]
-                    },
-                    "parameter": {
-                        "iat": iat_params
-                    },
-                    "payload": {
-                        "audio": {
-                            "audio": base64.b64encode(audio_data[:960]).decode('utf-8'),
-                            "sample_rate": 16000,
-                            "encoding": "raw"
-                        }
-                    }
-                }
-                
-                # 启动连接并测量时间
                 start_time = time.time()
-                
+                ws_url = self._create_url()
+
                 async with websockets.connect(
                     ws_url,
-                    max_size=1000000000,
+                    additional_headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+                    max_size=1 << 30,
                     ping_interval=None,
                     ping_timeout=None,
                     close_timeout=30,
                 ) as ws:
-                    # 发送首帧数据
-                    await ws.send(json.dumps(first_frame_data, ensure_ascii=False))
-                    print(f"[讯飞ASR] 第{i+1}次测试：已发送首帧，等待响应...")
-                    
-                    # 直接等待第一个响应并计算延迟
-                    # 参考豆包和通义千问的实现方式，简化逻辑
-                    response_received = False
-                    while not response_received:
-                        try:
-                            # 设置较大的超时时间
-                            response = await asyncio.wait_for(ws.recv(), timeout=30.0)
-                            
-                            # 收到响应立即计算延迟，不管内容是什么
-                            # 这样可以准确测量首包到达时间
-                            latency = time.time() - start_time
-                            latencies.append(latency)
-                            response_received = True
-                            
-                            print(f"[讯飞ASR] 第{i+1}次测试：收到首包响应，延迟: {latency:.3f}s")
+
+                    # 第一帧：移除 punc 字段，避免未知参数错误
+                    await ws.send(json.dumps({
+                        "common": {"app_id": self.asr_config["app_id"]},
+                        "business": {
+                            "domain": "iat",
+                            "language": "zh_cn",
+                            "accent": "mandarin",
+                            "dwa": "wpgs",
+                            "vad_eos": 5000
+                            # 已移除 "punc": True
+                        },
+                        "data": {
+                            "status": 0,
+                            "format": "audio/L16;rate=16000",
+                            "encoding": "raw",
+                            "audio": base64.b64encode(audio_raw[:frame_size]).decode()
+                        }
+                    }, ensure_ascii=False))
+
+                    # 后续所有帧
+                    pos = frame_size
+                    while pos < len(audio_raw):
+                        chunk = audio_raw[pos:pos + frame_size]
+                        status = 2 if (pos + frame_size >= len(audio_raw)) else 1
+                        await ws.send(json.dumps({
+                            "data": {
+                                "status": status,
+                                "format": "audio/L16;rate=16000",
+                                "encoding": "raw",
+                                "audio": base64.b64encode(chunk).decode()
+                            }
+                        }, ensure_ascii=False))
+                        if status == 2:
                             break
-                        except asyncio.TimeoutError:
-                            print(f"[讯飞ASR] 第{i+1}次测试：响应超时")
-                            raise Exception("获取响应超时")
+                        pos += frame_size
+
+                    # 接收首词
+                    first_token = True
+                    async for message in ws:
+                        data = json.loads(message)
+                        if data.get("code") != 0:
+                            raise Exception(f"讯飞错误: {data.get('message')}")
+
+                        ws_result = data.get("data", {}).get("result", {}).get("ws")
+                        if ws_result:
+                            text = "".join(cw.get("w", "") for seg in ws_result for cw in seg.get("cw", []))
+                            if text.strip() and first_token:
+                                latency = time.time() - start_time
+                                latencies.append(latency)
+                                print(f"[讯飞ASR] 第{i+1}次 首词延迟: {latency:.3f}s")
+                                first_token = False
+                                break
+
             except Exception as e:
                 print(f"[讯飞ASR] 第{i+1}次测试失败: {str(e)}")
-                latencies.append(0)
-        
-        return self._calculate_result("讯飞流式ASR", latencies, test_count)
+                latencies.append(None)
 
+        return self._calculate_result("讯飞流式ASR", latencies, test_count)
 class ASRPerformanceSuite:
     def __init__(self):
         self.testers = []
@@ -438,8 +457,9 @@ class ASRPerformanceSuite:
 
         print(tabulate(table_data, headers=["ASR服务", "首词延迟", "状态"], tablefmt="grid"))
         print("\n测试说明：")
-        print("- 测量从发送请求到接收第一个有效识别文本的时间")
-        print("- 超时控制: DashScope 默认超时，豆包 WebSocket 超时10秒")
+        print("- 计时起点: 建立连接前（包含握手、发送音频、接收首个识别结果全流程）")
+        print("- 通义千问优化: 临时文件准备在计时前完成，减少磁盘IO对测试的影响")
+        print("- 错误处理: 失败的测试不计入平均值，只统计成功测试的延迟")
         print("- 排序规则: 成功的按延迟升序，失败的排在后面")
 
     async def run(self, test_count=5):

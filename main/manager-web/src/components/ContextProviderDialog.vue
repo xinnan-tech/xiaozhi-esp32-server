@@ -2,14 +2,14 @@
   <el-dialog
     :visible.sync="dialogVisible"
     width="900px"
-    title="编辑源"
+    :title="$t('contextProviderDialog.title')"
     :close-on-click-modal="false"
     custom-class="context-provider-dialog"
     append-to-body
   >
     <div class="dialog-content">
-      <el-empty v-if="localProviders.length === 0" description="暂无上下文API">
-        <el-button type="primary" icon="el-icon-plus" @click="addProvider(0)">添加</el-button>
+      <el-empty v-if="localProviders.length === 0" :description="$t('contextProviderDialog.noContextApi')">
+        <el-button type="primary" icon="el-icon-plus" @click="addProvider(0)">{{ $t('contextProviderDialog.add') }}</el-button>
       </el-empty>
 
       <div
@@ -20,10 +20,10 @@
         <el-card class="provider-card" shadow="hover" :body-style="{ padding: '15px 20px' }">
           <!-- URL Row -->
           <div class="input-row">
-            <span class="label-text">接口地址</span>
+            <span class="label-text">{{ $t('contextProviderDialog.apiUrl') }}</span>
             <el-input
               v-model="provider.url"
-              placeholder="http://api.example.com/data"
+              :placeholder="$t('contextProviderDialog.apiUrlPlaceholder')"
               size="small"
               class="flex-1"
             ></el-input>
@@ -31,7 +31,7 @@
 
           <!-- Headers Section -->
           <div class="headers-section">
-            <div class="label-text" style="margin-top: 6px;">请求头</div>
+            <div class="label-text" style="margin-top: 6px;">{{ $t('contextProviderDialog.requestHeaders') }}</div>
             <div class="headers-list">
               <div
                 v-for="(header, hIndex) in provider.headers"
@@ -40,14 +40,14 @@
               >
                 <el-input
                   v-model="header.key"
-                  placeholder="Key"
+                  :placeholder="$t('contextProviderDialog.headerKeyPlaceholder')"
                   size="small"
                   style="width: 180px;"
                 ></el-input>
                 <span class="separator">:</span>
                 <el-input
                   v-model="header.value"
-                  placeholder="Value"
+                  :placeholder="$t('contextProviderDialog.headerValuePlaceholder')"
                   size="small"
                   class="flex-1"
                 ></el-input>
@@ -73,13 +73,13 @@
               </div>
               <!-- Empty Headers State -->
               <div v-if="provider.headers.length === 0" class="header-row empty-header">
-                 <span class="no-header-text">暂无 Headers</span>
+                 <span class="no-header-text">{{ $t('contextProviderDialog.noHeaders') }}</span>
                  <el-button
                     type="text"
                     icon="el-icon-plus"
                     size="mini"
                     @click="addHeader(pIndex, 0)"
-                  >添加 Header</el-button>
+                  >{{ $t('contextProviderDialog.addHeader') }}</el-button>
               </div>
             </div>
           </div>
@@ -106,8 +106,8 @@
     </div>
 
     <span slot="footer" class="dialog-footer">
-      <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleConfirm">确定</el-button>
+      <el-button @click="dialogVisible = false">{{ $t('contextProviderDialog.cancel') }}</el-button>
+      <el-button type="primary" @click="handleConfirm">{{ $t('contextProviderDialog.confirm') }}</el-button>
     </span>
   </el-dialog>
 </template>

@@ -60,7 +60,7 @@ class PromptManager:
         self.cache_manager = cache_manager
         self.CacheType = CacheType
         
-        # 初始化数据上下文填充
+        # 初始化上下文源
         from core.utils.context_provider import ContextDataProvider
         self.context_provider = ContextDataProvider(config, self.logger)
         self.context_data = {}

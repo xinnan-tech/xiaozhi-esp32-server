@@ -230,6 +230,26 @@ export default {
   'voicePrintDialog.requiredName': 'Vui lòng nhập tên',
   'voicePrintDialog.requiredAudioVector': 'Vui lòng chọn vector âm thanh',
 
+  // Context provider dialog related
+  'contextProviderDialog.title': 'Chỉnh sửa nguồn',
+  'contextProviderDialog.noContextApi': 'Không có API ngữ cảnh',
+  'contextProviderDialog.add': 'Thêm',
+  'contextProviderDialog.apiUrl': 'Địa chỉ API',
+  'contextProviderDialog.apiUrlPlaceholder': 'http://api.example.com/data',
+  'contextProviderDialog.requestHeaders': 'Header yêu cầu',
+  'contextProviderDialog.headerKeyPlaceholder': 'Khóa',
+  'contextProviderDialog.headerValuePlaceholder': 'Giá trị',
+  'contextProviderDialog.noHeaders': 'Không có Headers',
+  'contextProviderDialog.addHeader': 'Thêm Header',
+  'contextProviderDialog.cancel': 'Hủy bỏ',
+  'contextProviderDialog.confirm': 'Xác nhận',
+
+  // Role config page - context provider related
+  'roleConfig.contextProvider': 'Bối cảnh',
+  'roleConfig.contextProviderSuccess': 'Đã thêm thành công {count} nguồn.',
+  'roleConfig.contextProviderDocLink': 'Cách triển khai nguồn ngữ cảnh',
+  'roleConfig.editContextProvider': 'Chỉnh sửa nguồn',
+
   // Voice print page related
   'voicePrint.pageTitle': 'Nhận dạng dấu giọng nói',
   'voicePrint.name': 'Tên',

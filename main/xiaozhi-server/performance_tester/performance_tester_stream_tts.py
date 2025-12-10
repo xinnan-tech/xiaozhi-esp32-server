@@ -35,11 +35,12 @@ class StreamTTSPerformanceTester:
                 host = tts_config["host"]
                 ws_url = f"wss://{host}/ws/v1"
 
+                # 统一计时起点：在建立连接前开始计时
                 start_time = time.time()
                 async with websockets.connect(ws_url, extra_headers={"X-NLS-Token": token}) as ws:
                     task_id = str(uuid.uuid4())
                     message_id = str(uuid.uuid4())
-                    
+
                     start_request = {
                         "header": {
                             "message_id": message_id,
@@ -55,14 +56,15 @@ class StreamTTSPerformanceTester:
                             "volume": 50,
                             "speech_rate": 0,
                             "pitch_rate": 0,
+                            "enable_subtitle": True,
                         }
                     }
                     await ws.send(json.dumps(start_request))
-                    
+
                     start_response = json.loads(await ws.recv())
                     if start_response["header"]["name"] != "SynthesisStarted":
                         raise Exception("启动合成失败")
-                    
+
                     run_request = {
                         "header": {
                             "message_id": str(uuid.uuid4()),
@@ -74,22 +76,141 @@ class StreamTTSPerformanceTester:
                         "payload": {"text": text}
                     }
                     await ws.send(json.dumps(run_request))
-                    
+
                     while True:
                         response = await ws.recv()
                         if isinstance(response, bytes):
                             latency = time.time() - start_time
                             latencies.append(latency)
+                            print(f"[阿里云TTS] 第{i+1}次 首词延迟: {latency:.3f}s")
                             break
                         elif isinstance(response, str):
                             data = json.loads(response)
                             if data["header"]["name"] == "TaskFailed":
                                 raise Exception(f"合成失败: {data['payload']['error_info']}")
-                    
+
             except Exception as e:
-                latencies.append(0)
+                print(f"[阿里云TTS] 第{i+1}次测试失败: {str(e)}")
+                latencies.append(None)
         
         return self._calculate_result("阿里云TTS", latencies, test_count)
+
+    async def test_alibl_tts(self, text=None, test_count=5):
+        """测试阿里云百炼CosyVoice流式TTS首词延迟"""
+        text = text or self.test_texts[0]
+        latencies = []
+
+        for i in range(test_count):
+            try:
+                tts_config = self.config["TTS"]["AliBLTTS"]
+                api_key = tts_config["api_key"]
+                model = tts_config.get("model", "cosyvoice-v2")
+                voice = tts_config.get("voice", "longxiaochun_v2")
+                format_type = tts_config.get("format", "pcm")
+                sample_rate = int(tts_config.get("sample_rate", "24000"))
+
+                ws_url = "wss://dashscope.aliyuncs.com/api-ws/v1/inference/"
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "X-DashScope-DataInspection": "enable",
+                }
+
+                start_time = time.time()
+
+                async with websockets.connect(
+                    ws_url,
+                    additional_headers=headers,
+                    ping_interval=30,
+                    ping_timeout=10,
+                    close_timeout=10,
+                    max_size=10 * 1024 * 1024,
+                ) as ws:
+                    session_id = uuid.uuid4().hex
+
+                    # 1. 发送 run-task（启动任务）
+                    run_task_message = {
+                        "header": {
+                            "action": "run-task",
+                            "task_id": session_id,
+                            "streaming": "duplex",
+                        },
+                        "payload": {
+                            "task_group": "audio",
+                            "task": "tts",
+                            "function": "SpeechSynthesizer",
+                            "model": model,
+                            "parameters": {
+                                "text_type": "PlainText",
+                                "voice": voice,
+                                "format": format_type,
+                                "sample_rate": sample_rate,
+                                "volume": 50,
+                                "rate": 1.0,
+                                "pitch": 1.0,
+                            },
+                            "input": {}
+                        },
+                    }
+                    await ws.send(json.dumps(run_task_message))
+
+                    # 2. 等待 task-started 事件（关键！必须等这个再发文本）
+                    task_started = False
+                    while not task_started:
+                        msg = await ws.recv()
+                        if isinstance(msg, str):
+                            data = json.loads(msg)
+                            header = data.get("header", {})
+                            event = header.get("event")
+                            if event == "task-started":
+                                task_started = True
+                                print(f"[阿里云百炼TTS] 第{i+1}次 任务启动成功")
+                            elif event == "task-failed":
+                                raise Exception(f"启动失败: {header.get('error_message', '未知错误')}")
+
+                    # 3. 发送 continue-task（发送文本！这是正确动作）
+                    continue_task_message = {
+                        "header": {
+                            "action": "continue-task",  # 改回 continue-task
+                            "task_id": session_id,
+                            "streaming": "duplex",
+                        },
+                        "payload": {"input": {"text": text}},
+                    }
+                    await ws.send(json.dumps(continue_task_message))
+
+                    # 4. 发送 finish-task（结束任务）
+                    finish_task_message = {
+                        "header": {
+                            "action": "finish-task",
+                            "task_id": session_id,
+                            "streaming": "duplex",
+                        },
+                        "payload": {"input": {}}
+                    }
+                    await ws.send(json.dumps(finish_task_message))
+
+                    # 5. 等待第一个音频数据块
+                    while True:
+                        msg = await asyncio.wait_for(ws.recv(), timeout=15.0)
+                        if isinstance(msg, (bytes, bytearray)) and len(msg) > 0:
+                            latency = time.time() - start_time
+                            print(f"[阿里云百炼TTS] 第{i+1}次 首词延迟: {latency:.3f}s")
+                            latencies.append(latency)
+                            break
+                        elif isinstance(msg, str):
+                            data = json.loads(msg)
+                            event = data.get("header", {}).get("event")
+                            if event == "task-failed":
+                                raise Exception(f"合成失败: {data}")
+                            elif event == "task-finished":
+                                if not latencies or latencies[-1] is None:
+                                    raise Exception("任务结束但未收到音频")
+
+            except Exception as e:
+                print(f"[阿里云百炼TTS] 第{i+1}次失败: {str(e)}")
+                latencies.append(None)
+
+        return self._calculate_result("阿里云百炼TTS", latencies, test_count)
 
     async def test_doubao_tts(self, text=None, test_count=5):
         """测试火山引擎流式TTS首词延迟（测试多次取平均）"""
@@ -114,13 +235,12 @@ class StreamTTSPerformanceTester:
                 }
                 async with websockets.connect(ws_url, additional_headers=ws_header, max_size=1000000000) as ws:
                     session_id = uuid.uuid4().hex
-                    
+
                     # 发送会话启动请求
                     header = bytes([
-                        (0b0001 << 4) | 0b0001, 
-                        0b0001 << 4 | 0b100,     
-                        0b0001 << 4 | 0b0000,    
-                        0                         
+                        (0b0001 << 4) | 0b0001,  
+                        0b0001 << 4 | 0b1011,     
+                        0b0001 << 4 | 0b0000,
                     ])
                     optional = bytearray()
                     optional.extend((1).to_bytes(4, "big", signed=True))
@@ -129,13 +249,13 @@ class StreamTTSPerformanceTester:
                     optional.extend(session_id_bytes)
                     payload = json.dumps({"speaker": speaker}).encode()
                     await ws.send(header + optional + len(payload).to_bytes(4, "big", signed=True) + payload)
-                    
+
                     # 发送文本
                     header = bytes([
-                        (0b0001 << 4) | 0b0001, 
-                        0b0001 << 4 | 0b100,     
-                        0b0001 << 4 | 0b0000,    
-                        0                        
+                        (0b0001 << 4) | 0b0001,  
+                        0b0001 << 4 | 0b1011,    
+                        0b0001 << 4 | 0b0000,
+                        0
                     ])
                     optional = bytearray()
                     optional.extend((200).to_bytes(4, "big", signed=True))
@@ -144,13 +264,15 @@ class StreamTTSPerformanceTester:
                     optional.extend(session_id_bytes)
                     payload = json.dumps({"text": text, "speaker": speaker}).encode()
                     await ws.send(header + optional + len(payload).to_bytes(4, "big", signed=True) + payload)
-                    
+
                     first_chunk = await ws.recv()
                     latency = time.time() - start_time
                     latencies.append(latency)
-                    
+                    print(f"[火山引擎TTS] 第{i+1}次 首词延迟: {latency:.3f}s")
+
             except Exception as e:
-                latencies.append(0)
+                print(f"[火山引擎TTS] 第{i+1}次测试失败: {str(e)}")
+                latencies.append(None)
         
         return self._calculate_result("火山引擎TTS", latencies, test_count)
 
@@ -191,22 +313,24 @@ class StreamTTSPerformanceTester:
                     first_chunk = await ws.recv()
                     latency = time.time() - start_time
                     latencies.append(latency)
-                    
+                    print(f"[PaddleSpeechTTS] 第{i+1}次 首词延迟: {latency:.3f}s")
+
                     # 发送结束请求
                     end_request = {
                         "task": "tts",
                         "signal": "end"
                     }
                     await ws.send(json.dumps(end_request))
-                    
+
                     # 确保连接正常关闭
                     try:
                         await ws.recv()
                     except websockets.exceptions.ConnectionClosedOK:
                         pass
-                        
+
             except Exception as e:
-                latencies.append(0)
+                print(f"[PaddleSpeechTTS] 第{i+1}次测试失败: {str(e)}")
+                latencies.append(None)
         
         return self._calculate_result("PaddleSpeechTTS", latencies, test_count)
             
@@ -220,29 +344,32 @@ class StreamTTSPerformanceTester:
                 tts_config = self.config["TTS"]["IndexStreamTTS"]
                 api_url = tts_config.get("api_url")
                 voice = tts_config.get("voice")
-                
+
+                # 统一计时起点：在建立连接前开始计时
                 start_time = time.time()
-                
+
                 async with aiohttp.ClientSession() as session:
                     payload = {"text": text, "character": voice}
                     async with session.post(api_url, json=payload, timeout=10) as resp:
                         if resp.status != 200:
                             raise Exception(f"请求失败: {resp.status}, {await resp.text()}")
-                        
+
                         async for chunk in resp.content.iter_any():
                             data = chunk[0] if isinstance(chunk, (list, tuple)) else chunk
                             if not data:
                                 continue
-                            
+
                             latency = time.time() - start_time
                             latencies.append(latency)
+                            print(f"[IndexStreamTTS] 第{i+1}次 首词延迟: {latency:.3f}s")
                             resp.close()
                             break
                         else:
-                            latencies.append(0)
-                            
+                            latencies.append(None)
+
             except Exception as e:
-                latencies.append(0)
+                print(f"[IndexStreamTTS] 第{i+1}次测试失败: {str(e)}")
+                latencies.append(None)
         
         return self._calculate_result("IndexStreamTTS", latencies, test_count)
 
@@ -257,7 +384,8 @@ class StreamTTSPerformanceTester:
                 api_url = tts_config["api_url"]
                 access_token = tts_config["access_token"]
                 voice = tts_config["voice"]
-                
+
+                # 统一计时起点：在建立连接前开始计时
                 start_time = time.time()
                 async with aiohttp.ClientSession() as session:
                     params = {
@@ -273,21 +401,23 @@ class StreamTTSPerformanceTester:
                         "Authorization": f"Bearer {access_token}",
                         "Content-Type": "application/json",
                     }
-                    
+
                     async with session.get(api_url, params=params, headers=headers, timeout=10) as resp:
                         if resp.status != 200:
                             raise Exception(f"请求失败: {resp.status}, {await resp.text()}")
-                        
+
                         # 接收第一个数据块
                         async for _ in resp.content.iter_any():
                             latency = time.time() - start_time
                             latencies.append(latency)
+                            print(f"[LinkeraiTTS] 第{i+1}次 首词延迟: {latency:.3f}s")
                             break
                         else:
-                            latencies.append(0)
-                            
+                            latencies.append(None)
+
             except Exception as e:
-                latencies.append(0)
+                print(f"[LinkeraiTTS] 第{i+1}次测试失败: {str(e)}")
+                latencies.append(None)
         
         return self._calculate_result("LinkeraiTTS", latencies, test_count)
     
@@ -305,10 +435,9 @@ class StreamTTSPerformanceTester:
                 api_secret = tts_config["api_secret"]
                 api_url = tts_config.get("api_url", "wss://cbm01.cn-huabei-1.xf-yun.com/v1/private/mcd9m97e6")
                 voice = tts_config.get("voice", "x5_lingxiaoxuan_flow")
-                
                 # 生成认证URL
                 auth_url = self._create_xunfei_auth_url(api_key, api_secret, api_url)
-                
+                start_time = time.time()
                 async with websockets.connect(
                     auth_url,
                     ping_interval=30,
@@ -318,10 +447,7 @@ class StreamTTSPerformanceTester:
                 ) as ws:
                     # 构造请求
                     request = self._build_xunfei_request(app_id, text, voice)
-                    # 发送请求后立即计时，确保准确测量从发送文本到接收首块的时间
                     await ws.send(json.dumps(request))
-                    start_time = time.time()
-                    
                     # 等待第一个音频数据块
                     first_audio_received = False
                     while not first_audio_received:
@@ -329,14 +455,14 @@ class StreamTTSPerformanceTester:
                         data = json.loads(msg)
                         header = data.get("header", {})
                         code = header.get("code")
-                        
+
                         if code != 0:
                             message = header.get("message", "未知错误")
                             raise Exception(f"合成失败: {code} - {message}")
-                        
+
                         payload = data.get("payload", {})
                         audio_payload = payload.get("audio", {})
-                        
+
                         if audio_payload:
                             status = audio_payload.get("status", 0)
                             audio_data = audio_payload.get("audio", "")
@@ -344,10 +470,12 @@ class StreamTTSPerformanceTester:
                                 # 收到第一个音频数据块
                                 latency = time.time() - start_time
                                 latencies.append(latency)
+                                print(f"[讯飞TTS] 第{i+1}次 首词延迟: {latency:.3f}s")
                                 first_audio_received = True
                                 break
             except Exception as e:
-                latencies.append(0)
+                print(f"[讯飞TTS] 第{i+1}次测试失败: {str(e)}")
+                latencies.append(None)
         
         return self._calculate_result("讯飞TTS", latencies, test_count)
     
@@ -431,8 +559,9 @@ class StreamTTSPerformanceTester:
 
 
     def _calculate_result(self, service_name, latencies, test_count):
-        """计算测试结果"""
-        valid_latencies = [l for l in latencies if l > 0]
+        """计算测试结果（正确处理None值，剔除失败测试）"""
+        # 剔除失败的测试（None值和<=0延迟），只统计有效延迟
+        valid_latencies = [l for l in latencies if l is not None and l > 0]
         if valid_latencies:
             avg_latency = sum(valid_latencies) / len(valid_latencies)
             status = f"成功（{len(valid_latencies)}/{test_count}次有效）"
@@ -466,9 +595,10 @@ class StreamTTSPerformanceTester:
         ]
 
         print(tabulate(table_data, headers=["TTS服务", "首词延迟(秒)", "状态"], tablefmt="grid"))
-        print("\n测试说明：测量从发送请求到接收第一个音频数据块的时间，取多次测试平均值")
+        print("\n测试说明：测量从建立连接到接收第一个音频数据块的时间（包含握手、鉴权、发送文本），取多次测试平均值")
+        print("- 计时起点: 建立WebSocket/HTTP连接前（统一包含网络建连、握手、发送文本全流程）")
         print("- 超时控制: 单个请求最大等待时间为10秒")
-        print("- 错误处理: 无法连接和超时的列为网络错误")
+        print("- 错误处理: 失败的测试不计入平均值，只统计成功测试的延迟")
         print("- 排序规则: 按平均耗时从快到慢排序")
 
 
@@ -494,7 +624,12 @@ class StreamTTSPerformanceTester:
         # 测试阿里云TTS
         result = await self.test_aliyun_tts(test_text, test_count)
         self.results.append(result)
-        
+
+        # 测试阿里云百炼TTS
+        if self.config.get("TTS", {}).get("AliBLTTS"):
+            result = await self.test_alibl_tts(test_text, test_count)
+            self.results.append(result)
+
         # 测试火山引擎TTS
         result = await self.test_doubao_tts(test_text, test_count)
         self.results.append(result)
