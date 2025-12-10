@@ -1,0 +1,9 @@
+# Memory Chain Configuration Example
+# ===================================
+# Copy this file to config.yaml and fill in your settings
+
+model:
+  llm_model: "model_name"                    # LLM model name
+  openai_api_key: "your-openai-api-key-here"  # Your OpenAI API key
+  openai_base_url: "https://api.openai.com/v1" # OpenAI API base URL (change if using proxy)
+
