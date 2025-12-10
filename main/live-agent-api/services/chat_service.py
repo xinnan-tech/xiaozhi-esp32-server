@@ -7,10 +7,15 @@ from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from copy import deepcopy
 
+from config.logger import setup_logging
 from repositories.chat import ChatMessage as ChatMessageRepo
 from repositories.file import FileRepository
-from schemas.chat import ReportChatMessageRequest, ChatMessage as ChatMessageSchema
+from schemas.chat import ReportChatMessageRequest, ChatMessage as ChatMessageSchema, ClearChatResponse
 from utils.ulid import ULID
+from utils.exceptions import InternalServerException
+
+TAG = __name__
+logger = setup_logging(__name__)
 
 
 class ChatService:
@@ -136,6 +141,52 @@ class ChatService:
             ))
         
         return response_messages, next_cursor, has_more
+
+    async def clear_agent_chat(
+        self,
+        db: AsyncSession,
+        s3,
+        agent_id: str
+    ) -> ClearChatResponse:
+        """
+        Clear all chat data for an agent (messages and files)
+        
+        Note: Caller must verify agent ownership before calling this method
+        
+        Process:
+        1. Delete all chat messages from database
+        2. Delete all chat files from S3
+        
+        Args:
+            db: Database session
+            s3: S3 client
+            agent_id: Agent ID
+            
+        Returns:
+            ClearChatResponse with deletion counts
+            
+        Raises:
+            InternalServerException: If database or S3 deletion fails
+        """
+        # Delete all messages from database
+        try:
+            deleted_messages = await ChatMessageRepo.delete_by_agent(db, agent_id)
+        except Exception as e:
+            logger.bind(tag=TAG).exception(f"Failed to delete chat messages for agent {agent_id}")
+            raise InternalServerException(f"Failed to delete chat messages: {e}")
+        
+        # Delete all chat files from S3
+        try:
+            deleted_files = await FileRepository.delete_agent_chat_files(s3, agent_id)
+        except Exception as e:
+            logger.bind(tag=TAG).exception(f"Failed to delete chat files for agent {agent_id}")
+            raise InternalServerException(f"Failed to delete chat files: {e}")
+        
+        return ClearChatResponse(
+            agent_id=agent_id,
+            deleted_messages=deleted_messages,
+            deleted_files=deleted_files
+        )
 
 
 # Global singleton instance

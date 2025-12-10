@@ -7,6 +7,10 @@ from fastapi import UploadFile
 
 from config import settings
 from utils.ulid import ULID
+from config.logger import setup_logging
+
+TAG = __name__
+logger = setup_logging()
 
 
 class FileRepository:
@@ -183,4 +187,72 @@ class FileRepository:
         # Generate public URL
         url = f"{settings.S3_PUBLIC_BASE_URL}/{settings.S3_BUCKET_NAME}/{s3_key}"
         return url
+
+    @staticmethod
+    async def delete_folder(s3, folder_prefix: str) -> int:
+        """
+        Delete all files under a folder prefix in S3
+        
+        Args:
+            s3: S3 client
+            folder_prefix: S3 folder prefix (e.g., "chat-audio/agent_123/")
+            
+        Returns:
+            Number of deleted objects
+        """
+        deleted_count = 0
+        try:
+            # List all objects with the prefix
+            paginator = s3.get_paginator('list_objects_v2')
+            async for page in paginator.paginate(
+                Bucket=settings.S3_BUCKET_NAME,
+                Prefix=folder_prefix
+            ):
+                if 'Contents' not in page:
+                    continue
+                
+                # Delete objects in batch
+                objects_to_delete = [{'Key': obj['Key']} for obj in page['Contents']]
+                if objects_to_delete:
+                    chunk_size = 1000
+                    for i in range(0, len(objects_to_delete), chunk_size):
+                        batch = objects_to_delete[i:i + chunk_size]
+                        
+                        response = await s3.delete_objects(
+                            Bucket=settings.S3_BUCKET_NAME,
+                            Delete={'Objects': batch, 'Quiet': True}
+                        )
+                        
+                        if 'Errors' in response:
+                            for err in response['Errors']:
+                                logger.bind(tag=TAG).error(f"Failed to delete {err.get('Key')}: {err.get('Message')}")
+                        
+                        deleted_count += len(response.get('Deleted', []))
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Error deleting folder {folder_prefix}: {e}")
+            pass
+        
+        return deleted_count
+
+    @staticmethod
+    async def delete_agent_chat_files(s3, agent_id: str) -> int:
+        """
+        Delete all chat-related files for an agent (audio and files)
+        
+        Args:
+            s3: S3 client
+            agent_id: Agent ID
+            
+        Returns:
+            Total number of deleted files
+        """
+        total_deleted = 0
+        
+        # Delete chat audio files
+        total_deleted += await FileRepository.delete_folder(s3, f"chat-audio/{agent_id}/")
+        
+        # Delete chat files (if any other files stored under agent)
+        total_deleted += await FileRepository.delete_folder(s3, f"chat-files/{agent_id}/")
+        
+        return total_deleted
 

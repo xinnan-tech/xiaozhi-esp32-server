@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import UploadFile
 
 from repositories import AgentModel, Agent, AgentTemplate, FileRepository
-from utils.exceptions import NotFoundException, BadRequestException
+from utils.exceptions import NotFoundException, ForbiddenException
 from utils.ulid import generate_agent_id
 from schemas.agent import (
     AgentResponse, 
@@ -13,6 +13,8 @@ from schemas.agent import (
     AgentWithLatestMessage
 )
 from utils.ulid import generate_template_id
+
+
 class AgentService:
     """Agent service layer"""
     
@@ -117,6 +119,36 @@ class AgentService:
             raise NotFoundException("Agent not found")
         
         return agent
+
+    async def verify_ownership(
+        self,
+        db: AsyncSession,
+        agent_id: str,
+        owner_id: str
+    ) -> AgentModel:
+        """
+        Verify agent exists and belongs to user
+        
+        Args:
+            db: Database session
+            agent_id: Agent ID
+            owner_id: Expected owner user ID
+            
+        Returns:
+            AgentModel if verification passes
+            
+        Raises:
+            NotFoundException: If agent not found
+            ForbiddenException: If user doesn't own the agent
+        """
+        agent = await Agent.get_by_id(db, agent_id)
+        if not agent:
+            raise NotFoundException("Agent not found")
+
+        if agent.owner_id != owner_id:
+            raise ForbiddenException("You don't have permission to access this agent")
+        
+        return agent
     
     async def get_bindable_agents(
         self,
@@ -198,7 +230,7 @@ class AgentService:
         
         # Check ownership
         if agent.owner_id != owner_id:
-            raise BadRequestException("You don't have permission to update this agent")
+            raise ForbiddenException("You don't have permission to update this agent")
         
         # Prepare update data
         update_data = {}
@@ -246,7 +278,7 @@ class AgentService:
         
         # Check ownership
         if agent.owner_id != owner_id:
-            raise BadRequestException("You don't have permission to delete this agent")
+            raise ForbiddenException("You don't have permission to delete this agent")
         
         # Delete avatar from S3 if exists
         if agent.avatar_url:

@@ -3,7 +3,7 @@ Chat messages repository - Database operations for chat messages
 """
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
-from sqlalchemy import String, SmallInteger, TIMESTAMP, ForeignKey, Index, select, insert
+from sqlalchemy import String, SmallInteger, TIMESTAMP, ForeignKey, Index, select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import JSONB
@@ -184,4 +184,25 @@ class ChatMessage:
         
         result = await db.execute(query)
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def delete_by_agent(
+        db: AsyncSession,
+        agent_id: str
+    ) -> int:
+        """
+        Delete all messages for a specific agent
+        
+        Args:
+            db: Database session
+            agent_id: Agent ID
+            
+        Returns:
+            Number of deleted messages
+        """
+        result = await db.execute(
+            delete(ChatMessageModel).where(ChatMessageModel.agent_id == agent_id)
+        )
+        await db.commit()
+        return result.rowcount
 
