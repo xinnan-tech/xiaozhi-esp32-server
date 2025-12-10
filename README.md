@@ -1,6 +1,6 @@
 # O-Mem: Omni Memory System for Personalized, Long Horizon, Self-Evolving Agents
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Python3.9+](https://img.shields.io/badge/Python-3.9%2B-green)](https://www.python.org) [![arXiv Preprint](https://img.shields.io/badge/arXiv-2511.13593-b31b1b)]((https://arxiv.org/pdf/2511.13593))
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Python3.9+](https://img.shields.io/badge/Python-3.9%2B-green)](https://www.python.org) [![arXiv Preprint](https://img.shields.io/badge/arXiv-2511.13593-b31b1b)](https://arxiv.org/abs/2511.13593)
 [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Paper-yellow)](https://huggingface.co/papers/2511.13593)
 
 
