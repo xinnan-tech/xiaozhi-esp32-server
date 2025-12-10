@@ -24,47 +24,86 @@ Requirements:
 
 Output ONLY the text sample, no explanations or metadata."""
 
-    # Quick mode: concise persona for initial creation
-    PERSONA_QUICK_SYSTEM_PROMPT = """You are a creative character designer. Create a concise persona based on the name and optional image.
+    # ---------------------------------------------------------------------------
+    # 1. Quick Mode Prompt (Cold Start)
+    # Goal: Generate a structured profile + opening/closing from scratch.
+    # Key Update: Enforce "Relationships" and "Lore" retrieval for IPs.
+    # ---------------------------------------------------------------------------
+    PERSONA_QUICK_SYSTEM_PROMPT = """You are an expert Character Designer and Creative Director. 
+Your goal is to create a vivid, highly engaging, and logically consistent character profile based on the user's input (Name, Image, or Description).
 
-**instruction**: MUST start with "You are [name]..." - a brief role-play instruction (1-2 sentences, 25-40 words)
-- Describe their personality, vibe, and how they communicate
-- Write in second person as if instructing an AI to role-play this character
+**CRITICAL KNOWLEDGE RETRIEVAL:**
+- If the character is from a known IP (e.g., Pop Mart, Anime, Movies, Games), you MUST retrieve accurate canonical facts.
+- Specifically, you must identify their **official relationships** (friends, rivals, leaders) and **backstory**.
+- Example: If the user says "Labubu", you must mention "Zimomo" (Leader) and "Tycoco" (Victim/Friend).
 
-**voice_opening**: A characteristic greeting when starting a conversation (5-15 words)
-- How would this character say hello?
+**OUTPUT FORMAT (JSON ONLY):**
 
-**voice_closing**: A characteristic FAREWELL/GOODBYE when ending a conversation (5-15 words)
-- How would this character say goodbye? (NOT a catchphrase, but an actual farewell)
+Return a valid JSON object with the following fields:
+**CRITICAL FORMATTING RULE (JSON String):**
+- Inside the "instruction" field, you MUST use **double newlines** (`\\n\\n`) before every Markdown Header (`##`).
+- Failure to do this will break the UI rendering.
+- Example string content: "...end of sentence.\\n\\n## Next Section..."
 
-Example output:
-{
-  "instruction": "...",
-  "voice_opening": "...",
-  "voice_closing": "..."
-}
+1. "instruction": A structured text block. Use EXACTLY this format:
+   ### Identity
+   [Who they are]
 
-Output valid JSON only. Be creative and authentic."""
+   ### Personality & Speech
+   [Tone, speed, verbal tics like 'Haha', 'Umm']
 
-    # Optimize mode: detailed persona for iterative refinement
-    PERSONA_OPTIMIZE_SYSTEM_PROMPT = """You are a creative character designer who enriches AI agent personas.
+   ### Backstory & Worldview
+   [Origins and goals]
 
-Your task: Take the existing instruction and enhance it into a rich, narrative persona.
+   ### Key Relationships
+   - [Name] ([Role]): [Dynamic]
 
-DO NOT write like a typical AI prompt. Write like you're describing a REAL PERSON with soul and character.
+2. "voice_opening": A catchy, in-character first sentence to start a voice call (max 15 words). 
+   - Note: Can use an emotion tag like (happy) or (curious) at the start.
 
-Expand on these dimensions:
-- Who is this person? What's their vibe, their energy?
-- How do they talk? Street-smart? Elegant? Nerdy? Chill?
-- What's their worldview? What do they care about?
-- How do they connect with people? Warm, sarcastic, mysterious?
-- Give them a unique angle or perspective on life
+3. "voice_closing": A characteristic natural farewell to end a call (max 15 words).
+   - Note: NOT a catchphrase, but a conversation ender.
 
-Example style (Dave - The Witty Commentator, a Black stand-up comedian):
-"You are Dave, a stand-up comedian with a relaxed, soulful vibe and a sharp eye for the absurdities of life. You view the world through a lens of 'real talk' and observational humor, acting as the user's witty friend who loves to chat about pop culture, daily grinds, or random thoughts. Your style is street-smart and medium-sharp—playful enough to roast a situation, but always good-natured and safe, keeping the conversation flowing like a late-night backstage hang."
+**Example "instruction" value:**
+"### Identity\n Labubu, the mischievous elf.\n\n### Personality & Speech\n Hyperactive, laughs often.\n\n### Key Relationships\n- Zimomo (Leader): Respects but pranks him."
+"""
 
-Output ONLY the enhanced instruction text (100-200 words). No JSON, no explanations, no metadata."""
+    # ---------------------------------------------------------------------------
+    # 2. Optimize Mode Prompt (Refinement)
+    # Goal: Deepen the profile, fix hallucinations, and format for v5.0.
+    # Key Update: Chain of Thought to fix missing knowledge.
+    # ---------------------------------------------------------------------------
+    PERSONA_OPTIMIZE_SYSTEM_PROMPT = """You are a Senior Narrative Designer optimizing an AI Voice Agent.
 
+Your Task: Analyze the input profile and rewrite it into a "Character Bible" format.
+
+**OPTIMIZATION OBJECTIVES:**
+1. **Fact Check (IP Check):** If this is a famous character, verify the lore. Does the draft miss key friends/enemies? (e.g., If Labubu, ensure Zimomo is mentioned).
+2. **Deepen Tone:** Add specific "Speech Quirks" suitable for Voice TTS (e.g., pauses, specific interjections, sentence length).
+3. **Format:** Use standard Markdown headers (##) so it looks like a document, not code.
+
+**OUTPUT FORMAT:**
+Return ONLY the raw text profile (no JSON, no conversational filler). Use this Markdown format:
+
+**CRITICAL FORMATTING RULE:**
+- You MUST insert **two newlines** (`\\n\\n`) before every Header (e.g., `## Identity`).
+- Ensure there is a visible blank line between the end of a paragraph and the next Title.
+- Do NOT run text directly into a header (e.g., "text## Header" is FORBIDDEN).
+
+Example:
+### Identity
+[Who they are, core drive]
+
+### Personality & Speech
+[Tone, speed, catchphrases, verbal habits]
+
+### Backstory & Worldview
+[Origins, where they live, what they want]
+
+### Key Relationships
+- [Name]: [Connection/Attitude]
+- [Name]: [Connection/Attitude]
+"""
     async def generate_voice_sample_text_stream(
         self,
         openai_client: AsyncOpenAI,
@@ -147,8 +186,7 @@ Output ONLY the enhanced instruction text (100-200 words). No JSON, no explanati
         Returns:
             dict with instruction, voice_opening, voice_closing
         """
-        user_prompt = f"Create a persona for: {name}"
-        
+        user_prompt = f"Create a deep character profile for: {name}. Retrieve canonical lore if this is a known character."        
         messages = [
             {"role": "system", "content": self.PERSONA_QUICK_SYSTEM_PROMPT}
         ]
@@ -157,7 +195,7 @@ Output ONLY the enhanced instruction text (100-200 words). No JSON, no explanati
             messages.append({
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": user_prompt + "\n\nUse the image to inform the persona's character and style."},
+                    {"type": "text", "text": user_prompt + "\n\nAnalyze the image to determine their species, mood, and visual traits for the profile."},
                     {"type": "image_url", "image_url": {"url": f"data:{avatar_media_type};base64,{avatar_base64}"}}
                 ]
             })
@@ -167,8 +205,9 @@ Output ONLY the enhanced instruction text (100-200 words). No JSON, no explanati
         response = await openai_client.chat.completions.create(
             model=settings.QUICK_PERSONA_MODEL,
             messages=messages,
-            temperature=0.6,
-            max_tokens=500
+            temperature=0.7,
+            max_tokens=800,
+            response_format={"type": "json_object"},
         )
         
         content = response.choices[0].message.content.strip()
@@ -190,23 +229,18 @@ Output ONLY the enhanced instruction text (100-200 words). No JSON, no explanati
     ) -> AsyncGenerator[str, None]:
         """
         Optimize mode: Streaming generation of detailed instruction
-        
-        Args:
-            openai_client: OpenAI client instance
-            name: Agent name (required)
-            instruction: Existing instruction to enhance
-            avatar_base64: Optional base64-encoded avatar image
-            avatar_media_type: Optional media type of avatar (e.g., image/jpeg)
-            
-        Yields:
-            Enhanced instruction text chunks
         """
-        user_prompt = f"""Agent name: {name}
+        # Update: Explicitly ask to fix the input based on the Name
+        user_prompt = f"""Character Name: {name}
 
-Current instruction to enhance:
+Current Draft Profile:
 {instruction}
 
-Create a richer, more detailed persona."""
+Task:
+1. Identify if '{name}' is a known IP/Character.
+2. If yes, retrieve their real backstory and friends (e.g., if Labubu, add Zimomo).
+3. Rewrite the profile into the [Identity]/[Personality]/[Relationships] format.
+"""
         
         messages = [
             {"role": "system", "content": self.PERSONA_OPTIMIZE_SYSTEM_PROMPT}
@@ -216,7 +250,7 @@ Create a richer, more detailed persona."""
             messages.append({
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": user_prompt + "\n\nAlso consider the visual appearance from the image."},
+                    {"type": "text", "text": user_prompt + "\n\nUse the image to confirm visual details."},
                     {"type": "image_url", "image_url": {"url": f"data:{avatar_media_type};base64,{avatar_base64}"}}
                 ]
             })
@@ -233,11 +267,13 @@ Create a richer, more detailed persona."""
             
             async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
-                    logger.info(f"Optimize persona chunk time: {time.time()}")
+                    # Optional: Log timing only on first chunk to reduce spam
+                    # logger.info(f"Optimize persona chunk received")
                     yield chunk.choices[0].delta.content
                     
         except Exception as e:
             error_message = f"[ERROR] Failed to optimize persona: {str(e)}"
+            logger.error(error_message)
             yield f"\n\n{error_message}"
             raise
 
