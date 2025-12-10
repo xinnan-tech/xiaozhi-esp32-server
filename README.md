@@ -43,6 +43,9 @@ This enables **hierarchical, user-aware retrieval**: agents first reason about *
 ↓[Retriever] ← [Query: "What would this user care about?"]
 ↓[Context-Aware Prompting] → [LLM Agent]
 
+## 🔄O-Mem Workflow Visualization
+
+
 ## 🧩Project Structure
 
 ```
