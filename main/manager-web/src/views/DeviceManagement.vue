@@ -43,7 +43,12 @@
               </el-table-column>
               <el-table-column :label="$t('device.customTheme')" align="center" width="140">
                 <template #default="{ row }">
-                  <el-button type="text" size="mini" @click="handleCustomThemeConfig(row)">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    :disabled="row.deviceStatus !== 'online'"
+                    @click="handleCustomThemeConfig(row)"
+                  >
                     {{ $t('device.customThemeConfig') }}
                   </el-button>
                 </template>
@@ -228,6 +233,10 @@ export default {
   },
   methods: {
     handleCustomThemeConfig(row) {
+      if (row.deviceStatus !== 'online') {
+        this.$message.warning(this.$t('device.customThemeConfig') + '：设备不在线，无法配置');
+        return;
+      }
       this.selectedDeviceForTheme = row;
       this.customThemeDialogVisible = true;
     },

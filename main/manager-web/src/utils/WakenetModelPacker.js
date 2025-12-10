@@ -52,17 +52,30 @@ class WakenetModelPacker {
 
   /**
    * 从share/wakenet_model目录加载模型
-   * @param {string} modelName - 模型名称 (例如: wn9s_nihaoxiaozhi)
+   * @param {string} modelName - 模型名称 (例如: wn9s_nihaoxiaozhi 或 mn5q8_cn)
    * @returns {Promise<boolean>} 加载是否成功
    */
   async loadModelFromShare(modelName) {
     try {
-      // 所有wakenet模型都使用相同的文件名
-      const modelFiles = [
-        '_MODEL_INFO_',
-        'wn9_data',
-        'wn9_index'
-      ]
+      // 根据模型类型确定文件列表
+      let modelFiles = []
+      if (modelName.startsWith('mn')) {
+        // Multinet 模型 (例如: mn5q8_cn)
+        // 根据模型名称提取前缀 (mn5q8)
+        const prefix = modelName.split('_')[0]
+        modelFiles = [
+          '_MODEL_INFO_',
+          `${prefix}_data`,
+          `${prefix}_index`
+        ]
+      } else {
+        // Wakenet 模型 (例如: wn9s_nihaoxiaozhi)
+        modelFiles = [
+          '_MODEL_INFO_',
+          'wn9_data',
+          'wn9_index'
+        ]
+      }
 
       let loadedFiles = 0
       const failedFiles = []

@@ -26,8 +26,10 @@
     <div class="tab-content-wrapper">
       <CustomThemeWakewordConfig
         v-if="currentTab === 'wakeword'"
-        v-model="localValue.wakeword"
+        :value="localValue.wakeword"
         :chip-model="chipModel"
+        @input="handleWakewordInput"
+        @custom-wakeword-change="handleCustomWakewordChange"
       />
       <CustomThemeFontConfig
         v-if="currentTab === 'font'"
@@ -109,6 +111,9 @@ export default {
       return (tabId) => {
         switch (tabId) {
           case 'wakeword':
+            if (this.localValue.wakeword === 'custom') {
+              return !!(this.localValue.customWakeword && this.localValue.customWakeword.chinese && this.localValue.customWakeword.pinyin);
+            }
             return !!this.localValue.wakeword;
           case 'font':
             return this.localValue.font.preset || this.localValue.font.custom.file;
@@ -143,6 +148,29 @@ export default {
     },
     handlePrev() {
       this.$emit('prev');
+    },
+    handleWakewordInput(value) {
+      // 更新唤醒词值
+      const newValue = {
+        ...this.localValue,
+        wakeword: value
+      };
+      this.$emit('input', newValue);
+    },
+    handleCustomWakewordChange(data) {
+      // 创建新的配置对象，确保响应式更新
+      const newValue = {
+        ...this.localValue,
+        wakeword: data.wakeword
+      };
+      // 保存自定义唤醒词数据
+      if (data.customWakeword) {
+        newValue.customWakeword = data.customWakeword;
+      } else {
+        delete newValue.customWakeword;
+      }
+      // 触发更新
+      this.$emit('input', newValue);
     }
   }
 };

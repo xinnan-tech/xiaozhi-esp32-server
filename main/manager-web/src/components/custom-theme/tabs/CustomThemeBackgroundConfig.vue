@@ -59,9 +59,10 @@
 
             <div v-if="modelValue.light.backgroundType === 'image'" class="upload-center">
               <div class="upload-side">
-                <el-upload
-                  class="dashed-upload"
-                  action=""
+                <div v-if="!modelValue.light.backgroundImage" class="upload-wrapper">
+                  <el-upload
+                    class="dashed-upload"
+                    action=""
                     :auto-upload="false"
                     :on-change="(f)=>handleBgUpload(f, 'light')"
                     accept=".png,.jpg,.jpeg"
@@ -71,10 +72,41 @@
                     <i class="el-icon-upload"></i>
                     <div class="el-upload__text">{{ $t('device.customThemeBackgroundImageUpload') }}</div>
                   </el-upload>
-                <span class="file-name" v-if="modelValue.light.backgroundImage">{{ fileName(modelValue.light.backgroundImage) }}</span>
-                <el-button v-if="modelValue.light.backgroundImage" size="mini" type="text" @click="clearBg('light')">
-                  {{ $t('device.customThemeRemoveImage') }}
-                </el-button>
+                </div>
+                <div v-else class="preview-wrapper">
+                  <img 
+                    :src="modelValue.light.backgroundImage" 
+                    alt="背景预览"
+                    class="preview-image"
+                  />
+                  <div class="preview-overlay">
+                    <el-button 
+                      size="mini" 
+                      type="text" 
+                      icon="el-icon-refresh"
+                      @click="triggerReupload('light')"
+                      class="preview-btn"
+                    >
+                      {{ $t('device.customThemeBackgroundImageUpload') }}
+                    </el-button>
+                    <el-button 
+                      size="mini" 
+                      type="text" 
+                      icon="el-icon-delete"
+                      @click="clearBg('light')"
+                      class="preview-btn"
+                    >
+                      {{ $t('device.customThemeRemoveImage') }}
+                    </el-button>
+                  </div>
+                  <input
+                    ref="lightFileInput"
+                    type="file"
+                    accept=".png,.jpg,.jpeg"
+                    style="display: none"
+                    @change="(e) => handleFileInputChange(e, 'light')"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -134,9 +166,10 @@
 
             <div v-if="modelValue.dark.backgroundType === 'image'" class="upload-center">
               <div class="upload-side">
-                <el-upload
-                  class="dashed-upload"
-                  action=""
+                <div v-if="!modelValue.dark.backgroundImage" class="upload-wrapper">
+                  <el-upload
+                    class="dashed-upload"
+                    action=""
                     :auto-upload="false"
                     :on-change="(f)=>handleBgUpload(f, 'dark')"
                     accept=".png,.jpg,.jpeg"
@@ -146,10 +179,41 @@
                     <i class="el-icon-upload"></i>
                     <div class="el-upload__text">{{ $t('device.customThemeBackgroundImageUpload') }}</div>
                   </el-upload>
-                <span class="file-name" v-if="modelValue.dark.backgroundImage">{{ fileName(modelValue.dark.backgroundImage) }}</span>
-                <el-button v-if="modelValue.dark.backgroundImage" size="mini" type="text" @click="clearBg('dark')">
-                  {{ $t('device.customThemeRemoveImage') }}
-                </el-button>
+                </div>
+                <div v-else class="preview-wrapper">
+                  <img 
+                    :src="modelValue.dark.backgroundImage" 
+                    alt="背景预览"
+                    class="preview-image"
+                  />
+                  <div class="preview-overlay">
+                    <el-button 
+                      size="mini" 
+                      type="text" 
+                      icon="el-icon-refresh"
+                      @click="triggerReupload('dark')"
+                      class="preview-btn"
+                    >
+                      {{ $t('device.customThemeBackgroundImageUpload') }}
+                    </el-button>
+                    <el-button 
+                      size="mini" 
+                      type="text" 
+                      icon="el-icon-delete"
+                      @click="clearBg('dark')"
+                      class="preview-btn"
+                    >
+                      {{ $t('device.customThemeRemoveImage') }}
+                    </el-button>
+                  </div>
+                  <input
+                    ref="darkFileInput"
+                    type="file"
+                    accept=".png,.jpg,.jpeg"
+                    style="display: none"
+                    @change="(e) => handleFileInputChange(e, 'dark')"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -337,19 +401,104 @@ export default {
         return false;
       }
       const url = URL.createObjectURL(f);
+      // 同时保存 File 对象和 URL，以便后续处理
       if (mode === 'light') {
-        this.modelValue = { ...this.modelValue, light: { ...this.modelValue.light, backgroundImage: url, backgroundType: 'image' } };
+        this.modelValue = { 
+          ...this.modelValue, 
+          light: { 
+            ...this.modelValue.light, 
+            backgroundImage: url, 
+            backgroundImageFile: f, // 保存原始 File 对象
+            backgroundType: 'image' 
+          } 
+        };
       } else {
-        this.modelValue = { ...this.modelValue, dark: { ...this.modelValue.dark, backgroundImage: url, backgroundType: 'image' } };
+        this.modelValue = { 
+          ...this.modelValue, 
+          dark: { 
+            ...this.modelValue.dark, 
+            backgroundImage: url, 
+            backgroundImageFile: f, // 保存原始 File 对象
+            backgroundType: 'image' 
+          } 
+        };
       }
       return false;
     },
     clearBg(mode) {
       if (mode === 'light') {
-        this.modelValue = { ...this.modelValue, light: { ...this.modelValue.light, backgroundImage: '', backgroundType: 'color' } };
+        // 释放 blob URL
+        if (this.modelValue.light.backgroundImage && this.modelValue.light.backgroundImage.startsWith('blob:')) {
+          URL.revokeObjectURL(this.modelValue.light.backgroundImage)
+        }
+        this.modelValue = { 
+          ...this.modelValue, 
+          light: { 
+            ...this.modelValue.light, 
+            backgroundImage: '', 
+            backgroundImageFile: null, // 清除 File 对象
+            backgroundType: 'color' 
+          } 
+        };
       } else {
-        this.modelValue = { ...this.modelValue, dark: { ...this.modelValue.dark, backgroundImage: '', backgroundType: 'color' } };
+        // 释放 blob URL
+        if (this.modelValue.dark.backgroundImage && this.modelValue.dark.backgroundImage.startsWith('blob:')) {
+          URL.revokeObjectURL(this.modelValue.dark.backgroundImage)
+        }
+        this.modelValue = { 
+          ...this.modelValue, 
+          dark: { 
+            ...this.modelValue.dark, 
+            backgroundImage: '', 
+            backgroundImageFile: null, // 清除 File 对象
+            backgroundType: 'color' 
+          } 
+        };
       }
+    },
+    triggerReupload(mode) {
+      // 触发文件选择
+      const inputRef = mode === 'light' ? this.$refs.lightFileInput : this.$refs.darkFileInput
+      if (inputRef) {
+        inputRef.click()
+      }
+    },
+    handleFileInputChange(event, mode) {
+      const file = event.target.files?.[0]
+      if (file && /\.(png|jpg|jpeg)$/i.test(file.name)) {
+        // 释放旧的 blob URL
+        if (mode === 'light' && this.modelValue.light.backgroundImage && this.modelValue.light.backgroundImage.startsWith('blob:')) {
+          URL.revokeObjectURL(this.modelValue.light.backgroundImage)
+        } else if (mode === 'dark' && this.modelValue.dark.backgroundImage && this.modelValue.dark.backgroundImage.startsWith('blob:')) {
+          URL.revokeObjectURL(this.modelValue.dark.backgroundImage)
+        }
+        
+        // 创建新的 blob URL 并保存 File 对象
+        const url = URL.createObjectURL(file)
+        if (mode === 'light') {
+          this.modelValue = {
+            ...this.modelValue,
+            light: {
+              ...this.modelValue.light,
+              backgroundImage: url,
+              backgroundImageFile: file,
+              backgroundType: 'image'
+            }
+          }
+        } else {
+          this.modelValue = {
+            ...this.modelValue,
+            dark: {
+              ...this.modelValue.dark,
+              backgroundImage: url,
+              backgroundImageFile: file,
+              backgroundType: 'image'
+            }
+          }
+        }
+      }
+      // 清空 input，以便可以再次选择同一文件
+      event.target.value = ''
     },
     fileName(url) {
       if (!url) return '';
@@ -439,14 +588,15 @@ export default {
 }
 .upload-center {
   display: flex;
-  flex: 1;
+  flex: 0 0 auto;
   justify-content: center;
   align-items: center;
-  min-width: 120px;
-  max-width: 100%;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
   overflow: visible;
   box-sizing: border-box;
-  padding: 0 10px;
+  padding: 0;
 }
 .color-item {
   display: flex;
@@ -487,14 +637,15 @@ export default {
   border: 2px dashed #909399;
   border-radius: 4px;
   padding: 2px 0;
-  width: 100px;
-  min-width: 100px;
-  max-width: 100px;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
+  height: 180px;
+  min-height: 180px;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -509,14 +660,61 @@ export default {
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  width: 120px;
-  min-width: 120px;
-  max-width: 120px;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
   flex-shrink: 0;
   flex-grow: 0;
-  align-items: flex-start;
+  align-items: center;
   box-sizing: border-box;
   overflow: visible;
+}
+.upload-wrapper {
+  width: 100%;
+}
+.preview-wrapper {
+  position: relative;
+  width: 360px !important;
+  min-width: 360px !important;
+  max-width: 360px !important;
+  height: 180px !important;
+  min-height: 180px !important;
+  border: 2px dashed #909399;
+  border-radius: 4px;
+  overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.preview-image {
+  width: 360px !important;
+  height: 180px !important;
+  min-width: 360px !important;
+  min-height: 180px !important;
+  object-fit: cover;
+  display: block;
+}
+.preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.preview-wrapper:hover .preview-overlay {
+  opacity: 1;
+}
+.preview-btn {
+  color: #fff !important;
+  padding: 4px 8px;
+  font-size: 12px;
 }
 .dashed-upload .el-upload__text {
   font-size: 12px;

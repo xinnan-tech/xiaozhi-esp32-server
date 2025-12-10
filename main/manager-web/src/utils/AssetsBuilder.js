@@ -249,6 +249,21 @@ class AssetsBuilder {
     
     if (!wakeword) return null
 
+    // 处理自定义唤醒词（使用 multinet 模型）
+    if (wakeword === 'custom') {
+      const customWakeword = this.config.theme.customWakeword
+      if (!customWakeword || !customWakeword.chinese || !customWakeword.pinyin) {
+        throw new Error('自定义唤醒词配置不完整，请填写中文和拼音')
+      }
+      return {
+        name: 'mn5q8_cn',
+        type: 'Multinet5Q8',
+        filename: 'srmodels.bin',
+        isCustom: true,
+        customWakeword: customWakeword
+      }
+    }
+
     // 根据唤醒词模型名称确定类型（而不是根据芯片型号）
     // 因为实际文件目录中只有 WakeNet9s 和 WakeNet7 模型，没有 WakeNet9 模型
     let modelType = 'WakeNet9s' // 默认值
@@ -267,7 +282,8 @@ class AssetsBuilder {
     return {
       name: wakeword,
       type: modelType,
-      filename: 'srmodels.bin'
+      filename: 'srmodels.bin',
+      isCustom: false
     }
   }
 
@@ -451,6 +467,26 @@ class AssetsBuilder {
       }))
     }
 
+    // 添加自定义唤醒词配置（multinet_model_info）
+    // wakewordInfo 已在上面声明，直接使用
+    if (wakewordInfo && wakewordInfo.isCustom && wakewordInfo.customWakeword) {
+      indexData.multinet_model_info = {
+        language: 'cn',
+        duration: 3000,
+        threshold: 20, // 默认阈值
+        commands: [
+          {
+            command: wakewordInfo.customWakeword.pinyin,
+            text: wakewordInfo.customWakeword.chinese,
+            action: 'wake'
+          }
+        ]
+      }
+      // 添加 CONFIG 字段
+      indexData.CONFIG_CUSTOM_WAKE_WORD = wakewordInfo.customWakeword.pinyin
+      indexData.CONFIG_CUSTOM_WAKE_WORD_DISPLAY = wakewordInfo.customWakeword.chinese
+    }
+
     return indexData
   }
 
@@ -472,7 +508,9 @@ class AssetsBuilder {
         type: 'wakeword',
         name: wakewordInfo.name,
         filename: wakewordInfo.filename,
-        modelType: wakewordInfo.type
+        modelType: wakewordInfo.type,
+        isCustom: wakewordInfo.isCustom || false,
+        customWakeword: wakewordInfo.customWakeword || null
       })
     }
 
@@ -501,21 +539,29 @@ class AssetsBuilder {
 
     // 添加背景图片
     const skin = this.config?.theme?.skin
-    if (skin?.light?.backgroundType === 'image' && skin.light.backgroundImage) {
-      resources.files.push({
-        type: 'background',
-        filename: 'background_light.raw',
-        source: skin.light.backgroundImage,
-        mode: 'light'
-      })
+    if (skin?.light?.backgroundType === 'image') {
+      // 优先使用保存的 File 对象，否则使用 URL
+      const source = skin.light.backgroundImageFile || skin.light.backgroundImage
+      if (source) {
+        resources.files.push({
+          type: 'background',
+          filename: 'background_light.raw',
+          source: source,
+          mode: 'light'
+        })
+      }
     }
-    if (skin?.dark?.backgroundType === 'image' && skin.dark.backgroundImage) {
-      resources.files.push({
-        type: 'background', 
-        filename: 'background_dark.raw',
-        source: skin.dark.backgroundImage,
-        mode: 'dark'
-      })
+    if (skin?.dark?.backgroundType === 'image') {
+      // 优先使用保存的 File 对象，否则使用 URL
+      const source = skin.dark.backgroundImageFile || skin.dark.backgroundImage
+      if (source) {
+        resources.files.push({
+          type: 'background', 
+          filename: 'background_dark.raw',
+          source: source,
+          mode: 'dark'
+        })
+      }
     }
 
     return resources
@@ -918,7 +964,33 @@ class AssetsBuilder {
    * @param {Object} resource - 资源配置
    */
   async processBackgroundFile(resource) {
-    const imageData = await this.fileToArrayBuffer(resource.source)
+    let imageData
+    
+    // 如果 source 是 URL 字符串，需要先通过 fetch 获取
+    if (typeof resource.source === 'string') {
+      try {
+        const response = await fetch(resource.source)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        const blob = await response.blob()
+        
+        // 验证 blob 类型
+        if (!(blob instanceof Blob)) {
+          throw new Error(`fetch 返回的不是 Blob 对象，类型: ${typeof blob}`)
+        }
+        
+        imageData = await this.fileToArrayBuffer(blob)
+      } catch (error) {
+        console.error('加载背景图片失败:', error)
+        throw new Error(`加载背景图片失败: ${resource.filename} - ${error.message}`)
+      }
+    } else if (resource.source instanceof File || resource.source instanceof Blob) {
+      // 如果是 File 或 Blob 对象，直接转换
+      imageData = await this.fileToArrayBuffer(resource.source)
+    } else {
+      throw new Error(`不支持的背景图片格式: ${resource.filename}，source 类型: ${typeof resource.source}`)
+    }
     
     // 将图片转换为RGB565格式的原始数据
     const rawData = await this.convertImageToRgb565(imageData)
@@ -970,14 +1042,36 @@ class AssetsBuilder {
 
   /**
    * 将文件转换为ArrayBuffer
-   * @param {File|Blob} file - 文件对象
+   * @param {File|Blob|ArrayBuffer} file - 文件对象或 ArrayBuffer
    * @returns {Promise<ArrayBuffer>} 文件数据
    */
   fileToArrayBuffer(file) {
+    // 如果已经是 ArrayBuffer，直接返回
+    if (file instanceof ArrayBuffer) {
+      return Promise.resolve(file)
+    }
+    
+    // 验证类型
+    if (!(file instanceof File) && !(file instanceof Blob)) {
+      const errorMsg = `fileToArrayBuffer 需要 File 或 Blob 对象，但收到: ${typeof file}, 构造函数: ${file?.constructor?.name || 'unknown'}`
+      console.error('fileToArrayBuffer 类型错误:', {
+        file,
+        type: typeof file,
+        constructor: file?.constructor?.name,
+        isFile: file instanceof File,
+        isBlob: file instanceof Blob,
+        isArrayBuffer: file instanceof ArrayBuffer
+      })
+      return Promise.reject(new Error(errorMsg))
+    }
+    
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => resolve(reader.result)
-      reader.onerror = () => reject(new Error('读取文件失败'))
+      reader.onerror = (e) => {
+        console.error('FileReader 错误:', e)
+        reject(new Error('读取文件失败'))
+      }
       reader.readAsArrayBuffer(file)
     })
   }

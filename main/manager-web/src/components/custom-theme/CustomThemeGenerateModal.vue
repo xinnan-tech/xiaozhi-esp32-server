@@ -720,7 +720,8 @@ export default {
           for (const token of tokens) {
             const headerVariants = [
               { Authorization: `Bearer ${token}` },
-              { Authorization: token }
+              { Authorization: token },
+              { token }
             ];
             for (const headers of headerVariants) {
               const res = await fetch(`${base}/api/messages/publish`, {

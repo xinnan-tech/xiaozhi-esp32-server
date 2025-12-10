@@ -20,6 +20,10 @@
         @change="selectWakeword"
       >
         <el-option
+          label="自定义 (mn5q8_cn)"
+          value="custom"
+        />
+        <el-option
           v-for="wakeword in availableWakewords"
           :key="wakeword.id"
           :label="`${wakeword.name} (${wakeword.model})`"
@@ -28,13 +32,46 @@
       </el-select>
     </div>
 
-    <div v-if="localValue" class="selected-info">
+    <!-- 自定义唤醒词输入框 -->
+    <div v-if="localValue === 'custom'" class="custom-wakeword-section">
+      <div class="custom-input-row">
+        <div class="custom-input-item">
+          <label class="custom-input-label">Custom Wake Word</label>
+          <el-input
+            v-model="customWakeword.pinyin"
+            placeholder="请输入拼音，用空格分隔，如：ni hao xiao zhi"
+            @input="updateCustomWakeword"
+          />
+        </div>
+        <div class="custom-input-item">
+          <label class="custom-input-label">Custom Wake Word Display</label>
+          <el-input
+            v-model="customWakeword.chinese"
+            placeholder="请输入拼音，不用空格分隔，如：nihaoxiaozhi"
+            @input="updateCustomWakeword"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div v-if="localValue && localValue !== 'custom'" class="selected-info">
       <div class="selected-content">
         <div class="selected-icon"><i class="el-icon-success"></i></div>
         <div class="selected-details">
           <div class="selected-title">{{ $t('device.customThemeSelectedWakeword') }}: {{ getSelectedWakewordName() }}</div>
           <div class="selected-meta">{{ $t('device.customThemeWakewordModel') }}: {{ getSelectedWakewordModel() }}</div>
           <div class="selected-meta">{{ $t('device.customThemeWakewordFileName') }}: {{ localValue }}.bin</div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="localValue === 'custom' && customWakeword.chinese && customWakeword.pinyin" class="selected-info">
+      <div class="selected-content">
+        <div class="selected-icon"><i class="el-icon-success"></i></div>
+        <div class="selected-details">
+          <div class="selected-title">自定义唤醒词: {{ customWakeword.chinese }}</div>
+          <div class="selected-meta">拼音: {{ customWakeword.pinyin }}</div>
+          <div class="selected-meta">模型: Multinet5Q8 (mn5q8_cn)</div>
         </div>
       </div>
     </div>
@@ -72,7 +109,11 @@ export default {
         { id: 'wn9s_hilexin', name: 'Hi,乐鑫', model: 'WakeNet9s' },
         { id: 'wn9s_nihaoxiaozhi', name: '你好小智', model: 'WakeNet9s' },
         { id: 'wn7_xiaoaitongxue', name: '小爱同学', model: 'WakeNet7' }
-      ]
+      ],
+      customWakeword: {
+        chinese: '',
+        pinyin: ''
+      }
     };
   },
   computed: {
@@ -94,7 +135,29 @@ export default {
   methods: {
     selectWakeword(id) {
       console.log('[CustomThemeWakeword] select', id);
-      this.localValue = id || '';
+      const newValue = id || '';
+      // 如果切换到非自定义选项，清空自定义唤醒词
+      if (id !== 'custom') {
+        this.customWakeword = { chinese: '', pinyin: '' };
+      }
+      // 更新 localValue，这会触发 input 事件
+      this.$emit('input', newValue);
+      // 通知父组件更新自定义唤醒词配置
+      this.$nextTick(() => {
+        this.$emit('custom-wakeword-change', {
+          wakeword: newValue,
+          customWakeword: newValue === 'custom' ? this.customWakeword : null
+        });
+      });
+    },
+    updateCustomWakeword() {
+      // 通知父组件更新自定义唤醒词配置
+      if (this.localValue === 'custom') {
+        this.$emit('custom-wakeword-change', {
+          wakeword: this.localValue,
+          customWakeword: this.customWakeword
+        });
+      }
     },
     getSelectedWakewordName() {
       const selected = this.wakewordData.find(w => w.id === this.localValue);
@@ -181,6 +244,24 @@ export default {
   font-size: 13px;
   color: #1e3a8a;
   line-height: 1.6;
+}
+.custom-wakeword-section {
+  margin: 14px 0;
+}
+.custom-input-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.custom-input-item {
+  flex: 1;
+}
+.custom-input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #606266;
 }
 </style>
 
