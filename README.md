@@ -140,3 +140,10 @@ We note that the performance of GPT-4.1 has recently degraded in preliminary obs
 }
 ```
 
+## ⭐ Star 
+
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=OPPO-PersonalAI/O-Mem&type=Date)](https://github.com/OPPO-PersonalAI/O-Mem)
+
+</div>
