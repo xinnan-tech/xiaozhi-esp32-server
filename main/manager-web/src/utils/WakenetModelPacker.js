@@ -71,10 +71,10 @@ class WakenetModelPacker {
       } else {
         // Wakenet 模型 (例如: wn9s_nihaoxiaozhi)
         modelFiles = [
-          '_MODEL_INFO_',
-          'wn9_data',
-          'wn9_index'
-        ]
+        '_MODEL_INFO_',
+        'wn9_data',
+        'wn9_index'
+      ]
       }
 
       let loadedFiles = 0

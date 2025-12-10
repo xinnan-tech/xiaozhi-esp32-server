@@ -92,6 +92,7 @@ export default {
             custom: { images: {} }
           },
           skin: {
+            defaultMode: 'light',
             light: { backgroundType: 'color', backgroundColor: '#ffffff', textColor: '#000000', backgroundImage: '' },
             dark: { backgroundType: 'color', backgroundColor: '#121212', textColor: '#ffffff', backgroundImage: '' }
           }

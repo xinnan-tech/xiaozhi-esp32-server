@@ -393,6 +393,11 @@ class AssetsBuilder {
     const skin = this.config.theme.skin
     const result = {}
     
+    // 默认模式（由前端选择，light/dark）
+    if (skin.defaultMode) {
+      result.default_mode = skin.defaultMode
+    }
+
     // 处理浅色模式
     if (skin.light) {
       result.light = {
@@ -543,24 +548,24 @@ class AssetsBuilder {
       // 优先使用保存的 File 对象，否则使用 URL
       const source = skin.light.backgroundImageFile || skin.light.backgroundImage
       if (source) {
-        resources.files.push({
-          type: 'background',
-          filename: 'background_light.raw',
+      resources.files.push({
+        type: 'background',
+        filename: 'background_light.raw',
           source: source,
-          mode: 'light'
-        })
-      }
+        mode: 'light'
+      })
+    }
     }
     if (skin?.dark?.backgroundType === 'image') {
       // 优先使用保存的 File 对象，否则使用 URL
       const source = skin.dark.backgroundImageFile || skin.dark.backgroundImage
       if (source) {
-        resources.files.push({
-          type: 'background', 
-          filename: 'background_dark.raw',
+      resources.files.push({
+        type: 'background', 
+        filename: 'background_dark.raw',
           source: source,
-          mode: 'dark'
-        })
+        mode: 'dark'
+      })
       }
     }
 

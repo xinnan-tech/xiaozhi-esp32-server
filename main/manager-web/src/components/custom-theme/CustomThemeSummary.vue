@@ -144,7 +144,7 @@ export default {
     return {
       previewText: 'Hi，我是你的好朋友小智！',
       currentEmoji: '',
-      themeMode: 'light',
+      themeMode: (this.config && this.config.theme && this.config.theme.skin && this.config.theme.skin.defaultMode) || 'light',
       fontLoaded: true, // 简化处理
       availableEmotions: [
         { key: 'neutral', name: '默认', emoji: '😶' },
@@ -180,6 +180,32 @@ export default {
     }
   },
   watch: {
+    themeMode(val) {
+      // 同步用户选择为默认皮肤模式，便于打包到 assets.bin
+      if (this.config && this.config.theme && this.config.theme.skin) {
+        this.$set(this.config.theme.skin, 'defaultMode', val);
+      }
+    },
+    displayedEmotions: {
+      handler(list) {
+        if (list.length > 0) {
+          if (!list.find((e) => e.key === this.currentEmoji)) {
+            this.currentEmoji = list[0].key;
+          }
+        } else {
+          this.currentEmoji = '';
+        }
+      },
+      immediate: true
+    }
+  },
+  watch: {
+    themeMode(val) {
+      // 同步用户选择为默认皮肤模式，便于打包到 assets.bin
+      if (this.config && this.config.theme && this.config.theme.skin) {
+        this.$set(this.config.theme.skin, 'defaultMode', val);
+      }
+    },
     displayedEmotions: {
       handler(list) {
         if (list.length > 0) {

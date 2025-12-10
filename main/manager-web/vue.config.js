@@ -11,7 +11,7 @@ const { InjectManifest } = require('workbox-webpack-plugin');
 // 引入 path 模块
 
 const path = require('path')
- 
+
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
@@ -38,10 +38,15 @@ const cdnResources = {
 // 判断是否使用CDN
 const useCDN = process.env.VUE_APP_USE_CDN === 'true';
 
+// DevServer 主机/端口配置（避免默认 localhost 造成 WS 连接失败的日志）
+const devHost = process.env.DEV_SERVER_HOST || process.env.HOST || '0.0.0.0';
+const devPort = Number(process.env.DEV_SERVER_PORT || process.env.PORT || 8001);
+
 module.exports = defineConfig({
   productionSourceMap: process.env.NODE_ENV !=='production', // 生产环境不生成 source map
   devServer: {
-    port: 8001, // 指定端口为 8001
+    host: devHost,
+    port: devPort,
     proxy: {
       '/xiaozhi': {
         target: 'http://127.0.0.1:8002',
@@ -50,6 +55,13 @@ module.exports = defineConfig({
     },
     client: {
       overlay: false, // 不显示 webpack 错误覆盖层
+      // 显式指定 WS 连接地址，避免默认 localhost 触发“ws://localhost:8001/ws failed”日志
+      webSocketURL: {
+        protocol: 'ws',
+        hostname: devHost,
+        port: devPort,
+        pathname: '/ws'
+      }
     },
   },
   publicPath: process.env.VUE_APP_PUBLIC_PATH || "/",
