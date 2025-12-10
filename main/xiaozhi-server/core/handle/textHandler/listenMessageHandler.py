@@ -100,6 +100,11 @@ class ListenTextMessageHandler(TextMessageHandler):
                     await send_tts_message(conn, "stop", None)
                     conn.client_is_speaking = False
                 elif is_wakeup_words:
+                    if (getattr(conn, "defer_agent_init", False) or not conn.agent_id) and getattr(conn, "read_config_from_live_agent_api", False):
+                        ready = await conn.ensure_agent_ready(filtered_text)
+                        if not ready:
+                            conn.logger.bind(tag=TAG).error("未能解析 agent，结束会话")
+                            return
                     conn.just_woken_up = True
                     # Record timestamp for correct message ordering
                     report_time = int(time.time())

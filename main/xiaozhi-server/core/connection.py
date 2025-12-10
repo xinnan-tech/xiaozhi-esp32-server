@@ -43,7 +43,10 @@ from config.manage_api_client import DeviceNotFoundException, DeviceBindExceptio
 from core.utils.prompt_manager import PromptManager
 from core.utils.voiceprint_provider import VoiceprintProvider
 from core.utils import textUtils
-from config.live_agent_api_client import get_agent_config_from_api
+from config.live_agent_api_client import (
+    get_agent_config_from_api,
+    get_agent_by_wake_from_api,
+)
 
 TAG = __name__
 auto_import_modules("plugins_func.functions")
@@ -84,6 +87,7 @@ class ConnectionHandler:
         self.max_output_size = 0
         self.chat_history_conf = 0
         self.audio_format = "opus"
+        self.defer_agent_init = False
 
         # 客户端状态相关
         self.client_abort = False
@@ -423,6 +427,15 @@ class ConnectionHandler:
             )
             self.logger = create_connection_logger(self.selected_module_str)
 
+            # 缺少 agent-id 时，延后 TTS/LLM 初始化，待唤醒词解析后再加载
+            if self.read_config_from_live_agent_api and not self.agent_id:
+                self.defer_agent_init = True
+                self.logger.bind(tag=TAG).info(
+                    "agent-id missing, defer LLM/TTS init until wake word resolves agent"
+                )
+            else:
+                self._initialize_agent_config()
+
             """初始化本地组件"""
             if self.vad is None:
                 self.vad = self._vad
@@ -437,29 +450,39 @@ class ConnectionHandler:
                 self.asr.open_audio_channels(self), self.loop
             )
 
+            init_llm = not self.defer_agent_init
+            init_tts = not self.defer_agent_init
+            init_memory = not self.defer_agent_init
+            init_intent = not self.defer_agent_init
+
             # prewarm LLM first connection
-            if isinstance(self.llm, LLMProviderBase):
-                self.llm.prewarm()     
+            if init_llm and isinstance(self.llm, LLMProviderBase):
+                self.llm.prewarm()
 
             """加载记忆"""
-            self._initialize_memory()
+            if init_memory:
+                self._initialize_memory()
             """加载意图识别"""
-            self._initialize_intent()
+            if init_intent:
+                self._initialize_intent()
             """更新系统提示词（必须在 TTS 初始化前，以便加载 role 的 TTS 配置）"""
-            self._init_prompt_enhancement()
+            if init_tts or init_llm:
+                self._init_prompt_enhancement()
 
             # 初始化 TTS（在 prompt 初始化之后，以便使用 role 的 TTS 配置）
-            if self.tts is None:
+            if init_tts and self.tts is None:
                 self.tts = self._initialize_tts()
             # 打开语音合成通道
-            asyncio.run_coroutine_threadsafe(
-                self.tts.open_audio_channels(self), self.loop
-            )
+            if init_tts and self.tts:
+                asyncio.run_coroutine_threadsafe(
+                    self.tts.open_audio_channels(self), self.loop
+                )
 
             """初始化上报线程"""
-            self._init_report_threads()
+            if init_tts or init_llm:
+                self._init_report_threads()
 
-            if self._voice_opening:
+            if self._voice_opening and self.tts:
                 self.logger.bind(tag=TAG).info(f"send the opening message: {self._voice_opening}")
                 
                 opening_sentence_id = str(uuid.uuid4().hex)
@@ -862,20 +885,8 @@ class ConnectionHandler:
         if not private_config:
             self.logger.bind(tag=TAG).error(f"Failed to get agent config for {self.agent_id}")
             return
-        # self.logger.bind(tag=TAG).info(f"private_config: {private_config}")
-        # self.logger.bind(tag=TAG).info(f"self.config: {self.config}")
-        self.config["TTS"]["FishSpeech"]["reference_id"] = private_config["voice_id"]
-        self.config["TTS"]["FishDualStreamTTS"]["reference_id"] = private_config["voice_id"]
-        self._instruction = private_config["instruction"]
-        self._voice_opening = private_config["voice_opening"]
-        self._voice_closing = private_config["voice_closing"]
-        self._language = private_config["language"]
-        
-        # Set chat history config for live-agent-api mode
-        # 0: disable, 1: text only, 2: text + audio
-        live_api_config = self.config.get("live-agent-api", {})
-        self.chat_history_conf = live_api_config.get("chat_history_conf", 2)
-        
+        self._apply_agent_runtime_config(private_config)
+
         init_llm, init_tts, init_memory, init_intent = (
             True,
             True,
@@ -912,6 +923,93 @@ class ConnectionHandler:
             self.intent = modules["intent"]
         if modules.get("memory", None) is not None:
             self.memory = modules["memory"]
+
+    def _apply_agent_runtime_config(self, private_config: dict):
+        """Apply agent-specific runtime config to connection"""
+        if not private_config:
+            return
+        voice_id = private_config.get("voice_id")
+        if voice_id:
+            if "TTS" in self.config and "FishSpeech" in self.config.get("TTS", {}):
+                self.config["TTS"]["FishSpeech"]["reference_id"] = voice_id
+            if "TTS" in self.config and "FishDualStreamTTS" in self.config.get("TTS", {}):
+                self.config["TTS"]["FishDualStreamTTS"]["reference_id"] = voice_id
+        self._instruction = private_config.get("instruction", self._instruction)
+        self._voice_opening = private_config.get("voice_opening", self._voice_opening)
+        self._voice_closing = private_config.get("voice_closing", self._voice_closing)
+        self._language = private_config.get("language", self._language)
+
+        # Set chat history config for live-agent-api mode
+        # 0: disable, 1: text only, 2: text + audio
+        live_api_config = self.config.get("live-agent-api", {})
+        self.chat_history_conf = live_api_config.get("chat_history_conf", 2)
+
+    async def ensure_agent_ready(self, wake_word: str | None = None) -> bool:
+        """
+        Resolve agent when missing and initialize LLM/TTS lazily.
+        """
+        if not self.read_config_from_live_agent_api:
+            return True
+        if not self.defer_agent_init and self.tts and self.llm:
+            return True
+
+        private_config = None
+        if not self.agent_id:
+            resolved = get_agent_by_wake_from_api(
+                self.device_id, wake_word=wake_word, config=self.config
+            )
+            if not resolved:
+                self.logger.bind(tag=TAG).error(
+                    f"Failed to resolve agent by wake_word for device {self.device_id}"
+                )
+                self.need_bind = True
+                return False
+            self.agent_id = resolved.get("agent_id")
+            private_config = resolved.get("agent_config")
+
+        if private_config is None:
+            private_config = get_agent_config_from_api(self.agent_id, self.config)
+        if not private_config:
+            self.logger.bind(tag=TAG).error(
+                f"Failed to get agent config for {self.agent_id}"
+            )
+            return False
+
+        self._apply_agent_runtime_config(private_config)
+        self.defer_agent_init = False
+
+        try:
+            modules = initialize_modules(
+                self.logger,
+                self.config,
+                False,
+                False,
+                True,
+                True,
+                False,
+                False,
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"初始化组件失败: {e}")
+            modules = {}
+        if modules.get("llm", None) is not None:
+            self.llm = modules["llm"]
+            if isinstance(self.llm, LLMProviderBase):
+                self.llm.prewarm()
+        if modules.get("tts", None) is not None:
+            self.tts = modules["tts"]
+            asyncio.run_coroutine_threadsafe(
+                self.tts.open_audio_channels(self), self.loop
+            )
+        if modules.get("intent", None) is not None:
+            self.intent = modules["intent"]
+        if modules.get("memory", None) is not None:
+            self.memory = modules["memory"]
+
+        # 初始化 prompt 与上报线程
+        self._init_prompt_enhancement()
+        self._init_report_threads()
+        return True
 
     def change_system_prompt(self, prompt):
         self.prompt = prompt

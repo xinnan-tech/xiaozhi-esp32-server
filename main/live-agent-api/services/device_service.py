@@ -2,15 +2,17 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.device import Device, AgentDeviceBinding, DeviceModel
-from repositories.agent import Agent
+from repositories.agent import Agent, AgentModel
 from utils.exceptions import NotFoundException, BadRequestException
 from schemas.device import (
     DeviceResponse,
     DeviceWithBindingsResponse,
     DeviceListResponse,
     AgentBindingResponse,
-    DeviceBoundAgentsResponse
+    DeviceBoundAgentsResponse,
+    DeviceAgentResolveResponse,
 )
+from schemas.agent import AgentConfigResponse
 
 
 class DeviceService:
@@ -188,6 +190,86 @@ class DeviceService:
                 )
                 for b in bindings
             ]
+        )
+
+    async def get_default_agent(
+        self,
+        db: AsyncSession,
+        device_id: str
+    ) -> tuple[AgentDeviceBinding, AgentModel]:
+        """Get default agent binding; fallback to latest binding"""
+        device = await Device.get_by_id(db, device_id)
+        if not device:
+            raise NotFoundException("Device not found")
+
+        binding = await AgentDeviceBinding.get_default_binding(db, device_id)
+        if not binding:
+            bindings = await AgentDeviceBinding.get_bindings_by_device(db, device_id)
+            if not bindings:
+                raise NotFoundException("Device has no bound agents")
+            binding = bindings[0]
+
+        agent = await Agent.get_by_id(db, binding.agent_id)
+        if not agent:
+            raise NotFoundException("Agent not found for binding")
+
+        return binding, agent
+
+    async def resolve_agent_by_wake_word(
+        self,
+        db: AsyncSession,
+        device_id: str,
+        wake_word: str | None
+    ) -> DeviceAgentResolveResponse:
+        """
+        Resolve agent for device by wake_word; fallback to default binding.
+        """
+        device = await Device.get_by_id(db, device_id)
+        if not device:
+            raise NotFoundException("Device not found")
+
+        bindings = await AgentDeviceBinding.get_bindings_by_device(db, device_id)
+        if not bindings:
+            raise NotFoundException("Device has no bound agents")
+
+        matched_binding = None
+        matched_agent = None
+        match_type = "default"
+
+        if wake_word:
+            for b in bindings:
+                agent = await Agent.get_by_id(db, b.agent_id)
+                if agent and agent.wake_word and agent.wake_word.lower() == wake_word.lower():
+                    matched_binding = b
+                    matched_agent = agent
+                    match_type = "wake_word"
+                    break
+
+        if not matched_binding:
+            # fallback to default binding
+            matched_binding = await AgentDeviceBinding.get_default_binding(db, device_id)
+            if not matched_binding:
+                matched_binding = bindings[0]
+            matched_agent = await Agent.get_by_id(db, matched_binding.agent_id)
+            if not matched_agent:
+                raise NotFoundException("Agent not found for binding")
+
+        agent_config = AgentConfigResponse(
+            agent_id=matched_agent.agent_id,
+            name=matched_agent.name,
+            voice_id=matched_agent.voice_id,
+            language=None,
+            instruction=matched_agent.instruction,
+            voice_opening=matched_agent.voice_opening,
+            voice_closing=matched_agent.voice_closing,
+        )
+
+        return DeviceAgentResolveResponse(
+            device_id=device_id,
+            agent_id=matched_agent.agent_id,
+            is_default=matched_binding.is_default,
+            match_type=match_type,
+            agent_config=agent_config,
         )
 
     async def _build_device_with_bindings(
