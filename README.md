@@ -44,6 +44,7 @@ This enables **hierarchical, user-aware retrieval**: agents first reason about *
 ↓[Context-Aware Prompting] → [LLM Agent]
 
 ## 🔄O-Mem Workflow Visualization
+
 <div align="center">
     <img src="./images/workflow.png" width="80%" height="auto" />
 </div>
