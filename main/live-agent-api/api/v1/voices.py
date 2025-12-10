@@ -16,11 +16,13 @@ from schemas.voice import (
     VoiceUpdateRequest,
     VoiceAddRequest
 )
-from utils.response import success_response
+from utils.response import success_response, error_response
 from api.auth import get_current_user_id
-from config import get_logger
+from config.logger import setup_logging
+from utils.exceptions import InternalServerException
 
-logger = get_logger(__name__)
+TAG = __name__
+logger = setup_logging(TAG)
 router = APIRouter()
 
 @router.get("/discover", summary="Get Discover Voices")
@@ -157,15 +159,19 @@ async def clone_voice(
     """
     
     # Clone voice, upload to S3, and save to database
-    voice = await voice_service.clone_voice(
-        db=db,
-        s3=s3,
-        fish_client=fish_client,
-        owner_id=current_user_id,
-        audio_file=audio_file,
-        text=text
-    )
-    
+    try:
+        voice = await voice_service.clone_voice(
+            db=db,
+            s3=s3,
+            fish_client=fish_client,
+            owner_id=current_user_id,
+            audio_file=audio_file,
+            text=text
+        )
+
+    except Exception as e:
+        return error_response(code=500, message=f"Voice cloning failed: {e}")
+
     
     return success_response(
         data={

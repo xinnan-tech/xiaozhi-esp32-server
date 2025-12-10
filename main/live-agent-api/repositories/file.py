@@ -256,3 +256,26 @@ class FileRepository:
         
         return total_deleted
 
+    @staticmethod
+    async def upload_voice_sample(
+        s3,
+        audio_data: bytes,
+        voice_id: str,
+        file_ext: str = "mp3"
+    ) -> str:
+        """
+        Upload TTS-generated voice sample to S3
+        ...
+        """
+        filename = f"{voice_id}.{file_ext}"
+        s3_key = f"voice_samples/{filename}"
+        
+        await s3.put_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=s3_key,
+            Body=audio_data,
+            ContentType=f"audio/{file_ext}",
+        )
+        
+        url = f"{settings.S3_PUBLIC_BASE_URL}/{settings.S3_BUCKET_NAME}/{s3_key}"
+        return url
