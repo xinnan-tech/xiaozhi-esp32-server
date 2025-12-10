@@ -536,6 +536,11 @@ async def startToChat(conn, text: str, multimodal_content: List[Dict[str, Any]] 
         text: Text content
         multimodal_content: Optional multimodal content
     """
+    if getattr(conn, "defer_agent_init", False) and not conn.agent_id and getattr(conn, "read_config_from_live_agent_api", False):
+        ready = await conn.ensure_agent_ready()
+        if not ready:
+            return
+
     # check if input is JSON format (contains speaker information)
     speaker_name = None
     actual_text = text

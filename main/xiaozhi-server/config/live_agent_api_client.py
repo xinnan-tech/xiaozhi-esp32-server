@@ -110,6 +110,44 @@ def get_agent_config_from_api(agent_id: str, config: dict = None) -> Optional[di
         return None
 
 
+def get_agent_by_wake_from_api(
+    device_id: str,
+    wake_word: str | None = None,
+    config: dict = None,
+) -> Optional[dict]:
+    """
+    Resolve agent for device by wake word; fallback to default binding.
+    """
+    try:
+        if LiveAgentApiClient._instance is None:
+            if config is None:
+                logger.error("LiveAgentApiClient not initialized and no config provided")
+                return None
+            LiveAgentApiClient(config)
+
+        params = {}
+        if wake_word:
+            params["wake_word"] = wake_word
+        result = LiveAgentApiClient._request(
+            "GET", f"/internal/devices/{device_id}/agent-by-wake", params=params
+        )
+
+        if result.get("code") == 200 and "data" in result:
+            logger.info(
+                f"Successfully resolved agent by wake_word for device_id={device_id}"
+            )
+            return result["data"]
+        else:
+            logger.error(f"Invalid response for agent-by-wake: {result}")
+            return None
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error resolving agent by wake_word: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to resolve agent by wake_word for {device_id}: {e}")
+        return None
+
+
 def report_chat_message(
     agent_id: str,
     role: int,
