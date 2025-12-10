@@ -166,6 +166,19 @@ class AgentService:
             List of agents with wake_word configured
         """
         return await Agent.get_bindable_agents(db, owner_id)
+    
+    async def is_voice_bound(self, db: AsyncSession, voice_id: str) -> bool:
+        """
+        Check if a voice is bound to any agent
+        
+        Args:
+            db: Database session
+            voice_id: Voice ID to check
+            
+        Returns:
+            True if voice is bound to at least one agent
+        """
+        return await Agent.is_voice_bound(db, voice_id)
 
     async def create_agent(
         self,

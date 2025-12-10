@@ -1,15 +1,16 @@
 from typing import Optional, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import UploadFile
-from fishaudio import AsyncFishAudio, save
+from fishaudio import AsyncFishAudio
 from fishaudio.types import PaginatedResponse, Voice as FishVoice, Sample as FishSample
 
 from repositories import VoiceModel, Voice
-from utils.ulid import generate_voice_id
 
 from repositories import FileRepository
 from datetime import datetime, timezone
 from config.logger import setup_logging
+from utils.exceptions import NotFoundException
+
 
 TAG = __name__
 logger = setup_logging(TAG)
@@ -256,26 +257,48 @@ class VoiceService:
     async def remove_voice(
         self,
         db: AsyncSession,
+        s3,
+        fish_client: AsyncFishAudio,
         voice_id: str,
         owner_id: str
     ) -> bool:
         """
-        Remove a voice from user's my voices
+        Remove a voice completely: database, S3, and Fish Audio
         
         Args:
             db: Database session
-            voice_id: Internal voice ID
+            s3: S3 client
+            fish_client: Fish Audio client
+            voice_id: Voice ID
             owner_id: User ID
             
         Returns:
-            True if deleted, False if not found
+            True if deleted successfully
+            
+        Raises:
+            NotFoundException: If voice not found or not owned by user
         """
-        deleted = await Voice.delete(db=db, voice_id=voice_id, owner_id=owner_id)
         
-        if not deleted:
-            from utils.exceptions import NotFoundException
+        # Get voice record first to get sample_url for S3 cleanup
+        voice = await Voice.get_by_voice_and_owner(db=db, voice_id=voice_id, owner_id=owner_id)
+        if not voice:
             raise NotFoundException(f"Voice {voice_id} not found or not owned by user")
         
+        sample_url = voice.sample_url
+        
+        # Delete from database first
+        deleted = await Voice.delete(db=db, voice_id=voice_id, owner_id=owner_id)
+        if not deleted:
+            raise NotFoundException(f"Voice {voice_id} not found or not owned by user")
+        
+        # Cleanup S3 file (best effort, don't fail if cleanup fails)
+        try:
+            if sample_url:
+                await self._cleanup_s3_file(s3, sample_url)
+            await self._cleanup_fish_voice(fish_client, voice_id)
+        except Exception as e:
+            logger.bind(tag=TAG).warning(f"Cleanup failed: {e}")
+            return False
         return True
     
     async def update_voice(

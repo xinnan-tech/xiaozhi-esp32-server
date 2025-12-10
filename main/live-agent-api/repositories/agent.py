@@ -211,6 +211,26 @@ class Agent:
             .order_by(AgentModel.created_at.desc())
         )
         return list(result.scalars().all())
+    
+    @staticmethod
+    async def is_voice_bound(db: AsyncSession, voice_id: str) -> bool:
+        """
+        Check if a voice is bound to any agent
+        
+        Args:
+            db: Database session
+            voice_id: Voice ID to check
+            
+        Returns:
+            True if voice is bound to at least one agent
+        """
+        result = await db.execute(
+            select(func.count())
+            .select_from(AgentModel)
+            .where(AgentModel.voice_id == voice_id)
+        )
+        count = result.scalar_one()
+        return count > 0
 
     @staticmethod
     async def get_agents_with_latest_message(
