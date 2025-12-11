@@ -8,6 +8,8 @@ from infra.fishaudio import get_fish_audio
 from infra.openai import get_openai
 from services.voice_service import voice_service
 from services.llm_service import llm_service
+from services.agent_service import agent_service
+from utils.exceptions import ConflictException
 from schemas.voice import ( 
     LiveAgentVoice, 
     DiscoverVoiceResponse, 
@@ -16,11 +18,13 @@ from schemas.voice import (
     VoiceUpdateRequest,
     VoiceAddRequest
 )
-from utils.response import success_response
+from utils.response import success_response, error_response
 from api.auth import get_current_user_id
-from config import get_logger
+from config.logger import setup_logging
+from utils.exceptions import InternalServerException
 
-logger = get_logger(__name__)
+TAG = __name__
+logger = setup_logging(TAG)
 router = APIRouter()
 
 @router.get("/discover", summary="Get Discover Voices")
@@ -157,15 +161,19 @@ async def clone_voice(
     """
     
     # Clone voice, upload to S3, and save to database
-    voice = await voice_service.clone_voice(
-        db=db,
-        s3=s3,
-        fish_client=fish_client,
-        owner_id=current_user_id,
-        audio_file=audio_file,
-        text=text
-    )
-    
+    try:
+        voice = await voice_service.clone_voice(
+            db=db,
+            s3=s3,
+            fish_client=fish_client,
+            owner_id=current_user_id,
+            audio_file=audio_file,
+            text=text
+        )
+
+    except Exception as e:
+        return error_response(code=500, message=f"Voice cloning failed: {e}")
+
     
     return success_response(
         data={
@@ -253,19 +261,32 @@ async def update_voice(
 async def remove_voice(
     voice_id: str,
     current_user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    s3 = Depends(get_s3),
+    fish_client = Depends(get_fish_audio)
 ):
     """
-    Remove a voice from user's my voices
-    - Only deletes the database record (reference)
+    Remove a voice completely from user's my voices
+    - Checks if voice is bound to any agent (returns 409 Conflict if bound)
+    - Deletes from database, S3, and Fish Audio
     - User must own the voice
     """
-    await voice_service.remove_voice(
-        db=db,
-        voice_id=voice_id,
-        owner_id=current_user_id
-    )
+    # Check if voice is bound to any agent
+    is_bound = await agent_service.is_voice_bound(db=db, voice_id=voice_id)
+    if is_bound:
+        raise ConflictException("Cannot remove voice: it is currently bound to one or more agents")
     
+    try:
+        await voice_service.remove_voice(
+            db=db,
+            s3=s3,
+            fish_client=fish_client,
+            voice_id=voice_id,
+            owner_id=current_user_id
+        )
+    except Exception as e:
+        return error_response(code=500, message=f"Voice removal failed: {e}")
+
     return success_response(
         data={"voice_id": voice_id},
         message="Voice removed successfully"

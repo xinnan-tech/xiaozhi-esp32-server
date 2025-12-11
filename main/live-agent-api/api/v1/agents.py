@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
@@ -208,11 +209,15 @@ async def generate_persona(
                     avatar_base64=avatar_base64,
                     avatar_media_type=avatar_media_type
                 ):
-                    # SSE format: data: <content>\n\n
-                    yield f"data: {chunk}\n\n"
+                    # Wrap chunk in JSON to preserve newlines (they get escaped as \n)
+                    event = {"type": "content", "data": chunk}
+                    yield f"data: {json.dumps(event)}\n\n"
+                # Send done event
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
             except Exception as e:
                 logger.error(f"Persona optimization failed: {e}")
-                yield f"data: [ERROR] {str(e)}\n\n"
+                error_event = {"type": "error", "message": str(e)}
+                yield f"data: {json.dumps(error_event)}\n\n"
         
         return StreamingResponse(
             stream_generator(),

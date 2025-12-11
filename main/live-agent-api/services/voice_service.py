@@ -5,10 +5,22 @@ from fishaudio import AsyncFishAudio
 from fishaudio.types import PaginatedResponse, Voice as FishVoice, Sample as FishSample
 
 from repositories import VoiceModel, Voice
-from utils.ulid import generate_voice_id
 
 from repositories import FileRepository
 from datetime import datetime, timezone
+from config.logger import setup_logging
+from utils.exceptions import NotFoundException
+
+
+TAG = __name__
+logger = setup_logging(TAG)
+
+# Default sample text for TTS preview when user doesn't provide text
+DEFAULT_SAMPLE_TEXT = {
+    "en": "The only way to do great work is to love what you do.",
+    "zh": "只有热爱才能做出伟大的工作。",
+    "ja": "偉大な仕事をする唯一の方法は、あなたが何を愛するかです。"
+} 
 class VoiceService:
     """Voice service layer"""
     
@@ -101,7 +113,13 @@ class VoiceService:
         text: Optional[str] = None
     ) -> VoiceModel:
         """
-        Clone a voice using Fish Audio API, store audio, and save to database
+        Clone a voice using Fish Audio API, generate TTS preview, and save to database
+        
+        Flow:
+        1. Clone voice from uploaded audio + optional text
+        2. Generate TTS preview audio using the new voice (with provided or default text)
+        3. Upload TTS preview to S3 as sample_url
+        4. Create voice record in database
         
         Args:
             db: Database session
@@ -109,54 +127,92 @@ class VoiceService:
             fish_client: Fish Audio client
             owner_id: User ID
             audio_file: Audio file to clone
-            text: Optional transcription text
+            text: Optional transcription text (also used for TTS preview)
             
         Returns:
             Created VoiceModel
+            
+        Raises:
+            InternalServerException: When any downstream service fails
         """
-        # Generate voice_id for our system
-        voice_id = generate_voice_id()
+        from utils.exceptions import InternalServerException
         
-        # Read audio file content
-        audio_content = await audio_file.read()
+        fish_voice_id: Optional[str] = None
+        sample_url: Optional[str] = None
         
-        # Reset file pointer for S3 upload
-        await audio_file.seek(0)
-        
-        # Upload audio to S3 for storage (using voice_id as filename)
-        
-        sample_url = await FileRepository.upload(
-            s3=s3,
-            file=audio_file,
-            folder="voice_samples",
-            custom_filename=voice_id
-        )
-        
-        # Call Fish Audio API to clone voice
-        fish_voice: FishVoice = await fish_client.voices.create(
-            title=f"live_agent_{voice_id}",
-            voices=[audio_content],
-            texts=[text] if text else None,
-            train_mode="fast",
-            visibility="private",
-            enhance_audio_quality=True
-        )
-        
-        # Create voice record in database
-        
-        default_name = f"{owner_id}'s Cloned Voice {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
-        
-        voice = await Voice.create(
-            db=db,
-            voice_id=fish_voice.id,  # Use Fish Audio voice ID
-            owner_id=owner_id,
-            name=default_name,
-            desc="",  # Empty description, to be updated later
-            sample_url=sample_url,
-            sample_text=text
-        )
-        
-        return voice
+        try:
+            # Read audio file content for cloning
+            audio_content = await audio_file.read()
+            logger.bind(tag=TAG).info(f"Audio content length: {len(audio_content)} bytes")
+            
+            # Step 1: Clone voice using Fish Audio API
+            fish_voice: FishVoice = await fish_client.voices.create(
+                title=f"live_agent_{owner_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                voices=[audio_content],
+                texts=[text] if text else None,
+                train_mode="fast",
+                visibility="private",
+                enhance_audio_quality=True
+            )
+            fish_voice_id = fish_voice.id
+            language = fish_voice.languages[0] if len(fish_voice.languages) > 0 else "en"
+            sample_text = DEFAULT_SAMPLE_TEXT[language]
+            
+            # Step 2: Generate TTS preview using the new voice
+            logger.bind(tag=TAG).info(f"Generating TTS preview with voice {fish_voice_id}")
+            audio_bytes = await fish_client.tts.convert(
+                text=sample_text,
+                reference_id=fish_voice_id,
+                format="mp3"
+            )
+            logger.bind(tag=TAG).info(f"TTS preview generated, size: {len(audio_bytes)} bytes")
+            
+            # Step 3: Upload TTS preview audio to S3
+            sample_url = await FileRepository.upload_voice_sample(
+                s3=s3,
+                audio_data=audio_bytes,
+                voice_id=fish_voice_id,
+                file_ext="mp3"
+            )
+            logger.bind(tag=TAG).info(f"TTS preview uploaded to S3: {sample_url}")
+            
+            # Step 4: Create voice record in database
+            voice = await Voice.create(
+                db=db,
+                voice_id=fish_voice_id,
+                owner_id=owner_id,
+                name="Cloned Voice",
+                desc="",
+                sample_url=sample_url,
+                sample_text=sample_text
+            )
+            
+            return voice
+            
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Clone voice failed: {e}")
+            # Cleanup created resources based on what was successfully created
+            if sample_url:
+                await self._cleanup_s3_file(s3, sample_url)
+            if fish_voice_id:
+                await self._cleanup_fish_voice(fish_client, fish_voice_id)
+            raise InternalServerException(f"Voice cloning failed: {str(e)}")
+    
+    async def _cleanup_fish_voice(self, fish_client: AsyncFishAudio, voice_id: str) -> None:
+        """Cleanup helper: delete voice from Fish Audio"""
+        try:
+            await fish_client.voices.delete(voice_id)
+            logger.bind(tag=TAG).info(f"Cleanup: deleted Fish Audio voice {voice_id}")
+        except Exception as e:
+            logger.bind(tag=TAG).warning(f"Cleanup failed: could not delete Fish Audio voice {voice_id}: {e}")
+    
+    async def _cleanup_s3_file(self, s3, url: str) -> None:
+        """Cleanup helper: delete file from S3"""
+        try:
+            await FileRepository.delete(s3, url)
+            logger.bind(tag=TAG).info(f"Cleanup: deleted S3 file {url}")
+        except Exception as e:
+            logger.bind(tag=TAG).warning(f"Cleanup failed: could not delete S3 file {url}: {e}")
     
     async def add_voice(
         self,
@@ -207,26 +263,48 @@ class VoiceService:
     async def remove_voice(
         self,
         db: AsyncSession,
+        s3,
+        fish_client: AsyncFishAudio,
         voice_id: str,
         owner_id: str
     ) -> bool:
         """
-        Remove a voice from user's my voices
+        Remove a voice completely: database, S3, and Fish Audio
         
         Args:
             db: Database session
-            voice_id: Internal voice ID
+            s3: S3 client
+            fish_client: Fish Audio client
+            voice_id: Voice ID
             owner_id: User ID
             
         Returns:
-            True if deleted, False if not found
+            True if deleted successfully
+            
+        Raises:
+            NotFoundException: If voice not found or not owned by user
         """
-        deleted = await Voice.delete(db=db, voice_id=voice_id, owner_id=owner_id)
         
-        if not deleted:
-            from utils.exceptions import NotFoundException
+        # Get voice record first to get sample_url for S3 cleanup
+        voice = await Voice.get_by_voice_and_owner(db=db, voice_id=voice_id, owner_id=owner_id)
+        if not voice:
             raise NotFoundException(f"Voice {voice_id} not found or not owned by user")
         
+        sample_url = voice.sample_url
+        
+        # Delete from database first
+        deleted = await Voice.delete(db=db, voice_id=voice_id, owner_id=owner_id)
+        if not deleted:
+            raise NotFoundException(f"Voice {voice_id} not found or not owned by user")
+        
+        # Cleanup S3 file (best effort, don't fail if cleanup fails)
+        try:
+            if sample_url:
+                await self._cleanup_s3_file(s3, sample_url)
+            await self._cleanup_fish_voice(fish_client, voice_id)
+        except Exception as e:
+            logger.bind(tag=TAG).warning(f"Cleanup failed: {e}")
+            return False
         return True
     
     async def update_voice(

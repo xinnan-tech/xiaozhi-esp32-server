@@ -35,3 +35,9 @@ class ConflictException(APIException):
     def __init__(self, message: str = "Resource already exists"):
         super().__init__(409, message)
 
+
+class InternalServerException(APIException):
+    """Internal server exception (500)"""
+    def __init__(self, message: str = "Internal server error"):
+        super().__init__(500, message)
+

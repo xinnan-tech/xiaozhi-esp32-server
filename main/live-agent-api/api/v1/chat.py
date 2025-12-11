@@ -7,11 +7,15 @@ from typing import Optional
 
 from infra import get_db, get_s3
 from services.chat_service import chat_service
+from services.agent_service import agent_service
 from schemas.chat import (
     ReportChatMessageRequest,
-    ChatMessagesListResponse
+    ChatMessagesListResponse,
 )
-from utils.response import success_response
+from api.auth import get_current_user_id
+from utils.response import success_response, error_response
+from utils.exceptions import ForbiddenException, NotFoundException, InternalServerException
+
 router = APIRouter()
 
 
@@ -103,4 +107,47 @@ async def get_agent_messages(
         next_cursor=next_cursor,
         has_more=has_more
     ))
+
+
+@router.delete("/{agent_id}", summary="Delete all chat data for an agent")
+async def clear_agent_chat(
+    agent_id: str,
+    db: AsyncSession = Depends(get_db),
+    s3 = Depends(get_s3),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Clear all chat data for an agent
+    
+    Deletes:
+    - All chat messages in database
+    - All audio files in S3 (chat-audio/{agent_id}/)
+    - All chat files in S3 (chat-files/{agent_id}/)
+    
+    Requirements:
+    - User must be authenticated
+    - User must own the agent
+    
+    Returns:
+        ClearChatResponse with deletion counts
+    """
+    # Verify agent exists and user owns it
+    try:
+        await agent_service.verify_ownership(db=db, agent_id=agent_id, owner_id=user_id)
+    except ForbiddenException as e:
+        return error_response(code=403, message=e.message)
+    except NotFoundException as e:
+        return error_response(code=404, message=e.message)
+    
+    # Clear chat data
+    try:
+        result = await chat_service.clear_agent_chat(
+            db=db,
+            s3=s3,
+            agent_id=agent_id
+        )
+    except InternalServerException as e:
+        return error_response(code=500, message=e.message)
+    
+    return success_response(data=result)
 

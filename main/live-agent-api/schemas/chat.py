@@ -44,3 +44,10 @@ class ChatMessagesListResponse(BaseModel):
     next_cursor: Optional[str] = Field(None, description="ISO timestamp to load older messages (pass as cursor for next request)")
     has_more: bool = Field(False, description="Whether there are more older messages available")
 
+
+class ClearChatResponse(BaseModel):
+    """Response schema for clearing agent chat data"""
+    agent_id: str = Field(..., description="Agent ID whose chat was cleared")
+    deleted_messages: int = Field(..., description="Number of deleted messages")
+    deleted_files: int = Field(..., description="Number of deleted files from storage")
+
