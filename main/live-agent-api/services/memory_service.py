@@ -28,10 +28,11 @@ class MemoryService:
 
     @property
     def _headers(self) -> dict:
-        """构造请求头"""
+        """构造请求头（MEMu API v2 使用 Bearer Token）"""
         return {
             "Content-Type": "application/json",
-            "X-API-Key": self.api_key
+            "Accept": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
         }
 
     async def _request(
@@ -151,24 +152,58 @@ class MemoryService:
                 return self._mock_delete(user_id, agent_id, memory_item_id)
             raise
 
-    async def _memu_search(self, user_id: str, agent_ids: List[str], summary: Optional[str] = None) -> dict:
-        """POST /memory-items/search（失败时 fallback 到 mock）
+    async def _memu_search(self, user_id: str, agent_ids: List[str], query: Optional[str] = None) -> dict:
+        """调用 MEMu API v2 查询记忆（失败时 fallback 到 mock）
         
-        summary 为空时返回该 agent 的全量记忆
+        统一使用 /api/v2/memory/retrieve/related-memory-items 搜索接口
+        - 有 query 时：使用具体关键词搜索
+        - 无 query 时：使用通用 query 获取全量记忆
+        
+        注意：MEMu API 每次只支持单个 agent_id，需要对多个 agent 分别查询后合并
         """
-        try:
-            payload = {
-                "user_id": user_id,
-                "agent_ids": agent_ids,
-            }
-            # 只有 summary 有值时才加入 payload
-            if summary:
-                payload["summary"] = summary
-            return await self._request("POST", "/memory-items/search", payload=payload)
-        except Exception:
-            if self.use_mock:
-                return self._mock_search(user_id, agent_ids, summary)
-            raise
+        all_items = []
+        
+        # 无 query 时使用通用搜索词获取全量记忆
+        search_query = query if query else "记忆 用户 事件 偏好"
+        
+        for agent_id in agent_ids:
+            try:
+                payload = {
+                    "user_id": user_id,
+                    "agent_id": agent_id,
+                    "query": search_query,
+                    "top_k": 100,  # 获取更多结果
+                    "min_similarity": 0.1 if not query else 0.3  # 无 query 时降低相似度阈值
+                }
+                data = await self._request("POST", "/api/v2/memory/retrieve/related-memory-items", payload=payload)
+                
+                # 提取 related_memories 列表，解析嵌套的 memory 对象
+                related_memories = data.get("related_memories", [])
+                for rm in related_memories:
+                    memory = rm.get("memory", {})
+                    if memory:
+                        # 标准化字段名
+                        item = {
+                            "id": memory.get("memory_id", ""),
+                            "agent_id": agent_id,
+                            "user_id": user_id,
+                            "memory_type": memory.get("category", "profile"),
+                            "summary": memory.get("content", ""),
+                            "created_at": memory.get("created_at", ""),
+                            "updated_at": memory.get("updated_at", ""),
+                        }
+                        all_items.append(item)
+            except Exception as e:
+                # 单个 agent 查询失败，继续处理其他 agent
+                import logging
+                logging.warning(f"MEMu query failed for agent {agent_id}: {e}")
+                continue
+        
+        # 如果所有 agent 都失败，尝试 mock fallback
+        if not all_items and self.use_mock:
+            return self._mock_search(user_id, agent_ids, query)
+        
+        return {"memory_items": all_items}
 
     # ==================== 对外 API：Memory CRUD ====================
 

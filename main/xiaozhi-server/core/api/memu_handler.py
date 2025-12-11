@@ -260,16 +260,22 @@ class MemuHandler(BaseHandler):
             # 将MEMu对象转换为可序列化的字典
             data = self._convert_to_dict(result)
             
-            # 确保metadata被正确返回
-            if data and isinstance(data, list):
-                for memory in data:
-                    if "metadata" not in memory:
-                        memory["metadata"] = {}
+            # 提取 related_memories 列表（SDK 返回结构为 {related_memories: [...], query: ..., total_found: N}）
+            memories = []
+            if isinstance(data, dict):
+                memories = data.get("related_memories", [])
+            elif isinstance(data, list):
+                memories = data
+            
+            # 确保 metadata 被正确返回
+            for memory in memories:
+                if isinstance(memory, dict) and "metadata" not in memory:
+                    memory["metadata"] = {}
             
             return {
                 "success": True,
-                "data": data,
-                "message": f"搜索成功，找到 {len(data) if data else 0} 条记忆"
+                "data": memories,
+                "message": f"搜索成功，找到 {len(memories)} 条记忆"
             }
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"搜索记忆失败: {e}")
