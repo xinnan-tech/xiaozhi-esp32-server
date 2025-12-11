@@ -81,6 +81,7 @@ class ConnectionHandler:
         self.websocket = None
         self.headers = None
         self.device_id = None
+        self.owner_id = None  # Device owner's user_id for memory storage
         self.client_ip = None
         self.prompt = None
         self.welcome_msg = None
@@ -790,8 +791,10 @@ class ConnectionHandler:
         if self.memory is None:
             return
         """初始化记忆模块"""
+        # Use owner_id (real user_id) for memory storage, fallback to device_id if not available
+        memory_user_id = self.owner_id if self.owner_id else self.device_id
         self.memory.init_memory(
-            role_id=self.device_id,
+            role_id=memory_user_id,
             llm=self.llm,
             agent_id=self.agent_id,
             summary_memory=self.config.get("summaryMemory", None),
@@ -966,6 +969,7 @@ class ConnectionHandler:
                 self.need_bind = True
                 return False
             self.agent_id = resolved.get("agent_id")
+            self.owner_id = resolved.get("owner_id")  # Device owner's user_id
             private_config = resolved.get("agent_config")
 
         if private_config is None:

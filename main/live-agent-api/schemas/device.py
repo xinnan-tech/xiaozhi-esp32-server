@@ -65,6 +65,7 @@ class DeviceAgentResolveResponse(BaseModel):
     """Resolve agent for device by wake word or default"""
     device_id: str
     agent_id: str
+    owner_id: Optional[str] = None  # Device owner's user_id for memory storage
     is_default: bool
     match_type: Literal["wake_word", "default"]
     agent_config: AgentConfigResponse

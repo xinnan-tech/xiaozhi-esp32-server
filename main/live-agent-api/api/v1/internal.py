@@ -98,6 +98,7 @@ async def resolve_agent_by_wake(
         data=DeviceAgentResolveResponse(
             device_id=resolved.device_id,
             agent_id=resolved.agent_id,
+            owner_id=resolved.owner_id,  # Device owner's user_id for memory storage
             is_default=resolved.is_default,
             match_type=resolved.match_type,
             agent_config=agent_cfg,

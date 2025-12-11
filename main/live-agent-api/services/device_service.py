@@ -267,6 +267,7 @@ class DeviceService:
         return DeviceAgentResolveResponse(
             device_id=device_id,
             agent_id=matched_agent.agent_id,
+            owner_id=device.owner_id,  # Device owner's user_id for memory storage
             is_default=matched_binding.is_default,
             match_type=match_type,
             agent_config=agent_config,
