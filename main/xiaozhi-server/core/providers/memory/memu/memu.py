@@ -137,6 +137,8 @@ class MemoryProvider(MemoryProviderBase):
                     context_info["mac_address"] = context["mac_address"]
                 if "device_id" in context:
                     context_info["device_id"] = context["device_id"]
+                if "user_id" in context:
+                    context_info["user_id"] = context["user_id"]
                 if "agent_id" in context and context["agent_id"]:
                     agent_id = context["agent_id"]
                     context_info["agent_id"] = agent_id
@@ -153,7 +155,7 @@ class MemoryProvider(MemoryProviderBase):
                 agent_name=self.agent_name,
                 session_date=session_date
             )
-            logger.bind(tag=TAG).info(f"保存记忆成功，context: {context_info}, session_date: {session_date}")
+            logger.bind(tag=TAG).info(f"保存记忆成功，user_id: {self.role_id}, agent_id: {agent_id}, context: {context_info}, session_date: {session_date}")
             logger.bind(tag=TAG).debug(f"Save memory result: {result}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"保存记忆失败: {str(e)}")

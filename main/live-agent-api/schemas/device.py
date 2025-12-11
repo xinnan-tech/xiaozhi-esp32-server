@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
-from typing import Literal
 from pydantic import BaseModel, Field
+
 from schemas.agent import AgentConfigResponse
 
 
@@ -62,18 +62,18 @@ class DeviceBoundAgentsResponse(BaseModel):
 
 
 class DeviceAgentResolveResponse(BaseModel):
-    """Resolve agent for device by wake word or default"""
+    """Response for resolving agent by device and wake_word"""
     device_id: str
     agent_id: str
-    owner_id: Optional[str] = None  # Device owner's user_id for memory storage
+    owner_id: Optional[str] = None
     is_default: bool
-    match_type: Literal["wake_word", "default"]
+    match_type: str = Field(..., description="How agent was matched: 'wake_word' or 'default'")
     agent_config: AgentConfigResponse
 
 
 class DefaultAgentResponse(BaseModel):
-    """Default agent for a device"""
+    """Response for device's default agent"""
     device_id: str
     agent: AgentConfigResponse
-    is_default: bool = True
+    is_default: bool
 
