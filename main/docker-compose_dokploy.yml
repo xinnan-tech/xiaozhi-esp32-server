@@ -34,18 +34,18 @@ services:
       disable: true
     volumes:
       # Configuration directory
-      - ./xiaozhi-server/data:/opt/xiaozhi-esp32-server/data
+      - /home/ubuntu/main/xiaozhi-server/data:/opt/xiaozhi-esp32-server/data
       # Custom config (optional override, uncomment if you need to customize)
-      - ./xiaozhi-server/custom_config.yaml:/opt/xiaozhi-esp32-server/custom_config.yaml
+      - /home/ubuntu/main/xiaozhi-server/custom_config.yaml:/opt/xiaozhi-esp32-server/custom_config.yaml
       # Model files (important!)
-      - ./xiaozhi-server/models/SenseVoiceSmall:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall
-      - ./xiaozhi-server/models/snakers4_silero-vad:/opt/xiaozhi-esp32-server/models/snakers4_silero-vad
+      - /home/ubuntu/main/xiaozhi-server/models/SenseVoiceSmall:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall
+      - /home/ubuntu/main/xiaozhi-server/models/snakers4_silero-vad:/opt/xiaozhi-esp32-server/models/snakers4_silero-vad
       # Temporary files
-      - ./xiaozhi-server/tmp:/opt/xiaozhi-esp32-server/tmp
+      - /home/ubuntu/main/xiaozhi-server/tmp:/opt/xiaozhi-esp32-server/tmp
       # Music files (optional)
-      - ./xiaozhi-server/music:/opt/xiaozhi-esp32-server/music
+      - /home/ubuntu/main/xiaozhi-server/music:/opt/xiaozhi-esp32-server/music
       # Logs (optional, for debugging)
-      - ./xiaozhi-server/logs:/opt/xiaozhi-esp32-server/logs
+      - /home/ubuntu/main/xiaozhi-server/logs:/opt/xiaozhi-esp32-server/logs
 
   # ============================================================================
   # MySQL Database (for xiaozhi-esp32-server)
@@ -61,9 +61,9 @@ services:
       - "3307:3306"
     volumes:
       # Persistent database storage
-      - ./xiaozhi-server/mysql/data:/var/lib/mysql
+      - /home/ubuntu/main/xiaozhi-server/mysql/data:/var/lib/mysql
       # MySQL configuration (optional)
-      # - ./xiaozhi-server/mysql/conf:/etc/mysql/conf.d
+      # - /home/ubuntu/main/xiaozhi-server/mysql/conf:/etc/mysql/conf.d
     environment:
       - TZ=Asia/Shanghai
       - MYSQL_ROOT_PASSWORD=123456
@@ -101,7 +101,7 @@ services:
       - "6380:6379"
     volumes:
       # Persistent Redis data (optional)
-      - ./xiaozhi-server/redis/data:/data
+      - /home/ubuntu/main/xiaozhi-server/redis/data:/data
     environment:
       - TZ=Asia/Shanghai
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
@@ -130,8 +130,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./live-agent-api/data/postgres:/var/lib/postgresql/data
-      - ./live-agent-api/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - /home/ubuntu/main/live-agent-api/data/postgres:/var/lib/postgresql/data
+      - /home/ubuntu/main/live-agent-api/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     networks:
       - xiaozhi-network
     healthcheck:
@@ -151,7 +151,7 @@ services:
       - "19000:9000"
       - "19001:9001"
     volumes:
-      - ./live-agent-api/data/minio:/data
+      - /home/ubuntu/main/live-agent-api/data/minio:/data
     networks:
       - xiaozhi-network
     healthcheck:
