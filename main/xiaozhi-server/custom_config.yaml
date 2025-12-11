@@ -470,7 +470,18 @@ VAD:
     type: silero
     model_dir: models/snakers4_silero-vad
     threshold: 0.5                    # high threshold to confirm voice
-    threshold_low: 0.35                # low threshold to confirm silence
+    min_silence_duration: 0.40      # silence detection duration (s)
+    min_speech_duration: 0.05         # speech detection duration (s)
+    prefix_padding_duration: 0.3      # prefix padding duration (s)
+    activation_threshold: 0.5         # activation threshold
+    sample_rate: 16000                # sample rate
+  # FSMN VAD from FunASR, optimized for Chinese
+  # Reference: https://huggingface.co/funasr/fsmn-vad
+  FsmnVAD:
+    type: fsmn
+    model: fsmn-vad
+    model_revision: v2.0.4
+    chunk_size_ms: 100                # streaming chunk size in ms
     min_silence_duration_ms: 400      # silence detection duration (ms)
     frame_window_threshold: 3         # sliding window threshold
 

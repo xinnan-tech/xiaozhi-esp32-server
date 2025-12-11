@@ -4,7 +4,6 @@ import wave
 import uuid
 import json
 import time
-import queue
 import asyncio
 import traceback
 import threading
@@ -13,28 +12,76 @@ import concurrent.futures
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
 from typing import Optional, Tuple, List
-from core.handle.receiveAudioHandle import startToChat
 from core.handle.reportHandle import enqueue_asr_report
 from core.utils.util import remove_punctuation_and_length
-from core.handle.receiveAudioHandle import handleAudioMessage
+from .dto import ASRMessageType, ASRInputMessage
+from queue import Queue, Empty
 
 TAG = __name__
 logger = setup_logging()
 
 
 class ASRProviderBase(ABC):
+
     def __init__(self):
-        pass
+        self.asr_input_queue = Queue[ASRInputMessage]()
+        self.asr_input_audio_format = "pcm"
 
     # 打开音频通道
     async def open_audio_channels(self, conn):
+        # Thread for processing raw audio from WebSocket
         conn.asr_priority_thread = threading.Thread(
-            target=self.asr_text_priority_thread, args=(conn,), daemon=True
+            target=self._asr_audio_queue_thread, 
+            args=(conn,), 
+            daemon=True
         )
         conn.asr_priority_thread.start()
+        
+        # Start VAD stream and event processor (must be in async context)
+        await self._start_vad_stream(conn)
+        
+        # Thread for processing ASR input messages from VAD stream
+        conn.asr_input_thread = threading.Thread(
+            target=self._asr_input_queue_thread,
+            args=(conn,),
+            daemon=True
+        )
+        conn.asr_input_thread.start()
+        logger.bind(tag=TAG).info("ASR input queue thread started")
 
-    # 有序处理ASR音频
-    def asr_text_priority_thread(self, conn):
+    async def _start_vad_stream(self, conn):
+        """Start VAD stream task and event processor
+        
+        This must be called from async context (running event loop).
+        """
+        from core.handle.abortHandle import handleAbortMessage
+        
+        if conn.vad_stream is None:
+            logger.bind(tag=TAG).warning("VAD stream not initialized, skipping start")
+            return
+        
+        try:
+            # Start the VAD processing task
+            await conn.vad_stream.start()
+            
+            # Start the event processor task
+            conn._vad_event_task = asyncio.create_task(
+                conn.vad_stream.process_events(
+                    conn=conn,
+                    asr_input_queue=self.asr_input_queue,
+                    interrupt_callback=handleAbortMessage,
+                )
+            )
+            logger.bind(tag=TAG).info("VAD stream and event processor started")
+            
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Failed to start VAD stream: {e}")
+
+    def _asr_audio_queue_thread(self, conn):
+        """Thread for processing raw audio from WebSocket"""
+        # Import inside thread to avoid circular imports
+        from core.handle.receiveAudioHandle import handleAudioMessage
+        
         while not conn.stop_event.is_set():
             try:
                 message = conn.asr_audio_queue.get(timeout=1)
@@ -43,13 +90,180 @@ class ASRProviderBase(ABC):
                     conn.loop,
                 )
                 future.result()
-            except queue.Empty:
+            except Empty:
                 continue
             except Exception as e:
                 logger.bind(tag=TAG).error(
-                    f"处理ASR文本失败: {str(e)}, 类型: {type(e).__name__}, 堆栈: {traceback.format_exc()}"
+                    f"处理ASR音频失败: {str(e)}, 类型: {type(e).__name__}, 堆栈: {traceback.format_exc()}"
                 )
                 continue
+
+    def _asr_input_queue_thread(self, conn):
+        """Thread for processing ASRInputMessage from VAD stream
+        
+        This thread receives audio chunks from VAD stream's process_events()
+        and processes them when a LAST message is received (contains complete audio).
+        """
+        while not conn.stop_event.is_set():
+            try:
+                # Get message from async queue in sync context
+                message: ASRInputMessage = self.asr_input_queue.get(timeout=0.5)
+                
+                # Process ASRInputMessage
+                if message.message_type == ASRMessageType.FIRST:
+                    # Start of new speech segment - just log, LAST contains complete audio
+                    logger.bind(tag=TAG).debug(
+                        f"ASR: Speech started, audio={message.audio_duration_ms:.0f}ms"
+                    )
+                    
+                elif message.message_type == ASRMessageType.MIDDLE:
+                    # For streaming ASR: would process incremental audio here
+                    # Currently skipped by VAD event processor
+                    pass
+                    
+                elif message.message_type == ASRMessageType.LAST:
+                    # End of speech segment - LAST contains complete audio from VAD
+                    # No need to accumulate with FIRST (would cause duplication)
+                    total_audio_ms = message.audio_duration_ms
+                    logger.bind(tag=TAG).info(
+                        f"ASR: Speech ended, total_audio={total_audio_ms:.0f}ms, "
+                        f"speech_duration={message.speech_duration:.2f}s"
+                    )
+                    
+                    # Process the complete speech segment (LAST audio only)
+                    asyncio.run_coroutine_threadsafe(
+                        self._process_speech_segment(conn, [message.audio_data]),
+                        conn.loop,
+                    )
+                    
+            except asyncio.TimeoutError:
+                continue
+            except Empty:
+                continue
+            except Exception as e:
+                logger.bind(tag=TAG).error(
+                    f"ASR input queue error: {str(e)}, type: {type(e).__name__}"
+                )
+                continue
+        
+        logger.bind(tag=TAG).info("ASR input queue thread stopped")
+
+    async def _process_speech_segment(
+        self, 
+        conn, 
+        pcm_audio_chunks: list[bytes]
+    ):
+        """Process a complete speech segment (PCM audio from VAD)
+        
+        Args:
+            conn: Connection handler
+            pcm_audio_chunks: List of PCM audio chunks (already decoded)
+        """
+        # Import here to avoid circular imports
+        from core.handle.receiveAudioHandle import startToChat
+        
+        try:
+            total_start_time = time.monotonic()
+            
+            # Combine PCM chunks
+            combined_pcm = b"".join(pcm_audio_chunks)
+            
+            # Prepare WAV data for voiceprint if needed
+            wav_data = None
+            if conn.voiceprint_provider and combined_pcm:
+                wav_data = self._pcm_to_wav(combined_pcm)
+            
+            # Run ASR (audio is already PCM, not opus)
+            def run_asr():
+                start_time = time.monotonic()
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        # Pass PCM data directly
+                        result = loop.run_until_complete(
+                            self.speech_to_text(pcm_audio_chunks, conn.session_id, self.asr_input_audio_format)
+                        )
+                        end_time = time.monotonic()
+                        asr_elapsed_ms = (end_time - start_time) * 1000
+                        
+                        # Calculate E2E latency
+                        e2e_asr_delay = 0
+                        if hasattr(conn, '_latency_voice_end_time'):
+                            e2e_asr_delay = time.time() * 1000 - conn._latency_voice_end_time
+                        
+                        logger.bind(tag=TAG).info(
+                            f"🎙️ [Latency] ASR completed: {asr_elapsed_ms:.0f}ms | "
+                            f"Voice end → ASR: {e2e_asr_delay:.0f}ms"
+                        )
+                        return result
+                    finally:
+                        loop.close()
+                except Exception as e:
+                    logger.bind(tag=TAG).error(f"ASR failed: {e}")
+                    return ("", None)
+            
+            # Run voiceprint recognition
+            def run_voiceprint():
+                if not wav_data:
+                    return None
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        result = loop.run_until_complete(
+                            conn.voiceprint_provider.identify_speaker(wav_data, conn.session_id)
+                        )
+                        return result
+                    finally:
+                        loop.close()
+                except Exception as e:
+                    logger.bind(tag=TAG).error(f"Voiceprint failed: {e}")
+                    return None
+            
+            # Run tasks in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                asr_future = executor.submit(run_asr)
+                
+                if conn.voiceprint_provider and wav_data:
+                    voiceprint_future = executor.submit(run_voiceprint)
+                    asr_result = asr_future.result(timeout=15)
+                    voiceprint_result = voiceprint_future.result(timeout=15)
+                    results = {"asr": asr_result, "voiceprint": voiceprint_result}
+                else:
+                    asr_result = asr_future.result(timeout=15)
+                    results = {"asr": asr_result, "voiceprint": None}
+            
+            # Process results
+            raw_text, _ = results.get("asr", ("", None))
+            speaker_name = results.get("voiceprint", None)
+            
+            if raw_text:
+                logger.bind(tag=TAG).info(f"Recognized text: {raw_text}")
+            if speaker_name:
+                logger.bind(tag=TAG).info(f"Recognized speaker: {speaker_name}")
+            
+            # Performance monitoring
+            total_time = time.monotonic() - total_start_time
+            logger.bind(tag=TAG).info(f"Total processing time: {total_time:.3f}s")
+            
+            # Check text length
+            text_len, _ = remove_punctuation_and_length(raw_text)
+            self.stop_ws_connection()
+            
+            if text_len > 0:
+                enhanced_text = self._build_enhanced_text(raw_text, speaker_name)
+                asr_report_time = int(time.time())
+                
+                await startToChat(conn, enhanced_text)
+                # Note: For report, we need to convert PCM back to opus or use PCM directly
+                # For now, pass empty list as audio data for report
+                enqueue_asr_report(conn, enhanced_text, [], report_time=asr_report_time)
+                
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"Process speech segment failed: {e}")
+            import traceback
+            logger.bind(tag=TAG).debug(f"Exception details: {traceback.format_exc()}")
 
     # 接收音频
     async def receive_audio(self, conn, audio, audio_have_voice):
@@ -74,6 +288,9 @@ class ASRProviderBase(ABC):
     # 处理语音停止
     async def handle_voice_stop(self, conn, asr_audio_task: List[bytes]):
         """并行处理ASR和声纹识别"""
+        # Import here to avoid circular imports
+        from core.handle.receiveAudioHandle import startToChat
+        
         try:
             total_start_time = time.monotonic()
             

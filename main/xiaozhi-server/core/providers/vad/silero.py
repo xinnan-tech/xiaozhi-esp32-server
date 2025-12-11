@@ -1,154 +1,240 @@
+import asyncio
 import time
+from numba import byte
 import numpy as np
 import torch
-import opuslib_next
+from dataclasses import dataclass
+
 from config.logger import setup_logging
-from core.providers.vad.base import VADProviderBase
+from .base import VADProviderBase, VADStream, ExpFilter
+from .dto import VADEvent, VADEventType
+
+
+@dataclass
+class SileroVADOptions:
+    """Silero VAD specific options"""
+    min_speech_duration: float = 0.05       # 50ms to confirm speech start
+    min_silence_duration: float = 0.40      # 400ms to confirm speech end
+    prefix_padding_duration: float = 0.3    # 300ms prefix padding
+    activation_threshold: float = 0.5       # probability threshold
+    sample_rate: int = 16000                # 16kHz
+
 
 TAG = __name__
 logger = setup_logging()
 
 
-class ExpFilter:
-    """Exponential filter for smoothing probability values (from LiveKit)
-    
-    Smooths noisy VAD probability outputs to reduce false triggers.
-    Formula: smoothed = α × current + (1-α) × previous
-    
-    Args:
-        alpha: Smoothing factor (0-1). Higher = faster response, less smoothing.
-               LiveKit default is 0.35.
-    """
-    def __init__(self, alpha: float = 0.35):
-        self._alpha = alpha
-        self._filtered_value: float | None = None
-
-    def apply(self, sample: float) -> float:
-        if self._filtered_value is None:
-            self._filtered_value = sample
-        else:
-            self._filtered_value = self._alpha * sample + (1 - self._alpha) * self._filtered_value
-        return self._filtered_value
-
-    def reset(self):
-        self._filtered_value = None
-
-
 class VADProvider(VADProviderBase):
-    def __init__(self, config):
-        logger.bind(tag=TAG).info("SileroVAD", config)
-        self.model, _ = torch.hub.load(
-            repo_or_dir=config["model_dir"],
+    """Silero VAD provider"""
+    
+    def __init__(self, config: dict):
+        super().__init__()
+        # Load Silero model
+        self._model, _ = torch.hub.load(
+            repo_or_dir=config.get("model_dir", "models/snakers4_silero-vad"),
             source="local",
             model="silero_vad",
             force_reload=False,
         )
-
-        self.decoder = opuslib_next.Decoder(16000, 1)
-
-        # VAD parameters
-        threshold = config.get("threshold", "0.6")
-        threshold_low = config.get("threshold_low", "0.3")
-        min_silence_duration_ms = config.get("min_silence_duration_ms", "200")
-
-        self.vad_threshold = float(threshold) if threshold else 0.5
-        self.vad_threshold_low = float(threshold_low) if threshold_low else 0.3
-        self.silence_threshold_ms = (
-            int(min_silence_duration_ms) if min_silence_duration_ms else 200
+        
+        # Parse config
+        self._opts = SileroVADOptions(
+            min_speech_duration=float(config.get("min_speech_duration", "0.05")),
+            min_silence_duration=float(config.get("min_silence_duration", "0.40")),
+            prefix_padding_duration=float(config.get("prefix_padding_duration", "0.3")),
+            activation_threshold=float(config.get("threshold", "0.5")),
+            sample_rate=16000,
         )
+        
+    def stream(self) -> VADStream:
+        """Create a new VAD stream"""
+        return SileroVADStream(self, self._model, self._opts)
 
-        # sliding window threshold
-        frame_window_threshold = config.get("frame_window_threshold", "3")
-        self.frame_window_threshold = int(frame_window_threshold) if frame_window_threshold else 3
 
-    def is_vad(self, conn, opus_packet):
-        try:
-            now_ms = time.time() * 1000
-            conn._vad_frame_count = getattr(conn, '_vad_frame_count', 0) + 1
-            
-            pcm_frame = self.decoder.decode(opus_packet, 960)
-            conn.client_audio_buffer.extend(pcm_frame)
+class SileroVADStream(VADStream):
+    """Silero VAD stream implementation"""
+    
+    # Silero requires 512 samples per inference (32ms at 16kHz)
+    WINDOW_SIZE_SAMPLES = 512
+    WINDOW_SIZE_BYTES = WINDOW_SIZE_SAMPLES * 2  # int16
+    WINDOW_DURATION = WINDOW_SIZE_SAMPLES / 16000  # seconds
+    SLOW_INFERENCE_THRESHOLD = 0.2  # seconds
+    
+    def __init__(self, vad: VADProvider, model, opts: SileroVADOptions):
+        super().__init__(vad)
+        self._model = model
+        self._opts = opts
+        self._exp_filter = ExpFilter(alpha=0.35)
+        
+        # Speech buffer for prefix padding (in bytes, not samples)
+        self._prefix_padding_bytes = int(opts.prefix_padding_duration * opts.sample_rate) * 2
+        # Pre-allocate max speech buffer (60s + prefix padding)
+        max_speech_bytes = 60 * opts.sample_rate * 2 + self._prefix_padding_bytes
+        self._speech_buffer = bytearray(max_speech_bytes)
+        self._speech_buffer_max_reached = False
+    
+    async def _run_task(self) -> None:
+        """Main processing loop - receives PCM data from base class"""
+        
+        inference_data = np.empty(self.WINDOW_SIZE_SAMPLES, dtype=np.float32)
+        speech_buffer_index: int = 0
+        
+        pub_speaking = False
+        pub_speech_duration = 0.0
+        pub_silence_duration = 0.0
+        
+        speech_threshold_duration = 0.0
+        silence_threshold_duration = 0.0
 
-            # process complete frames in buffer (512 samples per frame)
-            client_have_voice = False
-            while len(conn.client_audio_buffer) >= 512 * 2:
-                # extract first 512 samples (1024 bytes)
-                chunk = conn.client_audio_buffer[: 512 * 2]
-                conn.client_audio_buffer = conn.client_audio_buffer[512 * 2 :]
-
-                # convert to tensor format for model
-                audio_int16 = np.frombuffer(chunk, dtype=np.int16)
-                audio_float32 = audio_int16.astype(np.float32) / 32768.0
-                audio_tensor = torch.from_numpy(audio_float32)
-
-                # run VAD inference
-                with torch.no_grad():
-                    speech_prob = self.model(audio_tensor, 16000).item()
-
-                # dual threshold judgment (hysteresis)
-                if speech_prob >= self.vad_threshold:
-                    is_voice = True
-                elif speech_prob <= self.vad_threshold_low:
-                    is_voice = False
-                else:
-                    is_voice = conn.last_is_voice
-
-                conn.last_is_voice = is_voice
-
-                # record first voice frame time (when is_voice becomes True)
-                if is_voice and not hasattr(conn, '_vad_first_voice_time'):
-                    conn._vad_first_voice_time = now_ms
-
-                # update sliding window
-                conn.client_voice_window.append(is_voice)
-                client_have_voice = (
-                    conn.client_voice_window.count(True) >= self.frame_window_threshold
-                )
-
-                # 检测语音开始（边缘检测）
-                if not conn.client_have_voice and client_have_voice:
-                    conn._latency_voice_start_time = time.time() * 1000
-                    # calculate delay from first voice frame to VAD confirmation
-                    first_voice_time = getattr(conn, '_vad_first_voice_time', None)
-                    if first_voice_time:
-                        voice_to_confirm = conn._latency_voice_start_time - first_voice_time
-                        logger.bind(tag=TAG).info(
-                            f"🎤 [延迟追踪] VAD检测到开始说话 | "
-                            f"首个声音帧到确认: {voice_to_confirm:.0f}ms"
-                        )
-                    else:
-                        logger.bind(tag=TAG).info(f"🎤 [延迟追踪] VAD检测到开始说话")
+        extra_inference_time = 0.0
+        
+        input_audios: bytearray = bytearray()
+        inference_audios: bytearray = bytearray()
+        
+        while not self._is_closed:
+            try:
+                pcm_data = await self._input_queue.get()
+                if isinstance(pcm_data, VADStream._FlushSentinel):
+                    continue
+                                
+                input_audios.extend(pcm_data)
+                inference_audios.extend(pcm_data)
                 
-                # 检测语音结束（需要确保开始时间已设置）
-                if conn.client_have_voice and not client_have_voice:
-                    stop_duration = time.time() * 1000 - conn.last_activity_time
-                    if stop_duration >= self.silence_threshold_ms:
-                        if conn.client_listen_mode != "manual":
-                            conn.client_voice_stop = True
-                            # 记录用户说完的时间（端到端延迟的起点）
-                            conn._latency_voice_end_time = time.time() * 1000
-                            
-                            # 安全检查：确保时间戳已设置
-                            start_time = getattr(conn, '_latency_voice_start_time', None)
-                            
-                            if start_time:
-                                voice_duration = conn._latency_voice_end_time - start_time
-                                logger.bind(tag=TAG).info(
-                                    f"🎤 [延迟追踪] VAD检测到说话结束 | "
-                                    f"语音时长: {voice_duration:.0f}ms"
-                                )
-                            
-                            # reset for next utterance
-                            conn._latency_voice_start_time = None
-                            if hasattr(conn, '_vad_first_voice_time'):
-                                del conn._vad_first_voice_time
-                            
-                if client_have_voice:
-                    conn.client_have_voice = True
-                    conn.last_activity_time = time.time() * 1000
+                # Process complete windows
+                while len(inference_audios) >= self.WINDOW_SIZE_BYTES:
+                    inference_start = time.perf_counter()
+                    
+                    # Extract window, convert int16 to float32
+                    window_int16 = np.frombuffer(
+                        inference_audios[:self.WINDOW_SIZE_BYTES], dtype=np.int16
+                    )
+                    np.divide(window_int16, 32768.0, out=inference_data)
+                    
+                    # Convert to tensor and run inference
+                    audio_tensor = torch.from_numpy(inference_data)
+                    with torch.no_grad():
+                        prob = self._model(audio_tensor, self._opts.sample_rate).item()
+                    
+                    # Apply exponential smoothing
+                    prob = self._exp_filter.apply(prob)
+                    
+                    # Copy inference window to speech buffer
+                    available_space = len(self._speech_buffer) - speech_buffer_index
+                    to_copy = min(available_space, self.WINDOW_SIZE_BYTES)
+                    
+                    if to_copy > 0:
+                        self._speech_buffer[speech_buffer_index:speech_buffer_index + to_copy] = input_audios[:to_copy]
+                        speech_buffer_index += to_copy
+                    elif not self._speech_buffer_max_reached:
+                        self._speech_buffer_max_reached = True
+                        logger.bind(tag=TAG).warning("Speech buffer max reached, dropping further audio")
+                    
+                    # inference time
+                    inference_duration = time.perf_counter() - inference_start
+                    extra_inference_time = max(
+                        0.0,
+                        extra_inference_time + inference_duration - self.WINDOW_DURATION,
+                    )
 
-            return client_have_voice
-        except opuslib_next.OpusError as e:
-            logger.bind(tag=TAG).info(f"解码错误: {e}")
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Error processing audio packet: {e}")
+                    if inference_duration > self.SLOW_INFERENCE_THRESHOLD:
+                        logger.bind(tag=TAG).warning(
+                            "inference is slower than realtime",
+                            extra={"delay": extra_inference_time},
+                        )
+                    
+                    def _reset_write_cursor() -> None:
+                        nonlocal speech_buffer_index
+                        assert self._speech_buffer is not None
+                        if speech_buffer_index <= self._prefix_padding_bytes:
+                            return
+                        
+                        # Keep last prefix_padding worth of audio
+                        padding_data = self._speech_buffer[
+                            speech_buffer_index - self._prefix_padding_bytes : speech_buffer_index
+                        ]
+
+                        self._speech_buffer_max_reached = False
+                        self._speech_buffer[: self._prefix_padding_bytes] = padding_data
+                        speech_buffer_index = self._prefix_padding_bytes
+
+                    # copy the data from speech_buffer
+                    def _copy_speech_buffer() -> bytes:
+                        # copy the data from speech_buffer
+                        assert self._speech_buffer is not None
+                        return bytes(self._speech_buffer[:speech_buffer_index])
+
+                    # Update durations
+                    if pub_speaking:
+                        pub_speech_duration += self.WINDOW_DURATION
+                    else:
+                        pub_silence_duration += self.WINDOW_DURATION
+                    
+                    # Emit INFERENCE_DONE
+                    self._output_queue.put_nowait(VADEvent(
+                        type=VADEventType.INFERENCE_DONE,
+                        probability=prob,
+                        speech_duration=pub_speech_duration,
+                        silence_duration=pub_silence_duration,
+                        speaking=pub_speaking,
+                        audio_data=_copy_speech_buffer(),
+                        inference_duration=inference_duration,
+                    ))
+                    
+                    # State machine logic
+                    if prob >= self._opts.activation_threshold:
+                        speech_threshold_duration += self.WINDOW_DURATION
+                        silence_threshold_duration = 0.0
+                        
+                        if not pub_speaking:
+                            if speech_threshold_duration >= self._opts.min_speech_duration:
+                                pub_speaking = True
+                                pub_silence_duration = 0.0
+                                pub_speech_duration = speech_threshold_duration
+                                
+                                # Emit START_OF_SPEECH
+                                self._output_queue.put_nowait(VADEvent(
+                                    type=VADEventType.START_OF_SPEECH,
+                                    probability=prob,
+                                    speech_duration=pub_speech_duration,
+                                    silence_duration=0.0,
+                                    speaking=True,
+                                    audio_data=_copy_speech_buffer(),
+                                    inference_duration=inference_duration,
+                                ))
+                    else:
+                        silence_threshold_duration += self.WINDOW_DURATION
+                        speech_threshold_duration = 0.0
+                        
+                        if not pub_speaking:
+                            _reset_write_cursor()
+                        
+                        if pub_speaking and silence_threshold_duration >= self._opts.min_silence_duration:
+                            pub_speaking = False
+                            pub_silence_duration = silence_threshold_duration
+                            
+                            # Emit END_OF_SPEECH
+                            self._output_queue.put_nowait(VADEvent(
+                                type=VADEventType.END_OF_SPEECH,
+                                probability=prob,
+                                speech_duration=pub_speech_duration,
+                                silence_duration=pub_silence_duration,
+                                speaking=False,
+                                audio_data=_copy_speech_buffer(),
+                                inference_duration=inference_duration,
+                            ))
+                            
+                            pub_speech_duration = 0.0
+                            _reset_write_cursor()
+                    
+                    # Remove processed data from buffers
+                    del inference_audios[:self.WINDOW_SIZE_BYTES]
+                    del input_audios[:to_copy]
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"Error in VAD task: {e}")
+    
+    def reset(self):
+        """Reset stream state for new utterance"""
+        self._exp_filter.reset()
