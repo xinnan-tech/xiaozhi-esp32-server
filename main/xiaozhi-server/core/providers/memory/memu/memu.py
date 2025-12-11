@@ -313,12 +313,3 @@ class MemoryProvider(MemoryProviderBase):
         params = {"user_id": self.role_id, "agent_id": self.agent_id}
         return self._request("DELETE", f"/memory-items/{memory_item_id}", params=params)
 
-    @require_memu
-    def search_memory_items(self, summary: str) -> Dict[str, Any]:
-        """查询记忆记录
-        
-        Args:
-            summary: 搜索关键词
-        """
-        payload = self._base_payload(summary=summary)
-        return self._request("POST", "/memory-items/search", payload=payload)
