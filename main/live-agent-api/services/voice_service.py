@@ -16,7 +16,11 @@ TAG = __name__
 logger = setup_logging(TAG)
 
 # Default sample text for TTS preview when user doesn't provide text
-DEFAULT_SAMPLE_TEXT = "The only way to do great work is to love what you do."
+DEFAULT_SAMPLE_TEXT = {
+    "en": "The only way to do great work is to love what you do.",
+    "zh": "只有热爱才能做出伟大的工作。",
+    "ja": "偉大な仕事をする唯一の方法は、あなたが何を愛するかです。"
+} 
 class VoiceService:
     """Voice service layer"""
     
@@ -135,7 +139,6 @@ class VoiceService:
         
         fish_voice_id: Optional[str] = None
         sample_url: Optional[str] = None
-        sample_text = text if text else DEFAULT_SAMPLE_TEXT
         
         try:
             # Read audio file content for cloning
@@ -151,6 +154,8 @@ class VoiceService:
                 enhance_audio_quality=True
             )
             fish_voice_id = fish_voice.id
+            language = fish_voice.languages[0] if len(fish_voice.languages) > 0 else "en"
+            sample_text = DEFAULT_SAMPLE_TEXT[language]
             
             # Step 2: Generate TTS preview using the new voice
             logger.bind(tag=TAG).info(f"Generating TTS preview with voice {fish_voice_id}")
