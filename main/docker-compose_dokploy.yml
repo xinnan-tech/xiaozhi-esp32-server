@@ -1,0 +1,193 @@
+services:
+  # ============================================================================
+  # xiaozhi-server (Python WebSocket Server)
+  # ============================================================================
+  xiaozhi-esp32-server:
+    build:
+      context: ./xiaozhi-server/
+      dockerfile: Dockerfile
+    image: xiaozhi-esp32-server:local
+    container_name: xiaozhi-esp32-server
+    env_file:
+      - .env
+    depends_on:
+      xiaozhi-esp32-server-db:
+        condition: service_healthy
+      xiaozhi-esp32-server-redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - xiaozhi-network
+    ports:
+      # WebSocket server
+      - "8000:8000"
+      # HTTP server for vision analysis and OTA
+      - "8003:8003"
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+      - REGION=LOCAL
+    healthcheck:
+      disable: true
+    volumes:
+      # Configuration directory
+      - ./xiaozhi-server/data:/opt/xiaozhi-esp32-server/data
+      # Custom config (optional override, uncomment if you need to customize)
+      - ./xiaozhi-server/custom_config.yaml:/opt/xiaozhi-esp32-server/custom_config.yaml
+      # Model files (important!)
+      - ./xiaozhi-server/models/SenseVoiceSmall:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall
+      - ./xiaozhi-server/models/snakers4_silero-vad:/opt/xiaozhi-esp32-server/models/snakers4_silero-vad
+      # Temporary files
+      - ./xiaozhi-server/tmp:/opt/xiaozhi-esp32-server/tmp
+      # Music files (optional)
+      - ./xiaozhi-server/music:/opt/xiaozhi-esp32-server/music
+      # Logs (optional, for debugging)
+      - ./xiaozhi-server/logs:/opt/xiaozhi-esp32-server/logs
+
+  # ============================================================================
+  # MySQL Database (for xiaozhi-esp32-server)
+  # ============================================================================
+  xiaozhi-esp32-server-db:
+    image: mysql:8.0
+    container_name: xiaozhi-esp32-server-db
+    restart: unless-stopped
+    networks:
+      - xiaozhi-network
+    ports:
+      # Expose MySQL port for debugging (optional)
+      - "3307:3306"
+    volumes:
+      # Persistent database storage
+      - ./xiaozhi-server/mysql/data:/var/lib/mysql
+      # MySQL configuration (optional)
+      # - ./xiaozhi-server/mysql/conf:/etc/mysql/conf.d
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=xiaozhi_esp32_server
+      - MYSQL_INITDB_ARGS=--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --max_connections=1000
+      - --max_allowed_packet=256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+      start_period: 60s
+
+  # ============================================================================
+  # Redis Cache (for xiaozhi-esp32-server)
+  # ============================================================================
+  xiaozhi-esp32-server-redis:
+    image: redis:7-alpine
+    container_name: xiaozhi-esp32-server-redis
+    restart: unless-stopped
+    networks:
+      - xiaozhi-network
+    ports:
+      # Expose Redis port for debugging (optional)
+      - "6380:6379"
+    volumes:
+      # Persistent Redis data (optional)
+      - ./xiaozhi-server/redis/data:/data
+    environment:
+      - TZ=Asia/Shanghai
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================================
+  # live-agent-api Dependencies: Postgres + Minio
+  # ============================================================================
+  live-agent-postgres:
+    image: postgres:16-alpine
+    container_name: live-agent-postgres
+    environment:
+      POSTGRES_DB: live_agent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./live-agent-api/data/postgres:/var/lib/postgresql/data
+      - ./live-agent-api/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    networks:
+      - xiaozhi-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  live-agent-minio:
+    image: minio/minio:latest
+    container_name: live-agent-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    volumes:
+      - ./live-agent-api/data/minio:/data
+    networks:
+      - xiaozhi-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # live-agent-api
+  # ============================================================================
+  live-agent-api:
+    build:
+      context: ./live-agent-api
+      dockerfile: Dockerfile
+    container_name: live-agent-api
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@live-agent-postgres:5432/live_agent
+      S3_ENDPOINT_URL: http://live-agent-minio:9000
+      DEBUG: "True"    # 如果是正式生产，可改成 "False"
+    ports:
+      - "8080:8080"
+    networks:
+      - xiaozhi-network
+    depends_on:
+      live-agent-postgres:
+        condition: service_healthy
+      live-agent-minio:
+        condition: service_healthy
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  xiaozhi-network:
+    driver: bridge
+    name: xiaozhi-network
