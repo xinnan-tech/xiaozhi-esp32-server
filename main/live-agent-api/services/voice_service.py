@@ -143,6 +143,7 @@ class VoiceService:
         try:
             # Read audio file content for cloning
             audio_content = await audio_file.read()
+            logger.bind(tag=TAG).info(f"Audio content length: {len(audio_content)} bytes")
             
             # Step 1: Clone voice using Fish Audio API
             fish_voice: FishVoice = await fish_client.voices.create(
