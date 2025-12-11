@@ -28,6 +28,9 @@ class MemoryProviderBase(ABC):
         """Query memories for specific role based on similarity"""
         return "please implement query method"
 
-    def init_memory(self, role_id, llm, **kwargs):
+    def init_memory(self, role_id, llm, agent_id=None, **kwargs):
         self.role_id = role_id
         self.llm = llm
+        # 运行时传入的 agent_id 覆盖配置默认值
+        if agent_id:
+            self.agent_id = agent_id

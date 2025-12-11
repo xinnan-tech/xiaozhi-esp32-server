@@ -14,6 +14,14 @@ TAG = __name__
 DEFAULT_AGENT_ID = "xiaozhi_agent"
 DEFAULT_BASE_URL = "https://api.memu.so"
 
+# Category 到中文标题的映射
+CATEGORY_TITLES = {
+    "profiles": "用户画像",
+    "events": "近期事件",
+    "activities": "近期活动",
+    "preferences": "用户偏好",
+}
+
 
 def require_memu(func: Callable) -> Callable:
     """装饰器：检查 MemU 服务是否可用"""
@@ -119,6 +127,8 @@ class MemoryProvider(MemoryProviderBase):
             
             session_date = None
             context_info = {}
+            # 优先从 context 获取 agent_id，否则用 self.agent_id
+            agent_id = self.agent_id
             if context:
                 # 记录上下文信息到日志
                 if "session_id" in context:
@@ -127,6 +137,9 @@ class MemoryProvider(MemoryProviderBase):
                     context_info["mac_address"] = context["mac_address"]
                 if "device_id" in context:
                     context_info["device_id"] = context["device_id"]
+                if "agent_id" in context and context["agent_id"]:
+                    agent_id = context["agent_id"]
+                    context_info["agent_id"] = agent_id
                 
                 # 使用当前时间作为session_date
                 session_date = datetime.now().strftime("%Y-%m-%d")
@@ -136,7 +149,7 @@ class MemoryProvider(MemoryProviderBase):
                 conversation=conversation_text.strip(),
                 user_id=self.role_id,
                 user_name=self.user_name,
-                agent_id="xiaozhi_agent",
+                agent_id=agent_id,
                 agent_name=self.agent_name,
                 session_date=session_date
             )
@@ -154,7 +167,7 @@ class MemoryProvider(MemoryProviderBase):
             # Use retrieve_related_memory_items to retrieve memories
             results = self.client.retrieve_related_memory_items(
                 user_id=self.role_id,
-                agent_id="xiaozhi_agent",
+                agent_id=self.agent_id,
                 query=query,
                 top_k=10,
                 min_similarity=0.3
@@ -168,19 +181,31 @@ class MemoryProvider(MemoryProviderBase):
             else:
                 data = results
             
-            # 检查是否有记忆项
+            # 检查是否有记忆项（兼容新旧 API 格式）
             memory_items = []
-            if isinstance(data, dict) and 'memory_items' in data:
-                memory_items = data['memory_items']
+            if isinstance(data, dict):
+                # 优先使用 related_memories（新 API 格式）
+                if 'related_memories' in data:
+                    memory_items = data['related_memories']
+                elif 'memory_items' in data:
+                    memory_items = data['memory_items']
             elif isinstance(data, list):
                 memory_items = data
 
             if not memory_items:
                 return ""
 
-            # Format each memory entry with its timestamp
-            memories = []
+            # 按 category 分组
+            grouped = {
+                "profiles": [],
+                "events": [],
+                "activities": [],
+                "preferences": [],
+                "other": []
+            }
+            
             for entry in memory_items:
+                # 转换 entry 为字典
                 if hasattr(entry, 'model_dump'):
                     entry_dict = entry.model_dump()
                 elif hasattr(entry, 'dict'):
@@ -188,30 +213,65 @@ class MemoryProvider(MemoryProviderBase):
                 else:
                     entry_dict = entry
                 
-                timestamp = entry_dict.get("created_at", "")
-                if timestamp:
-                    try:
-                        # Parse and reformat the timestamp
-                        dt = timestamp.split(".")[0]  # Remove milliseconds
-                        formatted_time = dt.replace("T", " ")
-                    except:
-                        formatted_time = timestamp
+                # 解析嵌套的 memory 对象（新 API 格式）
+                memory_obj = entry_dict.get("memory", entry_dict)
+                if hasattr(memory_obj, 'model_dump'):
+                    memory_obj = memory_obj.model_dump()
+                elif hasattr(memory_obj, 'dict'):
+                    memory_obj = memory_obj.dict() if callable(memory_obj.dict) else memory_obj
+                
+                # 提取字段
+                category = memory_obj.get("category", "other")
+                content = memory_obj.get("content", "") or memory_obj.get("memory", "")
+                # 事件类使用 happened_at，其他用 created_at
+                timestamp = memory_obj.get("happened_at") or memory_obj.get("created_at", "")
+                
+                if not content:
+                    continue
+                
+                # 分组
+                if category in grouped:
+                    grouped[category].append((timestamp, content))
                 else:
-                    formatted_time = "未知时间"
-                    
-                memory = entry_dict.get("content", "") or entry_dict.get("memory", "")
-                if memory:
-                    # Store tuple of (timestamp, formatted_string) for sorting
-                    memories.append((timestamp, f"[{formatted_time}] {memory}"))
+                    grouped["other"].append((timestamp, content))
 
-            if not memories:
+            # 格式化分组输出
+            output = []
+            for category, title in CATEGORY_TITLES.items():
+                items = grouped.get(category, [])
+                if not items:
+                    continue
+                
+                output.append(f"## {title}")
+                
+                # 按时间倒序排列
+                items.sort(key=lambda x: x[0] or "", reverse=True)
+                
+                # 每类最多 5 条
+                for ts, content in items[:5]:
+                    if category in ("events", "activities") and ts:
+                        # 格式化时间戳
+                        try:
+                            dt = ts.split(".")[0]  # Remove milliseconds
+                            formatted_time = dt.replace("T", " ").split(" ")[0]  # 只保留日期
+                        except:
+                            formatted_time = ts
+                        output.append(f"- [{formatted_time}] {content}")
+                    else:
+                        output.append(f"- {content}")
+            
+            # 处理 other 分类（如果有）
+            other_items = grouped.get("other", [])
+            if other_items:
+                output.append("## 其他")
+                other_items.sort(key=lambda x: x[0] or "", reverse=True)
+                for ts, content in other_items[:5]:
+                    output.append(f"- {content}")
+
+            if not output:
                 return ""
 
-            # Sort by timestamp in descending order (newest first)
-            memories.sort(key=lambda x: x[0], reverse=True)
-
-            # Extract only the formatted strings
-            memories_str = "\n".join(f"- {memory[1]}" for memory in memories)
+            memories_str = "\n".join(output)
             logger.bind(tag=TAG).debug(f"Query results: {memories_str}")
             return memories_str
         except Exception as e:
