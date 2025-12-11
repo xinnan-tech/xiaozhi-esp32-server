@@ -889,6 +889,21 @@ TTS:
     voice: "zh_female_wanwanxiaohe_moon_bigtts"
     output_dir: tmp/
     access_token: "你的机智云API key"
+  AnimalSound:
+    # 动物互动模式：根据LLM输出的情绪标签播放预置动物叫声
+    # 需要提前在 base_path 下放入对应的音频文件（建议 16k/mono wav 或 mp3）
+    type: animal_sound
+    base_path: config/assets/animal_sounds
+    emotion_files:
+      happy: cat_happy.wav      # 开心
+      sad: cat_sad.wav         # 悲伤
+      angry: cat_angry.wav     # 生气
+      afraid: cat_afraid.wav   # 害怕
+      helpless: cat_helpless.wav # 无奈
+      coquetry: cat_coquetry.wav # 撒娇/卖萌
+      default: cat_neutral.wav # 兜底
+    # 可选：兜底文件（绝对路径），如 emotion_files 中未指定 default 时使用
+    # default_file: /abs/path/to/animal_default.wav
   ACGNTTS:
     #在线网址：https://acgn.ttson.cn/
     #token购买：www.ttson.cn
