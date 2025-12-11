@@ -46,6 +46,7 @@ from core.utils import textUtils
 from config.live_agent_api_client import (
     get_agent_config_from_api,
     get_agent_by_wake_from_api,
+    extract_user_id_from_jwt,
 )
 
 TAG = __name__
@@ -195,6 +196,17 @@ class ConnectionHandler:
 
             self.device_id = self.headers.get("device-id", None)
             self.agent_id = self.headers.get("agent-id", None)
+            
+            # Extract user_id from JWT token (if live-agent-api secret_key configured)
+            # This enables proper memory initialization with the real user identity
+            auth_header = self.headers.get("authorization", "")
+            if auth_header and self.read_config_from_live_agent_api:
+                jwt_user_id = extract_user_id_from_jwt(auth_header, self.config)
+                if jwt_user_id:
+                    self.owner_id = jwt_user_id
+                    self.logger.bind(tag=TAG).info(
+                        f"Extracted owner_id from JWT: {jwt_user_id[:20]}..."
+                    )
 
             # 认证通过,继续处理
             self.websocket = ws
@@ -257,6 +269,7 @@ class ConnectionHandler:
                 context = {
                     "session_id": self.session_id,
                     "device_id": self.device_id,
+                    "user_id": self.owner_id,  # 设备所有者的 user_id
                     "mac_address": getattr(self, 'mac_address', None),
                     "agent_id": getattr(self, 'agent_id', None),
                 }
@@ -969,7 +982,9 @@ class ConnectionHandler:
                 self.need_bind = True
                 return False
             self.agent_id = resolved.get("agent_id")
-            self.owner_id = resolved.get("owner_id")  # Device owner's user_id
+            # Only set owner_id from API if not already extracted from JWT
+            if not self.owner_id:
+                self.owner_id = resolved.get("owner_id")  # Device owner's user_id
             private_config = resolved.get("agent_config")
 
         if private_config is None:

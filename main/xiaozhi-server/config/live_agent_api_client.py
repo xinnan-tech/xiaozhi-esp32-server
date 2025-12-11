@@ -5,10 +5,12 @@ Features:
 1. Singleton pattern ensures global unique httpx.Client instance
 2. Connection pool reuse for better performance
 3. Thread-safe for concurrent requests
+4. JWT token parsing for user_id extraction
 """
 
 import os
 import httpx
+import jwt
 from config.logger import setup_logging
 from typing import Optional, List, Dict
 
@@ -20,6 +22,7 @@ class LiveAgentApiClient:
     _instance = None
     _client: httpx.Client = None
     _base_url: str = None
+    _secret_key: str = None  # JWT secret key for token parsing
     
     def __new__(cls, config: dict = None):
         """Singleton pattern ensures global unique instance"""
@@ -35,6 +38,7 @@ class LiveAgentApiClient:
         """Initialize persistent connection pool"""
         live_api_config = config.get("live-agent-api", {})
         cls._base_url = live_api_config.get("url", "http://live-agent-api:8080/api/live_agent/v1")
+        cls._secret_key = live_api_config.get("secret_key")
         timeout = live_api_config.get("timeout", 30)
         
         cls._client = httpx.Client(
@@ -47,6 +51,8 @@ class LiveAgentApiClient:
             timeout=timeout,
         )
         logger.info(f"LiveAgentApiClient initialized: {cls._base_url}")
+        if cls._secret_key:
+            logger.info("JWT secret_key configured for user_id extraction")
     
     @classmethod
     def _request(cls, method: str, endpoint: str, **kwargs) -> dict:
@@ -212,3 +218,54 @@ def report_chat_message(
 def live_agent_api_safe_close():
     """Safe close for shutdown"""
     LiveAgentApiClient.safe_close()
+
+
+def extract_user_id_from_jwt(token: str, config: dict = None) -> Optional[str]:
+    """
+    Extract user_id from live-agent-api JWT token.
+    
+    This allows xiaozhi-server to identify the user from the Bearer token
+    passed by the App, enabling proper memory initialization with user_id.
+    
+    Args:
+        token: JWT token string (with or without 'Bearer ' prefix)
+        config: System config (optional if client already initialized)
+    
+    Returns:
+        user_id string if extraction successful, None otherwise
+    """
+    try:
+        # Ensure client is initialized to get secret_key
+        if LiveAgentApiClient._instance is None:
+            if config is None:
+                logger.warning("LiveAgentApiClient not initialized, cannot extract user_id from JWT")
+                return None
+            LiveAgentApiClient(config)
+        
+        secret_key = LiveAgentApiClient._secret_key
+        if not secret_key:
+            logger.debug("No secret_key configured, skipping JWT user_id extraction")
+            return None
+        
+        # Remove 'Bearer ' prefix if present
+        if token.startswith("Bearer "):
+            token = token[7:]
+        
+        # Decode JWT token
+        payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        
+        if user_id:
+            logger.debug(f"Successfully extracted user_id from JWT: {user_id[:20]}...")
+        
+        return user_id
+        
+    except jwt.ExpiredSignatureError:
+        logger.debug("JWT token expired, cannot extract user_id")
+        return None
+    except jwt.InvalidTokenError as e:
+        logger.debug(f"Invalid JWT token: {e}")
+        return None
+    except Exception as e:
+        logger.warning(f"Failed to extract user_id from JWT: {e}")
+        return None
