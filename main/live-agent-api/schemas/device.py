@@ -70,3 +70,10 @@ class DeviceAgentResolveResponse(BaseModel):
     match_type: str = Field(..., description="How agent was matched: 'wake_word' or 'default'")
     agent_config: AgentConfigResponse
 
+
+class DefaultAgentResponse(BaseModel):
+    """Response for device's default agent"""
+    device_id: str
+    agent: AgentConfigResponse
+    is_default: bool
+
