@@ -181,10 +181,11 @@ class VADStream(ABC):
                     )
                     
                 elif event.type == VADEventType.INFERENCE_DONE:
-                    # Skip MIDDLE messages for non-streaming ASR
-                    # LAST message already contains complete audio segment
-                    # TODO: For streaming ASR, implement incremental audio handling
-                    pass
+                    # Send MIDDLE messages for streaming ASR
+                    # For non-streaming ASR, the handler can skip these
+                    await self._handle_inference_done(
+                        conn, event, asr_input_queue, current_time_ms
+                    )
                     
                 elif event.type == VADEventType.END_OF_SPEECH:
                     await self._handle_speech_end(

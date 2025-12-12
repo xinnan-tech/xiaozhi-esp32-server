@@ -464,6 +464,11 @@ ASR:
     dwa: wpgs # 动态修正，wpgs:实时返回中间结果
     # 调整音频处理参数以提高长语音识别质量
     output_dir: tmp/
+  ByteplusStreamASR:
+    type: byteplus_stream
+    appid: ${BYTEPLUS_APPID}
+    access_token: ${BYTEPLUS_ACCESS_TOKEN}
+    output_dir: tmp/
   
 VAD:
   SileroVAD:
@@ -1098,6 +1103,7 @@ TTS:
 selected_module:
   VAD: SileroVAD
   ASR: GroqASR
+  # ASR: ByteplusStreamASR
   # LLM: GroqLLM
   LLM: OpenRouterLLM
   VLLM: ChatGLMVLLM

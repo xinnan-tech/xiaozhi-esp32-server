@@ -36,7 +36,7 @@ class ASRProviderBase(ABC):
             daemon=True
         )
         conn.asr_priority_thread.start()
-        
+
         # Start VAD stream and event processor (must be in async context)
         await self._start_vad_stream(conn)
         

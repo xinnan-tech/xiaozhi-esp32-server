@@ -176,7 +176,7 @@ class SileroVADStream(VADStream):
                         speech_duration=pub_speech_duration,
                         silence_duration=pub_silence_duration,
                         speaking=pub_speaking,
-                        audio_data=_copy_speech_buffer(),
+                        audio_data=input_audios[:to_copy],
                         inference_duration=inference_duration,
                     ))
                     
