@@ -7,7 +7,7 @@ services:
     # ⭐ 用本地源码构建后端镜像
     build:
       # 以仓库根目录作为构建上下文（能看到 Dockerfile 和 main/）
-      context: ../..
+      context: .
       # 在构建上下文里查找 Dockerfile-server
       dockerfile: Dockerfile-server
     # 本地镜像名字，随便起，和远程仓库无关
@@ -29,7 +29,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      # 配置文件目录（相对 main/xiaozhi-server）
+      # 配置文件目录
       - ./data:/opt/xiaozhi-esp32-server/data
       # 模型文件挂接，很重要
       - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
@@ -38,7 +38,7 @@ services:
   xiaozhi-esp32-server-web:
     # ⭐ 用本地源码构建 Web（Java + Vue）镜像
     build:
-      context: ../..
+      context: .
       dockerfile: Dockerfile-web
     image: xiaozhi-esp32-server-web:dev
     container_name: xiaozhi-esp32-server-web
