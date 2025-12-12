@@ -473,52 +473,29 @@ async def _quick_asr_and_check(conn, audio_chunks):
 
 
 async def handleAudioMessage(conn, audio):
-    # 当前片段是否有人说话
-    have_voice = conn.vad.is_vad(conn, audio)
-    # 如果设备刚刚被唤醒，短暂忽略VAD检测
-    if hasattr(conn, "just_woken_up") and conn.just_woken_up:
-        have_voice = False
-        # 设置一个短暂延迟后恢复VAD检测
-        conn.asr_audio.clear()
-        if not hasattr(conn, "vad_resume_task") or conn.vad_resume_task.done():
-            conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
-        return
+    """Handle incoming audio message from WebSocket
+    
+    New architecture:
+    1. Push audio to VAD stream (async processing)
+    2. VAD stream emits events → process_events() → asr_input_queue
+    3. ASR processes audio from asr_input_queue
+    
+    Connection state (client_have_voice, client_voice_stop) is updated
+    by VAD stream's process_events() method.
+    """
 
-    # 当音频 buffer 累积到 ~500ms 时，用部分 ASR 结果预取 Memory
-    await _trigger_pseudo_streaming_prefetch(conn, audio, have_voice)
+    # Push audio to VAD stream for processing
+    # VAD stream will:
+    # 1. Detect speech start/end
+    # 2. Update conn.client_have_voice and conn.client_voice_stop
+    # 3. Send audio to asr_input_queue
+    # 4. Trigger interrupt if needed (via callback)
+    if conn.vad_stream:
+        conn.vad_stream.push_audio(audio)
 
-    # 只有 TTS 正在播放且非手动监听模式时才检测打断
-    # if conn.client_is_speaking and conn.client_listen_mode != "manual":
-    #     # 初始化打断检测状态
-    #     _init_interrupt_state(conn)
-        
-    #     if have_voice:
-    #         # 检测到语音，增加连续语音帧计数
-    #         conn._continuous_voice_count += 1
-            
-    #         # 当连续语音帧达到阈值时，触发打断
-    #         # 这样可以过滤短暂噪音、回声、咳嗽等误触发
-    #         if conn._continuous_voice_count >= CONTINUOUS_VOICE_THRESHOLD:
-    #             logger.bind(tag=TAG).info(
-    #                 f"持续语音检测触发打断: 连续 {conn._continuous_voice_count} 帧 "
-    #                 f"(阈值 {CONTINUOUS_VOICE_THRESHOLD} 帧, 约 {CONTINUOUS_VOICE_THRESHOLD * 60}ms)"
-    #             )
-    #             # 重置计数器
-    #             conn._continuous_voice_count = 0
-    #             # 触发打断
-    #             await handleAbortMessage(conn)
-    #     else:
-    #         # 没有检测到语音，重置连续语音帧计数
-    #         conn._continuous_voice_count = 0
-    if have_voice:
-        if conn.client_is_speaking and conn.client_listen_mode != "manual":
-            logger.bind(tag=TAG).info("检测到语音，触发打断")
-            await handleAbortMessage(conn)
-
-    # 设备长时间空闲检测，用于say goodbye
-    await no_voice_close_connect(conn, have_voice)
-    # 接收音频
-    await conn.asr.receive_audio(conn, audio, have_voice)
+    # Update activity time based on VAD state (for idle detection)
+    # Note: client_have_voice is updated by VAD stream's process_events()
+    await no_voice_close_connect(conn, conn.client_have_voice)
 
 
 async def resume_vad_detection(conn):

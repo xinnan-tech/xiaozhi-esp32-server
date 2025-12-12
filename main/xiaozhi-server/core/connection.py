@@ -31,6 +31,7 @@ from core.utils.dialogue import Message, Dialogue
 from core.providers.asr.dto.dto import InterfaceType
 from core.providers.tts.dto.dto import MessageTag
 from core.providers.llm.base import LLMProviderBase
+from core.providers.vad.base import VADStream, VADProviderBase
 from core.handle.textHandle import handleTextMessage
 from core.providers.tools.unified_tool_handler import UnifiedToolHandler
 from plugins_func.loadplugins import auto_import_modules
@@ -110,7 +111,7 @@ class ConnectionHandler:
         self.report_tts_enable = self._report_enabled
 
         # 依赖的组件
-        self.vad = None
+        self.vad: VADProviderBase = None
         self.asr = None
         self.tts = None
         self._asr = _asr
@@ -129,12 +130,18 @@ class ConnectionHandler:
         self.last_activity_time = 0.0  # 统一的活动时间戳（毫秒）
         self.client_voice_stop = False
         self.last_is_voice = False
+        self._vad_states = {}
 
         # asr相关变量
         # 因为实际部署时可能会用到公共的本地ASR，不能把变量暴露给公共ASR
         # 所以涉及到ASR的变量，需要在这里定义，属于connection的私有变量
         self.asr_audio = []
         self.asr_audio_queue = queue.Queue()
+        
+        # VAD stream instance (created per connection)
+        self.vad_stream: VADStream = None
+        # VAD event processor task
+        self._vad_event_task = None
 
         # llm相关变量
         self.llm_finish_task = True
@@ -456,6 +463,9 @@ class ConnectionHandler:
             if self.asr is None:
                 self.asr = self._initialize_asr()
 
+            # Initialize VAD stream for this connection
+            self._initialize_vad_stream()
+
             # 初始化声纹识别
             self._initialize_voiceprint()
 
@@ -686,6 +696,22 @@ class ConnectionHandler:
 
         return asr
 
+    def _initialize_vad_stream(self):
+        """Initialize VAD stream instance for this connection
+        
+        Only creates the VAD stream instance here (sync context).
+        The stream's task and event processor are started later in
+        open_audio_channels() which runs in async context.
+        """
+        try:
+            # Create VAD stream for this connection
+            # Note: stream() only creates the instance, task is started via start()
+            self.vad_stream = self.vad.stream()
+            self.logger.bind(tag=TAG).info("VAD stream instance created")
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"Failed to create VAD stream: {e}")
+            self.vad_stream = None
+
     def _initialize_voiceprint(self):
         """为当前连接初始化声纹识别"""
         try:
@@ -911,7 +937,7 @@ class ConnectionHandler:
             False,
         )
 
-        init_vad = True
+        init_vad = False
         init_asr = True
 
         try:
@@ -1373,6 +1399,14 @@ class ConnectionHandler:
             if hasattr(self, "audio_buffer"):
                 self.audio_buffer.clear()
 
+            # Close VAD stream
+            if self.vad_stream:
+                try:
+                    await self.vad_stream.close()
+                    self.vad_stream = None
+                except Exception as e:
+                    self.logger.bind(tag=TAG).error(f"Error closing VAD stream: {e}")
+
             # 取消超时任务
             if self.timeout_task and not self.timeout_task.done():
                 self.timeout_task.cancel()
@@ -1493,6 +1527,7 @@ class ConnectionHandler:
         self.client_audio_buffer = bytearray()
         self.client_have_voice = False
         self.client_voice_stop = False
+        self._vad_states= {}
         # reset VAD exponential filter
         # if self.vad:
         #     self.vad.reset_filter()

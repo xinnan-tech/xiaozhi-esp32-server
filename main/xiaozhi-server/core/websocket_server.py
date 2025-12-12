@@ -20,7 +20,7 @@ class WebSocketServer:
         modules = initialize_modules(
             self.logger,
             self.config,
-            False,
+            True,
             False,
             False,
             False,
