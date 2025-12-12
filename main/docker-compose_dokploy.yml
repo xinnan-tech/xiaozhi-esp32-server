@@ -32,6 +32,33 @@ services:
       - REGION=LOCAL
     healthcheck:
       disable: true
+    # 容器启动时自动获取公网 IP 并设置环境变量（使用 Python，无需 curl）
+    command:
+      - sh
+      - -c
+      - |
+        get_public_ip() {
+          python3 -c "
+        import urllib.request
+        def get_ip():
+            for url, timeout in [('http://169.254.169.254/latest/meta-data/public-ipv4',2),('https://ifconfig.me',3),('https://api.ipify.org',3)]:
+                try:
+                    req = urllib.request.Request(url, headers={'User-Agent': 'curl/7.68.0'})
+                    with urllib.request.urlopen(req, timeout=timeout) as r:
+                        ip = r.read().decode().strip()
+                        if ip: return ip
+                except: pass
+            return 'localhost'
+        print(get_ip())
+        "
+        }
+        export PUBLIC_IP=$$(get_public_ip)
+        export WEBSOCKET_URL="ws://$${PUBLIC_IP}:8000/xiaozhi/v1/"
+        export OTA_URL="http://$${PUBLIC_IP}:8003/xiaozhi/ota/"
+        echo ">>> Detected PUBLIC_IP: $${PUBLIC_IP}"
+        echo ">>> WEBSOCKET_URL: $${WEBSOCKET_URL}"
+        echo ">>> OTA_URL: $${OTA_URL}"
+        exec python app.py
     volumes:
       # Configuration directory
       - /home/ubuntu/live-agent/main/xiaozhi-server/data:/opt/xiaozhi-esp32-server/data
