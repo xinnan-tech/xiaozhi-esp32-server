@@ -84,11 +84,30 @@ class TTSProvider(TTSProviderBase):
                         logger.bind(tag=TAG).warning(
                             f"未找到对应的动物音频，emotion={emotion}, path={audio_path}"
                         )
+                        # 即使找不到音频，也要发送一个空的音频数据，避免客户端等待
+                        self.tts_audio_queue.put(
+                            (SentenceType.MIDDLE, b"", label_for_log)
+                        )
+
+                elif message.content_type == ContentType.FILE:
+                    # 处理文件类型的消息
+                    if message.content_file and os.path.exists(message.content_file):
+                        logger.bind(tag=TAG).info(
+                            f"播放音频文件: {message.content_file}"
+                        )
+                        if not self._session_started:
+                            self.tts_audio_queue.put(
+                                (SentenceType.FIRST, None, message.content_detail or "")
+                            )
+                            self._session_started = True
+                        self._process_audio_file_stream(
+                            message.content_file, callback=self.handle_opus
+                        )
 
                 if message.sentence_type == SentenceType.LAST:
                     # 一句话结束
                     self.tts_audio_queue.put(
-                        (SentenceType.LAST, [], message.content_detail)
+                        (SentenceType.LAST, [], message.content_detail or "")
                     )
                     self._session_started = False
 
