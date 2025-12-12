@@ -27,7 +27,6 @@ class MessageTag(Enum):
     NORMAL = 0
     OPENING = 1
     CLOSING = 2
-    MOCK = 3
 
 
 class TTSMessageDTO:
