@@ -261,21 +261,12 @@ class TTSProvider(TTSProviderBase):
         # 用于跟踪上一个发送任务，确保顺序但不阻塞
         last_send_future = None
         
-        # 超时检测相关变量
-        last_message_time = time.time()  # 最后一次成功拉取消息的时间
-        timeout_last_sent = False  # 是否已经因为超时发送过 LAST 消息
-        IDLE_TIMEOUT = 1.0  # 超时阈值（秒）
-        
         while not self.conn.stop_event.is_set():
             text = None
             report_time = None
             try:
                 try:
                     tts_audio_message = self.tts_audio_queue.get_nowait()
-                    
-                    # 成功拉取到消息，重置 timer 和 flag
-                    last_message_time = time.time()
-                    timeout_last_sent = False
 
                     if isinstance(tts_audio_message, TTSAudioDTO):
                         sentence_type = tts_audio_message.sentence_type
@@ -295,23 +286,6 @@ class TTSProvider(TTSProviderBase):
                 except queue.Empty:
                     if self.conn.stop_event.is_set():
                         break
-                    
-                    # 超时检测：如果超过 IDLE_TIMEOUT 没有拉取到消息，放入一条 MOCK LAST 消息
-                    if not timeout_last_sent and (time.time() - last_message_time) > IDLE_TIMEOUT:
-                        logger.bind(tag=TAG).debug(
-                            f"Audio queue idle for {IDLE_TIMEOUT}s, putting timeout LAST message"
-                        )
-                        # 往队列放入 MOCK LAST 消息，由正常流程处理
-                        self.tts_audio_queue.put(TTSAudioDTO(
-                            sentence_type=SentenceType.LAST,
-                            audio_data=None,
-                            text=None,
-                            message_tag=MessageTag.MOCK,
-                        ))
-                        # 设置 flag，不再重复放入
-                        timeout_last_sent = True
-                        # timer 不清零，保持原值
-                    
                     continue
 
                 if self.conn.client_abort:
