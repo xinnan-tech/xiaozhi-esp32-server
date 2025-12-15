@@ -438,15 +438,16 @@ class TTSProvider(TTSProviderBase):
             finally:
                 self.ws = None
         
-        if self._monitor_task and not self._monitor_task.done():
-            try:
-                await self._monitor_task
-            except asyncio.CancelledError:
-                pass
-            except Exception as e:
-                logger.bind(tag=TAG).warning(f"Error canceling monitor task: {e}")
-            finally:
-                self._monitor_task = None
+        if not skip_cancel_monitor_task:
+            if self._monitor_task and not self._monitor_task.done():
+                try:
+                    await self._monitor_task
+                except asyncio.CancelledError:
+                    pass
+                except Exception as e:
+                    logger.bind(tag=TAG).warning(f"Error canceling monitor task: {e}")
+                finally:
+                    self._monitor_task = None
 
     async def _monitor_ws_response(self):
         """Monitor WebSocket responses - long running task (MessagePack serialization)"""
