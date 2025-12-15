@@ -24,6 +24,7 @@ from core.utils.modules_initialize import (
     initialize_tts,
     initialize_asr,
 )
+from core.utils import turn_detection as turn_detection_factory
 from core.handle.reportHandle import report
 from core.providers.tts.default import DefaultTTS
 from concurrent.futures import ThreadPoolExecutor
@@ -114,6 +115,7 @@ class ConnectionHandler:
         self.vad: VADProviderBase = None
         self.asr = None
         self.tts = None
+        self.turn_detection = None  # Turn Detection provider (optional)
         self._asr = _asr
         self._vad = _vad
         self.llm = _llm
@@ -469,6 +471,9 @@ class ConnectionHandler:
             # 初始化声纹识别
             self._initialize_voiceprint()
 
+            # Initialize Turn Detection (optional)
+            self._initialize_turn_detection()
+
             # 打开语音识别通道
             asyncio.run_coroutine_threadsafe(
                 self.asr.open_audio_channels(self), self.loop
@@ -711,6 +716,39 @@ class ConnectionHandler:
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"Failed to create VAD stream: {e}")
             self.vad_stream = None
+
+    def _initialize_turn_detection(self):
+        """Initialize Turn Detection provider (optional)
+        
+        If TurnDetection is configured as "noop" type, turn_detection will be set to None
+        to skip turn detection entirely. Otherwise, creates the configured provider.
+        """
+        try:
+            selected_module = self.config.get("selected_module", {})
+            turn_detection_module = selected_module.get("TurnDetection")
+            
+            if not turn_detection_module:
+                self.logger.bind(tag=TAG).debug("TurnDetection not configured, skipping")
+                self.turn_detection = None
+                return
+            
+            turn_detection_config = self.config.get("TurnDetection", {}).get(turn_detection_module, {})
+            turn_detection_type = turn_detection_config.get("type", "noop")
+            
+            # Create the turn detection provider (noop implementation handles disabled case)
+            self.turn_detection = turn_detection_factory.create_instance(
+                turn_detection_type,
+                turn_detection_config
+            )
+            self.logger.bind(tag=TAG).info(
+                f"TurnDetection initialized: {turn_detection_module} (type={turn_detection_type})"
+            )
+            
+        except Exception as e:
+            self.logger.bind(tag=TAG).warning(
+                f"TurnDetection initialization failed: {e}, disabled"
+            )
+            self.turn_detection = None
 
     def _initialize_voiceprint(self):
         """为当前连接初始化声纹识别"""
@@ -1406,6 +1444,22 @@ class ConnectionHandler:
                     self.vad_stream = None
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"Error closing VAD stream: {e}")
+            
+            if self._vad_event_task and not self._vad_event_task.done():
+                self._vad_event_task.cancel()
+                try:
+                    await self._vad_event_task
+                except asyncio.CancelledError:
+                    pass
+                self._vad_event_task = None
+
+            # Close Turn Detection provider (also clears its internal buffer)
+            if self.turn_detection:
+                try:
+                    await self.turn_detection.close()
+                    self.turn_detection = None
+                except Exception as e:
+                    self.logger.bind(tag=TAG).error(f"Error closing Turn Detection: {e}")
 
             # 取消超时任务
             if self.timeout_task and not self.timeout_task.done():

@@ -252,7 +252,21 @@ class ASRProviderBase(ABC):
             self.stop_ws_connection()
             
             if text_len > 0:
-                enhanced_text = self._build_enhanced_text(raw_text, speaker_name)
+                # Turn Detection: check if user finished speaking
+                if conn.turn_detection:
+                    end_of_turn, full_text = await conn.turn_detection.check_end_of_turn(raw_text)
+                    
+                    if not end_of_turn:
+                        # User hasn't finished, continue waiting for more speech
+                        logger.bind(tag=TAG).info(f"User hasn't finished, continue waiting for more speech")
+                        return
+                    
+                    # Use accumulated text from turn detection
+                    enhanced_text = self._build_enhanced_text(full_text, speaker_name)
+                else:
+                    # No Turn Detection: use single segment text
+                    enhanced_text = self._build_enhanced_text(raw_text, speaker_name)
+                
                 asr_report_time = int(time.time())
                 
                 await startToChat(conn, enhanced_text)

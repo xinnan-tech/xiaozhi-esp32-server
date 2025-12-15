@@ -492,6 +492,19 @@ VAD:
     min_silence_duration_ms: 400      # silence detection duration (ms)
     frame_window_threshold: 3         # sliding window threshold
 
+# Turn Detection: Determines if user has finished speaking
+# Use NoopTurnDetection to disable, HTTPTurnDetection to enable
+TurnDetection:
+  NoopTurnDetection:
+    type: noop
+  TenTurnDetection:
+    type: ten
+    host: 115.190.161.149
+    port: 8002
+    timeout: 0.5              # HTTP request timeout (seconds)
+    endpoint: /turn-detect    # API endpoint path
+    buffer_timeout: 10.0      # Max time to accumulate text (seconds)
+
 LLM:
   # 所有openai类型均可以修改超参，以AliLLM为例
   # 当前支持的type为openai、dify、ollama，可自行适配
@@ -1104,6 +1117,7 @@ TTS:
 # ===============================================================================
 selected_module:
   VAD: SileroVAD
+  TurnDetection: NoopTurnDetection # Set to TenTurnDetection to enable
   ASR: GroqASR
   # ASR: ByteplusStreamASR
   # LLM: GroqLLM
