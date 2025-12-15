@@ -408,12 +408,7 @@ class TTSProvider(TTSProviderBase):
         
         await super().close()
 
-    def _cleanup_session_state(self, flush_opus: bool = True):
-        """Clean up session state after finish or abnormal exit
-        
-        Args:
-            flush_opus: Whether to flush remaining opus buffer (skip on abnormal exit)
-        """
+    async def _cleanup_session_state(self, flush_opus: bool = True, skip_cancel_monitor_task: bool = False):
         if flush_opus:
             # Flush remaining opus buffer
             self.opus_encoder.encode_pcm_to_opus_stream(
@@ -434,6 +429,24 @@ class TTSProvider(TTSProviderBase):
         self._session_active = False
         self._process_before_stop_play_files()
         self._first_sent = False
+
+        if self.ws:
+            try:
+                await self.ws.close()
+            except websockets.ConnectionClosed:
+                logger.bind(tag=TAG).debug("WebSocket connection has already been closed")
+            finally:
+                self.ws = None
+        
+        if self._monitor_task and not self._monitor_task.done():
+            try:
+                await self._monitor_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                logger.bind(tag=TAG).warning(f"Error canceling monitor task: {e}")
+            finally:
+                self._monitor_task = None
 
     async def _monitor_ws_response(self):
         """Monitor WebSocket responses - long running task (MessagePack serialization)"""
@@ -482,14 +495,12 @@ class TTSProvider(TTSProviderBase):
                             logger.bind(tag=TAG).debug(f"TTS session finished")
                         
                         # Normal finish: flush opus and clean up state
-                        self._cleanup_session_state(flush_opus=True)
+                        await self._cleanup_session_state(flush_opus=True, skip_cancel_monitor_task=True)
                 except Exception as e:
                     if isinstance(e, websockets.ConnectionClosed):
                         logger.bind(tag=TAG).warning("WebSocket connection closed unexpectedly")
-                    logger.bind(tag=TAG).error(f"Error in monitor task: {e}")
-                    # Abnormal exit: clean up state without flushing opus
-                    if self._session_active:
-                        self._cleanup_session_state(flush_opus=False)
+                    else:
+                        logger.bind(tag=TAG).error(f"Error in monitor task: {e}")
                     break
             
             # Clean up WebSocket on exit (regardless of exit reason)
@@ -591,9 +602,7 @@ class TTSProvider(TTSProviderBase):
             logger.bind(tag=TAG).error(f"Failed to abort session: {e}")
         finally:
             # Clean up state immediately (don't wait for monitor task)
-            self._session_active = False
-            self._session_text_buffer = []
-            self._first_sent = False
+            await self._cleanup_session_state(flush_opus=True)
 
             
     async def text_to_speak(self, text, output_file):
