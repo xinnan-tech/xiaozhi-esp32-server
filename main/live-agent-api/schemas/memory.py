@@ -62,7 +62,7 @@ class MemoryResponse(BaseModel):
     """记忆响应"""
     id: str = Field(..., description="记忆 ID")
     agent_id: str = Field(..., description="记忆所属的 Agent ID")
-    type: Literal["profile", "event"] = Field(..., description="记忆类型")
+    type: str = Field(..., description="记忆类型（透传 MemU 返回的 category）")
     title: Optional[str] = Field(None, description="标题")
     content: str = Field(..., description="记忆内容")
     created_at: datetime = Field(..., description="创建时间")
