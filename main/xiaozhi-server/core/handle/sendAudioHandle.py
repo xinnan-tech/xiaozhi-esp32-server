@@ -9,9 +9,10 @@ from core.providers.tts.dto.dto import (
 )
 from core.utils.textUtils import strip_emotion_tags
 from core.utils.opus import pack_opus_with_header
+from config.logger import setup_logging
 
 TAG = __name__
-
+logger = setup_logging()
 
 async def sendAudioMessage(conn, sentenceType, audios, text, message_tag=MessageTag.NORMAL):
     if conn.tts.tts_audio_first_sentence:
@@ -49,8 +50,10 @@ async def sendAudioMessage(conn, sentenceType, audios, text, message_tag=Message
     # 发送结束消息（如果是最后一个文本）
     # 条件1: llm_finish_task=True 且 LAST (正常结束)
     # 条件2: LAST 且 MOCK (超时触发的结束)
-    if (conn.llm_finish_task and sentenceType == SentenceType.LAST) or (sentenceType == SentenceType.LAST and message_tag == MessageTag.MOCK):
+    if conn.llm_finish_task and sentenceType == SentenceType.LAST:
         await send_tts_message(conn, "stop", None, message_tag)
+        if message_tag == MessageTag.MOCK:
+            return
         conn.client_is_speaking = False
         if conn.close_after_chat:
             await conn.close()
@@ -143,13 +146,21 @@ async def sendAudio(conn, audios, frame_duration=60, message_tag=MessageTag.NORM
         flow_control = conn.audio_flow_control
         current_time = time.perf_counter()
         
+        # 流控配置
+        pre_buffer_count = conn.config.get("tts_audio_pre_buffer_count", 8)  # 预缓冲包数（约480ms）
+        speed_multiplier = conn.config.get("tts_audio_speed_multiplier", 1.0)  # 发送速度倍率
+        
         if send_delay > 0:
             # 使用固定延迟
             await asyncio.sleep(send_delay)
+        elif flow_control["packet_count"] < pre_buffer_count:
+            # 预缓冲阶段：快速发送，不做延迟
+            pass
         else:
-            # 计算预期发送时间
+            # 按略快于实时的速度发送
+            packets_after_prebuffer = flow_control["packet_count"] - pre_buffer_count
             expected_time = flow_control["start_time"] + (
-                flow_control["packet_count"] * frame_duration / 1000
+                packets_after_prebuffer * frame_duration / 1000 / speed_multiplier
             )
             delay = expected_time - current_time
             if delay > 0:
@@ -231,7 +242,14 @@ async def sendAudio(conn, audios, frame_duration=60, message_tag=MessageTag.NORM
 
 
 async def send_tts_message(conn, state, text=None, message_tag=MessageTag.NORMAL):
-    """发送 TTS 状态消息"""
+    """发送 TTS 状态消息
+    
+    Args:
+        conn: Connection object
+        state: TTS state (start, sentence_start, stop)
+        text: Optional text content
+        message_tag: Message tag for categorization
+    """
     if text is None and state == "sentence_start":
         return
     
@@ -260,6 +278,7 @@ async def send_tts_message(conn, state, text=None, message_tag=MessageTag.NORMAL
         conn.clearSpeakStatus()
 
     # 发送消息到客户端
+    logger.bind(tag=TAG).info(f"发送TTS消息: {message}")
     await conn.websocket.send(json.dumps(message))
 
 
