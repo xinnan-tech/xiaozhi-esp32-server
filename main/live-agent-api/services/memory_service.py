@@ -178,16 +178,12 @@ class MemoryService:
                 data = await self._request("POST", "/api/v2/memory/retrieve/related-memory-items", payload=payload)
                 
                 # 提取 related_memories 列表，解析嵌套的 memory 对象
-                # 只保留 profile 或 event 类型的记忆
-                ALLOWED_MEMORY_TYPES = {"profile", "event"}
+                # 直接透传返回的 category，不做过滤
                 related_memories = data.get("related_memories", [])
                 for rm in related_memories:
                     memory = rm.get("memory", {})
                     if memory:
                         category = memory.get("category", "").lower()
-                        # 过滤：只保留 profile 或 event 类型
-                        if category not in ALLOWED_MEMORY_TYPES:
-                            continue
                         # 标准化字段名
                         item = {
                             "id": memory.get("memory_id", ""),
