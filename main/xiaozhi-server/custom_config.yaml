@@ -75,11 +75,17 @@ enable_stop_tts_notify: false
 # 说完话是否开启提示音，音效地址
 stop_tts_notify_voice: "config/assets/tts_notify.mp3"
 
-# TTS音频发送延迟配置
-# tts_audio_send_delay: 控制音频包发送间隔
-#   0: 使用精确时间控制，严格匹配音频帧率（默认，运行时按音频帧率计算）
-#   > 0: 使用固定延迟（毫秒）发送，例如: 60
+# TTS Audio Send Flow Control Configuration
+# tts_audio_send_delay: Control the interval of sending audio packets
+#   < 0: Use exact time control, strictly match the audio frame rate (default, calculated at runtime based on audio frame rate)
+#   > 0: Use fixed delay (milliseconds) to send, e.g.: 60
 tts_audio_send_delay: 0
+# tts_audio_pre_buffer_count: Number of packets to send quickly at the beginning (pre-buffer phase)
+#   Default: 8 packets (8 * 60ms = 480ms buffer)
+tts_audio_pre_buffer_count: 8
+# tts_audio_speed_multiplier: Send speed multiplier after pre-buffer phase
+#   Default: 1.2 (20% faster than realtime to maintain buffer)
+tts_audio_speed_multiplier: 1.0
 
 exit_commands:
   - "退出"

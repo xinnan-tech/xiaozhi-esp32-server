@@ -84,6 +84,7 @@ class TTSProvider(TTSProviderBase):
         # Text buffer for current session (supports both LLM and voice_opening/closing)
         self._session_text_buffer = []
         self._first_sent = False
+        self._last_text_time = None
                 
         # Check API Key
         model_key_msg = check_model_key("TTS", self.api_key)
@@ -241,6 +242,7 @@ class TTSProvider(TTSProviderBase):
                             loop=self.conn.loop,
                         )
                         future.result()
+                        self._last_text_time = time.time()
                     except Exception as e:
                         logger.bind(tag=TAG).error(f"Failed to flush session: {e}")
                         continue
@@ -264,7 +266,7 @@ class TTSProvider(TTSProviderBase):
         # 超时检测相关变量
         last_message_time = time.time()  # 最后一次成功拉取消息的时间
         timeout_last_sent = False  # 是否已经因为超时发送过 LAST 消息
-        IDLE_TIMEOUT = 1.0  # 超时阈值（秒）
+        IDLE_TIMEOUT = 2.0  # 超时阈值（秒）
         
         while not self.conn.stop_event.is_set():
             text = None
@@ -289,30 +291,18 @@ class TTSProvider(TTSProviderBase):
                         logger.bind(tag=TAG).warning(f"Unknown tts_audio_message type: {type(tts_audio_message)}")
                         continue
                     
-                    # 成功拉取到消息，重置 timer 和 flag
-                    # 但如果是 MOCK LAST 消息，不重置（避免无限循环）
-                    if not (sentence_type == SentenceType.LAST and message_tag == MessageTag.MOCK):
-                        last_message_time = time.time()
-                        timeout_last_sent = False
                 except queue.Empty:
                     if self.conn.stop_event.is_set():
                         break
                     
-                    # 超时检测：如果超过 IDLE_TIMEOUT 没有拉取到消息，放入一条 MOCK LAST 消息
-                    if not timeout_last_sent and (time.time() - last_message_time) > IDLE_TIMEOUT:
-                        logger.bind(tag=TAG).debug(
-                            f"Audio queue idle for {IDLE_TIMEOUT}s, putting timeout LAST message"
-                        )
-                        # 往队列放入 MOCK LAST 消息，由正常流程处理
+                    if self._first_sent and self._last_text_time is not None and time.time() - self._last_text_time > IDLE_TIMEOUT:
                         self.tts_audio_queue.put(TTSAudioDTO(
                             sentence_type=SentenceType.LAST,
                             audio_data=None,
                             text=None,
                             message_tag=MessageTag.MOCK,
                         ))
-                        # 设置 flag，不再重复放入
-                        timeout_last_sent = True
-                        # timer 不清零，保持原值
+                        self._last_text_time = None
                     
                     continue
 
