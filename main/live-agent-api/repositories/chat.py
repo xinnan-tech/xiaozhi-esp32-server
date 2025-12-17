@@ -206,3 +206,41 @@ class ChatMessage:
         await db.commit()
         return result.rowcount
 
+    @staticmethod
+    async def has_messages_today(
+        db: AsyncSession,
+        agent_id: str,
+        tz_offset_hours: int = 0
+    ) -> bool:
+        """
+        Check if agent has any messages today in user's local timezone
+        
+        Args:
+            db: Database session
+            agent_id: Agent ID
+            tz_offset_hours: Timezone offset in hours (e.g. 8 for UTC+8, -7 for UTC-7)
+            
+        Returns:
+            True if there are messages today (in user's local time)
+        """
+        from sqlalchemy import func
+        from datetime import timedelta
+        
+        user_tz = timezone(timedelta(hours=tz_offset_hours))
+        
+        # Get current time in user's timezone, then find start of their "today"
+        now_user_local = datetime.now(user_tz)
+        today_start_local = now_user_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Convert back to UTC for database query
+        today_start_utc = today_start_local.astimezone(timezone.utc)
+        
+        query = select(func.count()).select_from(ChatMessageModel).where(
+            ChatMessageModel.agent_id == agent_id,
+            ChatMessageModel.message_time >= today_start_utc
+        )
+        
+        result = await db.execute(query)
+        count = result.scalar_one()
+        return count > 0
+

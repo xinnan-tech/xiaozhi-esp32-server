@@ -80,4 +80,6 @@ class AgentConfigResponse(BaseModel):
     instruction: str
     voice_opening: Optional[str] = None
     voice_closing: Optional[str] = None
+    enable_greeting: bool = True  # Whether to play greeting (false if already chatted today)
+    greeting: Optional[str] = None  # Greeting text (same as voice_opening, only set when enabled)
 

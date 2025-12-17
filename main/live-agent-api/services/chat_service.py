@@ -188,6 +188,27 @@ class ChatService:
             deleted_files=deleted_files
         )
 
+    async def has_messages_today(
+        self,
+        db: AsyncSession,
+        agent_id: str,
+        tz_offset_hours: int = 0
+    ) -> bool:
+        """
+        Check if agent has any messages today in user's local timezone
+        
+        Used for greeting logic: skip greeting if user already chatted today
+        
+        Args:
+            db: Database session
+            agent_id: Agent ID
+            tz_offset_hours: Timezone offset in hours (e.g. 8 for UTC+8, -7 for UTC-7)
+            
+        Returns:
+            True if there are messages today (in user's local time)
+        """
+        return await ChatMessageRepo.has_messages_today(db=db, agent_id=agent_id, tz_offset_hours=tz_offset_hours)
+
 
 # Global singleton instance
 chat_service = ChatService()
