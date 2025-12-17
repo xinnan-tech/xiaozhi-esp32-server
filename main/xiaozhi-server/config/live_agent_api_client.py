@@ -77,7 +77,7 @@ def init_live_agent_api(config: dict):
     LiveAgentApiClient(config)
 
 
-def get_agent_config_from_api(agent_id: str, config: dict = None) -> Optional[dict]:
+def get_agent_config_from_api(agent_id: str, config: dict = None, timezone: str = "UTC+0") -> Optional[dict]:
     """
     Get agent configuration from live-agent-api
     
@@ -96,7 +96,10 @@ def get_agent_config_from_api(agent_id: str, config: dict = None) -> Optional[di
                 return None
             LiveAgentApiClient(config)
         
-        result = LiveAgentApiClient._request("GET", f"/internal/agents/{agent_id}/config")
+        result = LiveAgentApiClient._request("GET", 
+            f"/internal/agents/{agent_id}/config",
+            params={"timezone": timezone}
+        )
         
         if result.get("code") == 200 and "data" in result:
             logger.info(f"Successfully fetched agent config for agent_id={agent_id}")

@@ -84,6 +84,8 @@ class WebSocketServer:
                 websocket.request.headers["authorization"] = query_params[
                     "authorization"
                 ][0]
+            if "timezone" in query_params:
+                websocket.request.headers["timezone"] = query_params["timezone"][0]
 
         """处理新连接，每次创建独立的ConnectionHandler"""
         # 先认证，后建立连接
