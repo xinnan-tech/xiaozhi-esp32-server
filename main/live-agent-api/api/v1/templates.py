@@ -4,16 +4,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from infra import get_db, get_s3
 from services.agent_service import agent_service
 from utils.response import success_response
+from api.auth import get_current_user_id
 
 router = APIRouter()
 
 
 @router.get("", summary="Get Agent Templates")
 async def get_templates(
+    current_user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all agent templates"""
-    templates = await agent_service.get_templates(db)
+    """
+    Get available agent templates for the current user.
+    
+    Templates that the user has already created agents from will be filtered out.
+    """
+    templates = await agent_service.get_templates(db, user_id=current_user_id)
     return success_response(data={"templates": [t.model_dump() for t in templates]})
 
 
