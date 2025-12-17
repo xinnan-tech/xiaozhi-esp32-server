@@ -181,7 +181,9 @@ class ConnectionHandler:
 
         # agent-related configs
         self._instruction = None
-        self._voice_opening = None
+        self._greeting_config = {
+            "enable_greeting": False,
+        }
         self._voice_closing = None
         self._language = None
 
@@ -511,8 +513,9 @@ class ConnectionHandler:
             if init_tts or init_llm:
                 self._init_report_threads()
 
-            if self._voice_opening and self.tts:
-                self.logger.bind(tag=TAG).info(f"send the opening message: {self._voice_opening}")
+            if self.tts and self._greeting_config["enable_greeting"]:
+                greeting = self._greeting_config["greeting"]
+                self.logger.bind(tag=TAG).debug(f"send the opening message: {greeting}")
                 
                 opening_sentence_id = str(uuid.uuid4().hex)
                 message_tag = MessageTag.OPENING
@@ -528,7 +531,7 @@ class ConnectionHandler:
                     sentence_id=str(uuid.uuid4().hex),
                     sentence_type=SentenceType.MIDDLE,
                     content_type=ContentType.TEXT,
-                    content_detail=self._voice_opening,
+                    content_detail=greeting,
                     message_tag=message_tag,
                     )
                 )
@@ -1016,7 +1019,9 @@ class ConnectionHandler:
             if "TTS" in self.config and "FishDualStreamTTS" in self.config.get("TTS", {}):
                 self.config["TTS"]["FishDualStreamTTS"]["reference_id"] = voice_id
         self._instruction = private_config.get("instruction", self._instruction)
-        self._voice_opening = private_config.get("voice_opening", self._voice_opening)
+        # greeting config
+        self._greeting_config["enable_greeting"] = private_config.get("enable_greeting", False)
+        self._greeting_config["greeting"] = private_config.get("greeting", None)
         self._voice_closing = private_config.get("voice_closing", self._voice_closing)
         self._language = private_config.get("language", self._language)
 
