@@ -242,7 +242,8 @@ class ConnectionHandler:
             self.welcome_msg["session_id"] = self.session_id
 
             # 获取差异化配置
-            self._initialize_agent_config()
+            # asynchronous initialize
+            # self._initialize_agent_config()
             # 异步初始化
             self.executor.submit(self._initialize_components)
 
@@ -452,7 +453,8 @@ class ConnectionHandler:
             )
             self.logger = create_connection_logger(self.selected_module_str)
 
-            # 缺少 agent-id 时，延后 TTS/LLM 初始化，待唤醒词解析后再加载
+            # when missing agent_id, we identify the request is from device-end rather app-side
+            # therefore, we defer the initialization of all components 
             if self.read_config_from_live_agent_api and not self.agent_id:
                 self.defer_agent_init = True
                 self.logger.bind(tag=TAG).info(
@@ -460,63 +462,28 @@ class ConnectionHandler:
                 )
             else:
                 self._initialize_agent_config()
-
-            """初始化本地组件"""
-            if self.vad is None:
-                self.vad = self._vad
-            if self.asr is None:
-                self.asr = self._initialize_asr()
-
-            # Initialize VAD stream for this connection
-            self._initialize_vad_stream()
-
-            # 初始化声纹识别
-            self._initialize_voiceprint()
-
-            # Initialize Turn Detection (optional)
-            self._initialize_turn_detection()
-
-            # 打开语音识别通道
-            asyncio.run_coroutine_threadsafe(
-                self.asr.open_audio_channels(self), self.loop
-            )
-
+            
             init_llm = not self.defer_agent_init
             init_tts = not self.defer_agent_init
             init_memory = not self.defer_agent_init
             init_intent = not self.defer_agent_init
 
-            # prewarm LLM first connection
-            if init_llm and isinstance(self.llm, LLMProviderBase):
-                self.llm.prewarm()
-
-            """加载记忆"""
-            if init_memory:
-                self._initialize_memory()
-            """加载意图识别"""
-            if init_intent:
-                self._initialize_intent()
-            """更新系统提示词（必须在 TTS 初始化前，以便加载 role 的 TTS 配置）"""
-            if init_tts or init_llm:
-                self._init_prompt_enhancement()
-
-            # 初始化 TTS（在 prompt 初始化之后，以便使用 role 的 TTS 配置）
-            if init_tts and self.tts is None:
-                self.tts = self._initialize_tts()
-            # 打开语音合成通道
             if init_tts and self.tts:
-                asyncio.run_coroutine_threadsafe(
+                open_tts_audio_future = asyncio.run_coroutine_threadsafe(
                     self.tts.open_audio_channels(self), self.loop
                 )
+                # wait for 2 seconds to open the audio channels
+                open_tts_audio_future.result(timeout=2)
 
-            """初始化上报线程"""
-            if init_tts or init_llm:
+                self.logger.bind(tag=TAG).info("TTS audio channels opened")
+                # once tts ready, we can initialize the report threads
                 self._init_report_threads()
 
+            # if greeting is enabled, we can send the opening message at once
             if self.tts and self._greeting_config["enable_greeting"]:
                 greeting = self._greeting_config["greeting"]
                 self.logger.bind(tag=TAG).debug(f"send the opening message: {greeting}")
-                
+                    
                 opening_sentence_id = str(uuid.uuid4().hex)
                 message_tag = MessageTag.OPENING
                 # FIRST: Start session
@@ -542,6 +509,33 @@ class ConnectionHandler:
                     content_type=ContentType.ACTION,
                     message_tag=message_tag,
                 ))
+
+            # open audio channels for ASR
+            # Initialize VAD stream for this connection
+            self.vad = self._vad if self.vad is None else self.vad
+            self._initialize_vad_stream()
+            asyncio.run_coroutine_threadsafe(
+                self.asr.open_audio_channels(self), self.loop
+            )
+            # 初始化声纹识别
+            self._initialize_voiceprint()
+
+            # Initialize Turn Detection (optional)
+            self._initialize_turn_detection()
+
+            # prewarm LLM first connection
+            if init_llm and isinstance(self.llm, LLMProviderBase):
+                self.llm.prewarm()
+
+            """加载记忆"""
+            if init_memory:
+                self._initialize_memory()
+            """加载意图识别"""
+            if init_intent:
+                self._initialize_intent()
+            """更新系统提示词（必须在 TTS 初始化前，以便加载 role 的 TTS 配置）"""
+            if init_tts or init_llm:
+                self._init_prompt_enhancement()
 
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
@@ -769,104 +763,6 @@ class ConnectionHandler:
         except Exception as e:
             self.logger.bind(tag=TAG).warning(f"声纹识别初始化失败: {str(e)}")
 
-    def _initialize_private_config(self):
-        """如果是从配置文件获取，则进行二次实例化"""
-        if not self.read_config_from_api:
-            return
-        """从接口获取差异化的配置进行二次实例化，非全量重新实例化"""
-        try:
-            begin_time = time.time()
-            private_config = get_private_config_from_api(
-                self.config,
-                self.headers.get("device-id"),
-                self.headers.get("client-id", self.headers.get("device-id")),
-            )
-            private_config["delete_audio"] = bool(self.config.get("delete_audio", True))
-            self.logger.bind(tag=TAG).info(
-                f"{time.time() - begin_time} 秒，获取差异化配置成功: {json.dumps(filter_sensitive_info(private_config), ensure_ascii=False)}"
-            )
-        except DeviceNotFoundException as e:
-            self.need_bind = True
-            private_config = {}
-        except DeviceBindException as e:
-            self.need_bind = True
-            self.bind_code = e.bind_code
-            private_config = {}
-        except Exception as e:
-            self.need_bind = True
-            self.logger.bind(tag=TAG).error(f"获取差异化配置失败: {e}")
-            private_config = {}
-
-        init_llm, init_tts, init_memory, init_intent = (
-            False,
-            False,
-            False,
-            False,
-        )
-
-        init_vad = check_vad_update(self.common_config, private_config)
-        init_asr = check_asr_update(self.common_config, private_config)
-
-        if private_config.get("Memory", None) is not None:
-            init_memory = True
-            self.config["Memory"] = private_config["Memory"]
-            self.config["selected_module"]["Memory"] = private_config[
-                "selected_module"
-            ]["Memory"]
-        if private_config.get("Intent", None) is not None:
-            init_intent = True
-            self.config["Intent"] = private_config["Intent"]
-            model_intent = private_config.get("selected_module", {}).get("Intent", {})
-            self.config["selected_module"]["Intent"] = model_intent
-            # 加载插件配置
-            if model_intent != "Intent_nointent":
-                plugin_from_server = private_config.get("plugins", {})
-                for plugin, config_str in plugin_from_server.items():
-                    plugin_from_server[plugin] = json.loads(config_str)
-                self.config["plugins"] = plugin_from_server
-                self.config["Intent"][self.config["selected_module"]["Intent"]][
-                    "functions"
-                ] = plugin_from_server.keys()
-        if private_config.get("prompt", None) is not None:
-            self.config["prompt"] = private_config["prompt"]
-        # 获取声纹信息
-        if private_config.get("voiceprint", None) is not None:
-            self.config["voiceprint"] = private_config["voiceprint"]
-        if private_config.get("summaryMemory", None) is not None:
-            self.config["summaryMemory"] = private_config["summaryMemory"]
-        if private_config.get("device_max_output_size", None) is not None:
-            self.max_output_size = int(private_config["device_max_output_size"])
-        if private_config.get("chat_history_conf", None) is not None:
-            self.chat_history_conf = int(private_config["chat_history_conf"])
-        if private_config.get("mcp_endpoint", None) is not None:
-            self.config["mcp_endpoint"] = private_config["mcp_endpoint"]
-        try:
-            modules = initialize_modules(
-                self.logger,
-                private_config,
-                init_vad,
-                init_asr,
-                init_llm,
-                init_tts,
-                init_memory,
-                init_intent,
-            )
-        except Exception as e:
-            self.logger.bind(tag=TAG).error(f"初始化组件失败: {e}")
-            modules = {}
-        if modules.get("tts", None) is not None:
-            self.tts = modules["tts"]
-        if modules.get("vad", None) is not None:
-            self.vad = modules["vad"]
-        if modules.get("asr", None) is not None:
-            self.asr = modules["asr"]
-        if modules.get("llm", None) is not None:
-            self.llm = modules["llm"]
-        if modules.get("intent", None) is not None:
-            self.intent = modules["intent"]
-        if modules.get("memory", None) is not None:
-            self.memory = modules["memory"]
-
     def _initialize_memory(self):
         if self.memory is None:
             return
@@ -965,7 +861,8 @@ class ConnectionHandler:
         """initialize agent config from live-agent-api"""
         if not self.read_config_from_live_agent_api:
             return
-        private_config = get_agent_config_from_api(self.agent_id, self.config)
+        # self.logger.bind(tag=TAG).info(f"get agent config from live-agent-api for {self.agent_id}")
+        private_config = get_agent_config_from_api(self.agent_id, self.config, self.headers.get("timezone", "UTC+0"))
         if not private_config:
             self.logger.bind(tag=TAG).error(f"Failed to get agent config for {self.agent_id}")
             return
@@ -1030,6 +927,7 @@ class ConnectionHandler:
         live_api_config = self.config.get("live-agent-api", {})
         self.chat_history_conf = live_api_config.get("chat_history_conf", 2)
 
+    # ensure_agent_ready is used to ensure the agent is ready when the wake word is detected
     async def ensure_agent_ready(self, wake_word: str | None = None) -> bool:
         """
         Resolve agent when missing and initialize LLM/TTS lazily.
