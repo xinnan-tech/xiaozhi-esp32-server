@@ -1,22 +1,25 @@
 """
 Database infrastructure - MySQL connection and session management
 """
+import logging
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 
 from config import settings
 
+# Suppress SQLAlchemy engine logs (keep echo=True but only show WARNING+)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+
 
 def utc_now() -> datetime:
     """Return current UTC time as timezone-aware datetime"""
     return datetime.now(timezone.utc)
 
-
 # Create async engine with connection pool
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
+    echo=True,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,

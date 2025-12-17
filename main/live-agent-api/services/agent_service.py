@@ -18,9 +18,17 @@ from utils.ulid import generate_template_id
 class AgentService:
     """Agent service layer"""
     
-    async def get_templates(self, db: AsyncSession) -> List[AgentTemplateResponse]:
-        """Get all agent templates"""
-        templates = await AgentTemplate.get_all(db)
+    async def get_templates(
+        self, 
+        db: AsyncSession, 
+        user_id: str
+    ) -> List[AgentTemplateResponse]:
+        """
+        Get available agent templates for user.
+        
+        Filters out templates that the user has already created agents from.
+        """
+        templates = await AgentTemplate.get_available_for_user(db, user_id)
         return [AgentTemplateResponse.model_validate(t) for t in templates]
 
     async def create_template(
@@ -192,7 +200,8 @@ class AgentService:
         voice_opening: Optional[str] = None,
         voice_closing: Optional[str] = None,
         wake_word: Optional[str] = None,
-        avatar: Optional[UploadFile] = None
+        avatar: Optional[UploadFile] = None,
+        template_id: Optional[str] = None
     ) -> AgentResponse:
         """Create a new agent"""
         # Generate agent_id first
@@ -215,7 +224,8 @@ class AgentService:
             voice_id=voice_id,
             voice_opening=voice_opening,
             voice_closing=voice_closing,
-            wake_word=wake_word
+            wake_word=wake_word,
+            template_id=template_id
         )
         
         return AgentResponse.model_validate(agent)

@@ -15,7 +15,8 @@ from config import get_logger
 import base64
 from fastapi import HTTPException
 
-logger = get_logger(__name__)
+TAG = __name__
+logger = get_logger(TAG)
 router = APIRouter()
 
 
@@ -84,12 +85,18 @@ async def create_agent(
     voice_opening: Optional[str] = Form(None),
     voice_closing: Optional[str] = Form(None),
     wake_word: Optional[str] = Form(None),
+    template_id: Optional[str] = Form(None),
     avatar: Optional[UploadFile] = File(None),
     current_user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
     s3 = Depends(get_s3)
 ):
-    """Create a new agent"""
+    """
+    Create a new agent.
+    
+    If creating from a template, pass the template_id to track the source template.
+    """
+    logger.bind(tag=TAG).debug(f"Creating agent from template: {template_id}")
     agent = await agent_service.create_agent(
         db=db,
         s3=s3,
@@ -101,7 +108,8 @@ async def create_agent(
         voice_opening=voice_opening,
         voice_closing=voice_closing,
         wake_word=wake_word,
-        avatar=avatar
+        avatar=avatar,
+        template_id=template_id
     )
     return success_response(data=agent.model_dump())
 

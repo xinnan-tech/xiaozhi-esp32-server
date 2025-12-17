@@ -38,6 +38,9 @@ class AgentModel(Base):
     voice_closing: Mapped[str | None] = mapped_column(Text, nullable=True)
     wake_word: Mapped[str | None] = mapped_column(String(50), nullable=True)  # Required for device binding
     
+    # Template reference (nullable - not all agents come from templates)
+    template_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), 
@@ -54,6 +57,7 @@ class AgentModel(Base):
     __table_args__ = (
         Index('idx_agents_agent_id', 'agent_id', unique=True),
         Index('idx_agents_owner_id', 'owner_id'),
+        Index('idx_agents_template_id', 'template_id'),
     )
 
     def __repr__(self):
@@ -138,7 +142,8 @@ class Agent:
         voice_id: Optional[str] = None,
         voice_opening: Optional[str] = None,
         voice_closing: Optional[str] = None,
-        wake_word: Optional[str] = None
+        wake_word: Optional[str] = None,
+        template_id: Optional[str] = None
     ) -> AgentModel:
         """Create a new agent"""
         agent = AgentModel(
@@ -151,7 +156,8 @@ class Agent:
             instruction=instruction,
             voice_opening=voice_opening,
             voice_closing=voice_closing,
-            wake_word=wake_word
+            wake_word=wake_word,
+            template_id=template_id
         )
         db.add(agent)
         await db.commit()
