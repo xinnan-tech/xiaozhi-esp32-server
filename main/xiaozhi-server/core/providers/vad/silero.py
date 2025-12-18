@@ -12,10 +12,10 @@ from .dto import VADEvent, VADEventType
 
 @dataclass
 class SileroVADOptions:
-    """Silero VAD specific options"""
-    min_speech_duration: float = 0.05       # 50ms to confirm speech start
-    min_silence_duration: float = 0.40      # 400ms to confirm speech end
-    prefix_padding_duration: float = 0.3    # 300ms prefix padding
+    """Silero VAD specific options (all durations in milliseconds)"""
+    min_speech_duration_ms: float = 50.0    # 50ms to confirm speech start
+    min_silence_duration_ms: float = 400.0  # 400ms to confirm speech end
+    prefix_padding_duration_ms: float = 300.0  # 300ms prefix padding
     activation_threshold: float = 0.5       # probability threshold
     sample_rate: int = 16000                # 16kHz
 
@@ -37,12 +37,12 @@ class VADProvider(VADProviderBase):
             force_reload=False,
         )
         
-        # Parse config
+        # Parse config (all durations in milliseconds)
         self._opts = SileroVADOptions(
-            min_speech_duration=float(config.get("min_speech_duration", "0.05")),
-            min_silence_duration=float(config.get("min_silence_duration", "0.40")),
-            prefix_padding_duration=float(config.get("prefix_padding_duration", "0.3")),
-            activation_threshold=float(config.get("threshold", "0.5")),
+            min_speech_duration_ms=float(config.get("min_speech_duration_ms", 50.0)),
+            min_silence_duration_ms=float(config.get("min_silence_duration_ms", 400.0)),
+            prefix_padding_duration_ms=float(config.get("prefix_padding_duration_ms", 300.0)),
+            activation_threshold=float(config.get("threshold", 0.5)),
             sample_rate=16000,
         )
         
@@ -57,7 +57,7 @@ class SileroVADStream(VADStream):
     # Silero requires 512 samples per inference (32ms at 16kHz)
     WINDOW_SIZE_SAMPLES = 512
     WINDOW_SIZE_BYTES = WINDOW_SIZE_SAMPLES * 2  # int16
-    WINDOW_DURATION = WINDOW_SIZE_SAMPLES / 16000  # seconds
+    WINDOW_DURATION_MS = WINDOW_SIZE_SAMPLES / 16000 * 1000  # milliseconds (32ms)
     SLOW_INFERENCE_THRESHOLD = 0.2  # seconds
     
     def __init__(self, vad: VADProvider, model, opts: SileroVADOptions):
@@ -67,7 +67,7 @@ class SileroVADStream(VADStream):
         self._exp_filter = ExpFilter(alpha=0.35)
         
         # Speech buffer for prefix padding (in bytes, not samples)
-        self._prefix_padding_bytes = int(opts.prefix_padding_duration * opts.sample_rate) * 2
+        self._prefix_padding_bytes = int(opts.prefix_padding_duration_ms / 1000 * opts.sample_rate) * 2
         # Pre-allocate max speech buffer (60s + prefix padding)
         max_speech_bytes = 60 * opts.sample_rate * 2 + self._prefix_padding_bytes
         self._speech_buffer = bytearray(max_speech_bytes)
@@ -133,7 +133,7 @@ class SileroVADStream(VADStream):
                     inference_duration = time.perf_counter() - inference_start
                     extra_inference_time = max(
                         0.0,
-                        extra_inference_time + inference_duration - self.WINDOW_DURATION,
+                        extra_inference_time + inference_duration - self.WINDOW_DURATION_MS / 1000,
                     )
 
                     if inference_duration > self.SLOW_INFERENCE_THRESHOLD:
@@ -163,11 +163,11 @@ class SileroVADStream(VADStream):
                         assert self._speech_buffer is not None
                         return bytes(self._speech_buffer[:speech_buffer_index])
 
-                    # Update durations
+                    # Update durations (in milliseconds)
                     if pub_speaking:
-                        pub_speech_duration += self.WINDOW_DURATION
+                        pub_speech_duration += self.WINDOW_DURATION_MS
                     else:
-                        pub_silence_duration += self.WINDOW_DURATION
+                        pub_silence_duration += self.WINDOW_DURATION_MS
                     
                     # Emit INFERENCE_DONE
                     self._output_queue.put_nowait(VADEvent(
@@ -180,13 +180,13 @@ class SileroVADStream(VADStream):
                         inference_duration=inference_duration,
                     ))
                     
-                    # State machine logic
+                    # State machine logic (all durations in ms)
                     if prob >= self._opts.activation_threshold:
-                        speech_threshold_duration += self.WINDOW_DURATION
+                        speech_threshold_duration += self.WINDOW_DURATION_MS
                         silence_threshold_duration = 0.0
                         
                         if not pub_speaking:
-                            if speech_threshold_duration >= self._opts.min_speech_duration:
+                            if speech_threshold_duration >= self._opts.min_speech_duration_ms:
                                 pub_speaking = True
                                 pub_silence_duration = 0.0
                                 pub_speech_duration = speech_threshold_duration
@@ -202,13 +202,13 @@ class SileroVADStream(VADStream):
                                     inference_duration=inference_duration,
                                 ))
                     else:
-                        silence_threshold_duration += self.WINDOW_DURATION
+                        silence_threshold_duration += self.WINDOW_DURATION_MS
                         speech_threshold_duration = 0.0
                         
                         if not pub_speaking:
                             _reset_write_cursor()
                         
-                        if pub_speaking and silence_threshold_duration >= self._opts.min_silence_duration:
+                        if pub_speaking and silence_threshold_duration >= self._opts.min_silence_duration_ms:
                             pub_speaking = False
                             pub_silence_duration = silence_threshold_duration
                             

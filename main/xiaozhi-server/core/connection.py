@@ -13,9 +13,6 @@ import websockets
 
 from core.utils.util import (
     extract_json_from_string,
-    check_vad_update,
-    check_asr_update,
-    filter_sensitive_info,
 )
 from typing import Dict, Any
 from collections import deque
@@ -25,7 +22,7 @@ from core.utils.modules_initialize import (
     initialize_asr,
 )
 from core.utils import turn_detection as turn_detection_factory
-from core.handle.reportHandle import report
+from core.handle.reportHandle import report, enqueue_asr_report
 from core.providers.tts.default import DefaultTTS
 from concurrent.futures import ThreadPoolExecutor
 from core.utils.dialogue import Message, Dialogue
@@ -38,18 +35,16 @@ from core.providers.tools.unified_tool_handler import UnifiedToolHandler
 from plugins_func.loadplugins import auto_import_modules
 from plugins_func.register import Action
 from core.auth import AuthenticationError
-from config.config_loader import get_private_config_from_api
 from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
 from config.logger import setup_logging, build_module_string, create_connection_logger
-from config.manage_api_client import DeviceNotFoundException, DeviceBindException
 from core.utils.prompt_manager import PromptManager
 from core.utils.voiceprint_provider import VoiceprintProvider
-from core.utils import textUtils
 from config.live_agent_api_client import (
     get_agent_config_from_api,
     get_agent_by_wake_from_api,
     extract_user_id_from_jwt,
 )
+from core.utils import tokenize
 
 TAG = __name__
 auto_import_modules("plugins_func.functions")
@@ -133,6 +128,9 @@ class ConnectionHandler:
         self.client_voice_stop = False
         self.last_is_voice = False
         self._vad_states = {}
+        
+        # Updated when VAD inference event detects speaking (milliseconds)
+        self._last_speaking_time: int | None = None
 
         # asr相关变量
         # 因为实际部署时可能会用到公共的本地ASR，不能把变量暴露给公共ASR
@@ -144,6 +142,18 @@ class ConnectionHandler:
         self.vad_stream: VADStream = None
         # VAD event processor task
         self._vad_event_task = None
+        
+        # ASR text buffer for current turn (used for smart interrupt)
+        # Accumulated ASR transcription text in current conversation turn
+        self.asr_text_buffer: str = ""
+        
+        # Interruption Configuration
+        # Only interrupt when both conditions are met:
+        # 1. Speech duration >= min_interrupt_speech_duration_ms
+        # 2. len(asr_text_buffer) >= min_interrupt_text_length
+        self.enable_interruption: bool = self.config["Interruption"]["enabled"]
+        self.min_interrupt_speech_duration_ms: float = self.config["Interruption"]["min_interrupt_speech_duration_ms"]
+        self.min_interrupt_text_length: int = self.config["Interruption"]["min_interrupt_text_length"]
 
         # llm相关变量
         self.llm_finish_task = True
@@ -224,7 +234,7 @@ class ConnectionHandler:
 
             # check if the connection is reconnected by the mobile-end
             self.reconnected = self.headers.get("reconnected", "0") == "1"
-            self.logger.bind(tag=TAG).info(f"reconnected: {self.reconnected}")
+            self.logger.bind(tag=TAG).debug(f"reconnected: {self.reconnected}")
             # 检查是否来自MQTT连接
             request_path = ws.request.path
             self.conn_from_mqtt_gateway = request_path.endswith("?from=mqtt_gateway")
@@ -1333,6 +1343,31 @@ class ConnectionHandler:
         self.client_is_speaking = False
         self.logger.bind(tag=TAG).debug(f"清除服务端讲话状态")
 
+    async def on_end_of_turn(self) -> None:
+        """Called when user's turn ends (detected by turn detection or ASR)
+        
+        Handles:
+        1. Get text from asr_text_buffer
+        2. Clear the buffer
+        3. Start chat with the accumulated text
+        4. Report ASR message
+        """
+        from core.handle.receiveAudioHandle import startToChat
+        
+        full_text = self.asr_text_buffer
+        if len(tokenize.split_words(full_text, ignore_punctuation=True, split_character=True)) < self.min_interrupt_text_length:
+            return
+        
+        # Clear buffer before processing
+        self.asr_text_buffer = ""
+        
+        # Start chat with accumulated text
+        asr_report_time = int(time.time())
+        await startToChat(self, full_text)
+        
+        # Report ASR message
+        enqueue_asr_report(self, full_text, [], report_time=asr_report_time)
+
     async def close(self, ws=None):
         """资源清理方法"""
         try:
@@ -1489,6 +1524,53 @@ class ConnectionHandler:
         # if self.vad:
         #     self.vad.reset_filter()
         self.logger.bind(tag=TAG).debug("VAD states reset.")
+
+    def _interrupt_by_audio(self, speech_duration_ms: float) -> None:
+        """Check interruption conditions and trigger interrupt if met
+        
+        Interruption strategy:
+        1. Interruption must be enabled
+        2. TTS must be speaking (client_is_speaking = True)
+        3. Not in manual listen mode
+        4. Speech duration >= min_interrupt_speech_duration_ms
+        5. ASR text buffer length >= min_interrupt_text_length
+        
+        Args:
+            speech_duration_ms: Current speech duration in milliseconds
+        """
+        if not self.enable_interruption:
+            return
+        if not self.client_is_speaking:
+            return
+        if self.client_listen_mode == "manual":
+            return
+        
+        # Check if meeting interruption thresholds
+        words = tokenize.split_words(
+            self.asr_text_buffer, 
+            ignore_punctuation=True,
+            split_character=True,
+            retain_format=False,
+        )
+        asr_text_len = len(words)
+        speech_ok = speech_duration_ms >= self.min_interrupt_speech_duration_ms
+        text_ok = asr_text_len >= self.min_interrupt_text_length
+        
+        if speech_ok and text_ok:
+            self.logger.bind(tag=TAG).info(
+                f"Interrupt triggered: speech={speech_duration_ms:.0f}ms >= {self.min_interrupt_speech_duration_ms:.0f}ms, "
+                f"text_len={asr_text_len} >= {self.min_interrupt_text_length}"
+            )
+            # Trigger interrupt
+            self.client_abort = True
+            self.clear_queues()
+            # Send stop message to client
+            async def send_stop_message():
+                await self.websocket.send(
+                    json.dumps({"type": "tts", "state": "stop", "session_id": self.session_id})
+                )
+            asyncio.create_task(send_stop_message())
+            self.clearSpeakStatus()
 
     def chat_and_close(self, text):
         """Chat with the user and then close the connection"""

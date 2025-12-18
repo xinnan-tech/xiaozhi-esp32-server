@@ -213,7 +213,8 @@ class VADStream(ABC):
         
         1. Update conn state (client_have_voice = True)
         2. Send FIRST message to ASR queue
-        3. Check if interrupt is needed (client_is_speaking)
+        
+        Note: Interrupt check is done in _handle_inference_done via conn.check_and_interrupt()
         """
         logger.bind(tag=TAG).debug(
             f"Speech start detected: prob={event.probability:.2f}, "
@@ -239,18 +240,6 @@ class VADStream(ABC):
         logger.bind(tag=TAG).info(
             f"ASR FIRST message sent: audio={asr_message.audio_duration_ms:.0f}ms"
         )
-        
-        # Check if interrupt is needed
-        # When TTS is speaking and user starts talking, trigger interrupt
-        if conn.client_is_speaking and conn.client_listen_mode != "manual":
-            logger.bind(tag=TAG).info(
-                "User started speaking while Agent is speaking, triggering interrupt"
-            )
-            if interrupt_callback:
-                try:
-                    await interrupt_callback(conn)
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"Interrupt callback failed: {e}")
 
     async def _handle_inference_done(
         self,
@@ -261,11 +250,16 @@ class VADStream(ABC):
     ) -> None:
         """Handle INFERENCE_DONE event
         
-        Only send MIDDLE message if speech is ongoing (conn.client_have_voice)
+        1. Send MIDDLE message if speech is ongoing
+        2. Check smart interrupt via conn.check_and_interrupt()
+        3. Update _last_speaking_time for turn detection endpoint delay
         """
         # Only send audio if client is speaking
         if not conn.client_have_voice or not event.speaking:
             return
+        
+        # Update last speaking time for turn detection endpoint delay (ms)
+        conn._last_speaking_time = int(time.time() * 1000)
         
         # Send MIDDLE message to ASR queue
         asr_message = ASRInputMessage(
@@ -281,6 +275,9 @@ class VADStream(ABC):
             f"ASR MIDDLE message sent: prob={event.probability:.2f}, "
             f"speech={event.speech_duration:.2f}s"
         )
+        
+        # Check if meeting interruption strategies
+        conn._interrupt_by_audio(event.speech_duration)
 
     async def _handle_speech_end(
         self,

@@ -420,6 +420,7 @@ ASR:
     base_url: https://api.groq.com/openai/v1
     model_name: whisper-large-v3-turbo
     output_dir: tmp/
+    prompt: "Hello, 这是一个测试。We discuss the plan, 请加上标点符号。"
   VoskASR:
     # 官方网站：https://alphacephei.com/vosk/
     # 配置说明：
@@ -483,9 +484,9 @@ VAD:
     type: silero
     model_dir: models/snakers4_silero-vad
     threshold: 0.5                    # high threshold to confirm voice
-    min_silence_duration: 0.40      # silence detection duration (s)
-    min_speech_duration: 0.05         # speech detection duration (s)
-    prefix_padding_duration: 0.3      # prefix padding duration (s)
+    min_silence_duration_ms: 400      # silence detection duration (ms)
+    min_speech_duration_ms: 100       # speech detection duration (ms)
+    prefix_padding_duration_ms: 300   # prefix padding duration (ms)
     activation_threshold: 0.5         # activation threshold
     sample_rate: 16000                # sample rate
   # FSMN VAD from FunASR, optimized for Chinese
@@ -495,9 +496,14 @@ VAD:
     model: fsmn-vad
     model_revision: v2.0.4
     chunk_size_ms: 100                # streaming chunk size in ms
-    min_silence_duration_ms: 400      # silence detection duration (ms)
-    frame_window_threshold: 3         # sliding window threshold
+    min_silence_duration_ms: 500      # silence detection duration (ms)
+    speech_noise_threshold: 0.6       # speech/noise threshold (0.6-0.9), higher = stricter
+    sil_to_speech_time_thres: 200     # silence->speech transition time (ms), higher = less noise sensitive
 
+Interruption:
+  enabled: true
+  min_interrupt_speech_duration_ms: 500  # Minimum speech duration before interrupt (ms)
+  min_interrupt_text_length: 5  # Minimum ASR text buffer length before interrupt
 # Turn Detection: Determines if user has finished speaking
 # Use NoopTurnDetection to disable, HTTPTurnDetection to enable
 TurnDetection:
@@ -509,7 +515,8 @@ TurnDetection:
     port: 8002
     timeout: 0.5              # HTTP request timeout (seconds)
     endpoint: /turn-detect    # API endpoint path
-    buffer_timeout: 10.0      # Max time to accumulate text (seconds)
+    min_endpoint_delay: 500      # Min time to wait after last speech before forcing end of turn (milliseconds)
+    max_endpoint_delay: 2000      # Max time to wait after last speech before forcing end of turn (milliseconds)
 
 LLM:
   # 所有openai类型均可以修改超参，以AliLLM为例
@@ -1122,8 +1129,9 @@ TTS:
 # ============================= Module Selection ================================
 # ===============================================================================
 selected_module:
-  VAD: SileroVAD
-  TurnDetection: NoopTurnDetection # Set to TenTurnDetection to enable
+  # VAD: FsmnVAD
+  VAD: FsmnVAD
+  TurnDetection: TenTurnDetection # Set to TenTurnDetection to enable
   ASR: GroqASR
   # ASR: ByteplusStreamASR
   # LLM: GroqLLM

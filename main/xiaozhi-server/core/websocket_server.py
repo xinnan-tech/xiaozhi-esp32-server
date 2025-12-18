@@ -85,6 +85,7 @@ class WebSocketServer:
                     "authorization"
                 ][0]
             if "timezone" in query_params:
+                self.logger.bind(tag=TAG).info(f"timezone: {query_params['timezone'][0]}")
                 websocket.request.headers["timezone"] = query_params["timezone"][0]
 
         """处理新连接，每次创建独立的ConnectionHandler"""
