@@ -496,14 +496,14 @@ VAD:
     model: fsmn-vad
     model_revision: v2.0.4
     chunk_size_ms: 100                # streaming chunk size in ms
-    min_silence_duration_ms: 500      # silence detection duration (ms)
+    min_silence_duration_ms: 400      # silence detection duration (ms)
     speech_noise_threshold: 0.6       # speech/noise threshold (0.6-0.9), higher = stricter
-    sil_to_speech_time_thres: 200     # silence->speech transition time (ms), higher = less noise sensitive
+    sil_to_speech_time_thres: 150     # silence->speech transition time (ms), higher = less noise sensitive
 
 Interruption:
   enabled: true
   min_interrupt_speech_duration_ms: 500  # Minimum speech duration before interrupt (ms)
-  min_interrupt_text_length: 5  # Minimum ASR text buffer length before interrupt
+  min_interrupt_text_length: 3  # Minimum ASR text buffer length before interrupt
 # Turn Detection: Determines if user has finished speaking
 # Use NoopTurnDetection to disable, HTTPTurnDetection to enable
 TurnDetection:
