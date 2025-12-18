@@ -1,7 +1,10 @@
-from typing import Tuple
+from typing import TYPE_CHECKING
 
 from config.logger import setup_logging
 from .base import TurnDetectionProviderBase
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 logger = setup_logging()
@@ -18,14 +21,11 @@ class TurnDetectionProvider(TurnDetectionProviderBase):
         super().__init__(config)
         logger.bind(tag=TAG).info("NoopTurnDetection initialized (Turn Detection disabled)")
     
-    async def check_end_of_turn(self, text: str) -> Tuple[bool, str]:
-        """Always return end_of_turn=True immediately
+    def check_end_of_turn(self, conn: "ConnectionHandler"):
+        """Immediately trigger end of turn (no delay)
         
         Args:
-            text: The ASR text
-            
-        Returns:
-            Tuple of (True, text) - always signals turn finished
+            conn: Connection handler
         """
-        # No buffering needed for noop - just return the text as-is
-        return True, text
+        import asyncio
+        asyncio.create_task(conn.on_end_of_turn())

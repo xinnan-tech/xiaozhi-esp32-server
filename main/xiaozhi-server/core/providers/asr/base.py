@@ -252,27 +252,20 @@ class ASRProviderBase(ABC):
             self.stop_ws_connection()
             
             if text_len > 0:
-                # Turn Detection: check if user finished speaking
-                if conn.turn_detection:
-                    end_of_turn, full_text = await conn.turn_detection.check_end_of_turn(raw_text)
-                    
-                    if not end_of_turn:
-                        # User hasn't finished, continue waiting for more speech
-                        logger.bind(tag=TAG).info(f"User hasn't finished, continue waiting for more speech")
-                        return
-                    
-                    # Use accumulated text from turn detection
-                    enhanced_text = self._build_enhanced_text(full_text, speaker_name)
+                # Append to ASR text buffer
+                if conn.asr_text_buffer:
+                    conn.asr_text_buffer += " " + raw_text
                 else:
-                    # No Turn Detection: use single segment text
-                    enhanced_text = self._build_enhanced_text(raw_text, speaker_name)
+                    conn.asr_text_buffer = raw_text
                 
-                asr_report_time = int(time.time())
+                # Turn Detection: let turn detection handle end of turn
+                if conn.turn_detection:
+                    # Turn detection will wait for endpoint delay, then call on_end_of_turn
+                    conn.turn_detection.check_end_of_turn(conn)
+                    return
                 
-                await startToChat(conn, enhanced_text)
-                # Note: For report, we need to convert PCM back to opus or use PCM directly
-                # For now, pass empty list as audio data for report
-                enqueue_asr_report(conn, enhanced_text, [], report_time=asr_report_time)
+                # No Turn Detection: process immediately
+                await conn.on_end_of_turn()
                 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Process speech segment failed: {e}")

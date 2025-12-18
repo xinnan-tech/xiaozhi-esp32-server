@@ -16,9 +16,15 @@ logger = setup_logging()
 @dataclass
 class FsmnVADOptions:
     """FSMN VAD specific options"""
-    prefix_padding_duration: float = 0.3    # 300ms prefix padding
+    # User-side parameters (used in _run_task)
+    prefix_padding_duration: float = 0.3    # 300ms prefix padding (aligned with FSMN lookback)
     sample_rate: int = 16000                # 16kHz
-    chunk_size_ms: int = 100                # FSMN chunk size
+    chunk_size_ms: int = 100                # streaming chunk size in ms
+    
+    # FSMN model parameters (passed to AutoModel)
+    min_silence_duration_ms: int = 500      # silence detection duration (ms)
+    speech_noise_threshold: float = 0.6     # speech/noise threshold, higher = stricter
+    sil_to_speech_time_thres: int = 150     # silence→speech transition time (ms), higher = less noise sensitive
 
 
 class VADProvider(VADProviderBase):
@@ -29,17 +35,26 @@ class VADProvider(VADProviderBase):
         
         model_name = config.get("model", "fsmn-vad")
         model_revision = config.get("model_revision", "v2.0.4")
-        
-        self._model = AutoModel(model=model_name, model_revision=model_revision)
-        
+
         # Parse config
-        chunk_size_ms = int(config.get("chunk_size_ms", "100"))
         self._opts = FsmnVADOptions(
-            prefix_padding_duration=float(config.get("prefix_padding_duration", "0.3")),
+            prefix_padding_duration=float(config.get("prefix_padding_duration", 0.3)),
             sample_rate=16000,
-            chunk_size_ms=chunk_size_ms,
+            chunk_size_ms=int(config.get("chunk_size_ms", 100)),
+            min_silence_duration_ms=int(config.get("min_silence_duration_ms", 500)),
+            speech_noise_threshold=float(config.get("speech_noise_threshold", 0.6)),
+            sil_to_speech_time_thres=int(config.get("sil_to_speech_time_thres", 150)),
         )
         
+        # Pass FSMN model parameters to AutoModel
+        self._model = AutoModel(
+            model=model_name,
+            model_revision=model_revision,
+            max_end_silence_time=self._opts.min_silence_duration_ms,
+            speech_noise_thres=self._opts.speech_noise_threshold,
+            sil_to_speech_time_thres=self._opts.sil_to_speech_time_thres,
+            disable_pbar=True,  # disable progress bar
+        )
 
     
     def stream(self) -> VADStream:
@@ -65,7 +80,7 @@ class FsmnVADStream(VADStream):
         # FSMN chunk size
         self._chunk_samples = int(opts.chunk_size_ms * opts.sample_rate / 1000)
         self._chunk_bytes = self._chunk_samples * 2  # int16
-        self._chunk_duration = opts.chunk_size_ms / 1000  # seconds
+        self._chunk_duration_ms = opts.chunk_size_ms  # milliseconds
         
         # Speech buffer for prefix padding (in bytes, not samples)
         self._prefix_padding_bytes = int(opts.prefix_padding_duration * opts.sample_rate) * 2
@@ -159,7 +174,7 @@ class FsmnVADStream(VADStream):
                         seg = res[0]["value"][0]  # Take first segment
                         seg_start, seg_end = seg[0], seg[1]
                         
-                        if seg_start > 0 and seg_end == -1:
+                        if seg_start >= 0 and seg_end == -1:
                             # Speech start event
                             if not speaking:
                                 speaking = True
@@ -183,8 +198,7 @@ class FsmnVADStream(VADStream):
                             # Speech end event
                             if speaking:
                                 speaking = False
-                                speech_duration_ms = seg_end - speech_start_ms
-                                speech_duration = speech_duration_ms / 1000
+                                speech_duration = seg_end - speech_start_ms  # ms
                                 
                                 # Emit END_OF_SPEECH
                                 self._output_queue.put_nowait(VADEvent(
@@ -197,7 +211,7 @@ class FsmnVADStream(VADStream):
                                 ))
                                 logger.bind(tag=TAG).info(
                                     f"🔇 FSMN VAD END_OF_SPEECH @{seg_end}ms | "
-                                    f"duration={speech_duration:.2f}s"
+                                    f"duration={speech_duration:.0f}ms"
                                 )
                                 
                                 # Reset for next utterance
@@ -211,11 +225,11 @@ class FsmnVADStream(VADStream):
                                 f"FSMN: short segment [{seg_start}, {seg_end}]ms (ignored)"
                             )
                     
-                    # Update durations based on current state
+                    # Update durations based on current state (in milliseconds)
                     if speaking:
-                        speech_duration += self._chunk_duration
+                        speech_duration += self._chunk_duration_ms
                     else:
-                        silence_duration += self._chunk_duration
+                        silence_duration += self._chunk_duration_ms
                         _reset_write_cursor()
                     
                     # Always emit INFERENCE_DONE

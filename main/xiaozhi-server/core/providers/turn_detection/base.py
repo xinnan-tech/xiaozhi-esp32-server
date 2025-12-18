@@ -2,9 +2,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 import time
-from typing import List, Optional, Tuple
+import asyncio
+from typing import TYPE_CHECKING
 
 from config.logger import setup_logging
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 logger = setup_logging()
@@ -29,45 +33,68 @@ class TurnDetectionProviderBase(ABC):
     Turn Detection determines whether the user has finished speaking
     and it's time for the system to respond.
     
-    Manages text buffer internally - subclasses can override buffer behavior.
+    Uses conn.asr_text_buffer for accumulated text (maintained by ASR).
+    
+    Endpoint delay mechanism:
+    - When check_end_of_turn is called, first call turn detection service
+    - If result is "finished", wait min_endpoint_delay
+    - If result is "unfinished/waiting", wait max_endpoint_delay
+    - If user continues speaking (new check_end_of_turn call), the task is cancelled
     """
     
     def __init__(self, config: dict):
-        self._text_buffer: List[str] = []
-        self._buffer_start_time: float = 0.0
-        self._buffer_timeout: float = float(config.get("buffer_timeout", 10.0))
+        # Endpoint delay: time to wait after last speech before forcing end of turn
+        # min_endpoint_delay: used when turn detection says "finished"
+        # max_endpoint_delay: used when turn detection says "unfinished/waiting"
+        self.min_endpoint_delay: int = config.get("min_endpoint_delay", 500)
+        self.max_endpoint_delay: int = config.get("max_endpoint_delay", 2000)
+        # Pending turn detection task (can be cancelled when new speech arrives)
+        self._turn_detection_task: asyncio.Task = None
     
-    def _append_text(self, text: str) -> str:
-        if not self._text_buffer:
-            self._buffer_start_time = time.time()
-        self._text_buffer.append(text)
-        return " ".join(self._text_buffer)
+    def _cancel_pending_task(self) -> None:  # noqa: F821
+        """Cancel pending turn detection task if exists"""
+        if self._turn_detection_task and not self._turn_detection_task.done():
+            self._turn_detection_task.cancel()
+            logger.bind(tag=TAG).debug("Cancelled pending turn detection task")
+            self._turn_detection_task = None
     
-    def _clear_buffer(self) -> None:
-        """Clear the text buffer"""
-        self._text_buffer.clear()
-        self._buffer_start_time = 0.0
-    
-    def _is_buffer_timeout(self) -> bool:
-        """Check if buffer has timed out (to avoid infinite accumulation)"""
-        if not self._text_buffer:
-            return False
-        return (time.time() - self._buffer_start_time) > self._buffer_timeout
-    
-    @abstractmethod
-    async def check_end_of_turn(self, text: str) -> Tuple[bool, str]:
-        """Check if the user has finished their turn
+    def _calculate_sleep_time(self, conn: "ConnectionHandler", is_finished: bool) -> float:
+        """Calculate how long to sleep based on turn detection result
         
         Args:
-            text: New ASR text segment
+            conn: Connection handler containing _last_speaking_time (in ms)
+            is_finished: True if turn detection says finished, False otherwise
             
         Returns:
-            Tuple of (end_of_turn: bool, full_text: str)
-            - end_of_turn: True if user finished speaking, False to continue buffering
-            - full_text: Accumulated text from buffer
+            Sleep time in seconds (>= 0)
+        """
+        # Choose delay based on turn detection result
+        endpoint_delay = self.min_endpoint_delay if is_finished else self.max_endpoint_delay
+        
+        if conn._last_speaking_time is None:
+            return endpoint_delay
+        
+        # Convert ms to seconds for calculation
+        elapsed = conn._last_speaking_time - int(time.time() * 1000)
+        sleep_time = endpoint_delay - elapsed
+        return sleep_time
+    
+    @abstractmethod
+    def check_end_of_turn(self, conn: "ConnectionHandler"):
+        """Check if the user has finished their turn
+        
+        This method manages the endpoint delay mechanism:
+        1. Cancel any pending task from previous call
+        2. Create a new task that:
+           - Calls turn detection service with conn.asr_text_buffer
+           - Wait min_endpoint_delay (if finished) or max_endpoint_delay (if unfinished)
+           - If not cancelled, call conn.on_end_of_turn()
+        
+        Args:
+            conn: Connection handler containing asr_text_buffer and _last_speaking_time
         """
         ...
     
     async def close(self) -> None:
-        """Clean up resources - clears buffer"""
-        self._clear_buffer()
+        """Clean up resources"""
+        pass

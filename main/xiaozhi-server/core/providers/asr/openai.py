@@ -21,6 +21,7 @@ class ASRProvider(ASRProviderBase):
         self.model = config.get("model_name")        
         self.output_dir = config.get("output_dir")
         self.delete_audio_file = delete_audio_file
+        self.prompt = config.get("prompt", None)
 
         self._client = OpenAI(
             api_key=self.api_key,
@@ -49,7 +50,8 @@ class ASRProvider(ASRProviderBase):
                 transcription: str = self._client.audio.transcriptions.create(
                     model=self.model,
                     file=audio_file,
-                    response_format="text"
+                    response_format="text",
+                    prompt=self.prompt if self.prompt else None,
                 )
                 logger.bind(tag=TAG).debug(
                     f"Audio transcription latency: {time.time() - start_time:.3f}s | Result: {transcription}"
