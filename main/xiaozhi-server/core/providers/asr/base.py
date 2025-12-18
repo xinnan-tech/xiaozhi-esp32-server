@@ -259,13 +259,21 @@ class ASRProviderBase(ABC):
                     conn.asr_text_buffer = raw_text
                 
                 # Turn Detection: let turn detection handle end of turn
-                if conn.turn_detection:
-                    # Turn detection will wait for endpoint delay, then call on_end_of_turn
-                    conn.turn_detection.check_end_of_turn(conn)
-                    return
+                # if conn.turn_detection:
+                #     # Turn detection will wait for endpoint delay, then call on_end_of_turn
+                #     conn.turn_detection.check_end_of_turn(conn)
+                #     return
                 
-                # No Turn Detection: process immediately
-                await conn.on_end_of_turn()
+                # # No Turn Detection: process immediately
+                # await conn.on_end_of_turn()
+                enhanced_text = self._build_enhanced_text(raw_text, speaker_name)
+                
+                asr_report_time = int(time.time())
+                
+                await startToChat(conn, enhanced_text)
+                # Note: For report, we need to convert PCM back to opus or use PCM directly
+                # For now, pass empty list as audio data for report
+                enqueue_asr_report(conn, enhanced_text, [], report_time=asr_report_time)
                 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Process speech segment failed: {e}")
