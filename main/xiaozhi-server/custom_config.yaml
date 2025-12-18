@@ -1130,8 +1130,8 @@ TTS:
 # ===============================================================================
 selected_module:
   # VAD: FsmnVAD
-  VAD: FsmnVAD
-  TurnDetection: TenTurnDetection # Set to TenTurnDetection to enable
+  VAD: SileroVAD
+  TurnDetection: NoopTurnDetection # Set to TenTurnDetection to enable
   ASR: GroqASR
   # ASR: ByteplusStreamASR
   # LLM: GroqLLM
