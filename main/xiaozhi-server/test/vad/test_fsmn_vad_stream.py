@@ -1,12 +1,12 @@
 """
-FSMN VAD Stream Test Script
+FSMN VAD Stream Test Script (ONNX Version)
 
-This script tests FSMN VAD with audio files, simulating the streaming behavior:
+This script tests FSMN VAD ONNX with audio files, simulating the streaming behavior:
 
 1. Load an audio file
 2. Convert to 16kHz mono PCM
 3. Split into 60ms chunks (simulating WebSocket protocol)
-4. Feed chunks to FSMN VAD stream
+4. Feed chunks to FSMN VAD ONNX stream
 5. Print VAD events (START_OF_SPEECH, END_OF_SPEECH)
 
 Usage:
@@ -136,41 +136,55 @@ class VADEvent:
 # ============================================================================
 
 class FsmnVADTester:
-    """Test FSMN VAD with audio file input"""
+    """Test FSMN VAD ONNX with audio file input"""
     
     def __init__(
         self,
+        model_dir: str = "models/fsmn_vad_onnx",
+        quantize: bool = True,
         chunk_size_ms: int = 100,
         min_silence_duration_ms: int = 500,
         speech_noise_threshold: float = 0.6,
+        sil_to_speech_time_thres: int = 150,
         prefix_padding_duration: float = 0.3,
     ):
+        self.model_dir = model_dir
+        self.quantize = quantize
         self.chunk_size_ms = chunk_size_ms
         self.min_silence_duration_ms = min_silence_duration_ms
         self.speech_noise_threshold = speech_noise_threshold
+        self.sil_to_speech_time_thres = sil_to_speech_time_thres
         self.prefix_padding_duration = prefix_padding_duration
         self.sample_rate = 16000
         
-        # Initialize FSMN model
+        # Initialize FSMN ONNX model
         self._init_model()
     
     def _init_model(self):
-        """Initialize FSMN VAD model"""
+        """Initialize FSMN VAD ONNX model"""
         try:
-            from funasr import AutoModel
+            from funasr_onnx import Fsmn_vad_online
         except ImportError:
-            print("Error: funasr is required. Install with: pip install funasr")
+            print("Error: funasr_onnx is required. Install with: pip install funasr-onnx")
             sys.exit(1)
         
-        print("\nInitializing FSMN VAD model...")
-        self.model = AutoModel(
-            model="fsmn-vad",
-            model_revision="v2.0.4",
-            disable_pbar=True,  # disable progress bar
-            max_end_silence_time=self.min_silence_duration_ms,
-            speech_noise_thres=self.speech_noise_threshold,
+        print(f"\nInitializing FSMN VAD ONNX model from {self.model_dir}...")
+        self.model = Fsmn_vad_online(
+            model_dir=self.model_dir,
+            quantize=self.quantize,
+            max_end_sil=self.min_silence_duration_ms,
         )
-        print("Model initialized.")
+        
+        # Override VAD parameters at runtime
+        vad_opts = self.model.vad_scorer.vad_opts
+        vad_opts.max_end_silence_time = self.min_silence_duration_ms
+        vad_opts.speech_noise_thres = self.speech_noise_threshold
+        vad_opts.sil_to_speech_time_thres = self.sil_to_speech_time_thres
+        
+        print(f"Model initialized (quantize={self.quantize}).")
+        print(f"  max_end_silence_time: {vad_opts.max_end_silence_time}ms")
+        print(f"  speech_noise_thres: {vad_opts.speech_noise_thres}")
+        print(f"  sil_to_speech_time_thres: {vad_opts.sil_to_speech_time_thres}ms")
     
     def process_audio_file(self, file_path: str, input_chunk_ms: int = 60, verbose: bool = False) -> List[dict]:
         """
@@ -202,7 +216,7 @@ class FsmnVADTester:
         speech_buffer_index = 0
         
         # State
-        fsmn_cache = {}
+        fsmn_param_dict = {"in_cache": [], "is_final": False}
         speaking = False
         speech_start_ms = 0
         speech_duration = 0.0
@@ -247,13 +261,8 @@ class FsmnVADTester:
                 chunk_int16 = np.frombuffer(inference_buffer[:chunk_bytes], dtype=np.int16)
                 chunk_float32 = chunk_int16.astype(np.float32) / 32768.0
                 
-                # Run FSMN inference (is_final=False for streaming scenario)
-                res = self.model.generate(
-                    input=chunk_float32,
-                    cache=fsmn_cache,
-                    is_final=False,
-                    chunk_size=self.chunk_size_ms,
-                )
+                # Run FSMN ONNX inference
+                res = self.model(chunk_float32, param_dict=fsmn_param_dict)
                 
                 inference_duration = time.perf_counter() - inference_start
                 total_inference_time += inference_duration
@@ -261,9 +270,8 @@ class FsmnVADTester:
                 
                 # Verbose output: show raw FSMN result
                 if verbose:
-                    value = res[0].get("value", []) if res and len(res) > 0 else []
                     print(f"   [{current_time_ms:6.0f}ms] inference #{inference_count:3d} | "
-                          f"result={value} | "
+                          f"result={res} | "
                           f"time={inference_duration*1000:.2f}ms")
                 
                 # Copy to speech buffer
@@ -273,9 +281,9 @@ class FsmnVADTester:
                     speech_buffer[speech_buffer_index:speech_buffer_index + to_copy] = input_buffer[:to_copy]
                     speech_buffer_index += to_copy
                 
-                # Parse FSMN result
-                if res and len(res) > 0 and res[0].get("value"):
-                    seg = res[0]["value"][0]
+                # Parse FSMN ONNX result: [[[start, end], ...]]
+                if res and len(res) > 0 and len(res[0]) > 0:
+                    seg = res[0][0]  # First segment from first batch
                     seg_start, seg_end = seg[0], seg[1]
                     
                     if seg_start >= 0 and seg_end == -1:
@@ -320,7 +328,7 @@ class FsmnVADTester:
                             
                             # Reset state
                             speech_duration = 0.0
-                            fsmn_cache = {}
+                            fsmn_param_dict = {"in_cache": [], "is_final": False}
                             reset_write_cursor()
                     
                     elif seg_start > 0 and seg_end > 0:
@@ -353,13 +361,14 @@ class FsmnVADTester:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Test FSMN VAD with audio file",
+        description="Test FSMN VAD ONNX with audio file",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
     python test_fsmn_vad_stream.py test_audio.wav
     python test_fsmn_vad_stream.py test_audio.mp3 --input-chunk-ms 100
     python test_fsmn_vad_stream.py test_audio.wav --min-silence-ms 800
+    python test_fsmn_vad_stream.py test_audio.wav --no-quantize
         """
     )
     
@@ -367,6 +376,19 @@ Examples:
         "audio_file",
         type=str,
         help="Path to audio file (wav, mp3, etc.)"
+    )
+    
+    parser.add_argument(
+        "--model-dir",
+        type=str,
+        default="models/fsmn_vad_onnx",
+        help="ONNX model directory (default: models/fsmn_vad_onnx)"
+    )
+    
+    parser.add_argument(
+        "--no-quantize",
+        action="store_true",
+        help="Use FP32 model instead of INT8 quantized model"
     )
     
     parser.add_argument(
@@ -398,6 +420,13 @@ Examples:
     )
     
     parser.add_argument(
+        "--sil-to-speech-time",
+        type=int,
+        default=150,
+        help="Silence to speech transition time in ms (default: 150)"
+    )
+    
+    parser.add_argument(
         "--prefix-padding",
         type=float,
         default=0.3,
@@ -419,9 +448,12 @@ Examples:
     
     # Create tester and run
     tester = FsmnVADTester(
+        model_dir=args.model_dir,
+        quantize=not args.no_quantize,
         chunk_size_ms=args.fsmn_chunk_ms,
         min_silence_duration_ms=args.min_silence_ms,
         speech_noise_threshold=args.speech_noise_threshold,
+        sil_to_speech_time_thres=args.sil_to_speech_time,
         prefix_padding_duration=args.prefix_padding,
     )
     

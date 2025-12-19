@@ -493,8 +493,8 @@ VAD:
   # Reference: https://huggingface.co/funasr/fsmn-vad
   FsmnVAD:
     type: fsmn
-    model: fsmn-vad
-    model_revision: v2.0.4
+    model_dir: models/fsmn_vad_onnx   # ONNX model directory
+    quantize: true                    # use INT8 quantized model (faster)
     chunk_size_ms: 100                # streaming chunk size in ms
     min_silence_duration_ms: 400      # silence detection duration (ms)
     speech_noise_threshold: 0.6       # speech/noise threshold (0.6-0.9), higher = stricter

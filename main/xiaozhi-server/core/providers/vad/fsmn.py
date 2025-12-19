@@ -2,7 +2,7 @@ import asyncio
 import time
 import numpy as np
 from dataclasses import dataclass
-from funasr import AutoModel
+from funasr_onnx import Fsmn_vad_online
 
 from config.logger import setup_logging
 from .base import VADProviderBase, VADStream
@@ -21,20 +21,20 @@ class FsmnVADOptions:
     sample_rate: int = 16000                # 16kHz
     chunk_size_ms: int = 100                # streaming chunk size in ms
     
-    # FSMN model parameters (passed to AutoModel)
+    # FSMN model parameters (can override models/fsmn_vad_onnx/config.yaml defaults)
     min_silence_duration_ms: int = 500      # silence detection duration (ms)
     speech_noise_threshold: float = 0.6     # speech/noise threshold, higher = stricter
-    sil_to_speech_time_thres: int = 150     # silence→speech transition time (ms), higher = less noise sensitive
+    sil_to_speech_time_thres: int = 150     # silence→speech transition time (ms)
 
 
 class VADProvider(VADProviderBase):
-    """FSMN VAD provider using FunASR"""
+    """FSMN VAD provider using ONNX Runtime for fast CPU inference"""
     
     def __init__(self, config: dict):
         super().__init__()
         
-        model_name = config.get("model", "fsmn-vad")
-        model_revision = config.get("model_revision", "v2.0.4")
+        model_dir = config.get("model_dir", "models/fsmn_vad_onnx")
+        quantize = config.get("quantize", True)
 
         # Parse config
         self._opts = FsmnVADOptions(
@@ -46,14 +46,24 @@ class VADProvider(VADProviderBase):
             sil_to_speech_time_thres=int(config.get("sil_to_speech_time_thres", 150)),
         )
         
-        # Pass FSMN model parameters to AutoModel
-        self._model = AutoModel(
-            model=model_name,
-            model_revision=model_revision,
-            max_end_silence_time=self._opts.min_silence_duration_ms,
-            speech_noise_thres=self._opts.speech_noise_threshold,
-            sil_to_speech_time_thres=self._opts.sil_to_speech_time_thres,
-            disable_pbar=True,  # disable progress bar
+        # Load ONNX model with ONNX Runtime
+        self._model = Fsmn_vad_online(
+            model_dir=model_dir,
+            quantize=quantize,
+            max_end_sil=self._opts.min_silence_duration_ms,
+        )
+        
+        # Override VAD parameters at runtime (these override config.yaml defaults)
+        vad_opts = self._model.vad_scorer.vad_opts
+        vad_opts.max_end_silence_time = self._opts.min_silence_duration_ms
+        vad_opts.speech_noise_thres = self._opts.speech_noise_threshold
+        vad_opts.sil_to_speech_time_thres = self._opts.sil_to_speech_time_thres
+        
+        logger.bind(tag=TAG).info(
+            f"Loaded FSMN VAD ONNX model from {model_dir} (quantize={quantize}, "
+            f"max_end_sil={self._opts.min_silence_duration_ms}ms, "
+            f"speech_noise_thres={self._opts.speech_noise_threshold}, "
+            f"sil_to_speech_time={self._opts.sil_to_speech_time_thres}ms)"
         )
 
     
@@ -107,8 +117,8 @@ class FsmnVADStream(VADStream):
         input_audios: bytearray = bytearray()
         inference_audios: bytearray = bytearray()
         
-        # FSMN cache for streaming (reset on speech end)
-        fsmn_cache = {}
+        # FSMN ONNX cache for streaming (reset on speech end)
+        fsmn_param_dict = {"in_cache": [], "is_final": False}
         
         while not self._is_closed:
             try:
@@ -130,13 +140,8 @@ class FsmnVADStream(VADStream):
                     )
                     chunk_float32 = chunk_int16.astype(np.float32) / 32768.0
                     
-                    # Run FSMN inference
-                    res = self._model.generate(
-                        input=chunk_float32,
-                        cache=fsmn_cache,
-                        is_final=False,
-                        chunk_size=self._opts.chunk_size_ms
-                    )
+                    # Run FSMN ONNX inference
+                    res = self._model(chunk_float32, param_dict=fsmn_param_dict)
                     
                     inference_duration = time.perf_counter() - inference_start
                     
@@ -168,10 +173,10 @@ class FsmnVADStream(VADStream):
                     def _copy_speech_buffer() -> bytes:
                         return bytes(self._speech_buffer[:speech_buffer_index])
                     
-                    # Parse FSMN result
-                    # res format: [{"key": "xxx", "value": [[start_ms, end_ms], ...]}]
-                    if res and len(res) > 0 and res[0].get("value"):
-                        seg = res[0]["value"][0]  # Take first segment
+                    # Parse FSMN ONNX result
+                    # res format: [[[start_ms, end_ms], ...]] or []
+                    if res and len(res) > 0 and len(res[0]) > 0:
+                        seg = res[0][0]  # Take first segment from first batch
                         seg_start, seg_end = seg[0], seg[1]
                         
                         if seg_start >= 0 and seg_end == -1:
@@ -216,7 +221,7 @@ class FsmnVADStream(VADStream):
                                 
                                 # Reset for next utterance
                                 speech_duration = 0.0
-                                fsmn_cache = {}
+                                fsmn_param_dict = {"in_cache": [], "is_final": False}
                                 _reset_write_cursor()
                                 
                         elif seg_start > 0 and seg_end > 0:
