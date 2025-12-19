@@ -282,52 +282,6 @@ Memory:
     llm: ChatGLMLLM
 
 ASR:
-  FunASR:
-    type: fun_local
-    model_dir: models/SenseVoiceSmall
-    output_dir: tmp/
-  FunASRServer:
-    # 独立部署FunASR，使用FunASR的API服务，只需要五句话
-    # 第一句：mkdir -p ./funasr-runtime-resources/models
-    # 第二句：sudo docker run -p 10096:10095 -it --privileged=true -v $PWD/funasr-runtime-resources/models:/workspace/models registry.cn-hangzhou.aliyuncs.com/funasr_repo/funasr:funasr-runtime-sdk-online-cpu-0.1.12
-    # 上一句话执行后会进入到容器，继续第三句：cd FunASR/runtime
-    # 不要退出容器，继续在容器中执行第四句：nohup bash run_server_2pass.sh --download-model-dir /workspace/models --vad-dir damo/speech_fsmn_vad_zh-cn-16k-common-onnx --model-dir damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-onnx  --online-model-dir damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online-onnx  --punc-dir damo/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727-onnx --lm-dir damo/speech_ngram_lm_zh-cn-ai-wesp-fst --itn-dir thuduj12/fst_itn_zh --hotword /workspace/models/hotwords.txt > log.txt 2>&1 &
-    # 上一句话执行后会进入到容器，继续第五句：tail -f log.txt
-    # 第五句话执行完后，会看到模型下载日志，下载完后就可以连接使用了
-    # 以上是使用CPU推理，如果有GPU，详细参考：https://github.com/modelscope/FunASR/blob/main/runtime/docs/SDK_advanced_guide_online_zh.md
-    type: fun_server
-    host: 127.0.0.1
-    port: 10096
-    is_ssl: true
-    api_key: none
-    output_dir: tmp/
-  SherpaASR:
-    # Sherpa-ONNX 本地语音识别（需手动下载模型）
-    type: sherpa_onnx_local
-    model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
-    output_dir: tmp/
-    # 模型类型：sense_voice (多语言) 或 paraformer (中文专用)
-    model_type: sense_voice
-  SherpaParaformerASR:
-    # 中文语音识别模型，可以运行在低性能设备（需手动下载模型，例如RK3566-2g）
-    # 详细配置说明请参考：docs/sherpa-paraformer-guide.md
-    type: sherpa_onnx_local
-    model_dir: models/sherpa-onnx-paraformer-zh-small-2024-03-09
-    output_dir: tmp/
-    model_type: paraformer
-  DoubaoASR:
-    # 可以在这里申请相关Key等信息
-    # https://console.volcengine.com/speech/app
-    # DoubaoASR和DoubaoStreamASR的区别是：DoubaoASR是按次收费，DoubaoStreamASR是按时收费
-    # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
-    type: doubao
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
-    cluster: volcengine_input_common
-    # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
-    boosting_table_name: （选填）你的热词文件名称
-    correct_table_name: （选填）你的替换词文件名称
-    output_dir: tmp/
   DoubaoStreamASR:
     # 可以在这里申请相关Key等信息
     # https://console.volcengine.com/speech/app
@@ -341,60 +295,6 @@ ASR:
     # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
     boosting_table_name: （选填）你的热词文件名称
     correct_table_name: （选填）你的替换词文件名称
-    output_dir: tmp/
-  TencentASR:
-    # token申请地址：https://console.cloud.tencent.com/cam/capi
-    # 免费领取资源：https://console.cloud.tencent.com/asr/resourcebundle
-    type: tencent
-    appid: 你的腾讯语音合成服务appid
-    secret_id: 你的腾讯语音合成服务secret_id
-    secret_key: 你的腾讯语音合成服务secret_key
-    output_dir: tmp/
-  AliyunASR:
-    # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
-    # HTTP POST请求，一次性处理完整音频
-    # 平台地址：https://nls-portal.console.aliyun.com/
-    # appkey地址：https://nls-portal.console.aliyun.com/applist
-    # token地址：https://nls-portal.console.aliyun.com/overview
-    # AliyunASR和AliyunStreamASR的区别是：AliyunASR是批量处理场景，AliyunStreamASR是实时交互场景
-    # 一般来说非流式ASR更便宜（0.004元/秒，¥0.24/分钟）
-    # 但是AliyunStreamASR实时性更好（0.005元/秒，¥0.3/分钟）
-    # 定义ASR API类型
-    type: aliyun
-    appkey: 你的阿里云智能语音交互服务项目Appkey
-    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
-    access_key_id: 你的阿里云账号access_key_id
-    access_key_secret: 你的阿里云账号access_key_secret
-    output_dir: tmp/
-  AliyunStreamASR:
-    # 阿里云智能语音交互服务 - 实时流式语音识别
-    # WebSocket连接，实时处理音频流
-    # 平台地址：https://nls-portal.console.aliyun.com/
-    # appkey地址：https://nls-portal.console.aliyun.com/applist
-    # token地址：https://nls-portal.console.aliyun.com/overview
-    # AliyunASR和AliyunStreamASR的区别是：AliyunASR是批量处理场景，AliyunStreamASR是实时交互场景
-    # 一般来说非流式ASR更便宜（0.004元/秒，¥0.24/分钟）
-    # 但是AliyunStreamASR实时性更好（0.005元/秒，¥0.3/分钟）
-    # 定义ASR API类型
-    type: aliyun_stream
-    appkey: 你的阿里云智能语音交互服务项目Appkey
-    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
-    access_key_id: 你的阿里云账号access_key_id
-    access_key_secret: 你的阿里云账号access_key_secret
-    # 服务器地域选择，可选择距离更近的服务器以减少延迟，如nls-gateway-cn-hangzhou.aliyuncs.com(杭州)等
-    host: nls-gateway-cn-shanghai.aliyuncs.com
-    # 断句检测时间(毫秒)，控制静音多长时间后进行断句，默认800毫秒
-    max_sentence_silence: 800
-    output_dir: tmp/
-  BaiduASR:
-    # 获取AppID、API Key、Secret Key：https://console.bce.baidu.com/ai-engine/old/#/ai/speech/app/list
-    # 查看资源额度：https://console.bce.baidu.com/ai-engine/old/#/ai/speech/overview/resource/list
-    type: baidu
-    app_id: 你的百度语音技术AppID
-    api_key: 你的百度语音技术APIKey
-    secret_key: 你的百度语音技术SecretKey
-    # 语言参数，1537为普通话，具体参考：https://ai.baidu.com/ai-doc/SPEECH/0lbxfnc9b
-    dev_pid: 1537
     output_dir: tmp/
   OpenaiASR:
     # OpenAI语音识别服务，需要先在OpenAI平台创建组织并获取api_key
@@ -421,58 +321,6 @@ ASR:
     model_name: whisper-large-v3-turbo
     output_dir: tmp/
     prompt: "Hello, 这是一个测试。We discuss the plan, 请加上标点符号。"
-  VoskASR:
-    # 官方网站：https://alphacephei.com/vosk/
-    # 配置说明：
-    # 1. VOSK是一个离线语音识别库，支持多种语言
-    # 2. 需要先下载模型文件：https://alphacephei.com/vosk/models
-    # 3. 中文模型推荐使用vosk-model-small-cn-0.22或vosk-model-cn-0.22
-    # 4. 完全离线运行，无需网络连接
-    # 5. 输出文件保存在tmp/目录
-    # 使用步骤：
-    # 1. 访问 https://alphacephei.com/vosk/models 下载对应的模型
-    # 2. 解压模型文件到项目目录下的models/vosk/文件夹
-    # 3. 在配置中指定正确的模型路径
-    # 4. 注意：VOSK中文模型输出不带标点符号，词与词之间会有空格
-    type: vosk
-    model_path: 你的模型路径，如：models/vosk/vosk-model-small-cn-0.22
-    output_dir: tmp/
-  Qwen3ASRFlash:
-    # 通义千问Qwen3-ASR-Flash语音识别服务，需要先在阿里云百炼平台创建API密钥
-    # 申请步骤：
-    # 1.登录阿里云百炼平台。https://bailian.console.aliyun.com/
-    # 2.创建API-KEY  https://bailian.console.aliyun.com/#/api-key
-    # 3.Qwen3-ASR-Flash基于通义千问多模态基座，支持多语言识别、歌唱识别、噪声拒识等功能
-    type: qwen3_asr_flash
-    api_key: 你的阿里云百炼API密钥
-    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    model_name: qwen3-asr-flash
-    output_dir: tmp/
-    # ASR选项配置
-    enable_lid: true  # 自动语种检测
-    enable_itn: true  # 逆文本归一化
-    #language: "zh"  # 语种，支持zh、en、ja、ko等
-    context: ""  # 上下文信息，用于提高识别准确率，不超过10000 Token
-  XunfeiStreamASR:
-    # 讯飞流式语音识别服务
-    # 需要先在讯飞开放平台创建应用，获取以下认证信息
-    # 讯飞开放平台地址：https://www.xfyun.cn/
-    # 创建应用后，在"我的应用"中获取：
-    # - APPID
-    # - APISecret  
-    # - APIKey
-    type: xunfei_stream
-    # 必填参数 - 讯飞开放平台应用信息
-    app_id: 你的APPID
-    api_key: 你的APIKey
-    api_secret: 你的APISecret
-    # 识别参数配置
-    domain: slm # 识别领域，iat:日常用语，medical:医疗，finance:金融等
-    language: zh_cn # 语言，zh_cn:中文，en_us:英文
-    accent: mandarin # 方言，mandarin:普通话
-    dwa: wpgs # 动态修正，wpgs:实时返回中间结果
-    # 调整音频处理参数以提高长语音识别质量
-    output_dir: tmp/
   ByteplusStreamASR:
     type: byteplus_stream
     appid: ${BYTEPLUS_APPID}
@@ -511,9 +359,9 @@ TurnDetection:
     type: noop
   TenTurnDetection:
     type: ten
-    host: 115.190.161.149
-    port: 8002
-    timeout: 0.5              # HTTP request timeout (seconds)
+    host: 13.212.248.80
+    port: 18000
+    timeout: 1              # HTTP request timeout (seconds)
     endpoint: /turn-detect    # API endpoint path
     min_endpoint_delay: 500      # Min time to wait after last speech before forcing end of turn (milliseconds)
     max_endpoint_delay: 2000      # Max time to wait after last speech before forcing end of turn (milliseconds)
