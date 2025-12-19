@@ -11,9 +11,7 @@ services:
     env_file:
       - .env
     depends_on:
-      xiaozhi-esp32-server-db:
-        condition: service_healthy
-      xiaozhi-esp32-server-redis:
+      live-agent-api:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -73,7 +71,7 @@ services:
       - /home/ubuntu/live-agent/main/xiaozhi-server/music:/opt/xiaozhi-esp32-server/music
       # Logs (optional, for debugging)
       - /home/ubuntu/live-agent/main/xiaozhi-server/logs:/opt/xiaozhi-esp32-server/logs
-      
+
   # ============================================================================
   # live-agent-api Dependencies: Postgres + Minio
   # ============================================================================
@@ -140,6 +138,11 @@ services:
         condition: service_healthy
       live-agent-minio:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 # ============================================================================
 # Networks
