@@ -65,6 +65,7 @@ services:
       # Model files (important!)
       - /home/ubuntu/live-agent/main/xiaozhi-server/models/SenseVoiceSmall:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall
       - /home/ubuntu/live-agent/main/xiaozhi-server/models/snakers4_silero-vad:/opt/xiaozhi-esp32-server/models/snakers4_silero-vad
+      - /home/ubuntu/live-agent/main/xiaozhi-server/models/fsmn_vad_onnx:/opt/xiaozhi-esp32-server/models/fsmn_vad_onnx
       # Temporary files
       - /home/ubuntu/live-agent/main/xiaozhi-server/tmp:/opt/xiaozhi-esp32-server/tmp
       # Music files (optional)
