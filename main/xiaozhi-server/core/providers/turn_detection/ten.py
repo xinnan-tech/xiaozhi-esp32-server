@@ -147,6 +147,17 @@ class TurnDetectionProvider(TurnDetectionProviderBase):
         self._turn_detection_task = asyncio.create_task(
             self._delayed_turn_detection_task(conn)
         )
+        # Add callback to log exceptions (task may be cancelled, which is expected)
+        self._turn_detection_task.add_done_callback(self._on_task_done)
+    
+    def _on_task_done(self, task: asyncio.Task):
+        """Callback when turn detection task completes"""
+        if task.cancelled():
+            logger.bind(tag=TAG).debug("Turn detection task was cancelled")
+            return
+        exc = task.exception()
+        if exc:
+            logger.bind(tag=TAG).error(f"Turn detection task failed: {exc}")
     
     async def close(self) -> None:
         """Close the httpx client"""

@@ -38,6 +38,7 @@ services:
       # Model files (important!)
       - ./xiaozhi-server/models/SenseVoiceSmall:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall
       - ./xiaozhi-server/models/snakers4_silero-vad:/opt/xiaozhi-esp32-server/models/snakers4_silero-vad
+      - ./xiaozhi-server/models/fsmn_vad_onnx:/opt/xiaozhi-esp32-server/models/fsmn_vad_onnx
       # Temporary files
       - ./xiaozhi-server/tmp:/opt/xiaozhi-esp32-server/tmp
       # Music files (optional)

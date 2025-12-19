@@ -555,38 +555,6 @@ async def startToChat(conn, text: str, multimodal_content: List[Dict[str, Any]] 
             await max_out_size(conn)
             return
 
-    # 提取用于检测的纯文本（去除JSON包装）
-    check_text = actual_text
-    try:
-        if actual_text.strip().startswith("{"):
-            parsed = json.loads(actual_text)
-            if "content" in parsed:
-                check_text = parsed["content"]
-    except (json.JSONDecodeError, KeyError):
-        pass
-
-    # 强制停止检测：即使 TTS 未播放，如果有正在进行的 LLM 任务也要停止
-    if _is_force_stop_intent(check_text):
-        # 检查是否有正在进行的 LLM 任务
-        if not conn.llm_finish_task:
-            conn.logger.bind(tag=TAG).info(f"强制停止意图检测到: '{check_text}'，取消当前任务")
-            await handleAbortMessage(conn)
-            # 不继续处理，直接返回
-            return
-        # 如果 TTS 正在播放也要停止
-        if conn.client_is_speaking:
-            conn.logger.bind(tag=TAG).info(f"强制停止 TTS 播放: '{check_text}'")
-            await handleAbortMessage(conn)
-            return
-
-    # 智能打断处理（TTS 正在播放时）
-    if conn.client_is_speaking and conn.client_listen_mode != "manual":
-        should_continue = await _smart_interrupt_handler(conn, actual_text)
-        if not should_continue:
-            # 反馈信号（嗯、好的等），不打断也不处理
-            conn.logger.bind(tag=TAG).debug(f"跳过反馈信号: {actual_text}")
-            return
-
     # 首先进行意图分析，使用实际文本内容
     intent_handled = await handle_user_intent(conn, actual_text)
 
@@ -600,34 +568,7 @@ async def startToChat(conn, text: str, multimodal_content: List[Dict[str, Any]] 
     # 确定聊天内容：multimodal 优先
     chat_content = multimodal_content if multimodal_content else actual_text
     
-    # 尝试使用并行优化的聊天处理器
-    parallel_handler = _get_parallel_chat_handler(conn)
-    if parallel_handler is not None:
-        # 使用并行优化的异步 chat 方法
-        conn.logger.bind(tag=TAG).debug("使用 ParallelChatHandler 处理消息")
-        asyncio.create_task(_run_parallel_chat(conn, parallel_handler, chat_content))
-    else:
-        # 降级到原始的同步 chat 方法
-        conn.executor.submit(conn.chat, chat_content)
-
-
-async def _run_parallel_chat(conn, handler, content):
-    """
-    运行并行聊天处理
-    
-    包装 ParallelChatHandler.chat() 的异步调用，处理异常并降级
-    
-    Args:
-        conn: 连接对象
-        handler: ParallelChatHandler 实例
-        content: 文本或 multimodal 内容
-    """
-    try:
-        await handler.chat(content)
-    except Exception as e:
-        conn.logger.bind(tag=TAG).error(f"并行聊天处理失败: {e}，降级到原始方法")
-        # 降级到原始方法
-        conn.executor.submit(conn.chat, content)
+    conn.executor.submit(conn.chat, chat_content)
 
 
 async def no_voice_close_connect(conn, have_voice):
