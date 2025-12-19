@@ -320,7 +320,7 @@ ASR:
     base_url: https://api.groq.com/openai/v1
     model_name: whisper-large-v3-turbo
     output_dir: tmp/
-    prompt: "Hello, 这是一个测试。We discuss the plan, 请加上标点符号。"
+    prompt: "Hello there. 好的，没问题。"
   ByteplusStreamASR:
     type: byteplus_stream
     appid: ${BYTEPLUS_APPID}
