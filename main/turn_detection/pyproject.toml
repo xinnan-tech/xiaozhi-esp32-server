@@ -1,0 +1,17 @@
+[project]
+name = "turn-detection"
+version = "0.1.0"
+description = "Turn Detection Service based on TEN-framework"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.40.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+

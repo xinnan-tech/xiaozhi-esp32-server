@@ -1,8 +1,8 @@
 docker run --restart=on-failure:3 \
     --gpus all \
-    -itd \
-    -p 8002:18000 \
-    -v /data/yangxianjie/TEN_Turn_Detection/:/data/yangxianjie/TEN_Turn_Detection/ \
+    -d \
+    -p 18000:18000 \
+    -v /home/ubuntu/.cache/huggingface:/root/.cache/huggingface \
     --name turn_detect \
     turn_det:latest
 
