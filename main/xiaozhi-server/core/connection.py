@@ -925,6 +925,8 @@ class ConnectionHandler:
                 self.config["TTS"]["FishSpeech"]["reference_id"] = voice_id
             if "TTS" in self.config and "FishDualStreamTTS" in self.config.get("TTS", {}):
                 self.config["TTS"]["FishDualStreamTTS"]["reference_id"] = voice_id
+            # if "TTS" in self.config and "FishSingleStreamTTS" in self.config.get("TTS", {}):
+            #     self.config["TTS"]["FishSingleStreamTTS"]["reference_id"] = voice_id
         self._instruction = private_config.get("instruction", self._instruction)
         # greeting config
         self._greeting_config["enable_greeting"] = private_config.get("enable_greeting", False)

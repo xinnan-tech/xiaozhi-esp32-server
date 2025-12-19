@@ -320,7 +320,7 @@ ASR:
     base_url: https://api.groq.com/openai/v1
     model_name: whisper-large-v3-turbo
     output_dir: tmp/
-    prompt: "Hello there. 好的，没问题。"
+    prompt: "Hello, 这是一个测试。We discuss the plan, 请加上标点符号。"
   ByteplusStreamASR:
     type: byteplus_stream
     appid: ${BYTEPLUS_APPID}
@@ -367,57 +367,6 @@ TurnDetection:
     max_endpoint_delay: 2000      # Max time to wait after last speech before forcing end of turn (milliseconds)
 
 LLM:
-  # 所有openai类型均可以修改超参，以AliLLM为例
-  # 当前支持的type为openai、dify、ollama，可自行适配
-  AliLLM:
-    # 定义LLM API类型
-    type: openai
-    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
-    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    model_name: qwen-turbo
-    api_key: 你的deepseek web key
-    temperature: 0.7  # 温度值
-    max_tokens: 500   # 最大生成token数
-    top_p: 1
-    top_k: 50
-    frequency_penalty: 0  # 频率惩罚
-  AliAppLLM:
-    # 定义LLM API类型
-    type: AliBL
-    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    app_id: 你的app_id
-    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
-    api_key: 你的api_key
-    # 是否不使用本地prompt：true|false (默不用请在百练应用中设置prompt)
-    is_no_prompt: true
-    # Ali_memory_id：false（不使用）|你的memory_id（请在百练应用中设置中获取）
-    # Tips！：Ali_memory未实现多用户存储记忆(记忆按id调用)
-    ali_memory_id: false
-  DoubaoLLM:
-    # 定义LLM API类型
-    type: openai
-    # 先开通服务，打开以下网址，开通的服务搜索Doubao-1.5-pro，开通它
-    # 开通地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
-    # 免费额度500000token
-    # 开通后，进入这里获取密钥：https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey?apikey=%7B%7D
-    base_url: https://ark.cn-beijing.volces.com/api/v3
-    model_name: doubao-1-5-pro-32k-250115
-    api_key: 你的doubao web key
-  DeepSeekLLM:
-    # 定义LLM API类型
-    type: openai
-    # 可在这里找到你的api key https://platform.deepseek.com/
-    model_name: deepseek-chat
-    url: https://api.deepseek.com
-    api_key: 你的deepseek web key
-  ChatGLMLLM:
-    # 定义LLM API类型
-    type: openai
-    # glm-4-flash 是免费的，但是还是需要注册填写api_key的
-    # 可在这里找到你的api key https://bigmodel.cn/usercenter/proj-mgmt/apikeys
-    model_name: glm-4-flash
-    url: https://open.bigmodel.cn/api/paas/v4/
-    api_key: 你的chat-glm web key
   GroqLLM:  
     type: openai
     model_name: meta-llama/llama-4-scout-17b-16e-instruct
@@ -438,87 +387,6 @@ LLM:
     allow_fallbacks: true
     reasoning_effort: none
     max_tokens: 2000
-  OllamaLLM:
-    # 定义LLM API类型
-    type: ollama
-    model_name: qwen2.5 #  使用的模型名称，需要预先使用ollama pull下载
-    base_url: http://localhost:11434  # Ollama服务地址
-  DifyLLM:
-    # 定义LLM API类型
-    type: dify
-    # 建议使用本地部署的dify接口，国内部分区域访问dify公有云接口可能会受限
-    # 如果使用DifyLLM，配置文件里prompt(提示词)是无效的，需要在dify控制台设置提示词
-    base_url: https://api.dify.ai/v1
-    api_key: 你的DifyLLM web key
-    # 使用的对话模式 可以选择工作流 workflows/run 对话模式 chat-messages  文本生成 completion-messages
-    # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
-    # 文本生成的默认输入参数也是query
-    mode: chat-messages
-  GeminiLLM:
-    type: gemini
-    # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
-    # 若在中国境内使用，请遵守《生成式人工智能服务管理暂行办法》
-    # token申请地址： https://aistudio.google.com/apikey
-    # 若部署地无法访问接口，需要开启科学上网
-    api_key: 你的gemini web key
-    model_name: "gemini-2.0-flash"
-    http_proxy: ""  #"http://127.0.0.1:10808"
-    https_proxy: "" #http://127.0.0.1:10808"
-  CozeLLM:
-    # 定义LLM API类型
-    type: coze
-    # 你可以在这里找到个人令牌
-    # https://www.coze.cn/open/oauth/pats
-    # bot_id和user_id的内容写在引号之内
-    bot_id: "你的bot_id"
-    user_id: "你的user_id"
-    personal_access_token: 你的coze个人令牌
-  VolcesAiGatewayLLM:
-    # 火山引擎 - 边缘大模型网关
-    # 定义LLM API类型
-    type: openai
-    # 先开通服务，打开以下网址，创建网关访问密钥，搜索并勾选 Doubao-pro-32k-functioncall ，开通
-    # 如果需要使用边缘大模型网关提供的语音合成，一并勾选 Doubao-语音合成 ，另见 TTS.VolcesAiGatewayTTS 配置
-    # https://console.volcengine.com/vei/aigateway/
-    # 开通后，进入这里获取密钥：https://console.volcengine.com/vei/aigateway/tokens-list
-    base_url: https://ai-gateway.vei.volces.com/v1
-    model_name: doubao-pro-32k-functioncall
-    api_key: 你的网关访问密钥
-  LMStudioLLM:
-    # 定义LLM API类型
-    type: openai
-    model_name: deepseek-r1-distill-llama-8b@q4_k_m # 使用的模型名称，需要预先在社区下载
-    url: http://localhost:1234/v1 # LM Studio服务地址
-    api_key: lm-studio # LM Studio服务的固定API Key
-  HomeAssistant:
-    # 定义LLM API类型
-    type: homeassistant
-    base_url: http://homeassistant.local:8123
-    agent_id: conversation.chatgpt
-    api_key: 你的home assistant api访问令牌
-  FastgptLLM:
-    # 定义LLM API类型
-    type: fastgpt
-    # 如果使用fastgpt，配置文件里prompt(提示词)是无效的，需要在fastgpt控制台设置提示词
-    base_url: https://host/api/v1
-    # 你可以在这里找到你的api_key
-    # https://cloud.tryfastgpt.ai/account/apikey
-    api_key: 你的fastgpt密钥
-    variables:
-      k: "v"
-      k2: "v2"
-  XinferenceLLM:
-    # 定义LLM API类型
-    type: xinference
-    # Xinference服务地址和模型名称
-    model_name: qwen2.5:72b-AWQ  # 使用的模型名称，需要预先在Xinference启动对应模型
-    base_url: http://localhost:9997  # Xinference服务地址
-  XinferenceSmallLLM:
-    # 定义轻量级LLM API类型，用于意图识别
-    type: xinference
-    # Xinference服务地址和模型名称
-    model_name: qwen2.5:3b-AWQ  # 使用的小模型名称，用于意图识别
-    base_url: http://localhost:9997  # Xinference服务地址
 # VLLM配置（视觉语言大模型）
 VLLM:
   ChatGLMVLLM:
@@ -545,14 +413,6 @@ VLLM:
     model_name: lite
     api_key: 你的api_password
 TTS:
-  # 当前支持的type为edge、doubao，可自行适配
-  EdgeTTS:
-    # 定义TTS API类型
-    type: edge
-    voice: zh-CN-XiaoxiaoNeural
-    output_dir: tmp/
-  # ============== SDK 版本TTS（推荐）==============
-  # 使用官方SDK，代码更简洁、性能更好、维护成本更低
   Cartesia:
     # Cartesia TTS - SDK版本（推荐）
     # 官方SDK实现，低延迟，支持流式合成
@@ -594,24 +454,6 @@ TTS:
     # 启用说话人增强
     use_speaker_boost: true
     output_dir: tmp/
-  DoubaoTTS:
-    # 定义TTS API类型
-    type: doubao
-    # 火山引擎语音合成服务，需要先在火山引擎控制台创建应用并获取appid和access_token
-    # 山引擎语音一定要购买花钱，起步价30元，就有100并发了。如果用免费的只有2个并发，会经常报tts错误
-    # 购买服务后，购买免费的音色后，可能要等半小时左右，才能使用。
-    # 普通音色在这里开通：https://console.volcengine.com/speech/service/8
-    # 湾湾小何音色在这里开通：https://console.volcengine.com/speech/service/10007，开通后将下面的voice设置成zh_female_wanwanxiaohe_moon_bigtts
-    api_url: https://openspeech.bytedance.com/api/v1/tts
-    voice: BV001_streaming
-    output_dir: tmp/
-    authorization: "Bearer;"
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
-    cluster: volcano_tts
-    speed_ratio: 1.0
-    volume_ratio: 1.0
-    pitch_ratio: 1.0
   #火山tts，支持双向流式tts
   HuoshanDoubleStreamTTS:
     type: huoshan_double_stream
@@ -628,37 +470,6 @@ TTS:
     speech_rate: 0
     loudness_rate: 0
     pitch: 0
-  CosyVoiceSiliconflow:
-    type: siliconflow
-    # 硅基流动TTS
-    # token申请地址 https://cloud.siliconflow.cn/account/ak
-    model: FunAudioLLM/CosyVoice2-0.5B
-    voice: FunAudioLLM/CosyVoice2-0.5B:alex
-    output_dir: tmp/
-    access_token: 你的硅基流动API密钥
-    response_format: wav
-  CozeCnTTS:
-    type: cozecn
-    # COZECN TTS
-    # token申请地址 https://www.coze.cn/open/oauth/pats
-    voice: 7426720361733046281
-    output_dir: tmp/
-    access_token: 你的coze web key
-    response_format: wav
-  VolcesAiGatewayTTS:
-    type: openai
-    # 火山引擎 - 边缘大模型网关
-    # 先开通服务，打开以下网址，创建网关访问密钥，搜索并勾选 Doubao-语音合成 ，开通
-    # 如果需要使用边缘大模型网关提供的 LLM，一并勾选 Doubao-pro-32k-functioncall ，另见 LLM.VolcesAiGatewayLLM 配置
-    # https://console.volcengine.com/vei/aigateway/
-    # 开通后，进入这里获取密钥：https://console.volcengine.com/vei/aigateway/tokens-list
-    api_key: 你的网关访问密钥
-    api_url: https://ai-gateway.vei.volces.com/v1/audio/speech
-    model: doubao-tts
-    # 音色列表见 https://www.volcengine.com/docs/6561/1257544
-    voice: zh_male_shaonianzixin_moon_bigtts
-    speed: 1
-    output_dir: tmp/
   FishSpeech:
     # 参照教程：https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/fish-speech-integration.md
     type: fishspeech
@@ -692,50 +503,19 @@ TTS:
     rate: 44100
     sample_rate: 16000
     api_key: ${FISH_API_KEY}
-  GPT_SOVITS_V2:
-    # 定义TTS API类型
-    #启动tts方法：
-    #python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/demo.yaml
-    type: gpt_sovits_v2
-    url: "http://127.0.0.1:9880/tts"
+  FishSingleStreamTTS:
+    type: fish_single_stream
+    model: speech-1.6
     output_dir: tmp/
-    text_lang: "auto"
-    ref_audio_path: "demo.wav"
-    prompt_text: ""
-    prompt_lang: "zh"
-    top_k: 5
-    top_p: 1
-    temperature: 1
-    text_split_method: "cut0"
-    batch_size: 1
-    batch_threshold: 0.75
-    split_bucket: true
-    return_fragment: false
-    speed_factor: 1.0
-    streaming_mode: false
-    seed: -1
-    parallel_infer: true
-    repetition_penalty: 1.35
-    aux_ref_audio_paths: []
-  GPT_SOVITS_V3:
-    # 定义TTS API类型 GPT-SoVITS-v3lora-20250228
-    #启动tts方法：
-    #python api.py
-    type: gpt_sovits_v3
-    url: "http://127.0.0.1:9880"
-    output_dir: tmp/
-    text_language: "auto"
-    refer_wav_path: "caixukun.wav"
-    prompt_language: "zh"
-    prompt_text: ""
-    top_k: 15
-    top_p: 1.0
-    temperature: 1.0
-    cut_punc: ""
-    speed: 1.0
-    inp_refs: []
-    sample_steps: 32
-    if_sr: false
+    response_format: pcm
+    normalize: true
+    chunk_length: 200
+    top_p: 0.7
+    temperature: 0.7
+    channels: 1
+    rate: 44100
+    sample_rate: 16000
+    api_key: ${FISH_API_KEY}
   MinimaxTTSHTTPStream:
   # Minimax流式语音合成服务
     type: minimax_httpstream
@@ -768,103 +548,6 @@ TTS:
     #     voice_id: female-shaonv
     #     weight: 1
     # language_boost: auto
-  AliyunTTS:
-    # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
-    # 平台地址：https://nls-portal.console.aliyun.com/
-    # appkey地址：https://nls-portal.console.aliyun.com/applist
-    # token地址：https://nls-portal.console.aliyun.com/overview
-    # 定义TTS API类型
-    type: aliyun
-    output_dir: tmp/
-    appkey: 你的阿里云智能语音交互服务项目Appkey
-    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
-    voice: xiaoyun
-    access_key_id: 你的阿里云账号access_key_id
-    access_key_secret: 你的阿里云账号access_key_secret
-
-    # 以下可不用设置，使用默认设置
-    # format: wav
-    # sample_rate: 16000
-    # volume: 50
-    # speech_rate: 0
-    # pitch_rate: 0
-  AliyunStreamTTS:
-    # 阿里云CosyVoice大模型流式文本语音合成
-    # 采用FlowingSpeechSynthesizer接口，支持更低延迟和更自然的语音质量
-    # 流式文本语音合成仅提供商用版，不支持试用，详情请参见试用版和商用版。要使用该功能，请开通商用版。
-    # 支持龙系列专用音色：longxiaochun、longyu、longchen等
-    # 平台地址：https://nls-portal.console.aliyun.com/
-    # appkey地址：https://nls-portal.console.aliyun.com/applist
-    # token地址：https://nls-portal.console.aliyun.com/overview
-    # 使用三阶段流式交互：StartSynthesis -> RunSynthesis -> StopSynthesis
-    type: aliyun_stream
-    output_dir: tmp/
-    appkey: 你的阿里云智能语音交互服务项目Appkey
-    token: 你的阿里云智能语音交互服务AccessToken，临时的24小时，要长期用下方的access_key_id，access_key_secret
-    voice: longxiaochun 
-    access_key_id: 你的阿里云账号access_key_id
-    access_key_secret: 你的阿里云账号access_key_secret
-    # 截至2025年7月21日大模型音色只有北京节点采用，其他节点暂不支持
-    host: nls-gateway-cn-beijing.aliyuncs.com
-    # 以下可不用设置，使用默认设置
-    # format: pcm  # 音频格式：pcm、wav、mp3
-    # sample_rate: 16000  # 采样率：8000、16000、24000
-    # volume: 50  # 音量：0-100
-    # speech_rate: 0  # 语速：-500到500
-    # pitch_rate: 0  # 语调：-500到500
-  TencentTTS:
-    # 腾讯云智能语音交互服务，需要先在腾讯云平台开通服务
-    # appid、secret_id、secret_key申请地址：https://console.cloud.tencent.com/cam/capi
-    # 免费领取资源：https://console.cloud.tencent.com/tts/resourcebundle
-    type: tencent
-    output_dir: tmp/
-    appid: 你的腾讯云AppId
-    secret_id: 你的腾讯云SecretID
-    secret_key: 你的腾讯云SecretKey
-    region: ap-guangzhou
-    voice: 101001
-
-  TTS302AI:
-    # 302AI语音合成服务，需要先在302平台创建账户充值，并获取密钥信息
-    # 添加 302.ai TTS 配置
-    # token申请地址：https://dash.302.ai/
-    # 获取api_keyn路径：https://dash.302.ai/apis/list
-    # 价格，$35/百万字符。火山原版¥450元/百万字符
-    type: doubao
-    api_url: https://api.302ai.cn/doubao/tts_hd
-    authorization: "Bearer "
-    # 湾湾小何音色
-    voice: "zh_female_wanwanxiaohe_moon_bigtts"
-    output_dir: tmp/
-    access_token: "你的302API密钥"
-  GizwitsTTS:
-    type: doubao
-    # 火山引擎作为基座，可以完全使用企业级火山引擎语音合成服务
-    # 前一万名注册的用户，将送5元体验金额
-    # 获取API Key地址：https://agentrouter.gizwitsapi.com/panel/token
-    api_url: https://bytedance.gizwitsapi.com/api/v1/tts
-    authorization: "Bearer "
-    # 湾湾小何音色
-    voice: "zh_female_wanwanxiaohe_moon_bigtts"
-    output_dir: tmp/
-    access_token: "你的机智云API key"
-  ACGNTTS:
-    #在线网址：https://acgn.ttson.cn/
-    #token购买：www.ttson.cn
-    #开发相关疑问请提交至网站上的qq
-    #角色id获取地址：ctrl+f快速检索角色——网站管理者不允许发布,可询问网站管理者
-    #各参数意义见开发文档：https://www.yuque.com/alexuh/skmti9/wm6taqislegb02gd?singleDoc#
-    type: ttson
-    token: your_token
-    voice_id: 1695
-    speed_factor: 1
-    pitch_factor: 0
-    volume_change_dB: 0
-    to_lang: ZH
-    url: https://u95167-bd74-2aef8085.westx.seetacloud.com:8443/flashsummary/tts?token=
-    format: mp3
-    output_dir: tmp/
-    emotion: 1
   OpenAITTS:
     # openai官方文本转语音服务，可支持全球大多数语种
     type: openai
@@ -880,99 +563,6 @@ TTS:
     # 语速范围0.25-4.0
     speed: 1
     output_dir: tmp/
-  CustomTTS:
-    # 自定义的TTS接口服务，请求参数可自定义，可接入众多TTS服务
-    # 以本地部署的KokoroTTS为例
-    # 如果只有cpu运行：docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
-    # 如果只有gpu运行：docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
-    # 要求接口使用POST方式请求，并返回音频文件
-    type: custom
-    method: POST
-    url: "http://127.0.0.1:8880/v1/audio/speech"
-    params: # 自定义请求参数
-      input: "{prompt_text}"
-      response_format: "mp3"
-      download_format: "mp3"
-      voice: "zf_xiaoxiao"
-      lang_code: "z"
-      return_download_link: true
-      speed: 1
-      stream: false
-    headers: # 自定义请求头
-      # Authorization: Bearer xxxx
-    format: mp3 # 接口返回的音频格式
-    output_dir: tmp/
-  LinkeraiTTS:
-    type: linkerai
-    api_url: https://tts.linkerai.cn/tts
-    audio_format: "pcm"
-    # 默认的access_token供大家测试时免费使用的，此access_token请勿用于商业用途
-    # 如果效果不错，可自行申请token，申请地址：https://linkerai.cn
-    # 各参数意义见开发文档：https://tts.linkerai.cn/docs
-    # 支持声音克隆，可自行上传音频，填入voice参数，voice参数为空时，使用默认声音
-    access_token: "U4YdYXVfpwWnk2t5Gp822zWPCuORyeJL"
-    voice: "OUeAo1mhq6IBExi"
-    output_dir: tmp/
-  PaddleSpeechTTS:
-    #百度飞浆 PaddleSpeech 支持本地离线部署 支持模型训练
-    #框架地址 https://www.paddlepaddle.org.cn/
-    #项目地址 https://github.com/PaddlePaddle/PaddleSpeech
-    #SpeechServerDemo https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/demos/speech_server
-    #流式传输请参考 https://github.com/PaddlePaddle/PaddleSpeech/wiki/PaddleSpeech-Server-WebSocket-API
-    type: paddle_speech
-    protocol: websocket # protocol choices = ['websocket', 'http']
-    url: ws://127.0.0.1:8092/paddlespeech/tts/streaming  # TTS 服务的 URL 地址，指向本地服务器 [websocket默认ws://127.0.0.1:8092/paddlespeech/tts/streaming，http默认http://127.0.0.1:8090/paddlespeech/tts]
-    spk_id: 0  # 发音人 ID，0 通常表示默认的发音人
-    sample_rate: 24000  # 采样率 [websocket默认24000，http默认0 自动选择]
-    speed: 1.0  # 语速，1.0 表示正常语速，>1 表示加快，<1 表示减慢
-    volume: 1.0  # 音量，1.0 表示正常音量，>1 表示增大，<1 表示减小
-    save_path:   # 保存路径
-  IndexStreamTTS:
-    # 基于Index-TTS-vLLM项目的TTS接口服务
-    # 参照教程：https://github.com/Ksuriuri/index-tts-vllm/blob/master/README.md
-    type: index_stream
-    api_url: http://127.0.0.1:11996/tts
-    audio_format: "pcm"
-    # 默认音色，如需其他音色可到项目assets文件夹下注册
-    voice: "jay_klee"
-    output_dir: tmp/
-  AliBLTTS:
-    # 阿里百炼CosyVoice大模型流式文本语音合成
-    # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
-    # cosyvoice-v3和部分音色需要申请开通
-    type: alibl_stream
-    api_key: 你的api_key
-    model: "cosyvoice-v2"
-    voice: "longcheng_v2"
-    output_dir: tmp/
-    # 以下可不用设置，使用默认设置
-    # format: pcm  # 音频格式：pcm、wav、mp3、opus
-    # sample_rate: 24000  # 采样率：16000, 24000, 48000
-    # volume: 50  # 音量：0-100
-    # rate: 1  # 语速：0.5~2
-    # pitch: 1  # 语调：0.5~2
-  XunFeiTTS:
-    # 讯飞TTS服务 官方网站：https://www.xfyun.cn/
-    # 登录讯飞语音技术平台 https://console.xfyun.cn/app/myapp 创建相关应用
-    # 选择需要的服务获取api相关配置 https://console.xfyun.cn/services/uts
-    # 为需要使用的应用(APPID)购买相关服务 例如：超拟人合成 https://console.xfyun.cn/services/uts
-    type: xunfei_stream
-    api_url: wss://cbm01.cn-huabei-1.xf-yun.com/v1/private/mcd9m97e6
-    app_id: 你的app_id
-    api_secret: 你的api_secret
-    api_key: 你的api_key
-    voice: x5_lingxiaoxuan_flow
-    output_dir: tmp/
-    # 以下可不用设置，使用默认设置，注意V5音色不支持口语化配置
-    # oral_level: mid  # 口语化等级：high, mid, low
-    # spark_assist: 1  # 是否通过大模型进行口语化 开启:1, 关闭:0
-    # stop_split: 0  # 关闭服务端拆句 不关闭：0，关闭：1
-    # remain: 0  # 是否保留原书面语的样子	保留:1, 不保留:0
-    # format: raw  # 音频格式：raw(PCM), lame(MP3), speex, opus, opus-wb, opus-swb, speex-wb
-    # sample_rate: 24000  # 采样率：16000, 8000, 24000
-    # volume: 50  # 音量：0-100
-    # speed: 50  # 语速：0-100
-    # pitch: 50  # 语调：0-100
 # ===============================================================================
 # ============================= Module Selection ================================
 # ===============================================================================
