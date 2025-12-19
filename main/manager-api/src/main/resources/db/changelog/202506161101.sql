@@ -1,1 +1,0 @@
-ALTER TABLE ai_agent_plugin_mapping CONVERT TO CHARACTER SET utf8mb4;

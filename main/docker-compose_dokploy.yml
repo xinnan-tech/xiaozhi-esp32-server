@@ -11,9 +11,7 @@ services:
     env_file:
       - .env
     depends_on:
-      xiaozhi-esp32-server-db:
-        condition: service_healthy
-      xiaozhi-esp32-server-redis:
+      live-agent-api:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -73,76 +71,6 @@ services:
       - /home/ubuntu/live-agent/main/xiaozhi-server/music:/opt/xiaozhi-esp32-server/music
       # Logs (optional, for debugging)
       - /home/ubuntu/live-agent/main/xiaozhi-server/logs:/opt/xiaozhi-esp32-server/logs
-
-  # ============================================================================
-  # MySQL Database (for xiaozhi-esp32-server)
-  # ============================================================================
-  xiaozhi-esp32-server-db:
-    image: mysql:8.0
-    container_name: xiaozhi-esp32-server-db
-    restart: unless-stopped
-    networks:
-      - xiaozhi-network
-    ports:
-      # Expose MySQL port for debugging (optional)
-      - "3307:3306"
-    volumes:
-      # Persistent database storage
-      - /home/ubuntu/live-agent/main/xiaozhi-server/mysql/data:/var/lib/mysql
-      # MySQL configuration (optional)
-      # - /home/ubuntu/live-agent/main/xiaozhi-server/mysql/conf:/etc/mysql/conf.d
-    environment:
-      - TZ=Asia/Shanghai
-      - MYSQL_ROOT_PASSWORD=123456
-      - MYSQL_DATABASE=xiaozhi_esp32_server
-      - MYSQL_INITDB_ARGS=--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-authentication-plugin=mysql_native_password
-      - --max_connections=1000
-      - --max_allowed_packet=256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
-      timeout: 45s
-      interval: 10s
-      retries: 10
-      start_period: 60s
-
-  # ============================================================================
-  # Redis Cache (for xiaozhi-esp32-server)
-  # ============================================================================
-  xiaozhi-esp32-server-redis:
-    image: redis:7-alpine
-    container_name: xiaozhi-esp32-server-redis
-    restart: unless-stopped
-    networks:
-      - xiaozhi-network
-    ports:
-      # Expose Redis port for debugging (optional)
-      - "6380:6379"
-    volumes:
-      # Persistent Redis data (optional)
-      - /home/ubuntu/live-agent/main/xiaozhi-server/redis/data:/data
-    environment:
-      - TZ=Asia/Shanghai
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
 
   # ============================================================================
   # live-agent-api Dependencies: Postgres + Minio
@@ -210,6 +138,11 @@ services:
         condition: service_healthy
       live-agent-minio:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 # ============================================================================
 # Networks

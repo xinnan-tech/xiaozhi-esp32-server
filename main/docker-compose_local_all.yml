@@ -11,9 +11,7 @@ services:
     env_file:
       - .env
     depends_on:
-      xiaozhi-esp32-server-db:
-        condition: service_healthy
-      xiaozhi-esp32-server-redis:
+      live-agent-api:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -48,125 +46,8 @@ services:
       - ./xiaozhi-server/logs:/opt/xiaozhi-esp32-server/logs
 
   # ============================================================================
-  # manager-web (Management Console + API)
-  # ============================================================================
-  xiaozhi-esp32-server-web:
-    # Build from local source (supports ARM64/Apple Silicon)
-    build:
-      context: ../
-      dockerfile: Dockerfile-web
-    image: xiaozhi-esp32-server-web:local
-    
-    # Option: Use pre-built image from registry (x86 only)
-    # image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
-    # platform: linux/amd64  # Uncomment to force x86 emulation on ARM64
-    
-    container_name: xiaozhi-esp32-server-web
-    restart: unless-stopped
-    networks:
-      - xiaozhi-network
-    depends_on:
-      xiaozhi-esp32-server-db:
-        condition: service_healthy
-      xiaozhi-esp32-server-redis:
-        condition: service_healthy
-    ports:
-      # Management console and API
-      - "8002:8002"
-    environment:
-      - TZ=Asia/Shanghai
-      - SPRING_PROFILES_ACTIVE=dev
-      # Database connection
-      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://xiaozhi-esp32-server-db:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&connectTimeout=30000&socketTimeout=30000&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
-      - SPRING_DATASOURCE_DRUID_USERNAME=root
-      - SPRING_DATASOURCE_DRUID_PASSWORD=123456
-      # Redis connection
-      - SPRING_DATA_REDIS_HOST=xiaozhi-esp32-server-redis
-      - SPRING_DATA_REDIS_PORT=6379
-      - SPRING_DATA_REDIS_PASSWORD=
-    volumes:
-      # Upload files directory
-      - ./xiaozhi-server/uploadfile:/uploadfile
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ============================================================================
-  # MySQL Database
-  # ============================================================================
-  xiaozhi-esp32-server-db:
-    image: mysql:8.0
-    container_name: xiaozhi-esp32-server-db
-    restart: unless-stopped
-    networks:
-      - xiaozhi-network
-    ports:
-      # Expose MySQL port for local debugging (optional)
-      - "3307:3306"
-    volumes:
-      # Persistent database storage
-      - ./xiaozhi-server/mysql/data:/var/lib/mysql
-      # MySQL configuration (optional)
-      # - ./xiaozhi-server/mysql/conf:/etc/mysql/conf.d
-    environment:
-      - TZ=Asia/Shanghai
-      - MYSQL_ROOT_PASSWORD=123456
-      - MYSQL_DATABASE=xiaozhi_esp32_server
-      - MYSQL_INITDB_ARGS=--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-authentication-plugin=mysql_native_password
-      - --max_connections=1000
-      - --max_allowed_packet=256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
-      timeout: 45s
-      interval: 10s
-      retries: 10
-      start_period: 60s
-
-  # ============================================================================
-  # Redis Cache
-  # ============================================================================
-  xiaozhi-esp32-server-redis:
-    image: redis:7-alpine
-    container_name: xiaozhi-esp32-server-redis
-    restart: unless-stopped
-    networks:
-      - xiaozhi-network
-    ports:
-      # Expose Redis port for local debugging (optional)
-      - "6380:6379"
-    volumes:
-      # Persistent Redis data (optional)
-      - ./xiaozhi-server/redis/data:/data
-    environment:
-      - TZ=Asia/Shanghai
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  # ============================================================================
   # live-agent-api Services
   # ============================================================================
-  
   live-agent-postgres:
     image: postgres:16-alpine
     container_name: live-agent-postgres
@@ -227,6 +108,11 @@ services:
         condition: service_healthy
       live-agent-minio:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 # ============================================================================
 # Networks
