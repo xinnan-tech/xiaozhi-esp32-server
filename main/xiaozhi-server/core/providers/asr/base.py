@@ -259,10 +259,10 @@ class ASRProviderBase(ABC):
                     conn.asr_text_buffer = raw_text
                 
                 # Turn Detection: let turn detection handle end of turn
-                if conn.turn_detection:
-                    # Turn detection will wait for endpoint delay, then call on_end_of_turn
-                    conn.turn_detection.check_end_of_turn(conn)
-                    return
+                # if conn.turn_detection:
+                #     # Turn detection will wait for endpoint delay, then call on_end_of_turn
+                #     conn.turn_detection.check_end_of_turn(conn)
+                #     return
                 
                 # # No Turn Detection: process immediately
                 # await conn.on_end_of_turn()
