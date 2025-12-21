@@ -14,7 +14,7 @@ from config.logger import setup_logging
 from typing import Optional, Tuple, List
 from core.handle.reportHandle import enqueue_asr_report
 from core.utils.util import remove_punctuation_and_length
-from .dto import ASRMessageType, ASRInputMessage
+from .dto import ASRMessageType, ASRInputMessage, InterfaceType
 from queue import Queue, Empty
 
 TAG = __name__
@@ -26,6 +26,8 @@ class ASRProviderBase(ABC):
     def __init__(self):
         self.asr_input_queue = Queue[ASRInputMessage]()
         self.asr_input_audio_format = "pcm"
+        # Default to non-streaming, subclasses can override
+        self.interface_type = InterfaceType.NON_STREAM
 
     # 打开音频通道
     async def open_audio_channels(self, conn):
@@ -259,10 +261,10 @@ class ASRProviderBase(ABC):
                     conn.asr_text_buffer = raw_text
                 
                 # Turn Detection: let turn detection handle end of turn
-                # if conn.turn_detection:
-                #     # Turn detection will wait for endpoint delay, then call on_end_of_turn
-                #     conn.turn_detection.check_end_of_turn(conn)
-                #     return
+                if conn.turn_detection:
+                    # Turn detection will wait for endpoint delay, then call on_end_of_turn
+                    conn.turn_detection.check_end_of_turn(conn)
+                    return
                 
                 # # No Turn Detection: process immediately
                 # await conn.on_end_of_turn()
