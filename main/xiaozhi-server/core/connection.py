@@ -1535,7 +1535,8 @@ class ConnectionHandler:
         2. TTS must be speaking (client_is_speaking = True)
         3. Not in manual listen mode
         4. Speech duration >= min_interrupt_speech_duration_ms
-        5. ASR text buffer length >= min_interrupt_text_length
+        5. For streaming ASR: text buffer length >= min_interrupt_text_length
+           For non-streaming ASR: skip text check (not available during speech)
         
         Args:
             speech_duration_ms: Current speech duration in milliseconds
@@ -1547,32 +1548,50 @@ class ConnectionHandler:
         if self.client_listen_mode == "manual":
             return
         
-        # Check if meeting interruption thresholds
-        words = tokenize.split_words(
-            self.asr_text_buffer, 
-            ignore_punctuation=True,
-            split_character=True,
-            retain_format=False,
-        )
-        asr_text_len = len(words)
+        # Check speech duration threshold
         speech_ok = speech_duration_ms >= self.min_interrupt_speech_duration_ms
-        text_ok = asr_text_len >= self.min_interrupt_text_length
+        if not speech_ok:
+            return
         
-        if speech_ok and text_ok:
-            self.logger.bind(tag=TAG).info(
-                f"Interrupt triggered: speech={speech_duration_ms:.0f}ms >= {self.min_interrupt_speech_duration_ms:.0f}ms, "
+        # Check text length threshold (only for streaming ASR)
+        # Non-streaming ASR doesn't have real-time text during speech
+        from core.providers.asr.dto import InterfaceType
+        is_streaming_asr = (
+            self.asr is not None 
+            and hasattr(self.asr, 'interface_type') 
+            and self.asr.interface_type == InterfaceType.STREAM
+        )
+        
+        if is_streaming_asr:
+            words = tokenize.split_words(
+                self.asr_text_buffer, 
+                ignore_punctuation=True,
+                split_character=True,
+                retain_format=False,
+            )
+            asr_text_len = len(words)
+            text_ok = asr_text_len >= self.min_interrupt_text_length
+            if not text_ok:
+                return
+            log_msg = (
+                f"Interrupt triggered (streaming): speech={speech_duration_ms:.0f}ms, "
                 f"text_len={asr_text_len} >= {self.min_interrupt_text_length}"
             )
-            # Trigger interrupt
-            self.client_abort = True
-            self.clear_queues()
-            # Send stop message to client
-            async def send_stop_message():
-                await self.websocket.send(
-                    json.dumps({"type": "tts", "state": "stop", "session_id": self.session_id})
-                )
-            asyncio.create_task(send_stop_message())
-            self.clearSpeakStatus()
+        else:
+            log_msg = f"Interrupt triggered (non-streaming): speech={speech_duration_ms:.0f}ms >= {self.min_interrupt_speech_duration_ms:.0f}ms"
+        
+        self.logger.bind(tag=TAG).info(log_msg)
+        
+        # Trigger interrupt
+        self.client_abort = True
+        self.clear_queues()
+        # Send stop message to client
+        async def send_stop_message():
+            await self.websocket.send(
+                json.dumps({"type": "tts", "state": "stop", "session_id": self.session_id})
+            )
+        asyncio.create_task(send_stop_message())
+        self.clearSpeakStatus()
 
     def chat_and_close(self, text):
         """Chat with the user and then close the connection"""

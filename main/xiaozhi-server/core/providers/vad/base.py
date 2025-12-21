@@ -317,7 +317,7 @@ class VADStream(ABC):
         asr_input_queue.put_nowait(asr_message)
         
         logger.bind(tag=TAG).info(
-            f"ASR LAST message sent: total_speech={event.speech_duration:.2f}s, "
+            f"ASR LAST message sent: total_speech={event.speech_duration:.0f}ms, "
             f"audio={asr_message.audio_duration_ms:.0f}ms"
         )
         
