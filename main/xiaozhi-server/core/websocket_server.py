@@ -123,6 +123,10 @@ class WebSocketServer:
             self._intent,
             self,  # 传入server实例
         )
+
+        # 插件已在 connection.py 的 handle_connection 中通过 register_plugins_to_conn 注册
+        # 此处无需重复注册，保持向后兼容
+        
         try:
             await handler.handle_connection(websocket)
         except Exception as e:

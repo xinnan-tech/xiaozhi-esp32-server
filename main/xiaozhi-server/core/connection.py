@@ -11,6 +11,8 @@ import traceback
 import subprocess
 import websockets
 
+from plugins.manager import PluginManager
+from plugins import scan_plugins, register_plugins_to_conn
 from core.utils.util import (
     extract_json_from_string,
     check_vad_update,
@@ -31,8 +33,7 @@ from core.utils.dialogue import Message, Dialogue
 from core.providers.asr.dto.dto import InterfaceType
 from core.handle.textHandle import handleTextMessage
 from core.providers.tools.unified_tool_handler import UnifiedToolHandler
-from plugins_func.loadplugins import auto_import_modules
-from plugins_func.register import Action
+from plugins.register import Action
 from core.auth import AuthenticationError
 from config.config_loader import get_private_config_from_api
 from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
@@ -78,7 +79,8 @@ TOOL_CALLING_RULES = """
 </tool_calling>
 """
 
-auto_import_modules("plugins_func.functions")
+scan_plugins()
+# auto_import_modules("plugins_func.functions")
 
 
 class TTSException(RuntimeError):
@@ -205,6 +207,9 @@ class ConnectionHandler:
 
         # 初始化提示词管理器
         self.prompt_manager = PromptManager(self.config, self.logger)
+        
+        # 初始化插件管理器
+        self.plugin_manager = PluginManager()
 
     async def handle_connection(self, ws: websockets.ServerConnection):
         try:
@@ -228,6 +233,9 @@ class ConnectionHandler:
 
             # 认证通过,继续处理
             self.websocket = ws
+
+            # 注册插件到此连接的plugin_manager
+            register_plugins_to_conn(self)
 
             # 检查是否来自MQTT连接
             request_path = ws.request.path

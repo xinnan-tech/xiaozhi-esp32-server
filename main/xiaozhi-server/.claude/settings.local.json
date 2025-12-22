@@ -3,9 +3,10 @@
     "allow": [
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(python3:*)"
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "default"
 }

@@ -41,6 +41,11 @@ class ServerPluginExecutor(ToolExecutor):
                 # 默认不传conn参数
                 result = func_item.func(**arguments)
 
+            # 如果结果是协程，需要await
+            import asyncio
+            if asyncio.iscoroutine(result):
+                result = await result
+
             return result
 
         except Exception as e:
@@ -71,9 +76,13 @@ class ServerPluginExecutor(ToolExecutor):
         # 合并所有需要的函数
         all_required_functions = list(set(necessary_functions + config_functions))
 
-        for func_name in all_required_functions:
-            func_item = all_function_registry.get(func_name)
-            if func_item:
+        # 从 all_function_registry 中获取所有已注册的函数
+        # 这样可以确保新插件的MCP函数也能被自动发现
+        for func_name, func_item in all_function_registry.items():
+            # 如果函数在必需列表或配置列表中，或者函数类型是IOT_CTL（新插件的MCP函数）
+            if func_name in all_required_functions or (
+                hasattr(func_item, "type") and func_item.type and func_item.type.code == 5  # IOT_CTL
+            ):
                 # 从函数注册中获取描述
                 fun_description = (
                     self.config.get("plugins", {})
