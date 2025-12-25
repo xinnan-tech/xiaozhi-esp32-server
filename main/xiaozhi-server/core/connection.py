@@ -95,6 +95,8 @@ class ConnectionHandler:
         self.loop = None  # 在 handle_connection 中获取运行中的事件循环
         self.stop_event = threading.Event()
         self.executor = ThreadPoolExecutor(max_workers=5)
+        self._thread_id_to_loop = {} # 绑定线程对应事件循环
+        self._loop_map_lock = threading.Lock() # 保证字典操作的线程安全
 
         # 添加上报线程池
         self.report_queue = queue.Queue()
@@ -1073,12 +1075,40 @@ class ConnectionHandler:
                 self.logger.bind(tag=TAG).error(f"聊天记录上报工作线程异常: {e}")
 
         self.logger.bind(tag=TAG).info("聊天记录上报线程已退出")
+    def _get_thread_exclusive_loop(self):
+        """
+        根据线程ID获取/创建专属loop，缓存映射关系
+        返回：当前线程的专属loop
+        """
+        thread_id = threading.get_ident()
+
+        # 尝试从缓存中获取（加锁保证线程安全）
+        with self._loop_map_lock:
+            if thread_id in self._thread_id_to_loop:
+                loop = self._thread_id_to_loop[thread_id]
+                # 检查loop是否已关闭，若关闭则重新创建
+                if not loop.is_closed():
+                    return loop
+                else:
+                    # 移除已关闭的loop
+                    del self._thread_id_to_loop[thread_id]
+
+        # 缓存中无有效loop，创建新loop并绑定到线程ID
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)  # 绑定到当前线程
+
+        # 将新loop存入缓存字典（加锁）
+        with self._loop_map_lock:
+            self._thread_id_to_loop[thread_id] = loop
+
+        return loop
 
     def _process_report(self, type, text, audio_data, report_time):
         """处理上报任务"""
         try:
-            # 执行异步上报（在事件循环中运行）
-            asyncio.run(report(self, type, text, audio_data, report_time))
+            # 在专属循环中执行异步任务（线程内阻塞，复用循环）
+            loop = self._get_thread_exclusive_loop()
+            loop.run_until_complete(report(self, type, text, audio_data, report_time))
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"上报处理异常: {e}")
         finally:
@@ -1169,6 +1199,17 @@ class ConnectionHandler:
                         f"关闭线程池时出错: {executor_error}"
                     )
                 self.executor = None
+                
+			# 清除线程池中所有事件循环
+            with self._loop_map_lock:
+                for _,loop in self._thread_id_to_loop.items():
+                    try:
+                        if not loop.is_closed:
+                            loop.close()
+                    except Exception as e:
+                        pass
+                self._thread_id_to_loop.clear()
+
             self.logger.bind(tag=TAG).info("连接资源已释放")
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"关闭连接时出错: {e}")
