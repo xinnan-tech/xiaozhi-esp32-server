@@ -130,6 +130,7 @@ class ConnectionHandler:
         # 所以涉及到ASR的变量，需要在这里定义，属于connection的私有变量
         self.asr_audio = []
         self.asr_audio_queue = queue.Queue()
+        self.current_language_tag = None  # 存储当前ASR识别的语言标签
 
         # llm相关变量
         self.llm_finish_task = True

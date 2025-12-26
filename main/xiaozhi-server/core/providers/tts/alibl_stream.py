@@ -39,6 +39,13 @@ class TTSProvider(TTSProviderBase):
         if config.get("private_voice"):
             self.voice = config.get("private_voice")
 
+        # 多语言音色配置
+        self.voice_zh = config.get("voice_zh", self.voice)  # 中文音色
+        self.voice_yue = config.get("voice_yue", self.voice)  # 粤语音色
+        self.voice_en = config.get("voice_en", self.voice)  # 英语音色
+        self.voice_ja = config.get("voice_ja", self.voice)  # 日语音色
+        self.voice_ko = config.get("voice_ko", self.voice)  # 韩语音色
+
         # 音频参数配置
         self.format = config.get("format", "pcm")
         sample_rate = config.get("sample_rate", "24000")
@@ -64,6 +71,36 @@ class TTSProvider(TTSProviderBase):
         self.opus_encoder = opus_encoder_utils.OpusEncoderUtils(
             sample_rate=self.sample_rate, channels=1, frame_size_ms=60
         )
+
+    def get_voice_by_language(self, language_tag):
+        """根据语言标签返回对应的音色（仅在FunASR语音识别时生效）"""
+        if not language_tag:
+            return self.voice
+
+        # 检查当前ASR是否为FunASR
+        is_funasr = False
+        if hasattr(self, 'conn') and self.conn and hasattr(self.conn, 'asr') and self.conn.asr:
+            asr_module = self.conn.asr.__class__.__module__
+            if 'fun_local' in asr_module or 'fun_server' in asr_module:
+                is_funasr = True
+
+        # 只有在使用FunASR时才应用多语言音色选择
+        if is_funasr:
+            language_tag = language_tag.lower()
+            voice_map = {
+                'zh': self.voice_zh,
+                'yue': self.voice_yue,
+                'en': self.voice_en,
+                'ja': self.voice_ja,
+                'ko': self.voice_ko
+            }
+
+            selected_voice = voice_map.get(language_tag, self.voice)
+            logger.bind(tag=TAG).info(f"FunASR语言标签 '{language_tag}' 选择音色: {selected_voice}")
+            return selected_voice
+        else:
+            # 非FunASR时使用默认音色
+            return self.voice
 
     async def _ensure_connection(self):
         """确保WebSocket连接可用，支持60秒内连接复用"""
@@ -228,6 +265,9 @@ class TTSProvider(TTSProviderBase):
             # 启动监听任务
             self._monitor_task = asyncio.create_task(self._start_monitor_tts_response())
 
+            # 根据当前语言标签选择音色
+            current_voice = self.get_voice_by_language(getattr(self.conn, 'current_language_tag', None))
+
             # 发送run-task消息启动会话
             run_task_message = {
                 "header": {
@@ -242,7 +282,7 @@ class TTSProvider(TTSProviderBase):
                     "model": self.model,
                     "parameters": {
                         "text_type": "PlainText",
-                        "voice": self.voice,
+                        "voice": current_voice,
                         "format": self.format,
                         "sample_rate": self.sample_rate,
                         "volume": self.volume,
@@ -412,6 +452,12 @@ class TTSProvider(TTSProviderBase):
                 )
 
                 try:
+                    # 选择音色：优先使用当前连接的语言标签，否则使用默认音色
+                    if hasattr(self, 'conn') and self.conn and hasattr(self.conn, 'current_language_tag'):
+                        current_voice = self.get_voice_by_language(self.conn.current_language_tag)
+                    else:
+                        current_voice = self.voice
+
                     # 发送run-task消息启动会话
                     run_task_message = {
                         "header": {
@@ -426,7 +472,7 @@ class TTSProvider(TTSProviderBase):
                             "model": self.model,
                             "parameters": {
                                 "text_type": "PlainText",
-                                "voice": self.voice,
+                                "voice": current_voice,
                                 "format": self.format,
                                 "sample_rate": self.sample_rate,
                                 "volume": self.volume,

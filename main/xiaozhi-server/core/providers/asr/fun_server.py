@@ -1,12 +1,12 @@
 from typing import Optional, Tuple, List
 from core.providers.asr.base import ASRProviderBase
+from core.providers.asr.utils import lang_tag_filter
 from core.providers.asr.dto.dto import InterfaceType
 import ssl
 import json
 import websockets
 from config.logger import setup_logging
 import asyncio
-import re
 
 TAG = __name__
 logger = setup_logging()
@@ -151,9 +151,13 @@ class ASRProvider(ASRProviderBase):
 
                 # Get the result from the receive task
                 result = receive_task.result()
-                match = re.match(r"<\|(.*?)\|><\|(.*?)\|><\|(.*?)\|>(.*)", result)
-                if match:
-                    result = match.group(4).strip()
+                
+                # match = re.match(r"<\|(.*?)\|><\|(.*?)\|><\|(.*?)\|>(.*)", result)
+                # if match:
+                #     result = match.group(4).strip()
+
+                # Handle language tags
+                result = lang_tag_filter(result)
                 return (
                     result,
                     file_path,
