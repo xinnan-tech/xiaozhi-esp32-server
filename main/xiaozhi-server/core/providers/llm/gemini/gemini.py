@@ -77,6 +77,7 @@ class LLMProvider(LLMProviderBase):
         if model_key_msg:
             log.bind(tag=TAG).error(model_key_msg)
 
+        use_proxy = False
         if http_proxy or https_proxy:
             log.bind(tag=TAG).info(
                 f"检测到Gemini代理配置，开始测试代理连通性和设置代理环境..."
@@ -85,8 +86,12 @@ class LLMProvider(LLMProviderBase):
             log.bind(tag=TAG).info(
                 f"Gemini 代理设置成功 - HTTP: {http_proxy}, HTTPS: {https_proxy}"
             )
+            use_proxy = True
         # 配置API密钥
-        genai.configure(api_key=self.api_key)
+        if use_proxy:
+            genai.configure(api_key=self.api_key, transport="rest")
+        else:
+            genai.configure(api_key=self.api_key)
 
         # 设置请求超时（秒）
         self.timeout = cfg.get("timeout", 120)  # 默认120秒
