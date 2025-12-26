@@ -24,7 +24,7 @@ requests==2.32.5
 cozepy==0.20.0
 mem0ai==1.0.0
 bs4==0.0.2
-modelscope==1.23.2
+modelscope==1.32.0
 sherpa_onnx==1.12.17
 mcp==1.20.0
 cnlunar==0.2.0
