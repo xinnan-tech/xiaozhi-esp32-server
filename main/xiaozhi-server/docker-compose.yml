@@ -18,5 +18,5 @@ services:
     volumes:
       # 配置文件目录
       - ./data:/opt/xiaozhi-esp32-server/data
-      # 模型文件挂接，很重要
-      - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+      # 模型文件挂接，很重要(修改路径为xiaozhi-server)
+      - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-server/models/SenseVoiceSmall/model.pt
