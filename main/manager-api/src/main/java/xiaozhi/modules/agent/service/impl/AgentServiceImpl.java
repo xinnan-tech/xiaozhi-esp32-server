@@ -129,7 +129,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
     @Override
     public List<AgentDTO> getUserAgents(Long userId) {
         QueryWrapper<AgentEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId);
+        wrapper.eq("user_id", userId).orderByDesc("created_at");
         List<AgentEntity> agents = agentDao.selectList(wrapper);
         return agents.stream().map(agent -> {
             AgentDTO dto = new AgentDTO();
