@@ -65,6 +65,7 @@ Memory:
         api_key: 你的嵌入模型API密钥
         model: text-embedding-v4
         openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        # embedding_dims: 1024  # 向量维度，非1536时需配置
     
     # ========== Database 配置 ==========
     vector_store:

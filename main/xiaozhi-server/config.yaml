@@ -305,6 +305,8 @@ Memory:
         api_key: 你的嵌入模型API密钥
         model: text-embedding-v4
         openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        # embedding_dims: 1024  # 向量维度，非1536时需配置
+
     # ========== Database 配置 ==========
     # oceanbase(推荐,最佳性能), seekdb(推荐,AI应用存储一体), postgres, sqlite(轻量备选)
     # 用户画像功能支持: oceanbase、seekdb、sqlite
