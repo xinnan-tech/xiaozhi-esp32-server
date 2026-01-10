@@ -1,0 +1,54 @@
+# MQTT协议配置示例
+# 将此配置添加到你的主配置文件中
+
+# 协议配置
+protocols:
+  enabled_protocols: ["websocket", "mqtt"]  # 启用的协议列表
+  websocket_enabled: true                   # WebSocket协议开关
+  mqtt_enabled: true                        # MQTT协议开关
+
+# MQTT服务器配置
+mqtt_server:
+  enabled: true                    # 是否启用MQTT服务器
+  host: "0.0.0.0"                 # 监听地址
+  port: 1883                      # MQTT端口
+  udp_port: 1883                  # UDP端口（用于音频传输）
+  public_ip: "your.server.ip"     # 公网IP地址
+  max_connections: 1000           # 最大连接数
+  heartbeat_interval: 30          # 心跳检查间隔（秒）
+  max_payload_size: 8192          # 最大消息载荷大小
+
+# 服务器配置（扩展）
+server:
+  ip: "0.0.0.0"
+  port: 8080                      # WebSocket端口
+  http_port: 8081
+  auth_key: ""
+  vision_explain: ""
+  
+  # MQTT服务器配置（嵌套）
+  mqtt_server:
+    enabled: true
+    host: "0.0.0.0"
+    port: 1883
+    udp_port: 1883
+    public_ip: "localhost"
+    max_connections: 1000
+    heartbeat_interval: 30
+    max_payload_size: 8192
+
+# 使用示例：
+# 1. 启动多协议服务器：
+#    python main_multi_protocol.py
+#
+# 2. WebSocket客户端连接：
+#    ws://your.server.ip:8080/
+#
+# 3. MQTT客户端连接：
+#    mqtt://your.server.ip:1883
+#    客户端ID格式：GID_test@@@mac_address@@@uuid
+#    或：GID_test@@@mac_address
+#
+# 4. UDP音频传输：
+#    客户端通过MQTT接收UDP配置后，使用UDP发送音频数据
+

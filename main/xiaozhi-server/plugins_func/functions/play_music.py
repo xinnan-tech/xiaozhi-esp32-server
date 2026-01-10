@@ -5,7 +5,7 @@ import random
 import difflib
 import traceback
 from pathlib import Path
-from core.handle.sendAudioHandle import send_stt_message
+# from core.handle.sendAudioHandle import send_stt_message  # 未使用，已移除
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from core.utils.dialogue import Message
 from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType

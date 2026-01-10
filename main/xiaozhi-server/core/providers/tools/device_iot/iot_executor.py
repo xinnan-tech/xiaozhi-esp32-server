@@ -127,7 +127,16 @@ class DeviceIoTExecutor(ToolExecutor):
                         send_message = json.dumps(
                             {"type": "iot", "commands": [command]}
                         )
-                        await self.conn.websocket.send(send_message)
+                        
+                        # 使用transport接口发送消息
+                        if hasattr(self.conn, 'transport') and self.conn.transport:
+                            await self.conn.transport.send(send_message)
+                        elif hasattr(self.conn, 'websocket') and self.conn.websocket:
+                            # 兼容旧版本
+                            logger.warning("未找到SessionContext的传输层接口, 回退使用旧版conn.websocket发送消息")
+                            await self.conn.websocket.send(send_message)
+                        else:
+                            raise AttributeError("无法找到可用的传输层接口")
                         return
 
         raise Exception(f"未找到设备{device_name}的方法{method_name}")
