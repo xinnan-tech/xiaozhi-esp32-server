@@ -13,12 +13,15 @@ let visualizerCanvas = document.getElementById('audioVisualizer');
 
 // ota 是否连接成功，修改成对应的样式
 export function otaStatusStyle(flan) {
-    if (flan) {
-        document.getElementById('otaStatus').textContent = 'OTA已连接';
-        document.getElementById('otaStatus').style.color = 'green';
-    } else {
-        document.getElementById('otaStatus').textContent = 'OTA未连接';
-        document.getElementById('otaStatus').style.color = 'red';
+    const otaStatusElement = document.getElementById('otaStatus');
+    if (otaStatusElement) {
+        if (flan) {
+            otaStatusElement.textContent = 'OTA已连接';
+            otaStatusElement.style.color = 'green';
+        } else {
+            otaStatusElement.textContent = 'OTA未连接';
+            otaStatusElement.style.color = 'red';
+        }
     }
 }
 

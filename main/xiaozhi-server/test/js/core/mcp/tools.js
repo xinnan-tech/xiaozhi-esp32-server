@@ -48,7 +48,9 @@ function renderMcpTools() {
     const container = document.getElementById('mcpToolsContainer');
     const countSpan = document.getElementById('mcpToolsCount');
 
-    countSpan.textContent = `${mcpTools.length} 个工具`;
+    if (countSpan) {
+        countSpan.textContent = `${mcpTools.length} 个工具`;
+    }
 
     if (mcpTools.length === 0) {
         container.innerHTML = '<div style="text-align: center; padding: 30px; color: #999;">暂无工具，点击下方按钮添加新工具</div>';
@@ -65,12 +67,10 @@ function renderMcpTools() {
                 <div class="mcp-tool-header">
                     <div class="mcp-tool-name">${tool.name}</div>
                     <div class="mcp-tool-actions">
-                        <button onclick="window.mcpModule.editMcpTool(${index})"
-                            style="padding: 4px 10px; border: none; border-radius: 4px; background-color: #2196f3; color: white; cursor: pointer; font-size: 12px;">
+                        <button class="mcp-edit-btn" onclick="window.mcpModule.editMcpTool(${index})">
                             ✏️ 编辑
                         </button>
-                        <button onclick="window.mcpModule.deleteMcpTool(${index})"
-                            style="padding: 4px 10px; border: none; border-radius: 4px; background-color: #f44336; color: white; cursor: pointer; font-size: 12px;">
+                        <button class="mcp-delete-btn" onclick="window.mcpModule.deleteMcpTool(${index})">
                             🗑️ 删除
                         </button>
                     </div>
@@ -218,6 +218,9 @@ function setupMcpEventListeners() {
         panel.classList.toggle('expanded');
         toggleBtn.textContent = isExpanded ? '展开' : '收起';
     });
+    
+    // 确保面板默认展开
+    panel.classList.add('expanded');
 
     addBtn.addEventListener('click', () => openMcpModal());
     closeBtn.addEventListener('click', closeMcpModal);

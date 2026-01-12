@@ -23,6 +23,10 @@ export class StreamingContext {
         this.totalSamples = 0;    // 累积的总样本数
         this.lastPlayTime = 0;    // 上次播放的时间戳
         this.scheduledEndTime = 0; // 已调度音频的结束时间
+
+        // 初始化分析器节点（供Live2D使用）
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 256;
     }
 
     // 缓存音频数组
@@ -108,6 +112,11 @@ export class StreamingContext {
         log('音频缓冲已清空', 'success');
     }
 
+    // 获取分析器节点（供Live2D使用）
+    getAnalyser() {
+        return this.analyser;
+    }
+
     // 将Opus数据解码为PCM
     async decodeOpusFrames() {
         if (!this.opusDecoder) {
@@ -182,7 +191,8 @@ export class StreamingContext {
                 const currentTime = this.audioContext.currentTime;
                 const startTime = Math.max(this.scheduledEndTime, currentTime);
 
-                // 直接连接到输出
+                // 连接到分析器和输出
+                this.source.connect(this.analyser);
                 this.source.connect(this.audioContext.destination);
 
                 log(`调度播放 ${currentSamples.length} 个样本，约 ${(currentSamples.length / this.sampleRate).toFixed(2)} 秒`, 'debug');

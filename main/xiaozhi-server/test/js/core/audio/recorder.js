@@ -326,6 +326,11 @@ export class AudioRecorder {
                 this.startVisualization(dataArray);
             }
 
+            // 立即通知录音开始，更新按钮状态
+            if (this.onRecordingStart) {
+                this.onRecordingStart(0);
+            }
+
             // 启动录音计时器
             let recordingSeconds = 0;
             this.recordingTimer = setInterval(() => {

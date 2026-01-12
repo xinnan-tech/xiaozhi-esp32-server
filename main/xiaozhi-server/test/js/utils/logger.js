@@ -1,6 +1,3 @@
-import { getLogContainer } from '../ui/dom-helper.js'
-
-const logContainer = getLogContainer();
 // 日志记录函数
 export function log(message, type = 'info') {
     // 将消息按换行符分割成多行
@@ -8,6 +5,15 @@ export function log(message, type = 'info') {
     const now = new Date();
     // const timestamp = `[${now.toLocaleTimeString()}] `;
     const timestamp = `[${now.toLocaleTimeString()}.${now.getMilliseconds().toString().padStart(3, '0')}] `;
+
+    // 检查是否存在日志容器
+    const logContainer = document.getElementById('logContainer');
+    if (!logContainer) {
+        // 如果日志容器不存在，只输出到控制台
+        console.log(`[${type.toUpperCase()}] ${message}`);
+        return;
+    }
+
     // 为每一行创建日志条目
     lines.forEach((line, index) => {
         const logEntry = document.createElement('div');

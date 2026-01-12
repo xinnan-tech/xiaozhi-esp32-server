@@ -10,6 +10,11 @@
         // 检测是否使用file://协议打开
         if (window.location.protocol === 'file:') {
             document.addEventListener('DOMContentLoaded', function () {
+                // 创建背景模糊遮罩
+                const overlayDiv = document.createElement('div');
+                overlayDiv.className = 'file-protocol-overlay';
+                document.body.appendChild(overlayDiv);
+
                 // 创建警告框
                 const warningDiv = document.createElement('div');
                 warningDiv.id = 'fileProtocolWarning';
@@ -32,198 +37,216 @@
 </head>
 
 <body>
+    <!-- 背景容器 -->
+    <div class="background-container">
+        <div class="background-overlay"></div>
+    </div>
+
+    <!-- 主容器 -->
     <div class="container">
-        <div id="scriptStatus" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-            正在加载Opus库...
+        <!-- 连接状态指示器 - 页面顶部中部 -->
+        <div class="connection-status-top">
+            <div class="status-indicator">
+                <span class="status-dot status-disconnected"></span>
+                <span id="connectionStatus">离线</span>
+            </div>
         </div>
 
-        <!-- 两栏布局：设备配置和连接信息 -->
-        <div class="two-column-layout">
-            <!-- 设备配置面板 -->
-            <div class="section">
-                <h2>
-                    设备配置
-                    <button class="toggle-button" id="toggleConfig">编辑</button>
-                </h2>
-                <div class="config-panel" id="configPanel">
-                    <div class="control-panel">
-                        <div class="config-row">
-                            <div class="config-item">
-                                <label for="deviceMac">设备MAC:</label>
-                                <input type="text" id="deviceMac" placeholder="device-id" disabled>
+        <!-- Live2D Canvas 容器 -->
+        <canvas id="live2d-stage"></canvas>
+
+        <!-- 聊天消息流（弹幕样式） -->
+        <div class="chat-stream" id="chatStream">
+            <!-- 聊天消息将动态插入这里 -->
+        </div>
+
+        <!-- 底部控制栏 -->
+        <div class="control-bar">
+            <button class="control-btn" id="settingsBtn" title="设置">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5A3.5 3.5 0 0 1 15.5 12A3.5 3.5 0 0 1 12 15.5M19.43 12.97C19.47 12.65 19.5 12.33 19.5 12C19.5 11.67 19.47 11.34 19.43 11L21.54 9.37C21.73 9.22 21.78 8.95 21.66 8.73L19.66 5.27C19.54 5.05 19.27 4.96 19.05 5.05L16.56 6.05C16.04 5.66 15.5 5.32 14.87 5.07L14.5 2.42C14.46 2.18 14.25 2 14 2H10C9.75 2 9.54 2.18 9.5 2.42L9.13 5.07C8.5 5.32 7.96 5.66 7.44 6.05L4.95 5.05C4.73 4.96 4.46 5.05 4.34 5.27L2.34 8.73C2.22 8.95 2.27 9.22 2.46 9.37L4.57 11C4.53 11.34 4.5 11.67 4.5 12C4.5 12.33 4.53 12.65 4.57 12.97L2.46 14.63C2.27 14.78 2.22 15.05 2.34 15.27L4.34 18.73C4.46 18.95 4.73 19.03 4.95 18.95L7.44 17.94C7.96 18.34 8.5 18.68 9.13 18.93L9.5 21.58C9.54 21.82 9.75 22 10 22H14C14.25 22 14.46 21.82 14.5 21.58L14.87 18.93C15.5 18.68 16.04 18.34 16.56 17.94L19.05 18.95C19.27 19.03 19.54 18.95 19.66 18.73L21.66 15.27C21.78 15.05 21.73 14.78 21.54 14.63L19.43 12.97Z" />
+                </svg>
+                <span class="btn-text">设置</span>
+            </button>
+
+            <button class="control-btn" id="backgroundBtn" title="切换背景">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z" />
+                </svg>
+                <span class="btn-text">背景</span>
+            </button>
+
+            <button class="control-btn dial-btn" id="dialBtn" title="拨号">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z" />
+                </svg>
+                <span class="btn-text">拨号</span>
+            </button>
+
+            <button class="control-btn" id="recordBtn" title="开始录音" disabled>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" />
+                </svg>
+                <span class="btn-text">录音</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content settings-modal">
+            <div class="modal-header">
+                <h2>设置</h2>
+                <button class="close-btn" id="closeSettingsBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-tabs">
+                    <button class="tab-btn active" data-tab="device">设备配置</button>
+                    <button class="tab-btn" data-tab="mcp">MCP工具</button>
+                </div>
+
+                <div class="tab-content active" id="deviceTab">
+                    <!-- 设备配置面板 -->
+                    <div class="config-panel">
+                        <div class="control-panel">
+                            <div class="config-row">
+                                <div class="config-item">
+                                    <label for="deviceMac">设备MAC:</label>
+                                    <input type="text" id="deviceMac" placeholder="device-id" readonly>
+                                </div>
                             </div>
-                            <div class="config-item">
-                                <label for="clientId">客户端ID:</label>
-                                <input type="text" id="clientId" value="web_test_client" placeholder="client-id"
-                                    disabled>
+                            <div class="config-row">
+                                <div class="config-item">
+                                    <label for="clientId">客户端ID:</label>
+                                    <input type="text" id="clientId" value="web_test_client" placeholder="client-id">
+                                </div>
+                                <div class="config-item">
+                                    <label for="deviceName">设备名称:</label>
+                                    <input type="text" id="deviceName" value="Web测试设备" placeholder="deviceName">
+                                </div>
                             </div>
                         </div>
-                        <div class="config-row">
-                            <div class="config-item">
-                                <label for="deviceName">设备名称:</label>
-                                <input type="text" id="deviceName" value="Web测试设备" placeholder="deviceName" disabled>
+                    </div>
+
+                    <!-- 连接信息面板 -->
+                    <div class="connection-controls">
+                        <div class="input-group">
+                            <label for="otaUrl">OTA服务器地址:</label>
+                            <input type="text" id="otaUrl" value="http://127.0.0.1:8002/xiaozhi/ota/"
+                                placeholder="OTA服务器地址，如：http://127.0.0.1:8002/xiaozhi/ota/" />
+                        </div>
+                        <div class="input-group">
+                            <label for="serverUrl">WebSocket服务器地址:</label>
+                            <input type="text" id="serverUrl" value="" readonly disabled
+                                placeholder="填写OTA地址后，点击拨号按钮自动连接" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="mcpTab">
+                    <!-- MCP 工具管理区域 -->
+                    <div class="mcp-tools-container">
+                        <div class="mcp-tools-header">
+                            <h3>MCP 工具管理</h3>
+                            <button class="btn-secondary" id="toggleMcpTools">
+                                收起
+                            </button>
+                        </div>
+                        <div class="mcp-tools-panel" id="mcpToolsPanel">
+                            <div class="mcp-tools-list" id="mcpToolsContainer">
+                                <!-- 工具列表将动态插入这里 -->
+                            </div>
+                            <div class="mcp-actions">
+                                <button class="btn-primary" id="addMcpToolBtn">
+                                    ➕ 添加新工具
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- 连接信息面板 -->
-            <div class="section">
-                <h2>
-                    连接信息
-                    <span class="connection-status">
-                        <span id="otaStatus" class="status">● OTA未连接</span>
-                        <span id="connectionStatus" class="status">● WS未连接</span>
-                    </span>
-                    <button class="connect-button" id="connectButton">
-                        <span>●</span>
-                        连接
-                    </button>
-                </h2>
-                <div class="connection-controls">
-                    <input type="text" id="otaUrl" value="http://127.0.0.1:8002/xiaozhi/ota/"
-                        placeholder="OTA服务器地址，如：http://127.0.0.1:8002/xiaozhi/ota/" />
-                    <input type="text" id="serverUrl" value="" readonly disabled placeholder="点击连接按钮后，自动从OTA接口获取" />
-                </div>
-            </div>
-
         </div>
+    </div>
 
-        <div class="section">
-            <div class="tabs">
-                <button class="tab active" data-tab="text">文本消息</button>
-                <button class="tab" data-tab="voice">语音消息</button>
+    <!-- MCP 工具编辑模态框 -->
+    <div id="mcpToolModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="mcpModalTitle">添加工具</h2>
+                <button class="close-btn" id="closeMcpModalBtn">&times;</button>
             </div>
-
-            <div class="tab-content active" id="textTab">
-                <div class="message-input">
-                    <input type="text" id="messageInput" placeholder="输入消息..." disabled>
-                    <button id="sendTextButton" disabled>发送</button>
-                </div>
-            </div>
-
-            <div class="tab-content" id="voiceTab">
-                <div class="audio-controls">
-                    <button id="recordButton" class="record-button" disabled>开始录音</button>
-                </div>
-                <canvas id="audioVisualizer" class="audio-visualizer"></canvas>
-            </div>
-
-            <div style="margin: -10px 0px 10px 0px;">
-                <span class="connection-status llm-emoji">
-                    <span id="sessionStatus" class="status offline" style="position: relative; display: inline-block;">
-                        <span id="sessionStatusBg"
-                            style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, rgba(76, 175, 80, 0.2), rgba(33, 150, 243, 0.2)); transition: width 0.15s ease-out, background 0.3s ease; z-index: 0; border-radius: 20px;"></span>
-                        <span style="position: relative; z-index: 1;"><span class="emoji-large">😶</span> 小智离线中</span>
-                    </span>
-                </span>
-            </div>
-            <div class="flex-container">
-                <div id="conversation" class="conversation"></div>
-                <div id="logContainer">
-                    <div class="log-entry log-info">准备就绪，请连接服务器开始测试...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- MCP 工具管理区域 -->
-        <div class="section">
-            <h2>
-                MCP 工具管理
-                <span class="connection-status">
-                    <span id="mcpToolsCount">0 个工具</span>
-                </span>
-                <button class="toggle-button" id="toggleMcpTools">展开</button>
-            </h2>
-            <div class="config-panel" id="mcpToolsPanel">
-                <div id="mcpToolsContainer" class="mcp-tools-container">
-                    <!-- 工具列表将动态插入这里 -->
-                </div>
-                <div style="text-align: center; padding: 15px 0;">
-                    <button class="btn" id="addMcpToolBtn" style="background-color: #4caf50;">
-                        ➕ 添加新工具
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- MCP 工具编辑模态框 -->
-        <div id="mcpToolModal"
-            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; overflow-y: auto;">
-            <div
-                style="background-color: white; border-radius: 10px; padding: 25px; width: 90%; max-width: 700px; margin: 50px auto; max-height: 85vh; overflow-y: auto;">
-                <div
-                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0;">
-                    <h2 id="mcpModalTitle" style="font-size: 20px; font-weight: bold; color: #333; margin: 0;">添加工具</h2>
-                    <button id="closeMcpModalBtn"
-                        style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666; padding: 0; width: 30px; height: 30px;">&times;</button>
-                </div>
-
+            <div class="modal-body">
                 <div id="mcpErrorContainer"></div>
-
                 <form id="mcpToolForm">
-                    <div style="margin-bottom: 20px;">
-                        <label
-                            style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">工具名称
-                            *</label>
-                        <input type="text" id="mcpToolName" placeholder="例如: self.get_device_status" required
-                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    <div class="input-group">
+                        <label for="mcpToolName">工具名称 *</label>
+                        <input type="text" id="mcpToolName" placeholder="例如: self.get_device_status" required>
                     </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <label
-                            style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">工具描述
-                            *</label>
-                        <textarea id="mcpToolDescription" placeholder="详细描述工具的功能和使用场景..." required
-                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; min-height: 80px; resize: vertical;"></textarea>
+                    <div class="input-group">
+                        <label for="mcpToolDescription">工具描述 *</label>
+                        <textarea id="mcpToolDescription" placeholder="详细描述工具的功能和使用场景..." required></textarea>
                     </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <label
-                            style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">输入参数</label>
-                        <div
-                            style="background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; padding: 15px;">
+                    <div class="input-group">
+                        <label>输入参数</label>
+                        <div class="properties-container">
                             <div id="mcpPropertiesContainer">
                                 <div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">
-                                    暂无参数，点击下方按钮添加参数</div>
+                                    暂无参数，点击下方按钮添加参数
+                                </div>
                             </div>
-                            <button type="button" id="addMcpPropertyBtn"
-                                style="width: 100%; margin-top: 10px; padding: 8px 15px; border: none; border-radius: 5px; background-color: #2196f3; color: white; cursor: pointer; font-size: 14px;">
+                            <button type="button" class="btn-secondary" id="addMcpPropertyBtn">
                                 ➕ 添加参数
                             </button>
                         </div>
                     </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <label
-                            style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">
+                    <div class="input-group">
+                        <label for="mcpMockResponse">
                             模拟返回结果 (JSON 格式，可选)
                             <span style="font-size: 12px; color: #999; font-weight: normal;">- 留空则返回默认成功消息</span>
                         </label>
-                        <textarea id="mcpMockResponse" placeholder='{"success": true, "data": "执行成功"}'
-                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; font-family: 'Courier New', monospace; min-height: 100px; resize: vertical;"></textarea>
-                        <div style="font-size: 12px; color: #666; margin-top: 4px;">
-                            💡 提示：如果设置了模拟返回结果，工具调用时将返回这个 JSON 对象
-                        </div>
+                        <textarea id="mcpMockResponse" placeholder='{"success": true, "data": "执行成功"}'></textarea>
                     </div>
-
-                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
-                        <button type="button" id="cancelMcpBtn"
-                            style="padding: 8px 15px; border: none; border-radius: 5px; background-color: #9e9e9e; color: white; cursor: pointer; font-size: 14px;">取消</button>
-                        <button type="submit"
-                            style="padding: 8px 15px; border: none; border-radius: 5px; background-color: #4caf50; color: white; cursor: pointer; font-size: 14px;">保存</button>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelMcpBtn">取消</button>
+                        <button type="submit" class="btn-primary">保存</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- PIXI.js 2D渲染引擎 -->
+    <script src="js/live2d/pixi.js"></script>
+
+    <!-- Live2D Cubism 4.0 SDK -->
+    <script src="js/live2d/live2dcubismcore.min.js"></script>
+    <script src="js/live2d/cubism4.min.js"></script>
+
+    <!-- Live2D 管理器 -->
+    <script src="js/live2d/live2d.js"></script>
+
     <!-- Opus解码库 -->
     <script src="js/utils/libopus.js"></script>
 
     <!-- 主应用入口 -->
     <script type="module" src="js/app.js"></script>
+
+    <!-- 全局错误处理 -->
+    <script>
+        // 添加全局错误处理
+        window.addEventListener('error', function (event) {
+            console.error('全局错误:', event.error);
+        });
+
+        // 添加未处理的Promise拒绝处理
+        window.addEventListener('unhandledrejection', function (event) {
+            console.error('未处理的Promise拒绝:', event.reason);
+        });
+    </script>
 </body>
 
 </html>
