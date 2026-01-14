@@ -26,7 +26,7 @@ const CDN_JS = [
 const manifest = self.__WB_MANIFEST || [];
 
 // 检查是否启用CDN模式
-const isCDNEnabled = manifest.some(entry => 
+const isCDNEnabled = manifest.some(entry =>
   entry.url === 'cdn-mode' && entry.revision === 'enabled'
 );
 
@@ -41,7 +41,7 @@ workbox.core.skipWaiting();
 workbox.core.clientsClaim();
 
 // 预缓存离线页面
-const OFFLINE_URL = '/offline.html';
+const OFFLINE_URL = process.env.BASE_URL + 'offline.html';
 workbox.precaching.precacheAndRoute([
   { url: OFFLINE_URL, revision: null }
 ]);
@@ -53,7 +53,7 @@ self.addEventListener('install', event => {
   } else {
     console.log('Service Worker 已安装，CDN模式禁用，仅缓存本地资源');
   }
-  
+
   // 确保离线页面被缓存
   event.waitUntil(
     caches.open('offline-cache').then((cache) => {
@@ -65,7 +65,7 @@ self.addEventListener('install', event => {
 // 添加激活事件处理器
 self.addEventListener('activate', event => {
   console.log('Service Worker 已激活，现在控制着页面');
-  
+
   // 清理旧版本缓存
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -86,7 +86,7 @@ self.addEventListener('fetch', event => {
   // 只有启用CDN模式时才进行CDN资源缓存监控
   if (isCDNEnabled) {
     const url = new URL(event.request.url);
-    
+
     // 针对CDN资源，输出是否命中缓存的信息
     if ([...CDN_CSS, ...CDN_JS].includes(url.href)) {
       // 不干扰正常的fetch流程，只添加日志
@@ -171,4 +171,4 @@ workbox.routing.setCatchHandler(async ({ event }) => {
       // 所有其他请求返回错误
       return Response.error();
   }
-}); 
+});
