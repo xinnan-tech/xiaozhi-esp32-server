@@ -1,0 +1,313 @@
+1,ba xiao shi hou guan ji
+2,ba xiao shi hou kai ji
+3,bi kai wo chui
+4,chao qiang feng su
+5,chao zhe wo chui
+6,chou shi mo shi
+7,chu shi mo shi
+8,da kai bai feng
+9,da kai bing xiang
+10,da kai chou shi mo shi
+11,da kai chu jun
+12,da kai chu shi mo shi
+13,da kai dian fu re
+14,da kai ding chu feng
+15,da kai ding xiang chu wu
+16,da kai er tong fang leng feng
+17,da kai fang zhi chui
+18,da kai feng ji
+19,da kai fu re
+20,da kai gan zao
+21,da kai huan ji tiao wen
+22,da kai jia shi
+23,da kai jing hua
+24,da kai jun yun feng
+25,da kai kong tiao
+26,da kai kong tiao deng guang
+27,da kai mu ying feng
+28,da kai mu qing feng
+29,da kai pai feng mo shi
+30,da kai pai qi
+31,da kai pai qi mo shi
+32,da kai qiang jing
+33,da kai quan wu feng gan
+34,da kai rou feng gan
+35,da kai shang wu feng gan
+36,da kai shang xia bai feng
+37,da kai shang xia sao feng
+38,da kai sen ba
+39,da kai shu sheng
+40,da kai shu shi feng
+41,da kai shui mian
+42,da kai si ji chu shi
+43,da kai si ji chu shi mo shi
+44,da kai song feng
+45,da kai song feng mo shi
+46,da kai wu feng gan
+47,da kai xia wu feng gan
+48,da kai xin feng
+49,da kai xiu xian mo shi
+50,da kai xuan zhuan song feng
+51,da kai yi jian chu wu
+52,da kai zhi leng
+53,da kai zhi leng mo shi
+54,da kai zhi re
+55,da kai zhi re mo shi
+56,da kai zhi kong wen
+57,da kai zhi neng guan jia
+58,da kai zhi neng sha jun
+59,da kai zhi neng sheng dian
+60,da kai zhi qing jie
+61,da kai zhi wen gan
+62,da kai zhuan shu wen du
+63,da kai zi dong mo shi
+64,da kai zuo you bai feng
+65,da kai zuo you sao feng
+66,di feng su
+67,di su feng
+68,di yi dian
+69,dian fu re
+70,tiao cheng zui leng
+71,tiao cheng zui nuan
+72,tiao da feng su
+73,tiao da xin feng
+74,tiao dao er shi ba du
+75,tiao dao er shi du
+76,tiao dao er shi er du
+77,tiao dao er shi jiu du
+78,tiao dao er shi liu du
+79,tiao dao er shi qi du
+80,tiao dao er shi san du
+81,tiao dao er shi si du
+82,tiao dao er shi wu du
+83,tiao dao er shi yi du
+84,tiao dao san shi du
+85,tiao dao shi ba du
+86,tiao dao shi jiu du
+87,tiao dao shi liu du
+88,tiao dao shi qi du
+89,tiao dao zui leng
+90,tiao dao zui nuan
+91,tiao di ling dian wu du
+92,tiao di wen du
+93,tiao di yi du
+94,tiao gao er shi du
+95,tiao gao ling dian wu du
+96,tiao gao wen du
+97,tiao gao wu du
+98,tiao gao yi du
+99,tiao leng yi dian
+100,tiao nuan
+101,tiao nuan yi dian
+102,tiao xiao feng su
+103,tiao xiao xin feng
+104,ding chu feng
+105,ding shi wu rao
+106,ding xiang chu wu
+107,er tong fang leng feng
+108,er dang xin feng
+109,feng da yi dian
+110,feng su da dian
+111,feng su er dang
+112,feng su san dang
+113,feng su xiao dian
+114,feng su yi dang
+115,feng wang shang chui
+116,feng wang xia chui
+117,feng wang you chui
+118,feng wang zhong jian chui
+119,feng wang zuo chui
+120,feng xiang shang chui
+121,feng xiang xia chui
+122,feng xiang you chui
+123,feng xiang zhong jian chui
+124,feng xiang zuo chui
+125,feng xiao yi dian
+126,gao feng su
+127,gao su feng
+128,guan bi bai feng
+129,fang zhi chui
+130,guan bi dian fu re
+131,guan bi ding chu feng
+132,guan bi ding xiang chu wu
+133,guan bi er tong fang leng feng
+134,guan bi fang zhi chui
+135,guan bi feng ji
+136,guan bi fu re
+137,guan bi huan qi
+138,guan bi huan qi mo shi
+139,guan bi jia shi
+140,guan bi jie neng
+141,guan bi jun yun feng
+142,guan bi kong tiao
+143,guan bi kong tiao deng guang
+144,guan bi mu ying feng
+145,guan bi mu qing feng
+146,guan bi qiang jing
+147,guan bi quan wu feng gan
+148,guan bi rou feng gan
+149,guan bi sen ba
+150,guan bi shang wu feng gan
+151,guan bi shang xia bai feng
+152,guan bi shang xia sao feng
+153,guan bi shu sheng
+154,guan bi shui mian
+155,guan bi si ji chu shi
+156,guan bi si ji chu shi mo shi
+157,guan bi wu feng gan
+158,guan bi xia wu feng gan
+159,guan bi xin feng
+160,guan bi xuan zhuan song feng
+161,guan bi yi jian chu wu
+162,guan bi zhi kong wen
+163,guan bi zhi qing jie
+164,guan bi zhong wen bao wen
+165,guan bi zhuan xiang wen du er
+166,guan bi zhuan xiang wen du san
+167,guan bi zhuan xiang wen du yi
+168,guan bi zuo you bai feng
+169,guan bi zuo you sao feng
+170,guan bi zhuan shu wen du
+171,guan diao bai feng
+172,guan diao dian fu re
+173,guan diao ding chu feng
+174,guan diao ding xiang chu wu
+175,guan diao er tong fang leng feng
+176,guan diao fang zhi chui
+177,guan diao gan zao
+178,guan diao huan qi
+179,guan diao huan qi mo shi
+180,guan diao jia shi
+181,guan diao jing hua
+182,guan diao jun yun feng
+183,guan diao kong tiao
+184,guan diao kong tiao deng guang
+185,guan diao qiang jing
+186,guan diao quan wu feng gan
+187,guan diao rou feng gan
+188,guan diao shang wu feng gan
+189,guan diao shang xia bai feng
+190,guan diao shu sheng
+191,guan diao shui mian
+192,guan diao si ji chu shi
+193,guan diao si ji chu shi mo shi
+194,guan diao wu feng gan
+195,guan diao xia wu feng gan
+196,guan diao xin feng
+197,guan diao xuan zhuan song feng
+198,guan diao yi jian chu wu
+199,guan diao zhi kong wen
+200,guan diao zhi qing jie
+201,guan diao zuo you bai feng
+202,guan kong tiao
+203,guan shang xia bai feng
+204,guan shang xia feng
+205,guan xin feng
+206,guan zuo you bai feng
+207,guan zuo you feng
+208,guan bi zhi neng sheng dian
+209,jian xiao feng su
+210,jian xiao pu tong xin feng
+211,jian xiao xin feng
+212,jiang di wen du
+213,jing yin feng
+214,jing yin feng su
+215,jun yun feng
+216,kai kong tiao
+217,kai qi bai feng
+218,kai qi chu shi
+219,kai qi chu shi mo shi
+220,kai qi kong tiao
+221,kai qi pai feng mo shi
+222,kai qi shang xia sao feng
+223,kai qi tong feng
+224,kai qi zhi leng
+225,kai qi zhi leng mo shi
+226,kai qi zhi re
+227,kai qi zhi re mo shi
+228,kai qi zuo you sao feng
+229,kai shi chu wei
+230,kong tiao da kai
+231,kong tiao guan bi
+232,kong tiao guan diao
+233,kong tiao guan ji
+234,kong tiao kai ji
+235,kong tiao kai shi pei wang
+236,kong tiao lian wang
+237,kong tiao chong xin pei wang
+238,kai xin feng
+239,leng yi dian
+240,nuan yi dian
+241,pu tong xin feng
+242,qi dong kong tiao
+243,qiang jing xin feng
+244,qiang li feng
+245,qiang li feng su
+246,qu shi mo shi
+247,quan wu feng gan
+248,rou feng gan
+249,san dang xin feng
+250,shang wu feng gan
+251,shang xia bai feng
+252,shang xia feng
+253,sheng gao wen du
+254,sheng dao zui gao
+255,sheng dao zui gao wei zhi
+256,si dang xin feng
+257,si ji chu shi
+258,si ji chu shi mo shi
+259,song feng mo shi
+260,tai leng le
+261,tai re le
+262,ting zhi shang xia bai feng
+263,ting zhi shang xia sao feng
+264,ting zhi bai feng
+265,ting zhi zhuan shu wen du
+266,ting zhi zuo you bai feng
+267,ting zhi zuo you sao feng
+268,xia wu feng gan
+269,xin feng da dian
+270,xin feng er dang
+271,xin feng qiang jing
+272,xin feng qiang jing dang
+273,xin feng san dang
+274,xin feng si dang
+275,xin feng xiao dian
+276,xin feng yi dang
+277,xin feng zui da
+278,xin feng zui da dang
+279,xin feng zui xiao
+280,xin feng zui xiao dang
+281,xuan zhuan song feng
+282,yi dang xin feng
+283,you dian leng
+284,you dian re
+285,zai gao yi dian
+286,zeng da feng su
+287,zeng da xin feng
+288,zhi leng mo shi
+289,zhi re mo shi
+290,zhi kong wen
+291,zhi neng wu rao
+292,zhi qing jie
+293,zhong deng feng
+294,zhong feng su
+295,zhong su feng
+296,zi dong
+297,zi dong feng
+298,zi dong feng su
+299,zi dong mo shi
+300,zui da feng
+301,zui da feng su
+302,zui da xin feng
+303,zui xiao feng
+304,zui xiao feng su
+305,zui xiao xin feng
+306,zuo you bai feng
+307,zuo you feng
+308,bang wo guan deng
+309,bang wo kai deng
+310,da kai dian deng
+311,guan bi dian deng
+312,xiao le xiao le
+313,xiao xin xiao xin

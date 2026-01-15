@@ -7,6 +7,7 @@ import router from './router';
 import store from './store';
 import i18n from './i18n';
 import './styles/global.scss';
+import "./styles/app.css";
 import { register as registerServiceWorker } from './registerServiceWorker';
 import featureManager from './utils/featureManager';
 

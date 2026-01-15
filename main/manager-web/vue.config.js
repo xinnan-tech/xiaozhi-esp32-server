@@ -44,7 +44,7 @@ module.exports = defineConfig({
     port: 8001, // 指定端口为 8001
     proxy: {
       '/xiaozhi': {
-        target: 'http://127.0.0.1:8002',
+        target: 'https://2662r3426b.vicp.fun',
         changeOrigin: true
       }
     },
@@ -93,6 +93,15 @@ module.exports = defineConfig({
     config.optimization.minimize(true);
   },
   configureWebpack: config => {
+    // 添加resolve.fallback配置来解决Node.js核心模块的polyfill问题
+    config.resolve = {
+      ...config.resolve,
+      fallback: {
+        ...config.resolve?.fallback,
+        "path": require.resolve("path-browserify"),
+        "fs": false
+      }
+    };
     if (process.env.NODE_ENV === 'production') {
       // 开启多线程编译
       config.optimization = {
@@ -167,6 +176,16 @@ module.exports = defineConfig({
         maxAge: 5184000000, // 缓存有效期为 1个月
         buildDependencies: {
           config: [__filename]  // 每次配置文件修改时缓存失效
+        }
+      };
+    } else {
+      // 开发环境也需要添加同样的resolve.fallback配置
+      config.resolve = {
+        ...config.resolve,
+        fallback: {
+          ...config.resolve?.fallback,
+          "path": require.resolve("path-browserify"),
+          "fs": false
         }
       };
     }

@@ -196,6 +196,14 @@ const routes = [
       title: '功能配置'
     }
   },
+  // 语音盒子自定义主题、表情
+  {
+    path: '/voice-box-custom',
+    name: 'VoiceBoxCustom',
+    component: function () {
+      return import('../views/VoiceBoxCustom.vue')
+    }
+  },
 ]
 const router = new VueRouter({
   base: process.env.VUE_APP_PUBLIC_PATH || '/',

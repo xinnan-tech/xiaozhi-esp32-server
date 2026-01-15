@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.step-indicator {
+  @apply flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium;
+}
+
+.step-indicator.active {
+  @apply bg-primary-500 text-white;
+}
+
+.step-indicator.completed {
+  @apply bg-green-500 text-white;
+}
+
+.step-indicator.inactive {
+  @apply bg-gray-200 text-gray-500;
+}
+
+.tab-button {
+  @apply px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors duration-200;
+}
+
+.tab-button.active {
+  @apply text-primary-600 border-primary-500 bg-white;
+}
+
+.tab-button.inactive {
+  @apply text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300;
+}

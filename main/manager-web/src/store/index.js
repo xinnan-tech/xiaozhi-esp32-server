@@ -3,6 +3,7 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 import Api from '../apis/api';
 import Constant from '../utils/constant';
+import deviceStatus from './deviceStatus';
 
 Vue.use(Vuex)
 
@@ -83,5 +84,6 @@ export default new Vuex.Store({
     }
   },
   modules: {
+    deviceStatus
   }
 })
