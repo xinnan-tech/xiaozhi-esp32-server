@@ -15,7 +15,7 @@
 }
 
 .step-indicator.inactive {
-  @apply bg-gray-200 text-gray-500;
+  @apply bg-white text-gray-500;
 }
 
 .tab-button {

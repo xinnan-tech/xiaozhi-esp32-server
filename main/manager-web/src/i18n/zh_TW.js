@@ -448,6 +448,7 @@ export default {
   'device.bindWithCode': '6位驗證碼綁定',
   'device.manualAdd': '手動添加',
   'device.unbind': '解綁',
+  'device.deviceThemeGeneration': '設備主題生成',
   'device.toolCall': '工具調用',
   'device.selectAtLeastOne': '請至少選擇一條記錄',
   'device.confirmBatchUnbind': '確認要解綁選中的 {count} 台設備嗎？',

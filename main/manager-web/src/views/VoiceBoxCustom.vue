@@ -1,7 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen voice-box">
+  <HeaderBar />
     <!-- Header -->
-      <header class="bg-white shadow-sm border-b">
+      <!-- <header class="bg-white shadow-sm border-b">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
             <h1 class="text-2xl font-bold text-gray-900">{{ $t('header.title') }}</h1>
@@ -10,10 +11,10 @@
             </div>
           </div>
         </div>
-      </header>
+      </header> -->
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
       <div>
     <!-- 配置状态提示（右下角浮动通知） -->
     <div
@@ -59,12 +60,12 @@
           </div>
           <span class="text-sm mt-2 text-gray-600">{{ step.titleKey }}</span>
         </div>
-        <div v-if="index < steps.length - 1" class="w-16 h-0.5 bg-gray-300 mx-4"></div>
+        <div v-if="index < steps.length - 1" class="w-16 h-0.5 bg-white mx-4"></div>
       </div>
     </div>
 
     <!-- Step Content -->
-    <div class="bg-white rounded-lg shadow-sm border p-6">
+    <div class="bg-white rounded-lg p-6">
       <ChipConfig 
         v-if="currentStep === 0"
         v-model="config.chip"
@@ -106,6 +107,7 @@
   </div>
 </template>
 <script>
+import HeaderBar from "@/components/HeaderBar.vue";
 import ChipConfig from '@/components/ChipConfig.vue'
 import DeviceStatus from '@/components/DeviceStatus.vue'
 
@@ -119,6 +121,7 @@ import WebSocketTransfer from '@/utils/WebSocketTransfer.js'
 export default {
   name: "VoiceBoxCustom",
   components: {
+    HeaderBar,
     ChipConfig,
     DeviceStatus,
     ThemeDesign,
@@ -621,3 +624,9 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.voice-box {
+  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+}
+</style>

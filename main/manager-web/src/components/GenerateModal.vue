@@ -14,7 +14,7 @@
           </svg>
         </button>
         <!-- 烧录中提示 -->
-        <div v-else class="text-sm text-orange-600 font-medium">
+        <div v-else class="text-sm text-red-50 font-medium">
           {{ $t('generateModal.flashingInProgress') }}
         </div>
       </div>
@@ -150,8 +150,8 @@
                 {{ $t('generateModal.downloadAssets') }}
               </span>
             </el-button>
-
-            <el-button
+            <!-- 注释在线烧录设备功能 -->
+            <!-- <el-button
               @click="startOnlineFlash"
               :disabled="!deviceOnline"
               class="w-full"
@@ -163,7 +163,7 @@
                 </svg>
                 {{ $t('generateModal.flashToDevice') }}
               </span>
-            </el-button>
+            </el-button> -->
           </div>
         </div>
 

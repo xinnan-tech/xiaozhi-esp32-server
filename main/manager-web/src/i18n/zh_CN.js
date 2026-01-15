@@ -448,6 +448,7 @@ export default {
   'device.bindWithCode': '6位验证码绑定',
   'device.manualAdd': '手动添加',
   'device.unbind': '解绑',
+  'device.deviceThemeGeneration': '设备主题生成',
   'device.toolCall': '工具调用',
   'device.selectAtLeastOne': '请至少选择一条记录',
   'device.confirmBatchUnbind': '确认要解绑选中的 {count} 台设备吗？',

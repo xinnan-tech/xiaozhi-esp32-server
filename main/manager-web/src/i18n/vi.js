@@ -448,6 +448,7 @@ export default {
   'device.bindWithCode': 'Liên kết bằng mã xác minh 6 chữ số',
   'device.manualAdd': 'Thêm thủ công',
   'device.unbind': 'Hủy liên kết',
+  'device.deviceThemeGeneration': 'Tạo chủ đề thiết bị',
   'device.toolCall': 'Gọi công cụ',
   'device.selectAtLeastOne': 'Vui lòng chọn ít nhất một bản ghi',
   'device.confirmBatchUnbind': 'Bạn có chắc chắn muốn hủy liên kết {count} thiết bị đã chọn?',

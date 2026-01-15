@@ -7,7 +7,7 @@
 
     <!-- 表情类型选择 -->
     <div class="space-y-4">
-      <div class="flex flex-wrap gap-3">
+      <div class="flex flex-wrap justify-center gap-3">
         <button
           @click="setEmojiType('none')"
           :class="[

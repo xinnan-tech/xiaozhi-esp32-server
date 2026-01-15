@@ -448,6 +448,7 @@ export default {
   'device.bindWithCode': '6-digit Verification Code Binding',
   'device.manualAdd': 'Manual Add',
   'device.unbind': 'Unbind',
+  'device.deviceThemeGeneration': 'Device theme generation',
   'device.toolCall': 'Tool Call',
   'device.selectAtLeastOne': 'Please select at least one record',
   'device.confirmBatchUnbind': 'Are you sure you want to unbind {count} selected devices?',

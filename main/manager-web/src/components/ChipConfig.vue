@@ -77,7 +77,7 @@
         
         <!-- 使用可复用的配置表单 -->
         <div v-if="showManualEdit" class="mt-4">
-          <ConfigForm :config="customConfig" /></div>
+          <ConfigForm :config="customConfig" @updateConfig="updateConfig" /></div>
       </div>
     </div>
 
@@ -99,9 +99,9 @@
       </div>
 
       <!-- 手动配置表单 -->
-      <div class="border-2 border-gray-300 rounded-lg p-4">
+      <div class="border border-gray-300 rounded-lg p-4">
         <h3 class="text-lg font-medium text-gray-900 mb-4">{{ $t('chipConfig.manualConfigTitle') }}</h3>
-        <ConfigForm :config="customConfig" :show-required="true" />
+        <ConfigForm :config="customConfig" :show-required="true" @updateConfig="updateConfig" />
       </div>
     </div>
 
@@ -127,6 +127,7 @@ const ConfigForm = {
       default: false
     }
   },
+  emits: ["updateConfig"],
   render() {
     return h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-4' }, [
       // 芯片型号选择
@@ -135,14 +136,18 @@ const ConfigForm = {
           this.$t('chipConfig.chipRequired') + ' ',
           this.showRequired ? h('span', { class: 'text-red-500' }, '*') : ''
         ]),
-        h('select', {
-          class: 'w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-          value: this.config.model,
+        h('el-select', {
+          class: 'w-full',
+          props: {
+            value: this.config.model,
+          },
           on: {
-            change: (e) => { this.config.model = e.target.value }
+            change: (value) => {
+              this.$emit('updateConfig', { model: value })
+            }
           }
         }, this.$parent.CHIP_OPTIONS.map(option =>
-          h('option', { attrs: { value: option.value }, key: option.value }, option.label)
+          h('el-option', { attrs: { value: option.value, label: option.label }, key: option.value }, option.label)
         ))
       ]),
 
@@ -152,19 +157,22 @@ const ConfigForm = {
           this.$t('chipConfig.widthRequired') + ' ',
           this.showRequired ? h('span', { class: 'text-red-500' }, '*') : ''
         ]),
-        h('input', {
-          class: 'w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+        h('el-input-number', {
+          class: 'w-full',
           attrs: {
             type: 'number',
             min: 128,
             max: 800,
             placeholder: '320',
           },
-          domProps: {
+          props: {
             value: this.config.display.width,
+            "controls-position": "right",
           },
           on: {
-            input: (e) => { this.config.display.width = Number(e.target.value) }
+            input: (value) => {
+              this.$emit('updateConfig', { display: { ...this.config.display, width: value } })
+            }
           }
         })
       ]),
@@ -175,19 +183,22 @@ const ConfigForm = {
           this.$t('chipConfig.heightRequired') + ' ',
           this.showRequired ? h('span', { class: 'text-red-500' }, '*') : ''
         ]),
-        h('input', {
-          class: 'w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+        h('el-input-number', {
+          class: 'w-full',
           attrs: {
             type: 'number',
             min: 128,
             max: 600,
             placeholder: '240',
           },
-          domProps: {
+          props: {
             value: this.config.display.height,
+            "controls-position": "right",
           },
           on: {
-            input: (e) => { this.config.display.height = Number(e.target.value) }
+            input: (value) => {
+              this.$emit('updateConfig', { display: { ...this.config.display, height: value } })
+            }
           }
         })
       ])
@@ -461,6 +472,10 @@ export default {
         this.isLoadingConfig = false
         return false
       }
+    },
+    // 更新自定义配置
+    updateConfig(obj) {
+      this.customConfig = { ...this.customConfig, ...obj };
     },
     
     // 切换手动编辑

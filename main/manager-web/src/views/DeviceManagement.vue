@@ -64,6 +64,9 @@
                   <el-button size="mini" type="text" @click="handleUnbind(scope.row.device_id)">
                     {{ $t('device.unbind') }}
                   </el-button>
+                  <el-button v-if="canGenerate(scope.row)" size="mini" type="text" @click="handleGenertor">
+                    {{ $t('device.deviceThemeGeneration') }}
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -334,6 +337,9 @@ export default {
         });
       });
     },
+    handleGenertor() {
+      this.$router.push('/voice-box-custom')
+    },
     goFirst() {
       this.currentPage = 1;
     },
@@ -466,6 +472,11 @@ export default {
         row.otaSwitch = !row.otaSwitch
         this.$message.error(msg || this.$t('message.error'))
       })
+    },
+    // 判断是否可以生成表情、主题、字体bin文件
+    canGenerate(row) {
+      const version = row.firmwareVersion.replace(/\./g, '');
+      return Number(version) >= 200;
     },
   }
 };

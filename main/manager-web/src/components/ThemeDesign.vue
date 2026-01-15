@@ -53,18 +53,18 @@
 
     <!-- Navigation Buttons -->
     <div class="flex justify-between">
-      <button 
+      <el-button 
         @click="$emit('prev')"
-        class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+        type="info"
       >
         {{ $t('themeDesign.previous') }}
-      </button>
-      <button 
+      </el-button>
+      <el-button 
         @click="handleNext"
-        class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+        type="primary"
       >
         {{ $t('themeDesign.next') }}
-      </button>
+      </el-button>
     </div>
   </div>
 </template>
@@ -75,21 +75,17 @@ import FontConfig from './tabs/FontConfig.vue'
 import EmojiConfig from './tabs/EmojiConfig.vue'
 import BackgroundConfig from './tabs/BackgroundConfig.vue'
 
-// Icons (simple SVG components)
 // 麦克风图标
 const MicrophoneIcon = {
-  render(h) { // 接收 h 函数（createElement）作为参数
+  render(h) {
     return h('svg', {
-      // SVG 基础属性（放在 attrs 中）
       attrs: {
         fill: 'none',
         stroke: 'currentColor',
         viewBox: '0 0 24 24'
       },
-      // 样式类名（可选，也可在使用时传递）
       class: 'w-5 h-5'
     }, [
-      // 子节点：path 标签
       h('path', {
         attrs: {
           'stroke-linecap': 'round',

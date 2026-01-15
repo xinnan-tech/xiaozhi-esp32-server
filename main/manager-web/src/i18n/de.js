@@ -448,6 +448,7 @@ export default {
   'device.bindWithCode': '6-stelliger Bestätigungscode-Bindung',
   'device.manualAdd': 'Manuell hinzufügen',
   'device.unbind': 'Bindung aufheben',
+  'device.deviceThemeGeneration': 'Gerätethema erstellen',
   'device.toolCall': 'Werkzeugaufruf',
   'device.selectAtLeastOne': 'Bitte wählen Sie mindestens einen Datensatz aus',
   'device.confirmBatchUnbind': 'Sind Sie sicher, dass Sie {count} ausgewählte Geräte entbinden möchten?',
