@@ -460,6 +460,17 @@ ws://你电脑局域网的ip:8000/xiaozhi/v1/
 
 2、 [基于虾哥编译好的固件配置自定义服务器](firmware-setting.md)了。
 
+# 方式三：一键包部署全模块
+一键包作者[@VanillaNahida](https://github.com/VanillaNahida)  
+  > [!TIP]
+  >
+  > 该方法仅支持Windows，Linux请使用方法一的一键脚本进行部署。
+
+请从[此处](https://pan.quark.cn/s/df8836579369)下载一键包  
+下载好后将其解压到非中文路径解压。  
+解压完成后，双击运行 `![一键启动全模块服务端.bat`，一键包会自动初始化并启动。  
+视频教程：[https://www.bilibili.com/video/BV1cUSmBfEu9](https://www.bilibili.com/video/BV1cUSmBfEu9) 
+
 # 常见问题
 以下是一些常见问题，供参考：
 
