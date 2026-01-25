@@ -202,6 +202,9 @@ prompt: |
 # 默认系统提示词模板文件
 prompt_template: agent-base-prompt.txt
 
+# 系统错误时的回复
+system_error_response: "主人，小智现在有点忙，我们稍后再试吧。"
+
 # 结束语prompt
 end_prompt:
   enable: true # 是否开启结束语

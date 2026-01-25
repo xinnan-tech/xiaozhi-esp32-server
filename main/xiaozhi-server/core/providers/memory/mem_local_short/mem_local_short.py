@@ -162,19 +162,19 @@ class MemoryProvider(MemoryProviderBase):
         msgStr += f"当前时间：{time_str}"
 
         if self.save_to_file:
-            result = self.llm.response_no_stream(
-                short_term_memory_prompt,
-                msgStr,
-                max_tokens=2000,
-                temperature=0.2,
-            )
-            json_str = extract_json_data(result)
             try:
+                result = self.llm.response_no_stream(
+                    short_term_memory_prompt,
+                    msgStr,
+                    max_tokens=2000,
+                    temperature=0.2,
+                )
+                json_str = extract_json_data(result)
                 json.loads(json_str)  # 检查json格式是否正确
                 self.short_memory = json_str
                 self.save_memory_to_file()
             except Exception as e:
-                print("Error:", e)
+                logger.bind(tag=TAG).error(f"Error in saving memory: {e}")
         else:
             # 当save_to_file为False时，调用Java端的聊天记录总结接口
             summary_id = session_id if session_id else self.role_id

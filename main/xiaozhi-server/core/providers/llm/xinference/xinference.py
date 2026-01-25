@@ -31,68 +31,55 @@ class LLMProvider(LLMProviderBase):
             raise
 
     def response(self, session_id, dialogue, **kwargs):
-        try:
-            logger.bind(tag=TAG).debug(
-                f"Sending request to Xinference with model: {self.model_name}, dialogue length: {len(dialogue)}"
-            )
-            responses = self.client.chat.completions.create(
-                model=self.model_name, messages=dialogue, stream=True
-            )
-            is_active = True
-            for chunk in responses:
-                try:
-                    delta = (
-                        chunk.choices[0].delta
-                        if getattr(chunk, "choices", None)
-                        else None
-                    )
-                    content = delta.content if hasattr(delta, "content") else ""
-                    if content:
-                        if "<think>" in content:
-                            is_active = False
-                            content = content.split("<think>")[0]
-                        if "</think>" in content:
-                            is_active = True
-                            content = content.split("</think>")[-1]
-                        if is_active:
-                            yield content
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"Error processing chunk: {e}")
-
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Xinference response generation: {e}")
-            yield "【Xinference服务响应异常】"
+        logger.bind(tag=TAG).debug(
+            f"Sending request to Xinference with model: {self.model_name}, dialogue length: {len(dialogue)}"
+        )
+        responses = self.client.chat.completions.create(
+            model=self.model_name, messages=dialogue, stream=True
+        )
+        is_active = True
+        for chunk in responses:
+            try:
+                delta = (
+                    chunk.choices[0].delta
+                    if getattr(chunk, "choices", None)
+                    else None
+                )
+                content = delta.content if hasattr(delta, "content") else ""
+                if content:
+                    if "<think>" in content:
+                        is_active = False
+                        content = content.split("<think>")[0]
+                    if "</think>" in content:
+                        is_active = True
+                        content = content.split("</think>")[-1]
+                    if is_active:
+                        yield content
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"Error processing chunk: {e}")
 
     def response_with_functions(self, session_id, dialogue, functions=None):
-        try:
+        logger.bind(tag=TAG).debug(
+            f"Sending function call request to Xinference with model: {self.model_name}, dialogue length: {len(dialogue)}"
+        )
+        if functions:
             logger.bind(tag=TAG).debug(
-                f"Sending function call request to Xinference with model: {self.model_name}, dialogue length: {len(dialogue)}"
-            )
-            if functions:
-                logger.bind(tag=TAG).debug(
-                    f"Function calls enabled with: {[f.get('function', {}).get('name') for f in functions]}"
-                )
-
-            stream = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=dialogue,
-                stream=True,
-                tools=functions,
+                f"Function calls enabled with: {[f.get('function', {}).get('name') for f in functions]}"
             )
 
-            for chunk in stream:
-                delta = chunk.choices[0].delta
-                content = delta.content
-                tool_calls = delta.tool_calls
+        stream = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=dialogue,
+            stream=True,
+            tools=functions,
+        )
 
-                if content:
-                    yield content, tool_calls
-                elif tool_calls:
-                    yield None, tool_calls
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            content = delta.content
+            tool_calls = delta.tool_calls
 
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Xinference function call: {e}")
-            yield {
-                "type": "content",
-                "content": f"【Xinference服务响应异常: {str(e)}】",
-            }
+            if content:
+                yield content, tool_calls
+            elif tool_calls:
+                yield None, tool_calls

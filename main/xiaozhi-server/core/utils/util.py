@@ -573,3 +573,14 @@ def validate_mcp_endpoint(mcp_endpoint: str) -> bool:
         return False
 
     return True
+
+def get_system_error_response(config: dict) -> str:
+    """获取系统错误时的回复
+
+    Args:
+        config: 配置字典
+
+    Returns:
+        str: 系统错误时的回复
+    """
+    return config.get("system_error_response", "主人，小智现在有点忙，我们稍后再试吧。")
