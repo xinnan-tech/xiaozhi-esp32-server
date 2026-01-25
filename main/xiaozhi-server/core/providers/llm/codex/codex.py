@@ -1,8 +1,10 @@
 import json
 import os
 import queue
+import re
 import subprocess
 import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -11,6 +13,11 @@ from core.providers.llm.base import LLMProviderBase
 
 TAG = __name__
 logger = setup_logging()
+
+
+def _ts() -> str:
+    """ISO timestamp with timezone, milliseconds."""
+    return datetime.now().astimezone().isoformat(timespec="milliseconds")
 
 
 def _send(proc: subprocess.Popen, obj: Dict) -> None:
@@ -176,6 +183,12 @@ def _format_action_desc(item: Dict) -> str:
     return desc
 
 
+def _safe_filename(s: str) -> str:
+    s = str(s or "session")
+    s = re.sub(r"[^a-zA-Z0-9._-]+", "_", s)
+    return s[:120] if len(s) > 120 else s
+
+
 class _CodexSession:
     def __init__(self, config: Dict, session_key: str) -> None:
         self.session_key = session_key
@@ -199,6 +212,22 @@ class _CodexSession:
         self.thinking_mode = (config.get("thinking_mode") or "off").lower()
         self.show_actions = bool(config.get("show_actions", False))
 
+        # ---- Stream logging toggles ----
+        # log_stream: enables writing stream output to file + end-of-turn info log
+        self.log_stream = bool(config.get("log_stream", True))
+        # stream_debug: enables per-token debug logs (config-only gate)
+        self.stream_debug = bool(config.get("stream_debug", False))
+        # log_events: also write emitted event dicts (thinking/action) into SAME log file
+        self.log_events = bool(config.get("log_events", True))
+        # event_max_chars: truncate long event JSON payloads (0 = no truncation)
+        self.event_max_chars = int(config.get("event_max_chars", 8000))
+
+        default_stream_log_path = str(
+            Path(self.workspace) / f"codex_stream_{_safe_filename(session_key)}.log"
+        )
+        self.stream_log_path = config.get("stream_log_path", default_stream_log_path)
+        self._stream_flush_bytes = int(config.get("stream_flush_bytes", 4096))
+
         self.proc: Optional[subprocess.Popen] = None
         self.q: Optional[queue.Queue] = None
         self.thread_id: Optional[str] = None
@@ -213,6 +242,17 @@ class _CodexSession:
         rid = self._req_id
         self._req_id += 1
         return rid
+
+    def _append_stream_log(self, text: str) -> None:
+        """Append to per-session stream log file (best-effort)."""
+        if not self.log_stream or not self.stream_log_path or not text:
+            return
+        try:
+            Path(self.stream_log_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(self.stream_log_path, "a", encoding="utf-8") as f:
+                f.write(text)
+        except Exception as exc:
+            logger.bind(tag=TAG).warning(f"codex stream log write failed: {exc}")
 
     def _pump_stderr(self) -> None:
         if not self.proc or not self.proc.stderr:
@@ -386,6 +426,7 @@ class _CodexSession:
 
     def _stream_turn(self, prompt_text: str, emit_events: bool, **kwargs):
         self.start()
+
         turn_params = {
             "threadId": self.thread_id,
             "input": [{"type": "text", "text": prompt_text}],
@@ -414,9 +455,59 @@ class _CodexSession:
         turn_id = str(result["turn"]["id"])
         self._active_turn_id = turn_id
 
+        # Turn logger
+        tlog = logger.bind(
+            tag=TAG,
+            session_key=self.session_key,
+            thread_id=self.thread_id,
+            turn_id=turn_id,
+        )
+
+        # ---- file buffering (assistant text + event lines) ----
+        file_buf = ""
+
+        def file_append(s: str) -> None:
+            nonlocal file_buf
+            if not self.log_stream or not s:
+                return
+            file_buf += s
+            if len(file_buf.encode("utf-8", errors="ignore")) >= self._stream_flush_bytes:
+                self._append_stream_log(file_buf)
+                file_buf = ""
+
+        def file_flush() -> None:
+            nonlocal file_buf
+            if file_buf:
+                self._append_stream_log(file_buf)
+                file_buf = ""
+
+        def file_event(event_obj: Dict) -> None:
+            """
+            Write an event line into the SAME log file, with timestamp.
+            We log the *emitted* event dicts (thinking/action), not every raw app-server message.
+            """
+            if not (self.log_stream and self.log_events):
+                return
+
+            try:
+                payload = json.dumps(event_obj, ensure_ascii=False)
+            except Exception:
+                payload = str(event_obj)
+
+            if self.event_max_chars and len(payload) > self.event_max_chars:
+                payload = payload[: self.event_max_chars] + " ..."
+
+            # Ensure event starts on a new line and ends with newline.
+            file_append(f"\n[{_ts()}] [EVENT] {payload}\n")
+
+        # Log turn start
+        if self.log_stream:
+            file_append(f"[{_ts()}] [TURN_START] session={self.session_key} thread={self.thread_id} turn={turn_id}\n")
+
         saw_tokens = False
         final_text = None
         thinking_buffer = ""
+        out_buffer = ""
 
         try:
             while True:
@@ -431,25 +522,43 @@ class _CodexSession:
                 method = msg.get("method")
                 params = msg.get("params", {}) or {}
 
+                # --- assistant text stream ---
                 if method == "item/agentMessage/delta":
                     delta = params.get("delta", "")
                     if delta:
                         saw_tokens = True
+                        out_buffer += delta
+
+                        # write assistant text as-is to the log file (streaming)
+                        if self.log_stream:
+                            file_append(delta)
+
+                        # per-token debug (config-only gate)
+                        if self.log_stream and self.stream_debug:
+                            tlog.debug("codex_stream_delta", delta=_short(delta, 400))
+
                         yield delta
 
+                # --- emitted events (thinking/action) ---
                 if emit_events and self.thinking_mode != "off":
-                    if (
-                        self.thinking_mode == "summary"
-                        and method == "item/reasoning/summaryTextDelta"
-                    ):
+                    if self.thinking_mode == "summary" and method == "item/reasoning/summaryTextDelta":
                         delta = params.get("delta", "")
                         if delta:
                             thinking_buffer += delta
+                            evt = {"kind": "thinking", "mode": "summary", "delta": delta, "turn_id": turn_id}
+                            file_event(evt)
+                            if self.log_stream and self.stream_debug:
+                                tlog.debug("codex_thinking_summary_delta", delta=_short(delta, 400))
                             yield {"kind": "thinking", "text": thinking_buffer}
+
                     if self.thinking_mode == "raw" and method == "item/reasoning/textDelta":
                         delta = params.get("delta", "")
                         if delta:
                             thinking_buffer += delta
+                            evt = {"kind": "thinking", "mode": "raw", "delta": delta, "turn_id": turn_id}
+                            file_event(evt)
+                            if self.log_stream and self.stream_debug:
+                                tlog.debug("codex_thinking_raw_delta", delta=_short(delta, 400))
                             yield {"kind": "thinking", "text": thinking_buffer}
 
                 if emit_events and self.show_actions and method in ("item/started", "item/completed"):
@@ -457,12 +566,16 @@ class _CodexSession:
                     item_type = item.get("type")
                     if item_type not in ("userMessage", "reasoning", "agentMessage"):
                         phase = "start" if method == "item/started" else "done"
-                        yield {
-                            "kind": "action",
-                            "text": _format_action_desc(item),
-                            "phase": phase,
-                        }
+                        desc = _format_action_desc(item)
+                        evt = {"kind": "action", "phase": phase, "text": desc, "turn_id": turn_id}
+                        file_event(evt)
 
+                        if self.log_stream:
+                            tlog.info("codex_action", phase=phase, action=desc)
+
+                        yield {"kind": "action", "text": desc, "phase": phase}
+
+                # --- final text fallback ---
                 if method == "item/completed":
                     item = params.get("item", {}) or {}
                     if item.get("type") == "agentMessage":
@@ -471,10 +584,29 @@ class _CodexSession:
                 if method == "turn/completed":
                     break
 
+            # fallback if the server didn't stream deltas but gave final text
             if not saw_tokens and final_text:
+                out_buffer += final_text
+                if self.log_stream:
+                    file_append(final_text)
                 yield final_text
+
         finally:
             self._active_turn_id = None
+
+            # Log turn end
+            if self.log_stream:
+                file_append(f"\n[{_ts()}] [TURN_END] chars={len(out_buffer)}\n\n--- turn_end ---\n\n")
+
+            file_flush()
+
+            if self.log_stream:
+                tlog.info(
+                    "codex_stream_turn_completed",
+                    chars=len(out_buffer),
+                    preview=_short(out_buffer, 2000),
+                    stream_log_path=self.stream_log_path,
+                )
 
     def stream_response(self, dialogue: List[Dict], **kwargs):
         with self._lock:

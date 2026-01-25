@@ -10,14 +10,12 @@ import threading
 import traceback
 import subprocess
 import websockets
-import math
 
 from core.utils.util import (
     extract_json_from_string,
     check_vad_update,
     check_asr_update,
     filter_sensitive_info,
-    pcm_to_data_stream,
 )
 from typing import Dict, Any
 from collections import deque
@@ -143,11 +141,6 @@ class ConnectionHandler:
         self.sentence_id = None
         # 处理TTS响应没有文本返回
         self.tts_MessageText = ""
-        self._silent_opus_cache = {}
-        self._status_event_state = {
-            "thinking": {"last_time": 0.0, "last_len": 0, "last_text": ""},
-            "action": {"last_time": 0.0, "last_len": 0, "last_text": ""},
-        }
 
         # iot相关变量
         self.iot_descriptors = {}
@@ -795,52 +788,6 @@ class ConnectionHandler:
         # 更新系统prompt至上下文
         self.dialogue.update_system_message(self.prompt)
 
-    def _get_silent_opus_frames(self, duration_ms):
-        frame_ms = 60
-        duration_ms = max(frame_ms, int(duration_ms))
-        frame_count = int(math.ceil(duration_ms / frame_ms))
-        cached = self._silent_opus_cache.get(frame_count)
-        if cached is not None:
-            return cached
-        raw_len = frame_count * 960 * 2
-        raw_data = b"\x00" * raw_len
-        frames = []
-        pcm_to_data_stream(raw_data, is_opus=True, callback=frames.append)
-        self._silent_opus_cache[frame_count] = frames
-        return frames
-
-    def _maybe_send_silent_status(self, kind, text, phase=None):
-        if not text or self.tts is None:
-            return
-        state = self._status_event_state.get(kind)
-        if state is None:
-            return
-        now = time.time()
-        min_interval = int(self.config.get("silent_status_interval_ms", 400)) / 1000.0
-        min_chars = int(self.config.get("silent_status_min_chars", 40))
-
-        if kind != "action":
-            if (
-                len(text) - state["last_len"] < min_chars
-                and now - state["last_time"] < min_interval
-            ):
-                return
-
-        display_text = text
-        if kind == "action" and phase:
-            display_text = f"{phase}: {text}"
-
-        silent_ms = int(self.config.get("silent_tts_ms", 120))
-        frames = self._get_silent_opus_frames(silent_ms)
-        # ensure a fresh start/stop pair for each status update
-        self.tts.tts_audio_first_sentence = True
-        self.tts.tts_audio_queue.put((SentenceType.FIRST, frames, display_text))
-        self.tts.tts_audio_queue.put((SentenceType.LAST, [], None))
-
-        state["last_time"] = now
-        state["last_len"] = len(text)
-        state["last_text"] = text
-
     def chat(self, query, depth=0):
         if query is not None:
             self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
@@ -925,15 +872,6 @@ class ConnectionHandler:
         for response in llm_responses:
             if self.client_abort:
                 break
-            if isinstance(response, dict) and response.get("kind"):
-                event_kind = response.get("kind")
-                if event_kind in ("thinking", "action"):
-                    self._maybe_send_silent_status(
-                        event_kind,
-                        response.get("text", ""),
-                        response.get("phase"),
-                    )
-                continue
             if self.intent_type == "function_call" and functions is not None:
                 content, tools_call = response
                 if "content" in response:
