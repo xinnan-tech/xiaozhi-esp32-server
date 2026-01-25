@@ -156,6 +156,26 @@ def _build_tool_context(messages: List[Dict]) -> str:
     return "\n".join(lines)
 
 
+def _short(text: Optional[str], limit: int = 240) -> str:
+    if not text:
+        return ""
+    text = text.replace("\r\n", "\n")
+    return text if len(text) <= limit else text[:limit] + " ..."
+
+
+def _format_action_desc(item: Dict) -> str:
+    desc = item.get("type") or "item"
+    if "command" in item:
+        desc += f" cmd={_short(str(item['command']))}"
+    if "path" in item:
+        desc += f" path={_short(str(item['path']))}"
+    if "tool" in item:
+        desc += f" tool={_short(str(item['tool']))}"
+    if "name" in item:
+        desc += f" name={_short(str(item['name']))}"
+    return desc
+
+
 class _CodexSession:
     def __init__(self, config: Dict, session_key: str) -> None:
         self.session_key = session_key
@@ -175,6 +195,9 @@ class _CodexSession:
         self.export_api_key = bool(config.get("export_api_key", False))
         self.env_overrides = config.get("env", {}) or {}
         self.runtime_config = config.get("runtime_config", {}) or {}
+        self.emit_events = bool(config.get("emit_events", False))
+        self.thinking_mode = (config.get("thinking_mode") or "off").lower()
+        self.show_actions = bool(config.get("show_actions", False))
 
         self.proc: Optional[subprocess.Popen] = None
         self.q: Optional[queue.Queue] = None
@@ -272,6 +295,14 @@ class _CodexSession:
             except Exception as exc:
                 logger.bind(tag=TAG).warning(f"codex config write failed: {key} ({exc})")
 
+        if self.emit_events and self.thinking_mode != "off" and "hide_agent_reasoning" not in self.runtime_config:
+            try:
+                self._write_config("hide_agent_reasoning", False)
+            except Exception as exc:
+                logger.bind(tag=TAG).warning(
+                    f"codex config write failed: hide_agent_reasoning ({exc})"
+                )
+
         thread_params = {"model": self.model, "cwd": self.workspace, "sandbox": self.thread_sandbox}
         if self.approval_policy:
             thread_params["approvalPolicy"] = self.approval_policy
@@ -353,7 +384,7 @@ class _CodexSession:
 
         return last_user
 
-    def _stream_turn(self, prompt_text: str, **kwargs):
+    def _stream_turn(self, prompt_text: str, emit_events: bool, **kwargs):
         self.start()
         turn_params = {
             "threadId": self.thread_id,
@@ -385,6 +416,7 @@ class _CodexSession:
 
         saw_tokens = False
         final_text = None
+        thinking_buffer = ""
 
         try:
             while True:
@@ -405,6 +437,32 @@ class _CodexSession:
                         saw_tokens = True
                         yield delta
 
+                if emit_events and self.thinking_mode != "off":
+                    if (
+                        self.thinking_mode == "summary"
+                        and method == "item/reasoning/summaryTextDelta"
+                    ):
+                        delta = params.get("delta", "")
+                        if delta:
+                            thinking_buffer += delta
+                            yield {"kind": "thinking", "text": thinking_buffer}
+                    if self.thinking_mode == "raw" and method == "item/reasoning/textDelta":
+                        delta = params.get("delta", "")
+                        if delta:
+                            thinking_buffer += delta
+                            yield {"kind": "thinking", "text": thinking_buffer}
+
+                if emit_events and self.show_actions and method in ("item/started", "item/completed"):
+                    item = params.get("item", {}) or {}
+                    item_type = item.get("type")
+                    if item_type not in ("userMessage", "reasoning", "agentMessage"):
+                        phase = "start" if method == "item/started" else "done"
+                        yield {
+                            "kind": "action",
+                            "text": _format_action_desc(item),
+                            "phase": phase,
+                        }
+
                 if method == "item/completed":
                     item = params.get("item", {}) or {}
                     if item.get("type") == "agentMessage":
@@ -423,7 +481,10 @@ class _CodexSession:
             prompt_text = self._compose_prompt(dialogue)
             if not prompt_text:
                 return
-            for token in self._stream_turn(prompt_text, **kwargs):
+            emit_events = kwargs.pop("emit_events", self.emit_events)
+            for token in self._stream_turn(prompt_text, emit_events=emit_events, **kwargs):
+                if isinstance(token, dict) and not emit_events:
+                    continue
                 yield token
 
 
@@ -472,4 +533,7 @@ class LLMProvider(LLMProviderBase):
 
     def response_with_functions(self, session_id, dialogue, functions=None, **kwargs):
         for token in self.response(session_id, dialogue, **kwargs):
-            yield token, None
+            if isinstance(token, dict):
+                yield token
+            else:
+                yield token, None
