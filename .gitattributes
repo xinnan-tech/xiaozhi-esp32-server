@@ -1,0 +1,9 @@
+# Force text files to use LF line endings
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Explicitly mark these files as text
+main/xiaozhi-server/test/js/**/*.js text eol=lf
+main/xiaozhi-server/test/js/**/*.json text eol=lf
