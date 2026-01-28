@@ -96,7 +96,7 @@ class MCPClient:
                 self.call_results.pop(id)
 
 
-async def send_mcp_message(conn, payload: dict):
+async def send_mcp_message(conn, payload: dict, transport=None):
     """Helper to send MCP messages, encapsulating common logic."""
     if not conn.features.get("mcp"):
         logger.bind(tag=TAG).warning("客户端不支持MCP，无法发送MCP消息")
@@ -105,13 +105,23 @@ async def send_mcp_message(conn, payload: dict):
     message = json.dumps({"type": "mcp", "payload": payload})
 
     try:
-        await conn.websocket.send(message)
+        # 优先使用传入的transport，否则尝试从conn获取
+        if transport:
+            await transport.send(message)
+        elif hasattr(conn, 'websocket'):
+            # 兼容旧版本
+            await conn.websocket.send(message)
+        elif hasattr(conn, 'transport'):
+            # 新架构
+            await conn.transport.send(message)
+        else:
+            raise AttributeError("无法找到可用的传输层接口")
         logger.bind(tag=TAG).debug(f"成功发送MCP消息: {message}")
     except Exception as e:
         logger.bind(tag=TAG).error(f"发送MCP消息失败: {e}")
 
 
-async def handle_mcp_message(conn, mcp_client: MCPClient, payload: dict):
+async def handle_mcp_message(conn, mcp_client: MCPClient, payload: dict, transport=None):
     """处理MCP消息,包括初始化、工具列表和工具调用响应等"""
     logger.bind(tag=TAG).debug(f"处理MCP消息: {str(payload)[:100]}")
 
@@ -201,7 +211,7 @@ async def handle_mcp_message(conn, mcp_client: MCPClient, payload: dict):
                 next_cursor = result.get("nextCursor", "")
                 if next_cursor:
                     logger.bind(tag=TAG).debug(f"有更多工具，nextCursor: {next_cursor}")
-                    await send_mcp_tools_list_continue_request(conn, next_cursor)
+                    await send_mcp_tools_list_continue_request(conn, next_cursor, transport)
                 else:
                     await mcp_client.set_ready(True)
                     logger.bind(tag=TAG).debug("所有工具已获取，MCP客户端准备就绪")
@@ -229,7 +239,7 @@ async def handle_mcp_message(conn, mcp_client: MCPClient, payload: dict):
             )
 
 
-async def send_mcp_initialize_message(conn):
+async def send_mcp_initialize_message(conn, transport=None):
     """发送MCP初始化消息"""
 
     vision_url = get_vision_url(conn.config)
@@ -261,10 +271,10 @@ async def send_mcp_initialize_message(conn):
         },
     }
     logger.bind(tag=TAG).debug("发送MCP初始化消息")
-    await send_mcp_message(conn, payload)
+    await send_mcp_message(conn, payload, transport)
 
 
-async def send_mcp_tools_list_request(conn):
+async def send_mcp_tools_list_request(conn, transport=None):
     """发送MCP工具列表请求"""
     payload = {
         "jsonrpc": "2.0",
@@ -272,10 +282,10 @@ async def send_mcp_tools_list_request(conn):
         "method": "tools/list",
     }
     logger.bind(tag=TAG).debug("发送MCP工具列表请求")
-    await send_mcp_message(conn, payload)
+    await send_mcp_message(conn, payload, transport)
 
 
-async def send_mcp_tools_list_continue_request(conn, cursor: str):
+async def send_mcp_tools_list_continue_request(conn, cursor: str, transport=None):
     """发送带有cursor的MCP工具列表请求"""
     payload = {
         "jsonrpc": "2.0",
@@ -284,7 +294,7 @@ async def send_mcp_tools_list_continue_request(conn, cursor: str):
         "params": {"cursor": cursor},
     }
     logger.bind(tag=TAG).info(f"发送带cursor的MCP工具列表请求: {cursor}")
-    await send_mcp_message(conn, payload)
+    await send_mcp_message(conn, payload, transport)
 
 
 async def call_mcp_tool(
