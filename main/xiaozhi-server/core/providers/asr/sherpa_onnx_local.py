@@ -124,12 +124,11 @@ class ASRProvider(ASRProviderBase):
         return True
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """语音转文本主处理逻辑"""
         file_path = None
         try:
-            artifacts = self.get_current_artifacts()
             if artifacts is None:
                 return "", None
             file_path = artifacts.file_path

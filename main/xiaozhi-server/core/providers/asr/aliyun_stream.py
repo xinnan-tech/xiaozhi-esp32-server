@@ -341,7 +341,7 @@ class ASRProvider(ASRProviderBase):
 
         logger.bind(tag=TAG).debug("ASR会话清理完成")
 
-    async def speech_to_text(self, opus_data, session_id, audio_format):
+    async def speech_to_text(self, opus_data, session_id, audio_format, artifacts=None):
         """获取识别结果"""
         result = self.text
         self.text = ""

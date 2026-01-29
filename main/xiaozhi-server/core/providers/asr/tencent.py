@@ -32,7 +32,7 @@ class ASRProvider(ASRProviderBase):
         os.makedirs(self.output_dir, exist_ok=True)
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         if not opus_data:
@@ -45,7 +45,6 @@ class ASRProvider(ASRProviderBase):
                 logger.bind(tag=TAG).error("腾讯云语音识别配置未设置，无法进行识别")
                 return None, None
 
-            artifacts = self.get_current_artifacts()
             if artifacts is None:
                 return "", None
 

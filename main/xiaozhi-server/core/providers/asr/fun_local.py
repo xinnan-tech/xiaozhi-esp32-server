@@ -64,14 +64,13 @@ class ASRProvider(ASRProviderBase):
             )
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """语音转文本主处理逻辑"""
         retry_count = 0
         
         while retry_count < MAX_RETRIES:
             try:
-                artifacts = self.get_current_artifacts()
                 if artifacts is None:
                     return "", None
 

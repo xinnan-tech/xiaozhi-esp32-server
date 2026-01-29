@@ -44,7 +44,7 @@ class ASRProvider(ASRProviderBase):
             raise
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         try:
@@ -53,7 +53,6 @@ class ASRProvider(ASRProviderBase):
                 logger.bind(tag=TAG).error("VOSK模型未加载，无法进行识别")
                 return "", None
             
-            artifacts = self.get_current_artifacts()
             if artifacts is None:
                 return "", None
             if not artifacts.pcm_bytes:

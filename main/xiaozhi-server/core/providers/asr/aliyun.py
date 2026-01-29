@@ -213,7 +213,7 @@ class ASRProvider(ASRProviderBase):
             return None
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         if self._is_token_expired():
@@ -221,7 +221,6 @@ class ASRProvider(ASRProviderBase):
             self._refresh_token()
 
         try:
-            artifacts = self.get_current_artifacts()
             if artifacts is None:
                 return "", None
             # 发送请求并获取文本

@@ -408,7 +408,7 @@ class ASRProvider(ASRProviderBase):
             logger.bind(tag=TAG).error(f"原始响应数据: {res.hex()}")
             raise
 
-    async def speech_to_text(self, opus_data, session_id, audio_format):
+    async def speech_to_text(self, opus_data, session_id, audio_format, artifacts=None):
         result = self.text
         self.text = ""  # 清空text
         return result, None

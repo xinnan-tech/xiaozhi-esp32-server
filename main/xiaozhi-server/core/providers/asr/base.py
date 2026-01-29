@@ -25,8 +25,7 @@ logger = setup_logging()
 
 class ASRProviderBase(ABC):
     def __init__(self):
-        self._current_artifacts: Optional[ASRProviderBase.AudioArtifacts] = None
-        """当前正在处理的音频 artifact"""
+        pass
 
     # 打开音频通道
     async def open_audio_channels(self, conn):
@@ -215,9 +214,13 @@ class ASRProviderBase(ABC):
 
     class AudioArtifacts(NamedTuple):
         pcm_frames: List[bytes]
+        """PCM音频帧列表"""
         pcm_bytes: bytes
+        """合并后的PCM音频字节数据"""
         file_path: Optional[str]
+        """WAV文件路径"""
         temp_path: Optional[str]
+        """临时WAV文件路径"""
 
     def get_current_artifacts(self) -> Optional["ASRProviderBase.AudioArtifacts"]:
         return self._current_artifacts
@@ -282,14 +285,19 @@ class ASRProviderBase(ABC):
             ):
                 file_path = self.save_audio_to_file(pcm_data, session_id)
 
-            self._current_artifacts = ASRProviderBase.AudioArtifacts(
-                pcm_frames=pcm_data,
-                pcm_bytes=combined_pcm_data,
-                file_path=file_path,
-                temp_path=temp_path,
-            )
+            if len(combined_pcm_data) == 0:
+                artifacts = None
+            else:
+                artifacts = ASRProviderBase.AudioArtifacts(
+                    pcm_frames=pcm_data,
+                    pcm_bytes=combined_pcm_data,
+                    file_path=file_path,
+                    temp_path=temp_path,
+                )
 
-            text, _ = await self.speech_to_text(opus_data, session_id, audio_format)
+            text, _ = await self.speech_to_text(
+                opus_data, session_id, audio_format, artifacts
+            )
             return text, file_path
         except OSError as e:
             logger.bind(tag=TAG).error(f"文件操作错误: {e}")
@@ -313,9 +321,20 @@ class ASRProviderBase(ABC):
 
     @abstractmethod
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self,
+        opus_data: List[bytes],
+        session_id: str,
+        audio_format="opus",
+        artifacts: Optional[AudioArtifacts] = None,
     ) -> Tuple[Optional[str], Optional[str]]:
-        """将语音数据转换为文本"""
+        """将语音数据转换为文本
+
+        :param opus_data: 输入的Opus音频数据
+        :param session_id: 会话ID
+        :param audio_format: 音频格式，默认"opus"
+        :param artifacts: 音频工件，包含PCM数据、文件路径等
+        :return: 识别结果文本和文件路径（如果有）
+        """
         pass
 
     @staticmethod

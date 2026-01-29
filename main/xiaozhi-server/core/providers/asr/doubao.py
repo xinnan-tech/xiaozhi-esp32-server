@@ -232,12 +232,11 @@ class ASRProvider(ASRProviderBase):
             yield data[offset:data_len], True
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
 
         try:
-            artifacts = self.get_current_artifacts()
             if artifacts is None:
                 return "", None
 
