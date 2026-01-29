@@ -3,12 +3,16 @@
 import asyncio
 from config.logger import setup_logging
 from .iot_descriptor import IotDescriptor
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 logger = setup_logging()
 
 
-async def handleIotDescriptors(conn, descriptors):
+async def handleIotDescriptors(conn: "ConnectionHandler", descriptors):
     """处理物联网描述"""
     wait_max_time = 5
     while (
@@ -61,7 +65,7 @@ async def handleIotDescriptors(conn, descriptors):
         conn.func_handler.current_support_functions()
 
 
-async def handleIotStatus(conn, states):
+async def handleIotStatus(conn: "ConnectionHandler", states):
     """处理物联网状态"""
     for state in states:
         for key, value in conn.iot_descriptors.items():

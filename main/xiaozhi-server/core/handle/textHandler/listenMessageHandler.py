@@ -1,6 +1,9 @@
 import time
 import asyncio
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 from core.handle.receiveAudioHandle import startToChat
 from core.handle.reportHandle import enqueue_asr_report
@@ -19,7 +22,7 @@ class ListenTextMessageHandler(TextMessageHandler):
     def message_type(self) -> TextMessageType:
         return TextMessageType.LISTEN
 
-    async def handle(self, conn, msg_json: Dict[str, Any]) -> None:
+    async def handle(self, conn: "ConnectionHandler", msg_json: Dict[str, Any]) -> None:
         if "mode" in msg_json:
             conn.client_listen_mode = msg_json["mode"]
             conn.logger.bind(tag=TAG).debug(

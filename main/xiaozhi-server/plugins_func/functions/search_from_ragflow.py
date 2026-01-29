@@ -2,6 +2,10 @@ import requests
 import sys
 from config.logger import setup_logging
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 logger = setup_logging()
@@ -24,7 +28,7 @@ SEARCH_FROM_RAGFLOW_FUNCTION_DESC = {
 @register_function(
     "search_from_ragflow", SEARCH_FROM_RAGFLOW_FUNCTION_DESC, ToolType.SYSTEM_CTL
 )
-def search_from_ragflow(conn, question=None):
+def search_from_ragflow(conn: "ConnectionHandler", question=None):
     # 确保字符串参数正确处理编码
     if question and isinstance(question, str):
         # 确保问题参数是UTF-8编码的字符串

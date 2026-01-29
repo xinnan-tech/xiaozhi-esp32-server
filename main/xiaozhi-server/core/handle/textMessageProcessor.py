@@ -1,5 +1,8 @@
 import json
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 from core.handle.textMessageHandlerRegistry import TextMessageHandlerRegistry
 
 TAG = __name__
@@ -11,7 +14,7 @@ class TextMessageProcessor:
     def __init__(self, registry: TextMessageHandlerRegistry):
         self.registry = registry
 
-    async def process_message(self, conn, message: str) -> None:
+    async def process_message(self, conn: "ConnectionHandler", message: str) -> None:
         """处理消息的主入口"""
         try:
             # 解析JSON消息

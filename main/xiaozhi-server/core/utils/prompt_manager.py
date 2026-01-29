@@ -4,7 +4,10 @@
 """
 
 import os
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 from config.logger import setup_logging
 from jinja2 import Template
 
@@ -59,9 +62,10 @@ class PromptManager:
 
         self.cache_manager = cache_manager
         self.CacheType = CacheType
-        
+
         # 初始化上下文源
         from core.utils.context_provider import ContextDataProvider
+
         self.context_provider = ContextDataProvider(config, self.logger)
         self.context_data = {}
 
@@ -157,7 +161,7 @@ class PromptManager:
             self.logger.bind(tag=TAG).error(f"获取位置信息失败: {e}")
             return "未知位置"
 
-    def _get_weather_info(self, conn, location: str) -> str:
+    def _get_weather_info(self, conn: "ConnectionHandler", location: str) -> str:
         """获取天气信息"""
         try:
             # 先从缓存获取
@@ -203,14 +207,17 @@ class PromptManager:
             ):
                 # 获取天气信息（使用全局缓存）
                 self._get_weather_info(conn, local_address)
-            
+
             # 获取配置的上下文数据
             if hasattr(conn, "device_id") and conn.device_id:
-                if self.base_prompt_template and "dynamic_context" in self.base_prompt_template:
+                if (
+                    self.base_prompt_template
+                    and "dynamic_context" in self.base_prompt_template
+                ):
                     self.context_data = self.context_provider.fetch_all(conn.device_id)
                 else:
                     self.context_data = ""
-                
+
             self.logger.bind(tag=TAG).debug(f"上下文信息更新完成")
 
         except Exception as e:

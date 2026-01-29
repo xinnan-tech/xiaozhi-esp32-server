@@ -1,6 +1,10 @@
 import json
 import uuid
 import asyncio
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 from core.utils.dialogue import Message
 from core.providers.tts.dto.dto import ContentType
 from core.handle.helloHandle import checkWakeupWords
@@ -12,10 +16,10 @@ from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType
 TAG = __name__
 
 
-async def handle_user_intent(conn, text):
+async def handle_user_intent(conn: "ConnectionHandler", text):
     # 预处理输入文本，处理可能的JSON格式
     try:
-        if text.strip().startswith('{') and text.strip().endswith('}'):
+        if text.strip().startswith("{") and text.strip().endswith("}"):
             parsed_data = json.loads(text)
             if isinstance(parsed_data, dict) and "content" in parsed_data:
                 text = parsed_data["content"]  # 提取content用于意图分析
@@ -45,7 +49,7 @@ async def handle_user_intent(conn, text):
     return await process_intent_result(conn, intent_result, text)
 
 
-async def check_direct_exit(conn, text):
+async def check_direct_exit(conn: "ConnectionHandler", text):
     """检查是否有明确的退出命令"""
     _, text = remove_punctuation_and_length(text)
     cmd_exit = conn.cmd_exit
@@ -58,7 +62,7 @@ async def check_direct_exit(conn, text):
     return False
 
 
-async def analyze_intent_with_llm(conn, text):
+async def analyze_intent_with_llm(conn: "ConnectionHandler", text):
     """使用LLM分析用户意图"""
     if not hasattr(conn, "intent") or not conn.intent:
         conn.logger.bind(tag=TAG).warning("意图识别服务未初始化")
@@ -75,7 +79,9 @@ async def analyze_intent_with_llm(conn, text):
     return None
 
 
-async def process_intent_result(conn, intent_result, original_text):
+async def process_intent_result(
+    conn: "ConnectionHandler", intent_result, original_text
+):
     """处理意图识别结果"""
     try:
         # 尝试将结果解析为JSON
@@ -94,24 +100,26 @@ async def process_intent_result(conn, intent_result, original_text):
             if function_name == "result_for_context":
                 await send_stt_message(conn, original_text)
                 conn.client_abort = False
-                
+
                 def process_context_result():
                     conn.dialogue.put(Message(role="user", content=original_text))
-                    
+
                     from core.utils.current_time import get_current_time_info
 
-                    current_time, today_date, today_weekday, lunar_date = get_current_time_info()
-                    
+                    current_time, today_date, today_weekday, lunar_date = (
+                        get_current_time_info()
+                    )
+
                     # 构建带上下文的基础提示
                     context_prompt = f"""当前时间：{current_time}
                                         今天日期：{today_date} ({today_weekday})
                                         今天农历：{lunar_date}
 
                                         请根据以上信息回答用户的问题：{original_text}"""
-                    
+
                     response = conn.intent.replyResult(context_prompt, original_text)
                     speak_txt(conn, response)
-                
+
                 conn.executor.submit(process_context_result)
                 return True
 
@@ -188,7 +196,7 @@ async def process_intent_result(conn, intent_result, original_text):
         return False
 
 
-def speak_txt(conn, text):
+def speak_txt(conn: "ConnectionHandler", text):
     # 记录文本
     conn.tts_MessageText = text
 

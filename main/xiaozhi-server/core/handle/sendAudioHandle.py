@@ -1,6 +1,10 @@
 import json
 import time
 import asyncio
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 from core.utils import textUtils
 from core.utils.util import audio_to_data
 from core.providers.tts.dto.dto import SentenceType
@@ -13,7 +17,7 @@ AUDIO_FRAME_DURATION = 60
 PRE_BUFFER_COUNT = 5
 
 
-async def sendAudioMessage(conn, sentenceType, audios, text):
+async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text):
     if conn.tts.tts_audio_first_sentence:
         conn.logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
         conn.tts.tts_audio_first_sentence = False
@@ -47,7 +51,7 @@ async def sendAudioMessage(conn, sentenceType, audios, text):
             await conn.close()
 
 
-async def _wait_for_audio_completion(conn):
+async def _wait_for_audio_completion(conn: "ConnectionHandler"):
     """
     等待音频队列清空并等待预缓冲包播放完成
 
@@ -70,7 +74,9 @@ async def _wait_for_audio_completion(conn):
         conn.logger.bind(tag=TAG).debug("音频发送完成")
 
 
-async def _send_to_mqtt_gateway(conn, opus_packet, timestamp, sequence):
+async def _send_to_mqtt_gateway(
+    conn: "ConnectionHandler", opus_packet, timestamp, sequence
+):
     """
     发送带16字节头部的opus数据包给mqtt_gateway
     Args:
@@ -92,7 +98,9 @@ async def _send_to_mqtt_gateway(conn, opus_packet, timestamp, sequence):
     await conn.websocket.send(complete_packet)
 
 
-async def sendAudio(conn, audios, frame_duration=AUDIO_FRAME_DURATION):
+async def sendAudio(
+    conn: "ConnectionHandler", audios, frame_duration=AUDIO_FRAME_DURATION
+):
     """
     发送音频包，使用 AudioRateController 进行精确的流量控制
 
@@ -121,7 +129,9 @@ async def sendAudio(conn, audios, frame_duration=AUDIO_FRAME_DURATION):
     )
 
 
-def _get_or_create_rate_controller(conn, frame_duration, is_single_packet):
+def _get_or_create_rate_controller(
+    conn: "ConnectionHandler", frame_duration, is_single_packet
+):
     """
     获取或创建 RateController 和 flow_control
 
@@ -177,7 +187,7 @@ def _get_or_create_rate_controller(conn, frame_duration, is_single_packet):
     return conn.audio_rate_controller, conn.audio_flow_control
 
 
-def _start_background_sender(conn, rate_controller, flow_control):
+def _start_background_sender(conn: "ConnectionHandler", rate_controller, flow_control):
     """
     启动后台发送循环任务
 
@@ -201,7 +211,7 @@ def _start_background_sender(conn, rate_controller, flow_control):
 
 
 async def _send_audio_with_rate_control(
-    conn, audio_list, rate_controller, flow_control, send_delay
+    conn: "ConnectionHandler", audio_list, rate_controller, flow_control, send_delay
 ):
     """
     使用 rate_controller 发送音频包
@@ -233,7 +243,7 @@ async def _send_audio_with_rate_control(
             rate_controller.add_audio(packet)
 
 
-async def _do_send_audio(conn, opus_packet, flow_control):
+async def _do_send_audio(conn: "ConnectionHandler", opus_packet, flow_control):
     """
     执行实际的音频发送
     """
@@ -254,7 +264,7 @@ async def _do_send_audio(conn, opus_packet, flow_control):
     flow_control["sequence"] = sequence + 1
 
 
-async def send_tts_message(conn, state, text=None):
+async def send_tts_message(conn: "ConnectionHandler", state, text=None):
     """发送 TTS 状态消息"""
     if text is None and state == "sentence_start":
         return
@@ -281,7 +291,7 @@ async def send_tts_message(conn, state, text=None):
     await conn.websocket.send(json.dumps(message))
 
 
-async def send_stt_message(conn, text):
+async def send_stt_message(conn: "ConnectionHandler", text):
     """发送 STT 状态消息"""
     end_prompt_str = conn.config.get("end_prompt", {}).get("prompt")
     if end_prompt_str and end_prompt_str == text:

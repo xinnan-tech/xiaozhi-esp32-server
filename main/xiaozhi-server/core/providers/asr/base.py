@@ -11,7 +11,10 @@ import threading
 import opuslib_next
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 from core.handle.receiveAudioHandle import startToChat
 from core.handle.reportHandle import enqueue_asr_report
 from core.utils.util import remove_punctuation_and_length
@@ -26,14 +29,14 @@ class ASRProviderBase(ABC):
         pass
 
     # 打开音频通道
-    async def open_audio_channels(self, conn):
+    async def open_audio_channels(self, conn: "ConnectionHandler"):
         conn.asr_priority_thread = threading.Thread(
             target=self.asr_text_priority_thread, args=(conn,), daemon=True
         )
         conn.asr_priority_thread.start()
 
     # 有序处理ASR音频
-    def asr_text_priority_thread(self, conn):
+    def asr_text_priority_thread(self, conn: "ConnectionHandler"):
         while not conn.stop_event.is_set():
             try:
                 message = conn.asr_audio_queue.get(timeout=1)
@@ -51,7 +54,7 @@ class ASRProviderBase(ABC):
                 continue
 
     # 接收音频
-    async def receive_audio(self, conn, audio, audio_have_voice):
+    async def receive_audio(self, conn: "ConnectionHandler", audio, audio_have_voice):
         if conn.client_listen_mode == "manual":
             # 手动模式：缓存音频用于ASR识别
             conn.asr_audio.append(audio)
@@ -74,7 +77,7 @@ class ASRProviderBase(ABC):
                     await self.handle_voice_stop(conn, asr_audio_task)
 
     # 处理语音停止
-    async def handle_voice_stop(self, conn, asr_audio_task: List[bytes]):
+    async def handle_voice_stop(self, conn: "ConnectionHandler", asr_audio_task: List[bytes]):
         """并行处理ASR和声纹识别"""
         try:
             total_start_time = time.monotonic()

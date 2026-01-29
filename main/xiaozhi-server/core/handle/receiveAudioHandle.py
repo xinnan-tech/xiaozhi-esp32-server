@@ -1,6 +1,10 @@
 import time
 import json
 import asyncio
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 from core.utils.util import audio_to_data
 from core.handle.abortHandle import handleAbortMessage
 from core.handle.intentHandler import handle_user_intent
@@ -10,7 +14,7 @@ from core.handle.sendAudioHandle import send_stt_message, SentenceType
 TAG = __name__
 
 
-async def handleAudioMessage(conn, audio):
+async def handleAudioMessage(conn: "ConnectionHandler", audio):
     # 当前片段是否有人说话
     have_voice = conn.vad.is_vad(conn, audio)
     # 如果设备刚刚被唤醒，短暂忽略VAD检测
@@ -31,13 +35,13 @@ async def handleAudioMessage(conn, audio):
     await conn.asr.receive_audio(conn, audio, have_voice)
 
 
-async def resume_vad_detection(conn):
+async def resume_vad_detection(conn: "ConnectionHandler"):
     # 等待2秒后恢复VAD检测
     await asyncio.sleep(2)
     conn.just_woken_up = False
 
 
-async def startToChat(conn, text):
+async def startToChat(conn: "ConnectionHandler", text):
     # 检查输入是否是JSON格式（包含说话人信息）
     speaker_name = None
     language_tag = None
@@ -97,7 +101,7 @@ async def startToChat(conn, text):
     conn.executor.submit(conn.chat, actual_text)
 
 
-async def no_voice_close_connect(conn, have_voice):
+async def no_voice_close_connect(conn: "ConnectionHandler", have_voice):
     if have_voice:
         conn.last_activity_time = time.time() * 1000
         return
@@ -124,7 +128,7 @@ async def no_voice_close_connect(conn, have_voice):
             await startToChat(conn, prompt)
 
 
-async def max_out_size(conn):
+async def max_out_size(conn: "ConnectionHandler"):
     # 播放超出最大输出字数的提示
     conn.client_abort = False
     text = "不好意思，我现在有点事情要忙，明天这个时候我们再聊，约好了哦！明天不见不散，拜拜！"
@@ -135,7 +139,7 @@ async def max_out_size(conn):
     conn.close_after_chat = True
 
 
-async def check_bind_device(conn):
+async def check_bind_device(conn: "ConnectionHandler"):
     if conn.bind_code:
         # 确保bind_code是6位数字
         if len(conn.bind_code) != 6:

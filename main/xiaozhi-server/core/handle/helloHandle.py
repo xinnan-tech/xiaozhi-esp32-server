@@ -3,16 +3,17 @@ import json
 import uuid
 import random
 import asyncio
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 from core.utils.dialogue import Message
 from core.utils.util import audio_to_data
 from core.providers.tts.dto.dto import SentenceType
 from core.utils.wakeup_word import WakeupWordsConfig
 from core.handle.sendAudioHandle import sendAudioMessage, send_tts_message
 from core.utils.util import remove_punctuation_and_length, opus_datas_to_wav_bytes
-from core.providers.tools.device_mcp import (
-    MCPClient,
-    send_mcp_initialize_message
-)
+from core.providers.tools.device_mcp import MCPClient, send_mcp_initialize_message
 
 TAG = __name__
 
@@ -38,7 +39,7 @@ wakeup_words_config = WakeupWordsConfig()
 _wakeup_response_lock = asyncio.Lock()
 
 
-async def handleHelloMessage(conn, msg_json):
+async def handleHelloMessage(conn: "ConnectionHandler", msg_json):
     """处理hello消息"""
     audio_params = msg_json.get("audio_params")
     if audio_params:
@@ -59,7 +60,7 @@ async def handleHelloMessage(conn, msg_json):
     await conn.websocket.send(json.dumps(conn.welcome_msg))
 
 
-async def checkWakeupWords(conn, text):
+async def checkWakeupWords(conn: "ConnectionHandler", text):
     enable_wakeup_words_response_cache = conn.config[
         "enable_wakeup_words_response_cache"
     ]
@@ -120,7 +121,7 @@ async def checkWakeupWords(conn, text):
     return True
 
 
-async def wakeupWordsResponse(conn):
+async def wakeupWordsResponse(conn: "ConnectionHandler"):
     if not conn.tts:
         return
 
