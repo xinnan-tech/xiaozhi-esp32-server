@@ -211,6 +211,7 @@ class _CodexSession:
         self.emit_events = bool(config.get("emit_events", False))
         self.thinking_mode = (config.get("thinking_mode") or "off").lower()
         self.show_actions = bool(config.get("show_actions", False))
+        self.thinking_debug = bool(config.get("thinking_debug", False))
 
         # ---- Stream logging toggles ----
         # log_stream: enables writing stream output to file + end-of-turn info log
@@ -219,6 +220,8 @@ class _CodexSession:
         self.stream_debug = bool(config.get("stream_debug", False))
         # log_events: also write emitted event dicts (thinking/action) into SAME log file
         self.log_events = bool(config.get("log_events", True))
+        # raw_stream_log: write raw app-server messages to a separate file
+        self.raw_stream_log = bool(config.get("raw_stream_log", False))
         # event_max_chars: truncate long event JSON payloads (0 = no truncation)
         self.event_max_chars = int(config.get("event_max_chars", 8000))
 
@@ -227,6 +230,11 @@ class _CodexSession:
         )
         self.stream_log_path = config.get("stream_log_path", default_stream_log_path)
         self._stream_flush_bytes = int(config.get("stream_flush_bytes", 4096))
+        default_raw_log_path = str(
+            Path(self.workspace) / f"codex_stream_raw_{_safe_filename(session_key)}.log"
+        )
+        self.raw_stream_log_path = config.get("raw_stream_log_path", default_raw_log_path)
+        self._raw_stream_flush_bytes = int(config.get("raw_stream_flush_bytes", 8192))
 
         self.proc: Optional[subprocess.Popen] = None
         self.q: Optional[queue.Queue] = None
@@ -253,6 +261,17 @@ class _CodexSession:
                 f.write(text)
         except Exception as exc:
             logger.bind(tag=TAG).warning(f"codex stream log write failed: {exc}")
+
+    def _append_raw_log(self, text: str) -> None:
+        """Append to per-session raw log file (best-effort)."""
+        if not self.raw_stream_log or not self.raw_stream_log_path or not text:
+            return
+        try:
+            Path(self.raw_stream_log_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(self.raw_stream_log_path, "a", encoding="utf-8") as f:
+                f.write(text)
+        except Exception as exc:
+            logger.bind(tag=TAG).warning(f"codex raw log write failed: {exc}")
 
     def _pump_stderr(self) -> None:
         if not self.proc or not self.proc.stderr:
@@ -465,6 +484,7 @@ class _CodexSession:
 
         # ---- file buffering (assistant text + event lines) ----
         file_buf = ""
+        raw_buf = ""
 
         def file_append(s: str) -> None:
             nonlocal file_buf
@@ -480,6 +500,21 @@ class _CodexSession:
             if file_buf:
                 self._append_stream_log(file_buf)
                 file_buf = ""
+
+        def raw_append(s: str) -> None:
+            nonlocal raw_buf
+            if not self.raw_stream_log or not s:
+                return
+            raw_buf += s
+            if len(raw_buf.encode("utf-8", errors="ignore")) >= self._raw_stream_flush_bytes:
+                self._append_raw_log(raw_buf)
+                raw_buf = ""
+
+        def raw_flush() -> None:
+            nonlocal raw_buf
+            if raw_buf:
+                self._append_raw_log(raw_buf)
+                raw_buf = ""
 
         def file_event(event_obj: Dict) -> None:
             """
@@ -500,6 +535,12 @@ class _CodexSession:
             # Ensure event starts on a new line and ends with newline.
             file_append(f"\n[{_ts()}] [EVENT] {payload}\n")
 
+        def file_thinking_debug(method: str, delta: str) -> None:
+            if not (self.log_stream and self.thinking_debug):
+                return
+            safe_delta = delta.replace("\r", "\\r").replace("\n", "\\n")
+            file_append(f"\n[{_ts()}] [THINKING_DEBUG] {method}: {safe_delta}\n")
+
         # Log turn start
         if self.log_stream:
             file_append(f"[{_ts()}] [TURN_START] session={self.session_key} thread={self.thread_id} turn={turn_id}\n")
@@ -512,6 +553,12 @@ class _CodexSession:
         try:
             while True:
                 msg = _read_one(self.q, timeout=None)
+                if self.raw_stream_log:
+                    try:
+                        raw_payload = json.dumps(msg, ensure_ascii=False)
+                    except Exception:
+                        raw_payload = str(msg)
+                    raw_append(f"[{_ts()}] raw_{raw_payload}\n")
                 if _is_server_request(msg):
                     _accept_server_request(self.proc, msg, self.auto_approve)
                     continue
@@ -521,7 +568,7 @@ class _CodexSession:
 
                 method = msg.get("method")
                 params = msg.get("params", {}) or {}
-
+                
                 # --- assistant text stream ---
                 if method == "item/agentMessage/delta":
                     delta = params.get("delta", "")
@@ -547,6 +594,7 @@ class _CodexSession:
                             thinking_buffer += delta
                             evt = {"kind": "thinking", "mode": "summary", "delta": delta, "turn_id": turn_id}
                             file_event(evt)
+                            file_thinking_debug(method, delta)
                             if self.log_stream and self.stream_debug:
                                 tlog.debug("codex_thinking_summary_delta", delta=_short(delta, 400))
                             yield {"kind": "thinking", "text": thinking_buffer}
@@ -557,9 +605,15 @@ class _CodexSession:
                             thinking_buffer += delta
                             evt = {"kind": "thinking", "mode": "raw", "delta": delta, "turn_id": turn_id}
                             file_event(evt)
+                            file_thinking_debug(method, delta)
                             if self.log_stream and self.stream_debug:
                                 tlog.debug("codex_thinking_raw_delta", delta=_short(delta, 400))
                             yield {"kind": "thinking", "text": thinking_buffer}
+                else:
+                    if method in ("item/reasoning/summaryTextDelta", "item/reasoning/textDelta"):
+                        delta = params.get("delta", "")
+                        if delta:
+                            file_thinking_debug(method, delta)
 
                 if emit_events and self.show_actions and method in ("item/started", "item/completed"):
                     item = params.get("item", {}) or {}
@@ -599,6 +653,7 @@ class _CodexSession:
                 file_append(f"\n[{_ts()}] [TURN_END] chars={len(out_buffer)}\n\n--- turn_end ---\n\n")
 
             file_flush()
+            raw_flush()
 
             if self.log_stream:
                 tlog.info(

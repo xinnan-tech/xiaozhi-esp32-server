@@ -2,6 +2,7 @@ import os
 import sys
 import copy
 import json
+from urllib import response
 import uuid
 import time
 import queue
@@ -795,7 +796,7 @@ class ConnectionHandler:
     def _send_llm_event_message(self, text, event=None, phase=None):
         if not self.websocket or not self.loop:
             return
-        payload = {"type": "llm", "text": text, "session_id": self.session_id}
+        payload = {"type": "stt", "text": text, "session_id": self.session_id}
         if event is not None:
             payload["event"] = event
         if phase is not None:
@@ -928,143 +929,192 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
             return None
 
-        # 处理流式响应
+        # 处理流式响应（满足：非 action、未产 content、0.5s 无信息增加 => thinking）
         tool_call_flag = False
-        # 支持多个并行工具调用 - 使用列表存储
         tool_calls_list = []  # 格式: [{"id": "", "name": "", "arguments": ""}]
         content_arguments = ""
         self.client_abort = False
         emotion_flag = True
+
         thinking_event_sent = False
         thinking_event_done = False
-        for response in llm_responses:
-            if self.client_abort:
-                break
-            if isinstance(response, dict):
-                kind = response.get("kind")
-                if kind == "thinking":
-                    if not thinking_event_sent:
-                        self._send_llm_event_message(
-                            "[Thinking]", event="thinking", phase="start"
-                        )
-                        thinking_event_sent = True
-                        self._start_thinking_pulse()
-                    continue
-                if kind == "action":
-                    phase = response.get("phase")
-                    if phase == "start":
-                        label = "[Action Started]"
-                        self._start_action_pulse()
-                    elif phase == "done":
-                        label = "[Action Finished]"
-                        self._stop_action_pulse()
+
+        # --- idle -> thinking 状态变量 ---
+        IDLE_TO_THINKING_SEC = 0.5
+        last_progress_t = [time.monotonic()]  # “信息增加”的最后时间（只在增量有意义时更新）
+        action_in_progress = threading.Event()   # True: action(start) 后未 done
+        content_started = threading.Event()      # True: 真实 content 已开始输出
+        watchdog_stop = threading.Event()
+
+        def mark_progress():
+            last_progress_t[0] = time.monotonic()
+
+        def ensure_thinking_running():
+            """只有在：非 action、未产 content、且 thinking 未结束 时，启动/维持 thinking pulse"""
+            nonlocal thinking_event_sent, thinking_event_done
+            if thinking_event_done:
+                return
+            if action_in_progress.is_set() or content_started.is_set():
+                return
+            if not thinking_event_sent:
+                self._send_llm_event_message("[Thinking]", event="thinking", phase="start")
+                thinking_event_sent = True
+            self._start_thinking_pulse()
+
+        def finish_thinking_once():
+            """第一次拿到真实 content 时，结束 thinking"""
+            nonlocal thinking_event_done
+            if thinking_event_sent and not thinking_event_done:
+                self._stop_thinking_pulse()
+                self._send_llm_event_message("[Thinking Finished]", event="thinking", phase="done")
+                thinking_event_done = True
+
+        def pause_thinking_pulse_only():
+            """action 期间暂停 thinking pulse，但不发 Thinking Finished"""
+            if thinking_event_sent and not thinking_event_done:
+                self._stop_thinking_pulse()
+
+        def emit_action_event(phase):
+            """action 事件出现时：暂停 thinking、跑 action pulse，并维护 action_in_progress 状态"""
+            if phase == "start":
+                action_in_progress.set()
+                pause_thinking_pulse_only()
+                self._start_action_pulse()
+                label = "[Action Started]"
+            elif phase == "done":
+                action_in_progress.clear()
+                self._stop_action_pulse()
+                label = "[Action Finished]"
+            else:
+                label = "[Action]"
+            self._send_llm_event_message(label, event="action", phase=phase)
+
+        def is_toolcall_payload(prefix: str) -> bool:
+            s = (prefix or "").lstrip()
+            return s.startswith("<tool_call>")
+
+        def _watchdog():
+            # 规则：非 action、未产 content、且 0.5s 无信息增加 => thinking
+            while not watchdog_stop.is_set():
+                if (not action_in_progress.is_set()) and (not content_started.is_set()) and (not thinking_event_done):
+                    idle = time.monotonic() - last_progress_t[0]
+                    if idle >= IDLE_TO_THINKING_SEC:
+                        ensure_thinking_running()
+                watchdog_stop.wait(0.05)  # 50ms tick
+
+        threading.Thread(target=_watchdog, daemon=True).start()
+
+        try:
+            for response in llm_responses:
+                if self.client_abort:
+                    break
+
+                # ---------- 1) 归一化：拆出 event / text_delta / tools_call ----------
+                event = None
+                text_delta = None
+                tools_call = None
+
+                if isinstance(response, dict):
+                    # 注意：有些 provider 用 dict 承载 {"content":..., "tools_call":...}
+                    if "content" in response:
+                        text_delta = response.get("content")
+                        tools_call = response.get("tools_call")
                     else:
-                        label = "[Action]"
-                    self._send_llm_event_message(
-                        label,
-                        event="action",
-                        phase=phase,
-                    )
-                    continue
-                continue
-            if self.intent_type == "function_call" and functions is not None:
-                content, tools_call = response
-                if "content" in response:
-                    content = response["content"]
-                    tools_call = None
-                if isinstance(content, dict):
-                    kind = content.get("kind")
-                    if kind == "thinking":
-                        if not thinking_event_sent:
-                            self._send_llm_event_message(
-                                "[Thinking]", event="thinking", phase="start"
-                            )
-                            thinking_event_sent = True
-                            self._start_thinking_pulse()
-                        continue
-                    if kind == "action":
-                        phase = content.get("phase")
-                        if phase == "start":
-                            label = "[Action Started]"
-                            self._start_action_pulse()
-                        elif phase == "done":
-                            label = "[Action Finished]"
-                            self._stop_action_pulse()
+                        event = response
+                else:
+                    if self.intent_type == "function_call" and functions is not None:
+                        if isinstance(response, tuple) and len(response) == 2:
+                            text_delta, tools_call = response
                         else:
-                            label = "[Action]"
-                        self._send_llm_event_message(
-                            label,
-                            event="action",
-                            phase=phase,
-                        )
-                        continue
-                if (
-                    thinking_event_sent
-                    and not thinking_event_done
-                    and isinstance(content, str)
-                    and content.strip()
-                ):
-                    self._stop_thinking_pulse()
-                    self._send_llm_event_message(
-                        "[Thinking Finished]",
-                        event="thinking",
-                        phase="done",
-                    )
-                    thinking_event_done = True
-                if content is not None and len(content) > 0:
-                    content_arguments += content
+                            text_delta = response
+                    else:
+                        text_delta = response
 
-                if not tool_call_flag and content_arguments.startswith("<tool_call>"):
-                    # print("content_arguments", content_arguments)
-                    tool_call_flag = True
+                # ---------- 2) 处理 event(dict) ----------
+                if event is not None:
+                    # event 算“信息增加”（你能看见/能用于状态判断）
+                    mark_progress()
 
+                    kind = event.get("kind")
+                    if kind == "action":
+                        emit_action_event(event.get("phase"))
+                    elif kind == "thinking":
+                        # 模型显式发 thinking：立即进入 thinking（不等 0.5s）
+                        ensure_thinking_running()
+                    # 其它 event：不立刻进入 thinking，交给 watchdog（看 idle）
+                    continue
+
+                # text_delta 也可能是 dict(kind=...)
+                if isinstance(text_delta, dict):
+                    mark_progress()
+                    kind = text_delta.get("kind")
+                    if kind == "action":
+                        emit_action_event(text_delta.get("phase"))
+                    elif kind == "thinking":
+                        ensure_thinking_running()
+                    continue
+
+                # ---------- 3) tools_call（算信息增加） ----------
                 if tools_call is not None and len(tools_call) > 0:
+                    mark_progress()
                     tool_call_flag = True
                     self._merge_tool_calls(tool_calls_list, tools_call)
-            else:
-                content = response
-                if (
-                    thinking_event_sent
-                    and not thinking_event_done
-                    and isinstance(content, str)
-                    and content.strip()
-                ):
-                    self._stop_thinking_pulse()
-                    self._send_llm_event_message(
-                        "[Thinking Finished]",
-                        event="thinking",
-                        phase="done",
-                    )
-                    thinking_event_done = True
 
-            # 在llm回复中获取情绪表情，一轮对话只在开头获取一次
-            if emotion_flag and content is not None and content.strip():
-                asyncio.run_coroutine_threadsafe(
-                    textUtils.get_emotion(self, content),
-                    self.loop,
+                # ---------- 4) 处理文本增量 ----------
+                if text_delta is None:
+                    # 没信息增加 -> 不 mark_progress，watchdog 会在 idle 后触发 thinking
+                    continue
+                if isinstance(text_delta, str) and text_delta == "":
+                    # 空串不算信息增加 -> watchdog 触发 thinking
+                    continue
+
+                content = str(text_delta)
+                if content:
+                    mark_progress()
+
+                # 情绪表情：一轮只做一次
+                if emotion_flag and content.strip():
+                    asyncio.run_coroutine_threadsafe(
+                        textUtils.get_emotion(self, content),
+                        self.loop,
+                    )
+                    emotion_flag = False
+
+                # 累积用于 tool_call 判断与后续解析
+                content_arguments += content
+
+                if not tool_call_flag and is_toolcall_payload(content_arguments):
+                    tool_call_flag = True
+
+                if tool_call_flag:
+                    # tool_call 阶段不算“真实 content”，由 watchdog 负责 idle->thinking
+                    continue
+
+                # 真正用户可见 content：开始输出后结束 thinking
+                if content.strip():
+                    content_started.set()
+                    finish_thinking_once()
+
+                response_message.append(content)
+                self.tts.tts_text_queue.put(
+                    TTSMessageDTO(
+                        sentence_id=self.sentence_id,
+                        sentence_type=SentenceType.MIDDLE,
+                        content_type=ContentType.TEXT,
+                        content_detail=content,
+                    )
                 )
-                emotion_flag = False
 
-            if content is not None and len(content) > 0:
-                if not tool_call_flag:
-                    response_message.append(content)
-                    self.tts.tts_text_queue.put(
-                        TTSMessageDTO(
-                            sentence_id=self.sentence_id,
-                            sentence_type=SentenceType.MIDDLE,
-                            content_type=ContentType.TEXT,
-                            content_detail=content,
-                        )
-                    )
-        # 处理function call
+        finally:
+            watchdog_stop.set()
+
+        # 流结束：如果曾经进入 thinking 但没结束，收尾
         if thinking_event_sent and not thinking_event_done:
             self._stop_thinking_pulse()
-            self._send_llm_event_message(
-                "[Thinking Finished]",
-                event="thinking",
-                phase="done",
-            )
+            self._send_llm_event_message("[Thinking Finished]", event="thinking", phase="done")
             thinking_event_done = True
+
+
         if tool_call_flag:
             bHasError = False
             # 处理基于文本的工具调用格式

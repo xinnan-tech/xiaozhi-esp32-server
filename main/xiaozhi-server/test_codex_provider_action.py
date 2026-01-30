@@ -9,7 +9,7 @@ cfg = {
     "log_events":True,        # 把 thinking/action 事件写进同一个 log
     "event_max_chars": 0,   # 可选：事件 JSON 太长就截断；设 0 表示不截断
     "model_name": "gpt-5.2",
-    "workspace": r"C:\Users\yibinjiang\Documents\GitHub\codex_app_server",
+    "workspace": "C:/Users/yibinjiang/Documents/GitHub/codex_edu/",
     "auto_approve": True,
     "network_access": True,
     "emit_events": True,
