@@ -1,4 +1,5 @@
 import json
+from config.logger import setup_logging
 
 TAG = __name__
 EMOJI_MAP = {
@@ -87,18 +88,27 @@ async def get_emotion(conn, text):
             emotion = EMOJI_MAP[char]
             break
     try:
-        await conn.websocket.send(
-            json.dumps(
-                {
-                    "type": "llm",
-                    "text": emoji,
-                    "emotion": emotion,
-                    "session_id": conn.session_id,
-                }
-            )
+        message = json.dumps(
+            {
+                "type": "llm",
+                "text": emoji,
+                "emotion": emotion,
+                "session_id": conn.session_id,
+            }
         )
+        
+        # 使用transport接口发送消息
+        if hasattr(conn, 'transport') and conn.transport:
+            await conn.transport.send(message)
+        elif hasattr(conn, 'websocket') and conn.websocket:
+            # 兼容旧版本
+            await conn.websocket.send(message)
+        else:
+            raise AttributeError("无法找到可用的传输层接口")
+            
     except Exception as e:
-        conn.logger.bind(tag=TAG).warning(f"发送情绪表情失败，错误:{e}")
+        logger = setup_logging()
+        logger.warning(f"发送情绪表情失败，错误:{e}")
     return
 
 

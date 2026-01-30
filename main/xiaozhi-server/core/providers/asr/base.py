@@ -12,13 +12,78 @@ import opuslib_next
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
 from typing import Optional, Tuple, List
-from core.handle.receiveAudioHandle import startToChat
-from core.handle.reportHandle import enqueue_asr_report
+# from core.handle.receiveAudioHandle import startToChat  # 旧的handler
+# from core.handle.reportHandle import enqueue_asr_report  # 旧的handler
+# from core.handle.receiveAudioHandle import handleAudioMessage  # 旧的handler
+# 使用新的processor替代
 from core.utils.util import remove_punctuation_and_length
-from core.handle.receiveAudioHandle import handleAudioMessage
 
 TAG = __name__
 logger = setup_logging()
+
+
+async def handleAudioMessage(conn, message):
+    """兼容函数：使用新的processor处理音频消息"""
+    try:
+        # 获取transport接口
+        transport = getattr(conn, 'transport', None)
+        if not transport:
+            logger.error("SessionContext中没有transport接口")
+            return
+            
+        # 使用AudioReceiveProcessor处理音频消息
+        from core.processors.audio_receive_processor import AudioReceiveProcessor
+        processor = AudioReceiveProcessor()
+        
+        # 处理音频消息
+        await processor.handle_audio_message(conn, transport, message)
+        
+    except Exception as e:
+        logger.error(f"处理音频消息失败: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+async def startToChat(conn, text):
+    """兼容函数：使用新的processor开始聊天"""
+    try:
+        # 获取transport接口
+        transport = getattr(conn, 'transport', None)
+        if not transport:
+            logger.error("SessionContext中没有transport接口")
+            return
+            
+        # 使用ChatProcessor处理聊天
+        from core.processors.chat_processor import ChatProcessor
+        processor = ChatProcessor()
+        
+        # 开始聊天
+        await processor.handle_chat(conn, transport, text)
+        
+    except Exception as e:
+        logger.error(f"开始聊天失败: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def enqueue_asr_report(conn, text, audio_data):
+    """兼容函数：使用新的processor处理ASR报告"""
+    try:
+        # 获取transport接口
+        transport = getattr(conn, 'transport', None)
+        if not transport:
+            logger.error("SessionContext中没有transport接口")
+            return
+            
+        # 使用ReportProcessor处理报告
+        from core.processors.report_processor import ReportProcessor
+        processor = ReportProcessor()
+        
+        # 处理ASR报告
+        processor.enqueue_asr_report(conn, text, audio_data)
+        
+    except Exception as e:
+        logger.error(f"ASR报告处理失败: {e}")
 
 
 class ASRProviderBase(ABC):

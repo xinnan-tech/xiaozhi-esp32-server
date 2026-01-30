@@ -15,8 +15,6 @@ from config.logger import setup_logging
 from core.utils import opus_encoder_utils
 from core.utils.tts import MarkdownCleaner
 from core.utils.output_counter import add_device_output
-from core.handle.reportHandle import enqueue_tts_report
-from core.handle.sendAudioHandle import sendAudioMessage
 from core.utils.util import audio_bytes_to_data_stream, audio_to_data_stream
 from core.providers.tts.dto.dto import (
     TTSMessageDTO,
@@ -27,6 +25,72 @@ from core.providers.tts.dto.dto import (
 
 TAG = __name__
 logger = setup_logging()
+
+
+async def sendAudioMessage(conn, sentenceType, audios, text):
+    """兼容函数：使用新的processor发送音频消息"""
+    try:
+        # 获取transport接口
+        transport = getattr(conn, 'transport', None)
+        if not transport:
+            logger.error("SessionContext中没有transport接口")
+            return
+            
+        # 使用AudioSendProcessor发送音频
+        from core.processors.audio_send_processor import AudioSendProcessor
+        processor = AudioSendProcessor()
+        
+        # 处理TTS开始消息
+        if conn.tts.tts_audio_first_sentence:
+            logger.info(f"发送第一段语音: {text}")
+            conn.tts.tts_audio_first_sentence = False
+            await processor.send_tts_message(conn, transport, "start", None)
+
+        if sentenceType == SentenceType.FIRST:
+            await processor.send_tts_message(conn, transport, "sentence_start", text)
+
+        await processor.send_audio(conn, transport, audios)
+        
+        # 发送句子开始消息
+        if sentenceType is not SentenceType.MIDDLE:
+            logger.info(f"发送音频消息: {sentenceType}, {text}")
+
+        # 发送结束消息（如果是最后一个文本）
+        if conn.llm_finish_task and sentenceType == SentenceType.LAST:
+            await processor.send_tts_message(conn, transport, "stop", None)
+            conn.client_is_speaking = False
+            if conn.close_after_chat:
+                if hasattr(transport, 'close'):
+                    await transport.close()
+                    
+    except Exception as e:
+        logger.error(f"发送音频消息失败: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def enqueue_tts_report(conn, audio_data, text):
+    """兼容函数：使用新的processor处理TTS报告"""
+    try:
+        # 获取transport接口
+        transport = getattr(conn, 'transport', None)
+        if not transport:
+            logger.error("SessionContext中没有transport接口")
+            return
+            
+        # 使用ReportProcessor处理报告
+        from core.processors.report_processor import ReportProcessor
+        processor = ReportProcessor()
+        
+        # 异步执行报告
+        if hasattr(conn, 'loop') and conn.loop:
+            # 直接调用同步方法
+            processor.enqueue_tts_report(conn, text, audio_data)
+        else:
+            logger.warning("SessionContext中没有事件循环，跳过TTS报告")
+            
+    except Exception as e:
+        logger.error(f"TTS报告处理失败: {e}")
 
 
 class TTSProviderBase(ABC):

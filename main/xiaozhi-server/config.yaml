@@ -31,16 +31,70 @@ server:
   auth:
     # 是否启用认证
     enabled: false
+    # 设备的token，可以在编译固件的环节，写入你自己定义的token
+    # 固件上的token和以下的token如果能对应，才能连接本服务端
+    tokens:
+      - token: "your-token1" # 设备1的token
+        name: "your-device-name1"  # 设备1标识
+      - token: "your-token2"  # 设备2的token
+        name: "your-device-name2" # 设备2标识
     # 白名单设备ID列表
     # 如果属于白名单内的设备，不校验token，直接放行
     allowed_devices:
       - "11:22:33:44:55:66"
- # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port
+  # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port
   mqtt_gateway: null
   # MQTT签名密钥，用于生成MQTT连接密码，根据mqtt_gateway的.env文件配置
   mqtt_signature_key: null
   # UDP网关配置
   udp_gateway: null
+
+# #####################################################################################
+# #############################协议配置（Protocol Configuration）########################
+# 支持WebSocket和MQTT两种协议，可以单独启用或同时启用
+protocols:
+  # 启用的协议列表，可选值: ["websocket", "mqtt"]
+  enabled_protocols: ["websocket"]  # 默认只启用WebSocket
+  # WebSocket协议开关
+  websocket_enabled: true
+  # MQTT协议开关
+  mqtt_enabled: false
+
+# MQTT服务器配置（仅在mqtt_enabled为true时生效）
+mqtt_server:
+  # 是否启用MQTT服务器
+  enabled: false
+  # MQTT服务器监听地址
+  host: 0.0.0.0
+  # MQTT服务器端口
+  port: 1883
+  # UDP音频传输端口（通常与MQTT端口相同）
+  udp_port: 1883
+  # 公网IP地址（用于UDP音频传输配置）
+  # 如果使用docker部署或公网部署，请设置为实际的公网IP或域名
+  public_ip: localhost
+  # 最大连接数
+  max_connections: 1000
+  # 心跳检查间隔（秒）
+  heartbeat_interval: 30
+  # 最大消息载荷大小（字节）
+  max_payload_size: 8192
+
+# MQTT协议使用说明：
+# 1. 客户端ID格式：GID_test@@@mac_address@@@uuid 或 GID_test@@@mac_address
+#    例如：GID_test@@@aa:bb:cc:dd:ee:ff@@@unique_uuid_123
+# 2. 连接地址：mqtt://your.server.ip:1883
+# 3. 音频传输：通过UDP加密传输，配置信息在hello消息中返回
+# 4. 消息格式：JSON格式，支持hello、音频、文本等消息类型
+# 
+# 启用MQTT的配置示例：
+# protocols:
+#   enabled_protocols: ["websocket", "mqtt"]  # 同时启用两种协议
+#   mqtt_enabled: true
+# mqtt_server:
+#   enabled: true
+#   port: 1883
+#   public_ip: "your.server.ip"  # 替换为实际IP
 log:
   # 设置控制台输出的日志格式，时间、日志级别、标签、消息
   log_format: "<green>{time:YYMMDD HH:mm:ss}</green>[{version}_{selected_module}][<light-blue>{extra[tag]}</light-blue>]-<level>{level}</level>-<light-green>{message}</light-green>"
@@ -286,12 +340,15 @@ Memory:
     # 如果这里不填，则会默认使用selected_module.LLM的模型作为意图识别的思考模型
     # 如果你的不想使用selected_module.LLM记忆存储，这里最好使用独立的LLM作为意图识别，例如使用免费的ChatGLMLLM
     llm: ChatGLMLLM
-
 ASR:
   FunASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
     output_dir: tmp/
+    # 队列最大大小（可选，默认100）
+    # 当并发请求超过此值时，会返回"服务繁忙"提示
+    # 建议根据服务器性能调整，GPU 服务器可适当增大
+    queue_max_size: 100
   FunASRServer:
     # 独立部署FunASR，使用FunASR的API服务，只需要五句话
     # 第一句：mkdir -p ./funasr-runtime-resources/models
