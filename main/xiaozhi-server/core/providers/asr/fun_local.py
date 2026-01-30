@@ -60,7 +60,7 @@ class ASRProvider(ASRProviderBase):
                 vad_kwargs={"max_single_segment_time": 30000},
                 disable_update=True,
                 hub="hf",
-                # device="cuda:0",  # 启用GPU加速
+                device="cuda:0",  # 启用GPU加速
             )
 
     async def speech_to_text(
