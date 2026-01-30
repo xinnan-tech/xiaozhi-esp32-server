@@ -95,6 +95,10 @@ class ConnectionHandler:
         self.loop = None  # 在 handle_connection 中获取运行中的事件循环
         self.stop_event = threading.Event()
         self.executor = ThreadPoolExecutor(max_workers=5)
+        self.thinking_pulse_thread = None
+        self.thinking_pulse_stop = threading.Event()
+        self.action_pulse_thread = None
+        self.action_pulse_stop = threading.Event()
 
         # 添加上报线程池
         self.report_queue = queue.Queue()
@@ -788,6 +792,68 @@ class ConnectionHandler:
         # 更新系统prompt至上下文
         self.dialogue.update_system_message(self.prompt)
 
+    def _send_llm_event_message(self, text, event=None, phase=None):
+        if not self.websocket or not self.loop:
+            return
+        payload = {"type": "llm", "text": text, "session_id": self.session_id}
+        if event is not None:
+            payload["event"] = event
+        if phase is not None:
+            payload["phase"] = phase
+        try:
+            asyncio.run_coroutine_threadsafe(
+                self.websocket.send(json.dumps(payload)),
+                self.loop,
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).warning(f"send llm event failed: {e}")
+
+    def _start_thinking_pulse(self):
+        if self.thinking_pulse_thread and self.thinking_pulse_thread.is_alive():
+            return
+        self.thinking_pulse_stop.clear()
+
+        def _worker():
+            dots = 1
+            while not self.thinking_pulse_stop.is_set():
+                self._send_llm_event_message(
+                    f"[Thinking{'.' * dots}]",
+                    event="thinking",
+                    phase="progress",
+                )
+                dots = 1 if dots >= 3 else dots + 1
+                self.thinking_pulse_stop.wait(0.6)
+
+        self.thinking_pulse_thread = threading.Thread(target=_worker, daemon=True)
+        self.thinking_pulse_thread.start()
+
+    def _stop_thinking_pulse(self):
+        if self.thinking_pulse_stop:
+            self.thinking_pulse_stop.set()
+
+    def _start_action_pulse(self):
+        if self.action_pulse_thread and self.action_pulse_thread.is_alive():
+            return
+        self.action_pulse_stop.clear()
+
+        def _worker():
+            dots = 1
+            while not self.action_pulse_stop.is_set():
+                self._send_llm_event_message(
+                    f"[Action{'.' * dots}]",
+                    event="action",
+                    phase="progress",
+                )
+                dots = 1 if dots >= 3 else dots + 1
+                self.action_pulse_stop.wait(0.6)
+
+        self.action_pulse_thread = threading.Thread(target=_worker, daemon=True)
+        self.action_pulse_thread.start()
+
+    def _stop_action_pulse(self):
+        if self.action_pulse_stop:
+            self.action_pulse_stop.set()
+
     def chat(self, query, depth=0):
         if query is not None:
             self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
@@ -869,14 +935,82 @@ class ConnectionHandler:
         content_arguments = ""
         self.client_abort = False
         emotion_flag = True
+        thinking_event_sent = False
+        thinking_event_done = False
         for response in llm_responses:
             if self.client_abort:
                 break
+            if isinstance(response, dict):
+                kind = response.get("kind")
+                if kind == "thinking":
+                    if not thinking_event_sent:
+                        self._send_llm_event_message(
+                            "[Thinking]", event="thinking", phase="start"
+                        )
+                        thinking_event_sent = True
+                        self._start_thinking_pulse()
+                    continue
+                if kind == "action":
+                    phase = response.get("phase")
+                    if phase == "start":
+                        label = "[Action Started]"
+                        self._start_action_pulse()
+                    elif phase == "done":
+                        label = "[Action Finished]"
+                        self._stop_action_pulse()
+                    else:
+                        label = "[Action]"
+                    self._send_llm_event_message(
+                        label,
+                        event="action",
+                        phase=phase,
+                    )
+                    continue
+                continue
             if self.intent_type == "function_call" and functions is not None:
                 content, tools_call = response
                 if "content" in response:
                     content = response["content"]
                     tools_call = None
+                if isinstance(content, dict):
+                    kind = content.get("kind")
+                    if kind == "thinking":
+                        if not thinking_event_sent:
+                            self._send_llm_event_message(
+                                "[Thinking]", event="thinking", phase="start"
+                            )
+                            thinking_event_sent = True
+                            self._start_thinking_pulse()
+                        continue
+                    if kind == "action":
+                        phase = content.get("phase")
+                        if phase == "start":
+                            label = "[Action Started]"
+                            self._start_action_pulse()
+                        elif phase == "done":
+                            label = "[Action Finished]"
+                            self._stop_action_pulse()
+                        else:
+                            label = "[Action]"
+                        self._send_llm_event_message(
+                            label,
+                            event="action",
+                            phase=phase,
+                        )
+                        continue
+                if (
+                    thinking_event_sent
+                    and not thinking_event_done
+                    and isinstance(content, str)
+                    and content.strip()
+                ):
+                    self._stop_thinking_pulse()
+                    self._send_llm_event_message(
+                        "[Thinking Finished]",
+                        event="thinking",
+                        phase="done",
+                    )
+                    thinking_event_done = True
                 if content is not None and len(content) > 0:
                     content_arguments += content
 
@@ -889,6 +1023,19 @@ class ConnectionHandler:
                     self._merge_tool_calls(tool_calls_list, tools_call)
             else:
                 content = response
+                if (
+                    thinking_event_sent
+                    and not thinking_event_done
+                    and isinstance(content, str)
+                    and content.strip()
+                ):
+                    self._stop_thinking_pulse()
+                    self._send_llm_event_message(
+                        "[Thinking Finished]",
+                        event="thinking",
+                        phase="done",
+                    )
+                    thinking_event_done = True
 
             # 在llm回复中获取情绪表情，一轮对话只在开头获取一次
             if emotion_flag and content is not None and content.strip():
@@ -910,6 +1057,14 @@ class ConnectionHandler:
                         )
                     )
         # 处理function call
+        if thinking_event_sent and not thinking_event_done:
+            self._stop_thinking_pulse()
+            self._send_llm_event_message(
+                "[Thinking Finished]",
+                event="thinking",
+                phase="done",
+            )
+            thinking_event_done = True
         if tool_call_flag:
             bHasError = False
             # 处理基于文本的工具调用格式
@@ -996,7 +1151,7 @@ class ConnectionHandler:
                     self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False
                 )
             )
-
+        
         return True
 
     def _handle_function_result(self, tool_results, depth):
@@ -1119,6 +1274,8 @@ class ConnectionHandler:
             # 触发停止事件
             if self.stop_event:
                 self.stop_event.set()
+            self._stop_thinking_pulse()
+            self._stop_action_pulse()
 
             # 清空任务队列
             self.clear_queues()
@@ -1178,6 +1335,8 @@ class ConnectionHandler:
             # 确保停止事件被设置
             if self.stop_event:
                 self.stop_event.set()
+            self._stop_thinking_pulse()
+            self._stop_action_pulse()
 
     def clear_queues(self):
         """清空所有任务队列"""
