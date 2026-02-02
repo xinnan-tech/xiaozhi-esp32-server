@@ -21,6 +21,14 @@ async def handleAudioMessage(conn, audio):
         if not hasattr(conn, "vad_resume_task") or conn.vad_resume_task.done():
             conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
         return
+    # Disable listen during chat to prevent barge-in
+    if conn.config.get("disable_listen_during_chat", False):
+        if (not conn.llm_finish_task or conn.client_is_speaking) and conn.client_listen_mode != "manual":
+            await no_voice_close_connect(conn, have_voice)
+            if have_voice and hasattr(conn, "asr_audio"):
+                conn.asr_audio.clear()
+            return
+
     # manual 模式下不打断正在播放的内容
     if have_voice:
         if conn.client_is_speaking and conn.client_listen_mode != "manual":

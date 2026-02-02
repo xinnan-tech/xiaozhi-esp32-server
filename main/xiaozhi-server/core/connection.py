@@ -927,6 +927,7 @@ class ConnectionHandler:
                 )
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
+            self.llm_finish_task = True
             return None
 
         # 处理流式响应（满足：非 action、未产 content、0.5s 无信息增加 => thinking）

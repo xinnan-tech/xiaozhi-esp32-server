@@ -50,6 +50,7 @@ class ASRProvider(ASRProviderBase):
         self.interface_type = InterfaceType.LOCAL
         self.model_dir = config.get("model_dir")
         self.output_dir = config.get("output_dir")  # 修正配置键名
+        self.language = (config.get("language") or "auto").lower()
         self.delete_audio_file = delete_audio_file
 
         # 确保输出目录存在
@@ -98,11 +99,16 @@ class ASRProvider(ASRProviderBase):
                     self.model.generate,
                     input=combined_pcm_data,
                     cache={},
-                    language="auto",
+                    language=self.language,
                     use_itn=True,
                     batch_size_s=60,
                 )
                 text = lang_tag_filter(result[0]["text"])
+                if self.language != "auto":
+                    if isinstance(text, dict):
+                        text["language"] = self.language
+                    else:
+                        text = {"content": text, "language": self.language}
                 logger.bind(tag=TAG).debug(
                     f"语音识别耗时: {time.time() - start_time:.3f}s | 结果: {text['content']}"
                 )

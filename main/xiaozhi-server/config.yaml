@@ -67,6 +67,8 @@ enable_wakeup_words_response_cache: true
 enable_greeting: true
 # 说完话是否开启提示音
 enable_stop_tts_notify: false
+# Disable listen during chat to prevent barge-in
+disable_listen_during_chat: false
 # 说完话是否开启提示音，音效地址
 stop_tts_notify_voice: "config/assets/tts_notify.mp3"
 # 是否启用WebSocket心跳保活机制
@@ -290,6 +292,7 @@ ASR:
   FunASR:
     type: fun_local
     model_dir: models/SenseVoiceSmall
+    language: zh  # auto/zh/en etc
     output_dir: tmp/
   FunASRServer:
     # 独立部署FunASR，使用FunASR的API服务，只需要五句话
