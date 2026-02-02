@@ -145,7 +145,6 @@ cython_debug/
 tmp
 .history
 .DS_Store
-main/xiaozhi-server/data
 
 main/manager-web/node_modules
 .config.yaml

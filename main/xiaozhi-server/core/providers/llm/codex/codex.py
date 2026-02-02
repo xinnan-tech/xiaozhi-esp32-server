@@ -226,12 +226,12 @@ class _CodexSession:
         self.event_max_chars = int(config.get("event_max_chars", 8000))
 
         default_stream_log_path = str(
-            Path(self.workspace) / f"codex_stream_{_safe_filename(session_key)}.log"
+            Path(self.workspace) / f"/log/codex_stream_{_safe_filename(session_key)}.log"
         )
         self.stream_log_path = config.get("stream_log_path", default_stream_log_path)
         self._stream_flush_bytes = int(config.get("stream_flush_bytes", 4096))
         default_raw_log_path = str(
-            Path(self.workspace) / f"codex_stream_raw_{_safe_filename(session_key)}.log"
+            Path(self.workspace) / f"/log/codex_stream_raw_{_safe_filename(session_key)}.log"
         )
         self.raw_stream_log_path = config.get("raw_stream_log_path", default_raw_log_path)
         self._raw_stream_flush_bytes = int(config.get("raw_stream_flush_bytes", 8192))
