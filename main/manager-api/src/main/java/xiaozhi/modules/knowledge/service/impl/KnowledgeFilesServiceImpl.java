@@ -18,11 +18,15 @@ import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.ToolUtil;
+import xiaozhi.modules.knowledge.dao.KnowledgeBaseDao;
 import xiaozhi.modules.knowledge.dto.KnowledgeFilesDTO;
+import xiaozhi.modules.knowledge.entity.DocumentEntity;
+import xiaozhi.modules.knowledge.dao.DocumentDao;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapter;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapterFactory;
 import xiaozhi.modules.knowledge.service.KnowledgeBaseService;
 import xiaozhi.modules.knowledge.service.KnowledgeFilesService;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
@@ -30,6 +34,8 @@ import xiaozhi.modules.knowledge.service.KnowledgeFilesService;
 public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
 
     private final KnowledgeBaseService knowledgeBaseService;
+    private final DocumentDao documentDao;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Map<String, Object> getRAGConfig(String ragModelId) {
@@ -40,7 +46,8 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
     public PageData<KnowledgeFilesDTO> getPageList(KnowledgeFilesDTO knowledgeFilesDTO, Integer page, Integer limit) {
         try {
             log.info("=== 开始获取文档列表 ===");
-            log.info("查询条件: datasetId={}, name={}, status={}, page={}, limit={}", knowledgeFilesDTO.getDatasetId(), knowledgeFilesDTO.getName(), knowledgeFilesDTO.getStatus(), page, limit);
+            log.info("查询条件: datasetId={}, name={}, status={}, page={}, limit={}", knowledgeFilesDTO.getDatasetId(),
+                    knowledgeFilesDTO.getName(), knowledgeFilesDTO.getStatus(), page, limit);
 
             // 获取数据集ID
             String datasetId = knowledgeFilesDTO.getDatasetId();
@@ -405,6 +412,7 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public KnowledgeFilesDTO uploadDocument(String datasetId, MultipartFile file, String name,
             Map<String, Object> metaFields, String chunkMethod,
             Map<String, Object> parserConfig) {
@@ -417,26 +425,11 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
 
         try {
             // 在文件上传前添加详细日志
-            log.info("1. 开始处理文件信息");
-            String fileName = file.getOriginalFilename();
+            String fileName = StringUtils.isNotBlank(name) ? name : file.getOriginalFilename();
             String fileType = getFileType(fileName);
             long fileSize = file.getSize();
 
-            log.info("文件信息 - 文件名: {}, 文件类型: {}, 文件大小: {} bytes",
-                    fileName, fileType, fileSize);
-
-            // 检查文件基本信息
-            if (StringUtils.isBlank(fileName)) {
-                log.error("文件名为空");
-                throw new RenException(ErrorCode.RAG_FILE_NAME_NOT_NULL);
-            }
-
-            if (fileSize == 0) {
-                log.error("文件大小为0");
-                throw new RenException(ErrorCode.RAG_FILE_CONTENT_EMPTY);
-            }
-
-            log.info("2. 开始使用适配器上传文档");
+            log.info("1. 开始使用适配器上传文档 (Remote-First)");
 
             // 获取RAG配置
             Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
@@ -447,35 +440,41 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
             // 使用适配器工厂获取适配器实例
             KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
 
-            // 构建上传参数
-            Map<String, Object> uploadParams = new HashMap<>();
-            if (StringUtils.isNotBlank(name)) {
-                uploadParams.put("name", name);
-            }
-            if (metaFields != null && !metaFields.isEmpty()) {
-                uploadParams.put("meta_fields", metaFields);
-            }
-            if (StringUtils.isNotBlank(chunkMethod)) {
-                uploadParams.put("chunk_method", chunkMethod);
-            }
-            if (parserConfig != null && !parserConfig.isEmpty()) {
-                uploadParams.put("parser_config", parserConfig);
-            }
-
             // 使用适配器上传文档
-            KnowledgeFilesDTO result = adapter.uploadDocument(datasetId, file,
-                    (String) uploadParams.get("name"),
-                    (Map<String, Object>) uploadParams.get("meta_fields"),
-                    (String) uploadParams.get("chunk_method"),
-                    (Map<String, Object>) uploadParams.get("parser_config"));
+            KnowledgeFilesDTO result = adapter.uploadDocument(datasetId, file, fileName,
+                    metaFields, chunkMethod, parserConfig);
 
             log.info("文档上传成功，documentId: {}", result.getDocumentId());
+
+            // 2. 本地保存 (Shadow Save)
+            log.info("2. 保存本地影子记录");
+            try {
+                DocumentEntity entity = new DocumentEntity();
+                entity.setDatasetId(datasetId);
+                entity.setDocumentId(result.getDocumentId()); // Remote ID
+                entity.setName(fileName);
+                entity.setSize(fileSize);
+                entity.setType(fileType); // simple type
+                entity.setChunkMethod(chunkMethod);
+                if (parserConfig != null) {
+                    entity.setParserConfig(objectMapper.writeValueAsString(parserConfig));
+                }
+                entity.setStatus(1); // 1=RUNNING
+                entity.setEnabled(1);
+                entity.setCreatedAt(new Date());
+                entity.setUpdatedAt(new Date());
+
+                documentDao.insert(entity);
+            } catch (Exception dbEx) {
+                log.error("本地影子记录保存失败 (Shadow Write Failed)，但不影响主流程", dbEx);
+                // Optional: Decide whether to rollback remote upload.
+                // Strategy: Log error but allow success since Remote is Truth.
+            }
 
             return result;
 
         } catch (Exception e) {
-            log.error("文档上传失败: {}", e.getMessage());
-            log.error("文档上传失败详细异常: ", e);
+            log.error("文档上传失败: {}", e.getMessage(), e);
             if (e instanceof RenException) {
                 throw (RenException) e;
             }
@@ -486,6 +485,7 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteByDocumentId(String documentId, String datasetId) {
         if (StringUtils.isBlank(documentId) || StringUtils.isBlank(datasetId)) {
             throw new RenException(ErrorCode.RAG_DATASET_ID_AND_MODEL_ID_NOT_NULL);
@@ -504,10 +504,22 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
             // 使用适配器工厂获取适配器实例
             KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
 
-            // 使用适配器删除文档
+            // 1. 使用适配器删除文档 (Remote-First)
             adapter.deleteDocument(datasetId, documentId);
 
             log.info("文档删除成功");
+
+            // 2. 本地删除 (Shadow Delete)
+            try {
+                // 删除所有 dataset_id 和 document_id 匹配的记录 (理论上 document_id 应该是唯一的，但为了安全加
+                // dataset_id)
+                documentDao.delete(
+                        new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<xiaozhi.modules.knowledge.entity.DocumentEntity>()
+                                .eq("dataset_id", datasetId)
+                                .eq("document_id", documentId));
+            } catch (Exception dbEx) {
+                log.error("本地影子记录删除失败，但不影响主流程", dbEx);
+            }
 
         } catch (Exception e) {
             log.error("删除文档失败: {}", e.getMessage(), e);

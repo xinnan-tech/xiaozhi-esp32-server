@@ -53,8 +53,8 @@ public interface AgentService extends BaseService<AgentEntity> {
     /**
      * 获取用户智能体列表
      *
-     * @param userId 用户ID
-     * @param keyword 搜索关键词
+     * @param userId     用户ID
+     * @param keyword    搜索关键词
      * @param searchType 搜索类型（name - 按名称搜索，mac - 按MAC地址搜索）
      * @return 智能体列表
      */
@@ -101,5 +101,11 @@ public interface AgentService extends BaseService<AgentEntity> {
      */
     String createAgent(AgentCreateDTO dto);
 
-
+    /**
+     * 验证智能体配置 (Soft Sync)
+     * 检查关联的 LLM 模型是否有效 (特别是 RAGFlow 类型)
+     *
+     * @param llmModelId LLM模型ID
+     */
+    void validateAgentConfig(String llmModelId);
 }

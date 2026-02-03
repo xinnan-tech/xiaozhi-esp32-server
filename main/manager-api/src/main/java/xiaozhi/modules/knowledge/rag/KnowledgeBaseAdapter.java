@@ -197,4 +197,35 @@ public abstract class KnowledgeBaseAdapter {
          * @return 文档数量
          */
         public abstract Integer getDocumentCount(String datasetId);
+
+        /**
+         * 发送流式请求 (SSE)
+         * 
+         * @param endpoint API端点
+         * @param body     请求体
+         * @param onData   数据回调
+         */
+        public abstract void postStream(String endpoint, Object body, java.util.function.Consumer<String> onData);
+
+        /**
+         * SearchBot 提问
+         *
+         * @param config RAG配置
+         * @param body   请求体
+         * @param onData 数据回调
+         * @return 响应对象
+         */
+        public abstract Object postSearchBotAsk(Map<String, Object> config, Object body,
+                        java.util.function.Consumer<String> onData);
+
+        /**
+         * AgentBot 对话
+         *
+         * @param config  RAG配置
+         * @param agentId Agent ID
+         * @param body    请求体
+         * @param onData  数据回调
+         */
+        public abstract void postAgentBotCompletion(Map<String, Object> config, String agentId, Object body,
+                        java.util.function.Consumer<String> onData);
 }

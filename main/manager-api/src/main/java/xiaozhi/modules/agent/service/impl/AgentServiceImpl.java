@@ -384,47 +384,62 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             agentContextProviderService.saveOrUpdateByAgentId(contextEntity);
         }
 
-        boolean b = validateLLMIntentParams(dto.getLlmModelId(), dto.getIntentModelId());
-        if (!b) {
-            throw new RenException(ErrorCode.LLM_INTENT_PARAMS_MISMATCH);
+        // [New] 软同步校验
+        if (dto.getLlmModelId() != null) {
+            validateAgentConfig(dto.getLlmModelId());
         }
+
+        // 移除旧的 validateLLMIntentParams 调用 (它依赖旧逻辑且有点硬编码)
+        // boolean b = validateLLMIntentParams(dto.getLlmModelId(),
+        // dto.getIntentModelId());
+        // if (!b) {
+        // throw new RenException(ErrorCode.LLM_INTENT_PARAMS_MISMATCH);
+        // }
+
         this.updateById(existingEntity);
     }
 
-    /**
-     * 验证大语言模型和意图识别的参数是否符合匹配
-     * 
-     * @param llmModelId    大语言模型id
-     * @param intentModelId 意图识别id
-     * @return T 匹配 : F 不匹配
-     */
-    private boolean validateLLMIntentParams(String llmModelId, String intentModelId) {
+    @Override
+    public void validateAgentConfig(String llmModelId) {
         if (StringUtils.isBlank(llmModelId)) {
-            return true;
+            return;
         }
-        ModelConfigEntity llmModelData = modelConfigService.selectById(llmModelId);
-        String type = llmModelData.getConfigJson().get("type").toString();
-        // 如果查询大语言模型是openai或者ollama，意图识别选参数都可以
-        if ("openai".equals(type) || "ollama".equals(type)) {
-            return true;
+        ModelConfigEntity modelConfig = modelConfigService.getModelByIdFromCache(llmModelId);
+        if (modelConfig == null) {
+            throw new RenException("指定的 LLM 模型不存在: " + llmModelId);
         }
-        // 除了openai和ollama的类型，不可以选择id为Intent_function_call（函数调用）的意图识别
-        return !"Intent_function_call".equals(intentModelId);
+
+        // 如果是 RAG 类型，可以进一步检查 (软同步)
+        if (Constant.RAG_CONFIG_TYPE.equalsIgnoreCase(modelConfig.getModelType())) {
+            // 这里可以尝试调用 RAGFlowAdapter.testConnection() 或者 simple status check
+            // 为避免过度阻塞，这里只检查配置完整性 (Has BaseUrl & ApiKey)
+            Map<String, Object> config = modelConfig.getConfigJson();
+            if (config == null
+                    || StringUtils.isBlank((String) config.get("base_url"))
+                    || StringUtils.isBlank((String) config.get("api_key"))) {
+                throw new RenException("RAGFlow 模型配置无效，请检查知识库配置");
+            }
+        }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String createAgent(AgentCreateDTO dto) {
+        // [New] 校验 LLM 配置
+        // 注意：DTO 中没有 llmModelId (DTO设计问题？AgentCreateDTO 确实没有 llmModelId)
+        // 查看代码发现 createAgent 会使用默认模板覆盖。
+        // 所以我们可能在应用模板后进行校验，或者如果将来 DTO 支持传入 llmModelId，则校验之。
+
         // 转换为实体
         AgentEntity entity = ConvertUtils.sourceToTarget(dto, AgentEntity.class);
 
         // 获取默认模板
         AgentTemplateEntity template = agentTemplateService.getDefaultTemplate();
         if (template != null) {
-            // 设置模板中的默认值
+            // ... (Template copy logic same as before)
             entity.setAsrModelId(template.getAsrModelId());
             entity.setVadModelId(template.getVadModelId());
-            entity.setLlmModelId(template.getLlmModelId());
+            entity.setLlmModelId(template.getLlmModelId()); // Set from template
             entity.setVllmModelId(template.getVllmModelId());
             entity.setTtsModelId(template.getTtsModelId());
 
@@ -452,10 +467,8 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             // 根据记忆模型类型设置默认的chatHistoryConf值
             if (template.getMemModelId() != null) {
                 if (template.getMemModelId().equals("Memory_nomem")) {
-                    // 无记忆功能的模型，默认不记录聊天记录
                     entity.setChatHistoryConf(0);
                 } else {
-                    // 有记忆功能的模型，默认记录文本和语音
                     entity.setChatHistoryConf(2);
                 }
             } else {
@@ -465,6 +478,9 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             entity.setLangCode(template.getLangCode());
             entity.setLanguage(template.getLanguage());
         }
+
+        // [New] 校验最终的 LLM Model ID (来自模板)
+        validateAgentConfig(entity.getLlmModelId());
 
         // 设置用户ID和创建者信息
         UserDetail user = SecurityUser.getUser();
@@ -503,5 +519,4 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         agentPluginMappingService.saveBatch(toInsert);
         return entity.getId();
     }
-
 }
