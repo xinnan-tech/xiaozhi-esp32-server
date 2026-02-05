@@ -83,7 +83,8 @@ public interface KnowledgeFilesService {
          * @param chunkId    切片ID
          * @return 切片列表信息
          */
-        Map<String, Object> listChunks(String datasetId, String documentId, String keywords,
+        xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO listChunks(String datasetId, String documentId,
+                        String keywords,
                         Integer page, Integer pageSize, String chunkId);
 
         /**
@@ -104,9 +105,26 @@ public interface KnowledgeFilesService {
          * @param metadataCondition      元数据过滤条件
          * @return 召回测试结果
          */
-        Map<String, Object> retrievalTest(String question, List<String> datasetIds, List<String> documentIds,
+        xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO retrievalTest(String question,
+                        List<String> datasetIds, List<String> documentIds,
                         Integer page, Integer pageSize, Float similarityThreshold,
                         Float vectorSimilarityWeight, Integer topK, String rerankId,
                         Boolean keyword, Boolean highlight, List<String> crossLanguages,
                         Map<String, Object> metadataCondition);
+
+        /**
+         * 保存文档影子记录
+         */
+        void saveDocumentShadow(String datasetId, KnowledgeFilesDTO result, String originalName, String chunkMethod,
+                        Map<String, Object> parserConfig);
+
+        /**
+         * 删除文档影子记录并更新统计信息
+         * 
+         * @param documentId 文档ID
+         * @param datasetId  数据集ID
+         * @param chunkDelta 待扣减的分块数
+         * @param tokenDelta 待扣减的Token数
+         */
+        void deleteDocumentShadow(String documentId, String datasetId, Long chunkDelta, Long tokenDelta);
 }

@@ -118,7 +118,7 @@ public abstract class KnowledgeBaseAdapter {
          * @param chunkId    切片ID
          * @return 切片列表信息
          */
-        public abstract Map<String, Object> listChunks(String datasetId,
+        public abstract xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO listChunks(String datasetId,
                         String documentId,
                         String keywords,
                         Integer page,
@@ -134,7 +134,7 @@ public abstract class KnowledgeBaseAdapter {
          * @param retrievalParams 检索参数
          * @return 召回测试结果
          */
-        public abstract Map<String, Object> retrievalTest(String question,
+        public abstract xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO retrievalTest(String question,
                         List<String> datasetIds,
                         List<String> documentIds,
                         Map<String, Object> retrievalParams);
@@ -173,7 +173,7 @@ public abstract class KnowledgeBaseAdapter {
          * @param createParams 创建参数
          * @return 数据集ID
          */
-        public abstract String createDataset(Map<String, Object> createParams);
+        public abstract Map<String, Object> createDataset(Map<String, Object> createParams);
 
         /**
          * 更新数据集
@@ -197,4 +197,35 @@ public abstract class KnowledgeBaseAdapter {
          * @return 文档数量
          */
         public abstract Integer getDocumentCount(String datasetId);
+
+        /**
+         * 发送流式请求 (SSE)
+         * 
+         * @param endpoint API端点
+         * @param body     请求体
+         * @param onData   数据回调
+         */
+        public abstract void postStream(String endpoint, Object body, java.util.function.Consumer<String> onData);
+
+        /**
+         * SearchBot 提问
+         *
+         * @param config RAG配置
+         * @param body   请求体
+         * @param onData 数据回调
+         * @return 响应对象
+         */
+        public abstract Object postSearchBotAsk(Map<String, Object> config, Object body,
+                        java.util.function.Consumer<String> onData);
+
+        /**
+         * AgentBot 对话
+         *
+         * @param config  RAG配置
+         * @param agentId Agent ID
+         * @param body    请求体
+         * @param onData  数据回调
+         */
+        public abstract void postAgentBotCompletion(Map<String, Object> config, String agentId, Object body,
+                        java.util.function.Consumer<String> onData);
 }

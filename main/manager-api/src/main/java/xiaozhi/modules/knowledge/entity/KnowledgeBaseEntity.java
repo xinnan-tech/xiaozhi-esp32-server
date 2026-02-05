@@ -23,14 +23,42 @@ public class KnowledgeBaseEntity {
     @Schema(description = "知识库ID")
     private String datasetId;
 
-    @Schema(description = "RAG模型配置ID")
+//    @Deprecated
+    @Schema(description = "RAG模型配置ID (连接RAGFlow的凭证指针)")
     private String ragModelId;
+
+    @Schema(description = "租户ID")
+    private String tenantId;
 
     @Schema(description = "知识库名称")
     private String name;
 
+    @Schema(description = "知识库头像(Base64)")
+    private String avatar;
+
     @Schema(description = "知识库描述")
     private String description;
+
+    @Schema(description = "嵌入模型名称")
+    private String embeddingModel;
+
+    @Schema(description = "权限设置: me/team")
+    private String permission;
+
+    @Schema(description = "分块方法")
+    private String chunkMethod;
+
+    @Schema(description = "解析器配置(JSON String)")
+    private String parserConfig;
+
+    @Schema(description = "分块总数")
+    private Long chunkCount;
+
+    @Schema(description = "文档总数")
+    private Long documentCount;
+
+    @Schema(description = "总Token数")
+    private Long tokenNum;
 
     @Schema(description = "状态(0:禁用 1:启用)")
     private Integer status;
