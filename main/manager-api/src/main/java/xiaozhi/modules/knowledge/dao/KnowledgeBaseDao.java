@@ -19,4 +19,21 @@ public interface KnowledgeBaseDao extends BaseDao<KnowledgeBaseEntity> {
      */
     void deletePluginMappingByKnowledgeBaseId(@Param("knowledgeBaseId") String knowledgeBaseId);
 
+    /**
+     * 删除文档后更新数据集统计信息
+     * 
+     * @param datasetId  数据集ID
+     * @param chunkDelta 分块减少量
+     * @param tokenDelta Token减少量
+     */
+    void updateStatsAfterDelete(@Param("datasetId") String datasetId, @Param("chunkDelta") Long chunkDelta,
+            @Param("tokenDelta") Long tokenDelta);
+
+    /**
+     * 上传文档后更新数据集统计信息 (递增)
+     * 
+     * @param datasetId 数据集ID
+     */
+    void updateStatsAfterUpload(@Param("datasetId") String datasetId);
+
 }

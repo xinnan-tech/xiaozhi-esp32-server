@@ -1,15 +1,22 @@
 package xiaozhi.modules.knowledge.service.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.core.io.AbstractResource;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.AllArgsConstructor;
@@ -17,8 +24,13 @@ import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
-import xiaozhi.common.utils.ToolUtil;
+import xiaozhi.common.redis.RedisKeys;
+import xiaozhi.common.redis.RedisUtils;
+import xiaozhi.common.service.impl.BaseServiceImpl;
+import xiaozhi.modules.knowledge.dao.DocumentDao;
+import xiaozhi.modules.knowledge.dao.KnowledgeBaseDao;
 import xiaozhi.modules.knowledge.dto.KnowledgeFilesDTO;
+import xiaozhi.modules.knowledge.entity.DocumentEntity;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapter;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapterFactory;
 import xiaozhi.modules.knowledge.service.KnowledgeBaseService;
@@ -27,9 +39,17 @@ import xiaozhi.modules.knowledge.service.KnowledgeFilesService;
 @Service
 @AllArgsConstructor
 @Slf4j
-public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
+public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, DocumentEntity>
+        implements KnowledgeFilesService {
 
     private final KnowledgeBaseService knowledgeBaseService;
+    private final KnowledgeBaseDao knowledgeBaseDao;
+    private final DocumentDao documentDao;
+    private final ObjectMapper objectMapper;
+    private final RedisUtils redisUtils;
+
+    @Autowired
+    private KnowledgeFilesService self;
 
     @Override
     public Map<String, Object> getRAGConfig(String ragModelId) {
@@ -38,140 +58,119 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
 
     @Override
     public PageData<KnowledgeFilesDTO> getPageList(KnowledgeFilesDTO knowledgeFilesDTO, Integer page, Integer limit) {
-        try {
-            log.info("=== 开始获取文档列表 ===");
-            log.info("查询条件: datasetId={}, name={}, status={}, page={}, limit={}", knowledgeFilesDTO.getDatasetId(), knowledgeFilesDTO.getName(), knowledgeFilesDTO.getStatus(), page, limit);
-
-            // 获取数据集ID
-            String datasetId = knowledgeFilesDTO.getDatasetId();
-            if (ToolUtil.isEmpty(datasetId)) {
-                throw new RenException(ErrorCode.RAG_DATASET_ID_NOT_NULL);
-            }
-
-            // 获取RAG配置
-            Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
-            // 提取适配器类型
-            String adapterType = extractAdapterType(ragConfig);
-            // 使用适配器工厂获取适配器实例
-            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
-
-            // 构建查询参数
-            Map<String, Object> queryParams = new HashMap<>();
-            if (ToolUtil.isNotEmpty(knowledgeFilesDTO.getName())) {
-                queryParams.put("keywords", knowledgeFilesDTO.getName());
-            }
-            if (ToolUtil.isNotEmpty(knowledgeFilesDTO.getStatus())) {
-                queryParams.put("status", knowledgeFilesDTO.getStatus());
-            }
-            if (page > 0) {
-                queryParams.put("page", page);
-            }
-            if (limit > 0) {
-                queryParams.put("page_size", limit);
-            }
-
-            // 调用适配器获取文档列表
-            PageData<KnowledgeFilesDTO> result = adapter.getDocumentList(datasetId, queryParams, page, limit);
-            log.info("获取文档列表成功，共{}个文档，总数: {}", result.getList().size(), result.getTotal());
-            return result;
-        } catch (Exception e) {
-            log.error("获取文档列表失败: {}", e.getMessage(), e);
-            if (e instanceof RenException) {
-                throw (RenException) e;
-            }
-            throw new RenException(ErrorCode.RAG_API_ERROR, e.getMessage());
-        } finally {
-            log.info("=== 获取文档列表操作结束 ===");
+        log.info("=== 开始获取知识库文档列表 (Local-First 优化版) ===");
+        String datasetId = knowledgeFilesDTO.getDatasetId();
+        if (StringUtils.isBlank(datasetId)) {
+            throw new RenException(ErrorCode.RAG_DATASET_ID_AND_MODEL_ID_NOT_NULL);
         }
+
+        // 1. 获取本地影子表数据 (MyBatis-Plus 分页)
+        Page<DocumentEntity> pageParams = new Page<>(page, limit);
+        QueryWrapper<DocumentEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("dataset_id", datasetId);
+        if (StringUtils.isNotBlank(knowledgeFilesDTO.getName())) {
+            queryWrapper.like("name", knowledgeFilesDTO.getName());
+        }
+        if (StringUtils.isNotBlank(knowledgeFilesDTO.getRun())) {
+            queryWrapper.eq("run", knowledgeFilesDTO.getRun());
+        }
+        if (StringUtils.isNotBlank(knowledgeFilesDTO.getStatus())) {
+            queryWrapper.eq("status", knowledgeFilesDTO.getStatus());
+        }
+        queryWrapper.orderByDesc("created_at");
+
+        // 2. 执行本地查询
+        Page<DocumentEntity> iPage = documentDao.selectPage(pageParams, queryWrapper);
+
+        // 3. 手动转换 DTO
+        List<KnowledgeFilesDTO> dtoList = new ArrayList<>();
+        for (DocumentEntity entity : iPage.getRecords()) {
+            dtoList.add(convertEntityToDTO(entity));
+        }
+        PageData<KnowledgeFilesDTO> pageData = new PageData<>(dtoList, iPage.getTotal());
+
+        // 4. 动态状态同步 (带限流与保护)
+        if (pageData.getList() != null && !pageData.getList().isEmpty()) {
+            KnowledgeBaseAdapter adapter = null;
+            for (KnowledgeFilesDTO dto : pageData.getList()) {
+                // 只有处于“解析中”或“待解析”状态的文档才尝试同步
+                boolean needSync = "RUNNING".equals(dto.getRun()) || "UNSTART".equals(dto.getRun());
+                if (needSync) {
+                    // Issue 5: 限流保护，5秒内不重复向 RAGFlow 发起同一文档的状态查询
+                    DocumentEntity localEntity = documentDao.selectOne(new QueryWrapper<DocumentEntity>()
+                            .eq("document_id", dto.getDocumentId()));
+                    if (localEntity != null && localEntity.getLastSyncAt() != null) {
+                        long diff = System.currentTimeMillis() - localEntity.getLastSyncAt().getTime();
+                        if (diff < 5000) {
+                            continue;
+                        }
+                    }
+
+                    // 延迟初始化适配器，仅在确实需要同步时创建
+                    if (adapter == null) {
+                        try {
+                            Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
+                            adapter = KnowledgeBaseAdapterFactory.getAdapter(extractAdapterType(ragConfig), ragConfig);
+                        } catch (Exception e) {
+                            log.warn("同步中断：无法初始化适配器, {}", e.getMessage());
+                            break;
+                        }
+                    }
+                    syncDocumentStatusWithRAG(dto, adapter);
+                }
+            }
+        }
+
+        log.info("获取文档列表成功，总数: {}", pageData.getTotal());
+        return pageData;
     }
 
     /**
-     * 解析RAG API返回的文档列表响应
+     * 将本地记录实体转换为DTO，手动对齐不一致字段 (size -> fileSize, type -> fileType)
      */
-    private PageData<KnowledgeFilesDTO> parseDocumentListResponse(Object dataObj, long curPage, long pageSize) {
-        try {
-            List<KnowledgeFilesDTO> documents = new ArrayList<>();
-            long totalCount = 0;
-
-            if (dataObj instanceof Map) {
-                Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-
-                // 获取文档列表 - 支持多种可能的字段名
-                Object documentsObj = null;
-
-                // 支持多种可能的文档列表字段名
-                String[] possibleDocumentFields = { "docs", "documents", "items", "list", "data" };
-
-                for (String fieldName : possibleDocumentFields) {
-                    if (dataMap.containsKey(fieldName) && dataMap.get(fieldName) instanceof List) {
-                        documentsObj = dataMap.get(fieldName);
-                        log.debug("使用字段名'{}'获取文档列表", fieldName);
-                        break;
-                    }
-                }
-
-                // 如果标准字段不存在，尝试自动检测
-                if (documentsObj == null) {
-                    for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
-                        if (entry.getValue() instanceof List) {
-                            List<?> list = (List<?>) entry.getValue();
-                            if (!list.isEmpty() && list.get(0) instanceof Map) {
-                                documentsObj = entry.getValue();
-                                log.warn("自动检测到文档列表字段: '{}'，建议检查RAG API文档", entry.getKey());
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (documentsObj instanceof List) {
-                    List<Map<String, Object>> documentList = (List<Map<String, Object>>) documentsObj;
-
-                    for (Map<String, Object> docMap : documentList) {
-                        KnowledgeFilesDTO dto = convertRAGDocumentToDTO(docMap);
-                        if (dto != null) {
-                            // 在文档列表获取时也进行状态同步检查
-                            syncDocumentStatusWithRAG(dto);
-                            documents.add(dto);
-                        }
-                    }
-                }
-
-                // 解析总数 - 支持多种可能的字段名
-                Object totalObj = null;
-                String[] possibleTotalFields = { "total", "totalCount", "total_count", "count" };
-
-                for (String fieldName : possibleTotalFields) {
-                    if (dataMap.containsKey(fieldName)) {
-                        totalObj = dataMap.get(fieldName);
-                        log.debug("使用字段名'{}'获取总数", fieldName);
-                        break;
-                    }
-                }
-
-                if (totalObj instanceof Integer) {
-                    totalCount = ((Integer) totalObj).longValue();
-                } else if (totalObj instanceof Long) {
-                    totalCount = (Long) totalObj;
-                } else if (totalObj instanceof String) {
-                    try {
-                        totalCount = Long.parseLong((String) totalObj);
-                    } catch (NumberFormatException e) {
-                        log.warn("无法解析总数字段: {}", totalObj);
-                    }
-                }
-            }
-
-            // 创建分页数据
-            PageData<KnowledgeFilesDTO> pageData = new PageData<>(documents, totalCount);
-
-            log.info("获取文档列表成功，共{}个文档，总数: {}", documents.size(), totalCount);
-            return pageData;
-
-        } catch (Exception e) {
-            log.error("获取文档列表响应失败: {}", e.getMessage(), e);
-            throw new RenException(ErrorCode.RAG_API_ERROR, e.getMessage());
+    private KnowledgeFilesDTO convertEntityToDTO(DocumentEntity entity) {
+        if (entity == null) {
+            return null;
         }
+        KnowledgeFilesDTO dto = new KnowledgeFilesDTO();
+        // 1. 基础字段拷贝
+        BeanUtils.copyProperties(entity, dto);
+
+        // Issue 2: 修正 ID 语义。前端习惯使用 id 作为操作主键。
+        // 在该模块中，应始终将远程 documentId 映射为 DTO 的 id，确保前端在详情/删除等操作时 ID 一致。
+        dto.setId(entity.getDocumentId());
+
+        // 2. 将本地记录实体转换为DTO，手动对齐不一致字段 (size -> fileSize, type -> fileType)
+        dto.setFileSize(entity.getSize());
+        dto.setFileType(entity.getType());
+        dto.setRun(entity.getRun());
+        dto.setChunkCount(entity.getChunkCount());
+        dto.setTokenCount(entity.getTokenCount());
+        dto.setError(entity.getError());
+
+        // 3. 自定义元数据 JSON 反序列化 (Issue 3)
+        if (StringUtils.isNotBlank(entity.getMetaFields())) {
+            try {
+                dto.setMetaFields(objectMapper.readValue(entity.getMetaFields(),
+                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                        }));
+            } catch (Exception e) {
+                log.warn("反序列化 MetaFields 失败, entityId: {}, error: {}", entity.getId(), e.getMessage());
+            }
+        }
+
+        // 4. 解析配置 JSON 反序列化
+        if (StringUtils.isNotBlank(entity.getParserConfig())) {
+            try {
+                dto.setParserConfig(objectMapper.readValue(entity.getParserConfig(),
+                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                        }));
+            } catch (Exception e) {
+                log.warn("反序列化 ParserConfig 失败, entityId: {}, error: {}", entity.getId(), e.getMessage());
+            }
+        }
+        return dto;
+
     }
 
     /**
@@ -179,188 +178,93 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
      * 优化状态同步逻辑，确保解析中状态能够正常显示
      * 只有当文档有切片且解析时间超过30秒时，才更新为完成状态
      */
-    private void syncDocumentStatusWithRAG(KnowledgeFilesDTO dto) {
-        if (dto == null || StringUtils.isBlank(dto.getDocumentId())) {
+    /**
+     * 同步文档状态与RAG实际状态 (增强型：支持外部传入适配器)
+     */
+    private void syncDocumentStatusWithRAG(KnowledgeFilesDTO dto, KnowledgeBaseAdapter adapter) {
+        if (dto == null || StringUtils.isBlank(dto.getDocumentId()) || adapter == null) {
             return;
         }
 
         String documentId = dto.getDocumentId();
-        Integer currentStatus = dto.getStatus();
+        String datasetId = dto.getDatasetId();
 
-        // 只有当状态明确为处理中(1)时，才进行状态同步检查
-        // 避免在状态不确定或已完成的文档上重复检查
-        if (currentStatus != null && currentStatus == 1) {
-            try {
-                long currentTime = System.currentTimeMillis();
-
-                // 使用适配器获取文档切片信息
-                String datasetId = dto.getDatasetId();
-                Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
-
-                // 提取适配器类型
-                String adapterType = extractAdapterType(ragConfig);
-
-                // 使用适配器工厂获取适配器实例
-                KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
-
-                // 构建查询参数
-                Map<String, Object> queryParams = new HashMap<>();
-                queryParams.put("document_id", documentId);
-
-                log.debug("检查文档切片状态，documentId: {}", documentId);
-
-                // 使用适配器获取切片列表
-                Map<String, Object> chunkResult = adapter.listChunks(datasetId, documentId, null, null, null, null);
-                List<Map<String, Object>> chunks = (List<Map<String, Object>>) chunkResult.get("chunks");
-
-                // 如果有切片且数量大于0，说明解析已完成
-                if (!chunks.isEmpty()) {
-                    // 检查文档创建时间，确保解析过程有足够的时间显示
-                    Date createdAt = dto.getCreatedAt();
-                    long parseDuration = currentTime
-                            - (createdAt != null ? createdAt.getTime() : currentTime);
-
-                    // 只有当解析时间超过30秒时，才更新为完成状态
-                    // 这样可以确保解析中状态有足够的时间显示
-                    if (parseDuration > 30000) {
-                        log.info("状态同步：文档已有切片且解析时间超过30秒，更新为完成状态，documentId: {}, 切片数量: {}, 解析时长: {}ms",
-                                documentId, chunks.size(), parseDuration);
-
-                        // 更新状态为完成(3)
-                        dto.setStatus(3);
-                    } else {
-                        log.debug("文档已有切片但解析时间不足30秒，保持解析中状态，documentId: {}, 解析时长: {}ms",
-                                documentId, parseDuration);
-                    }
-                }
-            } catch (Exception e) {
-                log.debug("检查文档切片状态失败，documentId: {}, 错误: {}", documentId, e.getMessage());
-                // 忽略检查失败，保持原状态
-            }
-        }
-    }
-
-    /**
-     * 将RAG文档数据转换为KnowledgeFilesDTO
-     */
-    private KnowledgeFilesDTO convertRAGDocumentToDTO(Map<String, Object> docMap) {
         try {
-            if (docMap == null)
-                return null;
+            // 使用精准的 List API 配合 ID 过滤来获取状态
+            Map<String, Object> queryParams = new HashMap<>();
+            queryParams.put("id", documentId);
 
-            KnowledgeFilesDTO dto = new KnowledgeFilesDTO();
+            PageData<KnowledgeFilesDTO> remoteList = adapter.getDocumentList(datasetId, queryParams, 1, 1);
 
-            // 设置基本字段 - 支持多种可能的字段名
-            dto.setId(getStringValueFromMultipleKeys(docMap, "id", "document_id", "doc_id")); // 使用RAG的文档ID作为本地ID
-            dto.setDocumentId(getStringValueFromMultipleKeys(docMap, "id", "document_id", "doc_id")); // RAG文档ID
-            dto.setName(getStringValueFromMultipleKeys(docMap, "name", "filename", "file_name", "title"));
-            dto.setDatasetId(getStringValueFromMultipleKeys(docMap, "dataset_id", "dataset", "knowledge_base_id"));
+            if (remoteList != null && remoteList.getList() != null && !remoteList.getList().isEmpty()) {
+                KnowledgeFilesDTO remoteDto = remoteList.getList().get(0);
+                String remoteStatus = remoteDto.getStatus();
 
-            // 设置文件信息 - 支持多种可能的字段名
-            dto.setFileType(getStringValueFromMultipleKeys(docMap, "file_type", "type", "format", "extension"));
+                // 核心状态对齐判别逻辑
+                boolean statusChanged = remoteStatus != null && !remoteStatus.equals(dto.getStatus());
+                boolean isProcessing = "RUNNING".equals(remoteDto.getRun()) || "UNSTART".equals(remoteDto.getRun());
 
-            // 文件大小 - 支持多种可能的字段名
-            Object sizeObj = getValueFromMultipleKeys(docMap, "size", "file_size", "size_bytes");
-            if (sizeObj instanceof Integer) {
-                dto.setFileSize(((Integer) sizeObj).longValue());
-            } else if (sizeObj instanceof Long) {
-                dto.setFileSize((Long) sizeObj);
-            } else if (sizeObj instanceof String) {
-                try {
-                    dto.setFileSize(Long.parseLong((String) sizeObj));
-                } catch (NumberFormatException e) {
-                    log.warn("无法解析文件大小: {}", sizeObj);
+                // 只要状态有变，或者文件仍在解析中（实时刷进度），就执行同步
+                if (statusChanged || isProcessing) {
+                    log.info("影子同步：状态变化={}，解析中={}，文档={}，最新状态={}，进度={}",
+                            statusChanged, isProcessing, documentId, remoteStatus, remoteDto.getProgress());
+
+                    // 1. 同步内存 DTO
+                    dto.setStatus(remoteStatus);
+                    dto.setRun(remoteDto.getRun());
+                    dto.setProgress(remoteDto.getProgress());
+                    dto.setChunkCount(remoteDto.getChunkCount());
+                    dto.setTokenCount(remoteDto.getTokenCount());
+                    dto.setError(remoteDto.getError());
+                    dto.setProcessDuration(remoteDto.getProcessDuration());
+                    dto.setThumbnail(remoteDto.getThumbnail());
+
+                    // 2. 同步本地影子表
+                    UpdateWrapper<DocumentEntity> updateWrapper = new UpdateWrapper<DocumentEntity>()
+                            .set("status", remoteStatus)
+                            .set("run", remoteDto.getRun())
+                            .set("progress", remoteDto.getProgress())
+                            .set("chunk_count", remoteDto.getChunkCount())
+                            .set("token_count", remoteDto.getTokenCount())
+                            .set("error", remoteDto.getError())
+                            .set("process_duration", remoteDto.getProcessDuration())
+                            .set("thumbnail", remoteDto.getThumbnail())
+                            .eq("document_id", documentId)
+                            .eq("dataset_id", datasetId);
+
+                    // 序列化元数据同步
+                    if (remoteDto.getMetaFields() != null) {
+                        try {
+                            updateWrapper.set("meta_fields",
+                                    objectMapper.writeValueAsString(remoteDto.getMetaFields()));
+                        } catch (Exception e) {
+                            log.warn("同步元数据序列化失败: {}", e.getMessage());
+                        }
+                    }
+
+                    // 优先同步 RAG 侧的更新时间，避免本地同步行为覆盖业务修改时间
+                    Date lastUpdate = remoteDto.getUpdatedAt() != null ? remoteDto.getUpdatedAt() : new Date();
+                    updateWrapper.set("updated_at", lastUpdate);
+                    updateWrapper.set("last_sync_at", new Date()); // 记录影子库同步时间
+
+                    documentDao.update(null, updateWrapper);
                 }
+            } else {
+                // Issue 6: 远程列表为空，说明 RAGFlow 侧可能已物理删除文档。
+                // 我们不应直接返回，而应同步将影子库记录标记为逻辑失效或取消，防止形成“僵尸记录”
+                log.warn("远程同步感知：文档在 RAGFlow 侧已消失，准备清理影子状态, docId={}", documentId);
+                dto.setRun("CANCEL");
+                dto.setError("文档在远程服务中已被删除");
+
+                documentDao.update(null, new UpdateWrapper<DocumentEntity>()
+                        .set("run", "CANCEL")
+                        .set("error", "文档在远程服务中已被删除")
+                        .set("updated_at", new Date())
+                        .eq("document_id", documentId));
             }
-
-            // 设置元数据和配置 - 支持多种可能的字段名
-            Object metaFieldsObj = getValueFromMultipleKeys(docMap, "meta_fields", "metadata", "meta", "properties");
-            if (metaFieldsObj instanceof Map) {
-                dto.setMetaFields((Map<String, Object>) metaFieldsObj);
-            }
-
-            Object parserConfigObj = getValueFromMultipleKeys(docMap, "parser_config", "parser", "parse_config",
-                    "config");
-            if (parserConfigObj instanceof Map) {
-                dto.setParserConfig((Map<String, Object>) parserConfigObj);
-            }
-
-            dto.setChunkMethod(getStringValueFromMultipleKeys(docMap, "chunk_method", "chunking", "chunk_strategy"));
-
-            // 设置时间信息 - 支持多种可能的字段名
-            Object createTimeObj = getValueFromMultipleKeys(docMap, "create_time", "created_at", "creation_time",
-                    "created");
-            if (createTimeObj instanceof Long) {
-                dto.setCreatedAt(new Date((Long) createTimeObj));
-            } else if (createTimeObj instanceof String) {
-                // 尝试解析时间字符串
-                try {
-                    // 这里可以根据实际的时间格式进行调整
-                    dto.setCreatedAt(new Date(Long.parseLong((String) createTimeObj)));
-                } catch (NumberFormatException e) {
-                    log.warn("无法解析创建时间: {}", createTimeObj);
-                }
-            }
-
-            Object updateTimeObj = getValueFromMultipleKeys(docMap, "update_time", "updated_at", "modified_time",
-                    "modified");
-            if (updateTimeObj instanceof Long) {
-                dto.setUpdatedAt(new Date((Long) updateTimeObj));
-            } else if (updateTimeObj instanceof String) {
-                try {
-                    dto.setUpdatedAt(new Date(Long.parseLong((String) updateTimeObj)));
-                } catch (NumberFormatException e) {
-                    log.warn("无法解析更新时间: {}", updateTimeObj);
-                }
-            }
-
-            // 设置文档解析状态信息 - 直接使用RAG最新状态
-            String documentId = dto.getDocumentId();
-            if (StringUtils.isNotBlank(documentId)) {
-                // 获取RAG的最新状态
-                Object runObj = getValueFromMultipleKeys(docMap, "run", "status", "parse_status");
-                Integer ragFlowStatus = null;
-                if (runObj != null) {
-                    dto.setRun(runObj.toString());
-                    ragFlowStatus = dto.getParseStatusCode();
-                    log.debug("获取RAG最新状态，documentId: {}, run: {}, status: {}",
-                            documentId, runObj, ragFlowStatus);
-                }
-
-            }
-
-            return dto;
-
         } catch (Exception e) {
-            log.error("转换RAG文档数据失败: {}", e.getMessage(), e);
-            return null;
+            log.debug("同步文档状态失败，documentId: {}, error: {}", documentId, e.getMessage());
         }
-    }
-
-    /**
-     * 从多个可能的字段名中获取字符串值
-     */
-    private String getStringValueFromMultipleKeys(Map<String, Object> map, String... keys) {
-        for (String key : keys) {
-            Object value = map.get(key);
-            if (value != null) {
-                return value.toString();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 从多个可能的字段名中获取值
-     */
-    private Object getValueFromMultipleKeys(Map<String, Object> map, String... keys) {
-        for (String key : keys) {
-            Object value = map.get(key);
-            if (value != null) {
-                return value;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -412,111 +316,165 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
             throw new RenException(ErrorCode.PARAMS_GET_ERROR);
         }
 
-        log.info("=== 开始文档上传操作 ===");
-        log.info("上传文档到数据集: {}, 文件名: {}", datasetId, file.getOriginalFilename());
+        log.info("=== 开始文档上传操作 (强一致性优化) ===");
 
-        try {
-            // 在文件上传前添加详细日志
-            log.info("1. 开始处理文件信息");
-            String fileName = file.getOriginalFilename();
-            String fileType = getFileType(fileName);
-            long fileSize = file.getSize();
-
-            log.info("文件信息 - 文件名: {}, 文件类型: {}, 文件大小: {} bytes",
-                    fileName, fileType, fileSize);
-
-            // 检查文件基本信息
-            if (StringUtils.isBlank(fileName)) {
-                log.error("文件名为空");
-                throw new RenException(ErrorCode.RAG_FILE_NAME_NOT_NULL);
-            }
-
-            if (fileSize == 0) {
-                log.error("文件大小为0");
-                throw new RenException(ErrorCode.RAG_FILE_CONTENT_EMPTY);
-            }
-
-            log.info("2. 开始使用适配器上传文档");
-
-            // 获取RAG配置
-            Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
-
-            // 提取适配器类型
-            String adapterType = extractAdapterType(ragConfig);
-
-            // 使用适配器工厂获取适配器实例
-            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
-
-            // 构建上传参数
-            Map<String, Object> uploadParams = new HashMap<>();
-            if (StringUtils.isNotBlank(name)) {
-                uploadParams.put("name", name);
-            }
-            if (metaFields != null && !metaFields.isEmpty()) {
-                uploadParams.put("meta_fields", metaFields);
-            }
-            if (StringUtils.isNotBlank(chunkMethod)) {
-                uploadParams.put("chunk_method", chunkMethod);
-            }
-            if (parserConfig != null && !parserConfig.isEmpty()) {
-                uploadParams.put("parser_config", parserConfig);
-            }
-
-            // 使用适配器上传文档
-            KnowledgeFilesDTO result = adapter.uploadDocument(datasetId, file,
-                    (String) uploadParams.get("name"),
-                    (Map<String, Object>) uploadParams.get("meta_fields"),
-                    (String) uploadParams.get("chunk_method"),
-                    (Map<String, Object>) uploadParams.get("parser_config"));
-
-            log.info("文档上传成功，documentId: {}", result.getDocumentId());
-
-            return result;
-
-        } catch (Exception e) {
-            log.error("文档上传失败: {}", e.getMessage());
-            log.error("文档上传失败详细异常: ", e);
-            if (e instanceof RenException) {
-                throw (RenException) e;
-            }
-            throw new RenException(ErrorCode.INTERNAL_SERVER_ERROR);
-        } finally {
-            log.info("=== 文档上传操作结束 ===");
+        // 1. 准备工作 (非事务性)
+        String fileName = StringUtils.isNotBlank(name) ? name : file.getOriginalFilename();
+        if (StringUtils.isBlank(fileName)) {
+            throw new RenException(ErrorCode.RAG_FILE_NAME_NOT_NULL);
         }
+
+        log.info("1. 发起远程上传: datasetId={}, fileName={}", datasetId, fileName);
+
+        // 获取适配器 (非事务性)
+        Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
+        KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(extractAdapterType(ragConfig), ragConfig);
+
+        // 执行远程上传 (耗时 IO，在事务之外)
+        KnowledgeFilesDTO result = adapter.uploadDocument(datasetId, file, fileName,
+                metaFields, chunkMethod, parserConfig);
+
+        if (result == null || StringUtils.isBlank(result.getDocumentId())) {
+            throw new RenException(ErrorCode.RAG_API_ERROR, "远程上传成功但未返回有效 DocumentID");
+        }
+
+        // 2. 本地持久化 (通过 self 调用以激活 @Transactional 代理)
+        log.info("2. 同步保存本地影子记录: documentId={}", result.getDocumentId());
+        self.saveDocumentShadow(datasetId, result, fileName, chunkMethod, parserConfig);
+
+        log.info("=== 文档上传与影子记录保存成功 ===");
+        return result;
+    }
+
+    /**
+     * 原子化保存影子记录，确保本地数据绝对一致
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void saveDocumentShadow(String datasetId, KnowledgeFilesDTO result, String originalName, String chunkMethod,
+            Map<String, Object> parserConfig) {
+        DocumentEntity entity = new DocumentEntity();
+        entity.setDatasetId(datasetId);
+        entity.setDocumentId(result.getDocumentId());
+        entity.setName(StringUtils.isNotBlank(result.getName()) ? result.getName() : originalName);
+        entity.setSize(result.getFileSize());
+        entity.setType(getFileType(entity.getName()));
+        entity.setChunkMethod(chunkMethod);
+
+        if (parserConfig != null) {
+            try {
+                entity.setParserConfig(objectMapper.writeValueAsString(parserConfig));
+            } catch (Exception e) {
+                log.warn("序列化解析配置失败: {}", e.getMessage());
+            }
+        }
+
+        entity.setStatus(result.getStatus() != null ? result.getStatus() : "1");
+        entity.setRun(result.getRun());
+        entity.setProgress(result.getProgress());
+        entity.setThumbnail(result.getThumbnail());
+        entity.setProcessDuration(result.getProcessDuration());
+        entity.setSourceType(result.getSourceType());
+        entity.setError(result.getError());
+        entity.setChunkCount(result.getChunkCount());
+        entity.setTokenCount(result.getTokenCount());
+        entity.setEnabled(1);
+
+        // 持久化元数据
+        if (result.getMetaFields() != null) {
+            try {
+                entity.setMetaFields(objectMapper.writeValueAsString(result.getMetaFields()));
+            } catch (Exception e) {
+                log.warn("持久化影子元数据失败: {}", e.getMessage());
+            }
+        }
+
+        // 优先同步 RAG 侧的时间戳，若无则使用本地时间
+        entity.setCreatedAt(result.getCreatedAt() != null ? result.getCreatedAt() : new Date());
+        entity.setUpdatedAt(result.getUpdatedAt() != null ? result.getUpdatedAt() : new Date());
+
+        // 插入影子表 (若失败将抛出异常，触发调用方报错，确保 Local-First 列表一致性)
+        documentDao.insert(entity);
+
+        // Issue 4: 同步递增数据集文档总数统计，保持父子表一致
+        knowledgeBaseDao.updateStatsAfterUpload(datasetId);
+        log.info("已同步递增数据集统计: datasetId={}", datasetId);
     }
 
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void deleteByDocumentId(String documentId, String datasetId) {
         if (StringUtils.isBlank(documentId) || StringUtils.isBlank(datasetId)) {
             throw new RenException(ErrorCode.RAG_DATASET_ID_AND_MODEL_ID_NOT_NULL);
         }
 
-        log.info("=== 开始根据documentId删除文档 ===");
-        log.info("删除文档documentId: {}, datasetId: {}", documentId, datasetId);
+        log.info("=== 开始根据documentId删除文档 (地狱级加固版) ===");
 
+        // 1. 权限与物理归属权预审 (防止 ID 劫持漏洞)
+        DocumentEntity entity = documentDao.selectOne(
+                new QueryWrapper<DocumentEntity>()
+                        .eq("dataset_id", datasetId)
+                        .eq("document_id", documentId));
+
+        if (entity == null) {
+            log.warn("尝试删除不存在或归属权异常的文档: docId={}, datasetId={}", documentId, datasetId);
+            throw new RenException(ErrorCode.NO_PERMISSION);
+        }
+
+        // 2. 状态校验 (拦截解析中文件的删除，防止 RAG 侧产生僵尸数据 - Issue 4)
+        // 修正逻辑：status 是 String 类型，必须使用字符串比较或状态码转换判断
+        if (entity.getStatus() != null && "1".equals(entity.getStatus())) {
+            log.warn("拦截解析中文件的删除请求: docId={}, status=解析中", documentId);
+            throw new RenException(ErrorCode.RAG_DOCUMENT_PARSING_DELETE_ERROR);
+        }
+
+        // 记录统计信息偏移量，用于后续影子表同步
+        Long chunkDelta = entity.getChunkCount() != null ? entity.getChunkCount() : 0L;
+        Long tokenDelta = entity.getTokenCount() != null ? entity.getTokenCount() : 0L;
+
+        // 3. 获取适配器 (非事务性)
+        Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
+        KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(extractAdapterType(ragConfig), ragConfig);
+
+        // 4. 执行远程删除 (耗时 IO，已被 NOT_SUPPORTED 物理挂起事务)
         try {
-            // 获取RAG配置
-            Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
-
-            // 提取适配器类型
-            String adapterType = extractAdapterType(ragConfig);
-
-            // 使用适配器工厂获取适配器实例
-            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
-
-            // 使用适配器删除文档
             adapter.deleteDocument(datasetId, documentId);
-
-            log.info("文档删除成功");
-
+            log.info("远程请求删除成功: documentId={}", documentId);
         } catch (Exception e) {
-            log.error("删除文档失败: {}", e.getMessage(), e);
-            if (e instanceof RenException) {
-                throw (RenException) e;
-            }
-            throw new RenException(ErrorCode.RAG_API_ERROR, e.getMessage());
-        } finally {
-            log.info("=== 根据documentId删除文档操作结束 ===");
+            log.warn("远程删除请求失败 (可能文件已不存在): {}", e.getMessage());
+        }
+
+        // 5. 原子化清理本地影子记录并同步统计数据 (通过 self 调用激活 @Transactional)
+        log.info("5. 同步清理本地影子记录并更新统计: documentId={}", documentId);
+        self.deleteDocumentShadow(documentId, datasetId, chunkDelta, tokenDelta);
+
+        // 6. 清理缓存 (Issue 7: 缓存孤岛修复)
+        try {
+            String cacheKey = RedisKeys.getKnowledgeBaseCacheKey(datasetId);
+            redisUtils.delete(cacheKey);
+            log.info("已精准驱逐数据集缓存: {}", cacheKey);
+        } catch (Exception e) {
+            log.warn("驱逐 Redis 缓存失败 (非核心链路，忽略): {}", e.getMessage());
+        }
+
+        log.info("=== 文档物理清理与统计同步成功 ===");
+    }
+
+    /**
+     * 原子化删除影子记录并同步父表统计，确保 Local-First 全链路一致性
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteDocumentShadow(String documentId, String datasetId, Long chunkDelta, Long tokenDelta) {
+        // 1. 物理删除记录
+        int deleted = documentDao.delete(
+                new QueryWrapper<DocumentEntity>()
+                        .eq("dataset_id", datasetId)
+                        .eq("document_id", documentId));
+
+        if (deleted > 0) {
+            // 2. 同步更新数据集统计信息 (原子操作，防止并发漂移)
+            knowledgeBaseDao.updateStatsAfterDelete(datasetId, chunkDelta, tokenDelta);
+            log.info("已同步扣减数据集统计: datasetId={}, chunks={}, tokens={}", datasetId, chunkDelta, tokenDelta);
         }
     }
 
@@ -590,235 +548,6 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
         return adapterType;
     }
 
-    /**
-     * 验证RAG配置中是否包含必要的参数
-     */
-    private void validateRagConfig(Map<String, Object> config) {
-        if (config == null) {
-            throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND);
-        }
-
-        // 从配置中提取必要的参数
-        String baseUrl = (String) config.get("base_url");
-        String apiKey = (String) config.get("api_key");
-
-        // 验证base_url是否存在且非空
-        if (StringUtils.isBlank(baseUrl)) {
-            throw new RenException(ErrorCode.RAG_API_ERROR_URL_NULL);
-        }
-
-        // 验证api_key是否存在且非空
-        if (StringUtils.isBlank(apiKey)) {
-            throw new RenException(ErrorCode.RAG_API_ERROR_API_KEY_NULL);
-        }
-
-        // 检查api_key是否包含占位符
-        if (apiKey.contains("你")) {
-            throw new RenException(ErrorCode.RAG_API_ERROR_API_KEY_INVALID);
-        }
-
-        // 验证base_url格式
-        if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
-            throw new RenException(ErrorCode.RAG_API_ERROR_URL_INVALID);
-        }
-    }
-
-    /**
-     * 调用RAG API上传文档 - 流式上传版本
-     */
-    private String uploadDocumentToRAG(String datasetId, MultipartFile file, String name,
-            Map<String, Object> metaFields, String chunkMethod,
-            Map<String, Object> parserConfig) {
-        try {
-            log.info("开始调用知识库适配器上传文档，datasetId: {}, 文件名: {}", datasetId, file.getOriginalFilename());
-
-            // 获取RAG配置
-            Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
-
-            // 提取适配器类型
-            String adapterType = extractAdapterType(ragConfig);
-
-            // 获取知识库适配器
-            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
-
-            // 构建上传参数
-            Map<String, Object> uploadParams = new HashMap<>();
-            uploadParams.put("file", file);
-            uploadParams.put("name", StringUtils.isNotBlank(name) ? name : file.getOriginalFilename());
-
-            if (metaFields != null && !metaFields.isEmpty()) {
-                uploadParams.put("meta_fields", metaFields);
-            }
-
-            if (StringUtils.isNotBlank(chunkMethod)) {
-                uploadParams.put("chunk_method", chunkMethod);
-            }
-
-            if (parserConfig != null && !parserConfig.isEmpty()) {
-                uploadParams.put("parser_config", parserConfig);
-            }
-
-            log.debug("上传文档参数: {}", uploadParams.keySet());
-
-            // 调用适配器上传文档
-            KnowledgeFilesDTO result = adapter.uploadDocument(datasetId, file,
-                    (String) uploadParams.get("name"),
-                    (Map<String, Object>) uploadParams.get("meta_fields"),
-                    (String) uploadParams.get("chunk_method"),
-                    (Map<String, Object>) uploadParams.get("parser_config"));
-            String documentId = result.getDocumentId();
-
-            if (StringUtils.isBlank(documentId)) {
-                log.error("无法从知识库适配器获取documentId");
-                throw new RenException(ErrorCode.RAG_API_ERROR, "上传文档失败，未返回documentId");
-            }
-
-            log.info("知识库文档上传成功，documentId: {}，文档已开始自动解析切片", documentId);
-            return documentId;
-
-        } catch (Exception e) {
-            log.error("知识库适配器调用失败: {}", e.getMessage(), e);
-            String errorMessage = e.getMessage() != null ? e.getMessage() : "null";
-            if (e instanceof RenException) {
-                throw (RenException) e;
-            }
-            throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-        }
-    }
-
-    /**
-     * 从响应数据中提取documentId
-     */
-    private String extractDocumentIdFromResponse(Object dataObj) {
-        String documentId = null;
-
-        if (dataObj instanceof List) {
-            // data是一个数组，取第一个元素的id字段
-            List<Map<String, Object>> dataList = (List<Map<String, Object>>) dataObj;
-            if (!dataList.isEmpty()) {
-                Map<String, Object> firstItem = dataList.get(0);
-                documentId = extractDocumentIdFromMap(firstItem);
-            }
-        } else if (dataObj instanceof Map) {
-            // data是一个对象
-            Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-            documentId = extractDocumentIdFromMap(dataMap);
-        }
-
-        return documentId;
-    }
-
-    /**
-     * 从Map中提取documentId，支持多种可能的字段名
-     */
-    private String extractDocumentIdFromMap(Map<String, Object> map) {
-        if (map == null)
-            return null;
-
-        // 尝试多种可能的字段名
-        String[] possibleFieldNames = { "id", "document_id", "documentId", "doc_id", "documentId" };
-
-        for (String fieldName : possibleFieldNames) {
-            Object value = map.get(fieldName);
-            if (value != null && value instanceof String && StringUtils.isNotBlank((String) value)) {
-                return (String) value;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 从根级别响应中提取documentId
-     */
-    private String extractDocumentIdFromRoot(Map<String, Object> responseMap) {
-        if (responseMap == null)
-            return null;
-
-        // 尝试从根级别提取
-        String[] possibleFieldNames = { "id", "document_id", "documentId", "doc_id", "documentId" };
-
-        for (String fieldName : possibleFieldNames) {
-            Object value = responseMap.get(fieldName);
-            if (value != null && value instanceof String && StringUtils.isNotBlank((String) value)) {
-                return (String) value;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 调用知识库适配器删除文档
-     */
-    private void deleteDocumentInRAG(String documentId, String datasetId) {
-        try {
-            log.info("开始调用知识库适配器删除文档，documentId: {}, datasetId: {}", documentId, datasetId);
-
-            // 获取RAG配置
-            Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
-
-            // 提取适配器类型
-            String adapterType = extractAdapterType(ragConfig);
-
-            // 获取知识库适配器
-            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
-
-            log.debug("删除文档参数: documentId: {}", documentId);
-
-            // 调用适配器删除文档
-            adapter.deleteDocument(datasetId, documentId);
-
-            log.info("知识库文档删除成功，documentId: {}", documentId);
-
-        } catch (Exception e) {
-            log.error("知识库适配器调用失败: {}", e.getMessage(), e);
-            String errorMessage = e.getMessage() != null ? e.getMessage() : "null";
-            if (e instanceof RenException) {
-                throw (RenException) e;
-            }
-            throw new RenException(ErrorCode.RAG_API_ERROR, errorMessage);
-        }
-    }
-
-    /**
-     * 辅助类：将MultipartFile转换为Resource用于流式上传
-     */
-    private static class MultipartFileResource extends AbstractResource {
-        private final MultipartFile multipartFile;
-        private final String filename;
-
-        public MultipartFileResource(MultipartFile multipartFile, String filename) {
-            this.multipartFile = multipartFile;
-            this.filename = filename;
-        }
-
-        @Override
-        public String getFilename() {
-            return this.filename;
-        }
-
-        @Override
-        public InputStream getInputStream() throws IOException {
-            return this.multipartFile.getInputStream();
-        }
-
-        @Override
-        public long contentLength() throws IOException {
-            return this.multipartFile.getSize();
-        }
-
-        @Override
-        public boolean exists() {
-            return true;
-        }
-
-        @Override
-        public String getDescription() {
-            return "MultipartFile resource for " + this.filename;
-        }
-    }
-
     @Override
     public boolean parseDocuments(String datasetId, List<String> documentIds) {
         if (StringUtils.isBlank(datasetId) || documentIds == null || documentIds.isEmpty()) {
@@ -844,7 +573,16 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
             boolean result = adapter.parseDocuments(datasetId, documentIds);
 
             if (result) {
-                log.info("文档解析成功，datasetId: {}, documentIds: {}", datasetId, documentIds);
+                log.info("文档解析命令发送成功，准备同步本地影子库状态，datasetId: {}, documentIds: {}", datasetId, documentIds);
+                // 指令成功后立即更新本地影子状态为 RUNNING 和 解析中(1)，确保 Local-First 列表能立即反馈
+                documentDao.update(null, new UpdateWrapper<DocumentEntity>()
+                        .set("run", "RUNNING")
+                        .set("status", "1")
+                        .set("updated_at", new Date())
+                        .eq("dataset_id", datasetId)
+                        .in("document_id", documentIds));
+
+                log.info("文档本地状态已更新为 RUNNING");
             } else {
                 log.error("文档解析失败，datasetId: {}, documentIds: {}", datasetId, documentIds);
                 throw new RenException(ErrorCode.RAG_API_ERROR, "文档解析失败");
@@ -865,7 +603,8 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
     }
 
     @Override
-    public Map<String, Object> listChunks(String datasetId, String documentId, String keywords,
+    public xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO listChunks(String datasetId, String documentId,
+            String keywords,
             Integer page, Integer pageSize, String chunkId) {
         if (StringUtils.isBlank(datasetId) || StringUtils.isBlank(documentId)) {
             throw new RenException(ErrorCode.RAG_DATASET_ID_AND_MODEL_ID_NOT_NULL);
@@ -888,8 +627,9 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
             log.debug("查询参数: documentId: {}, keywords: {}, page: {}, pageSize: {}, chunkId: {}",
                     documentId, keywords, page, pageSize, chunkId);
 
-            // 调用适配器列出切片
-            Map<String, Object> result = adapter.listChunks(datasetId, documentId, keywords, page, pageSize, chunkId);
+            // 调用适配器列出切片 (直接返回强类型 DTO)
+            xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO result = adapter.listChunks(datasetId, documentId,
+                    keywords, page, pageSize, chunkId);
 
             log.info("切片列表获取成功，datasetId: {}, documentId: {}", datasetId, documentId);
             return result;
@@ -906,303 +646,9 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
         }
     }
 
-    /**
-     * 解析RAG API返回的切片列表响应
-     */
-    private Map<String, Object> parseChunkListResponse(Map<String, Object> responseMap) {
-        Map<String, Object> result = new HashMap<>();
-        List<Map<String, Object>> chunkList = new ArrayList<>();
-        long totalCount = 0;
-
-        try {
-            // 首先检查是否有data字段
-            Object dataObj = responseMap.get("data");
-            if (dataObj instanceof Map) {
-                Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-
-                // 解析切片列表 - 支持多种可能的字段名
-                Object chunksObj = null;
-
-                // 支持多种可能的切片列表字段名
-                String[] possibleChunkFields = { "chunks", "items", "list", "data", "docs" };
-
-                for (String fieldName : possibleChunkFields) {
-                    if (dataMap.containsKey(fieldName) && dataMap.get(fieldName) instanceof List) {
-                        chunksObj = dataMap.get(fieldName);
-                        log.debug("使用字段名'{}'获取切片列表", fieldName);
-                        break;
-                    }
-                }
-
-                // 如果标准字段不存在，尝试自动检测
-                if (chunksObj == null) {
-                    for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
-                        if (entry.getValue() instanceof List) {
-                            List<?> list = (List<?>) entry.getValue();
-                            if (!list.isEmpty() && list.get(0) instanceof Map) {
-                                chunksObj = entry.getValue();
-                                log.warn("自动检测到切片列表字段: '{}'，建议检查RAG API文档", entry.getKey());
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (chunksObj instanceof List) {
-                    List<Map<String, Object>> rawChunkList = (List<Map<String, Object>>) chunksObj;
-
-                    for (Map<String, Object> chunkMap : rawChunkList) {
-                        Map<String, Object> formattedChunk = formatChunkData(chunkMap);
-                        if (formattedChunk != null) {
-                            chunkList.add(formattedChunk);
-                        }
-                    }
-                }
-
-                // 解析总数 - 支持多种可能的字段名
-                Object totalObj = null;
-                String[] possibleTotalFields = { "total", "totalCount", "total_count", "count" };
-
-                for (String fieldName : possibleTotalFields) {
-                    if (dataMap.containsKey(fieldName)) {
-                        totalObj = dataMap.get(fieldName);
-                        log.debug("使用字段名'{}'获取总数", fieldName);
-                        break;
-                    }
-                }
-
-                if (totalObj instanceof Integer) {
-                    totalCount = ((Integer) totalObj).longValue();
-                } else if (totalObj instanceof Long) {
-                    totalCount = (Long) totalObj;
-                } else if (totalObj instanceof String) {
-                    try {
-                        totalCount = Long.parseLong((String) totalObj);
-                    } catch (NumberFormatException e) {
-                        log.warn("无法解析总数字段: {}", totalObj);
-                    }
-                }
-
-                // 如果没有找到总数，使用切片列表的大小
-                if (totalCount == 0 && !chunkList.isEmpty()) {
-                    totalCount = chunkList.size();
-                }
-            } else {
-                log.warn("RAG API响应缺少data字段，尝试直接解析响应");
-
-                // 如果没有data字段，尝试直接解析响应
-                Object chunksObj = null;
-                String[] possibleChunkFields = { "chunks", "items", "list", "data", "docs" };
-
-                for (String fieldName : possibleChunkFields) {
-                    if (responseMap.containsKey(fieldName) && responseMap.get(fieldName) instanceof List) {
-                        chunksObj = responseMap.get(fieldName);
-                        log.debug("使用字段名'{}'获取切片列表", fieldName);
-                        break;
-                    }
-                }
-
-                if (chunksObj instanceof List) {
-                    List<Map<String, Object>> rawChunkList = (List<Map<String, Object>>) chunksObj;
-
-                    for (Map<String, Object> chunkMap : rawChunkList) {
-                        Map<String, Object> formattedChunk = formatChunkData(chunkMap);
-                        if (formattedChunk != null) {
-                            chunkList.add(formattedChunk);
-                        }
-                    }
-                }
-
-                // 解析总数
-                Object totalObj = responseMap.get("total");
-                if (totalObj instanceof Integer) {
-                    totalCount = ((Integer) totalObj).longValue();
-                } else if (totalObj instanceof Long) {
-                    totalCount = (Long) totalObj;
-                }
-
-                if (totalCount == 0 && !chunkList.isEmpty()) {
-                    totalCount = chunkList.size();
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("解析切片列表响应失败: {}", e.getMessage(), e);
-        }
-
-        result.put("list", chunkList);
-        result.put("total", totalCount);
-
-        log.debug("解析后的切片列表: {} 条记录", chunkList.size());
-        return result;
-    }
-
-    /**
-     * 格式化切片数据
-     */
-    private Map<String, Object> formatChunkData(Map<String, Object> chunkMap) {
-        if (chunkMap == null || chunkMap.isEmpty()) {
-            return null;
-        }
-
-        Map<String, Object> formattedChunk = new HashMap<>();
-
-        try {
-            // 提取切片ID - 支持多种可能的字段名
-            String chunkId = extractChunkId(chunkMap);
-            if (StringUtils.isBlank(chunkId)) {
-                log.warn("切片数据缺少ID字段，跳过处理: {}", chunkMap);
-                return null;
-            }
-            formattedChunk.put("id", chunkId);
-
-            // 提取切片内容 - 支持多种可能的字段名
-            String content = extractChunkContent(chunkMap);
-            formattedChunk.put("content", content != null ? content : "");
-
-            // 提取重要关键词 - 支持多种可能的字段名
-            List<String> importantKeywords = extractImportantKeywords(chunkMap);
-            formattedChunk.put("important_keywords", importantKeywords);
-
-            // 提取问题列表 - 支持多种可能的字段名
-            List<String> questions = extractQuestions(chunkMap);
-            formattedChunk.put("questions", questions);
-
-            // 提取创建时间 - 支持多种可能的字段名
-            String createTime = extractCreateTime(chunkMap);
-            formattedChunk.put("create_time", createTime != null ? createTime : "");
-
-        } catch (Exception e) {
-            log.error("格式化切片数据失败: {}", e.getMessage(), e);
-            return null;
-        }
-
-        return formattedChunk;
-    }
-
-    /**
-     * 提取切片ID
-     */
-    private String extractChunkId(Map<String, Object> chunkMap) {
-        String[] possibleIdFields = { "id", "chunk_id", "chunkId", "chunkId" };
-
-        for (String fieldName : possibleIdFields) {
-            Object value = chunkMap.get(fieldName);
-            if (value != null && value instanceof String && StringUtils.isNotBlank((String) value)) {
-                return (String) value;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 提取切片内容
-     */
-    private String extractChunkContent(Map<String, Object> chunkMap) {
-        String[] possibleContentFields = { "content", "text", "chunk_content", "chunkContent" };
-
-        for (String fieldName : possibleContentFields) {
-            Object value = chunkMap.get(fieldName);
-            if (value != null && value instanceof String && StringUtils.isNotBlank((String) value)) {
-                return (String) value;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 提取重要关键词
-     */
-    private List<String> extractImportantKeywords(Map<String, Object> chunkMap) {
-        String[] possibleKeywordFields = { "important_keywords", "keywords", "importantKeywords", "key_words" };
-
-        for (String fieldName : possibleKeywordFields) {
-            Object value = chunkMap.get(fieldName);
-            if (value instanceof List) {
-                List<?> list = (List<?>) value;
-                List<String> keywords = new ArrayList<>();
-                for (Object item : list) {
-                    if (item instanceof String && StringUtils.isNotBlank((String) item)) {
-                        keywords.add((String) item);
-                    }
-                }
-                return keywords;
-            } else if (value instanceof String && StringUtils.isNotBlank((String) value)) {
-                // 如果是逗号分隔的字符串，分割成列表
-                String[] parts = ((String) value).split(",");
-                List<String> keywords = new ArrayList<>();
-                for (String part : parts) {
-                    String trimmed = part.trim();
-                    if (StringUtils.isNotBlank(trimmed)) {
-                        keywords.add(trimmed);
-                    }
-                }
-                return keywords;
-            }
-        }
-
-        return new ArrayList<>();
-    }
-
-    /**
-     * 提取问题列表
-     */
-    private List<String> extractQuestions(Map<String, Object> chunkMap) {
-        String[] possibleQuestionFields = { "questions", "question_list", "questionList", "qas" };
-
-        for (String fieldName : possibleQuestionFields) {
-            Object value = chunkMap.get(fieldName);
-            if (value instanceof List) {
-                List<?> list = (List<?>) value;
-                List<String> questions = new ArrayList<>();
-                for (Object item : list) {
-                    if (item instanceof String && StringUtils.isNotBlank((String) item)) {
-                        questions.add((String) item);
-                    }
-                }
-                return questions;
-            } else if (value instanceof String && StringUtils.isNotBlank((String) value)) {
-                // 如果是逗号分隔的字符串，分割成列表
-                String[] parts = ((String) value).split(",");
-                List<String> questions = new ArrayList<>();
-                for (String part : parts) {
-                    String trimmed = part.trim();
-                    if (StringUtils.isNotBlank(trimmed)) {
-                        questions.add(trimmed);
-                    }
-                }
-                return questions;
-            }
-        }
-
-        return new ArrayList<>();
-    }
-
-    /**
-     * 提取创建时间
-     */
-    private String extractCreateTime(Map<String, Object> chunkMap) {
-        String[] possibleTimeFields = { "create_time", "created_at", "createTime", "timestamp" };
-
-        for (String fieldName : possibleTimeFields) {
-            Object value = chunkMap.get(fieldName);
-            if (value != null) {
-                if (value instanceof String && StringUtils.isNotBlank((String) value)) {
-                    return (String) value;
-                } else if (value instanceof Long) {
-                    // 如果是时间戳，转换为字符串
-                    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date((Long) value));
-                }
-            }
-        }
-
-        return null;
-    }
-
     @Override
-    public Map<String, Object> retrievalTest(String question, List<String> datasetIds, List<String> documentIds,
+    public xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO retrievalTest(String question,
+            List<String> datasetIds, List<String> documentIds,
             Integer page, Integer pageSize, Float similarityThreshold,
             Float vectorSimilarityWeight, Integer topK, String rerankId,
             Boolean keyword, Boolean highlight, List<String> crossLanguages,
@@ -1276,10 +722,11 @@ public class KnowledgeFilesServiceImpl implements KnowledgeFilesService {
 
             log.debug("检索参数: {}", retrievalParams);
 
-            // 调用适配器进行检索测试
-            Map<String, Object> result = adapter.retrievalTest(question, datasetIds, documentIds, retrievalParams);
+            // 调用适配器进行检索测试 (直接返回结果 DTO)
+            xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO result = adapter.retrievalTest(question,
+                    datasetIds, documentIds, retrievalParams);
 
-            log.info("召回测试成功，返回 {} 条切片", result.get("total"));
+            log.info("召回测试成功，返回数: {}", result != null ? result.getTotal() : 0);
             return result;
 
         } catch (Exception e) {
