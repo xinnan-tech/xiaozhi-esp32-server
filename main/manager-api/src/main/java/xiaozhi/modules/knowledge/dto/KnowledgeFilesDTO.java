@@ -35,7 +35,19 @@ public class KnowledgeFilesDTO implements Serializable {
     @Schema(description = "文件路径")
     private String filePath;
 
-    @Schema(description = "元数据字段")
+    @Schema(description = "解析进度 (0.0 ~ 1.0)")
+    private Double progress;
+
+    @Schema(description = "缩略图 (Base64 或 URL)")
+    private String thumbnail;
+
+    @Schema(description = "解析耗时 (单位: 秒)")
+    private Double processDuration;
+
+    @Schema(description = "来源类型 (local, s3, url 等)")
+    private String sourceType;
+
+    @Schema(description = "元数据字段 (Map 格式)")
     private Map<String, Object> metaFields;
 
     @Schema(description = "分块方法")
@@ -44,10 +56,10 @@ public class KnowledgeFilesDTO implements Serializable {
     @Schema(description = "解析器配置")
     private Map<String, Object> parserConfig;
 
-    @Schema(description = "状态")
-    private Integer status;
+    @Schema(description = "可用状态 (1: 启用/正常, 0: 禁用/失效)")
+    private String status;
 
-    @Schema(description = "文档解析状态")
+    @Schema(description = "运行状态 (UNSTART/RUNNING/CANCEL/DONE/FAIL)")
     private String run;
 
     @Schema(description = "创建者")
@@ -61,6 +73,15 @@ public class KnowledgeFilesDTO implements Serializable {
 
     @Schema(description = "更新时间")
     private Date updatedAt;
+
+    @Schema(description = "分块数量")
+    private Integer chunkCount;
+
+    @Schema(description = "Token数量")
+    private Long tokenCount;
+
+    @Schema(description = "解析错误信息")
+    private String error;
 
     // 文档解析状态常量定义
     private static final Integer STATUS_UNSTART = 0;
