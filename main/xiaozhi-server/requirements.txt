@@ -34,7 +34,7 @@ dashscope==1.25.2
 baidu-aip==4.16.13
 chardet==5.2.0
 aioconsole==0.8.2
-markitdown==0.1.3
+markitdown==0.1.4
 mcp-proxy==0.10.0
 PyJWT==2.10.1
 psutil==7.1.3
