@@ -100,9 +100,13 @@ class UIController {
 
         // Camera switch button
         const cameraSwitch = document.getElementById('cameraSwitch');
-        if (cameraSwitch) {
-            cameraSwitch.addEventListener('click', () => {
-                window.switchCamera();
+        const cameraSwitchMask = document.getElementById('cameraSwitchMask');
+        if (cameraSwitchMask) {
+            cameraSwitchMask.addEventListener('click', () => {
+                const isCameraActive = cameraSwitch.classList.contains('active');
+                if (isCameraActive) {
+                    window.switchCamera();
+                }
             })
         }
 

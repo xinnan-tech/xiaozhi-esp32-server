@@ -129,6 +129,7 @@ class App {
         const cameraContainer = document.getElementById('cameraContainer');
         const cameraVideo = document.getElementById('cameraVideo');
         const cameraSwitch = document.getElementById('cameraSwitch');
+        const cameraSwitchMask = document.getElementById('cameraSwitchMask');
         const dialBtn = document.getElementById('dialBtn');
 
         if (!cameraContainer || !cameraVideo) {
@@ -240,6 +241,7 @@ class App {
                     const originalTransform = currentTransform === 'none' ? 'translate(0px, 0px)' : currentTransform;
                     cameraContainer.style.setProperty('--original-transform', originalTransform);
                     cameraContainer.classList.add('flip');
+                    if (cameraSwitchMask) cameraSwitchMask.style.opacity = 0; 
                     this.currentFacingMode = this.currentFacingMode === 'user' ? 'environment' : 'user';
                     window.stopCamera();
                     window.startCamera();
@@ -253,6 +255,7 @@ class App {
                         window.switchCameraTimer = null;
                         cameraContainer.classList.remove('flip');
                         cameraContainer.style.removeProperty('--original-transform');
+                        if (cameraSwitchMask) cameraSwitchMask.style.opacity = 1; 
                     }, 500);
                 }
             };

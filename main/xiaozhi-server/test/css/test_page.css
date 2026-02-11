@@ -1280,13 +1280,28 @@ body {
     transform: scaleX(-1);
 }
 
+.camera-switch-mask {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.camera-switch-container {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
+
 .camera-switch {
     display: none;
-    position: fixed;
-    bottom: 23px;
-    right: 20px;
-    z-index: 999;
+    height: 20px;
     color: #fff;
+}
+
+.camera-switch .btn-icon {
+    margin-bottom: 0;
 }
 
 .camera-switch.active {
