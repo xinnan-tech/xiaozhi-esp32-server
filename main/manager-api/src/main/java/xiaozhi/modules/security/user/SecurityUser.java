@@ -25,16 +25,13 @@ public class SecurityUser {
      */
     public static UserDetail getUser() {
         Subject subject = getSubject();
-        UserDetail user = null;
-        if (subject != null) {
-            user = (UserDetail) subject.getPrincipal();
+        if (subject == null) {
+            return new UserDetail();
         }
 
+        UserDetail user = (UserDetail) subject.getPrincipal();
         if (user == null) {
-            user = new UserDetail();
-            user.setId(1L);
-            user.setUsername("test");
-            user.setSuperAdmin(1);
+            return new UserDetail();
         }
 
         return user;

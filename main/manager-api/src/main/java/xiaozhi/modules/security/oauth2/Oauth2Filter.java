@@ -104,18 +104,6 @@ public class Oauth2Filter extends AuthenticatingFilter {
         if (StringUtils.isNotBlank(authorization) && authorization.startsWith("Bearer ")) {
             token = authorization.replace("Bearer ", "");
         }
-
-        // 开发环境：如果知识库接口没有 token，返回一个开发专用的 dummy token
-        if (StringUtils.isBlank(token)) {
-            String path = httpRequest.getRequestURI();
-            String contextPath = httpRequest.getContextPath();
-            if (StringUtils.isNotBlank(contextPath) && path.startsWith(contextPath)) {
-                path = path.substring(contextPath.length());
-            }
-            if (path.equals("/datasets") || path.startsWith("/datasets/") || path.startsWith("/api/v1/")) {
-                token = "DEV_TEST_TOKEN";
-            }
-        }
         return token;
     }
 }

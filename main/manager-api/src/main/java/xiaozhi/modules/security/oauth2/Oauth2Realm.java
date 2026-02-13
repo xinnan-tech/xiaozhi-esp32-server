@@ -76,17 +76,6 @@ public class Oauth2Realm extends AuthorizingRealm {
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) throws AuthenticationException {
         String accessToken = (String) token.getPrincipal();
 
-        // 开发环境：处理 dummy token
-        if ("DEV_TEST_TOKEN".equals(accessToken)) {
-            UserDetail userDetail = new UserDetail();
-            userDetail.setId(1L);
-            userDetail.setUsername("test");
-            userDetail.setSuperAdmin(SuperAdminEnum.YES.value()); // 赋予超级管理员权限以绕过所有权限检查
-            userDetail.setToken(accessToken);
-            userDetail.setStatus(1);
-            return new SimpleAuthenticationInfo(userDetail, accessToken, getName());
-        }
-
         // 根据accessToken，查询用户信息
         SysUserTokenEntity tokenEntity = shiroService.getByToken(accessToken);
         // token失效
