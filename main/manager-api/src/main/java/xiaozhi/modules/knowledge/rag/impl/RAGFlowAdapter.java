@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -15,8 +14,8 @@ import org.springframework.core.io.AbstractResource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.util.UriComponentsBuilder;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +24,8 @@ import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
 import xiaozhi.modules.knowledge.dto.KnowledgeFilesDTO;
 import xiaozhi.modules.knowledge.dto.dataset.DatasetDTO;
+import xiaozhi.modules.knowledge.dto.document.ChunkDTO;
+import xiaozhi.modules.knowledge.dto.document.RetrievalDTO;
 import xiaozhi.modules.knowledge.dto.document.DocumentDTO;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapter;
 import xiaozhi.modules.knowledge.rag.RAGFlowClient;
@@ -60,13 +61,16 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     public void initialize(Map<String, Object> config) {
         this.config = config;
         validateConfig(config);
-        String baseUrl = (String) config.get("base_url");
-        String apiKey = (String) config.get("api_key");
+
+        String baseUrl = getConfigValue(config, "base_url", "baseUrl");
+        String apiKey = getConfigValue(config, "api_key", "apiKey");
+
         // 初始化 Client，默认超时 30s，可通过 config 扩展
         int timeout = 30;
-        if (config.containsKey("timeout")) {
+        Object timeoutObj = getConfigValue(config, "timeout", "timeout");
+        if (timeoutObj != null) {
             try {
-                timeout = Integer.parseInt(config.get("timeout").toString());
+                timeout = Integer.parseInt(timeoutObj.toString());
             } catch (Exception e) {
                 log.warn("解析超时配置失败，使用默认值 30s");
             }
@@ -81,8 +85,8 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND);
         }
 
-        String baseUrl = (String) config.get("base_url");
-        String apiKey = (String) config.get("api_key");
+        String baseUrl = getConfigValue(config, "base_url", "baseUrl");
+        String apiKey = getConfigValue(config, "api_key", "apiKey");
 
         if (StringUtils.isBlank(baseUrl)) {
             throw new RenException(ErrorCode.RAG_API_ERROR_URL_NULL);
@@ -101,6 +105,19 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
         }
 
         return true;
+    }
+
+    /**
+     * 辅助方法：支持多种键名获取配置（兼容 camelCase 和 snake_case）
+     */
+    private String getConfigValue(Map<String, Object> config, String snakeKey, String camelKey) {
+        if (config.containsKey(snakeKey)) {
+            return (String) config.get(snakeKey);
+        }
+        if (config.containsKey(camelKey)) {
+            return (String) config.get(camelKey);
+        }
+        return null;
     }
 
     /**
@@ -126,43 +143,19 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     @Override
-    public PageData<KnowledgeFilesDTO> getDocumentList(String datasetId, Map<String, Object> queryParams, Integer page,
-            Integer limit) {
+    public PageData<KnowledgeFilesDTO> getDocumentList(String datasetId, DocumentDTO.ListReq req) {
         try {
             log.info("=== [RAGFlow] 获取文档列表: datasetId={} ===", datasetId);
 
-            // 构造参数
-            Map<String, Object> params = new HashMap<>();
-            if (page != null && page > 0)
-                params.put("page", page);
-            if (limit != null && limit > 0)
-                params.put("page_size", limit);
-
-            if (queryParams != null) {
-                // 兼容旧逻辑的特殊 parameter mapping
-                if (queryParams.containsKey("name")) {
-                    params.put("keywords", queryParams.get("name"));
-                }
-                if (queryParams.containsKey("orderby")) {
-                    params.put("orderby", queryParams.get("orderby"));
-                }
-                if (queryParams.containsKey("desc")) {
-                    params.put("desc", queryParams.get("desc"));
-                }
-                if (queryParams.containsKey("id")) {
-                    params.put("id", queryParams.get("id"));
-                }
-                if (queryParams.containsKey("run")) { // Run status
-                    params.put("run", queryParams.get("run"));
-                }
-                // 处理时间范围等其他参数，旧逻辑中有很多 if，这里简化透传，RAGFlow Client 会处理 map
-                // 如果需要严格兼容旧逻辑的 parameter transform，可以在这里补全，但 queryParams 大多 key 是直接透传的
-            }
+            // 使用 Jackson 将 DTO 转为 Map 作为查询参数
+            @SuppressWarnings("unchecked")
+            Map<String, Object> params = objectMapper.convertValue(req, Map.class);
 
             Map<String, Object> response = getClient().get("/api/v1/datasets/" + datasetId + "/documents", params);
 
             Object dataObj = response.get("data");
-            return parseDocumentListResponse(dataObj, page != null ? page : 1, limit != null ? limit : 10);
+            return parseDocumentListResponse(dataObj, req.getPage() != null ? req.getPage() : 1,
+                    req.getPageSize() != null ? req.getPageSize() : 10);
 
         } catch (Exception e) {
             log.error("获取文档列表失败", e);
@@ -171,43 +164,59 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     @Override
-    public KnowledgeFilesDTO getDocumentById(String datasetId, String documentId) {
+    public DocumentDTO.InfoVO getDocumentById(String datasetId, String documentId) {
         try {
             log.info("=== [RAGFlow] 获取文档详情: datasetId={}, documentId={} ===", datasetId, documentId);
-            Map<String, Object> queryParams = new HashMap<>();
-            queryParams.put("id", documentId);
-            PageData<KnowledgeFilesDTO> list = getDocumentList(datasetId, queryParams, 1, 1);
-            if (list != null && list.getList() != null && !list.getList().isEmpty()) {
-                return list.getList().get(0);
+            DocumentDTO.ListReq req = DocumentDTO.ListReq.builder()
+                    .id(documentId)
+                    .page(1)
+                    .pageSize(1)
+                    .build();
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> params = objectMapper.convertValue(req, Map.class);
+            Map<String, Object> response = getClient().get("/api/v1/datasets/" + datasetId + "/documents", params);
+
+            Object dataObj = response.get("data");
+            if (dataObj instanceof Map) {
+                Map<String, Object> dataMap = (Map<String, Object>) dataObj;
+                List<?> documents = (List<?>) dataMap.get("docs");
+                if (documents != null && !documents.isEmpty()) {
+                    return objectMapper.convertValue(documents.get(0), DocumentDTO.InfoVO.class);
+                }
             }
             return null;
         } catch (Exception e) {
-            log.error("获取文档详情失败: {}", documentId, e);
+            log.error("获取文档详情失败: documentId={}", documentId, e);
             throw convertToRenException(e);
         }
     }
 
     @Override
-    public KnowledgeFilesDTO uploadDocument(String datasetId, MultipartFile file, String name,
-            Map<String, Object> metaFields, String chunkMethod,
-            Map<String, Object> parserConfig) {
+    public KnowledgeFilesDTO uploadDocument(DocumentDTO.UploadReq req) {
+        String datasetId = req.getDatasetId();
+        MultipartFile file = req.getFile();
         try {
             log.info("=== [RAGFlow] 上传文档: datasetId={} ===", datasetId);
 
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", new MultipartFileResource(file));
 
-            if (StringUtils.isNotBlank(name)) {
-                body.add("name", name);
+            if (StringUtils.isNotBlank(req.getName())) {
+                body.add("name", req.getName());
             }
-            if (metaFields != null && !metaFields.isEmpty()) {
-                body.add("meta", objectMapper.writeValueAsString(metaFields));
+            if (req.getMetaFields() != null && !req.getMetaFields().isEmpty()) {
+                body.add("meta", objectMapper.writeValueAsString(req.getMetaFields()));
             }
-            if (StringUtils.isNotBlank(chunkMethod)) {
-                body.add("chunk_method", chunkMethod);
+            if (req.getChunkMethod() != null) {
+                // 将枚举值转为 RAGFlow 期待的字符串（如 NAIVE -> naive）
+                body.add("chunk_method", req.getChunkMethod().name().toLowerCase());
             }
-            if (parserConfig != null && !parserConfig.isEmpty()) {
-                body.add("parser_config", objectMapper.writeValueAsString(parserConfig));
+            if (req.getParserConfig() != null) {
+                body.add("parser_config", objectMapper.writeValueAsString(req.getParserConfig()));
+            }
+            if (StringUtils.isNotBlank(req.getParentPath())) {
+                body.add("parent_path", req.getParentPath());
             }
 
             Map<String, Object> response = getClient().postMultipart("/api/v1/datasets/" + datasetId + "/documents",
@@ -225,45 +234,45 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public PageData<KnowledgeFilesDTO> getDocumentListByStatus(String datasetId, Integer status, Integer page,
             Integer limit) {
-        Map<String, Object> queryParams = new HashMap<>();
+        List<DocumentDTO.InfoVO.RunStatus> runStatusList = null;
         if (status != null) {
-            String runStatus;
+            runStatusList = new ArrayList<>();
             switch (status) {
                 case 0:
-                    runStatus = "UNSTART";
+                    runStatusList.add(DocumentDTO.InfoVO.RunStatus.UNSTART);
                     break;
                 case 1:
-                    runStatus = "RUNNING";
+                    runStatusList.add(DocumentDTO.InfoVO.RunStatus.RUNNING);
                     break;
                 case 2:
-                    runStatus = "CANCEL";
+                    runStatusList.add(DocumentDTO.InfoVO.RunStatus.CANCEL);
                     break;
                 case 3:
-                    runStatus = "DONE";
+                    runStatusList.add(DocumentDTO.InfoVO.RunStatus.DONE);
                     break;
                 case 4:
-                    runStatus = "FAIL";
+                    runStatusList.add(DocumentDTO.InfoVO.RunStatus.FAIL);
                     break;
                 default:
-                    runStatus = status.toString(); // Support implicit numbers
+                    break;
             }
-            queryParams.put("run", runStatus);
         }
-        return getDocumentList(datasetId, queryParams, page, limit);
+        DocumentDTO.ListReq req = DocumentDTO.ListReq.builder()
+                .run(runStatusList)
+                .page(page)
+                .pageSize(limit)
+                .build();
+        return getDocumentList(datasetId, req);
     }
 
     @Override
-    public void deleteDocument(String datasetId, String documentId) {
+    public void deleteDocument(String datasetId, DocumentDTO.BatchIdReq req) {
         try {
-            log.info("=== [RAGFlow] 删除文档: {} ===", documentId);
-
-            Map<String, Object> body = new HashMap<>();
-            body.put("ids", Collections.singletonList(documentId));
-
-            getClient().delete("/api/v1/datasets/" + datasetId + "/documents", body);
-
+            log.info("=== [RAGFlow] 批量删除文档: datasetId={}, count={} ===", datasetId,
+                    req.getIds() != null ? req.getIds().size() : 0);
+            getClient().delete("/api/v1/datasets/" + datasetId + "/documents", req);
         } catch (Exception e) {
-            log.error("删除文档失败", e);
+            log.error("批量删除文档失败: datasetId={}", datasetId, e);
             throw convertToRenException(e);
         }
     }
@@ -284,85 +293,75 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     @Override
-    public xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO listChunks(String datasetId, String documentId,
-            String keywords,
-            Integer page, Integer pageSize, String chunkId) {
+    public ChunkDTO.ListVO listChunks(String datasetId, String documentId, ChunkDTO.ListReq req) {
         try {
-            Map<String, Object> params = new HashMap<>();
-            if (StringUtils.isNotBlank(keywords))
-                params.put("keywords", keywords);
-            if (page != null)
-                params.put("page", page);
-            if (pageSize != null)
-                params.put("page_size", pageSize);
-            if (StringUtils.isNotBlank(chunkId))
-                params.put("id", chunkId);
+            // [提灯重构] 使用 objectMapper 动态转换查询参数，消除硬编码
+            Map<String, Object> params = objectMapper.convertValue(req, new TypeReference<Map<String, Object>>() {
+            });
 
             Map<String, Object> response = getClient()
                     .get("/api/v1/datasets/" + datasetId + "/documents/" + documentId + "/chunks", params);
 
-            // [提灯审计] 暗礁 2 & 6: 增加 NPE 检查并使用强类型 DTO 转换
             Object dataObj = response.get("data");
             if (dataObj == null) {
                 log.warn("[RAGFlow] listChunks 响应 data 为空, docId={}", documentId);
-                return xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO.builder()
+                return ChunkDTO.ListVO.builder()
                         .chunks(new ArrayList<>())
                         .total(0L)
                         .build();
             }
 
-            // 直接转换 DTO，保证字段全量映射
-            xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO result = objectMapper.convertValue(dataObj,
-                    xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO.class);
-
-            // [提灯审计] 暗礁 5: 增加 Total 兜底处理
+            ChunkDTO.ListVO result = objectMapper.convertValue(dataObj, ChunkDTO.ListVO.class);
             if (result.getTotal() == null) {
                 result.setTotal(0L);
             }
-
             return result;
         } catch (Exception e) {
-            log.error("获取切片失败", e);
+            log.error("获取切片失败: docId={}", documentId, e);
             throw convertToRenException(e);
         }
     }
 
     @Override
-    public xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO retrievalTest(String question,
-            List<String> datasetIds, List<String> documentIds,
-            Map<String, Object> retrievalParams) {
+    public RetrievalDTO.ResultVO retrievalTest(RetrievalDTO.TestReq req) {
         try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("question", question);
-            if (datasetIds != null)
-                body.put("dataset_ids", datasetIds);
-            if (documentIds != null)
-                body.put("document_ids", documentIds);
-            if (retrievalParams != null)
-                body.putAll(retrievalParams);
+            // [Production Reinforce] 参数防御性对齐：RAGFlow Python 端对 0 或负数分页敏感
+            // 解决 ValueError('Search does not support negative slicing.')
+            if (req.getPage() != null && req.getPage() < 1) {
+                req.setPage(1);
+            }
+            if (req.getPageSize() != null && req.getPageSize() < 1) {
+                req.setPageSize(10); // 默认 10 条
+            }
+            if (req.getTopK() != null && req.getTopK() < 1) {
+                req.setTopK(1024); // RAGFlow 内部默认 TopK
+            }
+            // 相似度阈值归一化 (0.0 ~ 1.0)
+            if (req.getSimilarityThreshold() != null) {
+                if (req.getSimilarityThreshold() < 0f)
+                    req.setSimilarityThreshold(0.2f);
+                if (req.getSimilarityThreshold() > 1f)
+                    req.setSimilarityThreshold(1.0f);
+            }
 
-            Map<String, Object> response = getClient().post("/api/v1/retrieval", body);
+            // [提灯重构] 直接透传强类型 DTO，由 getClient 处理序列化
+            Map<String, Object> response = getClient().post("/api/v1/retrieval", req);
 
-            // [提灯审计] DTO 化重构：增加 NPE 防护
             Object dataObj = response.get("data");
             if (dataObj == null) {
                 log.warn("[RAGFlow] retrievalTest 响应 data 为空");
-                return xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO.builder()
+                return RetrievalDTO.ResultVO.builder()
                         .chunks(new ArrayList<>())
                         .docAggs(new ArrayList<>())
                         .total(0L)
                         .build();
             }
 
-            xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO result = objectMapper.convertValue(dataObj,
-                    xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO.class);
-
+            RetrievalDTO.ResultVO result = objectMapper.convertValue(dataObj, RetrievalDTO.ResultVO.class);
             if (result.getTotal() == null) {
                 result.setTotal(0L);
             }
-
             return result;
-
         } catch (Exception e) {
             log.error("召回测试失败", e);
             throw convertToRenException(e);
@@ -407,18 +406,40 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     @Override
-    public Map<String, Object> createDataset(Map<String, Object> createParams) {
+    public DatasetDTO.InfoVO createDataset(DatasetDTO.CreateReq req) {
         try {
-            // Service 层已经处理了命名前缀逻辑
-            Map<String, Object> response = getClient().post("/api/v1/datasets", createParams);
+            // [Production Fix] 强化默认值处理，防止 RAGFlow API 因空字符串或缺失字段报错 (Code 101)
+            // 解决 "Field: <avatar> - Message: <Missing MIME prefix>" 等校验失败
+            if (StringUtils.isBlank(req.getPermission())) {
+                req.setPermission("me");
+            }
+            if (StringUtils.isBlank(req.getChunkMethod())) {
+                req.setChunkMethod("naive");
+            }
+
+            // 🤖 自动补全嵌入模型：优先使用请求传参，其次使用配置中的默认模型
+            if (StringUtils.isBlank(req.getEmbeddingModel())) {
+                String defaultModel = (String) getConfigValue(config, "embedding_model", "embeddingModel");
+                if (StringUtils.isNotBlank(defaultModel)) {
+                    log.info("RAGFlow: 使用配置中的默认嵌入模型: {}", defaultModel);
+                    req.setEmbeddingModel(defaultModel);
+                }
+                // 若配置中也无默认值，则留空由 RAGFlow 服务端自行兜底（或抛出业务异常）
+            }
+
+            // 🖼️ 自动补全头像：若为空则提供一个 1x1 透明像素，防止 RAGFlow 校验 MIME Prefix 失败
+            if (StringUtils.isBlank(req.getAvatar())) {
+                req.setAvatar(
+                        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+            }
+
+            // 直接将强类型请求对象传给 Client，Jackson 会处理 JsonProperty 映射
+            Map<String, Object> response = getClient().post("/api/v1/datasets", req);
 
             // 安全地获取 data 并通过 DatasetDTO.InfoVO 进行全量映射
             Object dataObj = response.get("data");
-            if (dataObj instanceof Map) {
-                DatasetDTO.InfoVO info = objectMapper.convertValue(dataObj, DatasetDTO.InfoVO.class);
-                return objectMapper.convertValue(info,
-                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-                        });
+            if (dataObj != null) {
+                return objectMapper.convertValue(dataObj, DatasetDTO.InfoVO.class);
             }
             throw new RenException(ErrorCode.RAG_API_ERROR, "Invalid response from createDataset: missing data object");
         } catch (Exception e) {
@@ -428,16 +449,16 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     @Override
-    public void updateDataset(String datasetId, Map<String, Object> updateParams) {
+    public DatasetDTO.InfoVO updateDataset(String datasetId, DatasetDTO.UpdateReq req) {
         try {
-            // RAGFlow API 更新通常需要 Body 里带 ID，或者是 PUT /datasets (id在Body)
-            // 根据 reverse analysis，原逻辑就是调 adapter.updateDataset.
-            // 确保 ID 存在
-            if (!updateParams.containsKey("id")) {
-                updateParams.put("id", datasetId);
+            // RAGFlow API 更新建议路径带 ID
+            Map<String, Object> response = getClient().put("/api/v1/datasets/" + datasetId, req);
+
+            Object dataObj = response.get("data");
+            if (dataObj != null) {
+                return objectMapper.convertValue(dataObj, DatasetDTO.InfoVO.class);
             }
-            // 使用 PUT /api/v1/datasets
-            getClient().put("/api/v1/datasets", updateParams);
+            return null;
         } catch (Exception e) {
             log.error("更新数据集失败", e);
             throw convertToRenException(e);
@@ -445,13 +466,18 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     @Override
-    public void deleteDataset(String datasetId) {
+    public DatasetDTO.BatchOperationVO deleteDataset(DatasetDTO.BatchIdReq req) {
         try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("ids", Collections.singletonList(datasetId));
-            getClient().delete("/api/v1/datasets", body);
+            // RAGFlow 批量删除接口使用 DELETE /api/v1/datasets
+            Map<String, Object> response = getClient().delete("/api/v1/datasets", req);
+
+            Object dataObj = response.get("data");
+            if (dataObj != null) {
+                return objectMapper.convertValue(dataObj, DatasetDTO.BatchOperationVO.class);
+            }
+            return null;
         } catch (Exception e) {
-            log.error("删除数据集失败", e);
+            log.error("批量删除数据集失败", e);
             throw convertToRenException(e);
         }
     }
@@ -459,19 +485,31 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public Integer getDocumentCount(String datasetId) {
         try {
-            // 改为调用 /datasets/{id} 获取详情
-            Map<String, Object> response = getClient().get("/api/v1/datasets/" + datasetId, null);
+            // [Fix] 使用列表过滤接口获取详情 (GET /datasets?id={id})
+            Map<String, Object> params = new HashMap<>();
+            params.put("id", datasetId);
+            params.put("page", 1);
+            params.put("page_size", 1);
+
+            Map<String, Object> response = getClient().get("/api/v1/datasets", params);
             Object dataObj = response.get("data");
-            if (dataObj instanceof Map) {
-                Object countObj = ((Map<?, ?>) dataObj).get("doc_count");
-                if (countObj instanceof Number) {
-                    return ((Number) countObj).intValue();
+
+            if (dataObj instanceof List) {
+                List<?> list = (List<?>) dataObj;
+                if (!list.isEmpty()) {
+                    Object firstItem = list.get(0);
+                    if (firstItem instanceof Map) {
+                        Object countObj = ((Map<?, ?>) firstItem).get("document_count");
+                        if (countObj instanceof Number) {
+                            return ((Number) countObj).intValue();
+                        }
+                    }
                 }
             }
+            // 降级：未找到或结构不匹配
             return 0;
         } catch (Exception e) {
             log.warn("获取文档数量失败: {}", e.getMessage());
-            // 降级：不抛错，返回 0 (for Stats loop safety)
             return 0;
         }
     }
@@ -520,47 +558,36 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     // 复用原有的辅助解析方法，保持兼容
+    // [Bug Fix] 不再吞掉反序列化异常，避免上层误判"文档已删除"
     private PageData<KnowledgeFilesDTO> parseDocumentListResponse(Object dataObj, long curPage, long pageSize) {
-        try {
-            if (dataObj == null) {
-                return new PageData<>(new ArrayList<>(), 0);
-            }
-            Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-            List<Map<String, Object>> documents = (List<Map<String, Object>>) dataMap.get("docs");
-            if (documents == null || documents.isEmpty()) {
-                return new PageData<>(new ArrayList<>(), 0);
-            }
-
-            List<KnowledgeFilesDTO> list = new ArrayList<>();
-            for (Object docObj : documents) {
-                DocumentDTO.InfoVO info = objectMapper.convertValue(docObj, DocumentDTO.InfoVO.class);
-                list.add(mapToKnowledgeFilesDTO(info, null)); // datasetId is usually in InfoVO
-            }
-
-            long total = 0;
-            if (dataMap.containsKey("total")) {
-                total = ((Number) dataMap.get("total")).longValue();
-            }
-
-            return new PageData<>(list, total);
-
-        } catch (Exception e) {
-            log.error("解析文档列表失败", e);
+        if (dataObj == null) {
             return new PageData<>(new ArrayList<>(), 0);
         }
-    }
 
-    // Helper to parse time from Number or String
-    private Date parseTime(Object obj) {
-        if (obj instanceof Number)
-            return new Date(((Number) obj).longValue());
-        if (obj instanceof String) {
+        Map<String, Object> dataMap = (Map<String, Object>) dataObj;
+        List<Map<String, Object>> documents = (List<Map<String, Object>>) dataMap.get("docs");
+        if (documents == null || documents.isEmpty()) {
+            // RAGFlow 明确返回了空文档列表，这是合法的"真空"
+            return new PageData<>(new ArrayList<>(), 0);
+        }
+
+        List<KnowledgeFilesDTO> list = new ArrayList<>();
+        for (Object docObj : documents) {
             try {
-                return new Date(Long.parseLong((String) obj));
+                // 单文档转换容错：一个文档反序列化失败不影响其他文档
+                DocumentDTO.InfoVO info = objectMapper.convertValue(docObj, DocumentDTO.InfoVO.class);
+                list.add(mapToKnowledgeFilesDTO(info, null));
             } catch (Exception e) {
+                log.warn("[RAGFlow] 单文档 DTO 转换失败，跳过该文档: {}", e.getMessage());
             }
         }
-        return new Date();
+
+        long total = 0;
+        if (dataMap.containsKey("total")) {
+            total = ((Number) dataMap.get("total")).longValue();
+        }
+
+        return new PageData<>(list, total);
     }
 
     private KnowledgeFilesDTO parseUploadResponse(Object dataObj, String datasetId, MultipartFile file) {

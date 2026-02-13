@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.*;
 
 /**
@@ -15,6 +16,7 @@ import jakarta.validation.constraints.*;
  * </p>
  */
 @Schema(description = "知识库管理聚合 DTO")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DatasetDTO {
 
     // ========== 通用内部类 ==========
@@ -27,6 +29,7 @@ public class DatasetDTO {
     @AllArgsConstructor
     @Builder
     @Schema(description = "解析器配置")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ParserConfig implements Serializable {
 
         @Schema(description = "分块 token 数量", example = "128")
@@ -62,6 +65,7 @@ public class DatasetDTO {
     @AllArgsConstructor
     @Builder
     @Schema(description = "创建知识库请求")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CreateReq implements Serializable {
 
         @NotBlank(message = "知识库名称不能为空")
@@ -98,6 +102,7 @@ public class DatasetDTO {
     @AllArgsConstructor
     @Builder
     @Schema(description = "更新知识库请求")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UpdateReq implements Serializable {
 
         @Schema(description = "知识库名称", example = "updated_dataset")
@@ -136,6 +141,7 @@ public class DatasetDTO {
     @AllArgsConstructor
     @Builder
     @Schema(description = "查询知识库列表请求")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ListReq implements Serializable {
 
         @Schema(description = "页码 (从 1 开始)", example = "1")
@@ -218,6 +224,7 @@ public class DatasetDTO {
     @AllArgsConstructor
     @Builder
     @Schema(description = "异步任务 ID 响应")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class TaskIdVO implements Serializable {
 
         @Schema(description = "GraphRAG 任务 ID", example = "task_uuid_12345678")
@@ -239,6 +246,7 @@ public class DatasetDTO {
     @AllArgsConstructor
     @Builder
     @Schema(description = "知识库详情 VO")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class InfoVO implements Serializable {
 
         @Schema(description = "知识库 ID", example = "abc123")
@@ -291,6 +299,14 @@ public class DatasetDTO {
         @Schema(description = "总 Token 数", example = "102400")
         @JsonProperty("token_num")
         private Long tokenNum;
+
+        @Schema(description = "创建日期 (格式: yyyy-MM-dd HH:mm:ss)")
+        @JsonProperty("create_date")
+        private String createDate;
+
+        @Schema(description = "最后更新日期 (格式: yyyy-MM-dd HH:mm:ss)")
+        @JsonProperty("update_date")
+        private String updateDate;
     }
 
     /**
@@ -341,6 +357,7 @@ public class DatasetDTO {
         @AllArgsConstructor
         @Builder
         @Schema(description = "图谱节点")
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public static class Node implements Serializable {
 
             @Schema(description = "节点 ID", example = "node_001")
@@ -367,6 +384,7 @@ public class DatasetDTO {
         @AllArgsConstructor
         @Builder
         @Schema(description = "图谱边")
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public static class Edge implements Serializable {
 
             @Schema(description = "源节点 ID", example = "node_001")
@@ -393,6 +411,7 @@ public class DatasetDTO {
     @AllArgsConstructor
     @Builder
     @Schema(description = "异步任务追踪 VO")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class TaskTraceVO implements Serializable {
 
         @Schema(description = "任务 ID", example = "task_001")

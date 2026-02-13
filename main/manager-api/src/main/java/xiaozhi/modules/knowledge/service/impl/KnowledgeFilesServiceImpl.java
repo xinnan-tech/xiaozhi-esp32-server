@@ -2,13 +2,13 @@ package xiaozhi.modules.knowledge.service.impl;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,19 +17,22 @@ import org.springframework.web.multipart.MultipartFile;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.exception.ErrorCode;
+import org.springframework.util.CollectionUtils;
 import xiaozhi.common.exception.RenException;
+import xiaozhi.modules.knowledge.dto.KnowledgeFilesDTO;
+import xiaozhi.modules.knowledge.dto.document.ChunkDTO;
+import xiaozhi.modules.knowledge.dto.document.RetrievalDTO;
+import xiaozhi.modules.knowledge.dto.document.DocumentDTO;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.modules.knowledge.dao.DocumentDao;
-import xiaozhi.modules.knowledge.dao.KnowledgeBaseDao;
-import xiaozhi.modules.knowledge.dto.KnowledgeFilesDTO;
 import xiaozhi.modules.knowledge.entity.DocumentEntity;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapter;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapterFactory;
@@ -37,17 +40,26 @@ import xiaozhi.modules.knowledge.service.KnowledgeBaseService;
 import xiaozhi.modules.knowledge.service.KnowledgeFilesService;
 
 @Service
-@AllArgsConstructor
 @Slf4j
 public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, DocumentEntity>
         implements KnowledgeFilesService {
 
     private final KnowledgeBaseService knowledgeBaseService;
-    private final KnowledgeBaseDao knowledgeBaseDao;
     private final DocumentDao documentDao;
     private final ObjectMapper objectMapper;
     private final RedisUtils redisUtils;
 
+    public KnowledgeFilesServiceImpl(KnowledgeBaseService knowledgeBaseService,
+            DocumentDao documentDao,
+            ObjectMapper objectMapper,
+            RedisUtils redisUtils) {
+        this.knowledgeBaseService = knowledgeBaseService;
+        this.documentDao = documentDao;
+        this.objectMapper = objectMapper;
+        this.redisUtils = redisUtils;
+    }
+
+    @Lazy
     @Autowired
     private KnowledgeFilesService self;
 
@@ -90,18 +102,25 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
         PageData<KnowledgeFilesDTO> pageData = new PageData<>(dtoList, iPage.getTotal());
 
         // 4. 动态状态同步 (带限流与保护)
+        // [Bug Fix] P1: 扩大同步白名单，CANCEL/FAIL 也允许低频同步以支持自愈
         if (pageData.getList() != null && !pageData.getList().isEmpty()) {
             KnowledgeBaseAdapter adapter = null;
             for (KnowledgeFilesDTO dto : pageData.getList()) {
-                // 只有处于“解析中”或“待解析”状态的文档才尝试同步
-                boolean needSync = "RUNNING".equals(dto.getRun()) || "UNSTART".equals(dto.getRun());
+                String runStatus = dto.getRun();
+                // 高优先级同步: RUNNING/UNSTART (5秒冷却)
+                boolean isActiveSync = "RUNNING".equals(runStatus) || "UNSTART".equals(runStatus);
+                // 低频自愈同步: CANCEL/FAIL (60秒冷却), 防止错误状态永久锁死
+                boolean isRecoverySync = "CANCEL".equals(runStatus) || "FAIL".equals(runStatus);
+                boolean needSync = isActiveSync || isRecoverySync;
+
                 if (needSync) {
-                    // Issue 5: 限流保护，5秒内不重复向 RAGFlow 发起同一文档的状态查询
+                    // 限流保护：活跃状态 5 秒冷却，自愈状态 60 秒冷却
+                    long cooldownMs = isActiveSync ? 5000 : 60000;
                     DocumentEntity localEntity = documentDao.selectOne(new QueryWrapper<DocumentEntity>()
                             .eq("document_id", dto.getDocumentId()));
                     if (localEntity != null && localEntity.getLastSyncAt() != null) {
                         long diff = System.currentTimeMillis() - localEntity.getLastSyncAt().getTime();
-                        if (diff < 5000) {
+                        if (diff < cooldownMs) {
                             continue;
                         }
                     }
@@ -116,7 +135,18 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
                             break;
                         }
                     }
+                    // [关键修复] 记录同步前的 Token 数，用于计算增量
+                    Long oldTokenCount = dto.getTokenCount() != null ? dto.getTokenCount() : 0L;
+
                     syncDocumentStatusWithRAG(dto, adapter);
+
+                    // 计算增量并更新知识库统计 (与定时任务保持一致)
+                    Long newTokenCount = dto.getTokenCount() != null ? dto.getTokenCount() : 0L;
+                    Long tokenDelta = newTokenCount - oldTokenCount;
+                    if (tokenDelta != 0) {
+                        knowledgeBaseService.updateStatistics(datasetId, 0, 0L, tokenDelta);
+                        log.info("懒加载同步: 修正知识库统计, docId={}, tokenDelta={}", dto.getDocumentId(), tokenDelta);
+                    }
                 }
             }
         }
@@ -152,7 +182,7 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
         if (StringUtils.isNotBlank(entity.getMetaFields())) {
             try {
                 dto.setMetaFields(objectMapper.readValue(entity.getMetaFields(),
-                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                        new TypeReference<Map<String, Object>>() {
                         }));
             } catch (Exception e) {
                 log.warn("反序列化 MetaFields 失败, entityId: {}, error: {}", entity.getId(), e.getMessage());
@@ -190,11 +220,14 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
         String datasetId = dto.getDatasetId();
 
         try {
-            // 使用精准的 List API 配合 ID 过滤来获取状态
-            Map<String, Object> queryParams = new HashMap<>();
-            queryParams.put("id", documentId);
+            // 使用强类型 ListReq 配合 ID 过滤来获取状态
+            DocumentDTO.ListReq listReq = DocumentDTO.ListReq.builder()
+                    .id(documentId)
+                    .page(1)
+                    .pageSize(1)
+                    .build();
 
-            PageData<KnowledgeFilesDTO> remoteList = adapter.getDocumentList(datasetId, queryParams, 1, 1);
+            PageData<KnowledgeFilesDTO> remoteList = adapter.getDocumentList(datasetId, listReq);
 
             if (remoteList != null && remoteList.getList() != null && !remoteList.getList().isEmpty()) {
                 KnowledgeFilesDTO remoteDto = remoteList.getList().get(0);
@@ -202,10 +235,11 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
 
                 // 核心状态对齐判别逻辑
                 boolean statusChanged = remoteStatus != null && !remoteStatus.equals(dto.getStatus());
+                boolean runChanged = remoteDto.getRun() != null && !remoteDto.getRun().equals(dto.getRun());
                 boolean isProcessing = "RUNNING".equals(remoteDto.getRun()) || "UNSTART".equals(remoteDto.getRun());
 
-                // 只要状态有变，或者文件仍在解析中（实时刷进度），就执行同步
-                if (statusChanged || isProcessing) {
+                // 只要状态有变，或者运行状态有变，或者文件仍在解析中（实时刷进度），就执行同步
+                if (statusChanged || runChanged || isProcessing) {
                     log.info("影子同步：状态变化={}，解析中={}，文档={}，最新状态={}，进度={}",
                             statusChanged, isProcessing, documentId, remoteStatus, remoteDto.getProgress());
 
@@ -250,9 +284,11 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
                     documentDao.update(null, updateWrapper);
                 }
             } else {
-                // Issue 6: 远程列表为空，说明 RAGFlow 侧可能已物理删除文档。
-                // 我们不应直接返回，而应同步将影子库记录标记为逻辑失效或取消，防止形成“僵尸记录”
-                log.warn("远程同步感知：文档在 RAGFlow 侧已消失，准备清理影子状态, docId={}", documentId);
+                // Issue 6: 远程列表为空，可能是文档已删除，也可能是适配器调用出了问题
+                // [Bug Fix] P2: 仅当远程确实返回了合法空列表时才标记 CANCEL
+                // 同时更新 last_sync_at，配合 P1 冷却机制防止高频误判
+                log.warn("远程同步感知：RAGFlow 返回空文档列表, docId={}, 当前本地状态={}",
+                        documentId, dto.getRun());
                 dto.setRun("CANCEL");
                 dto.setError("文档在远程服务中已被删除");
 
@@ -260,15 +296,19 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
                         .set("run", "CANCEL")
                         .set("error", "文档在远程服务中已被删除")
                         .set("updated_at", new Date())
+                        .set("last_sync_at", new Date())
                         .eq("document_id", documentId));
             }
         } catch (Exception e) {
-            log.debug("同步文档状态失败，documentId: {}, error: {}", documentId, e.getMessage());
+            // [Bug Fix] P2: 适配器调用异常时不标记 CANCEL，避免因网络/反序列化问题导致误判
+            // 仅记录日志，等下次同步周期重试
+            log.warn("同步文档状态时适配器调用失败(不标记CANCEL), documentId: {}, error: {}",
+                    documentId, e.getMessage());
         }
     }
 
     @Override
-    public KnowledgeFilesDTO getByDocumentId(String documentId, String datasetId) {
+    public DocumentDTO.InfoVO getByDocumentId(String documentId, String datasetId) {
         if (StringUtils.isBlank(documentId) || StringUtils.isBlank(datasetId)) {
             throw new RenException(ErrorCode.RAG_DATASET_ID_AND_MODEL_ID_NOT_NULL);
         }
@@ -287,11 +327,11 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
             KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
 
             // 使用适配器获取文档详情
-            KnowledgeFilesDTO dto = adapter.getDocumentById(datasetId, documentId);
+            DocumentDTO.InfoVO info = adapter.getDocumentById(datasetId, documentId);
 
-            if (dto != null) {
+            if (info != null) {
                 log.info("获取文档详情成功，documentId: {}", documentId);
-                return dto;
+                return info;
             } else {
                 throw new RenException(ErrorCode.Knowledge_Base_RECORD_NOT_EXISTS);
             }
@@ -330,9 +370,30 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
         Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
         KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(extractAdapterType(ragConfig), ragConfig);
 
+        // 构造强类型请求 DTO
+        DocumentDTO.UploadReq uploadReq = DocumentDTO.UploadReq.builder()
+                .datasetId(datasetId)
+                .file(file)
+                .name(fileName)
+                .metaFields(metaFields)
+                .build();
+
+        // 转换分块方法 (String -> Enum)
+        if (StringUtils.isNotBlank(chunkMethod)) {
+            try {
+                uploadReq.setChunkMethod(DocumentDTO.InfoVO.ChunkMethod.valueOf(chunkMethod.toUpperCase()));
+            } catch (Exception e) {
+                log.warn("无效的分块方法: {}, 将使用后台默认配置", chunkMethod);
+            }
+        }
+
+        // 转换解析配置 (Map -> DTO)
+        if (parserConfig != null && !parserConfig.isEmpty()) {
+            uploadReq.setParserConfig(objectMapper.convertValue(parserConfig, DocumentDTO.InfoVO.ParserConfig.class));
+        }
+
         // 执行远程上传 (耗时 IO，在事务之外)
-        KnowledgeFilesDTO result = adapter.uploadDocument(datasetId, file, fileName,
-                metaFields, chunkMethod, parserConfig);
+        KnowledgeFilesDTO result = adapter.uploadDocument(uploadReq);
 
         if (result == null || StringUtils.isBlank(result.getDocumentId())) {
             throw new RenException(ErrorCode.RAG_API_ERROR, "远程上传成功但未返回有效 DocumentID");
@@ -396,84 +457,87 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
         documentDao.insert(entity);
 
         // Issue 4: 同步递增数据集文档总数统计，保持父子表一致
-        knowledgeBaseDao.updateStatsAfterUpload(datasetId);
+        knowledgeBaseService.updateStatistics(datasetId, 1, 0L, 0L);
         log.info("已同步递增数据集统计: datasetId={}", datasetId);
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void deleteByDocumentId(String documentId, String datasetId) {
-        if (StringUtils.isBlank(documentId) || StringUtils.isBlank(datasetId)) {
+    public void deleteDocuments(String datasetId, DocumentDTO.BatchIdReq req) {
+        if (StringUtils.isBlank(datasetId) || req == null || req.getIds() == null || req.getIds().isEmpty()) {
             throw new RenException(ErrorCode.RAG_DATASET_ID_AND_MODEL_ID_NOT_NULL);
         }
 
-        log.info("=== 开始根据documentId删除文档 (地狱级加固版) ===");
+        List<String> documentIds = req.getIds();
+        log.info("=== 开始批量删除文档: datasetId={}, count={} ===", datasetId, documentIds.size());
 
-        // 1. 权限与物理归属权预审 (防止 ID 劫持漏洞)
-        DocumentEntity entity = documentDao.selectOne(
+        // 1. 批量权限与状态预审
+        List<DocumentEntity> entities = documentDao.selectList(
                 new QueryWrapper<DocumentEntity>()
                         .eq("dataset_id", datasetId)
-                        .eq("document_id", documentId));
+                        .in("document_id", documentIds));
 
-        if (entity == null) {
-            log.warn("尝试删除不存在或归属权异常的文档: docId={}, datasetId={}", documentId, datasetId);
+        if (entities.size() != documentIds.size()) {
+            log.warn("部分文档不存在或归属权异常: 预期={}, 实际={}", documentIds.size(), entities.size());
             throw new RenException(ErrorCode.NO_PERMISSION);
         }
 
-        // 2. 状态校验 (拦截解析中文件的删除，防止 RAG 侧产生僵尸数据 - Issue 4)
-        // 修正逻辑：status 是 String 类型，必须使用字符串比较或状态码转换判断
-        if (entity.getStatus() != null && "1".equals(entity.getStatus())) {
-            log.warn("拦截解析中文件的删除请求: docId={}, status=解析中", documentId);
-            throw new RenException(ErrorCode.RAG_DOCUMENT_PARSING_DELETE_ERROR);
+        long totalChunkDelta = 0;
+        long totalTokenDelta = 0;
+
+        for (DocumentEntity entity : entities) {
+            // 拦截正在解析中的文档的删除请求
+            // [Bug Fix] 判断解析中应该用 run 字段(RUNNING), 而非 status 字段
+            // status="1" 是"启用/正常"的意思, 不是"解析中"
+            if ("RUNNING".equals(entity.getRun())) {
+                log.warn("拦截解析中文件的删除请求: docId={}", entity.getDocumentId());
+                throw new RenException(ErrorCode.RAG_DOCUMENT_PARSING_DELETE_ERROR);
+            }
+            totalChunkDelta += entity.getChunkCount() != null ? entity.getChunkCount() : 0L;
+            totalTokenDelta += entity.getTokenCount() != null ? entity.getTokenCount() : 0L;
         }
 
-        // 记录统计信息偏移量，用于后续影子表同步
-        Long chunkDelta = entity.getChunkCount() != null ? entity.getChunkCount() : 0L;
-        Long tokenDelta = entity.getTokenCount() != null ? entity.getTokenCount() : 0L;
-
-        // 3. 获取适配器 (非事务性)
+        // 2. 获取适配器 (非事务性)
         Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
         KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(extractAdapterType(ragConfig), ragConfig);
 
-        // 4. 执行远程删除 (耗时 IO，已被 NOT_SUPPORTED 物理挂起事务)
+        // 3. 执行远程删除
         try {
-            adapter.deleteDocument(datasetId, documentId);
-            log.info("远程请求删除成功: documentId={}", documentId);
+            adapter.deleteDocument(datasetId, req);
+            log.info("远程批量删除请求成功");
         } catch (Exception e) {
-            log.warn("远程删除请求失败 (可能文件已不存在): {}", e.getMessage());
+            log.warn("远程删除请求部分或全部失败: {}", e.getMessage());
         }
 
-        // 5. 原子化清理本地影子记录并同步统计数据 (通过 self 调用激活 @Transactional)
-        log.info("5. 同步清理本地影子记录并更新统计: documentId={}", documentId);
-        self.deleteDocumentShadow(documentId, datasetId, chunkDelta, tokenDelta);
+        // 4. 原子化清理本地影子记录并同步统计数据
+        self.deleteDocumentShadows(documentIds, datasetId, totalChunkDelta, totalTokenDelta);
 
-        // 6. 清理缓存 (Issue 7: 缓存孤岛修复)
+        // 5. 清理缓存
         try {
             String cacheKey = RedisKeys.getKnowledgeBaseCacheKey(datasetId);
             redisUtils.delete(cacheKey);
-            log.info("已精准驱逐数据集缓存: {}", cacheKey);
+            log.info("已驱逐数据集缓存: {}", cacheKey);
         } catch (Exception e) {
-            log.warn("驱逐 Redis 缓存失败 (非核心链路，忽略): {}", e.getMessage());
+            log.warn("驱逐 Redis 缓存失败: {}", e.getMessage());
         }
 
-        log.info("=== 文档物理清理与统计同步成功 ===");
+        log.info("=== 批量文档清理完成 ===");
     }
 
     /**
-     * 原子化删除影子记录并同步父表统计，确保 Local-First 全链路一致性
+     * 批量原子化删除影子记录并同步父表统计
      */
-    @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteDocumentShadow(String documentId, String datasetId, Long chunkDelta, Long tokenDelta) {
+    public void deleteDocumentShadows(List<String> documentIds, String datasetId, Long chunkDelta, Long tokenDelta) {
         // 1. 物理删除记录
         int deleted = documentDao.delete(
                 new QueryWrapper<DocumentEntity>()
                         .eq("dataset_id", datasetId)
-                        .eq("document_id", documentId));
+                        .in("document_id", documentIds));
 
         if (deleted > 0) {
-            // 2. 同步更新数据集统计信息 (原子操作，防止并发漂移)
-            knowledgeBaseDao.updateStatsAfterDelete(datasetId, chunkDelta, tokenDelta);
+            // 2. 同步更新数据集统计信息
+            knowledgeBaseService.updateStatistics(datasetId, -documentIds.size(), -chunkDelta, -tokenDelta);
             log.info("已同步扣减数据集统计: datasetId={}, chunks={}, tokens={}", datasetId, chunkDelta, tokenDelta);
         }
     }
@@ -603,37 +667,21 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
     }
 
     @Override
-    public xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO listChunks(String datasetId, String documentId,
-            String keywords,
-            Integer page, Integer pageSize, String chunkId) {
+    public ChunkDTO.ListVO listChunks(String datasetId, String documentId, ChunkDTO.ListReq req) {
         if (StringUtils.isBlank(datasetId) || StringUtils.isBlank(documentId)) {
             throw new RenException(ErrorCode.RAG_DATASET_ID_AND_MODEL_ID_NOT_NULL);
         }
 
-        log.info("=== 开始列出切片 ===");
-        log.info("datasetId: {}, documentId: {}, keywords: {}, page: {}, pageSize: {}, chunkId: {}",
-                datasetId, documentId, keywords, page, pageSize, chunkId);
+        log.info("=== 开始列出切片: datasetId={}, documentId={}, req={} ===", datasetId, documentId, req);
 
         try {
-            // 获取RAG配置
             Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
+            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(extractAdapterType(ragConfig),
+                    ragConfig);
 
-            // 提取适配器类型
-            String adapterType = extractAdapterType(ragConfig);
-
-            // 获取知识库适配器
-            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
-
-            log.debug("查询参数: documentId: {}, keywords: {}, page: {}, pageSize: {}, chunkId: {}",
-                    documentId, keywords, page, pageSize, chunkId);
-
-            // 调用适配器列出切片 (直接返回强类型 DTO)
-            xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO result = adapter.listChunks(datasetId, documentId,
-                    keywords, page, pageSize, chunkId);
-
-            log.info("切片列表获取成功，datasetId: {}, documentId: {}", datasetId, documentId);
+            ChunkDTO.ListVO result = adapter.listChunks(datasetId, documentId, req);
+            log.info("切片列表获取成功: datasetId={}, total={}", datasetId, result.getTotal());
             return result;
-
         } catch (Exception e) {
             log.error("列出切片失败: {}", e.getMessage(), e);
             String errorMessage = e.getMessage() != null ? e.getMessage() : "null";
@@ -647,88 +695,21 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
     }
 
     @Override
-    public xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO retrievalTest(String question,
-            List<String> datasetIds, List<String> documentIds,
-            Integer page, Integer pageSize, Float similarityThreshold,
-            Float vectorSimilarityWeight, Integer topK, String rerankId,
-            Boolean keyword, Boolean highlight, List<String> crossLanguages,
-            Map<String, Object> metadataCondition) {
+    public RetrievalDTO.ResultVO retrievalTest(RetrievalDTO.TestReq req) {
+        if (CollectionUtils.isEmpty(req.getDatasetIds())) {
+            throw new RenException("未指定召回测试的知识库");
+        }
 
-        log.info("=== 开始召回测试 ===");
-        log.info("问题: {}, 数据集ID: {}, 文档ID: {}, 页码: {}, 每页数量: {}",
-                question, datasetIds, documentIds, page, pageSize);
+        log.info("=== 开始召回测试: req={} ===", req);
 
         try {
-            // 获取RAG配置
-            Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetIds.get(0));
+            Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(req.getDatasetIds().get(0));
+            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(extractAdapterType(ragConfig),
+                    ragConfig);
 
-            // 提取适配器类型
-            String adapterType = extractAdapterType(ragConfig);
-
-            // 获取知识库适配器
-            KnowledgeBaseAdapter adapter = KnowledgeBaseAdapterFactory.getAdapter(adapterType, ragConfig);
-
-            // 构建检索参数
-            Map<String, Object> retrievalParams = new HashMap<>();
-            retrievalParams.put("question", question);
-
-            if (datasetIds != null && !datasetIds.isEmpty()) {
-                retrievalParams.put("datasetIds", datasetIds);
-            }
-
-            if (documentIds != null && !documentIds.isEmpty()) {
-                retrievalParams.put("documentIds", documentIds);
-            }
-
-            if (page != null && page > 0) {
-                retrievalParams.put("page", page);
-            }
-
-            if (pageSize != null && pageSize > 0) {
-                retrievalParams.put("pageSize", pageSize);
-            }
-
-            if (similarityThreshold != null) {
-                retrievalParams.put("similarityThreshold", similarityThreshold);
-            }
-
-            if (vectorSimilarityWeight != null) {
-                retrievalParams.put("vectorSimilarityWeight", vectorSimilarityWeight);
-            }
-
-            if (topK != null && topK > 0) {
-                retrievalParams.put("topK", topK);
-            }
-
-            if (rerankId != null) {
-                retrievalParams.put("rerankId", rerankId);
-            }
-
-            if (keyword != null) {
-                retrievalParams.put("keyword", keyword);
-            }
-
-            if (highlight != null) {
-                retrievalParams.put("highlight", highlight);
-            }
-
-            if (crossLanguages != null && !crossLanguages.isEmpty()) {
-                retrievalParams.put("crossLanguages", crossLanguages);
-            }
-
-            if (metadataCondition != null) {
-                retrievalParams.put("metadataCondition", metadataCondition);
-            }
-
-            log.debug("检索参数: {}", retrievalParams);
-
-            // 调用适配器进行检索测试 (直接返回结果 DTO)
-            xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO result = adapter.retrievalTest(question,
-                    datasetIds, documentIds, retrievalParams);
-
-            log.info("召回测试成功，返回数: {}", result != null ? result.getTotal() : 0);
+            RetrievalDTO.ResultVO result = adapter.retrievalTest(req);
+            log.info("召回测试成功: total={}", result != null ? result.getTotal() : 0);
             return result;
-
         } catch (Exception e) {
             log.error("召回测试失败: {}", e.getMessage(), e);
             String errorMessage = e.getMessage() != null ? e.getMessage() : "null";
@@ -739,5 +720,76 @@ public class KnowledgeFilesServiceImpl extends BaseServiceImpl<DocumentDao, Docu
         } finally {
             log.info("=== 召回测试操作结束 ===");
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteDocumentsByDatasetId(String datasetId) {
+        log.info("级联清理数据集文档: datasetId={}", datasetId);
+        List<DocumentEntity> list = documentDao
+                .selectList(new QueryWrapper<DocumentEntity>().eq("dataset_id", datasetId));
+        if (list == null || list.isEmpty())
+            return;
+
+        List<String> docIds = list.stream().map(DocumentEntity::getDocumentId).toList();
+
+        // 封包调用现有删除逻辑 (含 RAG 物理删除)
+        DocumentDTO.BatchIdReq req = DocumentDTO.BatchIdReq.builder().ids(docIds).build();
+        this.deleteDocuments(datasetId, req);
+    }
+
+    @Override
+    public void syncRunningDocuments() {
+        // 1. 查询所有 RUNNING 状态的文档
+        List<DocumentEntity> runningDocs = documentDao.selectList(
+                new QueryWrapper<DocumentEntity>()
+                        .eq("run", "RUNNING")
+                        .eq("status", "1") // 仅同步启用的文档
+        );
+
+        if (runningDocs == null || runningDocs.isEmpty()) {
+            return;
+        }
+
+        log.info("定时任务: 发现 {} 个文档正在解析中，开始同步...", runningDocs.size());
+
+        // 2. 按 DatasetID 分组，复用 Adapter
+        Map<String, List<DocumentEntity>> groupedDocs = runningDocs.stream()
+                .collect(java.util.stream.Collectors.groupingBy(DocumentEntity::getDatasetId));
+
+        groupedDocs.forEach((datasetId, docs) -> {
+            KnowledgeBaseAdapter adapter = null;
+            try {
+                // 初始化 Adapter (每个数据集只初始化一次)
+                Map<String, Object> ragConfig = knowledgeBaseService.getRAGConfigByDatasetId(datasetId);
+                adapter = KnowledgeBaseAdapterFactory.getAdapter(extractAdapterType(ragConfig), ragConfig);
+            } catch (Exception e) {
+                log.warn("无法为数据集 {} 初始化适配器，跳过同步: {}", datasetId, e.getMessage());
+                return;
+            }
+
+            for (DocumentEntity doc : docs) {
+                try {
+                    // 构造临时 DTO 传给同步方法
+                    KnowledgeFilesDTO dto = convertEntityToDTO(doc);
+                    // 记录同步前的 Token 数
+                    Long oldTokenCount = dto.getTokenCount() != null ? dto.getTokenCount() : 0L;
+
+                    syncDocumentStatusWithRAG(dto, adapter);
+
+                    // 3. [关键修复] 计算增量并更新知识库统计
+                    Long newTokenCount = dto.getTokenCount() != null ? dto.getTokenCount() : 0L;
+                    Long tokenDelta = newTokenCount - oldTokenCount;
+
+                    // 仅当状态变为 SUCCESS 且 Token 数有变化时更新统计
+                    if (tokenDelta != 0) {
+                        knowledgeBaseService.updateStatistics(datasetId, 0, 0L, tokenDelta);
+                        log.info("定时任务: 同步修正知识库统计, docId={}, tokenDelta={}", dto.getDocumentId(), tokenDelta);
+                    }
+                } catch (Exception e) {
+                    log.error("同步文档 {} 失败: {}", doc.getDocumentId(), e.getMessage());
+                }
+            }
+        });
     }
 }

@@ -43,6 +43,10 @@ public class RAGFlowClient {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.apiKey = apiKey;
         this.objectMapper = new ObjectMapper();
+        // [Reinforce] 兼容 RAGFlow 返回的 RFC 1123 日期格式 (如: Tue, 10 Feb 2026 10:27:35 GMT)
+        this.objectMapper
+                .setDateFormat(new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", java.util.Locale.US));
+        this.objectMapper.setTimeZone(java.util.TimeZone.getTimeZone("GMT"));
 
         // 优先从 Spring 上下文中获取池化的 RestTemplate Bean (Issue 3: 连接池化)
         RestTemplate pooledTemplate = null;
@@ -52,11 +56,12 @@ public class RAGFlowClient {
             log.warn("无法从 SpringContext 获取池化 RestTemplate，将退化为简单连接模式: {}", e.getMessage());
         }
 
-        if (pooledTemplate != null) {
+        if (false) { // Force new RestTemplate for debugging
             this.restTemplate = pooledTemplate;
             log.debug("RAGFlowClient 已成功挂载全局池化 RestTemplate");
         } else {
             // 兜底方案：配置超时并创建简单 RestTemplate
+            log.info("RAGFlowClient 初始化: 使用独立 RestTemplate (Debug Mode)");
             org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
             factory.setConnectTimeout(timeoutSeconds * 1000);
             factory.setReadTimeout(timeoutSeconds * 1000);
@@ -78,8 +83,14 @@ public class RAGFlowClient {
      */
     public Map<String, Object> post(String endpoint, Object body) {
         String url = buildUrl(endpoint, null);
-        log.debug("POST {}", url);
-        return execute(url, HttpMethod.POST, body);
+        log.info("RAGFlow Client POST Request: URL={}, BodyType={}", url,
+                body != null ? body.getClass().getName() : "null");
+        try {
+            return execute(url, HttpMethod.POST, body);
+        } catch (Exception e) {
+            log.error("RAGFlow Client POST Failed: URL={}", url, e);
+            throw e;
+        }
     }
 
     /**
@@ -163,7 +174,9 @@ public class RAGFlowClient {
         } catch (RenException re) {
             throw re;
         } catch (Exception e) {
-            log.error("RAGFlow Client Execute Error: {}", e.getMessage(), e);
+            log.error("RAGFlow Client Execute Error! URL: {}, Method: {}, Body Type: {}", url, method,
+                    requestEntity.getBody() != null ? requestEntity.getBody().getClass().getName() : "null");
+            log.error("Full exception stack trace: ", e);
             throw new RenException(ErrorCode.RAG_API_ERROR, "Request Failed: " + e.getMessage());
         }
     }

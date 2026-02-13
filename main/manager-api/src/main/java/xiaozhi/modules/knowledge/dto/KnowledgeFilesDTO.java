@@ -6,10 +6,12 @@ import java.util.Date;
 import java.util.Map;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 @Data
 @Schema(description = "知识库文档")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KnowledgeFilesDTO implements Serializable {
 
     @Serial

@@ -4,17 +4,17 @@ import lombok.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Date;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.*;
 
 /**
  * 文档管理聚合 DTO
  */
 @Schema(description = "文档管理聚合 DTO")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DocumentDTO {
 
     /**
@@ -25,6 +25,7 @@ public class DocumentDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "上传文档请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UploadReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -33,9 +34,24 @@ public class DocumentDTO {
         @NotBlank(message = "知识库ID不能为空")
         private String datasetId;
 
-        @Schema(description = "虚拟父级目录路径 (默认为 /)")
+        @Schema(description = "文件名 (如果指定，则覆盖原始文件名)")
+        private String name;
+
+        @Schema(description = "分块方法")
+        @JsonProperty("chunk_method")
+        private DocumentDTO.InfoVO.ChunkMethod chunkMethod;
+
+        @Schema(description = "解析参数配置")
+        @JsonProperty("parser_config")
+        private DocumentDTO.InfoVO.ParserConfig parserConfig;
+
+        @Schema(description = "虚拟文件夹路径 (默认为 /)")
         @JsonProperty("parent_path")
         private String parentPath;
+
+        @Schema(description = "元数据字段")
+        @JsonProperty("meta")
+        private Map<String, Object> metaFields;
 
         @Schema(description = "文件二进制流 (支持 PDF, DOCX, TXT, MD 等多种格式)", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "上传文件不能为空")
@@ -50,6 +66,7 @@ public class DocumentDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "更新文档请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UpdateReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -76,6 +93,7 @@ public class DocumentDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "获取文档列表请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ListReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -124,6 +142,7 @@ public class DocumentDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "批量文档操作请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class BatchIdReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -142,6 +161,7 @@ public class DocumentDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "知识库文档信息")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class InfoVO implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -202,10 +222,9 @@ public class DocumentDTO {
         @JsonProperty("progress_msg")
         private String progressMsg;
 
-        @Schema(description = "开始处理的时间戳")
+        @Schema(description = "开始处理的时间戳 (RAGFlow返回RFC1123格式)")
         @JsonProperty("process_begin_at")
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-        private Date processBeginAt;
+        private String processBeginAt;
 
         @Schema(description = "处理总耗时 (单位: 秒)")
         @JsonProperty("process_duration")
@@ -228,7 +247,7 @@ public class DocumentDTO {
         @JsonProperty("create_time")
         private Long createTime;
 
-        @Schema(description = "创建日期 (格式: yyyy-MM-dd HH:mm:ss)")
+        @Schema(description = "创建日期 (RAGFlow返回RFC1123格式)")
         @JsonProperty("create_date")
         private String createDate;
 
@@ -236,7 +255,7 @@ public class DocumentDTO {
         @JsonProperty("update_time")
         private Long updateTime;
 
-        @Schema(description = "最后更新日期 (格式: yyyy-MM-dd HH:mm:ss)")
+        @Schema(description = "最后更新日期 (RAGFlow返回RFC1123格式)")
         @JsonProperty("update_date")
         private String updateDate;
 
@@ -320,6 +339,7 @@ public class DocumentDTO {
         @NoArgsConstructor
         @AllArgsConstructor
         @Schema(description = "文档解析器参数配置")
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public static class ParserConfig implements Serializable {
             private static final long serialVersionUID = 1L;
 
@@ -362,6 +382,7 @@ public class DocumentDTO {
             @NoArgsConstructor
             @AllArgsConstructor
             @Schema(description = "RAPTOR (递归摘要索引) 配置")
+            @JsonIgnoreProperties(ignoreUnknown = true)
             public static class RaptorConfig implements Serializable {
                 private static final long serialVersionUID = 1L;
                 @Schema(description = "是否启用 RAPTOR 索引")
@@ -374,6 +395,7 @@ public class DocumentDTO {
             @NoArgsConstructor
             @AllArgsConstructor
             @Schema(description = "GraphRAG (图增强检索) 配置")
+            @JsonIgnoreProperties(ignoreUnknown = true)
             public static class GraphRagConfig implements Serializable {
                 private static final long serialVersionUID = 1L;
                 @Schema(description = "是否启用 GraphRAG 索引")

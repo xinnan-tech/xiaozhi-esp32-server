@@ -5,12 +5,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.*;
 
 /**
  * 切片管理聚合 DTO
  */
 @Schema(description = "切片管理聚合 DTO")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ChunkDTO {
 
     /**
@@ -21,6 +23,7 @@ public class ChunkDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "新增切片请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AddReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -44,6 +47,7 @@ public class ChunkDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "更新切片请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UpdateReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -66,6 +70,7 @@ public class ChunkDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "获取切片列表请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ListReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -91,6 +96,7 @@ public class ChunkDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "批量删除切片请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class RemoveReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -108,6 +114,7 @@ public class ChunkDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "文档切片信息")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class InfoVO implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -143,8 +150,12 @@ public class ChunkDTO {
         @Schema(description = "切片是否可用 (true: 参与检索, false: 被禁用)")
         private Boolean available;
 
-        @Schema(description = "切片在原文中的位置索引列表")
-        private List<Integer> positions;
+        @Schema(description = "切片在原文中的位置索引列表 (RAGFlow返回嵌套数组, 如 [[start, end, filename]])")
+        private List<List<Object>> positions;
+
+        @Schema(description = "Token ID 列表")
+        @JsonProperty("token")
+        private List<Integer> token;
     }
 
     /**
@@ -155,6 +166,7 @@ public class ChunkDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "分片列表聚合响应")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ListVO implements Serializable {
         private static final long serialVersionUID = 1L;
 

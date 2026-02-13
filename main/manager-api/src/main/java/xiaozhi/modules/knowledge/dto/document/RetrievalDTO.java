@@ -6,12 +6,15 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.*;
 
 /**
  * 检索与元数据管理聚合 DTO
  */
 @Schema(description = "检索与元数据管理聚合 DTO")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RetrievalDTO {
 
     /**
@@ -22,6 +25,7 @@ public class RetrievalDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "文档聚合信息")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class DocAggVO implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -45,6 +49,8 @@ public class RetrievalDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "检索测试请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class TestReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -53,9 +59,20 @@ public class RetrievalDTO {
         @NotEmpty(message = "知识库ID列表不能为空")
         private List<String> datasetIds;
 
+        @Schema(description = "文档 ID 列表 (可选，用于限定检索范围)")
+        @JsonProperty("document_ids")
+        private List<String> documentIds;
+
         @Schema(description = "检索问题", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "检索问题不能为空")
         private String question;
+
+        @Schema(description = "页码 (默认 1)")
+        private Integer page;
+
+        @Schema(description = "每页数量 (默认 10)")
+        @JsonProperty("page_size")
+        private Integer pageSize;
 
         @Schema(description = "相似度阈值 (默认 0.2)")
         @JsonProperty("similarity_threshold")
@@ -78,6 +95,14 @@ public class RetrievalDTO {
 
         @Schema(description = "是否启用关键词检索")
         private Boolean keyword;
+
+        @Schema(description = "跨语言翻译列表 (可选)")
+        @JsonProperty("cross_languages")
+        private List<String> crossLanguages;
+
+        @Schema(description = "元数据过滤条件 (JSON 对象)")
+        @JsonProperty("metadata_condition")
+        private Map<String, Object> metadataCondition;
     }
 
     /**
@@ -88,6 +113,7 @@ public class RetrievalDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "检索命中切片详情")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class HitVO implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -141,8 +167,8 @@ public class RetrievalDTO {
         @JsonProperty("image_id")
         private String imageId;
 
-        @Schema(description = "位置索引")
-        private List<Integer> positions;
+        @Schema(description = "位置索引 (RAGFlow返回嵌套数组, 如 [[start, end, filename]])")
+        private Object positions;
     }
 
     /**
@@ -153,6 +179,7 @@ public class RetrievalDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "知识库元数据摘要信息")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class MetaSummaryVO implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -185,6 +212,7 @@ public class RetrievalDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "批量更新元数据请求参数")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class MetaBatchReq implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -205,6 +233,7 @@ public class RetrievalDTO {
         @NoArgsConstructor
         @AllArgsConstructor
         @Schema(description = "元数据更新筛选器")
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public static class Selector implements Serializable {
             private static final long serialVersionUID = 1L;
 
@@ -225,6 +254,7 @@ public class RetrievalDTO {
         @NoArgsConstructor
         @AllArgsConstructor
         @Schema(description = "元数据更新项")
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public static class UpdateItem implements Serializable {
             private static final long serialVersionUID = 1L;
 
@@ -243,6 +273,7 @@ public class RetrievalDTO {
         @NoArgsConstructor
         @AllArgsConstructor
         @Schema(description = "元数据删除项")
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public static class DeleteItem implements Serializable {
             private static final long serialVersionUID = 1L;
 
@@ -259,6 +290,7 @@ public class RetrievalDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "召回测试结果聚合响应")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ResultVO implements Serializable {
         private static final long serialVersionUID = 1L;
 

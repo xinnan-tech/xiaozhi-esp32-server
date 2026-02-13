@@ -18,9 +18,9 @@ import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.JsonUtils;
-import xiaozhi.common.utils.ToolUtil;
 import xiaozhi.modules.knowledge.dao.KnowledgeBaseDao;
 import xiaozhi.modules.knowledge.dto.KnowledgeBaseDTO;
+import xiaozhi.modules.knowledge.dto.dataset.DatasetDTO;
 import xiaozhi.modules.knowledge.entity.KnowledgeBaseEntity;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapter;
 import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapterFactory;
@@ -30,6 +30,7 @@ import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.security.user.SecurityUser;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,6 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
     private final RedisUtils redisUtils;
 
     @Override
-    @SuppressWarnings("deprecation")
     public PageData<KnowledgeBaseDTO> getPageList(KnowledgeBaseDTO knowledgeBaseDTO, Integer page, Integer limit) {
         Page<KnowledgeBaseEntity> pageInfo = new Page<>(page, limit);
         QueryWrapper<KnowledgeBaseEntity> queryWrapper = new QueryWrapper<>();
@@ -102,8 +102,12 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
         if (StringUtils.isBlank(datasetId)) {
             throw new RenException(ErrorCode.PARAMS_GET_ERROR);
         }
+        // [Production Fix] 兼容性查找：优先通过 dataset_id 找，找不到通过主键 id 找，确保前端传哪种 UUID 都能命中
         KnowledgeBaseEntity entity = knowledgeBaseDao
-                .selectOne(new QueryWrapper<KnowledgeBaseEntity>().eq("dataset_id", datasetId));
+                .selectOne(new QueryWrapper<KnowledgeBaseEntity>()
+                        .eq("dataset_id", datasetId)
+                        .or()
+                        .eq("id", datasetId));
         if (entity == null) {
             throw new RenException(ErrorCode.Knowledge_Base_RECORD_NOT_EXISTS);
         }
@@ -112,7 +116,6 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @SuppressWarnings("deprecation")
     public KnowledgeBaseDTO save(KnowledgeBaseDTO dto) {
         // 1. Validation
         checkDuplicateName(dto.getName(), null);
@@ -135,66 +138,49 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
             adapter = KnowledgeBaseAdapterFactory.getAdapter((String) ragConfig.get("type"),
                     ragConfig);
 
-            Map<String, Object> createParams = new HashMap<>();
-            createParams.put("name", SecurityUser.getUser().getUsername() + "_" + dto.getName());
-            if (StringUtils.isNotBlank(dto.getDescription())) {
-                createParams.put("description", dto.getDescription());
-            }
+            DatasetDTO.CreateReq createReq = ConvertUtils.sourceToTarget(dto, DatasetDTO.CreateReq.class);
+            createReq.setName(SecurityUser.getUser().getUsername() + "_" + dto.getName());
 
-            Map<String, Object> ragResponse = adapter.createDataset(createParams);
-            if (ragResponse == null || !ragResponse.containsKey("id")) {
+            DatasetDTO.InfoVO ragResponse = adapter.createDataset(createReq);
+            if (ragResponse == null || StringUtils.isBlank(ragResponse.getId())) {
                 throw new RenException(ErrorCode.RAG_API_ERROR, "RAG创建返回无效: 缺失ID");
             }
-            datasetId = (String) ragResponse.get("id");
+            datasetId = ragResponse.getId();
 
             // 3. Local Save (Shadow)
             KnowledgeBaseEntity entity = ConvertUtils.sourceToTarget(dto, KnowledgeBaseEntity.class);
 
-            entity.setId(null);
-
+            // [Production Fix] 统一本地 ID 与 RAGFlow ID，防止前端调用 /delete 或 /update 时因 ID 混淆（本地
+            // UUID vs RAG UUID）导致 10163 错误
+            entity.setId(datasetId);
             entity.setDatasetId(datasetId);
             entity.setStatus(1); // Default Enabled
 
             // ✅ FULL PERSISTENCE: 严格全量回写 (User Requirement)
-            if (ragResponse.containsKey("tenant_id")) {
-                entity.setTenantId((String) ragResponse.get("tenant_id"));
+            // 使用强类型 DTO 属性获取，不再从 Map 中手动解析 Key
+            entity.setTenantId(ragResponse.getTenantId());
+            entity.setChunkMethod(ragResponse.getChunkMethod());
+            entity.setEmbeddingModel(ragResponse.getEmbeddingModel());
+            entity.setPermission(ragResponse.getPermission());
+
+            if (StringUtils.isBlank(entity.getAvatar())) {
+                entity.setAvatar(ragResponse.getAvatar());
             }
-            if (ragResponse.containsKey("chunk_method")) {
-                entity.setChunkMethod((String) ragResponse.get("chunk_method"));
-            }
-            if (ragResponse.containsKey("embedding_model")) {
-                entity.setEmbeddingModel((String) ragResponse.get("embedding_model"));
-            }
-            if (ragResponse.containsKey("permission")) {
-                entity.setPermission((String) ragResponse.get("permission"));
-            }
-            if (ragResponse.containsKey("avatar") && StringUtils.isBlank(entity.getAvatar())) {
-                entity.setAvatar((String) ragResponse.get("avatar"));
-            }
+
             // Parse Config (JSON)
-            if (ragResponse.containsKey("parser_config")) {
-                Object parserConfig = ragResponse.get("parser_config");
-                entity.setParserConfig(JsonUtils.toJsonString(parserConfig));
-            }
-            // Numeric defaults
-            if (ragResponse.containsKey("chunk_count")) {
-                Object val = ragResponse.get("chunk_count");
-                if (val instanceof Number)
-                    entity.setChunkCount(((Number) val).longValue());
-            } else {
-                entity.setChunkCount(0L);
+            if (ragResponse.getParserConfig() != null) {
+                entity.setParserConfig(JsonUtils.toJsonString(ragResponse.getParserConfig()));
             }
 
-            if (ragResponse.containsKey("document_count")) {
-                Object val = ragResponse.get("document_count");
-                if (val instanceof Number)
-                    entity.setDocumentCount(((Number) val).longValue());
-            } else {
-                entity.setDocumentCount(0L);
-            }
+            // Numeric fields
+            entity.setChunkCount(ragResponse.getChunkCount() != null ? ragResponse.getChunkCount() : 0L);
+            entity.setDocumentCount(ragResponse.getDocumentCount() != null ? ragResponse.getDocumentCount() : 0L);
+            entity.setTokenNum(ragResponse.getTokenNum() != null ? ragResponse.getTokenNum() : 0L);
 
-            // TokenNum (Default 0 as requested)
-            entity.setTokenNum(0L);
+            // 清空 creator/updater，让 FieldMetaObjectHandler 从 SecurityUser 自动填充
+            // ConvertUtils 会把 DTO 中的 creator=0 拷贝过来，导致 strictInsertFill 跳过填充
+            entity.setCreator(null);
+            entity.setUpdater(null);
 
             knowledgeBaseDao.insert(entity);
             return ConvertUtils.sourceToTarget(entity, KnowledgeBaseDTO.class);
@@ -204,7 +190,8 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
             if (StringUtils.isNotBlank(datasetId)) {
                 try {
                     if (adapter != null)
-                        adapter.deleteDataset(datasetId);
+                        adapter.deleteDataset(
+                                DatasetDTO.BatchIdReq.builder().ids(Collections.singletonList(datasetId)).build());
                 } catch (Exception rollbackEx) {
                     log.error("RAG回滚失败: {}", datasetId, rollbackEx);
                 }
@@ -220,9 +207,12 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
     @Transactional(rollbackFor = Exception.class)
     @SuppressWarnings("deprecation")
     public KnowledgeBaseDTO update(KnowledgeBaseDTO dto) {
+        log.info("Update Service Called: ID={}, DatasetID={}", dto.getId(), dto.getDatasetId());
         KnowledgeBaseEntity entity = knowledgeBaseDao.selectById(dto.getId());
-        if (entity == null)
+        if (entity == null) {
+            log.error("Update failed: Entity not found for ID={}", dto.getId());
             throw new RenException(ErrorCode.Knowledge_Base_RECORD_NOT_EXISTS);
+        }
 
         checkDuplicateName(dto.getName(), dto.getId());
 
@@ -245,38 +235,36 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
                     dto.setRagModelId(entity.getRagModelId());
                 }
 
+                // [FIX] 智能补全：如果 DTO 里的关键字段为空，则使用 Entity 里的旧值
+                // 确保发给 RAGFlow 的请求包含所有必填项 (Partial Update Support)
+                if (StringUtils.isBlank(dto.getPermission())) {
+                    dto.setPermission(entity.getPermission());
+                }
+                if (StringUtils.isBlank(dto.getChunkMethod())) {
+                    dto.setChunkMethod(entity.getChunkMethod());
+                }
+
                 KnowledgeBaseAdapter adapter = getAdapterByModelId(dto.getRagModelId());
                 if (adapter != null) {
-                    Map<String, Object> updateParams = new HashMap<>();
-                    // 1. 必填/核心字段
-                    updateParams.put("name", SecurityUser.getUser().getUsername() + "_" + dto.getName());
+                    DatasetDTO.UpdateReq updateReq = ConvertUtils.sourceToTarget(dto, DatasetDTO.UpdateReq.class);
 
-                    // 2. 修复回退：描述字段
-                    if (dto.getDescription() != null) {
-                        updateParams.put("description", dto.getDescription());
+                    // 1. 必填/核心字段前缀处理
+                    if (StringUtils.isNotBlank(dto.getName())) {
+                        updateReq.setName(SecurityUser.getUser().getUsername() + "_" + dto.getName());
                     }
 
-                    // 3. 增强：支持更多元数据同步
-                    if (dto.getPermission() != null)
-                        updateParams.put("permission", dto.getPermission());
-                    if (dto.getAvatar() != null)
-                        updateParams.put("avatar", dto.getAvatar());
-                    if (dto.getChunkMethod() != null)
-                        updateParams.put("chunk_method", dto.getChunkMethod());
-                    if (dto.getEmbeddingModel() != null)
-                        updateParams.put("embedding_model", dto.getEmbeddingModel());
-
-                    // 4. 解析配置 (JSON String -> Object)
+                    // 2. 解析器配置支持 (如果 DTO 里有字符串形式的配置，尝试转换，但优先建议 DTO 化)
                     if (StringUtils.isNotBlank(dto.getParserConfig())) {
                         try {
-                            Map<String, Object> configMap = JsonUtils.parseObject(dto.getParserConfig(), Map.class);
-                            updateParams.put("parser_config", configMap);
+                            DatasetDTO.ParserConfig parserConfig = JsonUtils.parseObject(dto.getParserConfig(),
+                                    DatasetDTO.ParserConfig.class);
+                            updateReq.setParserConfig(parserConfig);
                         } catch (Exception e) {
                             log.warn("解析 parser_config 失败，跳过同步", e);
                         }
                     }
 
-                    adapter.updateDataset(entity.getDatasetId(), updateParams);
+                    adapter.updateDataset(entity.getDatasetId(), updateReq);
                     log.info("RAG更新成功: {}", entity.getDatasetId());
                 }
             } catch (Exception e) {
@@ -300,7 +288,6 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @SuppressWarnings("deprecation")
     public void deleteByDatasetId(String datasetId) {
         if (StringUtils.isBlank(datasetId)) {
             throw new RenException(ErrorCode.PARAMS_GET_ERROR);
@@ -324,7 +311,8 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
             try {
                 KnowledgeBaseAdapter adapter = getAdapterByModelId(entity.getRagModelId());
                 if (adapter != null) {
-                    adapter.deleteDataset(datasetId);
+                    adapter.deleteDataset(
+                            DatasetDTO.BatchIdReq.builder().ids(Collections.singletonList(datasetId)).build());
                 }
                 apiDeleteSuccess = true;
             } catch (Exception e) {
@@ -354,19 +342,13 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
 
     @Override
     public List<KnowledgeBaseDTO> getByDatasetIdList(List<String> datasetIdList) {
-        // 1. 入参判空 (Match Old Logic)
-        if (ToolUtil.isEmpty(datasetIdList)) {
-            throw new RenException(ErrorCode.PARAMS_GET_ERROR);
+        if (datasetIdList == null || datasetIdList.isEmpty()) {
+            return Collections.emptyList();
         }
-
-        List<KnowledgeBaseEntity> list = knowledgeBaseDao
-                .selectList(new QueryWrapper<KnowledgeBaseEntity>().in("dataset_id", datasetIdList));
-
-        // 2. 结果命中校验 (Match Old Logic)
-        if (ToolUtil.isEmpty(list)) {
-            throw new RenException(ErrorCode.Knowledge_Base_RECORD_NOT_EXISTS);
-        }
-
+        // [Production Fix] 批量兼容性查找
+        QueryWrapper<KnowledgeBaseEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("dataset_id", datasetIdList).or().in("id", datasetIdList);
+        List<KnowledgeBaseEntity> list = knowledgeBaseDao.selectList(queryWrapper);
         return ConvertUtils.sourceToTarget(list, KnowledgeBaseDTO.class);
     }
 
@@ -376,7 +358,6 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public Map<String, Object> getRAGConfigByDatasetId(String datasetId) {
         KnowledgeBaseEntity entity = knowledgeBaseDao
                 .selectOne(new QueryWrapper<KnowledgeBaseEntity>().eq("dataset_id", datasetId));
@@ -384,6 +365,13 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
             throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND);
         }
         return getRAGConfig(entity.getRagModelId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateStatistics(String datasetId, Integer docDelta, Long chunkDelta, Long tokenDelta) {
+        log.info("递增更新知识库统计: datasetId={}, docs={}, chunks={}, tokens={}", datasetId, docDelta, chunkDelta, tokenDelta);
+        knowledgeBaseDao.updateStatsAfterChange(datasetId, docDelta, chunkDelta, tokenDelta);
     }
 
     @Override
