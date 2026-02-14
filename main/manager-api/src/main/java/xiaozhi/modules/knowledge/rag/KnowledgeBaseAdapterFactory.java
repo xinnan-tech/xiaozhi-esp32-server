@@ -22,6 +22,9 @@ public class KnowledgeBaseAdapterFactory {
     // 适配器实例缓存
     private static final Map<String, KnowledgeBaseAdapter> adapterCache = new ConcurrentHashMap<>();
 
+    // 最大缓存实例数，防止内存泄露 (Issue 9)
+    private static final int MAX_CACHE_SIZE = 50;
+
     static {
         // 注册内置适配器类型
         registerAdapter("ragflow", xiaozhi.modules.knowledge.rag.impl.RAGFlowAdapter.class);
@@ -61,7 +64,13 @@ public class KnowledgeBaseAdapterFactory {
         // 创建新的适配器实例
         KnowledgeBaseAdapter adapter = createAdapter(adapterType, config);
 
-        // 缓存适配器实例
+        // 缓存适配器实例 (带容量限制检查)
+        if (adapterCache.size() >= MAX_CACHE_SIZE) {
+            log.warn("适配器缓存已达上限 ({})，执行内存保护性清除", MAX_CACHE_SIZE);
+            // 简单处理：直接清空，生产环境下建议使用 LRU
+            adapterCache.clear();
+        }
+
         adapterCache.put(cacheKey, adapter);
         log.info("创建并缓存适配器实例: {}", cacheKey);
 

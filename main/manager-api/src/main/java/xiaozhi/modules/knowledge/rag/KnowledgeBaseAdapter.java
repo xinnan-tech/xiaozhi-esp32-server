@@ -3,10 +3,11 @@ package xiaozhi.modules.knowledge.rag;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.web.multipart.MultipartFile;
+import xiaozhi.modules.knowledge.dto.dataset.DatasetDTO;
 
 import xiaozhi.common.page.PageData;
 import xiaozhi.modules.knowledge.dto.KnowledgeFilesDTO;
+import xiaozhi.modules.knowledge.dto.document.DocumentDTO;
 
 /**
  * 知识库API适配器抽象基类
@@ -46,35 +47,24 @@ public abstract class KnowledgeBaseAdapter {
          * @return 分页数据
          */
         public abstract PageData<KnowledgeFilesDTO> getDocumentList(String datasetId,
-                        Map<String, Object> queryParams,
-                        Integer page,
-                        Integer limit);
+                        DocumentDTO.ListReq req);
 
         /**
          * 根据文档ID获取文档详情
          * 
-         * @param datasetId 知识库ID
-         * @return 文档详情
+         * @param datasetId  知识库ID
+         * @param documentId 文档ID
+         * @return 文档详情 (强类型 InfoVO)
          */
-        public abstract KnowledgeFilesDTO getDocumentById(String datasetId, String documentId);
+        public abstract DocumentDTO.InfoVO getDocumentById(String datasetId, String documentId);
 
         /**
          * 上传文档到知识库
          * 
-         * @param datasetId    知识库ID
-         * @param file         上传的文件
-         * @param name         文档名称
-         * @param metaFields   元数据字段
-         * @param chunkMethod  分块方法
-         * @param parserConfig 解析器配置
+         * @param req 上传请求参数
          * @return 上传的文档信息
          */
-        public abstract KnowledgeFilesDTO uploadDocument(String datasetId,
-                        MultipartFile file,
-                        String name,
-                        Map<String, Object> metaFields,
-                        String chunkMethod,
-                        Map<String, Object> parserConfig);
+        public abstract KnowledgeFilesDTO uploadDocument(DocumentDTO.UploadReq req);
 
         /**
          * 根据状态分页查询文档列表
@@ -91,12 +81,12 @@ public abstract class KnowledgeBaseAdapter {
                         Integer limit);
 
         /**
-         * 删除文档
+         * 删除文档 (支持批量删除)
          * 
-         * @param datasetId  知识库ID
-         * @param documentId 文档ID
+         * @param datasetId 知识库ID
+         * @param req       包含文档ID列表的请求对象
          */
-        public abstract void deleteDocument(String datasetId, String documentId);
+        public abstract void deleteDocument(String datasetId, DocumentDTO.BatchIdReq req);
 
         /**
          * 解析文档（切块）
@@ -112,32 +102,21 @@ public abstract class KnowledgeBaseAdapter {
          * 
          * @param datasetId  知识库ID
          * @param documentId 文档ID
-         * @param keywords   关键词过滤
-         * @param page       页码
-         * @param pageSize   每页数量
-         * @param chunkId    切片ID
-         * @return 切片列表信息
+         * @param req        列表请求参数 (分页、关键词等)
+         * @return 切片列表VO
          */
-        public abstract Map<String, Object> listChunks(String datasetId,
+        public abstract xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListVO listChunks(String datasetId,
                         String documentId,
-                        String keywords,
-                        Integer page,
-                        Integer pageSize,
-                        String chunkId);
+                        xiaozhi.modules.knowledge.dto.document.ChunkDTO.ListReq req);
 
         /**
          * 召回测试 - 从知识库中检索相关切片
          * 
-         * @param question        用户查询
-         * @param datasetIds      数据集ID列表
-         * @param documentIds     文档ID列表
-         * @param retrievalParams 检索参数
+         * @param req 检索测试请求参数
          * @return 召回测试结果
          */
-        public abstract Map<String, Object> retrievalTest(String question,
-                        List<String> datasetIds,
-                        List<String> documentIds,
-                        Map<String, Object> retrievalParams);
+        public abstract xiaozhi.modules.knowledge.dto.document.RetrievalDTO.ResultVO retrievalTest(
+                        xiaozhi.modules.knowledge.dto.document.RetrievalDTO.TestReq req);
 
         /**
          * 测试连接
@@ -170,25 +149,27 @@ public abstract class KnowledgeBaseAdapter {
         /**
          * 创建数据集
          * 
-         * @param createParams 创建参数
-         * @return 数据集ID
+         * @param req 创建参数
+         * @return 数据集详情
          */
-        public abstract String createDataset(Map<String, Object> createParams);
+        public abstract DatasetDTO.InfoVO createDataset(DatasetDTO.CreateReq req);
 
         /**
          * 更新数据集
          * 
-         * @param datasetId    数据集ID
-         * @param updateParams 更新参数
+         * @param datasetId 数据集ID
+         * @param req       更新参数
+         * @return 数据集详情
          */
-        public abstract void updateDataset(String datasetId, Map<String, Object> updateParams);
+        public abstract DatasetDTO.InfoVO updateDataset(String datasetId, DatasetDTO.UpdateReq req);
 
         /**
          * 删除数据集
          * 
-         * @param datasetId 数据集ID
+         * @param req 删除请求参数（包含ID列表）
+         * @return 批量操作结果
          */
-        public abstract void deleteDataset(String datasetId);
+        public abstract DatasetDTO.BatchOperationVO deleteDataset(DatasetDTO.BatchIdReq req);
 
         /**
          * 获取数据集的文档数量
@@ -197,4 +178,35 @@ public abstract class KnowledgeBaseAdapter {
          * @return 文档数量
          */
         public abstract Integer getDocumentCount(String datasetId);
+
+        /**
+         * 发送流式请求 (SSE)
+         * 
+         * @param endpoint API端点
+         * @param body     请求体
+         * @param onData   数据回调
+         */
+        public abstract void postStream(String endpoint, Object body, java.util.function.Consumer<String> onData);
+
+        /**
+         * SearchBot 提问
+         *
+         * @param config RAG配置
+         * @param body   请求体
+         * @param onData 数据回调
+         * @return 响应对象
+         */
+        public abstract Object postSearchBotAsk(Map<String, Object> config, Object body,
+                        java.util.function.Consumer<String> onData);
+
+        /**
+         * AgentBot 对话
+         *
+         * @param config  RAG配置
+         * @param agentId Agent ID
+         * @param body    请求体
+         * @param onData  数据回调
+         */
+        public abstract void postAgentBotCompletion(Map<String, Object> config, String agentId, Object body,
+                        java.util.function.Consumer<String> onData);
 }

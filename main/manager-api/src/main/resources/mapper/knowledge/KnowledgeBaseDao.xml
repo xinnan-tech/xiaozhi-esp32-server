@@ -23,4 +23,14 @@
         WHERE plugin_id = #{knowledgeBaseId}
     </delete>
 
+    <!-- 通用维度原子更新知识库统计信息 -->
+    <update id="updateStatsAfterChange">
+        UPDATE ai_rag_dataset
+        SET document_count = document_count + #{docDelta},
+            chunk_count = chunk_count + #{chunkDelta},
+            token_num = token_num + #{tokenDelta},
+            updated_at = NOW()
+        WHERE dataset_id = #{datasetId}
+    </update>
+
 </mapper>

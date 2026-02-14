@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,7 +12,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.exception.ErrorCode;
@@ -20,6 +20,9 @@ import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.knowledge.dto.KnowledgeBaseDTO;
 import xiaozhi.modules.knowledge.dto.KnowledgeFilesDTO;
+import xiaozhi.modules.knowledge.dto.document.ChunkDTO;
+import xiaozhi.modules.knowledge.dto.document.DocumentDTO;
+import xiaozhi.modules.knowledge.dto.document.RetrievalDTO;
 import xiaozhi.modules.knowledge.service.KnowledgeBaseService;
 import xiaozhi.modules.knowledge.service.KnowledgeFilesService;
 import xiaozhi.modules.security.user.SecurityUser;
@@ -57,13 +60,13 @@ public class KnowledgeFilesController {
     public Result<PageData<KnowledgeFilesDTO>> getPageList(
             @PathVariable("dataset_id") String datasetId,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer page_size) {
         // 验证知识库权限
         validateKnowledgeBasePermission(datasetId);
 
-        //组装参数
+        // 组装参数
         KnowledgeFilesDTO knowledgeFilesDTO = new KnowledgeFilesDTO();
         knowledgeFilesDTO.setDatasetId(datasetId);
         knowledgeFilesDTO.setName(name);
@@ -77,12 +80,12 @@ public class KnowledgeFilesController {
     @RequiresPermissions("sys:role:normal")
     public Result<PageData<KnowledgeFilesDTO>> getPageListByStatus(
             @PathVariable("dataset_id") String datasetId,
-            @PathVariable("status") Integer status,
+            @PathVariable("status") String status,
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer page_size) {
         // 验证知识库权限
         validateKnowledgeBasePermission(datasetId);
-        //组装参数
+        // 组装参数
         KnowledgeFilesDTO knowledgeFilesDTO = new KnowledgeFilesDTO();
         knowledgeFilesDTO.setDatasetId(datasetId);
         knowledgeFilesDTO.setStatus(status);
@@ -111,16 +114,15 @@ public class KnowledgeFilesController {
         return new Result<KnowledgeFilesDTO>().ok(resp);
     }
 
-    @DeleteMapping("/documents/{document_id}")
-    @Operation(summary = "删除单个文档")
-    @Parameter(name = "document_id", description = "文档ID", required = true)
+    @DeleteMapping("/documents")
+    @Operation(summary = "批量删除文档")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> delete(@PathVariable("dataset_id") String datasetId,
-            @PathVariable("document_id") String documentId) {
+            @RequestBody DocumentDTO.BatchIdReq req) {
         // 验证知识库权限
         validateKnowledgeBasePermission(datasetId);
 
-        knowledgeFilesService.deleteByDocumentId(documentId, datasetId);
+        knowledgeFilesService.deleteDocuments(datasetId, req);
         return new Result<>();
     }
 
@@ -148,64 +150,53 @@ public class KnowledgeFilesController {
     @GetMapping("/documents/{document_id}/chunks")
     @Operation(summary = "列出指定文档的切片")
     @RequiresPermissions("sys:role:normal")
-    public Result<Map<String, Object>> listChunks(@PathVariable("dataset_id") String datasetId,
+    public Result<ChunkDTO.ListVO> listChunks(
+            @PathVariable("dataset_id") String datasetId,
             @PathVariable("document_id") String documentId,
-            @RequestParam(required = false) String keywords,
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false, defaultValue = "1024") Integer page_size,
-            @RequestParam(required = false) String id) {
-        // 验证知识库权限
+            @ParameterObject ChunkDTO.ListReq req) {
+
+        // 验证权限 (内部已包含知识库存在性校验与归属权校验)
         validateKnowledgeBasePermission(datasetId);
 
-        Map<String, Object> result = knowledgeFilesService.listChunks(datasetId, documentId, keywords, page, page_size, id);
-        return new Result<Map<String, Object>>().ok(result);
+        // 设置默认值
+        if (req.getPage() == null)
+            req.setPage(1);
+        if (req.getPageSize() == null)
+            req.setPageSize(50);
+
+        // 调用服务层获取强类型切片列表
+        ChunkDTO.ListVO result = knowledgeFilesService.listChunks(datasetId, documentId, req);
+        return new Result<ChunkDTO.ListVO>().ok(result);
     }
 
-    /**
-     * 召回测试
-     */
     @PostMapping("/retrieval-test")
     @Operation(summary = "召回测试")
     @RequiresPermissions("sys:role:normal")
-    public Result<Map<String, Object>> retrievalTest(@PathVariable("dataset_id") String datasetId,
-            @RequestBody Map<String, Object> params) {
+    public Result<RetrievalDTO.ResultVO> retrievalTest(
+            @PathVariable("dataset_id") String datasetId,
+            @RequestBody RetrievalDTO.TestReq req) {
+
         // 验证知识库权限
         validateKnowledgeBasePermission(datasetId);
 
-        try {
-            // 提取参数
-            String question = (String) params.get("question");
-            if (question == null || question.trim().isEmpty()) {
-                return new Result<Map<String, Object>>().error("问题不能为空");
-            }
-
-            List<String> datasetIds = (List<String>) params.get("dataset_ids");
-            List<String> documentIds = (List<String>) params.get("document_ids");
-            Integer page = (Integer) params.get("page");
-            Integer pageSize = (Integer) params.get("page_size");
-            Float similarityThreshold = (Float) params.get("similarity_threshold");
-            Float vectorSimilarityWeight = (Float) params.get("vector_similarity_weight");
-            Integer topK = (Integer) params.get("top_k");
-            String rerankId = (String) params.get("rerank_id");
-            Boolean keyword = (Boolean) params.get("keyword");
-            Boolean highlight = (Boolean) params.get("highlight");
-            List<String> crossLanguages = (List<String>) params.get("cross_languages");
-            Map<String, Object> metadataCondition = (Map<String, Object>) params.get("metadata_condition");
-
-            // 如果未指定数据集ID，使用当前数据集
-            if (datasetIds == null || datasetIds.isEmpty()) {
-                datasetIds = java.util.Arrays.asList(datasetId);
-            }
-
-            Map<String, Object> result = knowledgeFilesService.retrievalTest(
-                    question, datasetIds, documentIds, page, pageSize, similarityThreshold,
-                    vectorSimilarityWeight, topK, rerankId, keyword, highlight, crossLanguages, metadataCondition);
-
-            return new Result<Map<String, Object>>().ok(result);
-        } catch (Exception e) {
-            return new Result<Map<String, Object>>().error("召回测试失败: " + e.getMessage());
+        // 业务下沉逻辑：如果未指定知识库ID，则设为当前路径中的 datasetId
+        if (req.getDatasetIds() == null || req.getDatasetIds().isEmpty()) {
+            req.setDatasetIds(java.util.Arrays.asList(datasetId));
         }
+
+        // [Reinforce] 强管控分页参数，防止 RAGFlow 端出现 Negative Slicing 报错
+        if (req.getPage() == null || req.getPage() < 1) {
+            req.setPage(1);
+        }
+        if (req.getPageSize() == null || req.getPageSize() < 1) {
+            req.setPageSize(100);
+        }
+
+        // 调用检索服务，返回强类型聚合对象
+        RetrievalDTO.ResultVO result = knowledgeFilesService.retrievalTest(req);
+        return new Result<RetrievalDTO.ResultVO>().ok(result);
     }
+
     /**
      * 解析JSON字符串为Map对象
      */

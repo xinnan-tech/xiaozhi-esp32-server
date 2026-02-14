@@ -36,6 +36,7 @@ import xiaozhi.modules.security.user.SecurityUser;
 public class KnowledgeBaseController {
 
     private final KnowledgeBaseService knowledgeBaseService;
+    private final xiaozhi.modules.knowledge.service.KnowledgeManagerService knowledgeManagerService;
 
     @GetMapping
     @Operation(summary = "分页查询知识库列表")
@@ -96,6 +97,8 @@ public class KnowledgeBaseController {
             throw new RenException(ErrorCode.NO_PERMISSION);
         }
 
+        // [FIX] 注入 ID，防止 Service 层找不到记录
+        knowledgeBaseDTO.setId(existingKnowledgeBase.getId());
         knowledgeBaseDTO.setDatasetId(datasetId);
         KnowledgeBaseDTO resp = knowledgeBaseService.update(knowledgeBaseDTO);
         return new Result<KnowledgeBaseDTO>().ok(resp);
@@ -117,7 +120,8 @@ public class KnowledgeBaseController {
             throw new RenException(ErrorCode.NO_PERMISSION);
         }
 
-        knowledgeBaseService.deleteByDatasetId(datasetId);
+        // [Architecture Fix] 通过编排层级联删除，防止孤儿数据并解决循环依赖
+        knowledgeManagerService.deleteDatasetWithFiles(datasetId);
         return new Result<>();
     }
 
@@ -133,15 +137,16 @@ public class KnowledgeBaseController {
         // 获取当前登录用户ID
         Long currentUserId = SecurityUser.getUserId();
         List<String> idList = Arrays.asList(ids.split(","));
-        List<KnowledgeBaseDTO> knowledgeBaseDTOs = Optional.ofNullable(knowledgeBaseService.getByDatasetIdList(idList)).orElseGet(ArrayList::new);
+        List<KnowledgeBaseDTO> knowledgeBaseDTOs = Optional.ofNullable(knowledgeBaseService.getByDatasetIdList(idList))
+                .orElseGet(ArrayList::new);
         if (ToolUtil.isNotEmpty(knowledgeBaseDTOs)) {
-            knowledgeBaseDTOs.forEach(item->{
+            knowledgeBaseDTOs.forEach(item -> {
                 // 检查权限：用户只能删除自己创建的知识库
                 if (item.getCreator() == null || !item.getCreator().equals(currentUserId)) {
                     throw new RenException(ErrorCode.NO_PERMISSION);
                 }
-                //删除
-                knowledgeBaseService.deleteByDatasetId(item.getDatasetId());
+                // [Architecture Fix] 通过编排层级联删除
+                knowledgeManagerService.deleteDatasetWithFiles(item.getDatasetId());
             });
         }
         return new Result<>();
