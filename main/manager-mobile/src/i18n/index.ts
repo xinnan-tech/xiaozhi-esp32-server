@@ -8,6 +8,7 @@ import en from './en'
 import zh_TW from './zh_TW'
 import de from './de'
 import vi from './vi'
+import pt_BR from './pt_BR'
 
 // 语言包映射
 const messages = {
@@ -16,6 +17,7 @@ const messages = {
   zh_TW: zh_TW,
   de,
   vi,
+  pt_BR: pt_BR,
 }
 
 // 当前使用的语言
@@ -72,5 +74,6 @@ export function getSupportedLanguages(): { code: Language, name: string }[] {
     { code: 'zh_TW', name: '繁體中文' },
     { code: 'de', name: 'Deutsch' },
     { code: 'vi', name: 'Tiếng Việt' },
+    { code: 'pt_BR', name: 'Português (Brasil)' },
   ]
 }

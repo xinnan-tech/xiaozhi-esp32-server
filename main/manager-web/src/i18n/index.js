@@ -5,6 +5,7 @@ import zhTW from './zh_TW';
 import en from './en';
 import de from './de';
 import vi from './vi';
+import ptBR from './pt_BR';
 
 Vue.use(VueI18n);
 
@@ -27,6 +28,9 @@ const getDefaultLanguage = () => {
   if (browserLang.indexOf('vi') === 0) {
     return 'vi';
   }
+  if (browserLang === 'pt-BR' || browserLang === 'pt') {
+    return 'pt_BR';
+  }
   return 'en';
 };
 
@@ -38,7 +42,8 @@ const i18n = new VueI18n({
     'zh_TW': zhTW,
     'en': en,
     'de': de,
-    'vi': vi
+    'vi': vi,
+    'pt_BR': ptBR
   }
 });
 

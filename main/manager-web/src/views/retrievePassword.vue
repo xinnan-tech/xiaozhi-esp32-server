@@ -137,6 +137,8 @@ export default {
           return require("@/assets/xiaozhi-ai_de.png");
         case "vi":
           return require("@/assets/xiaozhi-ai_vi.png");
+        case "pt_BR":
+          return require("@/assets/xiaozhi-ai_en.png");
         default:
           return require("@/assets/xiaozhi-ai.png");
       }

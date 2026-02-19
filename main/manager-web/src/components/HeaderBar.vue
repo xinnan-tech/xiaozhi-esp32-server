@@ -254,6 +254,8 @@ export default {
           return this.$t("language.de");
         case "vi":
           return this.$t("language.vi");
+        case "pt_BR":
+          return this.$t("language.ptBR");
         default:
           return this.$t("language.zhCN");
       }
@@ -272,6 +274,8 @@ export default {
           return require("@/assets/xiaozhi-ai_de.png");
         case "vi":
           return require("@/assets/xiaozhi-ai_vi.png");
+        case "pt_BR":
+          return require("@/assets/xiaozhi-ai_en.png");
         default:
           return require("@/assets/xiaozhi-ai.png");
       }
@@ -302,6 +306,10 @@ export default {
             {
               label: this.$t("language.vi"),
               value: "vi",
+            },
+            {
+              label: this.$t("language.ptBR"),
+              value: "pt_BR",
             },
           ],
         },

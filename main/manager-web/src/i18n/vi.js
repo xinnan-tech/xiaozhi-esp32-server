@@ -663,6 +663,7 @@ export default {
   'language.en': 'English',
   'language.de': 'Deutsch',
   'language.vi': 'Tiếng Việt',
+  'language.ptBR': 'Português (Brasil)',
 
   // Home page text
   'home.addAgent': 'Thêm tác nhân',

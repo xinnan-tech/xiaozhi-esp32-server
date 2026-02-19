@@ -663,6 +663,7 @@ export default {
   'language.en': 'English',
   'language.de': 'Deutsch',
   'language.vi': 'Tiếng Việt',
+  'language.ptBR': 'Português (Brasil)',
 
   // 首頁文本
   'home.addAgent': '添加智能體',
