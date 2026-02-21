@@ -13,23 +13,25 @@ public class RenException extends RuntimeException {
     private String msg;
 
     public RenException(int code) {
+        super(MessageUtils.getMessage(code));
         this.code = code;
         this.msg = MessageUtils.getMessage(code);
     }
 
     public RenException(int code, String... params) {
+        super(MessageUtils.getMessage(code, params));
         this.code = code;
         this.msg = MessageUtils.getMessage(code, params);
     }
 
     public RenException(int code, Throwable e) {
-        super(e);
+        super(MessageUtils.getMessage(code), e);
         this.code = code;
         this.msg = MessageUtils.getMessage(code);
     }
 
     public RenException(int code, Throwable e, String... params) {
-        super(e);
+        super(MessageUtils.getMessage(code, params), e);
         this.code = code;
         this.msg = MessageUtils.getMessage(code, params);
     }

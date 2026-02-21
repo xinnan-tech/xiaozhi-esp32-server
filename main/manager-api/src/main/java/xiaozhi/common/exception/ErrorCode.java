@@ -245,4 +245,5 @@ public interface ErrorCode {
     int DEVICE_NOT_EXIST = 10194; // 设备不存在
     int OTA_UPLOAD_COUNT_EXCEED = 10195; // OTA上传次数超过限制
 
+    int RAG_DOCUMENT_PARSING_DELETE_ERROR = 10196; // 文档解析中，禁止删除
 }

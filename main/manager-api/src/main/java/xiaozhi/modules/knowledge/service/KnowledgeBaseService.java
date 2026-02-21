@@ -93,4 +93,14 @@ public interface KnowledgeBaseService extends BaseService<KnowledgeBaseEntity> {
      * @return RAG模型列表
      */
     List<ModelConfigEntity> getRAGModels();
+
+    /**
+     * 更新知识库统计信息 (用于被文件服务回调)
+     * 
+     * @param datasetId  知识库ID
+     * @param docDelta   文档数增量
+     * @param chunkDelta 分块数增量
+     * @param tokenDelta Token数增量
+     */
+    void updateStatistics(String datasetId, Integer docDelta, Long chunkDelta, Long tokenDelta);
 }

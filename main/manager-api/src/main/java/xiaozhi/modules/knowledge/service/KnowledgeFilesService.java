@@ -7,6 +7,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import xiaozhi.common.page.PageData;
 import xiaozhi.modules.knowledge.dto.KnowledgeFilesDTO;
+import xiaozhi.modules.knowledge.dto.document.ChunkDTO;
+import xiaozhi.modules.knowledge.dto.document.RetrievalDTO;
+import xiaozhi.modules.knowledge.dto.document.DocumentDTO;
 
 /**
  * 知识库文档服务接口
@@ -28,9 +31,9 @@ public interface KnowledgeFilesService {
          * 
          * @param documentId 文档ID
          * @param datasetId  知识库ID
-         * @return 文档详情
+         * @return 文档详情 (强类型 InfoVO)
          */
-        KnowledgeFilesDTO getByDocumentId(String documentId, String datasetId);
+        DocumentDTO.InfoVO getByDocumentId(String documentId, String datasetId);
 
         /**
          * 上传文档到知识库
@@ -48,12 +51,12 @@ public interface KnowledgeFilesService {
                         Map<String, Object> parserConfig);
 
         /**
-         * 根据文档ID和知识库ID删除文档
+         * 批量删除文档
          * 
-         * @param documentId 文档ID
-         * @param datasetId  知识库ID
+         * @param datasetId 知识库ID
+         * @param req       删除请求参数 (含文档ID列表)
          */
-        void deleteByDocumentId(String documentId, String datasetId);
+        void deleteDocuments(String datasetId, DocumentDTO.BatchIdReq req);
 
         /**
          * 获取RAG配置信息
@@ -77,36 +80,44 @@ public interface KnowledgeFilesService {
          * 
          * @param datasetId  知识库ID
          * @param documentId 文档ID
-         * @param keywords   关键词过滤
-         * @param page       页码
-         * @param pageSize   每页数量
-         * @param chunkId    切片ID
+         * @param req        切片列表请求参数
          * @return 切片列表信息
          */
-        Map<String, Object> listChunks(String datasetId, String documentId, String keywords,
-                        Integer page, Integer pageSize, String chunkId);
+        ChunkDTO.ListVO listChunks(String datasetId, String documentId, ChunkDTO.ListReq req);
 
         /**
-         * 召回测试 - 从指定数据集或文档中检索相关切片
+         * 召回测试
          * 
-         * @param question               用户查询或查询关键词
-         * @param datasetIds             数据集ID列表
-         * @param documentIds            文档ID列表
-         * @param page                   页码
-         * @param pageSize               每页数量
-         * @param similarityThreshold    最小相似度阈值
-         * @param vectorSimilarityWeight 向量相似度权重
-         * @param topK                   参与向量余弦计算的切片数量
-         * @param rerankId               重排模型ID
-         * @param keyword                是否启用关键词匹配
-         * @param highlight              是否启用高亮显示
-         * @param crossLanguages         跨语言翻译列表
-         * @param metadataCondition      元数据过滤条件
+         * @param req 检索测试请求参数
          * @return 召回测试结果
          */
-        Map<String, Object> retrievalTest(String question, List<String> datasetIds, List<String> documentIds,
-                        Integer page, Integer pageSize, Float similarityThreshold,
-                        Float vectorSimilarityWeight, Integer topK, String rerankId,
-                        Boolean keyword, Boolean highlight, List<String> crossLanguages,
-                        Map<String, Object> metadataCondition);
+        RetrievalDTO.ResultVO retrievalTest(RetrievalDTO.TestReq req);
+
+        /**
+         * 保存文档影子记录
+         */
+        void saveDocumentShadow(String datasetId, KnowledgeFilesDTO result, String originalName, String chunkMethod,
+                        Map<String, Object> parserConfig);
+
+        /**
+         * 批量删除文档影子记录并同步统计数据
+         * 
+         * @param documentIds 文档ID列表
+         * @param datasetId   数据集ID
+         * @param chunkDelta  待扣减的总分块数
+         * @param tokenDelta  待扣减的总Token数
+         */
+        void deleteDocumentShadows(List<String> documentIds, String datasetId, Long chunkDelta, Long tokenDelta);
+
+        /**
+         * 根据数据集ID清理所有关联文档 (级联删除专用)
+         * 
+         * @param datasetId 数据集ID
+         */
+        void deleteDocumentsByDatasetId(String datasetId);
+
+        /**
+         * 同步所有处于 RUNNING 状态的文档 (供定时任务调用)
+         */
+        void syncRunningDocuments();
 }

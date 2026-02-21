@@ -12,6 +12,8 @@ public class RestTemplateConfig {
 
     @Bean
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        org.springframework.http.client.JdkClientHttpRequestFactory factory = new org.springframework.http.client.JdkClientHttpRequestFactory();
+        factory.setReadTimeout(java.time.Duration.ofSeconds(30));
+        return new RestTemplate(factory);
     }
 }

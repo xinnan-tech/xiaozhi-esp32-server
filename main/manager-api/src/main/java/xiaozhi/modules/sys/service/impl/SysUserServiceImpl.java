@@ -56,7 +56,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         if (users == null || users.isEmpty()) {
             return null;
         }
-        SysUserEntity entity = users.getFirst();
+        SysUserEntity entity = users.get(0);
         return ConvertUtils.sourceToTarget(entity, SysUserDTO.class);
     }
 
@@ -197,7 +197,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
      */
     private String generatePassword() {
         StringBuilder password = new StringBuilder();
-        
+
         // 确保包含至少一个数字
         password.append("0123456789".charAt(random.nextInt(10)));
         // 确保包含至少一个小写字母
@@ -206,12 +206,12 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
         password.append("ABCDEFGHIJKLMNOPQRSTUVWXYZ".charAt(random.nextInt(26)));
         // 确保包含至少一个特殊符号
         password.append("!@#$%^&*()".charAt(random.nextInt(10)));
-        
+
         // 生成剩余的8个字符
         for (int i = 4; i < 12; i++) {
             password.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
         }
-        
+
         // 打乱密码中字符的顺序
         char[] passwordChars = password.toString().toCharArray();
         for (int i = 0; i < passwordChars.length; i++) {
@@ -220,7 +220,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserDao, SysUserEntit
             passwordChars[i] = passwordChars[randomIndex];
             passwordChars[randomIndex] = temp;
         }
-        
+
         return new String(passwordChars);
     }
 
