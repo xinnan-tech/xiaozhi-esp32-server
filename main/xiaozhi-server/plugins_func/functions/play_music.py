@@ -9,6 +9,10 @@ from core.handle.sendAudioHandle import send_stt_message
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from core.utils.dialogue import Message
 from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 
@@ -34,7 +38,7 @@ play_music_function_desc = {
 
 
 @register_function("play_music", play_music_function_desc, ToolType.SYSTEM_CTL)
-def play_music(conn, song_name: str):
+def play_music(conn: "ConnectionHandler", song_name: str):
     try:
         music_intent = (
             f"播放音乐 {song_name}" if song_name != "random" else "随机播放音乐"
@@ -115,7 +119,7 @@ def get_music_files(music_dir, music_ext):
     return music_files, music_file_names
 
 
-def initialize_music_handler(conn):
+def initialize_music_handler(conn: "ConnectionHandler"):
     global MUSIC_CACHE
     if MUSIC_CACHE == {}:
         plugins_config = conn.config.get("plugins", {})
@@ -142,7 +146,7 @@ def initialize_music_handler(conn):
     return MUSIC_CACHE
 
 
-async def handle_music_command(conn, text):
+async def handle_music_command(conn: "ConnectionHandler", text):
     initialize_music_handler(conn)
     global MUSIC_CACHE
 
@@ -188,7 +192,7 @@ def _get_random_play_prompt(song_name):
     return random.choice(prompts)
 
 
-async def play_local_music(conn, specific_file=None):
+async def play_local_music(conn: "ConnectionHandler", specific_file=None):
     global MUSIC_CACHE
     """播放本地音乐文件"""
     try:

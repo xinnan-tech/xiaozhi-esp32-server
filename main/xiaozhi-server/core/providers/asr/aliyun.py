@@ -213,36 +213,24 @@ class ASRProvider(ASRProviderBase):
             return None
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         if self._is_token_expired():
             logger.warning("Token已过期，正在自动刷新...")
             self._refresh_token()
 
-        file_path = None
         try:
-            # 解码Opus为PCM
-            if audio_format == "pcm":
-                pcm_data = opus_data
-            else:
-                pcm_data = self.decode_opus(opus_data)
-            combined_pcm_data = b"".join(pcm_data)
-
-            # 判断是否保存为WAV文件
-            if self.delete_audio_file:
-                pass
-            else:
-                file_path = self.save_audio_to_file(pcm_data, session_id)
-
+            if artifacts is None:
+                return "", None
             # 发送请求并获取文本
-            text = await self._send_request(combined_pcm_data)
+            text = await self._send_request(artifacts.pcm_bytes)
 
             if text:
-                return text, file_path
+                return text, artifacts.file_path
 
-            return "", file_path
+            return "", artifacts.file_path
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"语音识别失败: {e}", exc_info=True)
-            return "", file_path
+            return "", None

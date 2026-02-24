@@ -1,7 +1,7 @@
 // Audio recording module
-import { log } from '../../utils/logger.js?v=0127';
-import { initOpusEncoder } from './opus-codec.js?v=0127';
-import { getAudioPlayer } from './player.js?v=0127';
+import { log } from '../../utils/logger.js?v=0205';
+import { initOpusEncoder } from './opus-codec.js?v=0205';
+import { getAudioPlayer } from './player.js?v=0205';
 
 // Audio recorder class
 export class AudioRecorder {
@@ -204,7 +204,7 @@ export class AudioRecorder {
         if (this.isRecording) return false;
         try {
             // Check if WebSocketHandler instance exists
-            const { getWebSocketHandler } = await import('../network/websocket.js?v=0127');
+            const { getWebSocketHandler } = await import('../network/websocket.js?v=0205');
             const wsHandler = getWebSocketHandler();
             // If machine is speaking, send abort message
             if (wsHandler && wsHandler.isRemoteSpeaking && wsHandler.currentSessionId) {

@@ -3,6 +3,10 @@ from plugins_func.functions.hass_init import initialize_hass_handler
 from config.logger import setup_logging
 import asyncio
 import requests
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 logger = setup_logging()
@@ -27,7 +31,7 @@ hass_get_state_function_desc = {
 
 
 @register_function("hass_get_state", hass_get_state_function_desc, ToolType.SYSTEM_CTL)
-def hass_get_state(conn, entity_id=""):
+def hass_get_state(conn: "ConnectionHandler", entity_id=""):
     try:
         ha_response = handle_hass_get_state(conn, entity_id)
         return ActionResponse(Action.REQLLM, ha_response, None)
@@ -40,7 +44,7 @@ def hass_get_state(conn, entity_id=""):
         return ActionResponse(Action.ERROR, error_msg, None)
 
 
-def handle_hass_get_state(conn, entity_id):
+def handle_hass_get_state(conn: "ConnectionHandler", entity_id):
     ha_config = initialize_hass_handler(conn)
     api_key = ha_config.get("api_key")
     base_url = ha_config.get("base_url")

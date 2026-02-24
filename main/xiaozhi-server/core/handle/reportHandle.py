@@ -11,13 +11,17 @@ TTS上报功能已集成到ConnectionHandler类中。
 
 import time
 import opuslib_next
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 from config.manage_api_client import report as manage_report
 
 TAG = __name__
 
 
-async def report(conn, type, text, opus_data, report_time):
+async def report(conn: "ConnectionHandler", type, text, opus_data, report_time):
     """执行聊天记录上报操作
 
     Args:
@@ -45,7 +49,7 @@ async def report(conn, type, text, opus_data, report_time):
         conn.logger.bind(tag=TAG).error(f"聊天记录上报失败: {e}")
 
 
-def opus_to_wav(conn, opus_data):
+def opus_to_wav(conn: "ConnectionHandler", opus_data):
     """将Opus数据转换为WAV格式的字节流
 
     Args:
@@ -100,7 +104,7 @@ def opus_to_wav(conn, opus_data):
                 conn.logger.bind(tag=TAG).debug(f"释放decoder资源时出错: {e}")
 
 
-def enqueue_tts_report(conn, text, opus_data):
+def enqueue_tts_report(conn: "ConnectionHandler", text, opus_data):
     if not conn.read_config_from_api or conn.need_bind or not conn.report_tts_enable:
         return
     if conn.chat_history_conf == 0:
@@ -128,7 +132,7 @@ def enqueue_tts_report(conn, text, opus_data):
         conn.logger.bind(tag=TAG).error(f"加入TTS上报队列失败: {text}, {e}")
 
 
-def enqueue_asr_report(conn, text, opus_data):
+def enqueue_asr_report(conn: "ConnectionHandler", text, opus_data):
     if not conn.read_config_from_api or conn.need_bind or not conn.report_asr_enable:
         return
     if conn.chat_history_conf == 0:

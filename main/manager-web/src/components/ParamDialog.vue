@@ -105,6 +105,7 @@ export default {
     },
     cancel() {
       this.saving = false; // 取消时重置状态
+      this.dialogKey = Date.now();
       this.$emit('cancel');
     },
 
@@ -115,9 +116,7 @@ export default {
   },
   watch: {
     visible(newVal) {
-      if (newVal) {
-        this.dialogKey = Date.now();
-      } else {
+      if (!newVal) {
         // 当对话框关闭时，重置saving状态
         this.saving = false;
       }

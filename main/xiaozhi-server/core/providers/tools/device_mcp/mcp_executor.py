@@ -1,6 +1,9 @@
 """设备端MCP工具执行器"""
 
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 from ..base import ToolType, ToolDefinition, ToolExecutor
 from plugins_func.register import Action, ActionResponse
 from .mcp_handler import call_mcp_tool
@@ -13,7 +16,7 @@ class DeviceMCPExecutor(ToolExecutor):
         self.conn = conn
 
     async def execute(
-        self, conn, tool_name: str, arguments: Dict[str, Any]
+        self, conn: "ConnectionHandler", tool_name: str, arguments: Dict[str, Any]
     ) -> ActionResponse:
         """执行设备端MCP工具"""
         if not hasattr(conn, "mcp_client") or not conn.mcp_client:

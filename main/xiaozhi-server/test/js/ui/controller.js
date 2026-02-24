@@ -1,8 +1,8 @@
 // UI controller module
-import { loadConfig, saveConfig } from '../config/manager.js?v=0127';
-import { getAudioPlayer } from '../core/audio/player.js?v=0127';
-import { getAudioRecorder } from '../core/audio/recorder.js?v=0127';
-import { getWebSocketHandler } from '../core/network/websocket.js?v=0127';
+import { loadConfig, saveConfig } from '../config/manager.js?v=0205';
+import { getAudioPlayer } from '../core/audio/player.js?v=0205';
+import { getAudioRecorder } from '../core/audio/recorder.js?v=0205';
+import { getWebSocketHandler } from '../core/network/websocket.js?v=0205';
 
 // UI controller class
 class UIController {
@@ -11,8 +11,9 @@ class UIController {
         this.visualizerCanvas = null;
         this.visualizerContext = null;
         this.audioStatsTimer = null;
-        this.currentBackgroundIndex = 0;
+        this.currentBackgroundIndex = localStorage.getItem('backgroundIndex') ? parseInt(localStorage.getItem('backgroundIndex')) : 0;
         this.backgroundImages = ['1.png', '2.png', '3.png'];
+        this.dialBtnDisabled = false;
 
         // Bind methods
         this.init = this.init.bind(this);
@@ -20,6 +21,7 @@ class UIController {
         this.updateDialButton = this.updateDialButton.bind(this);
         this.addChatMessage = this.addChatMessage.bind(this);
         this.switchBackground = this.switchBackground.bind(this);
+        this.switchLive2DModel = this.switchLive2DModel.bind(this);
         this.showModal = this.showModal.bind(this);
         this.hideModal = this.hideModal.bind(this);
         this.switchTab = this.switchTab.bind(this);
@@ -51,6 +53,12 @@ class UIController {
 
         // Initialize status display
         this.updateConnectionUI(false);
+        // Apply saved background
+        const backgroundContainer = document.querySelector('.background-container');
+        if (backgroundContainer) {
+            backgroundContainer.style.backgroundImage = `url('./images/${this.backgroundImages[this.currentBackgroundIndex]}')`;
+        }
+
         this.updateDialButton(false);
 
         console.log('UIController init completed');
@@ -82,16 +90,44 @@ class UIController {
             backgroundBtn.addEventListener('click', this.switchBackground);
         }
 
+        // Model select change event
+        const modelSelect = document.getElementById('live2dModelSelect');
+        if (modelSelect) {
+            modelSelect.addEventListener('change', () => {
+                this.switchLive2DModel();
+            });
+        }
+
+        // Camera switch button
+        const cameraSwitch = document.getElementById('cameraSwitch');
+        const cameraSwitchMask = document.getElementById('cameraSwitchMask');
+        if (cameraSwitchMask) {
+            cameraSwitchMask.addEventListener('click', () => {
+                const isCameraActive = cameraSwitch.classList.contains('active');
+                if (isCameraActive) {
+                    window.switchCamera();
+                }
+            })
+        }
+
         // Dial button
         const dialBtn = document.getElementById('dialBtn');
         if (dialBtn) {
             dialBtn.addEventListener('click', () => {
+                dialBtn.disabled = true;
+                this.dialBtnDisabled = true;
+                setTimeout(() => {
+                    dialBtn.disabled = false;
+                    this.dialBtnDisabled = false;
+                }, 3000);
+
                 const wsHandler = getWebSocketHandler();
                 const isConnected = wsHandler.isConnected();
 
                 if (isConnected) {
                     wsHandler.disconnect();
                     this.updateDialButton(false);
+                    if (cameraSwitch) cameraSwitch.classList.remove('active');
                     this.addChatMessage('Disconnected, see you next time~😊', false);
                 } else {
                     // Check if OTA URL is filled
@@ -110,26 +146,81 @@ class UIController {
             });
         }
 
+        // Camera button
+        const cameraBtn = document.getElementById('cameraBtn');
+        let cameraTimer = null;
+        if (cameraBtn) {
+            cameraBtn.addEventListener('click', () => {
+                if (cameraTimer) {
+                    clearTimeout(cameraTimer);
+                    cameraTimer = null;
+                }
+                cameraTimer = setTimeout(() => {
+                    const cameraContainer = document.getElementById('cameraContainer');
+                    if (!cameraContainer) {
+                        log('摄像头容器不存在', 'warning');
+                        return;
+                    }
+
+                    const isActive = cameraContainer.classList.contains('active');
+                    if (isActive) {
+                        // 关闭摄像头
+                        if (typeof window.stopCamera === 'function') {
+                            if (cameraSwitch) cameraSwitch.classList.remove('active');
+                            window.stopCamera();
+                        }
+                        cameraContainer.classList.remove('active');
+                        cameraBtn.classList.remove('camera-active');
+                        cameraBtn.querySelector('.btn-text').textContent = '摄像头';
+                        log('摄像头已关闭', 'info');
+                    } else {
+                        // 打开摄像头
+                        if (typeof window.startCamera === 'function') {
+                            window.startCamera().then(success => {
+                                if (success) {
+                                    cameraBtn.classList.add('camera-active');
+                                    cameraBtn.querySelector('.btn-text').textContent = '关闭';
+                                } else {
+                                    this.addChatMessage('⚠️ 摄像头启动失败，请检查浏览器权限', false);
+                                }
+                            }).catch(error => {
+                                log(`启动摄像头异常: ${error.message}`, 'error');
+                            });
+                        } else {
+                            log('startCamera函数未定义', 'warning');
+                        }
+                    }
+                }, 300);
+            });
+        }
+
         // Record button
         const recordBtn = document.getElementById('recordBtn');
         if (recordBtn) {
+            let recordTimer = null;
             recordBtn.addEventListener('click', () => {
-                const audioRecorder = getAudioRecorder();
-                if (audioRecorder.isRecording) {
-                    audioRecorder.stop();
-                    // Restore record button to normal state
-                    recordBtn.classList.remove('recording');
-                    recordBtn.querySelector('.btn-text').textContent = '录音';
-                } else {
-                    // Update button state to recording
-                    recordBtn.classList.add('recording');
-                    recordBtn.querySelector('.btn-text').textContent = '录音中';
-
-                    // Start recording, update button state after delay
-                    setTimeout(() => {
-                        audioRecorder.start();
-                    }, 100);
+                if (recordTimer) {
+                    clearTimeout(recordTimer);
+                    recordTimer = null;
                 }
+                recordTimer = setTimeout(() => {
+                    const audioRecorder = getAudioRecorder();
+                    if (audioRecorder.isRecording) {
+                        audioRecorder.stop();
+                        // Restore record button to normal state
+                        recordBtn.classList.remove('recording');
+                        recordBtn.querySelector('.btn-text').textContent = '录音';
+                    } else {
+                        // Update button state to recording
+                        recordBtn.classList.add('recording');
+                        recordBtn.querySelector('.btn-text').textContent = '录音中';
+
+                        // Start recording, update button state after delay
+                        setTimeout(() => {
+                            audioRecorder.start();
+                        }, 100);
+                    }
+                }, 300);
             });
         }
 
@@ -171,13 +262,15 @@ class UIController {
             });
         });
 
-        // Click modal background to close
+        // 点击模态框背景关闭（仅对特定模态框禁用此功能）
         const modals = document.querySelectorAll('.modal');
         modals.forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
-                    if (modal.id === 'settingsModal') {
-                        saveConfig();
+                    // settingsModal、mcpToolModal、mcpPropertyModal 只能通过点击X关闭
+                    const nonClosableModals = ['settingsModal', 'mcpToolModal', 'mcpPropertyModal'];
+                    if (nonClosableModals.includes(modal.id)) {
+                        return; // 禁止点击背景关闭
                     }
                     this.hideModal(modal.id);
                 }
@@ -220,6 +313,7 @@ class UIController {
     updateDialButton(isConnected) {
         const dialBtn = document.getElementById('dialBtn');
         const recordBtn = document.getElementById('recordBtn');
+        const cameraBtn = document.getElementById('cameraBtn');
 
         if (dialBtn) {
             if (isConnected) {
@@ -236,6 +330,33 @@ class UIController {
                 dialBtn.querySelector('svg').innerHTML = `
                     <path d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/>
                 `;
+            }
+        }
+
+        // Update camera button state - reset to default when disconnected
+        if (cameraBtn && !isConnected) {
+            const cameraContainer = document.getElementById('cameraContainer');
+            if (cameraContainer && cameraContainer.classList.contains('active')) {
+                cameraContainer.classList.remove('active');
+            }
+            cameraBtn.classList.remove('camera-active');
+            cameraBtn.querySelector('.btn-text').textContent = '摄像头';
+            cameraBtn.disabled = true;
+            cameraBtn.title = '请先连接服务器';
+            // 关闭摄像头
+            if (typeof window.stopCamera === 'function') {
+                window.stopCamera();
+            }
+        }
+
+        // Update camera button state - enable when connected and camera is available
+        if (cameraBtn && isConnected) {
+            if (window.cameraAvailable) {
+                cameraBtn.disabled = false;
+                cameraBtn.title = '打开/关闭摄像头';
+            } else {
+                cameraBtn.disabled = true;
+                cameraBtn.title = '请先绑定验证码';
             }
         }
 
@@ -324,6 +445,36 @@ class UIController {
         if (backgroundContainer) {
             backgroundContainer.style.backgroundImage = `url('./images/${this.backgroundImages[this.currentBackgroundIndex]}')`;
         }
+        localStorage.setItem('backgroundIndex', this.currentBackgroundIndex);
+    }
+
+    // Switch Live2D model
+    switchLive2DModel() {
+        const modelSelect = document.getElementById('live2dModelSelect');
+        if (!modelSelect) {
+            console.error('模型选择下拉框不存在');
+            return;
+        }
+
+        const selectedModel = modelSelect.value;
+        const app = window.chatApp;
+
+        if (app && app.live2dManager) {
+            app.live2dManager.switchModel(selectedModel)
+                .then(success => {
+                    if (success) {
+                        this.addChatMessage(`已切换到模型: ${selectedModel}`, false);
+                    } else {
+                        this.addChatMessage('模型切换失败', false);
+                    }
+                })
+                .catch(error => {
+                    console.error('模型切换错误:', error);
+                    this.addChatMessage('模型切换出错', false);
+                });
+        } else {
+            this.addChatMessage('Live2D管理器未初始化', false);
+        }
     }
 
     // Show modal
@@ -378,6 +529,22 @@ class UIController {
             if (recordBtn) {
                 recordBtn.click();
             }
+        }
+        // Start camera only if camera is available (bound with verification code)
+        if (window.cameraAvailable && typeof window.startCamera === 'function') {
+            window.startCamera().then(success => {
+                if (success) {
+                    const cameraBtn = document.getElementById('cameraBtn');
+                    if (cameraBtn) {
+                        cameraBtn.classList.add('camera-active');
+                        cameraBtn.querySelector('.btn-text').textContent = '关闭';
+                    }
+                } else {
+                    this.addChatMessage('⚠️ 摄像头启动失败，可能被浏览器拒绝', false);
+                }
+            }).catch(error => {
+                log(`启动摄像头异常: ${error.message}`, 'error');
+            });
         }
     }
 
@@ -453,7 +620,7 @@ class UIController {
 
             if (isConnected) {
                 // Check microphone availability (check again after connection)
-                const { checkMicrophoneAvailability } = await import('../core/audio/recorder.js?v=0127');
+                const { checkMicrophoneAvailability } = await import('../core/audio/recorder.js?v=0205');
                 const micAvailable = await checkMicrophoneAvailability();
 
                 if (!micAvailable) {
@@ -468,13 +635,14 @@ class UIController {
                 // Update dial button state
                 const dialBtn = document.getElementById('dialBtn');
                 if (dialBtn) {
-                    dialBtn.disabled = false;
+                    if (!this.dialBtnDisabled) {
+                        dialBtn.disabled = false;
+                    }
                     dialBtn.querySelector('.btn-text').textContent = '挂断';
                     dialBtn.classList.add('dial-active');
                 }
 
                 this.hideModal('settingsModal');
-
             } else {
                 throw new Error('OTA连接失败');
             }
@@ -495,7 +663,9 @@ class UIController {
             // Restore dial button state
             const dialBtn = document.getElementById('dialBtn');
             if (dialBtn) {
-                dialBtn.disabled = false;
+                if (!this.dialBtnDisabled) {
+                    dialBtn.disabled = false;
+                }
                 dialBtn.querySelector('.btn-text').textContent = '拨号';
                 dialBtn.classList.remove('dial-active');
                 console.log('Dial button state restored successfully');

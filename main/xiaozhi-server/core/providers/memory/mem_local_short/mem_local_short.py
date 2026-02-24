@@ -149,10 +149,22 @@ class MemoryProvider(MemoryProviderBase):
 
         msgStr = ""
         for msg in msgs:
+            content = msg.content
+
+            # Extract content from JSON format if present (for ASR with emotion/language tags)
+            try:
+                if content and content.strip().startswith("{") and content.strip().endswith("}"):
+                    data = json.loads(content)
+                    if "content" in data:
+                        content = data["content"]
+            except (json.JSONDecodeError, KeyError, TypeError):
+                # If parsing fails, use original content
+                pass
+
             if msg.role == "user":
-                msgStr += f"User: {msg.content}\n"
+                msgStr += f"User: {content}\n"
             elif msg.role == "assistant":
-                msgStr += f"Assistant: {msg.content}\n"
+                msgStr += f"Assistant: {content}\n"
         if self.short_memory and len(self.short_memory) > 0:
             msgStr += "历史记忆：\n"
             msgStr += self.short_memory
@@ -162,19 +174,19 @@ class MemoryProvider(MemoryProviderBase):
         msgStr += f"当前时间：{time_str}"
 
         if self.save_to_file:
-            result = self.llm.response_no_stream(
-                short_term_memory_prompt,
-                msgStr,
-                max_tokens=2000,
-                temperature=0.2,
-            )
-            json_str = extract_json_data(result)
             try:
+                result = self.llm.response_no_stream(
+                    short_term_memory_prompt,
+                    msgStr,
+                    max_tokens=2000,
+                    temperature=0.2,
+                )
+                json_str = extract_json_data(result)
                 json.loads(json_str)  # 检查json格式是否正确
                 self.short_memory = json_str
                 self.save_memory_to_file()
             except Exception as e:
-                print("Error:", e)
+                logger.bind(tag=TAG).error(f"Error in saving memory: {e}")
         else:
             # 当save_to_file为False时，调用Java端的聊天记录总结接口
             summary_id = session_id if session_id else self.role_id

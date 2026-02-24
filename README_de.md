@@ -21,6 +21,7 @@ Unterstützt MQTT+UDP-Protokoll, Websocket-Protokoll, MCP-Endpunkte und Stimmabd
   <a href="./README_en.md"><img alt="README in English" src="https://img.shields.io/badge/English-DFE0E5"></a>
   <a href="./README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Tiếng Việt-DFE0E5"></a>
   <a href="./README_de.md"><img alt="Deutsch" src="https://img.shields.io/badge/Deutsch-DBEDFA"></a>
+  <a href="./README_pt_BR.md"><img alt="Português (Brasil)" src="https://img.shields.io/badge/Português (Brasil)-DFE0E5"></a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">
     <img alt="GitHub Contributors" src="https://img.shields.io/github/v/release/xinnan-tech/xiaozhi-esp32-server?logo=docker" />
   </a>
@@ -240,7 +241,7 @@ Dieses Projekt bietet die folgenden Testwerkzeuge, um Ihnen bei der Überprüfun
 | Intelligenter Dialog | Unterstützt mehrere LLM (große Sprachmodelle), implementiert intelligenten Dialog |
 | Visuelle Wahrnehmung | Unterstützt mehrere VLLM (Vision Large Models), implementiert multimodale Interaktion |
 | Absichtserkennung | Unterstützt LLM-Absichtserkennung, Function Call-Funktionsaufruf, bietet plugin-basierten Absichtsverarbeitungsmechanismus |
-| Gedächtnissystem | Unterstützt lokales Kurzzeitgedächtnis, mem0ai-Schnittstellengedächtnis, mit Gedächtniszusammenfassungsfunktion |
+| Gedächtnissystem | Unterstützt lokales Kurzzeitgedächtnis, mem0ai-Schnittstellengedächtnis, PowerMem intelligentes Gedächtnis, mit Gedächtniszusammenfassungsfunktion |
 | Wissensdatenbank | Unterstützt RAGFlow-Wissensdatenbank, ermöglicht großem Modell die Bewertung, ob Wissensdatenbank benötigt wird, bevor geantwortet wird |
 | Werkzeugaufruf | Unterstützt Client-IOT-Protokoll, Client-MCP-Protokoll, Server-MCP-Protokoll, MCP-Endpunktprotokoll, benutzerdefinierte Werkzeugfunktionen |
 | Befehlsübermittlung | Basierend auf MQTT-Protokoll, unterstützt die Übermittlung von MCP-Befehlen von der intelligenten Steuerkonsole an ESP32-Geräte |
@@ -258,7 +259,7 @@ Wenn Sie ein Softwareentwickler sind, finden Sie hier einen [Offenen Brief an En
 ---
 
 ## Produktökosystem 👬
-Xiaozhi ist ein Ökosystem. Wenn Sie dieses Produkt verwenden, können Sie sich auch andere [hervorragende Projekte](https://github.com/78/xiaozhi-esp32?tab=readme-ov-file#related-open-source-projects) in diesem Ökosystem ansehen
+Xiaozhi ist ein Ökosystem. Wenn Sie dieses Produkt verwenden, können Sie sich auch andere [hervorragende Projekte](https://github.com/78/xiaozhi-esp32/blob/main/README_zh.md#%E7%9B%B8%E5%85%B3%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE) in diesem Ökosystem ansehen
 
 ---
 
@@ -328,6 +329,7 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 | Typ | Plattformname | Verwendungsmethode | Preismodell | Hinweise |
 |:------:|:---------------:|:----:|:---------:|:--:|
 | Memory | mem0ai | Schnittstellenaufrufe | 1000 Mal/Monat Kontingent | |
+| Memory | [powermem](./docs/powermem-integration.md) | Lokale Zusammenfassung | Abhängig von LLM und DB | OceanBase Open Source, unterstützt intelligente Abfrage |
 | Memory | mem_local_short | Lokale Zusammenfassung | Kostenlos | |
 | Memory | nomem | Kein Gedächtnismodus | Kostenlos | |
 

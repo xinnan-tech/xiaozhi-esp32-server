@@ -12,7 +12,42 @@ class Live2DManager {
         this.audioContext = null;
         this.analyser = null;
         this.dataArray = null;
-        this.lastEmotionActionTime = null; // 上次情绪触发动作的时间
+        this.lastEmotionActionTime = null;
+        this.currentModelName = null;
+
+        // 模型特定配置
+        this.modelConfig = {
+            'hiyori_pro_zh': {
+                mouthParam: 'ParamMouthOpenY',
+                mouthAmplitude: 1.0,
+                mouthThresholds: { low: 0.3, high: 0.7 },
+                motionMap: {
+                    'FlickUp': 'FlickUp',
+                    'FlickDown': 'FlickDown',
+                    'Tap': 'Tap',
+                    'Tap@Body': 'Tap@Body',
+                    'Flick': 'Flick',
+                    'Flick@Body': 'Flick@Body'
+                }
+            },
+            'natori_pro_zh': {
+                mouthParam: 'ParamMouthOpenY',
+                mouthAmplitude: 1.0,
+                mouthThresholds: { low: 0.1, high: 0.4 },
+                mouthFormParam: 'ParamMouthForm',
+                mouthFormAmplitude: 1.0,
+                mouthForm2Param: 'ParamMouthForm2',
+                mouthForm2Amplitude: 0.8,
+                motionMap: {
+                    'FlickUp': 'FlickUp',
+                    'FlickDown': 'Flick@Body',
+                    'Tap': 'Tap',
+                    'Tap@Body': 'Tap@Head',
+                    'Flick': 'Tap',
+                    'Flick@Body': 'Flick@Body'
+                }
+            }
+        };
 
         // 情绪到动作的映射
         this.emotionToActionMap = {
@@ -67,9 +102,32 @@ class Live2DManager {
             const currentPath = window.location.pathname;
             const lastSlashIndex = currentPath.lastIndexOf('/');
             const basePath = currentPath.substring(0, lastSlashIndex + 1);
-            const modelPath = basePath + 'hiyori_pro_zh/runtime/hiyori_pro_t11.model3.json';
+
+            // 从 localStorage 读取上次选择的模型，如果没有则使用默认
+            const savedModelName = localStorage.getItem('live2dModel') || 'hiyori_pro_zh';
+            const modelFileMap = {
+                'hiyori_pro_zh': 'hiyori_pro_t11.model3.json',
+                'natori_pro_zh': 'natori_pro_t06.model3.json'
+            };
+            const modelFileName = modelFileMap[savedModelName] || 'hiyori_pro_t11.model3.json';
+            const modelPath = basePath + 'resources/' + savedModelName + '/runtime/' + modelFileName;
+
             this.live2dModel = await PIXI.live2d.Live2DModel.from(modelPath);
             this.live2dApp.stage.addChild(this.live2dModel);
+
+            // 保存当前模型名称
+            this.currentModelName = savedModelName;
+
+            // 更新下拉框显示
+            const modelSelect = document.getElementById('live2dModelSelect');
+            if (modelSelect) {
+                modelSelect.value = savedModelName;
+            }
+
+            // 设置模型特定的嘴部参数名
+            if (this.modelConfig[savedModelName]) {
+                this.mouthParam = this.modelConfig[savedModelName].mouthParam || 'ParamMouthOpenY';
+            }
 
             // 设置模型属性
             this.live2dModel.scale.set(0.33);
@@ -364,33 +422,88 @@ class Live2DManager {
         if (internal && internal.coreModel) {
             const coreModel = internal.coreModel;
 
-            // 获取音频分贝值
-            let mouthValue = 0;
+            let mouthOpenY = 0;
+            let mouthForm = 0;
+            let mouthForm2 = 0;
             let average = 0;
+
             if (this.analyser && this.dataArray) {
                 this.analyser.getByteFrequencyData(this.dataArray);
                 average = this.dataArray.reduce((a, b) => a + b) / this.dataArray.length;
 
-                // 优化音量映射函数，使中等音量范围变化更明显
-                // 使用S形曲线函数，在中等音量范围有更好的响应
                 const normalizedVolume = average / 255;
 
-                // S形曲线：在0.3-0.7范围内有最大的斜率（变化最明显）
-                if (normalizedVolume < 0.3) {
-                    // 低音量：缓慢增长
-                    mouthValue = Math.pow(normalizedVolume / 0.3, 1.5) * 0.3;
-                } else if (normalizedVolume < 0.7) {
-                    // 中等音量：线性增长，变化最明显
-                    mouthValue = 0.3 + (normalizedVolume - 0.3) / 0.4 * 0.5;
-                } else {
-                    // 高音量：缓慢接近最大值
-                    mouthValue = 0.8 + Math.pow((normalizedVolume - 0.7) / 0.3, 1.2) * 0.2;
+                // 获取模型特定的阈值
+                let lowThreshold = 0.3;
+                let highThreshold = 0.7;
+                if (this.currentModelName && this.modelConfig[this.currentModelName]) {
+                    lowThreshold = this.modelConfig[this.currentModelName].mouthThresholds?.low || 0.3;
+                    highThreshold = this.modelConfig[this.currentModelName].mouthThresholds?.high || 0.7;
                 }
 
-                // 确保嘴部参数在0-1范围内
-                mouthValue = Math.min(Math.max(mouthValue, 0), 1);
+                // 使用模型特定的阈值进行映射
+                let minOpenY = 0.1;
+                if (this.currentModelName && this.modelConfig[this.currentModelName]) {
+                    minOpenY = this.modelConfig[this.currentModelName].mouthMinOpenY || 0.1;
+                }
+
+                if (normalizedVolume < lowThreshold) {
+                    mouthOpenY = minOpenY + Math.pow(normalizedVolume / lowThreshold, 1.5) * (0.4 - minOpenY);
+                } else if (normalizedVolume < highThreshold) {
+                    mouthOpenY = 0.4 + (normalizedVolume - lowThreshold) / (highThreshold - lowThreshold) * 0.4;
+                } else {
+                    mouthOpenY = 0.8 + Math.pow((normalizedVolume - highThreshold) / (1 - highThreshold), 1.2) * 0.2;
+                }
+
+                // 应用模型特定的嘴部开合幅度
+                let amplitudeMultiplier = 1.0;
+                let maxOpenY = 2.5;
+                if (this.currentModelName && this.modelConfig[this.currentModelName]) {
+                    amplitudeMultiplier = this.modelConfig[this.currentModelName].mouthAmplitude;
+                    maxOpenY = this.modelConfig[this.currentModelName].maxOpenY || 2.5;
+                }
+                mouthOpenY = mouthOpenY * amplitudeMultiplier;
+                mouthOpenY = Math.min(Math.max(mouthOpenY, 0), maxOpenY);
+
+                // 计算嘴型参数（仅对支持嘴型变化的模型）
+                if (this.currentModelName && this.modelConfig[this.currentModelName]?.mouthFormParam) {
+                    const config = this.modelConfig[this.currentModelName];
+                    const formAmplitude = config.mouthFormAmplitude || 0.5;
+                    const form2Amplitude = config.mouthForm2Amplitude || 0;
+
+                    // 嘴型随音量变化：
+                    // 低音量：嘴型偏"一"字（负值）
+                    // 高音量：嘴型偏"o"字（正值）
+                    // 音量=0时：嘴型=0（自然状态）
+                    mouthForm = (normalizedVolume - 0.5) * 2 * formAmplitude;
+                    mouthForm = Math.max(-formAmplitude, Math.min(formAmplitude, mouthForm));
+
+                    // 第二嘴型参数（natori特有）
+                    if (config.mouthForm2Param) {
+                        mouthForm2 = (normalizedVolume - 0.3) * 2 * form2Amplitude;
+                        mouthForm2 = Math.max(-form2Amplitude, Math.min(form2Amplitude, mouthForm2));
+                    }
+                }
+
+                // 调试日志：输出嘴部参数
+                console.log(`[Live2D] 模型: ${this.currentModelName || 'unknown'}, 音量: ${average?.toFixed(0)}, OpenY: ${mouthOpenY.toFixed(3)}, Form: ${mouthForm.toFixed(3)}, Form2: ${mouthForm2.toFixed(3)}`);
             }
-            coreModel.setParameterValueById(this.mouthParam, mouthValue);
+
+            // 设置嘴部开合参数
+            coreModel.setParameterValueById(this.mouthParam, mouthOpenY);
+
+            // 设置嘴型参数（仅对支持嘴型变化的模型）
+            if (this.currentModelName && this.modelConfig[this.currentModelName]?.mouthFormParam) {
+                const config = this.modelConfig[this.currentModelName];
+                const formParam = config.mouthFormParam;
+                coreModel.setParameterValueById(formParam, mouthForm);
+
+                // 设置第二嘴型参数（natori特有）
+                if (config.mouthForm2Param) {
+                    coreModel.setParameterValueById(config.mouthForm2Param, mouthForm2);
+                }
+            }
+
             coreModel.update();
         }
         this.mouthAnimationId = requestAnimationFrame(() => this.animateMouth());
@@ -473,10 +586,127 @@ class Live2DManager {
     motion(name) {
         try {
             if (!this.live2dModel) return;
-            this.live2dModel.motion(name);
+
+            // 根据当前模型获取对应的动作名称
+            let actualMotionName = name;
+            if (this.currentModelName && this.modelConfig[this.currentModelName]) {
+                const motionMap = this.modelConfig[this.currentModelName].motionMap;
+                actualMotionName = motionMap[name] || name;
+            }
+
+            this.live2dModel.motion(actualMotionName);
         } catch (error) {
             console.error('触发动作失败:', error);
         }
+    }
+
+    /**
+     * 设置模型交互事件
+     */
+    setupModelInteractions() {
+        if (!this.live2dModel) return;
+
+        this.live2dModel.interactive = true;
+
+        this.live2dModel.on('doublehit', (args) => {
+            const area = Array.isArray(args) ? args[0] : args;
+
+            if (area === 'Body') {
+                this.motion('Flick@Body');
+            } else if (area === 'Head' || area === 'Face') {
+                this.motion('Flick');
+            }
+
+            const app = window.chatApp;
+            const payload = JSON.stringify({ type: 'live2d', event: 'doublehit', area });
+            if (app && app.dataChannel && app.dataChannel.readyState === 'open') {
+                app.dataChannel.send(payload);
+            }
+        });
+
+        this.live2dModel.on('singlehit', (args) => {
+            const area = Array.isArray(args) ? args[0] : args;
+
+            if (area === 'Body') {
+                this.motion('Tap@Body');
+            } else if (area === 'Head' || area === 'Face') {
+                this.motion('Tap');
+            }
+
+            const app = window.chatApp;
+            const payload = JSON.stringify({ type: 'live2d', event: 'singlehit', area });
+            if (app && app.dataChannel && app.dataChannel.readyState === 'open') {
+                app.dataChannel.send(payload);
+            }
+        });
+
+        this.live2dModel.on('swipe', (args) => {
+            const area = Array.isArray(args) ? args[0] : args;
+            const dir = Array.isArray(args) ? args[1] : undefined;
+
+            if (area === 'Body') {
+                if (dir === 'up') {
+                    this.motion('FlickUp');
+                } else if (dir === 'down') {
+                    this.motion('FlickDown');
+                }
+            }
+
+            const app = window.chatApp;
+            const payload = JSON.stringify({ type: 'live2d', event: 'swipe', area, dir });
+            if (app && app.dataChannel && app.dataChannel.readyState === 'open') {
+                app.dataChannel.send(payload);
+            }
+        });
+
+        this.live2dModel.on('pointerdown', (event) => {
+            try {
+                const global = event.data.global;
+                const bounds = this.live2dModel.getBounds();
+                if (!bounds || !bounds.contains(global.x, global.y)) return;
+
+                const relX = (global.x - bounds.x) / (bounds.width || 1);
+                const relY = (global.y - bounds.y) / (bounds.height || 1);
+                let area = '';
+
+                if (relX >= 0.4 && relX <= 0.6) {
+                    if (relY <= 0.15) {
+                        area = 'Head';
+                    } else if (relY >= 0.7) {
+                        area = 'Body';
+                    }
+                }
+
+                if (!area) return;
+
+                const now = Date.now();
+                const dt = now - (this._lastClickTime || 0);
+                const dx = global.x - (this._lastClickPos?.x || 0);
+                const dy = global.y - (this._lastClickPos?.y || 0);
+                const dist = Math.hypot(dx, dy);
+
+                if (this._lastClickTime && dt <= this._doubleClickMs && dist <= this._doubleClickDist) {
+                    if (this._singleClickTimer) {
+                        clearTimeout(this._singleClickTimer);
+                        this._singleClickTimer = null;
+                    }
+
+                    this.live2dModel.emit('doublehit', area);
+                    this._lastClickTime = null;
+                    this._lastClickPos = null;
+                } else {
+                    this._lastClickTime = now;
+                    this._lastClickPos = { x: global.x, y: global.y };
+
+                    this._singleClickTimer = setTimeout(() => {
+                        this._singleClickTimer = null;
+                        this.live2dModel.emit('singlehit', area);
+                    }, this._doubleClickMs);
+                }
+            } catch (e) {
+                console.warn('pointerdown 处理出错:', e);
+            }
+        });
     }
 
     /**
@@ -500,6 +730,94 @@ class Live2DManager {
         }
         this.live2dModel = null;
     }
+
+    /**
+     * 切换 Live2D 模型
+     * @param {string} modelName - 模型目录名称，如 'hiyori_pro_zh'、'natori_pro_zh'
+     * @returns {Promise<boolean>} - 切换是否成功
+     */
+    async switchModel(modelName) {
+        try {
+            // 获取模型文件名映射
+            const modelFileMap = {
+                'hiyori_pro_zh': 'hiyori_pro_t11.model3.json',
+                'natori_pro_zh': 'natori_pro_t06.model3.json',
+                'chitose': 'chitose.model3.json',
+                'haru_greeter_pro_jp': 'haru_greeter_t05.model3.json'
+            };
+
+            const modelFileName = modelFileMap[modelName];
+            if (!modelFileName) {
+                console.error('未知的模型名称:', modelName);
+                return false;
+            }
+
+            // 获取基础路径
+            const currentPath = window.location.pathname;
+            const lastSlashIndex = currentPath.lastIndexOf('/');
+            const basePath = currentPath.substring(0, lastSlashIndex + 1);
+            const modelPath = basePath + 'resources/' + modelName + '/runtime/' + modelFileName;
+
+            // 如果已存在模型，先移除
+            if (this.live2dModel) {
+                this.live2dApp.stage.removeChild(this.live2dModel);
+                this.live2dModel.destroy();
+                this.live2dModel = null;
+            }
+
+            // 显示加载状态
+            const app = window.chatApp;
+            if (app) {
+                app.setModelLoadingStatus(true);
+            }
+
+            // 加载新模型
+            this.live2dModel = await PIXI.live2d.Live2DModel.from(modelPath);
+            this.live2dApp.stage.addChild(this.live2dModel);
+
+            // 设置模型属性
+            this.live2dModel.scale.set(0.33);
+            this.live2dModel.x = (window.innerWidth - this.live2dModel.width) * 0.5;
+            this.live2dModel.y = -50;
+
+            // 重新绑定交互事件
+            this.setupModelInteractions();
+
+            // 隐藏加载状态
+            if (app) {
+                app.setModelLoadingStatus(false);
+            }
+
+            // 保存当前模型名称
+            this.currentModelName = modelName;
+
+            // 设置模型特定的嘴部参数名
+            if (this.modelConfig[modelName]) {
+                this.mouthParam = this.modelConfig[modelName].mouthParam || 'ParamMouthOpenY';
+            }
+
+            // 保存到 localStorage
+            localStorage.setItem('live2dModel', modelName);
+
+            // 更新下拉框显示
+            const modelSelect = document.getElementById('live2dModelSelect');
+            if (modelSelect) {
+                modelSelect.value = modelName;
+            }
+
+            console.log('模型切换成功:', modelName);
+            return true;
+        } catch (error) {
+            console.error('切换模型失败:', error);
+            const app = window.chatApp;
+            if (app) {
+                app.setModelLoadingStatus(false);
+            }
+            return false;
+        }
+    }
+
+
 }
 
 // 导出全局实例

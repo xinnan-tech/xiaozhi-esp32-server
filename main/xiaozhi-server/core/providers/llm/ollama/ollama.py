@@ -25,151 +25,141 @@ class LLMProvider(LLMProviderBase):
         self.is_qwen3 = self.model_name and self.model_name.lower().startswith("qwen3")
 
     def response(self, session_id, dialogue, **kwargs):
-        try:
-            # 如果是qwen3模型，在用户最后一条消息中添加/no_think指令
-            if self.is_qwen3:
-                # 复制对话列表，避免修改原始对话
-                dialogue_copy = dialogue.copy()
+        # 如果是qwen3模型，在用户最后一条消息中添加/no_think指令
+        if self.is_qwen3:
+            # 复制对话列表，避免修改原始对话
+            dialogue_copy = dialogue.copy()
 
-                # 找到最后一条用户消息
-                for i in range(len(dialogue_copy) - 1, -1, -1):
-                    if dialogue_copy[i]["role"] == "user":
-                        # 在用户消息前添加/no_think指令
-                        dialogue_copy[i]["content"] = (
-                            "/no_think " + dialogue_copy[i]["content"]
-                        )
-                        logger.bind(tag=TAG).debug(f"为qwen3模型添加/no_think指令")
-                        break
-
-                # 使用修改后的对话
-                dialogue = dialogue_copy
-
-            responses = self.client.chat.completions.create(
-                model=self.model_name, messages=dialogue, stream=True
-            )
-            is_active = True
-            # 用于处理跨chunk的标签
-            buffer = ""
-
-            for chunk in responses:
-                try:
-                    delta = (
-                        chunk.choices[0].delta
-                        if getattr(chunk, "choices", None)
-                        else None
+            # 找到最后一条用户消息
+            for i in range(len(dialogue_copy) - 1, -1, -1):
+                if dialogue_copy[i]["role"] == "user":
+                    # 在用户消息前添加/no_think指令
+                    dialogue_copy[i]["content"] = (
+                        "/no_think " + dialogue_copy[i]["content"]
                     )
-                    content = delta.content if hasattr(delta, "content") else ""
+                    logger.bind(tag=TAG).debug(f"为qwen3模型添加/no_think指令")
+                    break
 
-                    if content:
-                        # 将内容添加到缓冲区
-                        buffer += content
+            # 使用修改后的对话
+            dialogue = dialogue_copy
 
-                        # 处理缓冲区中的标签
-                        while "<think>" in buffer and "</think>" in buffer:
-                            # 找到完整的<think></think>标签并移除
-                            pre = buffer.split("<think>", 1)[0]
-                            post = buffer.split("</think>", 1)[1]
-                            buffer = pre + post
+        responses = self.client.chat.completions.create(
+            model=self.model_name, messages=dialogue, stream=True
+        )
+        is_active = True
+        # 用于处理跨chunk的标签
+        buffer = ""
 
-                        # 处理只有开始标签的情况
-                        if "<think>" in buffer:
-                            is_active = False
-                            buffer = buffer.split("<think>", 1)[0]
+        for chunk in responses:
+            try:
+                delta = (
+                    chunk.choices[0].delta
+                    if getattr(chunk, "choices", None)
+                    else None
+                )
+                content = delta.content if hasattr(delta, "content") else ""
 
-                        # 处理只有结束标签的情况
-                        if "</think>" in buffer:
-                            is_active = True
-                            buffer = buffer.split("</think>", 1)[1]
+                if content:
+                    # 将内容添加到缓冲区
+                    buffer += content
 
-                        # 如果当前处于活动状态且缓冲区有内容，则输出
-                        if is_active and buffer:
-                            yield buffer
-                            buffer = ""  # 清空缓冲区
+                    # 处理缓冲区中的标签
+                    while "<think>" in buffer and "</think>" in buffer:
+                        # 找到完整的<think></think>标签并移除
+                        pre = buffer.split("<think>", 1)[0]
+                        post = buffer.split("</think>", 1)[1]
+                        buffer = pre + post
 
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"Error processing chunk: {e}")
+                    # 处理只有开始标签的情况
+                    if "<think>" in buffer:
+                        is_active = False
+                        buffer = buffer.split("<think>", 1)[0]
 
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
-            yield "【Ollama服务响应异常】"
+                    # 处理只有结束标签的情况
+                    if "</think>" in buffer:
+                        is_active = True
+                        buffer = buffer.split("</think>", 1)[1]
+
+                    # 如果当前处于活动状态且缓冲区有内容，则输出
+                    if is_active and buffer:
+                        yield buffer
+                        buffer = ""  # 清空缓冲区
+
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"Error processing chunk: {e}")
 
     def response_with_functions(self, session_id, dialogue, functions=None):
-        try:
-            # 如果是qwen3模型，在用户最后一条消息中添加/no_think指令
-            if self.is_qwen3:
-                # 复制对话列表，避免修改原始对话
-                dialogue_copy = dialogue.copy()
+        # 如果是qwen3模型，在用户最后一条消息中添加/no_think指令
+        if self.is_qwen3:
+            # 复制对话列表，避免修改原始对话
+            dialogue_copy = dialogue.copy()
 
-                # 找到最后一条用户消息
-                for i in range(len(dialogue_copy) - 1, -1, -1):
-                    if dialogue_copy[i]["role"] == "user":
-                        # 在用户消息前添加/no_think指令
-                        dialogue_copy[i]["content"] = (
-                            "/no_think " + dialogue_copy[i]["content"]
-                        )
-                        logger.bind(tag=TAG).debug(f"为qwen3模型添加/no_think指令")
-                        break
-
-                # 使用修改后的对话
-                dialogue = dialogue_copy
-
-            stream = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=dialogue,
-                stream=True,
-                tools=functions,
-            )
-
-            is_active = True
-            buffer = ""
-
-            for chunk in stream:
-                try:
-                    delta = (
-                        chunk.choices[0].delta
-                        if getattr(chunk, "choices", None)
-                        else None
+            # 找到最后一条用户消息
+            for i in range(len(dialogue_copy) - 1, -1, -1):
+                if dialogue_copy[i]["role"] == "user":
+                    # 在用户消息前添加/no_think指令
+                    dialogue_copy[i]["content"] = (
+                        "/no_think " + dialogue_copy[i]["content"]
                     )
-                    content = delta.content if hasattr(delta, "content") else None
-                    tool_calls = (
-                        delta.tool_calls if hasattr(delta, "tool_calls") else None
-                    )
+                    logger.bind(tag=TAG).debug(f"为qwen3模型添加/no_think指令")
+                    break
 
-                    # 如果是工具调用，直接传递
-                    if tool_calls:
-                        yield None, tool_calls
-                        continue
+            # 使用修改后的对话
+            dialogue = dialogue_copy
 
-                    # 处理文本内容
-                    if content:
-                        # 将内容添加到缓冲区
-                        buffer += content
+        stream = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=dialogue,
+            stream=True,
+            tools=functions,
+        )
 
-                        # 处理缓冲区中的标签
-                        while "<think>" in buffer and "</think>" in buffer:
-                            # 找到完整的<think></think>标签并移除
-                            pre = buffer.split("<think>", 1)[0]
-                            post = buffer.split("</think>", 1)[1]
-                            buffer = pre + post
+        is_active = True
+        buffer = ""
 
-                        # 处理只有开始标签的情况
-                        if "<think>" in buffer:
-                            is_active = False
-                            buffer = buffer.split("<think>", 1)[0]
+        for chunk in stream:
+            try:
+                delta = (
+                    chunk.choices[0].delta
+                    if getattr(chunk, "choices", None)
+                    else None
+                )
+                content = delta.content if hasattr(delta, "content") else None
+                tool_calls = (
+                    delta.tool_calls if hasattr(delta, "tool_calls") else None
+                )
 
-                        # 处理只有结束标签的情况
-                        if "</think>" in buffer:
-                            is_active = True
-                            buffer = buffer.split("</think>", 1)[1]
-
-                        # 如果当前处于活动状态且缓冲区有内容，则输出
-                        if is_active and buffer:
-                            yield buffer, None
-                            buffer = ""  # 清空缓冲区
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"Error processing function chunk: {e}")
+                # 如果是工具调用，直接传递
+                if tool_calls:
+                    yield None, tool_calls
                     continue
 
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Ollama function call: {e}")
-            yield f"【Ollama服务响应异常: {str(e)}】", None
+                # 处理文本内容
+                if content:
+                    # 将内容添加到缓冲区
+                    buffer += content
+
+                    # 处理缓冲区中的标签
+                    while "<think>" in buffer and "</think>" in buffer:
+                        # 找到完整的<think></think>标签并移除
+                        pre = buffer.split("<think>", 1)[0]
+                        post = buffer.split("</think>", 1)[1]
+                        buffer = pre + post
+
+                    # 处理只有开始标签的情况
+                    if "<think>" in buffer:
+                        is_active = False
+                        buffer = buffer.split("<think>", 1)[0]
+
+                    # 处理只有结束标签的情况
+                    if "</think>" in buffer:
+                        is_active = True
+                        buffer = buffer.split("</think>", 1)[1]
+
+                    # 如果当前处于活动状态且缓冲区有内容，则输出
+                    if is_active and buffer:
+                        yield buffer, None
+                        buffer = ""  # 清空缓冲区
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"Error processing function chunk: {e}")
+                continue

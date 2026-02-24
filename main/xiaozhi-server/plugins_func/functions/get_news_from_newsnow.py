@@ -4,6 +4,11 @@ import json
 from config.logger import setup_logging
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from markitdown import MarkItDown
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
+
 
 TAG = __name__
 logger = setup_logging()
@@ -116,7 +121,7 @@ GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC = {
 }
 
 
-def fetch_news_from_api(conn, source="thepaper"):
+def fetch_news_from_api(conn: "ConnectionHandler", source="thepaper"):
     """从API获取新闻列表"""
     try:
         api_url = f"https://newsnow.busiyi.world/api/s?id={source}"
@@ -173,7 +178,10 @@ def fetch_news_detail(url):
     ToolType.SYSTEM_CTL,
 )
 def get_news_from_newsnow(
-    conn, source: str = "澎湃新闻", detail: bool = False, lang: str = "zh_CN"
+    conn: "ConnectionHandler",
+    source: str = "澎湃新闻",
+    detail: bool = False,
+    lang: str = "zh_CN",
 ):
     """获取新闻并随机选择一条进行播报，或获取上一条新闻的详细内容"""
     try:

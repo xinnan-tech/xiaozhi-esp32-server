@@ -21,6 +21,7 @@ Support for MQTT+UDP protocol, Websocket protocol, MCP access point, voiceprint 
   <a href="./README_en.md"><img alt="README in English" src="https://img.shields.io/badge/English-DBEDFA"></a>
   <a href="./README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Tiếng Việt-DFE0E5"></a>
   <a href="./README_de.md"><img alt="Deutsch" src="https://img.shields.io/badge/Deutsch-DFE0E5"></a>
+  <a href="./README_pt_BR.md"><img alt="Português (Brasil)" src="https://img.shields.io/badge/Português (Brasil)-DFE0E5"></a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">
     <img alt="GitHub Contributors" src="https://img.shields.io/github/v/release/xinnan-tech/xiaozhi-esp32-server?logo=docker" />
   </a>
@@ -182,8 +183,9 @@ This project provides two deployment methods. Please choose based on your specif
 | Deployment Method | Features | Applicable Scenarios | Deployment Docs | Configuration Requirements | Video Tutorials | 
 |---------|------|---------|---------|---------|---------|
 | **Simplified Installation** | Intelligent dialogue, single agent management | Low-configuration environments, data stored in config files, no database required | [①Docker Version](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Source Code Deployment](./docs/Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 2 cores 4GB if using `FunASR`, 2 cores 2GB if all APIs | - | 
-| **Full Module Installation** | Intelligent dialogue, multi-user management, multi-agent management, intelligent console interface operation | Complete functionality experience, data stored in database |[①Docker Version](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Source Code Deployment](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Source Code Deployment Auto-Update Tutorial](./docs/dev-ops-integration.md) | 4 cores 8GB if using `FunASR`, 2 cores 4GB if all APIs| [Local Source Code Startup Video Tutorial](https://www.bilibili.com/video/BV1wBJhz4Ewe) | 
+| **Full Module Installation** | Intelligent dialogue, multi-user management, multi-agent management, intelligent console interface operation | Complete functionality experience, data stored in database |[①Docker Version](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Source Code Deployment](./docs/Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Source Code Deployment Auto-Update Tutorial](./docs/dev-ops-integration.md) | 4 cores 8GB if using `FunASR`, 2 cores 4GB if all APIs| [Local Source Code Startup Video Tutorial](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
+For frequently asked questions and related tutorials, please refer to [this link](./docs/FAQ.md)
 
 > 💡 Note: Below is a test platform deployed with the latest code. You can burn and test if needed. Concurrent users: 6, data will be cleared daily.
 
@@ -215,14 +217,15 @@ Websocket Interface Address: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | Intent(Intent Recognition) | function_call(Function calling) | function_call(Function calling) |
 | Memory(Memory function) | mem_local_short(Local short-term memory) | mem_local_short(Local short-term memory) |
 
+If you are concerned about the latency of each component, please refer to the [Xiaozhi Component Performance Test Report](https://github.com/xinnan-tech/xiaozhi-performance-research), and test in your own environment following the test methods in the report.
+
 #### 🔧 Testing Tools
 This project provides the following testing tools to help you verify the system and choose suitable models:
 
 | Tool Name | Location | Usage Method | Function Description |
 |:---:|:---|:---:|:---:|
 | Audio Interaction Test Tool | main》xiaozhi-server》test》test_page.html | Open directly with Google Chrome | Tests audio playback and reception functions, verifies if Python-side audio processing is normal |
-| Model Response Test Tool 1 | main》xiaozhi-server》performance_tester.py | Execute `python performance_tester.py` | Tests response speed of three core modules: ASR(speech recognition), LLM(large model), TTS(speech synthesis) |
-| Model Response Test Tool 2 | main》xiaozhi-server》performance_tester_vllm.py | Execute `python performance_tester_vllm.py` | Tests VLLM(vision model) response speed |
+| Model Response Test Tool | main》xiaozhi-server》performance_tester.py | Execute `python performance_tester.py` | Tests response speed of three core modules: ASR(speech recognition), LLM(large model), VLLM(vision model), TTS(speech synthesis) |
 
 > 💡 Note: When testing model speed, only models with configured keys will be tested.
 
@@ -238,10 +241,10 @@ This project provides the following testing tools to help you verify the system 
 | Intelligent Dialogue | Supports multiple LLM(large language models), implements intelligent dialogue |
 | Visual Perception | Supports multiple VLLM(vision large models), implements multimodal interaction |
 | Intent Recognition | Supports LLM intent recognition, Function Call function calling, provides plugin-based intent processing mechanism |
-| Memory System | Supports local short-term memory, mem0ai interface memory, with memory summarization functionality |
+| Memory System | Supports local short-term memory, mem0ai interface memory, PowerMem intelligent memory, with memory summarization functionality |
 | Knowledge Base | Supports RAGFlow knowledge base, enabling LLM to judge whether to schedule the knowledge base after receiving the user's question, and then answer the question |
-| Command Delivery | Supports MCP command delivery to ESP32 devices via MQTT protocol from Smart Console |
 | Tool Calling | Supports client IOT protocol, client MCP protocol, server MCP protocol, MCP endpoint protocol, custom tool functions |
+| Command Delivery | Supports MCP command delivery to ESP32 devices via MQTT protocol from Smart Console |
 | Management Backend | Provides Web management interface, supports user management, system configuration and device management; Supports Simplified Chinese, Traditional Chinese and English display |
 | Testing Tools | Provides performance testing tools, vision model testing tools, and audio interaction testing tools |
 | Deployment Support | Supports Docker deployment and local deployment, provides complete configuration file management |
@@ -249,20 +252,14 @@ This project provides the following testing tools to help you verify the system 
 
 ### Under Development 🚧
 
-To learn about specific development plan progress, [click here](https://github.com/users/xinnan-tech/projects/3)
+To learn about specific development plan progress, [click here](https://github.com/users/xinnan-tech/projects/3). For frequently asked questions and related tutorials, please refer to [this link](./docs/FAQ.md)
 
 If you are a software developer, here is an [Open Letter to Developers](docs/contributor_open_letter.md). Welcome to join!
 
 ---
 
 ## Product Ecosystem 👬
-Xiaozhi is an ecosystem. When using this product, you can also check out other [excellent projects](https://github.com/78/xiaozhi-esp32?tab=readme-ov-file#related-open-source-projects) in this ecosystem
-
-| Project Name | Project Address | Project Description |
-|:---------------------|:--------|:--------|
-| Xiaozhi Android Client | [xiaozhi-android-client](https://github.com/TOM88812/xiaozhi-android-client) | An Android and iOS voice dialogue application based on xiaozhi-server, supporting real-time voice interaction and text dialogue.<br/>Currently a Flutter version, connecting iOS and Android platforms. |
-| Xiaozhi Desktop Client | [py-xiaozhi](https://github.com/Huang-junsen/py-xiaozhi) | This project provides a Python-based AI client for beginners, allowing users to experience Xiaozhi AI functionality through code even without physical hardware conditions. |
-| Xiaozhi Java Server | [xiaozhi-esp32-server-java](https://github.com/joey-zhou/xiaozhi-esp32-server-java) | Xiaozhi open-source backend service Java version is a Java-based open-source project.<br/>It includes frontend and backend services, aiming to provide users with a complete backend service solution. |
+Xiaozhi is an ecosystem. When using this product, you can also check out other [excellent projects](https://github.com/78/xiaozhi-esp32/blob/main/README_zh.md#%E7%9B%B8%E5%85%B3%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE) in this ecosystem
 
 ---
 
@@ -276,8 +273,10 @@ Xiaozhi is an ecosystem. When using this product, you can also check out other [
 | Dify interface calls | Dify | - |
 | FastGPT interface calls | FastGPT | - |
 | Coze interface calls | Coze | - |
+| Xinference interface calls | Xinference | - |
+| HomeAssistant interface calls | HomeAssistant | - |
 
-In fact, any LLM that supports OpenAI interface calls can be integrated and used, including Xinference and HomeAssistant interfaces.
+In fact, any LLM that supports OpenAI interface calls can be integrated and used.
 
 ---
 
@@ -296,7 +295,7 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
 | Interface calls | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud and Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi Streaming TTS, MinimaxTTS | Lingxi Streaming TTS, EdgeTTS, CosyVoiceSiliconflow(partial) |
-| Local services | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, MinimaxTTS | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, MinimaxTTS |
+| Local services | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, Index-TTS, PaddleSpeech | Index-TTS, PaddleSpeech, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
 
@@ -330,7 +329,9 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 | Type | Platform Name | Usage Method | Pricing Model | Notes |
 |:------:|:---------------:|:----:|:---------:|:--:|
 | Memory | mem0ai | Interface calls | 1000 times/month quota | |
+| Memory | [powermem](./docs/powermem-integration.md) | Local summarization | Depends on LLM and DB | OceanBase open source, supports intelligent retrieval |
 | Memory | mem_local_short | Local summarization | Free | |
+| Memory | nomem | No memory mode | Free | |
 
 ---
 
@@ -340,6 +341,7 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 |:------:|:-------------:|:----:|:-------:|:---------------------:|
 | Intent | intent_llm | Interface calls | Based on LLM pricing | Recognizes intent through large models, strong generalization |
 | Intent | function_call | Interface calls | Based on LLM pricing | Completes intent through large model function calling, fast speed, good effect |
+| Intent | nointent | No intent mode | Free | Does not perform intent recognition, directly returns dialogue result |
 
 ---
 

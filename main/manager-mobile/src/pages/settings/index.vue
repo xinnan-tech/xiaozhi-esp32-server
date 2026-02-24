@@ -235,7 +235,7 @@ function showAbout() {
     title: t('settings.aboutApp', { appName: import.meta.env.VITE_APP_TITLE }),
     content: t('settings.aboutContent', {
       appName: import.meta.env.VITE_APP_TITLE,
-      version: '0.8.11'
+      version: '0.9.1'
     }),
     showCancel: false,
     confirmText: t('common.confirm'),

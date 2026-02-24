@@ -129,6 +129,10 @@ public class ModelController {
         if (entity == null) {
             return new Result<Void>().error("模型配置不存在");
         }
+        // 不能关闭默认模型
+        if (status == 0 && entity.getIsDefault() > 0) {
+            return new Result<Void>().error("默认模型配置不允许关闭");
+        }
         // 不更新ConfigJson字段
         entity.setConfigJson(null);
         entity.setIsEnabled(status);

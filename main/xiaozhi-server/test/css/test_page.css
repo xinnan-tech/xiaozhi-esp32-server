@@ -108,26 +108,68 @@ body {
     animation: shadow-float 1.26s ease-in-out infinite;
 }
 
-.loading-char-float .main-char span:nth-child(1) { animation-delay: 0s; }
-.loading-char-float .main-char span:nth-child(2) { animation-delay: 0.11s; }
-.loading-char-float .main-char span:nth-child(3) { animation-delay: 0.22s; }
-.loading-char-float .main-char span:nth-child(4) { animation-delay: 0.33s; }
-.loading-char-float .main-char span:nth-child(5) { animation-delay: 0.44s; }
-.loading-char-float .main-char span:nth-child(6) { animation-delay: 0.55s; }
+.loading-char-float .main-char span:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.loading-char-float .main-char span:nth-child(2) {
+    animation-delay: 0.11s;
+}
+
+.loading-char-float .main-char span:nth-child(3) {
+    animation-delay: 0.22s;
+}
+
+.loading-char-float .main-char span:nth-child(4) {
+    animation-delay: 0.33s;
+}
+
+.loading-char-float .main-char span:nth-child(5) {
+    animation-delay: 0.44s;
+}
+
+.loading-char-float .main-char span:nth-child(6) {
+    animation-delay: 0.55s;
+}
 
 @keyframes scan {
-    0% { background-position: 0 0; }
-    100% { background-position: 0 100px; }
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: 0 100px;
+    }
 }
 
 @keyframes char-float {
-    0%, 100% { transform: translateY(0); opacity: 1; text-shadow: 0 0 5px #5865f2, 0 0 10px rgba(88, 101, 242, 0.8); }
-    50% { transform: translateY(-5px); opacity: 0.9; text-shadow: 0 0 10px #5865f2, 0 0 20px rgba(88, 101, 242, 0.8); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+        text-shadow: 0 0 5px #5865f2, 0 0 10px rgba(88, 101, 242, 0.8);
+    }
+
+    50% {
+        transform: translateY(-5px);
+        opacity: 0.9;
+        text-shadow: 0 0 10px #5865f2, 0 0 20px rgba(88, 101, 242, 0.8);
+    }
 }
 
 @keyframes shadow-float {
-    0%, 100% { transform: translateY(3px); opacity: 0.3; }
-    50% { transform: translateY(8px); opacity: 0.15; }
+
+    0%,
+    100% {
+        transform: translateY(3px);
+        opacity: 0.3;
+    }
+
+    50% {
+        transform: translateY(8px);
+        opacity: 0.15;
+    }
 }
 
 /* ==================== Live2D显示区域 ==================== */
@@ -399,6 +441,15 @@ body {
 }
 
 .control-btn.recording:hover {
+    background: rgba(237, 66, 69, 1);
+}
+
+/* 摄像头按钮特殊样式 */
+#cameraBtn.camera-active {
+    background: rgba(237, 66, 69, 0.9);
+}
+
+#cameraBtn.camera-active:hover {
     background: rgba(237, 66, 69, 1);
 }
 
@@ -761,6 +812,72 @@ body {
     font-size: 14px;
 }
 
+.model-select {
+    width: 100%;
+    padding: 10px 40px 10px 14px;
+    border: 1px solid #40444b;
+    border-radius: 8px;
+    background: #40444b;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+}
+
+.model-select:hover {
+    border-color: #5865f2;
+}
+
+.model-select:focus {
+    outline: none;
+    border-color: #5865f2;
+}
+
+.model-select option {
+    background: #2f3136;
+    color: #ffffff;
+    padding: 12px;
+    font-size: 14px;
+}
+
+.background-btn {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #40444b;
+    border-radius: 8px;
+    background: #40444b;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.background-btn:hover {
+    background: #4f545c;
+}
+
+.background-btn:active {
+    background: #40444b;
+}
+
+.background-btn .btn-icon {
+    width: 20px;
+    height: 20px;
+    fill: #ffffff;
+}
+
 /* ==================== MCP工具样式 ==================== */
 .mcp-tools-container {
     background: #2f3136;
@@ -787,17 +904,6 @@ body {
 
 .mcp-tools-panel {
     padding: 20px;
-    transition: max-height 0.3s ease;
-    overflow: hidden;
-}
-
-.mcp-tools-panel.expanded {
-    max-height: 500px;
-}
-
-.mcp-tools-panel:not(.expanded) {
-    max-height: 0;
-    padding: 0 20px;
 }
 
 .mcp-tools-list {
@@ -911,35 +1017,174 @@ body {
     margin-bottom: 12px;
 }
 
-.property-item {
+.properties-container #addMcpPropertyBtn {
+    display: block;
+    margin: 0 auto;
+}
+
+.properties-container #addMcpPropertyBtn:hover {
+    background: #4752c4;
+}
+
+.mcp-checkbox-label {
     display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
     align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    color: #b9bbbe;
+    font-size: 13px;
+    cursor: pointer;
+    justify-content: flex-start;
 }
 
-.property-item input {
-    flex: 1;
-    padding: 6px 8px;
-    border: 1px solid #40444b;
-    border-radius: 4px;
-    background: #40444b;
+.mcp-checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.mcp-property-name {
     color: white;
-    font-size: 12px;
+    font-size: 14px;
+    font-weight: 500;
 }
 
-.remove-property {
-    background: #ed4245;
+.mcp-property-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.mcp-properties-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-height: 60px;
+    padding: 8px;
+}
+
+.input-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.input-group-header label {
+    margin-bottom: 0;
+}
+
+.input-group-header .properties-btn-primary {
+    margin: 0;
+}
+
+.mcp-empty-state {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-size: 14px;
+    width: 100%;
+    display: none;
+}
+
+.properties-btn-primary {
+    background: #2196f3;
     color: white;
     border: none;
-    padding: 4px 8px;
+    padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    display: block;
+    margin: 0 auto;
 }
 
-.remove-property:hover {
-    background: #c03537;
+.properties-btn-primary:hover {
+    background: #2196f3;
+}
+
+.mcp-property-card {
+    background: #36393f;
+    border: 1px solid #40444b;
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mcp-property-card:hover {
+    background: #40444b;
+    border-color: #5865f2;
+}
+
+.mcp-property-card:active {
+    transform: none;
+}
+
+.mcp-property-row-label {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 6px;
+    gap: 8px;
+}
+
+.mcp-property-label {
+    color: #b9bbbe;
+    font-size: 13px;
+    width: 60px;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.mcp-property-value {
+    color: white;
+    font-size: 13px;
+    flex: 1;
+    word-break: break-all;
+}
+
+.mcp-property-required-badge {
+    color: #f44336;
+    font-size: 12px;
+}
+
+.mcp-property-row-action {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #40444b;
+}
+
+.mcp-property-delete-btn {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background-color 0.2s;
+}
+
+.mcp-property-delete-btn:hover {
+    background: #d32f2f;
+}
+
+.mcp-property-card-optional {
+    background: #4f545c;
+    color: #b9bbbe;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.property-modal {
+    max-width: 450px;
 }
 
 /* ==================== 音频可视化器样式 ==================== */
@@ -954,6 +1199,113 @@ body {
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 999;
+}
+
+/* 滚动条样式 */
+.chat-stream::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+.mcp-tools-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-stream::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+.mcp-tools-list::-webkit-scrollbar-track {
+    background: #2f3136;
+    border-radius: 3px;
+}
+
+.chat-stream::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+.mcp-tools-list::-webkit-scrollbar-thumb {
+    background: #40444b;
+    border-radius: 3px;
+}
+
+.chat-stream::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+.mcp-tools-list::-webkit-scrollbar-thumb:hover {
+    background: #4f545c;
+}
+
+/* ==================== 摄像头显示区域样式 ==================== */
+.camera-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 180px;
+    height: 240px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 1000;
+    display: none;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    cursor: move;
+}
+
+.camera-container.active {
+    display: block;
+}
+
+.camera-container.dragging {
+    cursor: grabbing;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(88, 101, 242, 0.5);
+}
+
+@keyframes flipWithPosition {
+    0% {
+        transform: var(--original-transform) rotateY(0deg);
+    }
+
+    100% {
+        transform: var(--original-transform) rotateY(180deg);
+    }
+}
+
+
+.camera-container.flip {
+    animation: flipWithPosition 0.5s ease-in-out 1 forwards;
+}
+
+#cameraVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #1a1a1a;
+    pointer-events: none;
+    transform: scaleX(-1);
+}
+
+.camera-switch-mask {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.camera-switch-container {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
+
+.camera-switch {
+    display: none;
+    height: 20px;
+    color: #fff;
+}
+
+.camera-switch .btn-icon {
+    margin-bottom: 0;
+}
+
+.camera-switch.active {
+    display: block;
 }
 
 /* ==================== 响应式设计 ==================== */
@@ -1018,6 +1370,19 @@ body {
         height: 50px;
         left: 10px;
         bottom: 80px;
+    }
+
+    .chat-ipt input {
+        font-size: 12px;
+    }
+
+    .camera-container {
+        width: 130px;
+        height: 180px;
+    }
+
+    .status-indicator {
+        font-size: 12px;
     }
 }
 
@@ -1098,31 +1463,4 @@ body {
         width: 250px;
         height: 80px;
     }
-}
-
-/* 滚动条样式 */
-.chat-stream::-webkit-scrollbar,
-.modal-body::-webkit-scrollbar,
-.mcp-tools-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.chat-stream::-webkit-scrollbar-track,
-.modal-body::-webkit-scrollbar-track,
-.mcp-tools-list::-webkit-scrollbar-track {
-    background: #2f3136;
-    border-radius: 3px;
-}
-
-.chat-stream::-webkit-scrollbar-thumb,
-.modal-body::-webkit-scrollbar-thumb,
-.mcp-tools-list::-webkit-scrollbar-thumb {
-    background: #40444b;
-    border-radius: 3px;
-}
-
-.chat-stream::-webkit-scrollbar-thumb:hover,
-.modal-body::-webkit-scrollbar-thumb:hover,
-.mcp-tools-list::-webkit-scrollbar-thumb:hover {
-    background: #4f545c;
 }

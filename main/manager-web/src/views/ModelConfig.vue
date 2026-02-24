@@ -97,7 +97,23 @@
               </el-table-column>
               <el-table-column :label="$t('modelConfig.isEnabled')" align="center">
                 <template slot-scope="scope">
+                  <el-tooltip
+                    v-if="scope.row.isDefault === 1 && scope.row.isEnabled === 1"
+                    :content="$t('modelConfig.defaultModelCannotDisable')"
+                    placement="top"
+                    effect="light"
+                  > 
+                    <el-switch
+                      v-model="scope.row.isEnabled"
+                      class="custom-switch"
+                      :active-value="1"
+                      :inactive-value="0"
+                      disabled
+                      @change="handleStatusChange(scope.row)"
+                    />
+                  </el-tooltip>
                   <el-switch
+                    v-else
                     v-model="scope.row.isEnabled"
                     class="custom-switch"
                     :active-value="1"

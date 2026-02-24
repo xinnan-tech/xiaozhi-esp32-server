@@ -4,6 +4,11 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from config.logger import setup_logging
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
+
 
 TAG = __name__
 logger = setup_logging()
@@ -145,7 +150,10 @@ def map_category(category_text):
     ToolType.SYSTEM_CTL,
 )
 def get_news_from_chinanews(
-    conn, category: str = None, detail: bool = False, lang: str = "zh_CN"
+    conn: "ConnectionHandler",
+    category: str = None,
+    detail: bool = False,
+    lang: str = "zh_CN",
 ):
     """获取新闻并随机选择一条进行播报，或获取上一条新闻的详细内容"""
     try:

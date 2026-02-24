@@ -203,6 +203,9 @@ prompt: |
 # 默认系统提示词模板文件
 prompt_template: agent-base-prompt.txt
 
+# 系统错误时的回复
+system_error_response: "主人，小智现在有点忙，我们稍后再试吧。"
+
 # 结束语prompt
 end_prompt:
   enable: true # 是否开启结束语
@@ -276,6 +279,54 @@ Memory:
     # https://app.mem0.ai/dashboard/api-keys
     # 每月有1000次免费调用
     api_key: 你的mem0ai api key
+  powermem:
+    # PowerMem是OceanBase开源的agent记忆组件，通过本地LLM进行记忆总结
+    # 费用说明：PowerMem本身免费，实际费用取决于所选LLM和数据库
+    # - 使用sqlite + 免费LLM(如glm-4-flash) = 完全免费
+    # - 使用云端LLM或云端数据库 = 按对应服务收费
+    # GitHub: https://github.com/oceanbase/powermem
+    # 官网: https://www.powermem.ai/
+    # 使用示例: https://github.com/oceanbase/powermem/tree/main/examples
+    type: powermem
+    # 是否启用用户画像功能
+    # - false: 使用普通记忆模式(AsyncMemory)
+    # - true: 使用用户画像模式(UserMemory)，自动提取用户信息
+    # 用户画像功能支持: oceanbase、seekdb、sqlite (powermem 0.3.0+)
+    enable_user_profile: true
+    # ========== LLM 配置 ==========
+    # 通义千问: https://bailian.console.aliyun.com/?apiKey=1#/api-key
+    # 智谱AI(免费): https://bigmodel.cn/usercenter/proj-mgmt/apikeys
+    llm:
+      provider: openai  # 可选: qwen, openai, zhipu 等
+      config:
+        api_key: 你的LLM API密钥
+        model: qwen-plus
+        # openai_base_url: https://api.openai.com/v1  # 可选，自定义服务地址
+    # ========== Embedding 配置 ==========
+    embedder:
+      provider: openai  # 可选: qwen, openai 等
+      config:
+        api_key: 你的嵌入模型API密钥
+        model: text-embedding-v4
+        openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        # embedding_dims: 1024  # 向量维度，非1536时需配置
+
+    # ========== Database 配置 ==========
+    # oceanbase(推荐,最佳性能), seekdb(推荐,AI应用存储一体), postgres, sqlite(轻量备选)
+    # 用户画像功能支持: oceanbase、seekdb、sqlite
+    vector_store:
+      provider: sqlite
+      config: {}  # SQLite 无需额外配置
+      # OceanBase 配置示例:
+      # provider: oceanbase
+      # config:
+      #   host: 127.0.0.1
+      #   port: 2881
+      #   user: root@test
+      #   password: your_password
+      #   db_name: powermem
+      #   collection_name: memories  # 默认表名，如创建维度错误请删除此表或更改名称
+      #   embedding_model_dims: 1024  # 嵌入向量维度，注意跟使用模型适配，以智普为例：embedding-2的维度是1024，embedding-3的维度是2048
   nomem:
     # 不想使用记忆功能，可以使用nomem
     type: nomem

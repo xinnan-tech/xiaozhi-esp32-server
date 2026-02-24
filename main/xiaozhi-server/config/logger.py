@@ -5,7 +5,7 @@ from config.config_loader import load_config
 from config.settings import check_config_file
 from datetime import datetime
 
-SERVER_VERSION = "0.8.11"
+SERVER_VERSION = "0.9.1"
 _logger_initialized = False
 
 

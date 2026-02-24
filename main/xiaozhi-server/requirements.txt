@@ -23,6 +23,7 @@ loguru==0.7.3
 requests==2.32.5
 cozepy==0.20.0
 mem0ai==1.0.0
+powermem>=0.3.1
 bs4==0.0.2
 modelscope==1.32.0
 sherpa_onnx==1.12.17

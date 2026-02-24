@@ -232,24 +232,13 @@ class ASRProvider(ASRProviderBase):
             yield data[offset:data_len], True
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
 
-        file_path = None
         try:
-            # 合并所有opus数据包
-            if audio_format == "pcm":
-                pcm_data = opus_data
-            else:
-                pcm_data = self.decode_opus(opus_data)
-            combined_pcm_data = b"".join(pcm_data)
-
-            # 判断是否保存为WAV文件
-            if self.delete_audio_file:
-                pass
-            else:
-                file_path = self.save_audio_to_file(pcm_data, session_id)
+            if artifacts is None:
+                return "", None
 
             # 直接使用PCM数据
             # 计算分段大小 (单声道, 16bit, 16kHz采样率)
@@ -258,14 +247,14 @@ class ASRProvider(ASRProviderBase):
 
             # 语音识别
             start_time = time.time()
-            text = await self._send_request(combined_pcm_data, segment_size)
+            text = await self._send_request(artifacts.pcm_bytes, segment_size)
             if text:
                 logger.bind(tag=TAG).debug(
                     f"语音识别耗时: {time.time() - start_time:.3f}s | 结果: {text}"
                 )
-                return text, file_path
-            return "", file_path
+                return text, artifacts.file_path
+            return "", artifacts.file_path
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"语音识别失败: {e}", exc_info=True)
-            return "", file_path
+            return "", None

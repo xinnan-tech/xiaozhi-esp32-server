@@ -120,24 +120,19 @@ class ASRProvider(ASRProviderBase):
             samples_float32 = samples_float32 / 32768
             return samples_float32, f.getframerate()
 
+    def requires_file(self) -> bool:
+        return True
+
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """语音转文本主处理逻辑"""
         file_path = None
         try:
-            # 保存音频文件
-            start_time = time.time()
-            if audio_format == "pcm":
-                pcm_data = opus_data
-            else:
-                pcm_data = self.decode_opus(opus_data)
-            file_path = self.save_audio_to_file(pcm_data, session_id)
-            logger.bind(tag=TAG).debug(
-                f"音频文件保存耗时: {time.time() - start_time:.3f}s | 路径: {file_path}"
-            )
+            if artifacts is None:
+                return "", None
+            file_path = artifacts.file_path
 
-            # 语音识别
             start_time = time.time()
             s = self.model.create_stream()
             samples, sample_rate = self.read_wave(file_path)
@@ -153,11 +148,3 @@ class ASRProvider(ASRProviderBase):
         except Exception as e:
             logger.bind(tag=TAG).error(f"语音识别失败: {e}", exc_info=True)
             return "", file_path
-        finally:
-            # 文件清理逻辑
-            if self.delete_audio_file and file_path and os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                    logger.bind(tag=TAG).debug(f"已删除临时音频文件: {file_path}")
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"文件删除失败: {file_path} | 错误: {e}")

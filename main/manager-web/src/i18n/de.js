@@ -663,6 +663,7 @@ export default {
   'language.en': 'English',
   'language.de': 'Deutsch',
   'language.vi': 'Tiếng Việt',
+  'language.ptBR': 'Português (Brasil)',
 
   // Home page text
   'home.addAgent': 'Agent hinzufügen',
@@ -836,6 +837,7 @@ export default {
   'modelConfig.unknown': 'Unbekannt',
   'modelConfig.isEnabled': 'Aktiviert',
   'modelConfig.isDefault': 'Standard',
+  'modelConfig.defaultModelCannotDisable': 'Standardmodellkonfiguration kann nicht deaktiviert werden',
   'modelConfig.action': 'Aktion',
   'modelConfig.voiceManagement': 'Stimmverwaltung',
   'modelConfig.edit': 'Bearbeiten',

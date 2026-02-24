@@ -454,6 +454,12 @@ def check_asr_update(before_config, new_config):
     update_asr = False
     current_asr_module = before_config["selected_module"]["ASR"]
     new_asr_module = new_config["selected_module"]["ASR"]
+
+    # 如果模块名称不同，就需要更新
+    if current_asr_module != new_asr_module:
+        return True
+
+    # 如果模块名称相同，再比较类型
     current_asr_type = (
         current_asr_module
         if "type" not in before_config["ASR"][current_asr_module]
@@ -590,3 +596,14 @@ def validate_mcp_endpoint(mcp_endpoint: str) -> bool:
         return False
 
     return True
+
+def get_system_error_response(config: dict) -> str:
+    """获取系统错误时的回复
+
+    Args:
+        config: 配置字典
+
+    Returns:
+        str: 系统错误时的回复
+    """
+    return config.get("system_error_response", "主人，小智现在有点忙，我们稍后再试吧。")

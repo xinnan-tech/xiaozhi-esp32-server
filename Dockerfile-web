@@ -1,5 +1,5 @@
 # 第一阶段：构建Vue前端
-FROM node:18 as web-builder
+FROM node:18 AS web-builder
 WORKDIR /app
 COPY main/manager-web/package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY main/manager-web .
 RUN npm run build
 
 # 第二阶段：构建Java后端
-FROM maven:3.9.4-eclipse-temurin-21 as api-builder
+FROM maven:3.9.4-eclipse-temurin-21 AS api-builder
 WORKDIR /app
 COPY main/manager-api/pom.xml .
 COPY main/manager-api/src ./src
@@ -18,18 +18,19 @@ FROM bellsoft/liberica-runtime-container:jre-21-glibc
 
 # 安装Nginx和字体库
 RUN apk update && \
-    apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
+    apk add --no-cache --no-scripts \
         nginx \
         bash \
         fontconfig \
         ttf-dejavu \
-        msttcorefonts-installer \
-    && ACCEPT_EULA=Y apk add --no-cache msttcorefonts-installer \
-    && fc-cache -f -v \
-    && rm -rf /var/cache/apk/*
+    && rm -rf /var/cache/apk/* \
+    && mkdir -p /run/nginx /var/log/nginx /var/tmp/nginx /etc/nginx/conf.d
+
+# 复制项目自带的中文字体
+COPY main/manager-web/public/generator/static/fonts/*.ttf /usr/share/fonts/
 
 # 更新字体缓存
-RUN (printf 'YES\n' | update-ms-fonts || true) && fc-cache -f -v
+RUN fc-cache -f -v
 
 # 配置Nginx
 COPY docs/docker/nginx.conf /etc/nginx/nginx.conf

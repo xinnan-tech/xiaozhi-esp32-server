@@ -1,4 +1,8 @@
 import json
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 EMOJI_MAP = {
@@ -77,7 +81,7 @@ def is_punctuation_or_emoji(char):
     return is_emoji(char)
 
 
-async def get_emotion(conn, text):
+async def get_emotion(conn: "ConnectionHandler", text):
     """获取文本内的情绪消息"""
     emoji = "🙂"
     emotion = "happy"
@@ -110,4 +114,4 @@ def is_emoji(char):
 
 def check_emoji(text):
     """去除文本中的所有emoji表情"""
-    return ''.join(char for char in text if not is_emoji(char) and char != "\n")
+    return "".join(char for char in text if not is_emoji(char) and char != "\n")

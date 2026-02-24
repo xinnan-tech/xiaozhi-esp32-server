@@ -153,13 +153,13 @@ export default {
     },
     cancel() {
       this.saving = false; // 取消时重置状态
+      this.dialogKey = Date.now();
       this.$emit('cancel');
     }
   },
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.dialogKey = Date.now();
         api.agent.getRecentlyFiftyByAgentId(this.agentId, ((data) => {
           this.valueTypeOptions = data.data.data.map(item => ({
             ...item

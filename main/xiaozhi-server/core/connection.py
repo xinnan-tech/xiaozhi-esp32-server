@@ -40,7 +40,9 @@ from config.logger import setup_logging, build_module_string, create_connection_
 from config.manage_api_client import DeviceNotFoundException, DeviceBindException
 from core.utils.prompt_manager import PromptManager
 from core.utils.voiceprint_provider import VoiceprintProvider
+from core.utils.util import get_system_error_response
 from core.utils import textUtils
+
 
 TAG = __name__
 
@@ -76,7 +78,7 @@ class ConnectionHandler:
 
         self.read_config_from_api = self.config.get("read_config_from_api", False)
 
-        self.websocket = None
+        self.websocket: websockets.ServerConnection | None = None
         self.headers = None
         self.device_id = None
         self.client_ip = None
@@ -135,7 +137,6 @@ class ConnectionHandler:
         self.current_language_tag = None  # 存储当前ASR识别的语言标签
 
         # llm相关变量
-        self.llm_finish_task = True
         self.dialogue = Dialogue()
 
         # tts相关变量
@@ -168,7 +169,7 @@ class ConnectionHandler:
         # 初始化提示词管理器
         self.prompt_manager = PromptManager(self.config, self.logger)
 
-    async def handle_connection(self, ws):
+    async def handle_connection(self, ws: websockets.ServerConnection):
         try:
             # 获取运行中的事件循环（必须在异步上下文中）
             self.loop = asyncio.get_running_loop()
@@ -799,7 +800,6 @@ class ConnectionHandler:
 
         # 为最顶层时新建会话ID和发送FIRST请求
         if depth == 0:
-            self.llm_finish_task = False
             self.sentence_id = str(uuid.uuid4().hex)
             self.dialogue.put(Message(role="user", content=query))
             self.tts.tts_text_queue.put(
@@ -841,7 +841,8 @@ class ConnectionHandler:
         try:
             # 使用带记忆的对话
             memory_str = None
-            if self.memory is not None:
+            # 仅当query非空（代表用户询问）时查询记忆
+            if self.memory is not None and query:
                 future = asyncio.run_coroutine_threadsafe(
                     self.memory.query_memory(query), self.loop
                 )
@@ -874,46 +875,66 @@ class ConnectionHandler:
         content_arguments = ""
         self.client_abort = False
         emotion_flag = True
-        for response in llm_responses:
-            if self.client_abort:
-                break
-            if self.intent_type == "function_call" and functions is not None:
-                content, tools_call = response
-                if "content" in response:
-                    content = response["content"]
-                    tools_call = None
-                if content is not None and len(content) > 0:
-                    content_arguments += content
+        try:
+            for response in llm_responses:
+                if self.client_abort:
+                    break
+                if self.intent_type == "function_call" and functions is not None:
+                    content, tools_call = response
+                    if "content" in response:
+                        content = response["content"]
+                        tools_call = None
+                    if content is not None and len(content) > 0:
+                        content_arguments += content
 
-                if not tool_call_flag and content_arguments.startswith("<tool_call>"):
-                    # print("content_arguments", content_arguments)
-                    tool_call_flag = True
+                    if not tool_call_flag and content_arguments.startswith("<tool_call>"):
+                        # print("content_arguments", content_arguments)
+                        tool_call_flag = True
 
-                if tools_call is not None and len(tools_call) > 0:
-                    tool_call_flag = True
-                    self._merge_tool_calls(tool_calls_list, tools_call)
-            else:
-                content = response
+                    if tools_call is not None and len(tools_call) > 0:
+                        tool_call_flag = True
+                        self._merge_tool_calls(tool_calls_list, tools_call)
+                else:
+                    content = response
 
-            # 在llm回复中获取情绪表情，一轮对话只在开头获取一次
-            if emotion_flag and content is not None and content.strip():
-                asyncio.run_coroutine_threadsafe(
-                    textUtils.get_emotion(self, content),
-                    self.loop,
-                )
-                emotion_flag = False
-
-            if content is not None and len(content) > 0:
-                if not tool_call_flag:
-                    response_message.append(content)
-                    self.tts.tts_text_queue.put(
-                        TTSMessageDTO(
-                            sentence_id=self.sentence_id,
-                            sentence_type=SentenceType.MIDDLE,
-                            content_type=ContentType.TEXT,
-                            content_detail=content,
-                        )
+                # 在llm回复中获取情绪表情，一轮对话只在开头获取一次
+                if emotion_flag and content is not None and content.strip():
+                    asyncio.run_coroutine_threadsafe(
+                        textUtils.get_emotion(self, content),
+                        self.loop,
                     )
+                    emotion_flag = False
+
+                if content is not None and len(content) > 0:
+                    if not tool_call_flag:
+                        response_message.append(content)
+                        self.tts.tts_text_queue.put(
+                            TTSMessageDTO(
+                                sentence_id=self.sentence_id,
+                                sentence_type=SentenceType.MIDDLE,
+                                content_type=ContentType.TEXT,
+                                content_detail=content,
+                            )
+                        )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"LLM stream processing error: {e}")
+            self.tts.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=self.sentence_id,
+                    sentence_type=SentenceType.MIDDLE,
+                    content_type=ContentType.TEXT,
+                    content_detail=get_system_error_response(self.config),
+                )
+            )
+            if depth == 0:
+                self.tts.tts_text_queue.put(
+                    TTSMessageDTO(
+                        sentence_id=self.sentence_id,
+                        sentence_type=SentenceType.LAST,
+                        content_type=ContentType.ACTION,
+                    )
+                )
+            return
         # 处理function call
         if tool_call_flag:
             bHasError = False
@@ -994,7 +1015,6 @@ class ConnectionHandler:
                     content_type=ContentType.ACTION,
                 )
             )
-            self.llm_finish_task = True
             # 使用lambda延迟计算，只有在DEBUG级别时才执行get_llm_dialogue()
             self.logger.bind(tag=TAG).debug(
                 lambda: json.dumps(
@@ -1099,6 +1119,14 @@ class ConnectionHandler:
     async def close(self, ws=None):
         """资源清理方法"""
         try:
+            # 清理 VAD 连接资源
+            if (
+                hasattr(self, "vad")
+                and self.vad
+                and hasattr(self.vad, "release_conn_resources")
+            ):
+                self.vad.release_conn_resources(self)
+
             # 清理音频缓冲区
             if hasattr(self, "audio_buffer"):
                 self.audio_buffer.clear()
@@ -1166,6 +1194,8 @@ class ConnectionHandler:
 
             if self.tts:
                 await self.tts.close()
+            if self.asr:
+                await self.asr.close()
 
             # 最后关闭线程池（避免阻塞）
             if self.executor:
@@ -1214,11 +1244,21 @@ class ConnectionHandler:
                 f"清理结束: TTS队列大小={self.tts.tts_text_queue.qsize()}, 音频队列大小={self.tts.tts_audio_queue.qsize()}"
             )
 
-    def reset_vad_states(self):
-        self.client_audio_buffer = bytearray()
+    def reset_audio_states(self):
+        """
+        重置所有音频相关状态(VAD + ASR)
+        """
+        # Reset VAD states
+        self.client_audio_buffer.clear()
         self.client_have_voice = False
         self.client_voice_stop = False
-        self.logger.bind(tag=TAG).debug("VAD states reset.")
+        self.client_voice_window.clear()
+        self.last_is_voice = False
+
+        # Clear ASR buffers
+        self.asr_audio.clear()
+
+        self.logger.bind(tag=TAG).debug("All audio states reset.")
 
     def chat_and_close(self, text):
         """Chat with the user and then close the connection"""

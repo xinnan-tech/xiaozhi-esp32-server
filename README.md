@@ -21,6 +21,7 @@
   <a href="./README_en.md"><img alt="README in English" src="https://img.shields.io/badge/English-DFE0E5"></a>
   <a href="./README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Tiếng Việt-DFE0E5"></a>
   <a href="./README_de.md"><img alt="Deutsch" src="https://img.shields.io/badge/Deutsch-DFE0E5"></a>
+  <a href="./README_pt_BR.md"><img alt="Português (Brasil)" src="https://img.shields.io/badge/Português (Brasil)-DFE0E5"></a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">
     <img alt="GitHub Contributors" src="https://img.shields.io/github/v/release/xinnan-tech/xiaozhi-esp32-server?logo=docker" />
   </a>
@@ -242,7 +243,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | 智能对话 | 支持多种LLM(大语言模型)，实现智能对话 |
 | 视觉感知 | 支持多种VLLM(视觉大模型)，实现多模态交互 |
 | 意图识别 | 支持外挂的大模型意图识别、大模型自主函数调用，提供插件化意图处理机制 |
-| 记忆系统 | 支持本地短期记忆、mem0ai接口记忆，具备记忆总结功能 |
+| 记忆系统 | 支持本地短期记忆、mem0ai接口记忆、PowerMem智能记忆，具备记忆总结功能 |
 | 知识库 | 支持RAGFlow知识库，让大模型判断需要调度知识库后再回答 |
 | 工具调用 | 支持客户端IOT协议、客户MCP协议、服务端MCP协议、MCP接入点协议、自定义工具函数 |
 | 指令下发 | 依托MQTT协议，支持从智控台将MCP指令下发到ESP32设备 |
@@ -330,6 +331,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 |   类型   |      平台名称       | 使用方式 |   收费模式    | 备注 |
 |:------:|:---------------:|:----:|:---------:|:--:|
 | Memory |     mem0ai      | 接口调用 | 1000次/月额度 |    |
+| Memory |     [powermem](./docs/powermem-integration.md)    | 本地总结 | 取决于LLM和DB |  OceanBase开源，支持智能检索  |
 | Memory | mem_local_short | 本地总结 |    免费     |    |
 | Memory |     nomem       | 无记忆模式 |    免费     |    |
 

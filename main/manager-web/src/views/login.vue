@@ -55,6 +55,9 @@
                 <el-dropdown-item @click.native="changeLanguage('vi')">
                   {{ $t("language.vi") }}
                 </el-dropdown-item>
+                <el-dropdown-item @click.native="changeLanguage('pt_BR')">
+                  {{ $t("language.ptBR") }}
+                </el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
           </div>
@@ -188,6 +191,8 @@ export default {
           return this.$t("language.de");
         case "vi":
           return this.$t("language.vi");
+        case "pt_BR":
+          return this.$t("language.ptBR");
         default:
           return this.$t("language.zhCN");
       }

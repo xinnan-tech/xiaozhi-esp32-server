@@ -1,11 +1,11 @@
 // WebSocket消息处理模块
-import { getConfig, saveConnectionUrls } from '../../config/manager.js?v=0127';
-import { uiController } from '../../ui/controller.js?v=0127';
-import { log } from '../../utils/logger.js?v=0127';
-import { getAudioPlayer } from '../audio/player.js?v=0127';
-import { getAudioRecorder } from '../audio/recorder.js?v=0127';
-import { executeMcpTool, getMcpTools, setWebSocket as setMcpWebSocket } from '../mcp/tools.js?v=0127';
-import { webSocketConnect } from './ota-connector.js?v=0127';
+import { getConfig, saveConnectionUrls } from '../../config/manager.js?v=0205';
+import { uiController } from '../../ui/controller.js?v=0205';
+import { log } from '../../utils/logger.js?v=0205';
+import { getAudioPlayer } from '../audio/player.js?v=0205';
+import { getAudioRecorder } from '../audio/recorder.js?v=0205';
+import { executeMcpTool, getMcpTools, setWebSocket as setMcpWebSocket } from '../mcp/tools.js?v=0205';
+import { webSocketConnect } from './ota-connector.js?v=0205';
 
 // WebSocket处理器类
 export class WebSocketHandler {
@@ -74,6 +74,9 @@ export class WebSocketHandler {
     handleTextMessage(message) {
         if (message.type === 'hello') {
             log(`服务器回应：${JSON.stringify(message, null, 2)}`, 'success');
+            window.cameraAvailable = true;
+            log('连接成功，摄像头已可用', 'success');
+            uiController.updateDialButton(true);
             uiController.startAIChatSession();
         } else if (message.type === 'tts') {
             this.handleTTSMessage(message);
@@ -81,6 +84,23 @@ export class WebSocketHandler {
             log(`收到音频控制消息: ${JSON.stringify(message)}`, 'info');
         } else if (message.type === 'stt') {
             log(`识别结果: ${message.text}`, 'info');
+            // 检查是否需要绑定设备
+            if (message.text && (message.text.includes('绑定') || message.text.includes('bind'))) {
+                log('收到设备绑定提示，更新摄像头状态', 'warning');
+                window.cameraAvailable = false;
+                // 关闭摄像头
+                if (typeof window.stopCamera === 'function') {
+                    window.stopCamera();
+                }
+                // 更新摄像头按钮状态
+                const cameraBtn = document.getElementById('cameraBtn');
+                if (cameraBtn) {
+                    cameraBtn.classList.remove('camera-active');
+                    cameraBtn.querySelector('.btn-text').textContent = '摄像头';
+                    cameraBtn.disabled = true;
+                    cameraBtn.title = '请先绑定验证码';
+                }
+            }
             // 使用新的聊天消息回调显示STT消息
             if (this.onChatMessage && message.text) {
                 this.onChatMessage(message.text, true);
@@ -249,30 +269,57 @@ export class WebSocketHandler {
 
             log(`调用工具: ${toolName} 参数: ${JSON.stringify(toolArgs)}`, 'info');
 
-            const result = executeMcpTool(toolName, toolArgs);
-
-            const replyMessage = JSON.stringify({
-                "session_id": message.session_id || "",
-                "type": "mcp",
-                "payload": {
-                    "jsonrpc": "2.0",
-                    "id": payload.id,
-                    "result": {
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": JSON.stringify(result)
-                            }
-                        ],
-                        "isError": false
+            executeMcpTool(toolName, toolArgs).then(result => {
+                const replyMessage = JSON.stringify({
+                    "session_id": message.session_id || "",
+                    "type": "mcp",
+                    "payload": {
+                        "jsonrpc": "2.0",
+                        "id": payload.id,
+                        "result": {
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": JSON.stringify(result)
+                                }
+                            ],
+                            "isError": false
+                        }
                     }
-                }
-            });
+                });
 
-            log(`客户端上报: ${replyMessage}`, 'info');
-            this.websocket.send(replyMessage);
+                log(`客户端上报: ${replyMessage}`, 'info');
+                this.websocket.send(replyMessage);
+            }).catch(error => {
+                log(`工具执行失败: ${error.message}`, 'error');
+                const errorReply = JSON.stringify({
+                    "session_id": message.session_id || "",
+                    "type": "mcp",
+                    "payload": {
+                        "jsonrpc": "2.0",
+                        "id": payload.id,
+                        "error": {
+                            "code": -32603,
+                            "message": error.message
+                        }
+                    }
+                });
+                this.websocket.send(errorReply);
+            });
         } else if (payload.method === 'initialize') {
             log(`收到工具初始化请求: ${JSON.stringify(payload.params)}`, 'info');
+            // 保存视觉分析接口地址
+            const visionUrl = document.getElementById('visionUrl');
+            const visionConfig = payload?.params?.capabilities?.vision;
+            if (visionConfig && typeof visionConfig === 'object' && visionConfig.url && visionConfig.token) {
+                const visionConfigStr = JSON.stringify(visionConfig);
+                localStorage.setItem('xz_tester_vision', visionConfigStr);
+                if (visionUrl) visionUrl.value = visionConfig.url;
+            } else {
+                localStorage.removeItem('xz_tester_vision');
+                if (visionUrl) visionUrl.value = '';
+            }
+
             const replyMessage = JSON.stringify({
                 "session_id": message.session_id || "",
                 "type": "mcp",
@@ -387,6 +434,17 @@ export class WebSocketHandler {
 
             const audioRecorder = getAudioRecorder();
             audioRecorder.stop();
+
+            // 关闭摄像头
+            if (typeof window.stopCamera === 'function') {
+                window.stopCamera();
+            }
+
+            // 隐藏摄像头显示区域
+            const cameraContainer = document.getElementById('cameraContainer');
+            if (cameraContainer) {
+                cameraContainer.classList.remove('active');
+            }
         };
 
         this.websocket.onerror = (error) => {
@@ -420,6 +478,17 @@ export class WebSocketHandler {
         this.websocket.close();
         const audioRecorder = getAudioRecorder();
         audioRecorder.stop();
+
+        // 关闭摄像头
+        if (typeof window.stopCamera === 'function') {
+            window.stopCamera();
+        }
+
+        // 隐藏摄像头显示区域
+        const cameraContainer = document.getElementById('cameraContainer');
+        if (cameraContainer) {
+            cameraContainer.classList.remove('active');
+        }
     }
 
     // 发送文本消息

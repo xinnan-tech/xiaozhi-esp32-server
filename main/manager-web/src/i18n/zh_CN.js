@@ -663,6 +663,7 @@ export default {
   'language.en': 'English',
   'language.de': 'Deutsch',
   'language.vi': 'Tiếng Việt',
+  'language.ptBR': 'Português (Brasil)',
 
   // 首页文本
   'home.addAgent': '添加智能体',
@@ -836,6 +837,7 @@ export default {
   'modelConfig.unknown': '未知',
   'modelConfig.isEnabled': '是否启用',
   'modelConfig.isDefault': '是否默认',
+  'modelConfig.defaultModelCannotDisable': '默认模型配置不允许关闭',
   'modelConfig.action': '操作',
   'modelConfig.voiceManagement': '音色管理',
   'modelConfig.edit': '修改',

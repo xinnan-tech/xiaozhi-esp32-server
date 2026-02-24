@@ -663,6 +663,7 @@ export default {
   'language.en': 'English',
   'language.de': 'Deutsch',
   'language.vi': 'Tiếng Việt',
+  'language.ptBR': 'Português (Brasil)',
 
   // Home page text
   'home.addAgent': 'Thêm tác nhân',
@@ -836,6 +837,7 @@ export default {
   'modelConfig.unknown': 'Không xác định',
   'modelConfig.isEnabled': 'Đã bật',
   'modelConfig.isDefault': 'Mặc định',
+  'modelConfig.defaultModelCannotDisable': 'Cấu hình mô hình mặc định không thể tắt',
   'modelConfig.action': 'Hành động',
   'modelConfig.voiceManagement': 'Quản lý giọng nói',
   'modelConfig.edit': 'Chỉnh sửa',

@@ -1,5 +1,9 @@
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from config.logger import setup_logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 logger = setup_logging()
@@ -26,7 +30,7 @@ handle_exit_intent_function_desc = {
 @register_function(
     "handle_exit_intent", handle_exit_intent_function_desc, ToolType.SYSTEM_CTL
 )
-def handle_exit_intent(conn, say_goodbye: str | None = None):
+def handle_exit_intent(conn: "ConnectionHandler", say_goodbye: str | None = None):
     # 处理退出意图
     try:
         if say_goodbye is None:

@@ -44,35 +44,20 @@ class ASRProvider(ASRProviderBase):
             raise
 
     async def speech_to_text(
-        self, audio_data: List[bytes], session_id: str, audio_format: str = "opus"
+        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
-        file_path = None
         try:
             # 检查模型是否加载成功
             if not self.model:
                 logger.bind(tag=TAG).error("VOSK模型未加载，无法进行识别")
                 return "", None
-
-            # 解码音频（如果原始格式是Opus）
-            if audio_format == "pcm":
-                pcm_data = audio_data
-            else:
-                pcm_data = self.decode_opus(audio_data)
-                
-            if not pcm_data:
-                logger.bind(tag=TAG).warning("解码后的PCM数据为空，无法进行识别")
+            
+            if artifacts is None:
                 return "", None
-                
-            # 合并PCM数据
-            combined_pcm_data = b"".join(pcm_data)
-            if len(combined_pcm_data) == 0:
+            if not artifacts.pcm_bytes:
                 logger.bind(tag=TAG).warning("合并后的PCM数据为空")
                 return "", None
-
-            # 判断是否保存为WAV文件
-            if not self.delete_audio_file:
-                file_path = self.save_audio_to_file(pcm_data, session_id)
 
             start_time = time.time()
             
@@ -81,8 +66,8 @@ class ASRProvider(ASRProviderBase):
             chunk_size = 2000
             text_result = ""
             
-            for i in range(0, len(combined_pcm_data), chunk_size):
-                chunk = combined_pcm_data[i:i+chunk_size]
+            for i in range(0, len(artifacts.pcm_bytes), chunk_size):
+                chunk = artifacts.pcm_bytes[i:i+chunk_size]
                 if self.recognizer.AcceptWaveform(chunk):
                     result = json.loads(self.recognizer.Result())
                     text = result.get('text', '')
@@ -99,16 +84,8 @@ class ASRProvider(ASRProviderBase):
                 f"VOSK语音识别耗时: {time.time() - start_time:.3f}s | 结果: {text_result.strip()}"
             )
             
-            return text_result.strip(), file_path
+            return text_result.strip(), artifacts.file_path
             
         except Exception as e:
             logger.bind(tag=TAG).error(f"VOSK语音识别失败: {e}")
             return "", None
-        finally:
-            # 文件清理逻辑
-            if self.delete_audio_file and file_path and os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                    logger.bind(tag=TAG).debug(f"已删除临时音频文件: {file_path}")
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"文件删除失败: {file_path} | 错误: {e}")

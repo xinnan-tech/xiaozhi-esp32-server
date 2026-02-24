@@ -210,6 +210,7 @@ export default {
       paramDropdownVisible: false,
       voiceCloneDropdownVisible: false,
       userMenuVisible: false, // 添加用户菜单可见状态
+      menuVisibleTimer: null, // 菜单显示定时器，防止够快触发
       isSmallScreen: false,
       // 搜索历史相关
       searchHistory: [],
@@ -253,6 +254,8 @@ export default {
           return this.$t("language.de");
         case "vi":
           return this.$t("language.vi");
+        case "pt_BR":
+          return this.$t("language.ptBR");
         default:
           return this.$t("language.zhCN");
       }
@@ -271,6 +274,8 @@ export default {
           return require("@/assets/xiaozhi-ai_de.png");
         case "vi":
           return require("@/assets/xiaozhi-ai_vi.png");
+        case "pt_BR":
+          return require("@/assets/xiaozhi-ai_en.png");
         default:
           return require("@/assets/xiaozhi-ai.png");
       }
@@ -301,6 +306,10 @@ export default {
             {
               label: this.$t("language.vi"),
               value: "vi",
+            },
+            {
+              label: this.$t("language.ptBR"),
+              value: "pt_BR",
             },
           ],
         },
@@ -631,7 +640,12 @@ export default {
 
     // 处理用户菜单可见性变化
     handleUserMenuVisibleChange(visible) {
-      this.userMenuVisible = visible;
+      if (this.menuVisibleTimer) return;
+      this.menuVisibleTimer = setTimeout(() => {
+        this.userMenuVisible = visible;
+        clearTimeout(this.menuVisibleTimer);
+        this.menuVisibleTimer = null;
+      }, 100);
 
       // 如果菜单关闭了，也要清空选择值
       if (!visible) {

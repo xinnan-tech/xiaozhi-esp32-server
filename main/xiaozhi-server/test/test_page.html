@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小智服务器测试页面</title>
-    <link rel="stylesheet" href="css/test_page.css?v=0127">
+    <link rel="stylesheet" href="css/test_page.css?v=0205">
     <script>
         // 检测是否使用file://协议打开
         if (window.location.protocol === 'file:') {
@@ -44,6 +44,20 @@
 
     <!-- 主容器 -->
     <div class="container">
+
+        <!-- 摄像头显示区域（可拖动） -->
+        <div class="camera-container" id="cameraContainer">
+            <video id="cameraVideo" autoplay playsinline muted></video>
+            <div class="camera-switch-mask" id="cameraSwitchMask">
+                <div class="camera-switch-container">
+                    <!-- 摄像头切换按钮 -->
+                    <div class="camera-switch" id="cameraSwitch">
+                        <svg class="btn-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="7319" width="32" height="32"><path d="M722.1 530.3c0-44.9-13.8-86.5-37.2-120.9-0.3-0.6-0.6-1.2-0.9-1.7-2.9-4.2-6.1-8.1-9.2-12-0.4-0.5-0.7-1-1.1-1.5-21.4-26.3-48.3-46.7-78.7-59.9-0.8-0.4-1.7-0.8-2.5-1.2-4.9-2-9.8-3.8-14.9-5.5-1.8-0.6-3.6-1.3-5.4-1.8-4.4-1.3-8.8-2.4-13.3-3.5-2.5-0.6-4.9-1.2-7.4-1.7-1.2-0.2-2.4-0.6-3.6-0.8-3.3-0.6-6.7-0.8-10-1.3-2.3-0.3-4.6-0.7-6.9-0.9-5.6-0.5-11.2-0.8-16.7-0.9-1 0-2-0.1-3-0.1-0.2 0-0.3 0.1-0.5 0.1-42.8 0-84.6 13.1-120.4 38.6-11.5 8.1-14.2 24.1-6.2 35.7 8 11.6 23.8 14.4 35.2 6.3 27.7-19.7 60-29.6 93.1-29.3 4.8 0 9.5 0.3 14.1 0.7 1.4 0.2 2.8 0.4 4.3 0.5 3.8 0.5 7.6 1 11.3 1.8 1.6 0.3 3.3 0.8 4.9 1.1 3.7 0.8 7.3 1.7 10.9 2.8 1.1 0.4 2.2 0.8 3.4 1.2 4.1 1.3 8.1 2.8 12 4.5 0.4 0.2 0.8 0.4 1.2 0.5 23.6 10.3 44.3 26.1 60.4 45.9 0.1 0.1 0.2 0.3 0.3 0.4 22.7 28 36.4 63.9 36.4 102.9h-42.2L697 632.9l67.5-102.6h-42.4z m-119 133c-27.9 19.8-60.5 29.7-93.9 29.3-4.4-0.1-8.8-0.3-13.1-0.7-1.8-0.2-3.5-0.5-5.3-0.7-3.4-0.5-6.8-0.9-10.1-1.6-2-0.4-4-0.9-6.1-1.4-3.3-0.8-6.5-1.5-9.7-2.5-1.5-0.5-3-1-4.6-1.5-3.7-1.2-7.3-2.5-10.8-4-0.8-0.3-1.6-0.7-2.4-1.1-4.1-1.9-8.2-3.8-12.2-6l-0.6-0.3c-13.4-7.5-25.7-16.8-36.4-27.7-0.2-0.2-0.3-0.4-0.5-0.6-3.3-3.4-6.5-6.9-9.5-10.7-0.6-0.8-1.3-1.6-1.9-2.5-21.9-27.8-35.1-63-35.1-101.2h42.2l-67.5-102.6-67.5 102.6h42.2c0 45 13.9 86.7 37.3 121.1 0.3 0.5 0.5 1 0.8 1.5 2.4 3.5 5.1 6.8 7.7 10.1 1 1.3 1.9 2.6 2.9 3.8 3.9 4.7 7.9 9.2 12.1 13.5 0.4 0.4 0.8 0.9 1.2 1.3 14.1 14.3 30.1 26.4 47.4 36 0.5 0.3 0.9 0.6 1.4 0.8 5 2.7 10.1 5.2 15.3 7.5l3.9 1.8c4.4 1.9 9 3.5 13.6 5.1 2.2 0.7 4.4 1.5 6.6 2.2 4 1.2 8.1 2.2 12.3 3.2 2.8 0.7 5.5 1.4 8.3 1.9 1.2 0.3 2.3 0.6 3.4 0.8 3.9 0.7 7.8 1.1 11.8 1.6l4.2 0.6c7 0.7 14.1 1.2 21.1 1.2 42.9 0 84.7-13.3 120.6-38.8 11.4-8.2 14.2-24.1 6.2-35.8-8-11.5-23.8-14.3-35.3-6.2z m271.3-421.6H763c-26.5 0-82.9-119.7-112.5-119.7H370.6c-29.6 0-85.9 119.7-112.4 119.7H147.5c-46.3 0-83.9 40.2-83.9 89.7v478.8c0 49.6 37.6 89.8 83.9 89.8h726.9c46.3 0 83.9-40.1 83.9-89.8V331.4c0-49.5-37.6-89.7-83.9-89.7z m28 538.6c0 33.1-25 59.8-55.9 59.8h-671c-30.9 0-55.9-26.8-55.9-59.8V361.4c0-33 25-59.8 55.9-59.8h111.2c25.8 0 82-119.7 111.6-119.7h223.2c29.5 0 85.6 119.7 111.5 119.7h113.5c30.9 0 55.9 26.8 55.9 59.8v418.9z" p-id="7320" fill="#ffffff"></path></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 连接状态指示器 - 页面顶部中部 -->
         <div class="connection-status-top">
             <div class="status-indicator">
@@ -87,12 +101,12 @@
                 <span class="btn-text">设置</span>
             </button>
 
-            <button class="control-btn" id="backgroundBtn" title="切换背景">
+            <button class="control-btn" id="cameraBtn" title="请先连接服务器" disabled>
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
                     <path
-                        d="M12,18A6,6 0 0,1 6,12C6,11 6.25,10.03 6.7,9.2L5.24,7.74C4.46,8.97 4,10.43 4,12A8,8 0 0,0 12,20V23L16,19L12,15V18M12,4V1L8,5L12,9V6A6,6 0 0,1 18,12C18,13 17.75,13.97 17.3,14.8L18.76,16.26C19.54,15.03 20,13.57 20,12A8,8 0 0,0 12,4Z" />
+                        d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z" />
                 </svg>
-                <span class="btn-text">背景</span>
+                <span class="btn-text">摄像头</span>
             </button>
 
             <button class="control-btn dial-btn" id="dialBtn" title="拨号">
@@ -124,6 +138,7 @@
                 <div class="settings-tabs">
                     <button class="tab-btn active" data-tab="device">设备配置</button>
                     <button class="tab-btn" data-tab="mcp">MCP工具</button>
+                    <button class="tab-btn" data-tab="other">数字人皮肤</button>
                 </div>
 
                 <div class="tab-content active" id="deviceTab">
@@ -162,6 +177,10 @@
                             <input type="text" id="serverUrl" value="" readonly disabled
                                 placeholder="填写OTA地址后，点击拨号按钮自动连接" />
                         </div>
+                        <div class="input-group">
+                            <label for="visionUrl">视觉分析地址:</label>
+                            <input type="text" id="visionUrl" value="" readonly disabled placeholder="成功建立ws连接后自动获取" />
+                        </div>
                     </div>
                 </div>
 
@@ -170,9 +189,6 @@
                     <div class="mcp-tools-container">
                         <div class="mcp-tools-header">
                             <h3>MCP 工具管理</h3>
-                            <button class="btn-secondary" id="toggleMcpTools">
-                                收起
-                            </button>
                         </div>
                         <div class="mcp-tools-panel" id="mcpToolsPanel">
                             <div class="mcp-tools-list" id="mcpToolsContainer">
@@ -182,6 +198,34 @@
                                 <button class="btn-primary" id="addMcpToolBtn">
                                     ➕ 添加新工具
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="otherTab">
+                    <div class="other-settings-panel">
+                        <div class="control-panel">
+                            <div class="config-row">
+                                <div class="config-item">
+                                    <label>选择模型:</label>
+                                    <select id="live2dModelSelect" class="model-select">
+                                        <option value="hiyori_pro_zh">hiyori (春日)</option>
+                                        <option value="natori_pro_zh">natori (名取)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <div class="config-item">
+                                    <label></label>
+                                    <button class="background-btn" id="backgroundBtn" title="切换背景">
+                                        <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                                            <path
+                                                d="M12,18A6,6 0 0,1 6,12C6,11 6.25,10.03 6.7,9.2L5.24,7.74C4.46,8.97 4,10.43 4,12A8,8 0 0,0 12,20V23L16,19L12,15V18M12,4V1L8,5L12,9V6A6,6 0 0,1 18,12C18,13 17.75,13.97 17.3,14.8L18.76,16.26C19.54,15.03 20,13.57 20,12A8,8 0 0,0 12,4Z" />
+                                        </svg>
+                                        <span class="btn-text">切换背景</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -209,16 +253,18 @@
                         <textarea id="mcpToolDescription" placeholder="详细描述工具的功能和使用场景..." required></textarea>
                     </div>
                     <div class="input-group">
-                        <label>输入参数</label>
-                        <div class="properties-container">
-                            <div id="mcpPropertiesContainer">
-                                <div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">
-                                    暂无参数，点击下方按钮添加参数
-                                </div>
-                            </div>
-                            <button type="button" class="btn-secondary" id="addMcpPropertyBtn">
+                        <div class="input-group-header">
+                            <label>输入参数</label>
+                            <button type="button" class="properties-btn-primary" id="addMcpPropertyBtn">
                                 ➕ 添加参数
                             </button>
+                        </div>
+                        <div class="properties-container">
+                            <div class="mcp-empty-state" id="mcpEmptyState">
+                                暂无参数，点击上方按钮添加参数
+                            </div>
+                            <div class="mcp-properties-list" id="mcpPropertiesContainer">
+                            </div>
                         </div>
                     </div>
                     <div class="input-group">
@@ -237,24 +283,80 @@
         </div>
     </div>
 
+    <!-- 参数编辑模态框 -->
+    <div id="mcpPropertyModal" class="modal">
+        <div class="modal-content property-modal">
+            <div class="modal-header">
+                <h2 id="mcpPropertyModalTitle">编辑参数</h2>
+                <button class="close-btn" id="closeMcpPropertyModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="mcpPropertyForm">
+                    <input type="hidden" id="mcpPropertyIndex" value="-1">
+                    <div class="input-group">
+                        <label for="mcpPropertyName">参数名称 *</label>
+                        <input type="text" id="mcpPropertyName" placeholder="例如: param_1" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="mcpPropertyType">数据类型 *</label>
+                        <select id="mcpPropertyType" class="model-select" required>
+                            <option value="string">字符串</option>
+                            <option value="integer">整数</option>
+                            <option value="number">数字</option>
+                            <option value="boolean">布尔值</option>
+                            <option value="array">数组</option>
+                            <option value="object">对象</option>
+                        </select>
+                    </div>
+                    <div class="input-group" id="mcpPropertyRangeGroup" style="display: none;">
+                        <div class="config-row">
+                            <div class="config-item">
+                                <label for="mcpPropertyMinimum">最小值</label>
+                                <input type="number" id="mcpPropertyMinimum" placeholder="可选">
+                            </div>
+                            <div class="config-item">
+                                <label for="mcpPropertyMaximum">最大值</label>
+                                <input type="number" id="mcpPropertyMaximum" placeholder="可选">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="mcpPropertyDescription">参数描述</label>
+                        <input type="text" id="mcpPropertyDescription" placeholder="可选">
+                    </div>
+                    <div class="input-group">
+                        <label class="mcp-checkbox-label">
+                            <input type="checkbox" id="mcpPropertyRequired">
+                            必填参数
+                        </label>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelMcpPropertyBtn">取消</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- 背景加载 -->
-    <script src="js/ui/background-load.js?v=0127"></script>
+    <script src="js/ui/background-load.js?v=0205"></script>
 
     <!-- PIXI.js 2D渲染引擎 -->
-    <script src="js/live2d/pixi.js?v=0127"></script>
+    <script src="js/live2d/pixi.js?v=0205"></script>
 
     <!-- Live2D Cubism 4.0 SDK -->
-    <script src="js/live2d/live2dcubismcore.min.js?v=0127"></script>
-    <script src="js/live2d/cubism4.min.js?v=0127"></script>
+    <script src="js/live2d/live2dcubismcore.min.js?v=0205"></script>
+    <script src="js/live2d/cubism4.min.js?v=0205"></script>
 
     <!-- Live2D 管理器 -->
-    <script src="js/live2d/live2d.js?v=0127"></script>
+    <script src="js/live2d/live2d.js?v=0205"></script>
 
     <!-- Opus解码库 -->
-    <script src="js/utils/libopus.js?v=0127"></script>
+    <script src="js/utils/libopus.js?v=0205"></script>
 
     <!-- 主应用入口 -->
-    <script type="module" src="js/app.js?v=0127"></script>
+    <script type="module" src="js/app.js?v=0205"></script>
 
     <!-- 全局错误处理 -->
     <script>

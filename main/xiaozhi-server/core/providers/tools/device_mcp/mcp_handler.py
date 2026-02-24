@@ -7,6 +7,10 @@ from concurrent.futures import Future
 from core.utils.util import get_vision_url, sanitize_tool_name
 from core.utils.auth import AuthToken
 from config.logger import setup_logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.connection import ConnectionHandler
 
 TAG = __name__
 logger = setup_logging()
@@ -96,7 +100,7 @@ class MCPClient:
                 self.call_results.pop(id)
 
 
-async def send_mcp_message(conn, payload: dict):
+async def send_mcp_message(conn: "ConnectionHandler", payload: dict):
     """Helper to send MCP messages, encapsulating common logic."""
     if not conn.features.get("mcp"):
         logger.bind(tag=TAG).warning("客户端不支持MCP，无法发送MCP消息")
@@ -111,7 +115,9 @@ async def send_mcp_message(conn, payload: dict):
         logger.bind(tag=TAG).error(f"发送MCP消息失败: {e}")
 
 
-async def handle_mcp_message(conn, mcp_client: MCPClient, payload: dict):
+async def handle_mcp_message(
+    conn: "ConnectionHandler", mcp_client: MCPClient, payload: dict
+):
     """处理MCP消息,包括初始化、工具列表和工具调用响应等"""
     logger.bind(tag=TAG).debug(f"处理MCP消息: {str(payload)[:100]}")
 
@@ -229,7 +235,7 @@ async def handle_mcp_message(conn, mcp_client: MCPClient, payload: dict):
             )
 
 
-async def send_mcp_initialize_message(conn):
+async def send_mcp_initialize_message(conn: "ConnectionHandler"):
     """发送MCP初始化消息"""
 
     vision_url = get_vision_url(conn.config)
@@ -264,7 +270,7 @@ async def send_mcp_initialize_message(conn):
     await send_mcp_message(conn, payload)
 
 
-async def send_mcp_tools_list_request(conn):
+async def send_mcp_tools_list_request(conn: "ConnectionHandler"):
     """发送MCP工具列表请求"""
     payload = {
         "jsonrpc": "2.0",
@@ -275,7 +281,7 @@ async def send_mcp_tools_list_request(conn):
     await send_mcp_message(conn, payload)
 
 
-async def send_mcp_tools_list_continue_request(conn, cursor: str):
+async def send_mcp_tools_list_continue_request(conn: "ConnectionHandler", cursor: str):
     """发送带有cursor的MCP工具列表请求"""
     payload = {
         "jsonrpc": "2.0",
@@ -288,7 +294,11 @@ async def send_mcp_tools_list_continue_request(conn, cursor: str):
 
 
 async def call_mcp_tool(
-    conn, mcp_client: MCPClient, tool_name: str, args: str = "{}", timeout: int = 30
+    conn: "ConnectionHandler",
+    mcp_client: MCPClient,
+    tool_name: str,
+    args: str = "{}",
+    timeout: int = 30,
 ):
     """
     调用指定的工具，并等待响应

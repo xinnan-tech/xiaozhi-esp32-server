@@ -1,4 +1,4 @@
-import { log } from '../../utils/logger.js?v=0127';
+import { log } from '../../utils/logger.js?v=0205';
 
 // ==========================================
 // MCP 工具管理逻辑
@@ -27,7 +27,16 @@ export async function initMcpTools() {
     const savedTools = localStorage.getItem('mcpTools');
     if (savedTools) {
         try {
-            mcpTools = JSON.parse(savedTools);
+            const parsedTools = JSON.parse(savedTools);
+            // 合并默认工具和用户保存的工具，保留用户自定义的工具
+            const defaultToolNames = new Set(defaultMcpTools.map(t => t.name));
+            // 添加默认工具中不存在的新工具
+            parsedTools.forEach(tool => {
+                if (!defaultToolNames.has(tool.name)) {
+                    defaultMcpTools.push(tool);
+                }
+            });
+            mcpTools = defaultMcpTools;
         } catch (e) {
             log('加载MCP工具失败，使用默认工具', 'warning');
             mcpTools = [...defaultMcpTools];
@@ -36,10 +45,7 @@ export async function initMcpTools() {
         mcpTools = [...defaultMcpTools];
     }
     renderMcpTools();
-    // Only setup event listeners if DOM elements exist
-    if (document.getElementById('toggleMcpTools')) {
-        setupMcpEventListeners();
-    }
+    setupMcpEventListeners();
 }
 
 /**
@@ -96,94 +102,167 @@ function renderMcpTools() {
  */
 function renderMcpProperties() {
     const container = document.getElementById('mcpPropertiesContainer');
+    const emptyState = document.getElementById('mcpEmptyState');
     if (!container) {
         return; // Container not found, skip rendering
     }
     if (mcpProperties.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">暂无参数，点击下方按钮添加参数</div>';
+        if (emptyState) {
+            emptyState.style.display = 'block';
+        }
+        container.innerHTML = '';
         return;
     }
+    if (emptyState) {
+        emptyState.style.display = 'none';
+    }
     container.innerHTML = mcpProperties.map((prop, index) => `
-        <div class="mcp-property-item">
-            <div class="mcp-property-header">
-                <span class="mcp-property-name">${prop.name}</span>
-                <button type="button" onclick="window.mcpModule.deleteMcpProperty(${index})"
-                    style="padding: 3px 8px; border: none; border-radius: 3px; background-color: #f44336; color: white; cursor: pointer; font-size: 11px;">
-                    删除
-                </button>
+        <div class="mcp-property-card" onclick="window.mcpModule.editMcpProperty(${index})">
+            <div class="mcp-property-row-label">
+                <span class="mcp-property-label">参数名称</span>
+                <span class="mcp-property-value">${prop.name}${prop.required ? ' <span class="mcp-property-required-badge">[必填]</span>' : ''}</span>
             </div>
-            <div class="mcp-property-row">
-                <div>
-                    <label class="mcp-small-label">参数名称 *</label>
-                    <input type="text" class="mcp-small-input" value="${prop.name}"
-                        onchange="window.mcpModule.updateMcpProperty(${index}, 'name', this.value)" required>
-                </div>
-                <div>
-                    <label class="mcp-small-label">数据类型 *</label>
-                    <select class="mcp-small-input" onchange="window.mcpModule.updateMcpProperty(${index}, 'type', this.value)">
-                        <option value="string" ${prop.type === 'string' ? 'selected' : ''}>字符串</option>
-                        <option value="integer" ${prop.type === 'integer' ? 'selected' : ''}>整数</option>
-                        <option value="number" ${prop.type === 'number' ? 'selected' : ''}>数字</option>
-                        <option value="boolean" ${prop.type === 'boolean' ? 'selected' : ''}>布尔值</option>
-                        <option value="array" ${prop.type === 'array' ? 'selected' : ''}>数组</option>
-                        <option value="object" ${prop.type === 'object' ? 'selected' : ''}>对象</option>
-                    </select>
-                </div>
+            <div class="mcp-property-row-label">
+                <span class="mcp-property-label">数据类型</span>
+                <span class="mcp-property-value">${getTypeLabel(prop.type)}</span>
             </div>
-            ${(prop.type === 'integer' || prop.type === 'number') ? `
-            <div class="mcp-property-row">
-                <div>
-                    <label class="mcp-small-label">最小值</label>
-                    <input type="number" class="mcp-small-input" value="${prop.minimum !== undefined ? prop.minimum : ''}"
-                        placeholder="可选" onchange="window.mcpModule.updateMcpProperty(${index}, 'minimum', this.value ? parseFloat(this.value) : undefined)">
-                </div>
-                <div>
-                    <label class="mcp-small-label">最大值</label>
-                    <input type="number" class="mcp-small-input" value="${prop.maximum !== undefined ? prop.maximum : ''}"
-                        placeholder="可选" onchange="window.mcpModule.updateMcpProperty(${index}, 'maximum', this.value ? parseFloat(this.value) : undefined)">
-                </div>
+            <div class="mcp-property-row-label">
+                <span class="mcp-property-label">描述</span>
+                <span class="mcp-property-value">${prop.description || '-'}</span>
             </div>
-            ` : ''}
-            <div class="mcp-property-row-full">
-                <label class="mcp-small-label">参数描述</label>
-                <input type="text" class="mcp-small-input" value="${prop.description || ''}"
-                    placeholder="可选" onchange="window.mcpModule.updateMcpProperty(${index}, 'description', this.value)">
+            <div class="mcp-property-row-action">
+                <button class="mcp-property-delete-btn" onclick="event.stopPropagation(); window.mcpModule.deleteMcpProperty(${index})">删除</button>
             </div>
-            <label class="mcp-checkbox-label">
-                <input type="checkbox" ${prop.required ? 'checked' : ''}
-                    onchange="window.mcpModule.updateMcpProperty(${index}, 'required', this.checked)">
-                必填参数
-            </label>
         </div>
     `).join('');
 }
 
 /**
- * 添加参数
+ * 获取数据类型标签
  */
-function addMcpProperty() {
-    mcpProperties.push({ name: `param_${mcpProperties.length + 1}`, type: 'string', required: false, description: '' });
-    renderMcpProperties();
+function getTypeLabel(type) {
+    const typeMap = {
+        'string': '字符串',
+        'integer': '整数',
+        'number': '数字',
+        'boolean': '布尔值',
+        'array': '数组',
+        'object': '对象'
+    };
+    return typeMap[type] || type;
 }
 
 /**
- * 更新参数
+ * 添加参数 - 打开参数编辑模态框
  */
-function updateMcpProperty(index, field, value) {
-    if (field === 'name') {
-        const isDuplicate = mcpProperties.some((p, i) => i !== index && p.name === value);
-        if (isDuplicate) {
-            alert('参数名称已存在，请使用不同的名称');
-            renderMcpProperties();
-            return;
+function addMcpProperty() {
+    openPropertyModal();
+}
+
+/**
+ * 编辑参数 - 打开参数编辑模态框
+ */
+function editMcpProperty(index) {
+    openPropertyModal(index);
+}
+
+/**
+ * 打开参数编辑模态框
+ */
+function openPropertyModal(index = null) {
+    const form = document.getElementById('mcpPropertyForm');
+    const title = document.getElementById('mcpPropertyModalTitle');
+    document.getElementById('mcpPropertyIndex').value = index !== null ? index : -1;
+
+    if (index !== null) {
+        const prop = mcpProperties[index];
+        title.textContent = '编辑参数';
+        document.getElementById('mcpPropertyName').value = prop.name;
+        document.getElementById('mcpPropertyType').value = prop.type || 'string';
+        document.getElementById('mcpPropertyMinimum').value = prop.minimum !== undefined ? prop.minimum : '';
+        document.getElementById('mcpPropertyMaximum').value = prop.maximum !== undefined ? prop.maximum : '';
+        document.getElementById('mcpPropertyDescription').value = prop.description || '';
+        document.getElementById('mcpPropertyRequired').checked = prop.required || false;
+    } else {
+        title.textContent = '添加参数';
+        form.reset();
+        document.getElementById('mcpPropertyName').value = `param_${mcpProperties.length + 1}`;
+        document.getElementById('mcpPropertyType').value = 'string';
+        document.getElementById('mcpPropertyMinimum').value = '';
+        document.getElementById('mcpPropertyMaximum').value = '';
+        document.getElementById('mcpPropertyDescription').value = '';
+        document.getElementById('mcpPropertyRequired').checked = false;
+    }
+
+    updatePropertyRangeVisibility();
+    document.getElementById('mcpPropertyModal').style.display = 'flex';
+}
+
+/**
+ * 关闭参数编辑模态框
+ */
+function closePropertyModal() {
+    document.getElementById('mcpPropertyModal').style.display = 'none';
+}
+
+/**
+ * 更新数值范围输入框的可见性
+ */
+function updatePropertyRangeVisibility() {
+    const type = document.getElementById('mcpPropertyType').value;
+    const rangeGroup = document.getElementById('mcpPropertyRangeGroup');
+    if (type === 'integer' || type === 'number') {
+        rangeGroup.style.display = 'block';
+    } else {
+        rangeGroup.style.display = 'none';
+    }
+}
+
+/**
+ * 处理参数表单提交
+ */
+function handlePropertySubmit(e) {
+    e.preventDefault();
+    const index = parseInt(document.getElementById('mcpPropertyIndex').value);
+    const name = document.getElementById('mcpPropertyName').value.trim();
+    const type = document.getElementById('mcpPropertyType').value;
+    const minimum = document.getElementById('mcpPropertyMinimum').value;
+    const maximum = document.getElementById('mcpPropertyMaximum').value;
+    const description = document.getElementById('mcpPropertyDescription').value.trim();
+    const required = document.getElementById('mcpPropertyRequired').checked;
+
+    // 检查名称重复
+    const isDuplicate = mcpProperties.some((p, i) => i !== index && p.name === name);
+    if (isDuplicate) {
+        alert('参数名称已存在，请使用不同的名称');
+        return;
+    }
+
+    const propData = {
+        name,
+        type,
+        description,
+        required
+    };
+
+    // 数值类型添加范围限制
+    if (type === 'integer' || type === 'number') {
+        if (minimum !== '') {
+            propData.minimum = parseFloat(minimum);
+        }
+        if (maximum !== '') {
+            propData.maximum = parseFloat(maximum);
         }
     }
-    mcpProperties[index][field] = value;
-    if (field === 'type' && value !== 'integer' && value !== 'number') {
-        delete mcpProperties[index].minimum;
-        delete mcpProperties[index].maximum;
-        renderMcpProperties();
+
+    if (index >= 0) {
+        mcpProperties[index] = propData;
+    } else {
+        mcpProperties.push(propData);
     }
+
+    renderMcpProperties();
+    closePropertyModal();
 }
 
 /**
@@ -198,7 +277,6 @@ function deleteMcpProperty(index) {
  * 设置事件监听
  */
 function setupMcpEventListeners() {
-    const toggleBtn = document.getElementById('toggleMcpTools');
     const panel = document.getElementById('mcpToolsPanel');
     const addBtn = document.getElementById('addMcpToolBtn');
     const modal = document.getElementById('mcpToolModal');
@@ -206,25 +284,31 @@ function setupMcpEventListeners() {
     const cancelBtn = document.getElementById('cancelMcpBtn');
     const form = document.getElementById('mcpToolForm');
     const addPropertyBtn = document.getElementById('addMcpPropertyBtn');
+
+    // 参数编辑模态框相关元素
+    const propertyModal = document.getElementById('mcpPropertyModal');
+    const closePropertyBtn = document.getElementById('closeMcpPropertyModalBtn');
+    const cancelPropertyBtn = document.getElementById('cancelMcpPropertyBtn');
+    const propertyForm = document.getElementById('mcpPropertyForm');
+    const propertyTypeSelect = document.getElementById('mcpPropertyType');
+
     // Return early if required elements don't exist (e.g., in test environment)
-    if (!toggleBtn || !panel || !addBtn || !modal || !closeBtn || !cancelBtn || !form || !addPropertyBtn) {
+    if (!panel || !addBtn || !modal || !closeBtn || !cancelBtn || !form || !addPropertyBtn) {
         return;
     }
-    toggleBtn.addEventListener('click', () => {
-        const isExpanded = panel.classList.contains('expanded');
-        panel.classList.toggle('expanded');
-        toggleBtn.textContent = isExpanded ? '收起' : '展开';
-    });
-    // 确保面板默认展开
-    panel.classList.add('expanded');
     addBtn.addEventListener('click', () => openMcpModal());
     closeBtn.addEventListener('click', closeMcpModal);
     cancelBtn.addEventListener('click', closeMcpModal);
     addPropertyBtn.addEventListener('click', addMcpProperty);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeMcpModal();
-    });
     form.addEventListener('submit', handleMcpSubmit);
+
+    // 参数编辑模态框事件
+    if (propertyModal && closePropertyBtn && cancelPropertyBtn && propertyForm && propertyTypeSelect) {
+        closePropertyBtn.addEventListener('click', closePropertyModal);
+        cancelPropertyBtn.addEventListener('click', closePropertyModal);
+        propertyForm.addEventListener('submit', handlePropertySubmit);
+        propertyTypeSelect.addEventListener('change', updatePropertyRangeVisibility);
+    }
 }
 
 /**
@@ -266,7 +350,7 @@ function openMcpModal(index = null) {
         mcpProperties = [];
     }
     renderMcpProperties();
-    document.getElementById('mcpToolModal').style.display = 'block';
+    document.getElementById('mcpToolModal').style.display = 'flex';
 }
 
 /**
@@ -392,12 +476,26 @@ export function getMcpTools() {
 /**
  * 执行工具调用
  */
-export function executeMcpTool(toolName, toolArgs) {
+export async function executeMcpTool(toolName, toolArgs) {
     const tool = mcpTools.find(t => t.name === toolName);
     if (!tool) {
         log(`未找到工具: ${toolName}`, 'error');
         return { success: false, error: `未知工具: ${toolName}` };
     }
+
+    // 处理拍照工具
+    if (toolName === 'self_camera_take_photo') {
+        if (typeof window.takePhoto === 'function') {
+            const question = toolArgs && toolArgs.question ? toolArgs.question : '描述一下看到的物品';
+            log(`正在执行拍照: ${question}`, 'info');
+            const result = await window.takePhoto(question);
+            return result;
+        } else {
+            log('拍照功能不可用', 'warning');
+            return { success: false, error: '摄像头未启动或不支持拍照功能' };
+        }
+    }
+
     // 如果有模拟返回结果，使用它
     if (tool.mockResponse) {
         // 替换模板变量
@@ -424,4 +522,4 @@ export function executeMcpTool(toolName, toolArgs) {
 }
 
 // 暴露全局方法供 HTML 内联事件调用
-window.mcpModule = { updateMcpProperty, deleteMcpProperty, editMcpTool, deleteMcpTool };
+window.mcpModule = { addMcpProperty, editMcpProperty, deleteMcpProperty, editMcpTool, deleteMcpTool };

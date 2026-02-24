@@ -78,7 +78,7 @@ class WebSocketServer:
         ):
             await asyncio.Future()
 
-    async def _handle_connection(self, websocket):
+    async def _handle_connection(self, websocket: websockets.ServerConnection):
         headers = dict(websocket.request.headers)
         if headers.get("device-id", None) is None:
             # 尝试从 URL 的查询参数中获取 device-id
@@ -203,7 +203,7 @@ class WebSocketServer:
             self.logger.bind(tag=TAG).error(f"更新服务器配置失败: {str(e)}")
             return False
 
-    async def _handle_auth(self, websocket):
+    async def _handle_auth(self, websocket: websockets.ServerConnection):
         # 先认证，后建立连接
         if self.auth_enable:
             headers = dict(websocket.request.headers)
