@@ -127,7 +127,7 @@ pm2 restart xz-mqtt
 ```
 192.168.0.7:8884
 ```
-4. 在智控台顶部，点击`参数管理`，搜索`server.mqtt_manager_api`，点击编辑，填入你在`.env`文件中设置的`PUBLIC_IP`+`:`+`UDP_PORT`。类似这样
+4. 在智控台顶部，点击`参数管理`，搜索`server.mqtt_manager_api`，点击编辑，填入你在`.env`文件中设置的`PUBLIC_IP`+`:`+`API_PORT`。类似这样
 ```
 192.168.0.7:8007
 ```
@@ -154,7 +154,7 @@ curl 'http://localhost:8002/xiaozhi/ota/' \
 pm2 logs xz-mqtt
 ```
 
-## 第三部分：全模块运行实现小智硬件MQTT+UDP连接
+## 第三部分：单模块运行xiaozhi-server实现小智硬件MQTT+UDP连接
 
 打开你的`data/.config.yaml`文件，在`server`下找到`mqtt_gateway`填入你在`.env`文件中设置的`PUBLIC_IP`+`:`+`MQTT_PORT`。类似这样
 ```
