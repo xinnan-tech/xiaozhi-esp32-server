@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -38,6 +39,8 @@ import cn.hutool.crypto.digest.DigestUtil;
 import cn.hutool.http.ContentType;
 import cn.hutool.http.Header;
 import cn.hutool.http.HttpRequest;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
@@ -700,40 +703,82 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // 构建完整的URL
         String url = StrUtil.format("http://{}/api/commands/{}", mqttGatewayUrl, clientId);
 
-        // 构建请求体
-        Map<String, Object> payload = MapUtil
-                .builder(new HashMap<String, Object>())
-                .put("jsonrpc", "2.0")
-                .put("id", 2)
-                .put("method", "tools/list")
-                .put("params", MapUtil.builder(new HashMap<String, Object>())
-                        .put("withUserTools", true)
-                        .build())
-                .build();
+        // 存储所有工具列表
+        List<Object> allTools = new ArrayList<>();
+        String cursor = null;
 
-        Map<String, Object> requestBody = MapUtil
-                .builder(new HashMap<String, Object>())
-                .put("type", "mcp")
-                .put("payload", payload)
-                .build();
-
-        // 发送请求
-        String resultMessage = HttpRequest.post(url)
-                .header(Header.CONTENT_TYPE, ContentType.JSON.getValue())
-                .header(Header.AUTHORIZATION, "Bearer " + generateBearerToken())
-                .body(JSONUtil.toJsonStr(requestBody))
-                .timeout(10000) // 超时，毫秒
-                .execute().body();
-
-        // 解析响应
-        if (StringUtils.isNotBlank(resultMessage)) {
-            cn.hutool.json.JSONObject jsonObject = JSONUtil.parseObj(resultMessage);
-            if (jsonObject.getBool("success", false)) {
-                return jsonObject.get("data");
+        // 循环获取分页数据
+        while (true) {
+            // 构建params
+            Map<String, Object> paramsMap = MapUtil.builder(new HashMap<String, Object>())
+                    .put("withUserTools", true)
+                    .build();
+            // 如果有cursor，添加到请求参数中
+            if (StringUtils.isNotBlank(cursor)) {
+                paramsMap.put("cursor", cursor);
             }
+
+            // 构建请求体
+            Map<String, Object> payload = MapUtil
+                    .builder(new HashMap<String, Object>())
+                    .put("jsonrpc", "2.0")
+                    .put("id", 2)
+                    .put("method", "tools/list")
+                    .put("params", paramsMap)
+                    .build();
+
+            Map<String, Object> requestBody = MapUtil
+                    .builder(new HashMap<String, Object>())
+                    .put("type", "mcp")
+                    .put("payload", payload)
+                    .build();
+
+            // 发送请求
+            String resultMessage = HttpRequest.post(url)
+                    .header(Header.CONTENT_TYPE, ContentType.JSON.getValue())
+                    .header(Header.AUTHORIZATION, "Bearer " + generateBearerToken())
+                    .body(JSONUtil.toJsonStr(requestBody))
+                    .timeout(10000) // 超时，毫秒
+                    .execute().body();
+
+            // 解析响应
+            if (StringUtils.isBlank(resultMessage)) {
+                break;
+            }
+
+            JSONObject jsonObject = JSONUtil.parseObj(resultMessage);
+            if (!jsonObject.getBool("success", false)) {
+                break;
+            }
+
+            JSONObject data = jsonObject.getJSONObject("data");
+            if (data == null) {
+                break;
+            }
+
+            // 获取当前页的工具列表
+            JSONArray tools = data.getJSONArray("tools");
+            if (tools != null && !tools.isEmpty()) {
+                allTools.addAll(tools);
+            }
+
+            // 获取下一页的cursor
+            String nextCursor = data.getStr("nextCursor");
+            if (StringUtils.isBlank(nextCursor)) {
+                // 没有下一页了
+                break;
+            }
+            cursor = nextCursor;
         }
 
-        return null;
+        // 构建返回结果
+        if (allTools.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Object> resultData = new HashMap<>();
+        resultData.put("tools", allTools);
+        return resultData;
     }
 
     @Override
