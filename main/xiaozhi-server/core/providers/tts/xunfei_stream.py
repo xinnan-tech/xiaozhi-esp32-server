@@ -9,6 +9,7 @@ import hashlib
 import asyncio
 import traceback
 import websockets
+from typing import Callable, Any
 from asyncio import Task
 from config.logger import setup_logging
 from core.utils import opus_encoder_utils
@@ -472,9 +473,27 @@ class TTSProvider(TTSProviderBase):
             return audio_data
         except Exception as e:
             logger.bind(tag=TAG).error(f"生成音频数据失败: {str(e)}")
-            return []        
-    
-    def _build_base_request(self, status,text=" "):
+            return []
+
+    def audio_to_opus_data_stream(
+        self, audio_file_path, callback: Callable[[Any], Any] = None
+    ):
+        """重写父类方法：使用独立的临时编码器处理音频文件，避免与TTS流式编码器并发冲突。
+        双流式TTS中，monitor任务在event loop线程接收TTS音频并使用self.opus_encoder编码，
+        同时tts_text_priority_thread处理音乐文件也使用self.opus_encoder，
+        共享的encoder.buffer非线程安全，并发访问会导致SILK resampler断言失败。
+        """
+        from core.utils.util import audio_to_data_stream
+
+        return audio_to_data_stream(
+            audio_file_path,
+            is_opus=True,
+            callback=callback,
+            sample_rate=self.conn.sample_rate,
+            opus_encoder=None,
+        )
+
+    def _build_base_request(self, status, text=" "):
         """构建基础请求结构"""
         return {
             "header": {
