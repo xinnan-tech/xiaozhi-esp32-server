@@ -6,12 +6,14 @@ import asyncio
 import aiohttp
 import requests
 import traceback
+
+from core.utils import textUtils
 from config.logger import setup_logging
-from core.utils.tts import MarkdownCleaner
 from core.utils.util import parse_string_to_list
 from core.providers.tts.base import TTSProviderBase
-from core.utils import opus_encoder_utils, textUtils
 from core.providers.tts.dto.dto import SentenceType, ContentType
+from core.utils.tts import MarkdownCleaner, convert_percentage_to_range
+
 
 TAG = __name__
 logger = setup_logging()
@@ -55,6 +57,22 @@ class TTSProvider(TTSProviderBase):
 
         if self.voice:
             self.voice_setting["voice_id"] = self.voice
+
+        # 应用百分比调整（如果存在），否则使用公有化配置
+        if "ttsVolume" in config:
+            self.voice_setting["vol"] = round(convert_percentage_to_range(
+                config["ttsVolume"], min_val=0.1, max_val=10, base_val=1.0
+            ), 1)
+
+        if "ttsRate" in config:
+            self.voice_setting["speed"] = round(convert_percentage_to_range(
+                config["ttsRate"], min_val=0.5, max_val=2, base_val=1.0
+            ), 1)
+
+        if "ttsPitch" in config:
+            self.voice_setting["pitch"] = int(convert_percentage_to_range(
+                config["ttsPitch"], min_val=-12, max_val=12, base_val=0
+            ))
 
         self.host = "api.minimaxi.com"  # 备用地址：api-bj.minimaxi.com
         self.api_url = f"https://{self.host}/v1/t2a_v2?GroupId={self.group_id}"

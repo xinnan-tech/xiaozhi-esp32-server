@@ -134,7 +134,6 @@ class ConnectionHandler:
         self.asr_audio = []
         self.asr_audio_queue = queue.Queue()
         self.current_speaker = None  # 存储当前说话人
-        self.current_language_tag = None  # 存储当前ASR识别的语言标签
 
         # llm相关变量
         self.dialogue = Dialogue()

@@ -251,6 +251,15 @@ class PromptManager:
                         or ""
                     )
 
+            # 获取TTS选择的语言，默认值为中文
+            language = (
+                self.config.get("TTS", {})
+                .get(self.config.get("selected_module", {}).get("TTS", ""), {})
+                .get("language")
+                or "中文"
+            )
+            self.logger.bind(tag=TAG).debug(f"获取到选择的语言: {language}")
+
             # 替换模板变量
             template = Template(self.base_prompt_template)
             enhanced_prompt = template.render(
@@ -265,6 +274,7 @@ class PromptManager:
                 device_id=device_id,
                 client_ip=client_ip,
                 dynamic_context=self.context_data,
+                language=language,
                 *args,
                 **kwargs,
             )

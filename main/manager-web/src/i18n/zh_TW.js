@@ -25,7 +25,7 @@ export default {
   'header.featureManagement': '系統功能配置',
   'header.changePassword': '修改密碼',
   'header.logout': '退出登錄',
-  'header.searchPlaceholder': '輸入名稱或mac搜索',
+  'header.searchPlaceholder': '名稱、標籤或mac搜索',
 
   // McpToolCallDialog组件文本
   'mcpToolCall.title': '工具調用',
@@ -747,6 +747,7 @@ export default {
 
   // 角色配置頁面文本
   'roleConfig.title': '角色配置',
+  'roleConfig.addTag': '添加新標籤',
   'roleConfig.restartNotice': '保存配置後，需要重啟設備，新的配置才會生效。',
   'roleConfig.saveConfig': '保存配置',
   'roleConfig.reset': '重置',
@@ -763,7 +764,16 @@ export default {
   'roleConfig.memoryHis': '記憶',
   'roleConfig.memory': '記憶模式',
   'roleConfig.intent': '意圖識別(Intent)',
+  'roleConfig.language': '選擇語言',
   'roleConfig.voiceType': '聲音音色(Voice)',
+  'roleConfig.ttsVolume': '音量',
+  'roleConfig.ttsRate': '語速',
+  'roleConfig.ttsPitch': '音調',
+  'roleConfig.ttsAdvanced': 'TTS參數',
+  'roleConfig.advancedSettings': '高級設置',
+  'roleConfig.volumeHint': '-100=最小, 0=標準, 100=最大',
+  'roleConfig.speedHint': '-100=最慢, 0=標準, 100=最快',
+  'roleConfig.pitchHint': '-100=最低, 0=標準, 100=最高',
   'roleConfig.pleaseEnterContent': '請輸入內容',
   'roleConfig.pleaseEnterLangCode': '請輸入語言編碼，如：zh_TW',
   'roleConfig.pleaseEnterLangName': '請輸入交互語種，如：繁體中文',

@@ -1,6 +1,7 @@
 package xiaozhi.modules.agent.entity;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -63,6 +64,26 @@ public class AgentTemplateEntity implements Serializable {
      * 音色标识
      */
     private String ttsVoiceId;
+
+    /**
+     * 音色语言
+     */
+    private String ttsLanguage;
+
+    /**
+     * TTS音量
+     */
+    private Integer ttsVolume;
+
+    /**
+     * TTS语速
+     */
+    private Integer ttsRate;
+
+    /**
+     * TTS音调
+     */
+    private Integer ttsPitch;
 
     /**
      * 记忆模型标识

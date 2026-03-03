@@ -23,6 +23,9 @@ public class VoiceDTO implements Serializable {
     @Schema(description = "音频播放地址")
     private String voiceDemo;
     
+    @Schema(description = "语言类型")
+    private String languages;
+    
     @Schema(description = "是否为克隆音色")
     private Boolean isClone;
 
@@ -31,6 +34,7 @@ public class VoiceDTO implements Serializable {
         this.id = id;
         this.name = name;
         this.voiceDemo = null;
+        this.languages = null;
         this.isClone = false; // 默认不是克隆音色
     }
     
@@ -39,6 +43,7 @@ public class VoiceDTO implements Serializable {
         this.id = id;
         this.name = name;
         this.voiceDemo = voiceDemo;
+        this.languages = null;
         this.isClone = false;
     }
 

@@ -2,15 +2,24 @@ import uuid
 import json
 import base64
 import requests
+
+from config.logger import setup_logging
 from core.utils.util import check_model_key
 from core.providers.tts.base import TTSProviderBase
-from config.logger import setup_logging
+from core.utils.tts import convert_percentage_to_range
+
 
 TAG = __name__
 logger = setup_logging()
 
 
 class TTSProvider(TTSProviderBase):
+    TTS_PARAM_CONFIG = [
+        ("ttsVolume", "volume_ratio", 0.1, 3, 1.0, lambda v: round(float(v), 1)),
+        ("ttsRate", "speed_ratio", 0.2, 3, 1.0, lambda v: round(float(v), 1)),
+        ("ttsPitch", "pitch_ratio", 0.1, 3, 1.0, lambda v: round(float(v), 1)),
+    ]
+
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
         if config.get("appid"):
@@ -33,6 +42,9 @@ class TTSProvider(TTSProviderBase):
         self.speed_ratio = float(speed_ratio) if speed_ratio else 1.0
         self.volume_ratio = float(volume_ratio) if volume_ratio else 1.0
         self.pitch_ratio = float(pitch_ratio) if pitch_ratio else 1.0
+
+        # 应用百分比调整（如果存在），否则使用公有化配置
+        self._apply_percentage_params(config)
 
         self.api_url = config.get("api_url")
         self.authorization = config.get("authorization")

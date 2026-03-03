@@ -67,11 +67,6 @@ async def startToChat(conn: "ConnectionHandler", text):
         conn.current_speaker = speaker_name
     else:
         conn.current_speaker = None
-    # 保存语种信息到连接对象
-    if language_tag:
-        conn.current_language_tag = language_tag
-    else:
-        conn.current_language_tag = "zh"
 
     if conn.need_bind:
         await check_bind_device(conn)

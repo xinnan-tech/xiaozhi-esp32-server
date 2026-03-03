@@ -71,8 +71,14 @@
                     {{ $t('ttsModel.delete') }}
                   </el-button>
               </template>
-              <el-button v-else type="success" size="mini" @click="saveEdit(scope.row)" class="save-Tts">{{ $t('ttsModel.save') }}
+              <template v-else>
+                <el-button type="success" size="mini" @click="cancelEdit(scope.row)" class="save-Tts">
+                  {{ $t('button.cancel') }}
                 </el-button>
+                <el-button type="success" size="mini" @click="saveEdit(scope.row)" class="save-Tts">
+                  {{ $t('ttsModel.save') }}
+                </el-button>
+              </template>
             </template>
           </el-table-column>
         </el-table>
@@ -340,6 +346,17 @@ export default {
       this.$set(row, 'originalData', { ...row });
     },
 
+    cancelEdit(row) {
+      // 通过新增创建的数据，取消编辑时，需要从数组中移除
+      if (!row.id) {
+        this.ttsModels.shift(row);
+      } else {
+        Object.assign(row, row.originalData);
+        delete row.originalData;
+      }
+      row.editing = false;
+    },
+
     saveEdit(row) {
       if (!row.voiceCode || !row.voiceName || !row.languageType) {
         this.$message.error({
@@ -447,7 +464,7 @@ export default {
         referenceText: '',
         selected: false,
         editing: true,
-        sort: maxSort + 1
+        sort: 0 // 新增数据默认排序在顶部
       };
 
       this.ttsModels.unshift(newRow);

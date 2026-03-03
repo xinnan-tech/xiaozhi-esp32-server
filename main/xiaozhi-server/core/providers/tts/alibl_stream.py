@@ -6,10 +6,10 @@ import queue
 import asyncio
 import traceback
 import websockets
-from typing import Callable, Any
+
 from asyncio import Task
+from typing import Callable, Any
 from config.logger import setup_logging
-from core.utils import opus_encoder_utils
 from core.utils.tts import MarkdownCleaner
 from core.providers.tts.base import TTSProviderBase
 from core.providers.tts.dto.dto import SentenceType, ContentType, InterfaceType
@@ -19,6 +19,12 @@ logger = setup_logging()
 
 
 class TTSProvider(TTSProviderBase):
+    TTS_PARAM_CONFIG = [
+        ("ttsVolume", "volume", 0, 100, 50, int),
+        ("ttsRate", "rate", 0.5, 2.0, 1.0, lambda v: round(v, 1)),
+        ("ttsPitch", "pitch", 0.5, 2.0, 1.0, lambda v: round(v, 1)),
+    ]
+
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
 
@@ -51,6 +57,9 @@ class TTSProvider(TTSProviderBase):
 
         pitch = config.get("pitch", "1.0")
         self.pitch = float(pitch) if pitch else 1.0
+
+        # 应用百分比调整（如果存在），否则使用公有化配置
+        self._apply_percentage_params(config)
 
         self.header = {
             "Authorization": f"Bearer {self.api_key}",

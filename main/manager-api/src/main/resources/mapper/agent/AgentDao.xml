@@ -16,6 +16,10 @@
         <result column="llmModelId" property="llmModelId"/>
         <result column="ttsModelId" property="ttsModelId"/>
         <result column="ttsVoiceId" property="ttsVoiceId"/>
+        <result column="ttsLanguage" property="ttsLanguage"/>
+        <result column="ttsVolume" property="ttsVolume"/>
+        <result column="ttsRate" property="ttsRate"/>
+        <result column="ttsPitch" property="ttsPitch"/>
         <result column="memModelId" property="memModelId"/>
         <result column="intentModelId" property="intentModelId"/>
 
@@ -45,6 +49,10 @@
                a.vllm_model_id     AS vllmModelId,
                a.tts_model_id      AS ttsModelId,
                a.tts_voice_id      AS ttsVoiceId,
+               a.tts_language      AS ttsLanguage,
+               a.tts_volume        AS ttsVolume,
+               a.tts_rate          AS ttsRate,
+               a.tts_pitch         AS ttsPitch,
                a.mem_model_id      AS memModelId,
                a.intent_model_id   AS intentModelId,
                COALESCE(

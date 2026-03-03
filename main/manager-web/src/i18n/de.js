@@ -25,7 +25,7 @@ export default {
   'header.featureManagement': 'Systemfunktionsverwaltung',
   'header.changePassword': 'Passwort ändern',
   'header.logout': 'Abmelden',
-  'header.searchPlaceholder': 'Namen oder MAC suchen',
+  'header.searchPlaceholder': 'Name, Tag oder Mac-Suche',
 
   // McpToolCallDialog component text
   'mcpToolCall.title': 'Werkzeugaufruf',
@@ -747,6 +747,7 @@ export default {
 
   // Role configuration page text
   'roleConfig.title': 'Rollenkonfiguration',
+  'roleConfig.addTag': 'Neues Label hinzufügen',
   'roleConfig.restartNotice': 'Nach dem Speichern der Konfiguration müssen Sie das Gerät neu starten, damit die neue Konfiguration wirksam wird.',
   'roleConfig.saveConfig': 'Konfiguration speichern',
   'roleConfig.reset': 'Zurücksetzen',
@@ -763,7 +764,16 @@ export default {
   'roleConfig.memoryHis': 'Speicher',
   'roleConfig.memory': 'Speicher',
   'roleConfig.intent': 'Intent',
+  'roleConfig.language': 'Sprache auswählen',
   'roleConfig.voiceType': 'Stimmtyp',
+  'roleConfig.ttsVolume': 'Lautstärke',
+  'roleConfig.ttsRate': 'Geschwindigkeit',
+  'roleConfig.ttsPitch': 'Tonhöhe',
+  'roleConfig.ttsAdvanced': 'TTS-Parameter',
+  'roleConfig.advancedSettings': 'Erweiterte Einstellungen',
+  'roleConfig.volumeHint': '-100=Min, 0=Standard, 100=Max',
+  'roleConfig.speedHint': '-100=Langsamste, 0=Standard, 100=Schnellste',
+  'roleConfig.pitchHint': '-100=Niedrigste, 0=Standard, 100=Höchste',
   'roleConfig.pleaseEnterContent': 'Bitte Inhalt eingeben',
   'roleConfig.pleaseEnterLangCode': 'Bitte Sprachcode eingeben, z.B.: en_US',
   'roleConfig.pleaseEnterLangName': 'Bitte Interaktionssprache eingeben, z.B.: Englisch',

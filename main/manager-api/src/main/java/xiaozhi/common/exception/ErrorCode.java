@@ -245,4 +245,9 @@ public interface ErrorCode {
     int DEVICE_NOT_EXIST = 10194; // 设备不存在
     int OTA_UPLOAD_COUNT_EXCEED = 10195; // OTA上传次数超过限制
 
+    // 智能体标签相关错误码
+    int AGENT_TAG_NAME_DUPLICATE = 10196; // 标签名称已存在
+    int AGENT_TAG_NAME_EMPTY = 10197; // 标签名称不能为空
+    int AGENT_TAG_NOT_EXIST = 10198; // 标签不存在
+
 }

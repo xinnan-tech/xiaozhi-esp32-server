@@ -1,5 +1,6 @@
 package xiaozhi.modules.agent.entity;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -44,6 +45,18 @@ public class AgentEntity {
 
     @Schema(description = "音色标识")
     private String ttsVoiceId;
+
+    @Schema(description = "音色语言")
+    private String ttsLanguage;
+
+    @Schema(description = "TTS音量")
+    private Integer ttsVolume;
+
+    @Schema(description = "TTS语速")
+    private Integer ttsRate;
+
+    @Schema(description = "TTS音调")
+    private Integer ttsPitch;
 
     @Schema(description = "记忆模型标识")
     private String memModelId;

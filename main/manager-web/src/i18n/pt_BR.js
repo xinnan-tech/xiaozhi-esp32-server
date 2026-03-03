@@ -25,7 +25,7 @@ export default {
   'header.featureManagement': 'Gerenciamento de Funcionalidades do Sistema',
   'header.changePassword': 'Alterar Senha',
   'header.logout': 'Sair',
-  'header.searchPlaceholder': 'Pesquisar nome ou MAC',
+  'header.searchPlaceholder': 'Nome, tag ou pesquisa no Mac',
 
   // Texto do componente McpToolCallDialog
   'mcpToolCall.title': 'Chamada de Ferramenta',
@@ -747,6 +747,7 @@ export default {
 
   // Página de configuração de papel
   'roleConfig.title': 'Configuração de Papel',
+  'roleConfig.addTag': 'Adicionar Novo Rótulo',
   'roleConfig.restartNotice': 'Após salvar a configuração, é necessário reiniciar o dispositivo para que a nova configuração tenha efeito.',
   'roleConfig.saveConfig': 'Salvar Configuração',
   'roleConfig.reset': 'Redefinir',

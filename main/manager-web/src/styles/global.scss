@@ -20,3 +20,13 @@ select:-webkit-autofill:focus {
 .el-icon-video-play, .el-icon-video-pause { 
   font-size: 18px !important;
 }
+
+.is-light {
+  border: 1px solid #e4e7ed !important;
+  color: #595959;
+  font-size: 14px;
+  background: #fafcfe !important;
+  .popper__arrow {
+    border-top-color: #e4e7ed !important;
+   }
+}

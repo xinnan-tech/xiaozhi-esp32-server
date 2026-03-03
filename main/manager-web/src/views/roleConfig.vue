@@ -11,10 +11,34 @@
         <div class="content-area">
           <el-card class="config-card" shadow="never">
             <div class="config-header">
-              <div class="header-icon">
-                <img loading="lazy" src="@/assets/home/setting-user.png" alt="" />
+              <div class="header-left">
+                <div class="header-icon">
+                  <img loading="lazy" src="@/assets/home/setting-user.png" alt="" />
+                </div>
+                <span class="header-title">{{ form.agentName }}</span>
               </div>
-              <span class="header-title">{{ form.agentName }}</span>
+              <div class="header-tags">
+                <el-tag
+                  v-for="tag in dynamicTags"
+                  :key="tag.id"
+                  closable
+                  :disable-transitions="false"
+                  @close="handleClose(tag.id)">
+                  {{tag.tagName}}
+                </el-tag>
+                <el-input
+                  class="input-new-tag"
+                  v-if="inputVisible"
+                  v-model="inputValue"
+                  ref="saveTagInput"
+                  size="small"
+                  maxLength="64"
+                  @keyup.enter.native="handleInputConfirm"
+                  @blur="handleInputConfirm"
+                >
+                </el-input>
+                <el-button v-else size="small" @click="showInput">+ {{ $t("roleConfig.addTag") }}</el-button>
+              </div>
               <div class="header-actions">
                 <div class="hint-text">
                   <img loading="lazy" src="@/assets/home/info.png" alt="" />
@@ -39,7 +63,7 @@
                       <el-input
                         v-model="form.agentName"
                         class="form-input"
-                        maxlength="10"
+                        maxlength="64"
                       />
                     </el-form-item>
                     <el-form-item :label="$t('roleConfig.roleTemplate') + '：'">
@@ -232,47 +256,78 @@
                         </div>
                       </div>
                     </el-form-item>
-                    <el-form-item :label="$t('roleConfig.voiceType')">
-                      <el-select
-                        v-model="form.ttsVoiceId"
-                        filterable
-                        :placeholder="$t('roleConfig.pleaseSelect')"
-                        class="form-select"
-                      >
-                        <el-option
-                          v-for="(item, index) in voiceOptions"
-                          :key="`voice-${index}`"
-                          :label="item.label"
-                          :value="item.value"
-                        >
-                          <div
-                            style="
-                              display: flex;
-                              justify-content: space-between;
-                              align-items: center;
-                            "
+                    <div class="model-row">
+                      <!-- 语言筛选器 -->
+                      <el-form-item :label="$t('roleConfig.language')" class="model-item language-select-item">
+                        <div class="model-select-wrapper">
+                          <el-select
+                            v-model="selectedLanguage"
+                            :placeholder="$t('roleConfig.selectLanguage')"
+                            class="form-select language-select"
+                            @change="filterVoicesByLanguage"
                           >
-                            <span>{{ item.label }}</span>
-                            <template v-if="hasAudioPreview(item)">
-                              <el-button
-                                type="text"
-                                :icon="
-                                  playingVoice &&
-                                  currentPlayingVoiceId === item.value &&
-                                  !isPaused
-                                    ? 'el-icon-video-pause'
-                                    : 'el-icon-video-play'
+                            <el-option
+                              v-for="(lang, index) in languageOptions"
+                              :key="`lang-${index}`"
+                              :label="lang.label"
+                              :value="lang.value"
+                            />
+                          </el-select>
+                        </div>
+                      </el-form-item>
+
+                      <!-- 音色选择器 -->
+                      <el-form-item :label="$t('roleConfig.voiceType')" class="model-item">
+                        <div class="model-select-wrapper">
+                          <el-select
+                            v-model="form.ttsVoiceId"
+                            filterable
+                            :placeholder="$t('roleConfig.pleaseSelect')"
+                            class="form-select"
+                          >
+                            <el-option
+                              v-for="(item, index) in voiceOptions"
+                              :key="`voice-${index}`"
+                              :label="item.label"
+                              :value="item.value"
+                            >
+                              <div
+                                style="
+                                  display: flex;
+                                  justify-content: space-between;
+                                  align-items: center;
                                 "
-                                size="small"
-                                @click.stop="toggleAudioPlayback(item.value)"
-                                :loading="false"
-                                class="play-button"
-                              />
-                            </template>
-                          </div>
-                        </el-option>
-                      </el-select>
-                    </el-form-item>
+                              >
+                                <span>{{ item.label }}</span>
+                                <template v-if="hasAudioPreview(item)">
+                                  <el-button
+                                    type="text"
+                                    :icon="
+                                      playingVoice &&
+                                      currentPlayingVoiceId === item.value &&
+                                      !isPaused
+                                        ? 'el-icon-video-pause'
+                                        : 'el-icon-video-play'
+                                    "
+                                    size="small"
+                                    @click.stop="toggleAudioPlayback(item.value)"
+                                    :loading="false"
+                                    class="play-button"
+                                  />
+                                </template>
+                              </div>
+                            </el-option>
+                          </el-select>
+                          <el-button
+                            class="edit-function-btn"
+                            style="margin-left: 10px;"
+                            @click="openTtsAdvancedSettings"
+                          >
+                            {{ $t('roleConfig.advancedSettings') }}
+                          </el-button>
+                        </div>
+                      </el-form-item>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -294,6 +349,11 @@
       :providers="currentContextProviders"
       @confirm="handleUpdateContext"
     />
+    <tts-advanced-settings
+      :visible.sync="showTtsAdvancedDialog"
+      :settings="ttsSettings"
+      @save="handleTtsSettingsSave"
+    />
   </div>
 </template>
 
@@ -303,20 +363,30 @@ import { getServiceUrl } from "@/apis/api";
 import RequestService from "@/apis/httpRequest";
 import FunctionDialog from "@/components/FunctionDialog.vue";
 import ContextProviderDialog from "@/components/ContextProviderDialog.vue";
+import TtsAdvancedSettings from "@/components/TtsAdvancedSettings.vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import i18n from "@/i18n";
 import featureManager from "@/utils/featureManager"; 
 
 export default {
   name: "RoleConfigPage",
-  components: { HeaderBar, FunctionDialog, ContextProviderDialog },
+  components: { HeaderBar, FunctionDialog, ContextProviderDialog, TtsAdvancedSettings },
   data() {
     return {
       showContextProviderDialog: false,
+      showTtsAdvancedDialog: false,
+      ttsSettings: {
+        volume: 0,
+        speed: 0,
+        pitch: 0
+      },
       form: {
         agentCode: "",
         agentName: "",
         ttsVoiceId: "",
+        ttsVolume: null,
+        ttsRate: null,
+        ttsPitch: null,
         chatHistoryConf: 0,
         systemPrompt: "",
         summaryMemory: "",
@@ -357,18 +427,31 @@ export default {
       isPaused: false,
       currentAudio: null,
       currentPlayingVoiceId: null,
+      // 语言筛选相关状态
+      languageOptions: [], // 语言选项列表
+      selectedLanguage: '', // 当前选中的语言
       // 功能状态
       featureStatus: {
         vad: false, // 语言检测活动功能状态
         asr: false, // 语音识别功能状态
       },
+      dynamicTags: [],
+      inputVisible: false,
+      inputValue: ''
     };
   },
   methods: {
     goToHome() {
       this.$router.push("/home");
     },
-    saveConfig() {
+    async saveConfig() {
+      try {
+        await this.handleSaveAgentTags(this.$route.query.agentId);
+      } catch (error) {
+        console.error('保存标签失败:', error);
+        return;
+      }
+
       const configData = {
         agentCode: this.form.agentCode,
         agentName: this.form.agentName,
@@ -378,6 +461,7 @@ export default {
         vllmModelId: this.form.model.vllmModelId,
         ttsModelId: this.form.model.ttsModelId,
         ttsVoiceId: this.form.ttsVoiceId,
+        ttsLanguage: this.selectedLanguage,
         chatHistoryConf: this.form.chatHistoryConf,
         memModelId: this.form.model.memModelId,
         intentModelId: this.form.model.intentModelId,
@@ -394,6 +478,17 @@ export default {
         }),
         contextProviders: this.currentContextProviders,
       };
+
+      // 只在用户设置了TTS参数时才传递（不为null/undefined）
+      if (this.form.ttsVolume !== null && this.form.ttsVolume !== undefined) {
+        configData.ttsVolume = this.form.ttsVolume;
+      }
+      if (this.form.ttsRate !== null && this.form.ttsRate !== undefined) {
+        configData.ttsRate = this.form.ttsRate;
+      }
+      if (this.form.ttsPitch !== null && this.form.ttsPitch !== undefined) {
+        configData.ttsPitch = this.form.ttsPitch;
+      }
       Api.agent.updateAgentConfig(this.$route.query.agentId, configData, ({ data }) => {
         if (data.code === 0) {
           this.$message.success({
@@ -407,6 +502,7 @@ export default {
           });
         }
       });
+      
     },
     resetConfig() {
       this.$confirm(i18n.t("roleConfig.confirmReset"), i18n.t("message.info"), {
@@ -435,6 +531,7 @@ export default {
               intentModelId: "",
             },
           };
+          this.dynamicTags = [];
           this.currentFunctions = [];
           this.$message.success({
             message: i18n.t("roleConfig.resetSuccess"),
@@ -507,6 +604,14 @@ export default {
               intentModelId: data.data.intentModelId,
             },
           };
+
+          // 同步TTS设置到ttsSettings
+          this.ttsSettings = {
+            volume: this.form.ttsVolume || 0,
+            speed: this.form.ttsRate || 0,
+            pitch: this.form.ttsPitch || 0
+          };
+
           // 后端只给了最小映射：[{ id, agentId, pluginId }, ...]
           const savedMappings = data.data.functions || [];
           
@@ -592,32 +697,91 @@ export default {
       if (!modelId) {
         this.voiceOptions = [];
         this.voiceDetails = {};
+        this.languageOptions = [];
+        this.selectedLanguage = '';
         return;
       }
       Api.model.getModelVoices(modelId, "", ({ data }) => {
         if (data.code === 0 && data.data) {
-          this.voiceOptions = data.data.map((voice) => ({
-            value: voice.id,
-            label: voice.name,
-            // 只保留后端实际返回的音频相关字段
-            voiceDemo: voice.voiceDemo,
-            voice_demo: voice.voice_demo,
-            // 使用后端实际返回的 isClone 字段
-            isClone: Boolean(voice.isClone),
-            // 保存训练状态字段
-            train_status: voice.trainStatus,
-          }));
-          // 保存完整的音色信息，添加调试信息
+          // 保存完整的音色信息
           this.voiceDetails = data.data.reduce((acc, voice) => {
             acc[voice.id] = voice;
             return acc;
           }, {});
+          
+          // 提取所有语言选项并去重
+          const allLanguages = new Set();
+          data.data.forEach(voice => {
+            if (voice.languages) {
+              const languagesArray = voice.languages.split('、').map(lang => lang.trim()).filter(lang => lang);
+              languagesArray.forEach(lang => allLanguages.add(lang));
+            }
+          });
+
+          this.languageOptions = Array.from(allLanguages).map(lang => ({
+            value: lang,
+            label: lang
+          }));
+
+          // 使用后端返回的用户选择的语言，如果没有则使用第一个语言选项
+          if (this.form.ttsLanguage && this.languageOptions.some(option => option.value === this.form.ttsLanguage)) {
+            this.selectedLanguage = this.form.ttsLanguage;
+          } else if (this.languageOptions.length > 0) {
+            this.selectedLanguage = this.languageOptions[0].value;
+          }
+
+          // 根据选中的语言筛选音色
+          this.filterVoicesByLanguage();
         } else {
           this.voiceOptions = [];
           this.voiceDetails = {};
+          this.languageOptions = [];
+          this.selectedLanguage = '';
         }
       });
     },
+    
+    // 根据语言筛选音色
+    filterVoicesByLanguage() {
+      if (!this.voiceDetails || Object.keys(this.voiceDetails).length === 0) {
+        this.voiceOptions = [];
+        return;
+      }
+
+      const allVoices = Object.values(this.voiceDetails);
+
+      // 根据选中的语言筛选音色
+      const filteredVoices = allVoices.filter(voice => {
+        if (!voice.languages) return false;
+        const languagesArray = voice.languages.split('、').map(lang => lang.trim()).filter(lang => lang);
+        return languagesArray.includes(this.selectedLanguage);
+      });
+
+      this.voiceOptions = filteredVoices.map((voice) => ({
+        value: voice.id,
+        label: voice.name,
+        voiceDemo: voice.voiceDemo,
+        voice_demo: voice.voice_demo,
+        isClone: Boolean(voice.isClone),
+        train_status: voice.trainStatus,
+      }));
+
+      // 检查当前选中的音色是否支持当前语言，如果不支持则选择第一个
+      const currentVoiceSupportsLanguage = this.form.ttsVoiceId &&
+        filteredVoices.some(voice => voice.id === this.form.ttsVoiceId);
+
+      if (!currentVoiceSupportsLanguage) {
+        this.form.ttsVoiceId = filteredVoices.length > 0 ? filteredVoices[0].id : '';
+      }
+
+      // 同步到ttsSettings（如果值为null，使用0作为显示默认值，但不修改form中的值）
+      this.ttsSettings = {
+        volume: this.form.ttsVolume !== null && this.form.ttsVolume !== undefined ? this.form.ttsVolume : 0,
+        speed: this.form.ttsRate !== null && this.form.ttsRate !== undefined ? this.form.ttsRate : 0,
+        pitch: this.form.ttsPitch !== null && this.form.ttsPitch !== undefined ? this.form.ttsPitch : 0
+      };
+    },
+
     getFunctionDisplayChar(name) {
       if (!name || name.length === 0) return "";
 
@@ -682,6 +846,16 @@ export default {
     },
     openContextProviderDialog() {
       this.showContextProviderDialog = true;
+    },
+    openTtsAdvancedSettings() {
+      this.showTtsAdvancedDialog = true;
+    },
+    handleTtsSettingsSave(settings) {
+      // 保存TTS设置
+      this.ttsSettings = { ...settings };
+      this.form.ttsVolume = settings.volume;
+      this.form.ttsRate = settings.speed;
+      this.form.ttsPitch = settings.pitch;
     },
     handleUpdateContext(providers) {
       this.currentContextProviders = providers;
@@ -1010,6 +1184,45 @@ export default {
         console.error("加载功能状态失败:", error);
       }
     },
+    handleClose(id) {
+      this.dynamicTags = this.dynamicTags.filter((item) => item.id !== id);
+    },
+
+    showInput() {
+      this.inputVisible = true;
+      this.$nextTick(_ => {
+        this.$refs.saveTagInput.$refs.input.focus();
+      });
+    },
+
+    handleInputConfirm() {
+      let inputValue = this.inputValue;
+      if (inputValue) {
+        const tag = { id: new Date().getTime(), tagName: inputValue };
+        this.dynamicTags.push(tag);
+      }
+      this.inputVisible = false;
+      this.inputValue = '';
+    },
+    getAgentTags(agentId) {
+      Api.agent.getAgentTags(agentId, ({ data }) => {
+        if (data.code === 0) {
+          this.dynamicTags = data.data || [];
+        }
+      });
+    },
+    handleSaveAgentTags(agentId) {
+      return new Promise((resolve, reject) => {
+        const tagNames = this.dynamicTags.map(tag => tag.tagName);
+        Api.agent.saveAgentTags(agentId, { tagNames }, ({ data }) => {
+          if (data.code === 0) {
+            resolve();
+          } else {
+            reject(data.msg);
+          }
+        });
+      });
+    }
   },
   watch: {
     "form.model.ttsModelId": {
@@ -1036,6 +1249,7 @@ export default {
     const agentId = this.$route.query.agentId;
     if (agentId) {
       this.fetchAgentConfig(agentId);
+      this.getAgentTags(agentId);
       this.fetchAllFunctions();
     }
     this.fetchModelOptions();
@@ -1046,7 +1260,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .welcome {
   min-width: 900px;
   height: 100vh;
@@ -1123,6 +1337,48 @@ export default {
   font-weight: 700;
   font-size: 19px;
   color: #3d4566;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex-shrink: 0;
+}
+
+.header-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  &::-webkit-scrollbar {
+      height: 6px;
+      background: #e6ebff;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #409EFF;
+      border-radius: 8px;
+    }
+}
+
+.header-tags .el-tag {
+  flex-shrink: 0;
+}
+
+.more-tag {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.all-tags-popover {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
 }
 
 .header-icon {
@@ -1234,6 +1490,15 @@ export default {
 .model-row .model-item {
   flex: 1;
   margin-bottom: 0;
+}
+
+.model-row .language-select-item {
+  flex: 0 0 35%;
+  max-width: 35%;
+}
+
+.model-row .language-select-item .language-select {
+  width: 100%;
 }
 
 .model-row .el-form-item__label {
@@ -1409,6 +1674,38 @@ export default {
 
   &:hover {
     text-decoration: underline;
+  }
+}
+
+.slider-wrapper {
+  width: 100%;
+  padding-right: 12px;
+}
+
+.slider-hint {
+  display: block;
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.tts-slider {
+  width: 100%;
+}
+
+.tts-slider ::v-deep .el-slider__input {
+  width: 80px;
+}
+
+.tts-slider ::v-deep .el-input__inner {
+  text-align: center;
+  padding: 0 8px;
+}
+.input-new-tag {
+  width: 90px;
+  &::v-deep(.el-input__inner) {
+    width: 90px !important;
   }
 }
 </style>

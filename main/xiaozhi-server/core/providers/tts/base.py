@@ -13,7 +13,7 @@ from typing import Callable, Any
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
 from core.utils import opus_encoder_utils
-from core.utils.tts import MarkdownCleaner
+from core.utils.tts import MarkdownCleaner, convert_percentage_to_range
 from core.utils.output_counter import add_device_output
 from core.handle.reportHandle import enqueue_tts_report
 from core.handle.sendAudioHandle import sendAudioMessage
@@ -463,3 +463,10 @@ class TTSProviderBase(ABC):
                 self.processed_chars += len(full_text)
                 return True
         return False
+
+    def _apply_percentage_params(self, config):
+        """根据子类定义的 TTS_PARAM_CONFIG 批量应用百分比参数"""
+        for config_key, attr_name, min_val, max_val, base_val, transform in self.TTS_PARAM_CONFIG:
+            if config_key in config:
+                val = convert_percentage_to_range(config[config_key], min_val, max_val, base_val)
+                setattr(self, attr_name, transform(val) if transform else val)

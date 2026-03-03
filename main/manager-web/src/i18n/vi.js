@@ -25,7 +25,7 @@ export default {
   'header.featureManagement': 'Cấu hình chức năng hệ thống',
   'header.changePassword': 'Đổi mật khẩu',
   'header.logout': 'Đăng xuất',
-  'header.searchPlaceholder': 'Tìm tên hoặc MAC',
+  'header.searchPlaceholder': 'Tên, thẻ hoặc tìm kiếm mac',
 
   // McpToolCallDialog component text
   'mcpToolCall.title': 'Gọi công cụ',
@@ -747,6 +747,7 @@ export default {
 
   // Role configuration page text
   'roleConfig.title': 'Vai trò',
+  'roleConfig.addTag': 'Thêm mới nhãn',
   'roleConfig.restartNotice': 'Sau khi lưu cấu hình, bạn cần khởi động lại thiết bị để cấu hình mới có hiệu lực.',
   'roleConfig.saveConfig': 'Lưu cấu hình',
   'roleConfig.reset': 'Đặt lại',
@@ -763,7 +764,16 @@ export default {
   'roleConfig.memoryHis': 'Bộ nhớ',
   'roleConfig.memory': 'Mô hình bộ nhớ',
   'roleConfig.intent': 'Nhận dạng ý định',
+  'roleConfig.language': 'Chọn ngôn ngữ',
   'roleConfig.voiceType': 'Loại giọng nói',
+  'roleConfig.ttsVolume': 'Âm lượng',
+  'roleConfig.ttsRate': 'Tốc độ',
+  'roleConfig.ttsPitch': 'Cao độ',
+  'roleConfig.ttsAdvanced': 'Tham số TTS',
+  'roleConfig.advancedSettings': 'Cài đặt nâng cao',
+  'roleConfig.volumeHint': '-100=Tối thiểu, 0=Tiêu chuẩn, 100=Tối đa',
+  'roleConfig.speedHint': '-100=Chậm nhất, 0=Tiêu chuẩn, 100=Nhanh nhất',
+  'roleConfig.pitchHint': '-100=Thấp nhất, 0=Tiêu chuẩn, 100=Cao nhất',
   'roleConfig.pleaseEnterContent': 'Vui lòng nhập nội dung',
   'roleConfig.pleaseEnterLangCode': 'Vui lòng nhập mã ngôn ngữ, ví dụ: en_US',
   'roleConfig.pleaseEnterLangName': 'Vui lòng nhập ngôn ngữ tương tác, ví dụ: Tiếng Anh',

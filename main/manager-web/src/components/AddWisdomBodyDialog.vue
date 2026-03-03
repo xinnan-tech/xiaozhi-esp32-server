@@ -14,7 +14,7 @@
         <div style="color: red;display: inline-block;">*</div> {{ $t('addAgentDialog.agentName') }}：
       </div>
       <div class="input-46" style="margin-top: 12px;">
-        <el-input ref="inputRef" :placeholder="$t('addAgentDialog.placeholder')" v-model="wisdomBodyName" @keyup.enter.native="confirm" />
+        <el-input maxLength="64" ref="inputRef" :placeholder="$t('addAgentDialog.placeholder')" v-model="wisdomBodyName" @keyup.enter.native="confirm" />
       </div>
     </div>
     <div style="display: flex;margin: 15px 15px;gap: 7px;">

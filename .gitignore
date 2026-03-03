@@ -3,6 +3,9 @@ __pycache__/
 .idea/
 *.py[cod]
 *$py.class
+.vscode
+.claude
+AGENTS.md
 
 # C extensions
 *.so

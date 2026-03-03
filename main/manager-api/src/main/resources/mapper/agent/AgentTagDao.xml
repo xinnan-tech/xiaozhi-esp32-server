@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.agent.dao.AgentTagDao">
+
+    <select id="selectByAgentId" resultType="xiaozhi.modules.agent.entity.AgentTagEntity">
+        SELECT t.id, t.tag_name AS tagName, t.sort
+        FROM ai_agent_tag t
+        INNER JOIN ai_agent_tag_relation r ON t.id = r.tag_id
+        WHERE r.agent_id = #{agentId} AND t.deleted = 0
+        ORDER BY t.sort ASC
+    </select>
+
+    <select id="selectByAgentIds" resultType="xiaozhi.modules.agent.entity.AgentTagEntity">
+        SELECT t.id, t.tag_name AS tagName, t.sort, r.agent_id AS agentId
+        FROM ai_agent_tag t
+        INNER JOIN ai_agent_tag_relation r ON t.id = r.tag_id
+        WHERE r.agent_id IN
+        <foreach collection="agentIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND t.deleted = 0
+        ORDER BY t.sort ASC
+    </select>
+
+    <select id="selectAll" resultType="xiaozhi.modules.agent.entity.AgentTagEntity">
+        SELECT id, tag_name AS tagName, sort
+        FROM ai_agent_tag
+        WHERE deleted = 0
+        ORDER BY sort ASC
+    </select>
+
+    <select id="selectAgentIdsByTagName" resultType="java.lang.String">
+        SELECT r.agent_id
+        FROM ai_agent_tag_relation r
+        INNER JOIN ai_agent_tag t ON r.tag_id = t.id
+        WHERE t.tag_name LIKE CONCAT('%', #{tagName}, '%') AND t.deleted = 0
+    </select>
+
+    <select id="selectByTagNames" resultType="xiaozhi.modules.agent.entity.AgentTagEntity">
+        SELECT id, tag_name AS tagName, sort
+        FROM ai_agent_tag
+        WHERE deleted = 0 AND tag_name IN
+        <foreach collection="tagNames" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </select>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO ai_agent_tag (id, tag_name, sort, deleted, creator, created_at, updater, updated_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.tagName}, #{item.sort}, #{item.deleted}, #{item.creator}, #{item.createdAt}, #{item.updater}, #{item.updatedAt})
+        </foreach>
+    </insert>
+
+</mapper>

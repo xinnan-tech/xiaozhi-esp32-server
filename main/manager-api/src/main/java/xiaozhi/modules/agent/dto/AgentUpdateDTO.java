@@ -1,6 +1,7 @@
 package xiaozhi.modules.agent.dto;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 
@@ -40,6 +41,18 @@ public class AgentUpdateDTO implements Serializable {
 
     @Schema(description = "音色标识", example = "voice_02", nullable = true)
     private String ttsVoiceId;
+
+    @Schema(description = "音色语言", example = "普通话", nullable = true)
+    private String ttsLanguage;
+
+    @Schema(description = "TTS音量", example = "50", nullable = true)
+    private Integer ttsVolume;
+
+    @Schema(description = "TTS语速", example = "50", nullable = true)
+    private Integer ttsRate;
+
+    @Schema(description = "TTS音调", example = "50", nullable = true)
+    private Integer ttsPitch;
 
     @Schema(description = "记忆模型标识", example = "mem_model_02", nullable = true)
     private String memModelId;

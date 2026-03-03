@@ -879,8 +879,8 @@ export default {
   }
 
   .equipment-management {
-    width: 79px;
-    font-size: 9px;
+    min-width: 80px;
+    font-size: 10px;
   }
 }
 

@@ -10,6 +10,11 @@ from core.providers.tts.base import TTSProviderBase
 
 
 class TTSProvider(TTSProviderBase):
+    TTS_PARAM_CONFIG = [
+        ("ttsVolume", "volume", -10, 10, 0, lambda v: round(float(v), 1)),
+        ("ttsRate", "speed", -2, 6, 0, lambda v: round(float(v), 2)),
+    ]
+
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
         self.appid = config.get("appid")
@@ -23,6 +28,16 @@ class TTSProvider(TTSProviderBase):
         self.region = config.get("region")
         self.output_file = config.get("output_dir")
         self.audio_file_type = config.get("format", "wav")
+
+        # 音频参数配置
+        speed = config.get("speed", "0")
+        self.speed = int(speed) if speed else 0
+
+        volume = config.get("volume", "0")
+        self.volume = int(volume) if volume else 0
+
+        # 应用百分比调整（如果存在），否则使用公有化配置
+        self._apply_percentage_params(config)
 
     def _get_auth_headers(self, request_body):
         """生成鉴权请求头"""
@@ -127,6 +142,10 @@ class TTSProvider(TTSProviderBase):
             "Text": text,  # 合成语音的源文本
             "SessionId": str(uuid.uuid4()),  # 会话ID，随机生成
             "VoiceType": int(self.voice),  # 音色
+            "Codec": self.audio_file_type,  # 音频编码格式
+            "Volume": self.volume,  # 音量
+            "Speed": self.speed,  # 语速
+            "SampleRate": self.conn.sample_rate,  # 采样率部分支持24000
         }
 
         try:

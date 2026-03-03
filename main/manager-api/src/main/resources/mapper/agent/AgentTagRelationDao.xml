@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.agent.dao.AgentTagRelationDao">
+
+    <delete id="deleteByAgentId">
+        DELETE FROM ai_agent_tag_relation WHERE agent_id = #{agentId}
+    </delete>
+
+    <insert id="insertRelation" parameterType="xiaozhi.modules.agent.entity.AgentTagRelationEntity">
+        INSERT INTO ai_agent_tag_relation (id, agent_id, tag_id, creator, created_at, updater, updated_at)
+        VALUES (#{id}, #{agentId}, #{tagId}, #{creator}, #{createdAt}, #{updater}, #{updatedAt})
+    </insert>
+
+    <insert id="batchInsertRelation" parameterType="java.util.List">
+        INSERT INTO ai_agent_tag_relation (id, agent_id, tag_id, creator, created_at, updater, updated_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.agentId}, #{item.tagId}, #{item.creator}, #{item.createdAt}, #{item.updater}, #{item.updatedAt})
+        </foreach>
+    </insert>
+
+</mapper>

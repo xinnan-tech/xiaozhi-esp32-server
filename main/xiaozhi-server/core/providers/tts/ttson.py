@@ -12,6 +12,12 @@ logger = setup_logging()
 
 
 class TTSProvider(TTSProviderBase):
+    TTS_PARAM_CONFIG = [
+        ("ttsVolume", "volume_change_dB", -10, 10, 0, int),
+        ("ttsRate", "speed_factor", 0.5, 2, 0, lambda v: round(float(v), 1)),
+        ("ttsPitch", "pitch_factor", -8, 8, 0, lambda v: round(float(v), 1)),
+    ]
+
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
         self.url = config.get(
@@ -29,10 +35,12 @@ class TTSProvider(TTSProviderBase):
         self.stream = str(config.get("stream", False)).lower() in ("true", "1", "yes")
         self.output_file = config.get("output_dir")
         self.pitch_factor = int(config.get("pitch_factor", 0))
-        self.format = config.get("format", "mp3")
         self.audio_file_type = config.get("format", "mp3")
         self.emotion = int(config.get("emotion", 1))
         self.header = {"Content-Type": "application/json"}
+
+        # 应用百分比调整（如果存在），否则使用公有化配置
+        self._apply_percentage_params(config)
 
     def generate_filename(self, extension=".mp3"):
         return os.path.join(
@@ -48,7 +56,7 @@ class TTSProvider(TTSProviderBase):
                 "to_lang": self.to_lang,
                 "text": text,
                 "emotion": self.emotion,
-                "format": self.format,
+                "format": self.audio_file_type,
                 "volume_change_dB": self.volume_change_dB,
                 "voice_id": self.voice,
                 "pitch_factor": self.pitch_factor,
