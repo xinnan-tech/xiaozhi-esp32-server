@@ -765,6 +765,7 @@ export default {
   'roleConfig.memory': 'Memory Model',
   'roleConfig.intent': 'Intent Recognition',
   'roleConfig.language': 'Select Language',
+  'roleConfig.selectLanguage': 'Please select language',
   'roleConfig.voiceType': 'Voice Type',
   'roleConfig.ttsVolume': 'Volume',
   'roleConfig.ttsRate': 'Speed',

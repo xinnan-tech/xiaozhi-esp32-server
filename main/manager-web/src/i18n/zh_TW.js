@@ -765,6 +765,7 @@ export default {
   'roleConfig.memory': '記憶模式',
   'roleConfig.intent': '意圖識別(Intent)',
   'roleConfig.language': '選擇語言',
+  'roleConfig.selectLanguage': '請選擇語言',
   'roleConfig.voiceType': '聲音音色(Voice)',
   'roleConfig.ttsVolume': '音量',
   'roleConfig.ttsRate': '語速',

@@ -713,7 +713,7 @@ export default {
           const allLanguages = new Set();
           data.data.forEach(voice => {
             if (voice.languages) {
-              const languagesArray = voice.languages.split('、').map(lang => lang.trim()).filter(lang => lang);
+              const languagesArray = voice.languages.split(/[、；;,，]/).map(lang => lang.trim()).filter(lang => lang);
               languagesArray.forEach(lang => allLanguages.add(lang));
             }
           });
@@ -753,7 +753,7 @@ export default {
       // 根据选中的语言筛选音色
       const filteredVoices = allVoices.filter(voice => {
         if (!voice.languages) return false;
-        const languagesArray = voice.languages.split('、').map(lang => lang.trim()).filter(lang => lang);
+        const languagesArray = voice.languages.split(/[、；;,，]/).map(lang => lang.trim()).filter(lang => lang);
         return languagesArray.includes(this.selectedLanguage);
       });
 

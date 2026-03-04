@@ -755,6 +755,8 @@ export default {
   'roleConfig.roleTemplate': 'Modelo',
   'roleConfig.roleIntroduction': 'Introdução',
   'roleConfig.languageCode': 'Código do Idioma',
+  'roleConfig.language': 'Selecionar Idioma',
+  'roleConfig.selectLanguage': 'Por favor, selecione o idioma',
   'roleConfig.interactionLanguage': 'Idioma de Interação',
   'roleConfig.vad': 'Detecção de Voz',
   'roleConfig.asr': 'Reconhecimento de Fala',

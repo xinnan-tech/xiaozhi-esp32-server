@@ -765,6 +765,7 @@ export default {
   'roleConfig.memory': 'Mô hình bộ nhớ',
   'roleConfig.intent': 'Nhận dạng ý định',
   'roleConfig.language': 'Chọn ngôn ngữ',
+  'roleConfig.selectLanguage': 'Vui lòng chọn ngôn ngữ',
   'roleConfig.voiceType': 'Loại giọng nói',
   'roleConfig.ttsVolume': 'Âm lượng',
   'roleConfig.ttsRate': 'Tốc độ',

@@ -765,6 +765,7 @@ export default {
   'roleConfig.memory': 'Speicher',
   'roleConfig.intent': 'Intent',
   'roleConfig.language': 'Sprache auswählen',
+  'roleConfig.selectLanguage': 'Bitte Sprache auswählen',
   'roleConfig.voiceType': 'Stimmtyp',
   'roleConfig.ttsVolume': 'Lautstärke',
   'roleConfig.ttsRate': 'Geschwindigkeit',

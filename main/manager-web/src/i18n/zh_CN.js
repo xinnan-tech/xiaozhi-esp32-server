@@ -765,6 +765,7 @@ export default {
   'roleConfig.memory': '记忆模式',
   'roleConfig.tts': '语音合成(TTS)',
   'roleConfig.language': '选择语言',
+  'roleConfig.selectLanguage': '请选择语言',
   'roleConfig.voiceType': '声音音色(Voice)',
   'roleConfig.ttsVolume': '音量',
   'roleConfig.ttsRate': '语速',
