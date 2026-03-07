@@ -1,10 +1,12 @@
 <script lang="ts" setup>
 import type { AgentDetail, ModelOption, PluginDefinition, RoleTemplate } from '@/api/agent/types'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { getAgentDetail, getModelOptions, getPluginFunctions, getRoleTemplates, getTTSVoices, updateAgent } from '@/api/agent/agent'
+import { getAgentDetail, getAgentTags, getAllLanguage, getModelOptions, getPluginFunctions, getRoleTemplates, updateAgent, updateAgentTags } from '@/api/agent/agent'
+import ContextProviderDialog from '@/components/ContextProviderDialog.vue'
+import VoiceSettingsDialog from '@/components/VoiceSettingsDialog.vue'
+import { t } from '@/i18n'
 import { usePluginStore } from '@/store'
 import { toast } from '@/utils/toast'
-import { t } from '@/i18n'
 
 defineOptions({
   name: 'AgentEdit',
@@ -34,6 +36,10 @@ const formData = ref<Partial<AgentDetail>>({
   memModelId: '',
   ttsModelId: '',
   ttsVoiceId: '',
+  ttsLanguage: '',
+  ttsVolume: 0,
+  ttsRate: 0,
+  ttsPitch: 0,
 })
 
 // 显示名称数据
@@ -47,6 +53,8 @@ const displayNames = ref({
   memory: t('agent.pleaseSelect'),
   tts: t('agent.pleaseSelect'),
   voiceprint: t('agent.pleaseSelect'),
+  report: t('agent.pleaseSelect'),
+  language: t('agent.pleaseSelect'),
 })
 
 // 角色模板数据
@@ -71,7 +79,15 @@ const modelOptions = ref<{
 })
 
 // 音色选项数据
-const voiceOptions = ref<{ id: string, name: string }[]>([])
+const voiceOptions = ref([])
+// 保存完整的音色信息
+const voiceDetails = ref({})
+
+// 上报模式选项数据
+const reportOptions = [
+  { name: t('agent.reportText'), value: 1 },
+  { name: t('agent.reportTextVoice'), value: 2 },
+]
 
 // 选择器显示状态
 const pickerShow = ref<{
@@ -85,9 +101,30 @@ const pickerShow = ref<{
   memory: false,
   tts: false,
   voiceprint: false,
+  language: false,
+  report: false,
+})
+
+const ttsSettings = ref({
+  volume: 0,
+  speed: 0,
+  pitch: 0,
 })
 
 const allFunctions = ref<PluginDefinition[]>([])
+const dynamicTags = ref([])
+const inputValue = ref('')
+const inputVisible = ref(false)
+const showContextProviderDialog = ref(false)
+const currentContextProviders = ref([])
+const showVoiceSettingsDialog = ref(false)
+const voiceSettings = ref({
+  volume: 0,
+  speed: 0,
+  pitch: 0,
+})
+const languageOptions = ref([])
+const isVisibleReport = ref(false)
 
 // 使用插件store
 const pluginStore = usePluginStore()
@@ -119,6 +156,46 @@ const tabList = [
     activeIcon: '/static/tabbar/voiceprint_activate.png',
   },
 ]
+function handleCloseTag(id: string) {
+  dynamicTags.value = dynamicTags.value.filter(tag => tag.id !== id)
+}
+
+function showInput() {
+  inputVisible.value = true
+}
+
+function handleInputConfirm() {
+  if (inputValue.value) {
+    dynamicTags.value.push({ id: new Date().getTime(), tagName: inputValue.value.trim() })
+    inputValue.value = ''
+  }
+  inputVisible.value = false
+}
+
+// 打开上下文源编辑弹窗
+function openContextProviderDialog() {
+  showContextProviderDialog.value = true
+}
+
+// 处理上下文源更新
+function handleUpdateContext(providers: any[]) {
+  currentContextProviders.value = providers
+}
+
+function openVoiceSettingsDialog() {
+  showVoiceSettingsDialog.value = true
+}
+
+function handleUpdateVoiceSettings(settings: any) {
+  ttsSettings.value = settings
+  formData.value.ttsVolume = settings.volume
+  formData.value.ttsRate = settings.speed
+  formData.value.ttsPitch = settings.pitch
+}
+
+function handleRegulate() {
+  openVoiceSettingsDialog()
+}
 
 // 加载智能体详情
 async function loadAgentDetail() {
@@ -134,9 +211,18 @@ async function loadAgentDetail() {
     pluginStore.setCurrentAgentId(agentId.value)
     pluginStore.setCurrentFunctions(detail.functions || [])
 
+    // 加载上下文配置
+    currentContextProviders.value = (detail as any).contextProviders || []
+    // 加载语音设置
+    voiceSettings.value = {
+      volume: (detail as any).volume || 0,
+      speed: (detail as any).speed || 0,
+      pitch: (detail as any).pitch || 0,
+    }
+
     // 如果有TTS模型，加载对应的音色选项
     if (detail.ttsModelId) {
-      await loadVoiceOptions(detail.ttsModelId)
+      await fetchAllLanguag(detail.ttsModelId)
     }
 
     // 等待模型选项加载完成后再更新显示名称
@@ -208,7 +294,10 @@ function updateDisplayNames() {
   displayNames.value.tts = getModelDisplayName('TTS', formData.value.ttsModelId)
 
   // 角色音色特殊处理
-  displayNames.value.voiceprint = getVoiceDisplayName(formData.value.ttsVoiceId || '')
+  displayNames.value.report = reportOptions.find(item => item.value === formData.value.chatHistoryConf)?.name
+  displayNames.value.language = formData.value.ttsLanguage
+
+  isVisibleReport.value = formData.value.memModelId !== 'Memory_nomem'
 
   console.log('最终音色显示名称:', displayNames.value.voiceprint)
 }
@@ -244,22 +333,109 @@ async function loadModelOptions() {
   }
 }
 
-// 加载TTS音色选项
-async function loadVoiceOptions(ttsModelId?: string) {
-  if (!ttsModelId)
-    return
-
-  try {
-    console.log(`加载音色选项: ${ttsModelId}`)
-    const voices = await getTTSVoices(ttsModelId)
-    voiceOptions.value = voices
-    console.log('音色选项:', voices)
-  }
-  catch (error) {
-    console.error('加载音色选项失败:', error)
+// 根据语言筛选音色
+function filterVoicesByLanguage() {
+  if (!voiceDetails.value || Object.keys(voiceDetails.value).length === 0) {
     voiceOptions.value = []
+    return
+  }
+
+  const allVoices = Object.values(voiceDetails.value) as any[]
+
+  // 根据选中的语言筛选音色
+  const filteredVoices = allVoices.filter((voice) => {
+    if (!voice.languages) {
+      return false
+    }
+    const languagesArray = voice.languages.split(/[、；;,，]/).map(lang => lang.trim()).filter(lang => lang)
+    return languagesArray.includes(formData.value.language)
+  })
+
+  voiceOptions.value = filteredVoices.map(voice => ({
+    value: voice.id,
+    name: voice.name,
+    voiceDemo: voice.voiceDemo,
+    voice_demo: voice.voice_demo,
+    isClone: Boolean(voice.isClone),
+    train_status: voice.trainStatus,
+  }))
+
+  // 检查当前选中的音色是否支持当前语言，如果不支持则选择第一个
+  const currentVoiceSupportsLanguage = formData.value.ttsVoiceId
+    && filteredVoices.some(voice => voice.id === formData.value.ttsVoiceId)
+
+  if (!currentVoiceSupportsLanguage) {
+    formData.value.ttsVoiceId = filteredVoices.length > 0 ? filteredVoices[0].id : ''
+    displayNames.value.voiceprint = filteredVoices.length > 0 ? filteredVoices[0].name : ''
+  }
+  else {
+    displayNames.value.voiceprint = filteredVoices.find(item => item.id === formData.value.ttsVoiceId)?.name
+  }
+
+  // 同步到ttsSettings（如果值为null，使用0作为显示默认值，但不修改form中的值）
+  ttsSettings.value = {
+    volume: formData.value.ttsVolume !== null && formData.value.ttsVolume !== undefined ? formData.value.ttsVolume : 0,
+    speed: formData.value.ttsRate !== null && formData.value.ttsRate !== undefined ? formData.value.ttsRate : 0,
+    pitch: formData.value.ttsPitch !== null && formData.value.ttsPitch !== undefined ? formData.value.ttsPitch : 0,
   }
 }
+
+// 根据语音合成模型加载语言
+async function fetchAllLanguag(ttsModelId: string) {
+  try {
+    const res = await getAllLanguage(ttsModelId, '') as any[]
+    // 保存完整的音色信息
+    voiceDetails.value = res.reduce((acc, voice) => {
+      acc[voice.id] = voice
+      return acc
+    }, {})
+    // 提取所有语言选项并去重
+    const allLanguages = new Set()
+    res.forEach((voice) => {
+      if (voice.languages) {
+        const languagesArray = voice.languages.split(/[、；;,，]/).map(lang => lang.trim()).filter(lang => lang)
+        languagesArray.forEach(lang => allLanguages.add(lang))
+      }
+    })
+    languageOptions.value = Array.from(allLanguages).map(lang => ({
+      value: lang,
+      name: lang,
+    }))
+
+    // 使用后端返回的用户选择的语言，如果没有则使用第一个语言选项
+    if (formData.value.ttsLanguage && languageOptions.value.some(option => option.value === formData.value.ttsLanguage)) {
+      formData.value.language = formData.value.ttsLanguage
+      displayNames.value.language = formData.value.ttsLanguage
+    }
+    else if (languageOptions.value.length > 0) {
+      formData.value.language = languageOptions.value[0].value
+      displayNames.value.language = languageOptions.value[0].value
+    }
+
+    // 根据选中的语言筛选音色
+    filterVoicesByLanguage()
+  }
+  catch {
+    languageOptions.value = []
+  }
+}
+
+// 加载TTS音色选项
+// async function loadVoiceOptions(ttsModelId?: string) {
+//   if (!ttsModelId)
+//     return
+
+//   try {
+//     console.log(`加载音色选项: ${ttsModelId}`)
+//     const voices = await getTTSVoices(ttsModelId)
+//     voiceOptions.value = voices
+//     console.log('音色选项:', voices)
+//   }
+//   catch (error) {
+//     console.error('加载音色选项失败:', error)
+//     voiceOptions.value = []
+//   }
+// }
 
 // 选择角色模板
 function selectRoleTemplate(templateId: string) {
@@ -314,19 +490,25 @@ async function onPickerConfirm(type: string, value: any, name: string) {
       break
     case 'memory':
       formData.value.memModelId = value
+      formData.value.chatHistoryConf = value === 'Memory_nomem' ? 0 : 2
       displayNames.value.memory = name // 确保显示名称正确更新
+      displayNames.value.report = reportOptions[1].name
+      isVisibleReport.value = value !== 'Memory_nomem'
       break
     case 'tts':
       formData.value.ttsModelId = value
-      // 当选择TTS模型时，自动加载对应的音色选项
-      await loadVoiceOptions(value)
-      // 重置音色选择
-      formData.value.ttsVoiceId = ''
-      displayNames.value.voiceprint = '请选择'
+      await fetchAllLanguag(value)
+      break
+    case 'language':
+      formData.value.language = value
+      filterVoicesByLanguage()
       break
     case 'voiceprint':
       formData.value.ttsVoiceId = value
       displayNames.value.voiceprint = name // 确保显示名称正确更新
+      break
+    case 'report':
+      formData.value.chatHistoryConf = value
       break
   }
 
@@ -370,8 +552,23 @@ async function saveAgent() {
   }
 
   try {
+    await handleUpdateAgentTags()
+  }
+  catch (err) {
+    toast.error(err)
+    return
+  }
+
+  try {
     saving.value = true
-    await updateAgent(agentId.value, formData.value)
+    // 构建保存数据，包含上下文配置和语音设置
+    const saveData = {
+      ...formData.value,
+      ttsLanguage: formData.value.language,
+      contextProviders: currentContextProviders.value,
+    }
+    await updateAgent(agentId.value, saveData)
+    loadAgentDetail()
 
     toast.success(t('agent.saveSuccess'))
   }
@@ -423,9 +620,25 @@ function watchPluginUpdates() {
   }, { deep: true })
 }
 
+// 获取智能体标签
+async function loadAgentTags() {
+  try {
+    const res = await getAgentTags(agentId.value)
+    dynamicTags.value = res || []
+  }
+  catch (error) {}
+}
+
+// 更新智能体标签
+async function handleUpdateAgentTags() {
+  const tagNames = dynamicTags.value.map(tag => tag.tagName)
+  await updateAgentTags(agentId.value, { tagNames })
+}
+
 onMounted(async () => {
   // 初始化插件配置监听
   watchPluginUpdates()
+  loadAgentTags()
 
   // 先加载模型选项和角色模板
   await Promise.all([
@@ -443,19 +656,19 @@ onMounted(async () => {
 
 <template>
   <view class="bg-[#f5f7fb] px-[20rpx]">
-    <!--// 基础信息标题
+    <!-- 基础信息标题
     <view class="pb-[20rpx] first:pt-[20rpx]">
       <text class="text-[32rpx] text-[#232338] font-bold">
         {{ t('agent.basicInfo') }}
       </text>
-    </view>
+    </view -->
 
     <!-- 基础信息卡片 -->
     <view class="mb-[24rpx] border border-[#eeeeee] rounded-[20rpx] bg-[#fbfbfb] p-[24rpx]" style="box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);">
       <view class="mb-[24rpx] last:mb-0">
         <text class="mb-[12rpx] block text-[28rpx] text-[#232338] font-medium">
-            {{ t('agent.agentName') }}
-          </text>
+          {{ t('agent.agentName') }}
+        </text>
         <input
           v-model="formData.agentName"
           class="box-border h-[80rpx] w-full border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[16rpx_20rpx] text-[28rpx] text-[#232338] leading-[1.4] outline-none focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
@@ -466,8 +679,32 @@ onMounted(async () => {
 
       <view class="mb-[24rpx] last:mb-0">
         <text class="mb-[12rpx] block text-[28rpx] text-[#232338] font-medium">
-            {{ t('agent.roleMode') }}
-          </text>
+          {{ t('agent.agentTag') }}
+        </text>
+        <input
+          v-if="inputVisible"
+          v-model="inputValue"
+          class="mb-[10rpx] box-border h-[80rpx] w-full border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[16rpx_20rpx] text-[28rpx] text-[#232338] leading-[1.4] outline-none focus:border-[#336cff] focus:bg-white placeholder:text-[#9d9ea3]"
+          type="text"
+          :maxlength="20"
+          :placeholder="t('agent.inputAgentTag')"
+          @keyup.enter="handleInputConfirm"
+          @blur="handleInputConfirm"
+        >
+        <view class="flex flex-wrap gap-[10rpx_10rpx]">
+          <wd-tag v-for="tag in dynamicTags" :key="tag.id" class="items-center border !flex !border-[rgba(51,108,255,0.2)] !bg-[rgba(51,108,255,0.1)] !text-[#336cff]" round closable @close="handleCloseTag(tag.id)">
+            {{ tag.tagName }}
+          </wd-tag>
+          <wd-button v-if="!inputVisible" class="!bg-[rgba(51,108,255,0.1)] !text-[#336cff]" size="small" icon="add" @click="showInput">
+            {{ t('agent.addAgentTag') }}
+          </wd-button>
+        </view>
+      </view>
+
+      <view class="mb-[24rpx] last:mb-0">
+        <text class="mb-[12rpx] block text-[28rpx] text-[#232338] font-medium">
+          {{ t('agent.roleMode') }}
+        </text>
         <view class="mt-0 flex flex-wrap gap-[12rpx]">
           <view
             v-for="template in roleTemplates"
@@ -485,8 +722,25 @@ onMounted(async () => {
 
       <view class="mb-[24rpx] last:mb-0">
         <text class="mb-[12rpx] block text-[28rpx] text-[#232338] font-medium">
-            {{ t('agent.roleDescription') }}
+          {{ t('agent.contextProvider') }}
+        </text>
+        <view class="mt-0 flex flex-wrap items-center gap-[12rpx]">
+          <text class="text-[26rpx] text-[#65686f]">
+            {{ t('agent.contextProviderSuccess', { count: currentContextProviders.length }) }}
           </text>
+          <a class="text-[26rpx] text-[#5778ff] no-underline" href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/context-provider-integration.md" target="_blank">
+            {{ t('agent.contextProviderDocLink') }}
+          </a>
+          <wd-button class="!bg-[rgba(51,108,255,0.1)] !text-[#336cff]" size="small" @click="openContextProviderDialog">
+            {{ t('agent.editContextProvider') }}
+          </wd-button>
+        </view>
+      </view>
+
+      <view class="mb-[24rpx] last:mb-0">
+        <text class="mb-[12rpx] block text-[28rpx] text-[#232338] font-medium">
+          {{ t('agent.roleDescription') }}
+        </text>
         <textarea
           v-model="formData.systemPrompt"
           :maxlength="2000"
@@ -568,6 +822,16 @@ onMounted(async () => {
           </text>
           <wd-icon name="arrow-right" custom-class="text-[20rpx] text-[#9d9ea3]" />
         </view>
+
+        <view v-show="isVisibleReport" class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('report')">
+          <text class="text-[28rpx] text-[#232338] font-medium">
+            {{ t('agent.reportMode') }}
+          </text>
+          <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
+            {{ displayNames.report }}
+          </text>
+          <wd-icon name="arrow-right" custom-class="text-[20rpx] text-[#9d9ea3]" />
+        </view>
       </view>
     </view>
 
@@ -591,6 +855,16 @@ onMounted(async () => {
           <wd-icon name="arrow-right" custom-class="text-[20rpx] text-[#9d9ea3]" />
         </view>
 
+        <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('language')">
+          <text class="text-[28rpx] text-[#232338] font-medium">
+            {{ t('agent.language') }}
+          </text>
+          <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
+            {{ displayNames.language }}
+          </text>
+          <wd-icon name="arrow-right" custom-class="text-[20rpx] text-[#9d9ea3]" />
+        </view>
+
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]" @click="openPicker('voiceprint')">
           <text class="text-[28rpx] text-[#232338] font-medium">
             {{ t('agent.voiceprint') }}
@@ -599,6 +873,15 @@ onMounted(async () => {
             {{ displayNames.voiceprint }}
           </text>
           <wd-icon name="arrow-right" custom-class="text-[20rpx] text-[#9d9ea3]" />
+        </view>
+
+        <view class="flex items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx]">
+          <view class="text-[28rpx] text-[#232338] font-medium">
+            {{ t('agent.languageConfig') }}
+          </view>
+          <view class="cursor-pointer rounded-[20rpx] bg-[rgba(51,108,255,0.1)] px-[24rpx] py-[12rpx] text-[24rpx] text-[#336cff] transition-all duration-300 active:bg-[#336cff] active:text-white" @click="handleRegulate">
+            <text>{{ t('agent.editFunctions') }}</text>
+          </view>
         </view>
 
         <view class="flex items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx]">
@@ -695,9 +978,37 @@ onMounted(async () => {
 
     <wd-action-sheet
       v-model="pickerShow.voiceprint"
-      :actions="voiceOptions && voiceOptions.map(item => ({ name: item.name, value: item.id }))"
+      :actions="voiceOptions"
       @close="onPickerCancel('voiceprint')"
       @select="({ item }) => onPickerConfirm('voiceprint', item.value, item.name)"
     />
+    <wd-action-sheet
+      v-model="pickerShow.language"
+      :actions="languageOptions"
+      @close="onPickerCancel('language')"
+      @select="({ item }) => onPickerConfirm('language', item.value, item.name)"
+    />
+    <wd-action-sheet
+      v-model="pickerShow.report"
+      :actions="reportOptions"
+      @close="onPickerCancel('report')"
+      @select="({ item }) => onPickerConfirm('report', item.value, item.name)"
+    />
+    <ContextProviderDialog
+      v-model:visible="showContextProviderDialog"
+      :providers="currentContextProviders"
+      @confirm="handleUpdateContext"
+    />
+    <VoiceSettingsDialog
+      v-model:visible="showVoiceSettingsDialog"
+      :settings="ttsSettings"
+      @confirm="handleUpdateVoiceSettings"
+    />
   </view>
 </template>
+
+<style lang="scss" scoped>
+::v-deep .wd-tag__close {
+  color: #336cff !important;
+}
+</style>

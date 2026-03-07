@@ -12,12 +12,13 @@
 
 <script lang="ts" setup>
 import type { Agent } from '@/api/agent/types'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+// 在组件挂载后设置导航栏标题
 import { useMessage } from 'wot-design-uni'
 import useZPaging from 'z-paging/components/z-paging/js/hooks/useZPaging.js'
 import { createAgent, deleteAgent, getAgentList } from '@/api/agent/agent'
-import { toast } from '@/utils/toast'
 import { t } from '@/i18n'
+import { toast } from '@/utils/toast'
 
 defineOptions({
   name: 'Home',
@@ -162,11 +163,9 @@ onShow(() => {
   }
 })
 
-// 在组件挂载后设置导航栏标题
-import { onMounted } from 'vue'
 onMounted(() => {
   uni.setNavigationBarTitle({
-    title: t('home.pageTitle')
+    title: t('home.pageTitle'),
   })
 })
 </script>
@@ -223,10 +222,10 @@ onMounted(() => {
 
                 <view class="model-info">
                   <text class="model-text">
-                    语言模型： {{ agent.llmModelName }}
+                    {{ t('home.languageModel') }}： {{ agent.llmModelName }}
                   </text>
                   <text class="model-text">
-                    音色模型： {{ agent.ttsModelName }} ({{ agent.ttsVoiceName }})
+                    {{ t('home.voiceModel') }}： {{ agent.ttsModelName }} ({{ agent.ttsVoiceName }})
                   </text>
                 </view>
 
@@ -243,6 +242,9 @@ onMounted(() => {
                       {{ t('home.lastConversation') }}{{ formatTime(agent.lastConnectedAt) }}
                     </text>
                   </view>
+                  <text v-if="agent.tags" class="flex-1 truncate text-right text-[22rpx] text-[#666]">
+                    {{ agent.tags.map(tag => tag.tagName).join(',') }}
+                  </text>
                 </view>
               </view>
 
@@ -433,6 +435,7 @@ onMounted(() => {
 
   .card-main {
     flex: 1;
+    width: 100%;
   }
 
   .agent-title {
@@ -465,7 +468,9 @@ onMounted(() => {
   }
 
   .stats-row {
+    width: 100%;
     display: flex;
+    align-items: center;
     gap: 12rpx;
     flex-wrap: wrap;
 

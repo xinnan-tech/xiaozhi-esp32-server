@@ -107,6 +107,10 @@ const alovaInstance = createAlova({
         throw new Error(`请求错误[${code}]：${msg}`)
       }
 
+      if (config.meta?.isExposeError) {
+        return Promise.reject(msg)
+      }
+
       if (config.meta?.toast !== false) {
         toast.warning(msg)
       }
