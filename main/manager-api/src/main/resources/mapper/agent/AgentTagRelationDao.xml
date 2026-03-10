@@ -7,15 +7,15 @@
     </delete>
 
     <insert id="insertRelation" parameterType="xiaozhi.modules.agent.entity.AgentTagRelationEntity">
-        INSERT INTO ai_agent_tag_relation (id, agent_id, tag_id, creator, created_at, updater, updated_at)
-        VALUES (#{id}, #{agentId}, #{tagId}, #{creator}, #{createdAt}, #{updater}, #{updatedAt})
+        INSERT INTO ai_agent_tag_relation (id, agent_id, tag_id, sort, creator, created_at, updater, updated_at)
+        VALUES (#{id}, #{agentId}, #{tagId}, #{sort}, #{creator}, #{createdAt}, #{updater}, #{updatedAt})
     </insert>
 
     <insert id="batchInsertRelation" parameterType="java.util.List">
-        INSERT INTO ai_agent_tag_relation (id, agent_id, tag_id, creator, created_at, updater, updated_at)
+        INSERT INTO ai_agent_tag_relation (id, agent_id, tag_id, sort, creator, created_at, updater, updated_at)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.id}, #{item.agentId}, #{item.tagId}, #{item.creator}, #{item.createdAt}, #{item.updater}, #{item.updatedAt})
+            (#{item.id}, #{item.agentId}, #{item.tagId}, #{item.sort}, #{item.creator}, #{item.createdAt}, #{item.updater}, #{item.updatedAt})
         </foreach>
     </insert>
 

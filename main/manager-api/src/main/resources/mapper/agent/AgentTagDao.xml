@@ -7,7 +7,7 @@
         FROM ai_agent_tag t
         INNER JOIN ai_agent_tag_relation r ON t.id = r.tag_id
         WHERE r.agent_id = #{agentId} AND t.deleted = 0
-        ORDER BY t.sort ASC
+        ORDER BY r.sort ASC, r.created_at ASC
     </select>
 
     <select id="selectByAgentIds" resultType="xiaozhi.modules.agent.entity.AgentTagEntity">
@@ -19,7 +19,7 @@
             #{id}
         </foreach>
         AND t.deleted = 0
-        ORDER BY t.sort ASC
+        ORDER BY r.sort ASC, r.created_at ASC
     </select>
 
     <select id="selectAll" resultType="xiaozhi.modules.agent.entity.AgentTagEntity">

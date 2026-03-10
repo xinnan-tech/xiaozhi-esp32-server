@@ -24,6 +24,9 @@ public class AgentTagRelationEntity {
     @Schema(description = "标签ID")
     private String tagId;
 
+    @Schema(description = "排序")
+    private Integer sort;
+
     @Schema(description = "创建者")
     private Long creator;
 

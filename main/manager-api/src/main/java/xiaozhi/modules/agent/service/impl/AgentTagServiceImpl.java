@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -104,13 +105,15 @@ public class AgentTagServiceImpl extends BaseServiceImpl<AgentTagDao, AgentTagEn
             existTags = baseDao.selectByTagNames(newTagNames);
         }
 
-        List<String> existTagNames = existTags.stream()
-                .map(AgentTagEntity::getTagName)
-                .collect(Collectors.toList());
+        Map<String, AgentTagEntity> existTagMap = existTags.stream()
+                .collect(Collectors.toMap(AgentTagEntity::getTagName, t -> t, (a, b) -> a));
 
         List<AgentTagEntity> tagsToInsert = new ArrayList<>();
         for (String tagName : newTagNames) {
-            if (!existTagNames.contains(tagName)) {
+            AgentTagEntity existTag = existTagMap.get(tagName);
+            if (existTag != null) {
+                allTagIds.add(existTag.getId());
+            } else {
                 AgentTagEntity tag = new AgentTagEntity();
                 tag.setId(UUID.randomUUID().toString().replace("-", ""));
                 tag.setTagName(tagName);
@@ -126,12 +129,6 @@ public class AgentTagServiceImpl extends BaseServiceImpl<AgentTagDao, AgentTagEn
             baseDao.batchInsert(tagsToInsert);
             for (AgentTagEntity tag : tagsToInsert) {
                 allTagIds.add(tag.getId());
-            }
-        }
-
-        for (AgentTagEntity existTag : existTags) {
-            if (!allTagIds.contains(existTag.getId())) {
-                allTagIds.add(existTag.getId());
             }
         }
 
@@ -152,11 +149,13 @@ public class AgentTagServiceImpl extends BaseServiceImpl<AgentTagDao, AgentTagEn
 
         List<AgentTagRelationEntity> relations = new ArrayList<>();
         Date now = new Date();
+        int sort = 0;
         for (String tagId : allTagIds) {
             AgentTagRelationEntity relation = new AgentTagRelationEntity();
             relation.setId(UUID.randomUUID().toString().replace("-", ""));
             relation.setAgentId(agentId);
             relation.setTagId(tagId);
+            relation.setSort(sort++);
             relation.setCreatedAt(now);
             relation.setUpdatedAt(now);
             relations.add(relation);
