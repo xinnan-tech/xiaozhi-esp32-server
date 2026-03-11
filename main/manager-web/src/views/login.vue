@@ -136,11 +136,11 @@
           </div>
           <div style="font-size: 14px; color: #979db1">
             {{ $t("login.agreeTo") }}
-            <div style="display: inline-block; color: #5778ff; cursor: pointer">
+            <div style="display: inline-block; color: #5778ff; cursor: pointer" @click="openPage('/user-agreement.html')">
               {{ $t("login.userAgreement") }}
             </div>
             {{ $t("login.and") }}
-            <div style="display: inline-block; color: #5778ff; cursor: pointer">
+            <div style="display: inline-block; color: #5778ff; cursor: pointer" @click="openPage('/privacy-policy.html')">
               {{ $t("login.privacyPolicy") }}
             </div>
           </div>
@@ -248,6 +248,13 @@ export default {
     });
   },
   methods: {
+    openPage(url) {
+      const lang = this.$i18n ? this.$i18n.locale : 'zh_CN';
+      if (!lang.startsWith('zh')) {
+        url = url.replace('.html', '-en.html');
+      }
+      window.open(url, '_blank');
+    },
     fetchCaptcha() {
       if (this.$store.getters.getToken) {
         if (this.$route.path !== "/home") {

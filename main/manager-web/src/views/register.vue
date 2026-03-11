@@ -107,9 +107,9 @@
           <!-- 保持相同的协议声明 -->
           <div style="font-size: 14px;color: #979db1;">
             {{ $t('register.agreeTo') }}
-            <div style="display: inline-block;color: #5778FF;cursor: pointer;">{{ $t('register.userAgreement') }}</div>
+            <div style="display: inline-block;color: #5778FF;cursor: pointer;" @click="openPage('/user-agreement.html')">{{ $t('register.userAgreement') }}</div>
             {{ $t('login.and') }}
-            <div style="display: inline-block;color: #5778FF;cursor: pointer;">{{ $t('register.privacyPolicy') }}</div>
+            <div style="display: inline-block;color: #5778FF;cursor: pointer;" @click="openPage('/privacy-policy.html')">{{ $t('register.privacyPolicy') }}</div>
           </div>
         </div>
       </el-main>
@@ -198,6 +198,13 @@ export default {
     this.fetchCaptcha();
   },
   methods: {
+    openPage(url) {
+      const lang = this.$i18n ? this.$i18n.locale : 'zh_CN';
+      if (!lang.startsWith('zh')) {
+        url = url.replace('.html', '-en.html');
+      }
+      window.open(url, '_blank');
+    },
     // 复用验证码获取方法
     fetchCaptcha() {
       this.form.captchaId = getUUID();
