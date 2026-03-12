@@ -69,6 +69,8 @@ class TTSProvider(TTSProviderBase):
             "X-DashScope-DataInspection": "enable",
         }
 
+        self.audio_cache_queue = queue.Queue()
+
     async def _ensure_connection(self):
         """确保WebSocket连接可用，支持60秒内连接复用"""
         try:
@@ -347,18 +349,22 @@ class TTSProvider(TTSProviderBase):
                                 logger.bind(tag=TAG).debug("TTS任务启动成功~")
                                 self.tts_audio_queue.put((SentenceType.FIRST, [], None))
                             elif event == "result-generated":
-                                # 发送缓存的数据
-                                if self.conn.tts_MessageText:
-                                    logger.bind(tag=TAG).info(
-                                        f"句子语音生成成功： {self.conn.tts_MessageText}"
-                                    )
-                                    self.tts_audio_queue.put(
-                                        (SentenceType.FIRST, [], self.conn.tts_MessageText)
-                                    )
-                                    self.conn.tts_MessageText = None
+                                output_type = data.get("payload", {}).get("output", {}).get("type")
+                                if output_type == "sentence-end":
+                                    self.flush_audio_cache_queue()
+                                    original_text = data.get("payload", {}).get("output", {}).get("original_text", "")
+                                    if original_text:
+                                        logger.bind(tag=TAG).info(
+                                            f"句子语音生成成功： {original_text}"
+                                        )
+                                        self.tts_audio_queue.put(
+                                            (SentenceType.FIRST, [], original_text)
+                                        )
                             elif event == "task-finished":
                                 logger.bind(tag=TAG).debug("TTS任务完成~")
+                                self.flush_audio_cache_queue()
                                 self._process_before_stop_play_files()
+                                self.conn.tts_MessageText = None
                                 session_finished = True
                                 break
                             elif event == "task-failed":
@@ -367,13 +373,12 @@ class TTSProvider(TTSProviderBase):
                                 logger.bind(tag=TAG).error(
                                     f"TTS任务失败: {error_code} - {error_message}"
                                 )
+                                self.conn.tts_MessageText = None
                                 break
                         except json.JSONDecodeError:
                             logger.bind(tag=TAG).warning("收到无效的JSON消息")
                     elif isinstance(msg, (bytes, bytearray)):
-                        self.opus_encoder.encode_pcm_to_opus_stream(
-                            msg, False, callback=self.handle_opus
-                        )
+                        self.audio_cache_queue.put(msg)
                 except websockets.ConnectionClosed:
                     logger.bind(tag=TAG).warning("WebSocket连接已关闭")
                     break
@@ -393,6 +398,19 @@ class TTSProvider(TTSProviderBase):
         # 监听任务退出时清理引用
         finally:
             self._monitor_task = None
+
+    def flush_audio_cache_queue(self):
+        combined_pcm_data = b""
+        while not self.audio_cache_queue.empty():
+            try:
+                pcm_data = self.audio_cache_queue.get_nowait()
+                combined_pcm_data += pcm_data
+            except queue.Empty:
+                break
+        if combined_pcm_data:
+            self.opus_encoder.encode_pcm_to_opus_stream(
+                combined_pcm_data, False, callback=self.handle_opus
+            )
 
     def audio_to_opus_data_stream(
         self, audio_file_path, callback: Callable[[Any], Any] = None
