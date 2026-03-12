@@ -250,4 +250,5 @@ public interface ErrorCode {
     int AGENT_TAG_NAME_EMPTY = 10197; // 标签名称不能为空
     int AGENT_TAG_NOT_EXIST = 10198; // 标签不存在
 
+    int RAG_DOCUMENT_PARSING_DELETE_ERROR = 10199; // 文档解析中，禁止删除
 }
