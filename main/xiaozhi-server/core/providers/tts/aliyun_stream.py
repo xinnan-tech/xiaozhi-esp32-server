@@ -104,6 +104,7 @@ class TTSProvider(TTSProviderBase):
         self.access_key_secret = config.get("access_key_secret")
         self.appkey = config.get("appkey")
         self.format = config.get("format", "pcm")
+        self.report_on_last = True
 
         # 音色配置 - CosyVoice大模型音色
         if config.get("private_voice"):

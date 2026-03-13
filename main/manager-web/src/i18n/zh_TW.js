@@ -189,7 +189,7 @@ export default {
   'editVoiceDialog.remarkPlaceholder': '請輸入備註內容',
   'editVoiceDialog.generatePreview': '生成試聽',
   'editVoiceDialog.defaultVoiceName': '灣灣小何',
-  'editVoiceDialog.defaultLanguageType': '中文',
+  'editVoiceDialog.defaultLanguageType': '普通話',
   'editVoiceDialog.requiredVoiceCode': '請輸入音色編碼',
   'editVoiceDialog.requiredVoiceName': '請輸入音色名稱',
 
@@ -1132,6 +1132,9 @@ export default {
   'voiceClone.platformNamePlaceholder': '請選擇平台名稱',
   'voiceClone.voiceIdPlaceholder': '請輸入音色ID並按回车',
   'voiceClone.userIdPlaceholder': '請輸入关键词選擇歸屬帳號',
+  'voiceClone.languages': '語言',
+  'voiceClone.languagesPlaceholder': '請輸入語言，如：中文、English',
+  'voiceClone.languagesRequired': '請輸入語言',
   'voiceClone.waitingUpload': '待上傳',
   'voiceClone.waitingTraining': '待複刻',
   'voiceClone.training': '訓練中',

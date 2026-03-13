@@ -28,6 +28,9 @@ public class VoiceCloneResponseDTO {
     @Schema(description = "声音id")
     private String voiceId;
 
+    @Schema(description = "语言")
+    private String languages;
+
     @Schema(description = "用户ID（关联用户表）")
     private Long userId;
 

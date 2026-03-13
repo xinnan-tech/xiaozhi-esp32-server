@@ -753,7 +753,10 @@ export default {
 
       // 根据选中的语言筛选音色
       const filteredVoices = allVoices.filter(voice => {
-        if (!voice.languages) return false;
+        if (!voice.languages) {
+          // 对于没有语言信息的克隆音色，始终显示
+          return Boolean(voice.isClone);
+        }
         const languagesArray = voice.languages.split(/[、；;,，]/).map(lang => lang.trim()).filter(lang => lang);
         return languagesArray.includes(this.selectedLanguage);
       });

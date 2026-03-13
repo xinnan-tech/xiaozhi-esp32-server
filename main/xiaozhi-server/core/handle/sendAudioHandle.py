@@ -21,7 +21,6 @@ async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text
     if conn.tts.tts_audio_first_sentence:
         conn.logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
         conn.tts.tts_audio_first_sentence = False
-        await send_tts_message(conn, "start", None)
 
     if sentenceType == SentenceType.FIRST:
         # 同一句子的后续消息加入流控队列，其他情况立即发送
@@ -204,7 +203,6 @@ def _start_background_sender(conn: "ConnectionHandler", rate_controller, flow_co
 
         conn.last_activity_time = time.time() * 1000
         await _do_send_audio(conn, packet, flow_control)
-        conn.client_is_speaking = True
 
     # 使用 start_sending 启动后台循环
     rate_controller.start_sending(send_callback)
@@ -232,12 +230,10 @@ async def _send_audio_with_rate_control(
         # 预缓冲：前N个包直接发送
         if flow_control["packet_count"] < PRE_BUFFER_COUNT:
             await _do_send_audio(conn, packet, flow_control)
-            conn.client_is_speaking = True
         elif send_delay > 0:
             # 固定延迟模式
             await asyncio.sleep(send_delay)
             await _do_send_audio(conn, packet, flow_control)
-            conn.client_is_speaking = True
         else:
             # 动态流控模式：仅添加到队列，由后台循环负责发送
             rate_controller.add_audio(packet)
@@ -318,3 +314,5 @@ async def send_stt_message(conn: "ConnectionHandler", text):
         json.dumps({"type": "stt", "text": stt_text, "session_id": conn.session_id})
     )
     await send_tts_message(conn, "start")
+    # 发送start消息后客户端状态会处于说话中状态，同步服务端状态
+    conn.client_is_speaking = True

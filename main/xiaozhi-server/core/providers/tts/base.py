@@ -40,6 +40,7 @@ class TTSProviderBase(ABC):
         self.tts_audio_queue = queue.Queue()
         self.tts_audio_first_sentence = True
         self.before_stop_play_files = []
+        self.report_on_last = False
 
         self.tts_text_buff = []
         self.punctuations = (
@@ -322,7 +323,7 @@ class TTSProviderBase(ABC):
     def _audio_play_priority_thread(self):
         # 需要上报的文本和音频列表
         enqueue_text = None
-        enqueue_audio = None
+        enqueue_audio = []
         while not self.conn.stop_event.is_set():
             text = None
             try:
@@ -342,14 +343,24 @@ class TTSProviderBase(ABC):
 
                 # 收到下一个文本开始或会话结束时进行上报
                 if sentence_type is not SentenceType.MIDDLE:
-                    # 上报TTS数据
-                    if enqueue_text is not None and enqueue_audio is not None:
-                        enqueue_tts_report(self.conn, enqueue_text, enqueue_audio)
-                    enqueue_audio = []
-                    enqueue_text = text
+                    if self.report_on_last:
+                        # 累积模式：适用于全程只有一个语音流的TTS（如seed-tts-2.0）
+                        # FIRST时只记录文本，音频持续累积，仅在LAST时统一上报
+                        if text:
+                            enqueue_text = text
+                        if sentence_type == SentenceType.LAST:
+                            enqueue_tts_report(self.conn, enqueue_text, enqueue_audio)
+                            enqueue_audio = []
+                            enqueue_text = None
+                    else:
+                        # 非累积模式：每个句子分别上报
+                        if enqueue_text is not None:
+                            enqueue_tts_report(self.conn, enqueue_text, enqueue_audio)
+                        enqueue_audio = []
+                        enqueue_text = text
 
                 # 收集上报音频数据
-                if isinstance(audio_datas, bytes) and enqueue_audio is not None:
+                if isinstance(audio_datas, bytes):
                     enqueue_audio.append(audio_datas)
 
                 # 发送音频

@@ -32,6 +32,8 @@
                                 align="center"></el-table-column>
                             <el-table-column :label="$t('voiceClone.platformName')" prop="modelName"
                                 align="center"></el-table-column>
+                            <el-table-column :label="$t('voiceClone.languages')" prop="languages"
+                                align="center"></el-table-column>
                             <el-table-column :label="$t('voiceClone.trainStatus')" prop="trainStatus" align="center">
                                 <template slot-scope="scope">
                                     {{ getTrainStatusText(scope.row) }}
@@ -122,7 +124,8 @@ export default {
             voiceCloneForm: {
                 modelId: "",
                 voiceIds: [],
-                userId: null
+                userId: null,
+                languages: ""
             }
         };
     },
@@ -198,7 +201,8 @@ export default {
             this.voiceCloneForm = {
                 modelId: "",
                 voiceIds: [],
-                userId: null
+                userId: null,
+                languages: ""
             };
             this.$nextTick(() => {
                 if (this.$refs.voiceCloneForm) {

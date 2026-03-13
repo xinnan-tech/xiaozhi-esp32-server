@@ -34,6 +34,8 @@
                                     </span>
                                 </template>
                             </el-table-column>
+                            <el-table-column :label="$t('voiceClone.languages')" prop="languages"
+                                align="center"></el-table-column>
                             <el-table-column :label="$t('voiceClone.trainStatus')" prop="trainStatus" align="center">
                                 <template slot-scope="scope">
                                     <div class="status-button" :class="getStatusButtonClass(scope.row)">

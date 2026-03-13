@@ -208,11 +208,8 @@ export function updateAgentTags(agentId: string, data) {
 }
 
 // 获取所有语言
-export function getAllLanguage(modelId, voiceName) {
-  const queryParams = new URLSearchParams({
-    voiceName: voiceName || '',
-  }).toString()
-  return http.Get(`/models/${modelId}/voices?${queryParams}`, {
+export function getAllLanguage(modelId: string) {
+  return http.Get<{ id: string, name: string, languages: string }[]>(`/models/${modelId}/voices`, {
     meta: {
       ignoreAuth: false,
       toast: false,

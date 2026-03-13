@@ -30,6 +30,8 @@ export default {
   'login.requiredMobile': 'Please enter a valid phone number',
   'login.captchaError': 'Graphic verification code error',
   'login.forgotPassword': 'Forgot Password',
+  'login.userAgreement': 'User Agreement',
+  'login.privacyPolicy': 'Privacy Policy',
 
   // Register page
   'register.pageTitle': 'Register',
@@ -149,6 +151,25 @@ export default {
   'contextProviderDialog.addHeader': 'Add Header',
   'contextProviderDialog.cancel': 'Cancel',
   'contextProviderDialog.confirm': 'Confirm',
+
+  // Manual add device dialog related
+  'manualAddDeviceDialog.title': 'Manual Add Device',
+  'manualAddDeviceDialog.deviceType': 'Device Type',
+  'manualAddDeviceDialog.deviceTypePlaceholder': 'Please select device type',
+  'manualAddDeviceDialog.firmwareVersion': 'Firmware Version',
+  'manualAddDeviceDialog.firmwareVersionPlaceholder': 'Please enter firmware version',
+  'manualAddDeviceDialog.macAddress': 'Mac Address',
+  'manualAddDeviceDialog.macAddressPlaceholder': 'Please enter Mac address',
+  'manualAddDeviceDialog.confirm': 'Confirm',
+  'manualAddDeviceDialog.cancel': 'Cancel',
+  'manualAddDeviceDialog.requiredMacAddress': 'Please enter Mac address',
+  'manualAddDeviceDialog.invalidMacAddress': 'Please enter correct Mac address format, e.g.: 00:1A:2B:3C:4D:5E',
+  'manualAddDeviceDialog.requiredDeviceType': 'Please select device type',
+  'manualAddDeviceDialog.requiredFirmwareVersion': 'Please enter firmware version',
+  'manualAddDeviceDialog.getFirmwareTypeFailed': 'Failed to get firmware type',
+  'manualAddDeviceDialog.addSuccess': 'Device added successfully',
+  'manualAddDeviceDialog.addFailed': 'Failed to add',
+  'manualAddDeviceDialog.bindWithCode': 'Bind with 6-digit code',
 
   // Chat History Page
   'chatHistory.getChatSessions': 'Get chat session list',
@@ -335,7 +356,7 @@ export default {
   'message.unbindFail': 'Unbinding failed',
   'message.networkError': 'Network error, please check your connection',
   'message.serverError': 'Server error, please try again later',
-  'message.invalidAddress': 'Invalid address, please check if the server is started or network connection is normal',
+  'message.invalidAddress': 'The address may be invalid. Please check if the server is started or if the network connection is normal; It is also possible that requests cannot be sent due to HTTPS protocol issues',
   'message.languageChanged': 'Language changed',
   'message.passwordError': 'Account or password error',
   'message.phoneRegistered': 'This phone number has been registered',

@@ -33,6 +33,7 @@ class TTSProvider(TTSProviderBase):
         self.api_key = config.get("api_key")
         if not self.api_key:
             raise ValueError("api_key is required for CosyVoice TTS")
+        self.report_on_last = True
 
         # WebSocket配置
         self.ws_url = "wss://dashscope.aliyuncs.com/api-ws/v1/inference/"

@@ -11,8 +11,8 @@
 <script lang="ts" setup>
 import { useMessage } from 'wot-design-uni'
 import { getMcpAddress, getMcpTools } from '@/api/agent/agent'
-import { usePluginStore } from '@/store'
 import { t } from '@/i18n'
+import { usePluginStore } from '@/store'
 
 const message = useMessage()
 const pluginStore = usePluginStore()
@@ -30,8 +30,8 @@ const mcpAddress = ref('')
 const mcpTools = ref<string[]>([])
 
 // 初始化时从本地存储加载MCP地址
-if (uni.getStorageSync('cachedMcpAddress_' + agentId.value)) {
-  mcpAddress.value = uni.getStorageSync('cachedMcpAddress_' + agentId.value)
+if (uni.getStorageSync(`cachedMcpAddress_${agentId.value}`)) {
+  mcpAddress.value = uni.getStorageSync(`cachedMcpAddress_${agentId.value}`)
 }
 
 // 参数编辑相关
@@ -67,16 +67,18 @@ async function mergeFunctions() {
       const address = await getMcpAddress(agentId.value)
       mcpAddress.value = address
       // 缓存到本地存储，下次打开页面可以立即显示
-      uni.setStorageSync('cachedMcpAddress_' + agentId.value, address)
-    } catch (error) {
+      uni.setStorageSync(`cachedMcpAddress_${agentId.value}`, address)
+    }
+    catch (error) {
       console.error('获取MCP地址失败:', error)
     }
-    
+
     // 异步获取MCP工具列表，不阻塞UI显示
     try {
       const tools = await getMcpTools(agentId.value)
       mcpTools.value = tools || []
-    } catch (error) {
+    }
+    catch (error) {
       console.error('获取MCP工具列表失败:', error)
     }
   }
@@ -85,12 +87,12 @@ async function mergeFunctions() {
 // 添加插件到已选
 function selectFunction(func: any) {
   // 添加到已选列表
-  selectedList.value.push({
+  selectedList.value = [...selectedList.value, {
     id: func.id,
     name: func.name,
     params: { ...func.params },
     fieldsMeta: func.fieldsMeta,
-  })
+  }]
 
   // 从未选列表中移除
   notSelectedList.value = notSelectedList.value.filter(
@@ -206,15 +208,6 @@ function closeParamEdit() {
 
 // 返回上一页并更新配置
 function goBack() {
-  const finalFunctions = selectedList.value.map(f => ({
-    pluginId: f.id,
-    paramInfo: f.params,
-  }))
-
-  // 更新到store中
-  pluginStore.updateFunctions(finalFunctions)
-
-  // 直接返回
   uni.navigateBack()
 }
 
@@ -229,11 +222,11 @@ function copyMcpAddress() {
     data: mcpAddress.value,
     showToast: false,
     success: () => {
-        message.alert(t('agent.tools.mcpAddressCopied'))
-      },
+      message.alert(t('agent.tools.mcpAddressCopied'))
+    },
     fail: () => {
-        message.alert(t('agent.tools.copyFailed'))
-      },
+      message.alert(t('agent.tools.copyFailed'))
+    },
   })
 }
 
@@ -253,6 +246,15 @@ function getFieldRemark(field: any) {
   }
   return description
 }
+
+// 监听已选列表变化，实时更新插件配置，避免用户不点击返回按钮导致配置丢失
+watch(() => selectedList.value, (newSelectedList) => {
+  const finalFunctions = newSelectedList.map(f => ({
+    pluginId: f.id,
+    paramInfo: f.params,
+  }))
+  pluginStore.updateFunctions(finalFunctions)
+})
 
 onMounted(async () => {
   // 直接从store获取数据并合并
@@ -407,11 +409,11 @@ onMounted(async () => {
               class="flex-1 rounded-[10rpx] bg-[#f5f7fb] p-[20rpx]"
             >
             <view
-                class="ml-[20rpx] h-[70rpx] flex items-center justify-center rounded-[10rpx] bg-[#1677ff] px-[20rpx] text-[24rpx] text-white"
-                @click="copyMcpAddress"
-              >
-                {{ t('agent.tools.copy') }}
-              </view>
+              class="ml-[20rpx] h-[70rpx] flex items-center justify-center rounded-[10rpx] bg-[#1677ff] px-[20rpx] text-[24rpx] text-white"
+              @click="copyMcpAddress"
+            >
+              {{ t('agent.tools.copy') }}
+            </view>
           </view>
           <!-- 工具列表 -->
           <view class="mt-[20rpx] flex-1 overflow-hidden">

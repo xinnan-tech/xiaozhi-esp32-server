@@ -148,6 +148,8 @@ class TTSProvider(TTSProviderBase):
         self.access_token = config.get("access_token")
         self.cluster = config.get("cluster")
         self.resource_id = config.get("resource_id")
+        self.resource_type = True if self.resource_id == "seed-tts-2.0" else False
+        self.report_on_last = self.resource_type
         self.activate_session = False
         if config.get("private_voice"):
             self.voice = config.get("private_voice")
@@ -511,7 +513,7 @@ class TTSProvider(TTSProviderBase):
                     if res.optional.event == EVENT_SessionCanceled:
                         logger.bind(tag=TAG).debug(f"释放服务端资源成功～～")
                         self.activate_session = False
-                    elif res.optional.event == EVENT_TTSSentenceStart:
+                    elif not self.resource_type and res.optional.event == EVENT_TTSSentenceStart:
                         json_data = json.loads(res.payload.decode("utf-8"))
                         self.tts_text = json_data.get("text", "")
                         logger.bind(tag=TAG).debug(f"句子语音生成开始: {self.tts_text}")
@@ -522,8 +524,17 @@ class TTSProvider(TTSProviderBase):
                         res.optional.event == EVENT_TTSResponse
                         and res.header.message_type == AUDIO_ONLY_RESPONSE
                     ):
+                        # 处理seed-tts-2.0文本字幕
+                        if self.resource_type and self.conn.tts_MessageText:
+                            logger.bind(tag=TAG).info(
+                                f"句子语音生成成功： {self.conn.tts_MessageText}"
+                            )
+                            self.tts_audio_queue.put(
+                                (SentenceType.FIRST, [], self.conn.tts_MessageText)
+                            )
+                            self.conn.tts_MessageText = None
                         self.wav_to_opus_data_audio_raw_stream(res.payload, callback=self.handle_opus)
-                    elif res.optional.event == EVENT_TTSSentenceEnd:
+                    elif not self.resource_type and res.optional.event == EVENT_TTSSentenceEnd:
                         logger.bind(tag=TAG).info(f"句子语音生成成功：{self.tts_text}")
                     elif res.optional.event == EVENT_SessionFinished:
                         logger.bind(tag=TAG).debug(f"会话结束～～")

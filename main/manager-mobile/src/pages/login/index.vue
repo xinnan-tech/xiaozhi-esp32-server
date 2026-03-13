@@ -9,17 +9,16 @@
 </route>
 
 <script lang="ts" setup>
-import type { LoginData } from '@/api/auth';
-import { computed, onMounted, ref } from 'vue';
-import { login } from '@/api/auth';
-import { useConfigStore } from '@/store';
-import { getEnvBaseUrl } from '@/utils';
-import { toast } from '@/utils/toast';
+import type { LoginData } from '@/api/auth'
+import type { Language } from '@/store/lang'
+import { computed, onMounted, ref } from 'vue'
+import { login } from '@/api/auth'
 // 导入国际化相关功能
-import { t, changeLanguage, getSupportedLanguages, initI18n } from '@/i18n';
-import type { Language } from '@/store/lang';
+import { changeLanguage, getCurrentLanguage, getSupportedLanguages, initI18n, t } from '@/i18n'
+import { useConfigStore } from '@/store'
 // 导入SM2加密工具
-import { sm2Encrypt } from '@/utils'
+import { getEnvBaseUrl, sm2Encrypt } from '@/utils'
+import { toast } from '@/utils/toast'
 
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets
@@ -78,11 +77,6 @@ const areaCodeList = computed(() => {
   return configStore.config.mobileAreaList || [{ name: '中国大陆', key: '+86' }]
 })
 
-// SM2公钥
-const sm2PublicKey = computed(() => {
-  return configStore.config.sm2PublicKey
-})
-
 // 切换登录方式
 function toggleLoginType() {
   loginType.value = loginType.value === 'username' ? 'mobile' : 'username'
@@ -123,6 +117,22 @@ function goToForgotPassword() {
   })
 }
 
+// 跳转到用户协议
+function goToUserAgreement() {
+  const lang = getCurrentLanguage() === 'zh_CN' ? 'zh' : 'en'
+  uni.navigateTo({
+    url: `/pages/login/user-agreement-${lang}`,
+  })
+}
+
+// 跳转到隐私政策
+function goToPrivacyPolicy() {
+  const lang = getCurrentLanguage() === 'zh_CN' ? 'zh' : 'en'
+  uni.navigateTo({
+    url: `/pages/login/privacy-policy-${lang}`,
+  })
+}
+
 // 生成UUID
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -132,9 +142,7 @@ function generateUUID() {
   })
 }
 
-let skipReLaunch = false // 全局或组件作用域
-
-//跳转至服务端设置页面
+// 跳转至服务端设置页面
 function goToServerSetting() {
   uni.switchTab({
     url: '/pages/settings/index',
@@ -143,9 +151,9 @@ function goToServerSetting() {
 
 // 获取验证码
 async function refreshCaptcha() {
-  const uuid = generateUUID();
-  formData.value.captchaId = uuid;
-  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`;
+  const uuid = generateUUID()
+  formData.value.captchaId = uuid
+  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`
 }
 
 // 登录
@@ -179,7 +187,8 @@ async function handleLogin() {
   }
 
   // 检查SM2公钥是否配置
-  if (!sm2PublicKey.value) {
+  const sm2PublicKey = configStore.config.sm2PublicKey
+  if (!sm2PublicKey) {
     toast.warning(t('sm2.publicKeyNotConfigured'))
     return
   }
@@ -192,8 +201,9 @@ async function handleLogin() {
     try {
       // 拼接验证码和密码
       const captchaAndPassword = formData.value.captcha + formData.value.password
-      encryptedPassword = sm2Encrypt(sm2PublicKey.value, captchaAndPassword)
-    } catch (error) {
+      encryptedPassword = sm2Encrypt(sm2PublicKey, captchaAndPassword)
+    }
+    catch (error) {
       console.error('密码加密失败:', error)
       toast.warning(t('sm2.encryptionFailed'))
       return
@@ -203,20 +213,20 @@ async function handleLogin() {
     const loginData: LoginData = {
       username: '',
       password: encryptedPassword,
-      captchaId: formData.value.captchaId
+      captchaId: formData.value.captchaId,
     }
 
     // 如果是手机号登录，将区号+手机号拼接到username字段
     if (loginType.value === 'mobile') {
       loginData.username = `${selectedAreaCode.value}${formData.value.mobile}`
-    } else {
+    }
+    else {
       loginData.username = formData.value.username
     }
 
     const response = await login(loginData)
     // 存储token
-    uni.setStorageSync('token', response.token)
-    uni.setStorageSync('expire', response.expire)
+    uni.setStorageSync('token', JSON.stringify(response))
 
     toast.success(t('message.loginSuccess'))
 
@@ -230,14 +240,6 @@ async function handleLogin() {
   catch (error: any) {
     // 登录失败重新获取验证码
     refreshCaptcha()
-    // 处理验证码错误 - 从error.message中解析错误码
-    if (error.message.includes('请求错误[10067]')) {
-      toast.warning(t('login.captchaError'))
-    }
-    // 处理账号或密码错误
-    else if (error.message.includes('请求错误[10004]')) {
-      toast.warning(t('message.passwordError'))
-    }
   }
   finally {
     loading.value = false
@@ -267,7 +269,8 @@ onMounted(async () => {
   if (!configStore.config.name) {
     try {
       await configStore.fetchPublicConfig()
-    } catch (error) {
+    }
+    catch (error) {
       console.error(t('login.fetchConfigError'), error)
     }
   }
@@ -287,19 +290,21 @@ onMounted(async () => {
         </text>
       </view>
     </view>
-	
-	<!-- 右上角按钮组 -->
-	<view class="top-right-buttons" :style="{ top: `${safeAreaInsets?.top + 10}px` }">
-	  <!-- 语言切换按钮 -->
-	  <view class="lang-btn" @click="showLanguageSheet = true">
-      <text class="lang-text-icon">{{ t('login.selectLanguageTip') }}</text>
-	  </view>
-	  
-	  <!-- 服务端设置按钮 -->
-	  <view class="server-btn" @click="goToServerSetting">
-	    <wd-icon name="setting" custom-class="server-icon" />
-	  </view>
-	</view>
+
+    <!-- 右上角按钮组 -->
+    <view class="top-right-buttons" :style="{ top: `${safeAreaInsets?.top + 10}px` }">
+      <!-- 语言切换按钮 -->
+      <view class="lang-btn" @click="showLanguageSheet = true">
+        <text class="lang-text-icon">
+          {{ t('login.selectLanguageTip') }}
+        </text>
+      </view>
+
+      <!-- 服务端设置按钮 -->
+      <view class="server-btn" @click="goToServerSetting">
+        <wd-icon name="setting" custom-class="server-icon" />
+      </view>
+    </view>
 
     <view class="form-container">
       <view class="form">
@@ -388,6 +393,16 @@ onMounted(async () => {
               {{ t('login.forgotPassword') }}
             </text>
           </view>
+        </view>
+
+        <view class="policy-links">
+          <text class="policy-link" @click="goToUserAgreement">
+            {{ t('login.userAgreement') }}
+          </text>
+          <text class="policy-divider">|</text>
+          <text class="policy-link" @click="goToPrivacyPolicy">
+            {{ t('login.privacyPolicy') }}
+          </text>
         </view>
 
         <!-- 登录方式切换 -->
@@ -684,6 +699,29 @@ onMounted(async () => {
       margin-bottom: 30rpx;
     }
 
+    .policy-links {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20rpx;
+      margin-bottom: 30rpx;
+
+      .policy-link {
+        color: #667eea;
+        font-size: 26rpx;
+        cursor: pointer;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      .policy-divider {
+        color: #999999;
+        font-size: 26rpx;
+      }
+    }
+
     .forgot-password {
       .forgot-text {
         color: #667eea;
@@ -893,7 +931,7 @@ onMounted(async () => {
   cursor: pointer;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 24rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.2);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
 
   &:active {
     transform: scale(0.95);
@@ -901,7 +939,7 @@ onMounted(async () => {
 
   .lang-text-icon {
     font-size: 18rpx;
-    color: #FFFFFF;
+    color: #ffffff;
   }
 
   &:hover {
@@ -919,7 +957,7 @@ onMounted(async () => {
   cursor: pointer;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 24rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.2);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
 
   &:active {
     transform: scale(0.95);
@@ -927,7 +965,7 @@ onMounted(async () => {
 
   .server-icon {
     font-size: 28rpx;
-    color: #FFFFFF;
+    color: #ffffff;
   }
 
   &:hover {

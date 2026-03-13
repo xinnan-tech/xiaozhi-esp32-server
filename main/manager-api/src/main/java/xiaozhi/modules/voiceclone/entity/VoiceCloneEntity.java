@@ -31,6 +31,9 @@ public class VoiceCloneEntity {
     @Schema(description = "声音id")
     private String voiceId;
 
+    @Schema(description = "语言")
+    private String languages;
+
     @Schema(description = "用户 ID（关联用户表）")
     private Long userId;
 

@@ -76,6 +76,7 @@ class TTSProvider(TTSProviderBase):
         self.app_id = config.get("app_id")
         self.api_key = config.get("api_key")
         self.api_secret = config.get("api_secret")
+        self.report_on_last = True
 
         # 接口地址
         self.api_url = config.get("api_url", "wss://cbm01.cn-huabei-1.xf-yun.com/v1/private/mcd9m97e6")

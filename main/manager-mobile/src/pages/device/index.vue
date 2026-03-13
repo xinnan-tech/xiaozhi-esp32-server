@@ -2,22 +2,27 @@
 import type { Device, FirmwareType } from '@/api/device'
 import { computed, onMounted, ref } from 'vue'
 import { useMessage } from 'wot-design-uni'
-import { bindDevice, getBindDevices, getFirmwareTypes, unbindDevice, updateDeviceAutoUpdate } from '@/api/device'
-import { toast } from '@/utils/toast'
+import { bindDevice, bindDeviceManual, getBindDevices, getFirmwareTypes, unbindDevice, updateDeviceAutoUpdate } from '@/api/device'
 import { t } from '@/i18n'
+import { toast } from '@/utils/toast'
 
 defineOptions({
   name: 'DeviceManage',
 })
 
+const props = withDefaults(defineProps<Props>(), {
+  agentId: 'default',
+})
+
+const actions = [
+  { key: 'code', name: t('manualAddDeviceDialog.bindWithCode') },
+  { key: 'manual', name: t('manualAddDeviceDialog.title') },
+]
+
 // 接收props
 interface Props {
   agentId?: string
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  agentId: 'default'
-})
 
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets: any
@@ -44,6 +49,45 @@ safeAreaInsets = systemInfo.safeAreaInsets
 const deviceList = ref<Device[]>([])
 const firmwareTypes = ref<FirmwareType[]>([])
 const loading = ref(false)
+const isBindDevice = ref(false)
+
+// 手动绑定弹窗
+const isManualBindDialog = ref(false)
+const manualBindForm = ref({
+  board: '',
+  appVersion: '',
+  macAddress: '',
+})
+
+// 表单校验错误提示
+const formErrors = ref({
+  board: '',
+  appVersion: '',
+  macAddress: '',
+})
+
+// MAC地址正则校验
+const macRegex = /^(?:[0-9A-F]{2}[:-]){5}[0-9A-F]{2}$/i
+
+function selectBindMode(row) {
+  if (row.item.key === 'code') {
+    openBindDialog()
+  }
+  else if (row.item.key === 'manual') {
+    // 打开弹窗前重置表单和错误提示
+    manualBindForm.value = {
+      board: '',
+      appVersion: '',
+      macAddress: '',
+    }
+    formErrors.value = {
+      board: '',
+      appVersion: '',
+      macAddress: '',
+    }
+    isManualBindDialog.value = true
+  }
+}
 
 // 消息组件
 const message = useMessage()
@@ -56,11 +100,8 @@ const currentAgentId = computed(() => {
 // 获取设备列表
 async function loadDeviceList() {
   try {
-    console.log('获取设备列表')
-
     // 检查是否有当前选中的智能体
     if (!currentAgentId.value) {
-      console.warn('没有选中的智能体')
       deviceList.value = []
       return
     }
@@ -164,8 +205,8 @@ async function handleBindDevice(code: string) {
   }
   catch (error: any) {
     console.error('绑定设备失败:', error)
-    const errorMessage = error?.message || '绑定失败，请检查验证码是否正确'
-    toast.error(errorMessage || t('device.bindFailed'))
+    const errorMessage = error?.message || t('device.bindFailed')
+    toast.error(errorMessage)
   }
 }
 
@@ -188,6 +229,128 @@ function openBindDialog() {
     .catch(() => {
       // 用户取消操作
     })
+}
+
+// 手动绑定设备
+async function handleManualBind() {
+  try {
+    // 先校验整个表单
+    const isValid = validateForm()
+    if (!isValid) {
+      return
+    }
+
+    if (!currentAgentId.value) {
+      toast.error(t('device.pleaseSelectAgent'))
+      return
+    }
+
+    await bindDeviceManual({
+      agentId: currentAgentId.value,
+      board: manualBindForm.value.board,
+      appVersion: manualBindForm.value.appVersion,
+      macAddress: manualBindForm.value.macAddress,
+    })
+    await loadDeviceList()
+    toast.success(t('manualAddDeviceDialog.addSuccess'))
+    isManualBindDialog.value = false
+    // 重置表单和错误提示
+    manualBindForm.value = {
+      board: '',
+      appVersion: '',
+      macAddress: '',
+    }
+    formErrors.value = {
+      board: '',
+      appVersion: '',
+      macAddress: '',
+    }
+  }
+  catch (error: any) {
+    const errorMessage = error?.message || t('manualAddDeviceDialog.addFailed')
+    toast.error(errorMessage)
+  }
+}
+
+// 校验单个字段
+function validateField(field: string) {
+  switch (field) {
+    case 'board':
+      if (!manualBindForm.value.board) {
+        formErrors.value.board = t('manualAddDeviceDialog.deviceTypePlaceholder')
+      }
+      else {
+        formErrors.value.board = ''
+      }
+      break
+    case 'appVersion':
+      if (!manualBindForm.value.appVersion) {
+        formErrors.value.appVersion = t('manualAddDeviceDialog.firmwareVersionPlaceholder')
+      }
+      else {
+        formErrors.value.appVersion = ''
+      }
+      break
+    case 'macAddress':
+      if (!manualBindForm.value.macAddress) {
+        formErrors.value.macAddress = t('manualAddDeviceDialog.macAddressPlaceholder')
+      }
+      else if (!macRegex.test(manualBindForm.value.macAddress)) {
+        formErrors.value.macAddress = t('manualAddDeviceDialog.invalidMacAddress')
+      }
+      else {
+        formErrors.value.macAddress = ''
+      }
+      break
+  }
+}
+
+// 清除字段错误提示
+function clearFieldError(field: string) {
+  formErrors.value[field] = ''
+}
+
+// 处理选择器变化
+function handlePickerChange() {
+  clearFieldError('board')
+}
+
+// 校验整个表单
+function validateForm(): boolean {
+  let isValid = true
+
+  // 校验设备类型
+  if (!manualBindForm.value.board) {
+    formErrors.value.board = t('manualAddDeviceDialog.deviceTypePlaceholder')
+    isValid = false
+  }
+  else {
+    formErrors.value.board = ''
+  }
+
+  // 校验固件版本
+  if (!manualBindForm.value.appVersion) {
+    formErrors.value.appVersion = t('manualAddDeviceDialog.firmwareVersionPlaceholder')
+    isValid = false
+  }
+  else {
+    formErrors.value.appVersion = ''
+  }
+
+  // 校验MAC地址
+  if (!manualBindForm.value.macAddress) {
+    formErrors.value.macAddress = t('manualAddDeviceDialog.macAddressPlaceholder')
+    isValid = false
+  }
+  else if (!macRegex.test(manualBindForm.value.macAddress)) {
+    formErrors.value.macAddress = t('manualAddDeviceDialog.invalidMacAddress')
+    isValid = false
+  }
+  else {
+    formErrors.value.macAddress = ''
+  }
+
+  return isValid
 }
 
 // 获取设备类型列表
@@ -241,14 +404,14 @@ defineExpose({
 
                   <view class="mb-[20rpx]">
                     <text class="mb-[12rpx] block text-[28rpx] text-[#65686f] leading-[1.4]">
-                    {{ t('device.macAddress') }}：{{ device.macAddress }}
-                  </text>
-                  <text class="mb-[12rpx] block text-[28rpx] text-[#65686f] leading-[1.4]">
-                    {{ t('device.firmwareVersion') }}：{{ device.appVersion }}
-                  </text>
-                  <text class="block text-[28rpx] text-[#65686f] leading-[1.4]">
-                    {{ t('device.lastConnection') }}：{{ formatTime(device.lastConnectedAt) }}
-                  </text>
+                      {{ t('device.macAddress') }}：{{ device.macAddress }}
+                    </text>
+                    <text class="mb-[12rpx] block text-[28rpx] text-[#65686f] leading-[1.4]">
+                      {{ t('device.firmwareVersion') }}：{{ device.appVersion }}
+                    </text>
+                    <text class="block text-[28rpx] text-[#65686f] leading-[1.4]">
+                      {{ t('device.lastConnection') }}：{{ formatTime(device.lastConnectedAt) }}
+                    </text>
                   </view>
 
                   <view class="flex items-center justify-between border-[1rpx] border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[16rpx_20rpx]">
@@ -295,10 +458,88 @@ defineExpose({
     </view>
 
     <!-- FAB 绑定设备按钮 -->
-    <wd-fab type="primary" size="small" icon="add" :draggable="true" :expandable="false" @click="openBindDialog" />
+    <wd-fab type="primary" size="small" icon="add" :draggable="true" :expandable="false" @click="isBindDevice = true" />
 
     <!-- MessageBox 组件 -->
     <wd-message-box />
+    <wd-action-sheet v-model="isBindDevice" :actions="actions" @close="isBindDevice = false" @select="selectBindMode" />
+
+    <!-- 手动绑定设备弹窗 -->
+    <wd-popup v-model="isManualBindDialog" position="bottom" :close-on-click-modal="false" custom-style="border-radius: 24rpx 24rpx 0 0;">
+      <view class="manual-bind-dialog">
+        <view class="dialog-header">
+          <text class="dialog-title">
+            {{ t('manualAddDeviceDialog.title') }}
+          </text>
+          <wd-icon name="close" size="20" @click="isManualBindDialog = false" />
+        </view>
+
+        <view class="dialog-content">
+          <view class="form-item">
+            <text class="form-label">
+              {{ t('manualAddDeviceDialog.deviceType') }}
+              <text class="required">
+                *
+              </text>
+            </text>
+            <wd-picker
+              v-model="manualBindForm.board"
+              class="custom-wd-picker"
+              :columns="firmwareTypes.map(item => ({ value: item.key, label: item.name }))"
+              :placeholder="t('manualAddDeviceDialog.deviceTypePlaceholder')"
+              :cancel-button-text="t('common.cancel')"
+              :confirm-button-text="t('common.confirm')"
+              @confirm="handlePickerChange"
+            />
+            <text v-if="formErrors.board" class="error-text">
+              {{ formErrors.board }}
+            </text>
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">
+              {{ t('manualAddDeviceDialog.firmwareVersion') }}
+              <text class="required">
+                *
+              </text>
+            </text>
+            <wd-input
+              v-model="manualBindForm.appVersion"
+              :placeholder="t('manualAddDeviceDialog.firmwareVersionPlaceholder')"
+              @input="clearFieldError('appVersion')"
+              @blur="validateField('appVersion')"
+            />
+            <text v-if="formErrors.appVersion" class="error-text">
+              {{ formErrors.appVersion }}
+            </text>
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">
+              {{ t('manualAddDeviceDialog.macAddress') }}
+              <text class="required">
+                *
+              </text>
+            </text>
+            <wd-input
+              v-model="manualBindForm.macAddress"
+              :placeholder="t('manualAddDeviceDialog.macAddressPlaceholder')"
+              @input="validateField('macAddress')"
+              @blur="validateField('macAddress')"
+            />
+            <text v-if="formErrors.macAddress" class="error-text">
+              {{ formErrors.macAddress }}
+            </text>
+          </view>
+        </view>
+
+        <view class="dialog-footer">
+          <wd-button block type="primary" @click="handleManualBind">
+            {{ t('manualAddDeviceDialog.confirm') }}
+          </wd-button>
+        </view>
+      </view>
+    </wd-popup>
   </view>
 </template>
 
@@ -327,8 +568,64 @@ defineExpose({
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   border: 1rpx solid #eeeeee;
 }
+::v-deep .wd-action-sheet__popup,
+::v-deep .wd-popup {
+  z-index: 100 !important;
+}
+.custom-wd-picker ::v-deep .wd-picker__cell {
+  padding-left: 0 !important;
+}
 
 :deep(.wd-icon) {
   font-size: 32rpx;
+}
+
+.manual-bind-dialog {
+  padding: 32rpx;
+  background: #ffffff;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
+}
+
+.dialog-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #232338;
+}
+
+.dialog-content {
+  margin-bottom: 32rpx;
+}
+
+.form-item {
+  margin-bottom: 24rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  color: #65686f;
+  margin-bottom: 12rpx;
+}
+
+.required {
+  color: #ff4d4f;
+  margin-left: 4rpx;
+}
+
+.error-text {
+  display: block;
+  font-size: 24rpx;
+  color: #ff4d4f;
+  margin-top: 8rpx;
+}
+
+.dialog-footer {
+  padding-top: 16rpx;
 }
 </style>

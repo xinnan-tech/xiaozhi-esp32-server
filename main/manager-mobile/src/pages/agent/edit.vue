@@ -2,10 +2,8 @@
 import type { AgentDetail, ModelOption, PluginDefinition, RoleTemplate } from '@/api/agent/types'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { getAgentDetail, getAgentTags, getAllLanguage, getModelOptions, getPluginFunctions, getRoleTemplates, updateAgent, updateAgentTags } from '@/api/agent/agent'
-import ContextProviderDialog from '@/components/ContextProviderDialog.vue'
-import VoiceSettingsDialog from '@/components/VoiceSettingsDialog.vue'
 import { t } from '@/i18n'
-import { usePluginStore } from '@/store'
+import { usePluginStore, useProvider, useSpeedPitch } from '@/store'
 import { toast } from '@/utils/toast'
 
 defineOptions({
@@ -105,29 +103,17 @@ const pickerShow = ref<{
   report: false,
 })
 
-const ttsSettings = ref({
-  volume: 0,
-  speed: 0,
-  pitch: 0,
-})
-
 const allFunctions = ref<PluginDefinition[]>([])
 const dynamicTags = ref([])
 const inputValue = ref('')
 const inputVisible = ref(false)
-const showContextProviderDialog = ref(false)
-const currentContextProviders = ref([])
-const showVoiceSettingsDialog = ref(false)
-const voiceSettings = ref({
-  volume: 0,
-  speed: 0,
-  pitch: 0,
-})
 const languageOptions = ref([])
 const isVisibleReport = ref(false)
 
 // 使用插件store
 const pluginStore = usePluginStore()
+const speedPitchStore = useSpeedPitch()
+const providerStore = useProvider()
 
 // tabs
 const tabList = [
@@ -174,27 +160,15 @@ function handleInputConfirm() {
 
 // 打开上下文源编辑弹窗
 function openContextProviderDialog() {
-  showContextProviderDialog.value = true
-}
-
-// 处理上下文源更新
-function handleUpdateContext(providers: any[]) {
-  currentContextProviders.value = providers
-}
-
-function openVoiceSettingsDialog() {
-  showVoiceSettingsDialog.value = true
-}
-
-function handleUpdateVoiceSettings(settings: any) {
-  ttsSettings.value = settings
-  formData.value.ttsVolume = settings.volume
-  formData.value.ttsRate = settings.speed
-  formData.value.ttsPitch = settings.pitch
+  uni.navigateTo({
+    url: '/pages/agent/provider',
+  })
 }
 
 function handleRegulate() {
-  openVoiceSettingsDialog()
+  uni.navigateTo({
+    url: '/pages/agent/speedPitch',
+  })
 }
 
 // 加载智能体详情
@@ -211,14 +185,15 @@ async function loadAgentDetail() {
     pluginStore.setCurrentAgentId(agentId.value)
     pluginStore.setCurrentFunctions(detail.functions || [])
 
+    // 更新语速音调
+    speedPitchStore.updateSpeedPitch({
+      ttsVolume: detail.ttsVolume || 0,
+      ttsRate: detail.ttsRate || 0,
+      ttsPitch: detail.ttsPitch || 0,
+    })
+
     // 加载上下文配置
-    currentContextProviders.value = (detail as any).contextProviders || []
-    // 加载语音设置
-    voiceSettings.value = {
-      volume: (detail as any).volume || 0,
-      speed: (detail as any).speed || 0,
-      pitch: (detail as any).pitch || 0,
-    }
+    providerStore.updateProviders(detail.contextProviders || [])
 
     // 如果有TTS模型，加载对应的音色选项
     if (detail.ttsModelId) {
@@ -373,17 +348,17 @@ function filterVoicesByLanguage() {
   }
 
   // 同步到ttsSettings（如果值为null，使用0作为显示默认值，但不修改form中的值）
-  ttsSettings.value = {
-    volume: formData.value.ttsVolume !== null && formData.value.ttsVolume !== undefined ? formData.value.ttsVolume : 0,
-    speed: formData.value.ttsRate !== null && formData.value.ttsRate !== undefined ? formData.value.ttsRate : 0,
-    pitch: formData.value.ttsPitch !== null && formData.value.ttsPitch !== undefined ? formData.value.ttsPitch : 0,
-  }
+  speedPitchStore.updateSpeedPitch({
+    ttsVolume: formData.value.ttsVolume !== null && formData.value.ttsVolume !== undefined ? formData.value.ttsVolume : 0,
+    ttsRate: formData.value.ttsRate !== null && formData.value.ttsRate !== undefined ? formData.value.ttsRate : 0,
+    ttsPitch: formData.value.ttsPitch !== null && formData.value.ttsPitch !== undefined ? formData.value.ttsPitch : 0,
+  })
 }
 
 // 根据语音合成模型加载语言
 async function fetchAllLanguag(ttsModelId: string) {
   try {
-    const res = await getAllLanguage(ttsModelId, '') as any[]
+    const res = await getAllLanguage(ttsModelId)
     // 保存完整的音色信息
     voiceDetails.value = res.reduce((acc, voice) => {
       acc[voice.id] = voice
@@ -564,8 +539,9 @@ async function saveAgent() {
     // 构建保存数据，包含上下文配置和语音设置
     const saveData = {
       ...formData.value,
+      ...speedPitchStore.speedPitch,
       ttsLanguage: formData.value.language,
-      contextProviders: currentContextProviders.value,
+      contextProviders: providerStore.providers,
     }
     await updateAgent(agentId.value, saveData)
     loadAgentDetail()
@@ -611,15 +587,6 @@ function handleTools() {
   })
 }
 
-// 监听插件配置更新
-function watchPluginUpdates() {
-  // 监听store中的插件配置变化
-  watch(() => pluginStore.currentFunctions, (newFunctions) => {
-    console.log('插件配置已更新:', newFunctions)
-    formData.value.functions = newFunctions
-  }, { deep: true })
-}
-
 // 获取智能体标签
 async function loadAgentTags() {
   try {
@@ -635,9 +602,12 @@ async function handleUpdateAgentTags() {
   await updateAgentTags(agentId.value, { tagNames })
 }
 
+// 监听store中的插件配置变化
+watch(() => pluginStore.currentFunctions, (newFunctions) => {
+  formData.value.functions = newFunctions
+}, { deep: true })
+
 onMounted(async () => {
-  // 初始化插件配置监听
-  watchPluginUpdates()
   loadAgentTags()
 
   // 先加载模型选项和角色模板
@@ -726,7 +696,7 @@ onMounted(async () => {
         </text>
         <view class="mt-0 flex flex-wrap items-center gap-[12rpx]">
           <text class="text-[26rpx] text-[#65686f]">
-            {{ t('agent.contextProviderSuccess', { count: currentContextProviders.length }) }}
+            {{ t('agent.contextProviderSuccess', { count: providerStore.providers.length }) }}
           </text>
           <a class="text-[26rpx] text-[#5778ff] no-underline" href="https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/context-provider-integration.md" target="_blank">
             {{ t('agent.contextProviderDocLink') }}
@@ -993,16 +963,6 @@ onMounted(async () => {
       :actions="reportOptions"
       @close="onPickerCancel('report')"
       @select="({ item }) => onPickerConfirm('report', item.value, item.name)"
-    />
-    <ContextProviderDialog
-      v-model:visible="showContextProviderDialog"
-      :providers="currentContextProviders"
-      @confirm="handleUpdateContext"
-    />
-    <VoiceSettingsDialog
-      v-model:visible="showVoiceSettingsDialog"
-      :settings="ttsSettings"
-      @confirm="handleUpdateVoiceSettings"
     />
   </view>
 </template>

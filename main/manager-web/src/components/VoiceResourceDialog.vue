@@ -25,6 +25,11 @@
           </el-option>
         </el-select>
       </el-form-item>
+
+      <el-form-item :label="$t('voiceClone.languages')" prop="languages">
+        <el-input v-model="form.languages" :placeholder="$t('voiceClone.languagesPlaceholder')" style="width: 100%">
+        </el-input>
+      </el-form-item>
     </el-form>
 
     <div slot="footer" class="dialog-footer">
@@ -70,6 +75,9 @@ export default {
         ],
         userId: [
           { required: true, message: this.$t('voiceClone.userIdRequired'), trigger: 'change' }
+        ],
+        languages: [
+          { required: true, message: this.$t('voiceClone.languagesRequired'), trigger: 'blur' }
         ]
       }
     }

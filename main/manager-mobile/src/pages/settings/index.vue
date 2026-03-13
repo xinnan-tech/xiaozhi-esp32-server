@@ -1,18 +1,21 @@
-<route lang="jsonc" type="page">{
+<route lang="jsonc" type="page">
+{
   "layout": "default",
   "style": {
     "navigationBarTitleText": "设置",
     "navigationStyle": "custom"
   }
-}</route>
+}
+</route>
 
 <script lang="ts" setup>
-import { changeLanguage, getCurrentLanguage, getSupportedLanguages, t } from '@/i18n'
 import type { Language } from '@/store/lang'
-import { clearServerBaseUrlOverride, getEnvBaseUrl, getServerBaseUrlOverride, setServerBaseUrlOverride } from '@/utils'
-import { isMp } from '@/utils/platform'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useToast } from 'wot-design-uni'
+import { changeLanguage, getCurrentLanguage, getSupportedLanguages, t } from '@/i18n'
+import { useConfigStore } from '@/store'
+import { clearServerBaseUrlOverride, getEnvBaseUrl, getServerBaseUrlOverride, setServerBaseUrlOverride } from '@/utils'
+import { isMp } from '@/utils/platform'
 
 defineOptions({
   name: 'SettingsPage',
@@ -26,6 +29,8 @@ const cacheInfo = reactive({
   imageCache: '0MB',
   dataCache: '0MB',
 })
+
+const configStore = useConfigStore()
 
 // 服务端地址设置
 const baseUrlInput = ref('')
@@ -81,18 +86,26 @@ async function testServerBaseUrl() {
     const response = await uni.request({
       url: `${baseUrlInput.value}/api/ping`,
       method: 'GET',
-      timeout: 3000
+      timeout: 3000,
     })
 
     if (response.statusCode === 200) {
       return true
-    } else {
-      toast.error(t('message.invalidAddress'))
+    }
+    else {
+      toast.error({
+        msg: t('message.invalidAddress'),
+        duration: 3000,
+      })
       return false
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('测试服务端地址失败:', error)
-    toast.error(t('message.invalidAddress'))
+    toast.error({
+      msg: t('message.invalidAddress'),
+      duration: 3000,
+    })
     return false
   }
 }
@@ -110,6 +123,20 @@ async function saveServerBaseUrl() {
     return
   }
   setServerBaseUrlOverride(baseUrlInput.value)
+  // 处理config缓存无法更新的问题
+  uni.request({
+    url: `${getEnvBaseUrl()}/user/pub-config`,
+    method: 'GET',
+    success: (res) => {
+      if (res.statusCode === 200) {
+        configStore.setConfig(res.data.data)
+        uni.setStorageSync('config', res.data.data.sm2PubKey)
+      }
+    },
+    fail: (err) => {
+      console.error('获取SM2公钥失败:', err)
+    },
+  })
 
   // 切换请求地址后清空所有缓存
   clearAllCacheAfterUrlChange()

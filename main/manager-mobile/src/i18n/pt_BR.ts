@@ -29,7 +29,9 @@ export default {
   'login.requiredCaptcha': 'O código de verificação não pode estar vazio',
   'login.requiredMobile': 'Por favor, insira um número de telefone válido',
   'login.captchaError': 'Erro no código de verificação gráfico',
-  'login.forgotPassword': 'Esqueceu a Senha',
+    'login.forgotPassword': 'Esqueceu a Senha',
+    'login.userAgreement': 'Termos de Uso',
+    'login.privacyPolicy': 'Política de Privacidade',
 
   // Register page
   'register.pageTitle': 'Cadastro',
@@ -149,6 +151,25 @@ export default {
   'contextProviderDialog.addHeader': 'Adicionar Cabeçalho',
   'contextProviderDialog.cancel': 'Cancelar',
   'contextProviderDialog.confirm': 'Confirmar',
+
+  // Diálogo de adição manual de dispositivo
+  'manualAddDeviceDialog.title': 'Adicionar Dispositivo Manualmente',
+  'manualAddDeviceDialog.deviceType': 'Tipo de Dispositivo',
+  'manualAddDeviceDialog.deviceTypePlaceholder': 'Por favor, selecione o tipo de dispositivo',
+  'manualAddDeviceDialog.firmwareVersion': 'Versão do Firmware',
+  'manualAddDeviceDialog.firmwareVersionPlaceholder': 'Por favor, insira a versão do firmware',
+  'manualAddDeviceDialog.macAddress': 'Endereço MAC',
+  'manualAddDeviceDialog.macAddressPlaceholder': 'Por favor, insira o endereço MAC',
+  'manualAddDeviceDialog.confirm': 'Confirmar',
+  'manualAddDeviceDialog.cancel': 'Cancelar',
+  'manualAddDeviceDialog.requiredMacAddress': 'Por favor, insira o endereço MAC',
+  'manualAddDeviceDialog.invalidMacAddress': 'Por favor, insira o formato correto de endereço MAC, ex.: 00:1A:2B:3C:4D:5E',
+  'manualAddDeviceDialog.requiredDeviceType': 'Por favor, selecione o tipo de dispositivo',
+  'manualAddDeviceDialog.requiredFirmwareVersion': 'Por favor, insira a versão do firmware',
+  'manualAddDeviceDialog.getFirmwareTypeFailed': 'Falha ao obter tipo de firmware',
+  'manualAddDeviceDialog.addSuccess': 'Dispositivo adicionado com sucesso',
+  'manualAddDeviceDialog.addFailed': 'Falha ao adicionar',
+  'manualAddDeviceDialog.bindWithCode': 'Vincular com Código de 6 Dígitos',
 
   // Chat History Page
   'chatHistory.getChatSessions': 'Obter lista de sessões de conversa',
@@ -335,7 +356,7 @@ export default {
   'message.unbindFail': 'Falha na desvinculação',
   'message.networkError': 'Erro de rede, por favor verifique sua conexão',
   'message.serverError': 'Erro no servidor, por favor tente novamente mais tarde',
-  'message.invalidAddress': 'Endereço inválido, por favor verifique se o servidor está iniciado ou se a conexão de rede está normal',
+  'message.invalidAddress': 'O endereço pode ser inválido, verifique se o servidor está iniciado ou se a conexão de rede está correta; Também pode ser impossível enviar solicitações devido a problemas com o protocolo HTTPS',
   'message.languageChanged': 'Idioma alterado',
   'message.passwordError': 'Conta ou senha incorretos',
   'message.phoneRegistered': 'Este número de telefone já está cadastrado',

@@ -29,7 +29,9 @@ export default {
   'login.requiredCaptcha': '驗證碼不能為空',
   'login.requiredMobile': '請輸入正確的手機號碼',
   'login.captchaError': '圖形驗證碼錯誤',
-  'login.forgotPassword': '忘記密碼',
+    'login.forgotPassword': '忘記密碼',
+    'login.userAgreement': '用戶協議',
+    'login.privacyPolicy': '隱私政策',
 
   // 忘記密碼頁面
   'retrievePassword.title': '重置密碼',
@@ -170,6 +172,25 @@ export default {
   'contextProviderDialog.addHeader': '添加 Header',
   'contextProviderDialog.cancel': '取消',
   'contextProviderDialog.confirm': '確定',
+
+  // 手動添加設備對話框相關
+  'manualAddDeviceDialog.title': '手動添加設備',
+  'manualAddDeviceDialog.deviceType': '設備型號',
+  'manualAddDeviceDialog.deviceTypePlaceholder': '請選擇設備型號',
+  'manualAddDeviceDialog.firmwareVersion': '固件版本',
+  'manualAddDeviceDialog.firmwareVersionPlaceholder': '請輸入固件版本',
+  'manualAddDeviceDialog.macAddress': 'Mac地址',
+  'manualAddDeviceDialog.macAddressPlaceholder': '請輸入Mac地址',
+  'manualAddDeviceDialog.confirm': '確定',
+  'manualAddDeviceDialog.cancel': '取消',
+  'manualAddDeviceDialog.requiredMacAddress': '請輸入Mac地址',
+  'manualAddDeviceDialog.invalidMacAddress': '請輸入正確的Mac地址格式，例如：00:1A:2B:3C:4D:5E',
+  'manualAddDeviceDialog.requiredDeviceType': '請選擇設備型號',
+  'manualAddDeviceDialog.requiredFirmwareVersion': '請輸入固件版本',
+  'manualAddDeviceDialog.getFirmwareTypeFailed': '獲取固件類型失敗',
+  'manualAddDeviceDialog.addSuccess': '設備添加成功',
+  'manualAddDeviceDialog.addFailed': '添加失敗',
+  'manualAddDeviceDialog.bindWithCode': '6位驗證碼綁定',
 
   // 聊天歷史頁面
   'chatHistory.getChatSessions': '獲取聊天會話列表',
@@ -335,7 +356,7 @@ export default {
   'message.unbindFail': '解除綁定失敗',
   'message.networkError': '網絡錯誤，請檢查網絡連接',
   'message.serverError': '服務器錯誤，請稍後再試',
-  'message.invalidAddress': '無效地址，請檢查服務端是否啟動或網絡連接是否正常',
+  'message.invalidAddress': '地址可能無效，請檢查服務端是否啟動或網絡連接是否正常； 也可能因HTTPS協定問題導致無法發送請求常',
   'message.languageChanged': '語言已切換',
   'message.passwordError': '帳號或密碼錯誤',
   'message.phoneRegistered': '此手機號已經註冊過',

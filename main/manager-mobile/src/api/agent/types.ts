@@ -48,6 +48,15 @@ export interface AgentDetail {
   ttsRate: number
   ttsPitch: number
   functions: AgentFunction[]
+  contextProviders: Providers[]
+}
+
+export interface Providers {
+  url: string
+  headers: Array<{
+    key: string
+    value: string
+  }>
 }
 
 export interface AgentFunction {

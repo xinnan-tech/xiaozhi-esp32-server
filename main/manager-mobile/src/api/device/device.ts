@@ -34,6 +34,22 @@ export function bindDevice(agentId: string, code: string) {
 }
 
 /**
+ * 手动添加设备
+ * @param agentId 智能体ID
+ * @param board 设备类型
+ * @param appVersion 固件版本
+ * @param macAddress MAC地址
+ */
+export function bindDeviceManual(data: {
+  agentId: string
+  board: string
+  appVersion: string
+  macAddress: string
+}) {
+  return http.Post('/device/manual-add', data)
+}
+
+/**
  * 设置设备OTA升级开关
  * @param deviceId 设备ID (MAC地址)
  * @param autoUpdate 是否自动升级 0|1

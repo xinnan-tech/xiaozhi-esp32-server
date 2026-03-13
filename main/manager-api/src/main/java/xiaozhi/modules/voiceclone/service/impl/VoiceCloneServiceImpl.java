@@ -116,6 +116,7 @@ public class VoiceCloneServiceImpl extends BaseServiceImpl<VoiceCloneDao, VoiceC
             entity.setVoiceId(voiceId);
             entity.setName(namePrefix + "_" + index);
             entity.setUserId(dto.getUserId());
+            entity.setLanguages(dto.getLanguages());
             entity.setTrainStatus(0); // 默认训练中
             batchInsertList.add(entity);
         }

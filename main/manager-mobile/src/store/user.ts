@@ -51,10 +51,11 @@ export const useUserStore = defineStore(
      */
     const getUserInfo = async () => {
       const userData = await _getUserInfo()
+      const authInfo = JSON.parse(uni.getStorageSync('token') || '{}')
       const userInfoWithExtras = {
         ...userData,
         avatar: userInfoState.avatar,
-        token: uni.getStorageSync('token') || '',
+        token: authInfo.token || '',
       }
       setUserInfo(userInfoWithExtras)
       uni.setStorageSync('userInfo', userInfoWithExtras)

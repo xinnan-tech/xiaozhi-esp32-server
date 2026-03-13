@@ -30,6 +30,8 @@ export default {
     'login.requiredMobile': 'Bitte gültige Handynummer eingeben',
     'login.captchaError': 'Grafischer Bestätigungscode Fehler',
     'login.forgotPassword': 'Passwort vergessen',
+    'login.userAgreement': 'Nutzungsbedingungen',
+    'login.privacyPolicy': 'Datenschutzrichtlinie',
 
     // Registrierungsseite
     'register.pageTitle': 'Registrieren',
@@ -149,6 +151,25 @@ export default {
     'contextProviderDialog.addHeader': 'Header hinzufügen',
     'contextProviderDialog.cancel': 'Abbrechen',
     'contextProviderDialog.confirm': 'Bestätigen',
+
+  // Manual add device dialog related
+  'manualAddDeviceDialog.title': 'Manuell Gerät hinzufügen',
+  'manualAddDeviceDialog.deviceType': 'Gerätetyp',
+  'manualAddDeviceDialog.deviceTypePlaceholder': 'Bitte Gerätetyp auswählen',
+  'manualAddDeviceDialog.firmwareVersion': 'Firmware-Version',
+  'manualAddDeviceDialog.firmwareVersionPlaceholder': 'Bitte Firmware-Version eingeben',
+  'manualAddDeviceDialog.macAddress': 'Mac-Adresse',
+  'manualAddDeviceDialog.macAddressPlaceholder': 'Bitte Mac-Adresse eingeben',
+  'manualAddDeviceDialog.confirm': 'Bestätigen',
+  'manualAddDeviceDialog.cancel': 'Abbrechen',
+  'manualAddDeviceDialog.requiredMacAddress': 'Bitte Mac-Adresse eingeben',
+  'manualAddDeviceDialog.invalidMacAddress': 'Bitte korrektes Mac-Adressformat eingeben, z.B.: 00:1A:2B:3C:4D:5E',
+  'manualAddDeviceDialog.requiredDeviceType': 'Bitte Gerätetyp auswählen',
+  'manualAddDeviceDialog.requiredFirmwareVersion': 'Bitte Firmware-Version eingeben',
+  'manualAddDeviceDialog.getFirmwareTypeFailed': 'Firmware-Typ konnte nicht abgerufen werden',
+  'manualAddDeviceDialog.addSuccess': 'Gerät erfolgreich hinzugefügt',
+  'manualAddDeviceDialog.addFailed': 'Hinzufügen fehlgeschlagen',
+  'manualAddDeviceDialog.bindWithCode': 'Mit 6-stelligem Code binden',
 
     // Chat-Verlauf Seite
     'chatHistory.getChatSessions': 'Chat-Sitzungsliste abrufen',
@@ -335,7 +356,7 @@ export default {
     'message.unbindFail': 'Entbinden fehlgeschlagen',
     'message.networkError': 'Netzwerkfehler, bitte Verbindung prüfen',
     'message.serverError': 'Serverfehler, bitte später erneut versuchen',
-    'message.invalidAddress': 'Ungültige Adresse, bitte prüfen ob Server gestartet oder Netzwerkverbindung normal ist',
+    'message.invalidAddress': 'Die Adresse kann ungültig sein. Bitte überprüfen Sie, ob der Server gestartet ist oder ob die Netzwerkverbindung funktioniert. Es kann auch sein, dass die Anfrage aufgrund eines Problems mit dem HTTPS-Protokoll nicht gesendet werden kann.',
     'message.languageChanged': 'Sprache geändert',
     'message.passwordError': 'Konto oder Passwort Fehler',
     'message.phoneRegistered': 'Diese Handynummer wurde bereits registriert',

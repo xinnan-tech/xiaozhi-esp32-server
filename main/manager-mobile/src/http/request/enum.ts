@@ -12,6 +12,7 @@ export enum ResultEnum {
   ServiceUnavailable = 503, // 服务不可用（原为serviceUnavailable）
   GatewayTimeout = 504, // 网关超时（原为gatewayTimeout）
   HttpVersionNotSupported = 505, // HTTP版本不支持（原为httpVersionNotSupported）
+  MixedContent = 600, // 混合内容错误（HTTPS页面请求HTTP接口）
 }
 export enum ContentTypeEnum {
   JSON = 'application/json;charset=UTF-8',
@@ -58,6 +59,9 @@ export function ShowMessage(status: number | string): string {
       break
     case 505:
       message = 'HTTP版本不受支持(505)'
+      break
+    case 600:
+      message = '混合内容错误(600)'
       break
     default:
       message = `连接出错(${status})!`

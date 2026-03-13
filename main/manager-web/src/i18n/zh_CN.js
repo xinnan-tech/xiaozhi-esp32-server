@@ -189,7 +189,7 @@ export default {
   'editVoiceDialog.remarkPlaceholder': '请输入备注内容',
   'editVoiceDialog.generatePreview': '生成试听',
   'editVoiceDialog.defaultVoiceName': '湾湾小何',
-  'editVoiceDialog.defaultLanguageType': '中文',
+  'editVoiceDialog.defaultLanguageType': '普通话',
   'editVoiceDialog.requiredVoiceCode': '请输入音色编码',
   'editVoiceDialog.requiredVoiceName': '请输入音色名称',
 
@@ -1132,6 +1132,9 @@ export default {
   'voiceClone.platformNamePlaceholder': '请选择平台名称',
   'voiceClone.voiceIdPlaceholder': '请输入音色ID并按回车',
   'voiceClone.userIdPlaceholder': '请输入关键词选择归属账号',
+  'voiceClone.languages': '语言',
+  'voiceClone.languagesPlaceholder': '请输入语言，如：中文、English',
+  'voiceClone.languagesRequired': '请输入语言',
   'voiceClone.waitingUpload': '待上传',
   'voiceClone.waitingTraining': '待复刻',
   'voiceClone.training': '训练中',

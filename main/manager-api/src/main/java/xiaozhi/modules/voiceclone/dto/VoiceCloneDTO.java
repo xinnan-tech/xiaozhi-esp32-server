@@ -17,4 +17,7 @@ public class VoiceCloneDTO {
 
     @Schema(description = "用户ID")
     private Long userId;
+
+    @Schema(description = "语言")
+    private String languages;
 }
