@@ -4,7 +4,7 @@ torch==2.2.2
 torchaudio==2.2.2
 numpy==1.26.4
 #--------- cozepy0.20.0要求websockets<15.0.0，以下暂时不推荐升级的依赖
-websockets==14.2
+websockets==15.0.1
 #--------- 以下是可升级的依赖
 pyyml==0.0.2
 silero_vad==6.1.0
