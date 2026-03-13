@@ -646,6 +646,17 @@ LLM:
     model_name: "gemini-2.0-flash"
     http_proxy: ""  #"http://127.0.0.1:10808"
     https_proxy: "" #http://127.0.0.1:10808"
+  TCBAiLLM:
+    # 腾讯云开发 - AI+ Agent 平台
+    # 定义 Agent API 类型
+    type: openai
+    # 1. 先创建开通云开发环境 https://tcb.cloud.tencent.com/dev
+    # 2. 进入环境->环境配置-> API Key配置，创建API Key （即 api_key 字段值）
+    # 3. 进入Ai+ 页面 -> 新建Agent，新建后获取 Agent ID （即 model_name 字段值）
+    # 4. Agent 详情页 -> 接入指引 -> 接口调用 -> OpenAI 协议调用示例，获取 base_url 字段（例：https://${您的环境ID}.api.tcloudbasegateway.com/v1/aibot/openai）
+    base_url: "" # https://${您的环境ID}.api.tcloudbasegateway.com/v1/aibot/openai
+    model_name: "你的腾讯云开发AI Agent的Agent ID"
+    api_key: 你的腾讯云开发环境的 API Key
   CozeLLM:
     # 定义LLM API类型
     type: coze
