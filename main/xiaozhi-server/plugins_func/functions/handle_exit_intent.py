@@ -31,6 +31,7 @@ handle_exit_intent_function_desc = {
     "handle_exit_intent", handle_exit_intent_function_desc, ToolType.SYSTEM_CTL
 )
 def handle_exit_intent(conn: "ConnectionHandler", say_goodbye: str | None = None):
+    conn.is_exiting = True
     # 处理退出意图
     try:
         if say_goodbye is None:

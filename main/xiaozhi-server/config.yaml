@@ -61,6 +61,8 @@ delete_audio: true
 close_connection_no_voice_time: 120
 # TTS请求超时时间(秒)
 tts_timeout: 10
+# 工具调用超时时间(秒)
+tool_call_timeout: 30
 # 开启唤醒词加速
 enable_wakeup_words_response_cache: true
 # 开场是否回复唤醒词

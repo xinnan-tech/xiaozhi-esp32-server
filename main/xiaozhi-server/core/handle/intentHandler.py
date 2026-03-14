@@ -32,6 +32,10 @@ async def handle_user_intent(conn: "ConnectionHandler", text):
     if await check_direct_exit(conn, filtered_text):
         return True
 
+    # 明确再见不被打断
+    if conn.is_exiting:
+        return True
+
     # 检查是否是唤醒词
     if await checkWakeupWords(conn, filtered_text):
         return True
@@ -57,6 +61,7 @@ async def check_direct_exit(conn: "ConnectionHandler", text):
         if text == cmd:
             conn.logger.bind(tag=TAG).info(f"识别到明确的退出命令: {text}")
             await send_stt_message(conn, text)
+            conn.is_exiting = True
             await conn.close()
             return True
     return False
@@ -144,7 +149,9 @@ async def process_intent_result(
             # 使用executor执行函数调用和结果处理
             def process_function_call():
                 conn.dialogue.put(Message(role="user", content=original_text))
-
+                
+                # 工具调用超时时间
+                tool_call_timeout = int(conn.config.get("tool_call_timeout", 30))
                 # 使用统一工具处理器处理所有工具调用
                 try:
                     result = asyncio.run_coroutine_threadsafe(
@@ -152,11 +159,11 @@ async def process_intent_result(
                             conn, function_call_data
                         ),
                         conn.loop,
-                    ).result()
+                    ).result(timeout=tool_call_timeout)
                 except Exception as e:
                     conn.logger.bind(tag=TAG).error(f"工具调用失败: {e}")
                     result = ActionResponse(
-                        action=Action.ERROR, result=str(e), response=str(e)
+                        action=Action.ERROR, result="工具调用超时，请一会再试下哈", response="工具调用超时，请一会再试下哈"
                     )
 
                 if result:

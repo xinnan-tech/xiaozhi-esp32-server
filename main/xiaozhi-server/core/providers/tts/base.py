@@ -36,6 +36,7 @@ class TTSProviderBase(ABC):
         self.delete_audio_file = delete_audio_file
         self.audio_file_type = "wav"
         self.output_file = config.get("output_dir", "tmp/")
+        self.tts_timeout = int(config.get("tts_timeout", 15))
         self.tts_text_queue = queue.Queue()
         self.tts_audio_queue = queue.Queue()
         self.tts_audio_first_sentence = True
@@ -368,7 +369,7 @@ class TTSProviderBase(ABC):
                     sendAudioMessage(self.conn, sentence_type, audio_datas, text),
                     self.conn.loop,
                 )
-                future.result()
+                future.result(timeout=self.tts_timeout)
 
                 # 记录输出和报告
                 if self.conn.max_output_size > 0 and text:

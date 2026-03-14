@@ -179,7 +179,7 @@ class TTSProvider(TTSProviderBase):
                             self.start_session(self.conn.sentence_id),
                             loop=self.conn.loop,
                         )
-                        future.result()
+                        future.result(timeout=self.tts_timeout)
                         self.before_stop_play_files.clear()
                         logger.bind(tag=TAG).info("TTS会话启动成功")
 
@@ -198,7 +198,7 @@ class TTSProvider(TTSProviderBase):
                                 self.text_to_speak(message.content_detail, None),
                                 loop=self.conn.loop,
                             )
-                            future.result()
+                            future.result(timeout=self.tts_timeout)
                             logger.bind(tag=TAG).debug("TTS文本发送成功")
                         except Exception as e:
                             logger.bind(tag=TAG).error(f"发送TTS文本失败: {str(e)}")

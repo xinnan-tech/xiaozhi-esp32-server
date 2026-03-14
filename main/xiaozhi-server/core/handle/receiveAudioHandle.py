@@ -15,6 +15,8 @@ TAG = __name__
 
 
 async def handleAudioMessage(conn: "ConnectionHandler", audio):
+    if conn.is_exiting:
+        return
     # 当前片段是否有人说话
     have_voice = conn.vad.is_vad(conn, audio)
     # 如果设备刚刚被唤醒，短暂忽略VAD检测
