@@ -636,6 +636,16 @@ LLM:
     # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
     # 文本生成的默认输入参数也是query
     mode: chat-messages
+  LangflowLLM:
+    # 定义LLM API类型
+    type: langflow
+    # Langflow是可视化流程编排平台，支持通过API调用设计好的对话流程
+    # 如果使用LangflowLLM，配置文件里prompt(提示词)是无效的，需要在Langflow控制台设计流程
+    base_url: https://api.langflow.astra.datastax.com
+    api_key: 你的Langflow API key
+    flow_id: 你的flow_id
+    # tweaks参数用于运行时自定义流程参数(可选)
+    tweaks: {}
   GeminiLLM:
     type: gemini
     # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
