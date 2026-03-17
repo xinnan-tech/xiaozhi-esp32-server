@@ -273,6 +273,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | openai 接口调用 | 阿里百炼、火山引擎、DeepSeek、智谱、Gemini、科大讯飞 | 智谱、Gemini |
 | ollama 接口调用 | Ollama | - |
 | dify 接口调用 | Dify | - |
+| langflow 接口调用 | Langflow | - |
 | fastgpt 接口调用 | Fastgpt | - |
 | coze 接口调用 | Coze | - |
 | xinference 接口调用 | Xinference | - |
