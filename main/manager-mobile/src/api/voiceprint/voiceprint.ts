@@ -60,3 +60,13 @@ export function updateVoicePrint(data: VoicePrint) {
     },
   })
 }
+
+// 获取音频下载ID
+export function getAudioDownloadId(audioId: string) {
+  return http.Post<string>(`/agent/audio/${audioId}`, {}, {
+    meta: {
+      ignoreAuth: false,
+      toast: false,
+    },
+  })
+}

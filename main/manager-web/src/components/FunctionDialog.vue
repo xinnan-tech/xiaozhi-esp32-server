@@ -314,7 +314,7 @@ export default {
         if (res.data.code === 0) {
           this.mcpUrl = res.data.data || "";
         } else {
-          this.mcpUrl = "";
+          this.mcpUrl = res.data.msg;
           console.error('获取MCP地址失败:', res.data.msg);
         }
       });

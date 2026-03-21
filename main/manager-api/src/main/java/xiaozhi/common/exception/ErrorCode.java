@@ -251,4 +251,9 @@ public interface ErrorCode {
     int AGENT_TAG_NOT_EXIST = 10198; // 标签不存在
 
     int RAG_DOCUMENT_PARSING_DELETE_ERROR = 10199; // 文档解析中，禁止删除
+
+    // 智能体MCP相关错误码
+    int MCP_ACCESS_POINT_ADDRESS_NO_PERMISSION = 10200; // 没有权限查看该智能体的MCP接入点地址
+    int MCP_ACCESS_POINT_ADDRESS_NOT_CONFIGURED = 10201; // 请联系管理员进入参数管理配置mcp接入点地址
+    int MCP_ACCESS_POINT_TOOLS_LIST_NO_PERMISSION = 10202; // 没有权限查看该智能体的MCP工具列表
 }

@@ -3,21 +3,24 @@ import type { ChatHistory, CreateSpeakerData, VoicePrint } from '@/api/voiceprin
 import { computed, onMounted, ref } from 'vue'
 import { useMessage } from 'wot-design-uni'
 import { useToast } from 'wot-design-uni/components/wd-toast'
-import { createVoicePrint, deleteVoicePrint, getChatHistory, getVoicePrintList, updateVoicePrint } from '@/api/voiceprint'
+import { createVoicePrint, deleteVoicePrint, getAudioDownloadId, getChatHistory, getVoicePrintList, updateVoicePrint } from '@/api/voiceprint'
 import { t } from '@/i18n'
+import { getEnvBaseUrl } from '@/utils'
 
 defineOptions({
   name: 'VoicePrintManage',
 })
 
+const props = withDefaults(defineProps<Props>(), {
+  agentId: 'default',
+})
+
+const emits = defineEmits(['update-refresher-enabled'])
+
 // 接收props
 interface Props {
   agentId?: string
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  agentId: 'default'
-})
 
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets: any
@@ -49,6 +52,10 @@ const chatHistoryList = ref<ChatHistory[]>([])
 const chatHistoryActions = ref<any[]>([])
 const swipeStates = ref<Record<string, 'left' | 'close' | 'right'>>({})
 const loading = ref(false)
+
+// 音频播放相关
+const audioRef = ref<UniApp.InnerAudioContext | null>(null)
+const playingAudioId = ref<string>('')
 
 // 使用传入的智能体ID
 const currentAgentId = computed(() => {
@@ -157,11 +164,13 @@ function openAddDialog() {
         introduce: '',
       }
       showAddDialog.value = true
-    } catch (error: any) {
+    }
+    catch (error: any) {
       // 捕捉声纹接口未配置错误
       if (error.message && error.message.includes('请求错误[10054]')) {
         toast.error(t('voiceprint.voiceprintInterfaceNotConfigured'))
-      } else {
+      }
+      else {
         // 其他错误，继续打开弹窗
         addForm.value = {
           agentId: currentAgentId.value,
@@ -200,6 +209,11 @@ function selectAudioId({ item }: { item: any }) {
     editForm.value.audioId = item.audioId
   }
   showChatHistoryDialog.value = false
+}
+
+// 点击选择
+function handleItemClick(item: any) {
+  selectAudioId({ item })
 }
 
 // 提交添加说话人
@@ -274,6 +288,82 @@ async function handleDelete(id: string) {
   })
 }
 
+// 播放音频
+async function playAudio(audioId: string, event: Event) {
+  event.stopPropagation() // 阻止事件冒泡，防止关闭下拉框
+
+  if (!audioId) {
+    toast.warning(t('voiceprint.audioNotExist'))
+    return
+  }
+
+  // 如果正在播放同一个音频，则停止
+  if (playingAudioId.value === audioId) {
+    stopAudio()
+    return
+  }
+
+  // 停止之前的音频
+  stopAudio()
+
+  try {
+    // 先获取音频下载ID
+    playingAudioId.value = audioId
+    const downloadId = await getAudioDownloadId(audioId)
+
+    if (!downloadId) {
+      toast.error(t('voiceprint.getAudioFailed'))
+      playingAudioId.value = ''
+      return
+    }
+
+    // 获取baseURL
+    const baseURL = getEnvBaseUrl()
+    const audioUrl = `${baseURL}/agent/play/${downloadId}`
+
+    // 创建新的音频实例
+    audioRef.value = uni.createInnerAudioContext()
+    audioRef.value.src = audioUrl
+    audioRef.value.autoplay = true
+
+    // 监听播放结束
+    audioRef.value.onEnded(() => {
+      playingAudioId.value = ''
+    })
+
+    // 监听播放错误
+    audioRef.value.onError((error) => {
+      console.error('音频播放错误:', error)
+      toast.error(t('voiceprint.audioPlayFailed'))
+      playingAudioId.value = ''
+    })
+  }
+  catch (error) {
+    console.error('播放音频失败:', error)
+    toast.error(t('voiceprint.audioPlayFailed'))
+    playingAudioId.value = ''
+  }
+}
+
+// 停止音频
+function stopAudio() {
+  if (audioRef.value) {
+    audioRef.value.stop()
+    audioRef.value.destroy()
+    audioRef.value = null
+  }
+  playingAudioId.value = ''
+}
+
+watch(() => [showAddDialog.value, showEditDialog.value], (newValues) => {
+  if (newValues.some((value: boolean) => value)) {
+    emits('update-refresher-enabled', false)
+  }
+  else {
+    emits('update-refresher-enabled', true)
+  }
+})
+
 onMounted(async () => {
   // 智能体已简化为默认
 
@@ -282,6 +372,8 @@ onMounted(async () => {
 
 // 暴露方法给父组件
 defineExpose({
+  showAddDialog,
+  showEditDialog,
   refresh,
 })
 </script>
@@ -349,7 +441,7 @@ defineExpose({
     </view>
 
     <!-- 浮动操作按钮 -->
-    <wd-fab type="primary" size="small" :draggable="true" :expandable="false" @click="openAddDialog">
+    <wd-fab custom-style="z-index:10" type="primary" size="small" :draggable="true" :expandable="false" @click="openAddDialog">
       <wd-icon name="add" />
     </wd-fab>
 
@@ -359,21 +451,20 @@ defineExpose({
 
   <!-- 添加说话人弹窗 -->
   <wd-popup
-    v-model="showAddDialog" position="center" custom-style="width: 90%; max-width: 400px; border-radius: 16px;"
+    v-model="showAddDialog"
+    position="center"
+    custom-style="width: 90%; max-width: 400px; border-radius: 16px;"
     safe-area-inset-bottom
   >
     <view>
-      <view class="w-full flex items-center justify-between border-b-[2rpx] border-[#eeeeee] p-[32rpx_32rpx_24rpx]">
-        <text class="w-full text-center text-[32rpx] text-[#232338] font-semibold">
-          {{ t('voiceprint.addSpeaker') }}
-        </text>
-      </view>
-
       <view class="p-[32rpx]">
         <!-- 声纹向量选择 -->
         <view class="mb-[32rpx]">
           <text class="mb-[16rpx] block text-[28rpx] text-[#232338] font-medium">
-            * {{ t('voiceprint.voiceVector') }}
+            <text class="text-red">
+              *
+            </text>
+            {{ t('voiceprint.voiceVector') }}
           </text>
           <view
             class="flex cursor-pointer items-center justify-between border-[1rpx] border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]"
@@ -392,7 +483,10 @@ defineExpose({
         <!-- 姓名 -->
         <view class="mb-[32rpx]">
           <text class="mb-[16rpx] block text-[28rpx] text-[#232338] font-medium">
-            * {{ t('voiceprint.name') }}
+            <text class="text-red">
+              *
+            </text>
+            {{ t('voiceprint.name') }}
           </text>
           <input
             v-model="addForm.sourceName"
@@ -404,7 +498,10 @@ defineExpose({
         <!-- 描述 -->
         <view>
           <text class="mb-[16rpx] block text-[28rpx] text-[#232338] font-medium">
-            * {{ t('voiceprint.description') }}
+            <text class="text-red">
+              *
+            </text>
+            {{ t('voiceprint.description') }}
           </text>
           <textarea
             v-model="addForm.introduce" :maxlength="100" :placeholder="t('voiceprint.pleaseInputDescription')"
@@ -418,11 +515,11 @@ defineExpose({
 
       <view class="flex gap-[16rpx] border-t-[2rpx] border-[#eeeeee] p-[24rpx_32rpx_32rpx]">
         <wd-button type="info" custom-class="flex-1" @click="showAddDialog = false">
-            {{ t('voiceprint.cancel') }}
-          </wd-button>
-          <wd-button type="primary" custom-class="flex-1" @click="submitAdd">
-            {{ t('voiceprint.save') }}
-          </wd-button>
+          {{ t('voiceprint.cancel') }}
+        </wd-button>
+        <wd-button type="primary" custom-class="flex-1" @click="submitAdd">
+          {{ t('voiceprint.save') }}
+        </wd-button>
       </view>
     </view>
   </wd-popup>
@@ -433,7 +530,7 @@ defineExpose({
     safe-area-inset-bottom
   >
     <view>
-      <view class="w-full flex items-center justify-between border-b-[2rpx] border-[#eeeeee] p-[32rpx_32rpx_24rpx]">
+      <view class="box-border w-full flex items-center justify-between border-b-[2rpx] border-[#eeeeee] p-[32rpx_32rpx_24rpx]">
         <text class="w-full text-center text-[32rpx] text-[#232338] font-semibold">
           {{ t('voiceprint.editSpeaker') }}
         </text>
@@ -443,7 +540,10 @@ defineExpose({
         <!-- 声纹向量选择 -->
         <view class="mb-[32rpx]">
           <text class="mb-[16rpx] block text-[28rpx] text-[#232338] font-medium">
-            * {{ t('voiceprint.voiceVector') }}
+            <text class="text-red">
+              *
+            </text>
+            {{ t('voiceprint.voiceVector') }}
           </text>
           <view
             class="flex cursor-pointer items-center justify-between border-[1rpx] border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:bg-[#eef3ff]"
@@ -462,7 +562,10 @@ defineExpose({
         <!-- 姓名 -->
         <view class="mb-[32rpx]">
           <text class="mb-[16rpx] block text-[28rpx] text-[#232338] font-medium">
-            * {{ t('voiceprint.name') }}
+            <text class="text-red">
+              *
+            </text>
+            {{ t('voiceprint.name') }}
           </text>
           <input
             v-model="editForm.sourceName"
@@ -474,7 +577,10 @@ defineExpose({
         <!-- 描述 -->
         <view>
           <text class="mb-[16rpx] block text-[28rpx] text-[#232338] font-medium">
-            * {{ t('voiceprint.description') }}
+            <text class="text-red">
+              *
+            </text>
+            {{ t('voiceprint.description') }}
           </text>
           <textarea
             v-model="editForm.introduce" :maxlength="100" :placeholder="t('voiceprint.pleaseInputDescription')"
@@ -488,23 +594,42 @@ defineExpose({
 
       <view class="flex gap-[16rpx] border-t-[2rpx] border-[#eeeeee] p-[24rpx_32rpx_32rpx]">
         <wd-button type="info" custom-class="flex-1" @click="showEditDialog = false">
-            {{ t('voiceprint.cancel') }}
-          </wd-button>
-          <wd-button type="primary" custom-class="flex-1" @click="submitEdit">
-            {{ t('voiceprint.save') }}
-          </wd-button>
+          {{ t('voiceprint.cancel') }}
+        </wd-button>
+        <wd-button type="primary" custom-class="flex-1" @click="submitEdit">
+          {{ t('voiceprint.save') }}
+        </wd-button>
       </view>
     </view>
   </wd-popup>
 
-  <!-- 语音对话记录选择动作面板 -->
-  <wd-action-sheet
-    v-model="showChatHistoryDialog" :actions="chatHistoryActions" :title="t('voiceprint.selectVector')"
-    @select="selectAudioId"
-  />
+  <!-- 自定义语音对话记录选择弹出层 -->
+  <wd-popup v-model="showChatHistoryDialog" class="custom-popup" position="bottom" @close="stopAudio">
+    <view class="rounded-[20rpx] bg-white pb-[20rpx] pt-[20rpx]">
+      <view class="max-h-[600rpx] overflow-y-auto rounded-[20rpx]">
+        <view
+          v-for="item in chatHistoryActions"
+          :key="item.audioId"
+          class="flex items-center justify-between border-b border-[#f5f5f5] p-[32rpx] transition-all active:bg-[#f5f7fb]"
+          @click="handleItemClick(item)"
+        >
+          <text class="flex-1 text-[28rpx] text-[#232338]">
+            {{ item.name }}
+          </text>
+          <view class="ml-[20rpx]" @click.stop="playAudio(item.audioId, $event)">
+            <wd-icon
+              :name="playingAudioId === item.audioId ? 'pause-circle' : 'play-circle'"
+              size="24px"
+              :custom-class="playingAudioId === item.audioId ? 'text-[#336cff]' : 'text-[#9d9ea3]'"
+            />
+          </view>
+        </view>
+      </view>
+    </view>
+  </wd-popup>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .voiceprint-container {
   position: relative;
 }
@@ -523,14 +648,10 @@ defineExpose({
   color: #666666;
 }
 
-:deep(.wd-swipe-action) {
-  border-radius: 20rpx;
-  overflow: hidden;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  border: 1rpx solid #eeeeee;
-}
-
-:deep(.flex-1) {
-  flex: 1;
+::v-deep .custom-popup {
+  .wd-popup {
+    padding: 20rpx !important;
+    background: transparent;
+  }
 }
 </style>

@@ -131,6 +131,7 @@ export function getMcpAddress(agentId: string) {
     meta: {
       ignoreAuth: false,
       toast: false,
+      isExposeError: true,
     },
   })
 }

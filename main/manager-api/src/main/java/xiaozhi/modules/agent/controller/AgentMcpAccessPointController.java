@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import xiaozhi.common.exception.ErrorCode;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
@@ -40,11 +41,11 @@ public class AgentMcpAccessPointController {
 
         // 检查权限
         if (!agentService.checkAgentPermission(agentId, user.getId())) {
-            return new Result<String>().error("没有权限查看该智能体的MCP接入点地址");
+            return new Result<String>().error(ErrorCode.MCP_ACCESS_POINT_ADDRESS_NO_PERMISSION);
         }
         String agentMcpAccessAddress = agentMcpAccessPointService.getAgentMcpAccessAddress(agentId);
         if (agentMcpAccessAddress == null) {
-            return new Result<String>().ok("请联系管理员进入参数管理配置mcp接入点地址");
+            return new Result<String>().error(ErrorCode.MCP_ACCESS_POINT_ADDRESS_NOT_CONFIGURED);
         }
         return new Result<String>().ok(agentMcpAccessAddress);
     }
@@ -58,7 +59,7 @@ public class AgentMcpAccessPointController {
 
         // 检查权限
         if (!agentService.checkAgentPermission(agentId, user.getId())) {
-            return new Result<List<String>>().error("没有权限查看该智能体的MCP工具列表");
+            return new Result<List<String>>().error(ErrorCode.MCP_ACCESS_POINT_TOOLS_LIST_NO_PERMISSION);
         }
         List<String> agentMcpToolsList = agentMcpAccessPointService.getAgentMcpToolsList(agentId);
         return new Result<List<String>>().ok(agentMcpToolsList);

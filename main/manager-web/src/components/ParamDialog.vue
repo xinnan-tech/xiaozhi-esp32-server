@@ -17,17 +17,36 @@
             class="custom-input"></el-input>
         </el-form-item>
 
-        <el-form-item :label="$t('paramDialog.paramValue')" prop="paramValue" class="form-item">
-          <el-input v-model="form.paramValue" :placeholder="$t('paramDialog.paramValuePlaceholder')"
-            class="custom-input"></el-input>
+        <el-form-item :label="$t('paramDialog.valueType')" prop="valueType" class="form-item">
+          <el-select
+            v-model="form.valueType"
+            :placeholder="$t('paramDialog.valueTypePlaceholder')"
+            class="custom-select"
+          >
+            <el-option
+              v-for="item in valueTypeOptions"
+              :key="item.value"
+              :label="$t(`paramDialog.${item.value}Type`)"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
 
-        <el-form-item :label="$t('paramDialog.valueType')" prop="valueType" class="form-item">
-          <el-select v-model="form.valueType" :placeholder="$t('paramDialog.valueTypePlaceholder')"
-            class="custom-select">
-            <el-option v-for="item in valueTypeOptions" :key="item.value" :label="$t(`paramDialog.${item.value}Type`)"
-              :value="item.value" />
-          </el-select>
+        <el-form-item :label="$t('paramDialog.paramValue')" prop="paramValue" class="form-item">
+          <el-input
+            v-if="form.valueType !== 'json' && form.valueType !== 'array'"
+            v-model="form.paramValue"
+            :placeholder="$t('paramDialog.paramValuePlaceholder')"
+            class="custom-input"
+          ></el-input>
+          <el-input
+            v-else
+            type="textarea"
+            v-model="form.paramValue"
+            :placeholder="$t('paramDialog.paramValuePlaceholder')"
+            :rows="6"
+            class="custom-textarea"
+          ></el-input>
         </el-form-item>
 
         <el-form-item :label="$t('paramDialog.remark')" prop="remark" class="form-item remark-item">
@@ -98,8 +117,37 @@ export default {
     submit() {
       this.$refs.form.validate((valid) => {
         if (valid) {
+          const submitData = { ...this.form };
+
+          // 如果是 array 类型，校验格式并转换
+          if (submitData.valueType === 'array' && submitData.paramValue) {
+            const lines = submitData.paramValue.split('\n').filter(line => line.trim());
+
+            // 检查除最后一行外的每行是否以分号结尾
+            for (let i = 0; i < lines.length - 1; i++) {
+              if (!lines[i].trim().endsWith(';')) {
+                this.$message.error('数组格式错误，需要使用英文分号结尾');
+                return;
+              }
+            }
+
+            const items = lines
+              .map(item => item.trim().replace(/;$/, ''))
+              .filter(item => item);
+            submitData.paramValue = items.join(';');
+          }
+          // 如果是 json 类型，压缩 JSON 格式后再提交
+          else if (submitData.valueType === 'json' && submitData.paramValue) {
+            try {
+              const parsed = JSON.parse(submitData.paramValue);
+              submitData.paramValue = JSON.stringify(parsed);
+            } catch (e) {
+              // 如果解析失败，保持原值
+            }
+          }
+
           this.saving = true; // 开始加载
-          this.$emit('submit', this.form);
+          this.$emit('submit', submitData);
         }
       });
     },
@@ -116,7 +164,24 @@ export default {
   },
   watch: {
     visible(newVal) {
-      if (!newVal) {
+      if (newVal) {
+        if (this.form.paramValue) {
+          // 如果是 json 类型，格式化显示
+          if (this.form.valueType === 'json') {
+            try {
+              const parsed = JSON.parse(this.form.paramValue);
+              this.form.paramValue = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+              // 如果解析失败，保持原值
+            }
+          }
+          // 如果是 array 类型，将分号分隔的字符串转换为每行一个项目
+          else if (this.form.valueType === 'array') {
+            const items = this.form.paramValue.split(';').filter(item => item.trim());
+            this.form.paramValue = items.join(';\n');
+          }
+        }
+      } else {
         // 当对话框关闭时，重置saving状态
         this.saving = false;
       }

@@ -276,7 +276,7 @@ export default {
   cursor: pointer;
 
   .left-add {
-    width: 105px;
+    padding: 0 14px;
     height: 34px;
     border-radius: 17px;
     background: #5778ff;

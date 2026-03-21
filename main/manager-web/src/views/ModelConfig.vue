@@ -69,7 +69,7 @@
               element-loading-background="rgba(255, 255, 255, 0.7)"
               :header-cell-style="{ background: 'transparent' }"
               :data="modelList"
-              class="data-table"
+              class="transparent-table"
               header-row-class-name="table-header"
               :header-cell-class-name="headerCellClassName"
               @selection-change="handleSelectionChange"
@@ -637,7 +637,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .el-switch {
   height: 23px;
 }
@@ -662,9 +662,7 @@ export default {
 .main-wrapper {
   margin: 5px 22px;
   border-radius: 15px;
-  min-height: calc(100vh - 26vh);
-  height: auto;
-  max-height: 80vh;
+  height: 80vh;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: relative;
   background: rgba(237, 242, 255, 0.5);
@@ -752,13 +750,14 @@ export default {
 
 .content-area {
   flex: 1;
-  padding: 24px;
+  padding: 24px 24px 0;
   height: 100%;
   min-width: 600px;
   overflow: hidden;
   background-color: white;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .action-group {
@@ -843,15 +842,15 @@ export default {
   outline: none;
 }
 
-.data-table {
-  border-radius: 6px;
-  overflow: hidden;
-  background-color: transparent !important;
-}
+// .data-table {
+//   border-radius: 6px;
+//   overflow: hidden;
+//   background-color: transparent !important;
+// }
 
-.data-table /deep/ .el-table__row {
-  background-color: transparent !important;
-}
+// .data-table ::v-deep .el-table__row {
+//   background-color: transparent !important;
+// }
 
 .table-header th {
   background-color: transparent !important;
@@ -863,7 +862,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 0;
+  // padding: 16px 0;
   width: 100%;
   flex-shrink: 0;
   min-height: 60px;
@@ -918,7 +917,7 @@ export default {
   background: linear-gradient(135deg, #3a8ee6, #5a7cff);
 }
 
-.el-table th /deep/ .el-table__cell {
+.el-table th ::v-deep .el-table__cell {
   overflow: hidden;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -966,21 +965,6 @@ export default {
   color: #fff !important;
 }
 
-::v-deep .data-table {
-  &.el-table::before,
-  &.el-table::after,
-  &.el-table__inner-wrapper::before {
-    display: none !important;
-  }
-}
-
-::v-deep .data-table .el-table__header-wrapper {
-  border-bottom: 1px solid rgb(224, 227, 237);
-}
-
-::v-deep .data-table .el-table__body td {
-  border-bottom: 1px solid rgb(224, 227, 237) !important;
-}
 
 .el-button img {
   height: 1em;
@@ -1118,16 +1102,55 @@ export default {
   flex: 1;
   overflow: hidden;
 }
+:deep(.transparent-table) {
+    background: white;
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 
-.data-table {
-  --table-max-height: calc(100vh - 45vh);
-  max-height: var(--table-max-height);
+    .el-table__body-wrapper {
+        flex: 1;
+        overflow-y: auto;
+        max-height: none !important;
+    }
+
+    .el-table__header-wrapper {
+        flex-shrink: 0;
+    }
+
+    .el-table__header th {
+        background: white !important;
+        color: black;
+        font-weight: 600;
+        height: 40px;
+        padding: 8px 0;
+        font-size: 14px;
+        border-bottom: 1px solid #e4e7ed;
+    }
+
+    .el-table__body tr {
+        background-color: white;
+
+        td {
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            padding: 8px 0;
+            height: 40px;
+            color: #606266;
+            font-size: 14px;
+        }
+    }
+
+    .el-table__row:hover>td {
+        background-color: #f5f7fa !important;
+    }
+
+    &::before {
+        display: none;
+    }
 }
 
-.data-table ::v-deep .el-table__body-wrapper {
-  max-height: calc(var(--table-max-height) - 80px);
-  overflow-y: auto;
-}
 
 ::v-deep .el-loading-mask {
   background-color: rgba(255, 255, 255, 0.6) !important;

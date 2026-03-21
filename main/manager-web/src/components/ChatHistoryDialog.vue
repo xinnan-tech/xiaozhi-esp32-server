@@ -90,6 +90,10 @@ export default {
             if (val) {
                 this.resetData();
                 this.loadSessions();
+            } else {
+                this.audioElement?.pause();
+                this.audioElement = null;
+                this.playingAudioId = null;
             }
         },
         dialogVisible(val) {

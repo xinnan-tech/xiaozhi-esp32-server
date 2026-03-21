@@ -11,7 +11,7 @@ export default {
   'login.navigationTitle': 'Login',
   'login.fetchConfigError': 'Failed to fetch configuration:',
   'login.selectLanguage': 'Select Language',
-  'login.selectLanguageTip': '中文',
+  'login.selectLanguageTip': 'En',
   'login.welcomeBack': 'Welcome Back',
   'login.pleaseLogin': 'Please log in to your account',
   'login.enterUsername': 'Please enter username',
@@ -371,7 +371,7 @@ export default {
   'agent.tools.mcpAccessPoint': 'MCP Access Point',
   'agent.tools.copy': 'Copy',
   'agent.tools.noTools': 'No tools available',
-  'agent.tools.parameterConfig': 'Parameter Configuration',
+  'agent.tools.parameterConfig': 'Param Config',
   'agent.tools.noParamsNeeded': 'No parameters needed',
   'agent.tools.pleaseInput': 'Please input',
   'agent.tools.inputOneItemPerLine': 'Input one item per line',
@@ -492,4 +492,9 @@ export default {
   'deviceConfig.afterConfigSuccessDeviceWillRestart': 'After successful configuration, device will automatically restart',
   'deviceConfig.audioPlaybackError': 'Audio playback error',
   'deviceConfig.playbackFailed': 'Playback failed',
+
+  // Voiceprint page
+  'voiceprint.audioNotExist': 'Audio does not exist',
+  'voiceprint.getAudioFailed': 'Failed to get audio',
+  'voiceprint.audioPlayFailed': 'Audio playback failed',
 }

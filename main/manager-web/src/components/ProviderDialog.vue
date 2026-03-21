@@ -88,7 +88,6 @@
                     <el-option :label="$t('providerDialog.booleanType')" value="boolean"></el-option>
                     <el-option :label="$t('providerDialog.dictType')" value="dict"></el-option>
                     <el-option :label="$t('providerDialog.arrayType')" value="array"></el-option>
-                    <el-option :label="$t('providerDialog.ragType')" value="RAG"></el-option>
                   </el-select>
                 </template>
                 <template v-else>

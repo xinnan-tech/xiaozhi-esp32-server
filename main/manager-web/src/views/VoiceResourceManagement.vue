@@ -433,7 +433,7 @@ export default {
     overflow: hidden;
 
     ::v-deep .el-card__body {
-        padding: 15px;
+        padding: 15px 15px 0;
         display: flex;
         flex-direction: column;
         flex: 1;
@@ -676,7 +676,7 @@ export default {
 }
 
 .el-table {
-    --table-max-height: calc(100vh - 40vh);
+    // --table-max-height: calc(100vh - 40vh);
     max-height: var(--table-max-height);
 
     .el-table__body-wrapper {

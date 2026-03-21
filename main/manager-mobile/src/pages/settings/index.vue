@@ -127,10 +127,10 @@ async function saveServerBaseUrl() {
   uni.request({
     url: `${getEnvBaseUrl()}/user/pub-config`,
     method: 'GET',
-    success: (res) => {
+    success: (res: any) => {
       if (res.statusCode === 200) {
         configStore.setConfig(res.data.data)
-        uni.setStorageSync('config', res.data.data.sm2PubKey)
+        uni.setStorageSync('config', res.data.data)
       }
     },
     fail: (err) => {
@@ -165,6 +165,7 @@ const showLanguageSheet = ref(false)
 function handleLanguageChange(lang: Language) {
   changeLanguage(lang)
   showLanguageSheet.value = false
+  currentLanguage.value = lang
   toast.success(t('settings.languageChanged'))
 }
 
@@ -225,7 +226,8 @@ function clearAllCacheAfterUrlChange() {
 
     // 重新获取缓存信息
     getCacheInfo()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('清除缓存失败:', error)
   }
 }
@@ -250,7 +252,8 @@ async function clearCache() {
         }
       },
     })
-  } catch (error) {
+  }
+  catch (error) {
     console.error('清除缓存失败:', error)
     toast.error(t('settings.clearCacheFailed'))
   }
@@ -262,7 +265,7 @@ function showAbout() {
     title: t('settings.aboutApp', { appName: import.meta.env.VITE_APP_TITLE }),
     content: t('settings.aboutContent', {
       appName: import.meta.env.VITE_APP_TITLE,
-      version: '0.9.1'
+      version: '0.9.2'
     }),
     showCancel: false,
     confirmText: t('common.confirm'),
@@ -278,7 +281,7 @@ onMounted(async () => {
 
   // 动态设置导航栏标题为国际化文本
   uni.setNavigationBarTitle({
-    title: t('settings.title')
+    title: t('settings.title'),
   })
 })
 </script>
@@ -296,8 +299,10 @@ onMounted(async () => {
           </text>
         </view>
 
-        <view class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx] overflow-hidden"
-          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);">
+        <view
+          class="overflow-hidden border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
+          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);"
+        >
           <view class="mb-[24rpx]">
             <text class="text-[28rpx] text-[#232338] font-semibold">
               {{ t('settings.serverApiUrl') }}
@@ -308,11 +313,13 @@ onMounted(async () => {
           </view>
 
           <view class="mb-[24rpx]">
-            <view class="w-full rounded-[16rpx] border border-[#eeeeee] bg-[#f5f7fb] overflow-hidden">
-              <wd-input v-model="baseUrlInput" type="text" clearable :maxlength="200"
+            <view class="w-full overflow-hidden border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb]">
+              <wd-input
+                v-model="baseUrlInput" type="text" clearable :maxlength="200"
                 :placeholder="t('settings.enterServerUrl')"
                 custom-class="!border-none !bg-transparent h-[64rpx] px-[24rpx] items-center"
-                input-class="text-[28rpx] text-[#232338]" @input="validateUrl" @blur="validateUrl" />
+                input-class="text-[28rpx] text-[#232338]" @input="validateUrl" @blur="validateUrl"
+              />
             </view>
             <text v-if="urlError" class="mt-[8rpx] block text-[24rpx] text-[#ff4d4f]">
               {{ urlError }}
@@ -320,14 +327,18 @@ onMounted(async () => {
           </view>
 
           <view class="flex gap-[16rpx]">
-            <wd-button type="primary"
+            <wd-button
+              type="primary"
               custom-class="flex-1 h-[88rpx] rounded-[20rpx] text-[28rpx] font-semibold bg-[#336cff] border-none shadow-[0_4rpx_16rpx_rgba(51,108,255,0.3)] active:shadow-[0_2rpx_8rpx_rgba(51,108,255,0.4)] active:scale-98"
-              @click="saveServerBaseUrl">
+              @click="saveServerBaseUrl"
+            >
               {{ t('settings.saveSettings') }}
             </wd-button>
-            <wd-button type="default"
+            <wd-button
+              type="default"
               custom-class="flex-1 h-[88rpx] rounded-[20rpx] text-[28rpx] font-semibold bg-white border-[#eeeeee] text-[#65686f] active:bg-[#f5f7fb]"
-              @click="resetServerBaseUrl">
+              @click="resetServerBaseUrl"
+            >
               {{ t('settings.resetDefault') }}
             </wd-button>
           </view>
@@ -342,12 +353,15 @@ onMounted(async () => {
           </text>
         </view>
 
-        <view class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
-          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);">
+        <view
+          class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
+          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);"
+        >
           <view class="space-y-[16rpx]">
             <!-- 缓存信息展示，参考插件样式 -->
             <view
-              class="flex items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]">
+              class="flex items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]"
+            >
               <view>
                 <text class="text-[28rpx] text-[#232338] font-medium">
                   {{ t('settings.totalCacheSize') }}
@@ -363,7 +377,8 @@ onMounted(async () => {
 
             <!-- 清除缓存按钮，参考插件编辑按钮样式 -->
             <view
-              class="flex items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx]">
+              class="flex items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx]"
+            >
               <view>
                 <text class="text-[28rpx] text-[#232338] font-medium">
                   {{ t('settings.cacheClear') }}
@@ -374,7 +389,8 @@ onMounted(async () => {
               </view>
               <view
                 class="cursor-pointer rounded-[24rpx] bg-[rgba(255,107,107,0.1)] px-[28rpx] py-[16rpx] text-[24rpx] text-[#ff6b6b] font-semibold transition-all duration-300 active:scale-95 active:bg-[#ff6b6b] active:text-white"
-                @click="clearCache">
+                @click="clearCache"
+              >
                 {{ t('settings.clearCache') }}
               </view>
             </view>
@@ -390,11 +406,14 @@ onMounted(async () => {
           </text>
         </view>
 
-        <view class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
-          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);">
+        <view
+          class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
+          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);"
+        >
           <view
             class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]"
-            @click="showAbout">
+            @click="showAbout"
+          >
             <view>
               <text class="text-[28rpx] text-[#232338] font-medium">
                 {{ t('settings.aboutUs') }}
@@ -416,11 +435,14 @@ onMounted(async () => {
           </text>
         </view>
 
-        <view class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
-          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);">
+        <view
+          class="border border-[#eeeeee] rounded-[24rpx] bg-[#fbfbfb] p-[32rpx]"
+          style="box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);"
+        >
           <view
             class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[16rpx] bg-[#f5f7fb] p-[24rpx] transition-all active:bg-[#eef3ff]"
-            @click="showLanguageSheet = true">
+            @click="showLanguageSheet = true"
+          >
             <view>
               <text class="text-[32rpx] text-[#232338] font-medium">
                 {{ t('settings.language') }}
@@ -430,8 +452,8 @@ onMounted(async () => {
               </text>
             </view>
             <view class="flex items-center">
-              <text class="text-[32rpx] text-[#9d9ea3] font-semibold mr-[16rpx]">
-                {{supportedLanguages.find(lang => lang.code === currentLanguage)?.name}}
+              <text class="mr-[16rpx] text-[32rpx] text-[#9d9ea3] font-semibold">
+                {{ supportedLanguages.find(lang => lang.code === currentLanguage)?.name }}
               </text>
               <wd-icon name="arrow-right" custom-class="text-[32rpx] text-[#9d9ea3]" />
             </view>
@@ -443,8 +465,10 @@ onMounted(async () => {
       <wd-action-sheet v-model="showLanguageSheet" :title="t('settings.selectLanguage')" :close-on-click-modal="true">
         <view class="language-sheet">
           <scroll-view scroll-y class="language-list">
-            <view v-for="lang in supportedLanguages" :key="lang.code" class="language-item"
-              @click="handleLanguageChange(lang.code)">
+            <view
+              v-for="lang in supportedLanguages" :key="lang.code" class="language-item"
+              @click="handleLanguageChange(lang.code)"
+            >
               <text class="language-name">
                 {{ lang.name }}
               </text>

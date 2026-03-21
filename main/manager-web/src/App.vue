@@ -60,6 +60,11 @@ export default {
       isCDNEnabled: process.env.VUE_APP_USE_CDN === 'true'
     };
   },
+  created() {
+    // 挂载 store 状态
+    this.$store.commit('setUserInfo', JSON.parse(localStorage.getItem('userInfo') || '{}'));
+    this.$store.commit('setPubConfig', JSON.parse(localStorage.getItem('pubConfig') || '{}'));
+  },
   mounted() {
     // 检测是否为移动设备且VUE_APP_H5_URL不为空，如果两个条件都满足则跳转到H5页面
     if (this.isMobileDevice() && process.env.VUE_APP_H5_URL) {

@@ -26,7 +26,7 @@
           <span class="nav-text">{{ $t("header.smartManagement") }}</span>
         </div>
         <!-- 普通用户显示音色克隆 -->
-        <div v-if="!isSuperAdmin && featureStatus.voiceClone" class="equipment-management"
+        <div v-if="!userInfo.superAdmin && featureStatus.voiceClone" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/voice-clone-management' }" @click="goVoiceCloneManagement">
           <img loading="lazy" alt="" src="@/assets/header/voice.png" :style="{
             filter:
@@ -38,7 +38,7 @@
         </div>
 
         <!-- 超级管理员显示音色克隆下拉菜单 -->
-        <el-dropdown v-if="isSuperAdmin && featureStatus.voiceClone" trigger="click" class="equipment-management more-dropdown" :class="{
+        <el-dropdown v-if="userInfo.superAdmin && featureStatus.voiceClone" trigger="click" class="equipment-management more-dropdown" :class="{
           'active-tab':
             $route.path === '/voice-clone-management' ||
             $route.path === '/voice-resource-management',
@@ -64,7 +64,7 @@
           </el-dropdown-menu>
         </el-dropdown>
 
-        <div v-if="isSuperAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }"
+        <div v-if="userInfo.superAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }"
           @click="goModelConfig">
           <img loading="lazy" alt="" src="@/assets/header/model_config.png" :style="{
             filter:
@@ -81,7 +81,7 @@
           }" />
           <span class="nav-text">{{ $t("header.knowledgeBase") }}</span>
         </div>
-        <el-dropdown v-if="isSuperAdmin" trigger="click" class="equipment-management more-dropdown" :class="{
+        <el-dropdown v-if="userInfo.superAdmin" trigger="click" class="equipment-management more-dropdown" :class="{
           'active-tab':
             $route.path === '/dict-management' ||
             $route.path === '/params-management' ||
@@ -140,7 +140,7 @@
 
       <!-- 右侧元素 -->
       <div class="header-right">
-        <div class="search-container" v-if="$route.path === '/home' && !(isSuperAdmin && isSmallScreen)">
+        <div class="search-container" v-if="$route.path === '/home' && !(userInfo.superAdmin && isSmallScreen)">
           <div class="search-wrapper">
             <el-input v-model="search" :placeholder="$t('header.searchPlaceholder')" class="custom-search-input"
               @keyup.enter.native="handleSearch" @focus="showSearchHistory" @blur="hideSearchHistory" clearable
@@ -189,7 +189,7 @@
 <script>
 import userApi from "@/apis/module/user";
 import i18n, { changeLanguage } from "@/i18n";
-import { mapActions, mapGetters } from "vuex";
+import { mapActions, mapState } from "vuex";
 import ChangePasswordDialog from "./ChangePasswordDialog.vue"; // 引入修改密码弹窗组件
 import featureManager from "@/utils/featureManager"; // 引入功能管理工具类
 
@@ -202,10 +202,6 @@ export default {
   data() {
     return {
       search: "",
-      userInfo: {
-        username: "",
-        mobile: "",
-      },
       isChangePasswordDialogVisible: false, // 控制修改密码弹窗的显示
       paramDropdownVisible: false,
       voiceCloneDropdownVisible: false,
@@ -224,18 +220,16 @@ export default {
         label: "label",
         children: "children",
       },
-      // 功能状态
-      featureStatus: {
-        voiceClone: false, // 音色克隆功能状态
-        knowledgeBase: false, // 知识库功能状态
-      },
     };
   },
   computed: {
-    ...mapGetters(["getIsSuperAdmin"]),
-    isSuperAdmin() {
-      return this.getIsSuperAdmin;
-    },
+    ...mapState({
+      featureStatus: (state) => ({
+        voiceClone: state.pubConfig.systemWebMenu?.features?.voiceClone?.enabled, // 音色克隆功能状态
+        knowledgeBase: state.pubConfig.systemWebMenu?.features?.knowledgeBase?.enabled, // 知识库功能状态
+      }),
+      userInfo: (state) => state.userInfo,
+    }),
     // 获取当前语言
     currentLanguage() {
       return i18n.locale || "zh_CN";
@@ -325,7 +319,6 @@ export default {
     },
   },
   async mounted() {
-    this.fetchUserInfo();
     this.checkScreenSize();
     window.addEventListener("resize", this.checkScreenSize);
     // 从localStorage加载搜索历史
@@ -386,20 +379,6 @@ export default {
     async loadFeatureStatus() {
       // 等待featureManager初始化完成
       await featureManager.waitForInitialization();
-      
-      const config = featureManager.getConfig();
-      
-      this.featureStatus.voiceClone = config.voiceClone;
-      this.featureStatus.knowledgeBase = config.knowledgeBase;
-    },
-    // 获取用户信息
-    fetchUserInfo() {
-      userApi.getUserInfo(({ data }) => {
-        this.userInfo = data.data;
-        if (data.data.superAdmin !== undefined) {
-          this.$store.commit("setUserInfo", data.data);
-        }
-      });
     },
     checkScreenSize() {
       this.isSmallScreen = window.innerWidth <= 1386;

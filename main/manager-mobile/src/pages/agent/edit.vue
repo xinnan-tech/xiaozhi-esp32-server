@@ -110,6 +110,10 @@ const inputVisible = ref(false)
 const languageOptions = ref([])
 const isVisibleReport = ref(false)
 
+// 音频播放相关
+const audioRef = ref<UniApp.InnerAudioContext | null>(null)
+const playingVoiceId = ref<string>('')
+
 // 使用插件store
 const pluginStore = usePluginStore()
 const speedPitchStore = useSpeedPitch()
@@ -422,15 +426,24 @@ function selectRoleTemplate(templateId: string) {
   selectedTemplateId.value = templateId
   const template = roleTemplates.value.find(t => t.id === templateId)
   if (template) {
-    formData.value.systemPrompt = template.systemPrompt
-    formData.value.vadModelId = template.vadModelId
-    formData.value.asrModelId = template.asrModelId
-    formData.value.llmModelId = template.llmModelId
-    formData.value.vllmModelId = template.vllmModelId
-    formData.value.intentModelId = template.intentModelId
-    formData.value.memModelId = template.memModelId
-    formData.value.ttsModelId = template.ttsModelId
-    formData.value.ttsVoiceId = template.ttsVoiceId
+    formData.value = {
+      ...formData.value,
+      systemPrompt: template.systemPrompt || formData.value.systemPrompt,
+      vadModelId: template.vadModelId || formData.value.vadModelId,
+      asrModelId: template.asrModelId || formData.value.asrModelId,
+      llmModelId: template.llmModelId || formData.value.llmModelId,
+      vllmModelId: template.vllmModelId || formData.value.vllmModelId,
+      intentModelId: template.intentModelId || formData.value.intentModelId,
+      memModelId: template.memModelId || formData.value.memModelId,
+      ttsModelId: template.ttsModelId || formData.value.ttsModelId,
+      ttsVoiceId: template.ttsVoiceId || formData.value.ttsVoiceId,
+      agentName: template.agentName || formData.value.agentName,
+      chatHistoryConf: template.chatHistoryConf || formData.value.chatHistoryConf,
+      summaryMemory: template.summaryMemory || formData.value.summaryMemory,
+      langCode: template.langCode || formData.value.langCode,
+    }
+    fetchAllLanguag(template.ttsModelId || formData.value.ttsModelId)
+    updateDisplayNames()
   }
 }
 
@@ -493,6 +506,57 @@ async function onPickerConfirm(type: string, value: any, name: string) {
 // 选择器取消
 function onPickerCancel(type: string) {
   pickerShow.value[type] = false
+  // 关闭时停止播放
+  if (type === 'voiceprint') {
+    stopAudio()
+  }
+}
+
+// 播放音频
+function playAudio(voiceDemo: string, voiceId: string, event: Event) {
+  event.stopPropagation() // 阻止事件冒泡，防止关闭下拉框
+
+  if (!voiceDemo) {
+    return
+  }
+
+  // 如果正在播放同一个音频，则停止
+  if (playingVoiceId.value === voiceId) {
+    stopAudio()
+    return
+  }
+
+  // 停止之前的音频
+  stopAudio()
+
+  // 创建新的音频实例
+  audioRef.value = uni.createInnerAudioContext()
+  audioRef.value.src = voiceDemo
+  playingVoiceId.value = voiceId
+
+  // 监听播放结束
+  audioRef.value.onEnded(() => {
+    playingVoiceId.value = ''
+  })
+
+  // 监听播放错误
+  audioRef.value.onError(() => {
+    toast.error('音频播放失败')
+    playingVoiceId.value = ''
+  })
+
+  // 播放音频
+  audioRef.value.play()
+}
+
+// 停止音频
+function stopAudio() {
+  if (audioRef.value) {
+    audioRef.value.stop()
+    audioRef.value.destroy()
+    audioRef.value = null
+  }
+  playingVoiceId.value = ''
 }
 
 // 获取模型显示名称
@@ -942,16 +1006,35 @@ onMounted(async () => {
     <wd-action-sheet
       v-model="pickerShow.tts"
       :actions="modelOptions.TTS && modelOptions.TTS.map(item => ({ name: item.modelName, value: item.id }))"
+      class="custom-sheet-tts"
       @close="onPickerCancel('tts')"
       @select="({ item }) => onPickerConfirm('tts', item.value, item.name)"
     />
 
-    <wd-action-sheet
-      v-model="pickerShow.voiceprint"
-      :actions="voiceOptions"
-      @close="onPickerCancel('voiceprint')"
-      @select="({ item }) => onPickerConfirm('voiceprint', item.value, item.name)"
-    />
+    <!-- 自定义语音选择弹出层 -->
+    <wd-popup v-model="pickerShow.voiceprint" class="custom-popup" position="bottom" @close="onPickerCancel('voiceprint')">
+      <view class="overflow-hidden rounded-[20rpx] bg-white pb-[20rpx] pt-[20rpx]">
+        <view class="max-h-[600rpx] overflow-y-auto">
+          <view
+            v-for="voice in voiceOptions"
+            :key="voice.value"
+            class="flex items-center justify-between border-b border-[#f5f5f5] p-[32rpx] transition-all active:bg-[#f5f7fb]"
+            @click="onPickerConfirm('voiceprint', voice.value, voice.name)"
+          >
+            <text :class="`flex-1 text-[28rpx] text-[#232338] ${(voice.voiceDemo || voice.voice_demo) ? '' : 'text-center'}`">
+              {{ voice.name }}
+            </text>
+            <view v-if="voice.voiceDemo || voice.voice_demo" class="ml-[20rpx]" @click.stop="playAudio(voice.voiceDemo || voice.voice_demo, voice.value, $event)">
+              <wd-icon
+                :name="playingVoiceId === voice.value ? 'pause-circle' : 'play-circle'"
+                size="24px"
+                :custom-class="playingVoiceId === voice.value ? 'text-[#336cff]' : 'text-[#9d9ea3]'"
+              />
+            </view>
+          </view>
+        </view>
+      </view>
+    </wd-popup>
     <wd-action-sheet
       v-model="pickerShow.language"
       :actions="languageOptions"
@@ -970,5 +1053,20 @@ onMounted(async () => {
 <style lang="scss" scoped>
 ::v-deep .wd-tag__close {
   color: #336cff !important;
+}
+::v-deep .custom-popup {
+  .wd-popup {
+    padding: 20rpx !important;
+    background: transparent !important;
+  }
+}
+::v-deep .custom-sheet-tts {
+  .wd-action-sheet {
+    padding: 8px 0 !important;
+    overflow: hidden;
+  }
+  .wd-action-sheet__actions {
+    padding: 0 !important;
+  }
 }
 </style>

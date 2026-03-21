@@ -505,7 +505,6 @@ export default {
     justify-content: space-between;
     align-items: center;
     margin-top: 10px;
-    padding-bottom: 10px;
 }
 
 .ctrl_btn {
@@ -735,7 +734,7 @@ export default {
 }
 
 .el-table {
-    --table-max-height: calc(100vh - 40vh);
+    // --table-max-height: calc(100vh - 40vh);
     max-height: var(--table-max-height);
 
     .el-table__body-wrapper {

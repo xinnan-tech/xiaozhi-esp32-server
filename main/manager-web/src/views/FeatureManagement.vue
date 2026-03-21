@@ -131,9 +131,7 @@ export default {
   async created() {
     // 等待功能配置管理器初始化完成
     try {
-      console.log('等待功能配置管理器初始化...')
       await featureManager.waitForInitialization()
-      console.log('功能配置管理器初始化完成，开始加载功能配置')
       await this.loadFeatures()
       this.setupConfigChangeListener()
     } catch (error) {
@@ -152,14 +150,8 @@ export default {
     async getFeaturesByIds(featureIds) {
       try {
         const featureConfig = await featureManager.getAllFeatures()
-        console.log('获取到的功能配置:', JSON.stringify(featureConfig, null, 2))
-        console.log('请求的功能ID列表:', featureIds)
-        
         const result = featureIds.map(id => {
           const feature = featureConfig[id]
-          console.log(`功能 ${id} 的配置:`, feature)
-          console.log(`功能 ${id} 的启用状态:`, feature?.enabled)
-          
           return {
             id: id,
             name: this.$t(`feature.${id}.name`),
@@ -168,7 +160,6 @@ export default {
           }
         })
         
-        console.log('最终返回的功能列表:', JSON.stringify(result, null, 2))
         return result
       } catch (error) {
         console.error('获取功能配置失败:', error)
@@ -245,7 +236,6 @@ export default {
 
         setTimeout(() => {
           this.loadFeatures()
-          this.$router.go(0)
         }, 1000)
       } catch (error) {
         console.error('保存配置失败:', error)
@@ -261,7 +251,6 @@ export default {
     // 设置配置变化监听器
     setupConfigChangeListener() {
       this.configChangeHandler = () => {
-        console.log('检测到配置变化，重新加载功能列表')
         this.loadFeatures()
       }
       window.addEventListener('featureConfigReloaded', this.configChangeHandler)

@@ -15,7 +15,7 @@ import { computed, onMounted, ref } from 'vue'
 import { login } from '@/api/auth'
 // 导入国际化相关功能
 import { changeLanguage, getCurrentLanguage, getSupportedLanguages, initI18n, t } from '@/i18n'
-import { useConfigStore } from '@/store'
+import { useConfigStore, useUserStore } from '@/store'
 // 导入SM2加密工具
 import { getEnvBaseUrl, sm2Encrypt } from '@/utils'
 import { toast } from '@/utils/toast'
@@ -61,6 +61,7 @@ const loginType = ref<'username' | 'mobile'>('username')
 
 // 获取配置store
 const configStore = useConfigStore()
+const userStore = useUserStore()
 
 // 区号选择相关
 const showAreaCodeSheet = ref(false)
@@ -227,6 +228,7 @@ async function handleLogin() {
     const response = await login(loginData)
     // 存储token
     uni.setStorageSync('token', JSON.stringify(response))
+    await userStore.getUserInfo()
 
     toast.success(t('message.loginSuccess'))
 
@@ -581,7 +583,6 @@ onMounted(async () => {
 
       .input-wrapper {
         position: relative;
-        background: #f8f9fa;
         border-radius: 16rpx;
         padding: 20rpx 16rpx;
         border: 2rpx solid #e9ecef;

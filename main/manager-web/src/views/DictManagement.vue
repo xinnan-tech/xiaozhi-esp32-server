@@ -48,7 +48,7 @@
                         <el-table ref="dictDataTable" :data="dictDataList" style="width: 100%"
                             v-loading="dictDataLoading" element-loading-text="拼命加载中"
                             element-loading-spinner="el-icon-loading"
-                            element-loading-background="rgba(255, 255, 255, 0.7)" class="data-table"
+                            element-loading-background="rgba(255, 255, 255, 0.7)" class="transparent-table"
                             header-row-class-name="table-header">
                             <el-table-column :label="$t('modelConfig.select')" align="center" width="70">
                                 <template slot-scope="scope">
@@ -463,9 +463,7 @@ export default {
 .main-wrapper {
     margin: 5px 22px;
     border-radius: 15px;
-    min-height: calc(100vh - 24vh);
-    height: auto;
-    max-height: 80vh;
+    height: 80vh;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
     position: relative;
     background: rgba(237, 242, 255, 0.5);
@@ -555,13 +553,14 @@ export default {
 
 .content-area {
     flex: 1;
-    padding: 24px;
+    padding: 24px 24px 0;
     height: 100%;
     min-width: 600px;
     overflow: hidden;
     background-color: white;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
 }
 
 .dict-data-card {
@@ -574,31 +573,51 @@ export default {
     overflow: hidden;
 }
 
-.data-table {
-    border-radius: 6px;
-    overflow-y: hidden;
-    background-color: transparent !important;
-    --table-max-height: calc(100vh - 40vh);
-    max-height: var(--table-max-height);
+:deep(.transparent-table) {
+    background: white;
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 
-    :deep(.el-table__body-wrapper) {
-        max-height: calc(var(--table-max-height) - 40px);
+    .el-table__body-wrapper {
+        flex: 1;
         overflow-y: auto;
+        max-height: none !important;
     }
 
-    :deep(.el-table__body) {
-        tr:last-child td {
-            border-bottom: none;
+    .el-table__header-wrapper {
+        flex-shrink: 0;
+    }
+
+    .el-table__header th {
+        background: white !important;
+        color: black;
+        font-weight: 600;
+        height: 40px;
+        padding: 8px 0;
+        font-size: 14px;
+        border-bottom: 1px solid #e4e7ed;
+    }
+
+    .el-table__body tr {
+        background-color: white;
+
+        td {
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            padding: 8px 0;
+            height: 40px;
+            color: #606266;
+            font-size: 14px;
         }
     }
-}
 
-:deep(.el-table) {
-    &::before {
-        display: none;
+    .el-table__row:hover>td {
+        background-color: #f5f7fa !important;
     }
 
-    &::after {
+    &::before {
         display: none;
     }
 }
@@ -607,7 +626,6 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
     width: 100%;
     flex-shrink: 0;
     min-height: 60px;
@@ -889,7 +907,7 @@ export default {
 }
 
 :deep(.el-card__body) {
-    padding: 15px;
+    padding: 0;
     display: flex;
     flex-direction: column;
     flex: 1;

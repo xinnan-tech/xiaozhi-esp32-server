@@ -51,16 +51,17 @@ const currentTab = ref('agent-config')
 
 // 刷新和加载状态
 const refreshing = ref(false)
-
-// 计算是否启用下拉刷新（角色编辑页面不启用）
-const refresherEnabled = computed(() => {
-  return currentTab.value !== 'agent-config'
-})
+const refresherEnabled = ref(false)
 
 // 子组件引用
 const deviceRef = ref()
 const chatRef = ref()
 const voiceprintRef = ref()
+
+// 更新刷新器状态
+function updateRefresherEnabled(value: boolean) {
+  refresherEnabled.value = value
+}
 
 // Tab 配置
 const tabList = [
@@ -144,6 +145,10 @@ async function onLoadMore() {
   }
 }
 
+watch(() => currentTab.value, (newTab) => {
+  updateRefresherEnabled(newTab !== 'agent-config')
+})
+
 // 接收页面参数
 onLoad((options) => {
   if (options?.agentId) {
@@ -204,6 +209,7 @@ onMounted(async () => {
           v-else-if="currentTab === 'voiceprint-management'"
           ref="voiceprintRef"
           :agent-id="currentAgentId"
+          @update-refresher-enabled="updateRefresherEnabled"
         />
       </view>
     </scroll-view>

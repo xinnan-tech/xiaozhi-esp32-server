@@ -43,6 +43,14 @@ class AudioRateController:
 
     def add_audio(self, opus_packet):
         """添加音频包到队列"""
+        # 如果队列之前为空，需要调整时间戳以保持播放时间连续
+        # 这样工具调用等待期间，新加入的音频不会提前播放
+        if len(self.queue) == 0 and self.play_position > 0:
+            self.start_timestamp = time.monotonic() - (self.play_position / 1000)
+            self.logger.bind(tag=TAG).debug(
+                f"队列从空恢复，重置时间戳，当前播放位置: {self.play_position}ms"
+            )
+
         self.queue.append(("audio", opus_packet))
         # 相关事件处理
         self.queue_empty_event.clear()
@@ -55,6 +63,12 @@ class AudioRateController:
         Args:
             message_callback: 消息发送回调函数 async def()
         """
+        if len(self.queue) == 0 and self.play_position > 0:
+            self.start_timestamp = time.monotonic() - (self.play_position / 1000)
+            self.logger.bind(tag=TAG).debug(
+                f"队列从空恢复，重置时间戳，当前播放位置: {self.play_position}ms"
+            )
+
         self.queue.append(("message", message_callback))
         # 相关事件处理
         self.queue_empty_event.clear()

@@ -170,6 +170,9 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
+            .fail((err) => {
+                callback(err);
+            })
             .networkFail(() => {
                 RequestService.reAjaxFun(() => {
                     this.getAgentMcpAccessAddress(agentId, callback);

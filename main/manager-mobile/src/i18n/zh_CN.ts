@@ -11,7 +11,7 @@ export default {
   'login.navigationTitle': '登录',
   'login.fetchConfigError': '获取配置失败:',
   'login.selectLanguage': '选择语言',
-  'login.selectLanguageTip': 'En',
+  'login.selectLanguageTip': '中文',
   'login.welcomeBack': '欢迎回来',
   'login.pleaseLogin': '请登录您的账户',
   'login.enterUsername': '请输入用户名',
@@ -492,4 +492,9 @@ export default {
   'deviceConfig.afterConfigSuccessDeviceWillRestart': '配网成功后设备将自动重启',
   'deviceConfig.audioPlaybackError': '音频播放错误',
   'deviceConfig.playbackFailed': '播放失败',
+
+  // Voiceprint page
+  'voiceprint.audioNotExist': '该音频不存在',
+  'voiceprint.getAudioFailed': '获取音频失败',
+  'voiceprint.audioPlayFailed': '音频播放失败',
 }

@@ -19,7 +19,7 @@ const userInfoState: UserInfo & { avatar?: string, token?: string } = {
 }
 
 export const useUserStore = defineStore(
-  'user',
+  'userInfo',
   () => {
     // 定义用户信息
     const userInfo = ref<UserInfo & { avatar?: string, token?: string }>({ ...userInfoState })
@@ -51,16 +51,8 @@ export const useUserStore = defineStore(
      */
     const getUserInfo = async () => {
       const userData = await _getUserInfo()
-      const authInfo = JSON.parse(uni.getStorageSync('token') || '{}')
-      const userInfoWithExtras = {
-        ...userData,
-        avatar: userInfoState.avatar,
-        token: authInfo.token || '',
-      }
-      setUserInfo(userInfoWithExtras)
-      uni.setStorageSync('userInfo', userInfoWithExtras)
-      // TODO 这里可以增加获取用户路由的方法 根据用户的角色动态生成路由
-      return userInfoWithExtras
+      setUserInfo(userData)
+      return userData
     }
     /**
      * 退出登录 并 删除用户信息
@@ -79,6 +71,12 @@ export const useUserStore = defineStore(
     }
   },
   {
-    persist: true,
+    persist: {
+      key: 'userInfo',
+      serializer: {
+        serialize: state => JSON.stringify(state.userInfo),
+        deserialize: value => ({ userInfo: JSON.parse(value) }),
+      },
+    },
   },
 )
