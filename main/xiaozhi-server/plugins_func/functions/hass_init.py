@@ -20,9 +20,32 @@ def append_devices_to_prompt(conn):
         )
 
         if "hass_get_state" in funcs or "hass_set_state" in funcs:
-            prompt = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
-            deviceStr = plugins_config.get(config_source, {}).get("devices", "")
-            conn.prompt += prompt + deviceStr + "\n"
+            devices = plugins_config.get(config_source, {}).get("devices", "")
+            
+            # 格式化设备清单
+            if isinstance(devices, list):
+                device_lines = []
+                for d in devices:
+                    parts = d.split(",")
+                    if len(parts) == 3:
+                        location, name, entity_id = parts
+                        device_lines.append(f"- {name} (位置:{location}): {entity_id}")
+                    else:
+                        device_lines.append(f"- {d}")
+                device_str = "\n".join(device_lines)
+            else:
+                device_str = str(devices)
+            
+            # 构建提示词
+            prompt = (
+                "\n<function_call_context>\n"
+                "[Home Assistant智能设备清单]\n"
+                "当你需要控制Home Assistant设备时,必须使用下面列出的确切entity_id,不能自己编造!\n"
+                f"{device_str}\n"
+                "</function_call_context>\n"
+            )
+            
+            conn.prompt += prompt
             # 更新提示词
             conn.dialogue.update_system_message(conn.prompt)
 
