@@ -41,10 +41,10 @@ def append_devices_to_prompt(conn):
             
             # 构建更清晰的设备清单提示
             prompt = f"""
-[Home Assistant智能设备清单]
-当你需要控制Home Assistant设备时,必须使用下面列出的确切entity_id,不能自己编造!
-{deviceStr}
-"""
+            [Home Assistant智能设备清单]
+            当你需要控制Home Assistant设备时,必须使用下面列出的确切entity_id,不能自己编造!
+            {deviceStr}
+            """
             
             conn.prompt += prompt
             # 更新提示词
