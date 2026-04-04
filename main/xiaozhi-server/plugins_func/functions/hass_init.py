@@ -20,33 +20,9 @@ def append_devices_to_prompt(conn):
         )
 
         if "hass_get_state" in funcs or "hass_set_state" in funcs:
-            devices = plugins_config.get(config_source, {}).get("devices", "")
-            
-            # 处理数组或字符串,格式化成清晰的映射表
-            if isinstance(devices, list):
-                # 格式化成: 设备名 (位置): entity_id
-                device_lines = []
-                for d in devices:
-                    parts = d.split(',')
-                    if len(parts) == 3:
-                        location, name, entity_id = parts
-                        device_lines.append(f"- {name} (位置:{location}): {entity_id}")
-                    else:
-                        device_lines.append(f"- {d}")
-                deviceStr = "\n".join(device_lines)
-            elif isinstance(devices, str):
-                deviceStr = devices
-            else:
-                deviceStr = str(devices)
-            
-            # 构建更清晰的设备清单提示
-            prompt = f"""
-            [Home Assistant智能设备清单]
-            当你需要控制Home Assistant设备时,必须使用下面列出的确切entity_id,不能自己编造!
-            {deviceStr}
-            """
-            
-            conn.prompt += prompt
+            prompt = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
+            deviceStr = plugins_config.get(config_source, {}).get("devices", "")
+            conn.prompt += prompt + deviceStr + "\n"
             # 更新提示词
             conn.dialogue.update_system_message(conn.prompt)
 
