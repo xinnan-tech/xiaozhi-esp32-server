@@ -614,6 +614,21 @@ LLM:
     model_name: deepseek-chat
     url: https://api.deepseek.com
     api_key: 你的deepseek web key
+  KimiLLM:
+    # 定义LLM API类型
+    type: openai
+    # Kimi/Moonshot AI，kimi-k2.5支持256K上下文，擅长代码生成和Agent任务
+    # 获取API密钥：https://platform.moonshot.ai/console/api-keys
+    model_name: kimi-k2.5
+    base_url: https://api.moonshot.ai/v1
+    api_key: 你的moonshot api_key
+  KimiCodePlanLLM:
+    # Kimi Code Plan，专为代码场景优化
+    # 获取API密钥：https://platform.moonshot.ai/console/api-keys
+    type: openai
+    model_name: kimi-for-coding
+    base_url: https://api.kimi.com/coding/v1
+    api_key: 你的moonshot api_key
   ChatGLMLLM:
     # 定义LLM API类型
     type: openai
@@ -718,6 +733,13 @@ VLLM:
     url: https://dashscope.aliyuncs.com/compatible-mode/v1
     # 可在这里找到你的api key https://bailian.console.aliyun.com/?apiKey=1#/api-key
     api_key: 你的api_key
+  KimiVLLM:
+    type: openai
+    # kimi-k2.5是多模态模型，支持文本和视觉理解
+    # 获取API密钥：https://platform.moonshot.ai/console/api-keys
+    model_name: kimi-k2.5
+    base_url: https://api.moonshot.ai/v1
+    api_key: 你的moonshot api_key
   XunfeiSparkLLM:
     # 定义LLM API类型
     type: openai
