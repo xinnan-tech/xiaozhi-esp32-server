@@ -1,3 +1,7 @@
+from utils.system_info import setup_opus
+setup_opus()
+
+# ruff: noqa: E402
 import sys
 import uuid
 import signal
