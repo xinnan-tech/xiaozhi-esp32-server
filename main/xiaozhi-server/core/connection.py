@@ -844,7 +844,6 @@ class ConnectionHandler:
 
         if query is not None:
             self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
-
         # 为最顶层时新建会话ID和发送FIRST请求
         if depth == 0:
             current_sentence_id = str(uuid.uuid4().hex)

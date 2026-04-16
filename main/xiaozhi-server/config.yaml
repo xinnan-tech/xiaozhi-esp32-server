@@ -9,22 +9,22 @@
 server:
   # 服务器监听地址和端口(Server listening address and port)
   ip: 0.0.0.0
-  port: 8000
+  port: 8010
   # http服务的端口，用于简单OTA接口(单服务部署)，以及视觉分析接口
-  http_port: 8003
+  http_port: 8013
   # 这个websocket配置是指ota接口向设备发送的websocket地址
   # 如果按默认的写法，ota接口会自动生成websocket地址，并输出在启动日志里，这个地址你可以直接用浏览器访问ota接口确认一下
   # 当你使用docker部署或使用公网部署(使用ssl、域名)时，不一定准确
   # 所以如果你使用docker部署时，将websocket设置成局域网地址
   # 如果你使用公网部署时，将vwebsocket设置成公网地址
-  websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
+  websocket: ws://192.168.1.8:8023/xiaozhi/v1/
   # 视觉分析接口地址
   # 向设备发送的视觉分析的接口地址
   # 如果按下面默认的写法，系统会自动生成视觉识别地址，并输出在启动日志里，这个地址你可以直接用浏览器访问确认一下
   # 当你使用docker部署或使用公网部署(使用ssl、域名)时，不一定准确
   # 所以如果你使用docker部署时，将vision_explain设置成局域网地址
   # 如果你使用公网部署时，将vision_explain设置成公网地址
-  vision_explain: http://你的ip或者域名:端口号/mcp/vision/explain
+  vision_explain: http://192.168.1.8:8023/mcp/vision/explain
   # OTA返回信息时区偏移量
   timezone_offset: +8
   # 认证配置
@@ -222,11 +222,11 @@ selected_module:
   # 语音识别模块，默认使用FunASR本地模型
   ASR: FunASR
   # 将根据配置名称对应的type调用实际的LLM适配器
-  LLM: ChatGLMLLM
+  LLM: AliLLM
   # 视觉语言大模型
   VLLM: ChatGLMVLLM
   # TTS将根据配置名称对应的type调用实际的TTS适配器
-  TTS: EdgeTTS
+  TTS: HuoshanDoubleStreamTTS
   # 记忆模块，默认不开启记忆；如果想使用超长记忆，推荐使用mem0ai；如果注重隐私，请使用本地的mem_local_short
   Memory: nomem
   # 意图识别模块开启后，可以播放音乐、控制音量、识别退出指令。
@@ -579,9 +579,9 @@ LLM:
     type: openai
     # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    model_name: qwen-turbo
-    api_key: 你的deepseek web key
-    temperature: 0.7  # 温度值
+    model_name: qwen3.6-plus
+    api_key: sk-a84c1ca87acd44a48280f7a4d56b953a
+    temperature: 0.4  # 温度值
     max_tokens: 500   # 最大生成token数
     top_p: 1
     frequency_penalty: 0  # 频率惩罚
@@ -764,10 +764,10 @@ TTS:
     # 如果是机智云，把接口地址换成wss://bytedance.gizwitsapi.com/api/v3/tts/bidirection
     # 机智云不需要天填 appid
     ws_url: wss://openspeech.bytedance.com/api/v3/tts/bidirection
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: 2112286397
+    access_token: p9v3QKo2PDKUAxP2R1da3b5pXTpVl7RW
     resource_id: volc.service_type.10029
-    speaker: zh_female_wanwanxiaohe_moon_bigtts
+    speaker: zh_female_wanwanxiaohe_moon_bigtts # zh_female_daimengchuanmei_moon_bigtts
     # 开启WebSocket连接复用，默认复用（注意：复用后设备处于聆听状态时空闲链接会占并发数）
     enable_ws_reuse: True
     # 相关参数文档：https://www.volcengine.com/docs/6561/1329505
