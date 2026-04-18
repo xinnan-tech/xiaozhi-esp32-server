@@ -22,13 +22,13 @@ class PLATFORM(Enum):
 
 
 class ARCH(Enum):
-    WINDOWS = {"arm": "x64", "intel": "x64"}
+    WINDOWS = {"arm": "arm64", "intel": "x64"}
     MACOS = {"arm": "arm64", "intel": "x64"}
     LINUX = {"arm": "arm64", "intel": "x64"}
 
 
 class LIB_PATH(Enum):
-    WINDOWS = "libs/win/x64"
+    WINDOWS = "libs/win/{arch}"
     MACOS = "libs/mac/{arch}"
     LINUX = "libs/linux/{arch}"
 
@@ -90,16 +90,6 @@ def get_arch(system: PLATFORM) -> tuple[str, str]:
     arch_name = arch_map["arm" if is_arm else "intel"]
 
     return architecture, arch_name
-
-
-def get_lib_path(system: PLATFORM, arch_name: str) -> str:
-    """根据平台架构获取 Opus 库文件路径"""
-    platform_dict = _get_platform_dict()
-    lib_path_value = platform_dict[system]["lib_path"].value
-
-    if isinstance(lib_path_value, str) and "{arch}" in lib_path_value:
-        return lib_path_value.format(arch=arch_name)
-    return lib_path_value
 
 
 def get_lib_name(system: PLATFORM, local: bool = True) -> str | list[str]:
@@ -184,9 +174,7 @@ def get_search_paths(system: PLATFORM, arch_name: str) -> list[tuple[str, str]]:
         logger.debug(f"找到 libs 目录: {lib_path}")
 
     # 添加项目根目录作为最后的备选
-    if not search_paths or str(Path(APP_DIR) / "libs") not in [
-        s[0] for s in search_paths
-    ]:
+    if not search_paths or APP_DIR not in [s[0] for s in search_paths]:
         search_paths.append((APP_DIR, lib_name))
 
     # 调试日志：显示所有搜索路径
@@ -263,7 +251,8 @@ def _setup_dll_search_path(system: PLATFORM, lib_dir: str) -> None:
 
     try:
         if hasattr(os, "add_dll_directory"):
-            os.add_dll_directory(lib_dir)
+            dll_dir_handle = os.add_dll_directory(lib_dir)
+            setattr(sys, "_opus_dll_dir_handle", dll_dir_handle)
             logger.debug(f"已添加DLL搜索路径: {lib_dir}")
     except OSError as e:
         logger.warning(f"添加DLL搜索路径失败: {e}")
@@ -337,8 +326,10 @@ def setup_opus() -> bool:
 
     # 打补丁确保 opuslib_next 能找到正确的库路径
     if final_lib_path:
-        _patch_find_library("opus", final_lib_path)
-        return _load_opus_library(final_lib_path)
+        loaded = _load_opus_library(final_lib_path)
+        if loaded:
+            _patch_find_library("opus", final_lib_path)
+        return loaded
 
     logger.error("无法加载 Opus 库")
     return False
