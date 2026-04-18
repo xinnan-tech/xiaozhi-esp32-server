@@ -10,7 +10,15 @@ from config.opus_loader import setup_opus
 from config.settings import load_config
 
 if not setup_opus():
-    raise RuntimeError("Opus 库加载失败，请确保已正确安装 Opus 并配置环境变量")
+    raise RuntimeError(
+        "Opus 库加载失败，请确保已将对应平台的 Opus 动态库放置到项目目录下的 libs 文件夹中。\n"
+        "库文件夹结构参考：\n"
+        "  - Windows: libs/win/x64/opus.dll\n"
+        "  - macOS (Apple Silicon): libs/mac/arm64/libopus.dylib\n"
+        "  - macOS (Intel): libs/mac/x64/libopus.dylib\n"
+        "  - Linux (ARM): libs/linux/arm64/libopus.so\n"
+        "  - Linux (x64): libs/linux/x64/libopus.so"
+    )
 
 from core.http_server import SimpleHttpServer
 from core.utils.gc_manager import get_gc_manager

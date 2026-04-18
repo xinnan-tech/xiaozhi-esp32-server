@@ -232,7 +232,7 @@ def find_system_opus(system: PLATFORM) -> str:
     return ""
 
 
-def _find_local_opus(system: PLATFORM, arch_name: str) -> str:
+def _find_local_opus(system: PLATFORM, arch_name: str) -> str | None:
     """从本地搜索路径查找 Opus 库
 
     Args:
@@ -247,11 +247,8 @@ def _find_local_opus(system: PLATFORM, arch_name: str) -> str:
     for dir_path, file_name in search_paths:
         full_path = os.path.join(dir_path, file_name)
         if os.path.exists(full_path):
-            logger.info(f"在本地找到 Opus 库文件: {full_path}")
             return str(full_path)
-
-    logger.debug("本地未找到 Opus 库文件")
-    return ""
+    return None
 
 
 def _setup_dll_search_path(system: PLATFORM, lib_dir: str) -> None:
@@ -275,7 +272,7 @@ def _setup_dll_search_path(system: PLATFORM, lib_dir: str) -> None:
 
 
 def _patch_find_library(lib_name: str, lib_path: str) -> None:
-    """修补ctypes.util.find_library函数
+    """修补 ctypes.util.find_library 函数，确保 opuslib_next 能找到 opus 库
 
     Args:
         lib_name: 库名称
@@ -292,16 +289,11 @@ def _patch_find_library(lib_name: str, lib_path: str) -> None:
 
 
 def _load_opus_library(lib_path: str) -> bool:
-    """尝试加载opus库
-
-    Args:
-        lib_path: 库文件路径
-
-    Returns:
-        加载成功返回True，否则返回False
-    """
+    """尝试加载 opus 库"""
     try:
-        _ = ctypes.CDLL(lib_path)
+        # 加载库并持久化句柄到 sys 属性，防止被垃圾回收释放库句柄
+        cdll_instance = ctypes.CDLL(lib_path)
+        setattr(sys, "_opus_cdll", cdll_instance)
         logger.info(f"成功加载 Opus 库: {lib_path}")
         setattr(sys, "_opus_loaded", True)
         return True
@@ -311,31 +303,42 @@ def _load_opus_library(lib_path: str) -> bool:
 
 
 def setup_opus() -> bool:
-    """加载 Opus 动态库 - 优先级：系统库 > 本地库"""
+    """加载 Opus 动态库 - 优先级：系统库 > 本地库
+
+    Returns:
+        加载成功返回True，否则返回False
+    """
     # 检查是否已经由 runtime_hook 加载
     if hasattr(sys, "_opus_loaded"):
         logger.info("Opus 库已由运行时钩子加载")
         return True
 
     system, arch_name = get_system_info()
+    final_lib_path = ""
 
-    # 1. 从系统路径加载
     logger.info("尝试从系统路径加载 Opus 库")
     system_lib_path = find_system_opus(system)
 
     if system_lib_path:
+        # 1. 尝试从系统路径加载
         logger.info(f"在系统中找到 Opus 库: {system_lib_path}")
-        return _load_opus_library(system_lib_path)
+        final_lib_path = system_lib_path
+    else:
+        # 2. 尝试从本地搜索路径查找
+        logger.info("系统路径未找到，尝试从本地加载 Opus 库")
+        local_lib_path = _find_local_opus(system, arch_name)
 
-    # 2. 从本地搜索路径查找
-    logger.info("系统路径未找到，尝试从本地加载 Opus 库")
-    local_lib_path = _find_local_opus(system, arch_name)
+        if local_lib_path:
+            lib_dir = str(Path(local_lib_path).parent)
+            _setup_dll_search_path(system, lib_dir)
+            final_lib_path = local_lib_path
+        else:
+            logger.debug("本地未找到本地 Opus 库文件")
 
-    if local_lib_path:
-        lib_dir = str(Path(local_lib_path).parent)
-        _setup_dll_search_path(system, lib_dir)
-        _patch_find_library("opus", local_lib_path)
-        return _load_opus_library(local_lib_path)
+    # 打补丁确保 opuslib_next 能找到正确的库路径
+    if final_lib_path:
+        _patch_find_library("opus", final_lib_path)
+        return _load_opus_library(final_lib_path)
 
     logger.error("无法加载 Opus 库")
     return False
