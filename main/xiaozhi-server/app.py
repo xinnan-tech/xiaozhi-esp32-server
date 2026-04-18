@@ -1,19 +1,21 @@
-from utils.system_info import setup_opus
-setup_opus()
-
 # ruff: noqa: E402
+import asyncio
+import signal
 import sys
 import uuid
-import signal
-import asyncio
+
 from aioconsole import ainput
-from config.settings import load_config
 from config.logger import setup_logging
-from core.utils.util import get_local_ip, validate_mcp_endpoint
+from config.opus_loader import setup_opus
+from config.settings import load_config
+
+if not setup_opus():
+    raise RuntimeError("Opus 库加载失败，请确保已正确安装 Opus 并配置环境变量")
+
 from core.http_server import SimpleHttpServer
-from core.websocket_server import WebSocketServer
-from core.utils.util import check_ffmpeg_installed
 from core.utils.gc_manager import get_gc_manager
+from core.utils.util import check_ffmpeg_installed, get_local_ip, validate_mcp_endpoint
+from core.websocket_server import WebSocketServer
 
 TAG = __name__
 logger = setup_logging()
@@ -55,14 +57,14 @@ async def main():
     # auth_key用于jwt认证，比如视觉分析接口的jwt认证、ota接口的token生成与websocket认证
     # 获取配置文件中的auth_key
     auth_key = config["server"].get("auth_key", "")
-    
+
     # 验证auth_key，无效则尝试使用manager-api.secret
     if not auth_key or len(auth_key) == 0 or "你" in auth_key:
         auth_key = config.get("manager-api", {}).get("secret", "")
         # 验证secret，无效则生成随机密钥
         if not auth_key or len(auth_key) == 0 or "你" in auth_key:
             auth_key = str(uuid.uuid4().hex)
-    
+
     config["server"]["auth_key"] = auth_key
 
     # 添加 stdin 监控任务
