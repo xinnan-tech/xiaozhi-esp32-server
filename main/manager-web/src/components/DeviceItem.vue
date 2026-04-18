@@ -10,7 +10,7 @@
         <img src="@/assets/home/delete.png" alt="" style="width: 18px;height: 18px;margin-right: 10px;"
           @click.stop="handleDelete" />
         <el-tooltip class="item" effect="light" :content="device.systemPrompt" placement="top"
-          popper-class="custom-tooltip">
+          popper-class="device-item-tooltip"> 
           <img src="@/assets/home/info.png" alt="" style="width: 18px;height: 18px;" />
         </el-tooltip>
       </div>
@@ -193,8 +193,23 @@ export default {
 </style>
 
 <style>
-.custom-tooltip {
-  max-width: 400px;
+.device-item-tooltip {
+  max-height: 60vh !important;
+  max-width: 400px !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
   word-break: break-word;
+}
+
+.device-item-tooltip .popper__arrow {
+  display: none !important;
+}
+
+.device-item-tooltip[x-placement^="top"] .popper__arrow {
+  border-top-color: transparent !important;
+}
+
+.device-item-tooltip[x-placement^="bottom"] .popper__arrow {
+  border-bottom-color: transparent !important;
 }
 </style>

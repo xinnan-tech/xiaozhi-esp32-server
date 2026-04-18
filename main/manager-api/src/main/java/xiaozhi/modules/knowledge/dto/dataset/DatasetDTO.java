@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.*;
 
 /**
@@ -129,6 +130,7 @@ public class DatasetDTO {
         @JsonProperty("parser_config")
         private ParserConfig parserConfig;
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         @Schema(description = "PageRank 权重 (0-100)", example = "50")
         private Integer pagerank;
     }
