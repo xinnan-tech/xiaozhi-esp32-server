@@ -15,65 +15,56 @@ APP_DIR = str(Path(__file__).resolve().parent.parent)
 logger = setup_logging()
 
 
-class PLATFORM(Enum):
+class Platform(Enum):
     WINDOWS = "windows"
     MACOS = "darwin"
     LINUX = "linux"
 
 
-class ARCH(Enum):
+class Arch(Enum):
     WINDOWS = {"arm": "arm64", "intel": "x64"}
     MACOS = {"arm": "arm64", "intel": "x64"}
     LINUX = {"arm": "arm64", "intel": "x64"}
 
 
-class LIB_PATH(Enum):
-    WINDOWS = "libs/win/{arch}"
-    MACOS = "libs/mac/{arch}"
-    LINUX = "libs/linux/{arch}"
-
-
-class OPUS_INFO(Enum):
+class OpusInfo(Enum):
     WINDOWS = {"name": "opus.dll", "system_name": ["opus"]}
     MACOS = {"name": "libopus.dylib", "system_name": ["libopus.dylib"]}
     LINUX = {"name": "libopus.so", "system_name": ["libopus.so.0", "libopus.so"]}
 
 
-def _get_platform_dict() -> dict[PLATFORM, dict]:
+def _get_platform_dict() -> dict[Platform, dict]:
     """获取平台映射字典"""
     return {
-        PLATFORM.WINDOWS: {
-            "arch": ARCH.WINDOWS,
-            "lib_path": LIB_PATH.WINDOWS,
-            "lib_info": OPUS_INFO.WINDOWS,
+        Platform.WINDOWS: {
+            "arch": Arch.WINDOWS,
+            "lib_info": OpusInfo.WINDOWS,
             "dir": "win",
         },
-        PLATFORM.MACOS: {
-            "arch": ARCH.MACOS,
-            "lib_path": LIB_PATH.MACOS,
-            "lib_info": OPUS_INFO.MACOS,
+        Platform.MACOS: {
+            "arch": Arch.MACOS,
+            "lib_info": OpusInfo.MACOS,
             "dir": "mac",
         },
-        PLATFORM.LINUX: {
-            "arch": ARCH.LINUX,
-            "lib_path": LIB_PATH.LINUX,
-            "lib_info": OPUS_INFO.LINUX,
+        Platform.LINUX: {
+            "arch": Arch.LINUX,
+            "lib_info": OpusInfo.LINUX,
             "dir": "linux",
         },
     }
 
 
-def get_platform() -> PLATFORM:
+def get_platform() -> Platform:
     """获取当前平台"""
     system = platform.system().lower()
     if system in ("windows", "win32", "cygwin"):
-        return PLATFORM.WINDOWS
+        return Platform.WINDOWS
     if system == "darwin":
-        return PLATFORM.MACOS
-    return PLATFORM.LINUX
+        return Platform.MACOS
+    return Platform.LINUX
 
 
-def get_arch(system: PLATFORM) -> tuple[str, str]:
+def get_arch(system: Platform) -> tuple[str, str]:
     """获取当前架构
 
     Args:
@@ -92,14 +83,14 @@ def get_arch(system: PLATFORM) -> tuple[str, str]:
     return architecture, arch_name
 
 
-def get_lib_name(system: PLATFORM, local: bool = True) -> str | list[str]:
+def get_lib_name(system: Platform, local: bool = True) -> str | list[str]:
     """根据平台架构获取 Opus 库名称"""
     key = "name" if local else "system_name"
     platform_dict = _get_platform_dict()
     return platform_dict[system]["lib_info"].value[key]
 
 
-def get_system_info() -> tuple[PLATFORM, str]:
+def get_system_info() -> tuple[Platform, str]:
     """获取当前系统信息
 
     Returns:
@@ -143,7 +134,7 @@ def _build_lib_candidates(
     return candidates
 
 
-def get_search_paths(system: PLATFORM, arch_name: str) -> list[tuple[str, str]]:
+def get_search_paths(system: Platform, arch_name: str) -> list[tuple[str, str]]:
     """获取库文件搜索路径列表
 
     按优先级：特定平台/架构 > 特定平台 > 通用 > 项目根目录
@@ -186,7 +177,7 @@ def get_search_paths(system: PLATFORM, arch_name: str) -> list[tuple[str, str]]:
     return search_paths
 
 
-def find_system_opus(system: PLATFORM) -> str:
+def find_system_opus(system: Platform) -> str:
     """从系统路径查找 Opus 库
 
     Args:
@@ -220,7 +211,7 @@ def find_system_opus(system: PLATFORM) -> str:
     return ""
 
 
-def _find_local_opus(system: PLATFORM, arch_name: str) -> str | None:
+def _find_local_opus(system: Platform, arch_name: str) -> str | None:
     """从本地搜索路径查找 Opus 库
 
     Args:
@@ -228,7 +219,7 @@ def _find_local_opus(system: PLATFORM, arch_name: str) -> str | None:
         arch_name: 架构名称
 
     Returns:
-        找到的库文件路径，未找到返回空字符串
+        找到的库文件路径，未找到返回 None
     """
     search_paths = get_search_paths(system, arch_name)
 
@@ -239,14 +230,14 @@ def _find_local_opus(system: PLATFORM, arch_name: str) -> str | None:
     return None
 
 
-def _setup_dll_search_path(system: PLATFORM, lib_dir: str) -> None:
+def _setup_dll_search_path(system: Platform, lib_dir: str) -> None:
     """在Windows上设置DLL搜索路径
 
     Args:
         system: 平台枚举值
         lib_dir: 库文件所在目录
     """
-    if system != PLATFORM.WINDOWS or not lib_dir:
+    if system != Platform.WINDOWS or not lib_dir:
         return
 
     try:
@@ -297,10 +288,9 @@ def setup_opus() -> bool:
     Returns:
         加载成功返回True，否则返回False
     """
-    # 检查是否已经由 runtime_hook 加载
+    # 检查 Opus 库是否已在当前进程中完成加载，避免重复初始化
     if hasattr(sys, "_opus_loaded"):
-        logger.info("Opus 库已由运行时钩子加载")
-        return True
+        logger.info("Opus 库已加载，跳过重复初始化")
 
     system, arch_name = get_system_info()
     final_lib_path = ""
