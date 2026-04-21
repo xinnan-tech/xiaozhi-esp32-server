@@ -11,7 +11,7 @@ silero_vad==6.1.0
 opuslib_next==1.1.5
 pydub==0.25.1
 funasr==1.2.7
-openai==2.8.1
+openai==2.14.0
 google-generativeai==0.8.5
 edge_tts==7.2.6
 httpx==0.28.1
