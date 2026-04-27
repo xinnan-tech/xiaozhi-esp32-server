@@ -1,7 +1,5 @@
 package xiaozhi.modules.config.controller;
 
-import java.util.List;
-
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,7 +12,6 @@ import lombok.AllArgsConstructor;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.validator.ValidatorUtils;
 import xiaozhi.modules.config.dto.AgentModelsDTO;
-import xiaozhi.modules.config.dto.CorrectWordsDTO;
 import xiaozhi.modules.config.service.ConfigService;
 
 /**
@@ -43,13 +40,5 @@ public class ConfigController {
         ValidatorUtils.validateEntity(dto);
         Object models = configService.getAgentModels(dto.getMacAddress(), dto.getSelectedModule());
         return new Result<Object>().ok(models);
-    }
-
-    @PostMapping("correct-words")
-    @Operation(summary = "获取智能体替换词")
-    public Result<Object> getCorrectWords(@Valid @RequestBody CorrectWordsDTO dto) {
-        ValidatorUtils.validateEntity(dto);
-        List<String> list = configService.getCorrectWords(dto.getMacAddress());
-        return new Result<Object>().ok(list);
     }
 }

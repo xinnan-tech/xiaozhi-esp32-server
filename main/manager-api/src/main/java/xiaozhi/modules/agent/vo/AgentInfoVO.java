@@ -25,7 +25,4 @@ public class AgentInfoVO extends AgentEntity
 
     @Schema(description = "上下文源配置")
     private List<ContextProviderDTO> contextProviders;
-
-    @Schema(description = "替换词文件ID列表")
-    private List<String> correctWordFileIds;
 }

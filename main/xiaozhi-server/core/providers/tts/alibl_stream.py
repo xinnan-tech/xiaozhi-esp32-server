@@ -194,8 +194,6 @@ class TTSProvider(TTSProviderBase):
 
             # 过滤Markdown
             filtered_text = MarkdownCleaner.clean_markdown(text)
-            if self._correct_words_pattern:
-                filtered_text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], filtered_text)
 
             if filtered_text:
                 # 发送continue-task消息
@@ -482,8 +480,6 @@ class TTSProvider(TTSProviderBase):
 
                     # 发送文本
                     filtered_text = MarkdownCleaner.clean_markdown(text)
-                    if self._correct_words_pattern:
-                        filtered_text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], filtered_text)
                     # 发送continue-task消息
                     continue_task_message = {
                         "header": {

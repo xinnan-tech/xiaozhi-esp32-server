@@ -1,12 +1,10 @@
 package xiaozhi.modules.config.service.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -32,9 +30,7 @@ import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
 import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
-import xiaozhi.modules.correctword.service.CorrectWordFileService;
 import xiaozhi.modules.agent.vo.AgentVoicePrintVO;
-import xiaozhi.modules.correctword.vo.CorrectWordSimpleVO;
 import xiaozhi.modules.config.service.ConfigService;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
@@ -62,7 +58,6 @@ public class ConfigServiceImpl implements ConfigService {
     private final AgentContextProviderService agentContextProviderService;
     private final VoiceCloneService cloneVoiceService;
     private final AgentVoicePrintDao agentVoicePrintDao;
-    private final CorrectWordFileService correctWordFileService;
 
     @Override
     public Object getConfig(Boolean isCache) {
@@ -245,18 +240,6 @@ public class ConfigServiceImpl implements ConfigService {
                 true);
 
         return result;
-    }
-
-    @Override
-    public List<String> getCorrectWords(String macAddress) {
-        DeviceEntity device = deviceService.getDeviceByMacAddress(macAddress);
-        if (device == null) {
-            return Collections.emptyList();
-        }
-        List<CorrectWordSimpleVO> items = correctWordFileService.getAllItemsByAgentId(device.getAgentId());
-        return items.stream()
-                .map(item -> item.getSourceWord() + "|" + item.getTargetWord())
-                .collect(Collectors.toList());
     }
 
     /**

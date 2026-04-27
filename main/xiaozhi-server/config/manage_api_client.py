@@ -183,18 +183,6 @@ async def get_agent_models(
     )
 
 
-async def get_correct_words(mac_address: str) -> Optional[Dict]:
-    """获取智能体替换词"""
-    try:
-        return await ManageApiClient._instance._execute_async_request(
-            "POST", "/config/correct-words",
-            json={"macAddress": mac_address}
-        )
-    except Exception as e:
-        print(f"获取替换词失败: {e}")
-        return None
-
-
 async def generate_and_save_chat_summary(session_id: str) -> Optional[Dict]:
     """生成并保存聊天记录总结"""
     try:

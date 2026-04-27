@@ -45,21 +45,6 @@ class TTSProviderBase(ABC):
         self.report_on_last = False
         # sentence_id 到文本的映射，用于流式TTS获取正确的字幕文本
         self._sentence_text_map = {}
-        # 加载替换词，用于一次性正则替换
-        raw_words = config.get("correct_words", [])
-        self.correct_words = {}
-        for item in raw_words:
-            parts = item.split("|", 1)
-            if len(parts) == 2:
-                self.correct_words[parts[0]] = parts[1]
-        # 构建正则表达式，使用最长匹配优先（排序后转义拼接）
-        if self.correct_words:
-            # 按key长度降序排列，长的先匹配，避免短词部分干扰
-            sorted_keys = sorted(self.correct_words.keys(), key=len, reverse=True)
-            pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
-            self._correct_words_pattern = re.compile(pattern_str)
-        else:
-            self._correct_words_pattern = None
 
         self.tts_text_buff = []
         self.punctuations = (
@@ -104,12 +89,7 @@ class TTSProviderBase(ABC):
         self.before_stop_play_files.append((file_audio, text))
 
     def to_tts_stream(self, text, opus_handler: Callable[[bytes], None] = None) -> None:
-        # 保留原始文本用于显示/上报
-        original_text = text
         text = MarkdownCleaner.clean_markdown(text)
-        # 使用正则一次性替换，避免重复遍历和部分匹配问题
-        if self._correct_words_pattern:
-            text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], text)
         max_repeat_time = 5
         if self.delete_audio_file:
             # 需要删除文件的直接转为音频数据
@@ -117,8 +97,7 @@ class TTSProviderBase(ABC):
                 try:
                     audio_bytes = asyncio.run(self.text_to_speak(text, None))
                     if audio_bytes:
-                        # 使用原始文本用于显示/上报
-                        self.tts_audio_queue.put((SentenceType.FIRST, None, original_text, getattr(self, 'current_sentence_id', None)))
+                        self.tts_audio_queue.put((SentenceType.FIRST, None, text, getattr(self, 'current_sentence_id', None)))
                         audio_bytes_to_data_stream(
                             audio_bytes,
                             file_type=self.audio_file_type,
@@ -132,16 +111,16 @@ class TTSProviderBase(ABC):
                         max_repeat_time -= 1
                 except Exception as e:
                     logger.bind(tag=TAG).warning(
-                        f"语音生成失败{5 - max_repeat_time + 1}次: {original_text}，错误: {e}"
+                        f"语音生成失败{5 - max_repeat_time + 1}次: {text}，错误: {e}"
                     )
                     max_repeat_time -= 1
             if max_repeat_time > 0:
                 logger.bind(tag=TAG).info(
-                    f"语音生成成功: {original_text}，重试{5 - max_repeat_time}次"
+                    f"语音生成成功: {text}，重试{5 - max_repeat_time}次"
                 )
             else:
                 logger.bind(tag=TAG).error(
-                    f"语音生成失败: {original_text}，请检查网络或服务是否正常"
+                    f"语音生成失败: {text}，请检查网络或服务是否正常"
                 )
             return None
         else:
@@ -152,7 +131,7 @@ class TTSProviderBase(ABC):
                         asyncio.run(self.text_to_speak(text, tmp_file))
                     except Exception as e:
                         logger.bind(tag=TAG).warning(
-                            f"语音生成失败{5 - max_repeat_time + 1}次: {original_text}，错误: {e}"
+                            f"语音生成失败{5 - max_repeat_time + 1}次: {text}，错误: {e}"
                         )
                         # 未执行成功，删除文件
                         if os.path.exists(tmp_file):
@@ -161,24 +140,20 @@ class TTSProviderBase(ABC):
 
                 if max_repeat_time > 0:
                     logger.bind(tag=TAG).info(
-                        f"语音生成成功: {original_text}:{tmp_file}，重试{5 - max_repeat_time}次"
+                        f"语音生成成功: {text}:{tmp_file}，重试{5 - max_repeat_time}次"
                     )
                 else:
                     logger.bind(tag=TAG).error(
-                        f"语音生成失败: {original_text}，请检查网络或服务是否正常"
+                        f"语音生成失败: {text}，请检查网络或服务是否正常"
                     )
-                self.tts_audio_queue.put((SentenceType.FIRST, None, original_text, getattr(self, 'current_sentence_id', None)))
+                self.tts_audio_queue.put((SentenceType.FIRST, None, text, getattr(self, 'current_sentence_id', None)))
                 self._process_audio_file_stream(tmp_file, callback=opus_handler)
             except Exception as e:
                 logger.bind(tag=TAG).error(f"Failed to generate TTS file: {e}")
                 return None
     
     def to_tts(self, text):
-        # 保留原始文本用于日志/显示
-        original_text = text
         text = MarkdownCleaner.clean_markdown(text)
-        if self._correct_words_pattern:
-            text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], text)
         max_repeat_time = 5
         if self.delete_audio_file:
             # 需要删除文件的直接转为音频数据
@@ -199,16 +174,16 @@ class TTSProviderBase(ABC):
                         max_repeat_time -= 1
                 except Exception as e:
                     logger.bind(tag=TAG).warning(
-                        f"语音生成失败{5 - max_repeat_time + 1}次: {original_text}，错误: {e}"
+                        f"语音生成失败{5 - max_repeat_time + 1}次: {text}，错误: {e}"
                     )
                     max_repeat_time -= 1
             if max_repeat_time > 0:
                 logger.bind(tag=TAG).info(
-                    f"语音生成成功: {original_text}，重试{5 - max_repeat_time}次"
+                    f"语音生成成功: {text}，重试{5 - max_repeat_time}次"
                 )
             else:
                 logger.bind(tag=TAG).error(
-                    f"语音生成失败: {original_text}，请检查网络或服务是否正常"
+                    f"语音生成失败: {text}，请检查网络或服务是否正常"
                 )
             return None
         else:
@@ -219,7 +194,7 @@ class TTSProviderBase(ABC):
                         asyncio.run(self.text_to_speak(text, tmp_file))
                     except Exception as e:
                         logger.bind(tag=TAG).warning(
-                            f"语音生成失败{5 - max_repeat_time + 1}次: {original_text}，错误: {e}"
+                            f"语音生成失败{5 - max_repeat_time + 1}次: {text}，错误: {e}"
                         )
                         # 未执行成功，删除文件
                         if os.path.exists(tmp_file):
@@ -228,11 +203,11 @@ class TTSProviderBase(ABC):
 
                 if max_repeat_time > 0:
                     logger.bind(tag=TAG).info(
-                        f"语音生成成功: {original_text}:{tmp_file}，重试{5 - max_repeat_time}次"
+                        f"语音生成成功: {text}:{tmp_file}，重试{5 - max_repeat_time}次"
                     )
                 else:
                     logger.bind(tag=TAG).error(
-                        f"语音生成失败: {original_text}，请检查网络或服务是否正常"
+                        f"语音生成失败: {text}，请检查网络或服务是否正常"
                     )
 
                 return tmp_file

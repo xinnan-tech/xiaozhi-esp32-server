@@ -766,13 +766,6 @@ class ConnectionHandler:
         if private_config.get("context_providers", None) is not None:
             self.config["context_providers"] = private_config["context_providers"]
 
-        # 注入替换词到 TTS 模块配置
-        if private_config.get("correct_words", None) is not None:
-            select_tts_module = self.config["selected_module"]["TTS"]
-            self.config["TTS"][select_tts_module]["correct_words"] = private_config[
-                "correct_words"
-            ]
-
         # 使用 run_in_executor 在线程池中执行 initialize_modules，避免阻塞主循环
         try:
             modules = await self.loop.run_in_executor(

@@ -48,7 +48,6 @@ import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTagService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.agent.vo.AgentInfoVO;
-import xiaozhi.modules.correctword.service.CorrectWordFileService;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.model.dto.ModelProviderDTO;
@@ -75,7 +74,6 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
     private final ModelProviderService modelProviderService;
     private final AgentContextProviderService agentContextProviderService;
     private final AgentTagService agentTagService;
-    private final CorrectWordFileService correctWordFileService;
 
     @Override
     public PageData<AgentEntity> adminAgentList(Map<String, Object> params) {
@@ -105,10 +103,6 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         if (contextProviderEntity != null) {
             agent.setContextProviders(contextProviderEntity.getContextProviders());
         }
-
-        // 查询替换词文件ID列表
-        List<String> correctWordFileIds = correctWordFileService.getAgentCorrectWordFileIds(id);
-        agent.setCorrectWordFileIds(correctWordFileIds);
 
         // 无需额外查询插件列表，已通过SQL查询出来
         return agent;
@@ -431,11 +425,6 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             contextEntity.setAgentId(agentId);
             contextEntity.setContextProviders(dto.getContextProviders());
             agentContextProviderService.saveOrUpdateByAgentId(contextEntity);
-        }
-
-        // 更新替换词文件关联
-        if (dto.getCorrectWordFileIds() != null) {
-            correctWordFileService.saveAgentCorrectWords(agentId, dto.getCorrectWordFileIds());
         }
 
         boolean b = validateLLMIntentParams(dto.getLlmModelId(), dto.getIntentModelId());

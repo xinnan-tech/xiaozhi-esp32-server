@@ -88,9 +88,6 @@ public class AgentUpdateDTO implements Serializable {
     @Schema(description = "上下文源配置", nullable = true)
     private List<ContextProviderDTO> contextProviders;
 
-    @Schema(description = "替换词文件ID列表", nullable = true)
-    private List<String> correctWordFileIds;
-
     @Data
     @Schema(description = "插件函数信息")
     public static class FunctionInfo implements Serializable {
