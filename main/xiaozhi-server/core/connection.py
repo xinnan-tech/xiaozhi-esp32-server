@@ -169,7 +169,7 @@ class ConnectionHandler:
         self.current_speaker = None  # 存储当前说话人
 
         # llm相关变量
-        self.dialogue = Dialogue()
+        self.dialogue = Dialogue(config=self.config, logger=self.logger)
 
         # 工具调用统计（用于监控和自动恢复）
         self.tool_call_stats = {
