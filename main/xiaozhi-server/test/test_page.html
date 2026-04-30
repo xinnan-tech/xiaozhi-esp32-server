@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小智服务器测试页面</title>
-    <link rel="stylesheet" href="css/test_page.css?v=0205">
+    <link rel="stylesheet" href="css/test_page.css?v=0206">
     <script>
         // 检测是否使用file://协议打开
         if (window.location.protocol === 'file:') {
@@ -21,13 +21,13 @@
                 warningDiv.innerHTML = `
                     <h2>⚠️ 警告：请使用HTTP服务器打开此页面</h2>
                     <p>您当前使用的是本地文件方式打开页面（file://协议），这可能导致页面功能异常。</p>
-                    <p>您可以使用nginx映射启动测试页面，也可以请按照以下步骤使用python启动测试http服务：</p>
+                    <p>您可以使用nginx映射启动测试页面，也可以请按照以下步骤启动测试运行时：</p>
                     <ol>
                         <li>打开命令行终端</li>
                         <li>命令行进入到 xiaozhi-server/test 目录</li>
-                        <li>执行以下命令启动HTTP服务器：</li>
+                        <li>执行以下命令启动测试页面运行时：</li>
                     </ol>
-                    <pre>python -m http.server 8006</pre>
+                    <pre>python start_test_runtime.py</pre>
                     <p>然后在浏览器中访问：<strong>http://localhost:8006/test_page.html</strong></p>
                 `;
                 document.body.appendChild(warningDiv);
@@ -137,6 +137,7 @@
             <div class="modal-body">
                 <div class="settings-tabs">
                     <button class="tab-btn active" data-tab="device">设备配置</button>
+                    <button class="tab-btn" data-tab="wakeword">唤醒词</button>
                     <button class="tab-btn" data-tab="mcp">MCP工具</button>
                     <button class="tab-btn" data-tab="other">数字人皮肤</button>
                 </div>
@@ -162,6 +163,15 @@
                                         placeholder="deviceName">
                                 </div>
                             </div>
+                            <div class="config-row">
+                                <div class="config-item">
+                                    <label for="emojiEnabled">情绪表情:</label>
+                                    <select id="emojiEnabled" class="model-select">
+                                        <option value="true">启用</option>
+                                        <option value="false">禁用</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -180,6 +190,37 @@
                         <div class="input-group">
                             <label for="visionUrl">视觉分析地址:</label>
                             <input type="text" id="visionUrl" value="" readonly disabled placeholder="成功建立ws连接后自动获取" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="wakewordTab">
+                    <div class="config-panel">
+                        <div class="control-panel">
+                            <div class="config-row">
+                                <div class="config-item">
+                                    <label for="wakewordEnabled">启用本地唤醒词:</label>
+                                    <select id="wakewordEnabled" class="model-select">
+                                        <option value="true">启用</option>
+                                        <option value="false">禁用</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <div class="config-item">
+                                    <label for="wakewordWsUrl">唤醒词服务地址:</label>
+                                    <input type="text" id="wakewordWsUrl" placeholder="ws://127.0.0.1:8006/wakeword-ws">
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <div class="config-item">
+                                    <label for="wakewordList">唤醒词配置 (一行一个):</label>
+                                    <textarea id="wakewordList" placeholder="例如：&#10;小智小智&#10;你好小智"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="btn-primary" id="applyWakewordBtn">应用唤醒词</button>
+                            </div>
                         </div>
                     </div>
                 </div>

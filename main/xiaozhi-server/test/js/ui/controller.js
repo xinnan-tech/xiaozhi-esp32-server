@@ -2,7 +2,9 @@
 import { loadConfig, saveConfig } from '../config/manager.js?v=0205';
 import { getAudioPlayer } from '../core/audio/player.js?v=0205';
 import { getAudioRecorder } from '../core/audio/recorder.js?v=0205';
+import { requestWakewordBridge, stopWakewordBridgeListener, startWakewordBridgeListener, getWakewordBridgeUrl, onNextBridgeConnected } from '../core/network/wakeword-bridge.js?v=0205';
 import { getWebSocketHandler } from '../core/network/websocket.js?v=0205';
+import { log } from '../utils/logger.js?v=0205';
 
 // UI controller class
 class UIController {
@@ -14,6 +16,8 @@ class UIController {
         this.currentBackgroundIndex = localStorage.getItem('backgroundIndex') ? parseInt(localStorage.getItem('backgroundIndex')) : 0;
         this.backgroundImages = ['1.png', '2.png', '3.png'];
         this.dialBtnDisabled = false;
+        this.isConnecting = false;
+        this.lastWakewordDialTime = 0;
 
         // Bind methods
         this.init = this.init.bind(this);
@@ -25,6 +29,9 @@ class UIController {
         this.showModal = this.showModal.bind(this);
         this.hideModal = this.hideModal.bind(this);
         this.switchTab = this.switchTab.bind(this);
+        this.applyWakewordConfig = this.applyWakewordConfig.bind(this);
+        this.handleApplyWakeword = this.handleApplyWakeword.bind(this);
+        this.triggerWakewordDial = this.triggerWakewordDial.bind(this);
     }
 
     // Initialize
@@ -261,6 +268,11 @@ class UIController {
                 this.switchTab(e.target.dataset.tab);
             });
         });
+
+        const applyWakewordBtn = document.getElementById('applyWakewordBtn');
+        if (applyWakewordBtn) {
+            applyWakewordBtn.addEventListener('click', this.handleApplyWakeword);
+        }
 
         // 点击模态框背景关闭（仅对特定模态框禁用此功能）
         const modals = document.querySelectorAll('.modal');
@@ -512,6 +524,121 @@ class UIController {
         }
     }
 
+    applyWakewordConfig(config = {}) {
+        const wakewordEnabledInput = document.getElementById('wakewordEnabled');
+        const wakewordListInput = document.getElementById('wakewordList');
+
+        if (!wakewordEnabledInput || !wakewordListInput) {
+            return;
+        }
+
+        const wakeWords = Array.isArray(config.wakeWords)
+            ? config.wakeWords.filter(item => typeof item === 'string' && item.trim())
+            : [];
+
+        wakewordEnabledInput.value = config.enabled === false ? 'false' : 'true';
+        wakewordListInput.value = wakeWords.join('\n');
+        saveConfig();
+    }
+
+    async handleApplyWakeword() {
+        const wakewordEnabledInput = document.getElementById('wakewordEnabled');
+        const wakewordListInput = document.getElementById('wakewordList');
+        const wakewordWsUrlInput = document.getElementById('wakewordWsUrl');
+        if (!wakewordEnabledInput || !wakewordListInput) {
+            return;
+        }
+
+        const wakeWords = wakewordListInput.value
+            .split(/\r?\n/u)
+            .map(item => item.trim())
+            .filter(Boolean)
+            .filter((item, index, items) => items.indexOf(item) === index);
+
+        const payload = {
+            enabled: wakewordEnabledInput.value !== 'false',
+            wakeWords,
+        };
+
+        if (payload.enabled && payload.wakeWords.length === 0) {
+            this.addChatMessage('启用唤醒词时，至少需要填写一个唤醒词。', false);
+            return;
+        }
+
+        const applyWakewordBtn = document.getElementById('applyWakewordBtn');
+        if (applyWakewordBtn) {
+            applyWakewordBtn.disabled = true;
+            applyWakewordBtn.textContent = '应用中...';
+        }
+
+        try {
+            // 保存地址到 localStorage
+            if (wakewordWsUrlInput && wakewordWsUrlInput.value.trim()) {
+                localStorage.setItem('xz_tester_wakewordWsUrl', wakewordWsUrlInput.value.trim());
+            }
+
+            // 比较新地址和当前连接地址
+            const newWsUrl = localStorage.getItem('xz_tester_wakewordWsUrl');
+            const currentWsUrl = getWakewordBridgeUrl();
+            const urlChanged = newWsUrl !== currentWsUrl;
+
+            if (urlChanged) {
+                // 地址变了，先确认
+                const shouldRestart = window.confirm('地址已变更，是否继续？（将断开旧连接并重新连接）');
+                if (!shouldRestart) {
+                    // 恢复 localStorage 里的旧地址
+                    localStorage.setItem('xz_tester_wakewordWsUrl', currentWsUrl);
+                    this.addChatMessage('已取消地址变更。', false);
+                    return;
+                }
+
+                // 断开旧连接
+                stopWakewordBridgeListener();
+
+                // 启动新连接（自动用新地址）
+                startWakewordBridgeListener();
+
+                // 等 bridge_connected
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('连接新服务器超时'));
+                    }, 5000);
+
+                    onNextBridgeConnected(() => {
+                        clearTimeout(timeout);
+                        resolve();
+                    });
+                });
+
+                // 发配置和重启
+                await requestWakewordBridge('set_wakeword_config', payload);
+                this.applyWakewordConfig(payload);
+                await requestWakewordBridge('restart_wakeword_service');
+                this.addChatMessage('唤醒词配置已保存，唤醒词服务正在重启。', false);
+            } else {
+                // 地址没变：直接在当前连接操作
+                const response = await requestWakewordBridge('set_wakeword_config', payload);
+                this.applyWakewordConfig(response.payload || payload);
+
+                const shouldRestart = window.confirm('唤醒词已保存。是否现在重启唤醒词服务以立即生效？');
+                if (!shouldRestart) {
+                    this.addChatMessage('唤醒词配置已保存，可稍后手动重启服务后生效。', false);
+                    return;
+                }
+
+                await requestWakewordBridge('restart_wakeword_service');
+                this.addChatMessage('唤醒词配置已保存，唤醒词服务正在重启。', false);
+            }
+        } catch (error) {
+            this.addChatMessage(`应用唤醒词失败: ${error.message}`, false);
+        } finally {
+            if (applyWakewordBtn) {
+                applyWakewordBtn.disabled = false;
+                applyWakewordBtn.textContent = '应用唤醒词';
+            }
+        }
+    }
+
     // Start AI chat session after connection
     startAIChatSession() {
         this.addChatMessage('连接成功，开始聊天吧~😊', false);
@@ -550,47 +677,51 @@ class UIController {
 
     // Handle connect button click
     async handleConnect() {
-        console.log('handleConnect called');
-
-        // Switch to device settings tab
-        this.switchTab('device');
-
-        // Wait for DOM update
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        const otaUrlInput = document.getElementById('otaUrl');
-
-        console.log('otaUrl element:', otaUrlInput);
-
-        if (!otaUrlInput || !otaUrlInput.value) {
-            this.addChatMessage('请输入OTA服务器地址', false);
+        const wsHandler = getWebSocketHandler();
+        if (this.isConnecting || (wsHandler && wsHandler.isConnected())) {
+            log('连接已存在或正在进行，忽略本次拨号请求', 'info');
             return;
         }
 
-        const otaUrl = otaUrlInput.value;
-        console.log('otaUrl value:', otaUrl);
-
-        // Update dial button state to connecting
-        const dialBtn = document.getElementById('dialBtn');
-        if (dialBtn) {
-            dialBtn.classList.add('dial-active');
-            dialBtn.querySelector('.btn-text').textContent = '连接中...';
-            dialBtn.disabled = true;
-        }
-
-        // Show connecting message
-        this.addChatMessage('正在连接服务器...', false);
-
-        const chatIpt = document.getElementById('chatIpt');
-        if (chatIpt) {
-            chatIpt.style.display = 'flex';
-        }
+        this.isConnecting = true;
+        console.log('handleConnect called');
 
         try {
+            // Switch to device settings tab
+            this.switchTab('device');
+
+            // Wait for DOM update
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            const otaUrlInput = document.getElementById('otaUrl');
+
+            console.log('otaUrl element:', otaUrlInput);
+
+            if (!otaUrlInput || !otaUrlInput.value) {
+                this.addChatMessage('请输入OTA服务器地址', false);
+                return;
+            }
+
+            const otaUrl = otaUrlInput.value;
+            console.log('otaUrl value:', otaUrl);
+
+            // Update dial button state to connecting
+            const dialBtn = document.getElementById('dialBtn');
+            if (dialBtn) {
+                dialBtn.classList.add('dial-active');
+                dialBtn.querySelector('.btn-text').textContent = '连接中...';
+                dialBtn.disabled = true;
+            }
+
+            // Show connecting message
+            this.addChatMessage('正在连接服务器...', false);
+
+            const chatIpt = document.getElementById('chatIpt');
+            if (chatIpt) {
+                chatIpt.style.display = 'flex';
+            }
 
             // Get WebSocket handler instance
-            const wsHandler = getWebSocketHandler();
-
             // Register connection state callback BEFORE connecting
             wsHandler.onConnectionStateChange = (isConnected) => {
                 this.updateConnectionUI(isConnected);
@@ -670,7 +801,34 @@ class UIController {
                 dialBtn.classList.remove('dial-active');
                 console.log('Dial button state restored successfully');
             }
+        } finally {
+            this.isConnecting = false;
         }
+    }
+
+    async triggerWakewordDial(wakeWord = '唤醒词') {
+        const wsHandler = getWebSocketHandler();
+        const now = Date.now();
+
+        if (wsHandler && wsHandler.isConnected()) {
+            log('页面已连接，忽略自动拨号', 'info');
+            return false;
+        }
+
+        if (this.isConnecting || this.dialBtnDisabled) {
+            log('页面正在连接中，忽略重复唤醒', 'info');
+            return false;
+        }
+
+        if (now - this.lastWakewordDialTime < 3000) {
+            log('唤醒触发过于频繁，忽略本次自动拨号', 'warning');
+            return false;
+        }
+
+        this.lastWakewordDialTime = now;
+        this.addChatMessage(`检测到唤醒词“${wakeWord}”，准备连接服务器...`, false);
+        await this.handleConnect();
+        return true;
     }
 
     // Add MCP tool

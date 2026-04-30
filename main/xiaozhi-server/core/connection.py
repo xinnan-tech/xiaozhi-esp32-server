@@ -1011,10 +1011,11 @@ class ConnectionHandler:
 
                 # 在llm回复中获取情绪表情，一轮对话只在开头获取一次
                 if emotion_flag and content is not None and content.strip():
-                    asyncio.run_coroutine_threadsafe(
-                        textUtils.get_emotion(self, content),
-                        self.loop,
-                    )
+                    if (self.features or {}).get("emoji", True):
+                        asyncio.run_coroutine_threadsafe(
+                            textUtils.get_emotion(self, content),
+                            self.loop,
+                        )
                     emotion_flag = False
 
                 if content is not None and len(content) > 0:

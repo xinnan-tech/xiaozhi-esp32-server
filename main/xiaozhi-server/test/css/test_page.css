@@ -812,6 +812,20 @@ body {
     font-size: 14px;
 }
 
+.config-item textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #40444b;
+    border-radius: 6px;
+    background: #40444b;
+    color: white;
+    min-height: 100px;
+    resize: vertical;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 14px;
+}
+
 .model-select {
     width: 100%;
     padding: 10px 40px 10px 14px;

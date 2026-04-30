@@ -203,17 +203,6 @@ export class AudioRecorder {
     async start() {
         if (this.isRecording) return false;
         try {
-            // Check if WebSocketHandler instance exists
-            const { getWebSocketHandler } = await import('../network/websocket.js?v=0205');
-            const wsHandler = getWebSocketHandler();
-            // If machine is speaking, send abort message
-            if (wsHandler && wsHandler.isRemoteSpeaking && wsHandler.currentSessionId) {
-                const abortMessage = { session_id: wsHandler.currentSessionId, type: 'abort', reason: 'wake_word_detected' };
-                if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-                    this.websocket.send(JSON.stringify(abortMessage));
-                    log('已发送中止消息', 'info');
-                }
-            }
             if (!this.initEncoder()) {
                 log('无法开始录音: Opus编码器初始化失败', 'error');
                 return false;

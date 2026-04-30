@@ -3,6 +3,7 @@ import { checkOpusLoaded, initOpusEncoder } from './core/audio/opus-codec.js?v=0
 import { getAudioPlayer } from './core/audio/player.js?v=0205';
 import { checkMicrophoneAvailability, isHttpNonLocalhost } from './core/audio/recorder.js?v=0205';
 import { initMcpTools } from './core/mcp/tools.js?v=0205';
+import { startWakewordBridgeListener } from './core/network/wakeword-bridge.js?v=0205';
 import { uiController } from './ui/controller.js?v=0205';
 import { log } from './utils/logger.js?v=0205';
 
@@ -43,6 +44,8 @@ class App {
         await this.audioPlayer.start();
         // 初始化MCP工具
         initMcpTools();
+        // 初始化本地唤醒事件监听
+        startWakewordBridgeListener();
         // 检查麦克风可用性
         await this.checkMicrophoneAvailability();
         // 检查摄像头可用性
