@@ -56,10 +56,18 @@ class TTSProviderBase(ABC):
         if self.correct_words:
             # 按key长度降序排列，长的先匹配，避免短词部分干扰
             sorted_keys = sorted(self.correct_words.keys(), key=len, reverse=True)
-            pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
+            pattern_str = "|".join(re.escape(k) for k in sorted_keys)
             self._correct_words_pattern = re.compile(pattern_str)
+            # 构建反向替换正则，用于将TTS服务返回的替换后文本还原为原始文本（字幕显示）
+            reverse_map = {v: k for k, v in self.correct_words.items()}
+            sorted_reverse_keys = sorted(reverse_map.keys(), key=len, reverse=True)
+            reverse_pattern_str = "|".join(re.escape(k) for k in sorted_reverse_keys)
+            self._reverse_words_pattern = re.compile(reverse_pattern_str)
+            self._reverse_words_map = reverse_map
         else:
             self._correct_words_pattern = None
+            self._reverse_words_pattern = None
+            self._reverse_words_map = None
 
         self.tts_text_buff = []
         self.punctuations = (
@@ -338,6 +346,13 @@ class TTSProviderBase(ABC):
         """
         if sentence_id in self._sentence_text_map:
             del self._sentence_text_map[sentence_id]
+
+    def _restore_original_text(self, text):
+        if not self._reverse_words_pattern or not text:
+            return text
+        return self._reverse_words_pattern.sub(
+            lambda m: self._reverse_words_map[m.group(0)], text
+        )
 
     # 这里默认是非流式的处理方式
     # 流式处理方式请在子类中重写

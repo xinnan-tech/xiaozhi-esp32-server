@@ -514,9 +514,9 @@ class TTSProvider(TTSProviderBase):
                         json_data = json.loads(res.payload.decode("utf-8"))
                         self.tts_text = json_data.get("text", "")
                         logger.bind(tag=TAG).debug(f"句子语音生成开始: {self.tts_text}")
-                        self.tts_audio_queue.put(
-                            (SentenceType.FIRST, [], self.tts_text)
-                        )
+                        # 将TTS服务返回的替换后文本还原为原始文本，用于字幕显示
+                        display_text = self._restore_original_text(self.tts_text)
+                        self.tts_audio_queue.put((SentenceType.FIRST, [], display_text))
                     elif (
                         res.optional.event == EVENT_TTSResponse
                         and res.header.message_type == AUDIO_ONLY_RESPONSE
