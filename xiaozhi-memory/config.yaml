@@ -1,0 +1,50 @@
+# 小智记忆框架配置文件
+
+# 检索模式选择: fts5, embedding, hybrid
+retrieval_mode: fts5
+
+# SQLite + FTS5 配置
+sqlite:
+  path: ./data/xiaozhi_memory.db
+  enable_wal: true  # 启用WAL模式提升并发性能
+  tokenizer: jieba  # 中文分词器: jieba, simple, unicode61
+
+# 向量存储配置（可选，embedding模式需要）
+vector_store:
+  type: chromadb  # chromadb, qdrant
+  path: ./data/chroma
+  collection_name: xiaozhi_memories
+
+# LLM配置
+llm:
+  provider: ollama  # openai, ollama, zhipu
+  model: qwen2:7b
+  base_url: http://localhost:11434  # ollama默认地址
+  api_key: null  # 可选
+
+# 嵌入模型配置（可选，embedding模式需要）
+embedding:
+  provider: sentence-transformers  # openai, sentence-transformers, zhipu
+  model: /models/paraphrase-multilingual-MiniLM-L12-v2
+  device: cpu  # cpu, cuda
+
+# 记忆配置
+retention:
+  enabled: true  # 启用遗忘机制
+  archive_after_days: 90
+
+# 用户画像
+profile:
+  enabled: true
+  auto_update: true
+
+# 检索配置
+retrieval:
+  top_k: 10
+  # 混合模式权重
+  semantic_weight: 0.7  # 语义检索权重
+  keyword_weight: 0.3   # 关键词检索权重
+  # 时间和重要性
+  time_decay: true
+  importance_boost: true
+  access_boost: true
