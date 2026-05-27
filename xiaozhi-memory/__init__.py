@@ -7,6 +7,7 @@ from .memories import (
     BaseMemory, FactMemory, IntentionMemory, PreferenceMemory,
     MemoryType, MemoryStatus, IntentionStatus
 )
+from .llm import LLMClient, OpenAIClient
 
 __version__ = "0.1.0"
 __all__ = [
@@ -19,5 +20,7 @@ __all__ = [
     'PreferenceMemory',
     'MemoryType',
     'MemoryStatus',
-    'IntentionStatus'
+    'IntentionStatus',
+    'LLMClient',
+    'OpenAIClient'
 ]

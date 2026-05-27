@@ -1,0 +1,40 @@
+# xiaozhi-memory 配置示例
+
+memory:
+  # 检索模式: fts5, embedding, hybrid
+  retrieval_mode: fts5
+
+  # SQLite 配置
+  sqlite:
+    path: ./data/xiaozhi_memory.db
+
+  # LLM 配置（用于智能记忆提取）
+  llm:
+    # 提供商: openai（兼容 OpenAI API 格式的服务）
+    provider: openai
+
+    # 火山引擎豆包配置
+    api_key: 6202d63d-377b-4bd7-a2ad-c162ed977c24
+    model: ep-20250513073203-wjddv
+    base_url: https://ark.cn-beijing.volces.com/api/v3
+
+    # OpenAI 官方配置示例
+    # api_key: ${OPENAI_API_KEY}
+    # model: gpt-4o-mini
+    # base_url: https://api.openai.com/v1
+
+    # Ollama 配置示例（本地免费）
+    # provider: ollama
+    # model: qwen2:7b
+    # base_url: http://localhost:11434
+
+  # 记忆提取配置
+  extraction:
+    # 是否启用 LLM 提取（false 时使用规则匹配）
+    enabled: true
+    # 传入 LLM 的现有记忆数量
+    max_retrieved_memories: 20
+    # 最近提取的记忆数量（用于去重）
+    max_recent_memories: 10
+    # 对话日期偏移（天）
+    observation_date_delta: 0

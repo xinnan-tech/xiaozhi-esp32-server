@@ -38,8 +38,34 @@ class MemoryManager:
         from core.retriever.fts import FTS5Retriever
         self.retriever = FTS5Retriever(self.store)
 
-        # LLM配置（暂时不实现，预留接口）
-        self.llm_config = config.get("llm", {})
+        # LLM 客户端
+        self.llm_client = self._init_llm_client(config.get("llm", {}))
+        self.extraction_config = config.get("extraction", {
+            "enabled": False,
+            "max_retrieved_memories": 20,
+            "max_recent_memories": 10,
+            "observation_date_delta": 0
+        })
+
+        # 会话级别的最近提取记忆（用于去重）
+        self._session_extracted: List[str] = []
+
+    def _init_llm_client(self, llm_config: dict):
+        """初始化 LLM 客户端"""
+        if not llm_config.get("provider"):
+            return None
+
+        provider = llm_config["provider"]
+
+        if provider == "openai":
+            from llm.openai_client import OpenAIClient
+            return OpenAIClient(
+                api_key=llm_config["api_key"],
+                model=llm_config.get("model", "gpt-4o-mini"),
+                base_url=llm_config.get("base_url")
+            )
+
+        return None
 
     async def add_memory(
         self,
@@ -56,13 +82,92 @@ class MemoryManager:
         Returns:
             {"added": 0, "updated": 0, "skipped": 0}
         """
-        results = {"added": 0, "updated": 0, "skipped": 0}
+        # 格式化消息
+        formatted_messages = self._format_messages(messages)
+        if not formatted_messages:
+            return {"added": 0, "updated": 0, "skipped": 0}
 
-        # 提取消息内容
+        # 判断是否使用 LLM 提取
+        if self.llm_client and self.extraction_config.get("enabled", False):
+            return await self._add_memory_with_llm(formatted_messages, user_id)
+        else:
+            return await self._add_memory_with_rules(formatted_messages, user_id)
+
+    def _format_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """格式化消息，过滤系统消息和空内容"""
+        formatted = []
         for msg in messages:
             if msg.get("role") == "system":
                 continue
 
+            content = msg.get("content", "")
+            if not content:
+                continue
+
+            # 处理 JSON 格式（ASR 情感标签等）
+            if content.startswith("{") and content.endswith("}"):
+                import json
+                try:
+                    data = json.loads(content)
+                    if "text" in data:
+                        content = data["text"]
+                except json.JSONDecodeError:
+                    pass
+
+            formatted.append({"role": msg.get("role", "user"), "content": content})
+
+        return formatted
+
+    async def _add_memory_with_llm(
+        self,
+        messages: List[Dict[str, str]],
+        user_id: str
+    ) -> Dict[str, int]:
+        """使用 LLM 提取记忆"""
+        results = {"added": 0, "updated": 0, "skipped": 0}
+
+        # 1. 获取上下文
+        context = await self._build_extraction_context(user_id, messages)
+
+        # 2. 构建对话文本
+        conversation = self._build_conversation_text(messages)
+
+        # 3. LLM 提取
+        try:
+            facts = await self.llm_client.extract_facts(conversation, context)
+        except Exception as e:
+            # LLM 失败时回退到规则提取
+            print(f"LLM extraction failed, falling back to rule-based: {e}")
+            return await self._add_memory_with_rules(messages, user_id)
+
+        # 4. 处理提取的事实
+        for fact in facts:
+            # 去重检查
+            existing = await self._find_duplicate(fact.get("content", ""), user_id)
+
+            if existing:
+                results["updated"] += 1
+            else:
+                # 创建记忆对象
+                memory = self._fact_to_memory(fact, user_id)
+                self.store.add(memory)
+
+                # 记录到会话提取列表
+                self._session_extracted.append(fact.get("content", ""))
+
+                results["added"] += 1
+
+        return results
+
+    async def _add_memory_with_rules(
+        self,
+        messages: List[Dict[str, str]],
+        user_id: str
+    ) -> Dict[str, int]:
+        """使用规则匹配提取记忆（原有逻辑）"""
+        results = {"added": 0, "updated": 0, "skipped": 0}
+
+        for msg in messages:
             content = msg.get("content", "")
             if not content:
                 continue
@@ -95,15 +200,102 @@ class MemoryManager:
             existing = await self._find_similar(memory.content, user_id)
 
             if existing:
-                # 更新
                 await self._update_memory(existing.id, memory)
                 results["updated"] += 1
             else:
-                # 添加
                 self.store.add(memory)
                 results["added"] += 1
 
         return results
+
+    async def _build_extraction_context(
+        self,
+        user_id: str,
+        messages: List[Dict]
+    ) -> dict:
+        """构建 LLM 提取的上下文"""
+        config = self.extraction_config
+        current_date = datetime.now()
+        observation_date = current_date + timedelta(days=config.get("observation_date_delta", 0))
+
+        # 获取最近提取的记忆（用于去重）
+        recently_extracted = self._session_extracted[:config.get("max_recent_memories", 10)]
+
+        # 获取相关现有记忆（用于链接）
+        query_text = " ".join([m.get("content", "") for m in messages[-3:]])
+        existing_memories = self.store.search_fts(query_text, user_id, top_k=config.get("max_retrieved_memories", 20))
+        existing_formatted = [
+            {"id": m[0].id, "text": m[0].content}
+            for m in existing_memories
+        ]
+
+        return {
+            "current_date": current_date.strftime("%Y-%m-%d"),
+            "observation_date": observation_date.strftime("%Y-%m-%d"),
+            "recently_extracted": "\n".join(f"- {r}" for r in recently_extracted) if recently_extracted else "无",
+            "existing_memories": "\n".join(f"[{e['id']}] {e['text']}" for e in existing_formatted) if existing_formatted else "无"
+        }
+
+    def _build_conversation_text(self, messages: List[Dict]) -> str:
+        """构建对话文本"""
+        lines = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            role_name = "User" if role == "user" else "Assistant"
+            lines.append(f"{role_name}: {content}")
+        return "\n".join(lines)
+
+    async def _find_duplicate(
+        self,
+        content: str,
+        user_id: str,
+        threshold: float = 0.85
+    ) -> Optional[BaseMemory]:
+        """查找重复记忆"""
+        results = self.store.search_fts(content, user_id, top_k=5)
+
+        for memory, score in results:
+            if self._string_similarity(content, memory.content) > threshold:
+                return memory
+
+        return None
+
+    def _fact_to_memory(self, fact: dict, user_id: str) -> BaseMemory:
+        """将 LLM 提取的事实转换为记忆对象"""
+        fact_type = fact.get("type", "FACT")
+
+        common_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "content": fact["content"],
+            "time_info": fact.get("time_info"),
+            "related_ids": fact.get("linked_memory_ids", []),
+        }
+
+        if fact_type == "INTENTION":
+            common_data.update({
+                "intention_status": IntentionStatus.PLANNED,
+                "intention_type": fact.get("intention_type"),
+            })
+
+            # 解析时间
+            time_info = fact.get("time_info", {})
+            if time_info and time_info.get("absolute"):
+                try:
+                    common_data["planned_time"] = datetime.fromisoformat(time_info["absolute"])
+                except ValueError:
+                    pass
+
+            if time_info and time_info.get("relative"):
+                common_data["time_description"] = time_info["relative"]
+
+            return IntentionMemory(**common_data)
+
+        elif fact_type == "PREFERENCE":
+            return PreferenceMemory(**common_data)
+
+        return FactMemory(**common_data)
 
     async def search(
         self,
