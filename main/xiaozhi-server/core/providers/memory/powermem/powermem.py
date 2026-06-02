@@ -105,18 +105,17 @@ class MemoryProvider(MemoryProviderBase):
                     embedder_config["api_key"] = config["embedding_api_key"]
                 if config.get("embedding_model"):
                     embedder_config["model"] = config["embedding_model"]
-                # Handle base_url based on provider type
-                # - qwen provider uses dashscope_base_url
-                # - openai provider uses openai_base_url
-                # Priority: embedding_xxx_base_url > embedding_base_url > xxx_base_url
+
+                # 自动修正：DashScope 的 text-embedding 模型需使用 qwen provider
+                embedding_model = config.get("embedding_model", "")
+                if embedding_provider == "openai" and "text-embedding" in embedding_model:
+                    embedding_provider = "qwen"
+
                 if embedding_provider == "qwen":
                     base_url = config.get("embedding_dashscope_base_url") or config.get("embedding_base_url")
                     if base_url:
                         embedder_config["dashscope_base_url"] = base_url
-                else:
-                    base_url = config.get("embedding_openai_base_url") or config.get("embedding_base_url")
-                    if base_url:
-                        embedder_config["openai_base_url"] = base_url
+                # openai provider 使用默认地址，不传 openai_base_url（powermem 库 bug）
 
                 powermem_config["embedder"] = {
                     "provider": embedding_provider,
@@ -313,7 +312,7 @@ class MemoryProvider(MemoryProviderBase):
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error querying memory: {str(e)}")
-            logger.bind(tag=TAG).debug(f"Detailed error: {traceback.format_exc()}")
+            logger.bind(tag=TAG).info(f"Detailed error: {traceback.format_exc()}")
             return ""
 
     async def get_user_profile(self) -> str:
