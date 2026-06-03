@@ -25,7 +25,7 @@ cozepy==0.20.0
 mem0ai==1.0.0
 powermem>=0.3.1
 # xiaozhi-memory (本地路径)
--e ../../xiaozhi-memory
+-e ../xiaozhi-memory
 bs4==0.0.2
 modelscope==1.32.0
 sherpa_onnx==1.12.29
