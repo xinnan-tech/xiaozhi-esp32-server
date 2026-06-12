@@ -15,12 +15,12 @@ vector_store:
   path: ./data/chroma
   collection_name: xiaozhi_memories
 
-# LLM配置
+# LLM配置（使用ChatGLM免费模型）
 llm:
-  provider: ollama  # openai, ollama, zhipu
-  model: qwen2:7b
-  base_url: http://localhost:11434  # ollama默认地址
-  api_key: null  # 可选
+  provider: openai
+  model: glm-4-flash
+  base_url: https://open.bigmodel.cn/api/paas/v4/
+  api_key: abf3f70c3b884da79be23b4a807e73f9.nVnNDc7EOaX6ckw7
 
 # 嵌入模型配置（可选，embedding模式需要）
 embedding:

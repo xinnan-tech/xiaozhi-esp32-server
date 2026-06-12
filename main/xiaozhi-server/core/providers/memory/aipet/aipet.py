@@ -276,6 +276,8 @@ class MemoryProvider(MemoryProviderBase):
         if not self.manager or not self.role_id:
             return
 
+        logger.bind(tag=TAG).info(f"[DEBUG] save_memory called, llm_client={self.manager.llm_client is not None}, extraction_enabled={self.manager.extraction_config.get('enabled', False)}")
+
         try:
             # 格式化消息
             messages = []
@@ -300,7 +302,7 @@ class MemoryProvider(MemoryProviderBase):
 
                 messages.append({"role": msg.role, "content": content})
 
-            result = self.manager.add_memory(messages, user_id=self.role_id)
+            result = await self.manager.add_memory(messages, user_id=self.role_id)
             logger.bind(tag=TAG).debug(f"Save memory result: {result}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"保存记忆失败: {str(e)}")
@@ -324,17 +326,17 @@ class MemoryProvider(MemoryProviderBase):
             except (json.JSONDecodeError, KeyError):
                 pass
 
-            memories = self.manager.retrieve_memories(
+            memories = await self.manager.search(
                 query=search_query,
                 user_id=self.role_id,
-                limit=5
+                top_k=5
             )
 
             if not memories:
                 return ""
 
             # Format each memory entry
-            memories_str = "\n".join([f"- {m}" for m in memories])
+            memories_str = "\n".join([f"- {m.content}" for m in memories])
             logger.bind(tag=TAG).debug(f"Query results: {memories_str}")
             return memories_str
         except Exception as e:

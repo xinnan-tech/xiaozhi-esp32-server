@@ -103,6 +103,9 @@
                     "></el-input>
               </template>
 
+              <el-switch v-else-if="field.type === 'boolean'" v-model="form.configJson[field.prop]"
+                :active-value="true" :inactive-value="false" class="custom-switch"></el-switch>
+
               <el-input v-else v-model="form.configJson[field.prop]" :placeholder="field.placeholder" :type="field.type"
                 class="custom-input-bg" :show-password="field.type === 'password'" @focus="
                   isSensitiveField(field.prop)
@@ -327,9 +330,11 @@ export default {
             type:
               f.type === "dict"
                 ? "json-textarea"
-                : f.type === "password"
-                  ? "password"
-                  : "text",
+                : f.type === "boolean"
+                  ? "boolean"
+                  : f.type === "password"
+                    ? "password"
+                    : "text",
             placeholder: `请输入${f.key}`,
           }));
 
@@ -353,6 +358,9 @@ export default {
             this.formatJson(configJson[field.prop])
           );
           configJson[field.prop] = this.ensureObject(configJson[field.prop]);
+        } else if (field.type === "boolean") {
+          // 保持布尔类型，不转为字符串
+          configJson[field.prop] = !!configJson[field.prop];
         } else if (typeof configJson[field.prop] !== "string") {
           configJson[field.prop] = String(configJson[field.prop]);
         }

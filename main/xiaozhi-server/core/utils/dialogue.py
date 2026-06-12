@@ -118,35 +118,32 @@ class Dialogue:
             # 第一段：静态 system prompt（前缀缓存可命中）
             dialogue.append({"role": "system", "content": static_part})
 
-        # 第二段：few-shot 示例（会话内不变，也是缓存前缀的一部分）
+        # 第二段：few-shot 示例（会话内不变，也是缓存前缀的一部分，可命中缓存）
         non_system_messages = [m for m in self.dialogue if m.role != "system"]
         fewshot_messages = [m for m in non_system_messages if m.is_temporary]
         complete_fewshot = self._ensure_tool_calls_complete(fewshot_messages)
         for m in complete_fewshot:
             self.getMessages(m, dialogue)
 
-        # 第三段：动态上下文 system prompt（时间、记忆、说话人等）
-        # 保持 system 角色以确保模型权威性，不降级为 user
+        # 第三段 + 第四段：将动态上下文拆分为半稳定和实时两部分
+        # 半稳定部分（system 角色）：日期、农历、位置、天气、dynamic_context — 同一天内不变
+        # 实时部分（user 角色）：当前时间、记忆、说话人 — 每次调用都可能变
+        # 拆分目的：半稳定的 system 消息可以被缓存前缀覆盖，实时变化不影响缓存
         if system_message and dynamic_part:
-            # 替换时间占位符
-            dynamic_part = dynamic_part.replace(
-                "{{current_time}}", datetime.now().strftime("%H:%M")
-            )
+            # 构建实时变化内容（每次调用都不同）
+            realtime_parts = []
+            current_time = datetime.now().strftime("%H:%M")
+            realtime_parts.append(f"当前时间：{current_time}")
 
-            # 填充记忆
+            # 填充记忆到实时部分
             if memory_str is not None:
-                dynamic_part = re.sub(
-                    r"<memory>.*?</memory>",
-                    f"<memory>\n{memory_str}\n</memory>",
-                    dynamic_part,
-                    flags=re.DOTALL,
-                )
+                realtime_parts.append(f"<memory>\n{memory_str}\n</memory>")
 
-            # 追加说话人信息
+            # 追加说话人信息到实时部分
             try:
                 speakers = voiceprint_config.get("speakers", [])
                 if speakers:
-                    dynamic_part += "\n<speakers_info>"
+                    speakers_text = "<speakers_info>"
                     for speaker_str in speakers:
                         try:
                             parts = speaker_str.split(",", 2)
@@ -155,16 +152,36 @@ class Dialogue:
                                 description = (
                                     parts[2].strip() if len(parts) >= 3 else ""
                                 )
-                                dynamic_part += f"\n- {name}：{description}"
+                                speakers_text += f"\n- {name}：{description}"
                         except:
                             pass
-                    dynamic_part += "\n</speakers_info>"
+                    speakers_text += "\n</speakers_info>"
+                    realtime_parts.append(speakers_text)
             except:
                 pass
 
-            dialogue.append({"role": "system", "content": dynamic_part})
+            # 从 dynamic_part 中移除已提取到实时部分的占位符
+            # 注意：模板中 {{current_time}} 已被 prompt_manager 渲染为实际时间值
+            # 移除当前时间行（当前时间已移到实时 user 消息）
+            semi_stable_part = re.sub(
+                r"- 当前时间：[^\n]+\n?", "", dynamic_part
+            )
+            # 移除 <memory> 块（记忆已移到实时 user 消息）
+            semi_stable_part = re.sub(
+                r"<memory>.*?</memory>", "", semi_stable_part, flags=re.DOTALL
+            )
+            # 清理多余空行
+            semi_stable_part = re.sub(r"\n{3,}", "\n\n", semi_stable_part).strip()
 
-        # 第四段：实际对话历史（不含 few-shot）
+            # 第三段：半稳定 system prompt（日期、农历、位置、天气等）
+            if semi_stable_part:
+                dialogue.append({"role": "system", "content": semi_stable_part})
+
+            # 第四段：实时变化内容（user 角色，不影响缓存前缀）
+            if realtime_parts:
+                dialogue.append({"role": "user", "content": "\n".join(realtime_parts)})
+
+        # 第五段：实际对话历史（不含 few-shot）
         actual_messages = [m for m in non_system_messages if not m.is_temporary]
         complete_actual = self._ensure_tool_calls_complete(actual_messages)
         for m in complete_actual:

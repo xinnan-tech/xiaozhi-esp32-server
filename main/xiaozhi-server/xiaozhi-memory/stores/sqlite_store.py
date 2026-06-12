@@ -149,10 +149,10 @@ class SQLiteStore(BaseStore):
 
     def add(self, memory: BaseMemory) -> str:
         """添加记忆"""
-        # 中文分词
+        # 中文分词（使用 tokenize_to_string 确保 FTS5 安全）
         try:
-            import jieba
-            tokens = " ".join(jieba.lcut(memory.content))
+            from utils.tokenizer import tokenize_to_string
+            tokens = tokenize_to_string(memory.content)
         except ImportError:
             tokens = memory.content
 
@@ -250,6 +250,12 @@ class SQLiteStore(BaseStore):
 
         返回: [(memory, score), ...]
         """
+        # 使用 tokenize_to_string 清理查询，避免 FTS5 语法错误
+        from utils.tokenizer import tokenize_to_string
+        safe_query = tokenize_to_string(query)
+        if not safe_query:
+            return []
+
         cursor = self.conn.execute(f"""
             SELECT
                 m.*,
@@ -261,7 +267,7 @@ class SQLiteStore(BaseStore):
                 AND memories_fts MATCH ?
             ORDER BY score
             LIMIT ?
-        """, (user_id, query, top_k))
+        """, (user_id, safe_query, top_k))
 
         results = []
         for row in cursor.fetchall():
