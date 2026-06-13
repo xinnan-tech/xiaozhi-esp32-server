@@ -137,7 +137,8 @@ class MemoryManager:
             facts = await self.llm_client.extract_facts(conversation, context)
         except Exception as e:
             # LLM 失败时回退到规则提取
-            print(f"LLM extraction failed, falling back to rule-based: {e}")
+            import logging
+            logging.error(f"[xiaozhi-memory] LLM extraction failed, falling back to rule-based: {e}")
             return await self._add_memory_with_rules(messages, user_id)
 
         # 4. 处理提取的事实

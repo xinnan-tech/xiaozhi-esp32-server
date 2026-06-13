@@ -70,12 +70,60 @@ class LLMProvider(LLMProviderBase):
             logger.bind(tag=TAG).error(model_key_msg)
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=custom_timeout)
 
+        # 缓存控制（千问显式缓存）
+        self._cache_config = config.get("cache", {})
+        self._cache_enabled = self._detect_cache_enabled()
+
     @staticmethod
     def normalize_dialogue(dialogue):
         """自动修复 dialogue 中缺失 content 的消息"""
         for msg in dialogue:
             if "role" in msg and "content" not in msg:
                 msg["content"] = ""
+        return dialogue
+
+    def _detect_cache_enabled(self):
+        """检测是否启用显式缓存（千问 cache_control）
+
+        支持两种配置方式：
+        - boolean: cache: true/false（智控台开关）
+        - dict: cache: {enabled: true/false}（YAML 手动配置）
+        """
+        cache = self._cache_config
+        # boolean 直传：cache: true
+        if isinstance(cache, bool):
+            return cache
+        # dict 格式：cache: {enabled: true}
+        if isinstance(cache, dict) and "enabled" in cache:
+            return cache["enabled"]
+        # 自动检测：DashScope 域名默认开启
+        if self.base_url and "aliyuncs.com" in self.base_url:
+            return True
+        return False
+
+    def _apply_cache_control(self, dialogue):
+        """为静态 system 消息添加 cache_control 标记（千问显式缓存）
+
+        将第一条 system 消息的 content 从字符串转为数组格式，
+        加入 cache_control: {"type": "ephemeral"} 标记，
+        使该静态前缀在千问 API 端被缓存，5 分钟内命中后按 10% 输入价计费。
+        """
+        if not self._cache_enabled:
+            return dialogue
+        if not dialogue or dialogue[0].get("role") != "system":
+            return dialogue
+
+        dialogue = [dict(m) for m in dialogue]  # 浅拷贝，不污染原始数据
+        content = dialogue[0].get("content", "")
+        if isinstance(content, str) and content:
+            dialogue[0] = {
+                "role": "system",
+                "content": [{
+                    "type": "text",
+                    "text": content,
+                    "cache_control": {"type": "ephemeral"}
+                }]
+            }
         return dialogue
 
     def _apply_thinking_disabled(self, request_params: dict):
@@ -90,6 +138,7 @@ class LLMProvider(LLMProviderBase):
 
     def response(self, session_id, dialogue, **kwargs):
         dialogue = self.normalize_dialogue(dialogue)
+        dialogue = self._apply_cache_control(dialogue)
 
         request_params = {
             "model": self.model_name,
@@ -136,6 +185,7 @@ class LLMProvider(LLMProviderBase):
 
     def response_with_functions(self, session_id, dialogue, functions=None, **kwargs):
         dialogue = self.normalize_dialogue(dialogue)
+        dialogue = self._apply_cache_control(dialogue)
 
         request_params = {
             "model": self.model_name,
@@ -169,10 +219,19 @@ class LLMProvider(LLMProviderBase):
                     yield content, tool_calls
                 elif isinstance(getattr(chunk, "usage", None), CompletionUsage):
                     usage_info = getattr(chunk, "usage", None)
+                    prompt_tokens = getattr(usage_info, 'prompt_tokens', '未知')
+                    completion_tokens = getattr(usage_info, 'completion_tokens', '未知')
+                    total_tokens = getattr(usage_info, 'total_tokens', '未知')
+                    # 提取缓存命中信息
+                    details = getattr(usage_info, 'prompt_tokens_details', None)
+                    cached_tokens = getattr(details, 'cached_tokens', 0) if details else 0
+                    cache_created = getattr(details, 'cache_creation_input_tokens', 0) if details else 0
+                    cache_log = ""
+                    if cached_tokens or cache_created:
+                        cache_log = f"，缓存命中 {cached_tokens}，缓存创建 {cache_created}"
                     logger.bind(tag=TAG).info(
-                        f"Token 消耗：输入 {getattr(usage_info, 'prompt_tokens', '未知')}，"
-                        f"输出 {getattr(usage_info, 'completion_tokens', '未知')}，"
-                        f"共计 {getattr(usage_info, 'total_tokens', '未知')}"
+                        f"Token 消耗：输入 {prompt_tokens}，输出 {completion_tokens}，"
+                        f"共计 {total_tokens}{cache_log}"
                     )
         finally:
             stream.close()

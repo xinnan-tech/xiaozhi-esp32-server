@@ -26,6 +26,10 @@ services:
       - ./data:/opt/xiaozhi-esp32-server/data
       # 模型文件挂接，很重要
       - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+      # aipet 记忆 provider
+      - ./core/providers/memory/aipet:/opt/xiaozhi-esp32-server/core/providers/memory/aipet
+      # xiaozhi-memory 记忆框架
+      - ./xiaozhi-memory:/opt/xiaozhi-esp32-server/xiaozhi-memory
 
   # manager-api和manager-web模块
   xiaozhi-esp32-server-web:
@@ -55,7 +59,7 @@ services:
       - ./uploadfile:/uploadfile
   # 数据库模块
   xiaozhi-esp32-server-db:
-    image: mysql:latest
+    image: docker.1ms.run/mysql:latest
     container_name: xiaozhi-esp32-server-db
     healthcheck:
       test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
@@ -76,7 +80,7 @@ services:
       - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
   # redis模块
   xiaozhi-esp32-server-redis:
-    image: redis:8.0
+    image: docker.1ms.run/redis:8.0
     expose:
       - 6379
     container_name: xiaozhi-esp32-server-redis

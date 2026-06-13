@@ -808,6 +808,7 @@ class ConnectionHandler:
             self.memory = modules["memory"]
 
     def _initialize_memory(self):
+        self.logger.bind(tag=TAG).info(f"[DEBUG] _initialize_memory called, self.memory={self.memory is not None}")
         if self.memory is None:
             return
         """初始化记忆模块"""

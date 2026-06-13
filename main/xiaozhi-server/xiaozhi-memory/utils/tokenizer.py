@@ -84,4 +84,13 @@ def tokenize(text: str) -> List[str]:
 def tokenize_to_string(text: str) -> str:
     """分词并返回字符串（用于FTS5）"""
     tokens = tokenize(text)
-    return " ".join(tokens)
+    safe_tokens = []
+    for t in tokens:
+        t = t.strip()
+        if not t:
+            continue
+        # 只保留字母、数字、中文字符、下划线，去掉所有FTS5特殊字符和标点
+        t = re.sub(r'[^\w一-鿿]', '', t)
+        if t:
+            safe_tokens.append(t)
+    return " ".join(safe_tokens)
