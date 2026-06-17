@@ -27,7 +27,7 @@ from core.utils.modules_initialize import (
 )
 from core.handle.reportHandle import report, enqueue_tool_report
 from core.providers.tts.default import DefaultTTS
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from core.utils.dialogue import Message, Dialogue
 from core.providers.asr.dto.dto import InterfaceType
 from core.handle.textHandle import handleTextMessage
@@ -976,7 +976,13 @@ class ConnectionHandler:
                 future = asyncio.run_coroutine_threadsafe(
                     self.memory.query_memory(query), self.loop
                 )
-                memory_str = future.result()
+                try:
+                    memory_str = future.result(timeout=30)
+                except FutureTimeoutError:
+                    self.logger.bind(tag=TAG).error(
+                        "Memory query timed out after 30s"
+                    )
+                    memory_str = None
 
             if self.intent_type == "function_call" and functions is not None:
                 # 使用支持functions的streaming接口
