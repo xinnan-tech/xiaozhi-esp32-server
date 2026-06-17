@@ -123,12 +123,13 @@ class LLMProvider(LLMProviderBase):
                 except IndexError:
                     content = ""
                 if content:
-                    if "<think>" in content:
+                    original_content = content
+                    if "<think>" in original_content:
                         is_active = False
-                        content = content.split("<think>")[0]
-                    if "</think>" in content:
+                        content = original_content.split("<think>")[0]
+                    if "</think>" in original_content:
                         is_active = True
-                        content = content.split("</think>")[-1]
+                        content = original_content.split("</think>")[-1]
                     if is_active:
                         yield content
         finally:
