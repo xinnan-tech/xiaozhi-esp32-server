@@ -26,3 +26,7 @@ class MemoryProviderBase(ABC):
     def init_memory(self, role_id, llm, **kwargs):
         self.role_id = role_id
         self.llm = llm
+
+    async def get_today_schedule(self) -> str:
+        """获取当天日程，注入半稳定系统提示词（默认空，子类按需实现）"""
+        return ""

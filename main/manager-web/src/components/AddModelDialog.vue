@@ -78,7 +78,9 @@
         <div v-for="(row, rowIndex) in chunkedCallInfoFields" :key="rowIndex"
           style="display: flex; gap: 20px; margin-bottom: 0;">
           <el-form-item v-for="field in row" :key="field.prop" :label="field.label" :prop="field.prop" style="flex: 1;">
-            <el-input v-model="formData.configJson[field.prop]" :placeholder="field.placeholder"
+            <el-switch v-if="field.type === 'boolean'" v-model="formData.configJson[field.prop]"
+              :active-value="true" :inactive-value="false" class="custom-switch"></el-switch>
+            <el-input v-else v-model="formData.configJson[field.prop]" :placeholder="field.placeholder"
               :type="field.type || 'text'" class="custom-input-bg" :show-password="field.type === 'password'">
             </el-input>
           </el-form-item>
@@ -164,7 +166,7 @@ export default {
           fields: JSON.parse(item.fields || '[]').map(f => ({
             label: f.label,
             prop: f.key,
-            type: f.type === 'password' ? 'password' : 'text',
+            type: f.type === 'password' ? 'password' : f.type === 'boolean' ? 'boolean' : 'text',
             placeholder: `请输入${f.key}`
           }))
         }))
@@ -174,7 +176,7 @@ export default {
     initConfigJson() {
       const defaultConfig = {};
       this.providerFields.forEach(field => {
-        defaultConfig[field.prop] = '';
+        defaultConfig[field.prop] = field.type === 'boolean' ? false : '';
       });
       this.formData.configJson = { ...defaultConfig };
     },
@@ -193,7 +195,12 @@ export default {
     initDynamicConfig() {
       const newConfig = {};
       this.providerFields.forEach(field => {
-        newConfig[field.prop] = this.formData.configJson[field.prop] || '';
+        if (field.type === 'boolean') {
+          const cur = this.formData.configJson[field.prop];
+          newConfig[field.prop] = cur === undefined || cur === '' ? false : cur;
+        } else {
+          newConfig[field.prop] = this.formData.configJson[field.prop] || '';
+        }
       });
       this.formData.configJson = newConfig;
     },

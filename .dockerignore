@@ -1,7 +1,16 @@
 .git
 __pycache__
+**/__pycache__
 *.pyc
 .env
 Dockerfile
 tmp/
+# 运行时数据目录（由 volume 提供，不打包进构建上下文，避免权限/体积问题）
 data/
+**/data/
+**/mysql/
+**/uploadfile/
+models/
+# sqlite 运行库（aipet / xiaozhi-memory 等运行时生成）
+*.db
+**/*.db

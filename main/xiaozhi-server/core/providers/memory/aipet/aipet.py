@@ -302,7 +302,8 @@ class MemoryProvider(MemoryProviderBase):
 
                 messages.append({"role": msg.role, "content": content})
 
-            result = await self.manager.add_memory(messages, user_id=self.role_id)
+            # role_id 作为 device_id，user_id 可选
+            result = await self.manager.add_memory(messages, device_id=self.role_id, user_id=None)
             logger.bind(tag=TAG).debug(f"Save memory result: {result}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"保存记忆失败: {str(e)}")
@@ -326,9 +327,11 @@ class MemoryProvider(MemoryProviderBase):
             except (json.JSONDecodeError, KeyError):
                 pass
 
+            # role_id 作为 device_id，user_id 为 None（设备级记忆）
             memories = await self.manager.search(
                 query=search_query,
-                user_id=self.role_id,
+                device_id=self.role_id,
+                user_id=None,
                 top_k=5
             )
 
@@ -341,4 +344,41 @@ class MemoryProvider(MemoryProviderBase):
             return memories_str
         except Exception as e:
             logger.bind(tag=TAG).error(f"查询记忆失败: {str(e)}")
+            return ""
+
+    @staticmethod
+    def _format_when(planned_time, time_description, today):
+        """格式化日程时间锚点。优先用绝对日期+相对描述，降低模型对多条日程的时间混淆"""
+        if planned_time:
+            date_str = planned_time.strftime("%m-%d")
+            time_str = planned_time.strftime("%H:%M")
+            delta = (planned_time.date() - today).days
+            rel = {0: "今天", 1: "明天", 2: "后天"}.get(delta, f"{delta}天后")
+            return f"[{date_str} {rel} {time_str}]"
+        if time_description:
+            return f"[{time_description}]"
+        return "[近期]"
+
+    async def get_today_schedule(self) -> str:
+        """获取当天及近期日程，注入半稳定系统提示词"""
+        if not self.manager or not getattr(self, "role_id", None):
+            return ""
+
+        try:
+            intentions = await self.manager.get_upcoming_intentions(
+                device_id=self.role_id, user_id=None, days=1
+            )
+            if not intentions:
+                return ""
+
+            today = datetime.now().date()
+            lines = [
+                f"- {self._format_when(it.planned_time, it.time_description, today)} {it.content}"
+                for it in intentions
+            ]
+            schedule_str = "\n".join(lines)
+            logger.bind(tag=TAG).debug(f"今日日程: {schedule_str}")
+            return schedule_str
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"查询日程失败: {str(e)}")
             return ""

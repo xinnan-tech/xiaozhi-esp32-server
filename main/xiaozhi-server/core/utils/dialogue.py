@@ -92,7 +92,7 @@ class Dialogue:
         return result
 
     def get_llm_dialogue_with_memory(
-            self, memory_str: str = None, voiceprint_config: dict = None
+            self, memory_str: str = None, voiceprint_config: dict = None, schedule_str: str = None
     ) -> List[Dict[str, str]]:
         # 构建对话
         dialogue = []
@@ -173,7 +173,11 @@ class Dialogue:
             # 清理多余空行
             semi_stable_part = re.sub(r"\n{3,}", "\n\n", semi_stable_part).strip()
 
-            # 第三段：半稳定 system prompt（日期、农历、位置、天气等）
+            # 第三段：半稳定 system prompt（日期、农历、位置、天气、日程等）
+            # 当天日程当天不变，注入半稳定部分可命中缓存；用独立 <schedule> 标签
+            # 避免 <memory> 块被上面的正则清理逻辑误删
+            if schedule_str:
+                semi_stable_part += f"\n<schedule>\n以下是用户近期的安排：\n{schedule_str}\n</schedule>"
             if semi_stable_part:
                 dialogue.append({"role": "system", "content": semi_stable_part})
 

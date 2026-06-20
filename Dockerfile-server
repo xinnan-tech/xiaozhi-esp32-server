@@ -1,5 +1,8 @@
 # 生产镜像，仅包含应用代码
-FROM ghcr.io/xinnan-tech/xiaozhi-esp32-server:server-base
+# server-base 在国内需走镜像；海外构建可覆盖：
+#   docker build --build-arg SERVER_BASE_IMAGE=ghcr.io/xinnan-tech/xiaozhi-esp32-server:server-base ...
+ARG SERVER_BASE_IMAGE=ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server-base
+FROM ${SERVER_BASE_IMAGE}
 
 COPY main/xiaozhi-server .
 

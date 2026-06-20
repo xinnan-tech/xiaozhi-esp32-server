@@ -187,3 +187,7 @@ uploadfile
 !main/manager-mobile/**/.env*
 !main/manager-mobile/**/*.json
 !main/xiaozhi-server/**/*.json
+
+# 工具索引与运行时产物（不入库）
+.codegraph/
+main/xiaozhi-server/xiaozhi-memory/data/

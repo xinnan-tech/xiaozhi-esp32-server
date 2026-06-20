@@ -2,7 +2,7 @@
 FTS5检索器实现
 """
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from memories.base import BaseMemory
 from stores.sqlite_store import SQLiteStore
 from utils.tokenizer import tokenize_to_string
@@ -17,7 +17,8 @@ class FTS5Retriever:
     async def retrieve(
         self,
         query: str,
-        user_id: str,
+        device_id: str,
+        user_id: Optional[str] = None,
         top_k: int = 10
     ) -> List[BaseMemory]:
         """
@@ -25,7 +26,8 @@ class FTS5Retriever:
 
         Args:
             query: 查询文本
-            user_id: 用户ID
+            device_id: 设备ID
+            user_id: 用户ID（可选）
             top_k: 返回结果数量
 
         Returns:
@@ -35,7 +37,7 @@ class FTS5Retriever:
         query_tokens = tokenize_to_string(query)
 
         # 使用FTS5 + BM25检索
-        results = self.store.search_fts(query_tokens, user_id, top_k * 2)
+        results = self.store.search_fts(query_tokens, device_id, user_id, top_k * 2)
 
         # 多因素加权排序
         scored_results = []

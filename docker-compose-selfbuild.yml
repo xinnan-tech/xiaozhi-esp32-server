@@ -1,0 +1,121 @@
+# =============================================================================
+# 自构建部署（含自定义改动：aipet 记忆 + qwen/doubao 缓存开关 + doubao_cache）
+#
+# 与官方 docker-compose_all.yml 的区别：
+#   - server / web 用 build: 从仓库根 Dockerfile 构建，自定义代码烤进镜像（不依赖主机路径）
+#   - 不再 volume 挂载源码（aipet / xiaozhi-memory / doubao_cache 等已 COPY 进镜像）
+#   - mysql / redis 仍用 image: 拉（走 docker.1ms.run 国内镜像）
+#
+# 使用（在仓库根目录）：
+#   1. 准备 data/config.yaml（智控台/模型配置）—— 新机首次部署需要
+#   2. 准备 models/SenseVoiceSmall/model.pt（ASR 模型，按需）
+#   3. docker compose -f docker-compose-selfbuild.yml up -d --build
+#
+# 海外构建 server 镜像：在 .env 或命令行覆盖
+#   SERVER_BASE_IMAGE=ghcr.io/xinnan-tech/xiaozhi-esp32-server:server-base
+#
+# 注：web 的 Dockerfile-web 依赖 node/maven/jre（Docker Hub），国内需配置
+#     /etc/docker/daemon.json 的 registry-mirrors（如 docker.1ms.run）。
+# =============================================================================
+
+version: '3'
+services:
+  # Server模块（自定义 Python 烤进镜像）
+  xiaozhi-esp32-server:
+    build:
+      context: .
+      dockerfile: Dockerfile-server
+      args:
+        SERVER_BASE_IMAGE: ${SERVER_BASE_IMAGE:-ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server-base}
+    image: xiaozhi-esp32-server:server_aipet
+    container_name: xiaozhi-esp32-server
+    depends_on:
+      - xiaozhi-esp32-server-db
+      - xiaozhi-esp32-server-redis
+    restart: always
+    networks:
+      - default
+    ports:
+      # ws服务端
+      - "8000:8000"
+      # http服务的端口，用于视觉分析接口
+      - "8003:8003"
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      # 配置文件目录（含 config.yaml）
+      - ./data:/opt/xiaozhi-esp32-server/data
+      # 模型文件挂接，很重要（ASR 模型，按需提供）
+      - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+
+  # manager-api和manager-web模块（含 aipet 注册 + 缓存开关 changelog）
+  xiaozhi-esp32-server-web:
+    build:
+      context: .
+      dockerfile: Dockerfile-web
+    image: xiaozhi-esp32-server:web_aipet
+    container_name: xiaozhi-esp32-server-web
+    restart: always
+    networks:
+      - default
+    depends_on:
+      xiaozhi-esp32-server-db:
+        condition: service_healthy
+      xiaozhi-esp32-server-redis:
+        condition: service_healthy
+    ports:
+      # 智控台
+      - "8002:8002"
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://xiaozhi-esp32-server-db:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&connectTimeout=30000&socketTimeout=30000&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
+      - SPRING_DATASOURCE_DRUID_USERNAME=root
+      - SPRING_DATASOURCE_DRUID_PASSWORD=123456
+      - SPRING_DATA_REDIS_HOST=xiaozhi-esp32-server-redis
+      - SPRING_DATA_REDIS_PASSWORD=
+      - SPRING_DATA_REDIS_PORT=6379
+    volumes:
+      # 上传文件目录
+      - ./uploadfile:/uploadfile
+
+  # 数据库模块
+  xiaozhi-esp32-server-db:
+    image: docker.1ms.run/mysql:latest
+    container_name: xiaozhi-esp32-server-db
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    restart: always
+    networks:
+      - default
+    expose:
+      - 3306
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=xiaozhi_esp32_server
+      - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+
+  # redis模块
+  xiaozhi-esp32-server-redis:
+    image: docker.1ms.run/redis:8.0
+    expose:
+      - 6379
+    container_name: xiaozhi-esp32-server-redis
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - default
+
+networks:
+  default:

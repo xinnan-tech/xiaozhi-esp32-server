@@ -70,14 +70,16 @@ class MemoryManager:
     async def add_memory(
         self,
         messages: List[Dict[str, str]],
-        user_id: str
+        device_id: str,
+        user_id: Optional[str] = None
     ) -> Dict[str, int]:
         """
         添加记忆
 
         Args:
             messages: 消息列表 [{"role": "user", "content": "..."}]
-            user_id: 用户ID
+            device_id: 设备ID
+            user_id: 用户ID（可选）
 
         Returns:
             {"added": 0, "updated": 0, "skipped": 0}
@@ -89,9 +91,9 @@ class MemoryManager:
 
         # 判断是否使用 LLM 提取
         if self.llm_client and self.extraction_config.get("enabled", False):
-            return await self._add_memory_with_llm(formatted_messages, user_id)
+            return await self._add_memory_with_llm(formatted_messages, device_id, user_id)
         else:
-            return await self._add_memory_with_rules(formatted_messages, user_id)
+            return await self._add_memory_with_rules(formatted_messages, device_id, user_id)
 
     def _format_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """格式化消息，过滤系统消息和空内容"""
@@ -121,13 +123,14 @@ class MemoryManager:
     async def _add_memory_with_llm(
         self,
         messages: List[Dict[str, str]],
-        user_id: str
+        device_id: str,
+        user_id: Optional[str]
     ) -> Dict[str, int]:
         """使用 LLM 提取记忆"""
         results = {"added": 0, "updated": 0, "skipped": 0}
 
         # 1. 获取上下文
-        context = await self._build_extraction_context(user_id, messages)
+        context = await self._build_extraction_context(device_id, user_id, messages)
 
         # 2. 构建对话文本
         conversation = self._build_conversation_text(messages)
@@ -139,18 +142,18 @@ class MemoryManager:
             # LLM 失败时回退到规则提取
             import logging
             logging.error(f"[xiaozhi-memory] LLM extraction failed, falling back to rule-based: {e}")
-            return await self._add_memory_with_rules(messages, user_id)
+            return await self._add_memory_with_rules(messages, device_id, user_id)
 
         # 4. 处理提取的事实
         for fact in facts:
             # 去重检查
-            existing = await self._find_duplicate(fact.get("content", ""), user_id)
+            existing = await self._find_duplicate(fact.get("content", ""), device_id, user_id)
 
             if existing:
                 results["updated"] += 1
             else:
                 # 创建记忆对象
-                memory = self._fact_to_memory(fact, user_id)
+                memory = self._fact_to_memory(fact, device_id, user_id)
                 self.store.add(memory)
 
                 # 记录到会话提取列表
@@ -163,7 +166,8 @@ class MemoryManager:
     async def _add_memory_with_rules(
         self,
         messages: List[Dict[str, str]],
-        user_id: str
+        device_id: str,
+        user_id: Optional[str]
     ) -> Dict[str, int]:
         """使用规则匹配提取记忆（原有逻辑）"""
         results = {"added": 0, "updated": 0, "skipped": 0}
@@ -183,6 +187,7 @@ class MemoryManager:
             if is_intention:
                 memory = IntentionMemory(
                     id=str(uuid.uuid4()),
+                    device_id=device_id,
                     user_id=user_id,
                     content=content,
                     time_info=time_info if time_info['absolute'] else None,
@@ -192,13 +197,14 @@ class MemoryManager:
             else:
                 memory = FactMemory(
                     id=str(uuid.uuid4()),
+                    device_id=device_id,
                     user_id=user_id,
                     content=content,
                     time_info=time_info if time_info['absolute'] else None
                 )
 
             # 检查是否已存在相似记忆
-            existing = await self._find_similar(memory.content, user_id)
+            existing = await self._find_similar(memory.content, device_id, user_id)
 
             if existing:
                 await self._update_memory(existing.id, memory)
@@ -211,7 +217,8 @@ class MemoryManager:
 
     async def _build_extraction_context(
         self,
-        user_id: str,
+        device_id: str,
+        user_id: Optional[str],
         messages: List[Dict]
     ) -> dict:
         """构建 LLM 提取的上下文"""
@@ -224,7 +231,7 @@ class MemoryManager:
 
         # 获取相关现有记忆（用于链接）
         query_text = " ".join([m.get("content", "") for m in messages[-3:]])
-        existing_memories = self.store.search_fts(query_text, user_id, top_k=config.get("max_retrieved_memories", 20))
+        existing_memories = self.store.search_fts(query_text, device_id, user_id, top_k=config.get("max_retrieved_memories", 20))
         existing_formatted = [
             {"id": m[0].id, "text": m[0].content}
             for m in existing_memories
@@ -250,11 +257,12 @@ class MemoryManager:
     async def _find_duplicate(
         self,
         content: str,
-        user_id: str,
+        device_id: str,
+        user_id: Optional[str],
         threshold: float = 0.85
     ) -> Optional[BaseMemory]:
         """查找重复记忆"""
-        results = self.store.search_fts(content, user_id, top_k=5)
+        results = self.store.search_fts(content, device_id, user_id, top_k=5)
 
         for memory, score in results:
             if self._string_similarity(content, memory.content) > threshold:
@@ -262,12 +270,13 @@ class MemoryManager:
 
         return None
 
-    def _fact_to_memory(self, fact: dict, user_id: str) -> BaseMemory:
+    def _fact_to_memory(self, fact: dict, device_id: str, user_id: Optional[str]) -> BaseMemory:
         """将 LLM 提取的事实转换为记忆对象"""
         fact_type = fact.get("type", "FACT")
 
         common_data = {
             "id": str(uuid.uuid4()),
+            "device_id": device_id,
             "user_id": user_id,
             "content": fact["content"],
             "time_info": fact.get("time_info"),
@@ -301,7 +310,8 @@ class MemoryManager:
     async def search(
         self,
         query: str,
-        user_id: str,
+        device_id: str,
+        user_id: Optional[str] = None,
         top_k: int = 10
     ) -> List[BaseMemory]:
         """
@@ -309,24 +319,27 @@ class MemoryManager:
 
         Args:
             query: 查询文本
-            user_id: 用户ID
+            device_id: 设备ID
+            user_id: 用户ID（可选）
             top_k: 返回结果数量
 
         Returns:
             记忆列表
         """
-        return await self.retriever.retrieve(query, user_id, top_k)
+        return await self.retriever.retrieve(query, device_id, user_id, top_k)
 
     async def get_upcoming_intentions(
         self,
-        user_id: str,
+        device_id: str,
+        user_id: Optional[str] = None,
         days: int = 7
     ) -> List[IntentionMemory]:
         """
         获取未来N天的意图/计划
 
         Args:
-            user_id: 用户ID
+            device_id: 设备ID
+            user_id: 用户ID（可选）
             days: 天数
 
         Returns:
@@ -335,7 +348,7 @@ class MemoryManager:
         now = datetime.now()
         future = now + timedelta(days=days)
 
-        return self.store.get_intentions_in_range(user_id, now, future)
+        return self.store.get_intentions_in_range(device_id, user_id, now, future)
 
     async def update_intention_status(
         self,
@@ -361,9 +374,9 @@ class MemoryManager:
 
         return self.store.update(memory_id, update_data)
 
-    async def get_all_memories(self, user_id: str) -> List[BaseMemory]:
-        """获取用户所有记忆"""
-        return self.store.get_by_user(user_id)
+    async def get_all_memories(self, device_id: str, user_id: Optional[str] = None) -> List[BaseMemory]:
+        """获取设备/用户所有记忆"""
+        return self.store.get_by_device(device_id, user_id)
 
     async def delete_memory(self, memory_id: str) -> bool:
         """删除记忆"""
@@ -372,7 +385,8 @@ class MemoryManager:
     async def _find_similar(
         self,
         content: str,
-        user_id: str,
+        device_id: str,
+        user_id: Optional[str],
         threshold: float = 0.8
     ) -> Optional[BaseMemory]:
         """
@@ -380,14 +394,15 @@ class MemoryManager:
 
         Args:
             content: 内容
-            user_id: 用户ID
+            device_id: 设备ID
+            user_id: 用户ID（可选）
             threshold: 相似度阈值
 
         Returns:
             相似记忆或None
         """
         # 使用FTS5搜索
-        results = self.store.search_fts(content, user_id, top_k=5)
+        results = self.store.search_fts(content, device_id, user_id, top_k=5)
 
         # 检查是否有完全匹配或高度相似的
         for memory, score in results:
@@ -398,7 +413,7 @@ class MemoryManager:
         return None
 
     def _string_similarity(self, s1: str, s2: str) -> float:
-        """计算字符串相似度（简单版）"""
+        """计算字符串相似度（基于字符重合度）"""
         if s1 == s2:
             return 1.0
 
@@ -406,12 +421,16 @@ class MemoryManager:
         if s1 in s2 or s2 in s1:
             return 0.9
 
-        # 编辑距离（简化版）
-        longer = max(s1, s2, key=len)
-        shorter = min(s1, s2, key=len)
+        if len(s1) == 0 or len(s2) == 0:
+            return 0.0
 
-        if len(longer) == 0:
-            return 1.0
+        # 注意：等长时 max/min(key=len) 会返回同一个字符串，导致 common 恒等于
+        # len(longer)、相似度恒为 1.0 的 bug（任意等长字符串被判为完全相同）。
+        # 这里显式区分 longer/shorter。
+        if len(s1) >= len(s2):
+            longer, shorter = s1, s2
+        else:
+            longer, shorter = s2, s1
 
         # 计算共同字符数
         common = sum(1 for c in shorter if c in longer)
@@ -443,8 +462,12 @@ class MemoryManager:
 
     async def _update_memory(self, memory_id: str, new_memory: BaseMemory):
         """更新记忆"""
+        from utils.tokenizer import tokenize_to_string
         update_data = {
             "content": new_memory.content,
+            # 同步更新 tokens，否则 FTS5 触发器会用新 content + 旧 tokens 重建索引，
+            # 导致 content 与 tokens 错位、检索失效。
+            "tokens": tokenize_to_string(new_memory.content),
             "updated_at": datetime.now()
         }
 
@@ -465,6 +488,130 @@ class MemoryManager:
         """关闭连接"""
         if hasattr(self, 'store'):
             self.store.close()
+
+    async def get_user_profile(self, device_id: str) -> Optional[BaseMemory]:
+        """
+        获取设备用户画像
+
+        Args:
+            device_id: 设备ID
+
+        Returns:
+            用户画像或None
+        """
+        memories = self.store.get_by_device(device_id, user_id=None)
+        for m in memories:
+            if m.type.value == "profile":
+                return m
+        return None
+
+    async def create_or_update_profile(self, device_id: str, profile_data: dict) -> BaseMemory:
+        """
+        创建或更新用户画像
+
+        Args:
+            device_id: 设备ID
+            profile_data: 画像数据
+
+        Returns:
+            用户画像
+        """
+        from memories.base import UserProfile
+
+        existing = await self.get_user_profile(device_id)
+
+        if existing:
+            # 更新现有画像
+            update_data = {
+                **profile_data,
+                "updated_at": datetime.now()
+            }
+            self.store.update(existing.id, update_data)
+            # 返回更新后的画像
+            memories = self.store.get_by_device(device_id, user_id=None)
+            for m in memories:
+                if m.type.value == "profile":
+                    return m
+        else:
+            # 创建新画像
+            profile = UserProfile(
+                id=str(uuid.uuid4()),
+                device_id=device_id,
+                user_id=None,
+                **profile_data
+            )
+            self.store.add(profile)
+            return profile
+
+    async def record_first_meeting(self, device_id: str):
+        """
+        记录或更新第一次见面时间
+
+        Args:
+            device_id: 设备ID
+
+        Returns:
+            互动天数
+        """
+        from memories.base import UserProfile
+        now = datetime.now()
+
+        existing = await self.get_user_profile(device_id)
+
+        if existing is None:
+            # 首次见面，创建用户画像
+            profile = {
+                "first_met": now,
+                "last_interaction": now,
+                "total_interaction_days": 1
+            }
+            await self.create_or_update_profile(device_id, profile)
+            return 1
+        else:
+            # 更新互动天数
+            days = 1
+            if existing.first_met:
+                # 计算从第一次见面到现在的天数
+                delta = now - existing.first_met
+                days = delta.days + 1
+
+            # 更新画像
+            await self.create_or_update_profile(device_id, {
+                "last_interaction": now,
+                "total_interaction_days": days
+            })
+            return days
+
+    async def get_interaction_days(self, device_id: str) -> int:
+        """
+        获取互动天数
+
+        Args:
+            device_id: 设备ID
+
+        Returns:
+            互动天数
+        """
+        profile = await self.get_user_profile(device_id)
+        if profile:
+            return profile.total_interaction_days or 1
+        return 1
+
+    async def get_days_since_last_interaction(self, device_id: str) -> Optional[int]:
+        """
+        获取距离上次互动的天数
+
+        Args:
+            device_id: 设备ID
+
+        Returns:
+            距上次互动的天数，如果没有记录返回None
+        """
+        profile = await self.get_user_profile(device_id)
+        if profile and profile.last_interaction:
+            delta = datetime.now() - profile.last_interaction
+            return delta.days
+        return None
 
 
 # 便捷函数

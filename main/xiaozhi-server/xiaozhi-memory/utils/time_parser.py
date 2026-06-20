@@ -5,6 +5,12 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 import re
 
+try:
+    from dateutil.relativedelta import relativedelta
+    HAS_DATEUTIL = True
+except ImportError:
+    HAS_DATEUTIL = False
+
 
 class TimeParser:
     """时间解析器"""
@@ -127,8 +133,38 @@ class TimeParser:
         # N个月后
         elif m := re.search(cls.PATTERNS['个月'], text):
             months = int(m.group(1))
-            # 简单处理：假设每月30天
-            absolute_time = reference_date + timedelta(days=months * 30)
+            # 使用 relativedelta 进行精确的月份计算
+            if HAS_DATEUTIL:
+                absolute_time = reference_date + relativedelta(months=months)
+            else:
+                # 回退方案：手动计算月份（考虑不同月份的天数差异）
+                year = reference_date.year
+                month = reference_date.month + months
+                while month > 12:
+                    month -= 12
+                    year += 1
+                # 保持日期不变，如果目标月份没有该日期，则使用该月最后一天
+                day = min(reference_date.day, [31, 29 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+                absolute_time = reference_date.replace(year=year, month=month, day=day)
+            absolute_time = absolute_time.replace(hour=0, minute=0, second=0, microsecond=0)
+            result['confidence'] = 0.7
+
+        # N个月前
+        elif m := re.search(cls.PATTERNS['个月前'], text):
+            months = int(m.group(1))
+            # 使用 relativedelta 进行精确的月份计算
+            if HAS_DATEUTIL:
+                absolute_time = reference_date - relativedelta(months=months)
+            else:
+                # 回退方案：手动计算月份
+                year = reference_date.year
+                month = reference_date.month - months
+                while month <= 0:
+                    month += 12
+                    year -= 1
+                # 保持日期不变，如果目标月份没有该日期，则使用该月最后一天
+                day = min(reference_date.day, [31, 29 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+                absolute_time = reference_date.replace(year=year, month=month, day=day)
             absolute_time = absolute_time.replace(hour=0, minute=0, second=0, microsecond=0)
             result['confidence'] = 0.7
 

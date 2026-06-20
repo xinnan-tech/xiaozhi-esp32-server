@@ -963,19 +963,26 @@ class ConnectionHandler:
         try:
             # 使用带记忆的对话
             memory_str = None
-            # 仅当query非空（代表用户询问）时查询记忆
-            if self.memory is not None and query:
+            schedule_str = None
+            if self.memory is not None:
+                # 仅当query非空（代表用户询问）时查询记忆（注入实时 user 部分）
+                if query:
+                    future = asyncio.run_coroutine_threadsafe(
+                        self.memory.query_memory(query), self.loop
+                    )
+                    memory_str = future.result()
+                # 当天日程每轮注入半稳定系统提示词（当天固定，可缓存）
                 future = asyncio.run_coroutine_threadsafe(
-                    self.memory.query_memory(query), self.loop
+                    self.memory.get_today_schedule(), self.loop
                 )
-                memory_str = future.result()
+                schedule_str = future.result()
 
             if self.intent_type == "function_call" and functions is not None:
                 # 使用支持functions的streaming接口
                 llm_responses = self.llm.response_with_functions(
                     self.session_id,
                     self.dialogue.get_llm_dialogue_with_memory(
-                        memory_str, self.config.get("voiceprint", {})
+                        memory_str, self.config.get("voiceprint", {}), schedule_str
                     ),
                     functions=functions,
                 )
@@ -983,7 +990,7 @@ class ConnectionHandler:
                 llm_responses = self.llm.response(
                     self.session_id,
                     self.dialogue.get_llm_dialogue_with_memory(
-                        memory_str, self.config.get("voiceprint", {})
+                        memory_str, self.config.get("voiceprint", {}), schedule_str
                     ),
                 )
         except Exception as e:

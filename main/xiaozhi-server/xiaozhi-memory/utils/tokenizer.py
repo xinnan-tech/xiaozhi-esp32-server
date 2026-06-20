@@ -25,11 +25,11 @@ class JiebaTokenizer(Tokenizer):
             self.available = False
 
     def tokenize(self, text: str) -> List[str]:
-        """使用jieba分词"""
+        """使用jieba分词（搜索引擎模式，切出更多子词，提升检索召回）"""
         if not self.available:
             # 降级到简单分词
             return SimpleTokenizer().tokenize(text)
-        return list(self.jieba.lcut(text))
+        return list(self.jieba.cut_for_search(text))
 
 
 class SimpleTokenizer(Tokenizer):

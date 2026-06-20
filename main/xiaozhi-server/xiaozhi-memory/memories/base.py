@@ -34,7 +34,8 @@ class IntentionStatus(str, Enum):
 class BaseMemory(BaseModel):
     """基础记忆类"""
     id: str
-    user_id: str
+    device_id: str  # 设备ID（必填）
+    user_id: Optional[str] = None  # 用户ID（可选，支持设备级共享记忆）
     type: MemoryType
     content: str
     original_language: str = "zh"  # 原始语言
@@ -90,6 +91,7 @@ class PreferenceMemory(BaseMemory):
 class UserProfile(BaseMemory):
     """用户画像"""
     type: MemoryType = MemoryType.PROFILE
+    content: str = Field(default="用户画像")  # 默认内容
     name: Optional[str] = None
     nickname: Optional[str] = None
     age: Optional[int] = None
@@ -98,3 +100,5 @@ class UserProfile(BaseMemory):
     relationships: dict = Field(default_factory=dict)
     total_memories: int = 0
     last_interaction: Optional[datetime] = None
+    first_met: Optional[datetime] = None  # 第一次见面时间
+    total_interaction_days: int = 0  # 累计互动天数

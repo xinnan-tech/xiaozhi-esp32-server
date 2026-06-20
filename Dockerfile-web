@@ -44,7 +44,7 @@ COPY --from=api-builder /app/target/xiaozhi-esp32-api.jar /app/xiaozhi-esp32-api
 # 暴露端口
 EXPOSE 8002
 
-# 启动脚本
+# 启动脚本（仓库脚本为 CRLF 行尾，转成 LF 避免 exec "no such file or directory"）
 COPY docs/docker/start.sh /start.sh
-RUN chmod +x /start.sh
+RUN sed -i 's/\r$//' /start.sh /etc/nginx/nginx.conf && chmod +x /start.sh
 CMD ["/start.sh"]

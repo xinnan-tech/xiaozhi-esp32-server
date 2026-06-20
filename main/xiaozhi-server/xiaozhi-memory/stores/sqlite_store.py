@@ -65,7 +65,8 @@ class SQLiteStore(BaseStore):
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS memories (
                 id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL,
+                device_id TEXT NOT NULL,
+                user_id TEXT,
                 type TEXT NOT NULL,
                 content TEXT NOT NULL,
                 original_language TEXT,
@@ -98,7 +99,9 @@ class SQLiteStore(BaseStore):
                 preferences TEXT,
                 relationships TEXT,
                 total_memories INTEGER DEFAULT 0,
-                last_interaction TIMESTAMP
+                last_interaction TIMESTAMP,
+                first_met TIMESTAMP,
+                total_interaction_days INTEGER DEFAULT 0
             )
         """)
 
@@ -106,6 +109,7 @@ class SQLiteStore(BaseStore):
         self.conn.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
                 id,
+                device_id,
                 user_id,
                 content,
                 tokens,
@@ -116,6 +120,8 @@ class SQLiteStore(BaseStore):
         """)
 
         # 创建索引
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_device_id ON memories(device_id)")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_device_user ON memories(device_id, user_id)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_user_id ON memories(user_id)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_type ON memories(type)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON memories(status)")
@@ -124,24 +130,24 @@ class SQLiteStore(BaseStore):
         # 创建触发器：自动同步FTS5表
         self.conn.execute("""
             CREATE TRIGGER IF NOT EXISTS memories_ai AFTER INSERT ON memories BEGIN
-                INSERT INTO memories_fts(rowid, id, user_id, content, tokens)
-                VALUES (new.rowid, new.id, new.user_id, new.content, new.tokens);
+                INSERT INTO memories_fts(rowid, id, device_id, user_id, content, tokens)
+                VALUES (new.rowid, new.id, new.device_id, new.user_id, new.content, new.tokens);
             END
         """)
 
         self.conn.execute("""
             CREATE TRIGGER IF NOT EXISTS memories_ad AFTER DELETE ON memories BEGIN
-                INSERT INTO memories_fts(memories_fts, rowid, id, user_id, content, tokens)
-                VALUES ('delete', old.rowid, old.id, old.user_id, old.content, old.tokens);
+                INSERT INTO memories_fts(memories_fts, rowid, id, device_id, user_id, content, tokens)
+                VALUES ('delete', old.rowid, old.id, old.device_id, old.user_id, old.content, old.tokens);
             END
         """)
 
         self.conn.execute("""
             CREATE TRIGGER IF NOT EXISTS memories_au AFTER UPDATE ON memories BEGIN
-                INSERT INTO memories_fts(memories_fts, rowid, id, user_id, content, tokens)
-                VALUES ('delete', old.rowid, old.id, old.user_id, old.content, old.tokens);
-                INSERT INTO memories_fts(rowid, id, user_id, content, tokens)
-                VALUES (new.rowid, new.id, new.user_id, new.content, new.tokens);
+                INSERT INTO memories_fts(memories_fts, rowid, id, device_id, user_id, content, tokens)
+                VALUES ('delete', old.rowid, old.id, old.device_id, old.user_id, old.content, old.tokens);
+                INSERT INTO memories_fts(rowid, id, device_id, user_id, content, tokens)
+                VALUES (new.rowid, new.id, new.device_id, new.user_id, new.content, new.tokens);
             END
         """)
 
@@ -156,39 +162,80 @@ class SQLiteStore(BaseStore):
         except ImportError:
             tokens = memory.content
 
-        self.conn.execute("""
-            INSERT INTO memories (
-                id, user_id, type, content, original_language,
-                created_at, updated_at, status, importance,
-                tokens, related_ids, metadata, time_info,
-                fact_type, confidence,
-                intention_status, planned_time, time_description, intention_type,
-                reminder_sent, reminder_time, completed_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            memory.id,
-            memory.user_id,
-            memory.type.value,
-            memory.content,
-            memory.original_language,
-            memory.created_at,
-            memory.updated_at,
-            memory.status.value,
-            memory.importance,
-            tokens,
-            json.dumps(memory.related_ids),
-            json.dumps(memory.metadata),
-            json.dumps(memory.time_info) if memory.time_info else None,
-            getattr(memory, 'fact_type', None),
-            getattr(memory, 'confidence', 1.0),
-            getattr(memory, 'intention_status', None) if hasattr(memory, 'intention_status') else None,
-            getattr(memory, 'planned_time', None) if hasattr(memory, 'planned_time') else None,
-            getattr(memory, 'time_description', None) if hasattr(memory, 'time_description') else None,
-            getattr(memory, 'intention_type', None) if hasattr(memory, 'intention_type') else None,
-            getattr(memory, 'reminder_sent', False) if hasattr(memory, 'reminder_sent') else False,
-            getattr(memory, 'reminder_time', None) if hasattr(memory, 'reminder_time') else None,
-            getattr(memory, 'completed_at', None) if hasattr(memory, 'completed_at') else None
-        ))
+        # 根据记忆类型构建不同的 INSERT 语句
+        if memory.type.value == "profile":
+            # UserProfile 类型，包含所有 profile 字段
+            self.conn.execute("""
+                INSERT INTO memories (
+                    id, device_id, user_id, type, content, original_language,
+                    created_at, updated_at, status, importance,
+                    tokens, related_ids, metadata, time_info,
+                    name, nickname, age, location, preferences, relationships,
+                    total_memories, last_interaction, first_met, total_interaction_days
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                memory.id,
+                memory.device_id,
+                memory.user_id,
+                memory.type.value,
+                memory.content,
+                memory.original_language,
+                memory.created_at,
+                memory.updated_at,
+                memory.status.value,
+                memory.importance,
+                tokens,
+                json.dumps(memory.related_ids),
+                json.dumps(memory.metadata),
+                json.dumps(memory.time_info) if memory.time_info else None,
+                getattr(memory, 'name', None),
+                getattr(memory, 'nickname', None),
+                getattr(memory, 'age', None),
+                getattr(memory, 'location', None),
+                json.dumps(getattr(memory, 'preferences', {})),
+                json.dumps(getattr(memory, 'relationships', {})),
+                getattr(memory, 'total_memories', 0),
+                getattr(memory, 'last_interaction', None),
+                getattr(memory, 'first_met', None),
+                getattr(memory, 'total_interaction_days', 0)
+            ))
+        else:
+            # 其他记忆类型
+            self.conn.execute("""
+                INSERT INTO memories (
+                    id, device_id, user_id, type, content, original_language,
+                    created_at, updated_at, status, importance,
+                    tokens, related_ids, metadata, time_info,
+                    fact_type, confidence,
+                    intention_status, planned_time, time_description, intention_type,
+                    reminder_sent, reminder_time, completed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                memory.id,
+                memory.device_id,
+                memory.user_id,
+                memory.type.value,
+                memory.content,
+                memory.original_language,
+                memory.created_at,
+                memory.updated_at,
+                memory.status.value,
+                memory.importance,
+                tokens,
+                json.dumps(memory.related_ids),
+                json.dumps(memory.metadata),
+                json.dumps(memory.time_info) if memory.time_info else None,
+                getattr(memory, 'fact_type', None),
+                getattr(memory, 'confidence', 1.0),
+                getattr(memory, 'intention_status', None) if hasattr(memory, 'intention_status') else None,
+                getattr(memory, 'planned_time', None) if hasattr(memory, 'planned_time') else None,
+                getattr(memory, 'time_description', None) if hasattr(memory, 'time_description') else None,
+                getattr(memory, 'intention_type', None) if hasattr(memory, 'intention_type') else None,
+                getattr(memory, 'reminder_sent', False) if hasattr(memory, 'reminder_sent') else False,
+                getattr(memory, 'reminder_time', None) if hasattr(memory, 'reminder_time') else None,
+                getattr(memory, 'completed_at', None) if hasattr(memory, 'completed_at') else None
+            ))
+
         self.conn.commit()
         return memory.id
 
@@ -237,14 +284,25 @@ class SQLiteStore(BaseStore):
         return self.conn.total_changes > 0
 
     def get_by_user(self, user_id: str) -> List[BaseMemory]:
-        """获取用户所有活跃记忆"""
-        cursor = self.conn.execute(
-            "SELECT * FROM memories WHERE user_id = ? AND status = ? ORDER BY created_at DESC",
-            (user_id, MemoryStatus.ACTIVE.value)
-        )
+        """获取用户所有活跃记忆（兼容旧接口）"""
+        return self.get_by_device(None, user_id)
+
+    def get_by_device(self, device_id: str, user_id: Optional[str] = None) -> List[BaseMemory]:
+        """获取设备/用户所有活跃记忆"""
+        if user_id:
+            cursor = self.conn.execute(
+                "SELECT * FROM memories WHERE device_id = ? AND user_id = ? AND status = ? ORDER BY created_at DESC",
+                (device_id, user_id, MemoryStatus.ACTIVE.value)
+            )
+        else:
+            # 查询设备级记忆（user_id IS NULL）
+            cursor = self.conn.execute(
+                "SELECT * FROM memories WHERE device_id = ? AND user_id IS NULL AND status = ? ORDER BY created_at DESC",
+                (device_id, MemoryStatus.ACTIVE.value)
+            )
         return [self._row_to_memory(row) for row in cursor.fetchall()]
 
-    def search_fts(self, query: str, user_id: str, top_k: int = 10) -> List[tuple]:
+    def search_fts(self, query: str, device_id: str, user_id: Optional[str] = None, top_k: int = 10) -> List[tuple]:
         """
         使用FTS5 + BM25全文检索
 
@@ -255,19 +313,38 @@ class SQLiteStore(BaseStore):
         safe_query = tokenize_to_string(query)
         if not safe_query:
             return []
+        # 用 OR 连接查询词：FTS5 默认空格=AND，含疑问词/虚词的自然语言整句查询
+        # （如"我叫什么名字"）会因词不全而全部落空。改 OR 后任一词命中即返回，
+        # 由 BM25 排序保证相关性（召回优先于精度，宁多返回交 LLM 判断）。
+        or_query = " OR ".join(safe_query.split())
 
-        cursor = self.conn.execute(f"""
-            SELECT
-                m.*,
-                bm25(memories_fts) as score
-            FROM memories_fts fts
-            JOIN memories m ON m.id = fts.id
-            WHERE m.user_id = ?
-                AND m.status = 'active'
-                AND memories_fts MATCH ?
-            ORDER BY score
-            LIMIT ?
-        """, (user_id, safe_query, top_k))
+        if user_id:
+            cursor = self.conn.execute(f"""
+                SELECT
+                    m.*,
+                    bm25(memories_fts) as score
+                FROM memories_fts fts
+                JOIN memories m ON m.id = fts.id
+                WHERE m.device_id = ? AND m.user_id = ?
+                    AND m.status = 'active'
+                    AND memories_fts MATCH ?
+                ORDER BY score
+                LIMIT ?
+            """, (device_id, user_id, or_query, top_k))
+        else:
+            # 搜索设备级记忆（user_id IS NULL）
+            cursor = self.conn.execute(f"""
+                SELECT
+                    m.*,
+                    bm25(memories_fts) as score
+                FROM memories_fts fts
+                JOIN memories m ON m.id = fts.id
+                WHERE m.device_id = ? AND m.user_id IS NULL
+                    AND m.status = 'active'
+                    AND memories_fts MATCH ?
+                ORDER BY score
+                LIMIT ?
+            """, (device_id, or_query, top_k))
 
         results = []
         for row in cursor.fetchall():
@@ -278,18 +355,26 @@ class SQLiteStore(BaseStore):
         return results
 
     def get_intentions_in_range(
-        self, user_id: str, start: datetime, end: datetime
+        self, device_id: str, user_id: Optional[str], start: datetime, end: datetime
     ) -> List[IntentionMemory]:
         """获取时间范围内的意图"""
-        cursor = self.conn.execute("""
-            SELECT * FROM memories
-            WHERE user_id = ?
-                AND type = ?
-                AND status = ?
-                AND planned_time >= ?
-                AND planned_time <= ?
-            ORDER BY planned_time ASC
-        """, (user_id, MemoryType.INTENTION.value, MemoryStatus.ACTIVE.value, start, end))
+        if user_id:
+            cursor = self.conn.execute("""
+                SELECT * FROM memories
+                WHERE device_id = ? AND user_id = ?
+                    AND type = ? AND status = ?
+                    AND planned_time >= ? AND planned_time <= ?
+                ORDER BY planned_time ASC
+            """, (device_id, user_id, MemoryType.INTENTION.value, MemoryStatus.ACTIVE.value, start, end))
+        else:
+            # 查询设备级意图（user_id IS NULL）
+            cursor = self.conn.execute("""
+                SELECT * FROM memories
+                WHERE device_id = ? AND user_id IS NULL
+                    AND type = ? AND status = ?
+                    AND planned_time >= ? AND planned_time <= ?
+                ORDER BY planned_time ASC
+            """, (device_id, MemoryType.INTENTION.value, MemoryStatus.ACTIVE.value, start, end))
 
         return [self._row_to_memory(row) for row in cursor.fetchall()]
 
@@ -299,6 +384,7 @@ class SQLiteStore(BaseStore):
 
         common_data = {
             'id': row['id'],
+            'device_id': row['device_id'],
             'user_id': row['user_id'],
             'type': memory_type,
             'content': row['content'],
@@ -346,6 +432,8 @@ class SQLiteStore(BaseStore):
             common_data['relationships'] = json.loads(row['relationships']) if row['relationships'] else {}
             common_data['total_memories'] = row['total_memories'] or 0
             common_data['last_interaction'] = datetime.fromisoformat(row['last_interaction']) if row['last_interaction'] else None
+            common_data['first_met'] = datetime.fromisoformat(row['first_met']) if row['first_met'] else None
+            common_data['total_interaction_days'] = row['total_interaction_days'] or 0
             return UserProfile(**common_data)
 
         return BaseMemory(**common_data)
