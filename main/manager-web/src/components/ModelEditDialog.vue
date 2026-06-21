@@ -324,19 +324,33 @@ export default {
           (p) => p.providerCode === providerCode
         );
         if (provider) {
-          this.dynamicCallInfoFields = JSON.parse(provider.fields || "[]").map((f) => ({
-            label: f.label,
-            prop: f.key,
-            type:
-              f.type === "dict"
-                ? "json-textarea"
-                : f.type === "boolean"
-                  ? "boolean"
-                  : f.type === "password"
-                    ? "password"
-                    : "text",
-            placeholder: `请输入${f.key}`,
-          }));
+          const baseUrl =
+            (this.pendingModelData &&
+              this.pendingModelData.configJson &&
+              this.pendingModelData.configJson.base_url) ||
+            this.form.configJson.base_url ||
+            "";
+          this.dynamicCallInfoFields = JSON.parse(provider.fields || "[]")
+            .map((f) => ({
+              label: f.label,
+              prop: f.key,
+              type:
+                f.type === "dict"
+                  ? "json-textarea"
+                  : f.type === "boolean"
+                    ? "boolean"
+                    : f.type === "password"
+                      ? "password"
+                      : "text",
+              placeholder: `请输入${f.key}`,
+            }))
+            .filter((f) => {
+              // 缓存开关仅 qwen(aliyuncs) 显示；豆包走 doubao_cache provider，不在此过滤
+              if (f.prop === "cache" && providerCode === "openai") {
+                return String(baseUrl).includes("aliyuncs");
+              }
+              return true;
+            });
 
           if (this.pendingModelData && this.pendingProviderType === providerCode) {
             this.processModelData(this.pendingModelData);

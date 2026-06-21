@@ -143,7 +143,15 @@ export default {
   },
   computed: {
     dynamicCallInfoFields() {
-      return this.providerFields;
+      // 缓存开关仅 qwen(aliyuncs) 显示；豆包走 doubao_cache provider，不在此过滤
+      const baseUrl = (this.formData.configJson && this.formData.configJson.base_url) || "";
+      const supplier = this.formData.supplier;
+      return this.providerFields.filter((f) => {
+        if (f.prop === "cache" && supplier === "openai") {
+          return String(baseUrl).includes("aliyuncs");
+        }
+        return true;
+      });
     },
     chunkedCallInfoFields() {
       const chunkSize = 2;
