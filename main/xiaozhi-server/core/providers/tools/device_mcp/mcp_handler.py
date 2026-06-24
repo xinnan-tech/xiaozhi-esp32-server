@@ -128,7 +128,7 @@ async def handle_mcp_message(
     # Handle result
     if "result" in payload:
         result = payload["result"]
-        msg_id = int(payload.get("id", 0))
+        msg_id = int(payload.get("id") or 0)
 
         # Check for tool call response first
         if msg_id in mcp_client.call_results:
@@ -228,7 +228,7 @@ async def handle_mcp_message(
         error_msg = error_data.get("message", "未知错误")
         logger.bind(tag=TAG).error(f"收到MCP错误响应: {error_msg}")
 
-        msg_id = int(payload.get("id", 0))
+        msg_id = int(payload.get("id") or 0)
         if msg_id in mcp_client.call_results:
             await mcp_client.reject_call_result(
                 msg_id, Exception(f"MCP错误: {error_msg}")
