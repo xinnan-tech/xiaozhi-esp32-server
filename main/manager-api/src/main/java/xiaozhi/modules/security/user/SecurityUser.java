@@ -26,25 +26,27 @@ public class SecurityUser {
     public static UserDetail getUser() {
         Subject subject = getSubject();
         if (subject == null) {
-            return new UserDetail();
+            return null;
         }
 
         UserDetail user = (UserDetail) subject.getPrincipal();
         if (user == null) {
-            return new UserDetail();
+            return null;
         }
 
         return user;
     }
 
     public static String getToken() {
-        return getUser().getToken();
+        UserDetail user = getUser();
+        return user != null ? user.getToken() : null;
     }
 
     /**
      * 获取用户ID
      */
     public static Long getUserId() {
-        return getUser().getId();
+        UserDetail user = getUser();
+        return user != null ? user.getId() : null;
     }
 }
