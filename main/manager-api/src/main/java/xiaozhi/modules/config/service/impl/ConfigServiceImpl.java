@@ -37,6 +37,7 @@ import xiaozhi.modules.agent.vo.AgentVoicePrintVO;
 import xiaozhi.modules.correctword.vo.CorrectWordSimpleVO;
 import xiaozhi.modules.config.service.ConfigService;
 import xiaozhi.modules.device.entity.DeviceEntity;
+import xiaozhi.modules.device.service.DeviceAttributeService;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
@@ -52,6 +53,7 @@ import xiaozhi.modules.voiceclone.service.VoiceCloneService;
 public class ConfigServiceImpl implements ConfigService {
     private final SysParamsService sysParamsService;
     private final DeviceService deviceService;
+    private final DeviceAttributeService deviceAttributeService;
     private final ModelConfigService modelConfigService;
     private final AgentService agentService;
     private final AgentTemplateService agentTemplateService;
@@ -243,6 +245,10 @@ public class ConfigServiceImpl implements ConfigService {
                 null,
                 result,
                 true);
+
+        // 注入设备扩展属性，供 xiaozhi-server 读取并传给 LLM
+        Map<String, String> deviceAttributes = deviceAttributeService.getAttributesByDeviceId(device.getMacAddress());
+        result.put("device_attributes", deviceAttributes);
 
         return result;
     }

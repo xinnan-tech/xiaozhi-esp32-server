@@ -245,6 +245,28 @@ async def report(
         return None
 
 
+async def report_device_event(
+    device_id: str, event: str, payload: Optional[Dict] = None, timestamp: Optional[int] = None
+) -> Optional[Dict]:
+    """异步上报设备事件（语言切换、蓝牙信标变更等）"""
+    if not ManageApiClient._instance:
+        return None
+    try:
+        return await ManageApiClient._instance._execute_async_request(
+            "POST",
+            "/device/event/report",
+            json={
+                "deviceId": device_id,
+                "event": event,
+                "payload": payload or {},
+                "timestamp": timestamp,
+            },
+        )
+    except Exception as e:
+        print(f"设备事件上报失败: {e}")
+        return None
+
+
 async def lookup_address_book(caller_mac: str, nickname: str) -> Optional[Dict]:
     """根据昵称查找目标设备"""
     if not ManageApiClient._instance:

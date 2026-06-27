@@ -25,6 +25,7 @@ import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.Result;
 import xiaozhi.modules.device.dto.DeviceAddressBookAliasDTO;
 import xiaozhi.modules.device.dto.DeviceAddressBookPermissionDTO;
+import xiaozhi.modules.device.dto.DeviceEventReportDTO;
 import xiaozhi.modules.device.dto.DeviceManualAddDTO;
 import xiaozhi.modules.device.dto.DeviceRegisterDTO;
 import xiaozhi.modules.device.dto.DeviceToolsCallReqDTO;
@@ -32,6 +33,7 @@ import xiaozhi.modules.device.dto.DeviceUnBindDTO;
 import xiaozhi.modules.device.dto.DeviceUpdateDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceAddressBookService;
+import xiaozhi.modules.device.service.DeviceAttributeService;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.device.vo.UserShowDeviceListVO;
 import xiaozhi.modules.security.user.SecurityUser;
@@ -43,13 +45,15 @@ import xiaozhi.modules.sys.service.SysParamsService;
 public class DeviceController {
     private final DeviceService deviceService;
     private final DeviceAddressBookService deviceAddressBookService;
+    private final DeviceAttributeService deviceAttributeService;
     private final RedisUtils redisUtils;
     private final SysParamsService sysParamsService;
 
     public DeviceController(DeviceService deviceService, DeviceAddressBookService deviceAddressBookService,
-            RedisUtils redisUtils, SysParamsService sysParamsService) {
+            DeviceAttributeService deviceAttributeService, RedisUtils redisUtils, SysParamsService sysParamsService) {
         this.deviceService = deviceService;
         this.deviceAddressBookService = deviceAddressBookService;
+        this.deviceAttributeService = deviceAttributeService;
         this.redisUtils = redisUtils;
         this.sysParamsService = sysParamsService;
     }
@@ -81,6 +85,36 @@ public class DeviceController {
 
         redisUtils.set(key, macAddress);
         return new Result<String>().ok(code);
+    }
+
+    @PostMapping("/event/report")
+    @Operation(summary = "上报设备事件（xiaozhi-server间调用）")
+    public Result<Void> reportDeviceEvent(@RequestBody DeviceEventReportDTO dto) {
+        if (dto == null || StringUtils.isBlank(dto.getDeviceId()) || StringUtils.isBlank(dto.getEvent())) {
+            return new Result<Void>().error("参数错误");
+        }
+        String deviceId = dto.getDeviceId();
+        DeviceEntity device = deviceService.getDeviceByMacAddress(deviceId);
+        if (device == null) {
+            return new Result<Void>().error("设备不存在");
+        }
+
+        // 处理语言变更事件
+        if ("language_change".equals(dto.getEvent())) {
+            Object language = dto.getPayload() == null ? null : dto.getPayload().get("language");
+            if (language != null) {
+                deviceAttributeService.saveOrUpdateAttribute(deviceId, "language", language.toString());
+            }
+        }
+        // 处理蓝牙信标变更事件
+        else if ("beacon_change".equals(dto.getEvent())) {
+            Object beaconId = dto.getPayload() == null ? null : dto.getPayload().get("beacon_id");
+            if (beaconId != null) {
+                deviceAttributeService.saveOrUpdateAttribute(deviceId, "last_beacon_id", beaconId.toString());
+            }
+        }
+
+        return new Result<Void>();
     }
 
     @GetMapping("/bind/{agentId}")
