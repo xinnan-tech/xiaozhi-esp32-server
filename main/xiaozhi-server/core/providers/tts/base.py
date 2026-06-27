@@ -459,7 +459,12 @@ class TTSProviderBase(ABC):
                     sendAudioMessage(self.conn, sentence_type, audio_datas, text, sentence_id),
                     self.conn.loop,
                 )
-                future.result()
+                try:
+                    future.result(timeout=30)
+                except concurrent.futures.TimeoutError:
+                    logger.bind(tag=TAG).error(
+                        "sendAudioMessage timed out after 30s — skipping frame"
+                    )
 
                 # 记录输出和报告
                 if self.conn.max_output_size > 0 and text:
