@@ -122,6 +122,7 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
                 .filter(s -> s != null && !s.isBlank())
                 .collect(Collectors.joining("\n"));
         String conversation = buildConversation(topics, candidates, cur);
+        log.info("[persona-match] user={} 候选{}个 主题{}字符", userId, candidates.size(), topics.length());
         String promptTemplate = buildInstruction();
         String resp;
         try {
@@ -172,7 +173,8 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
 
     private String buildInstruction() {
         return "你是儿童陪伴角色匹配器。根据【孩子近期聊天】从【候选陪伴角色】的编号列表里选最贴合的一个。"
-                + "若【当前角色】已足够合适,务必保留当前(孩子需要稳定陪伴)。仅当另一角色明显更贴合时才换。"
+                + "若【当前角色】已足够合适,务必保留当前(孩子需要稳定陪伴)。仅当另一角色明显更贴合时才换。\n\n"
+                + "{conversation}\n\n"
                 + "只返回JSON,不要多余文字:{\"choice\":选中角色的编号(整数),\"score\":0.0到1.0,\"reason\":\"一句话\"}";
     }
 
