@@ -41,6 +41,13 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
 
     @Override
     public void matchForUser(Long userId, int days, int limit, int minHistory) {
+        // 0. 取当前角色,manual=1 的用户跳过(保护手动设定,不覆盖)
+        UserPersonaAssignmentEntity cur = userPersonaAssignmentService.getByUserId(userId);
+        if (cur != null && cur.getManual() != null && cur.getManual() == 1) {
+            log.info("[persona-match] user={} manual=1, skip", userId);
+            return;
+        }
+
         // 1. 取该用户所有设备的 mac
         List<DeviceEntity> devices = deviceDao.selectList(
                 new LambdaQueryWrapper<DeviceEntity>().eq(DeviceEntity::getUserId, userId));
@@ -76,7 +83,6 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
         String topics = msgs.stream().map(AgentChatHistoryEntity::getContent)
                 .filter(s -> s != null && !s.isBlank())
                 .collect(Collectors.joining("\n"));
-        UserPersonaAssignmentEntity cur = userPersonaAssignmentService.getByUserId(userId);
         String conversation = buildConversation(topics, candidates, cur);
         String promptTemplate = buildInstruction();
         String resp;
@@ -94,7 +100,6 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
             return;
         }
         boolean shouldSwitch = cur == null
-                || cur.getManual() != null && cur.getManual() == 1   // 不该进来(manual 被跳过),保险
                 || !mr.agentId.equals(cur.getAgentId())
                 && (cur.getScore() == null || mr.score.subtract(cur.getScore()).compareTo(SWITCH_SCORE_DELTA) >= 0);
         if (!shouldSwitch) {
