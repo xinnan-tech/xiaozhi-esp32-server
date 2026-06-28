@@ -30,6 +30,7 @@ public class UserPersonaAssignmentEntity {
     private String agentId;
 
     @Schema(description = "0=自动;1=家长手动")
+    @TableField(value = "`manual`")
     private Integer manual;
 
     @Schema(description = "最近匹配置信度")

@@ -131,32 +131,38 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
             return;
         }
 
-        // 5. 解析 + 高阈值才写
+        // 5. 解析 + 校验编号 + 高阈值才写
         MatchResult mr = parse(resp);
         if (mr == null) {
             log.warn("[persona-match] user={} LLM 返回无法解析:{}", userId, resp);
             return;
         }
-        boolean shouldSwitch = cur == null
-                || !mr.agentId.equals(cur.getAgentId())
-                && (cur.getScore() == null || mr.score.subtract(cur.getScore()).compareTo(SWITCH_SCORE_DELTA) >= 0);
-        if (!shouldSwitch) {
-            log.info("[persona-match] user={} 保留当前 agent={}(new={},cur={})", userId,
-                    cur == null ? null : cur.getAgentId(), mr.agentId, mr.score);
+        // 校验编号在候选范围内(防 LLM 编造;不让 LLM 抄 id,只返回编号)
+        if (mr.choice < 1 || mr.choice > candidates.size()) {
+            log.warn("[persona-match] user={} LLM 返回 choice={} 超出范围(1~{}),跳过", userId, mr.choice, candidates.size());
             return;
         }
-        userPersonaAssignmentService.upsertAuto(userId, mr.agentId, mr.score, mr.reason);
-        log.info("[persona-match] user={} 切换到 agent={} score={} reason={}", userId, mr.agentId, mr.score, mr.reason);
+        String chosenAgentId = candidates.get(mr.choice - 1).getId();
+        boolean shouldSwitch = cur == null
+                || !chosenAgentId.equals(cur.getAgentId())
+                && (cur.getScore() == null || mr.score.subtract(cur.getScore()).compareTo(SWITCH_SCORE_DELTA) >= 0);
+        if (!shouldSwitch) {
+            log.info("[persona-match] user={} 保留当前 agent={}(new={},score={})", userId,
+                    cur == null ? null : cur.getAgentId(), chosenAgentId, mr.score);
+            return;
+        }
+        userPersonaAssignmentService.upsertAuto(userId, chosenAgentId, mr.score, mr.reason);
+        log.info("[persona-match] user={} 切换到 agent={} score={} reason={}", userId, chosenAgentId, mr.score, mr.reason);
     }
 
     private String buildConversation(String topics, List<AgentEntity> candidates, UserPersonaAssignmentEntity cur) {
         StringBuilder sb = new StringBuilder();
         sb.append("【孩子近期聊天】\n").append(topics).append("\n\n【候选陪伴角色】\n");
+        int idx = 1;
         for (AgentEntity a : candidates) {
             String desc = a.getSystemPrompt();
             if (desc.length() > 120) desc = desc.substring(0, 120);
-            sb.append("- ").append(a.getAgentName()).append("(id=").append(a.getId()).append("): ")
-              .append(desc).append("\n");
+            sb.append(idx++).append(". ").append(a.getAgentName()).append(": ").append(desc).append("\n");
         }
         if (cur != null) {
             sb.append("\n【当前角色id】").append(cur.getAgentId());
@@ -165,10 +171,9 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
     }
 
     private String buildInstruction() {
-        return "你是儿童陪伴角色匹配器。根据【孩子近期聊天】从【候选陪伴角色】里选最贴合的一个。"
-                + "若【当前角色】已足够合适,务必保留当前(孩子需要稳定陪伴)。"
-                + "仅当另一角色明显更贴合时才换。只返回JSON,不要多余文字:"
-                + "{\"agent_id\":\"候选id\",\"score\":0到1的小数,\"reason\":\"一句话\"}";
+        return "你是儿童陪伴角色匹配器。根据【孩子近期聊天】从【候选陪伴角色】的编号列表里选最贴合的一个。"
+                + "若【当前角色】已足够合适,务必保留当前(孩子需要稳定陪伴)。仅当另一角色明显更贴合时才换。"
+                + "只返回JSON,不要多余文字:{\"choice\":选中角色的编号(整数),\"score\":0.0到1.0,\"reason\":\"一句话\"}";
     }
 
     private MatchResult parse(String resp) {
@@ -178,21 +183,21 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
         try {
             JSONObject j = JSONUtil.parseObj(resp.substring(s, e + 1));
             MatchResult mr = new MatchResult();
-            mr.agentId = j.getStr("agent_id");
+            mr.choice = j.getInt("choice", 0);
             mr.score = new BigDecimal(j.getStr("score", "0"));
             // score 越界(DB 列 DECIMAL(4,2) 上限 9.99,且语义上仅 [0,1] 有意义)视为不可解析,跳过写入
             if (mr.score.signum() < 0 || mr.score.compareTo(BigDecimal.ONE) > 0) {
                 return null;
             }
             mr.reason = j.getStr("reason");
-            return (mr.agentId == null || mr.agentId.isBlank()) ? null : mr;
+            return mr;
         } catch (Exception ex) {
             return null;
         }
     }
 
     private static class MatchResult {
-        String agentId;
+        int choice;
         BigDecimal score;
         String reason;
     }
