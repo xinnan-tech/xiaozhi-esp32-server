@@ -2,6 +2,21 @@ import { getServiceUrl } from '../api';
 import RequestService from '../httpRequest';
 
 export default {
+    // 候选角色列表(全局角色池,与自动匹配同源)
+    candidates(callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/persona/candidates`)
+            .method('GET')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.candidates(callback);
+                });
+            }).send();
+    },
     // 手动切换角色(标 manual=1,自动任务不再覆盖)
     switchPersona(agentId, callback) {
         RequestService.sendRequest()

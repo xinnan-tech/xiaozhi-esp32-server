@@ -1,5 +1,9 @@
 package xiaozhi.modules.agent.service;
 
+import java.util.List;
+
+import xiaozhi.modules.agent.vo.PersonaCandidateVO;
+
 public interface PersonaMatcherService {
 
     /**
@@ -12,4 +16,9 @@ public interface PersonaMatcherService {
      * @param minHistory 历史不足此数则不匹配(冷启动)
      */
     void matchForUser(Long userId, int days, int limit, int minHistory);
+
+    /**
+     * 列出全部候选角色(system_prompt 非空的全局角色池,与自动匹配同源)。
+     */
+    List<PersonaCandidateVO> listCandidatePersonas();
 }

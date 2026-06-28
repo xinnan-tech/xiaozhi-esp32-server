@@ -22,6 +22,7 @@ import xiaozhi.modules.agent.entity.UserPersonaAssignmentEntity;
 import xiaozhi.modules.agent.service.AgentChatHistoryService;
 import xiaozhi.modules.agent.service.PersonaMatcherService;
 import xiaozhi.modules.agent.service.UserPersonaAssignmentService;
+import xiaozhi.modules.agent.vo.PersonaCandidateVO;
 import xiaozhi.modules.device.dao.DeviceDao;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.llm.service.LLMService;
@@ -38,6 +39,19 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
     @Autowired private DeviceDao deviceDao;
     @Autowired private LLMService llmService;
     @Autowired private UserPersonaAssignmentService userPersonaAssignmentService;
+
+    @Override
+    public List<PersonaCandidateVO> listCandidatePersonas() {
+        return agentDao.selectList(null).stream()
+                .filter(a -> a.getSystemPrompt() != null && !a.getSystemPrompt().isBlank())
+                .map(a -> {
+                    PersonaCandidateVO vo = new PersonaCandidateVO();
+                    vo.setId(a.getId());
+                    vo.setAgentName(a.getAgentName());
+                    return vo;
+                })
+                .collect(Collectors.toList());
+    }
 
     @Override
     public void matchForUser(Long userId, int days, int limit, int minHistory) {

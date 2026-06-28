@@ -123,7 +123,7 @@ export default {
       this.$router.push({ path: '/device-management', query: { agentId: this.device.agentId } });
     },
     fetchPersonaOptions() {
-      Api.agent.getAgentList(({ data }) => {
+      Api.persona.candidates(({ data }) => {
         if (data?.data) {
           this.personaOptions = data.data.map(item => ({ id: item.id, agentName: item.agentName }));
         }

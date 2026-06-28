@@ -1,8 +1,10 @@
 package xiaozhi.modules.agent.controller;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,7 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.AllArgsConstructor;
 import xiaozhi.common.utils.Result;
+import xiaozhi.modules.agent.service.PersonaMatcherService;
 import xiaozhi.modules.agent.service.UserPersonaAssignmentService;
+import xiaozhi.modules.agent.vo.PersonaCandidateVO;
 import xiaozhi.modules.security.user.SecurityUser;
 
 @RestController
@@ -19,6 +23,7 @@ import xiaozhi.modules.security.user.SecurityUser;
 public class UserPersonaController {
 
     private final UserPersonaAssignmentService userPersonaAssignmentService;
+    private final PersonaMatcherService personaMatcherService;
 
     /** 家长手动切换角色(立即生效,标 manual=1,自动任务不再覆盖) */
     @PostMapping("/switch")
@@ -40,5 +45,12 @@ public class UserPersonaController {
         Long userId = SecurityUser.getUser().getId();
         userPersonaAssignmentService.resetAuto(userId);
         return new Result<Void>();
+    }
+
+    /** 候选角色列表(全局角色池,system_prompt 非空,与自动匹配同源) */
+    @GetMapping("/candidates")
+    @RequiresPermissions("sys:role:normal")
+    public Result<List<PersonaCandidateVO>> candidates() {
+        return new Result<List<PersonaCandidateVO>>().ok(personaMatcherService.listCandidatePersonas());
     }
 }
