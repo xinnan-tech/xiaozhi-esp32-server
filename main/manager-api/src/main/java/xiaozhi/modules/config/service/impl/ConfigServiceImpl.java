@@ -27,11 +27,13 @@ import xiaozhi.modules.agent.entity.AgentEntity;
 import xiaozhi.modules.agent.entity.AgentPluginMapping;
 import xiaozhi.modules.agent.entity.AgentTemplateEntity;
 import xiaozhi.modules.agent.entity.AgentVoicePrintEntity;
+import xiaozhi.modules.agent.entity.UserPersonaAssignmentEntity;
 import xiaozhi.modules.agent.service.AgentContextProviderService;
 import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
 import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
+import xiaozhi.modules.agent.service.UserPersonaAssignmentService;
 import xiaozhi.modules.correctword.service.CorrectWordFileService;
 import xiaozhi.modules.agent.vo.AgentVoicePrintVO;
 import xiaozhi.modules.correctword.vo.CorrectWordSimpleVO;
@@ -54,6 +56,7 @@ public class ConfigServiceImpl implements ConfigService {
     private final DeviceService deviceService;
     private final ModelConfigService modelConfigService;
     private final AgentService agentService;
+    private final UserPersonaAssignmentService userPersonaAssignmentService;
     private final AgentTemplateService agentTemplateService;
     private final RedisUtils redisUtils;
     private final TimbreService timbreService;
@@ -220,10 +223,13 @@ public class ConfigServiceImpl implements ConfigService {
         // 获取声纹信息
         buildVoiceprintConfig(agent.getId(), result);
 
+        // 解析该用户的匹配角色(有则覆盖 prompt,无则回退设备绑定 agent)
+        String prompt = resolveUserPersonaPrompt(device, agent);
+
         // 构建模块配置
         buildModuleConfig(
                 agent.getAgentName(),
-                agent.getSystemPrompt(),
+                prompt,
                 agent.getSummaryMemory(),
                 voice,
                 referenceAudio,
@@ -257,6 +263,25 @@ public class ConfigServiceImpl implements ConfigService {
         return items.stream()
                 .map(item -> item.getSourceWord() + "|" + item.getTargetWord())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 取该用户当前匹配角色的 system_prompt;无映射或映射角色无效则回退设备绑定 agent。
+     */
+    private String resolveUserPersonaPrompt(DeviceEntity device, AgentEntity fallbackAgent) {
+        String fallback = fallbackAgent.getSystemPrompt();
+        if (device == null || device.getUserId() == null) {
+            return fallback;
+        }
+        UserPersonaAssignmentEntity a = userPersonaAssignmentService.getByUserId(device.getUserId());
+        if (a == null || a.getAgentId() == null) {
+            return fallback;
+        }
+        AgentEntity matched = agentService.getAgentById(a.getAgentId());
+        if (matched != null && matched.getSystemPrompt() != null && !matched.getSystemPrompt().isBlank()) {
+            return matched.getSystemPrompt();
+        }
+        return fallback;
     }
 
     /**
