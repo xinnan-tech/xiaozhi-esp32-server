@@ -11,6 +11,7 @@ import voiceClone from './module/voiceClone.js'
 import voiceResource from './module/voiceResource.js'
 import knowledgeBase from './module/knowledgeBase.js'
 import correctWord from './module/correctWord.js'
+import persona from './module/persona.js'
 
 
 
@@ -43,5 +44,6 @@ export default {
     voiceResource,
     voiceClone,
     knowledgeBase,
-    correctWord
+    correctWord,
+    persona
   }

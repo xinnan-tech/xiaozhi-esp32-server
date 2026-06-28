@@ -39,9 +39,9 @@
           </template>
 
           <template v-else>
-            <DeviceItem v-for="(item, index) in devices" :key="index" :device="item" :feature-status="featureStatus" 
-              @configure="goToRoleConfig" @deviceManage="handleDeviceManage" @delete="handleDeleteAgent" 
-              @chat-history="handleShowChatHistory" />
+            <DeviceItem v-for="(item, index) in devices" :key="index" :device="item" :feature-status="featureStatus"
+              @configure="goToRoleConfig" @deviceManage="handleDeviceManage" @delete="handleDeleteAgent"
+              @chat-history="handleShowChatHistory" @persona-changed="fetchAgentList" />
           </template>
         </div>
       </div>

@@ -25,6 +25,17 @@
       <div class="settings-btn" @click="handleConfigure">
         {{ $t('home.configureRole') }}
       </div>
+      <el-dropdown trigger="click" @command="handleSwitchPersona">
+        <div class="settings-btn">
+          换角色<i class="el-icon-arrow-down el-icon--right"></i>
+        </div>
+        <el-dropdown-menu slot="dropdown">
+          <el-dropdown-item v-for="a in personaOptions" :key="a.id" :command="a.id">{{ a.agentName }}</el-dropdown-item>
+        </el-dropdown-menu>
+      </el-dropdown>
+      <div class="settings-btn" @click="handleResetAuto">
+        恢复自动匹配
+      </div>
       <div v-if="featureStatus.voiceprintRecognition" class="settings-btn" @click="handleVoicePrint">
         {{ $t('home.voiceprintRecognition') }}
       </div>
@@ -52,13 +63,14 @@
 
 <script>
 import i18n from '@/i18n';
+import Api from '@/apis/api';
 
 export default {
   name: 'DeviceItem',
   props: {
     device: { type: Object, required: true },
-    featureStatus: { 
-      type: Object, 
+    featureStatus: {
+      type: Object,
       default: () => ({
         voiceprintRecognition: false,
         voiceClone: false,
@@ -67,7 +79,10 @@ export default {
     }
   },
   data() {
-    return { switchValue: false }
+    return { switchValue: false, personaOptions: [] }
+  },
+  mounted() {
+    this.fetchPersonaOptions();
   },
   computed: {
     formattedLastConnectedTime() {
@@ -106,6 +121,33 @@ export default {
     },
     handleDeviceManage() {
       this.$router.push({ path: '/device-management', query: { agentId: this.device.agentId } });
+    },
+    fetchPersonaOptions() {
+      Api.agent.getAgentList(({ data }) => {
+        if (data?.data) {
+          this.personaOptions = data.data.map(item => ({ id: item.id, agentName: item.agentName }));
+        }
+      });
+    },
+    handleSwitchPersona(agentId) {
+      Api.persona.switchPersona(agentId, (res) => {
+        if (res.data.code === 0) {
+          this.$message.success({ message: '已切换角色', showClose: true });
+          this.$emit('persona-changed');
+        } else {
+          this.$message.error({ message: res.data.msg || '切换失败', showClose: true });
+        }
+      });
+    },
+    handleResetAuto() {
+      Api.persona.resetAuto((res) => {
+        if (res.data.code === 0) {
+          this.$message.success({ message: '已恢复自动匹配', showClose: true });
+          this.$emit('persona-changed');
+        } else {
+          this.$message.error({ message: res.data.msg || '操作失败', showClose: true });
+        }
+      });
     },
     handleChatHistory() {
       if (this.device.memModelId === 'Memory_nomem') {
