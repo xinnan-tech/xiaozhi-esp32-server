@@ -21,4 +21,10 @@ public interface PersonaMatcherService {
      * 列出全部候选角色(system_prompt 非空的全局角色池,与自动匹配同源)。
      */
     List<PersonaCandidateVO> listCandidatePersonas();
+
+    /**
+     * 对所有「有设备的非 manual 用户」各做一次匹配(seed 新用户 + 重评估已有)。
+     * 遍历用户(来自设备),而非已有 assignment —— 否则空表永远 seed 不了新用户。
+     */
+    void matchAllNonManualUsers();
 }

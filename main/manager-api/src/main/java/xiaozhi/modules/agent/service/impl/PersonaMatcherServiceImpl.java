@@ -54,6 +54,30 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
     }
 
     @Override
+    public void matchAllNonManualUsers() {
+        // 遍历「有设备的用户」(而非已有 assignment —— 否则空表永远 seed 不了新用户)
+        java.util.Set<Long> userIds = deviceDao.selectList(null).stream()
+                .map(DeviceEntity::getUserId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        log.info("[persona-match] 开始匹配,候选用户 {} 人", userIds.size());
+        int matched = 0;
+        for (Long userId : userIds) {
+            UserPersonaAssignmentEntity a = userPersonaAssignmentService.getByUserId(userId);
+            if (a != null && a.getManual() != null && a.getManual() == 1) {
+                continue; // 家长手动设定,跳过
+            }
+            try {
+                matchForUser(userId, 14, 50, 5);
+                matched++;
+            } catch (Exception ex) {
+                log.warn("[persona-match] user={} 失败:{}", userId, ex.getMessage());
+            }
+        }
+        log.info("[persona-match] 匹配完成,处理 {} 人", matched);
+    }
+
+    @Override
     public void matchForUser(Long userId, int days, int limit, int minHistory) {
         // 0. 取当前角色,manual=1 的用户跳过(保护手动设定,不覆盖)
         UserPersonaAssignmentEntity cur = userPersonaAssignmentService.getByUserId(userId);
