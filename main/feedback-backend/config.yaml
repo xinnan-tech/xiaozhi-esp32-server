@@ -1,0 +1,89 @@
+# ============================================================
+# Feedback Backend 配置文件
+# ============================================================
+
+server:
+  host: "0.0.0.0"
+  port: 8009
+  debug: true
+  cors_origins:
+    - "*"
+
+database:
+  # 独立数据库 feedback_db，与 xiaozhi_esp32_server 解耦
+  host: "127.0.0.1"
+  port: 13306
+  username: "root"
+  password: "123456"
+  database: "feedback_db"
+  charset: "utf8mb4"
+  pool_size: 10
+  max_overflow: 20
+  pool_recycle: 3600
+
+# JWT 认证配置（后台管理用）
+auth:
+  secret_key: "feedback-backend-jwt-secret-change-in-production"
+  algorithm: "HS256"
+  access_token_expire_minutes: 1440  # 24 小时
+
+# 默认管理员账号
+admin:
+  username: "admin"
+  password: "admin123"  # 首次登录后请修改
+
+# LLM 配置（AI 处理用）
+llm:
+  # 默认 LLM 提供商: openai / dashscope / deepseek
+  provider: "deepseek"
+  openai:
+    api_key: ""
+    base_url: "https://api.openai.com/v1"
+    model: "gpt-4o-mini"
+  dashscope:
+    api_key: ""
+    model: "qwen-plus"
+  deepseek:
+    api_key: ""
+    base_url: "https://api.deepseek.com/v1"
+    model: "deepseek-chat"
+
+# 智能体对话配置
+agent:
+  # 默认对话轮次（问几个问题）
+  default_dialogue_rounds: 8
+  # 默认提示词配置
+  default_prompts:
+    asr_cleanup: "prompts/asr-cleanup.txt"
+    qa_structured: "prompts/qa-structured.txt"
+    review_generation: "prompts/review-generation.txt"
+  # 默认问题列表（可被 agent_config 覆盖）
+  default_questions:
+    - "请问您的技师工号是多少？"
+    - "您在这家店多久了？"
+    - "请问您做了什么项目？"
+    - "您是什么时间到店的？"
+    - "您之前身体哪里不舒服？"
+    - "您的问题解决了吗？"
+    - "您对这次服务满意吗？"
+  # 点评生成规则
+  review:
+    long_min_length: 80
+    long_max_length: 150
+    short_min_length: 30
+    short_max_length: 60
+
+# xiaozhi-server 连接配置（WebSocket 语音对话）
+xiaozhi:
+  ws_url: "ws://127.0.0.1:18000/xiaozhi/v1/voice"
+  ws_port: 18000
+  http_url: "http://127.0.0.1:18003"
+  # Java 管理后台 API（OTA 激活码生成）
+  manager_api_url: "http://127.0.0.1:8002"
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{line} | {message}"
+  rotation: "10 MB"
+  retention: "7 days"

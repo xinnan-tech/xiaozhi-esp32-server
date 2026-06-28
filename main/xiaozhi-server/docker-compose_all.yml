@@ -14,9 +14,9 @@ services:
       - default
     ports:
       # ws服务端
-      - "8000:8000"
+      - "18000:8000"
       # http服务的端口，用于视觉分析接口
-      - "8003:8003"
+      - "18003:8003"
     security_opt:
       - seccomp:unconfined
     environment:
@@ -26,6 +26,90 @@ services:
       - ./data:/opt/xiaozhi-esp32-server/data
       # 模型文件挂接，很重要
       - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+      # SherpaASR 模型（从 Open-LLM-VTuber 复制过来的，效果更好）
+      - ./models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17:/opt/xiaozhi-esp32-server/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
+      # 反馈系统：挂载本地新增/修改的文件到容器
+      - ./core/api/feedback_handler.py:/opt/xiaozhi-esp32-server/core/api/feedback_handler.py
+      - ./core/http_server.py:/opt/xiaozhi-esp32-server/core/http_server.py
+      - ./feedback-prompts:/opt/xiaozhi-esp32-server/feedback-prompts
+
+  # ============================================================
+  # 反馈系统后端（feedback-backend）- FastAPI
+  # ============================================================
+  feedback-backend:
+    build:
+      context: ../feedback-backend
+      dockerfile: Dockerfile
+    image: feedback-backend:latest
+    container_name: feedback-backend
+    restart: always
+    depends_on:
+      xiaozhi-esp32-server-db:
+        condition: service_healthy
+    networks:
+      - default
+    expose:
+      # 仅 docker 内网可访问（H5 容器通过服务名 feedback-backend:8009 访问）
+      # 不映射到宿主机，避免与本地裸跑的进程端口冲突
+      - "8009"
+    environment:
+      - TZ=Asia/Shanghai
+      # 容器内通过 docker 服务名连 MySQL（与 xiaozhi 同一 MySQL 实例）
+      - FEEDBACK_DB_HOST=xiaozhi-esp32-server-db
+      - FEEDBACK_DB_PORT=3306
+      - FEEDBACK_DB_USER=root
+      - FEEDBACK_DB_PASSWORD=123456
+      - FEEDBACK_DB_NAME=feedback_db
+      # 容器内连 Java 管理后台（用服务名 + 容器内端口）
+      - FEEDBACK_XIAOZHI_MANAGER_API_URL=http://xiaozhi-esp32-server-web:8002
+      # LLM 密钥不要写入仓库；本机生产环境从 shell 或 .env 注入
+      - FEEDBACK_LLM_PROVIDER=${FEEDBACK_LLM_PROVIDER:-deepseek}
+      - FEEDBACK_LLM_API_KEY=${FEEDBACK_LLM_API_KEY:-}
+      - FEEDBACK_LLM_BASE_URL=${FEEDBACK_LLM_BASE_URL:-https://api.deepseek.com/v1}
+      - FEEDBACK_LLM_MODEL=${FEEDBACK_LLM_MODEL:-deepseek-chat}
+    volumes:
+      # 挂载配置便于不重新构建镜像即可修改配置
+      - ../feedback-backend/config.yaml:/app/config.yaml
+      - ../feedback-backend/prompts:/app/prompts
+      - ../feedback-backend/data:/app/data
+
+  # ============================================================
+  # 反馈系统前端 + 反向代理（feedback-h5）- aiohttp
+  # 暴露 8007，FRP/Nginx 入口
+  # ============================================================
+  feedback-h5:
+    build:
+      context: ../feedback-h5
+      dockerfile: Dockerfile
+    image: feedback-h5:latest
+    container_name: feedback-h5
+    restart: always
+    depends_on:
+      - feedback-backend
+    networks:
+      - default
+    ports:
+      # FRP 暴露的入口端口（外网 Nginx → frps → 这里）
+      - "8007:8007"
+    environment:
+      - TZ=Asia/Shanghai
+      # 容器内通过 docker 服务名连后端服务（不走 127.0.0.1）
+      - FEEDBACK_BACKEND_HOST=feedback-backend
+      - FEEDBACK_BACKEND_PORT=8009
+      - JAVA_HOST=xiaozhi-esp32-server-web
+      - JAVA_PORT=8002
+      # 从本仓库直接服务后台管理静态文件，公网 Nginx 只通过 Tailscale 反代到本机
+      - ADMIN_UI_DIR=/feedback-backend/admin-ui
+      - XIAOZHI_WS_HOST=xiaozhi-esp32-server
+      - XIAOZHI_WS_PORT=8000
+      - XIAOZHI_WS_PATH=/xiaozhi/v1/
+    volumes:
+      # 挂载 start.py 和前端文件便于热更新（改代码无需重新构建镜像）
+      - ../feedback-h5/start.py:/app/start.py
+      - ../feedback-h5/js:/app/js
+      - ../feedback-h5/css:/app/css
+      - ../feedback-h5/index.html:/app/index.html
+      - ../feedback-backend/admin-ui:/feedback-backend/admin-ui
 
   # manager-api和manager-web模块
   xiaozhi-esp32-server-web:
@@ -67,6 +151,9 @@ services:
       - default
     expose:
       - 3306
+    ports:
+      # MySQL 端口映射（供 feedback-backend 本地开发用）
+      - "13306:3306"
     volumes:
       - ./mysql/data:/var/lib/mysql
     environment:

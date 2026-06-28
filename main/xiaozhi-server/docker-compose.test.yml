@@ -1,0 +1,158 @@
+# CRM + 反馈系统测试环境专用 compose
+# 从仓库根目录启动：
+# docker compose -p xiaozhi-feedback-test -f "main/xiaozhi-server/docker-compose.test.yml" up -d --build
+
+version: '3'
+services:
+  xiaozhi-esp32-server:
+    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+    container_name: xiaozhi-esp32-server-test
+    depends_on:
+      - xiaozhi-esp32-server-db
+      - xiaozhi-esp32-server-redis
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - "28000:8000"
+      - "28003:8003"
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./data-test:/opt/xiaozhi-esp32-server/data
+      - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+      - ./models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17:/opt/xiaozhi-esp32-server/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
+      - ./core/api/feedback_handler.py:/opt/xiaozhi-esp32-server/core/api/feedback_handler.py
+      - ./core/http_server.py:/opt/xiaozhi-esp32-server/core/http_server.py
+      - ./feedback-prompts:/opt/xiaozhi-esp32-server/feedback-prompts
+
+  feedback-backend:
+    build:
+      context: ../feedback-backend
+      dockerfile: Dockerfile
+    image: feedback-backend:test
+    container_name: feedback-backend-test
+    restart: unless-stopped
+    depends_on:
+      xiaozhi-esp32-server-db:
+        condition: service_healthy
+    networks:
+      - default
+    expose:
+      - "8009"
+    environment:
+      - TZ=Asia/Shanghai
+      - FEEDBACK_DB_HOST=xiaozhi-esp32-server-db
+      - FEEDBACK_DB_PORT=3306
+      - FEEDBACK_DB_USER=root
+      - FEEDBACK_DB_PASSWORD=123456
+      - FEEDBACK_DB_NAME=feedback_db
+      - FEEDBACK_XIAOZHI_MANAGER_API_URL=http://xiaozhi-esp32-server-web:8002
+      - FEEDBACK_LLM_PROVIDER=${FEEDBACK_LLM_PROVIDER:-deepseek}
+      - FEEDBACK_LLM_API_KEY=${FEEDBACK_LLM_API_KEY:-}
+      - FEEDBACK_LLM_BASE_URL=${FEEDBACK_LLM_BASE_URL:-https://api.deepseek.com/v1}
+      - FEEDBACK_LLM_MODEL=${FEEDBACK_LLM_MODEL:-deepseek-chat}
+      - FEEDBACK_AUTH_SECRET=${FEEDBACK_TEST_AUTH_SECRET:-feedback-test-jwt-secret}
+      - FEEDBACK_ADMIN_USER=${FEEDBACK_TEST_ADMIN_USER:-admin}
+      - FEEDBACK_ADMIN_PASSWORD=${FEEDBACK_TEST_ADMIN_PASSWORD:-admin123}
+    volumes:
+      - ../feedback-backend/config.yaml:/app/config.yaml
+      - ../feedback-backend/prompts:/app/prompts
+      - ../feedback-backend/admin-ui:/app/admin-ui
+      - ../feedback-backend/data-test:/app/data
+
+  feedback-h5:
+    build:
+      context: ../feedback-h5
+      dockerfile: Dockerfile
+    image: feedback-h5:test
+    container_name: feedback-h5-test
+    restart: unless-stopped
+    depends_on:
+      - feedback-backend
+    networks:
+      - default
+    ports:
+      - "18007:8007"
+    environment:
+      - TZ=Asia/Shanghai
+      - FEEDBACK_BACKEND_HOST=feedback-backend
+      - FEEDBACK_BACKEND_PORT=8009
+      - JAVA_HOST=xiaozhi-esp32-server-web
+      - JAVA_PORT=8002
+      - ADMIN_UI_DIR=/feedback-backend/admin-ui
+      - XIAOZHI_WS_HOST=xiaozhi-esp32-server
+      - XIAOZHI_WS_PORT=8000
+      - XIAOZHI_WS_PATH=/xiaozhi/v1/
+    volumes:
+      - ../feedback-h5/start.py:/app/start.py
+      - ../feedback-h5/js:/app/js
+      - ../feedback-h5/css:/app/css
+      - ../feedback-h5/index.html:/app/index.html
+      - ../feedback-backend/admin-ui:/feedback-backend/admin-ui
+
+  xiaozhi-esp32-server-web:
+    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
+    container_name: xiaozhi-esp32-server-web-test
+    restart: unless-stopped
+    networks:
+      - default
+    depends_on:
+      xiaozhi-esp32-server-db:
+        condition: service_healthy
+      xiaozhi-esp32-server-redis:
+        condition: service_healthy
+    ports:
+      - "18002:8002"
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://xiaozhi-esp32-server-db:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&connectTimeout=30000&socketTimeout=30000&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
+      - SPRING_DATASOURCE_DRUID_USERNAME=root
+      - SPRING_DATASOURCE_DRUID_PASSWORD=123456
+      - SPRING_DATA_REDIS_HOST=xiaozhi-esp32-server-redis
+      - SPRING_DATA_REDIS_PASSWORD=
+      - SPRING_DATA_REDIS_PORT=6379
+    volumes:
+      - ./uploadfile-test:/uploadfile
+
+  xiaozhi-esp32-server-db:
+    image: mysql:latest
+    container_name: xiaozhi-esp32-server-db-test
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - default
+    expose:
+      - 3306
+    ports:
+      - "23306:3306"
+    volumes:
+      - ./mysql-test/data:/var/lib/mysql
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=xiaozhi_esp32_server
+      - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+
+  xiaozhi-esp32-server-redis:
+    image: redis:8.0
+    expose:
+      - 6379
+    container_name: xiaozhi-esp32-server-redis-test
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - default
+
+networks:
+  default:

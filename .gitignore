@@ -148,7 +148,14 @@ cython_debug/
 tmp
 .history
 .DS_Store
+main/feedback-backend/data
+main/feedback-backend/.env
+main/feedback-backend/.env.*
+!main/feedback-backend/.env.example
+main/xiaozhi-server/docker-compose.test.override.yml
 main/xiaozhi-server/data
+main/xiaozhi-server/data-test
+main/xiaozhi-server/mysql-test
 main/xiaozhi-server/.claude
 
 main/manager-web/node_modules
@@ -177,6 +184,8 @@ main/manager-web/.webpack_cache/
 main/xiaozhi-server/mysql
 uploadfile
 *.json
+!main/feedback-h5/resources/**/*.json
+!main/feedback-backend/admin-ui/resources/**/*.json
 .vscode
 .cursor
  

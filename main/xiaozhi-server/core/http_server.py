@@ -3,6 +3,7 @@ from aiohttp import web
 from config.logger import setup_logging
 from core.api.ota_handler import OTAHandler
 from core.api.vision_handler import VisionHandler
+from core.api.feedback_handler import FeedbackHandler
 
 TAG = __name__
 
@@ -13,6 +14,7 @@ class SimpleHttpServer:
         self.logger = setup_logging()
         self.ota_handler = OTAHandler(config)
         self.vision_handler = VisionHandler(config)
+        self.feedback_handler = FeedbackHandler(config)
 
     def _get_websocket_url(self, local_ip: str, port: int) -> str:
         """获取websocket地址
@@ -71,6 +73,18 @@ class SimpleHttpServer:
                         ),
                         web.options(
                             "/mcp/vision/explain", self.vision_handler.handle_options
+                        ),
+                    ]
+                )
+
+                # 反馈处理路由
+                app.add_routes(
+                    [
+                        web.post(
+                            "/feedback/process", self.feedback_handler.handle_post
+                        ),
+                        web.options(
+                            "/feedback/process", self.feedback_handler.handle_options
                         ),
                     ]
                 )

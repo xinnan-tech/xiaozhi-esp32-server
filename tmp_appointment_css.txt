@@ -1,0 +1,30 @@
+
+/* ==================== 客户预约页 ==================== */
+.appointment-page { padding: 0; background: #f6f8fb; }
+.appointment-hero { padding: 28px 20px 22px; background: linear-gradient(135deg, #16A34A, #22C55E); color: #fff; border-radius: 0 0 26px 26px; box-shadow: 0 12px 30px rgba(34,197,94,.22); }
+.appointment-kicker { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.18); font-size: 12px; margin-bottom: 10px; }
+.appointment-hero h1 { font-size: 24px; margin-bottom: 8px; }
+.appointment-hero p { font-size: 14px; opacity: .9; line-height: 1.6; }
+.apt-card { margin: 14px 14px 0; background: #fff; border-radius: 18px; padding: 16px; box-shadow: 0 8px 28px rgba(15,23,42,.06); }
+.apt-card-title { font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 12px; }
+.apt-employee-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.apt-employee { min-height: 64px; padding: 10px; border: 1.5px solid #E5E7EB; border-radius: 14px; background: #fff; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; color: #374151; }
+.apt-employee span { color: #16A34A; font-size: 13px; font-weight: 800; }
+.apt-employee strong { font-size: 15px; }
+.apt-employee.selected { border-color: #22C55E; background: #F0FDF4; box-shadow: 0 8px 20px rgba(34,197,94,.12); }
+.apt-slot-list { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+.apt-slot { padding: 10px 6px; border: 1.5px solid #E5E7EB; border-radius: 14px; background: #fff; color: #111827; font-size: 14px; font-weight: 800; }
+.apt-slot small { display: block; margin-top: 4px; color: #9CA3AF; font-size: 11px; font-weight: 500; }
+.apt-slot.selected { border-color: #22C55E; background: #ECFDF5; color: #047857; }
+.apt-muted { color: #9CA3AF; font-size: 14px; padding: 10px 0; }
+.apt-form-grid { display: grid; gap: 10px; }
+.apt-input { width: 100%; height: 46px; border: 1.5px solid #E5E7EB; border-radius: 13px; padding: 0 13px; outline: none; font-size: 15px; }
+.apt-input:focus { border-color: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,.12); }
+.apt-confirm-text { margin: 12px 0; padding: 12px; background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 12px; color: #374151; font-size: 14px; line-height: 1.6; }
+.apt-voice-panel { margin: 14px; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #EEF2FF, #F8FAFC); border: 1px solid #E0E7FF; }
+.apt-ai-text { min-height: 54px; color: #374151; font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+.apt-voice-btn { width: 100%; height: 48px; border: none; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #4F46E5, #6366F1); font-size: 16px; font-weight: 800; }
+@media (max-width: 380px) {
+    .apt-employee-list { grid-template-columns: 1fr; }
+    .apt-slot-list { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}

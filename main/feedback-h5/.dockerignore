@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.git/
+.gitignore
+.env
+*.log
+debug.js
+test_*.py

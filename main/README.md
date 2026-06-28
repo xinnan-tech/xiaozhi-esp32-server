@@ -13,6 +13,7 @@
 4.  [数据流与交互机制](#4-数据流与交互机制)
 5.  [核心功能概要](#5-核心功能概要)
 6.  [部署与配置概述](#6-部署与配置概述)
+7.  [反馈系统公网 Admin 回源链路](#7-反馈系统公网-admin-回源链路)
 ---
 
 ## 1. 引言
@@ -590,3 +591,44 @@ xiaozhi-esp32-server
 在全模块部署的情况下，推荐使用`manager-web`控制面板作为大多数配置任务的主要操作界面，因为它提供了一种用户友好的方式来管理由`manager-api`持久化并最终由`xiaozhi-server`使用的各项设置。
 
 ---
+
+---
+
+## 7. 反馈系统公网 Admin 回源链路
+
+`feedback-admin.new123.vip` 采用公网 Nginx + Tailscale 回源到本地 Windows 的部署方式，公网服务器不再保存后台静态文件。
+
+链路：
+
+```text
+浏览器
+  -> https://feedback-admin.new123.vip/admin/
+  -> 公网服务器 Nginx（ubuntu@100.66.236.1）
+  -> Tailscale：100.116.124.21:8007
+  -> 本地 Windows Docker 容器 feedback-h5
+  -> 本仓库 main/feedback-backend/admin-ui
+```
+
+关键约定：
+
+- 公网 Nginx 配置：`/etc/nginx/sites-enabled/new123.vip`
+- Windows Tailscale IP：`100.116.124.21`
+- 公网服务器 Tailscale IP：`100.66.236.1`
+- 本地入口容器：`feedback-h5`，宿主机端口 `8007`
+- Compose 文件：`main/xiaozhi-server/docker-compose_all.yml`
+- `feedback-h5` 必须挂载：`../feedback-backend/admin-ui:/feedback-backend/admin-ui`
+- 公网服务器 `/var/www/feedback-admin/admin-ui/` 不再使用，历史备份目录已清理，避免占用磁盘和干扰调试。
+
+后台 API 和后台 AI 数字人长连接同样走这个入口：
+
+```text
+https://feedback-admin.new123.vip/api/v1/...
+wss://feedback-admin.new123.vip/api/v1/agent/chat/ws
+```
+
+修改后台页面后，优先检查本地容器是否挂载了 admin-ui；必要时重建入口容器：
+
+```powershell
+docker inspect feedback-h5 --format '{{json .Mounts}}'
+docker compose -f "main/xiaozhi-server/docker-compose_all.yml" up -d --force-recreate feedback-h5
+```

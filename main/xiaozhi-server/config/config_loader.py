@@ -84,6 +84,7 @@ async def get_config_from_api_async(config):
             "ip": config["server"].get("ip", ""),
             "port": config["server"].get("port", ""),
             "http_port": config["server"].get("http_port", ""),
+            "websocket": config["server"].get("websocket", ""),
             "vision_explain": config["server"].get("vision_explain", ""),
             "auth_key": config["server"].get("auth_key", ""),
         }

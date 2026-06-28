@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+.git/
+.gitignore
+.env
+data/.config.yaml
+*.log
+logs/
+admin-ui/__pycache__/

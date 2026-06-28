@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <!-- 强制刷新缓存：每次访问都重新校验，防止手机端用旧版 JS -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>服务反馈</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="app" class="app-container">
+        <!-- 页面内容由JS动态渲染 -->
+    </div>
+
+    <!-- PIXI.js 2D渲染引擎（Live2D依赖） -->
+    <script src="libs/pixi.js"></script>
+    <!-- Live2D Cubism 4.0 SDK -->
+    <script src="libs/live2dcubismcore.min.js"></script>
+    <script src="libs/cubism4.min.js"></script>
+    <!-- Live2D 管理器 -->
+    <script src="js/live2d-manager.js"></script>
+    <!-- Opus 解码库（提供全局 Module / ModuleInstance） -->
+    <script src="libs/libopus.js"></script>
+
+    <!-- 主应用入口（ES Module）
+         版本号查询参数 _v 用于强制浏览器重新下载，解决手机端缓存旧版 JS 的问题。
+         版本号由 version.js 自动注入，开发时手动改 app.js 也会因 no-cache 头生效。 -->
+    <script src="js/version.js?v=20260625-process-fix"></script>
+    <script type="module" src="js/app.js?v=20260625-process-fix"></script>
+</body>
+
+</html>
