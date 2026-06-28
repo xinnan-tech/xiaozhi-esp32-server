@@ -277,7 +277,14 @@ public class ConfigServiceImpl implements ConfigService {
         if (a == null || a.getAgentId() == null) {
             return fallback;
         }
-        AgentEntity matched = agentService.getAgentById(a.getAgentId());
+        // getAgentById 在 agent 不存在(被删除/LLM 返回非法 id)时会抛 RenException,
+        // 此处必须回退设备 agent,绝不能让异常冒泡导致设备连不上。
+        AgentEntity matched;
+        try {
+            matched = agentService.getAgentById(a.getAgentId());
+        } catch (RenException e) {
+            matched = null;
+        }
         if (matched != null && matched.getSystemPrompt() != null && !matched.getSystemPrompt().isBlank()) {
             return matched.getSystemPrompt();
         }

@@ -142,6 +142,10 @@ public class PersonaMatcherServiceImpl implements PersonaMatcherService {
             MatchResult mr = new MatchResult();
             mr.agentId = j.getStr("agent_id");
             mr.score = new BigDecimal(j.getStr("score", "0"));
+            // score 越界(DB 列 DECIMAL(4,2) 上限 9.99,且语义上仅 [0,1] 有意义)视为不可解析,跳过写入
+            if (mr.score.signum() < 0 || mr.score.compareTo(BigDecimal.ONE) > 0) {
+                return null;
+            }
             mr.reason = j.getStr("reason");
             return (mr.agentId == null || mr.agentId.isBlank()) ? null : mr;
         } catch (Exception ex) {
