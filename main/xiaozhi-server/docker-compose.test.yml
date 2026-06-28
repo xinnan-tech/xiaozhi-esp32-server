@@ -1,5 +1,6 @@
 # CRM + 反馈系统测试环境专用 compose
-# 从仓库根目录启动：
+# 推荐从独立测试 worktree 启动，避免生产容器读取测试代码改动：
+# cd E:\code\learn_p\xiaozhi-esp32-server-test
 # docker compose -p xiaozhi-feedback-test -f "main/xiaozhi-server/docker-compose.test.yml" up -d --build
 
 version: '3'

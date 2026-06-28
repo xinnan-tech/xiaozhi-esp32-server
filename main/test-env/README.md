@@ -4,12 +4,19 @@
 
 当前生产环境仍使用：
 
+- 生产仓库目录：`E:\code\learn_p\xiaozhi-esp32-server`
 - Compose：`../xiaozhi-server/docker-compose_all.yml`
 - 容器名：`feedback-h5`、`feedback-backend`、`xiaozhi-esp32-server-db` 等
 - 入口端口：`8007`
 - 数据目录：`../xiaozhi-server/mysql/data`、`../xiaozhi-server/data`
 
-测试环境通过 `../xiaozhi-server/docker-compose.test.yml` 使用独立项目名、独立容器名、独立端口和独立数据目录，避免影响生产。
+测试环境使用独立 worktree：
+
+- 测试仓库目录：`E:\code\learn_p\xiaozhi-esp32-server-test`
+- 测试分支：`crm-feedback-test-work`
+- 测试 Compose：`E:\code\learn_p\xiaozhi-esp32-server-test\main\xiaozhi-server\docker-compose.test.yml`
+
+请只在测试仓库目录里启动测试环境。这样测试容器挂载的是测试目录，不会读取当前生产目录的代码改动。
 
 ## 端口约定
 
@@ -23,9 +30,11 @@
 
 ## 启动
 
-在仓库根目录执行：
+在测试仓库目录执行：
 
 ```powershell
+Set-Location "E:\code\learn_p\xiaozhi-esp32-server-test"
+
 # 真实 LLM 密钥只放本机环境变量，不提交到 git
 $env:FEEDBACK_LLM_PROVIDER = "deepseek"
 $env:FEEDBACK_LLM_API_KEY = "你的真实密钥"
@@ -44,14 +53,16 @@ docker compose -p xiaozhi-feedback-test -f "main/xiaozhi-server/docker-compose.t
 ## 停止
 
 ```powershell
+Set-Location "E:\code\learn_p\xiaozhi-esp32-server-test"
 docker compose -p xiaozhi-feedback-test -f "main/xiaozhi-server/docker-compose.test.yml" down
 ```
 
 如需清空测试库和测试数据：
 
 ```powershell
+Set-Location "E:\code\learn_p\xiaozhi-esp32-server-test"
 docker compose -p xiaozhi-feedback-test -f "main/xiaozhi-server/docker-compose.test.yml" down -v
-Remove-Item -Recurse -Force "main/xiaozhi-server/mysql-test", "main/xiaozhi-server/data-test" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "main/xiaozhi-server/mysql-test", "main/xiaozhi-server/data-test", "main/feedback-backend/data-test" -ErrorAction SilentlyContinue
 ```
 
 > 注意：不要对生产 compose 执行 `down -v`。生产公网 `feedback-admin.new123.vip` 仍回源到本机生产入口 `8007`。
