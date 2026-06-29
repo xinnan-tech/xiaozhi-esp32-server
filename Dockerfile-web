@@ -13,8 +13,8 @@ COPY main/manager-api/pom.xml .
 COPY main/manager-api/src ./src
 RUN mvn clean package -Dmaven.test.skip=true
 
-# 第三阶段：构建最终镜像
-FROM bellsoft/liberica-runtime-container:jre-21-glibc
+# 第三阶段：构建最终镜像（原 bellsoft/liberica-runtime-container:jre-21-glibc 已从 Docker Hub 下架，换 eclipse-temurin Alpine 版，apk 命令兼容）
+FROM eclipse-temurin:21-jre-alpine
 
 # 安装Nginx和字体库
 RUN apk update && \
