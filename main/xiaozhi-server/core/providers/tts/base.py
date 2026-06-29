@@ -494,11 +494,16 @@ class TTSProviderBase(ABC):
         )
 
         for punct in punctuations_to_use:
-            pos = current_text.rfind(punct)
-            if (pos != -1 and last_punct_pos == -1) or (
-                pos != -1 and pos < last_punct_pos
-            ):
-                last_punct_pos = pos
+            if self.is_first_sentence:
+                # 首句取最早的标点边界，尽快产出第一段音频，降低首音延迟
+                pos = current_text.find(punct)
+                if pos != -1 and (last_punct_pos == -1 or pos < last_punct_pos):
+                    last_punct_pos = pos
+            else:
+                # 后续句取最晚的标点边界，合并为更大的分段，减少TTS调用次数
+                pos = current_text.rfind(punct)
+                if pos != -1 and pos > last_punct_pos:
+                    last_punct_pos = pos
 
         if last_punct_pos != -1:
             segment_text_raw = current_text[: last_punct_pos + 1]
