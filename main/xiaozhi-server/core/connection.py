@@ -169,6 +169,10 @@ class ConnectionHandler:
         self.iot_descriptors = {}
         self.func_handler = None
 
+        # 设备扩展属性（从 manager-api 持久化读取）
+        self.device_attributes = {}
+        self.device_language = None
+
         self.cmd_exit = self.config["exit_commands"]
 
         # 是否在聊天结束后关闭连接
@@ -543,6 +547,7 @@ class ConnectionHandler:
             self.device_id,
             self.client_ip,
             emoji_enabled=(self.features or {}).get("emoji", True),
+            device_language=self.device_language,
         )
         if enhanced_prompt:
             self.change_system_prompt(enhanced_prompt)
@@ -778,6 +783,14 @@ class ConnectionHandler:
             self.config["mcp_endpoint"] = private_config["mcp_endpoint"]
         if private_config.get("context_providers", None) is not None:
             self.config["context_providers"] = private_config["context_providers"]
+
+        # 注入设备扩展属性（语言、蓝牙信标等）
+        if private_config.get("device_attributes", None) is not None:
+            self.device_attributes = private_config["device_attributes"] or {}
+            self.device_language = self.device_attributes.get("language")
+            self.logger.bind(tag=TAG).info(
+                f"加载设备扩展属性: {self.device_attributes}"
+            )
 
         # 注入替换词到 TTS 模块配置
         if private_config.get("correct_words", None) is not None:

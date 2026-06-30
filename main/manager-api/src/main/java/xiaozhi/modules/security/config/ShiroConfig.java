@@ -88,6 +88,7 @@ public class ShiroConfig {
         // 将config路径使用server服务过滤器
         filterMap.put("/config/**", "server");
         filterMap.put("/device/address-book/call", "server");
+        filterMap.put("/device/event/report", "server");
         filterMap.put("/agent/chat-history/report", "server");
         filterMap.put("/agent/chat-history/download/**", "anon");
         filterMap.put("/agent/chat-summary/**", "server");

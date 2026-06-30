@@ -252,12 +252,14 @@ class PromptManager:
                     )
 
             # 获取TTS选择的语言，默认值为中文
-            language = (
-                self.config.get("TTS", {})
-                .get(self.config.get("selected_module", {}).get("TTS", ""), {})
-                .get("language")
-                or "中文"
-            )
+            language = kwargs.get("device_language")
+            if not language:
+                language = (
+                    self.config.get("TTS", {})
+                    .get(self.config.get("selected_module", {}).get("TTS", ""), {})
+                    .get("language")
+                    or "中文"
+                )
             self.logger.bind(tag=TAG).debug(f"获取到选择的语言: {language}")
 
             # 替换模板变量
