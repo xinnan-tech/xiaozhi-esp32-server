@@ -425,7 +425,7 @@ body {
     font-weight: 500;
 }
 
-/* 拨号按钮特殊样式 */
+/* Kết nối按钮特殊样式 */
 .dial-btn.dial-active {
     background: rgba(237, 66, 69, 0.9);
 }
@@ -434,7 +434,7 @@ body {
     background: rgba(237, 66, 69, 1);
 }
 
-/* 录音按钮特殊样式 */
+/* Ghi âm按钮特殊样式 */
 .control-btn.recording {
     background: rgba(237, 66, 69, 0.9);
     animation: pulse 1.5s infinite;
@@ -444,7 +444,7 @@ body {
     background: rgba(237, 66, 69, 1);
 }
 
-/* 摄像头按钮特殊样式 */
+/* Camera按钮特殊样式 */
 #cameraBtn.camera-active {
     background: rgba(237, 66, 69, 0.9);
 }
@@ -453,7 +453,7 @@ body {
     background: rgba(237, 66, 69, 1);
 }
 
-/* 录音按钮脉冲动画 */
+/* Ghi âm按钮脉冲动画 */
 @keyframes pulse {
     0% {
         box-shadow: 0 0 0 0 rgba(237, 66, 69, 0.7);
@@ -1242,7 +1242,7 @@ body {
     background: #4f545c;
 }
 
-/* ==================== 摄像头显示区域样式 ==================== */
+/* ==================== Camera显示区域样式 ==================== */
 .camera-container {
     position: fixed;
     top: 20px;
