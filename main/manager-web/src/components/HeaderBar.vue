@@ -54,7 +54,7 @@
                   : 'None',
             }" />
             <span class="nav-text">{{ $t("header.voiceCloneManagement") }}</span>
-            <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': voiceCloneDropdownVisible }"></i>
+            <i class="el-icon-arrow-down" :class="{ 'rotate-down': voiceCloneDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="handleRouter('voiceCloneManagement')">
@@ -120,7 +120,7 @@
                   : 'None',
             }" />
             <span class="nav-text">{{ $t("header.paramDictionary") }}</span>
-            <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': paramDropdownVisible }"></i>
+            <i class="el-icon-arrow-down" :class="{ 'rotate-down': paramDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="handleRouter('paramManagement')">
@@ -599,8 +599,13 @@ export default {
 .nav-text {
   white-space: normal;
   text-align: center;
-  max-width: 80px;
   line-height: 1.2;
+}
+
+.el-dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 /* 响应式调整 */

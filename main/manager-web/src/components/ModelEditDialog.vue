@@ -464,23 +464,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/global.scss';
+
 ::v-deep .el-dialog {
   margin-top: 6vh !important;
 }
 ::v-deep .el-dialog__body {
   max-height: 60vh;
   overflow-y: auto;
-  &::-webkit-scrollbar {
-      width: 6px;
-    }
-  &::-webkit-scrollbar-thumb {
-    background: #a1c9fd;
-    border-radius: 3px;
-  }
-  &::-webkit-scrollbar-track {
-    background: #f0f3fe;
-    border-radius: 3px;
-  }
+  @include scrollbar-style;
 }
 .model-edit-dialog {
   .header-row {

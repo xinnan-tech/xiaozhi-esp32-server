@@ -99,18 +99,6 @@ const routes = [
     }
   },
   {
-    path: '/knowledge-file-upload',
-    name: 'KnowledgeFileUpload',
-    component: function () {
-      return import('../views/KnowledgeFileUpload.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '文档上传管理'
-    }
-  },
-
-  {
     path: '/server-side-management',
     name: 'ServerSideManager',
     component: function () {

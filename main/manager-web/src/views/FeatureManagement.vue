@@ -356,7 +356,9 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/global.scss';
+
 .welcome {
   min-width: 900px;
   min-height: 506px;
@@ -427,6 +429,7 @@ export default {
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: auto;
 }
 
 .content-panel {
@@ -464,7 +467,8 @@ export default {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
+  @include scrollbar-style;
 }
 
 .features-grid {

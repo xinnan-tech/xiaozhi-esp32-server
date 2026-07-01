@@ -363,6 +363,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/global.scss';
+
 .welcome {
   min-width: 900px;
   min-height: 506px;
@@ -484,17 +486,7 @@ export default {
   align-content: start;
   min-height: 200px;
   overflow: auto;
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: #a1c9fd;
-    border-radius: 3px;
-  }
-  &::-webkit-scrollbar-track {
-    background: #f0f3fe;
-    border-radius: 3px;
-  }
+  @include scrollbar-style;
 }
 
 .voice-clone-card {

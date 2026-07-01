@@ -7,7 +7,7 @@
         <!-- 首页内容 -->
         <div class="add-device">
           <div class="add-device-bg">
-            <div class="hellow-text" style="margin-top: 30px;">
+            <div class="hellow-text" style="padding-top: 30px;">
               {{ $t('home.greeting') }}
             </div>
             <div class="hellow-text">
@@ -17,7 +17,7 @@
               let's have a wonderful day!
             </div>
             <div class="add-device-options">
-            <div class="search-container" v-if="userInfo.superAdmin">
+            <div class="search-container">
               <div class="search-wrapper">
                   <el-input
                     v-model="search"
@@ -27,20 +27,30 @@
                     @clear="handleSearchReset"
                     clearable
                     ref="searchInput"
+                    @focus="showSearchHistory"
+                    @blur="hideSearchHistory"
                   >
                     <i slot="suffix" class="el-icon-search search-icon" @click="handleSearch"></i>
                   </el-input>
+                  <!-- 搜索历史下拉框 -->
+                  <div v-if="showHistory && searchHistory.length > 0" class="search-history-dropdown">
+                    <div class="search-history-header">
+                      <span>{{ $t("header.searchHistory") }}</span>
+                      <el-button type="text" size="small" class="clear-history-btn" @click="clearSearchHistory">
+                        {{ $t("header.clearHistory") }}
+                      </el-button>
+                    </div>
+                    <div class="search-history-list">
+                      <div v-for="(item, index) in searchHistory" :key="index" class="search-history-item"
+                        @click.stop="selectSearchHistory(item)">
+                        <span class="history-text">{{ item }}</span>
+                        <i class="el-icon-close clear-item-icon" @click.stop="removeSearchHistory(index)"></i>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="add-device-btn">
-                <div class="left-add" @click="showAddDialog">
-                  {{ $t('home.addAgent') }}
-                </div>
-                <div style="width: 23px;height: 13px;background: #5778ff;margin-left: -10px;" />
-                <div class="right-add">
-                  <i class="el-icon-right" @click="showAddDialog" style="font-size: 20px;color: #fff;" />
-                </div>
-              </div>
+              <el-button icon="el-icon-plus" class="add-device-btn" @click="showAddDialog">{{ $t('home.addAgent') }}</el-button>
             </div>
           </div>
         </div>
@@ -104,6 +114,8 @@ export default {
         knowledgeBase: false
       },
       search: "",
+      showHistory: false,
+      searchHistory: [],
     }
   },
 
@@ -116,6 +128,8 @@ export default {
   async mounted() {
     this.fetchAgentList();
     await this.loadFeatureStatus();
+    // 从localStorage加载搜索历史
+    this.loadSearchHistory();
   },
 
   methods: {
@@ -216,6 +230,14 @@ export default {
         return;
       }
 
+      // 保存搜索历史
+      this.saveSearchHistory(searchValue);
+
+      // 搜索完成后让输入框失去焦点，从而触发blur事件隐藏搜索历史
+      if (this.$refs.searchInput) {
+        this.$refs.searchInput.blur();
+      }
+
       this.isSearching = true;
       this.isLoading = true;
       // 检测MAC地址格式：包含4个冒号
@@ -234,6 +256,80 @@ export default {
         this.isLoading = false;
         this.$message.error(this.$t('message.searchFailed'));
       });
+    },
+
+    // 显示搜索历史
+    showSearchHistory() {
+      this.showHistory = true;
+    },
+
+    // 隐藏搜索历史
+    hideSearchHistory() {
+      // 延迟隐藏，以便点击事件能够执行
+      setTimeout(() => {
+        this.showHistory = false;
+      }, 200);
+    },
+
+    // 加载搜索历史
+    loadSearchHistory() {
+      try {
+        const history = localStorage.getItem(this.SEARCH_HISTORY_KEY);
+        if (history) {
+          this.searchHistory = JSON.parse(history);
+        }
+      } catch (error) {
+        console.error("加载搜索历史失败:", error);
+        this.searchHistory = [];
+      }
+    },
+
+    // 保存搜索历史
+    saveSearchHistory(keyword) {
+      if (!keyword || this.searchHistory.includes(keyword)) {
+        return;
+      }
+
+      // 添加到历史记录开头
+      this.searchHistory.unshift(keyword);
+
+      // 限制历史记录数量
+      if (this.searchHistory.length > this.MAX_HISTORY_COUNT) {
+        this.searchHistory = this.searchHistory.slice(0, this.MAX_HISTORY_COUNT);
+      }
+
+      // 保存到localStorage
+      try {
+        localStorage.setItem(this.SEARCH_HISTORY_KEY, JSON.stringify(this.searchHistory));
+      } catch (error) {
+        console.error("保存搜索历史失败:", error);
+      }
+    },
+
+    // 选择搜索历史项
+    selectSearchHistory(keyword) {
+      this.search = keyword;
+      this.handleSearch();
+    },
+
+    // 移除单个搜索历史项
+    removeSearchHistory(index) {
+      this.searchHistory.splice(index, 1);
+      try {
+        localStorage.setItem(this.SEARCH_HISTORY_KEY, JSON.stringify(this.searchHistory));
+      } catch (error) {
+        console.error("更新搜索历史失败:", error);
+      }
+    },
+
+    // 清空所有搜索历史
+    clearSearchHistory() {
+      this.searchHistory = [];
+      try {
+        localStorage.removeItem(this.SEARCH_HISTORY_KEY);
+      } catch (error) {
+        console.error("清空搜索历史失败:", error);
+      }
     },
   }
 }
@@ -261,7 +357,6 @@ export default {
   height: 195px;
   border-radius: 15px;
   position: relative;
-  overflow: hidden;
   background: linear-gradient(269.62deg,
       #e0e6fd 0%,
       #cce7ff 49.69%,
@@ -273,7 +368,6 @@ export default {
   height: 100%;
   text-align: left;
   background-image: url("@/assets/home/main-top-bg.png");
-  overflow: hidden;
   background-size: cover;
   /* 确保背景图像覆盖整个元素 */
   background-position: center;
@@ -309,46 +403,39 @@ export default {
 }
 
 .add-device-btn {
-  display: flex;
-  align-items: center;
-  margin-left: 20px;
-  cursor: pointer;
-
-  .left-add {
-    padding: 0 14px;
-    height: 34px;
-    border-radius: 17px;
-    background: #5778ff;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    line-height: 34px;
-  }
-
-  .right-add {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: #5778ff;
-    margin-left: -6px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+  color: #fff;
+  margin-left: 10px;
+  background: #3375fd;
+  border-radius: 20px;
 }
 
 .search-container {
+  width: 360px;
   margin-right: 5px;
-  min-width: 60px;
-  max-width: none;
 }
 
-.custom-search-input::v-deep .el-input__suffix-inner {
-  display: flex;
-  align-items: center;
-  height: 100%;
-  cursor: pointer;
+.search-wrapper {
+  position: relative;
+}
+
+.custom-search-input {
+  &::v-deep .el-input__inner {
+    border-radius: 20px;
+    border: 1px solid transparent;
+    box-shadow: 0 2px 2px 0 #cfe1fb;
+  }
+  &::v-deep .el-input__suffix {
+    right: 10px;
+  }
+  &::v-deep .el-input__suffix-inner {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    cursor: pointer;
+  }
+  .search-icon {
+    font-size: 14px;
+  }
 }
 
 .search-wrapper {
@@ -406,6 +493,61 @@ export default {
 
 .search-history-item:hover {
   background-color: #f5f7fa;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-history-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e4e6ef;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: 6px;
+}
+
+.clear-history-btn {
+  color: #909399;
+  font-size: 12px;
+  padding: 0;
+  height: auto;
+}
+
+.clear-history-btn:hover {
+  color: #606266;
+}
+
+.search-history-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.search-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #606266;
+}
+
+.search-history-item:hover {
+  background-color: #f5f7fa;
+}
+
+.search-history-item:hover .clear-item-icon {
+  visibility: visible;
+}
+
+.clear-item-icon:hover {
+  color: #ff4949;
 }
 
 .clear-item-icon {
