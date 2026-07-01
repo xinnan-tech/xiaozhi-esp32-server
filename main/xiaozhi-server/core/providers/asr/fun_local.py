@@ -50,6 +50,7 @@ class ASRProvider(ASRProviderBase):
         self.interface_type = InterfaceType.LOCAL
         self.model_dir = config.get("model_dir")
         self.output_dir = config.get("output_dir")  # 修正配置键名
+        self.language = config.get("language", "auto")
         self.delete_audio_file = delete_audio_file
 
         # 确保输出目录存在
@@ -80,7 +81,7 @@ class ASRProvider(ASRProviderBase):
                     self.model.generate,
                     input=artifacts.pcm_bytes,
                     cache={},
-                    language="auto",
+                    language=self.language,
                     use_itn=True,
                     batch_size_s=60,
                 )
