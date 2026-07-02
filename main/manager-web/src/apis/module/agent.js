@@ -18,6 +18,37 @@ export default {
                 });
             }).send();
     },
+    // 取 agent 扩展字段
+    getExt(agentId, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/${agentId}/ext`)
+            .method('GET')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.getExt(agentId, callback);
+                });
+            }).send();
+    },
+    // 整体覆盖 agent 扩展字段
+    saveExt(agentId, extObj, callback) {
+        RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/${agentId}/ext`)
+            .method('PUT')
+            .data(extObj)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail(() => {
+                RequestService.reAjaxFun(() => {
+                    this.saveExt(agentId, extObj, callback);
+                });
+            }).send();
+    },
     // 添加智能体
     addAgent(agentName, callback) {
         RequestService.sendRequest()
