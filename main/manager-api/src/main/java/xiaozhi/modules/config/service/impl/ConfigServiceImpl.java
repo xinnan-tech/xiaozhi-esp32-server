@@ -34,6 +34,10 @@ import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.agent.service.UserPersonaAssignmentService;
+import xiaozhi.modules.agent.entity.AgentExtEntity;
+import xiaozhi.modules.agent.service.AgentExtService;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import xiaozhi.modules.correctword.service.CorrectWordFileService;
 import xiaozhi.modules.agent.vo.AgentVoicePrintVO;
 import xiaozhi.modules.correctword.vo.CorrectWordSimpleVO;
@@ -57,6 +61,7 @@ public class ConfigServiceImpl implements ConfigService {
     private final ModelConfigService modelConfigService;
     private final AgentService agentService;
     private final UserPersonaAssignmentService userPersonaAssignmentService;
+    private final AgentExtService agentExtService;
     private final AgentTemplateService agentTemplateService;
     private final RedisUtils redisUtils;
     private final TimbreService timbreService;
@@ -223,8 +228,10 @@ public class ConfigServiceImpl implements ConfigService {
         // 获取声纹信息
         buildVoiceprintConfig(agent.getId(), result);
 
-        // 解析该用户的匹配角色(有则覆盖 prompt,无则回退设备绑定 agent)
-        String prompt = resolveUserPersonaPrompt(device, agent);
+        // 解析生效 agent(匹配角色有则覆盖,无则回退设备绑定 agent);prompt + ext 都从生效 agent 取
+        AgentEntity effectiveAgent = resolveEffectiveAgent(device, agent);
+        String prompt = effectiveAgent.getSystemPrompt();
+        prompt = applyExtToPrompt(prompt, effectiveAgent.getId());
 
         // 构建模块配置
         buildModuleConfig(
@@ -266,16 +273,16 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     /**
-     * 取该用户当前匹配角色的 system_prompt;无映射或映射角色无效则回退设备绑定 agent。
+     * 解析「生效 agent」:匹配角色(有且有效)则用它,否则回退设备绑定 agent。
+     * prompt 与 ext 都从生效 agent 取,保证话术与其扩展字段同源。
      */
-    private String resolveUserPersonaPrompt(DeviceEntity device, AgentEntity fallbackAgent) {
-        String fallback = fallbackAgent.getSystemPrompt();
+    private AgentEntity resolveEffectiveAgent(DeviceEntity device, AgentEntity fallbackAgent) {
         if (device == null || device.getUserId() == null) {
-            return fallback;
+            return fallbackAgent;
         }
         UserPersonaAssignmentEntity a = userPersonaAssignmentService.getByUserId(device.getUserId());
         if (a == null || a.getAgentId() == null) {
-            return fallback;
+            return fallbackAgent;
         }
         // getAgentById 在 agent 不存在(被删除/LLM 返回非法 id)时会抛 RenException,
         // 此处必须回退设备 agent,绝不能让异常冒泡导致设备连不上。
@@ -286,9 +293,31 @@ public class ConfigServiceImpl implements ConfigService {
             matched = null;
         }
         if (matched != null && matched.getSystemPrompt() != null && !matched.getSystemPrompt().isBlank()) {
-            return matched.getSystemPrompt();
+            return matched;
         }
-        return fallback;
+        return fallbackAgent;
+    }
+
+    /**
+     * 把 system_prompt 里的 {{ext.key}} 替换成该 agent 的 ext 值;没值的占位符清空(不漏给 LLM)。
+     */
+    private String applyExtToPrompt(String prompt, String agentId) {
+        if (prompt == null || agentId == null) {
+            return prompt;
+        }
+        AgentExtEntity ext = agentExtService.getByAgentId(agentId);
+        if (ext != null && ext.getExtJson() != null && !ext.getExtJson().isBlank()) {
+            try {
+                JSONObject m = JSONUtil.parseObj(ext.getExtJson());
+                for (String k : m.keySet()) {
+                    prompt = prompt.replace("{{ext." + k + "}}", m.getStr(k));
+                }
+            } catch (Exception ignore) {
+                // ext_json 解析失败:当无 ext 处理,不影响主流程
+            }
+        }
+        // 清掉没值的 {{ext.*}},避免原始占位符漏给 LLM
+        return prompt.replaceAll("\\{\\{ext\\.[^}]*\\}\\}", "");
     }
 
     /**
