@@ -129,6 +129,18 @@
 
                     <el-form-item>
                       <template #label>
+                        <span>扩展字段</span>
+                      </template>
+                      <div v-for="(item, idx) in (form.extFields || [])" :key="idx" style="margin-bottom:6px;">
+                        <el-input v-model="item.key" placeholder="字段名 如 age_group" style="width:35%;" />
+                        <el-input v-model="item.value" placeholder="值 如 5岁" style="width:45%;margin-left:4px;" />
+                        <el-button type="danger" size="small" style="margin-left:4px;" @click="form.extFields.splice(idx,1)">删</el-button>
+                      </div>
+                      <el-button size="small" @click="form.extFields.push({key:'',value:''})">+ 添加字段</el-button>
+                    </el-form-item>
+
+                    <el-form-item>
+                      <template #label>
                         <el-tooltip :content="$t('roleConfig.tooltip.memoryHis')" placement="top" effect="light" popper-class="custom-tooltip">
                           <span>{{ $t('roleConfig.memoryHis') }}：</span>
                         </el-tooltip>
@@ -497,6 +509,7 @@ export default {
         ttsPitch: null,
         chatHistoryConf: 0,
         systemPrompt: "",
+        extFields: [],
         summaryMemory: "",
         langCode: "",
         language: "",
@@ -602,6 +615,10 @@ export default {
       if (this.form.ttsPitch !== null && this.form.ttsPitch !== undefined) {
         configData.ttsPitch = this.form.ttsPitch;
       }
+      // 保存扩展字段
+      const extObj = {};
+      (this.form.extFields || []).forEach(f => { if (f.key) extObj[f.key] = f.value; });
+      Api.agent.saveExt(this.$route.query.agentId, extObj, () => {});
       Api.agent.updateAgentConfig(this.$route.query.agentId, configData, ({ data }) => {
         if (data.code === 0) {
           this.$message.success({
@@ -630,6 +647,7 @@ export default {
             ttsVoiceId: "",
             chatHistoryConf: 0,
             systemPrompt: "",
+        extFields: [],
             summaryMemory: "",
             langCode: "",
             language: "",
@@ -721,6 +739,13 @@ export default {
               intentModelId: data.data.intentModelId,
             },
           };
+
+          // 加载扩展字段
+          this.form.extFields = [];
+          Api.agent.getExt(agentId, ({ data }) => {
+            const obj = data && data.code === 0 && data.data ? data.data : {};
+            this.form.extFields = Object.keys(obj).map(k => ({ key: k, value: obj[k] }));
+          });
 
           // 同步TTS设置到ttsSettings
           this.ttsSettings = {
