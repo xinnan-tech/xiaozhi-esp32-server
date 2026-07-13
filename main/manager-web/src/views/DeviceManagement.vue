@@ -103,6 +103,14 @@ import VersionFooter from "@/components/VersionFooter.vue";
 import MacAddressMask from "@/components/MacAddressMask.vue";
 import CustomButton from "@/components/CustomButton.vue";
 import CustomTable from "@/components/CustomTable.vue";
+import {
+  compareTimestamps,
+  formatCreateDate,
+  formatTimestamp,
+  hasTimestampValue,
+  parseLegacyDate,
+  parseTimestamp,
+} from '@/utils/deviceTime.mjs';
 
 export default {
   components: {
@@ -327,26 +335,31 @@ export default {
         this.loading = false;
         if (data.code === 0) {
           this.deviceList = data.data.map(device => {
+            const hasCreateDateTimestamp = hasTimestampValue(device.createDateTimestamp);
+            const rawBindTime = hasCreateDateTimestamp
+              ? parseTimestamp(device.createDateTimestamp)
+              : parseLegacyDate(device.createDate);
             return {
               device_id: device.id,
               model: device.board,
               firmwareVersion: device.appVersion,
               macAddress: device.macAddress,
-              bindTime: device.createDate,
-              lastConversation: device.lastConnectedAtTimestamp
-                ? this.formatRelativeTime(device.lastConnectedAtTimestamp)
-                : '-',
+              bindTime: formatCreateDate(device.createDateTimestamp, device.createDate),
+              lastConversation: formatTimestamp(device.lastConnectedAtTimestamp),
               remark: device.alias,
               _originalRemark: device.alias,
               isEdit: false,
               _submitting: false,
               otaSwitch: device.autoUpdate === 1,
-              rawBindTime: new Date(device.createDate).getTime(),
+              rawBindTime,
               selected: false,
               deviceStatus: 'offline'
             };
           })
-            .sort((a, b) => a.rawBindTime - b.rawBindTime);
+            .sort((firstDevice, secondDevice) => compareTimestamps(
+              firstDevice.rawBindTime,
+              secondDevice.rawBindTime,
+            ));
           this.activeSearchKeyword = "";
           this.searchKeyword = "";
 
@@ -428,14 +441,6 @@ export default {
     isGenerate(row) {
       const version = row.firmwareVersion.replace(/\./g, '');
       return Number(version) >= 200;
-    },
-    formatRelativeTime(timestamp) {
-      if (!timestamp) return '-';
-      const ts = Number(timestamp);
-      if (isNaN(ts)) return '-';
-      const date = new Date(ts);
-      if (isNaN(date.getTime())) return '-';
-      return date.toLocaleString();
     },
   }
 };

@@ -304,15 +304,20 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
     @Override
     public List<UserShowDeviceListVO> getUserDeviceList(Long userId, String agentId) {
         List<DeviceEntity> devices = getUserDevices(userId, agentId);
-        return devices.stream().map(device -> {
-            UserShowDeviceListVO vo = ConvertUtils.sourceToTarget(device, UserShowDeviceListVO.class);
-            vo.setDeviceType(device.getBoard());
-            // 设置UTC时间戳供前端使用时区转换
-            if (device.getLastConnectedAt() != null) {
-                vo.setLastConnectedAtTimestamp(device.getLastConnectedAt().getTime());
-            }
-            return vo;
-        }).toList();
+        return devices.stream().map(this::toUserShowDeviceListVO).toList();
+    }
+
+    private UserShowDeviceListVO toUserShowDeviceListVO(DeviceEntity device) {
+        UserShowDeviceListVO vo = ConvertUtils.sourceToTarget(device, UserShowDeviceListVO.class);
+        vo.setDeviceType(device.getBoard());
+        vo.setBoard(device.getBoard());
+        vo.setCreateDateTimestamp(toTimestamp(device.getCreateDate()));
+        vo.setLastConnectedAtTimestamp(toTimestamp(device.getLastConnectedAt()));
+        return vo;
+    }
+
+    private Long toTimestamp(Date date) {
+        return date == null ? null : date.getTime();
     }
 
     @Override
@@ -385,17 +390,11 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
                         .like(StringUtils.isNotBlank(dto.getKeywords()), "alias", dto.getKeywords()));
         // 循环处理page获取回来的数据，返回需要的字段
         List<UserShowDeviceListVO> list = page.getRecords().stream().map(device -> {
-            UserShowDeviceListVO vo = ConvertUtils.sourceToTarget(device, UserShowDeviceListVO.class);
+            UserShowDeviceListVO vo = toUserShowDeviceListVO(device);
             // 把最后修改的时间，改为简短描述的时间
             vo.setRecentChatTime(DateUtils.getShortTime(device.getUpdateDate()));
             sysUserUtilService.assignUsername(device.getUserId(),
                     vo::setBindUserName);
-            vo.setDeviceType(device.getBoard());
-            vo.setBoard(device.getBoard());
-            // 设置UTC时间戳供前端使用时区转换
-            if (device.getLastConnectedAt() != null) {
-                vo.setLastConnectedAtTimestamp(device.getLastConnectedAt().getTime());
-            }
             return vo;
         }).toList();
         // 计算页数

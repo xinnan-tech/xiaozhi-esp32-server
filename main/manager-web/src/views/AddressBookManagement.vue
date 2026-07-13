@@ -120,7 +120,7 @@
                 <i class="el-icon-time"></i>
                 <div class="stat-content">
                   <div class="stat-label">{{ $t('addressBookManagement.addTime') }}</div>
-                  <div class="stat-value">{{ selectedDevice.createDate || '-' }}</div>
+                  <div class="stat-value">{{ formatDeviceCreateDate(selectedDevice) }}</div>
                 </div>
               </div>
               <div class="stat-item">
@@ -207,6 +207,7 @@ import Api from "@/apis/api.js";
 import AddressBookApi from "@/apis/module/addressBook.js";
 import MacAddressMask from "@/components/MacAddressMask.vue";
 import CustomButton from "@/components/CustomButton.vue";
+import { formatCreateDate, parseTimestamp } from '@/utils/deviceTime.mjs';
 
 export default {
   name: "AddressBookManagement",
@@ -281,6 +282,7 @@ export default {
                   remarks: device.alias || '',
                   online: false,
                   createDate: device.createDate,
+                  createDateTimestamp: device.createDateTimestamp,
                   lastConnectedAt: device.lastConnectedAtTimestamp,
                   deviceStatus: 'offline'
                 }));
@@ -526,9 +528,10 @@ export default {
       this.isEditingAgentName = false;
     },
     getTimeAgo(timestamp) {
-      if (!timestamp) return '-';
+      const ts = parseTimestamp(timestamp);
+      if (ts === null) return '-';
       const now = new Date();
-      const date = new Date(Number(timestamp));
+      const date = new Date(ts);
       const diff = now - date;
 
       const seconds = Math.floor(diff / 1000);
@@ -544,6 +547,10 @@ export default {
       if (days < 30) return this.$t('addressBookManagement.daysAgo', { days });
       if (months < 12) return this.$t('addressBookManagement.monthsAgo', { months });
       return this.$t('addressBookManagement.yearsAgo', { years });
+    },
+    formatDeviceCreateDate(device) {
+      if (!device) return '-';
+      return formatCreateDate(device.createDateTimestamp, device.createDate);
     },
     getDeviceAvatar(deviceId) {
       // 根据 deviceId 计算 MD5，选择对应的头像
