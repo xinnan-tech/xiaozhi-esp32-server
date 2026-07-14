@@ -45,6 +45,7 @@ from core.utils.prompt_manager import PromptManager
 from core.utils.voiceprint_provider import VoiceprintProvider
 from core.utils.util import get_system_error_response
 from core.utils import textUtils
+from core.connection_initialization import wait_for_bind_status
 
 
 TAG = __name__
@@ -346,12 +347,15 @@ class ConnectionHandler:
         """消息路由"""
         # 检查是否已经获取到真实的绑定状态
         if not self.bind_completed_event.is_set():
-            # 还没有获取到真实状态，等待直到获取到真实状态或超时
-            try:
-                await asyncio.wait_for(self.bind_completed_event.wait(), timeout=1)
-            except asyncio.TimeoutError:
-                # 超时仍未获取到真实状态，丢弃消息
-                await self._discard_message_with_bind_prompt()
+            # 高并发下差异化配置查询可能超过 1 秒。hello 是一次性消息，
+            # 不能在初始化尚未完成时静默丢弃，否则客户端会一直等待 hello 响应。
+            if not await wait_for_bind_status(self.bind_completed_event, self.config):
+                self.logger.bind(tag=TAG).warning(
+                    "等待设备绑定状态超时，关闭连接以便客户端重试"
+                )
+                await self.websocket.close(
+                    code=1013, reason="device configuration is still initializing"
+                )
                 return
 
         # 已经获取到真实状态，检查是否需要绑定
@@ -837,8 +841,7 @@ class ConnectionHandler:
                 f"{time.time() - begin_time} 秒，异步获取差异化配置成功: {json.dumps(filter_sensitive_info(private_config), ensure_ascii=False)}"
             )
             self.need_bind = False
-            self.bind_completed_event.set()
-        except DeviceNotFoundException as e:
+        except DeviceNotFoundException:
             self.need_bind = True
             private_config = {}
         except DeviceBindException as e:
@@ -849,6 +852,10 @@ class ConnectionHandler:
             self.need_bind = True
             self.logger.bind(tag=TAG).error(f"异步获取差异化配置失败: {e}")
             private_config = {}
+        finally:
+            # 该事件表示“绑定状态已知”，与后续模块初始化分离。
+            # 异常和需要绑定的分支也必须唤醒正在等待的首条消息。
+            self.bind_completed_event.set()
 
         init_llm, init_tts, init_memory, init_intent = (
             False,
