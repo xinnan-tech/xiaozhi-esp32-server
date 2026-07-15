@@ -43,6 +43,8 @@ import xiaozhi.modules.agent.vo.AgentVoicePrintVO;
 import xiaozhi.modules.correctword.vo.CorrectWordSimpleVO;
 import xiaozhi.modules.config.service.ConfigService;
 import xiaozhi.modules.device.entity.DeviceEntity;
+import xiaozhi.modules.device.entity.DeviceExtEntity;
+import xiaozhi.modules.device.service.DeviceExtService;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
@@ -71,6 +73,7 @@ public class ConfigServiceImpl implements ConfigService {
     private final VoiceCloneService cloneVoiceService;
     private final AgentVoicePrintDao agentVoicePrintDao;
     private final CorrectWordFileService correctWordFileService;
+    private final DeviceExtService deviceExtService;
 
     @Override
     public Object getConfig(Boolean isCache) {
@@ -228,10 +231,8 @@ public class ConfigServiceImpl implements ConfigService {
         // 获取声纹信息
         buildVoiceprintConfig(agent.getId(), result);
 
-        // 解析生效 agent(匹配角色有则覆盖,无则回退设备绑定 agent);prompt + ext 都从生效 agent 取
-        AgentEntity effectiveAgent = resolveEffectiveAgent(device, agent);
-        String prompt = effectiveAgent.getSystemPrompt();
-        prompt = applyExtToPrompt(prompt, effectiveAgent.getId());
+        // 解析生效 prompt:优先乐宝模板(matched_template_id)+设备ext注入;否则设备绑定agent+agent_ext注入
+        String prompt = resolveEffectivePrompt(device, agent);
 
         // 构建模块配置
         buildModuleConfig(
@@ -270,6 +271,61 @@ public class ConfigServiceImpl implements ConfigService {
         return items.stream()
                 .map(item -> item.getSourceWord() + "|" + item.getTargetWord())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 解析生效 prompt:优先乐宝模板(matched_template_id)+ 设备ext注入;
+     * 否则回退设备绑定 agent(现有 resolveEffectiveAgent)+ agent_ext 注入。
+     * 模板路径追加个性化设定块 {{ext.*}} 由设备ext填充;agent 路径沿用现有 agent_ext。
+     */
+    private String resolveEffectivePrompt(DeviceEntity device, AgentEntity fallbackAgent) {
+        if (device != null && device.getUserId() != null) {
+            UserPersonaAssignmentEntity a = userPersonaAssignmentService.getByUserId(device.getUserId());
+            if (a != null && a.getMatchedTemplateId() != null && !a.getMatchedTemplateId().isBlank()) {
+                AgentTemplateEntity tpl = agentTemplateService.getById(a.getMatchedTemplateId());
+                if (tpl != null && tpl.getSystemPrompt() != null && !tpl.getSystemPrompt().isBlank()) {
+                    String prompt = appendPersonalizationBlock(tpl.getSystemPrompt());
+                    return applyDeviceExtToPrompt(prompt, device.getId());
+                }
+            }
+        }
+        // 回退:设备绑定 agent(prompt + agent_ext 注入,现有行为)
+        AgentEntity effective = resolveEffectiveAgent(device, fallbackAgent);
+        return applyExtToPrompt(effective.getSystemPrompt(), effective.getId());
+    }
+
+    /**
+     * 给乐宝模板 prompt 追加个性化设定块(不改原 prompt),占位符由设备ext填充。
+     */
+    private String appendPersonalizationBlock(String prompt) {
+        return prompt + "\n\n【个性化设定】\n"
+                + "- 孩子年龄段：{{ext.childAgeRange}}\n"
+                + "- 孩子性格：{{ext.childPersonality}}\n"
+                + "- 家长期望：{{ext.parentGoals}}\n"
+                + "- 家长关注：{{ext.parentConcerns}}\n"
+                + "- 内容偏好：{{ext.contentPreference}}";
+    }
+
+    /**
+     * 从 ai_device_ext 取值替换 {{ext.key}}(设备级扩展字段:孩子信息+家长期望)。
+     * 没值的占位符清空,避免漏给 LLM。
+     */
+    private String applyDeviceExtToPrompt(String prompt, String deviceId) {
+        if (prompt == null || deviceId == null) {
+            return prompt;
+        }
+        DeviceExtEntity ext = deviceExtService.getByDeviceId(deviceId);
+        if (ext != null && ext.getExtJson() != null && !ext.getExtJson().isBlank()) {
+            try {
+                JSONObject m = JSONUtil.parseObj(ext.getExtJson());
+                for (String k : m.keySet()) {
+                    prompt = prompt.replace("{{ext." + k + "}}", m.getStr(k));
+                }
+            } catch (Exception ignore) {
+                // ext_json 解析失败:当无 ext 处理,不影响主流程
+            }
+        }
+        return prompt.replaceAll("\\{\\{ext\\.[^}]*\\}\\}", "");
     }
 
     /**

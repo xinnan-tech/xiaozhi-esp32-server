@@ -75,10 +75,17 @@ services:
       - SPRING_DATASOURCE_DRUID_PASSWORD=123456
       - SPRING_DATA_REDIS_HOST=xiaozhi-esp32-server-redis
       - SPRING_DATA_REDIS_PASSWORD=
+      # 钉钉兜底通知(从宿主机环境变量注入,不写死密钥)
+      - DINGTALK_WEBHOOK=${DINGTALK_WEBHOOK:-}
+      - DINGTALK_SECRET=${DINGTALK_SECRET:-}
+      # 成长服务画像库路径(容器内经 :ro 挂载)
+      - GROWTH_PROFILE_DB_PATH=/var/sqllit/growth_service.db
       - SPRING_DATA_REDIS_PORT=6379
     volumes:
       # 上传文件目录
       - ./uploadfile:/uploadfile
+      # 成长服务画像库(只读,manager-api 直读 growth_service.db)
+      - /var/sqllit:/var/sqllit:ro
 
   # 数据库模块
   xiaozhi-esp32-server-db:

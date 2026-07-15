@@ -43,6 +43,14 @@ renren:
     enabled: true
     exclude-urls:
 
+# 成长服务画像库(宿主机 /var/sqllit/growth_service.db,容器内只读挂载)
+growth:
+  profile-db-path: ${GROWTH_PROFILE_DB_PATH:/var/sqllit/growth_service.db}
+  # 钉钉群机器人(角色不足兜底通知)。webhook/secret 通过环境变量注入,不落库明文。
+  # 安全模式:secret 非空=加签(自动追加 timestamp+sign);为空=自定义关键字「角色匹配」。
+  dingtalk-webhook: ${DINGTALK_WEBHOOK:}
+  dingtalk-secret: ${DINGTALK_SECRET:}
+
 #mybatis
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
