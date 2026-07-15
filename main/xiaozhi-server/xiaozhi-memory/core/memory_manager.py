@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 from enum import Enum
 
 from memories.base import (
-    BaseMemory, FactMemory, IntentionMemory, PreferenceMemory,
+    BaseMemory, FactMemory, IntentionMemory, PreferenceMemory, DangerMemory,
     MemoryType, IntentionStatus
 )
 from stores.sqlite_store import SQLiteStore
@@ -72,9 +72,9 @@ class MemoryManager:
         messages: List[Dict[str, str]],
         device_id: str,
         user_id: Optional[str] = None
-    ) -> Dict[str, int]:
+    ) -> Dict[str, Any]:
         """
-        添加记忆
+        添加记忆（含危险行为检测）
 
         Args:
             messages: 消息列表 [{"role": "user", "content": "..."}]
@@ -82,7 +82,8 @@ class MemoryManager:
             user_id: 用户ID（可选）
 
         Returns:
-            {"added": 0, "updated": 0, "skipped": 0}
+            当 LLM 提取启用时返回 {"added": int, "updated": int, "skipped": int, "dangers": [DangerMemory]}
+            规则模式返回 {"added": int, "updated": int, "skipped": int}
         """
         # 格式化消息
         formatted_messages = self._format_messages(messages)
@@ -91,7 +92,7 @@ class MemoryManager:
 
         # 判断是否使用 LLM 提取
         if self.llm_client and self.extraction_config.get("enabled", False):
-            return await self._add_memory_with_llm(formatted_messages, device_id, user_id)
+            return await self._add_memory_with_llm_and_detect_danger(formatted_messages, device_id, user_id)
         else:
             return await self._add_memory_with_rules(formatted_messages, device_id, user_id)
 
@@ -160,6 +161,66 @@ class MemoryManager:
                 self._session_extracted.append(fact.get("content", ""))
 
                 results["added"] += 1
+
+        return results
+
+    async def _add_memory_with_llm_and_detect_danger(
+        self,
+        messages: List[Dict[str, str]],
+        device_id: str,
+        user_id: Optional[str]
+    ) -> Dict[str, Any]:
+        """使用 LLM 提取记忆，同时检测危险行为
+
+        Returns:
+            {"added": int, "updated": int, "skipped": int, "dangers": [DangerMemory, ...]}
+        """
+        results = {"added": 0, "updated": 0, "skipped": 0, "dangers": []}
+
+        context = await self._build_extraction_context(device_id, user_id, messages)
+        conversation = self._build_conversation_text(messages)
+
+        try:
+            raw = await self.llm_client.extract_facts(conversation, context, return_raw=True)
+        except Exception as e:
+            import logging
+            logging.error(f"[xiaozhi-memory] LLM extraction failed, falling back to rule-based: {e}")
+            return await self._add_memory_with_rules(messages, device_id, user_id)
+
+        # 处理 facts
+        for fact in raw.get("facts", []):
+            existing = await self._find_duplicate(fact.get("content", ""), device_id, user_id)
+            if existing:
+                results["updated"] += 1
+            else:
+                memory = self._fact_to_memory(fact, device_id, user_id)
+                self.store.add(memory)
+                self._session_extracted.append(fact.get("content", ""))
+                results["added"] += 1
+
+        # 处理 dangers
+        for d in raw.get("dangers", []):
+            danger_content = d.get("content", "")
+            if not danger_content:
+                continue
+            existing = await self._find_duplicate(danger_content, device_id, user_id)
+            if existing:
+                results["updated"] += 1
+            else:
+                memory = DangerMemory(
+                    id=str(uuid.uuid4()),
+                    device_id=device_id,
+                    user_id=user_id,
+                    content=danger_content,
+                    danger_level=d.get("danger_level", "low"),
+                    danger_category=d.get("danger_category", "other"),
+                    severity_score=d.get("severity_score", 0.0),
+                    already_notified=False,
+                )
+                self.store.add(memory)
+                self._session_extracted.append(danger_content)
+                results["added"] += 1
+                results["dangers"].append(memory)
 
         return results
 

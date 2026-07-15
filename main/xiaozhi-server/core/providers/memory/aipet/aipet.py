@@ -2,6 +2,7 @@ import json
 import sys
 import os
 import asyncio
+import aiohttp
 from datetime import datetime
 
 from ..base import MemoryProviderBase, logger
@@ -272,7 +273,7 @@ class MemoryProvider(MemoryProviderBase):
             logger.bind(tag=TAG).error(f"初始化 aipet 记忆服务失败: {e}")
 
     async def save_memory(self, msgs, session_id=None):
-        """保存记忆"""
+        """保存记忆并检测危险行为"""
         if not self.manager or not self.role_id:
             return
 
@@ -290,14 +291,12 @@ class MemoryProvider(MemoryProviderBase):
                     continue
 
                 # Extract content from JSON format if present (for ASR with emotion/language tags)
-                # Same logic as in query_memory method
                 try:
                     if content and content.strip().startswith("{") and content.strip().endswith("}"):
                         data = json.loads(content)
                         if "content" in data:
                             content = data["content"]
                 except (json.JSONDecodeError, KeyError, TypeError):
-                    # If parsing fails, use original content
                     pass
 
                 messages.append({"role": msg.role, "content": content})
@@ -305,10 +304,105 @@ class MemoryProvider(MemoryProviderBase):
             # role_id 作为 device_id，user_id 可选
             result = await self.manager.add_memory(messages, device_id=self.role_id, user_id=None)
             logger.bind(tag=TAG).debug(f"Save memory result: {result}")
+
+            # 处理危险行为检测结果
+            dangers = result.get("dangers", [])
+            if dangers:
+                logger.bind(tag=TAG).warning(f"检测到 {len(dangers)} 条危险行为记录!")
+                await self._notify_danger(dangers)
         except Exception as e:
             logger.bind(tag=TAG).error(f"保存记忆失败: {str(e)}")
 
         return None
+
+    async def _notify_danger(self, dangers):
+        """推送危险行为通知到外部 API"""
+        danger_alert_config = self.config.get("danger_alert", {})
+        api_url = danger_alert_config.get("api_url")
+        api_key = danger_alert_config.get("api_key")
+        if not api_url or not api_key:
+            logger.bind(tag=TAG).warning("危险通知未配置 api_url/api_key，跳过推送")
+            return
+
+        for danger in dangers:
+            if danger.already_notified:
+                continue
+
+            danger_level = danger.danger_level
+            severity = danger.severity_score
+            category = danger.danger_category
+
+            title_map = {
+                "low": "安全提醒",
+                "medium": "安全警告",
+                "high": "危险预警",
+                "critical": "严重危险警告",
+            }
+            title = title_map.get(danger_level, "安全提醒")
+
+            payload = {
+                "subType": "danger_alert",
+                "title": title,
+                "content": f"检测到危险行为：{danger.content}（等级：{danger_level}，类型：{category}）",
+                "iconUrl": None,
+                "deviceId": self.role_id,
+                "metadata": {
+                    "dangerLevel": danger_level,
+                    "severityScore": severity,
+                    "dangerCategory": category,
+                    "detail": danger.content,
+                }
+            }
+
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        api_url,
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-api-key": api_key,
+                        },
+                        json=payload,
+                        timeout=aiohttp.ClientTimeout(total=10),
+                    ) as resp:
+                        if resp.status == 200:
+                            logger.bind(tag=TAG).info(f"危险通知推送成功: {danger.content[:50]}...")
+                        else:
+                            text = await resp.text()
+                            logger.bind(tag=TAG).error(f"危险通知推送失败: status={resp.status} body={text}")
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"危险通知请求异常: {e}")
+
+    async def query_danger_warnings(self) -> str:
+        """查询近期未处理的高危记录，注入系统提示词"""
+        if not self.manager or not self.role_id:
+            return ""
+        try:
+            from memories.base import MemoryType
+            from memories.base import DangerMemory
+
+            all_memories = self.manager.store.get_by_device(self.role_id, user_id=None)
+            recent_dangers = [
+                m for m in all_memories
+                if isinstance(m, DangerMemory)
+                and m.severity_score >= 0.3
+            ][:5]
+
+            if not recent_dangers:
+                return ""
+
+            lines = []
+            for d in recent_dangers:
+                level_icon = {"low": "⚠️", "medium": "⚠️", "high": "🚨", "critical": "🚨"}
+                icon = level_icon.get(d.danger_level, "⚠️")
+                lines.append(f"{icon} [{d.danger_level}] {d.content}")
+
+            result = "\n".join(lines)
+            logger.bind(tag=TAG).info(f"[危险记录] 注入 {len(recent_dangers)} 条到系统提示词")
+            return result
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"查询危险记录失败: {e}")
+            return ""
 
     async def query_memory(self, query: str) -> str:
         if not self.manager:
@@ -327,6 +421,7 @@ class MemoryProvider(MemoryProviderBase):
             except (json.JSONDecodeError, KeyError):
                 pass
 
+            logger.bind(tag=TAG).info(f"[检索] 开始: query='{search_query}', device={self.role_id}")
             # role_id 作为 device_id，user_id 为 None（设备级记忆）
             memories = await self.manager.search(
                 query=search_query,
@@ -336,11 +431,12 @@ class MemoryProvider(MemoryProviderBase):
             )
 
             if not memories:
+                logger.bind(tag=TAG).info(f"[检索] 完成: 0 条匹配（无记忆注入）")
                 return ""
 
             # Format each memory entry
             memories_str = "\n".join([f"- {m.content}" for m in memories])
-            logger.bind(tag=TAG).debug(f"Query results: {memories_str}")
+            logger.bind(tag=TAG).info(f"[检索] 完成: {len(memories)} 条匹配 → {memories_str}")
             return memories_str
         except Exception as e:
             logger.bind(tag=TAG).error(f"查询记忆失败: {str(e)}")
@@ -360,25 +456,37 @@ class MemoryProvider(MemoryProviderBase):
         return "[近期]"
 
     async def get_today_schedule(self) -> str:
-        """获取当天及近期日程，注入半稳定系统提示词"""
-        if not self.manager or not getattr(self, "role_id", None):
+        """获取当天及近期日程，以及高危行为警告，注入半稳定系统提示词"""
+        parts = []
+
+        # 获取日程
+        if self.manager and getattr(self, "role_id", None):
+            try:
+                intentions = await self.manager.get_upcoming_intentions(
+                    device_id=self.role_id, user_id=None, days=1
+                )
+                if intentions:
+                    today = datetime.now().date()
+                    lines = [
+                        f"- {self._format_when(it.planned_time, it.time_description, today)} {it.content}"
+                        for it in intentions
+                    ]
+                    parts.append("今日计划：\n" + "\n".join(lines))
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"查询日程失败: {str(e)}")
+
+            # 获取高危行为警告
+            try:
+                danger_str = await self.query_danger_warnings()
+                if danger_str:
+                    parts.append("安全提醒（需关注）：\n" + danger_str)
+            except Exception as e:
+                logger.bind(tag=TAG).error(f"查询危险记录失败: {str(e)}")
+
+        if not parts:
+            logger.bind(tag=TAG).debug(f"[日程/安全] 无内容注入")
             return ""
 
-        try:
-            intentions = await self.manager.get_upcoming_intentions(
-                device_id=self.role_id, user_id=None, days=1
-            )
-            if not intentions:
-                return ""
-
-            today = datetime.now().date()
-            lines = [
-                f"- {self._format_when(it.planned_time, it.time_description, today)} {it.content}"
-                for it in intentions
-            ]
-            schedule_str = "\n".join(lines)
-            logger.bind(tag=TAG).debug(f"今日日程: {schedule_str}")
-            return schedule_str
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"查询日程失败: {str(e)}")
-            return ""
+        result = "\n\n".join(parts)
+        logger.bind(tag=TAG).debug(f"今日日程/安全: {result[:200]}...")
+        return result

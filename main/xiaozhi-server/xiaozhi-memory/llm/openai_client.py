@@ -46,7 +46,8 @@ class OpenAIClient(LLMClient):
     async def extract_facts(
         self,
         conversation: str,
-        context: Dict[str, Any]
+        context: Dict[str, Any],
+        return_raw: bool = False
     ) -> List[Dict[str, Any]]:
         """
         从对话中提取事实
@@ -54,9 +55,10 @@ class OpenAIClient(LLMClient):
         Args:
             conversation: 对话文本
             context: 上下文信息
+            return_raw: 如果为 True，返回完整 JSON 对象（含 dangers 字段）
 
         Returns:
-            提取的事实列表
+            提取的事实列表，或完整 JSON 对象（return_raw=True 时）
         """
         from prompts.fact_extraction import FACT_EXTRACTION_PROMPT
 
@@ -80,6 +82,10 @@ class OpenAIClient(LLMClient):
             response = await self.client.chat.completions.create(**request_params)
 
             result = json.loads(response.choices[0].message.content)
+
+            if return_raw:
+                return result
+
             facts = result.get("facts", [])
 
             logger.info(f"Extracted {len(facts)} facts from conversation")
@@ -87,7 +93,7 @@ class OpenAIClient(LLMClient):
 
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse LLM response as JSON: {e}")
-            return []
+            return [] if not return_raw else {"facts": [], "dangers": []}
         except Exception as e:
             logger.error(f"Failed to extract facts: {e}")
             raise

@@ -14,6 +14,7 @@ class MemoryType(str, Enum):
     INTENTION = "intention"
     PREFERENCE = "preference"
     PROFILE = "profile"
+    DANGER = "danger"
 
 
 class MemoryStatus(str, Enum):
@@ -86,6 +87,15 @@ class PreferenceMemory(BaseMemory):
     type: MemoryType = MemoryType.PREFERENCE
     preference_type: Optional[str] = None  # food, music, movie, etc.
     preference_value: Optional[str] = None  # like, dislike, neutral
+
+
+class DangerMemory(BaseMemory):
+    """危险行为记录"""
+    type: MemoryType = MemoryType.DANGER
+    danger_level: str = "low"  # low, medium, high, critical
+    danger_category: Optional[str] = None  # physical, fire, electric, traffic, stranger, sharp_object, medicine, height, water, other
+    severity_score: float = 0.0  # 0.0 ~ 1.0
+    already_notified: bool = False  # 是否已推送通知
 
 
 class UserProfile(BaseMemory):

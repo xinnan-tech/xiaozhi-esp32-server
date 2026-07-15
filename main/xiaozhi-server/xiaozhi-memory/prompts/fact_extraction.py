@@ -2,7 +2,7 @@
 事实提取提示词模板
 """
 
-FACT_EXTRACTION_PROMPT = """你是一个个人信息提取助手。从对话中提取相关事实、记忆、偏好和意图。
+FACT_EXTRACTION_PROMPT = """你是一个个人信息提取助手。从对话中提取相关事实、记忆、偏好、意图和危险行为信号。
 
 CRITICAL 规则（按优先级）:
 1. TEMPORAL (时间): 始终提取时间信息。将相对时间转换为绝对时间，同时保留原始时间描述
@@ -34,6 +34,20 @@ CRITICAL 规则（按优先级）:
 - INTENTION: 未来的计划和意图（"明天要去开会"）
 - PREFERENCE: 偏好（"喜欢喝咖啡"）
 
+危险行为检测（重要）:
+分析对话中是否包含儿童危险行为信号。如果发现以下任何情况，在 dangers 数组中记录：
+- 身体安全: 攀爬高处、玩尖锐物品、接触电源、玩火、在马路玩耍
+- 饮食安全: 误食异物、药品、清洁剂等
+- 心理安全: 自伤言论、严重情绪低落、被欺凌、恐惧社交
+- 居家安全: 玩燃气灶、窗户攀爬、接触热水、玩塑料袋
+- 外出安全: 跟陌生人走、走失、独自过马路、玩电梯
+- 其他危险: 任何可能造成身体或心理伤害的行为倾向
+
+每个危险记录包含:
+- content: 具体描述（什么危险、上下文、频率）
+- danger_level: "low"|"medium"|"high"|"critical"
+- danger_category: "physical"|"fire"|"electric"|"traffic"|"stranger"|"sharp_object"|"medicine"|"height"|"water"|"choking"|"psychological"|"other"
+
 输出格式:
 {{
   "facts": [
@@ -44,8 +58,24 @@ CRITICAL 规则（按优先级）:
       "intention_type": "meeting|travel|task|purchase|appointment|...",
       "linked_memory_ids": ["uuid1", "uuid2"]
     }}
+  ],
+  "dangers": [
+    {{
+      "content": "危险行为描述（什么危险、上下文、频率）",
+      "danger_level": "low|medium|high|critical",
+      "danger_category": "physical|fire|electric|traffic|stranger|sharp_object|medicine|height|water|choking|psychological|other",
+      "severity_score": 0.0
+    }}
   ]
 }}
+
+severity_score 评估标准:
+- 0.0-0.3: 轻微风险（如偶尔忘记关水龙头）
+- 0.3-0.5: 中等风险（如多次爬到高处拿东西）
+- 0.5-0.7: 高风险（如玩打火机、接触电源插座）
+- 0.7-1.0: 严重危险（如爬窗台、吃药品、自伤行为）
+
+如果未发现危险行为，dangers 数组为空 []。
 
 如果提取到与现有记忆相关的新记忆，在 linked_memory_ids 中添加相关记忆的ID。
 

@@ -101,7 +101,11 @@ class SQLiteStore(BaseStore):
                 total_memories INTEGER DEFAULT 0,
                 last_interaction TIMESTAMP,
                 first_met TIMESTAMP,
-                total_interaction_days INTEGER DEFAULT 0
+                total_interaction_days INTEGER DEFAULT 0,
+                danger_level TEXT DEFAULT 'low',
+                danger_category TEXT DEFAULT 'other',
+                severity_score REAL DEFAULT 0.0,
+                already_notified INTEGER DEFAULT 0
             )
         """)
 
@@ -198,6 +202,35 @@ class SQLiteStore(BaseStore):
                 getattr(memory, 'last_interaction', None),
                 getattr(memory, 'first_met', None),
                 getattr(memory, 'total_interaction_days', 0)
+            ))
+        elif memory.type.value == "danger":
+            # DangerMemory 类型
+            self.conn.execute("""
+                INSERT INTO memories (
+                    id, device_id, user_id, type, content, original_language,
+                    created_at, updated_at, status, importance,
+                    tokens, related_ids, metadata, time_info,
+                    danger_level, danger_category, severity_score, already_notified
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                memory.id,
+                memory.device_id,
+                memory.user_id,
+                memory.type.value,
+                memory.content,
+                memory.original_language,
+                memory.created_at,
+                memory.updated_at,
+                memory.status.value,
+                memory.importance,
+                tokens,
+                json.dumps(memory.related_ids),
+                json.dumps(memory.metadata),
+                json.dumps(memory.time_info) if memory.time_info else None,
+                getattr(memory, 'danger_level', 'low'),
+                getattr(memory, 'danger_category', 'other'),
+                getattr(memory, 'severity_score', 0.0),
+                1 if getattr(memory, 'already_notified', False) else 0,
             ))
         else:
             # 其他记忆类型
@@ -405,6 +438,14 @@ class SQLiteStore(BaseStore):
             common_data['confidence'] = row['confidence'] or 1.0
             from memories.base import FactMemory
             return FactMemory(**common_data)
+
+        elif memory_type == MemoryType.DANGER:
+            from memories.base import DangerMemory
+            common_data['danger_level'] = row['danger_level'] or "low"
+            common_data['danger_category'] = row['danger_category'] or "other"
+            common_data['severity_score'] = row['severity_score'] or 0.0
+            common_data['already_notified'] = bool(row['already_notified'])
+            return DangerMemory(**common_data)
 
         elif memory_type == MemoryType.INTENTION:
             common_data['intention_status'] = IntentionStatus(row['intention_status']) if row['intention_status'] else IntentionStatus.PLANNED
