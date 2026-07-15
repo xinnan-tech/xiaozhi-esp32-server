@@ -1,4 +1,5 @@
 import asyncio
+import os
 from aiohttp import web
 from config.logger import setup_logging
 from core.api.ota_handler import OTAHandler
@@ -63,6 +64,11 @@ class SimpleHttpServer:
                         ]
                     )
                 # 添加路由
+                # 测试页面
+                test_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test")
+                if os.path.isdir(test_dir):
+                    app.router.add_static("/test", test_dir, name="test")
+
                 app.add_routes(
                     [
                         web.get("/mcp/vision/explain", self.vision_handler.handle_get),

@@ -235,7 +235,7 @@ public class ConfigServiceImpl implements ConfigService {
 
         // 构建模块配置
         buildModuleConfig(
-                agent.getAgentName(),
+                resolveAssistantName(agent.getAgentName()),
                 prompt,
                 agent.getSummaryMemory(),
                 voice,
@@ -607,9 +607,17 @@ public class ConfigServiceImpl implements ConfigService {
 
         result.put("selected_module", selectedModule);
         if (StringUtils.isNotBlank(prompt)) {
-            prompt = prompt.replace("{{assistant_name}}", StringUtils.isBlank(assistantName) ? "小智" : assistantName);
+            assistantName = resolveAssistantName(assistantName);
+            prompt = prompt.replace("{{assistant_name}}", assistantName);
         }
         result.put("prompt", prompt);
         result.put("summaryMemory", summaryMemory);
+    }
+
+    private String resolveAssistantName(String name) {
+        if (StringUtils.isBlank(name) || name.startsWith("le-bot-")) {
+            return "乐宝";
+        }
+        return name;
     }
 }
