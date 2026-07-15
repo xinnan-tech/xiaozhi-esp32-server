@@ -45,11 +45,11 @@ def load_config():
             loop = asyncio.get_running_loop()
             # 如果已经在事件循环中，使用异步版本
             config = asyncio.run_coroutine_threadsafe(
-                get_config_from_api_async(custom_config), loop
+                get_config_from_api_async(custom_config, default_config), loop
             ).result()
         except RuntimeError:
             # 如果不在事件循环中（启动时），创建新的事件循环
-            config = asyncio.run(get_config_from_api_async(custom_config))
+            config = asyncio.run(get_config_from_api_async(custom_config, default_config))
     else:
         # 合并配置
         config = merge_configs(default_config, custom_config)
@@ -61,10 +61,10 @@ def load_config():
     return config
 
 
-async def get_config_from_api_async(config):
+async def get_config_from_api_async(custom_config, default_config):
     """从Java API获取配置（异步版本）"""
     # 初始化API客户端
-    init_service(config)
+    init_service(custom_config)
 
     # 获取服务器配置
     config_data = await get_server_config()
@@ -73,26 +73,26 @@ async def get_config_from_api_async(config):
 
     config_data["read_config_from_api"] = True
     config_data["manager-api"] = {
-        "url": config["manager-api"].get("url", ""),
-        "secret": config["manager-api"].get("secret", ""),
+        "url": custom_config["manager-api"].get("url", ""),
+        "secret": custom_config["manager-api"].get("secret", ""),
     }
     auth_enabled = config_data.get("server", {}).get("auth", {}).get("enabled", False)
     # server的配置以本地为准
-    if config.get("server"):
+    if custom_config.get("server"):
         config_data["server"] = {
-            "ip": config["server"].get("ip", ""),
-            "port": config["server"].get("port", ""),
-            "http_port": config["server"].get("http_port", ""),
-            "vision_explain": config["server"].get("vision_explain", ""),
-            "auth_key": config["server"].get("auth_key", ""),
+            "ip": custom_config["server"].get("ip", ""),
+            "port": custom_config["server"].get("port", ""),
+            "http_port": custom_config["server"].get("http_port", ""),
+            "vision_explain": custom_config["server"].get("vision_explain", ""),
+            "auth_key": custom_config["server"].get("auth_key", ""),
         }
     config_data["server"]["auth"] = {"enabled": auth_enabled}
     # 如果服务器没有prompt_template，则从本地配置读取
     if not config_data.get("prompt_template"):
-        config_data["prompt_template"] = config.get("prompt_template")
+        config_data["prompt_template"] = default_config.get("prompt_template")
     # 合并本地 Memory 配置（如 danger_alert），通过 type 字段匹配模型 key
-    if config.get("Memory") and config_data.get("Memory"):
-        local_memory = config["Memory"]
+    if default_config.get("Memory") and config_data.get("Memory"):
+        local_memory = default_config["Memory"]
         for api_key, api_val in config_data["Memory"].items():
             if not isinstance(api_val, dict):
                 continue

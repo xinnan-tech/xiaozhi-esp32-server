@@ -340,6 +340,8 @@ Memory:
     # 检索模式: fts5(关键词), embedding(语义), hybrid(混合)
     retrieval_mode: fts5
     # 危险行为检测通知（可选），检测到儿童危险行为时推送
+    # 通知API：POST /api/v1/internal/messages/event
+    # 认证方式：Header x-api-key
     danger_alert:
       api_url: "http://your-api-host/api/v1/internal/messages/event"
       api_key: "your-internal-api-key"
