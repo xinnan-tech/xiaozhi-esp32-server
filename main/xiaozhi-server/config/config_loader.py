@@ -90,6 +90,19 @@ async def get_config_from_api_async(config):
     # 如果服务器没有prompt_template，则从本地配置读取
     if not config_data.get("prompt_template"):
         config_data["prompt_template"] = config.get("prompt_template")
+    # 合并本地 Memory 配置（如 danger_alert），通过 type 字段匹配模型 key
+    if config.get("Memory") and config_data.get("Memory"):
+        local_memory = config["Memory"]
+        for api_key, api_val in config_data["Memory"].items():
+            if not isinstance(api_val, dict):
+                continue
+            mem_type = api_val.get("type")
+            if mem_type and mem_type in local_memory:
+                local_val = local_memory[mem_type]
+                if isinstance(local_val, dict):
+                    for k, v in local_val.items():
+                        if k not in api_val:
+                            api_val[k] = v
     return config_data
 
 
