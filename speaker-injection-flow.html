@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>speaker 注入改动流程 · 方案 A</title>
+<style>
+  :root{
+    --bg:#0b0f17;
+    --bg2:#111723;
+    --panel:#151c2c;
+    --panel2:#1b2435;
+    --line:#283248;
+    --line2:#39445f;
+    --text:#e6edf6;
+    --text2:#9aa7bd;
+    --text3:#6b7790;
+    /* 角色 */
+    --dev:#5b9dff;      --dev-bg:rgba(91,157,255,.12);
+    --lebot:#34d399;    --lebot-bg:rgba(52,211,153,.12);
+    --xz:#b08cff;       --xz-bg:rgba(176,140,255,.12);
+    /* 语义 */
+    --new:#fbbf24;      --new-bg:rgba(251,191,36,.10);   --new-bd:rgba(251,191,36,.45);
+    --keep:#7d8aa3;     --keep-bg:rgba(125,138,163,.10); --keep-bd:rgba(125,138,163,.35);
+    --dec:#60a5fa;      --dec-bg:rgba(96,165,250,.10);   --dec-bd:rgba(96,165,250,.45);
+    --ok:#34d399;
+    --shadow:0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
+    --mono:'JetBrains Mono','SF Mono','Cascadia Code',Consolas,'Liberation Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  body{
+    background:
+      radial-gradient(900px 500px at 12% -8%, rgba(91,157,255,.10), transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, rgba(176,140,255,.10), transparent 55%),
+      var(--bg);
+    min-height:100vh;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:56px 24px 96px}
+
+  /* ── header ── */
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:14px}
+  h1{font-size:34px;font-weight:750;letter-spacing:-.02em;line-height:1.2;margin-bottom:14px}
+  h1 .hl{background:linear-gradient(90deg,var(--new),#f7c948);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:16px;color:var(--text2);max-width:720px;margin-bottom:28px}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:40px}
+  .pill{font-size:12px;font-weight:500;color:var(--text2);background:var(--panel);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
+  .pill b{color:var(--text);font-weight:600}
+
+  section{margin-top:56px}
+  .sec-title{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+  .sec-title h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .sec-title .num{font-family:var(--mono);font-size:13px;color:var(--text3)}
+  .sec-desc{color:var(--text3);font-size:14px;margin-bottom:24px}
+
+  /* ── legend ── */
+  .legend{display:flex;gap:22px;flex-wrap:wrap;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:8px}
+  .legend .grp{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--text2)}
+  .legend .grp .lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-right:2px}
+  .dotc{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+  /* ── 角色 badge ── */
+  .actors{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .badge{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:6px;letter-spacing:.01em}
+  .badge.dev{color:var(--dev);background:var(--dev-bg)}
+  .badge.lebot{color:var(--lebot);background:var(--lebot-bg)}
+  .badge.xz{color:var(--xz);background:var(--xz-bg)}
+  .arrow-r{color:var(--text3);font-size:11px}
+
+  /* ── timeline (图1) ── */
+  .timeline{position:relative;margin-left:8px;padding-left:34px}
+  .timeline::before{content:'';position:absolute;left:11px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--line2),var(--line))}
+  .tl-item{position:relative;margin-bottom:18px}
+  .tl-item:last-child{margin-bottom:0}
+  .tl-item .node{position:absolute;left:-34px;top:18px;width:24px;height:24px;border-radius:50%;background:var(--bg2);border:2px solid var(--line2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--text2);font-weight:600;z-index:2}
+  .tl-item.is-new .node{border-color:var(--new);color:var(--new);box-shadow:0 0 0 4px rgba(251,191,36,.10)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);transition:border-color .15s, transform .15s}
+  .card:hover{border-color:var(--line2)}
+  .tl-item.is-new .card{border-color:var(--new-bd);background:linear-gradient(var(--panel),var(--new-bg))}
+  .card .ctitle{font-size:14.5px;font-weight:650;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .card .cdesc{font-size:13px;color:var(--text2)}
+  .card .cdesc code{font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;color:var(--text)}
+  .tag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.03em}
+  .tag.new{color:var(--new);background:rgba(251,191,36,.14);border:1px solid var(--new-bd)}
+  .tag.keep{color:var(--keep);background:var(--keep-bg);border:1px solid var(--keep-bd)}
+  .loop{font-size:11px;color:var(--text3);font-style:italic;margin-left:8px}
+
+  /* ── flow (图2) ── */
+  .flow{display:flex;flex-direction:column;align-items:center;gap:0}
+  .fnode{position:relative;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:13px 20px;font-size:14px;color:var(--text);text-align:center;min-width:280px;max-width:440px;box-shadow:var(--shadow);line-height:1.45}
+  .fnode .sub{display:block;font-size:12px;color:var(--text3);margin-top:3px;font-weight:400}
+  .fnode .num{font-family:var(--mono);font-size:11px;color:var(--text3);margin-right:8px}
+  .fnode.keep{border-color:var(--keep-bd);background:var(--keep-bg);color:var(--text2)}
+  .fnode.new{border-color:var(--new-bd);background:linear-gradient(var(--panel),var(--new-bg));color:var(--text)}
+  .fnode.dec{border-color:var(--dec-bd);background:var(--dec-bg);color:var(--text);font-weight:600}
+  .fnode.entry{border-color:var(--lebot);background:linear-gradient(var(--panel),rgba(176,140,255,.10));font-weight:650}
+  .farrow{width:2px;height:26px;background:var(--line2);position:relative;margin:0 auto}
+  .farrow::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--line2);border-bottom:0}
+
+  .fork{display:grid;grid-template-columns:1fr 1fr;gap:48px;width:100%;max-width:720px;margin-top:0;position:relative}
+  .fork .col{display:flex;flex-direction:column;align-items:center;gap:0}
+  .fork .collbl{font-size:12px;font-weight:700;letter-spacing:.04em;margin-bottom:10px;padding:3px 10px;border-radius:6px}
+  .fork .collbl.yes{color:var(--new);background:rgba(251,191,36,.12);border:1px solid var(--new-bd)}
+  .fork .collbl.no{color:var(--keep);background:var(--keep-bg);border:1px solid var(--keep-bd)}
+  .mini-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;margin-top:10px}
+  .mini{background:var(--panel);border:1px solid var(--new-bd);border-radius:10px;padding:10px 12px;font-size:12.5px;text-align:center;color:var(--text)}
+  .mini .s{display:block;font-size:11px;color:var(--text3);margin-top:2px}
+  .merge-line{width:60%;height:26px;position:relative;margin:0 auto}
+  .merge-line::before{content:'';position:absolute;left:25%;right:25%;top:0;height:2px;background:var(--line2)}
+  .merge-line .l,.merge-line .r{position:absolute;top:0;width:2px;height:26px;background:var(--line2)}
+  .merge-line .l{left:25%}.merge-line .r{right:25%}
+  .merge-line .down{position:absolute;left:50%;top:0;width:2px;height:26px;background:var(--line2);transform:translateX(-50%)}
+  .merge-line .down::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--line2);border-bottom:0}
+
+  /* ── 协议 code ── */
+  .codecard{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;overflow-x:auto}
+  .codecard pre{font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--text)}
+  .codecard .k{color:#f0a8d0}
+  .codecard .s{color:var(--ok)}
+  .codecard .c{color:var(--text3)}
+
+  /* ── 改动清单 grid ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .fcard{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line2);border-radius:10px;padding:14px 16px}
+  .fcard.new{border-left-color:var(--new)}
+  .fcard.keep{border-left-color:var(--keep)}
+  .fcard .fname{font-family:var(--mono);font-size:12.5px;color:var(--text);font-weight:600;margin-bottom:6px;word-break:break-all}
+  .fcard .fdesc{font-size:13px;color:var(--text2);margin-bottom:8px}
+  .fcard .ftype{font-size:11px}
+
+  /* ── 场景 ── */
+  .scn{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .scn .sc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .scn .sc .h{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px;margin-bottom:10px}
+  .scn .sc .h .badge2{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:5px;font-weight:700}
+  .scn .sc.a .badge2{color:var(--ok);background:rgba(52,211,153,.12)}
+  .scn .sc.b .badge2{color:var(--dev);background:rgba(91,157,255,.12)}
+  .scn .sc.c .badge2{color:var(--new);background:rgba(251,191,36,.12)}
+  .scn .sc .row{font-size:12.5px;color:var(--text2);padding:5px 0;border-top:1px dashed var(--line)}
+  .scn .sc .row:first-of-type{border-top:0}
+  .scn .sc .row b{color:var(--text);font-weight:600}
+
+  footer{margin-top:72px;padding-top:24px;border-top:1px solid var(--line);color:var(--text3);font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+  @media (max-width:720px){
+    h1{font-size:26px}
+    .fork{grid-template-columns:1fr;gap:24px}
+    .scn{grid-template-columns:1fr}
+    .merge-line{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Xiaozhi server · 方案 A 设计</div>
+  <h1>speaker 注入:<span class="hl">让小智接收 lebot 识别好的说话人</span></h1>
+  <p class="lede">
+    lebot 代理连接下,小智 server 接收外部已识别的 speaker,跳过自己的 VoiceprintProvider。
+    下游 ASR / 注入 / LLM 全部不碰;直连设备路径零改动。
+  </p>
+  <div class="meta">
+    <span class="pill"><b>范围</b> · 仅小智 server 侧</span>
+    <span class="pill"><b>改动</b> · 1 新 handler + base.py ~8 行 + connection.py ~5 行</span>
+    <span class="pill"><b>协议</b> · 普通 JSON 文本帧</span>
+  </div>
+
+  <!-- legend -->
+  <div class="legend">
+    <div class="grp"><span class="lbl">角色</span>
+      <span class="dotc" style="background:var(--dev)"></span>设备 ESP32/App
+      <span class="dotc" style="background:var(--lebot)"></span>lebot
+      <span class="dotc" style="background:var(--xz)"></span>小智 server
+    </div>
+    <div class="grp"><span class="lbl">语义</span>
+      <span class="tag new">新增</span>
+      <span class="tag keep">现有不变</span>
+      <span style="font-size:12px;color:var(--dec)">◆ 决策</span>
+    </div>
+  </div>
+
+  <!-- ============ 图 1 ============ -->
+  <section>
+    <div class="sec-title">
+      <h2>端到端时序</h2>
+      <span class="num">图 1 / 三角色 · 时间自上而下</span>
+    </div>
+    <p class="sec-desc">关键:speaker 帧在<b style="color:var(--new)">说话中途</b>(攒满 ≈900ms)就发出,远早于小智消费它的时刻(handle_voice_stop,在 listen stop 之后)。</p>
+
+    <div class="timeline">
+
+      <div class="tl-item is-new">
+        <div class="node">握手</div>
+        <div class="card">
+          <div class="actors"><span class="badge xz">小智</span></div>
+          <div class="ctitle">读 header <code style="font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px">X-External-Speaker: 1</code> → <code style="font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px">external_vpr_enabled = True</code> <span class="tag new">新增</span></div>
+          <div class="cdesc">WS 握手阶段一次性标记本连接为"信任外部 speaker"。</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="node">①</div>
+        <div class="card">
+          <div class="actors"><span class="badge dev">设备</span><span class="arrow-r">──▶</span><span class="badge lebot">lebot</span><span class="arrow-r">──▶</span><span class="badge xz">小智</span></div>
+          <div class="ctitle">listen start 透传</div>
+          <div class="cdesc">lebot 同时 <code>_ensureTurnStarted</code>,清空 VPR 缓冲,准备累积。</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="node">②③</div>
+        <div class="card">
+          <div class="actors"><span class="badge dev">设备</span><span class="arrow-r">──▶</span><span class="badge lebot">lebot</span><span class="arrow-r">──▶</span><span class="badge xz">小智</span> <span class="loop">loop · 每帧 ~60ms</span></div>
+          <div class="ctitle">opus 帧实时透传 <span class="tag keep">不变</span></div>
+          <div class="cdesc">lebot:<code>_sendToUpstream</code> 立即转发 + <b style="color:var(--lebot)">旁路</b>攒进 <code>_turnOwnerAudioBufferForVpr</code>。
+          小智:音频进 <code>asr_audio</code>,VAD 逐帧判声。</div>
+        </div>
+      </div>
+
+      <div class="tl-item is-new">
+        <div class="node">④</div>
+        <div class="card">
+          <div class="actors"><span class="badge lebot">lebot</span><span class="arrow-r">──▶</span><span class="badge xz">小智</span></div>
+          <div class="ctitle">攒满 15 帧(≈900ms)→ VPR 识别 + 查库 → <code style="font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px">ws.send({type:"speaker"})</code> <span class="tag new">新增发送</span></div>
+          <div class="cdesc">拿到 <code>person_id</code>,查 persons 表补 <code>name</code>/<code>relationship</code>,立即发 speaker 帧 —— <b style="color:var(--new)">此时用户还在说话</b>。</div>
+        </div>
+      </div>
+
+      <div class="tl-item is-new">
+        <div class="node">·</div>
+        <div class="card">
+          <div class="actors"><span class="badge xz">小智</span></div>
+          <div class="ctitle"><code style="font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px">SpeakerTextMessageHandler</code> 接收 <span class="tag new">新增</span></div>
+          <div class="cdesc">写 <code>conn.proxy_speaker = {name, relationship, ...}</code>,<code>proxy_speaker_ready.set()</code> 通知等待方。</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="node">⑤⑥</div>
+        <div class="card">
+          <div class="actors"><span class="badge dev">设备</span><span class="arrow-r">──▶</span><span class="badge lebot">lebot</span><span class="arrow-r">──▶</span><span class="badge xz">小智</span></div>
+          <div class="ctitle">继续说 → listen stop 透传 <span class="tag keep">不变</span></div>
+          <div class="cdesc">小智收到 <code>state:"stop"</code> → <code>client_voice_stop = True</code>(或 server VAD 判定静默 ≥1s,等价触发)。</div>
+        </div>
+      </div>
+
+      <div class="tl-item is-new">
+        <div class="node">⑦</div>
+        <div class="card">
+          <div class="actors"><span class="badge xz">小智</span></div>
+          <div class="ctitle">handle_voice_stop 触发 → speaker_name = "张三" <span class="tag new">分支新增</span></div>
+          <div class="cdesc">走"外部 speaker"分支:<code>proxy_speaker</code> 早已就绪 → 零等待直接用。随后 <code>_build_enhanced_text → startToChat → LLM</code> <span class="tag keep">不变</span>。</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 图 2 ============ -->
+  <section>
+    <div class="sec-title">
+      <h2>handle_voice_stop 内部决策</h2>
+      <span class="num">图 2 / 唯一改动点</span>
+    </div>
+    <p class="sec-desc">只给 <code style="font-family:var(--mono);font-size:12.5px">speaker_name</code> 加一个来源分支,下游注入链一行不动。</p>
+
+    <div class="flow">
+      <div class="fnode entry"><span class="num">入口</span>handle_voice_stop(conn, asr_audio_task)</div>
+      <div class="farrow"></div>
+
+      <div class="fnode keep"><span class="num">并行</span>ASR: speech_to_text_wrapper()<span class="sub">得到 raw_text · 不变</span></div>
+      <div class="farrow"></div>
+
+      <div class="fnode dec">◆ external_vpr_enabled == True ?<span class="sub">本连接是否标记为 lebot 代理</span></div>
+
+      <div class="fork">
+        <div class="col">
+          <div class="collbl yes">是 · lebot 代理连接</div>
+          <div class="fnode new" style="min-width:auto">await wait_for(proxy_speaker_ready, 0.3s)<span class="sub">跳过自己的 VoiceprintProvider</span></div>
+          <div class="farrow"></div>
+          <div class="fnode dec" style="min-width:auto">◆ 拿到 proxy_speaker?</div>
+          <div class="mini-split">
+            <div class="mini">speaker_name = name<span class="s">场景 A 正常 / B 慢网络</span></div>
+            <div class="mini">speaker_name = "未知说话人"<span class="s">场景 C 短语音 超时</span></div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="collbl no">否 · 直连设备</div>
+          <div class="fnode keep" style="min-width:auto">现有 identify_speaker(...)<span class="sub">零改动 · 行为完全不变</span></div>
+        </div>
+      </div>
+
+      <div class="merge-line"><span class="l"></span><span class="r"></span><span class="down"></span></div>
+
+      <div class="fnode keep"><span class="num">汇合</span>_build_enhanced_text(raw_text, speaker_name)<span class="sub">不变 · 塞成 {speaker, content} JSON</span></div>
+      <div class="farrow"></div>
+      <div class="fnode keep">startToChat → conn.chat → LLM<span class="sub">不变 · LLM 收到的 user 消息带 speaker</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 协议契约 ============ -->
+  <section>
+    <div class="sec-title"><h2>speaker 帧协议</h2><span class="num">普通 JSON 文本帧 · ws.send</span></div>
+    <div class="codecard">
+<pre>{
+  <span class="k">"type"</span>: <span class="s">"speaker"</span>,
+  <span class="k">"person_id"</span>: <span class="s">"abc123"</span>,
+  <span class="k">"name"</span>: <span class="s">"张三"</span>,
+  <span class="k">"relationship"</span>: <span class="s">"爸爸"</span>,
+  <span class="k">"confidence"</span>: <span class="s">0.92</span>      <span class="c">// 可选,小智可做阈值过滤</span>
+}                                                       <span class="c">// 识别不出(短语音)则不发 → 小智超时 fallback</span></pre>
+    </div>
+  </section>
+
+  <!-- ============ 改动清单 ============ -->
+  <section>
+    <div class="sec-title"><h2>改动文件清单</h2><span class="num">仅小智 server</span></div>
+    <div class="grid">
+      <div class="fcard new">
+        <div class="fname">core/connection.py</div>
+        <div class="fdesc">加 <code style="font-family:var(--mono);font-size:11.5px">proxy_speaker</code> / <code style="font-family:var(--mono);font-size:11.5px">proxy_speaker_ready</code> / <code style="font-family:var(--mono);font-size:11.5px">external_vpr_enabled</code>;handle_connection 解析 header。</div>
+        <span class="ftype"><span class="tag new">新增</span></span>
+      </div>
+      <div class="fcard new">
+        <div class="fname">textHandler/speakerMessageHandler.py</div>
+        <div class="fdesc">新 handler(~10 行):解析 speaker 帧 → 写 conn + set event。附 registry 注册。</div>
+        <span class="ftype"><span class="tag new">新增</span></span>
+      </div>
+      <div class="fcard new">
+        <div class="fname">core/providers/asr/base.py · handle_voice_stop</div>
+        <div class="fdesc">speaker_name 来源分支(~8 行),其余不动。</div>
+        <span class="ftype"><span class="tag new">新增分支</span></span>
+      </div>
+      <div class="fcard keep">
+        <div class="fname">_build_enhanced_text → startToChat → conn.chat</div>
+        <div class="fdesc">下游注入链完全不改。</div>
+        <span class="ftype"><span class="tag keep">不变</span></span>
+      </div>
+      <div class="fcard keep">
+        <div class="fname">直连设备路径</div>
+        <div class="fdesc">external_vpr_enabled = False,行为完全不变。</div>
+        <span class="ftype"><span class="tag keep">不变</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 场景 ============ -->
+  <section>
+    <div class="sec-title"><h2>三种场景</h2><span class="num">speaker 帧 vs handle_voice_stop 先后</span></div>
+    <div class="scn">
+      <div class="sc a">
+        <div class="h"><span class="badge2">A</span>正常 · ≥900ms</div>
+        <div class="row"><b>到达</b>:说话中途</div>
+        <div class="row"><b>处理</b>:早已就绪,零等待</div>
+        <div class="row"><b>占比</b>:绝大多数</div>
+      </div>
+      <div class="sc b">
+        <div class="h"><span class="badge2">B</span>网络/VPR 慢</div>
+        <div class="row"><b>到达</b>:晚于 stop 几百 ms</div>
+        <div class="row"><b>处理</b>:wait_for 0.3s 接住</div>
+        <div class="row"><b>结果</b>:拿到 speaker</div>
+      </div>
+      <div class="sc c">
+        <div class="h"><span class="badge2">C</span>短语音 &lt;900ms</div>
+        <div class="row"><b>到达</b>:永不(lebot 不发)</div>
+        <div class="row"><b>处理</b>:超时 fallback</div>
+        <div class="row"><b>结果</b>:「未知说话人」</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>speaker-injection-flow.html · 方案 A · 纯 HTML/CSS,无外部依赖,离线可看</span>
+    <span>三角色 · 黄=新增 · 灰=不变 · ◆=决策</span>
+  </footer>
+
+</div>
+</body>
+</html>
