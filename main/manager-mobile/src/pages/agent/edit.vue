@@ -490,7 +490,7 @@ async function onPickerConfirm(type: string, value: any, name: string) {
       break
     case 'memory':
       formData.value.memModelId = value
-      formData.value.chatHistoryConf = value === 'Memory_nomem' ? 0 : 2
+      formData.value.chatHistoryConf = value === 'Memory_nomem' ? 0 : 1
       displayNames.value.memory = name // 确保显示名称正确更新
       displayNames.value.report = reportOptions[1].name
       isVisibleReport.value = value !== 'Memory_nomem'

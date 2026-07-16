@@ -189,7 +189,7 @@ public class ConfigServiceImpl implements ConfigService {
         } else if (agent.getMemModelId() != null
                 && !agent.getMemModelId().equals(Constant.MEMORY_NO_MEM)
                 && agent.getChatHistoryConf() == null) {
-            chatHistoryConf = Constant.ChatHistoryConfEnum.RECORD_TEXT_AUDIO.getCode();
+            chatHistoryConf = Constant.ChatHistoryConfEnum.RECORD_TEXT.getCode();
         }
         result.put("chat_history_conf", chatHistoryConf);
         // 如果客户端已实例化模型，则不返回

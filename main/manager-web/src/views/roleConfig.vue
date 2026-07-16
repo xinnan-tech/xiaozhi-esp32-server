@@ -954,8 +954,8 @@ export default {
           // 无记忆功能的模型，默认不记录聊天记录
           this.form.chatHistoryConf = 0;
         } else {
-          // 有记忆功能的模型，默认记录文本和语音
-          this.form.chatHistoryConf = 2;
+          // 有记忆功能的模型，默认记录文本
+          this.form.chatHistoryConf = 1;
         }
         if (value === "Memory_nomem" || value === "Memory_mem_report_only") {
           this.tempSummaryMemory = this.form.summaryMemory;
