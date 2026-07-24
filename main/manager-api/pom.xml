@@ -21,14 +21,14 @@
         <junit.version>5.10.1</junit.version>
         <druid.version>1.2.20</druid.version>
         <mybatisplus.version>3.5.17</mybatisplus.version>
-        <hutool.version>5.8.24</hutool.version>
-        <jsoup.version>1.19.1</jsoup.version>
+        <hutool.version>5.8.46</hutool.version>
+        <jsoup.version>1.22.2</jsoup.version>
         <knife4j.version>4.6.0</knife4j.version>
         <springdoc.version>2.8.8</springdoc.version>
-        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
         <shiro.version>2.0.2</shiro.version>
         <captcha.version>1.6.2</captcha.version>
-        <guava.version>33.0.0-jre</guava.version>
+        <guava.version>33.6.0-jre</guava.version>
         <liquibase-core.version>4.20.0</liquibase-core.version>
         <aliyun-sms-version>4.1.0</aliyun-sms-version>
         <okio-version>3.4.0</okio-version>

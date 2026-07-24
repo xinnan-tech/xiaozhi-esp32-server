@@ -12,11 +12,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import cn.hutool.crypto.digest.DigestUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.utils.AESUtils;
-import xiaozhi.common.utils.HashEncryptionUtil;
 import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.modules.agent.Enums.XiaoZhiMcpJsonRpcJson;
 import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
@@ -226,7 +226,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
      */
     private static String encryptToken(String agentId, String key) {
         // 使用md5对智能体id进行加密
-        String md5 = HashEncryptionUtil.Md5hexDigest(agentId);
+        String md5 = DigestUtil.md5Hex(agentId);
         // aes需要加密文本
         String json = "{\"agentId\": \"%s\"}".formatted(md5);
         // 加密后成token值

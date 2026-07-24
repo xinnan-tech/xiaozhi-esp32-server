@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import cn.hutool.crypto.digest.DigestUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -288,7 +287,7 @@ public class OTAMagController {
 
             // 返回文件路径
             return new Result<String>().ok(filePath.toString());
-        } catch (IOException | NoSuchAlgorithmException e) {
+        } catch (IOException e) {
             return new Result<String>().error("文件上传失败：" + e.getMessage());
         }
     }
@@ -329,13 +328,7 @@ public class OTAMagController {
         return result;
     }
 
-    private String calculateMD5(MultipartFile file) throws IOException, NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] digest = md.digest(file.getBytes());
-        StringBuilder sb = new StringBuilder();
-        for (byte b : digest) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
+    private String calculateMD5(MultipartFile file) throws IOException {
+        return DigestUtil.md5Hex(file.getBytes());
     }
 }

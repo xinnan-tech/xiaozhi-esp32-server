@@ -31,6 +31,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
@@ -51,7 +52,6 @@ import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.DateUtils;
 import xiaozhi.common.utils.JsonUtils;
-import xiaozhi.common.utils.ToolUtil;
 import xiaozhi.modules.device.dao.DeviceDao;
 import xiaozhi.modules.device.dto.DeviceManualAddDTO;
 import xiaozhi.modules.device.dto.DevicePageUserDTO;
@@ -103,15 +103,15 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
             throw new RenException(ErrorCode.ACTIVATION_CODE_EMPTY);
         }
         String deviceKey = RedisKeys.getOtaActivationCode(activationCode);
-        Object cacheDeviceId = redisUtils.get(deviceKey);
-        if (ToolUtil.isEmpty(cacheDeviceId)) {
+        String cacheDeviceId = (String) redisUtils.get(deviceKey);
+        if (StringUtils.isBlank(cacheDeviceId)) {
             throw new RenException(ErrorCode.ACTIVATION_CODE_ERROR);
         }
-        String deviceId = (String) cacheDeviceId;
+        String deviceId = cacheDeviceId;
         String safeDeviceId = deviceId.replace(":", "_").toLowerCase();
         String cacheDeviceKey = RedisKeys.getOtaDeviceActivationInfo(safeDeviceId);
         Map<String, Object> cacheMap = JsonUtils.toStringObjectMap(redisUtils.get(cacheDeviceKey));
-        if (ToolUtil.isEmpty(cacheMap)) {
+        if (MapUtil.isEmpty(cacheMap)) {
             throw new RenException(ErrorCode.ACTIVATION_CODE_ERROR);
         }
         String cachedCode = (String) cacheMap.get("activation_code");
@@ -181,7 +181,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
                 .builder(new HashMap<String, Set<String>>())
                 .put("clientIds", deviceIds).build();
 
-        if (ToolUtil.isNotEmpty(deviceIds)) {
+        if (CollUtil.isNotEmpty(deviceIds)) {
             return postToMqttGateway(url, params);
         }
         // 返回响应
