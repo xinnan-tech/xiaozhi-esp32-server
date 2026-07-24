@@ -29,7 +29,7 @@ from core.utils.modules_initialize import (
 )
 from core.handle.reportHandle import report, enqueue_tool_report
 from core.providers.tts.default import DefaultTTS
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from core.utils.dialogue import Message, Dialogue
 from core.providers.asr.dto.dto import InterfaceType
 from core.handle.textHandle import handleTextMessage
@@ -1095,7 +1095,13 @@ class ConnectionHandler:
                 future = asyncio.run_coroutine_threadsafe(
                     self.memory.query_memory(query), self.loop
                 )
-                memory_str = future.result()
+                try:
+                    memory_str = future.result(timeout=30)
+                except FutureTimeoutError:
+                    self.logger.bind(tag=TAG).error(
+                        "Memory query timed out after 30s"
+                    )
+                    memory_str = None
 
             # 仅在该说话人首次出现时把身份注入 system，之后靠对话历史首轮保留，
             # 避免每轮在 system 重复出现名字诱导模型反复称呼
