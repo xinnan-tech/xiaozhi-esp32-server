@@ -114,6 +114,14 @@ export interface CorrectWordFile {
   wordCount?: number
 }
 
+export interface TtsVoice {
+  id: string
+  name: string
+  voiceDemo?: string | null
+  languages?: string | null
+  isClone?: boolean | null
+}
+
 // 角色模板数据类型
 export interface RoleTemplate {
   id: string

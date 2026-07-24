@@ -27,7 +27,7 @@ export default {
     getFileList(params, callback) {
         const queryParams = new URLSearchParams({
             page: params.page,
-            pageSize: params.pageSize
+            limit: params.pageSize
         }).toString();
 
         RequestService.sendRequest()

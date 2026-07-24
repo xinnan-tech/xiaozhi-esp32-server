@@ -5,6 +5,7 @@ import { useMessage } from 'wot-design-uni/components/wd-message-box'
 import { bindDevice, bindDeviceManual, getBindDevices, getFirmwareTypes, unbindDevice, updateDeviceAutoUpdate } from '@/api/device'
 import { t } from '@/i18n'
 import { toast } from '@/utils/toast'
+import { parseDeviceLastConnectedAtTimestamp } from './deviceTimeUtils.mjs'
 
 defineOptions({
   name: 'DeviceManage',
@@ -131,10 +132,10 @@ function getDeviceTypeName(boardKey: string): string {
 }
 
 // 格式化时间
-function formatTime(timeStr: string) {
-  if (!timeStr)
+function formatTime(timestamp: string | null) {
+  const date = parseDeviceLastConnectedAtTimestamp(timestamp)
+  if (!date)
     return t('device.neverConnected')
-  const date = new Date(timeStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
 
@@ -410,7 +411,7 @@ defineExpose({
                       {{ t('device.firmwareVersion') }}：{{ device.appVersion }}
                     </text>
                     <text class="block text-[28rpx] text-[#65686f] leading-[1.4]">
-                      {{ t('device.lastConnection') }}：{{ formatTime(device.lastConnectedAt) }}
+                      {{ t('device.lastConnection') }}：{{ formatTime(device.lastConnectedAtTimestamp) }}
                     </text>
                   </view>
 

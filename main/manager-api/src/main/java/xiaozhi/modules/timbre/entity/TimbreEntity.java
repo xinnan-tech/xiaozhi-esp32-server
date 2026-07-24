@@ -3,6 +3,7 @@ package xiaozhi.modules.timbre.entity;
 import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -41,7 +42,8 @@ public class TimbreEntity {
     private String referenceText;
 
     @Schema(description = "排序")
-    private long sort;
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
+    private Long sort;
 
     @Schema(description = "对应 TTS 模型主键")
     private String ttsModelId;

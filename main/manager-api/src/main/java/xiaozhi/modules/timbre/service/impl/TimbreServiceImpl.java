@@ -99,6 +99,9 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     @Transactional(rollbackFor = Exception.class)
     public void save(TimbreDataDTO dto) {
         isTtsModelId(dto.getTtsModelId());
+        if (dto.getSort() == null) {
+            dto.setSort(0L);
+        }
         TimbreEntity timbreEntity = ConvertUtils.sourceToTarget(dto, TimbreEntity.class);
         baseDao.insert(timbreEntity);
     }

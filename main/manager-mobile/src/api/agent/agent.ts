@@ -8,6 +8,7 @@ import type {
   ModelOption,
   PageData,
   RoleTemplate,
+  TtsVoice,
 } from './types'
 import { http } from '@/http/request/alova'
 
@@ -89,7 +90,7 @@ export function deleteAgent(id: string) {
 
 // 获取TTS音色列表
 export function getTTSVoices(ttsModelId: string, voiceName: string = '') {
-  return http.Get<{ id: string, name: string }[]>(`/models/${ttsModelId}/voices`, {
+  return http.Get<TtsVoice[]>(`/models/${ttsModelId}/voices`, {
     params: {
       voiceName,
     },
@@ -214,13 +215,26 @@ export function updateAgentTags(agentId: string, data) {
 
 // 获取所有语言
 export function getAllLanguage(modelId: string) {
-  return http.Get<{ id: string, name: string, languages: string }[]>(`/models/${modelId}/voices`, {
+  return http.Get<TtsVoice[]>(`/models/${modelId}/voices`, {
     meta: {
       ignoreAuth: false,
       toast: false,
     },
     cacheFor: {
       expire: 0,
+    },
+  })
+}
+
+/**
+ * 获取克隆音色的临时播放ID
+ * @param cloneId 克隆音色记录ID
+ */
+export function getVoiceCloneAudioId(cloneId: string) {
+  return http.Post<string>(`/voiceClone/audio/${cloneId}`, {}, {
+    meta: {
+      ignoreAuth: false,
+      toast: false,
     },
   })
 }

@@ -69,7 +69,7 @@
     "build:quickapp-webview-huawei": "uni build -p quickapp-webview-huawei",
     "build:quickapp-webview-union": "uni build -p quickapp-webview-union",
     "type-check": "vue-tsc --noEmit",
-    "test:snapshot": "node --test src/pages/agent/components/agentSnapshotUtils.test.mjs src/pages/agent/components/agentSnapshotContracts.test.mjs",
+    "test:snapshot": "node --test src/pages/agent/components/agentSnapshotUtils.test.mjs src/pages/agent/components/agentSnapshotContracts.test.mjs src/pages/agent/components/voicePreviewUtils.test.mjs src/pages/device/deviceTimeUtils.test.mjs",
     "openapi-ts-request": "openapi-ts",
     "prepare": "git init && husky",
     "lint": "eslint",
