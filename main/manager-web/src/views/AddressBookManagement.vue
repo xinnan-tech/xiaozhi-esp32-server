@@ -141,23 +141,24 @@
                 <p class="section-desc">{{ $t('addressBookManagement.setPermissionDesc', { count: selectedPermissions.length }) }}</p>
               </div>
               <div class="section-actions">
-                <CustomButton size="small" @click="handleCancel">{{ $t('common.cancel') }}</CustomButton>
-                <CustomButton size="small" @click="handleToggleSelectAll">{{ isAllSelected ? $t('addressBookManagement.deselectAll') : $t('addressBookManagement.selectAll') }}</CustomButton>
-                <CustomButton type="confirm" size="small" @click="handleSavePermissions">{{ $t('addressBookManagement.save') }}</CustomButton>
+                <CustomButton size="small" :disabled="permissionsLoading" @click="handleCancel">{{ $t('common.cancel') }}</CustomButton>
+                <CustomButton size="small" :disabled="permissionsLoading" @click="handleToggleSelectAll">{{ isAllSelected ? $t('addressBookManagement.deselectAll') : $t('addressBookManagement.selectAll') }}</CustomButton>
+                <CustomButton type="confirm" size="small" :disabled="permissionsLoading" @click="handleSavePermissions">{{ $t('addressBookManagement.save') }}</CustomButton>
               </div>
             </div>
 
-            <div class="permission-grid">
+            <div v-loading="permissionsLoading" class="permission-grid">
               <div
                 v-for="device in allDevices"
                 :key="device.id"
                 class="permission-item"
-                :class="{ active: selectedPermissions.includes(device.id) }"
+                :class="{ active: selectedPermissions.includes(device.deviceId) }"
               >
                 <el-checkbox
                   class="permission-checkbox"
-                  :value="selectedPermissions.includes(device.id)"
-                  @change="(checked) => handlePermissionToggle(device.id, checked)"
+                  :disabled="permissionsLoading"
+                  :value="selectedPermissions.includes(device.deviceId)"
+                  @change="(checked) => handlePermissionToggle(device.deviceId, checked)"
                 ></el-checkbox>
                 <div class="permission-avatar">
                   <img :src="getDeviceAvatar(device.id)" alt="avatar" />
@@ -229,7 +230,9 @@ export default {
       editAgentNameValue: '',
       editingDeviceId: null,
       editingDeviceName: '',
-      mqttServiceAvailable: false
+      mqttServiceAvailable: false,
+      permissionRequestSequence: 0,
+      permissionsLoading: false
     };
   },
   created() {
@@ -363,18 +366,45 @@ export default {
       this.loadAddressBookPermissions(device.deviceId);
     },
     loadAddressBookPermissions(macAddress) {
+      const requestId = ++this.permissionRequestSequence;
+      this.permissionsLoading = true;
+      this.selectedPermissions = [];
+      this.originalPermissions = [];
+      this.editingDeviceId = null;
+      this.editingDeviceName = '';
+      this.allDevices.forEach(device => {
+        device.addressBookAlias = '';
+      });
       AddressBookApi.getAddressBookList(macAddress, (res) => {
+        if (
+          requestId !== this.permissionRequestSequence ||
+          this.selectedDevice?.deviceId !== macAddress
+        ) {
+          return;
+        }
+        this.permissionsLoading = false;
         if (res.data?.code === 0) {
           const permissions = res.data.data || [];
+          const permissionsByTargetMac = new Map(
+            permissions.map(permission => [
+              (permission.targetMac || '').toLowerCase(),
+              permission
+            ])
+          );
           // 设置已选择的权限
-          this.selectedPermissions = permissions
-            .filter(p => p.hasPermission)
-            .map(p => p.targetMac);
+          const permittedTargetMacs = new Set(
+            permissions
+              .filter(p => p.hasPermission)
+              .map(p => (p.targetMac || '').toLowerCase())
+          );
+          this.selectedPermissions = this.allDevices
+            .filter(device => permittedTargetMacs.has((device.deviceId || '').toLowerCase()))
+            .map(device => device.deviceId);
           // 保存初始权限状态（用于对比变更）
           this.originalPermissions = [...this.selectedPermissions];
           // 更新设备的通讯录别名
           this.allDevices.forEach(device => {
-            const addrBook = permissions.find(p => p.targetMac === device.deviceId);
+            const addrBook = permissionsByTargetMac.get((device.deviceId || '').toLowerCase());
             if (addrBook) {
               device.addressBookAlias = addrBook.alias || '';
             } else {
@@ -385,6 +415,7 @@ export default {
       });
     },
     handleStartEditPermission(device) {
+      if (this.permissionsLoading) return;
       this.editingDeviceId = device.id;
       this.editingDeviceName = device.addressBookAlias || device.name;
       this.$nextTick(() => {
@@ -412,13 +443,14 @@ export default {
       this.editingDeviceId = null;
       this.editingDeviceName = '';
     },
-    handlePermissionToggle(deviceId, checked) {
+    handlePermissionToggle(targetMac, checked) {
+      if (this.permissionsLoading) return;
       if (checked) {
-        if (!this.selectedPermissions.includes(deviceId)) {
-          this.selectedPermissions.push(deviceId);
+        if (!this.selectedPermissions.includes(targetMac)) {
+          this.selectedPermissions.push(targetMac);
         }
       } else {
-        const index = this.selectedPermissions.indexOf(deviceId);
+        const index = this.selectedPermissions.indexOf(targetMac);
         if (index > -1) {
           this.selectedPermissions.splice(index, 1);
         }
@@ -428,21 +460,22 @@ export default {
       if (this.isAllSelected) {
         this.selectedPermissions = [];
       } else {
-        this.selectedPermissions = this.allDevices.map(d => d.id);
+        this.selectedPermissions = this.allDevices.map(d => d.deviceId);
       }
     },
     handleCancel() {
       this.selectedPermissions = [];
     },
     handleSavePermissions() {
+      if (this.permissionsLoading) return;
       const promises = this.allDevices
         .filter(device => {
-          const isNowSelected = this.selectedPermissions.includes(device.id);
-          const wasOriginallySelected = this.originalPermissions.includes(device.id);
+          const isNowSelected = this.selectedPermissions.includes(device.deviceId);
+          const wasOriginallySelected = this.originalPermissions.includes(device.deviceId);
           return isNowSelected !== wasOriginallySelected;
         })
         .map(device => {
-          const hasPermission = this.selectedPermissions.includes(device.id);
+          const hasPermission = this.selectedPermissions.includes(device.deviceId);
           return new Promise((resolve) => {
             AddressBookApi.updatePermission({
               macAddress: this.selectedDevice.deviceId,

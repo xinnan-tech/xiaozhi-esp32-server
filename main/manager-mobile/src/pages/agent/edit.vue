@@ -1,12 +1,14 @@
 <script lang="ts" setup>
-import type { AgentDetail, ModelOption, PluginDefinition, RoleTemplate } from '@/api/agent/types'
+import type { AgentDetail, ModelOption, PluginDefinition, RoleTemplate, TtsVoice } from '@/api/agent/types'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { getAgentDetail, getAgentTags, getAllLanguage, getModelOptions, getPluginFunctions, getRoleTemplates, updateAgent } from '@/api/agent/agent'
+import { getAgentDetail, getAgentTags, getAllLanguage, getModelOptions, getPluginFunctions, getRoleTemplates, getVoiceCloneAudioId, updateAgent } from '@/api/agent/agent'
 import { t } from '@/i18n'
 import { usePluginStore, useProvider, useSpeedPitch } from '@/store'
+import { getEnvBaseUrl } from '@/utils'
 import { toast } from '@/utils/toast'
 import AgentSnapshotPanel from './components/AgentSnapshotPanel.vue'
 import { filterTtsVoicesByLanguage, hasUsableTtsVoiceMetadata } from './components/agentSnapshotUtils.mjs'
+import { createVoicePreviewRequestGate, hasVoicePreview, resolveVoicePreviewUrl } from './components/voicePreviewUtils.mjs'
 
 defineOptions({
   name: 'AgentEdit',
@@ -84,10 +86,20 @@ const modelOptions = ref<{
   TTS: [],
 })
 
+interface VoiceOption {
+  id?: string
+  value: string
+  name: string
+  voiceDemo?: string | null
+  voice_demo?: string | null
+  isClone: boolean
+  train_status?: number
+}
+
 // 音色选项数据
-const voiceOptions = ref<any[]>([])
+const voiceOptions = ref<VoiceOption[]>([])
 // 保存完整的音色信息
-const voiceDetails = ref<Record<string, any>>({})
+const voiceDetails = ref<Record<string, TtsVoice>>({})
 
 // 上报模式选项数据
 const reportOptions = [
@@ -139,6 +151,7 @@ interface SnapshotRestoreContext {
 // 音频播放相关
 const audioRef = ref<UniApp.InnerAudioContext | null>(null)
 const playingVoiceId = ref<string>('')
+const voicePreviewRequestGate = createVoicePreviewRequestGate()
 
 // 使用插件store
 const pluginStore = usePluginStore()
@@ -513,8 +526,8 @@ interface TtsSelectionState {
   languageTouched: boolean
   voiceTouched: boolean
   optionsModelId: string
-  voiceOptions: any[]
-  voiceDetails: Record<string, any>
+  voiceOptions: VoiceOption[]
+  voiceDetails: Record<string, TtsVoice>
   languageOptions: any[]
   displayNames: {
     tts: string
@@ -565,7 +578,7 @@ function filterVoicesByLanguage(options: VoiceSelectionOptions = {}) {
     return
   }
 
-  const allVoices = Object.values(voiceDetails.value) as any[]
+  const allVoices = Object.values(voiceDetails.value)
 
   // 根据选中的语言筛选音色
   const filteredVoices = filterTtsVoicesByLanguage(allVoices, selectedTtsLanguage.value)
@@ -624,7 +637,7 @@ async function fetchAllLanguag(ttsModelId: string, options: VoiceSelectionOption
       throw new Error('No TTS voice metadata is available')
     }
     // 保存完整的音色信息
-    voiceDetails.value = res.reduce((acc, voice) => {
+    voiceDetails.value = res.reduce<Record<string, TtsVoice>>((acc, voice) => {
       acc[voice.id] = voice
       return acc
     }, {})
@@ -863,44 +876,85 @@ function onPickerCancel(type: string) {
 }
 
 // 播放音频
-function playAudio(voiceDemo: string, voiceId: string, event: Event) {
+async function playAudio(voice: VoiceOption, event: Event) {
   event.stopPropagation() // 阻止事件冒泡，防止关闭下拉框
 
-  if (!voiceDemo) {
+  if (!hasVoicePreview(voice)) {
     return
   }
 
   // 如果正在播放同一个音频，则停止
-  if (playingVoiceId.value === voiceId) {
+  if (playingVoiceId.value === voice.value) {
     stopAudio()
     return
   }
 
   // 停止之前的音频
   stopAudio()
+  const requestId = voicePreviewRequestGate.begin()
+  playingVoiceId.value = voice.value
 
-  // 创建新的音频实例
-  audioRef.value = uni.createInnerAudioContext()
-  audioRef.value.src = voiceDemo
-  playingVoiceId.value = voiceId
+  try {
+    const audioUrl = await resolveVoicePreviewUrl({
+      id: voice.value,
+      isClone: voice.isClone,
+      voiceDemo: voice.voiceDemo || voice.voice_demo,
+    }, getVoiceCloneAudioId, getEnvBaseUrl())
 
-  // 监听播放结束
-  audioRef.value.onEnded(() => {
+    // 用户可能在等待克隆音色临时地址时取消或切换了音色。
+    if (!voicePreviewRequestGate.isCurrent(requestId) || playingVoiceId.value !== voice.value) {
+      return
+    }
+    if (!audioUrl) {
+      toast.error(t('voiceprint.getAudioFailed'))
+      playingVoiceId.value = ''
+      return
+    }
+
+    // 创建新的音频实例
+    const audio = uni.createInnerAudioContext()
+    audioRef.value = audio
+    audio.src = audioUrl
+
+    // 监听播放结束
+    audio.onEnded(() => {
+      if (
+        voicePreviewRequestGate.isCurrent(requestId)
+        && audioRef.value === audio
+        && playingVoiceId.value === voice.value
+      ) {
+        playingVoiceId.value = ''
+      }
+    })
+
+    // 监听播放错误
+    audio.onError(() => {
+      if (
+        voicePreviewRequestGate.isCurrent(requestId)
+        && audioRef.value === audio
+        && playingVoiceId.value === voice.value
+      ) {
+        toast.error(t('voiceprint.audioPlayFailed'))
+        playingVoiceId.value = ''
+      }
+    })
+
+    // 播放音频
+    audio.play()
+  }
+  catch (error) {
+    if (!voicePreviewRequestGate.isCurrent(requestId) || playingVoiceId.value !== voice.value) {
+      return
+    }
+    console.error('获取克隆音色试听地址失败:', error)
+    toast.error(t('voiceprint.getAudioFailed'))
     playingVoiceId.value = ''
-  })
-
-  // 监听播放错误
-  audioRef.value.onError(() => {
-    toast.error('音频播放失败')
-    playingVoiceId.value = ''
-  })
-
-  // 播放音频
-  audioRef.value.play()
+  }
 }
 
 // 停止音频
 function stopAudio() {
+  voicePreviewRequestGate.invalidate()
   if (audioRef.value) {
     audioRef.value.stop()
     audioRef.value.destroy()
@@ -1592,10 +1646,10 @@ onMounted(async () => {
             class="flex items-center justify-between border-b border-[#f5f5f5] p-[32rpx] transition-all active:bg-[#f5f7fb]"
             @click="onPickerConfirm('voiceprint', voice.value, voice.name)"
           >
-            <text :class="`flex-1 text-[28rpx] text-[#232338] ${(voice.voiceDemo || voice.voice_demo) ? '' : 'text-center'}`">
+            <text :class="`flex-1 text-[28rpx] text-[#232338] ${hasVoicePreview(voice) ? '' : 'text-center'}`">
               {{ voice.name }}
             </text>
-            <view v-if="voice.voiceDemo || voice.voice_demo" class="ml-[20rpx]" @click.stop="playAudio(voice.voiceDemo || voice.voice_demo, voice.value, $event)">
+            <view v-if="hasVoicePreview(voice)" class="ml-[20rpx]" @click.stop="playAudio(voice, $event)">
               <wd-icon
                 :name="playingVoiceId === voice.value ? 'pause-circle' : 'play-circle'"
                 size="24px"
