@@ -35,7 +35,7 @@ from core.providers.asr.dto.dto import InterfaceType
 from core.handle.textHandle import handleTextMessage
 from core.providers.tools.unified_tool_handler import UnifiedToolHandler
 from plugins_func.loadplugins import auto_import_modules
-from plugins_func.register import Action, ActionResponse
+from plugins_func.register import Action, ActionResponse, all_function_registry, module_func_map
 from core.auth import AuthenticationError
 from config.config_loader import get_private_config_from_api
 from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
@@ -878,10 +878,27 @@ class ConnectionHandler:
                 plugin_from_server = private_config.get("plugins", {})
                 for plugin, config_str in plugin_from_server.items():
                     plugin_from_server[plugin] = json.loads(config_str)
+                # 将模块级别的插件配置复制到各具体函数名，
+                # 方便后续 per-function 查找描述、news_sources 等配置
+                for module_name, func_names in module_func_map.items():
+                    if module_name in plugin_from_server:
+                        module_config = plugin_from_server[module_name]
+                        for func_name in func_names:
+                            if func_name not in plugin_from_server:
+                                plugin_from_server[func_name] = module_config
                 self.config["plugins"] = plugin_from_server
+                # 将模块级别的插件名展开为具体函数名
+                expanded_functions = []
+                for plugin_key in plugin_from_server.keys():
+                    if plugin_key in all_function_registry:
+                        expanded_functions.append(plugin_key)
+                    elif plugin_key in module_func_map:
+                        expanded_functions.extend(module_func_map[plugin_key])
+                    else:
+                        expanded_functions.append(plugin_key)
                 self.config["Intent"][self.config["selected_module"]["Intent"]][
                     "functions"
-                ] = plugin_from_server.keys()
+                ] = expanded_functions
         if private_config.get("prompt", None) is not None:
             self.config["prompt"] = private_config["prompt"]
         # 获取声纹信息
