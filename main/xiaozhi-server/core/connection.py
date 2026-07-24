@@ -1384,14 +1384,15 @@ class ConnectionHandler:
                 Action.ERROR,
             ]:
                 text = result.response if result.response else result.result
-                if streamed_text and text in streamed_text:
-                    self.logger.bind(tag=TAG).debug(
-                        f"Skipping duplicate TTS for tool {tool_call_data['name']}, already streamed"
-                    )
-                else:
-                    self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
-                    self.tts.store_tts_text(self.sentence_id, text)
-                self.dialogue.put(Message(role="assistant", content=text))
+                if text:
+                    if streamed_text and text in streamed_text:
+                        self.logger.bind(tag=TAG).debug(
+                            f"Skipping duplicate TTS for tool {tool_call_data['name']}, already streamed"
+                        )
+                    else:
+                        self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
+                        self.tts.store_tts_text(self.sentence_id, text)
+                    self.dialogue.put(Message(role="assistant", content=text))
             elif result.action == Action.REQLLM:
                 need_llm_tools.append((result, tool_call_data))
             elif result.action == Action.RECORD:
