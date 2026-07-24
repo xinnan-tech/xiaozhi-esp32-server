@@ -6,7 +6,7 @@ from typing import Dict, Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from core.connection import ConnectionHandler
 from ..base import ToolType, ToolDefinition, ToolExecutor
-from plugins_func.register import all_function_registry, Action, ActionResponse
+from plugins_func.register import all_function_registry, module_func_map, Action, ActionResponse
 
 
 class ServerPluginExecutor(ToolExecutor):
@@ -54,6 +54,43 @@ class ServerPluginExecutor(ToolExecutor):
                 response=str(e),
             )
 
+    def _expand_plugin_names(self, config_functions):
+        """将模块级别的插件名展开为具体函数名。
+
+        在一个 function 文件中可能注册多个 @register_function，
+        配置中如果使用的是模块名（文件名），需要展开为具体的函数名列表。
+        """
+        if not isinstance(config_functions, list):
+            try:
+                config_functions = list(config_functions)
+            except TypeError:
+                return []
+
+        expanded = []
+        for name in config_functions:
+            if name in all_function_registry:
+                # 精确匹配函数名，直接保留
+                expanded.append(name)
+            elif name in module_func_map:
+                # 模块名，展开为该模块下所有注册函数名
+                expanded.extend(module_func_map[name])
+            else:
+                # 未知名称，保留原值（可能是 MCP 或其他工具）
+                expanded.append(name)
+        return expanded
+
+    def _get_plugin_description(self, func_name):
+        """获取插件函数的描述，优先精确匹配函数名，其次匹配模块名。"""
+        plugins = self.config.get("plugins", {})
+        # 精确匹配函数名
+        if func_name in plugins:
+            return plugins[func_name].get("description", "")
+        # 通过 module_func_map 反向查找模块名
+        for module_name, func_names in module_func_map.items():
+            if func_name in func_names and module_name in plugins:
+                return plugins[module_name].get("description", "")
+        return ""
+
     def get_tools(self) -> Dict[str, ToolDefinition]:
         """获取所有注册的服务端插件工具"""
         tools = {}
@@ -66,12 +103,8 @@ class ServerPluginExecutor(ToolExecutor):
             self.config["selected_module"]["Intent"]
         ].get("functions", [])
 
-        # 转换为列表
-        if not isinstance(config_functions, list):
-            try:
-                config_functions = list(config_functions)
-            except TypeError:
-                config_functions = []
+        # 将模块级别的插件名展开为具体函数名（兜底机制）
+        config_functions = self._expand_plugin_names(config_functions)
 
         # 合并所有需要的函数
         all_required_functions = list(set(necessary_functions + config_functions))
@@ -79,12 +112,8 @@ class ServerPluginExecutor(ToolExecutor):
         for func_name in all_required_functions:
             func_item = all_function_registry.get(func_name)
             if func_item:
-                # 从函数注册中获取描述
-                fun_description = (
-                    self.config.get("plugins", {})
-                    .get(func_name, {})
-                    .get("description", "")
-                )
+                # 从函数注册中获取描述（支持模块名和函数名的双层查找）
+                fun_description = self._get_plugin_description(func_name)
                 if fun_description is not None and len(fun_description) > 0:
                     if "function" in func_item.description and isinstance(
                         func_item.description["function"], dict
