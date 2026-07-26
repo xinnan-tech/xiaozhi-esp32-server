@@ -22,6 +22,7 @@ class MCPEndpointClient:
         self.lock = asyncio.Lock()
         self._cached_available_tools = None  # Cache for get_available_tools
         self.websocket = None  # WebSocket连接
+        self.listener_task = None
 
     def has_tool(self, name: str) -> bool:
         return name in self.tools
@@ -107,6 +108,18 @@ class MCPEndpointClient:
 
     async def close(self):
         """关闭WebSocket连接"""
+        current_task = asyncio.current_task()
+        if (
+            self.listener_task
+            and self.listener_task is not current_task
+            and not self.listener_task.done()
+        ):
+            self.listener_task.cancel()
+            try:
+                await self.listener_task
+            except asyncio.CancelledError:
+                pass
+        self.listener_task = None
         if self.websocket:
             await self.websocket.close()
             self.websocket = None

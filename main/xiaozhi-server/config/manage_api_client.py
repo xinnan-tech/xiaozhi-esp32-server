@@ -81,6 +81,28 @@ class ManageApiClient:
             raise Exception("必须在异步上下文中调用")
 
     @classmethod
+    async def close_current_loop_client(cls):
+        """Close the client owned by the running loop before that loop exits."""
+        import asyncio
+
+        loop_id = id(asyncio.get_running_loop())
+        client = cls._async_clients.pop(loop_id, None)
+        if client is not None:
+            await client.aclose()
+
+    @classmethod
+    async def close_all_clients(cls):
+        """Close remaining clients after session/report workers have stopped."""
+        clients = list(cls._async_clients.values())
+        cls._async_clients.clear()
+        for client in clients:
+            try:
+                await client.aclose()
+            except Exception:
+                pass
+        cls._instance = None
+
+    @classmethod
     async def _async_request(cls, method: str, endpoint: str, **kwargs) -> Dict:
         """发送单次异步HTTP请求并处理响应"""
         # 确保客户端已创建
@@ -266,3 +288,7 @@ def init_service(config):
 
 def manage_api_http_safe_close():
     ManageApiClient.safe_close()
+
+
+async def manage_api_http_close():
+    await ManageApiClient.close_all_clients()

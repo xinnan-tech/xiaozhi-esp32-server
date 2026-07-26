@@ -32,8 +32,37 @@ class ASRProviderBase(ABC):
     def __init__(self):
         pass
 
+    @staticmethod
+    def _session_is_current(conn: "ConnectionHandler", session_id: str) -> bool:
+        """Return whether an async ASR result still belongs to this session."""
+        return session_id is None or getattr(conn, "session_id", None) == session_id
+
+    def _create_session_task(self, conn: "ConnectionHandler", coroutine):
+        """Bind streaming ASR work to the logical session when supported."""
+        creator = getattr(conn, "create_background_task", None)
+        if callable(creator):
+            try:
+                return creator(coroutine, turn_scoped=True)
+            except TypeError:
+                return creator(coroutine)
+        return asyncio.create_task(coroutine)
+
+    def _reset_audio_if_current(
+        self, conn: "ConnectionHandler", session_id: str
+    ) -> None:
+        if not self._session_is_current(conn, session_id):
+            return
+        reset_audio_states = getattr(conn, "reset_audio_states", None)
+        if callable(reset_audio_states):
+            reset_audio_states()
+
     # 打开音频通道
     async def open_audio_channels(self, conn: "ConnectionHandler"):
+        # The pipeline runtime feeds PCM directly and does not use the legacy
+        # priority queue. Starting that worker would route frames back through
+        # ConnectionHandler-only functions.
+        if getattr(conn, "uses_pipeline_runtime", False):
+            return
         conn.asr_priority_thread = threading.Thread(
             target=self.asr_text_priority_thread, args=(conn,), daemon=True
         )
@@ -72,18 +101,26 @@ class ASRProviderBase(ABC):
                 return
 
             # 自动模式下通过VAD检测到语音停止时触发识别
-            if conn.asr.interface_type != InterfaceType.STREAM and conn.client_voice_stop:
+            interface_type = getattr(
+                self,
+                "interface_type",
+                getattr(getattr(conn, "asr", None), "interface_type", None),
+            )
+            if interface_type != InterfaceType.STREAM and conn.client_voice_stop:
                 # 直接使用asr_audio中的PCM数据
                 pcm_bytes = b"".join(conn.asr_audio)
                 # 检查是否有足够的音频数据（每帧1920字节，15帧约28800字节）
                 if len(pcm_bytes) > 1920 * 15:
                     await self.handle_voice_stop(conn, [pcm_bytes])
-                conn.reset_audio_states()
+                reset_audio_states = getattr(conn, "reset_audio_states", None)
+                if callable(reset_audio_states):
+                    reset_audio_states()
 
     # 处理语音停止
     async def handle_voice_stop(self, conn: "ConnectionHandler", asr_audio_task: List[bytes]):
         """并行处理ASR和声纹识别"""
         try:
+            session_id = getattr(conn, "session_id", None)
             total_start_time = time.monotonic()
 
             # 数据已经是PCM直接使用
@@ -96,13 +133,11 @@ class ASRProviderBase(ABC):
                 wav_data = self._pcm_to_wav(combined_pcm_data)
 
             # 定义ASR任务
-            asr_task = self.speech_to_text_wrapper(
-                asr_audio_task, conn.session_id
-            )
+            asr_task = self.speech_to_text_wrapper(asr_audio_task, session_id)
 
             if conn.voiceprint_provider and wav_data:
                 voiceprint_task = conn.voiceprint_provider.identify_speaker(
-                    wav_data, conn.session_id
+                    wav_data, session_id
                 )
                 # 并发等待两个结果
                 asr_result, voiceprint_result = await asyncio.gather(
@@ -111,6 +146,12 @@ class ASRProviderBase(ABC):
             else:
                 asr_result = await asr_task
                 voiceprint_result = None
+
+            if not self._session_is_current(conn, session_id):
+                logger.bind(tag=TAG).info(
+                    f"丢弃旧会话ASR结果: session_id={session_id}"
+                )
+                return
 
             # 记录识别结果 - 检查是否为异常
             if isinstance(asr_result, Exception):
@@ -165,9 +206,13 @@ class ASRProviderBase(ABC):
 
             if text_len > 0:
                 audio_snapshot = asr_audio_task.copy()
-                enqueue_asr_report(conn, enhanced_text, audio_snapshot)
-                # 使用自定义模块进行上报
-                await startToChat(conn, enhanced_text)
+                result_handler = getattr(conn, "asr_result_handler", None)
+                if callable(result_handler):
+                    await result_handler(enhanced_text, audio_snapshot)
+                else:
+                    enqueue_asr_report(conn, enhanced_text, audio_snapshot)
+                    # Legacy ConnectionHandler path.
+                    await startToChat(conn, enhanced_text)
         except Exception as e:
             logger.bind(tag=TAG).error(f"处理语音停止失败: {e}")
             import traceback

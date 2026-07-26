@@ -141,7 +141,10 @@ class ASRProvider(ASRProviderBase):
 
             logger.bind(tag=TAG).info("ASR WebSocket连接已建立")
             self.server_ready = False
-            self.forward_task = asyncio.create_task(self._forward_results(conn))
+            session_id = getattr(conn, "session_id", None)
+            self.forward_task = self._create_session_task(
+                conn, self._forward_results(conn, session_id)
+            )
 
             # 发送首帧音频
             if conn.asr_audio and len(conn.asr_audio) > 0:
@@ -185,10 +188,13 @@ class ASRProvider(ASRProviderBase):
 
         await self.asr_ws.send(json.dumps(frame_data, ensure_ascii=False))
 
-    async def _forward_results(self, conn: "ConnectionHandler"):
+    async def _forward_results(self, conn: "ConnectionHandler", session_id=None):
         """转发识别结果"""
         try:
-            while not conn.stop_event.is_set():
+            while (
+                not conn.stop_event.is_set()
+                and self._session_is_current(conn, session_id)
+            ):
                 try:
                     response = await asyncio.wait_for(self.asr_ws.recv(), timeout=60)
                     result = json.loads(response)
@@ -247,7 +253,7 @@ class ASRProvider(ASRProviderBase):
         finally:
             # 清理连接资源
             await self._cleanup()
-            conn.reset_audio_states()
+            self._reset_audio_if_current(conn, session_id)
 
     async def handle_voice_stop(
         self, conn: "ConnectionHandler", asr_audio_task: List[bytes]
@@ -272,9 +278,8 @@ class ASRProvider(ASRProviderBase):
             logger.bind(tag=TAG).debug(f"异常详情: {traceback.format_exc()}")
 
     def stop_ws_connection(self):
-        if self.asr_ws:
-            asyncio.create_task(self.asr_ws.close())
-            self.asr_ws = None
+        # The forward task owns the WebSocket and closes it from _cleanup().
+        # Scheduling an untracked close here races with that cleanup path.
         self.is_processing = False
 
     async def _send_stop_request(self):
@@ -299,6 +304,21 @@ class ASRProvider(ASRProviderBase):
         self.server_ready = False
         logger.bind(tag=TAG).debug("ASR状态已重置")
 
+        forward_task = self.forward_task
+        current_task = asyncio.current_task()
+        if (
+            forward_task
+            and forward_task is not current_task
+            and not forward_task.done()
+        ):
+            forward_task.cancel()
+            try:
+                await forward_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                logger.bind(tag=TAG).warning(f"等待ASR转发任务退出失败: {e}")
+
         # 关闭连接
         if self.asr_ws:
             try:
@@ -310,8 +330,8 @@ class ASRProvider(ASRProviderBase):
             finally:
                 self.asr_ws = None
 
-        # 清理任务引用
-        self.forward_task = None
+        if self.forward_task is forward_task:
+            self.forward_task = None
 
         logger.bind(tag=TAG).debug("ASR会话清理完成")
 
@@ -323,15 +343,4 @@ class ASRProvider(ASRProviderBase):
 
     async def close(self):
         """资源清理方法"""
-        if self.asr_ws:
-            await self.asr_ws.close()
-            self.asr_ws = None
-        if self.forward_task:
-            self.forward_task.cancel()
-            try:
-                await self.forward_task
-            except asyncio.CancelledError:
-                pass
-            self.forward_task = None
-        self.is_processing = False
-
+        await self._cleanup()

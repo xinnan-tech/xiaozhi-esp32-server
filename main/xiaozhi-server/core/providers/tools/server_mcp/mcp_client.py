@@ -72,16 +72,25 @@ class ServerMCPClient:
 
     async def cleanup(self):
         """清理MCP客户端资源"""
-        if not self._worker_task:
+        task = self._worker_task
+        if not task:
             return
 
         self._shutdown_evt.set()
         try:
-            await asyncio.wait_for(self._worker_task, timeout=20)
-        except (asyncio.TimeoutError, Exception) as e:
+            await asyncio.wait_for(asyncio.shield(task), timeout=20)
+        except asyncio.TimeoutError:
+            self.logger.bind(tag=TAG).warning("服务端MCP关闭超时，取消工作任务")
+            task.cancel()
+            done, _ = await asyncio.wait({task}, timeout=5)
+            if task not in done:
+                self.logger.bind(tag=TAG).error("服务端MCP工作任务取消超时")
+                return
+        except Exception as e:
             self.logger.bind(tag=TAG).error(f"服务端MCP客户端关闭错误: {e}")
         finally:
-            self._worker_task = None
+            if task.done():
+                self._worker_task = None
 
     def has_tool(self, name: str) -> bool:
         """检查是否包含指定工具
@@ -197,7 +206,7 @@ class ServerMCPClient:
                     if "API_ACCESS_TOKEN" in self.config:
                         headers["Authorization"] = f"Bearer {self.config['API_ACCESS_TOKEN']}"
                         self.logger.bind(tag=TAG).warning(f"你正在使用旧过时的配置 API_ACCESS_TOKEN ，请在.mcp_server_settings.json中将API_ACCESS_TOKEN直接设置在headers中，例如 'Authorization': 'Bearer API_ACCESS_TOKEN'")
-                   
+
                     # 根据transport类型选择不同的客户端，默认为SSE
                     transport_type = self.config.get("transport", "sse")
 

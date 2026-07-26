@@ -1,4 +1,5 @@
 import os
+import json
 import re
 import uuid
 import queue
@@ -16,8 +17,6 @@ from config.logger import setup_logging
 from core.utils import opus_encoder_utils
 from core.utils.tts import MarkdownCleaner, convert_percentage_to_range
 from core.utils.output_counter import add_device_output
-from core.handle.reportHandle import enqueue_tts_report
-from core.handle.sendAudioHandle import sendAudioMessage
 from core.utils.util import audio_bytes_to_data_stream, audio_to_data_stream
 from core.providers.tts.dto.dto import (
     TTSMessageDTO,
@@ -28,6 +27,58 @@ from core.providers.tts.dto.dto import (
 
 TAG = __name__
 logger = setup_logging()
+
+
+async def sendAudioMessage(conn, sentenceType, audios, text, sentence_id=None):
+    """兼容函数：使用新的processor发送音频消息"""
+    try:
+        # 获取transport接口
+        transport = getattr(conn, 'transport', None)
+        if not transport:
+            logger.error("SessionContext中没有transport接口")
+            return
+
+        # 使用AudioSendProcessor发送音频
+        from core.processors.audio_send_processor import AudioSendProcessor
+        processor = AudioSendProcessor()
+
+        await processor.send_audio_message(
+            conn,
+            transport,
+            sentenceType,
+            audios,
+            text,
+            sentence_id=sentence_id,
+        )
+
+    except Exception as e:
+        logger.error(f"发送音频消息失败: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def enqueue_tts_report(conn, text, audio_data):
+    """兼容函数：使用新的processor处理TTS报告"""
+    try:
+        # 获取transport接口
+        transport = getattr(conn, 'transport', None)
+        if not transport:
+            logger.error("SessionContext中没有transport接口")
+            return
+
+        # 使用ReportProcessor处理报告
+        from core.processors.report_processor import ReportProcessor
+        processor = ReportProcessor()
+
+        # 异步执行报告
+        if hasattr(conn, 'loop') and conn.loop:
+            # 直接调用同步方法
+            processor.enqueue_tts_report(conn, text, audio_data)
+        else:
+            logger.warning("SessionContext中没有事件循环，跳过TTS报告")
+
+    except Exception as e:
+        logger.error(f"TTS报告处理失败: {e}")
 
 
 class TTSProviderBase(ABC):
@@ -189,7 +240,7 @@ class TTSProviderBase(ABC):
             except Exception as e:
                 logger.bind(tag=TAG).error(f"Failed to generate TTS file: {e}")
                 return None
-    
+
     def to_tts(self, text):
         # 保留原始文本用于日志/显示
         original_text = text
@@ -312,13 +363,17 @@ class TTSProviderBase(ABC):
 
         # tts 消化线程
         self.tts_priority_thread = threading.Thread(
-            target=self.tts_text_priority_thread, daemon=True
+            target=self.tts_text_priority_thread,
+            name=f"xiaozhi-tts-text-{id(self)}",
+            daemon=True,
         )
         self.tts_priority_thread.start()
 
         # 音频播放 消化线程
         self.audio_play_priority_thread = threading.Thread(
-            target=self._audio_play_priority_thread, daemon=True
+            target=self._audio_play_priority_thread,
+            name=f"xiaozhi-tts-audio-{id(self)}",
+            daemon=True,
         )
         self.audio_play_priority_thread.start()
 
@@ -369,6 +424,8 @@ class TTSProviderBase(ABC):
         while not self.conn.stop_event.is_set():
             try:
                 message = self.tts_text_queue.get(timeout=1)
+                if message is None:
+                    break
                 if self.conn.client_abort:
                     logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
                     continue
@@ -417,11 +474,15 @@ class TTSProviderBase(ABC):
             try:
                 try:
                     item = self.tts_audio_queue.get(timeout=0.1)
+                    if item is None:
+                        break
                     if len(item) == 4:
                         sentence_type, audio_datas, text, sentence_id = item
                     else:
                         sentence_type, audio_datas, text = item
-                        sentence_id = None
+                        sentence_id = getattr(
+                            self, "current_sentence_id", None
+                        ) or getattr(self.conn, "sentence_id", None)
                 except queue.Empty:
                     if self.conn.stop_event.is_set():
                         break
@@ -459,7 +520,19 @@ class TTSProviderBase(ABC):
                     sendAudioMessage(self.conn, sentence_type, audio_datas, text, sentence_id),
                     self.conn.loop,
                 )
-                future.result()
+                self._pending_audio_future = future
+                try:
+                    future.result(timeout=max(1, self.tts_timeout))
+                except concurrent.futures.CancelledError:
+                    break
+                except concurrent.futures.TimeoutError:
+                    future.cancel()
+                    logger.bind(tag=TAG).warning(
+                        "TTS音频发送超时，取消当前发送任务"
+                    )
+                finally:
+                    if getattr(self, "_pending_audio_future", None) is future:
+                        self._pending_audio_future = None
 
                 # 记录输出和报告
                 if self.conn.max_output_size > 0 and text:
@@ -476,6 +549,22 @@ class TTSProviderBase(ABC):
 
     async def close(self):
         """资源清理方法"""
+        self.tts_stop_request = True
+        pending_future = getattr(self, "_pending_audio_future", None)
+        if pending_future and not pending_future.done():
+            pending_future.cancel()
+        # Wake workers immediately; relying on queue timeouts leaves Provider
+        # threads alive after the component has released its ownership.
+        self.tts_text_queue.put(None)
+        self.tts_audio_queue.put(None)
+        for thread_name in ("tts_priority_thread", "audio_play_priority_thread"):
+            thread = getattr(self, thread_name, None)
+            if thread and thread.is_alive() and thread is not threading.current_thread():
+                await asyncio.to_thread(thread.join, 2)
+                if thread.is_alive():
+                    logger.bind(tag=TAG).warning(
+                        "TTS工作线程未能按时退出: {}", thread.name
+                    )
         self._sentence_text_map.clear()
         if hasattr(self, "ws") and self.ws:
             await self.ws.close()

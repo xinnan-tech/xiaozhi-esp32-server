@@ -350,4 +350,16 @@ async def send_display_message(conn: "ConnectionHandler", text):
         "text": text,
         "session_id": conn.session_id
     }
-    await conn.websocket.send(json.dumps(message))
+    transport = getattr(conn, "transport", None)
+    if transport is not None:
+        send_json = getattr(transport, "send_json", None)
+        if callable(send_json):
+            await send_json(message)
+        else:
+            await transport.send(json.dumps(message))
+        return
+
+    websocket = getattr(conn, "websocket", None)
+    if websocket is None:
+        raise AttributeError("无法找到可用的传输层接口")
+    await websocket.send(json.dumps(message))

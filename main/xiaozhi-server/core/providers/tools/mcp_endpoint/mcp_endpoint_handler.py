@@ -16,6 +16,8 @@ async def connect_mcp_endpoint(mcp_endpoint_url: str, conn=None) -> MCPEndpointC
     if not mcp_endpoint_url or "你的" in mcp_endpoint_url or mcp_endpoint_url == "null":
         return None
 
+    websocket = None
+    mcp_client = None
     try:
         websocket = await websockets.connect(mcp_endpoint_url)
 
@@ -23,7 +25,9 @@ async def connect_mcp_endpoint(mcp_endpoint_url: str, conn=None) -> MCPEndpointC
         mcp_client.set_websocket(websocket)
 
         # 启动消息监听器
-        asyncio.create_task(_message_listener(mcp_client))
+        mcp_client.listener_task = asyncio.create_task(
+            _message_listener(mcp_client), name="xiaozhi-mcp-endpoint-listener"
+        )
 
         # 发送初始化消息
         await send_mcp_endpoint_initialize(mcp_client)
@@ -39,6 +43,10 @@ async def connect_mcp_endpoint(mcp_endpoint_url: str, conn=None) -> MCPEndpointC
 
     except Exception as e:
         logger.bind(tag=TAG).error(f"连接MCP接入点失败: {e}")
+        if mcp_client is not None:
+            await mcp_client.close()
+        elif websocket is not None:
+            await websocket.close()
         return None
 
 

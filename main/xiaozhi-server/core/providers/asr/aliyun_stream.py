@@ -109,7 +109,7 @@ class ASRProvider(ASRProviderBase):
         self.token, expire_time_str = AccessToken.create_token(self.access_key_id, self.access_key_secret)
         if not self.token:
             raise ValueError("无法获取有效的访问Token")
-        
+
         try:
             expire_str = str(expire_time_str).strip()
             if expire_str.isdigit():
@@ -151,7 +151,7 @@ class ASRProvider(ASRProviderBase):
         """开始识别会话"""
         if self._is_token_expired():
             self._refresh_token()
-        
+
         # 建立连接
         headers = {"X-NLS-Token": self.token}
         self.asr_ws = await websockets.connect(
@@ -169,7 +169,10 @@ class ASRProvider(ASRProviderBase):
 
         self.is_processing = True
         self.server_ready = False  # 重置服务器准备状态
-        self.forward_task = asyncio.create_task(self._forward_results(conn))
+        session_id = getattr(conn, "session_id", None)
+        self.forward_task = self._create_session_task(
+            conn, self._forward_results(conn, session_id)
+        )
 
         # 发送开始请求
         start_request = {
@@ -193,10 +196,13 @@ class ASRProvider(ASRProviderBase):
         await self.asr_ws.send(json.dumps(start_request, ensure_ascii=False))
         logger.bind(tag=TAG).debug("已发送开始请求，等待服务器准备...")
 
-    async def _forward_results(self, conn: "ConnectionHandler"):
+    async def _forward_results(self, conn: "ConnectionHandler", session_id=None):
         """转发识别结果"""
         try:
-            while not conn.stop_event.is_set():
+            while (
+                not conn.stop_event.is_set()
+                and self._session_is_current(conn, session_id)
+            ):
                 # 获取当前连接的音频数据
                 audio_data = conn.asr_audio
                 try:
@@ -276,7 +282,7 @@ class ASRProvider(ASRProviderBase):
         finally:
             # 清理连接的音频缓存
             await self._cleanup()
-            conn.reset_audio_states()
+            self._reset_audio_if_current(conn, session_id)
 
     async def _send_stop_request(self):
         """发送停止识别请求（不关闭连接）"""
@@ -308,6 +314,21 @@ class ASRProvider(ASRProviderBase):
         self.server_ready = False
         logger.bind(tag=TAG).debug("ASR状态已重置")
 
+        forward_task = self.forward_task
+        current_task = asyncio.current_task()
+        if (
+            forward_task
+            and forward_task is not current_task
+            and not forward_task.done()
+        ):
+            forward_task.cancel()
+            try:
+                await forward_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                logger.bind(tag=TAG).warning(f"等待ASR转发任务退出失败: {e}")
+
         # 关闭连接
         if self.asr_ws:
             try:
@@ -319,8 +340,10 @@ class ASRProvider(ASRProviderBase):
             finally:
                 self.asr_ws = None
 
-        # 清理任务引用
-        self.forward_task = None
+        # Never discard a live task reference. The current forward task reaches
+        # this branch from its own finally block and is already completing.
+        if self.forward_task is forward_task:
+            self.forward_task = None
 
         logger.bind(tag=TAG).debug("ASR会话清理完成")
 
