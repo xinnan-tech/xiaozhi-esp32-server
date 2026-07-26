@@ -107,6 +107,32 @@ public interface Constant {
     String SERVER_MQTT_GATEWAY = "server.mqtt_gateway";
 
     /**
+     * MQTT原生服务开关
+     */
+    String SERVER_MQTT_ENABLED = "server.mqtt_enabled";
+
+    /**
+     * 新版协议配置
+     */
+    String PROTOCOLS_ENABLED = "protocols.enabled_protocols";
+    String PROTOCOLS_WEBSOCKET_ENABLED = "protocols.websocket_enabled";
+    String PROTOCOLS_MQTT_ENABLED = "protocols.mqtt_enabled";
+
+    /**
+     * 新版原生MQTT配置
+     */
+    String MQTT_SERVER_ENABLED = "mqtt_server.enabled";
+    String MQTT_SERVER_HOST = "mqtt_server.host";
+    String MQTT_SERVER_PORT = "mqtt_server.port";
+    String MQTT_SERVER_UDP_PORT = "mqtt_server.udp_port";
+    String MQTT_SERVER_UDP_BIND_HOST = "mqtt_server.udp_bind_host";
+    String MQTT_SERVER_PUBLIC_ENDPOINT = "mqtt_server.public_endpoint";
+    String MQTT_SERVER_SIGNATURE_KEY = "mqtt_server.signature_key";
+    String MQTT_SERVER_MANAGER_API = "mqtt_server.manager_api";
+    String MQTT_SERVER_MANAGER_API_SECRET = "mqtt_server.manager_api_secret";
+    String SERVER_MQTT_MANAGER_API = "server.mqtt_manager_api";
+
+    /**
      * ota地址
      */
     String SERVER_OTA = "server.ota";

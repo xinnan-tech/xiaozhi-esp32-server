@@ -2,13 +2,14 @@ import asyncio
 from typing import Dict, Any, List, Optional
 from config.logger import setup_logging
 from core.websocket_server_new import NewWebSocketServer
+from core.servers.mqtt_server import MQTTServer
 
 logger = setup_logging()
 
 
 class MultiProtocolServer:
     """
-    协议服务器管理器
+    多协议服务器管理器：统一管理WebSocket和MQTT服务器
     提供统一的启动、停止和状态监控接口
     """
 
@@ -41,6 +42,11 @@ class MultiProtocolServer:
             if 'websocket' in enabled_protocols:
                 self.servers['websocket'] = NewWebSocketServer(self.config)
                 logger.info("WebSocket服务器已初始化")
+
+            # 初始化MQTT服务器
+            if 'mqtt' in enabled_protocols:
+                self.servers['mqtt'] = MQTTServer(self.config)
+                logger.info("MQTT服务器已初始化")
 
             if not self.servers:
                 logger.warning("没有启用任何协议服务器")
@@ -333,6 +339,14 @@ class MultiProtocolServer:
         # 检查服务器端口配置
         server_configs = {
             'server': ('port', 'host', 'ip'),
+            'mqtt_server': (
+                'port',
+                'udp_port',
+                'host',
+                'ip',
+                'public_endpoint',
+                'udp_bind_host',
+            ),
         }
         for config_key, listener_keys in server_configs.items():
             old_server_config = old_config.get(config_key, {})
@@ -443,7 +457,7 @@ class MultiProtocolServer:
 
     def get_supported_protocols(self) -> List[str]:
         """获取支持的协议列表"""
-        return ['websocket']
+        return ['websocket', 'mqtt']
 
     def is_protocol_enabled(self, protocol: str) -> bool:
         """检查协议是否启用"""

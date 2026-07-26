@@ -69,7 +69,7 @@ async def main():
     gc_manager = get_gc_manager(interval_seconds=300)
     await gc_manager.start()
 
-    # 启动小智服务器门面
+    # 启动小智服务器门面（支持WebSocket和MQTT）
     xiaozhi_server = XiaozhiServerFacade(config)
     ota_server = None
     ota_task = None
@@ -77,7 +77,9 @@ async def main():
         # Facade.start() returns after every listener is ready. Await it so bind
         # or configuration failures stop startup instead of leaving a partial process.
         await xiaozhi_server.start()
-        ota_server = SimpleHttpServer(config)
+        ota_server = SimpleHttpServer(
+            config, management_owner=xiaozhi_server
+        )
         ota_task = asyncio.create_task(
             ota_server.start(), name="xiaozhi-http-server"
         )
@@ -149,6 +151,22 @@ async def main():
             websocket_port,
         )
 
+    # MQTT信息
+    mqtt_info = connection_info.get("mqtt", {})
+    if mqtt_info.get("enabled", False):
+        mqtt_port = mqtt_info.get("port", 1883)
+        udp_port = mqtt_info.get("udp_port", 1883)
+        logger.bind(tag=TAG).info(
+            "MQTT地址是\t\tmqtt://{}:{}",
+            get_local_ip(),
+            mqtt_port,
+        )
+        logger.bind(tag=TAG).info(
+            "UDP音频端口是\t{}:{}",
+            get_local_ip(),
+            udp_port,
+        )
+
     # 显示启用的协议
     enabled_protocols = xiaozhi_server.config.get("enabled_protocols", [])
     logger.bind(tag=TAG).info(f"启用的协议: {', '.join(enabled_protocols)}")
@@ -161,6 +179,10 @@ async def main():
             "如想测试WebSocket请启动digital-human模块，打开浏览器交互测试"
         )
 
+    if "mqtt" in enabled_protocols:
+        logger.bind(tag=TAG).info(
+            "=======MQTT客户端ID格式: GID_test@@@mac_address@@@uuid======="
+        )
     logger.bind(tag=TAG).info(
         "=============================================================\n"
     )

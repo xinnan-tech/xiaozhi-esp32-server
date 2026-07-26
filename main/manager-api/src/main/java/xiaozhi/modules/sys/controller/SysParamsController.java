@@ -85,6 +85,7 @@ public class SysParamsController {
     public Result<Void> save(@RequestBody SysParamsDTO dto) {
         // 效验数据
         ValidatorUtils.validateEntity(dto, AddGroup.class, DefaultGroup.class);
+        validateMqttSecretLength(dto.getParamCode(), dto.getParamValue());
 
         sysParamsService.save(dto);
         configService.getConfig(false);
@@ -277,7 +278,10 @@ public class SysParamsController {
 
     // 校验mqtt密钥长度和复杂度
     private void validateMqttSecretLength(String paramCode, String secret) {
-        if (!paramCode.equals(Constant.SERVER_MQTT_SECRET)) {
+        if (!paramCode.equals(Constant.SERVER_MQTT_SECRET)
+                && !paramCode.equals(Constant.MQTT_SERVER_SIGNATURE_KEY)
+                && !paramCode.equals(
+                        Constant.MQTT_SERVER_MANAGER_API_SECRET)) {
             return;
         }
         if (StringUtils.isBlank(secret) || secret.equals("null")) {

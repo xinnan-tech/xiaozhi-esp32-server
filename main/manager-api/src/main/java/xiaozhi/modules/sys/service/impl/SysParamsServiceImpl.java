@@ -205,9 +205,14 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
     public void initServerSecret() {
         // 获取服务器密钥
         String secretParam = getValue(Constant.SERVER_SECRET, false);
-        if (StringUtils.isBlank(secretParam) || "null".equals(secretParam)) {
+        if (StringUtils.isBlank(secretParam)
+                || "null".equalsIgnoreCase(secretParam.trim())) {
             String newSecret = UUID.randomUUID().toString();
             updateValueByCode(Constant.SERVER_SECRET, newSecret);
+        } else {
+            // Startup must repair a stale Redis value because authentication
+            // reads this parameter from cache while initialization reads DB.
+            sysParamsRedis.set(Constant.SERVER_SECRET, secretParam);
         }
 
         // 初始化SM2密钥对

@@ -19,7 +19,7 @@ class TimeoutProcessor(MessageProcessor):
         context: SessionContext,
         transport: TransportInterface,
     ) -> bool:
-        """End an expired logical conversation without closing a long connection."""
+        """End an expired logical conversation without conflating it with MQTT."""
         if not getattr(context, "conversation_active", False):
             return False
 
@@ -29,7 +29,7 @@ class TimeoutProcessor(MessageProcessor):
 
         try:
             if transport.keeps_connection_between_sessions:
-                logger.info(f"会话超时，结束长连接逻辑会话: {context.session_id}")
+                logger.info(f"会话超时，结束MQTT逻辑会话: {context.session_id}")
                 from core.processors.audio_receive_processor import (
                     AudioReceiveProcessor,
                 )

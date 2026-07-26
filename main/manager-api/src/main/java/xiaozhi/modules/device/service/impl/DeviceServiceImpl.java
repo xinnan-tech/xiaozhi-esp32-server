@@ -5,11 +5,13 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -157,32 +159,20 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
      */
     @Override
     public String getDeviceOnlineData(String agentId) {
-        // 从系统参数中获取MQTT网关地址
-        String mqttGatewayUrl = sysParamsService.getValue("server.mqtt_manager_api", true);
-        if (StringUtils.isBlank(mqttGatewayUrl) || "null".equals(mqttGatewayUrl)) {
-            return "";
-        }
-        // 构建完整的URL
-        String url = StrUtil.format("http://{}/api/devices/status", mqttGatewayUrl);
-
         // 获取当前用户的设备列表
         UserDetail user = SecurityUser.getUser();
         List<DeviceEntity> devices = getUserDevices(user.getId(), agentId);
 
         // 构建deviceIds数组
-        Set<String> deviceIds = devices.stream().map(o -> {
-            String macAddress = Optional.ofNullable(o.getMacAddress()).orElse("unknown").replace(":", "_");
-            String groupId = Optional.ofNullable(o.getBoard()).orElse("GID_default").replace(":", "_");
-            return StrUtil.format("{}@@@{}@@@{}", groupId, macAddress, macAddress);
-        }).collect(Collectors.toSet());
+        Set<String> deviceIds = devices.stream()
+                .map(device -> MqttClientId.build(
+                        device.getBoard(), device.getMacAddress()))
+                .collect(Collectors.toSet());
 
         // 构建请求入参
-        Map<String, Set<String>> params = MapUtil
-                .builder(new HashMap<String, Set<String>>())
-                .put("clientIds", deviceIds).build();
-
         if (ToolUtil.isNotEmpty(deviceIds)) {
-            return postToMqttGateway(url, params);
+            return createMqttManagementRouter()
+                    .getMergedStatus(deviceIds);
         }
         // 返回响应
         return "";
@@ -194,6 +184,15 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         response.setServer_time(buildServerTime());
 
         DeviceEntity deviceById = getDeviceByMacAddress(macAddress);
+        String reportedBoard = deviceReport.getBoard() == null
+                ? null
+                : deviceReport.getBoard().getType();
+        if (deviceById != null
+                && StringUtils.isBlank(deviceById.getBoard())
+                && StringUtils.isNotBlank(reportedBoard)) {
+            deviceById.setBoard(reportedBoard);
+            baseDao.updateById(deviceById);
+        }
 
         // 设备未绑定，则返回当前上传的固件信息（不更新）以此兼容旧固件版本
         if (deviceById == null) {
@@ -204,8 +203,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         } else {
             // 只有在设备已绑定且明确开启自动升级时才返回固件升级信息
             if (Integer.valueOf(1).equals(deviceById.getAutoUpdate())) {
-                String type = deviceReport.getBoard() == null ? null : deviceReport.getBoard().getType();
-                DeviceReportRespDTO.Firmware firmware = buildFirmwareInfo(type,
+                DeviceReportRespDTO.Firmware firmware = buildFirmwareInfo(reportedBoard,
                         deviceReport.getApplication() == null ? null : deviceReport.getApplication().getVersion());
                 response.setFirmware(firmware);
             }
@@ -248,20 +246,43 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
         response.setWebsocket(websocket);
 
-        // 添加MQTT UDP配置
-        // 从系统参数获取MQTT Gateway地址，仅在配置有效时使用
-        String mqttUdpConfig = sysParamsService.getValue(Constant.SERVER_MQTT_GATEWAY, true);
-        if (mqttUdpConfig != null && !mqttUdpConfig.equals("null") && !mqttUdpConfig.isEmpty()) {
+        // UDP key/nonce/endpoint is negotiated by the MQTT hello response.
+        // OTA only needs to provide the MQTT connection parameters.
+        String groupId = "GID_default";
+        if (deviceById != null && StringUtils.isNotBlank(deviceById.getBoard())) {
+            groupId = deviceById.getBoard();
+        } else if (deviceReport.getBoard() != null && StringUtils.isNotBlank(deviceReport.getBoard().getType())) {
+            groupId = deviceReport.getBoard().getType();
+        }
+
+        boolean mqttConfigured = false;
+        if (isNativeMqttEnabled()) {
             try {
-                String groupId = deviceById != null && deviceById.getBoard() != null ? deviceById.getBoard()
-                        : "GID_default";
-                DeviceReportRespDTO.MQTT mqtt = buildMqttConfig(macAddress, groupId);
-                if (mqtt != null) {
-                    mqtt.setEndpoint(mqttUdpConfig);
+                DeviceReportRespDTO.MQTT mqtt = buildNativeMqttConfig(macAddress, groupId, clientId);
+                String endpoint = buildNativeMqttEndpoint();
+                if (mqtt != null && StringUtils.isNotBlank(endpoint)) {
+                    mqtt.setEndpoint(endpoint);
                     response.setMqtt(mqtt);
+                    mqttConfigured = true;
                 }
             } catch (Exception e) {
-                log.error("生成MQTT配置失败: {}", e.getMessage());
+                log.error("生成原生MQTT配置失败: {}", e.getMessage());
+            }
+        }
+
+        if (!mqttConfigured) {
+            // Native 未启用或配置无效时继续兼容 MQTT Gateway。
+            String mqttUdpConfig = sysParamsService.getValue(Constant.SERVER_MQTT_GATEWAY, true);
+            if (mqttUdpConfig != null && !mqttUdpConfig.equals("null") && !mqttUdpConfig.isEmpty()) {
+                try {
+                    DeviceReportRespDTO.MQTT mqtt = buildMqttConfig(macAddress, groupId);
+                    if (mqtt != null) {
+                        mqtt.setEndpoint(mqttUdpConfig);
+                        response.setMqtt(mqtt);
+                    }
+                } catch (Exception e) {
+                    log.error("生成MQTT配置失败: {}", e.getMessage());
+                }
             }
         }
 
@@ -633,6 +654,210 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         return String.format("%s.%d", signatureBase64, timestamp);
     }
 
+    private boolean isNativeMqttEnabled() {
+        String enabled = sysParamsService.getValue(Constant.MQTT_SERVER_ENABLED, true);
+        String legacyEnabled = sysParamsService.getValue(Constant.SERVER_MQTT_ENABLED, true);
+        boolean serverEnabled = isConfiguredValue(enabled)
+                ? isTrue(enabled)
+                : isTrue(legacyEnabled);
+
+        String protoEnabled = sysParamsService.getValue(Constant.PROTOCOLS_MQTT_ENABLED, true);
+        String enabledProtocols = sysParamsService.getValue(Constant.PROTOCOLS_ENABLED, true);
+        boolean protocolEnabled = isTrue(protoEnabled);
+        if (!protocolEnabled && StringUtils.isNotBlank(enabledProtocols)) {
+            String normalizedProtocols = enabledProtocols
+                    .replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "");
+            protocolEnabled = Arrays.stream(normalizedProtocols.split("[;,\\s]+"))
+                    .anyMatch("mqtt"::equalsIgnoreCase);
+        }
+        return serverEnabled && protocolEnabled;
+    }
+
+    private boolean isTrue(String value) {
+        return "true".equalsIgnoreCase(value) || "1".equals(value);
+    }
+
+    private boolean isConfiguredValue(String value) {
+        return StringUtils.isNotBlank(value)
+                && !"null".equalsIgnoreCase(value.trim())
+                && !value.contains("你");
+    }
+
+    private String buildNativeMqttEndpoint() {
+        String publicEndpoint = sysParamsService.getValue(Constant.MQTT_SERVER_PUBLIC_ENDPOINT, true);
+        String host = sysParamsService.getValue(Constant.MQTT_SERVER_HOST, true);
+        EndpointParts endpointParts = parseEndpoint(publicEndpoint);
+        EndpointParts hostParts = parseEndpoint(host);
+        if ((isConfiguredValue(publicEndpoint) && endpointParts == null)
+                || (isConfiguredValue(host) && hostParts == null)) {
+            return null;
+        }
+        EndpointParts selectedEndpoint = null;
+        if (endpointParts != null && isClientReachableMqttHost(endpointParts.host)) {
+            selectedEndpoint = endpointParts;
+        } else if (hostParts != null && isClientReachableMqttHost(hostParts.host)) {
+            selectedEndpoint = hostParts;
+        }
+        if (selectedEndpoint == null) {
+            return null;
+        }
+        String mqttHost = selectedEndpoint.host;
+        Integer port = selectedEndpoint.port;
+        if (port == null) {
+            port = parseInt(sysParamsService.getValue(Constant.MQTT_SERVER_PORT, true), 1883);
+        }
+        if (StringUtils.isBlank(mqttHost) || port == null) {
+            return null;
+        }
+        return formatEndpoint(mqttHost, port);
+    }
+
+    private boolean isClientReachableMqttHost(String host) {
+        if (StringUtils.isBlank(host)) {
+            return false;
+        }
+        String normalized = host.trim().toLowerCase(Locale.ROOT);
+        return !"null".equals(normalized)
+                && !"localhost".equals(normalized)
+                && !"localhost.localdomain".equals(normalized)
+                && !"0.0.0.0".equals(normalized)
+                && !normalized.startsWith("127.");
+    }
+
+    private Integer parseInt(String value, Integer defaultValue) {
+        if (StringUtils.isBlank(value) || "null".equalsIgnoreCase(value)) {
+            return defaultValue;
+        }
+        try {
+            int port = Integer.parseInt(value);
+            if (port < 1 || port > 65535) {
+                return null;
+            }
+            return port;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String formatEndpoint(String host, int port) {
+        String normalizedHost = host.trim();
+        if (normalizedHost.indexOf(':') >= 0) {
+            return null;
+        }
+        return normalizedHost + ":" + port;
+    }
+
+    private static class EndpointParts {
+        private final String host;
+        private final Integer port;
+
+        private EndpointParts(String host, Integer port) {
+            this.host = host;
+            this.port = port;
+        }
+    }
+
+    private EndpointParts parseEndpoint(String raw) {
+        if (StringUtils.isBlank(raw) || "null".equalsIgnoreCase(raw)) {
+            return new EndpointParts(null, null);
+        }
+        String trimmed = raw.trim();
+        trimmed = trimmed.replaceFirst("(?i)^(mqtt|tcp|ssl|ws|wss|http|https)://", "");
+        int slashIdx = trimmed.indexOf('/');
+        if (slashIdx >= 0) {
+            trimmed = trimmed.substring(0, slashIdx);
+        }
+        if (StringUtils.isBlank(trimmed) || trimmed.startsWith("[")
+                || trimmed.indexOf(':') != trimmed.lastIndexOf(':')) {
+            return null;
+        }
+
+        String host = trimmed;
+        Integer port = null;
+
+        int colon = trimmed.lastIndexOf(':');
+        if (colon >= 0) {
+            if (colon == 0 || colon == trimmed.length() - 1) {
+                return null;
+            }
+            port = parseInt(trimmed.substring(colon + 1), null);
+            if (port == null) {
+                return null;
+            }
+            host = trimmed.substring(0, colon);
+        }
+        if (!isValidEndpointHost(host)) {
+            return null;
+        }
+        return new EndpointParts(host, port);
+    }
+
+    private boolean isValidEndpointHost(String host) {
+        if (StringUtils.isBlank(host)
+                || host.length() > 253
+                || host.chars().anyMatch(Character::isWhitespace)
+                || host.indexOf('@') >= 0
+                || host.indexOf('?') >= 0
+                || host.indexOf('#') >= 0
+                || host.indexOf('\\') >= 0) {
+            return false;
+        }
+        return Arrays.stream(host.split("\\.", -1))
+                .allMatch(label -> !label.isEmpty()
+                        && label.length() <= 63
+                        && Character.isLetterOrDigit(label.charAt(0))
+                        && Character.isLetterOrDigit(label.charAt(label.length() - 1))
+                        && label.chars().allMatch(ch ->
+                                Character.isLetterOrDigit(ch)
+                                        || ch == '-'
+                                        || ch == '_'));
+    }
+
+    private String buildMqttUsername() throws Exception {
+        Map<String, String> userData = new HashMap<>();
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
+                    .getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                String clientIp = request.getRemoteAddr();
+                userData.put("ip", clientIp);
+            }
+        } catch (Exception e) {
+            userData.put("ip", "unknown");
+        }
+        String userDataJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(userData);
+        return Base64.getEncoder().encodeToString(userDataJson.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private DeviceReportRespDTO.MQTT buildNativeMqttConfig(String macAddress, String groupId, String clientId)
+            throws Exception {
+        String deviceIdSafeStr = MqttClientId.normalizeDeviceId(macAddress);
+        String mqttClientId = MqttClientId.build(groupId, macAddress);
+
+        String username = buildMqttUsername();
+        String password = "";
+        String signatureKey = sysParamsService.getValue(Constant.MQTT_SERVER_SIGNATURE_KEY, true);
+        if (!isConfiguredValue(signatureKey)) {
+            signatureKey = sysParamsService.getValue(Constant.SERVER_MQTT_SECRET, true);
+        }
+        if (!isConfiguredValue(signatureKey)) {
+            log.error("原生MQTT已启用但未配置签名密钥，跳过原生MQTT配置下发");
+            return null;
+        }
+        password = generatePasswordSignature(mqttClientId + "|" + username, signatureKey);
+
+        DeviceReportRespDTO.MQTT mqtt = new DeviceReportRespDTO.MQTT();
+        mqtt.setClient_id(mqttClientId);
+        mqtt.setUsername(username);
+        mqtt.setPassword(password);
+        mqtt.setPublish_topic("device-server");
+        mqtt.setSubscribe_topic("devices/p2p/" + deviceIdSafeStr);
+        return mqtt;
+    }
+
     /**
      * 构建MQTT配置信息
      * 
@@ -650,28 +875,10 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         }
 
         // 构建客户端ID格式：groupId@@@macAddress@@@uuid
-        String groupIdSafeStr = groupId.replace(":", "_");
-        String deviceIdSafeStr = macAddress.replace(":", "_");
-        String mqttClientId = String.format("%s@@@%s@@@%s", groupIdSafeStr, deviceIdSafeStr, deviceIdSafeStr);
+        String deviceIdSafeStr = MqttClientId.normalizeDeviceId(macAddress);
+        String mqttClientId = MqttClientId.build(groupId, macAddress);
 
-        // 构建用户数据（包含IP等信息）
-        Map<String, String> userData = new HashMap<>();
-        // 尝试获取客户端IP
-        try {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
-                    .getRequestAttributes();
-            if (attributes != null) {
-                HttpServletRequest request = attributes.getRequest();
-                String clientIp = request.getRemoteAddr();
-                userData.put("ip", clientIp);
-            }
-        } catch (Exception e) {
-            userData.put("ip", "unknown");
-        }
-
-        // 将用户数据编码为Base64 JSON
-        String userDataJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(userData);
-        String username = Base64.getEncoder().encodeToString(userDataJson.getBytes(StandardCharsets.UTF_8));
+        String username = buildMqttUsername();
 
         // 生成密码签名
         String password = generatePasswordSignature(mqttClientId + "|" + username, signatureKey);
@@ -687,23 +894,14 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         return mqtt;
     }
 
-    private String postToMqttGateway(String url, Object requestBody) {
-        String signatureKey = sysParamsService.getValue(Constant.SERVER_MQTT_SECRET, false);
-        return MqttGatewayAuthorization.postJson(
-                url,
-                JSONUtil.toJsonStr(requestBody),
-                signatureKey,
-                Instant.now());
+    MqttManagementRouter createMqttManagementRouter() {
+        return new MqttManagementRouter(
+                new MqttManagementEndpointResolver(sysParamsService),
+                new MqttManagementHttpClient());
     }
 
     @Override
     public Object getDeviceTools(String deviceId) {
-        // 从系统参数中获取MQTT网关地址
-        String mqttGatewayUrl = sysParamsService.getValue("server.mqtt_manager_api", true);
-        if (StringUtils.isBlank(mqttGatewayUrl) || "null".equals(mqttGatewayUrl)) {
-            return null;
-        }
-
         // 获取设备信息
         DeviceEntity device = baseDao.selectById(deviceId);
         if (device == null) {
@@ -717,19 +915,20 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         }
 
         // 构建clientId
-        String macAddress = Optional.ofNullable(device.getMacAddress()).orElse("unknown").replace(":", "_");
-        String groupId = Optional.ofNullable(device.getBoard()).orElse("GID_default").replace(":", "_");
-        String clientId = StrUtil.format("{}@@@{}@@@{}", groupId, macAddress, macAddress);
-
-        // 构建完整的URL
-        String url = StrUtil.format("http://{}/api/commands/{}", mqttGatewayUrl, clientId);
+        String clientId = MqttClientId.build(
+                device.getBoard(), device.getMacAddress());
 
         // 存储所有工具列表
         List<Object> allTools = new ArrayList<>();
         String cursor = null;
+        Set<String> seenCursors = new java.util.HashSet<>();
+        int pageCount = 0;
+        MqttManagementRouter managementRouter =
+                createMqttManagementRouter();
+        MqttManagementEndpointResolver.Backend selectedBackend = null;
 
         // 循环获取分页数据
-        while (true) {
+        while (pageCount++ < 32) {
             // 构建params
             Map<String, Object> paramsMap = MapUtil.builder(new HashMap<String, Object>())
                     .put("withUserTools", true)
@@ -754,26 +953,44 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
                     .put("payload", payload)
                     .build();
 
-            String resultMessage = postToMqttGateway(url, requestBody);
+            MqttManagementHttpClient.Response response =
+                    managementRouter.sendReadOnlyCommand(
+                            clientId, requestBody, selectedBackend);
+            if (response == null || !response.isSuccessfulHttp()) {
+                return null;
+            }
+            String resultMessage =
+                    response.body();
+            if (selectedBackend == null) {
+                selectedBackend = response.backend();
+            }
 
             // 解析响应
             if (StringUtils.isBlank(resultMessage)) {
-                break;
+                return null;
             }
 
-            JSONObject jsonObject = JSONUtil.parseObj(resultMessage);
+            JSONObject jsonObject;
+            try {
+                jsonObject = JSONUtil.parseObj(resultMessage);
+            } catch (RuntimeException e) {
+                return null;
+            }
             if (!jsonObject.getBool("success", false)) {
-                break;
+                return null;
             }
 
             JSONObject data = jsonObject.getJSONObject("data");
             if (data == null) {
-                break;
+                return null;
             }
 
             // 获取当前页的工具列表
             JSONArray tools = data.getJSONArray("tools");
-            if (tools != null && !tools.isEmpty()) {
+            if (tools == null) {
+                return null;
+            }
+            if (!tools.isEmpty()) {
                 allTools.addAll(tools);
             }
 
@@ -781,29 +998,23 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
             String nextCursor = data.getStr("nextCursor");
             if (StringUtils.isBlank(nextCursor)) {
                 // 没有下一页了
-                break;
+                Map<String, Object> resultData = new HashMap<>();
+                resultData.put("tools", allTools);
+                return resultData;
+            }
+            if (!seenCursors.add(nextCursor)) {
+                log.warn("MQTT设备工具列表返回重复cursor，终止分页: {}",
+                        nextCursor);
+                return null;
             }
             cursor = nextCursor;
         }
 
-        // 构建返回结果
-        if (allTools.isEmpty()) {
-            return null;
-        }
-
-        Map<String, Object> resultData = new HashMap<>();
-        resultData.put("tools", allTools);
-        return resultData;
+        return null;
     }
 
     @Override
     public Object callDeviceTool(String deviceId, String toolName, Map<String, Object> arguments) {
-        // 从系统参数中获取MQTT网关地址
-        String mqttGatewayUrl = sysParamsService.getValue("server.mqtt_manager_api", true);
-        if (StringUtils.isBlank(mqttGatewayUrl) || "null".equals(mqttGatewayUrl)) {
-            return null;
-        }
-
         // 获取设备信息
         DeviceEntity device = baseDao.selectById(deviceId);
         if (device == null) {
@@ -817,12 +1028,8 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         }
 
         // 构建clientId
-        String macAddress = Optional.ofNullable(device.getMacAddress()).orElse("unknown").replace(":", "_");
-        String groupId = Optional.ofNullable(device.getBoard()).orElse("GID_default").replace(":", "_");
-        String clientId = StrUtil.format("{}@@@{}@@@{}", groupId, macAddress, macAddress);
-
-        // 构建完整的URL
-        String url = StrUtil.format("http://{}/api/commands/{}", mqttGatewayUrl, clientId);
+        String clientId = MqttClientId.build(
+                device.getBoard(), device.getMacAddress());
 
         // 构建请求体
         Map<String, Object> params = MapUtil
@@ -845,7 +1052,11 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
                 .put("payload", payload)
                 .build();
 
-        String resultMessage = postToMqttGateway(url, requestBody);
+        MqttManagementHttpClient.Response response =
+                createMqttManagementRouter()
+                        .sendMutatingCommand(clientId, requestBody);
+        String resultMessage =
+                response == null ? null : response.body();
 
         // 解析响应
         if (StringUtils.isNotBlank(resultMessage)) {

@@ -711,3 +711,26 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202607101200.sql
+  - changeSet:
+      id: 202607190300
+      author: CAIXYPROMISE
+      validCheckSum:
+        - "8:5df1e1f3654e6271889d5579a3908f77"
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607190300.sql
+  - changeSet:
+      id: 202607260900
+      author: CAIXYPROMISE
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607260900.sql
+  - changeSet:
+      id: 202607262100
+      author: CAIXYPROMISE
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607262100.sql

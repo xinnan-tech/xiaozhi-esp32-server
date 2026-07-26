@@ -1,8 +1,6 @@
 import json
 import time
 import base64
-import hashlib
-import hmac
 import os
 import re
 import glob
@@ -11,6 +9,11 @@ from aiohttp import web
 
 from core.auth import AuthManager
 from core.utils.util import get_local_ip, get_vision_url
+from core.utils.mqtt_auth import (
+    generate_password_signature,
+    normalize_signature_key,
+    parse_mqtt_endpoint,
+)
 from core.api.base_handler import BaseHandler
 
 TAG = __name__
@@ -101,26 +104,6 @@ class OTAHandler(BaseHandler):
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"刷新固件缓存失败: {e}")
             # keep previous cache if any
-
-    def generate_password_signature(self, content: str, secret_key: str) -> str:
-        """生成MQTT密码签名
-
-        Args:
-            content: 签名内容 (clientId + '|' + username)
-            secret_key: 密钥
-
-        Returns:
-            str: Base64编码的HMAC-SHA256签名
-        """
-        try:
-            hmac_obj = hmac.new(
-                secret_key.encode("utf-8"), content.encode("utf-8"), hashlib.sha256
-            )
-            signature = hmac_obj.digest()
-            return base64.b64encode(signature).decode("utf-8")
-        except Exception as e:
-            self.logger.bind(tag=TAG).error(f"生成MQTT密码签名失败: {e}")
-            return ""
 
     def _get_websocket_url(self, local_ip: str, port: int) -> str:
         """获取websocket地址
@@ -231,11 +214,32 @@ class OTAHandler(BaseHandler):
                 },
             }
 
-            # existing mqtt/websocket logic (unchanged)
-            mqtt_gateway_endpoint = server_config.get("mqtt_gateway")
+            # ========== 协议下发逻辑 ==========
+            # 按照原版逻辑：总是下发 WebSocket，如果启用了 MQTT 则额外下发 MQTT 和 UDP
+            # 这样设备有回退能力：如果 MQTT 连接失败，还可以使用 WebSocket
 
-            if mqtt_gateway_endpoint:  # 如果配置了非空字符串
-                # 尝试从请求数据中获取设备型号（已解析 above）
+            mqtt_server_config = self.config.get("mqtt_server", {})
+            enabled_protocols = self.config.get("enabled_protocols")
+            if isinstance(enabled_protocols, list):
+                mqtt_protocol_enabled = "mqtt" in enabled_protocols
+            else:
+                protocol_config = self.config.get("protocols", {})
+                requested_protocols = protocol_config.get(
+                    "enabled_protocols", []
+                )
+                mqtt_protocol_enabled = (
+                    protocol_config.get("mqtt_enabled") is True
+                    or "mqtt" in requested_protocols
+                )
+            mqtt_server_enabled = bool(
+                mqtt_server_config.get("enabled") and mqtt_protocol_enabled
+            )
+            mqtt_gateway_endpoint = server_config.get("mqtt_gateway")
+            if not mqtt_gateway_endpoint or str(mqtt_gateway_endpoint).lower() == "null":
+                mqtt_gateway_endpoint = None
+
+            # 生成通用的 MQTT 凭证信息
+            def _build_mqtt_credentials():
                 try:
                     group_id = f"GID_{device_model}".replace(":", "_").replace(" ", "_")
                 except Exception as e:
@@ -246,56 +250,116 @@ class OTAHandler(BaseHandler):
                 mqtt_client_id = f"{group_id}@@@{mac_address_safe}@@@{mac_address_safe}"
 
                 # 构建用户数据
-                user_data = {"ip": "unknown"}
+                user_data = {"ip": local_ip}
                 try:
                     user_data_json = json.dumps(user_data)
-                    username = base64.b64encode(user_data_json.encode("utf-8")).decode(
-                        "utf-8"
-                    )
+                    username = base64.b64encode(user_data_json.encode("utf-8")).decode("utf-8")
                 except Exception as e:
                     self.logger.bind(tag=TAG).error(f"生成用户名失败: {e}")
                     username = ""
 
+                return group_id, mac_address_safe, mqtt_client_id, username
+
+            # ========== 1. 总是下发 WebSocket 配置（作为基础/回退方案）==========
+            ws_token = ""
+            if self.auth_enable:
+                if self.allowed_devices:
+                    if device_id not in self.allowed_devices:
+                        ws_token = self.auth.generate_token(client_id, device_id)
+                else:
+                    ws_token = self.auth.generate_token(client_id, device_id)
+
+            return_json["websocket"] = {
+                "url": self._get_websocket_url(local_ip, websocket_port),
+                "token": ws_token,
+            }
+
+            # ========== 2. 如果启用了原生 MQTT 服务器，额外下发 MQTT 配置 ==========
+            signature_key = normalize_signature_key(
+                mqtt_server_config.get("signature_key")
+                or server_config.get("mqtt_signature_key")
+            )
+            native_mqtt_ready = bool(mqtt_server_enabled and signature_key)
+            if mqtt_server_enabled and not signature_key:
+                self.logger.bind(tag=TAG).error(
+                    "原生MQTT已启用但未配置签名密钥，跳过Native配置下发"
+                )
+
+            if native_mqtt_ready:
+                try:
+                    mqtt_host, mqtt_port = parse_mqtt_endpoint(
+                        mqtt_server_config.get("public_endpoint"),
+                        int(mqtt_server_config.get("port", 1883)),
+                    )
+                except (TypeError, ValueError) as exc:
+                    self.logger.bind(tag=TAG).error(f"MQTT endpoint配置无效: {exc}")
+                    mqtt_host, mqtt_port = "", None
+
+                placeholder_keywords = ("localhost", "0.0.0.0", "your", "example")
+                if not mqtt_host or any(
+                    keyword in mqtt_host.lower() for keyword in placeholder_keywords
+                ):
+                    mqtt_host = local_ip
+                    self.logger.bind(tag=TAG).info(
+                        f"检测到 public_endpoint 为占位符，自动使用本地IP: {local_ip}"
+                    )
+
+                if mqtt_port is None:
+                    native_mqtt_ready = False
+
+            if native_mqtt_ready:
+
+                group_id, mac_address_safe, mqtt_client_id, username = _build_mqtt_credentials()
+
+                mqtt_password = generate_password_signature(
+                    mqtt_client_id + "|" + username, signature_key
+                )
+
+                return_json["mqtt"] = {
+                    "endpoint": f"{mqtt_host}:{mqtt_port}",
+                    "client_id": mqtt_client_id,
+                    "username": username,
+                    "password": mqtt_password,
+                    "publish_topic": "device-server",
+                    "subscribe_topic": f"devices/p2p/{mac_address_safe}",
+                }
+
+                self.logger.bind(tag=TAG).info(
+                    f"为设备 {device_id} 下发原生MQTT配置: {mqtt_host}:{mqtt_port}"
+                )
+
+            # ========== 3. 如果配置了外部 MQTT 网关，额外下发 MQTT 配置 ==========
+            elif mqtt_gateway_endpoint:
+                group_id, mac_address_safe, mqtt_client_id, username = _build_mqtt_credentials()
+
                 # 生成密码
-                password = ""
+                mqtt_password = ""
                 signature_key = server_config.get("mqtt_signature_key", "")
                 if signature_key:
-                    password = self.generate_password_signature(
+                    mqtt_password = generate_password_signature(
                         mqtt_client_id + "|" + username, signature_key
                     )
-                    if not password:
-                        password = ""  # 签名失败则留空，由设备决定是否允许无密码
+                    if not mqtt_password:
+                        mqtt_password = ""
                 else:
                     self.logger.bind(tag=TAG).warning("缺少MQTT签名密钥，密码留空")
 
-                # 构建MQTT配置（直接使用 mqtt_gateway 字符串）
                 return_json["mqtt"] = {
                     "endpoint": mqtt_gateway_endpoint,
                     "client_id": mqtt_client_id,
                     "username": username,
-                    "password": password,
+                    "password": mqtt_password,
                     "publish_topic": "device-server",
                     "subscribe_topic": f"devices/p2p/{mac_address_safe}",
                 }
-                self.logger.bind(tag=TAG).info(f"为设备 {device_id} 下发MQTT网关配置")
 
-            else:  # 未配置 mqtt_gateway，下发 WebSocket
-                # 如果开启了认证，则进行认证校验
-                token = ""
-                if self.auth_enable:
-                    if self.allowed_devices:
-                        if device_id not in self.allowed_devices:
-                            token = self.auth.generate_token(client_id, device_id)
-                    else:
-                        token = self.auth.generate_token(client_id, device_id)
-                # NOTE: use websocket_port here
-                return_json["websocket"] = {
-                    "url": self._get_websocket_url(local_ip, websocket_port),
-                    "token": token,
-                }
-                self.logger.bind(tag=TAG).info(
-                    f"未配置MQTT网关，为设备 {device_id} 下发WebSocket配置"
-                )
+                self.logger.bind(tag=TAG).info(f"为设备 {device_id} 下发MQTT网关配置: {mqtt_gateway_endpoint}")
+
+            # 记录最终下发的协议
+            protocols = ["websocket"]
+            if "mqtt" in return_json:
+                protocols.append("mqtt")
+            self.logger.bind(tag=TAG).info(f"为设备 {device_id} 下发协议配置: {', '.join(protocols)}")
 
             # Now check firmware files for updates
             try:

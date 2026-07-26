@@ -229,6 +229,23 @@ class ConnectionService:
                         await initialization_task
                         initialization_task = None
 
+                    is_native_hello = (
+                        transport.keeps_connection_between_sessions
+                        and is_hello
+                    )
+                    if is_native_hello:
+                        try:
+                            # Every Native Hello is a logical-session boundary.
+                            # Always query Agent config here; the refresh helper
+                            # cheaply retains an unchanged healthy runtime.
+                            component_manager = await self._refresh_private_runtime(
+                                context,
+                                component_manager,
+                                bind_completed_event,
+                            )
+                        finally:
+                            await transport.mark_session_ready(transport.session_id)
+
                     if getattr(context, "init_error", None):
                         # 配置错误时，允许hello/listen触发默认语音（节流）
                         msg_type = msg_json.get("type") if isinstance(msg_json, dict) else None
@@ -337,7 +354,9 @@ class ConnectionService:
             except Exception as e:
                 logger.bind(tag=TAG).error(f"会话清理失败: {e}")
 
-            # Clean the manager currently owned by the context.
+            # A cancelled Native runtime refresh may have already installed a
+            # healthy replacement before this local variable was reassigned.
+            # Always clean the manager currently owned by the context.
             active_component_manager = (
                 getattr(context, "component_manager", None) or component_manager
             )
@@ -784,6 +803,201 @@ class ConnectionService:
             except json.JSONDecodeError:
                 return None
         return None
+
+    async def _refresh_private_runtime(
+        self,
+        context: SessionContext,
+        component_manager,
+        bind_completed_event: asyncio.Event,
+    ):
+        """Refresh Agent config at a Native MQTT logical-session boundary."""
+        if not context.read_config_from_api:
+            return component_manager
+
+        try:
+            private_config = await get_private_config_from_api(
+                context.common_config,
+                context.device_id,
+                context.headers.get("client-id", context.device_id),
+            )
+        except DeviceNotFoundException:
+            context.need_bind = True
+            return component_manager
+        except DeviceBindException as exc:
+            context.need_bind = True
+            context.bind_code = getattr(exc, "bind_code", None)
+            return component_manager
+        except Exception as exc:
+            logger.bind(tag=TAG).warning(f"刷新差异化配置失败，继续使用当前配置: {exc}")
+            return component_manager
+
+        if not private_config:
+            return component_manager
+
+        private_config["delete_audio"] = bool(
+            context.common_config.get("delete_audio", True)
+        )
+        config_changed = private_config != context.private_config
+        if not config_changed and getattr(context, "init_error", None) is None:
+            context.need_bind = False
+            context.bind_code = None
+            bind_completed_event.set()
+            return component_manager
+
+        await self._finalize_conversation_session(context, context.session_id)
+        await context.cancel_conversation_tasks()
+
+        try:
+            staged_context = copy.copy(context)
+            staged_context.config = copy.deepcopy(context.common_config)
+            staged_context.private_config = copy.deepcopy(private_config)
+            self._reset_config_derived_state(staged_context)
+            staged_context.config.update(copy.deepcopy(private_config))
+            self._reset_config_derived_state(staged_context)
+            self._merge_private_modules(
+                staged_context, copy.deepcopy(private_config)
+            )
+        except Exception as exc:
+            logger.bind(tag=TAG).error(
+                f"物化刷新配置失败，继续使用旧运行时: {exc}"
+            )
+            return component_manager
+
+        try:
+            new_manager = ComponentRegistry.create_component_manager(
+                staged_context.config
+            )
+        except Exception as exc:
+            logger.bind(tag=TAG).error(f"创建刷新业务组件失败，保留旧运行时: {exc}")
+            return component_manager
+
+        runtime_fields = (
+            "config",
+            "private_config",
+            "component_manager",
+            "asr",
+            "tts",
+            "func_handler",
+            "voiceprint_provider",
+            "prompt",
+            "intent_type",
+            "load_function_plugin",
+            "inject_tool_call_fewshot",
+            "dialogue",
+            "max_output_size",
+            "chat_history_conf",
+            "cmd_exit",
+            "need_bind",
+            "bind_code",
+            "init_error",
+            "init_error_notified",
+            "_init_error_last_audio_ts",
+        )
+        missing = object()
+        previous = {
+            field: getattr(context, field, missing) for field in runtime_fields
+        }
+        previous_callbacks = list(context._cleanup_callbacks)
+        old_func_handler = context.func_handler
+
+        context.config = staged_context.config
+        context.private_config = staged_context.private_config
+        context.max_output_size = staged_context.max_output_size
+        context.chat_history_conf = staged_context.chat_history_conf
+        context.cmd_exit = staged_context.cmd_exit
+        context.component_manager = new_manager
+        context.asr = None
+        context.tts = None
+        context.func_handler = None
+        context.voiceprint_provider = None
+        context.prompt = None
+        context.intent_type = "nointent"
+        context.load_function_plugin = False
+        context.inject_tool_call_fewshot = None
+        context.dialogue = Dialogue()
+        context.init_error = None
+
+        try:
+            await self._initialize_components(context, new_manager)
+        except (asyncio.CancelledError, Exception) as exc:
+            was_cancelled = isinstance(exc, asyncio.CancelledError)
+            retry_callbacks = []
+            new_callbacks = [
+                callback
+                for callback in context._cleanup_callbacks
+                if callback not in previous_callbacks
+            ]
+            for callback in reversed(new_callbacks):
+                try:
+                    result = callback()
+                    if asyncio.iscoroutine(result):
+                        await result
+                except (asyncio.CancelledError, Exception) as cleanup_exc:
+                    retry_callbacks.append(callback)
+                    logger.bind(tag=TAG).warning(
+                        f"回滚刷新工具处理器失败: {cleanup_exc}"
+                    )
+            try:
+                await new_manager.cleanup_all()
+            except (asyncio.CancelledError, Exception) as cleanup_exc:
+                retry_callbacks.append(new_manager.cleanup_all)
+                logger.bind(tag=TAG).warning(
+                    f"回滚刷新业务组件失败: {cleanup_exc}"
+                )
+            for field, value in previous.items():
+                if value is missing:
+                    if hasattr(context, field):
+                        delattr(context, field)
+                else:
+                    setattr(context, field, value)
+            context._cleanup_callbacks = previous_callbacks + retry_callbacks
+            if was_cancelled:
+                logger.bind(tag=TAG).info(
+                    "刷新业务组件被取消，已回滚并保留旧运行时"
+                )
+                raise
+            logger.bind(tag=TAG).error(
+                f"刷新业务组件失败，继续使用旧运行时: {exc}"
+            )
+            return component_manager
+
+        # Only retire the previous runtime after the replacement is healthy.
+        # Register the old manager before the first await so cancellation at
+        # any point leaves a cleanup owner for handle_connection.finally.
+        if (
+            component_manager
+            and component_manager.cleanup_all not in context._cleanup_callbacks
+        ):
+            context.register_cleanup(component_manager.cleanup_all)
+        if old_func_handler and hasattr(old_func_handler, "cleanup"):
+            try:
+                await old_func_handler.cleanup()
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.bind(tag=TAG).warning(f"清理旧工具处理器失败: {exc}")
+            else:
+                context.unregister_cleanup(old_func_handler.cleanup)
+        if component_manager:
+            try:
+                await component_manager.cleanup_all()
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.bind(tag=TAG).warning(f"清理旧业务组件失败: {exc}")
+            else:
+                context.unregister_cleanup(component_manager.cleanup_all)
+
+        context.init_error = None
+        context.init_error_notified = False
+        context._init_error_last_audio_ts = 0.0
+        context.need_bind = False
+        context.bind_code = None
+        bind_completed_event.set()
+        logger.bind(tag=TAG).info(
+            "Native MQTT逻辑会话已原子刷新私有配置和业务组件"
+        )
+        return new_manager
 
     @staticmethod
     def _reset_config_derived_state(context: SessionContext) -> None:
