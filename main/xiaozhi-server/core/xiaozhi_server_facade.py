@@ -19,7 +19,7 @@ class XiaozhiServerFacade:
     提供统一的服务器管理接口，屏蔽内部协议复杂性
 
     功能：
-    - 协议管理
+    - 协议管理（WebSocket、MQTT）
     - 本地 ASR 模型预加载
     - 优雅启动和停止
     """
@@ -49,15 +49,24 @@ class XiaozhiServerFacade:
             protocols = self.config.get("protocols", {})
             if not isinstance(protocols, dict):
                 protocols = {}
+            mqtt_config = self.config.get("mqtt_server", {})
+            if not isinstance(mqtt_config, dict):
+                mqtt_config = {}
+
             requested = protocols.get("enabled_protocols")
             requested = requested if isinstance(requested, list) else []
             websocket_enabled = protocols.get("websocket_enabled")
             if websocket_enabled is None:
                 websocket_enabled = not protocols or "websocket" in requested
 
+            mqtt_requested = protocols.get("mqtt_enabled") is True or "mqtt" in requested
+            mqtt_enabled = mqtt_config.get("enabled") is True and mqtt_requested
+
             enabled_protocols = []
             if websocket_enabled:
                 enabled_protocols.append("websocket")
+            if mqtt_enabled:
+                enabled_protocols.append("mqtt")
 
             self.config["enabled_protocols"] = enabled_protocols
             logger.info(f"启用的协议: {enabled_protocols}")
@@ -398,7 +407,7 @@ class XiaozhiServerFacade:
         """获取支持的协议列表"""
         if self.multi_protocol_server:
             return self.multi_protocol_server.get_supported_protocols()
-        return ['websocket']
+        return ['websocket', 'mqtt']
 
     def is_protocol_enabled(self, protocol: str) -> bool:
         """检查协议是否启用"""
@@ -416,6 +425,68 @@ class XiaozhiServerFacade:
         if self.multi_protocol_server:
             await self.multi_protocol_server.broadcast_message(message, protocol)
 
+    def _get_protocol_server(self, protocol: str):
+        if not self.multi_protocol_server:
+            return None
+        return self.multi_protocol_server.servers.get(protocol)
+
+    async def register_connection_context(self, context, transport) -> bool:
+        if getattr(transport, "transport_type", None) != "mqtt":
+            return False
+        server = self._get_protocol_server("mqtt")
+        if server is None:
+            return False
+        return await server.register_connection_context(context, transport)
+
+    async def unregister_connection_context(self, context, transport) -> bool:
+        if getattr(transport, "transport_type", None) != "mqtt":
+            return False
+        server = self._get_protocol_server("mqtt")
+        if server is None:
+            return False
+        return await server.unregister_connection_context(context, transport)
+
+    async def resolve_native_mqtt_connection(self, client_id: str):
+        server = self._get_protocol_server("mqtt")
+        if server is None:
+            return None
+        return await server.resolve_connection_context(client_id)
+
+    async def get_native_mqtt_status(self, client_ids):
+        server = self._get_protocol_server("mqtt")
+        if server is None:
+            return {
+                client_id: {
+                    "isAlive": False,
+                    "exists": False,
+                    "backend": "native",
+                }
+                for client_id in client_ids
+            }
+        return await server.get_connection_status(client_ids)
+
+    async def request_native_mqtt_call(
+        self, caller_mac: str, target_mac: str, caller_nickname: str = ""
+    ):
+        server = self._get_protocol_server("mqtt")
+        if server is None:
+            return {
+                "status": "error",
+                "message": "Native MQTT服务未启动",
+            }
+        return await server.request_device_call(
+            caller_mac, target_mac, caller_nickname
+        )
+
+    async def accept_native_mqtt_call(self, device_id: str):
+        server = self._get_protocol_server("mqtt")
+        if server is None:
+            return {
+                "status": "error",
+                "message": "Native MQTT服务未启动",
+            }
+        return await server.accept_device_call(device_id)
+
     def get_websocket_info(self) -> Dict[str, Any]:
         """获取WebSocket连接信息"""
         if not self.is_protocol_enabled('websocket'):
@@ -429,9 +500,24 @@ class XiaozhiServerFacade:
             'path': '/xiaozhi/v1/'
         }
 
+    def get_mqtt_info(self) -> Dict[str, Any]:
+        """获取MQTT连接信息"""
+        if not self.is_protocol_enabled('mqtt'):
+            return {'enabled': False}
+
+        mqtt_config = self.config.get('mqtt_server', {})
+        return {
+            'enabled': True,
+            'host': mqtt_config.get('host', '0.0.0.0'),
+            'port': mqtt_config.get('port', 1883),
+            'udp_port': mqtt_config.get('udp_port', 1883),
+            'public_endpoint': mqtt_config.get('public_endpoint', '')
+        }
+
     def get_connection_info(self) -> Dict[str, Any]:
         """获取所有协议的连接信息"""
         return {
             'websocket': self.get_websocket_info(),
+            'mqtt': self.get_mqtt_info(),
             'active_connections': self.get_active_connections_count()
         }

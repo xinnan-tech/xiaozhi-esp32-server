@@ -1,6 +1,9 @@
 import asyncio
 from aiohttp import web
 from config.logger import setup_logging
+from core.api.native_mqtt_management_handler import (
+    NativeMqttManagementHandler,
+)
 from core.api.ota_handler import OTAHandler
 from core.api.vision_handler import VisionHandler
 
@@ -8,16 +11,31 @@ TAG = __name__
 
 
 class SimpleHttpServer:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, management_owner=None):
         self.config = config
+        self.management_owner = management_owner
         self.logger = setup_logging()
         self.ota_handler = OTAHandler(config)
         self.vision_handler = VisionHandler(config)
+        self.native_mqtt_management_handler = (
+            NativeMqttManagementHandler(config, management_owner)
+            if management_owner is not None and self._native_mqtt_enabled()
+            else None
+        )
         self._started_event = asyncio.Event()
         self._stop_event = asyncio.Event()
         self._runner = None
         self._start_active = False
         self._cleanup_lock = asyncio.Lock()
+
+    def _native_mqtt_enabled(self) -> bool:
+        mqtt_config = self.config.get("mqtt_server", {})
+        enabled_protocols = self.config.get("enabled_protocols", [])
+        return (
+            isinstance(mqtt_config, dict)
+            and mqtt_config.get("enabled") is True
+            and "mqtt" in enabled_protocols
+        )
 
     async def wait_started(self, task: asyncio.Task, timeout: float = 10) -> None:
         """Wait until the HTTP listener is bound or surface startup failure."""
@@ -71,7 +89,17 @@ class SimpleHttpServer:
             port = int(server_config.get("http_port", 8003))
 
             if port:
-                app = web.Application()
+                mqtt_config = self.config.get("mqtt_server", {})
+                client_max_size = max(
+                    1024,
+                    int(
+                        mqtt_config.get(
+                            "manager_max_request_size", 64 * 1024
+                        )
+                        or 64 * 1024
+                    ),
+                )
+                app = web.Application(client_max_size=client_max_size)
 
                 if not read_config_from_api:
                     # 如果没有开启智控台，只是单模块运行，就需要再添加简单OTA接口，用于下发websocket接口
@@ -105,6 +133,28 @@ class SimpleHttpServer:
                         ),
                     ]
                 )
+                if self.native_mqtt_management_handler is not None:
+                    app.add_routes(
+                        [
+                            web.post(
+                                "/api/devices/status",
+                                self.native_mqtt_management_handler.handle_device_status,
+                            ),
+                            web.post(
+                                "/api/commands/{client_id}",
+                                self.native_mqtt_management_handler.handle_command,
+                            ),
+                            web.post(
+                                "/api/call/request",
+                                self.native_mqtt_management_handler.handle_call_request,
+                            ),
+                            web.post(
+                                "/api/call/accept",
+                                self.native_mqtt_management_handler.handle_call_accept,
+                            ),
+                        ]
+                    )
+
                 # 运行服务
                 runner = web.AppRunner(app)
                 self._runner = runner

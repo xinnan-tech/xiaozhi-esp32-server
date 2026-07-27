@@ -27,10 +27,8 @@ final class MqttGatewayAuthorization {
     }
 
     static String postJson(String url, String jsonBody, String signatureKey, Instant now, int timeoutMillis) {
-        GatewayResponse response = executeWithDateFallback(
-                signatureKey,
-                now,
-                token -> executeRequest(url, jsonBody, token, timeoutMillis));
+        GatewayResponse response = postJsonResponse(
+                url, jsonBody, signatureKey, now, timeoutMillis);
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new GatewayRequestException(
@@ -38,6 +36,19 @@ final class MqttGatewayAuthorization {
                     response.statusCode());
         }
         return response.body();
+    }
+
+    static GatewayResponse postJsonResponse(
+            String url,
+            String jsonBody,
+            String signatureKey,
+            Instant now,
+            int timeoutMillis) {
+        return executeWithDateFallback(
+                signatureKey,
+                now,
+                token -> executeRequest(
+                        url, jsonBody, token, timeoutMillis));
     }
 
     static List<String> generateDailyTokens(String signatureKey, Instant now) {

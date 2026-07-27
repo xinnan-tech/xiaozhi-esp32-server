@@ -23,8 +23,20 @@ class GoodbyeProcessor(MessageProcessor):
 
         if isinstance(msg_json, dict) and msg_json.get("type") == "goodbye":
             logger.info(f"收到goodbye: session_id={msg_json.get('session_id')}")
-            # 长连接传输仅结束逻辑会话，短连接传输关闭连接。
+            # WebSocket 直接关闭连接；MQTT/UDP 仅结束音频会话，保持连接
             if transport.keeps_connection_between_sessions:
+                end_call = getattr(
+                    getattr(context, "server", None),
+                    "end_native_mqtt_call",
+                    None,
+                )
+                if callable(end_call):
+                    await end_call(
+                        context.device_id,
+                        "设备结束通话",
+                        notify_device=False,
+                        expected_session_id=msg_json.get("session_id"),
+                    )
                 end_conversation = getattr(context, "end_conversation", None)
                 if callable(end_conversation):
                     await end_conversation(msg_json.get("session_id"))

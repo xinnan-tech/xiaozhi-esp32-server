@@ -15,6 +15,7 @@ from core.processors.abort_processor import AbortProcessor
 from core.processors.goodbye_processor import GoodbyeProcessor
 from core.processors.text_processor import TextProcessor
 from core.processors.ping_processor import PingProcessor
+from core.processors.udp_timeout_processor import UdpTimeoutProcessor
 from config.logger import setup_logging
 
 logger = setup_logging()
@@ -40,6 +41,7 @@ class MessageRouter(MessageProcessor):
         self.audio_receive_processor = AudioReceiveProcessor()
         self.text_processor = TextProcessor()
         self.ping_processor = PingProcessor()
+        self.udp_timeout_processor = UdpTimeoutProcessor()
 
         # 按优先级排序的processor列表
         self.processors: List[MessageProcessor] = [
@@ -48,6 +50,7 @@ class MessageRouter(MessageProcessor):
             self.server_processor,     # 服务器消息（管理端下发动作）
             self.abort_processor,      # 中断消息
             self.goodbye_processor,    # goodbye消息
+            self.udp_timeout_processor,
             self.hello_processor,      # hello消息
             self.ping_processor,       # 可选JSON ping/pong心跳
             self.listen_processor,     # listen消息

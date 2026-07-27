@@ -18,6 +18,7 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.device.dao.DeviceAddressBookDao;
 import xiaozhi.modules.device.entity.DeviceAddressBookEntity;
+import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceAddressBookService;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.sys.service.SysParamsService;
@@ -59,7 +60,14 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
         Map<String, Map<String, String>> allBooks = getAllAddressBooks();
 
         if (isAnswer) {
-            return postToMqtt("/api/call/accept", Map.of("mac", callerMac), "接听");
+            DeviceEntity callerDevice =
+                    deviceService.getDeviceByMacAddress(callerMac);
+            if (callerDevice == null) {
+                return errorResult("接听失败，设备信息不存在");
+            }
+            return postCallAccept(
+                    buildMqttClientId(callerDevice),
+                    Map.of("mac", callerMac));
         }
 
         // 主动呼叫模式
@@ -79,6 +87,14 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
             return errorResult("呼叫失败，您没有权限呼叫该设备");
         }
 
+        DeviceEntity callerDevice =
+                deviceService.getDeviceByMacAddress(callerMac);
+        DeviceEntity targetDevice =
+                deviceService.getDeviceByMacAddress(targetMac);
+        if (callerDevice == null || targetDevice == null) {
+            return errorResult("呼叫失败，设备信息不存在");
+        }
+
         // 获取目标设备如何称呼主叫方
         Map<String, String> targetBook = allBooks.get(targetMac.toLowerCase());
         String callerNickname = null;
@@ -86,15 +102,19 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
             callerNickname = targetBook.get(callerMac.toLowerCase());
         }
         if (StringUtils.isBlank(callerNickname)) {
-            callerNickname = deviceService.getDeviceByMacAddress(callerMac).getAlias();
+            callerNickname = callerDevice.getAlias();
             if (StringUtils.isBlank(callerNickname)) {
                 callerNickname = formatMacAsDeviceName(callerMac);
             }
         }
 
-        return postToMqtt("/api/call/request",
-                Map.of("caller_mac", callerMac, "target_mac", targetMac, "caller_nickname", callerNickname),
-                "呼叫");
+        return postCallRequest(
+                buildMqttClientId(callerDevice),
+                buildMqttClientId(targetDevice),
+                Map.of(
+                        "caller_mac", callerMac,
+                        "target_mac", targetMac,
+                        "caller_nickname", callerNickname));
     }
 
     @Override
@@ -195,38 +215,67 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
         return result;
     }
 
-    private Map<String, Object> postToMqtt(String path, Map<String, Object> body, String action) {
+    private Map<String, Object> postCallRequest(
+            String callerClientId,
+            String targetClientId,
+            Map<String, Object> body) {
+        try {
+            MqttManagementHttpClient.Response response =
+                    createMqttManagementRouter().sendCallRequest(
+                            callerClientId, targetClientId, body);
+            return parseCallResponse(response, "呼叫");
+        } catch (Exception e) {
+            return errorResult("呼叫失败，请稍后再试");
+        }
+    }
+
+    private Map<String, Object> postCallAccept(
+            String clientId,
+            Map<String, Object> body) {
+        try {
+            MqttManagementHttpClient.Response response =
+                    createMqttManagementRouter().sendCallAccept(
+                            clientId, body);
+            return parseCallResponse(response, "接听");
+        } catch (Exception e) {
+            return errorResult("接听失败，请稍后再试");
+        }
+    }
+
+    private Map<String, Object> parseCallResponse(
+            MqttManagementHttpClient.Response response,
+            String action) {
         Map<String, Object> result = new HashMap<>();
         result.put("status", "error");
-
-        String mqttGatewayUrl = sysParamsService.getValue("server.mqtt_manager_api", true);
-        String mqttSignatureKey = sysParamsService.getValue(Constant.SERVER_MQTT_SECRET, true);
-
-        if (StringUtils.isBlank(mqttGatewayUrl) || "null".equals(mqttGatewayUrl)
-                || MqttGatewayAuthorization.isMissingSignatureKey(mqttSignatureKey)) {
-            result.put("message", action + "失败，网关配置缺失");
+        if (response == null || StringUtils.isBlank(response.body())) {
+            result.put("message", action + "失败，MQTT管理配置缺失");
             return result;
         }
 
         try {
-            String url = "http://" + mqttGatewayUrl + path;
-            String response = MqttGatewayAuthorization.postJson(
-                    url,
-                    JSONUtil.toJsonStr(body),
-                    mqttSignatureKey,
-                    Instant.now(),
-                    5000);
-
-            if (StringUtils.isNotBlank(response)) {
-                Map<String, Object> gwResult = JSONUtil.parseObj(response);
-                result.put("status", gwResult.get("status"));
-                result.put("message", gwResult.get("message"));
+            Map<String, Object> backendResult =
+                    JSONUtil.parseObj(response.body());
+            result.put("status", backendResult.get("status"));
+            result.put("message", backendResult.get("message"));
+            if (backendResult.containsKey("code")) {
+                result.put("code", backendResult.get("code"));
             }
             return result;
         } catch (Exception e) {
             result.put("message", action + "失败，请稍后再试");
             return result;
         }
+    }
+
+    MqttManagementRouter createMqttManagementRouter() {
+        return new MqttManagementRouter(
+                new MqttManagementEndpointResolver(sysParamsService),
+                new MqttManagementHttpClient());
+    }
+
+    private String buildMqttClientId(DeviceEntity device) {
+        return MqttClientId.build(
+                device.getBoard(), device.getMacAddress());
     }
 
     private String formatMacAsDeviceName(String mac) {

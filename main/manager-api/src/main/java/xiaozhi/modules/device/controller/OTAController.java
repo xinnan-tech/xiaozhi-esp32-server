@@ -1,6 +1,7 @@
 package xiaozhi.modules.device.controller;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
@@ -78,8 +79,8 @@ public class OTAController {
     @Hidden
     public ResponseEntity<String> getOTA() {
         String mqttUdpConfig = sysParamsService.getValue(Constant.SERVER_MQTT_GATEWAY, false);
-        if (StringUtils.isBlank(mqttUdpConfig)) {
-            return ResponseEntity.ok("OTA接口不正常，缺少mqtt_gateway地址，请登录智控台，在参数管理找到【server.mqtt_gateway】配置");
+        if (!isNativeMqttReady() && !isConfiguredValue(mqttUdpConfig)) {
+            return ResponseEntity.ok("OTA接口不正常，缺少mqtt_gateway地址或未启用原生MQTT，请登录智控台，在参数管理找到【server.mqtt_gateway】或【mqtt_server.enabled/protocols.mqtt_enabled】配置");
         }
         String wsUrl = sysParamsService.getValue(Constant.SERVER_WEBSOCKET, true);
         if (StringUtils.isBlank(wsUrl) || wsUrl.equals("null")) {
@@ -90,6 +91,49 @@ public class OTAController {
             return ResponseEntity.ok("OTA接口不正常，缺少ota地址，请登录智控台，在参数管理找到【server.ota】配置");
         }
         return ResponseEntity.ok("OTA接口运行正常，websocket集群数量：" + wsUrl.split(";").length);
+    }
+
+    private boolean isNativeMqttEnabled() {
+        String enabled = sysParamsService.getValue(Constant.MQTT_SERVER_ENABLED, false);
+        boolean serverEnabled = isConfiguredValue(enabled)
+                ? isTrue(enabled)
+                : isTrue(sysParamsService.getValue(Constant.SERVER_MQTT_ENABLED, false));
+
+        boolean protocolEnabled = isTrue(
+                sysParamsService.getValue(Constant.PROTOCOLS_MQTT_ENABLED, false));
+        if (!protocolEnabled) {
+            String enabledProtocols = sysParamsService.getValue(Constant.PROTOCOLS_ENABLED, false);
+            if (StringUtils.isNotBlank(enabledProtocols)) {
+                String normalized = enabledProtocols
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace("\"", "");
+                protocolEnabled = Arrays.stream(normalized.split("[;,\\s]+"))
+                        .anyMatch("mqtt"::equalsIgnoreCase);
+            }
+        }
+        return serverEnabled && protocolEnabled;
+    }
+
+    private boolean isNativeMqttReady() {
+        if (!isNativeMqttEnabled()) {
+            return false;
+        }
+        String signatureKey = sysParamsService.getValue(
+                Constant.MQTT_SERVER_SIGNATURE_KEY, false);
+        if (!isConfiguredValue(signatureKey)) {
+            signatureKey = sysParamsService.getValue(
+                    Constant.SERVER_MQTT_SECRET, false);
+        }
+        return isConfiguredValue(signatureKey);
+    }
+
+    private boolean isTrue(String value) {
+        return "true".equalsIgnoreCase(value) || "1".equals(value);
+    }
+
+    private boolean isConfiguredValue(String value) {
+        return StringUtils.isNotBlank(value) && !"null".equalsIgnoreCase(value.trim());
     }
 
     @SneakyThrows
