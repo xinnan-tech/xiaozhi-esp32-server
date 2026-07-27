@@ -17,7 +17,7 @@ class MCPClient:
         self.name_mapping = {}
         self.ready = False
         self.call_results = {}  # To store Futures for tool call responses
-        self.next_id = 1
+        self.next_id = 10000
         self.lock = asyncio.Lock()
         self._cached_available_tools = None  # Cache for get_available_tools
 
@@ -91,3 +91,12 @@ class MCPClient:
         async with self.lock:
             if id in self.call_results:
                 self.call_results.pop(id)
+
+    async def close(self):
+        async with self.lock:
+            pending = list(self.call_results.values())
+            self.call_results.clear()
+            self.ready = False
+        for future in pending:
+            if not future.done():
+                future.set_exception(ConnectionError("MCP会话已关闭"))

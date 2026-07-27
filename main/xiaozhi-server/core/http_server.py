@@ -13,6 +13,33 @@ class SimpleHttpServer:
         self.logger = setup_logging()
         self.ota_handler = OTAHandler(config)
         self.vision_handler = VisionHandler(config)
+        self._started_event = asyncio.Event()
+        self._stop_event = asyncio.Event()
+        self._runner = None
+        self._start_active = False
+        self._cleanup_lock = asyncio.Lock()
+
+    async def wait_started(self, task: asyncio.Task, timeout: float = 10) -> None:
+        """Wait until the HTTP listener is bound or surface startup failure."""
+        event_waiter = asyncio.create_task(self._started_event.wait())
+        try:
+            done, _ = await asyncio.wait(
+                {task, event_waiter},
+                timeout=timeout,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if self._started_event.is_set():
+                if task.done():
+                    await task
+                return
+            if task in done:
+                await task
+                raise RuntimeError("HTTP服务器在就绪前退出")
+            raise TimeoutError("等待HTTP服务器启动超时")
+        finally:
+            if not event_waiter.done():
+                event_waiter.cancel()
+                await asyncio.gather(event_waiter, return_exceptions=True)
 
     def _get_websocket_url(self, local_ip: str, port: int) -> str:
         """获取websocket地址
@@ -33,7 +60,11 @@ class SimpleHttpServer:
             return f"ws://{local_ip}:{port}/xiaozhi/v1/"
 
     async def start(self):
+        runner = None
+        self._start_active = True
         try:
+            self._started_event.clear()
+            self._stop_event.clear()
             server_config = self.config["server"]
             read_config_from_api = self.config.get("read_config_from_api", False)
             host = server_config.get("ip", "0.0.0.0")
@@ -74,19 +105,39 @@ class SimpleHttpServer:
                         ),
                     ]
                 )
-
                 # 运行服务
                 runner = web.AppRunner(app)
+                self._runner = runner
                 await runner.setup()
                 site = web.TCPSite(runner, host, port)
                 await site.start()
-
-                # 保持服务运行
-                while True:
-                    await asyncio.sleep(3600)  # 每隔 1 小时检查一次
+            self._started_event.set()
+            await self._stop_event.wait()
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"HTTP服务器启动失败: {e}")
             import traceback
 
             self.logger.bind(tag=TAG).error(f"错误堆栈: {traceback.format_exc()}")
             raise
+        finally:
+            self._started_event.clear()
+            try:
+                if runner is not None:
+                    await self._cleanup_runner()
+            finally:
+                self._start_active = False
+
+    async def _cleanup_runner(self):
+        """Cleanup the owned runner and retain it when cleanup must be retried."""
+        async with self._cleanup_lock:
+            runner = self._runner
+            if runner is None:
+                return
+            await runner.cleanup()
+            self._runner = None
+
+    async def stop(self):
+        """Stop the HTTP loop and retry cleanup left by a failed start task."""
+        self._stop_event.set()
+        if not self._start_active:
+            await self._cleanup_runner()

@@ -103,7 +103,10 @@ class ASRProvider(ASRProviderBase):
             logger.bind(tag=TAG).debug("WebSocket连接建立成功")
 
             self.server_ready = False
-            self.forward_task = asyncio.create_task(self._forward_results(conn))
+            session_id = getattr(conn, "session_id", None)
+            self.forward_task = self._create_session_task(
+                conn, self._forward_results(conn, session_id)
+            )
 
             # 发送run-task指令
             run_task_msg = self._build_run_task_message()
@@ -154,10 +157,13 @@ class ASRProvider(ASRProviderBase):
 
         return message
 
-    async def _forward_results(self, conn: "ConnectionHandler"):
+    async def _forward_results(self, conn: "ConnectionHandler", session_id=None):
         """转发识别结果"""
         try:
-            while not conn.stop_event.is_set():
+            while (
+                not conn.stop_event.is_set()
+                and self._session_is_current(conn, session_id)
+            ):
                 # 获取当前连接的音频数据
                 audio_data = conn.asr_audio
                 try:
@@ -243,7 +249,7 @@ class ASRProvider(ASRProviderBase):
         finally:
             # 清理连接的音频缓存
             await self._cleanup()
-            conn.reset_audio_states()
+            self._reset_audio_if_current(conn, session_id)
 
     async def _send_stop_request(self):
         """发送停止请求(用于手动模式停止录音)"""
@@ -285,6 +291,21 @@ class ASRProvider(ASRProviderBase):
         self.server_ready = False
         logger.bind(tag=TAG).debug("ASR状态已重置")
 
+        forward_task = self.forward_task
+        current_task = asyncio.current_task()
+        if (
+            forward_task
+            and forward_task is not current_task
+            and not forward_task.done()
+        ):
+            forward_task.cancel()
+            try:
+                await forward_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                logger.bind(tag=TAG).warning(f"等待ASR转发任务退出失败: {e}")
+
         # 关闭连接
         if self.asr_ws:
             try:
@@ -301,8 +322,8 @@ class ASRProvider(ASRProviderBase):
             finally:
                 self.asr_ws = None
 
-        # 清理任务引用
-        self.forward_task = None
+        if self.forward_task is forward_task:
+            self.forward_task = None
         self.task_id = None
 
         logger.bind(tag=TAG).debug("ASR会话清理完成")
