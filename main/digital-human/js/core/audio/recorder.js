@@ -204,7 +204,7 @@ export class AudioRecorder {
         if (this.isRecording) return false;
         try {
             if (!this.initEncoder()) {
-                log('无法开始录音: Opus编码器初始化失败', 'error');
+                log('无法开始Ghi âm: Opus编码器初始化失败', 'error');
                 return false;
             }
             log('请至少录制1-2秒音频以确保收集足够的数据', 'info');
@@ -234,7 +234,7 @@ export class AudioRecorder {
             }
             // Send listening start message
             if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-                log(`已发送录音开始消息`, 'info');
+                log(`已发送Ghi âm开始消息`, 'info');
             } else {
                 log('WebSocket未连接，无法发送开始消息', 'error');
                 return false;
@@ -256,10 +256,10 @@ export class AudioRecorder {
                     this.onRecordingStart(recordingSeconds);
                 }
             }, 100);
-            log('已开始PCM直接录音', 'success');
+            log('已开始PCM直接Ghi âm', 'success');
             return true;
         } catch (error) {
-            log(`直接录音启动错误: ${error.message}`, 'error');
+            log(`直接Ghi âm启动错误: ${error.message}`, 'error');
             this.isRecording = false;
             return false;
         }
@@ -308,15 +308,15 @@ export class AudioRecorder {
             if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
                 const emptyOpusFrame = new Uint8Array(0);
                 this.websocket.send(emptyOpusFrame);
-                log('已发送录音停止信号', 'info');
+                log('已发送Ghi âm停止信号', 'info');
             }
             if (this.onRecordingStop) {
                 this.onRecordingStop();
             }
-            log('已停止PCM直接录音', 'success');
+            log('已停止PCM直接Ghi âm', 'success');
             return true;
         } catch (error) {
-            log(`直接录音停止错误: ${error.message}`, 'error');
+            log(`直接Ghi âm停止错误: ${error.message}`, 'error');
             return false;
         }
     }
@@ -355,7 +355,7 @@ export async function checkMicrophoneAvailability() {
         log('麦克风可用性检查成功', 'success');
         return true;
     } catch (error) {
-        log(`麦克风不可用: ${error.message}`, 'warning');
+        log(`Micro không khả dụng: ${error.message}`, 'warning');
         return false;
     }
 }
