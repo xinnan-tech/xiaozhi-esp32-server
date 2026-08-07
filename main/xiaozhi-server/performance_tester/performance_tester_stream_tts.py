@@ -14,8 +14,8 @@ from config.settings import load_config
 
 description = "流式TTS语音合成首词耗时测试"
 class StreamTTSPerformanceTester:
-    def __init__(self):
-        self.config = load_config()
+    def __init__(self, config):
+        self.config = config
         self.test_texts = [
             "你好，这是一句话。"
         ]
@@ -663,7 +663,8 @@ async def main():
     parser.add_argument("--count", type=int, default=5, help="每个TTS服务的测试次数")
     
     args = parser.parse_args()
-    await StreamTTSPerformanceTester().run(args.text, args.count)
+    config = await load_config()
+    await StreamTTSPerformanceTester(config).run(args.text, args.count)
 
 
 if __name__ == "__main__":
