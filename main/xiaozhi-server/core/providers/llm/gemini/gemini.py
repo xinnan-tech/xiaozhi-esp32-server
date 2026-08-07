@@ -68,7 +68,7 @@ def setup_proxy_env(http_proxy: str | None, https_proxy: str | None):
 
 class LLMProvider(LLMProviderBase):
     def __init__(self, cfg: Dict[str, Any]):
-        self.model_name = cfg.get("model_name", "gemini-2.0-flash")
+        self.model_name = cfg.get("model_name", "gemini-3.6-flash")
         self.api_key = cfg["api_key"]
         http_proxy = cfg.get("http_proxy")
         https_proxy = cfg.get("https_proxy")
