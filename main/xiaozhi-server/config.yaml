@@ -246,7 +246,7 @@ selected_module:
   # 不想开通意图识别，就设置成：nointent
   # 意图识别可使用intent_llm。优点：通用性强，缺点：增加串行前置意图识别模块，会增加处理时间，支持控制音量大小等iot操作
   # 意图识别可使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快，理论上能全部操作所有iot指令
-  # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-1-5-pro-32k-250115
+  # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-seed-2-0-lite-260215
   Intent: function_call
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
@@ -638,12 +638,12 @@ LLM:
   DoubaoLLM:
     # 定义LLM API类型
     type: openai
-    # 先开通服务，打开以下网址，开通的服务搜索Doubao-1.5-pro，开通它
+    # 先开通服务，打开以下网址，开通的服务搜索Doubao-Seed-2.0-Lite，开通它
     # 开通地址：https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&OpenTokenDrawer=false
     # 免费额度500000token
     # 开通后，进入这里获取密钥：https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey?apikey=%7B%7D
     base_url: https://ark.cn-beijing.volces.com/api/v3
-    model_name: doubao-1-5-pro-32k-250115
+    model_name: doubao-seed-2-0-lite-260215
     api_key: 你的doubao web key
   DeepSeekLLM:
     # 定义LLM API类型
@@ -683,7 +683,7 @@ LLM:
     # token申请地址： https://aistudio.google.com/apikey
     # 若部署地无法访问接口，需要开启科学上网
     api_key: 你的gemini web key
-    model_name: "gemini-2.0-flash"
+    model_name: "gemini-3.6-flash"
     http_proxy: ""  #"http://127.0.0.1:10808"
     https_proxy: "" #http://127.0.0.1:10808"
   CozeLLM:
