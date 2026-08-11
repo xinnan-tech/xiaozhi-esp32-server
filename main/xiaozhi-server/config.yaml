@@ -130,14 +130,16 @@ context_providers:
 
 # 插件的基础配置
 plugins:
-  # 获取天气插件的配置，这里填写你的api_key
-  # 这个密钥是项目共用的key，用多了可能会被限制
-  # 想稳定一点就自行申请替换，每天有1000次免费调用
-  # 申请地址：https://console.qweather.com/#/apps/create-key/over
-  # 申请后通过这个链接可以找到自己的apihost：https://console.qweather.com/setting?lang=zh
+  # 获取天气插件的配置。支持 api_key 和 jwt 两种认证方式，不要同时配置两种请求头。
+  # 申请地址：https://console.qweather.com/
   get_weather:
-    api_host: "mj7p3y7naa.re.qweatherapi.com"
-    api_key: "a861d0d5e7bf4ee1a83d9a9e4f96d4da"
+    api_host: "你的API Host"
+    auth_type: "api_key"
+    api_key: ""
+    # JWT 模式将 auth_type 改为 jwt，并配置以下三项：
+    # project_id: "你的Project ID"
+    # credential_id: "你的Credential ID"
+    # private_key_path: "/安全目录/ed25519-private.pem"
     default_location: "广州"
   # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
   # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/

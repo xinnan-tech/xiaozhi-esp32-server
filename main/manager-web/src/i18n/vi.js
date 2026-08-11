@@ -1031,6 +1031,11 @@ export default {
   'functionDialog.copyFailed': 'Sao chép thất bại, vui lòng sao chép thủ công',
   'functionDialog.jsonFormatError': ' lỗi định dạng trường: định dạng JSON không hợp lệ',
   'functionDialog.defaultValue': 'Giá trị mặc định',
+  'functionDialog.selectSecretFile': 'Chọn khóa riêng tư',
+  'functionDialog.credentialConfigured': 'Đã cấu hình',
+  'functionDialog.leaveBlankToKeep': 'Để trống để giữ thông tin xác thực hiện tại',
+  'functionDialog.secretFileTooLarge': 'Tệp khóa riêng tư không được vượt quá 16 KB',
+  'functionDialog.secretFileReadFailed': 'Không thể đọc tệp khóa riêng tư',
 
   // Model Configuration Page Text
   'modelConfig.searchPlaceholder': 'Vui lòng nhập tên mô hình để tìm kiếm',

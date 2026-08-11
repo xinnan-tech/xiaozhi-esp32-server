@@ -1031,6 +1031,11 @@ export default {
   'functionDialog.copyFailed': '复制失败，请手动复制',
   'functionDialog.jsonFormatError': '的字段格式错误：JSON格式有误',
   'functionDialog.defaultValue': '默认值',
+  'functionDialog.selectSecretFile': '选择私钥文件',
+  'functionDialog.credentialConfigured': '已配置',
+  'functionDialog.leaveBlankToKeep': '留空则保留现有凭据',
+  'functionDialog.secretFileTooLarge': '私钥文件不能超过 16KB',
+  'functionDialog.secretFileReadFailed': '读取私钥文件失败',
 
   // 模型配置页面文本
   'modelConfig.searchPlaceholder': '请输入模型名称查询',

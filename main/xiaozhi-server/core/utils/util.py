@@ -490,6 +490,7 @@ def filter_sensitive_info(config: dict) -> dict:
         "secret",
         "access_key_secret",
         "secret_key",
+        "private_key",
     ]
 
     def _filter_dict(d: dict) -> dict:

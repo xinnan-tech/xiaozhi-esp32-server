@@ -1,6 +1,7 @@
 package xiaozhi.modules.agent.service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.baomidou.mybatisplus.extension.repository.IRepository;
 
@@ -19,6 +20,13 @@ public interface AgentPluginMappingService extends IRepository<AgentPluginMappin
      * @return
      */
     List<AgentPluginMapping> agentPluginParamsByAgentId(String agentId);
+
+    Map<String, Object> prepareParamsForStorage(String agentId, String pluginId,
+            Map<String, Object> submittedParams, String existingParamInfo);
+
+    void redactCredentialsForAdmin(List<AgentPluginMapping> mappings);
+
+    String resolveParamsForServer(AgentPluginMapping mapping);
 
     /**
      * 根据智能体id删除插件参数

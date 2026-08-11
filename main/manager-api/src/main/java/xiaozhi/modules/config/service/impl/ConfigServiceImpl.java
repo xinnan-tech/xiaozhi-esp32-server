@@ -198,7 +198,8 @@ public class ConfigServiceImpl implements ConfigService {
             if (pluginMappings != null && !pluginMappings.isEmpty()) {
                 Map<String, Object> pluginParams = new HashMap<>();
                 for (AgentPluginMapping pluginMapping : pluginMappings) {
-                    pluginParams.put(pluginMapping.getProviderCode(), pluginMapping.getParamInfo());
+                    pluginParams.put(pluginMapping.getProviderCode(),
+                            agentPluginMappingService.resolveParamsForServer(pluginMapping));
                 }
                 result.put("plugins", pluginParams);
             }
