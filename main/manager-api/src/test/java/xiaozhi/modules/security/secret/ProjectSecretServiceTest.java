@@ -2,6 +2,7 @@ package xiaozhi.modules.security.secret;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -9,8 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Base64;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 class ProjectSecretServiceTest {
+    @Test
+    void productionConstructorIsExplicitlyAutowired() throws Exception {
+        assertNotNull(ProjectSecretService.class.getConstructor(String.class).getAnnotation(Autowired.class));
+    }
+
     private static final String MASTER_KEY = Base64.getEncoder().encodeToString(new byte[32]);
 
     @Test

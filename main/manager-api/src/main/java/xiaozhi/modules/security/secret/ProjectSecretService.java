@@ -11,6 +11,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,7 @@ public class ProjectSecretService {
     private final byte[] masterKey;
     private final SecureRandom secureRandom;
 
+    @Autowired
     public ProjectSecretService(@Value("${xiaozhi.secret.master-key:}") String encodedMasterKey) {
         this(encodedMasterKey, new SecureRandom());
     }
