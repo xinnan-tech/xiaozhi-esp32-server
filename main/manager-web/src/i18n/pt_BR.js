@@ -1031,6 +1031,11 @@ export default {
   'functionDialog.copyFailed': 'Falha ao copiar. Por favor, copie manualmente',
   'functionDialog.jsonFormatError': ' erro no formato do campo: formato JSON inválido',
   'functionDialog.defaultValue': 'Valor Padrão',
+  'functionDialog.selectSecretFile': 'Selecionar chave privada',
+  'functionDialog.credentialConfigured': 'Configurado',
+  'functionDialog.leaveBlankToKeep': 'Deixe em branco para manter a credencial atual',
+  'functionDialog.secretFileTooLarge': 'O arquivo de chave privada não pode exceder 16 KB',
+  'functionDialog.secretFileReadFailed': 'Falha ao ler o arquivo de chave privada',
 
   // Página de configuração de modelos
   'modelConfig.searchPlaceholder': 'Por favor, insira o nome do modelo para pesquisar',

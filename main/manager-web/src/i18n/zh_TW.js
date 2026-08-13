@@ -1031,6 +1031,11 @@ export default {
   'functionDialog.copyFailed': '複製失敗，請手動複製',
   'functionDialog.jsonFormatError': '的字段格式錯誤：JSON格式有誤',
   'functionDialog.defaultValue': '默認值',
+  'functionDialog.selectSecretFile': '選擇私鑰文件',
+  'functionDialog.credentialConfigured': '已配置',
+  'functionDialog.leaveBlankToKeep': '留空則保留現有憑據',
+  'functionDialog.secretFileTooLarge': '私鑰文件不能超過 16KB',
+  'functionDialog.secretFileReadFailed': '讀取私鑰文件失敗',
 
   // 模型配置頁面文本
   'modelConfig.searchPlaceholder': '請輸入模型名稱查詢',

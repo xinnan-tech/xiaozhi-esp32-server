@@ -1031,6 +1031,11 @@ export default {
   'functionDialog.copyFailed': 'Kopieren fehlgeschlagen, bitte manuell kopieren',
   'functionDialog.jsonFormatError': ' Feldformatfehler: ungültiges JSON-Format',
   'functionDialog.defaultValue': 'Standardwert',
+  'functionDialog.selectSecretFile': 'Privaten Schlüssel auswählen',
+  'functionDialog.credentialConfigured': 'Konfiguriert',
+  'functionDialog.leaveBlankToKeep': 'Leer lassen, um die aktuellen Zugangsdaten beizubehalten',
+  'functionDialog.secretFileTooLarge': 'Die Schlüsseldatei darf höchstens 16 KB groß sein',
+  'functionDialog.secretFileReadFailed': 'Schlüsseldatei konnte nicht gelesen werden',
 
   // Model Configuration Page Text
   'modelConfig.searchPlaceholder': 'Bitte Modellnamen zur Suche eingeben',

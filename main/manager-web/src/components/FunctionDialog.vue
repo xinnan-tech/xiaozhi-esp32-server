@@ -70,7 +70,7 @@
             <div v-if="currentFunction.fieldsMeta.length == 0">
               <el-empty :description="currentFunction.name + $t('functionDialog.noNeedToConfig')" />
             </div>
-            <el-form-item v-for="field in currentFunction.fieldsMeta" :key="field.key" :label="field.label"
+            <el-form-item v-for="field in currentFunction.fieldsMeta" v-if="fieldVisible(field)" :key="field.key" :label="field.label"
               class="param-item" :class="{ 'textarea-field': field.type === 'array' || field.type === 'json' }">
               <template #label>
                 <span style="font-size: 16px; margin-right: 6px;">{{ field.label }}</span>
@@ -93,6 +93,35 @@
               <!-- boolean -->
               <el-switch v-else-if="field.type === 'boolean' || field.type === 'bool'"
                 :value="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)" />
+
+              <!-- select -->
+              <el-select v-else-if="field.type === 'select'" v-model="currentFunction.params[field.key]"
+                @change="val => handleParamChange(currentFunction, field.key, val)">
+                <el-option v-for="option in field.options || []" :key="option.value"
+                  :label="option.label" :value="option.value" />
+              </el-select>
+
+              <!-- secret file -->
+              <div v-else-if="field.type === 'file'" class="secret-file-field">
+                <el-upload action="" :auto-upload="false" :show-file-list="false"
+                  :accept="field.accept || '.pem'"
+                  :on-change="file => handleSecretFileChange(currentFunction, field, file)">
+                  <el-button size="small" type="primary">{{ $t('functionDialog.selectSecretFile') }}</el-button>
+                </el-upload>
+                <span v-if="uploadNames[field.key]" class="credential-status">{{ uploadNames[field.key] }}</span>
+                <span v-else-if="currentFunction.params[field.key + '_configured']" class="credential-status">
+                  {{ $t('functionDialog.credentialConfigured') }}
+                  <template v-if="currentFunction.params[field.key + '_fingerprint']">
+                    ({{ currentFunction.params[field.key + '_fingerprint'] }})
+                  </template>
+                </span>
+              </div>
+
+              <!-- password -->
+              <el-input v-else-if="field.type === 'password'" type="password" show-password
+                v-model="currentFunction.params[field.key]"
+                :placeholder="currentFunction.params[field.key + '_configured'] ? $t('functionDialog.leaveBlankToKeep') : ''"
                 @change="val => handleParamChange(currentFunction, field.key, val)" />
 
               <!-- string or fallback -->
@@ -194,6 +223,7 @@ export default {
   data() {
     return {
       textCache: {},
+      uploadNames: {},
       dialogVisible: this.value,
       selectedNames: [],
       currentFunction: null,
@@ -253,6 +283,7 @@ export default {
     async value(v) {
       this.dialogVisible = v;
       if (v) {
+        this.uploadNames = {};
         // 加载功能状态（需要在初始化选中态之前）
         await this.loadFeatureStatus();
 
@@ -272,7 +303,7 @@ export default {
           const idx = this.allFunctions.findIndex(f => f.name === saved.name);
           if (idx >= 0) {
             // 保留用户之前在 saved.params 上的改动
-            this.allFunctions[idx].params = { ...saved.params };
+            this.allFunctions[idx].params = { ...this.allFunctions[idx].params, ...saved.params };
           }
         });
         // 右侧默认指向第一个
@@ -378,6 +409,34 @@ export default {
         this.$message.error(`${this.currentFunction.name}${this.$t('functionDialog.jsonFormatError')}`);
       }
     },
+    fieldVisible(field) {
+      const condition = field.visible_when || field.visibleWhen;
+      if (!condition || typeof condition !== 'object') {
+        return true;
+      }
+      return Object.entries(condition).every(([key, expected]) => {
+        const actual = this.currentFunction.params[key] ?? (key === 'auth_type' ? 'api_key' : undefined);
+        return actual === expected;
+      });
+    },
+    handleSecretFileChange(func, field, file) {
+      const raw = file && file.raw;
+      if (!raw) {
+        return;
+      }
+      if (raw.size > 16 * 1024) {
+        this.$message.error(this.$t('functionDialog.secretFileTooLarge'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.handleParamChange(func, field.key, String(reader.result || ''));
+        this.$set(func.params, field.key, String(reader.result || ''));
+        this.$set(this.uploadNames, field.key, raw.name);
+      };
+      reader.onerror = () => this.$message.error(this.$t('functionDialog.secretFileReadFailed'));
+      reader.readAsText(raw, 'UTF-8');
+    },
     handleFunctionClick(func) {
       if (this.selectedNames.includes(func.name)) {
         const tempFunc = this.tempFunctions[func.name];
@@ -420,6 +479,7 @@ export default {
 
     closeDialog() {
       this.tempFunctions = {};
+      this.uploadNames = {};
       this.selectedNames = this.functions.map(f => f.name);
       this.currentFunction = null;
       this.dialogVisible = false;
@@ -432,6 +492,7 @@ export default {
         this.modifiedFunctions[name] = JSON.parse(JSON.stringify(this.tempFunctions[name]));
       });
       this.tempFunctions = {};
+      this.uploadNames = {};
       this.hasSaved = true;
 
       let selected = this.selectedList.map(f => {
@@ -638,6 +699,18 @@ export default {
       }
     }
   }
+}
+
+.secret-file-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.credential-status {
+  color: #67c23a;
+  font-size: 13px;
 }
 
 .params-container {

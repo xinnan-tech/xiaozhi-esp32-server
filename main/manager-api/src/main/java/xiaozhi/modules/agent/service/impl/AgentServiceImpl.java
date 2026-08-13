@@ -115,6 +115,10 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         agent.setCorrectWordFileIds(correctWordFileIds);
         agent.setCurrentVersionNo(agentSnapshotService.getCurrentVersionNo(id));
 
+        if (agent.getFunctions() != null && !agent.getFunctions().isEmpty()) {
+            agentPluginMappingService.redactCredentialsForAdmin(agent.getFunctions());
+        }
+
         // 无需额外查询插件列表，已通过SQL查询出来
         return agent;
     }
@@ -465,8 +469,10 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
                 AgentPluginMapping m = new AgentPluginMapping();
                 m.setAgentId(agentId);
                 m.setPluginId(info.getPluginId());
-                m.setParamInfo(JsonUtils.toJsonString(info.getParamInfo()));
                 AgentPluginMapping old = existMap.get(info.getPluginId());
+                Map<String, Object> protectedParams = agentPluginMappingService.prepareParamsForStorage(
+                        agentId, info.getPluginId(), info.getParamInfo(), old == null ? null : old.getParamInfo());
+                m.setParamInfo(JsonUtils.toJsonString(protectedParams));
                 if (old != null) {
                     // 已存在，设置id表示更新
                     m.setId(old.getId());
@@ -683,7 +689,8 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
                     paramInfo.put((String) field.get("key"), field.get("default"));
                 }
             }
-            mapping.setParamInfo(JsonUtils.toJsonString(paramInfo));
+            mapping.setParamInfo(JsonUtils.toJsonString(agentPluginMappingService.prepareParamsForStorage(
+                    entity.getId(), pluginId, paramInfo, null)));
             mapping.setAgentId(entity.getId());
             toInsert.add(mapping);
         }

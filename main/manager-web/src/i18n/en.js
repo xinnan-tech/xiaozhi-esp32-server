@@ -1031,6 +1031,11 @@ export default {
   'functionDialog.copyFailed': 'Copy failed, please copy manually',
   'functionDialog.jsonFormatError': ' field format error: invalid JSON format',
   'functionDialog.defaultValue': 'Default Value',
+  'functionDialog.selectSecretFile': 'Select private key',
+  'functionDialog.credentialConfigured': 'Configured',
+  'functionDialog.leaveBlankToKeep': 'Leave blank to keep the current credential',
+  'functionDialog.secretFileTooLarge': 'The private key file must not exceed 16KB',
+  'functionDialog.secretFileReadFailed': 'Failed to read the private key file',
 
   // Model Configuration Page Text
   'modelConfig.searchPlaceholder': 'Please enter model name to search',
