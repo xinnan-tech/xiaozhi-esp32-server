@@ -1,0 +1,35 @@
+name: Manager API CI
+
+on:
+  push:
+    paths:
+      - 'main/manager-api/**'
+      - '.github/workflows/manager-api-ci.yml'
+  pull_request:
+    paths:
+      - 'main/manager-api/**'
+      - '.github/workflows/manager-api-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: main/manager-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: main/manager-api/pom.xml
+      - name: Run Manager API tests
+        run: mvn --batch-mode --no-transfer-progress -DskipTests=false test
+      - name: Package Manager API
+        run: mvn --batch-mode --no-transfer-progress -DskipTests package

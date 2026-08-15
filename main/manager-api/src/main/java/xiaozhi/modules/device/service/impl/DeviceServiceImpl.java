@@ -99,8 +99,16 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
     @Override
     public Boolean deviceActivation(String agentId, String activationCode) {
+        return deviceActivation(agentId, activationCode, SecurityUser.getUserId());
+    }
+
+    @Override
+    public Boolean deviceActivation(String agentId, String activationCode, Long userId) {
         if (StringUtils.isBlank(activationCode)) {
             throw new RenException(ErrorCode.ACTIVATION_CODE_EMPTY);
+        }
+        if (userId == null) {
+            throw new RenException(ErrorCode.USER_NOT_LOGIN);
         }
         String deviceKey = RedisKeys.getOtaActivationCode(activationCode);
         String cacheDeviceId = (String) redisUtils.get(deviceKey);
@@ -126,11 +134,6 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         String macAddress = (String) cacheMap.get("mac_address");
         String board = (String) cacheMap.get("board");
         String appVersion = (String) cacheMap.get("app_version");
-        UserDetail user = SecurityUser.getUser();
-        if (user.getId() == null) {
-            throw new RenException(ErrorCode.USER_NOT_LOGIN);
-        }
-
         Date currentTime = new Date();
         DeviceEntity deviceEntity = new DeviceEntity();
         deviceEntity.setId(deviceId);
@@ -138,11 +141,11 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         deviceEntity.setAgentId(agentId);
         deviceEntity.setAppVersion(appVersion);
         deviceEntity.setMacAddress(macAddress);
-        deviceEntity.setUserId(user.getId());
-        deviceEntity.setCreator(user.getId());
+        deviceEntity.setUserId(userId);
+        deviceEntity.setCreator(userId);
         deviceEntity.setAutoUpdate(1);
         deviceEntity.setCreateDate(currentTime);
-        deviceEntity.setUpdater(user.getId());
+        deviceEntity.setUpdater(userId);
         deviceEntity.setUpdateDate(currentTime);
         deviceEntity.setLastConnectedAt(currentTime);
         deviceDao.insert(deviceEntity);
@@ -315,6 +318,9 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         DeviceEntity device = baseDao.selectById(deviceId);
         if (device == null) {
             return;
+        }
+        if (userId == null || !userId.equals(device.getUserId())) {
+            throw new RenException(ErrorCode.NO_PERMISSION);
         }
         String macAddress = device.getMacAddress();
         if (StringUtils.isNotBlank(device.getAgentId())) {

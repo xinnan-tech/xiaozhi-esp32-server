@@ -100,6 +100,12 @@ public class AgentSnapshotServiceImpl extends BaseServiceImpl<AgentSnapshotDao, 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createSnapshot(String agentId, String source) {
+        createSnapshot(agentId, source, SecurityUser.getUserId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void createSnapshot(String agentId, String source, Long actorUserId) {
         lockAgent(agentId);
         AgentInfoVO agent = getAgentInfo(agentId);
         AgentSnapshotDataDTO snapshotData = buildSnapshotData(agent);
@@ -115,7 +121,8 @@ public class AgentSnapshotServiceImpl extends BaseServiceImpl<AgentSnapshotDao, 
             return;
         }
 
-        insertSnapshot(agentId, agent.getUserId(), source, snapshotData, changedFields);
+        insertSnapshot(agentId, agent.getUserId(), source, snapshotData, changedFields,
+                null, null, true, actorUserId);
     }
 
     @Override
@@ -275,6 +282,13 @@ public class AgentSnapshotServiceImpl extends BaseServiceImpl<AgentSnapshotDao, 
     private void insertSnapshot(String agentId, Long userId, String source, AgentSnapshotDataDTO snapshotData,
             List<String> changedFields, String restoreFromSnapshotId, Integer restoreFromVersionNo,
             boolean pruneAfterInsert) {
+        insertSnapshot(agentId, userId, source, snapshotData, changedFields, restoreFromSnapshotId,
+                restoreFromVersionNo, pruneAfterInsert, SecurityUser.getUserId());
+    }
+
+    private void insertSnapshot(String agentId, Long userId, String source, AgentSnapshotDataDTO snapshotData,
+            List<String> changedFields, String restoreFromSnapshotId, Integer restoreFromVersionNo,
+            boolean pruneAfterInsert, Long actorUserId) {
         AgentSnapshotEntity entity = new AgentSnapshotEntity();
         entity.setId(UUID.randomUUID().toString().replace("-", ""));
         entity.setAgentId(agentId);
@@ -284,7 +298,7 @@ public class AgentSnapshotServiceImpl extends BaseServiceImpl<AgentSnapshotDao, 
         entity.setSource(StringUtils.defaultIfBlank(source, SOURCE_CONFIG));
         entity.setRestoreFromSnapshotId(restoreFromSnapshotId);
         entity.setRestoreFromVersionNo(restoreFromVersionNo);
-        entity.setCreator(SecurityUser.getUserId());
+        entity.setCreator(actorUserId);
         entity.setCreatedAt(new Date());
         entity.setRedactionVersion(CURRENT_REDACTION_VERSION);
         int inserted = agentSnapshotDao.insertWithNextVersion(entity);

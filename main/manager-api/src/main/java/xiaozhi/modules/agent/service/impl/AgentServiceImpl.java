@@ -126,6 +126,13 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         return agent;
     }
 
+    @Override
+    public AgentInfoVO getAgentByIdForOwner(String id, Long ownerUserId) {
+        AgentInfoVO agent = getAgentById(id);
+        requireAgentOwnership(agent, ownerUserId);
+        return agent;
+    }
+
     private AgentEntity getAgentEntityOrThrow(String agentId) {
         AgentEntity agent = agentDao.selectById(agentId);
         if (agent == null) {
@@ -158,6 +165,12 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
 
     private void requireAgentPermission(AgentEntity agent, Long userId) {
         if (!hasAgentPermission(agent, userId)) {
+            throw new RenException(ErrorCode.NO_PERMISSION);
+        }
+    }
+
+    private void requireAgentOwnership(AgentEntity agent, Long ownerUserId) {
+        if (agent == null || ownerUserId == null || !ownerUserId.equals(agent.getUserId())) {
             throw new RenException(ErrorCode.NO_PERMISSION);
         }
     }
@@ -342,6 +355,12 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         return hasAgentPermission(agent, userId);
     }
 
+    @Override
+    public boolean checkAgentOwnership(String agentId, Long ownerUserId) {
+        AgentEntity agent = agentDao.selectById(agentId);
+        return agent != null && ownerUserId != null && ownerUserId.equals(agent.getUserId());
+    }
+
     // 根据id更新智能体信息
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -355,6 +374,13 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         updateAgentById(agentId, dto, userId, true);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAgentByIdForOwner(String agentId, AgentUpdateDTO dto, Long ownerUserId) {
+        requireAgentOwnership(getAgentEntityOrThrow(agentId), ownerUserId);
+        updateAgentById(agentId, dto, ownerUserId, true);
+    }
+
     // 根据id更新智能体信息
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -363,6 +389,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
     }
 
     private void updateAgentById(String agentId, AgentUpdateDTO dto, Long userId, boolean createSnapshot) {
+        Long actorUserId = userId != null ? userId : SecurityUser.getUserId();
         AgentEntity lockedAgent = agentDao.selectByIdForUpdate(agentId);
         if (lockedAgent == null) {
             throw new RenException(ErrorCode.AGENT_NOT_FOUND);
@@ -377,7 +404,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         AgentEntity existingEntity = this.getAgentById(agentId);
         if (createSnapshot) {
             int currentVersionNo = agentSnapshotService.getCurrentVersionNo(agentId);
-            agentSnapshotService.createSnapshot(agentId, currentVersionNo == 0 ? "initial" : "current");
+            createAgentSnapshot(agentId, currentVersionNo == 0 ? "initial" : "current", userId);
         }
 
         // 只更新提供的非空字段
@@ -500,8 +527,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         }
 
         // 设置更新者信息
-        UserDetail user = SecurityUser.getUser();
-        existingEntity.setUpdater(user.getId());
+        existingEntity.setUpdater(actorUserId);
         existingEntity.setUpdatedAt(new Date());
 
         // 更新记忆策略
@@ -539,7 +565,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         }
         this.updateById(existingEntity);
         if (createSnapshot) {
-            agentSnapshotService.createSnapshot(agentId, "config");
+            createAgentSnapshot(agentId, "config", userId);
         }
     }
 
@@ -590,6 +616,15 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String createAgent(AgentCreateDTO dto) {
+        return createAgent(dto, SecurityUser.getUserId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String createAgent(AgentCreateDTO dto, Long userId) {
+        if (userId == null) {
+            throw new RenException(ErrorCode.USER_NOT_LOGIN);
+        }
         // 转换为实体
         AgentEntity entity = ConvertUtils.sourceToTarget(dto, AgentEntity.class);
 
@@ -655,9 +690,8 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         }
 
         // 设置用户ID和创建者信息
-        UserDetail user = SecurityUser.getUser();
-        entity.setUserId(user.getId());
-        entity.setCreator(user.getId());
+        entity.setUserId(userId);
+        entity.setCreator(userId);
         entity.setCreatedAt(new Date());
 
         // 保存智能体
@@ -689,8 +723,16 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         }
         // 保存默认插件
         agentPluginMappingService.saveBatch(toInsert, IRepository.DEFAULT_BATCH_SIZE);
-        agentSnapshotService.createSnapshot(entity.getId(), "initial");
+        createAgentSnapshot(entity.getId(), "initial", userId);
         return entity.getId();
+    }
+
+    private void createAgentSnapshot(String agentId, String source, Long explicitActorUserId) {
+        if (explicitActorUserId == null) {
+            agentSnapshotService.createSnapshot(agentId, source);
+        } else {
+            agentSnapshotService.createSnapshot(agentId, source, explicitActorUserId);
+        }
     }
 
     private String defaultIfBlank(String value, String defaultValue) {
