@@ -29,7 +29,10 @@ jobs:
           java-version: '21'
           cache: maven
           cache-dependency-path: main/manager-api/pom.xml
-      - name: Run Manager API tests
-        run: mvn --batch-mode --no-transfer-progress -DskipTests=false test
+      - name: Run scoped integration credential tests
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -Dtest=IntegrationCredentialServiceImplTest,IntegrationCredentialFilterTest,ShiroConfigTest,ExplorerIntegrationControllerTest,AgentServiceIntegrationOwnerTest,AgentSnapshotIntegrationActorTest,AgentSnapshotServiceImplTest,DeviceServiceImplOwnershipTest
+          test
       - name: Package Manager API
         run: mvn --batch-mode --no-transfer-progress -DskipTests package

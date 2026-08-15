@@ -8,12 +8,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.utils.JsonUtils;
+import xiaozhi.common.utils.TestMessageSupport;
 import xiaozhi.modules.agent.dto.AgentCreateDTO;
 import xiaozhi.modules.agent.dto.AgentUpdateDTO;
 import xiaozhi.modules.agent.service.AgentService;
@@ -29,6 +31,11 @@ import xiaozhi.modules.security.integration.IntegrationCredentialFilter;
 import xiaozhi.modules.security.integration.IntegrationPrincipal;
 
 class ExplorerIntegrationControllerTest {
+    @BeforeEach
+    void installMessages() {
+        TestMessageSupport.install();
+    }
+
     @Test
     void bindAndUnbindAlwaysUseTheCredentialOwner() {
         AgentService agents = mock(AgentService.class);

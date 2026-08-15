@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -22,8 +23,14 @@ import xiaozhi.modules.agent.service.AgentSnapshotService;
 import xiaozhi.modules.agent.vo.AgentInfoVO;
 import xiaozhi.modules.correctword.service.CorrectWordFileService;
 import xiaozhi.common.exception.RenException;
+import xiaozhi.common.utils.TestMessageSupport;
 
 class AgentServiceIntegrationOwnerTest {
+    @BeforeEach
+    void installMessages() {
+        TestMessageSupport.install();
+    }
+
     @Test
     void ownerScopedUpdateRejectsAnotherOwnerBeforeLockingOrMutating() {
         AgentDao agentDao = mock(AgentDao.class);

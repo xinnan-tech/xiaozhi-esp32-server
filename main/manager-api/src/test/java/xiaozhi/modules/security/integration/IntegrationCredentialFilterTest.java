@@ -9,11 +9,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import xiaozhi.common.utils.TestMessageSupport;
+
 class IntegrationCredentialFilterTest {
+    @BeforeEach
+    void installMessages() {
+        TestMessageSupport.install();
+    }
+
     @Test
     void usageMetadataFailureDoesNotInterruptAnAuthenticatedClassroomRequest() {
         String token = "xzi_0123456789abcdef0123456789abcdef.test-secret-material-never-production";
