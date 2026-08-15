@@ -31,7 +31,7 @@ class IntegrationCredentialFilterTest {
     }
 
     @Test
-    void acceptsOnlyAValidBearerCredentialWithoutEchoingIt() {
+    void acceptsOnlyAValidBearerCredentialWithoutEchoingIt() throws Exception {
         String token = "xzi_0123456789abcdef0123456789abcdef.test-secret-material-never-production";
         IntegrationCredentialService service = mock(IntegrationCredentialService.class);
         IntegrationPrincipal principal = new IntegrationPrincipal("credential-1", "explorer", 41L);

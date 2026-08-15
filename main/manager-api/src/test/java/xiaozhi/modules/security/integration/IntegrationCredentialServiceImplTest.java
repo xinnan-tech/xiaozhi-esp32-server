@@ -29,7 +29,7 @@ class IntegrationCredentialServiceImplTest {
         IntegrationCredentialDao dao = mock(IntegrationCredentialDao.class);
         SysUserService users = activeUsers();
         AtomicReference<IntegrationCredentialEntity> persisted = new AtomicReference<>();
-        when(dao.insert(any())).thenAnswer(invocation -> {
+        when(dao.insert(any(IntegrationCredentialEntity.class))).thenAnswer(invocation -> {
             persisted.set(invocation.getArgument(0));
             return 1;
         });
@@ -59,7 +59,7 @@ class IntegrationCredentialServiceImplTest {
         SysUserService users = activeUsers();
         IntegrationCredentialServiceImpl service = new IntegrationCredentialServiceImpl(dao, users);
         ArgumentCaptor<IntegrationCredentialEntity> inserted = ArgumentCaptor.forClass(IntegrationCredentialEntity.class);
-        when(dao.insert(any())).thenReturn(1);
+        when(dao.insert(any(IntegrationCredentialEntity.class))).thenReturn(1);
         IntegrationCredentialService.CreatedIntegrationCredential created = service
                 .createExplorerCredential("Explorer", OWNER_USER_ID, null, ACTOR_USER_ID);
         verify(dao).insert(inserted.capture());
