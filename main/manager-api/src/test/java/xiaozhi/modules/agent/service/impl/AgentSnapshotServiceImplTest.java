@@ -1166,7 +1166,7 @@ class AgentSnapshotServiceImplTest {
         AgentCreateDTO dto = new AgentCreateDTO();
         dto.setAgentName("test123");
 
-        String agentId = service.createAgent(dto);
+        String agentId = service.createAgent(dto, 41L);
 
         InOrder inOrder = inOrder(agentDao, pluginMappingService, snapshotService);
         inOrder.verify(agentDao).insert(argThat((AgentEntity agent) -> "test123".equals(agent.getAgentName())
@@ -1174,7 +1174,7 @@ class AgentSnapshotServiceImplTest {
                 && "".equals(agent.getSummaryMemory())
                 && Integer.valueOf(0).equals(agent.getChatHistoryConf())));
         inOrder.verify(pluginMappingService).saveBatch(any(), eq(IRepository.DEFAULT_BATCH_SIZE));
-        inOrder.verify(snapshotService).createSnapshot(agentId, "initial");
+        inOrder.verify(snapshotService).createSnapshot(agentId, "initial", 41L);
     }
 
     @Test

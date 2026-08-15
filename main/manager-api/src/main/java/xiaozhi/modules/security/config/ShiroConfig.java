@@ -21,6 +21,8 @@ import org.springframework.context.annotation.Role;
 import jakarta.servlet.Filter;
 import xiaozhi.modules.security.oauth2.Oauth2Filter;
 import xiaozhi.modules.security.oauth2.Oauth2Realm;
+import xiaozhi.modules.security.integration.IntegrationCredentialFilter;
+import xiaozhi.modules.security.integration.IntegrationCredentialService;
 import xiaozhi.modules.security.secret.ServerSecretFilter;
 import xiaozhi.modules.sys.service.SysParamsService;
 
@@ -52,7 +54,8 @@ public class ShiroConfig {
 
     @Bean("shiroFilter")
     public static ShiroFilterFactoryBean shirFilter(@Lazy WebSecurityManager securityManager,
-            @Lazy SysParamsService sysParamsService) {
+            @Lazy SysParamsService sysParamsService,
+            @Lazy IntegrationCredentialService integrationCredentialService) {
         ShiroFilterConfiguration config = new ShiroFilterConfiguration();
         config.setFilterOncePerRequest(true);
 
@@ -65,6 +68,7 @@ public class ShiroConfig {
         filters.put("oauth2", new Oauth2Filter());
         // 服务密钥过滤
         filters.put("server", new ServerSecretFilter(sysParamsService));
+        filters.put("integration", new IntegrationCredentialFilter(integrationCredentialService));
         shiroFilter.setFilters(filters);
 
         // 添加Shiro的内置过滤器
@@ -89,6 +93,7 @@ public class ShiroConfig {
         filterMap.put("/user/pub-config", "anon");
         filterMap.put("/user/register", "anon");
         filterMap.put("/user/retrieve-password", "anon");
+        filterMap.put("/integration/explorer/**", "integration");
         // 将config路径使用server服务过滤器
         filterMap.put("/config/**", "server");
         filterMap.put("/device/address-book/call", "server");

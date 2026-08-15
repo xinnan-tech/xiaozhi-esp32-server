@@ -45,6 +45,8 @@ public interface AgentService extends BaseService<AgentEntity> {
      */
     AgentInfoVO getAgentById(String id, Long userId);
 
+    AgentInfoVO getAgentByIdForOwner(String id, Long ownerUserId);
+
     /**
      * 插入智能体
      *
@@ -102,6 +104,8 @@ public interface AgentService extends BaseService<AgentEntity> {
      */
     boolean checkAgentPermission(String agentId, Long userId);
 
+    boolean checkAgentOwnership(String agentId, Long ownerUserId);
+
     /**
      * 更新智能体
      *
@@ -118,6 +122,8 @@ public interface AgentService extends BaseService<AgentEntity> {
      * @param userId  当前用户ID
      */
     void updateAgentById(String agentId, AgentUpdateDTO dto, Long userId);
+
+    void updateAgentByIdForOwner(String agentId, AgentUpdateDTO dto, Long ownerUserId);
 
     /**
      * 根据设备MAC地址更新当前用户有权访问的智能体记忆
@@ -152,6 +158,8 @@ public interface AgentService extends BaseService<AgentEntity> {
      * @return 创建的智能体ID
      */
     String createAgent(AgentCreateDTO dto);
+
+    String createAgent(AgentCreateDTO dto, Long userId);
 
 
 }
