@@ -29,6 +29,7 @@ class Action(Enum):
     RESPONSE = (2, "直接回复")
     REQLLM = (3, "调用函数后再请求llm生成回复")
     RECORD = (4, "记录工具调用到对话历史，不调用LLM")
+    REQMLLM = (5, "调用函数后再请求llm生成回复（llm需支持多模态）")
 
     def __init__(self, code, message):
         self.code = code

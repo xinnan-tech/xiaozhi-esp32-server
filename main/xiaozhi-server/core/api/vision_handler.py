@@ -1,5 +1,6 @@
 import json
 import copy
+import uuid
 from aiohttp import web
 from config.logger import setup_logging
 from core.api.base_handler import BaseHandler
@@ -10,6 +11,8 @@ from core.utils.auth import AuthToken
 import base64
 from typing import Tuple, Optional
 from plugins_func.register import Action
+from core.utils.cache.config import CacheType
+from core.utils.cache.manager import cache_manager
 
 TAG = __name__
 
@@ -43,6 +46,50 @@ class VisionHandler(BaseHandler):
 
         token = auth_header[7:]  # 移除"Bearer "前缀
         return self.auth.verify_token(token)
+
+    @staticmethod
+    def _get_image_mime_type(image_data: bytes) -> str:
+        """Return the MIME type for the image signatures accepted by this API."""
+        if image_data.startswith(b"\xff\xd8\xff"):
+            return "image/jpeg"
+        if image_data.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "image/png"
+        if image_data.startswith((b"GIF87a", b"GIF89a")):
+            return "image/gif"
+        if image_data.startswith(b"BM"):
+            return "image/bmp"
+        if image_data.startswith((b"II*\x00", b"MM\x00*")):
+            return "image/tiff"
+        if image_data.startswith(b"RIFF") and image_data[8:12] == b"WEBP":
+            return "image/webp"
+        # is_valid_image_file has already checked the data.  Keep a safe default
+        # for image formats whose MIME type is not recognized above.
+        return "image/jpeg"
+
+    def _cache_vision_data(
+        self, question: str, image_data: bytes, image_base64: str
+    ) -> str:
+        """Cache an image until its originating MCP tool call is recorded."""
+        image_url = (
+            f"data:{self._get_image_mime_type(image_data)};base64,{image_base64}"
+        )
+        vision_data_key = uuid.uuid4().hex
+        cache_manager.set(
+            CacheType.VISION_DATA,
+            vision_data_key,
+            [
+                {
+                    "type": "text",
+                    "text": question or "上传了一张图片。",
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": image_url},
+                },
+            ],
+        )
+        self.logger.bind(tag=TAG).info(f"已缓存图片，缓存键: {vision_data_key}")
+        return vision_data_key
 
     async def handle_post(self, request):
         """处理 MCP Vision POST 请求"""
@@ -126,14 +173,29 @@ class VisionHandler(BaseHandler):
             vllm = create_instance(
                 vllm_type, current_config["VLLM"][select_vllm_module]
             )
+            if vllm.use_multimodal_llm():
+                # The current LLM receives the original question and image as
+                # OpenAI-compatible multimodal message content.  Returning
+                # REQMLLM resumes the tool-call conversation after this result.
+                vision_data_key = self._cache_vision_data(
+                    question, image_data, image_base64
+                )
 
-            result = vllm.response(question, image_base64)
-
-            return_json = {
-                "success": True,
-                "action": Action.RESPONSE.name,
-                "response": result,
-            }
+                return_json = {
+                    "success": True,
+                    "action": Action.REQMLLM.name,
+                    "result": {
+                        "type": "vision_data",
+                        "vision_data_key": vision_data_key,
+                    },
+                }
+            else:
+                result = vllm.response(question, image_base64)
+                return_json = {
+                    "success": True,
+                    "action": Action.RESPONSE.name,
+                    "response": result,
+                }
 
             response = web.Response(
                 text=json.dumps(return_json, separators=(",", ":")),

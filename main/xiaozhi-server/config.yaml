@@ -743,6 +743,9 @@ LLM:
     base_url: http://localhost:9997  # Xinference服务地址
 # VLLM配置（视觉语言大模型）
 VLLM:
+  MultimodalLLM:
+    # 复用当前选中的 LLM 处理图片；该 LLM 须支持 OpenAI 兼容的多模态消息。
+    type: multimodal_llm
   ChatGLMVLLM:
     type: openai
     # glm-4v-flash是智谱免费AI的视觉模型，需要先在智谱AI平台创建API密钥并获取api_key

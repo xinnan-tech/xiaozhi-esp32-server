@@ -45,6 +45,8 @@ from core.utils.prompt_manager import PromptManager
 from core.utils.voiceprint_provider import VoiceprintProvider
 from core.utils.util import get_system_error_response
 from core.utils import textUtils
+from core.utils.cache.config import CacheType
+from core.utils.cache.manager import cache_manager
 
 
 TAG = __name__
@@ -1391,15 +1393,37 @@ class ConnectionHandler:
         return True
 
     def _handle_function_result(self, tool_results, depth, streamed_text=""):
-        need_llm_tools = []
-        record_tools = []
+        tool_actions = {
+            Action.REQLLM,
+            Action.REQMLLM,
+            Action.RECORD,
+        }
+        all_tool_calls = [
+            {
+                "id": tool_call_data["id"],
+                "function": {
+                    "arguments": tool_call_data["arguments"] or "{}",
+                    "name": tool_call_data["name"],
+                },
+                "type": "function",
+                "index": index,
+            }
+            for index, (_, tool_call_data) in enumerate(
+                item for item in tool_results if item[0].action in tool_actions
+            )
+        ]
+        if all_tool_calls:
+            self.dialogue.put(Message(role="assistant", tool_calls=all_tool_calls))
 
+        need_chat = False
+        vision_messages = []
+        record_response_parts = []
         for result, tool_call_data in tool_results:
-            if result.action in [
+            if result.action in (
                 Action.RESPONSE,
                 Action.NOTFOUND,
                 Action.ERROR,
-            ]:
+            ):
                 text = result.response if result.response else result.result
                 if streamed_text and text in streamed_text:
                     self.logger.bind(tag=TAG).debug(
@@ -1409,38 +1433,33 @@ class ConnectionHandler:
                     self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
                     self.tts.store_tts_text(self.sentence_id, text)
                 self.dialogue.put(Message(role="assistant", content=text))
+                continue
+
+            tool_content = None
+            if result.action == Action.RECORD:
+                tool_content = result.result or ""
+                response = result.response or result.result
+                if response:
+                    record_response_parts.append(response)
             elif result.action == Action.REQLLM:
-                need_llm_tools.append((result, tool_call_data))
-            elif result.action == Action.RECORD:
-                record_tools.append((result, tool_call_data))
-            else:
-                pass
+                tool_content = result.result or ""
+                need_chat = True
+            elif result.action == Action.REQMLLM:
+                tool_content = ""
+                tool_result = result.result
+                if (
+                    isinstance(tool_result, dict)
+                    and tool_result.get("type") == "vision_data"
+                ):
+                    vision_content = self._pop_vision_message(
+                        tool_result.get("vision_data_key")
+                    )
+                    tool_content = "获取图片成功" if vision_content else "获取图片失败"
+                    if vision_content is not None:
+                        vision_messages.append(vision_content)
+                        need_chat = True
 
-        # Action.RECORD：写入完整工具调用链（assistant(tool_calls) → tool(result) → assistant(response)）
-        # 模型从历史中学到工具调用模式，不额外调用LLM
-        if record_tools:
-            # 构造 assistant 消息（含 tool_calls），记录"模型调用了哪些工具"
-            all_tool_calls = [
-                {
-                    "id": tool_call_data["id"],
-                    "function": {
-                        "arguments": (
-                            "{}"
-                            if tool_call_data["arguments"] == ""
-                            else tool_call_data["arguments"]
-                        ),
-                        "name": tool_call_data["name"],
-                    },
-                    "type": "function",
-                    "index": idx,
-                }
-                for idx, (_, tool_call_data) in enumerate(record_tools)
-            ]
-            self.dialogue.put(Message(role="assistant", tool_calls=all_tool_calls))
-
-            # 写入每条工具的执行结果，记录"工具返回了什么"
-            for result, tool_call_data in record_tools:
-                text = result.result or ""
+            if tool_content is not None:
                 self.dialogue.put(
                     Message(
                         role="tool",
@@ -1449,54 +1468,29 @@ class ConnectionHandler:
                             if tool_call_data["id"] is None
                             else tool_call_data["id"]
                         ),
-                        content=text,
+                        content=tool_content,
                     )
                 )
 
-            # 用固定文本作为最终回复，补全标准三段式，保证下一条消息是 user 而非接 tool
-            response_parts = []
-            for result, _ in record_tools:
-                resp = result.response or result.result
-                if resp:
-                    response_parts.append(resp)
-            if response_parts:
-                self.dialogue.put(Message(role="assistant", content="，".join(response_parts)))
+        if record_response_parts:
+            self.dialogue.put(
+                Message(role="assistant", content="，".join(record_response_parts))
+            )
+        for vision_content in vision_messages:
+            self.dialogue.put(Message(role="user", content=vision_content))
 
-        if need_llm_tools:
-            all_tool_calls = [
-                {
-                    "id": tool_call_data["id"],
-                    "function": {
-                        "arguments": (
-                            "{}"
-                            if tool_call_data["arguments"] == ""
-                            else tool_call_data["arguments"]
-                        ),
-                        "name": tool_call_data["name"],
-                    },
-                    "type": "function",
-                    "index": idx,
-                }
-                for idx, (_, tool_call_data) in enumerate(need_llm_tools)
-            ]
-            self.dialogue.put(Message(role="assistant", tool_calls=all_tool_calls))
-
-            for result, tool_call_data in need_llm_tools:
-                text = result.result
-                if text is not None and len(text) > 0:
-                    self.dialogue.put(
-                        Message(
-                            role="tool",
-                            tool_call_id=(
-                                str(uuid.uuid4())
-                                if tool_call_data["id"] is None
-                                else tool_call_data["id"]
-                            ),
-                            content=text,
-                        )
-                    )
-
+        if need_chat:
             self.chat(None, depth=depth + 1)
+
+    @staticmethod
+    def _pop_vision_message(vision_data_key):
+        """Read and remove an image context cached by the vision HTTP endpoint."""
+        if not vision_data_key:
+            return None
+        vision_content = cache_manager.get(CacheType.VISION_DATA, vision_data_key)
+        if vision_content is not None:
+            cache_manager.delete(CacheType.VISION_DATA, vision_data_key)
+        return vision_content
 
     def _report_worker(self):
         """聊天记录上报工作线程"""

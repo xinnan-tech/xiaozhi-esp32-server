@@ -47,7 +47,6 @@ class DeviceMCPExecutor(ToolExecutor):
                 except Exception as e:
                     pass
 
-            # 视觉大模型不经过二次LLM处理
             if (
                 resultJson is not None
                 and isinstance(resultJson, dict)
@@ -55,7 +54,8 @@ class DeviceMCPExecutor(ToolExecutor):
             ):
                 return ActionResponse(
                     action=Action[resultJson["action"]],
-                    response=resultJson.get("response", ""),
+                    result=resultJson.get("result", None),
+                    response=resultJson.get("response", None),
                 )
 
             return ActionResponse(action=Action.REQLLM, result=str(result))
