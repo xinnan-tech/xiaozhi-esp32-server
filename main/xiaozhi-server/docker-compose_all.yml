@@ -26,6 +26,21 @@ services:
       - ./data:/opt/xiaozhi-esp32-server/data
       # 模型文件挂接，很重要
       - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+      # 视觉图片与智控台共享的持久化目录
+      - ./uploadfile:/uploadfile
+      # 视觉回答限制为一到两句话
+      - ./core/providers/vllm/openai.py:/opt/xiaozhi-esp32-server/core/providers/vllm/openai.py:ro
+      # 将语音问答转发到 ZGC External Agent API
+      - ./core/providers/llm/zgc_agent:/opt/xiaozhi-esp32-server/core/providers/llm/zgc_agent:ro
+      - ./core/providers/llm/hybrid_router:/opt/xiaozhi-esp32-server/core/providers/llm/hybrid_router:ro
+      # Qwen gateway adapter with thinking disabled for routing and tool selection.
+      - ./core/providers/llm/openai/openai.py:/opt/xiaozhi-esp32-server/core/providers/llm/openai/openai.py:ro
+      - ./core/connection.py:/opt/xiaozhi-esp32-server/core/connection.py:ro
+      - ./core/utils/modules_initialize.py:/opt/xiaozhi-esp32-server/core/utils/modules_initialize.py:ro
+      - ./core/api/vision_handler.py:/opt/xiaozhi-esp32-server/core/api/vision_handler.py:ro
+      - ./core/http_server.py:/opt/xiaozhi-esp32-server/core/http_server.py:ro
+      - ./core/providers/tools/device_mcp/mcp_executor.py:/opt/xiaozhi-esp32-server/core/providers/tools/device_mcp/mcp_executor.py:ro
+      - ./core/handle/reportHandle.py:/opt/xiaozhi-esp32-server/core/handle/reportHandle.py:ro
 
   # manager-api和manager-web模块
   xiaozhi-esp32-server-web:
@@ -53,6 +68,8 @@ services:
     volumes:
       # 配置文件目录
       - ./uploadfile:/uploadfile
+      # 使用当前源码构建的智控台前端
+      - ../manager-web/dist:/usr/share/nginx/html:ro
   # 数据库模块
   xiaozhi-esp32-server-db:
     image: mysql:latest
