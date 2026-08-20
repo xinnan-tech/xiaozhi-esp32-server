@@ -1,5 +1,11 @@
 import json
 import copy
+import asyncio
+import os
+import re
+import uuid
+from datetime import datetime
+from pathlib import Path
 from aiohttp import web
 from config.logger import setup_logging
 from core.api.base_handler import BaseHandler
@@ -15,6 +21,13 @@ TAG = __name__
 
 # 设置最大文件大小为5MB
 MAX_FILE_SIZE = 5 * 1024 * 1024
+VISION_UPLOAD_DIR = Path(os.getenv("VISION_UPLOAD_DIR", "/uploadfile/vision"))
+try:
+    VISION_MAX_IMAGES_PER_DEVICE = int(
+        os.getenv("VISION_MAX_IMAGES_PER_DEVICE", "200")
+    )
+except ValueError:
+    VISION_MAX_IMAGES_PER_DEVICE = 200
 
 
 class VisionHandler(BaseHandler):
@@ -26,6 +39,45 @@ class VisionHandler(BaseHandler):
     def _create_error_response(self, message: str) -> dict:
         """创建统一的错误响应格式"""
         return {"success": False, "message": message}
+
+    def _get_image_extension(self, image_data: bytes) -> str:
+        if image_data.startswith(b"\xff\xd8\xff"):
+            return "jpg"
+        if image_data.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "png"
+        if image_data.startswith((b"GIF87a", b"GIF89a")):
+            return "gif"
+        if image_data.startswith(b"BM"):
+            return "bmp"
+        if image_data.startswith((b"II*\x00", b"MM\x00*")):
+            return "tiff"
+        if image_data.startswith(b"RIFF") and image_data[8:12] == b"WEBP":
+            return "webp"
+        return "jpg"
+
+    def _save_image_sync(self, device_id: str, image_data: bytes) -> str:
+        device_key = re.sub(r"[^A-Za-z0-9_-]", "_", device_id) or "unknown"
+        device_dir = VISION_UPLOAD_DIR / device_key
+        device_dir.mkdir(parents=True, exist_ok=True)
+
+        extension = self._get_image_extension(image_data)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        filename = f"{timestamp}_{uuid.uuid4().hex[:8]}.{extension}"
+        image_path = device_dir / filename
+        image_path.write_bytes(image_data)
+
+        images = sorted(
+            (path for path in device_dir.iterdir() if path.is_file()),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        for stale_image in images[VISION_MAX_IMAGES_PER_DEVICE:]:
+            stale_image.unlink(missing_ok=True)
+
+        return f"/mcp/vision/image/{device_key}/{filename}"
+
+    async def _save_image(self, device_id: str, image_data: bytes) -> str:
+        return await asyncio.to_thread(self._save_image_sync, device_id, image_data)
 
     def _verify_auth_token(self, request) -> Tuple[bool, Optional[str]]:
         """验证认证token"""
@@ -129,10 +181,16 @@ class VisionHandler(BaseHandler):
 
             result = vllm.response(question, image_base64)
 
+            image_url = await self._save_image(device_id, image_data)
+            self.logger.bind(tag=TAG).info(
+                f"保存视觉图片: device={device_id}, size={len(image_data)}, path={image_url}"
+            )
+
             return_json = {
                 "success": True,
                 "action": Action.RESPONSE.name,
                 "response": result,
+                "image_url": image_url,
             }
 
             response = web.Response(
@@ -157,6 +215,25 @@ class VisionHandler(BaseHandler):
             if response:
                 self._add_cors_headers(response)
             return response
+
+    async def handle_image_get(self, request):
+        """读取已保存的视觉图片。"""
+        device_key = request.match_info.get("device_id", "")
+        filename = request.match_info.get("filename", "")
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", device_key) or not re.fullmatch(
+            r"[A-Za-z0-9_-]+\.(jpg|jpeg|png|gif|bmp|tiff|webp)", filename
+        ):
+            raise web.HTTPNotFound()
+
+        upload_root = VISION_UPLOAD_DIR.resolve()
+        image_path = (upload_root / device_key / filename).resolve()
+        if upload_root not in image_path.parents or not image_path.is_file():
+            raise web.HTTPNotFound()
+
+        response = web.FileResponse(image_path)
+        response.headers["Cache-Control"] = "private, max-age=86400"
+        self._add_cors_headers(response)
+        return response
 
     async def handle_get(self, request):
         """处理 MCP Vision GET 请求"""

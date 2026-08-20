@@ -1155,7 +1155,7 @@ class ConnectionHandler:
                     break
                 if self.intent_type == "function_call" and functions is not None:
                     content, tools_call = response
-                    if "content" in response:
+                    if isinstance(response, dict) and "content" in response:
                         content = response["content"]
                         tools_call = None
                     if content is not None and len(content) > 0:

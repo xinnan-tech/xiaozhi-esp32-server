@@ -55,6 +55,7 @@ class DeviceMCPExecutor(ToolExecutor):
             ):
                 return ActionResponse(
                     action=Action[resultJson["action"]],
+                    result=result,
                     response=resultJson.get("response", ""),
                 )
 

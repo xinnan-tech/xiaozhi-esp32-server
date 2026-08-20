@@ -69,6 +69,10 @@ class SimpleHttpServer:
                         web.post(
                             "/mcp/vision/explain", self.vision_handler.handle_post
                         ),
+                        web.get(
+                            "/mcp/vision/image/{device_id}/{filename}",
+                            self.vision_handler.handle_image_get,
+                        ),
                         web.options(
                             "/mcp/vision/explain", self.vision_handler.handle_options
                         ),

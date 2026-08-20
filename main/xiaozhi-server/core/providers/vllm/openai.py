@@ -1,11 +1,27 @@
 import openai
 import json
+import re
 from config.logger import setup_logging
 from core.utils.util import check_model_key
 from core.providers.vllm.base import VLLMProviderBase
 
 TAG = __name__
 logger = setup_logging()
+
+VISION_RESPONSE_INSTRUCTION = (
+    "\n请只用中文一到两句话回答，最多80个汉字；"
+    "不要使用标题、列表、Markdown，也不要补充与画面无关的信息。"
+)
+
+
+def limit_vision_response(text, max_chars=80):
+    normalized = re.sub(r"\s+", " ", text or "").strip()
+    normalized = re.sub(r"[*#`]", "", normalized)
+    sentences = [part for part in re.split(r"(?<=[。！？!?])", normalized) if part]
+    limited = "".join(sentences[:2]).strip() if sentences else normalized
+    if len(limited) > max_chars:
+        limited = limited[: max_chars - 1].rstrip("，,；;、 ") + "。"
+    return limited
 
 
 class VLLMProvider(VLLMProviderBase):
@@ -40,7 +56,7 @@ class VLLMProvider(VLLMProviderBase):
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
     def response(self, question, base64_image):
-        question = question + "(请使用中文回复)"
+        question = question + VISION_RESPONSE_INSTRUCTION
         try:
             messages = [
                 {
@@ -58,10 +74,14 @@ class VLLMProvider(VLLMProviderBase):
             ]
 
             response = self.client.chat.completions.create(
-                model=self.model_name, messages=messages, stream=False
+                model=self.model_name,
+                messages=messages,
+                stream=False,
+                temperature=self.temperature,
+                top_p=self.top_p,
             )
 
-            return response.choices[0].message.content
+            return limit_vision_response(response.choices[0].message.content)
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error in response generation: {e}")

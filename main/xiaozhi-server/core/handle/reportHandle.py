@@ -217,7 +217,9 @@ def enqueue_tool_report(conn: "ConnectionHandler", tool_name: str, tool_input: d
 
         # 构建工具结果内容
         if tool_result:
-            result_display = f'{{"result":"{str(tool_result)}"}}'
+            result_display = json.dumps(
+                {"result": str(tool_result)}, ensure_ascii=False
+            )
             result_content = json.dumps([{"type": "tool_result", "text": result_display}], ensure_ascii=False)
             conn.report_queue.put((3, result_content, None, timestamp + 1))
     except Exception as e:
