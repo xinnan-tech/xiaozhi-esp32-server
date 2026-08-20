@@ -24,9 +24,11 @@ class LLMProvider(LLMProviderBase):
         router_config = config.get("router_provider_config", config["tool_provider_config"])
         router_type = config.get("router_provider_type", config["tool_provider_type"])
         self.router_provider = create_instance(router_type, router_config)
-        self.router_max_tokens = int(config.get("router_max_tokens", 4096))
-        self.tool_selection_max_tokens = int(
-            config.get("tool_selection_max_tokens", 512)
+        self.router_max_tokens = min(
+            int(config.get("router_max_tokens", 64)), 64
+        )
+        self.tool_selection_max_tokens = min(
+            int(config.get("tool_selection_max_tokens", 128)), 128
         )
 
     @staticmethod

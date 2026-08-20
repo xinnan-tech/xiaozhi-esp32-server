@@ -20,3 +20,5 @@ services:
       - ./data:/opt/xiaozhi-esp32-server/data
       # 模型文件挂接，很重要
       - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
+      # Qwen gateway adapter with thinking disabled for intent routing.
+      - ./core/providers/llm/openai/openai.py:/opt/xiaozhi-esp32-server/core/providers/llm/openai/openai.py
