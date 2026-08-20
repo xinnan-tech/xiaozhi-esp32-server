@@ -85,7 +85,7 @@ class LLMProvider(LLMProviderBase):
         return catalog
 
     @staticmethod
-    def _parse_tool_call(result, allowed_names):
+    def _parse_json_object(result):
         decoder = json.JSONDecoder()
         for index, char in enumerate(result or ""):
             if char != "{":
@@ -94,6 +94,16 @@ class LLMProvider(LLMProviderBase):
                 payload, _ = decoder.raw_decode(result[index:])
             except json.JSONDecodeError:
                 continue
+            if isinstance(payload, dict):
+                return payload
+        return None
+
+    @classmethod
+    def _parse_tool_call(cls, result, allowed_names):
+        payload = cls._parse_json_object(result)
+        if payload is None:
+            return None
+        try:
             name = payload.get("name")
             arguments = payload.get("arguments", {})
             if isinstance(arguments, str):
@@ -103,6 +113,8 @@ class LLMProvider(LLMProviderBase):
                     return None
             if name in allowed_names and isinstance(arguments, dict):
                 return name, arguments
+        except AttributeError:
+            pass
         return None
 
     def _route(self, dialogue, functions):
@@ -123,7 +135,9 @@ class LLMProvider(LLMProviderBase):
             result = self.router_provider.response_no_stream(
                 prompt, context, max_tokens=self.router_max_tokens, temperature=0
             )
-            payload = json.loads(result.strip())
+            payload = self._parse_json_object(result)
+            if payload is None:
+                raise ValueError("response did not contain a JSON object")
             route = payload.get("route")
             if route in {"device_tool", "zgc_chat"}:
                 logger.bind(tag=TAG).info(f"LLM router decision: {route}")
