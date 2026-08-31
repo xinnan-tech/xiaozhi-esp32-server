@@ -1001,6 +1001,15 @@ class ConnectionHandler:
         self.intent_type = self.config["Intent"][
             self.config["selected_module"]["Intent"]
         ]["type"]
+        function_call_enabled = getattr(self.llm, "enable_function_call", True)
+        if self.intent_type == "function_call" and str(
+            function_call_enabled
+        ).strip().lower() in ("false", "0", "no", "off"):
+            self.logger.bind(tag=TAG).warning(
+                "当前LLM已禁用 function call，意图识别将回退为 nointent"
+            )
+            self.intent_type = "nointent"
+            return
         if self.intent_type == "function_call" or self.intent_type == "intent_llm":
             self.load_function_plugin = True
         """初始化意图识别模块"""
