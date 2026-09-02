@@ -10,17 +10,17 @@ import './styles/global.scss';
 import { register as registerServiceWorker } from './registerServiceWorker';
 import featureManager from './utils/featureManager';
 
-// 创建事件总线，用于组件间通信
+// Create event bus for component communication
 Vue.prototype.$eventBus = new Vue();
 
 Vue.use(ElementUI);
 
 Vue.config.productionTip = false
 
-// 注册Service Worker
+// Register Service Worker
 registerServiceWorker();
 
-// 创建Vue实例
+// Create Vue Instance
 new Vue({
   router,
   store,

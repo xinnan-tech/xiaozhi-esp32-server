@@ -1,4 +1,4 @@
-"""MCP接入点客户端定义"""
+"""MCP endpoint client definition"""
 
 import asyncio
 from concurrent.futures import Future
@@ -10,7 +10,7 @@ logger = setup_logging()
 
 
 class MCPEndpointClient:
-    """MCP接入点客户端，用于管理MCP接入点状态和工具"""
+    """MCP endpoint client, used to manage MCP endpoint status and tools"""
 
     def __init__(self, conn=None):
         self.conn = conn
@@ -21,7 +21,7 @@ class MCPEndpointClient:
         self.next_id = 1
         self.lock = asyncio.Lock()
         self._cached_available_tools = None  # Cache for get_available_tools
-        self.websocket = None  # WebSocket连接
+        self.websocket = None  # WebSocket connection
 
     def has_tool(self, name: str) -> bool:
         return name in self.tools
@@ -95,18 +95,18 @@ class MCPEndpointClient:
                 self.call_results.pop(id)
 
     def set_websocket(self, websocket):
-        """设置WebSocket连接"""
+        """Set WebSocket connection"""
         self.websocket = websocket
 
     async def send_message(self, message: str):
-        """发送消息到MCP接入点"""
+        """Send message to MCP endpoint"""
         if self.websocket:
             await self.websocket.send(message)
         else:
-            raise RuntimeError("WebSocket连接未建立")
+            raise RuntimeError("WebSocket connection not established")
 
     async def close(self):
-        """关闭WebSocket连接"""
+        """Close WebSocket connection"""
         if self.websocket:
             await self.websocket.close()
             self.websocket = None

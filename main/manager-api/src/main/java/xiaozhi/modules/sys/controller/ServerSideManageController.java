@@ -35,11 +35,11 @@ import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.common.redis.RedisUtils;
 
 /**
- * 服务端管理控制器
+ * Server-side Management Controller
  */
 @RestController
 @RequestMapping("/admin/server")
-@Tag(name = "服务端管理")
+@Tag(name = "Server-side Management")
 @AllArgsConstructor
 public class ServerSideManageController {
     private final SysParamsService sysParamsService;
@@ -48,11 +48,11 @@ public class ServerSideManageController {
     private static final ObjectMapper objectMapper;
     static {
         objectMapper = new ObjectMapper();
-        // 忽略json字符串中存在，但pojo中不存在对应字段的情况
+        // Ignore fields present in JSON but missing in POJO
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    @Operation(summary = "获取Ws服务端列表")
+    @Operation(summary = "Get Ws Server List")
     @GetMapping("/server-list")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<List<String>> getWsServerList() {
@@ -63,9 +63,9 @@ public class ServerSideManageController {
         return new Result<List<String>>().ok(Arrays.asList(wsText.split(";")));
     }
 
-    @Operation(summary = "通知python服务端更新配置")
+    @Operation(summary = "Notify Python Server to Update Config")
     @PostMapping("/emit-action")
-    @LogOperation("通知python服务端更新配置")
+    @LogOperation("Notify Python server to update config")
     @RequiresPermissions("sys:role:superAdmin")
     public Result<Boolean> emitServerAction(@RequestBody @Valid EmitSeverActionDTO emitSeverActionDTO) {
         if (emitSeverActionDTO.getAction() == null) {
@@ -77,7 +77,7 @@ public class ServerSideManageController {
         }
         String targetWs = emitSeverActionDTO.getTargetWs();
         String[] wsList = wsText.split(";");
-        // 找到需要发起的
+        // Find target
         if (StringUtils.isBlank(targetWs) || !Arrays.asList(wsList).contains(targetWs)) {
             throw new RenException(ErrorCode.TARGET_WEBSOCKET_NOT_EXIST);
         }
@@ -94,7 +94,7 @@ public class ServerSideManageController {
         String clientId = UUID.randomUUID().toString();
 
         String redisKey = xiaozhi.common.redis.RedisKeys.getTmpRegisterMacKey(deviceId);
-        redisUtils.set(redisKey, "true", 300); // 5分钟有效期
+        redisUtils.set(redisKey, "true", 300); // 5 minutes validity
 
         WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
         headers.add("device-id", deviceId);
@@ -112,12 +112,12 @@ public class ServerSideManageController {
                 .uri(targetWsUri)
                 .headers(headers)
                 .build()) {
-            // 如果连接成功则发送一个json数据包并等待服务端响应
+            // If connection successful, send JSON packet and wait for server response
             client.sendJson(
                     ServerActionPayloadDTO.build(
                             actionEnum,
                             Map.of("secret", serverSK)));
-            // 等待服务端响应并持续监听信息
+            // Wait for server response and continue listening
             client.listener((jsonText) -> {
                 if (StringUtils.isBlank(jsonText)) {
                     return false;
@@ -131,7 +131,7 @@ public class ServerSideManageController {
                 }
             });
         } catch (Exception e) {
-            // 捕获全部错误，由全局异常处理器返回
+            // Catch all errors, returned by global exception handler
             throw new RenException(ErrorCode.WEB_SOCKET_CONNECT_FAILED);
         }
         return true;

@@ -10,66 +10,66 @@ from core.utils.util import check_model_key
 
 
 short_term_memory_prompt = """
-# 时空记忆编织者
+# Time-Space Memory Weaver
 
-## 核心使命
-构建可生长的动态记忆网络，在有限空间内保留关键信息的同时，智能维护信息演变轨迹
-根据对话记录，总结user的重要信息，以便在未来的对话中提供更个性化的服务
+## Core Mission
+Construct a growable dynamic memory network that retains key information within limited space while intelligently maintaining the trajectory of information evolution.
+Summarize important user information from dialogue records to provide more personalized services in future conversations.
 
-## 记忆法则
-### 1. 三维度记忆评估（每次更新必执行）
-| 维度       | 评估标准                  | 权重分 |
-|------------|---------------------------|--------|
-| 时效性     | 信息新鲜度（按对话轮次） | 40%    |
-| 情感强度   | 含💖标记/重复提及次数     | 35%    |
-| 关联密度   | 与其他信息的连接数量      | 25%    |
+## Memory Laws
+### 1. Three-Dimensional Memory Assessment (Executed on every update)
+| Dimension | Assessment Criteria | Weight |
+|---|---|---|
+| Timeliness | Information Freshness (by dialogue turns) | 40% |
+| Emotional Intensity | Containing 💖 markers/Repetition frequency | 35% |
+| Association Density | Number of connections with other information | 25% |
 
-### 2. 动态更新机制
-**名字变更处理示例：**
-原始记忆："曾用名": ["张三"], "现用名": "张三丰"
-触发条件：当检测到「我叫X」「称呼我Y」等命名信号时
-操作流程：
-1. 将旧名移入"曾用名"列表
-2. 记录命名时间轴："2024-02-15 14:32:启用张三丰"
-3. 在记忆立方追加：「从张三到张三丰的身份蜕变」
+### 2. Dynamic Update Mechanism
+**Name Change Handling Example:**
+Original Memory: "Former Name": ["John Doe"], "Current Name": "John Smith"
+Trigger Condition: When detection signals like "My name is X", "Call me Y" appear
+Operation Flow:
+1. Move old name to "Former Name" list
+2. Record naming timeline: "2024-02-15 14:32: Enable John Smith"
+3. Append to Memory Cube: "Identity transformation from John Doe to John Smith"
 
-### 3. 空间优化策略
-- **信息压缩术**：用符号体系提升密度
-  - ✅"张三丰[北/软工/🐱]"
-  - ❌"北京软件工程师，养猫"
-- **淘汰预警**：当总字数≥900时触发
-  1. 删除权重分<60且3轮未提及的信息
-  2. 合并相似条目（保留时间戳最近的）
+### 3. Space Optimization Strategy
+- **Information Compression**: Use symbol system to increase density
+  - ✅"John Smith[North/SE/🐱]"
+  - ❌"Beijing Software Engineer, raises a cat"
+- **Elimination Warning**: Triggered when total character count ≥ 900
+  1. Delete information with weight score < 60 and not mentioned in 3 turns
+  2. Merge similar entries (keep the one with latest timestamp)
 
-## 记忆结构
-输出格式必须为可解析的json字符串，不需要解释、注释和说明，保存记忆时仅从对话提取信息，不要混入示例内容
+## Memory Structure
+Output format must be a parsable JSON string, no explanation, comments or descriptions needed. Only extract information from dialogue when saving memory, do not mix in example content.
 ```json
 {
-  "时空档案": {
-    "身份图谱": {
-      "现用名": "",
-      "特征标记": [] 
+  "TimeSpaceArchives": {
+    "IdentityGraph": {
+      "CurrentName": "",
+      "FeatureTags": [] 
     },
-    "记忆立方": [
+    "MemoryCube": [
       {
-        "事件": "入职新公司",
-        "时间戳": "2024-03-20",
-        "情感值": 0.9,
-        "关联项": ["下午茶"],
-        "保鲜期": 30 
+        "Event": "Joined new company",
+        "Timestamp": "2024-03-20",
+        "EmotionalValue": 0.9,
+        "RelatedItems": ["Afternoon Tea"],
+        "ShelfLife": 30 
       }
     ]
   },
-  "关系网络": {
-    "高频话题": {"职场": 12},
-    "暗线联系": [""]
+  "RelationshipNetwork": {
+    "HighFreqTopics": {"Work": 12},
+    "HiddenConnections": [""]
   },
-  "待响应": {
-    "紧急事项": ["需立即处理的任务"], 
-    "潜在关怀": ["可主动提供的帮助"]
+  "PendingResponse": {
+    "UrgentMatters": ["Tasks needing immediate attention"], 
+    "PotentialCare": ["Help that can be proactively offered"]
   },
-  "高光语录": [
-    "最打动人心的瞬间，强烈的情感表达，user的原话"
+  "HighlightQuotes": [
+    "Most touching moments, strong emotional expressions, user's original words"
   ]
 }
 ```
@@ -78,7 +78,7 @@ short_term_memory_prompt = """
 
 def extract_json_data(json_code):
     start = json_code.find("```json")
-    # 从start开始找到下一个```结束
+    # Find next ``` end from start
     end = json_code.find("```", start + 1)
     # print("start:", start, "end:", end)
     if start == -1 or end == -1:
@@ -111,7 +111,7 @@ class MemoryProvider(MemoryProviderBase):
         self.load_memory(summary_memory)
 
     def load_memory(self, summary_memory):
-        # api获取到总结记忆后直接返回
+        # Return directly after API gets summary memory
         if summary_memory or not self.save_to_file:
             self.short_memory = summary_memory
             return
@@ -133,11 +133,11 @@ class MemoryProvider(MemoryProviderBase):
             yaml.dump(all_memory, f, allow_unicode=True)
 
     async def save_memory(self, msgs, session_id=None):
-        # 打印使用的模型信息
+        # Print model info used
         model_info = getattr(self.llm, "model_name", str(self.llm.__class__.__name__))
-        logger.bind(tag=TAG).debug(f"使用记忆保存模型: {model_info}")
+        logger.bind(tag=TAG).debug(f"Using memory save model: {model_info}")
         api_key = getattr(self.llm, "api_key", None)
-        memory_key_msg = check_model_key("记忆总结专用LLM", api_key)
+        memory_key_msg = check_model_key("Memory Summary LLM", api_key)
         if memory_key_msg:
             logger.bind(tag=TAG).error(memory_key_msg)
         if self.llm is None:
@@ -154,12 +154,12 @@ class MemoryProvider(MemoryProviderBase):
             elif msg.role == "assistant":
                 msgStr += f"Assistant: {msg.content}\n"
         if self.short_memory and len(self.short_memory) > 0:
-            msgStr += "历史记忆：\n"
+            msgStr += "History Memory:\n"
             msgStr += self.short_memory
 
-        # 当前时间
+        # Current Time
         time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        msgStr += f"当前时间：{time_str}"
+        msgStr += f"Current Time: {time_str}"
 
         if self.save_to_file:
             result = self.llm.response_no_stream(
@@ -170,13 +170,13 @@ class MemoryProvider(MemoryProviderBase):
             )
             json_str = extract_json_data(result)
             try:
-                json.loads(json_str)  # 检查json格式是否正确
+                json.loads(json_str)  # Check if json format is correct
                 self.short_memory = json_str
                 self.save_memory_to_file()
             except Exception as e:
                 print("Error:", e)
         else:
-            # 当save_to_file为False时，调用Java端的聊天记录总结接口
+            # When save_to_file is False, call chat record summary interface on Java side
             summary_id = session_id if session_id else self.role_id
             await generate_and_save_chat_summary(summary_id)
         logger.bind(tag=TAG).info(

@@ -4,7 +4,7 @@ from config.logger import setup_logging
 TAG = __name__
 logger = setup_logging()
 
-EMOTION_EMOJI_MAP = {
+EMOTION__MAP = {
     "HAPPY": "🙂",
     "SAD": "😔",
     "ANGRY": "😡",
@@ -14,7 +14,7 @@ EMOTION_EMOJI_MAP = {
     "SURPRISED": "😲",
     "EMO_UNKNOWN": "😶",  # 未知情绪默认用中性表情
 }
-# EVENT_EMOJI_MAP = {
+# EVENT__MAP = {
 #     "<|BGM|>": "🎼",
 #     "<|Speech|>": "",
 #     "<|Applause|>": "👏",
@@ -33,15 +33,15 @@ def lang_tag_filter(text: str) -> dict | str:
         text: ASR 识别的原始文本，可能包含多种标签
 
     Returns:
-        dict: {"language": "zh", "emotion": "SAD", "emoji": "😔", "content": "你好"} 如果有标签
+        dict: {"language": "zh", "emotion": "SAD", "": "😔", "content": "你好"} 如果有标签
         str: 纯文本，如果没有标签
 
     Examples:
         FunASR 输出格式：<|语种|><|情绪|><|事件|><|其他选项|>原文
         >>> lang_tag_filter("<|zh|><|SAD|><|Speech|><|withitn|>你好啊，测试测试。")
-        {"language": "zh", "emotion": "SAD", "emoji": "😔", "content": "你好啊，测试测试。"}
+        {"language": "zh", "emotion": "SAD", "": "😔", "content": "你好啊，测试测试。"}
         >>> lang_tag_filter("<|en|><|HAPPY|><|Speech|><|withitn|>Hello hello.")
-        {"language": "en", "emotion": "HAPPY", "emoji": "🙂", "content": "Hello hello."}
+        {"language": "en", "emotion": "HAPPY", "": "🙂", "content": "Hello hello."}
         >>> lang_tag_filter("plain text")
         "plain text"
     """
@@ -68,12 +68,12 @@ def lang_tag_filter(text: str) -> dict | str:
         # "event": event,
     }
 
-    # 添加 emoji 映射
-    if emotion in EMOTION_EMOJI_MAP:
-        result["emotion"] = EMOTION_EMOJI_MAP[emotion]
+    # 添加  映射
+    if emotion in EMOTION__MAP:
+        result["emotion"] = EMOTION__MAP[emotion]
     # 事件标签暂不使用
-    # if event in EVENT_EMOJI_MAP:
-    #     result["event"] = EVENT_EMOJI_MAP[event]
+    # if event in EVENT__MAP:
+    #     result["event"] = EVENT__MAP[event]
 
     return result
 

@@ -21,9 +21,9 @@ class ASRProvider(ASRProviderBase):
         self.decoder = opuslib_next.Decoder(16000, 1)
         self.asr_ws = None
         self.forward_task = None
-        self.is_processing = False  # 添加处理状态标志
+        self.is_processing = False  # Add processing status flag
 
-        # 配置参数
+        # Configuration parameters
         self.appid = str(config.get("appid"))
         self.cluster = config.get("cluster")
         self.access_token = config.get("access_token")
@@ -32,7 +32,7 @@ class ASRProvider(ASRProviderBase):
         self.output_dir = config.get("output_dir", "tmp/")
         self.delete_audio_file = delete_audio_file
 
-        # 火山引擎ASR配置
+        # Volcengine ASR configuration
         enable_multilingual = config.get("enable_multilingual", False)
         self.enable_multilingual = False if str(enable_multilingual).lower() == 'false' else True
         if self.enable_multilingual:
@@ -47,7 +47,7 @@ class ASRProvider(ASRProviderBase):
         self.format = config.get("format", "pcm")
         self.codec = config.get("codec", "pcm")
         self.rate = config.get("sample_rate", 16000)
-        # language参数仅在多语种模式(bigmodel_nostream)下有效
+        # language parameter is only valid in multilingual mode (bigmodel_nostream)
         self.language = config.get("language") if self.enable_multilingual else None
         self.bits = config.get("bits", 16)
         self.channel = config.get("channel", 1)
@@ -62,23 +62,23 @@ class ASRProvider(ASRProviderBase):
     async def receive_audio(self, conn, audio, audio_have_voice):
         conn.asr_audio.append(audio)
         conn.asr_audio = conn.asr_audio[-10:]
-        # 存储音频数据
+        # Store audio data
         if not hasattr(conn, 'asr_audio_for_voiceprint'):
             conn.asr_audio_for_voiceprint = []
         conn.asr_audio_for_voiceprint.append(audio)
 
-        # 当没有音频数据时处理完整语音片段
+        # Process complete voice segment when no audio data
         if conn.client_listen_mode != "manual" and not audio and len(conn.asr_audio_for_voiceprint) > 0:
             await self.handle_voice_stop(conn, conn.asr_audio_for_voiceprint)
             conn.asr_audio_for_voiceprint = []
 
-        # 如果本次有声音，且之前没有建立连接
+        # If voice detected, and connection not established
         if audio_have_voice and self.asr_ws is None and not self.is_processing:
             try:
                 self.is_processing = True
-                # 建立新的WebSocket连接
+                # Establish new WebSocket connection
                 headers = self.token_auth() if self.auth_method == "token" else None
-                logger.bind(tag=TAG).info(f"正在连接ASR服务，headers: {headers}")
+                logger.bind(tag=TAG).info(f"Connecting to ASR service, headers: {headers}")
 
                 self.asr_ws = await websockets.connect(
                     self.ws_url,
@@ -89,7 +89,7 @@ class ASRProvider(ASRProviderBase):
                     close_timeout=10,
                 )
 
-                # 发送初始化请求
+                # Send initialization request
                 request_params = self.construct_request(str(uuid.uuid4()))
                 try:
                     payload_bytes = str.encode(json.dumps(request_params))
@@ -98,30 +98,30 @@ class ASRProvider(ASRProviderBase):
                     full_client_request.extend((len(payload_bytes)).to_bytes(4, "big"))
                     full_client_request.extend(payload_bytes)
 
-                    logger.bind(tag=TAG).info(f"发送初始化请求: {request_params}")
+                    logger.bind(tag=TAG).info(f"Send initialization request: {request_params}")
                     await self.asr_ws.send(full_client_request)
 
-                    # 等待初始化响应
+                    # Wait for initialization response
                     init_res = await self.asr_ws.recv()
                     result = self.parse_response(init_res)
-                    logger.bind(tag=TAG).info(f"收到初始化响应: {result}")
+                    logger.bind(tag=TAG).info(f"Received initialization response: {result}")
 
-                    # 检查初始化响应
+                    # Check initialization response
                     if "code" in result and result["code"] != 1000:
-                        error_msg = f"ASR服务初始化失败: {result.get('payload_msg', {}).get('error', '未知错误')}"
+                        error_msg = f"ASR service initialization failed: {result.get('payload_msg', {}).get('error', 'Unknown error')}"
                         logger.bind(tag=TAG).error(error_msg)
                         raise Exception(error_msg)
 
                 except Exception as e:
-                    logger.bind(tag=TAG).error(f"发送初始化请求失败: {str(e)}")
+                    logger.bind(tag=TAG).error(f"Failed to send initialization request: {str(e)}")
                     if hasattr(e, "__cause__") and e.__cause__:
-                        logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
+                        logger.bind(tag=TAG).error(f"Error cause: {str(e.__cause__)}")
                     raise e
 
-                # 启动接收ASR结果的异步任务
+                # Start async task to receive ASR results
                 self.forward_task = asyncio.create_task(self._forward_asr_results(conn))
 
-                # 发送缓存的音频数据
+                # Send cached audio data
                 if conn.asr_audio and len(conn.asr_audio) > 0:
                     for cached_audio in conn.asr_audio[-10:]:
                         try:
@@ -135,20 +135,20 @@ class ASRProvider(ASRProviderBase):
                             await self.asr_ws.send(audio_request)
                         except Exception as e:
                             logger.bind(tag=TAG).info(
-                                f"发送缓存音频数据时发生错误: {e}"
+                                f"Error sending cached audio data: {e}"
                             )
 
             except Exception as e:
-                logger.bind(tag=TAG).error(f"建立ASR连接失败: {str(e)}")
+                logger.bind(tag=TAG).error(f"Failed to establish ASR connection: {str(e)}")
                 if hasattr(e, "__cause__") and e.__cause__:
-                    logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
+                    logger.bind(tag=TAG).error(f"Error cause: {str(e.__cause__)}")
                 if self.asr_ws:
                     await self.asr_ws.close()
                     self.asr_ws = None
                 self.is_processing = False
                 return
 
-        # 发送当前音频数据
+        # Send current audio data
         if self.asr_ws and self.is_processing:
             try:
                 pcm_frame = self.decoder.decode(audio, 960)
@@ -158,52 +158,52 @@ class ASRProvider(ASRProviderBase):
                 audio_request.extend(payload)
                 await self.asr_ws.send(audio_request)
             except Exception as e:
-                logger.bind(tag=TAG).info(f"发送音频数据时发生错误: {e}")
+                logger.bind(tag=TAG).info(f"Error sending audio data: {e}")
 
     async def _forward_asr_results(self, conn):
         try:
             while self.asr_ws and not conn.stop_event.is_set():
-                # 获取当前连接的音频数据
+                # Get audio data of current connection
                 audio_data = getattr(conn, 'asr_audio_for_voiceprint', [])
                 try:
                     response = await self.asr_ws.recv()
                     result = self.parse_response(response)
-                    logger.bind(tag=TAG).debug(f"收到ASR结果: {result}")
+                    logger.bind(tag=TAG).debug(f"Received ASR result: {result}")
 
                     if "payload_msg" in result:
                         payload = result["payload_msg"]
-                        # 检查是否是错误码1013（无有效语音）
+                        # Check if it is error code 1013 (no valid voice)
                         if "code" in payload and payload["code"] == 1013:
-                            # 静默处理，不记录错误日志
+                            # Silent handling, do not log error
                             continue
 
                         if "result" in payload:
                             utterances = payload["result"].get("utterances", [])
-                            # 检查duration和空文本的情况
+                            # Check duration and empty text cases
                             if (
-                                not self.enable_multilingual # 注意：多语种模式不返回中间结果，需要等待最终结果
+                                not self.enable_multilingual # Note: Multilingual mode does not return intermediate results, need to wait for final result
                                 and payload.get("audio_info", {}).get("duration", 0) > 2000
                                 and not utterances
                                 and not payload["result"].get("text")
                                 and conn.client_listen_mode != "manual"
                             ):
-                                logger.bind(tag=TAG).error(f"识别文本：空")
+                                logger.bind(tag=TAG).error(f"Recognition text: Empty")
                                 self.text = ""
                                 conn.reset_vad_states()
-                                if len(audio_data) > 15:  # 确保有足够音频数据
+                                if len(audio_data) > 15:  # Ensure enough audio data
                                     await self.handle_voice_stop(conn, audio_data)
                                 break
 
-                            # 专门处理没有文本的识别结果（手动模式下可能已经识别完成但是没松按键）
+                            # Handle cases with no text result (Manual mode might have finished recognition but button not released)
                             elif not payload["result"].get("text") and not utterances:
-                                # 多语种模式会持续返回空文本，直到最后返回完整结果，所以需要排除
+                                # Multilingual mode keeps returning empty text until final result, so exclude it
                                 if self.enable_multilingual:
                                     continue
 
                                 if conn.client_listen_mode == "manual" and conn.client_voice_stop and len(audio_data) > 0:
-                                    logger.bind(tag=TAG).debug("消息结束收到停止信号，触发处理")
+                                    logger.bind(tag=TAG).debug("Received stop signal at end of message, trigger processing")
                                     await self.handle_voice_stop(conn, audio_data)
-                                    # 清理音频缓存
+                                    # Clear audio cache
                                     conn.asr_audio.clear()
                                     conn.reset_vad_states()
                                     break
@@ -212,51 +212,51 @@ class ASRProvider(ASRProviderBase):
                                 if utterance.get("definite", False):
                                     current_text = utterance["text"]
                                     logger.bind(tag=TAG).info(
-                                        f"识别到文本: {current_text}"
+                                        f"Recognized text: {current_text}"
                                     )
 
-                                    # 手动模式下累积识别结果
+                                    # Accumulate recognition results in manual mode
                                     if conn.client_listen_mode == "manual":
                                         if self.text:
                                             self.text += current_text
                                         else:
                                             self.text = current_text
 
-                                        # 在接收消息中途时收到停止信号
+                                        # Received stop signal in the middle of message
                                         if conn.client_voice_stop and len(audio_data) > 0:
-                                            logger.bind(tag=TAG).debug("消息中途收到停止信号，触发处理")
+                                            logger.bind(tag=TAG).debug("Received stop signal in middle of message, trigger processing")
                                             await self.handle_voice_stop(conn, audio_data)
-                                            # 清理音频缓存
+                                            # Clear audio cache
                                             conn.asr_audio.clear()
                                             conn.reset_vad_states()
                                         break
                                     else:
-                                        # 自动模式下直接覆盖
+                                        # Overwrite directly in auto mode
                                         self.text = current_text
                                         conn.reset_vad_states()
-                                        if len(audio_data) > 15:  # 确保有足够音频数据
+                                        if len(audio_data) > 15:  # Ensure enough audio data
                                             await self.handle_voice_stop(conn, audio_data)
                                     break
                         elif "error" in payload:
-                            error_msg = payload.get("error", "未知错误")
-                            logger.bind(tag=TAG).error(f"ASR服务返回错误: {error_msg}")
+                            error_msg = payload.get("error", "Unknown error")
+                            logger.bind(tag=TAG).error(f"ASR service returned error: {error_msg}")
                             break
 
                 except websockets.ConnectionClosed:
-                    logger.bind(tag=TAG).info("ASR服务连接已关闭")
+                    logger.bind(tag=TAG).info("ASR service connection closed")
                     self.is_processing = False
                     break
                 except Exception as e:
-                    logger.bind(tag=TAG).error(f"处理ASR结果时发生错误: {str(e)}")
+                    logger.bind(tag=TAG).error(f"Error processing ASR result: {str(e)}")
                     if hasattr(e, "__cause__") and e.__cause__:
-                        logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
+                        logger.bind(tag=TAG).error(f"Error cause: {str(e.__cause__)}")
                     self.is_processing = False
                     break
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"ASR结果转发任务发生错误: {str(e)}")
+            logger.bind(tag=TAG).error(f"ASR result forwarding task error: {str(e)}")
             if hasattr(e, "__cause__") and e.__cause__:
-                logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
+                logger.bind(tag=TAG).error(f"Error cause: {str(e.__cause__)}")
         finally:
             if self.asr_ws:
                 await self.asr_ws.close()
@@ -275,18 +275,18 @@ class ASRProvider(ASRProviderBase):
         self.is_processing = False
 
     async def _send_stop_request(self):
-        """发送最后一个音频帧以通知服务器结束"""
+        """Send last audio frame to notify server to end"""
         if self.asr_ws:
             try:
-                # 发送结束标记的音频帧（gzip压缩的空数据）
+                # Send audio frame with end marker (gzip compressed empty data)
                 empty_payload = gzip.compress(b"")
                 last_audio_request = bytearray(self.generate_last_audio_default_header())
                 last_audio_request.extend(len(empty_payload).to_bytes(4, "big"))
                 last_audio_request.extend(empty_payload)
                 await self.asr_ws.send(last_audio_request)
-                logger.bind(tag=TAG).debug("已发送结束音频帧")
+                logger.bind(tag=TAG).debug("Sent end audio frame")
             except Exception as e:
-                logger.bind(tag=TAG).debug(f"发送结束音频帧时出错: {e}")
+                logger.bind(tag=TAG).debug(f"Error sending end audio frame: {e}")
 
     def construct_request(self, reqid):
         req = {
@@ -321,7 +321,7 @@ class ASRProvider(ASRProviderBase):
             req["audio"]["language"] = self.language
 
         logger.bind(tag=TAG).debug(
-            f"构造请求参数: {json.dumps(req, ensure_ascii=False)}"
+            f"Construct request parameters: {json.dumps(req, ensure_ascii=False)}"
         )
         return req
 
@@ -372,16 +372,16 @@ class ASRProvider(ASRProviderBase):
 
     def parse_response(self, res: bytes) -> dict:
         try:
-            # 检查响应长度
+            # Check response length
             if len(res) < 4:
-                logger.bind(tag=TAG).error(f"响应数据长度不足: {len(res)}")
-                return {"error": "响应数据长度不足"}
+                logger.bind(tag=TAG).error(f"Insufficient response data length: {len(res)}")
+                return {"error": "Insufficient response data length"}
 
-            # 获取消息头
+            # Get message header
             header = res[:4]
             message_type = header[1] >> 4
 
-            # 如果是错误响应
+            # If error response
             if message_type == 0x0F:  # SERVER_ERROR_RESPONSE
                 code = int.from_bytes(res[4:8], "big", signed=False)
                 msg_length = int.from_bytes(res[8:12], "big", signed=False)
@@ -392,25 +392,25 @@ class ASRProvider(ASRProviderBase):
                     "payload_msg": error_msg,
                 }
 
-            # 获取JSON数据（跳过12字节头部）
+            # Get JSON data (skip 12 bytes header)
             try:
                 json_data = res[12:].decode("utf-8")
                 result = json.loads(json_data)
-                logger.bind(tag=TAG).debug(f"成功解析JSON响应: {result}")
+                logger.bind(tag=TAG).debug(f"Successfully parsed JSON response: {result}")
                 return {"payload_msg": result}
             except (UnicodeDecodeError, json.JSONDecodeError) as e:
-                logger.bind(tag=TAG).error(f"JSON解析失败: {str(e)}")
-                logger.bind(tag=TAG).error(f"原始数据: {res}")
+                logger.bind(tag=TAG).error(f"JSON parsing failed: {str(e)}")
+                logger.bind(tag=TAG).error(f"Original data: {res}")
                 raise
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"解析响应失败: {str(e)}")
-            logger.bind(tag=TAG).error(f"原始响应数据: {res.hex()}")
+            logger.bind(tag=TAG).error(f"Failed to parse response: {str(e)}")
+            logger.bind(tag=TAG).error(f"Original response data: {res.hex()}")
             raise
 
     async def speech_to_text(self, opus_data, session_id, audio_format):
         result = self.text
-        self.text = ""  # 清空text
+        self.text = ""  # Clear text
         return result, None
 
     async def close(self):

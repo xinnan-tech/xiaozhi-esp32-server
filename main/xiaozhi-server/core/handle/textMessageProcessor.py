@@ -1,41 +1,57 @@
 import json
-
+import asyncio
 from core.handle.textMessageHandlerRegistry import TextMessageHandlerRegistry
 
 TAG = __name__
 
-
 class TextMessageProcessor:
-    """消息处理器主类"""
+    """Main Message Processor Class"""
 
     def __init__(self, registry: TextMessageHandlerRegistry):
         self.registry = registry
 
     async def process_message(self, conn, message: str) -> None:
-        """处理消息的主入口"""
+        """Main entry point for message processing"""
         try:
-            # 解析JSON消息
+            # Parse JSON message
             msg_json = json.loads(message)
 
-            # 处理JSON消息
+            # Handle JSON message
             if isinstance(msg_json, dict):
                 message_type = msg_json.get("type")
 
-                # 记录日志
-                conn.logger.bind(tag=TAG).info(f"收到{message_type}消息：{message}")
+                # SAFE LOGGING: Prevent terminal buffer overflow on large MCP payloads
+                if message_type == "mcp":
+                    conn.logger.bind(tag=TAG).info(f"Received {message_type} message (Payload hidden for performance)")
+                else:
+                    conn.logger.bind(tag=TAG).info(f"Received {message_type} message: {message}")
 
-                # 获取并执行处理器
+                # TRIGGER: If this is NOT a hello message and MCP is enabled but not ready, 
+                # start discovery now so it doesn't block the handshake.
+                if message_type != "hello" and conn.features.get("mcp"):
+                    if not hasattr(conn, "mcp_client") or conn.mcp_client is None:
+                        from core.providers.tools.device_mcp.mcp_handler import (
+                            MCPClient, send_mcp_initialize_message, send_mcp_tools_list_request
+                        )
+                        conn.logger.bind(tag=TAG).info("First user interaction detected. Initializing MCP in background...")
+                        conn.mcp_client = MCPClient()
+                        asyncio.create_task(send_mcp_initialize_message(conn))
+                        asyncio.create_task(send_mcp_tools_list_request(conn))
+
+                # Get and execute the handler
                 handler = self.registry.get_handler(message_type)
                 if handler:
                     await handler.handle(conn, msg_json)
                 else:
-                    conn.logger.bind(tag=TAG).error(f"收到未知类型消息：{message}")
-            # 处理纯数字消息
+                    conn.logger.bind(tag=TAG).error(f"Received unknown message type: {message}")
+            
+            # Handle numeric messages
             elif isinstance(msg_json, int):
-                conn.logger.bind(tag=TAG).info(f"收到数字消息：{message}")
+                conn.logger.bind(tag=TAG).info(f"Received numeric message: {message}")
                 await conn.websocket.send(message)
 
         except json.JSONDecodeError:
-            # 非JSON消息直接转发
-            conn.logger.bind(tag=TAG).error(f"解析到错误的消息：{message}")
+            # Forward non-JSON messages directly
+            conn.logger.bind(tag=TAG).error(f"Failed to parse message: {message}")
             await conn.websocket.send(message)
+

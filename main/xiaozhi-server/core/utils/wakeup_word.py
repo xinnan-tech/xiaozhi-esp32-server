@@ -21,7 +21,7 @@ class FileLock:
                 return self.file
             except portalocker.LockException:
                 if time.time() - self.start_time > self.timeout:
-                    raise TimeoutError("获取文件锁超时")
+                    raise TimeoutError("Acquiring file lock timeout")
                 time.sleep(0.1)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -35,19 +35,19 @@ class WakeupWordsConfig:
         self._ensure_directories()
         self._config_cache = None
         self._last_load_time = 0
-        self._cache_ttl = 1  # 缓存有效期（秒）
-        self._lock_timeout = 5  # 文件锁超时时间（秒）
+        self._cache_ttl = 1  # Cache time to live (seconds)
+        self._lock_timeout = 5  # File lock timeout (seconds)
 
     def _ensure_directories(self):
-        """确保必要的目录存在"""
+        """Ensure necessary directories exist"""
         os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
         os.makedirs(self.assets_dir, exist_ok=True)
 
     def _load_config(self) -> Dict:
-        """加载配置文件，使用缓存机制"""
+        """Load configuration file, using cache mechanism"""
         current_time = time.time()
 
-        # 如果缓存有效，直接返回缓存
+        # If cache is valid, return cache directly
         if (
             self._config_cache is not None
             and current_time - self._last_load_time < self._cache_ttl
@@ -64,14 +64,14 @@ class WakeupWordsConfig:
                     self._last_load_time = current_time
                     return config
         except (TimeoutError, IOError) as e:
-            print(f"加载配置文件失败: {e}")
+            print(f"Failed to load config file: {e}")
             return {}
         except Exception as e:
-            print(f"加载配置文件时发生未知错误: {e}")
+            print(f"Unknown error occurred while loading config file: {e}")
             return {}
 
     def _save_config(self, config: Dict):
-        """保存配置到文件，使用文件锁保护"""
+        """Save configuration to file, protected by file lock"""
         try:
             with open(self.config_file, "w", encoding="utf-8") as f:
                 with FileLock(f, timeout=self._lock_timeout):
@@ -79,21 +79,21 @@ class WakeupWordsConfig:
                     self._config_cache = config
                     self._last_load_time = time.time()
         except (TimeoutError, IOError) as e:
-            print(f"保存配置文件失败: {e}")
+            print(f"Failed to save config file: {e}")
             raise
         except Exception as e:
-            print(f"保存配置文件时发生未知错误: {e}")
+            print(f"Unknown error occurred while saving config file: {e}")
             raise
 
     def get_wakeup_response(self, voice: str) -> Dict:
         voice = hashlib.md5(voice.encode()).hexdigest()
-        """获取唤醒词回复配置"""
+        """Get wakeup word response configuration"""
         config = self._load_config()
 
         if not config or voice not in config:
             return None
 
-        # 检查文件大小
+        # Check file size
         file_path = config[voice]["file_path"]
         if not os.path.exists(file_path) or os.stat(file_path).st_size < (15 * 1024):
             return None
@@ -101,9 +101,9 @@ class WakeupWordsConfig:
         return config[voice]
 
     def update_wakeup_response(self, voice: str, file_path: str, text: str):
-        """更新唤醒词回复配置"""
+        """Update wakeup word response configuration"""
         try:
-            # 过滤表情符号
+            # Filter emojis
             filtered_text = re.sub(r'[\U0001F600-\U0001F64F\U0001F900-\U0001F9FF]', '', text)
             
             config = self._load_config()
@@ -116,25 +116,25 @@ class WakeupWordsConfig:
             }
             self._save_config(config)
         except Exception as e:
-            print(f"更新唤醒词回复配置失败: {e}")
+            print(f"Failed to update wakeup word response config: {e}")
             raise
 
     def generate_file_path(self, voice: str) -> str:
-        """生成音频文件路径，使用voice的哈希值作为文件名"""
+        """Generate audio file path, using hex digest of voice as filename"""
         try:
-            # 生成voice的哈希值
+            # Generate MD5 hash of voice
             voice_hash = hashlib.md5(voice.encode()).hexdigest()
             file_path = os.path.join(self.assets_dir, f"{voice_hash}.wav")
 
-            # 如果文件已存在，先删除
+            # If file already exists, delete it first
             if os.path.exists(file_path):
                 try:
                     os.remove(file_path)
                 except Exception as e:
-                    print(f"删除已存在的音频文件失败: {e}")
+                    print(f"Failed to delete existing audio file: {e}")
                     raise
 
             return file_path
         except Exception as e:
-            print(f"生成音频文件路径失败: {e}")
+            print(f"Failed to generate audio file path: {e}")
             raise

@@ -77,5 +77,13 @@
 {{ dynamic_context }}
 </context>
 
+
+<intent_triggers>
+If the user asks about the following topics, output the corresponding trigger ONLY, do not answer yourself:
+- Weather: [[WEATHER]]
+- Battery level / Device status: [[BATTERY]]
+- News / Current events: [[NEWS: <search_query>]]
+</intent_triggers>
+
 <memory>
 </memory>

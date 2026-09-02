@@ -1,5 +1,5 @@
 """
-全局缓存管理器
+Global Cache Manager
 """
 
 import time
@@ -11,7 +11,7 @@ from .config import CacheConfig, CacheType
 
 
 class GlobalCacheManager:
-    """全局缓存管理器"""
+    """Global Cache Manager"""
 
     def __init__(self):
         self._logger = None
@@ -24,7 +24,7 @@ class GlobalCacheManager:
 
     @property
     def logger(self):
-        """延迟初始化 logger 以避免循环导入"""
+        """Delay logger initialization to avoid circular import"""
         if self._logger is None:
             from config.logger import setup_logging
 
@@ -32,7 +32,7 @@ class GlobalCacheManager:
         return self._logger
 
     def _get_cache_name(self, cache_type: CacheType, namespace: str = "") -> str:
-        """生成缓存名称"""
+        """Generate cache name"""
         if namespace:
             return f"{cache_type.value}:{namespace}"
         return cache_type.value
@@ -40,7 +40,7 @@ class GlobalCacheManager:
     def _get_or_create_cache(
         self, cache_name: str, config: CacheConfig
     ) -> Dict[str, CacheEntry]:
-        """获取或创建缓存空间"""
+        """Get or create cache space"""
         with self._global_lock:
             if cache_name not in self._caches:
                 self._caches[cache_name] = (
@@ -60,28 +60,28 @@ class GlobalCacheManager:
         ttl: Optional[float] = None,
         namespace: str = "",
     ) -> None:
-        """设置缓存值"""
+        """Set cache value"""
         cache_name = self._get_cache_name(cache_type, namespace)
         config = self._configs.get(cache_name) or CacheConfig.for_type(cache_type)
         cache = self._get_or_create_cache(cache_name, config)
 
-        # 使用配置的TTL或传入的TTL
+        # Use configured TTL or passed TTL
         effective_ttl = ttl if ttl is not None else config.ttl
 
         with self._locks[cache_name]:
-            # 创建缓存条目
+            # Create cache entry
             entry = CacheEntry(value=value, timestamp=time.time(), ttl=effective_ttl)
 
             # 处理不同策略
             if config.strategy in [CacheStrategy.LRU, CacheStrategy.TTL_LRU]:
-                # LRU策略：如果已存在则移动到末尾
+                # LRU strategy: if exists, move to end
                 if key in cache:
                     del cache[key]
                 cache[key] = entry
 
-                # 检查大小限制
+                # Check size limit
                 if config.max_size and len(cache) > config.max_size:
-                    # 移除最旧的条目
+                    # Remove oldest entry
                     oldest_key = next(iter(cache))
                     del cache[oldest_key]
                     self._stats["evictions"] += 1
@@ -89,20 +89,20 @@ class GlobalCacheManager:
             else:
                 cache[key] = entry
 
-                # 检查大小限制
+                # Check size limit
                 if config.max_size and len(cache) > config.max_size:
-                    # 简单策略：随机移除一个条目
+                    # Simple strategy: randomly remove one entry
                     victim_key = next(iter(cache))
                     del cache[victim_key]
                     self._stats["evictions"] += 1
 
-        # 定期清理过期条目
+        # Periodically clean up expired entries
         self._maybe_cleanup(cache_name)
 
     def get(
         self, cache_type: CacheType, key: str, namespace: str = ""
     ) -> Optional[Any]:
-        """获取缓存值"""
+        """Get cache value"""
         cache_name = self._get_cache_name(cache_type, namespace)
 
         if cache_name not in self._caches:
@@ -119,16 +119,16 @@ class GlobalCacheManager:
 
             entry = cache[key]
 
-            # 检查过期
+            # Check expiration
             if entry.is_expired():
                 del cache[key]
                 self._stats["misses"] += 1
                 return None
 
-            # 更新访问信息
+            # Update access info
             entry.touch()
 
-            # LRU策略：移动到末尾
+            # LRU strategy: move to end
             if config.strategy in [CacheStrategy.LRU, CacheStrategy.TTL_LRU]:
                 del cache[key]
                 cache[key] = entry
@@ -137,7 +137,7 @@ class GlobalCacheManager:
             return entry.value
 
     def delete(self, cache_type: CacheType, key: str, namespace: str = "") -> bool:
-        """删除缓存条目"""
+        """Delete cache entry"""
         cache_name = self._get_cache_name(cache_type, namespace)
 
         if cache_name not in self._caches:
@@ -152,7 +152,7 @@ class GlobalCacheManager:
             return False
 
     def clear(self, cache_type: CacheType, namespace: str = "") -> None:
-        """清空指定缓存"""
+        """Clear specified cache"""
         cache_name = self._get_cache_name(cache_type, namespace)
 
         if cache_name not in self._caches:
@@ -164,7 +164,7 @@ class GlobalCacheManager:
     def invalidate_pattern(
         self, cache_type: CacheType, pattern: str, namespace: str = ""
     ) -> int:
-        """按模式失效缓存条目"""
+        """Invalidate cache entries by pattern"""
         cache_name = self._get_cache_name(cache_type, namespace)
 
         if cache_name not in self._caches:
@@ -182,7 +182,7 @@ class GlobalCacheManager:
         return deleted_count
 
     def _cleanup_expired(self, cache_name: str) -> int:
-        """清理过期条目"""
+        """Clean up expired entries"""
         if cache_name not in self._caches:
             return 0
 
@@ -198,7 +198,7 @@ class GlobalCacheManager:
         return deleted_count
 
     def _maybe_cleanup(self, cache_name: str):
-        """定期清理检查"""
+        """Periodic cleanup check"""
         config = self._configs.get(cache_name)
         if not config:
             return
@@ -209,8 +209,8 @@ class GlobalCacheManager:
             deleted = self._cleanup_expired(cache_name)
             if deleted > 0:
                 self._stats["cleanups"] += 1
-                self.logger.debug(f"清理缓存 {cache_name}: 删除 {deleted} 个过期条目")
+                self.logger.debug(f"Cleaning cache {cache_name}: deleted {deleted} expired entries")
 
 
-# 创建全局缓存管理器实例
+# Create global cache manager instance
 cache_manager = GlobalCacheManager()

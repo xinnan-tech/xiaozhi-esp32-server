@@ -12,19 +12,28 @@ class LLMProviderBase(ABC):
 
     def response_no_stream(self, system_prompt, user_prompt, **kwargs):
         try:
-            # 构造对话格式
+            # Construct dialogue format
             dialogue = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ]
+            
+            timeout = kwargs.get("timeout")
+            import time
+            start_time = time.time()
+            
             result = ""
             for part in self.response("", dialogue, **kwargs):
+                # Strict wall-clock check
+                if timeout and (time.time() - start_time) > timeout:
+                    logger.bind(tag=TAG).warning(f"Response consumption exceeded timeout of {timeout}s, returning partial.")
+                    break
                 result += part
             return result
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"Error in Ollama response generation: {e}")
-            return "【LLM服务响应异常】"
+            logger.bind(tag=TAG).error(f"Error in LLM response generation: {e}")
+            return "[LLM Service Response Error]"
     
     def response_with_functions(self, session_id, dialogue, functions=None):
         """

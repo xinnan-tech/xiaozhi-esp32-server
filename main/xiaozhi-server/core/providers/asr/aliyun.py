@@ -45,10 +45,10 @@ class AccessToken:
             "Timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "Version": "2019-02-28",
         }
-        # 构造规范化的请求字符串
+        # Construct normalized request string
         query_string = AccessToken._encode_dict(parameters)
-        # print('规范化的请求字符串: %s' % query_string)
-        # 构造待签名字符串
+        # print('Normalized request string: %s' % query_string)
+        # Construct string to sign
         string_to_sign = (
             "GET"
             + "&"
@@ -56,25 +56,25 @@ class AccessToken:
             + "&"
             + AccessToken._encode_text(query_string)
         )
-        # print('待签名的字符串: %s' % string_to_sign)
-        # 计算签名
+        # print('String to sign: %s' % string_to_sign)
+        # Calculate signature
         secreted_string = hmac.new(
             bytes(access_key_secret + "&", encoding="utf-8"),
             bytes(string_to_sign, encoding="utf-8"),
             hashlib.sha1,
         ).digest()
         signature = base64.b64encode(secreted_string)
-        # print('签名: %s' % signature)
-        # 进行URL编码
+        # print('Signature: %s' % signature)
+        # URL encode
         signature = AccessToken._encode_text(signature)
-        # print('URL编码后的签名: %s' % signature)
-        # 调用服务
+        # print('URL encoded signature: %s' % signature)
+        # Call service
         full_url = "http://nls-meta.cn-shanghai.aliyuncs.com/?Signature=%s&%s" % (
             signature,
             query_string,
         )
         # print('url: %s' % full_url)
-        # 提交HTTP GET请求
+        # Submit HTTP GET request
         response = requests.get(full_url)
         if response.ok:
             root_obj = response.json()
@@ -91,8 +91,8 @@ class ASRProvider(ASRProviderBase):
     def __init__(self, config: dict, delete_audio_file: bool):
         super().__init__()
         self.interface_type = InterfaceType.NON_STREAM
-        """阿里云ASR初始化"""
-        # 新增空值判断逻辑
+        """Aliyun ASR initialization"""
+        # Added null value check logic
         self.access_key_id = config.get("access_key_id")
         self.access_key_secret = config.get("access_key_secret")
 
@@ -105,27 +105,27 @@ class ASRProvider(ASRProviderBase):
         self.delete_audio_file = delete_audio_file
 
         if self.access_key_id and self.access_key_secret:
-            # 使用密钥对生成临时token
+            # Use key pair to generate temporary token
             self._refresh_token()
         else:
-            # 直接使用预生成的长期token
+            # Use pre-generated long-term token directly
             self.token = config.get("token")
             self.expire_time = None
 
-        # 确保输出目录存在
+        # Ensure output directory exists
         os.makedirs(self.output_dir, exist_ok=True)
 
     def _refresh_token(self):
-        """刷新Token并记录过期时间"""
+        """Refresh Token and record expiration time"""
         if self.access_key_id and self.access_key_secret:
             self.token, expire_time_str = AccessToken.create_token(
                 self.access_key_id, self.access_key_secret
             )
             if not expire_time_str:
-                raise ValueError("无法获取有效的Token过期时间")
+                raise ValueError("Failed to get valid Token expiration time")
 
             try:
-                # 统一转换为字符串处理
+                # Convert to string for consistent handling
                 expire_str = str(expire_time_str).strip()
 
                 if expire_str.isdigit():
@@ -134,13 +134,13 @@ class ASRProvider(ASRProviderBase):
                     expire_time = datetime.strptime(expire_str, "%Y-%m-%dT%H:%M:%SZ")
                 self.expire_time = expire_time.timestamp() - 60
             except Exception as e:
-                raise ValueError(f"无效的过期时间格式: {expire_str}") from e
+                raise ValueError(f"Invalid expiration time format: {expire_str}") from e
 
         else:
             self.expire_time = None
 
         if not self.token:
-            raise ValueError("无法获取有效的访问Token")
+            raise ValueError("Failed to get valid access Token")
 
     def _is_token_expired(self):
         """检查Token是否过期"""
@@ -148,14 +148,12 @@ class ASRProvider(ASRProviderBase):
             return False  # 长期Token不过期
         # 新增调试日志
         # current_time = time.time()
-        # remaining = self.expire_time - current_time
-        # print(f"Token过期检查: 当前时间 {datetime.fromtimestamp(current_time)} | "
-        #              f"过期时间 {datetime.fromtimestamp(self.expire_time)} | "
-        #              f"剩余 {remaining:.2f}秒")
-        return time.time() > self.expire_time
-
-    def _construct_request_url(self) -> str:
-        """构造请求URL，包含参数"""
+    def _is_token_expired(self):
+        """Check if Token is expired"""
+        if not self.expire_time:
+            return False  # Long-term Token does not expire
+        # Added debug log
+        # current_time = time.time()
         request = f"{self.base_url}?appkey={self.app_key}"
         request += f"&format={self.format}"
         request += f"&sample_rate={self.sample_rate}"
@@ -165,16 +163,16 @@ class ASRProvider(ASRProviderBase):
         return request
 
     async def _send_request(self, pcm_data: bytes) -> Optional[str]:
-        """发送请求到阿里云ASR服务"""
+        """Send request to Aliyun ASR service"""
         try:
-            # 设置HTTP头
+            # Set HTTP headers
             headers = {
                 "X-NLS-Token": self.token,
                 "Content-type": "application/octet-stream",
                 "Content-Length": str(len(pcm_data)),
             }
 
-            # 创建连接并发送请求
+            # Create connection and send request
             conn = http.client.HTTPSConnection(self.host)
             request_url = self._construct_request_url()
 
@@ -186,56 +184,56 @@ class ASRProvider(ASRProviderBase):
                 ),
             )
 
-            # 获取响应
+            # Get response
             response = await loop.run_in_executor(None, conn.getresponse)
             body = await loop.run_in_executor(None, response.read)
             conn.close()
 
-            # 解析响应
+            # Parse response
             try:
                 body_json = json.loads(body)
                 status = body_json.get("status")
 
                 if status == 20000000:
                     result = body_json.get("result", "")
-                    logger.bind(tag=TAG).debug(f"ASR结果: {result}")
+                    logger.bind(tag=TAG).debug(f"ASR result: {result}")
                     return result
                 else:
-                    logger.bind(tag=TAG).error(f"ASR失败，状态码: {status}")
+                    logger.bind(tag=TAG).error(f"ASR failed, status code: {status}")
                     return None
 
             except ValueError:
-                logger.bind(tag=TAG).error("响应不是JSON格式")
+                logger.bind(tag=TAG).error("Response is not in JSON format")
                 return None
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"ASR请求失败: {e}", exc_info=True)
+            logger.bind(tag=TAG).error(f"ASR request failed: {e}", exc_info=True)
             return None
 
     async def speech_to_text(
         self, opus_data: List[bytes], session_id: str, audio_format="opus"
     ) -> Tuple[Optional[str], Optional[str]]:
-        """将语音数据转换为文本"""
+        """Convert speech data to text"""
         if self._is_token_expired():
-            logger.warning("Token已过期，正在自动刷新...")
+            logger.warning("Token expired, refreshing automatically...")
             self._refresh_token()
 
         file_path = None
         try:
-            # 解码Opus为PCM
+            # Decode Opus to PCM
             if audio_format == "pcm":
                 pcm_data = opus_data
             else:
                 pcm_data = self.decode_opus(opus_data)
             combined_pcm_data = b"".join(pcm_data)
 
-            # 判断是否保存为WAV文件
+            # Determine whether to save as WAV file
             if self.delete_audio_file:
                 pass
             else:
                 file_path = self.save_audio_to_file(pcm_data, session_id)
 
-            # 发送请求并获取文本
+            # Send request and obtain text
             text = await self._send_request(combined_pcm_data)
 
             if text:
@@ -244,5 +242,5 @@ class ASRProvider(ASRProviderBase):
             return "", file_path
 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"语音识别失败: {e}", exc_info=True)
+            logger.bind(tag=TAG).error(f"Speech recognition failed: {e}", exc_info=True)
             return "", file_path

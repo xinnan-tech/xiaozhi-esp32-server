@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Silero VAD"
+authors:
+  - family-names: "Silero Team"
+    email: "hello@silero.ai"
+type: software
+repository-code: "https://github.com/snakers4/silero-vad"
+license: MIT
+abstract: "Pre-trained enterprise-grade Voice Activity Detector (VAD), Number Detector and Language Classifier"
+preferred-citation:
+  type: software
+  authors:
+    - family-names: "Silero Team"
+      email: "hello@silero.ai"
+  title: "Silero VAD: pre-trained enterprise-grade Voice Activity Detector (VAD), Number Detector and Language Classifier"
+  year: 2024
+  publisher: "GitHub"
+  journal: "GitHub repository"
+  howpublished: "https://github.com/snakers4/silero-vad"

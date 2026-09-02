@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36616.10 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VadDotNet", "VadDotNet.csproj", "{F36E1741-EDDB-90C7-7501-4911058F8996}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F36E1741-EDDB-90C7-7501-4911058F8996}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F36E1741-EDDB-90C7-7501-4911058F8996}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F36E1741-EDDB-90C7-7501-4911058F8996}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F36E1741-EDDB-90C7-7501-4911058F8996}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DFC4CEE8-1034-46B4-A5F4-D1649B3543E6}
+	EndGlobalSection
+EndGlobal

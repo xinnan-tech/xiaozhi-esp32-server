@@ -41,10 +41,10 @@ class AccessToken:
             "Timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "Version": "2019-02-28",
         }
-        # 构造规范化的请求字符串
+        # Construct normalized request string
         query_string = AccessToken._encode_dict(parameters)
-        # print('规范化的请求字符串: %s' % query_string)
-        # 构造待签名字符串
+        # print('Normalized request string: %s' % query_string)
+        # Construct string to sign
         string_to_sign = (
             "GET"
             + "&"
@@ -52,25 +52,25 @@ class AccessToken:
             + "&"
             + AccessToken._encode_text(query_string)
         )
-        # print('待签名的字符串: %s' % string_to_sign)
-        # 计算签名
+        # print('String to sign: %s' % string_to_sign)
+        # Calculate signature
         secreted_string = hmac.new(
             bytes(access_key_secret + "&", encoding="utf-8"),
             bytes(string_to_sign, encoding="utf-8"),
             hashlib.sha1,
         ).digest()
         signature = base64.b64encode(secreted_string)
-        # print('签名: %s' % signature)
-        # 进行URL编码
+        # print('Signature: %s' % signature)
+        # Perform URL encoding
         signature = AccessToken._encode_text(signature)
-        # print('URL编码后的签名: %s' % signature)
-        # 调用服务
+        # print('URL encoded signature: %s' % signature)
+        # Call service
         full_url = "http://nls-meta.cn-shanghai.aliyuncs.com/?Signature=%s&%s" % (
             signature,
             query_string,
         )
         # print('url: %s' % full_url)
-        # 提交HTTP GET请求
+        # Submit HTTP GET request
         response = requests.get(full_url)
         if response.ok:
             root_obj = response.json()
@@ -88,7 +88,7 @@ class TTSProvider(TTSProviderBase):
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
 
-        # 新增空值判断逻辑
+        # Add null value check logic
         self.access_key_id = config.get("access_key_id")
         self.access_key_secret = config.get("access_key_secret")
 
@@ -117,24 +117,24 @@ class TTSProvider(TTSProviderBase):
         self.header = {"Content-Type": "application/json"}
 
         if self.access_key_id and self.access_key_secret:
-            # 使用密钥对生成临时token
+            # Generate temporary token using key pair
             self._refresh_token()
         else:
-            # 直接使用预生成的长期token
+            # Use pre-generated long-term token directly
             self.token = config.get("token")
             self.expire_time = None
 
     def _refresh_token(self):
-        """刷新Token并记录过期时间"""
+        """Refresh Token and record expiration time"""
         if self.access_key_id and self.access_key_secret:
             self.token, expire_time_str = AccessToken.create_token(
                 self.access_key_id, self.access_key_secret
             )
             if not expire_time_str:
-                raise ValueError("无法获取有效的Token过期时间")
+                raise ValueError("Cannot get valid Token expiration time")
 
             try:
-                # 统一转换为字符串处理
+                # Unified conversion to string processing
                 expire_str = str(expire_time_str).strip()
 
                 if expire_str.isdigit():
@@ -143,29 +143,29 @@ class TTSProvider(TTSProviderBase):
                     expire_time = datetime.strptime(expire_str, "%Y-%m-%dT%H:%M:%SZ")
                 self.expire_time = expire_time.timestamp() - 60
             except Exception as e:
-                raise ValueError(f"无效的过期时间格式: {expire_str}") from e
+                raise ValueError(f"Invalid expiration time format: {expire_str}") from e
 
         else:
             self.expire_time = None
 
         if not self.token:
-            raise ValueError("无法获取有效的访问Token")
+            raise ValueError("Cannot get valid access Token")
 
     def _is_token_expired(self):
-        """检查Token是否过期"""
+        """Check if Token is expired"""
         if not self.expire_time:
-            return False  # 长期Token不过期
-        # 新增调试日志
+            return False  # Long-term Token does not expire
+        # Add debug log
         # current_time = time.time()
         # remaining = self.expire_time - current_time
-        # print(f"Token过期检查: 当前时间 {datetime.fromtimestamp(current_time)} | "
-        #              f"过期时间 {datetime.fromtimestamp(self.expire_time)} | "
-        #              f"剩余 {remaining:.2f}秒")
+        # print(f"Token expiration check: Current time {datetime.fromtimestamp(current_time)} | "
+        #              f"Expiration time {datetime.fromtimestamp(self.expire_time)} | "
+        #              f"Remaining {remaining:.2f}s")
         return time.time() > self.expire_time
 
     async def text_to_speak(self, text, output_file):
         if self._is_token_expired():
-            logger.warning("Token已过期，正在自动刷新...")
+            logger.warning("Token expired, refreshing automatically...")
             self._refresh_token()
         request_json = {
             "appkey": self.appkey,
@@ -184,12 +184,12 @@ class TTSProvider(TTSProviderBase):
             resp = requests.post(
                 self.api_url, json.dumps(request_json), headers=self.header
             )
-            if resp.status_code == 401:  # Token过期特殊处理
+            if resp.status_code == 401:  # Special handling for Token expiration
                 self._refresh_token()
                 resp = requests.post(
                     self.api_url, json.dumps(request_json), headers=self.header
                 )
-            # 检查返回请求数据的mime类型是否是audio/***，是则保存到指定路径下；返回的是binary格式的
+            # Check if response mime type is audio/***, if so save; response is binary
             if resp.headers["Content-Type"].startswith("audio/"):
                 if output_file:
                     with open(output_file, "wb") as f:

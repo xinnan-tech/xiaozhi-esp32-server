@@ -1,0 +1,9 @@
+models/iic/SenseVoiceSmall/model.pt
+data/
+tmp/
+*.mp3
+*.wav
+*.log
+__pycache__/
+*.pyc
+.DS_Store

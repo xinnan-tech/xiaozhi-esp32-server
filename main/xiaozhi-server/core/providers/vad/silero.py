@@ -21,7 +21,7 @@ class VADProvider(VADProviderBase):
 
         self.decoder = opuslib_next.Decoder(16000, 1)
 
-        # 处理空字符串的情况
+        # Handle empty string case
         threshold = config.get("threshold", "0.5")
         threshold_low = config.get("threshold_low", "0.2")
         min_silence_duration_ms = config.get("min_silence_duration_ms", "1000")
@@ -33,7 +33,7 @@ class VADProvider(VADProviderBase):
             int(min_silence_duration_ms) if min_silence_duration_ms else 1000
         )
 
-        # 至少要多少帧才算有语音
+        # Minimum frames to count as voice
         self.frame_window_threshold = 3
 
     def __del__(self):
@@ -44,31 +44,31 @@ class VADProvider(VADProviderBase):
                 pass
 
     def is_vad(self, conn, opus_packet):
-        # 手动模式：直接返回True，不进行实时VAD检测，所有音频都缓存
+        # Manual mode: return True directly, no real-time VAD detection, buffer all audio
         if conn.client_listen_mode == "manual":
             return True
             
         try:
             pcm_frame = self.decoder.decode(opus_packet, 960)
-            conn.client_audio_buffer.extend(pcm_frame)  # 将新数据加入缓冲区
+            conn.client_audio_buffer.extend(pcm_frame)  # Add new data to buffer
 
-            # 处理缓冲区中的完整帧（每次处理512采样点）
+            # Process complete frames in buffer (512 samples each)
             client_have_voice = False
             while len(conn.client_audio_buffer) >= 512 * 2:
-                # 提取前512个采样点（1024字节）
+                # Extract first 512 samples (1024 bytes)
                 chunk = conn.client_audio_buffer[: 512 * 2]
                 conn.client_audio_buffer = conn.client_audio_buffer[512 * 2 :]
 
-                # 转换为模型需要的张量格式
+                # Convert to tensor format required by model
                 audio_int16 = np.frombuffer(chunk, dtype=np.int16)
                 audio_float32 = audio_int16.astype(np.float32) / 32768.0
                 audio_tensor = torch.from_numpy(audio_float32)
 
-                # 检测语音活动
+                # Detect voice activity
                 with torch.no_grad():
                     speech_prob = self.model(audio_tensor, 16000).item()
 
-                # 双阈值判断
+                # Dual threshold judgment
                 if speech_prob >= self.vad_threshold:
                     is_voice = True
                 elif speech_prob <= self.vad_threshold_low:
@@ -76,16 +76,16 @@ class VADProvider(VADProviderBase):
                 else:
                     is_voice = conn.last_is_voice
 
-                # 声音没低于最低值则延续前一个状态，判断为有声音
+                # If sound not below min threshold, continue previous state, judge as voice present
                 conn.last_is_voice = is_voice
 
-                # 更新滑动窗口
+                # Update sliding window
                 conn.client_voice_window.append(is_voice)
                 client_have_voice = (
                     conn.client_voice_window.count(True) >= self.frame_window_threshold
                 )
 
-                # 如果之前有声音，但本次没有声音，且与上次有声音的时间差已经超过了静默阈值，则认为已经说完一句话
+                # If previously voice present, but now silent, and time since last voice exceeds silence threshold, sentence is finished
                 if conn.client_have_voice and not client_have_voice:
                     stop_duration = time.time() * 1000 - conn.last_activity_time
                     if stop_duration >= self.silence_threshold_ms:
@@ -96,6 +96,6 @@ class VADProvider(VADProviderBase):
 
             return client_have_voice
         except opuslib_next.OpusError as e:
-            logger.bind(tag=TAG).info(f"解码错误: {e}")
+            logger.bind(tag=TAG).info(f"Decoding error: {e}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error processing audio packet: {e}")

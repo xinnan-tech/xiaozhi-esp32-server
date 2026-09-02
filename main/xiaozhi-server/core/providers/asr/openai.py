@@ -32,7 +32,7 @@ class ASRProvider(ASRProviderBase):
             file_path = self.save_audio_to_file(pcm_data, session_id)
 
             logger.bind(tag=TAG).debug(
-                f"音频文件保存耗时: {time.time() - start_time:.3f}s | 路径: {file_path}"
+                f"Audio file saved in: {time.time() - start_time:.3f}s | Path: {file_path}"
             )
 
             logger.bind(tag=TAG).info(f"file path: {file_path}")
@@ -40,13 +40,13 @@ class ASRProvider(ASRProviderBase):
                 "Authorization": f"Bearer {self.api_key}",
             }
             
-            # 使用data参数传递模型名称
+            # Use data parameter to pass model name
             data = {
                 "model": self.model
             }
 
 
-            with open(file_path, "rb") as audio_file:  # 使用with语句确保文件关闭
+            with open(file_path, "rb") as audio_file:  # Use with statement to ensure file closure
                 files = {
                     "file": audio_file
                 }
@@ -59,24 +59,24 @@ class ASRProvider(ASRProviderBase):
                     headers=headers
                 )
                 logger.bind(tag=TAG).debug(
-                    f"语音识别耗时: {time.time() - start_time:.3f}s | 结果: {response.text}"
+                    f"Speech recognition time: {time.time() - start_time:.3f}s | Result: {response.text}"
                 )
 
             if response.status_code == 200:
                 text = response.json().get("text", "")
                 return text, file_path
             else:
-                raise Exception(f"API请求失败: {response.status_code} - {response.text}")
+                raise Exception(f"API request failed: {response.status_code} - {response.text}")
                 
         except Exception as e:
-            logger.bind(tag=TAG).error(f"语音识别失败: {e}")
+            logger.bind(tag=TAG).error(f"Speech recognition failed: {e}")
             return "", None
         finally:
-            # 文件清理逻辑
+            # File cleanup logic
             if self.delete_audio_file and file_path and os.path.exists(file_path):
                 try:
                     os.remove(file_path)
-                    logger.bind(tag=TAG).debug(f"已删除临时音频文件: {file_path}")
+                    logger.bind(tag=TAG).debug(f"Temporary audio file deleted: {file_path}")
                 except Exception as e:
-                    logger.bind(tag=TAG).error(f"文件删除失败: {file_path} | 错误: {e}")
+                    logger.bind(tag=TAG).error(f"Failed to delete file: {file_path} | Error: {e}")
         

@@ -37,9 +37,14 @@ class LLMPerformanceTester:
     def _load_system_prompt(self) -> str:
         """加载系统提示词"""
         try:
+            prompt_template_name = self.config.get("prompt_template", "data/agent-base-prompt.txt")
             prompt_file = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), self.config.get("prompt_template", "agent-base-prompt.txt")
+                os.path.dirname(os.path.dirname(__file__)), prompt_template_name
             )
+            if not os.path.exists(prompt_file):
+                print(f"Prompt file not found: {prompt_file}")
+                return "你是小智，一个聪明可爱的AI助手。请用温暖友善的语气回复用户。"
+
             with open(prompt_file, "r", encoding="utf-8") as f:
                 content = f.read()
                 # 替换模板变量为测试值

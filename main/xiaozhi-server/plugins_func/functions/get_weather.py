@@ -1,10 +1,10 @@
 import requests
-from bs4 import BeautifulSoup
 from config.logger import setup_logging
+from config.config_loader import load_config
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
-from core.utils.util import get_ip_info
+from core.utils.util import get_ip_info, fetch_lat_lon
 
-TAG = __name__
+TAG = "plugins_func.functions.get_weather"
 logger = setup_logging()
 
 GET_WEATHER_FUNCTION_DESC = {
@@ -12,213 +12,189 @@ GET_WEATHER_FUNCTION_DESC = {
     "function": {
         "name": "get_weather",
         "description": (
-            "获取某个地点的天气，用户应提供一个位置，比如用户说杭州天气，参数为：杭州。"
-            "如果用户说的是省份，默认用省会城市。如果用户说的不是省份或城市而是一个地名，默认用该地所在省份的省会城市。"
-            "如果用户没有指明地点，说“天气怎么样”，”今天天气如何“，location参数为空"
+            "Get the weather for a specific location. The user should provide a location, "
+            "e.g., if the user says 'Weather in Raleigh', the parameter is 'Raleigh'. "
+            "If the user does not specify a location (e.g., 'How is the weather?'), "
+            "the location parameter will be empty and the system will use the device location."
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "location": {
                     "type": "string",
-                    "description": "地点名，例如杭州。可选参数，如果不提供则不传",
-                },
-                "lang": {
-                    "type": "string",
-                    "description": "返回用户使用的语言code，例如zh_CN/zh_HK/en_US/ja_JP等，默认zh_CN",
+                    "description": "The name of the location, e.g., Raleigh. Optional.",
                 },
             },
-            "required": ["lang"],
         },
     },
 }
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36"
-    )
+# WMO Weather Codes (Open-Meteo)
+# https://open-meteo.com/en/docs
+WMO_CODES = {
+    0: "clear skies",
+    1: "mainly clear",
+    2: "partly cloudy",
+    3: "overcast",
+    45: "foggy",
+    48: "depositing rime fog",
+    51: "light drizzle",
+    53: "moderate drizzle",
+    55: "dense drizzle",
+    56: "light freezing drizzle",
+    57: "dense freezing drizzle",
+    61: "slight rain",
+    63: "moderate rain",
+    65: "heavy rain",
+    66: "light freezing rain",
+    67: "heavy freezing rain",
+    71: "slight snow fall",
+    73: "moderate snow fall",
+    75: "heavy snow fall",
+    77: "snow grains",
+    80: "slight rain showers",
+    81: "moderate rain showers",
+    82: "violent rain showers",
+    85: "slight snow showers",
+    86: "heavy snow showers",
+    95: "a thunderstorm",
+    96: "a thunderstorm with slight hail",
+    99: "a thunderstorm with heavy hail"
 }
 
-# 天气代码 https://dev.qweather.com/docs/resource/icons/#weather-icons
-WEATHER_CODE_MAP = {
-    "100": "晴",
-    "101": "多云",
-    "102": "少云",
-    "103": "晴间多云",
-    "104": "阴",
-    "150": "晴",
-    "151": "多云",
-    "152": "少云",
-    "153": "晴间多云",
-    "300": "阵雨",
-    "301": "强阵雨",
-    "302": "雷阵雨",
-    "303": "强雷阵雨",
-    "304": "雷阵雨伴有冰雹",
-    "305": "小雨",
-    "306": "中雨",
-    "307": "大雨",
-    "308": "极端降雨",
-    "309": "毛毛雨/细雨",
-    "310": "暴雨",
-    "311": "大暴雨",
-    "312": "特大暴雨",
-    "313": "冻雨",
-    "314": "小到中雨",
-    "315": "中到大雨",
-    "316": "大到暴雨",
-    "317": "暴雨到大暴雨",
-    "318": "大暴雨到特大暴雨",
-    "350": "阵雨",
-    "351": "强阵雨",
-    "399": "雨",
-    "400": "小雪",
-    "401": "中雪",
-    "402": "大雪",
-    "403": "暴雪",
-    "404": "雨夹雪",
-    "405": "雨雪天气",
-    "406": "阵雨夹雪",
-    "407": "阵雪",
-    "408": "小到中雪",
-    "409": "中到大雪",
-    "410": "大到暴雪",
-    "456": "阵雨夹雪",
-    "457": "阵雪",
-    "499": "雪",
-    "500": "薄雾",
-    "501": "雾",
-    "502": "霾",
-    "503": "扬沙",
-    "504": "浮尘",
-    "507": "沙尘暴",
-    "508": "强沙尘暴",
-    "509": "浓雾",
-    "510": "强浓雾",
-    "511": "中度霾",
-    "512": "重度霾",
-    "513": "严重霾",
-    "514": "大雾",
-    "515": "特强浓雾",
-    "900": "热",
-    "901": "冷",
-    "999": "未知",
-}
-
-
-def fetch_city_info(location, api_key, api_host):
-    url = f"https://{api_host}/geo/v2/city/lookup?key={api_key}&location={location}&lang=zh"
-    response = requests.get(url, headers=HEADERS).json()
-    if response.get("error") is not None:
-        logger.bind(tag=TAG).error(
-            f"获取天气失败，原因：{response.get('error', {}).get('detail')}"
-        )
-        return None
-    return response.get("location", [])[0] if response.get("location") else None
-
-
-def fetch_weather_page(url):
-    response = requests.get(url, headers=HEADERS)
-    return BeautifulSoup(response.text, "html.parser") if response.ok else None
-
-
-def parse_weather_info(soup):
-    city_name = soup.select_one("h1.c-submenu__location").get_text(strip=True)
-
-    current_abstract = soup.select_one(".c-city-weather-current .current-abstract")
-    current_abstract = (
-        current_abstract.get_text(strip=True) if current_abstract else "未知"
+def fetch_weather_from_open_meteo(lat, lon, unit_system="metric"):
+    """
+    Fetch weather from Open-Meteo API (Free, No Key).
+    """
+    # Base URL with current and daily forecast parameters
+    url = (
+        f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m"
+        "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code"
+        "&timezone=auto"
     )
-
-    current_basic = {}
-    for item in soup.select(
-        ".c-city-weather-current .current-basic .current-basic___item"
-    ):
-        parts = item.get_text(strip=True, separator=" ").split(" ")
-        if len(parts) == 2:
-            key, value = parts[1], parts[0]
-            current_basic[key] = value
-
-    temps_list = []
-    for row in soup.select(".city-forecast-tabs__row")[:7]:  # 取前7天的数据
-        date = row.select_one(".date-bg .date").get_text(strip=True)
-        weather_code = (
-            row.select_one(".date-bg .icon")["src"].split("/")[-1].split(".")[0]
-        )
-        weather = WEATHER_CODE_MAP.get(weather_code, "未知")
-        temps = [span.get_text(strip=True) for span in row.select(".tmp-cont .temp")]
-        high_temp, low_temp = (temps[0], temps[-1]) if len(temps) >= 2 else (None, None)
-        temps_list.append((date, weather, high_temp, low_temp))
-
-    return city_name, current_abstract, current_basic, temps_list
-
+    
+    # Add unit parameters if imperial
+    if unit_system == "imperial":
+        url += "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch"
+    else:
+        url += "&wind_speed_unit=ms"
+    
+    try:
+        logger.bind(tag=TAG).info(f"Requesting Open-Meteo Weather: {url}")
+        response = requests.get(url, timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("current"), data.get("daily"), data.get("current_units"), data.get("daily_units")
+        else:
+            logger.bind(tag=TAG).error(f"Open-Meteo API Error {response.status_code}: {response.text}")
+            return None, None, None, None
+    except Exception as e:
+        logger.bind(tag=TAG).error(f"Open-Meteo API failed: {e}")
+        return None, None, None, None
 
 @register_function("get_weather", GET_WEATHER_FUNCTION_DESC, ToolType.SYSTEM_CTL)
-def get_weather(conn, location: str = None, lang: str = "zh_CN"):
-    from core.utils.cache.manager import cache_manager, CacheType
+def get_weather(conn, location: str = None, lang: str = "en_US"):
+    
+    lat = None
+    lon = None
+    place_name = location
 
-    weather_config = conn.config.get("plugins", {}).get("get_weather", {})
-    api_host = weather_config.get("api_host", "mj7p3y7naa.re.qweatherapi.com")
-    api_key = weather_config.get("api_key", "a861d0d5e7bf4ee1a83d9a9e4f96d4da")
-    default_location = weather_config.get("default_location", "广州")
-    client_ip = conn.client_ip
+    # 0. Load Configuration
+    config = load_config()
+    weather_config = config.get("plugins", {}).get("get_weather", {})
+    unit_system = weather_config.get("unit_system", "metric")
 
-    # 优先使用用户提供的location参数
-    if not location:
-        # 通过客户端IP解析城市
-        if client_ip:
-            # 先从缓存获取IP对应的城市信息
-            cached_ip_info = cache_manager.get(CacheType.IP_INFO, client_ip)
-            if cached_ip_info:
-                location = cached_ip_info.get("city")
-            else:
-                # 缓存未命中，调用API获取
-                ip_info = get_ip_info(client_ip, logger)
-                if ip_info:
-                    cache_manager.set(CacheType.IP_INFO, client_ip, ip_info)
-                    location = ip_info.get("city")
-
-            if not location:
-                location = default_location
+    # 1. Determine Location (Lat/Lon)
+    if location:
+        # Resolve user-provided location
+        lat, lon, resolved_name = fetch_lat_lon(location)
+        if resolved_name:
+            place_name = resolved_name
         else:
-            # 若无IP，使用默认位置
-            location = default_location
-    # 尝试从缓存获取完整天气报告
-    weather_cache_key = f"full_weather_{location}_{lang}"
-    cached_weather_report = cache_manager.get(CacheType.WEATHER, weather_cache_key)
-    if cached_weather_report:
-        return ActionResponse(Action.REQLLM, cached_weather_report, None)
+             return ActionResponse(Action.REQLLM, f"I couldn't find the location '{location}'.", None)
+    else:
+        # No location provided, find default
+        
+        # 1. Try IP Geolocation First (Automatic)
+        ip_info = get_ip_info(conn.client_ip, logger)
+        if ip_info and ip_info.get("lat") and ip_info.get("lon"):
+            lat = ip_info["lat"]
+            lon = ip_info["lon"]
+            city = ip_info.get("city", "your location")
+            place_name = city
+            logger.bind(tag=TAG).info(f"Resolved IP to {city} ({lat}, {lon})")
+        else:
+             logger.bind(tag=TAG).info("IP location failed or unreliable, checking client config fallback")
 
-    # 缓存未命中，获取实时天气数据
-    city_info = fetch_city_info(location, api_key, api_host)
-    if not city_info:
-        return ActionResponse(
-            Action.REQLLM, f"未找到相关的城市: {location}，请确认地点是否正确", None
+        # 2. Check Client Config (Fallback)
+        if not lat or not lon:
+            client_location = None
+            if hasattr(conn, "client_id") and conn.client_id:
+                 client_config_path = os.path.join("data", conn.client_id, "config.json")
+                 if os.path.exists(client_config_path):
+                     try:
+                         with open(client_config_path, "r", encoding="utf-8") as f:
+                             c = json.load(f)
+                             client_location = c.get("default_location") or c.get("location")
+                     except Exception as e:
+                         logger.bind(tag=TAG).warning(f"Failed to read client config: {e}")
+
+            if client_location:
+                lat, lon, resolved_name = fetch_lat_lon(client_location)
+                if resolved_name:
+                    place_name = resolved_name
+                    logger.bind(tag=TAG).info(f"Using client fallback location: {resolved_name}")
+                else:
+                     logger.bind(tag=TAG).warning(f"Failed to resolve client fallback location: {client_location}")
+        
+        # 3. Fallback to Global Configured Default
+        if not lat or not lon:
+             default_loc = weather_config.get("default_location", "Raleigh")
+             logger.bind(tag=TAG).info(f"Location lookup failed, falling back to global default: {default_loc}")
+             lat, lon, resolved_name = fetch_lat_lon(default_loc)
+             place_name = resolved_name or default_loc
+
+
+    if not lat or not lon:
+        return ActionResponse(Action.REQLLM, "I couldn't determine the location to check the weather.", None)
+
+    # 2. Fetch Weather from Open-Meteo
+    current, daily, c_units, d_units = fetch_weather_from_open_meteo(lat, lon, unit_system)
+    
+    if not current:
+        return ActionResponse(Action.REQLLM, f"I couldn't retrieve the weather for {place_name} at the moment.", None)
+        
+    # 3. Format Response
+    temp = current.get("temperature_2m")
+    feels_like = current.get("apparent_temperature")
+    humidity = current.get("relative_humidity_2m")
+    wind_speed = current.get("wind_speed_10m")
+    
+    # Current condition
+    code = current.get("weather_code")
+    condition = WMO_CODES.get(code, "unknown")
+    
+    # Daily forecast (today)
+    forecast_str = ""
+    if daily and daily.get("temperature_2m_max"):
+        t_max = daily["temperature_2m_max"][0]
+        t_min = daily["temperature_2m_min"][0]
+        precip_prob = daily["precipitation_probability_max"][0]
+        d_code = daily["weather_code"][0]
+        d_condition = WMO_CODES.get(d_code, condition)
+        
+        forecast_str = (
+            f"Today's forecast is {d_condition} with a high of {t_max}{c_units.get('temperature_2m', '°C')} "
+            f"and a low of {t_min}{c_units.get('temperature_2m', '°C')}. "
+            f"There's a {precip_prob}% chance of rain."
         )
-    soup = fetch_weather_page(city_info["fxLink"])
-    if not soup:
-        return ActionResponse(Action.REQLLM, None, "请求失败")
-    city_name, current_abstract, current_basic, temps_list = parse_weather_info(soup)
 
-    weather_report = f"您查询的位置是：{city_name}\n\n当前天气: {current_abstract}\n"
-
-    # 添加有效的当前天气参数
-    if current_basic:
-        weather_report += "详细参数：\n"
-        for key, value in current_basic.items():
-            if value != "0":  # 过滤无效值
-                weather_report += f"  · {key}: {value}\n"
-
-    # 添加7天预报
-    weather_report += "\n未来7天预报：\n"
-    for date, weather, high, low in temps_list:
-        weather_report += f"{date}: {weather}，气温 {low}~{high}\n"
-
-    # 提示语
-    weather_report += "\n（如需某一天的具体天气，请告诉我日期）"
-
-    # 缓存完整的天气报告
-    cache_manager.set(CacheType.WEATHER, weather_cache_key, weather_report)
-
+    weather_report = (
+        f"In {place_name}, it is currently {condition}. "
+        f"The temperature is {temp}{c_units.get('temperature_2m', '°C')} (feels like {feels_like}{c_units.get('temperature_2m', '°C')}). "
+        f"{forecast_str}"
+    )
+    
     return ActionResponse(Action.REQLLM, weather_report, None)

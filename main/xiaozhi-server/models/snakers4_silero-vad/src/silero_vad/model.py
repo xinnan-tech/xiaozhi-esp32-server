@@ -29,7 +29,7 @@ def load_silero_vad(onnx=False, opset_version=16):
             model_file_path = str(impresources.files(package_path).joinpath(model_name))
 
     if onnx:
-        model = OnnxWrapper(model_file_path, force_onnx_cpu=True)
+        model = OnnxWrapper(str(model_file_path), force_onnx_cpu=True)
     else:
         model = init_jit_model(model_file_path)
 

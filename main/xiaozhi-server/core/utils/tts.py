@@ -10,50 +10,50 @@ logger = setup_logging()
 
 punctuation_set = {
     "，",
-    ",",  # 中文逗号 + 英文逗号
+    ",",  # Chinese comma + English comma
     "。",
-    ".",  # 中文句号 + 英文句号
+    ".",  # Chinese period + English period
     "！",
-    "!",  # 中文感叹号 + 英文感叹号
+    "!",  # Chinese exclamation mark + English exclamation mark
     "“",
     "”",
-    '"',  # 中文双引号 + 英文引号
+    '"',  # Chinese double quotes + English quotes
     "：",
-    ":",  # 中文冒号 + 英文冒号
+    ":",  # Chinese colon + English colon
     "-",
-    "－",  # 英文连字符 + 中文全角横线
-    "、",  # 中文顿号
+    "－",  # English hyphen + Chinese full-width dash
+    "、",  # Chinese uneven mark
     "[",
-    "]",  # 方括号
+    "]",  # Brackets
     "【",
-    "】",  # 中文方括号
-    "~",  # 波浪号
+    "】",  # Chinese brackets
+    "~",  # Tilde
 }
 
 def create_instance(class_name, *args, **kwargs):
-    # 创建TTS实例
+    # Create TTS instance
     if os.path.exists(os.path.join('core', 'providers', 'tts', f'{class_name}.py')):
         lib_name = f'core.providers.tts.{class_name}'
         if lib_name not in sys.modules:
             sys.modules[lib_name] = importlib.import_module(f'{lib_name}')
         return sys.modules[lib_name].TTSProvider(*args, **kwargs)
 
-    raise ValueError(f"不支持的TTS类型: {class_name}，请检查该配置的type是否设置正确")
+    raise ValueError(f"Unsupported TTS type: {class_name}, please check if the type in config is set correctly")
 
 
 class MarkdownCleaner:
     """
-    封装 Markdown 清理逻辑：直接用 MarkdownCleaner.clean_markdown(text) 即可
+    Encapsulate Markdown cleanup logic: simply use MarkdownCleaner.clean_markdown(text)
     """
-    # 公式字符
+    # Formula characters
     NORMAL_FORMULA_CHARS = re.compile(r'[a-zA-Z\\^_{}\+\-\(\)\[\]=]')
 
     @staticmethod
     def _replace_inline_dollar(m: re.Match) -> str:
         """
-        只要捕获到完整的 "$...$":
-          - 如果内部有典型公式字符 => 去掉两侧 $
-          - 否则 (纯数字/货币等) => 保留 "$...$"
+        As long as a complete "$...$" is captured:
+          - If internal contains typical formula characters => remove both sides $
+          - Otherwise (pure numbers/currency etc.) => keep "$...$"
         """
         content = m.group(1)
         if MarkdownCleaner.NORMAL_FORMULA_CHARS.search(content):
@@ -64,7 +64,7 @@ class MarkdownCleaner:
     @staticmethod
     def _replace_table_block(match: re.Match) -> str:
         """
-        当匹配到一个整段表格块时，回调该函数。
+        Callback when matching a whole table block.
         """
         block_text = match.group('table_block')
         lines = block_text.strip('\n').split('\n')
@@ -86,11 +86,11 @@ class MarkdownCleaner:
 
         lines_for_tts = []
         if len(parsed_table) == 1:
-            # 只有一行
+            # Only one line
             only_line_str = ", ".join(parsed_table[0])
-            lines_for_tts.append(f"单行表格：{only_line_str}")
+            lines_for_tts.append(f"Single line table: {only_line_str}")
         else:
-            lines_for_tts.append(f"表头是：{', '.join(headers)}")
+            lines_for_tts.append(f"Headers are: {', '.join(headers)}")
             for i, row in enumerate(data_rows, start=1):
                 row_str_list = []
                 for col_index, cell_val in enumerate(row):
@@ -98,47 +98,47 @@ class MarkdownCleaner:
                         row_str_list.append(f"{headers[col_index]} = {cell_val}")
                     else:
                         row_str_list.append(cell_val)
-                lines_for_tts.append(f"第 {i} 行：{', '.join(row_str_list)}")
+                lines_for_tts.append(f"Row {i}: {', '.join(row_str_list)}")
 
         return "\n".join(lines_for_tts) + "\n"
 
-    # 预编译所有正则表达式（按执行频率排序）
-    # 这里要把 replace_xxx 的静态方法放在最前定义，以便在列表里能正确引用它们。
+    # Pre-compile all regexes (sorted by execution frequency)
+    # Must define static methods replace_xxx first to reference them correctly in the list.
     REGEXES = [
-        (re.compile(r'```.*?```', re.DOTALL), ''),  # 代码块
-        (re.compile(r'^#+\s*', re.MULTILINE), ''),  # 标题
-        (re.compile(r'(\*\*|__)(.*?)\1'), r'\2'),  # 粗体
-        (re.compile(r'(\*|_)(?=\S)(.*?)(?<=\S)\1'), r'\2'),  # 斜体
-        (re.compile(r'!\[.*?\]\(.*?\)'), ''),  # 图片
-        (re.compile(r'\[(.*?)\]\(.*?\)'), r'\1'),  # 链接
-        (re.compile(r'^\s*>+\s*', re.MULTILINE), ''),  # 引用
+        (re.compile(r'```.*?```', re.DOTALL), ''),  # Code block
+        (re.compile(r'^#+\s*', re.MULTILINE), ''),  # Header
+        (re.compile(r'(\*\*|__)(.*?)\1'), r'\2'),  # Bold
+        (re.compile(r'(\*|_)(?=\S)(.*?)(?<=\S)\1'), r'\2'),  # Italic
+        (re.compile(r'!\[.*?\]\(.*?\)'), ''),  # Image
+        (re.compile(r'\[(.*?)\]\(.*?\)'), r'\1'),  # Link
+        (re.compile(r'^\s*>+\s*', re.MULTILINE), ''),  # Quote
         (
             re.compile(r'(?P<table_block>(?:^[^\n]*\|[^\n]*\n)+)', re.MULTILINE),
             _replace_table_block
         ),
-        (re.compile(r'^\s*[*+-]\s*', re.MULTILINE), '- '),  # 列表
-        (re.compile(r'\$\$.*?\$\$', re.DOTALL), ''),  # 块级公式
+        (re.compile(r'^\s*[*+-]\s*', re.MULTILINE), '- '),  # List
+        (re.compile(r'\$\$.*?\$\$', re.DOTALL), ''),  # Block level formula
         (
             re.compile(r'(?<![A-Za-z0-9])\$([^\n$]+)\$(?![A-Za-z0-9])'),
             _replace_inline_dollar
         ),
-        (re.compile(r'\n{2,}'), '\n'),  # 多余空行
+        (re.compile(r'\n{2,}'), '\n'),  # Extra empty lines
     ]
 
     @staticmethod
     def clean_markdown(text: str) -> str:
         """
-        主入口方法：依序执行所有正则，移除或替换 Markdown 元素
+        Main entry method: execute all regexes in order to remove or replace Markdown elements
         """
-        # 检查文本是否全为英文和基本标点符号
+        # Check if text is all English and basic punctuation
         if text and all((c.isascii() or c.isspace() or c in punctuation_set) for c in text):
-            # 保留原始空格，直接返回
+            # Keep original spaces, return directly
             return text
 
         for regex, replacement in MarkdownCleaner.REGEXES:
             text = regex.sub(replacement, text)
 
-        # 去除emoji表情
+        # Remove emoji expressions
         text = check_emoji(text)
 
         return text.strip()

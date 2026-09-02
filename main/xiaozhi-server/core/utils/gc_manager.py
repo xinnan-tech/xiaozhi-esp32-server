@@ -1,6 +1,6 @@
 """
-全局GC管理模块
-定期执行垃圾回收，避免频繁触发GC导致的GIL锁问题
+Global GC Management Module
+Periodically execute garbage collection to avoid GIL lock issues caused by frequent GC triggering
 """
 
 import gc
@@ -13,14 +13,14 @@ logger = setup_logging()
 
 
 class GlobalGCManager:
-    """全局垃圾回收管理器"""
+    """Global Garbage Collection Manager"""
 
     def __init__(self, interval_seconds=300):
         """
-        初始化GC管理器
+        Initialize GC Manager
 
         Args:
-            interval_seconds: GC执行间隔（秒），默认300秒（5分钟）
+            interval_seconds: GC execution interval (seconds), default 300 seconds (5 minutes)
         """
         self.interval_seconds = interval_seconds
         self._task = None
@@ -28,21 +28,21 @@ class GlobalGCManager:
         self._lock = threading.Lock()
 
     async def start(self):
-        """启动定时GC任务"""
+        """Start scheduled GC task"""
         if self._task is not None:
-            logger.bind(tag=TAG).warning("GC管理器已经在运行")
+            logger.bind(tag=TAG).warning("GC manager is already running")
             return
 
-        logger.bind(tag=TAG).info(f"启动全局GC管理器，间隔{self.interval_seconds}秒")
+        logger.bind(tag=TAG).info(f"Starting global GC manager, interval {self.interval_seconds} seconds")
         self._stop_event.clear()
         self._task = asyncio.create_task(self._gc_loop())
 
     async def stop(self):
-        """停止定时GC任务"""
+        """Stop scheduled GC task"""
         if self._task is None:
             return
 
-        logger.bind(tag=TAG).info("停止全局GC管理器")
+        logger.bind(tag=TAG).info("Stopping global GC manager")
         self._stop_event.set()
 
         if self._task and not self._task.done():
@@ -55,35 +55,35 @@ class GlobalGCManager:
         self._task = None
 
     async def _gc_loop(self):
-        """GC循环任务"""
+        """GC Loop Task"""
         try:
             while not self._stop_event.is_set():
-                # 等待指定间隔
+                # Wait for specified interval
                 try:
                     await asyncio.wait_for(
                         self._stop_event.wait(), timeout=self.interval_seconds
                     )
-                    # 如果stop_event被设置，退出循环
+                    # If stop_event is set, exit loop
                     break
                 except asyncio.TimeoutError:
-                    # 超时表示到了执行GC的时间
+                    # Timeout means it's time to execute GC
                     pass
 
-                # 执行GC
+                # Execute GC
                 await self._run_gc()
 
         except asyncio.CancelledError:
-            logger.bind(tag=TAG).info("GC循环任务被取消")
+            logger.bind(tag=TAG).info("GC loop task cancelled")
             raise
         except Exception as e:
-            logger.bind(tag=TAG).error(f"GC循环任务异常: {e}")
+            logger.bind(tag=TAG).error(f"GC loop task exception: {e}")
         finally:
-            logger.bind(tag=TAG).info("GC循环任务已退出")
+            logger.bind(tag=TAG).info("GC loop task exited")
 
     async def _run_gc(self):
-        """执行垃圾回收"""
+        """Execute garbage collection"""
         try:
-            # 在线程池中执行GC，避免阻塞事件循环
+            # Execute GC in thread pool to avoid blocking event loop
             loop = asyncio.get_running_loop()
 
             def do_gc():
@@ -95,26 +95,26 @@ class GlobalGCManager:
 
             before, collected, after = await loop.run_in_executor(None, do_gc)
             logger.bind(tag=TAG).debug(
-                f"全局GC执行完成 - 回收对象: {collected}, "
-                f"对象数量: {before} -> {after}"
+                f"Global GC completed - Collected: {collected}, "
+                f"Objects: {before} -> {after}"
             )
         except Exception as e:
-            logger.bind(tag=TAG).error(f"执行GC时出错: {e}")
+            logger.bind(tag=TAG).error(f"Error executing GC: {e}")
 
 
-# 全局单例
+# Global Singleton
 _gc_manager_instance = None
 
 
 def get_gc_manager(interval_seconds=300):
     """
-    获取全局GC管理器实例（单例模式）
+    Get global GC manager instance (Singleton pattern)
 
     Args:
-        interval_seconds: GC执行间隔（秒），默认300秒（5分钟）
+        interval_seconds: GC execution interval (seconds), default 300 seconds (5 minutes)
 
     Returns:
-        GlobalGCManager实例
+        GlobalGCManager instance
     """
     global _gc_manager_instance
     if _gc_manager_instance is None:

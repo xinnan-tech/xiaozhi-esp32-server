@@ -116,7 +116,7 @@ class ASRProvider(ASRProviderBase):
             pcm_data = self.decode_opus(opus_data)
         combined_pcm_data = b"".join(pcm_data)
 
-        # 判断是否保存为WAV文件
+        # Determine whether to save as WAV file
         if self.delete_audio_file:
             pass
         else:

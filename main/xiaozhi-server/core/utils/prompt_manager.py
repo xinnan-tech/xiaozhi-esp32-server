@@ -1,24 +1,15 @@
 """
-系统提示词管理器模块
-负责管理和更新系统提示词，包括快速初始化和异步增强功能
+System prompt manager module
+Responsible for managing and updating system prompts, including quick initialization and async enhancement functions
 """
 
 import os
 from typing import Dict, Any
 from config.logger import setup_logging
+from config.config_loader import get_project_dir
 from jinja2 import Template
 
 TAG = __name__
-
-WEEKDAY_MAP = {
-    "Monday": "星期一",
-    "Tuesday": "星期二",
-    "Wednesday": "星期三",
-    "Thursday": "星期四",
-    "Friday": "星期五",
-    "Saturday": "星期六",
-    "Sunday": "星期日",
-}
 
 EMOJI_List = [
     "😶",
@@ -46,7 +37,7 @@ EMOJI_List = [
 
 
 class PromptManager:
-    """系统提示词管理器，负责管理和更新系统提示词"""
+    """System prompt manager, responsible for managing and updating system prompts"""
 
     def __init__(self, config: Dict[str, Any], logger=None):
         self.config = config
@@ -54,13 +45,13 @@ class PromptManager:
         self.base_prompt_template = None
         self.last_update_time = 0
 
-        # 导入全局缓存管理器
+        # Import global cache manager
         from core.utils.cache.manager import cache_manager, CacheType
 
         self.cache_manager = cache_manager
         self.CacheType = CacheType
         
-        # 初始化上下文源
+        # Initialize context source
         from core.utils.context_provider import ContextDataProvider
         self.context_provider = ContextDataProvider(config, self.logger)
         self.context_data = {}
@@ -68,61 +59,99 @@ class PromptManager:
         self._load_base_template()
 
     def _load_base_template(self):
-        """加载基础提示词模板"""
+        """Load base prompt template"""
         try:
-            template_path = self.config.get("prompt_template", None)
-            if not template_path:
-                template_path = "agent-base-prompt.txt"
+            template_path = self.config.get("prompt_template", "data/agent-base-prompt.txt")
+            if not os.path.isabs(template_path):
+                template_path = os.path.join(get_project_dir(), template_path)
             cache_key = f"prompt_template:{template_path}"
 
-            # 先从缓存获取
+            # Try cache first
             cached_template = self.cache_manager.get(self.CacheType.CONFIG, cache_key)
             if cached_template is not None:
                 self.base_prompt_template = cached_template
-                self.logger.bind(tag=TAG).debug("从缓存加载基础提示词模板")
+                self.logger.bind(tag=TAG).debug("Load base prompt template from cache")
                 return
 
-            # 缓存未命中，从文件读取
+            # Cache miss, read from file
             if os.path.exists(template_path):
                 with open(template_path, "r", encoding="utf-8") as f:
                     template_content = f.read()
 
-                # 存入缓存（CONFIG类型默认不自动过期，需要手动失效）
+                # Save to cache (CONFIG type does not expire automatically, needs manual invalidation)
                 self.cache_manager.set(
                     self.CacheType.CONFIG, cache_key, template_content
                 )
                 self.base_prompt_template = template_content
-                self.logger.bind(tag=TAG).debug("成功加载基础提示词模板并缓存")
+                self.logger.bind(tag=TAG).debug("Successfully loaded base prompt template and cached")
             else:
-                self.logger.bind(tag=TAG).warning(f"未找到{template_path}文件")
+                self.logger.bind(tag=TAG).warning(f"File {template_path} not found")
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"加载提示词模板失败: {e}")
+            self.logger.bind(tag=TAG).error(f"Failed to load prompt template: {e}")
 
-    def get_quick_prompt(self, user_prompt: str, device_id: str = None) -> str:
-        """快速获取系统提示词（使用用户配置）"""
-        device_cache_key = f"device_prompt:{device_id}"
-        cached_device_prompt = self.cache_manager.get(
-            self.CacheType.DEVICE_PROMPT, device_cache_key
-        )
-        if cached_device_prompt is not None:
-            self.logger.bind(tag=TAG).debug(f"使用设备 {device_id} 的缓存提示词")
-            return cached_device_prompt
-        else:
-            self.logger.bind(tag=TAG).debug(
-                f"设备 {device_id} 无缓存提示词，使用传入的提示词"
+    def get_quick_prompt(self, user_prompt: str, device_id: str = None, client_id: str = None) -> str:
+        """Quickly get system prompt (use user config or device-specific override)"""
+        
+        # 1. Check for file-based override: data/{client_id}/prompt.txt
+        # Check client_id first (more specific session), then device_id (hardware)
+        target_ids = []
+        if client_id: target_ids.append(client_id)
+        if device_id: target_ids.append(device_id)
+        
+        for tid in target_ids:
+            # Modified Logic: data/{client_id}/prompt.txt
+            prompt_file = os.path.join("data", tid, "prompt.txt")
+            if os.path.exists(prompt_file):
+                try:
+                    with open(prompt_file, "r", encoding="utf-8") as f:
+                        file_prompt = f.read().strip()
+                        if file_prompt:
+                            self.logger.bind(tag=TAG).info(f"Loaded device-specific prompt from {prompt_file}")
+                            return file_prompt
+                except Exception as e:
+                    self.logger.bind(tag=TAG).error(f"Failed to load prompt file {prompt_file}: {e}")
+            
+            # Legacy Fallback: check data/prompts/{tid}.txt
+            legacy_file = os.path.join("data", "prompts", f"{tid}.txt")
+            if os.path.exists(legacy_file):
+                try:
+                    with open(legacy_file, "r", encoding="utf-8") as f:
+                        file_prompt = f.read().strip()
+                        if file_prompt:
+                            self.logger.bind(tag=TAG).info(f"Loaded legacy device-specific prompt from {legacy_file}")
+                            return file_prompt
+                except Exception as e:
+                    self.logger.bind(tag=TAG).error(f"Failed to load legacy prompt file {legacy_file}: {e}")
+
+        # 2. Check Device Cache (using device_id as primary key)
+        # Note: if client_id is provided but not device_id, we might want to cache by client_id too, 
+        # but existing logic uses device_id extensively.
+        cache_key_id = device_id or client_id
+        device_cache_key = f"device_prompt:{cache_key_id}" if cache_key_id else None
+        
+        if device_cache_key:
+            cached_device_prompt = self.cache_manager.get(
+                self.CacheType.DEVICE_PROMPT, device_cache_key
             )
+            if cached_device_prompt is not None:
+                self.logger.bind(tag=TAG).debug(f"Using cached prompt for {cache_key_id}")
+                return cached_device_prompt
 
-        # 使用传入的提示词并缓存（如果有设备ID）
+        # 3. Fallback to default user_prompt
+        self.logger.bind(tag=TAG).debug(
+            f"No specific prompt for {cache_key_id}, using provided default"
+        )
+
+        # Cache provided prompt if device ID exists
         if device_id:
             device_cache_key = f"device_prompt:{device_id}"
             self.cache_manager.set(self.CacheType.CONFIG, device_cache_key, user_prompt)
-            self.logger.bind(tag=TAG).debug(f"设备 {device_id} 的提示词已缓存")
 
-        self.logger.bind(tag=TAG).info(f"使用快速提示词: {user_prompt[:50]}...")
+        self.logger.bind(tag=TAG).info(f"Using default prompt: {user_prompt[:50]}...")
         return user_prompt
 
     def _get_current_time_info(self) -> tuple:
-        """获取当前时间信息"""
+        """Get current time info"""
         from .current_time import (
             get_current_date,
             get_current_weekday,
@@ -135,117 +164,149 @@ class PromptManager:
 
         return today_date, today_weekday, lunar_date
 
-    def _get_location_info(self, client_ip: str) -> str:
-        """获取位置信息"""
+    def _get_location_info(self, client_ip: str, client_id: str = None) -> str:
+        """Get location info (prefer IP, fallback to client config)"""
         try:
-            # 先从缓存获取
+            # 1. Try cache for IP-based location
             cached_location = self.cache_manager.get(self.CacheType.LOCATION, client_ip)
             if cached_location is not None:
                 return cached_location
 
-            # 缓存未命中，调用API获取
+            # 2. Try IP Geolocation
             from core.utils.util import get_ip_info
 
             ip_info = get_ip_info(client_ip, self.logger)
-            city = ip_info.get("city", "未知位置")
-            location = f"{city}"
+            city = ip_info.get("city")
+            
+            if city and city != "Unknown location":
+                location = f"{city}"
+                # Save to cache
+                self.cache_manager.set(self.CacheType.LOCATION, client_ip, location)
+                return location
 
-            # 存入缓存
-            self.cache_manager.set(self.CacheType.LOCATION, client_ip, location)
-            return location
+            # 3. Fallback to Client Configuration if IP geo fails or is uncertain
+            if client_id:
+                client_config_path = os.path.join("data", client_id, "config.json")
+                if os.path.exists(client_config_path):
+                    try:
+                        import json
+                        with open(client_config_path, "r", encoding="utf-8") as f:
+                            c = json.load(f)
+                            client_location = c.get("default_location") or c.get("location")
+                            if client_location:
+                                self.logger.bind(tag=TAG).info(f"IP geo failed/Unknown, using client-specific fallback location: {client_location}")
+                                return client_location
+                    except Exception as e:
+                        self.logger.bind(tag=TAG).warning(f"Failed to read client config for location: {e}")
+
+            return "Unknown location"
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"获取位置信息失败: {e}")
-            return "未知位置"
+            self.logger.bind(tag=TAG).error(f"Failed to get location info: {e}")
+            return "Unknown location"
 
     def _get_weather_info(self, conn, location: str) -> str:
-        """获取天气信息"""
+        """Get weather info"""
         try:
-            # 先从缓存获取
+            # Try cache first
             cached_weather = self.cache_manager.get(self.CacheType.WEATHER, location)
             if cached_weather is not None:
                 return cached_weather
 
-            # 缓存未命中，调用get_weather函数获取
+            # Cache miss, call get_weather function to get
             from plugins_func.functions.get_weather import get_weather
             from plugins_func.register import ActionResponse
 
-            # 调用get_weather函数
-            result = get_weather(conn, location=location, lang="zh_CN")
+            # Call get_weather function
+            result = get_weather(conn, location=location, lang="en_US")
             if isinstance(result, ActionResponse):
                 weather_report = result.result
                 self.cache_manager.set(self.CacheType.WEATHER, location, weather_report)
                 return weather_report
-            return "天气信息获取失败"
+            return "Failed to get weather info"
 
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"获取天气信息失败: {e}")
-            return "天气信息获取失败"
+            self.logger.bind(tag=TAG).error(f"Failed to get weather info: {e}")
+            return "Failed to get weather info"
 
     def update_context_info(self, conn, client_ip: str):
-        """同步更新上下文信息"""
+        """Sync update context info"""
         try:
             local_address = ""
+            client_id = getattr(conn, "client_id", None)
+            if not client_id and hasattr(conn, "headers") and conn.headers:
+                client_id = conn.headers.get("client-id")
+
             if (
-                client_ip
+                (client_ip or client_id)
                 and self.base_prompt_template
                 and (
                     "local_address" in self.base_prompt_template
                     or "weather_info" in self.base_prompt_template
                 )
             ):
-                # 获取位置信息（使用全局缓存）
-                local_address = self._get_location_info(client_ip)
+                # Get location info (prefer client config)
+                local_address = self._get_location_info(client_ip, client_id)
 
             if (
                 self.base_prompt_template
                 and "weather_info" in self.base_prompt_template
                 and local_address
             ):
-                # 获取天气信息（使用全局缓存）
+                # Get weather info (use global cache)
                 self._get_weather_info(conn, local_address)
             
-            # 获取配置的上下文数据
+            # Get configured context data
             if hasattr(conn, "device_id") and conn.device_id:
                 if self.base_prompt_template and "dynamic_context" in self.base_prompt_template:
                     self.context_data = self.context_provider.fetch_all(conn.device_id)
                 else:
                     self.context_data = ""
                 
-            self.logger.bind(tag=TAG).debug(f"上下文信息更新完成")
+            self.logger.bind(tag=TAG).debug(f"Context info update completed")
 
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"更新上下文信息失败: {e}")
+            self.logger.bind(tag=TAG).error(f"Failed to update context info: {e}")
 
     def build_enhanced_prompt(
         self, user_prompt: str, device_id: str, client_ip: str = None, *args, **kwargs
     ) -> str:
-        """构建增强的系统提示词"""
+        """Build enhanced system prompt"""
         if not self.base_prompt_template:
             return user_prompt
 
+        # PREVENT NESTED IDENTITY TAGS
+        # If user_prompt (from prompt.txt) already has <identity>, strip external template's tags
+        template_str = self.base_prompt_template
+        if "<identity>" in user_prompt:
+            # Simple heuristic: if user_prompt has its own identity, 
+            # we should not wrap it again in the template.
+            # We strip the <identity> tags from the template for this render.
+            template_str = template_str.replace("<identity>", "").replace("</identity>", "")
+
         try:
-            # 获取最新的时间信息（不缓存）
+            # Get latest time info (no cache)
             today_date, today_weekday, lunar_date = self._get_current_time_info()
 
-            # 获取缓存的上下文信息
+            # Get cached context info
             local_address = ""
             weather_info = ""
 
-            if client_ip:
-                # 获取位置信息（从全局缓存）
-                local_address = (
-                    self.cache_manager.get(self.CacheType.LOCATION, client_ip) or ""
-                )
+            # Try to get client_id from kwargs (passed from Connection)
+            client_id = kwargs.get("client_id")
 
-                # 获取天气信息（从全局缓存）
+            if client_ip or client_id:
+                # Get location info (resolves client config internally)
+                local_address = self._get_location_info(client_ip, client_id)
+
+                # Get weather info (from global cache)
                 if local_address:
                     weather_info = (
                         self.cache_manager.get(self.CacheType.WEATHER, local_address)
                         or ""
                     )
 
-            # 替换模板变量
-            template = Template(self.base_prompt_template)
+            # Replace template variables
+            template = Template(template_str)
             enhanced_prompt = template.render(
                 base_prompt=user_prompt,
                 current_time="{{current_time}}",
@@ -266,10 +327,10 @@ class PromptManager:
                 self.CacheType.DEVICE_PROMPT, device_cache_key, enhanced_prompt
             )
             self.logger.bind(tag=TAG).info(
-                f"构建增强提示词成功，长度: {len(enhanced_prompt)}"
+                f"Enhanced prompt built successfully, length: {len(enhanced_prompt)}"
             )
             return enhanced_prompt
 
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"构建增强提示词失败: {e}")
+            self.logger.bind(tag=TAG).error(f"Failed to build enhanced prompt: {e}")
             return user_prompt
