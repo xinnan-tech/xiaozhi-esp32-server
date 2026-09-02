@@ -18,4 +18,4 @@ test-java:
 	cd main/manager-api && mvn -B -q test -DfailIfNoTests=false
 
 test-web:
-	cd main/manager-web && npm ci --no-audit --no-fund && npm run test:unit
+	cd main/manager-web && npm ci --no-audit --no-fund && npm test
