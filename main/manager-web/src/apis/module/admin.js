@@ -80,7 +80,7 @@ export default {
             }).send()
     },
     // 保存
-    addParam(data, callback) {
+    addParam(data, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/params`)
             .method('POST')
@@ -88,6 +88,10 @@ export default {
             .success((res) => {
                 RequestService.clearRequestTime()
                 callback(res)
+            })
+            .fail((err) => {
+                RequestService.clearRequestTime()
+                failCallback(err)
             })
             .networkFail((err) => {
                 console.error('添加参数失败:', err)

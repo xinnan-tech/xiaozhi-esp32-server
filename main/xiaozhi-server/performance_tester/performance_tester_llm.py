@@ -18,8 +18,8 @@ description = "大语言模型性能测试"
 
 
 class LLMPerformanceTester:
-    def __init__(self):
-        self.config = load_config()
+    def __init__(self, config):
+        self.config = config
         # 使用更符合智能体场景的测试内容，包含系统提示词
         self.system_prompt = self._load_system_prompt()
         self.test_sentences = self.config.get("module_test", {}).get(
@@ -536,7 +536,8 @@ class LLMPerformanceTester:
 
 
 async def main():
-    tester = LLMPerformanceTester()
+    config = await load_config()
+    tester = LLMPerformanceTester(config)
     await tester.run()
 
 

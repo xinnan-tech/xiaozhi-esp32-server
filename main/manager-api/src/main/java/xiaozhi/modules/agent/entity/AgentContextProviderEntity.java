@@ -7,11 +7,11 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import xiaozhi.modules.agent.dto.ContextProviderDTO;
+import xiaozhi.modules.agent.typehandler.ContextProviderListTypeHandler;
 
 @Data
 @TableName(value = "ai_agent_context_provider", autoResultMap = true)
@@ -26,7 +26,7 @@ public class AgentContextProviderEntity {
     private String agentId;
 
     @Schema(description = "上下文源配置")
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(typeHandler = ContextProviderListTypeHandler.class)
     private List<ContextProviderDTO> contextProviders;
 
     @Schema(description = "创建者")

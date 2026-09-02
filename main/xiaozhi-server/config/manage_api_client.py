@@ -73,6 +73,7 @@ class ManageApiClient:
                     },
                     timeout=cls.config.get("timeout", 30),
                     limits=limits,  # 使用限制
+                    trust_env=False,
                 )
             return cls._async_clients[loop_id]
         except RuntimeError:
@@ -183,6 +184,18 @@ async def get_agent_models(
     )
 
 
+async def get_correct_words(mac_address: str) -> Optional[Dict]:
+    """获取智能体替换词"""
+    try:
+        return await ManageApiClient._instance._execute_async_request(
+            "POST", "/config/correct-words",
+            json={"macAddress": mac_address}
+        )
+    except Exception as e:
+        print(f"获取替换词失败: {e}")
+        return None
+
+
 async def generate_and_save_chat_summary(session_id: str) -> Optional[Dict]:
     """生成并保存聊天记录总结"""
     try:
@@ -192,6 +205,18 @@ async def generate_and_save_chat_summary(session_id: str) -> Optional[Dict]:
         )
     except Exception as e:
         print(f"生成并保存聊天记录总结失败: {e}")
+        return None
+
+
+async def generate_and_save_chat_title(session_id: str) -> Optional[Dict]:
+    """生成并保存聊天标题"""
+    try:
+        return await ManageApiClient._instance._execute_async_request(
+            "POST",
+            f"/agent/chat-title/{session_id}/generate",
+        )
+    except Exception as e:
+        print(f"生成并保存聊天标题失败: {e}")
         return None
 
 
@@ -218,6 +243,20 @@ async def report(
         )
     except Exception as e:
         print(f"TTS上报失败: {e}")
+        return None
+
+
+async def lookup_address_book(caller_mac: str, nickname: str) -> Optional[Dict]:
+    """根据昵称查找目标设备"""
+    if not ManageApiClient._instance:
+        return None
+    try:
+        return await ManageApiClient._instance._execute_async_request(
+            "GET",
+            f"/device/address-book/lookup?callerMac={caller_mac}&nickname={nickname}",
+        )
+    except Exception as e:
+        print(f"通讯录查找失败: {e}")
         return None
 
 

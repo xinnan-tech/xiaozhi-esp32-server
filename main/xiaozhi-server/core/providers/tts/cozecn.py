@@ -47,7 +47,11 @@ class TTSProvider(TTSProviderBase):
 
         try:
             response = requests.request(
-                "POST", self.api_url, json=request_json, headers=headers
+                "POST",
+                self.api_url,
+                json=request_json,
+                headers=headers,
+                timeout=self.tts_timeout,
             )
             data = response.content
             if output_file:

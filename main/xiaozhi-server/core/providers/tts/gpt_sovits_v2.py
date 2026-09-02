@@ -90,7 +90,9 @@ class TTSProvider(TTSProviderBase):
             "repetition_penalty": self.repetition_penalty,
         }
 
-        resp = requests.post(self.url, json=request_json)
+        resp = requests.post(
+            self.url, json=request_json, timeout=self.tts_timeout
+        )
         if resp.status_code == 200:
             if output_file:
                 with open(output_file, "wb") as file:

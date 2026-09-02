@@ -24,7 +24,7 @@ class ASRProvider(ASRProviderBase):
     def requires_file(self) -> bool:
         return True
 
-    async def speech_to_text(self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None) -> Tuple[Optional[str], Optional[str]]:
+    async def speech_to_text(self, opus_data: List[bytes], session_id: str, artifacts=None) -> Tuple[Optional[str], Optional[str]]:
         file_path = None
         try:
             if artifacts is None:

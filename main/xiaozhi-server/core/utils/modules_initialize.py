@@ -140,14 +140,16 @@ def initialize_modules(
 
 def initialize_tts(config):
     select_tts_module = config["selected_module"]["TTS"]
+    tts_config = config["TTS"][select_tts_module].copy()
+    tts_config.setdefault("tts_timeout", config.get("tts_timeout", 15))
     tts_type = (
         select_tts_module
-        if "type" not in config["TTS"][select_tts_module]
-        else config["TTS"][select_tts_module]["type"]
+        if "type" not in tts_config
+        else tts_config["type"]
     )
     new_tts = tts.create_instance(
         tts_type,
-        config["TTS"][select_tts_module],
+        tts_config,
         str(config.get("delete_audio", True)).lower() in ("true", "1", "yes"),
     )
     return new_tts
@@ -188,4 +190,3 @@ def initialize_voiceprint(asr_instance, config):
     except Exception as e:
         logger.bind(tag=TAG).error(f"动态初始化声纹识别功能失败: {str(e)}")
         return False
-

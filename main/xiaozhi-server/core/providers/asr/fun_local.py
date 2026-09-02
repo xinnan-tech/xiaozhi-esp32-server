@@ -43,13 +43,18 @@ class ASRProvider(ASRProviderBase):
         
         # 内存检测，要求大于2G
         min_mem_bytes = 2 * 1024 * 1024 * 1024
-        total_mem = psutil.virtual_memory().total
-        if total_mem < min_mem_bytes:
-            logger.bind(tag=TAG).error(f"可用内存不足2G，当前仅有 {total_mem / (1024*1024):.2f} MB，可能无法启动FunASR")
+        try:
+            total_mem = psutil.virtual_memory().total
+        except RuntimeError as e:
+            logger.bind(tag=TAG).warning(f"获取系统内存信息失败，跳过FunASR内存检测: {e}")
+        else:
+            if total_mem < min_mem_bytes:
+                logger.bind(tag=TAG).error(f"可用内存不足2G，当前仅有 {total_mem / (1024*1024):.2f} MB，可能无法启动FunASR")
         
         self.interface_type = InterfaceType.LOCAL
         self.model_dir = config.get("model_dir")
         self.output_dir = config.get("output_dir")  # 修正配置键名
+        self.language = config.get("language", "auto")
         self.delete_audio_file = delete_audio_file
 
         # 确保输出目录存在
@@ -64,7 +69,7 @@ class ASRProvider(ASRProviderBase):
             )
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
+        self, opus_data: List[bytes], session_id: str, artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """语音转文本主处理逻辑"""
         retry_count = 0
@@ -80,7 +85,7 @@ class ASRProvider(ASRProviderBase):
                     self.model.generate,
                     input=artifacts.pcm_bytes,
                     cache={},
-                    language="auto",
+                    language=self.language,
                     use_itn=True,
                     batch_size_s=60,
                 )

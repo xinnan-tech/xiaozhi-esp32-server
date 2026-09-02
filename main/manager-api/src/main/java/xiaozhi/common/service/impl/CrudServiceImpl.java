@@ -24,6 +24,7 @@ import xiaozhi.common.utils.ConvertUtils;
 public abstract class CrudServiceImpl<M extends BaseMapper<T>, T, D> extends BaseServiceImpl<M, T>
         implements CrudService<T, D> {
 
+    @SuppressWarnings("unchecked")
     protected Class<D> currentDtoClass() {
         return (Class<D>) ReflectionKit.getSuperClassGenericType(getClass(), CrudServiceImpl.class, 2);
     }
@@ -70,6 +71,6 @@ public abstract class CrudServiceImpl<M extends BaseMapper<T>, T, D> extends Bas
 
     @Override
     public void delete(Serializable[] ids) {
-        baseDao.deleteBatchIds(Arrays.asList(ids));
+        baseDao.deleteByIds(Arrays.asList(ids));
     }
 }

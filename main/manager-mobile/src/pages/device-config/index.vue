@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { t } from '@/i18n'
 import UltrasonicConfig from './components/ultrasonic-config.vue'
 import WifiConfig from './components/wifi-config.vue'
@@ -68,12 +68,10 @@ function onNetworkSelected(network: WiFiNetwork | null, password: string) {
 function onConnectionStatusChange(connected: boolean) {
   console.log('ESP32连接状态:', connected)
 }
-
 // 在组件挂载后设置导航栏标题
-import { onMounted } from 'vue'
 onMounted(() => {
   uni.setNavigationBarTitle({
-    title: t('deviceConfig.pageTitle')
+    title: t('deviceConfig.pageTitle'),
   })
 })
 </script>
@@ -86,18 +84,18 @@ onMounted(() => {
       <!-- 配网方式选择 -->
       <view class="pb-[20rpx] first:pt-[20rpx]">
         <text class="text-[32rpx] text-[#232338] font-bold">
-            {{ t('deviceConfig.configMethod') }}
-          </text>
+          {{ t('deviceConfig.configMethod') }}
+        </text>
       </view>
 
       <view class="mb-[24rpx] border border-[#eeeeee] rounded-[20rpx] bg-[#fbfbfb] p-[24rpx]" style="box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);">
         <view class="flex cursor-pointer items-center justify-between border border-[#eeeeee] rounded-[12rpx] bg-[#f5f7fb] p-[20rpx] transition-all duration-300 active:border-[#336cff] active:bg-[#eef3ff]" @click="showConfigTypeSelector">
           <text class="text-[28rpx] text-[#232338] font-medium">
-              {{ t('deviceConfig.configMethod') }}
-            </text>
-            <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
-              {{ configType === 'wifi' ? t('deviceConfig.wifiConfig') : t('deviceConfig.ultrasonicConfig') }}
-            </text>
+            {{ t('deviceConfig.configMethod') }}
+          </text>
+          <text class="mx-[16rpx] flex-1 text-right text-[26rpx] text-[#65686f]">
+            {{ configType === 'wifi' ? t('deviceConfig.wifiConfig') : t('deviceConfig.ultrasonicConfig') }}
+          </text>
           <wd-icon name="arrow-right" custom-class="text-[20rpx] text-[#9d9ea3]" />
         </view>
       </view>
@@ -105,8 +103,8 @@ onMounted(() => {
       <!-- WiFi网络选择 -->
       <view class="pb-[20rpx]">
         <text class="text-[32rpx] text-[#232338] font-bold">
-            {{ t('deviceConfig.networkConfig') }}
-          </text>
+          {{ t('deviceConfig.networkConfig') }}
+        </text>
       </view>
 
       <view class="mb-[24rpx] border border-[#eeeeee] rounded-[20rpx] bg-[#fbfbfb] p-[24rpx]" style="box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);">

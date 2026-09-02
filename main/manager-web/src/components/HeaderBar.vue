@@ -2,7 +2,7 @@
   <el-header class="header">
     <div class="header-container">
       <!-- 左侧元素 -->
-      <div class="header-left" @click="goHome">
+      <div class="header-left" @click="handleRouter('home')">
         <img loading="lazy" alt="" src="@/assets/xiaozhi-logo.png" class="logo-img" />
         <img loading="lazy" alt="" :src="xiaozhiAiIcon" class="brand-img" />
       </div>
@@ -14,7 +14,7 @@
             $route.path === '/home' ||
             $route.path === '/role-config' ||
             $route.path === '/device-management',
-        }" @click="goHome">
+        }" @click="handleRouter('home')">
           <img loading="lazy" alt="" src="@/assets/header/robot.png" :style="{
             filter:
               $route.path === '/home' ||
@@ -27,7 +27,8 @@
         </div>
         <!-- 普通用户显示音色克隆 -->
         <div v-if="!userInfo.superAdmin && featureStatus.voiceClone" class="equipment-management"
-          :class="{ 'active-tab': $route.path === '/voice-clone-management' }" @click="goVoiceCloneManagement">
+          :class="{ 'active-tab': $route.path === '/voice-clone-management' }"
+          @click="handleRouter('voiceCloneManagement')">
           <img loading="lazy" alt="" src="@/assets/header/voice.png" :style="{
             filter:
               $route.path === '/voice-clone-management'
@@ -38,11 +39,12 @@
         </div>
 
         <!-- 超级管理员显示音色克隆下拉菜单 -->
-        <el-dropdown v-if="userInfo.superAdmin && featureStatus.voiceClone" trigger="click" class="equipment-management more-dropdown" :class="{
-          'active-tab':
-            $route.path === '/voice-clone-management' ||
-            $route.path === '/voice-resource-management',
-        }" @visible-change="handleVoiceCloneDropdownVisibleChange">
+        <el-dropdown v-if="userInfo.superAdmin && featureStatus.voiceClone" trigger="click"
+          class="equipment-management more-dropdown" :class="{
+            'active-tab':
+              $route.path === '/voice-clone-management' ||
+              $route.path === '/voice-resource-management',
+          }" @visible-change="handleVoiceCloneDropdownVisibleChange">
           <span class="el-dropdown-link">
             <img loading="lazy" alt="" src="@/assets/header/voice.png" :style="{
               filter:
@@ -52,20 +54,20 @@
                   : 'None',
             }" />
             <span class="nav-text">{{ $t("header.voiceCloneManagement") }}</span>
-            <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': voiceCloneDropdownVisible }"></i>
+            <i class="el-icon-arrow-down" :class="{ 'rotate-down': voiceCloneDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="goVoiceCloneManagement">
+            <el-dropdown-item @click.native="handleRouter('voiceCloneManagement')">
               {{ $t("header.voiceCloneManagement") }}
             </el-dropdown-item>
-            <el-dropdown-item @click.native="goVoiceResourceManagement">
+            <el-dropdown-item @click.native="handleRouter('voiceResourceManagement')">
               {{ $t("header.voiceResourceManagement") }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
 
-        <div v-if="userInfo.superAdmin" class="equipment-management" :class="{ 'active-tab': $route.path === '/model-config' }"
-          @click="goModelConfig">
+        <div v-if="userInfo.superAdmin" class="equipment-management"
+          :class="{ 'active-tab': $route.path === '/model-config' }" @click="handleRouter('modelConfig')">
           <img loading="lazy" alt="" src="@/assets/header/model_config.png" :style="{
             filter:
               $route.path === '/model-config' ? 'brightness(0) invert(1)' : 'None',
@@ -74,12 +76,21 @@
         </div>
         <div v-if="featureStatus.knowledgeBase" class="equipment-management"
           :class="{ 'active-tab': $route.path === '/knowledge-base-management' || $route.path === '/knowledge-file-upload' }"
-          @click="goKnowledgeBaseManagement">
+          @click="handleRouter('knowledgeBaseManagement')">
           <img loading="lazy" alt="" src="@/assets/header/knowledge_base.png" :style="{
             filter:
               $route.path === '/knowledge-base-management' || $route.path === '/knowledge-file-upload' ? 'brightness(0) invert(1)' : 'None',
           }" />
           <span class="nav-text">{{ $t("header.knowledgeBase") }}</span>
+        </div>
+        <div v-if="featureStatus.addressBook" class="equipment-management"
+          :class="{ 'active-tab': $route.path === '/address-book-management' }"
+          @click="handleRouter('addressBookManagement')">
+          <img loading="lazy" alt="" src="@/assets/header/address_book.png" :style="{
+            filter:
+              $route.path === '/address-book-management' ? 'brightness(0) invert(1)' : 'None',
+          }" />
+          <span class="nav-text">{{ $t("header.addressBook") }}</span>
         </div>
         <el-dropdown v-if="userInfo.superAdmin" trigger="click" class="equipment-management more-dropdown" :class="{
           'active-tab':
@@ -90,7 +101,8 @@
             $route.path === '/agent-template-management' ||
             $route.path === '/ota-management' ||
             $route.path === '/user-management' ||
-            $route.path === '/feature-management',
+            $route.path === '/feature-management' ||
+            $route.path === '/replacement-word-management'
         }" @visible-change="handleParamDropdownVisibleChange">
           <span class="el-dropdown-link">
             <img loading="lazy" alt="" src="@/assets/header/param_management.png" :style="{
@@ -102,70 +114,48 @@
                   $route.path === '/agent-template-management' ||
                   $route.path === '/ota-management' ||
                   $route.path === '/user-management' ||
-                  $route.path === '/feature-management'
+                  $route.path === '/feature-management' ||
+                  $route.path === '/replacement-word-management'
                   ? 'brightness(0) invert(1)'
                   : 'None',
             }" />
             <span class="nav-text">{{ $t("header.paramDictionary") }}</span>
-            <i class="el-icon-arrow-down el-icon--right" :class="{ 'rotate-down': paramDropdownVisible }"></i>
+            <i class="el-icon-arrow-down" :class="{ 'rotate-down': paramDropdownVisible }"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="goParamManagement">
+            <el-dropdown-item @click.native="handleRouter('paramManagement')">
               {{ $t("header.paramManagement") }}
             </el-dropdown-item>
-            <el-dropdown-item @click.native="goUserManagement">
+            <el-dropdown-item @click.native="handleRouter('userManagement')">
               {{ $t("header.userManagement") }}
             </el-dropdown-item>
-            <el-dropdown-item @click.native="goOtaManagement">
+            <el-dropdown-item @click.native="handleRouter('otaManagement')">
               {{ $t("header.otaManagement") }}
             </el-dropdown-item>
-            <el-dropdown-item @click.native="goDictManagement">
+            <el-dropdown-item @click.native="handleRouter('dictManagement')">
               {{ $t("header.dictManagement") }}
             </el-dropdown-item>
-            <el-dropdown-item @click.native="goProviderManagement">
+            <el-dropdown-item @click.native="handleRouter('providerManagement')">
               {{ $t("header.providerManagement") }}
             </el-dropdown-item>
-            <el-dropdown-item @click.native="goAgentTemplateManagement">
+            <el-dropdown-item @click.native="handleRouter('agentTemplate')">
               {{ $t("header.agentTemplate") }}
             </el-dropdown-item>
-            <el-dropdown-item @click.native="goServerSideManagement">
+            <el-dropdown-item @click.native="handleRouter('replacementWordManagement')">
+              {{ $t("header.replacementWordManagement") }}
+            </el-dropdown-item>
+            <el-dropdown-item @click.native="handleRouter('serverSideManagement')">
               {{ $t("header.serverSideManagement") }}
             </el-dropdown-item>
-            <el-dropdown-item @click.native="goFeatureManagement">
-                {{ $t("header.featureManagement") }}
-              </el-dropdown-item>
+            <el-dropdown-item @click.native="handleRouter('featureManagement')">
+              {{ $t("header.featureManagement") }}
+            </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </div>
 
       <!-- 右侧元素 -->
       <div class="header-right">
-        <div class="search-container" v-if="$route.path === '/home' && !(userInfo.superAdmin && isSmallScreen)">
-          <div class="search-wrapper">
-            <el-input v-model="search" :placeholder="$t('header.searchPlaceholder')" class="custom-search-input"
-              @keyup.enter.native="handleSearch" @focus="showSearchHistory" @blur="hideSearchHistory" clearable
-              ref="searchInput">
-              <i slot="suffix" class="el-icon-search search-icon" @click="handleSearch"></i>
-            </el-input>
-            <!-- 搜索历史下拉框 -->
-            <div v-if="showHistory && searchHistory.length > 0" class="search-history-dropdown">
-              <div class="search-history-header">
-                <span>{{ $t("header.searchHistory") }}</span>
-                <el-button type="text" size="small" class="clear-history-btn" @click="clearSearchHistory">
-                  {{ $t("header.clearHistory") }}
-                </el-button>
-              </div>
-              <div class="search-history-list">
-                <div v-for="(item, index) in searchHistory" :key="index" class="search-history-item"
-                  @click.stop="selectSearchHistory(item)">
-                  <span class="history-text">{{ item }}</span>
-                  <i class="el-icon-close clear-item-icon" @click.stop="removeSearchHistory(index)"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <img loading="lazy" alt="" src="@/assets/home/avatar.png" class="avatar-img" @click="handleAvatarClick" />
         <span class="el-user-dropdown" @click="handleAvatarClick">
           {{ userInfo.username || "加载中..." }}
@@ -187,11 +177,10 @@
 </template>
 
 <script>
-import userApi from "@/apis/module/user";
 import i18n, { changeLanguage } from "@/i18n";
+import featureManager from "@/utils/featureManager"; // 引入功能管理工具类
 import { mapActions, mapState } from "vuex";
 import ChangePasswordDialog from "./ChangePasswordDialog.vue"; // 引入修改密码弹窗组件
-import featureManager from "@/utils/featureManager"; // 引入功能管理工具类
 
 export default {
   name: "HeaderBar",
@@ -207,12 +196,6 @@ export default {
       voiceCloneDropdownVisible: false,
       userMenuVisible: false, // 添加用户菜单可见状态
       menuVisibleTimer: null, // 菜单显示定时器，防止够快触发
-      isSmallScreen: false,
-      // 搜索历史相关
-      searchHistory: [],
-      showHistory: false,
-      SEARCH_HISTORY_KEY: "xiaozhi_search_history",
-      MAX_HISTORY_COUNT: 3,
       // Cascader 配置
       cascaderProps: {
         expandTrigger: "click",
@@ -220,6 +203,24 @@ export default {
         label: "label",
         children: "children",
       },
+      // 跳转页面配置
+      routerPaths: {
+        home: "/home",
+        modelConfig: "/model-config",
+        knowledgeBaseManagement: "/knowledge-base-management",
+        addressBookManagement: "/address-book-management",
+        voiceCloneManagement: "/voice-clone-management",
+        voiceResourceManagement: "/voice-resource-management",
+        paramManagement: "/params-management",
+        userManagement: "/user-management",
+        otaManagement: "/ota-management",
+        dictManagement: "/dict-management",
+        providerManagement: "/provider-management",
+        agentTemplate: "/agent-template-management",
+        replacementWordManagement: "/replacement-word-management",
+        serverSideManagement: "/server-side-management",
+        featureManagement: "/feature-management",
+      }
     };
   },
   computed: {
@@ -227,6 +228,7 @@ export default {
       featureStatus: (state) => ({
         voiceClone: state.pubConfig.systemWebMenu?.features?.voiceClone?.enabled, // 音色克隆功能状态
         knowledgeBase: state.pubConfig.systemWebMenu?.features?.knowledgeBase?.enabled, // 知识库功能状态
+        addressBook: state.pubConfig.systemWebMenu?.features?.addressBook?.enabled, // 通讯录功能状态
       }),
       userInfo: (state) => state.userInfo,
     }),
@@ -319,164 +321,17 @@ export default {
     },
   },
   async mounted() {
-    this.checkScreenSize();
-    window.addEventListener("resize", this.checkScreenSize);
-    // 从localStorage加载搜索历史
-    this.loadSearchHistory();
     // 等待featureManager初始化完成后再加载功能状态
     await this.loadFeatureStatus();
   },
-  //移除事件监听器
-  beforeDestroy() {
-    window.removeEventListener("resize", this.checkScreenSize);
-  },
   methods: {
-    goHome() {
-      // 跳转到首页
-      this.$router.push("/home");
-    },
-    goUserManagement() {
-      this.$router.push("/user-management");
-    },
-    goModelConfig() {
-      this.$router.push("/model-config");
-    },
-    goKnowledgeBaseManagement() {
-      this.$router.push("/knowledge-base-management");
-    },
-    goVoiceCloneManagement() {
-      this.$router.push("/voice-clone-management");
-    },
-    goParamManagement() {
-      this.$router.push("/params-management");
-    },
-    goOtaManagement() {
-      this.$router.push("/ota-management");
-    },
-    goDictManagement() {
-      this.$router.push("/dict-management");
-    },
-    goProviderManagement() {
-      this.$router.push("/provider-management");
-    },
-    goServerSideManagement() {
-      this.$router.push("/server-side-management");
-    },
-
-    // 跳转到音色资源管理
-    goVoiceResourceManagement() {
-      this.$router.push("/voice-resource-management");
-    },
-    // 添加默认角色模板管理导航方法
-    goAgentTemplateManagement() {
-      this.$router.push("/agent-template-management");
-    },
-    // 跳转到功能管理
-    goFeatureManagement() {
-      this.$router.push("/feature-management");
+    handleRouter(type) {
+      this.$router.push(this.routerPaths[type]);
     },
     // 加载功能状态
     async loadFeatureStatus() {
       // 等待featureManager初始化完成
       await featureManager.waitForInitialization();
-    },
-    checkScreenSize() {
-      this.isSmallScreen = window.innerWidth <= 1386;
-    },
-    // 处理搜索
-    handleSearch() {
-      const searchValue = this.search.trim();
-
-      // 如果搜索内容为空，触发重置事件
-      if (!searchValue) {
-        this.$emit("search-reset");
-        return;
-      }
-
-      // 保存搜索历史
-      this.saveSearchHistory(searchValue);
-
-      // 触发搜索事件，将搜索关键词传递给父组件
-      this.$emit("search", searchValue);
-
-      // 搜索完成后让输入框失去焦点，从而触发blur事件隐藏搜索历史
-      if (this.$refs.searchInput) {
-        this.$refs.searchInput.blur();
-      }
-    },
-
-    // 显示搜索历史
-    showSearchHistory() {
-      this.showHistory = true;
-    },
-
-    // 隐藏搜索历史
-    hideSearchHistory() {
-      // 延迟隐藏，以便点击事件能够执行
-      setTimeout(() => {
-        this.showHistory = false;
-      }, 200);
-    },
-
-    // 加载搜索历史
-    loadSearchHistory() {
-      try {
-        const history = localStorage.getItem(this.SEARCH_HISTORY_KEY);
-        if (history) {
-          this.searchHistory = JSON.parse(history);
-        }
-      } catch (error) {
-        console.error("加载搜索历史失败:", error);
-        this.searchHistory = [];
-      }
-    },
-
-    // 保存搜索历史
-    saveSearchHistory(keyword) {
-      if (!keyword || this.searchHistory.includes(keyword)) {
-        return;
-      }
-
-      // 添加到历史记录开头
-      this.searchHistory.unshift(keyword);
-
-      // 限制历史记录数量
-      if (this.searchHistory.length > this.MAX_HISTORY_COUNT) {
-        this.searchHistory = this.searchHistory.slice(0, this.MAX_HISTORY_COUNT);
-      }
-
-      // 保存到localStorage
-      try {
-        localStorage.setItem(this.SEARCH_HISTORY_KEY, JSON.stringify(this.searchHistory));
-      } catch (error) {
-        console.error("保存搜索历史失败:", error);
-      }
-    },
-
-    // 选择搜索历史项
-    selectSearchHistory(keyword) {
-      this.search = keyword;
-      this.handleSearch();
-    },
-
-    // 移除单个搜索历史项
-    removeSearchHistory(index) {
-      this.searchHistory.splice(index, 1);
-      try {
-        localStorage.setItem(this.SEARCH_HISTORY_KEY, JSON.stringify(this.searchHistory));
-      } catch (error) {
-        console.error("更新搜索历史失败:", error);
-      }
-    },
-
-    // 清空所有搜索历史
-    clearSearchHistory() {
-      this.searchHistory = [];
-      try {
-        localStorage.removeItem(this.SEARCH_HISTORY_KEY);
-      } catch (error) {
-        console.error("清空搜索历史失败:", error);
-      }
     },
     // 显示修改密码弹窗
     showChangePasswordDialog() {
@@ -640,11 +495,9 @@ export default {
 
 <style lang="scss" scoped>
 .header {
-  background: #f6fcfe66;
-  border: 1px solid #fff;
+  background: linear-gradient(180deg, #dfeafe, #eff4ff);
   height: 63px !important;
   min-width: 900px;
-  /* 设置最小宽度防止过度压缩 */
   overflow: visible;
 }
 
@@ -660,7 +513,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 120px;
+  min-width: 130px;
   cursor: pointer;
 }
 
@@ -677,160 +530,58 @@ export default {
   display: flex;
   align-items: center;
   gap: 25px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  background: white;
+  border-radius: 30px;
+  box-shadow: 0 0 6px 0px #cfe1fb;
+  padding: 4px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 7px;
-  min-width: 300px;
   justify-content: flex-end;
 }
 
 .equipment-management {
-  height: 30px;
-  border-radius: 15px;
-  background: #deeafe;
+  padding: 8px 16px;
+  border-radius: 30px;
   display: flex;
   justify-content: center;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   gap: 7px;
-  color: #3d4566;
+  color: #6c79a8;
   margin-left: 1px;
   align-items: center;
   transition: all 0.3s ease;
   cursor: pointer;
   flex-shrink: 0;
-  /* 防止导航按钮被压缩 */
-  padding: 0 15px;
   position: relative;
 }
 
 .equipment-management.active-tab {
-  background: #5778ff !important;
   color: #fff !important;
+  background: linear-gradient(90deg, #2983fe 0%, #5251fc 100%);
+  box-shadow: 0 1px 8px rgba(41, 131, 254, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.equipment-management.active-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
 }
 
 .equipment-management img {
   width: 15px;
   height: 13px;
-}
-
-.search-container {
-  margin-right: 5px;
-  flex: 0.9;
-  min-width: 60px;
-  max-width: none;
-}
-
-.search-wrapper {
-  position: relative;
-}
-
-.search-history-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #e4e6ef;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  margin-top: 2px;
-}
-
-.search-history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 12px;
-  color: #909399;
-}
-
-.clear-history-btn {
-  color: #909399;
-  font-size: 11px;
-  padding: 0;
-  height: auto;
-}
-
-.clear-history-btn:hover {
-  color: #606266;
-}
-
-.search-history-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.search-history-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 12px;
-  color: #606266;
-}
-
-.search-history-item:hover {
-  background-color: #f5f7fa;
-}
-
-.clear-item-icon {
-  font-size: 10px;
-  color: #909399;
-  visibility: hidden;
-}
-.more-dropdown {
-  padding: 0;
-}
-.more-dropdown .el-dropdown-link {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 100%;
-  padding: 0 15px;
-}
-
-.search-history-item:hover .clear-item-icon {
-  visibility: visible;
-}
-
-.clear-item-icon:hover {
-  color: #ff4949;
-}
-
-.custom-search-input>>>.el-input__inner {
-  height: 18px;
-  border-radius: 9px;
-  background-color: #fff;
-  border: 1px solid #e4e6ef;
-  padding-left: 8px;
-  font-size: 9px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  width: 100%;
-}
-
-.search-icon {
-  cursor: pointer;
-  color: #909399;
-  margin-right: 3px;
-  font-size: 9px;
-  line-height: 18px;
-}
-
-.custom-search-input::v-deep .el-input__suffix-inner {
-  display: flex;
-  align-items: center;
-  height: 100%;
 }
 
 .avatar-img {
@@ -839,6 +590,7 @@ export default {
   flex-shrink: 0;
   cursor: pointer;
 }
+
 .el-user-dropdown {
   cursor: pointer;
 }
@@ -847,8 +599,13 @@ export default {
 .nav-text {
   white-space: normal;
   text-align: center;
-  max-width: 80px;
   line-height: 1.2;
+}
+
+.el-dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 /* 响应式调整 */

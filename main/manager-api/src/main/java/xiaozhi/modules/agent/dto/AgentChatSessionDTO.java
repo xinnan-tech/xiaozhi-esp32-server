@@ -23,4 +23,9 @@ public class AgentChatSessionDTO {
      * 聊天条数
      */
     private Integer chatCount;
+
+    /**
+     * 会话标题
+     */
+    private String title;
 }

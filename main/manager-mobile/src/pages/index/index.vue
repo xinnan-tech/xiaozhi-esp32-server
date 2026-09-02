@@ -12,9 +12,9 @@
 
 <script lang="ts" setup>
 import type { Agent } from '@/api/agent/types'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 // 在组件挂载后设置导航栏标题
-import { useMessage } from 'wot-design-uni'
+import { useMessage } from 'wot-design-uni/components/wd-message-box'
 import useZPaging from 'z-paging/components/z-paging/js/hooks/useZPaging.js'
 import { createAgent, deleteAgent, getAgentList } from '@/api/agent/agent'
 import { t } from '@/i18n'
@@ -53,6 +53,14 @@ const pagingRef = ref()
 useZPaging(pagingRef)
 // 消息组件
 const message = useMessage()
+const deleteDialogVisible = ref(false)
+const deleteTargetAgent = ref<Agent | null>(null)
+const deleteConfirmText = ref('')
+const deleteAgentLoading = ref(false)
+
+const isDeleteAgentNameMatched = computed(() => {
+  return !!deleteTargetAgent.value?.agentName && deleteConfirmText.value === deleteTargetAgent.value.agentName
+})
 
 // z-paging查询列表数据
 async function queryList(pageNo: number, pageSize: number) {
@@ -89,18 +97,52 @@ async function handleCreateAgent(agentName: string) {
   }
 }
 
+function openDeleteAgentDialog(agent: Agent) {
+  if (!agent.id || !agent.agentName) {
+    toast.error(t('home.deleteAgentMissingInfo'))
+    return
+  }
+
+  deleteTargetAgent.value = agent
+  deleteConfirmText.value = ''
+  deleteDialogVisible.value = true
+}
+
+function closeDeleteAgentDialog() {
+  if (deleteAgentLoading.value)
+    return
+
+  deleteDialogVisible.value = false
+  deleteTargetAgent.value = null
+  deleteConfirmText.value = ''
+}
+
+function handleDeleteAgentPaste() {
+  toast.warning(t('home.deleteAgentPasteForbidden'))
+}
+
 // 删除智能体
-async function handleDeleteAgent(agent: Agent) {
+async function handleDeleteAgent() {
+  if (!deleteTargetAgent.value || !isDeleteAgentNameMatched.value || deleteAgentLoading.value)
+    return
+
   try {
-    await deleteAgent(agent.id)
+    deleteAgentLoading.value = true
+    await deleteAgent(deleteTargetAgent.value.id)
     // 删除成功后刷新列表
     pagingRef.value.reload()
-    toast.success(`${t('home.agentName')}${t('message.deleteSuccess')}`)
+    toast.success(t('home.deleteAgentSuccess'))
+    deleteDialogVisible.value = false
+    deleteTargetAgent.value = null
+    deleteConfirmText.value = ''
   }
   catch (error: any) {
     console.error('删除智能体失败:', error)
     const errorMessage = error?.message || t('message.deleteFail')
     toast.error(errorMessage)
+  }
+  finally {
+    deleteAgentLoading.value = false
   }
 }
 
@@ -125,7 +167,7 @@ function openCreateDialog() {
       msg: '',
       inputPlaceholder: t('home.inputPlaceholder'),
       inputValue: '',
-      inputPattern: /^[\u4E00-\u9FA5a-z0-9\s]{1,50}$/i,
+      inputPattern: /^.{1,64}$/,
       inputError: t('home.createError'),
       confirmButtonText: t('home.createNow'),
       cancelButtonText: t('common.cancel'),
@@ -159,7 +201,7 @@ function formatTime(timeStr: string) {
 onShow(() => {
   console.log('首页 onShow，刷新智能体列表')
   if (pagingRef.value) {
-    pagingRef.value.reload()
+    pagingRef.value.refresh()
   }
 })
 
@@ -254,7 +296,7 @@ onMounted(() => {
 
           <template #right>
             <view class="swipe-actions">
-              <view class="action-btn delete-btn" @click.stop="handleDeleteAgent(agent)">
+              <view class="action-btn delete-btn" @click.stop="openDeleteAgentDialog(agent)">
                 <wd-icon name="delete" />
                 <text>{{ t('home.delete') }}</text>
               </view>
@@ -283,6 +325,79 @@ onMounted(() => {
     <!-- MessageBox 组件 -->
     <wd-message-box />
   </z-paging>
+
+  <wd-popup
+    v-model="deleteDialogVisible"
+    position="center"
+    custom-style="width: 88%; max-width: 420px; border-radius: 16px;"
+    :close-on-click-modal="!deleteAgentLoading"
+    safe-area-inset-bottom
+    @close="closeDeleteAgentDialog"
+  >
+    <view class="delete-agent-dialog">
+      <view class="delete-agent-header">
+        <text class="delete-agent-title">
+          {{ t('home.deleteConfirmTitle') }}
+        </text>
+      </view>
+
+      <view class="delete-agent-body">
+        <view class="delete-agent-content">
+          <wd-icon name="warning" custom-class="delete-agent-warning" />
+          <view class="delete-agent-message">
+            <text
+              class="delete-agent-copy-guard delete-agent-tip"
+              @copy.stop.prevent
+              @cut.stop.prevent
+              @contextmenu.stop.prevent
+              @longpress.stop.prevent
+            >
+              {{ t('home.confirmDeleteAgent', { agentName: deleteTargetAgent?.agentName || '' }) }}
+            </text>
+            <view
+              class="delete-agent-copy-guard delete-agent-target"
+              @copy.stop.prevent
+              @cut.stop.prevent
+              @contextmenu.stop.prevent
+              @longpress.stop.prevent
+            >
+              <text>{{ deleteTargetAgent?.agentName || '' }}</text>
+            </view>
+
+            <input
+              v-model="deleteConfirmText"
+              class="delete-agent-input"
+              type="text"
+              :maxlength="deleteTargetAgent?.agentName?.length || 64"
+              :placeholder="t('home.deleteAgentNamePlaceholder')"
+              :disabled="deleteAgentLoading"
+              @paste.stop.prevent="handleDeleteAgentPaste"
+              @drop.stop.prevent="handleDeleteAgentPaste"
+              @contextmenu.stop.prevent
+            >
+            <text v-if="deleteConfirmText && !isDeleteAgentNameMatched" class="delete-agent-helper">
+              {{ t('home.deleteAgentNameMismatch') }}
+            </text>
+          </view>
+        </view>
+      </view>
+
+      <view class="delete-agent-footer">
+        <wd-button type="info" custom-class="delete-agent-button" :disabled="deleteAgentLoading" @click="closeDeleteAgentDialog">
+          {{ t('common.cancel') }}
+        </wd-button>
+        <wd-button
+          type="primary"
+          custom-class="delete-agent-button"
+          :loading="deleteAgentLoading"
+          :disabled="!isDeleteAgentNameMatched"
+          @click="handleDeleteAgent"
+        >
+          {{ t('common.confirm') }}
+        </wd-button>
+      </view>
+    </view>
+  </wd-popup>
 </template>
 
 <style lang="scss" scoped>
@@ -586,5 +701,104 @@ onMounted(() => {
   padding: 32rpx;
   text-align: center;
   border-top: 1rpx solid #eeeeee;
+}
+
+.delete-agent-dialog {
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.delete-agent-header {
+  padding: 32rpx 32rpx 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  text-align: center;
+}
+
+.delete-agent-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #232338;
+}
+
+.delete-agent-body {
+  padding: 32rpx;
+}
+
+.delete-agent-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+:deep(.delete-agent-warning) {
+  margin-top: 4rpx;
+  color: #e6a23c;
+  font-size: 40rpx;
+}
+
+.delete-agent-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.delete-agent-tip {
+  display: block;
+  color: #606266;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.delete-agent-target {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 20rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid #ebeef5;
+  border-radius: 12rpx;
+  background: #f5f7fa;
+  color: #303133;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.delete-agent-copy-guard {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.delete-agent-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 80rpx;
+  margin-top: 28rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #eeeeee;
+  border-radius: 12rpx;
+  background: #f5f7fb;
+  color: #232338;
+  font-size: 28rpx;
+  outline: none;
+}
+
+.delete-agent-helper {
+  display: block;
+  min-height: 32rpx;
+  margin-top: 10rpx;
+  color: #f56c6c;
+  font-size: 24rpx;
+  line-height: 1.4;
+}
+
+.delete-agent-footer {
+  display: flex;
+  gap: 16rpx;
+  padding: 24rpx 32rpx 32rpx;
+  border-top: 1rpx solid #eeeeee;
+}
+
+:deep(.delete-agent-button) {
+  flex: 1;
 }
 </style>

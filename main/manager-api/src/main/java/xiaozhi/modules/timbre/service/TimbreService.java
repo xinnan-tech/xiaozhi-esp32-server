@@ -58,6 +58,14 @@ public interface TimbreService extends BaseService<TimbreEntity> {
     List<VoiceDTO> getVoiceNames(String ttsModelId, String voiceName);
 
     /**
+     * 获取普通音色或克隆音色配置的首个有效语言。
+     *
+     * @param id 音色ID
+     * @return 默认语言；音色不存在或未配置有效语言时返回null
+     */
+    String getDefaultLanguageById(String id);
+
+    /**
      * 根据ID获取音色名称
      * 
      * @param id 音色ID

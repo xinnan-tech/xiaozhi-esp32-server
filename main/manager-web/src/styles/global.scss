@@ -30,3 +30,17 @@ select:-webkit-autofill:focus {
     border-top-color: #e4e7ed !important;
    }
 }
+
+@mixin scrollbar-style {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #a1c9fd;
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f0f3fe;
+    border-radius: 3px;
+  }
+}

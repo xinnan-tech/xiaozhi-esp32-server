@@ -13,6 +13,7 @@ from .server_mcp import ServerMCPExecutor
 from .device_iot import DeviceIoTExecutor
 from .device_mcp import DeviceMCPExecutor
 from .mcp_endpoint import MCPEndpointExecutor
+from core.handle.sendAudioHandle import send_display_message
 
 
 class UnifiedToolHandler:
@@ -166,6 +167,12 @@ class UnifiedToolHandler:
                     )
 
             self.logger.debug(f"调用函数: {function_name}, 参数: {arguments}")
+
+            # 发送工具调用显示消息到设备
+            try:
+                await send_display_message(self.conn, f"% {function_name}")
+            except Exception as e:
+                self.logger.warning(f"发送工具调用显示消息失败: {e}")
 
             # 执行工具调用
             result = await self.tool_manager.execute_tool(function_name, arguments)

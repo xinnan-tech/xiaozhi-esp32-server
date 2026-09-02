@@ -9,7 +9,7 @@ services:
     security_opt:
       - seccomp:unconfined
     environment:
-      - TZ=Asia/Shanghai
+      - TZ=UTC
     ports:
       # ws服务端
       - "8000:8000"

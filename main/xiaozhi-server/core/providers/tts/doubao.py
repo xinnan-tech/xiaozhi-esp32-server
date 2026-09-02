@@ -80,7 +80,10 @@ class TTSProvider(TTSProviderBase):
 
         try:
             resp = requests.post(
-                self.api_url, json.dumps(request_json), headers=self.header
+                self.api_url,
+                json.dumps(request_json),
+                headers=self.header,
+                timeout=self.tts_timeout,
             )
             if "data" in resp.json():
                 data = resp.json()["data"]

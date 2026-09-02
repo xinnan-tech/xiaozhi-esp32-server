@@ -14,7 +14,6 @@
       "@dcloudio/types",
       "@uni-helper/uni-types",
       "@types/wechat-miniprogram",
-      "wot-design-uni/global.d.ts",
       "z-paging/types",
       "./src/typings.d.ts"
     ],
@@ -31,6 +30,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.js",
+    "src/**/*.mjs",
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.jsx",

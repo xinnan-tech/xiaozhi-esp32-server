@@ -130,16 +130,16 @@ class MarkdownCleaner:
         """
         主入口方法：依序执行所有正则，移除或替换 Markdown 元素
         """
-        # 检查文本是否全为英文和基本标点符号
-        if text and all((c.isascii() or c.isspace() or c in punctuation_set) for c in text):
-            # 保留原始空格，直接返回
-            return text
-
         for regex, replacement in MarkdownCleaner.REGEXES:
             text = regex.sub(replacement, text)
 
         # 去除emoji表情
         text = check_emoji(text)
+
+        # 检查文本是否全为英文和基本标点符号
+        if text and all((c.isascii() or c.isspace() or c in punctuation_set) for c in text):
+            # 保留原始空格，直接返回
+            return text
 
         return text.strip()
 

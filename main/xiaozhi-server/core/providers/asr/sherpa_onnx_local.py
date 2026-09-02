@@ -124,7 +124,7 @@ class ASRProvider(ASRProviderBase):
         return True
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
+        self, opus_data: List[bytes], session_id: str, artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """语音转文本主处理逻辑"""
         file_path = None

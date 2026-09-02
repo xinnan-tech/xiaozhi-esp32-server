@@ -1,7 +1,7 @@
 {
   "globalStyle": {
     "navigationStyle": "default",
-    "navigationBarTitleText": "智控台",
+    "navigationBarTitleText": "小智",
     "navigationBarBackgroundColor": "#f8f8f8",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#FFFFFF"
@@ -75,6 +75,24 @@
       }
     },
     {
+      "path": "pages/agent/provider",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationBarTitleText": "编辑源",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/agent/speedPitch",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationBarTitleText": "语音设置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/agent/tools",
       "type": "page",
       "layout": "default",
@@ -124,6 +142,42 @@
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "Login"
+      }
+    },
+    {
+      "path": "pages/login/privacy-policy-en",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "Privacy Policy"
+      }
+    },
+    {
+      "path": "pages/login/privacy-policy-zh",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "隐私政策"
+      }
+    },
+    {
+      "path": "pages/login/user-agreement-en",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "User Agreement"
+      }
+    },
+    {
+      "path": "pages/login/user-agreement-zh",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "用户协议"
       }
     },
     {

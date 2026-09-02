@@ -1,6 +1,7 @@
 import json
 import time
 import asyncio
+import opuslib_next
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -17,7 +18,11 @@ AUDIO_FRAME_DURATION = 60
 PRE_BUFFER_COUNT = 5
 
 
-async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text):
+async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text, sentence_id=None):
+    # 跳过旧句子残留音频
+    if sentence_id is not None and sentence_id != conn.sentence_id:
+        return
+
     if conn.tts.tts_audio_first_sentence:
         conn.logger.bind(tag=TAG).info(f"发送第一段语音: {text}")
         conn.tts.tts_audio_first_sentence = False
@@ -43,9 +48,9 @@ async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text
         conn.logger.bind(tag=TAG).info(f"发送音频消息: {sentenceType}, {text}")
 
     # 发送结束消息（如果是最后一个文本）
-    if sentenceType == SentenceType.LAST:
+    # 通话需要维持speaking状态
+    if not conn.calling and sentenceType == SentenceType.LAST:
         await send_tts_message(conn, "stop", None)
-        conn.client_is_speaking = False
         if conn.close_after_chat:
             await conn.close()
 
@@ -77,13 +82,24 @@ async def _send_to_mqtt_gateway(
     conn: "ConnectionHandler", opus_packet, timestamp, sequence
 ):
     """
-    发送带16字节头部的opus数据包给mqtt_gateway
+    发送带16字节头部的opus数据包给mqtt_gateway，同时缓存音频用于AEC处理
     Args:
         conn: 连接对象
         opus_packet: opus数据包
         timestamp: 时间戳
         sequence: 序列号
     """
+    # 如果启用了服务端AEC，缓存PCM数据用于后续AEC处理
+    if conn.client_aec and timestamp > 0:
+        if not hasattr(conn, "aec_audio_cache"):
+            conn.aec_audio_cache = {}
+            conn.aec_audio_cache_time = {}
+            conn._send_opus_decoder = opuslib_next.Decoder(16000, 1)
+        # 解码opus为PCM后缓存
+        pcm_data = conn._send_opus_decoder.decode(bytes(opus_packet), 960)
+        conn.aec_audio_cache[timestamp] = bytes(pcm_data)
+        conn.aec_audio_cache_time[timestamp] = time.time()
+
     # 为opus数据包添加16字节头部
     header = bytearray(16)
     header[0] = 1  # type
@@ -270,6 +286,8 @@ async def send_tts_message(conn: "ConnectionHandler", state, text=None):
 
     # TTS播放结束
     if state == "stop":
+        # 保存当前的 sentence_id，用于后续判断是否是当前轮次
+        current_sentence_id = conn.sentence_id
         # 播放提示音
         tts_notify = conn.config.get("enable_stop_tts_notify", False)
         if tts_notify:
@@ -280,9 +298,14 @@ async def send_tts_message(conn: "ConnectionHandler", state, text=None):
             await sendAudio(conn, audios)
         # 等待所有音频包发送完成
         await _wait_for_audio_completion(conn)
-        # 停止音频发送循环
-        conn.audio_rate_controller.stop_sending()
-        # 清除服务端讲话状态
+
+        # 检查是否是当前轮次
+        if current_sentence_id != conn.sentence_id:
+            return
+
+        # 停止音频发送循环（仅在流控器已初始化时调用）
+        if hasattr(conn, "audio_rate_controller") and conn.audio_rate_controller:
+            conn.audio_rate_controller.stop_sending()
         conn.clearSpeakStatus()
 
     # 发送消息到客户端
@@ -318,3 +341,13 @@ async def send_stt_message(conn: "ConnectionHandler", text):
     await send_tts_message(conn, "start")
     # 发送start消息后客户端状态会处于说话中状态，同步服务端状态
     conn.client_is_speaking = True
+
+
+async def send_display_message(conn: "ConnectionHandler", text):
+    """发送纯显示消息"""
+    message = {
+        "type": "stt",
+        "text": text,
+        "session_id": conn.session_id
+    }
+    await conn.websocket.send(json.dumps(message))

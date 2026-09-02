@@ -24,8 +24,8 @@ except ImportError:
     dashscope = None
 
 class BaseASRTester:
-    def __init__(self, config_key: str):
-        self.config = load_config()
+    def __init__(self, config_key: str, config):
+        self.config = config
         self.config_key = config_key
         self.asr_config = self.config.get("ASR", {}).get(config_key, {})
         self.test_audio_files = self._load_test_audio_files()
@@ -63,71 +63,10 @@ class BaseASRTester:
 
 
 class DoubaoStreamASRTester(BaseASRTester):
-    def __init__(self):
-        super().__init__("DoubaoStreamASR")
-
-    def _generate_header(
-        self,
-        version=0x01,
-        message_type=0x01,
-        message_type_specific_flags=0x00,
-        serial_method=0x01,
-        compression_type=0x01,
-        reserved_data=0x00,
-        extension_header: bytes = b"",
-    ):
-        """生成协议头（修复：使用正确的Header格式）"""
-        header = bytearray()
-        header_size = int(len(extension_header) / 4) + 1
-        header.append((version << 4) | header_size)
-        header.append((message_type << 4) | message_type_specific_flags)
-        header.append((serial_method << 4) | compression_type)
-        header.append(reserved_data)
-        header.extend(extension_header)
-        return header
-
-    def _generate_audio_default_header(self):
-        """生成音频数据Header"""
-        return self._generate_header(
-            version=0x01,
-            message_type=0x02,
-            message_type_specific_flags=0x00,  # 普通音频帧
-            serial_method=0x01,
-            compression_type=0x01,
-        )
-
-    def _generate_last_audio_header(self):
-        """生成最后一帧音频的Header（标记音频结束）"""
-        return self._generate_header(
-            version=0x01,
-            message_type=0x02,
-            message_type_specific_flags=0x02,  # 0x02表示这是最后一帧
-            serial_method=0x01,
-            compression_type=0x01,
-        )
-
-    def _parse_response(self, res: bytes) -> dict:
-        try:
-            if len(res) < 4:
-                return {"error": "响应数据长度不足"}
-            header = res[:4]
-            message_type = header[1] >> 4
-            if message_type == 0x0F:
-                code = int.from_bytes(res[4:8], "big", signed=False)
-                msg_length = int.from_bytes(res[8:12], "big", signed=False)
-                error_msg = json.loads(res[12:].decode("utf-8"))
-                return {
-                    "code": code,
-                    "msg_length": msg_length,
-                    "payload_msg": error_msg
-                }
-            try:
-                json_data = res[12:].decode("utf-8")
-                return {"payload_msg": json.loads(json_data)}
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                return {"error": "JSON解析失败"}
-        except Exception:
-            return {"error": "解析响应失败"}
+    def __init__(self, config):
+        super().__init__("DoubaoStreamASR", config)
+        from core.providers.asr.doubao_stream import ASRProvider as DoubaoStreamProvider
+        self.provider = DoubaoStreamProvider(self.asr_config, delete_audio_file=False)
 
     async def test(self, test_count=5):
         if not self.test_audio_files:
@@ -138,59 +77,29 @@ class DoubaoStreamASRTester(BaseASRTester):
         latencies = []
         for i in range(test_count):
             try:
-                ws_url = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel"
-                appid = self.asr_config["appid"]
-                access_token = self.asr_config["access_token"]
-                cluster = self.asr_config.get("cluster", "volcengine_input_common")
-                uid = self.asr_config.get("uid", "streaming_asr_service")
-
                 start_time = time.time()
 
-                headers = {
-                    "X-Api-App-Key": appid,
-                    "X-Api-Access-Key": access_token,
-                    "X-Api-Resource-Id": "volc.bigasr.sauc.duration",
-                    "X-Api-Connect-Id": str(uuid.uuid4())
-                }
+                headers = self.provider.token_auth()
 
                 async with websockets.connect(
-                    ws_url,
+                    self.provider.ws_url,
                     additional_headers=headers,
                     max_size=1000000000,
                     ping_interval=None,
                     ping_timeout=None,
                     close_timeout=10
                 ) as ws:
-                    request_params = {
-                        "app": {"appid": appid, "cluster": cluster, "token": access_token},
-                        "user": {"uid": uid},
-                        "request": {
-                            "reqid": str(uuid.uuid4()),
-                            "workflow": "audio_in,resample,partition,vad,fe,decode,itn,nlu_punctuate",
-                            "show_utterances": True,
-                            "result_type": "single",
-                            "sequence": 1
-                        },
-                        "audio": {
-                            "format": "pcm",
-                            "codec": "pcm",
-                            "rate": 16000,
-                            "language": "zh-CN",
-                            "bits": 16,
-                            "channel": 1,
-                            "sample_rate": 16000
-                        }
-                    }
+                    request_params = self.provider.construct_request(str(uuid.uuid4()))
 
                     payload_bytes = str.encode(json.dumps(request_params))
                     payload_bytes = gzip.compress(payload_bytes)
-                    full_client_request = self._generate_header()
+                    full_client_request = bytearray(self.provider.generate_header())
                     full_client_request.extend((len(payload_bytes)).to_bytes(4, "big"))
                     full_client_request.extend(payload_bytes)
                     await ws.send(full_client_request)
 
                     init_res = await ws.recv()
-                    result = self._parse_response(init_res)
+                    result = self.provider.parse_response(init_res)
                     if "code" in result and result["code"] != 1000:
                         raise Exception(f"初始化失败: {result.get('payload_msg', {}).get('error', '未知错误')}")
 
@@ -200,7 +109,7 @@ class DoubaoStreamASRTester(BaseASRTester):
 
                     # 发送音频数据（使用最后一帧标记，告诉服务端音频已结束）
                     payload = gzip.compress(audio_data)
-                    audio_request = bytearray(self._generate_last_audio_header())  # 修复：使用最后一帧Header
+                    audio_request = bytearray(self.provider.generate_last_audio_default_header())
                     audio_request.extend(len(payload).to_bytes(4, "big"))
                     audio_request.extend(payload)
                     await ws.send(audio_request)
@@ -219,8 +128,8 @@ class DoubaoStreamASRTester(BaseASRTester):
 
 
 class QwenASRFlashTester(BaseASRTester):
-    def __init__(self):
-        super().__init__("Qwen3ASRFlash")
+    def __init__(self, config):
+        super().__init__("Qwen3ASRFlash", config)
 
     async def _test_single(self, audio_file_info):
         temp_file_path = None
@@ -304,8 +213,8 @@ class QwenASRFlashTester(BaseASRTester):
 
 
 class XunfeiStreamASRTester(BaseASRTester):
-    def __init__(self):
-        super().__init__("XunfeiStreamASR")
+    def __init__(self, config):
+        super().__init__("XunfeiStreamASR", config)
 
     def _create_url(self):
         url = "wss://iat-api.xfyun.cn/v2/iat"
@@ -416,13 +325,14 @@ class XunfeiStreamASRTester(BaseASRTester):
 
         return self._calculate_result("讯飞流式ASR", latencies, test_count)
 class ASRPerformanceSuite:
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.testers = []
         self.results = []
 
     def register_tester(self, tester_class):
         try:
-            tester = tester_class()
+            tester = tester_class(self.config)
             self.testers.append(tester)
             print(f"已注册测试器: {tester.config_key}")
         except Exception as e:
@@ -481,7 +391,8 @@ async def main():
     parser.add_argument("--count", type=int, default=5, help="测试次数")
     args = parser.parse_args()
 
-    suite = ASRPerformanceSuite()
+    config = await load_config()
+    suite = ASRPerformanceSuite(config)
     suite.register_tester(DoubaoStreamASRTester)
     suite.register_tester(QwenASRFlashTester)
     suite.register_tester(XunfeiStreamASRTester)

@@ -1,7 +1,15 @@
 import os
+import asyncio
 import yaml
 from collections.abc import Mapping
-from config.manage_api_client import init_service, get_server_config, get_agent_models
+from config.manage_api_client import (
+    init_service,
+    get_server_config,
+    get_agent_models,
+    get_correct_words,
+    DeviceNotFoundException,
+    DeviceBindException,
+)
 
 
 def get_project_dir():
@@ -15,7 +23,7 @@ def read_config(config_path):
     return config
 
 
-def load_config():
+async def load_config():
     """加载配置文件"""
     from core.utils.cache.manager import cache_manager, CacheType
 
@@ -32,16 +40,7 @@ def load_config():
     custom_config = read_config(custom_config_path)
 
     if custom_config.get("manager-api", {}).get("url"):
-        import asyncio
-        try:
-            loop = asyncio.get_running_loop()
-            # 如果已经在事件循环中，使用异步版本
-            config = asyncio.run_coroutine_threadsafe(
-                get_config_from_api_async(custom_config), loop
-            ).result()
-        except RuntimeError:
-            # 如果不在事件循环中（启动时），创建新的事件循环
-            config = asyncio.run(get_config_from_api_async(custom_config))
+        config = await get_config_from_api_async(custom_config)
     else:
         # 合并配置
         config = merge_configs(default_config, custom_config)
@@ -87,7 +86,24 @@ async def get_config_from_api_async(config):
 
 async def get_private_config_from_api(config, device_id, client_id):
     """从Java API获取私有配置"""
-    return await get_agent_models(device_id, client_id, config["selected_module"])
+    results = await asyncio.gather(
+        get_agent_models(device_id, client_id, config["selected_module"]),
+        get_correct_words(device_id),
+        return_exceptions=True,
+    )
+    agent_result = results[0]
+    correct_words = results[1] if not isinstance(results[1], Exception) else None
+
+    # 抛出业务异常
+    if isinstance(agent_result, DeviceNotFoundException):
+        raise agent_result
+    if isinstance(agent_result, DeviceBindException):
+        raise agent_result
+
+    private_config = agent_result if not isinstance(agent_result, Exception) else {}
+    if correct_words:
+        private_config["correct_words"] = correct_words
+    return private_config
 
 
 def ensure_directories(config):
@@ -113,7 +129,7 @@ def ensure_directories(config):
         selected_provider = selected_modules.get(module_type)
         if not selected_provider:
             continue
-        if config.get(module) is None:
+        if config.get(module_type) is None:
             continue
         if config.get(selected_provider) is None:
             continue

@@ -1,141 +1,103 @@
 <template>
   <div class="welcome">
     <HeaderBar />
-
-    <div class="operation-bar">
-      <h2 class="page-title">{{ $t("agentTemplateManagement.title") }}</h2>
-      <div class="right-operations">
-        <el-input
-          :placeholder="$t('agentTemplateManagement.searchPlaceholder')"
-          v-model="search"
-          class="search-input"
-          clearable
-          @keyup.enter.native="handleSearch"
-          style="width: 240px"
-        />
-        <el-button class="btn-search" @click="handleSearch">
-          {{ $t("agentTemplateManagement.search") }}
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 主体内容 -->
     <div class="main-wrapper">
       <div class="content-panel">
         <div class="content-area">
           <el-card class="template-card" shadow="never">
-            <el-table
-              ref="templateTable"
-              :data="templateList"
-              style="width: 100%"
-              v-loading="templateLoading"
-              :element-loading-text="$t('agentTemplateManagement.loading')"
-              element-loading-spinner="el-icon-loading"
-              element-loading-background="rgba(255, 255, 255, 0.7)"
-              class="transparent-table"
-              :header-cell-style="{ padding: '10px 20px' }"
-              :cell-style="{ padding: '10px 20px' }"
-            >
-              <!-- 移除@row-click="handleRowClick" -->
-              <!-- 自定义选择列，实现表头是"选择"文字，数据行是小方框 -->
-              <el-table-column
-                :label="$t('agentTemplateManagement.select')"
-                align="center"
-                min-width="100"
-              >
-                <template slot-scope="scope">
-                  <el-checkbox
-                    v-model="scope.row.selected"
-                    @change="handleRowSelectionChange(scope.row)"
-                    @click.stop
-                  ></el-checkbox>
-                </template>
-              </el-table-column>
-              <!-- 模板名称 -->
-              <el-table-column
-                :label="$t('agentTemplateManagement.templateName')"
-                prop="agentName"
-                min-width="250"
-                show-overflow-tooltip
-              >
-                <template slot-scope="scope">
-                  <span>{{ scope.row.agentName }}</span>
-                </template>
-              </el-table-column>
-              <!-- 修改为序号列，并移动到此处 -->
-              <el-table-column
-                :label="$t('agentTemplateManagement.serialNumber')"
-                min-width="120"
-                align="center"
-              >
-                <template slot-scope="scope">
-                  <span>{{ (currentPage - 1) * pageSize + scope.$index + 1 }}</span>
-                </template>
-              </el-table-column>
-              <!-- 操作列 -->
-              <el-table-column
-                :label="$t('agentTemplateManagement.action')"
-                min-width="250"
-                align="center"
-              >
-                <template slot-scope="scope">
-                  <div style="display: flex; justify-content: center; gap: 15px">
-                    <el-button type="text" @click="editTemplate(scope.row)">{{
-                      $t("agentTemplateManagement.editTemplate")
-                    }}</el-button>
-                    <el-button type="text" @click="deleteTemplate(scope.row)">{{
-                      $t("agentTemplateManagement.deleteTemplate")
-                    }}</el-button>
-                  </div>
-                </template>
-              </el-table-column>
-            </el-table>
-
-            <!-- 表格底部操作栏 -->
-            <div class="table_bottom">
-              <div class="ctrl_btn">
-                <el-button
-                  type="primary"
-                  @click="handleSelectAll"
-                  size="mini"
-                  class="select-all-btn"
-                >
-                  {{
-                    isAllSelected
-                      ? $t("agentTemplateManagement.deselectAll")
-                      : $t("agentTemplateManagement.selectAll")
-                  }}
-                </el-button>
-                <el-button type="success" @click="showAddTemplateDialog" size="mini">
-                  {{ $t("agentTemplateManagement.createTemplate") }}
-                </el-button>
-                <el-button
-                  type="danger"
-                  @click="batchDeleteTemplate"
-                  :disabled="!hasSelected"
-                  size="mini"
-                >
-                  {{ $t("agentTemplateManagement.batchDelete") }}
-                </el-button>
-              </div>
-
-              <!-- 分页 -->
-              <div class="custom-pagination">
-                <el-pagination
-                  v-model:current-page="currentPage"
-                  v-model:page-size="pageSize"
-                  :page-sizes="pageSizeOptions"
-                  layout="total, sizes, prev, pager, next, jumper"
-                  :total="total"
-                  @size-change="handlePageSizeChange"
-                  @current-change="handlePageChange"
+            <div class="operation-header">
+              <h2 class="page-title">{{ $t("agentTemplateManagement.title") }}</h2>
+              <div class="right-operations">
+                <el-input
+                  :placeholder="$t('agentTemplateManagement.searchPlaceholder')"
+                  v-model="search"
+                  class="search-input"
+                  clearable
+                  @keyup.enter.native="handleSearch"
                 />
+                <CustomButton icon="el-icon-search" type="confirm" @click="handleSearch">
+                  {{ $t("agentTemplateManagement.search") }}
+                </CustomButton>
               </div>
             </div>
+            <CustomTable
+              ref="templateTable"
+              :data="templateList"
+              :columns="tableColumns"
+              :loading="templateLoading"
+              :show-selection="true"
+              :show-operations="true"
+              :operations-label="$t('agentTemplateManagement.action')"
+              :total="total"
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-size-options="pageSizeOptions"
+              @size-change="handlePageSizeChange"
+              @page-change="handlePageChange"
+            >
+              <template slot="selection" slot-scope="scope">
+                <el-checkbox v-model="scope.row.selected" @change="handleRowSelectionChange(scope.row)"></el-checkbox>
+              </template>
+              <template slot="serialNumber" slot-scope="scope">
+                <span>{{ (currentPage - 1) * pageSize + scope.$index + 1 }}</span>
+              </template>
+              <template slot="operations" slot-scope="scope">
+                <el-button size="mini" type="text" @click="editTemplate(scope.row)">
+                  {{ $t("agentTemplateManagement.editTemplate") }}
+                </el-button>
+                <el-button size="mini" type="text" @click="deleteTemplate(scope.row)">
+                  {{ $t("agentTemplateManagement.deleteTemplate") }}
+                </el-button>
+              </template>
+              <template slot="footer-btns">
+                <div class="ctrl_btn">
+                  <CustomButton :icon="isAllSelected ? 'el-icon-circle-close' : 'el-icon-circle-check'" size="small" @click="handleSelectAll">
+                    {{ isAllSelected ? $t("agentTemplateManagement.deselectAll") : $t("agentTemplateManagement.selectAll") }}
+                  </CustomButton>
+                  <CustomButton type="add" icon="el-icon-plus" size="small" @click="showAddTemplateDialog">
+                    {{ $t("agentTemplateManagement.createTemplate") }}
+                  </CustomButton>
+                  <CustomButton size="small" type="delete" icon="el-icon-delete" @click="batchDeleteTemplate">
+                    {{ $t("agentTemplateManagement.batchDelete") }}
+                  </CustomButton>
+                </div>
+              </template>
+            </CustomTable>
           </el-card>
         </div>
       </div>
     </div>
+
+    <!-- 新增/编辑模板弹窗 -->
+    <CustomDialog
+      :title="dialogTitle"
+      :visible.sync="dialogVisible"
+      :confirm-loading="confirmLoading"
+      :footer="true"
+      :width="'1200px'"
+      @confirm="handleDialogConfirm"
+      @cancel="dialogVisible = false"
+    >
+      <el-form ref="dialogForm" :model="form" :rules="formRules" label-width="100px">
+        <el-form-item :label="$t('templateQuickConfig.agentSettings.agentName')" prop="agentName">
+          <el-input
+            v-model="form.agentName"
+            :placeholder="$t('templateQuickConfig.agentSettings.agentNamePlaceholder')"
+          />
+        </el-form-item>
+        <el-form-item :label="$t('templateQuickConfig.agentSettings.systemPrompt')" prop="systemPrompt">
+          <el-input
+            v-model="form.systemPrompt"
+            type="textarea"
+            :placeholder="$t('templateQuickConfig.agentSettings.systemPromptPlaceholder')"
+            show-word-limit
+            maxlength="2000"
+            :rows="16"
+          />
+        </el-form-item>
+      </el-form>
+    </CustomDialog>
+
     <el-footer>
       <version-footer />
     </el-footer>
@@ -146,136 +108,208 @@
 import HeaderBar from "@/components/HeaderBar";
 import agentApi from "@/apis/module/agent";
 import VersionFooter from "@/components/VersionFooter.vue";
+import CustomButton from "@/components/CustomButton.vue";
+import CustomTable from "@/components/CustomTable.vue";
+import CustomDialog from "@/components/CustomDialog.vue";
+
+const DEFAULT_MODEL_CONFIG = {
+  ttsModelId: "TTS_EdgeTTS",
+  vadModelId: "VAD_SileroVAD",
+  asrModelId: "ASR_FunASR",
+  llmModelId: "LLM_ChatGLMLLM",
+  vllmModelId: "VLLM_ChatGLMVLLM",
+  memModelId: "Memory_nomem",
+  intentModelId: "Intent_function_call"
+};
 
 export default {
   name: "AgentTemplateManagement",
   components: {
     HeaderBar,
-    VersionFooter
+    VersionFooter,
+    CustomButton,
+    CustomTable,
+    CustomDialog
   },
 
   data() {
     return {
-      // 模板相关
       templateList: [],
       templateLoading: false,
       selectedTemplates: [],
-      isAllSelected: false, // 添加全选状态
-
+      isAllSelected: false,
       search: "",
-      // 分页相关数据
       pageSizeOptions: [10, 20, 50, 100],
       currentPage: 1,
       pageSize: 10,
       total: 0,
+      tableColumns: [],
+      dialogVisible: false,
+      dialogTitle: "",
+      confirmLoading: false,
+      form: {
+        id: null,
+        agentCode: "小智",
+        agentName: "",
+        systemPrompt: "",
+        sort: 0,
+        model: { ...DEFAULT_MODEL_CONFIG }
+      },
+      formRules: {
+        agentName: [
+          { required: true, message: "请输入助手昵称", trigger: "blur" }
+        ],
+        systemPrompt: [
+          { required: true, message: "请输入角色介绍", trigger: "blur" }
+        ]
+      },
+      originalForm: null
     };
   },
   created() {
+    this.initTableColumns();
     this.loadTemplateList();
   },
-  // 在computed部分添加hasSelected属性
   computed: {
-    pageCount() {
-      return Math.ceil(this.total / this.pageSize);
-    },
-    visiblePages() {
-      return this.getVisiblePages();
-    },
     hasSelected() {
       return this.selectedTemplates.length > 0;
-    },
+    }
   },
   methods: {
-    // 加载模板列表
-    // 改进loadTemplateList方法的错误处理逻辑
+    initTableColumns() {
+      this.tableColumns = [
+        {
+          prop: "agentName",
+          label: this.$t("agentTemplateManagement.templateName"),
+        },
+        {
+          prop: "serialNumber",
+          label: this.$t("agentTemplateManagement.serialNumber"),
+        }
+      ];
+    },
     loadTemplateList() {
       this.templateLoading = true;
       const params = {
         page: this.currentPage,
-        limit: this.pageSize,
+        limit: this.pageSize
       };
       if (this.search) {
         params.agentName = this.search;
       }
 
-      try {
-        agentApi.getAgentTemplatesPage(
-          params,
-          (res) => {
-            // 更健壮的响应处理逻辑
-            if (res && typeof res === "object") {
-              if (res.data && res.data.code === 0) {
-                const responseData = res.data.data || {};
-                // 为每个模板添加selected属性
-                this.templateList = Array.isArray(responseData.list)
-                  ? responseData.list.map((item) => ({ ...item, selected: false }))
-                  : [];
-                this.total =
-                  typeof responseData.total === "number" ? responseData.total : 0;
-              } else {
-                this.templateList = [];
-                this.total = 0;
-                this.$message.error(
-                  res?.data?.msg || this.$t("agentTemplateManagement.fetchTemplateFailed")
-                );
-              }
-            } else {
-              this.templateList = [];
-              this.total = 0;
-              this.$message.error(
-                this.$t("agentTemplateManagement.fetchTemplateBackendError")
-              );
-            }
-            this.templateLoading = false;
-          },
-          (error) => {
+      agentApi.getAgentTemplatesPage(
+        params,
+        (res) => {
+          if (res && res.data && res.data.code === 0) {
+            const responseData = res.data.data || {};
+            this.templateList = Array.isArray(responseData.list)
+              ? responseData.list.map((item) => ({ ...item, selected: false }))
+              : [];
+            this.total = typeof responseData.total === "number" ? responseData.total : 0;
+          } else {
             this.templateList = [];
             this.total = 0;
-            this.templateLoading = false;
-            this.$message.error(this.$t("common.networkError"));
+            this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.fetchTemplateFailed"));
           }
-        );
-      } catch (error) {
-        this.templateList = [];
-        this.total = 0;
-        this.templateLoading = false;
-        this.$message.error(this.$t("agentTemplateManagement.fetchTemplateBackendError"));
-      }
+          this.templateLoading = false;
+        },
+        (error) => {
+          this.templateList = [];
+          this.total = 0;
+          this.templateLoading = false;
+          this.$message.error(this.$t("common.networkError"));
+        }
+      );
     },
-
-    // 搜索模板
     handleSearch() {
-      if (this.search) {
-        const searchValue = this.search.toLowerCase();
-        const filteredList = this.templateList.filter((template) =>
-          template.agentName.toLowerCase().includes(searchValue)
-        );
-        this.templateList = filteredList;
-        this.total = filteredList.length;
-      } else {
-        this.loadTemplateList();
-      }
+      this.currentPage = 1;
+      this.loadTemplateList();
     },
-
-    // 修改showAddTemplateDialog方法，使其跳转到与编辑页面相同的页面
-    // 显示新增模板弹窗
     showAddTemplateDialog() {
-      // 跳转到模板快速配置页面，不传递templateId参数表示新增
-      this.$router.push({
-        path: "/template-quick-config",
-      });
+      this.dialogTitle = this.$t("templateQuickConfig.addTemplate");
+      this.form = {
+        id: null,
+        agentCode: "小智",
+        agentName: this.$t("templateQuickConfig.newTemplate"),
+        systemPrompt: "",
+        sort: 1,
+        model: { ...DEFAULT_MODEL_CONFIG }
+      };
+      this.originalForm = JSON.parse(JSON.stringify(this.form));
+      this.dialogVisible = true;
     },
-
-    // 编辑模板
     editTemplate(row) {
-      // 跳转到模板快速配置页面，并传递模板ID参数
-      this.$router.push({
-        path: "/template-quick-config",
-        query: { templateId: row.id },
+      this.dialogTitle = this.$t("templateQuickConfig.editTemplate");
+      this.fetchTemplateById(row.id);
+    },
+    fetchTemplateById(templateId) {
+      agentApi.getAgentTemplateById(templateId, (res) => {
+        if (res && res.data && res.data.code === 0 && res.data.data) {
+          const template = res.data.data;
+          this.form = {
+            id: template.id,
+            agentCode: template.agentCode || "小智",
+            agentName: template.agentName || "",
+            systemPrompt: template.systemPrompt || "",
+            sort: template.sort || 0,
+            model: {
+              ttsModelId: template.ttsModelId || DEFAULT_MODEL_CONFIG.ttsModelId,
+              vadModelId: template.vadModelId || DEFAULT_MODEL_CONFIG.vadModelId,
+              asrModelId: template.asrModelId || DEFAULT_MODEL_CONFIG.asrModelId,
+              llmModelId: template.llmModelId || DEFAULT_MODEL_CONFIG.llmModelId,
+              vllmModelId: template.vllmModelId || DEFAULT_MODEL_CONFIG.vllmModelId,
+              memModelId: template.memModelId || DEFAULT_MODEL_CONFIG.memModelId,
+              intentModelId: template.intentModelId || DEFAULT_MODEL_CONFIG.intentModelId
+            }
+          };
+          this.originalForm = JSON.parse(JSON.stringify(this.form));
+          this.dialogVisible = true;
+        } else {
+          this.$message.error(res?.data?.msg || this.$t("templateQuickConfig.templateNotFound"));
+        }
       });
     },
+    handleDialogConfirm() {
+      this.$refs.dialogForm.validate((valid) => {
+        if (!valid) return;
 
-    // 删除模板
+        const configData = {
+          id: this.form.id || "",
+          agentCode: this.form.agentCode,
+          agentName: this.form.agentName,
+          systemPrompt: this.form.systemPrompt,
+          sort: this.form.sort,
+          functions: [],
+          ...this.form.model
+        };
+
+        this.confirmLoading = true;
+        const apiCall = this.form.id
+          ? agentApi.updateAgentTemplate
+          : agentApi.addAgentTemplate;
+
+      apiCall(configData, (res) => {
+        this.confirmLoading = false;
+        if (res && res.data && res.data.code === 0) {
+          this.$message.success({
+            message: this.$t("templateQuickConfig.saveSuccess"),
+            showClose: true
+          });
+          this.dialogVisible = false;
+          this.loadTemplateList();
+        } else {
+          this.$message.error({
+            message: res?.data?.msg || this.$t("templateQuickConfig.saveFailed"),
+            showClose: true
+          });
+        }
+      }, (error) => {
+        this.confirmLoading = false;
+        this.$message.error(this.$t("common.networkError"));
+      });
+      });
+    },
     deleteTemplate(row) {
       this.$confirm(
         this.$t("agentTemplateManagement.confirmSingleDelete"),
@@ -283,23 +317,18 @@ export default {
         {
           confirmButtonText: this.$t("common.confirm"),
           cancelButtonText: this.$t("common.cancel"),
-          type: "warning",
+          type: "warning"
         }
       )
         .then(() => {
           agentApi.deleteAgentTemplate(row.id, (res) => {
-            if (res && typeof res === "object") {
-              // 检查res.data是否存在且包含code=0
-              if (res.data && res.data.code === 0) {
-                this.$message.success(this.$t("agentTemplateManagement.deleteSuccess"));
-                this.loadTemplateList();
-              } else {
-                this.$message.error(
-                  res?.data?.msg || this.$t("agentTemplateManagement.deleteFailed")
-                );
-              }
+            if (res && res.data && res.data.code === 0) {
+              this.$message.success(this.$t("agentTemplateManagement.deleteSuccess"));
+              this.selectedTemplates = [];
+              this.isAllSelected = false;
+              this.loadTemplateList();
             } else {
-              this.$message.error(this.$t("agentTemplateManagement.deleteBackendError"));
+              this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.deleteFailed"));
             }
           });
         })
@@ -307,47 +336,30 @@ export default {
           this.$message.info(this.$t("common.deleteCancelled"));
         });
     },
-
-    // 批量删除模板
     batchDeleteTemplate() {
       if (this.selectedTemplates.length === 0) {
         this.$message.warning(this.$t("agentTemplateManagement.selectTemplate"));
         return;
       }
-
       this.$confirm(
-        this.$t("agentTemplateManagement.confirmBatchDelete", {
-          count: this.selectedTemplates.length,
-        }),
+        this.$t("agentTemplateManagement.confirmBatchDelete", { count: this.selectedTemplates.length }),
         this.$t("common.warning"),
         {
           confirmButtonText: this.$t("common.confirm"),
           cancelButtonText: this.$t("common.cancel"),
-          type: "warning",
+          type: "warning"
         }
       )
         .then(() => {
-          // 确保参数格式正确 - 将id数组作为请求体
           const ids = this.selectedTemplates.map((template) => template.id);
-
           agentApi.batchDeleteAgentTemplate(ids, (res) => {
-            if (res && typeof res === "object") {
-              if (res.data && res.data.code === 0) {
-                this.$message.success(
-                  this.$t("agentTemplateManagement.batchDeleteSuccess")
-                );
-                // 重新加载模板列表
-                this.loadTemplateList();
-                // 清空选中状态
-                this.selectedTemplates = [];
-                this.isAllSelected = false;
-              } else {
-                this.$message.error(
-                  res?.data?.msg || this.$t("agentTemplateManagement.batchDeleteFailed")
-                );
-              }
+            if (res && res.data && res.data.code === 0) {
+              this.$message.success(this.$t("agentTemplateManagement.batchDeleteSuccess"));
+              this.loadTemplateList();
+              this.selectedTemplates = [];
+              this.isAllSelected = false;
             } else {
-              this.$message.error(this.$t("agentTemplateManagement.deleteBackendError"));
+              this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.batchDeleteFailed"));
             }
           });
         })
@@ -355,150 +367,81 @@ export default {
           this.$message.info(this.$t("common.deleteCancelled"));
         });
     },
-
-    // 完善分页相关方法
     handlePageChange(page) {
       this.currentPage = page;
       this.loadTemplateList();
     },
-
     handlePageSizeChange(size) {
       this.pageSize = size;
       this.currentPage = 1;
       this.loadTemplateList();
     },
-
-    goFirst() {
-      this.currentPage = 1;
-    },
-    goPrev() {
-      this.currentPage--;
-    },
-    goNext() {
-      this.currentPage++;
-    },
-    goToPage(page) {
-      this.currentPage = page;
-    },
-    getVisiblePages() {
-      const pages = [];
-      const totalPages = this.pageCount;
-      const currentPage = this.currentPage;
-
-      if (totalPages <= 7) {
-        for (let i = 1; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        if (currentPage <= 4) {
-          for (let i = 1; i <= 5; i++) {
-            pages.push(i);
-          }
-          pages.push("...");
-          pages.push(totalPages);
-        } else if (currentPage >= totalPages - 3) {
-          pages.push(1);
-          pages.push("...");
-          for (let i = totalPages - 4; i <= totalPages; i++) {
-            pages.push(i);
-          }
-        } else {
-          pages.push(1);
-          pages.push("...");
-          for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-            pages.push(i);
-          }
-          pages.push("...");
-          pages.push(totalPages);
-        }
-      }
-
-      return pages;
-    },
-
-    // 修改handleSelectAll方法
     handleSelectAll() {
       this.isAllSelected = !this.isAllSelected;
       this.templateList.forEach((row) => {
         row.selected = this.isAllSelected;
       });
-      // 更新选中的模板列表
       this.selectedTemplates = this.isAllSelected ? [...this.templateList] : [];
     },
-
-    // 处理行选择变化
     handleRowSelectionChange(row) {
-      // 查找选中的模板
       this.selectedTemplates = this.templateList.filter((template) => template.selected);
-      // 更新全选状态
       this.isAllSelected =
         this.templateList.length > 0 &&
         this.selectedTemplates.length === this.templateList.length;
-    },
-  },
+    }
+  }
 };
 </script>
 
-<style scoped lang="scss">
-/* 基础背景和布局设置 */
+<style lang="scss" scoped>
 .welcome {
-  min-height: 100vh;
+  min-width: 900px;
+  min-height: 506px;
+  height: 100vh;
   display: flex;
-  flex-direction: column;
   position: relative;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  flex-direction: column;
+  background: #eff4ff;
   background-size: cover;
   overflow: hidden;
-  width: 100%;
 }
 
-/* 操作栏样式 */
-.operation-bar {
+.main-wrapper {
+  height: calc(100vh - 63px - 35px);
+  padding: 20px 22px 0;
+  position: relative;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.operation-header {
+  display: flex;
   align-items: center;
-  padding: 16px 24px;
+  justify-content: space-between;
+  padding: 0 0 16px 0;
 }
 
 .page-title {
+  font-weight: 500;
   font-size: 24px;
   margin: 0;
 }
 
 .right-operations {
   display: flex;
-  align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .search-input {
-  width: 200px;
-}
-
-.btn-search {
-  background: linear-gradient(135deg, #6b8cff, #a966ff);
-  border: none;
-  color: white;
-}
-
-/* 主容器样式 */
-.main-wrapper {
-  // 顶部 63px 底部 35px 查询72px
-  height: calc(100vh - 63px - 35px - 72px);
-  margin: 0 22px;
-  border-radius: 15px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  position: relative;
-  background: rgba(237, 242, 255, 0.5);
-  display: flex;
-  flex-direction: column;
+  width: 240px;
 }
 
 .content-panel {
-  width: 100%;
-  flex: 1;
   display: flex;
   overflow: hidden;
+  height: 100%;
   border-radius: 15px;
   background: transparent;
   border: 1px solid #fff;
@@ -506,25 +449,25 @@ export default {
 
 .content-area {
   flex: 1;
+  height: 100%;
   min-width: 600px;
-  overflow-x: auto;
+  overflow: auto;
   background-color: white;
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 
-/* 模板卡片样式 */
 .template-card {
-  border: none;
-  box-shadow: none;
+  background: white;
   flex: 1;
   display: flex;
   flex-direction: column;
+  border: none;
+  box-shadow: none;
   overflow: hidden;
 
-  :deep(.el-card__body) {
-    padding: 15px;
+  ::v-deep .el-card__body {
+    padding: 14px 20px;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -532,106 +475,15 @@ export default {
   }
 }
 
-/* 表格样式 - 优化整合版 */
-.transparent-table {
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-}
-
-:deep(.el-table) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  --table-max-height: calc(100vh - 42vh);
-  max-height: var(--table-max-height);
-
-  /* 表格头部样式 */
-  .el-table__header th {
-    padding: 8px 0 !important;
-    height: 40px !important;
-  }
-
-  .el-table__header th .cell {
-    color: #303133 !important;
-    font-weight: 600;
-  }
-
-  /* 表格主体样式 */
-  .el-table__body {
-    .el-table__row td {
-      padding: 12px 0 !important;
-      border-bottom: 1px solid #ebeef5;
-    }
-    .el-table__row:hover {
-      background-color: #f5f7fa;
-    }
-  }
-
-  /* 表格按钮样式 */
-  .el-button--text {
-    color: #7079aa;
-  }
-
-  .el-button--text:hover {
-    color: #5a64b5;
-  }
-
-  /* 单元格文本样式 */
-  .cell {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-/* 表格底部操作栏 */
-.table_bottom {
-  display: flex;
-  justify-content: space-between !important;
-  align-items: center;
-  margin-top: auto;
-  padding: 0 20px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-/* 控制按钮样式 */
 .ctrl_btn {
   display: flex;
-  gap: 8px;
-  padding-left: 0 !important;
-  margin-left: 0 !important;
+}
 
-  .el-button {
-    min-width: 72px;
-    height: 32px;
-    padding: 7px 12px 7px 10px;
-    font-size: 12px;
-    border-radius: 4px;
-    line-height: 1;
-    font-weight: 500;
-    border: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+:deep(.el-table .el-button--text) {
+  color: #7079aa;
+}
 
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-  }
-
-  .el-button--primary {
-    background: #5f70f3;
-    color: white;
-  }
-  .el-button--success {
-    background: #5bc98c;
-    color: white;
-  }
-  .el-button--danger {
-    background: #fd5b63;
-    color: white;
-  }
+:deep(.el-table .el-button--text:hover) {
+  color: #5a64b5;
 }
 </style>

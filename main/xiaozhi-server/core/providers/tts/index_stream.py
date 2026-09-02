@@ -92,22 +92,25 @@ class TTSProvider(TTSProviderBase):
     def to_tts_single_stream(self, text, is_last=False):
         try:
             max_repeat_time = 5
+            original_text = text
             text = MarkdownCleaner.clean_markdown(text)
+            if self._correct_words_pattern:
+                text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], text)
             try:
                 asyncio.run(self.text_to_speak(text, is_last))
             except Exception as e:
                 logger.bind(tag=TAG).warning(
-                    f"语音生成失败{5 - max_repeat_time + 1}次: {text}，错误: {e}"
+                    f"语音生成失败{5 - max_repeat_time + 1}次: {original_text}，错误: {e}"
                 )
                 max_repeat_time -= 1
 
             if max_repeat_time > 0:
                 logger.bind(tag=TAG).info(
-                    f"语音生成成功: {text}，重试{5 - max_repeat_time}次"
+                    f"语音生成成功: {original_text}，重试{5 - max_repeat_time}次"
                 )
             else:
                 logger.bind(tag=TAG).error(
-                    f"语音生成失败: {text}，请检查网络或服务是否正常"
+                    f"语音生成失败: {original_text}，请检查网络或服务是否正常"
                 )
         except Exception as e:
             logger.bind(tag=TAG).error(f"Failed to generate TTS file: {e}")
@@ -127,7 +130,9 @@ class TTSProvider(TTSProviderBase):
         )  # 16-bit = 2 bytes
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(self.api_url, json=payload, timeout=10) as resp:
+                async with session.post(
+                    self.api_url, json=payload, timeout=self.tts_timeout
+                ) as resp:
 
                     if resp.status != 200:
                         logger.bind(tag=TAG).error(
@@ -203,11 +208,15 @@ class TTSProvider(TTSProviderBase):
         """
         start_time = time.time()
         text = MarkdownCleaner.clean_markdown(text)
+        if self._correct_words_pattern:
+            text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], text)
 
         payload = {"text": text, "character": self.voice}
 
         try:
-            with requests.post(self.api_url, json=payload, timeout=5) as response:
+            with requests.post(
+                self.api_url, json=payload, timeout=self.tts_timeout
+            ) as response:
                 if response.status_code != 200:
                     logger.bind(tag=TAG).error(
                         f"TTS请求失败: {response.status_code}, {response.text}"

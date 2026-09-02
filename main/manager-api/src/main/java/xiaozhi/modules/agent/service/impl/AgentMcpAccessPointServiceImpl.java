@@ -12,11 +12,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import cn.hutool.crypto.digest.DigestUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.utils.AESUtils;
-import xiaozhi.common.utils.HashEncryptionUtil;
 import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.modules.agent.Enums.XiaoZhiMcpJsonRpcJson;
 import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
@@ -76,7 +76,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 // 等待初始化响应 (id=1) - 移除固定延迟，改为响应驱动
                 List<String> initResponses = client.listenerWithoutClose(response -> {
                     try {
-                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        Map<String, Object> jsonMap = JsonUtils.parseMap(response);
                         if (jsonMap != null && Integer.valueOf(1).equals(jsonMap.get("id"))) {
                             // 检查是否有result字段，表示初始化成功
                             return jsonMap.containsKey("result") && !jsonMap.containsKey("error");
@@ -92,7 +92,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 boolean initSucceeded = false;
                 for (String response : initResponses) {
                     try {
-                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        Map<String, Object> jsonMap = JsonUtils.parseMap(response);
                         if (jsonMap != null && Integer.valueOf(1).equals(jsonMap.get("id"))) {
                             if (jsonMap.containsKey("result")) {
                                 log.info("MCP初始化成功，智能体ID: {}", id);
@@ -123,7 +123,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 // 等待工具列表响应 (id=2)
                 List<String> toolsResponses = client.listener(response -> {
                     try {
-                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        Map<String, Object> jsonMap = JsonUtils.parseMap(response);
                         return jsonMap != null && Integer.valueOf(2).equals(jsonMap.get("id"));
                     } catch (Exception e) {
                         log.warn("解析工具列表响应失败: {}", response, e);
@@ -134,18 +134,18 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 // 处理工具列表响应
                 for (String response : toolsResponses) {
                     try {
-                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        Map<String, Object> jsonMap = JsonUtils.parseMap(response);
                         if (jsonMap != null && Integer.valueOf(2).equals(jsonMap.get("id"))) {
                             // 检查是否有result字段
                             Object resultObj = jsonMap.get("result");
-                            if (resultObj instanceof Map) {
-                                Map<String, Object> resultMap = (Map<String, Object>) resultObj;
+                            if (resultObj instanceof Map<?, ?>) {
+                                Map<String, Object> resultMap = JsonUtils.toStringObjectMap(resultObj);
                                 Object toolsObj = resultMap.get("tools");
-                                if (toolsObj instanceof List) {
-                                    List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
+                                if (toolsObj instanceof List<?>) {
+                                    List<Map<String, Object>> toolsList = JsonUtils.toStringObjectMapList(toolsObj);
                                     // 提取工具名称列表
                                     List<String> result = toolsList.stream()
-                                            .map(tool -> (String) tool.get("name"))
+                                            .map(tool -> String.class.cast(tool.get("name")))
                                             .filter(name -> name != null)
                                             .sorted()
                                             .collect(Collectors.toList());
@@ -226,7 +226,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
      */
     private static String encryptToken(String agentId, String key) {
         // 使用md5对智能体id进行加密
-        String md5 = HashEncryptionUtil.Md5hexDigest(agentId);
+        String md5 = DigestUtil.md5Hex(agentId);
         // aes需要加密文本
         String json = "{\"agentId\": \"%s\"}".formatted(md5);
         // 加密后成token值

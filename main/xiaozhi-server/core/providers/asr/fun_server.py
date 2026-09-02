@@ -101,7 +101,7 @@ class ASRProvider(ASRProviderBase):
         logger.bind(tag=TAG).debug(f"Sent end message: {end_message}")
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
+        self, opus_data: List[bytes], session_id: str, artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """
         Convert speech data to text using FunASR.

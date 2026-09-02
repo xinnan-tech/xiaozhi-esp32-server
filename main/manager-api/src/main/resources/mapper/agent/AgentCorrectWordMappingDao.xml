@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.agent.dao.AgentCorrectWordMappingDao">
+
+    <delete id="deleteByAgentId">
+        DELETE FROM ai_agent_correct_word_mapping WHERE agent_id = #{agentId}
+    </delete>
+
+    <delete id="deleteByFileId">
+        DELETE FROM ai_agent_correct_word_mapping WHERE file_id = #{fileId}
+    </delete>
+
+    <insert id="batchInsertMapping" parameterType="java.util.List">
+        INSERT INTO ai_agent_correct_word_mapping (id, agent_id, file_id, creator, created_at, updater, updated_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.agentId}, #{item.fileId}, #{item.creator}, #{item.createdAt}, #{item.updater}, #{item.updatedAt})
+        </foreach>
+    </insert>
+
+    <select id="selectByAgentId" resultType="xiaozhi.modules.agent.entity.AgentCorrectWordMappingEntity">
+        SELECT id, agent_id, file_id, creator, created_at, updater, updated_at
+        FROM ai_agent_correct_word_mapping
+        WHERE agent_id = #{agentId}
+    </select>
+
+</mapper>

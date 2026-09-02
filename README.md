@@ -18,10 +18,10 @@
 
 <p align="center">
   <a href="./README.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-DBEDFA"></a>
-  <a href="./README_en.md"><img alt="README in English" src="https://img.shields.io/badge/English-DFE0E5"></a>
-  <a href="./README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Tiếng Việt-DFE0E5"></a>
-  <a href="./README_de.md"><img alt="Deutsch" src="https://img.shields.io/badge/Deutsch-DFE0E5"></a>
-  <a href="./README_pt_BR.md"><img alt="Português (Brasil)" src="https://img.shields.io/badge/Português (Brasil)-DFE0E5"></a>
+  <a href="./docs/readme/README_en.md"><img alt="README in English" src="https://img.shields.io/badge/English-DFE0E5"></a>
+  <a href="./docs/readme/README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Tiếng Việt-DFE0E5"></a>
+  <a href="./docs/readme/README_de.md"><img alt="Deutsch" src="https://img.shields.io/badge/Deutsch-DFE0E5"></a>
+  <a href="./docs/readme/README_pt_BR.md"><img alt="Português (Brasil)" src="https://img.shields.io/badge/Português (Brasil)-DFE0E5"></a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">
     <img alt="GitHub Contributors" src="https://img.shields.io/github/v/release/xinnan-tech/xiaozhi-esp32-server?logo=docker" />
   </a>
@@ -53,113 +53,98 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
 <table>
   <tr>
     <td>
-        <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
-         <picture>
-           <img alt="响应速度感受" src="docs/images/demo9.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
+        <picture>
+          <img alt="响应速度感受" src="docs/images/demo9.png" /></picture>
+      </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
-         <picture>
-           <img alt="速度优化秘诀" src="docs/images/demo6.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
+        <picture>
+          <img alt="速度优化秘诀" src="docs/images/demo6.png" /></picture>
+      </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
-         <picture>
-           <img alt="复杂医疗场景" src="docs/images/demo1.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1WEcxzFEAT" target="_blank">
+        <picture>
+          <img alt="小智数字人 支持语音唤醒" src="docs/images/demo8.png" /></picture>
+      </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
-         <picture>
-           <img alt="MQTT指令下发" src="docs/images/demo4.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1CKVz6UEuB" target="_blank">
+        <picture>
+          <img alt="设备呼叫设备，打电话" src="docs/images/demo0.png" /></picture>
+      </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
-         <picture>
-           <img alt="声纹识别" src="docs/images/demo14.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
+        <picture>
+          <img alt="复杂医疗场景" src="docs/images/demo1.png" /></picture>
+      </a>
     </td>
   </tr>
   <tr>
     <td>
-        <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
-         <picture>
-           <img alt="控制家电开关" src="docs/images/demo5.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
+        <picture>
+          <img alt="播放音乐查询天气播报新闻" src="docs/images/demo7.png" /></picture>
+      </a>
     </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
-         <picture>
-           <img alt="MCP接入点" src="docs/images/demo13.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
-         <picture>
-           <img alt="多指令任务" src="docs/images/demo11.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
-         <picture>
-           <img alt="播放音乐" src="docs/images/demo7.png" />
-         </picture>
-        </a>
-    </td>
-    <td>
-        <a href="https://www.bilibili.com/video/BV1Z8XuYZEAS" target="_blank">
-         <picture>
-           <img alt="天气插件" src="docs/images/demo8.png" />
-         </picture>
-        </a>
-    </td>
-  </tr>
-  <tr>
     <td>
       <a href="https://www.bilibili.com/video/BV12J7WzBEaH" target="_blank">
-         <picture>
-           <img alt="实时打断" src="docs/images/demo10.png" />
-         </picture>
-        </a>
+        <picture>
+          <img alt="实时打断" src="docs/images/demo10.png" /></picture>
+      </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Co76z7EvK" target="_blank">
-         <picture>
-           <img alt="拍照识物品" src="docs/images/demo12.png" />
-         </picture>
-        </a>
+        <picture>
+          <img alt="拍照识物品" src="docs/images/demo12.png" /></picture>
+      </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
-         <picture>
-           <img alt="自定义音色" src="docs/images/demo2.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
+        <picture>
+          <img alt="控制家电开关" src="docs/images/demo5.png" /></picture>
+      </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
-         <picture>
-           <img alt="使用粤语交流" src="docs/images/demo3.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
+        <picture>
+          <img alt="多指令任务" src="docs/images/demo11.png" /></picture>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
+        <picture>
+          <img alt="MCP接入点" src="docs/images/demo13.png" /></picture>
+      </a>
     </td>
     <td>
-        <a href="https://www.bilibili.com/video/BV17LXWYvENb" target="_blank">
-         <picture>
-           <img alt="播报新闻" src="docs/images/demo0.png" />
-         </picture>
-        </a>
+      <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
+        <picture>
+          <img alt="MQTT指令下发" src="docs/images/demo4.png" /></picture>
+      </a>
+    </td>
+    <td>
+      <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
+        <picture>
+          <img alt="声纹识别" src="docs/images/demo14.png" /></picture>
+      </a>
+    </td>
+    <td>
+      <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
+        <picture>
+          <img alt="自定义音色" src="docs/images/demo2.png" /></picture>
+      </a>
+    </td>
+    <td>
+      <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
+        <picture>
+          <img alt="使用粤语交流" src="docs/images/demo3.png" /></picture>
+      </a>
     </td>
   </tr>
 </table>
@@ -214,8 +199,8 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 |:---:|:---:|:---:|
 | ASR(语音识别) | FunASR(本地) | 👍XunfeiStreamASR(讯飞流式) |
 | LLM(大模型) | glm-4-flash(智谱) | 👍qwen-flash(阿里百炼) |
-| VLLM(视觉大模型) | glm-4v-flash(智谱) | 👍qwen2.5-vl-3b-instructh(阿里百炼) |
-| TTS(语音合成) | ✅LinkeraiTTS(灵犀流式) | 👍HuoshanDoubleStreamTTS(火山流式) |
+| VLLM(视觉大模型) | glm-4v-flash(智谱) | 👍qwen3.5-flash(阿里百炼) |
+| TTS(语音合成) | EdgeTTS(微软) | 👍HuoshanDoubleStreamTTS(火山流式) |
 | Intent(意图识别) | function_call(函数调用) | function_call(函数调用) |
 | Memory(记忆功能) | mem_local_short(本地短期记忆） | mem_local_short（本地短期记忆） |
 
@@ -226,7 +211,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 工具名称 | 位置 | 使用方法 | 功能说明 |
 |:---:|:---|:---:|:---:|
-| 音频交互测试工具 | main》xiaozhi-server》test》test_page.html | 使用谷歌浏览器直接打开 | 测试音频播放和接收功能，验证Python端音频处理是否正常 |
+| 音频交互测试工具 | main》digital-human》index.html | 在 `main/digital-human` 执行 `python start.py` 后访问 `http://127.0.0.1:8006/index.html` | 测试音频播放和接收功能，验证Python端音频处理是否正常 |
 | 模型响应测试工具 | main》xiaozhi-server》performance_tester.py | 执行 `python performance_tester.py` | 测试ASR(语音识别)、LLM(大模型)、VLLM(视觉模型)、TTS(语音合成)三个核心模块的响应速度 |
 
 > 💡 提示：测试模型速度时，只会测试配置了密钥的模型。
@@ -368,11 +353,10 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | <img src="./docs/images/logo_contributors.png" width="160"> | [代码贡献者](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors) | 感谢[所有代码贡献者](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors)贡献者，你们的付出让项目更加健壮和强大。 |
 
 
-<a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
-
+<a href="https://www.star-history.com/?repos=xinnan-tech%2Fxiaozhi-esp32-server&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&theme=dark&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
  </picture>
 </a>

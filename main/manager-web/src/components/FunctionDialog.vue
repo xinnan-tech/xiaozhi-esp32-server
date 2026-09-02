@@ -209,16 +209,27 @@ export default {
       
       // 功能状态
       featureStatus: {
-        mcpAccessPoint: false
+        mcpAccessPoint: false,
+        addressBook: false
       }
     }
   },
   computed: {
     selectedList() {
-      return this.allFunctions.filter(f => this.selectedNames.includes(f.name));
+      const list = this.allFunctions.filter(f => this.selectedNames.includes(f.name));
+      // 如果通讯录功能未启用，过滤掉设备呼叫设备插件
+      if (!this.featureStatus.addressBook) {
+        return list.filter(f => f.providerCode !== 'call_device');
+      }
+      return list;
     },
     unselected() {
-      return this.allFunctions.filter(f => !this.selectedNames.includes(f.name));
+      const list = this.allFunctions.filter(f => !this.selectedNames.includes(f.name));
+      // 如果通讯录功能未启用，过滤掉设备呼叫设备插件
+      if (!this.featureStatus.addressBook) {
+        return list.filter(f => f.providerCode !== 'call_device');
+      }
+      return list;
     }
   },
   watch: {
@@ -239,11 +250,23 @@ export default {
         }
       });
     },
-    value(v) {
+    async value(v) {
       this.dialogVisible = v;
       if (v) {
+        // 加载功能状态（需要在初始化选中态之前）
+        await this.loadFeatureStatus();
+
         // 对话框打开时，初始化选中态
         this.selectedNames = this.functions.map(f => f.name);
+
+        // 如果通讯录功能未启用，从已选列表中移除设备呼叫设备插件
+        if (!this.featureStatus.addressBook) {
+          this.selectedNames = this.selectedNames.filter(name => {
+            const func = this.allFunctions.find(f => f.name === name);
+            return func && func.providerCode !== 'call_device';
+          });
+        }
+
         // 把后端传来的 this.functions（带 params）merge 到 allFunctions 上
         this.functions.forEach(saved => {
           const idx = this.allFunctions.findIndex(f => f.name === saved.name);
@@ -255,9 +278,6 @@ export default {
         // 右侧默认指向第一个
         this.currentFunction = this.selectedList[0] || null;
 
-        // 加载功能状态
-        this.loadFeatureStatus();
-        
         // 加载MCP数据
         this.loadMcpAddress();
         this.loadMcpTools();
@@ -274,10 +294,11 @@ export default {
     async loadFeatureStatus() {
       // 确保featureManager已初始化完成
       await featureManager.waitForInitialization();
-      
+
       const config = featureManager.getConfig();
       this.featureStatus = {
-        mcpAccessPoint: config.mcpAccessPoint || false
+        mcpAccessPoint: config.mcpAccessPoint || false,
+        addressBook: config.addressBook || false
       };
     },
     
@@ -413,7 +434,7 @@ export default {
       this.tempFunctions = {};
       this.hasSaved = true;
 
-      const selected = this.selectedList.map(f => {
+      let selected = this.selectedList.map(f => {
         const modified = this.modifiedFunctions[f.name];
         return {
           id: f.id,
@@ -423,6 +444,11 @@ export default {
             : { ...f.params }
         }
       });
+
+      // 如果通讯录功能未启用，自动取消已选的设备呼叫设备插件
+      if (!this.featureStatus.addressBook) {
+        selected = selected.filter(f => f.providerCode !== 'call_device');
+      }
 
       this.$emit('update-functions', selected);
       this.dialogVisible = false;
@@ -477,13 +503,15 @@ export default {
 
 .function-column {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: auto;
-  height:700px; 
+  height: 100%; 
   padding: 10px;
-  overflow-y: auto;
   border-right: 1px solid #EBEEF5;
   scrollbar-width: none;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .mcp-access-point {
@@ -497,6 +525,9 @@ export default {
 }
 
 .function-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -625,6 +656,7 @@ export default {
 .drawer-footer {
   position: absolute;
   bottom: 0;
+  z-index: 2;
   width: 100%;
   border-top: 1px solid #e8e8e8;
   padding: 10px 16px;

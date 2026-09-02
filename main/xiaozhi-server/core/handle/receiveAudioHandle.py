@@ -16,9 +16,9 @@ from plugins.base import PluginAction
 TAG = __name__
 
 
-async def handleAudioMessage(conn: "ConnectionHandler", audio):
+async def handleAudioMessage(conn: "ConnectionHandler", pcm_frame):
     # 当前片段是否有人说话
-    have_voice = conn.vad.is_vad(conn, audio)
+    have_voice = conn.vad.is_vad(conn, pcm_frame)
     # 如果设备刚刚被唤醒，短暂忽略VAD检测
     if hasattr(conn, "just_woken_up") and conn.just_woken_up:
         have_voice = False
@@ -26,14 +26,14 @@ async def handleAudioMessage(conn: "ConnectionHandler", audio):
         if not hasattr(conn, "vad_resume_task") or conn.vad_resume_task.done():
             conn.vad_resume_task = asyncio.create_task(resume_vad_detection(conn))
         return
-    # manual 模式下不打断正在播放的内容
-    if have_voice:
+    # 服务端AEC功能需要实时触发打断
+    if conn.client_aec and have_voice:
         if conn.client_is_speaking and conn.client_listen_mode != "manual":
             await handleAbortMessage(conn)
     # 设备长时间空闲检测，用于say goodbye
     await no_voice_close_connect(conn, have_voice)
     # 接收音频
-    await conn.asr.receive_audio(conn, audio, have_voice)
+    await conn.asr.receive_audio(conn, pcm_frame, have_voice)
 
 
 async def resume_vad_detection(conn: "ConnectionHandler"):
@@ -45,7 +45,6 @@ async def resume_vad_detection(conn: "ConnectionHandler"):
 async def startToChat(conn: "ConnectionHandler", text):
     # 检查输入是否是JSON格式（包含说话人信息）
     speaker_name = None
-    language_tag = None
     actual_text = text
 
     try:
@@ -54,12 +53,16 @@ async def startToChat(conn: "ConnectionHandler", text):
             data = json.loads(text)
             if "speaker" in data and "content" in data:
                 speaker_name = data["speaker"]
-                language_tag = data["language"]
-                actual_text = data["content"]
+                actual_content = data["content"]
                 conn.logger.bind(tag=TAG).info(f"解析到说话人信息: {speaker_name}")
 
-                # 直接使用JSON格式的文本，不解析
-                actual_text = text
+                # 仅在该说话人首次出现时保留 {"speaker":...} JSON，让模型自然称呼一次；
+                # 后续轮降为纯文本，避免每轮重复出现名字诱导模型反复称呼
+                if speaker_name not in conn.introduced_speakers:
+                    conn.introduced_speakers.add(speaker_name)
+                    actual_text = text
+                else:
+                    actual_text = actual_content
     except (json.JSONDecodeError, KeyError):
         # 如果解析失败，继续使用原始文本
         pass
@@ -81,6 +84,7 @@ async def startToChat(conn: "ConnectionHandler", text):
         ):
             await max_out_size(conn)
             return
+
     # manual 模式下不打断正在播放的内容
     if conn.client_is_speaking and conn.client_listen_mode != "manual":
         await handleAbortMessage(conn)
@@ -93,6 +97,10 @@ async def startToChat(conn: "ConnectionHandler", text):
         return
 
     await send_stt_message(conn, actual_text)
+
+    # 准备开始新会话
+    conn.client_abort = False
+
     # 插件处理：文本预处理和拦截
     processed_text = actual_text
     if hasattr(conn, "plugin_manager") and conn.plugin_manager:

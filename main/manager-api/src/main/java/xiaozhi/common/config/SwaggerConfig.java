@@ -96,6 +96,14 @@ public class SwaggerConfig {
     }
 
     @Bean
+    public GroupedOpenApi correctWordApi() {
+        return GroupedOpenApi.builder()
+                .group("correct-word")
+                .pathsToMatch("/correct-word/**")
+                .build();
+    }
+
+    @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI().info(new Info()
                 .title("xiaozhi-esp32-manager-api")

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.device.dao.DeviceAddressBookDao">
+
+    <select id="getAddressBookList" resultType="xiaozhi.modules.device.entity.DeviceAddressBookEntity">
+        SELECT mac_address, target_mac, alias, has_permission, creator, create_date, updater, update_date
+        FROM ai_device_address_book
+        WHERE mac_address = #{macAddress}
+        ORDER BY update_date DESC
+    </select>
+
+    <update id="updateAlias">
+        UPDATE ai_device_address_book
+        SET alias = #{alias}, update_date = NOW()
+        WHERE mac_address = #{macAddress} AND target_mac = #{targetMac}
+    </update>
+
+    <update id="updatePermission">
+        UPDATE ai_device_address_book
+        SET has_permission = #{hasPermission}, update_date = NOW()
+        WHERE mac_address = #{macAddress} AND target_mac = #{targetMac}
+    </update>
+
+    <insert id="insertAddressBook">
+        INSERT INTO ai_device_address_book (mac_address, target_mac, alias, has_permission, creator, create_date, updater, update_date)
+        VALUES (#{macAddress}, #{targetMac}, #{alias}, #{hasPermission}, #{creator}, NOW(), #{updater}, NOW())
+    </insert>
+
+    <delete id="deleteByMacAddresses">
+        DELETE FROM ai_device_address_book WHERE mac_address IN
+        <foreach collection="macAddresses" item="mac" open="(" separator="," close=")">
+            #{mac}
+        </foreach>
+        OR target_mac IN
+        <foreach collection="macAddresses" item="mac" open="(" separator="," close=")">
+            #{mac}
+        </foreach>
+    </delete>
+</mapper>

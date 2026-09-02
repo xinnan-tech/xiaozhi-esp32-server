@@ -149,8 +149,8 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             log.info("=== [RAGFlow] 获取文档列表: datasetId={} ===", datasetId);
 
             // 使用 Jackson 将 DTO 转为 Map 作为查询参数
-            @SuppressWarnings("unchecked")
-            Map<String, Object> params = objectMapper.convertValue(req, Map.class);
+            Map<String, Object> params = objectMapper.convertValue(req, new TypeReference<Map<String, Object>>() {
+            });
 
             Map<String, Object> response = getClient().get("/api/v1/datasets/" + datasetId + "/documents", params);
 
@@ -174,13 +174,12 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
                     .pageSize(1)
                     .build();
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> params = objectMapper.convertValue(req, Map.class);
+            Map<String, Object> params = objectMapper.convertValue(req, new TypeReference<Map<String, Object>>() {
+            });
             Map<String, Object> response = getClient().get("/api/v1/datasets/" + datasetId + "/documents", params);
 
             Object dataObj = response.get("data");
-            if (dataObj instanceof Map) {
-                Map<String, Object> dataMap = (Map<String, Object>) dataObj;
+            if (dataObj instanceof Map<?, ?> dataMap) {
                 List<?> documents = (List<?>) dataMap.get("docs");
                 if (documents != null && !documents.isEmpty()) {
                     return objectMapper.convertValue(documents.get(0), DocumentDTO.InfoVO.class);
@@ -485,8 +484,16 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
 
     @Override
     public Integer getDocumentCount(String datasetId) {
+        DatasetDTO.InfoVO info = getDatasetInfo(datasetId);
+        if (info != null && info.getDocumentCount() != null) {
+            return info.getDocumentCount().intValue();
+        }
+        return 0;
+    }
+
+    @Override
+    public DatasetDTO.InfoVO getDatasetInfo(String datasetId) {
         try {
-            // [Fix] 使用列表过滤接口获取详情 (GET /datasets?id={id})
             Map<String, Object> params = new HashMap<>();
             params.put("id", datasetId);
             params.put("page", 1);
@@ -498,20 +505,14 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             if (dataObj instanceof List) {
                 List<?> list = (List<?>) dataObj;
                 if (!list.isEmpty()) {
-                    Object firstItem = list.get(0);
-                    if (firstItem instanceof Map) {
-                        Object countObj = ((Map<?, ?>) firstItem).get("document_count");
-                        if (countObj instanceof Number) {
-                            return ((Number) countObj).intValue();
-                        }
-                    }
+                    return objectMapper.convertValue(list.get(0), DatasetDTO.InfoVO.class);
                 }
             }
-            // 降级：未找到或结构不匹配
-            return 0;
+            // RAGFlow 端不存在该数据集
+            return null;
         } catch (Exception e) {
-            log.warn("获取文档数量失败: {}", e.getMessage());
-            return 0;
+            log.warn("获取数据集信息失败: datasetId={}, error={}", datasetId, e.getMessage());
+            throw convertToRenException(e);
         }
     }
 
@@ -565,8 +566,8 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             return new PageData<>(new ArrayList<>(), 0);
         }
 
-        Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-        List<Map<String, Object>> documents = (List<Map<String, Object>>) dataMap.get("docs");
+        Map<?, ?> dataMap = Map.class.cast(dataObj);
+        List<?> documents = List.class.cast(dataMap.get("docs"));
         if (documents == null || documents.isEmpty()) {
             // RAGFlow 明确返回了空文档列表，这是合法的"真空"
             return new PageData<>(new ArrayList<>(), 0);
@@ -677,7 +678,9 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             dto.setChunkMethod(info.getChunkMethod().name().toLowerCase());
         }
         if (info.getParserConfig() != null) {
-            dto.setParserConfig(objectMapper.convertValue(info.getParserConfig(), Map.class));
+            dto.setParserConfig(objectMapper.convertValue(info.getParserConfig(),
+                    new TypeReference<Map<String, Object>>() {
+                    }));
         }
 
         return dto;

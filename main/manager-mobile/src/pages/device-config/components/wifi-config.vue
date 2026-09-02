@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useToast } from 'wot-design-uni'
 import { t } from '@/i18n'
+import { toast } from '@/utils/toast'
 
 // 类型定义
 interface WiFiNetwork {
@@ -18,9 +18,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-// Toast 实例
-const toast = useToast()
 
 // 响应式数据
 const configuring = ref(false)
@@ -45,7 +42,7 @@ async function checkESP32Connection() {
     return response.statusCode === 200
   }
   catch (error) {
-    console.log(t('deviceConfig.esp32ConnectionCheckFailed') + ':', error)
+    console.log(`${t('deviceConfig.esp32ConnectionCheckFailed')}:`, error)
     return false
   }
 }
@@ -58,12 +55,12 @@ async function submitConfig() {
   // 检查ESP32连接
   const connected = await checkESP32Connection()
   if (!connected) {
-      toast.error(t('deviceConfig.connectXiaozhiHotspot'))
-      return
-    }
+    toast.error(t('deviceConfig.connectXiaozhiHotspot'))
+    return
+  }
 
   configuring.value = true
-    console.log(t('deviceConfig.startWifiConfig') + ':', props.selectedNetwork.ssid)
+  console.log(`${t('deviceConfig.startWifiConfig')}:`, props.selectedNetwork.ssid)
 
   try {
     const response = await uni.request({
@@ -83,6 +80,14 @@ async function submitConfig() {
 
     if (response.statusCode === 200 && (response.data as any)?.success) {
       toast.success(`${t('deviceConfig.configSuccess')}！${t('deviceConfig.deviceWillConnectTo')} ${props.selectedNetwork.ssid}，${t('deviceConfig.deviceWillRestart')}。${t('deviceConfig.pleaseDisconnectXiaozhiHotspot')}`)
+      // 设备退出配网模式
+      setTimeout(() => {
+        uni.request({
+          url: 'http://192.168.4.1/exit',
+          method: 'POST',
+          timeout: 15000,
+        })
+      }, 1500)
     }
     else {
       const errorMsg = (response.data as any)?.error || t('deviceConfig.configFailed')
@@ -90,8 +95,8 @@ async function submitConfig() {
     }
   }
   catch (error) {
-    console.error(t('deviceConfig.wifiConfigFailed') + ':', error)
-      toast.error(`${t('deviceConfig.configFailed')}，${t('deviceConfig.pleaseCheckNetworkConnection')}`)
+    console.error(`${t('deviceConfig.wifiConfigFailed')}:`, error)
+    toast.error(`${t('deviceConfig.configFailed')}，${t('deviceConfig.pleaseCheckNetworkConnection')}`)
   }
   finally {
     configuring.value = false
@@ -134,9 +139,9 @@ async function submitConfig() {
 
     <!-- 使用说明 -->
     <view class="help-section">
-        <view class="help-title">
-          {{ t('deviceConfig.wifiConfigInstructions') }}
-        </view>
+      <view class="help-title">
+        {{ t('deviceConfig.wifiConfigInstructions') }}
+      </view>
       <view class="help-content">
         <text class="help-item">
           1. {{ t('deviceConfig.phoneConnectXiaozhiHotspot') }} (xiaozhi-XXXXXX)

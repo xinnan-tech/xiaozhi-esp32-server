@@ -39,8 +39,13 @@ class TTSProvider(TTSProviderBase):
         }
         try:
             response = requests.request(
-                "POST", self.api_url, json=request_json, headers=headers
+                "POST", self.api_url, json=request_json, headers=headers,
+                timeout=self.tts_timeout,
             )
+            if response.status_code != 200:
+                raise Exception(
+                    f"{__name__} HTTP {response.status_code}: {response.text[:200]}"
+                )
             data = response.content
             if output_file:
                 with open(output_file, "wb") as file_to_save:

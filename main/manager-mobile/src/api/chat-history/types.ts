@@ -3,6 +3,7 @@ export interface ChatSession {
   sessionId: string
   createdAt: string
   chatCount: number
+  title: string
 }
 
 // 聊天会话列表响应
@@ -14,7 +15,7 @@ export interface ChatSessionsResponse {
 // 聊天消息
 export interface ChatMessage {
   createdAt: string
-  chatType: 1 | 2 // 1是用户，2是AI
+  chatType: 1 | 2 | 3 // 1是用户，2是AI，3是参数说明
   content: string
   audioId: string | null
   macAddress: string

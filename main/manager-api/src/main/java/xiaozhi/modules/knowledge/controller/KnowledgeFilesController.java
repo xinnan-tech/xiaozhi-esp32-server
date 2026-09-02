@@ -167,16 +167,21 @@ public class KnowledgeFilesController {
     public Result<ChunkDTO.ListVO> listChunks(
             @PathVariable("dataset_id") String datasetId,
             @PathVariable("document_id") String documentId,
-            @ParameterObject ChunkDTO.ListReq req) {
+            @RequestParam(name = "page", required = false, defaultValue = "1") Integer page,
+            @RequestParam(name = "page_size", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) String id) {
 
         // 验证权限 (内部已包含知识库存在性校验与归属权校验)
         validateKnowledgeBasePermission(datasetId);
 
-        // 设置默认值
-        if (req.getPage() == null)
-            req.setPage(1);
-        if (req.getPageSize() == null)
-            req.setPageSize(50);
+        // 构建请求对象
+        ChunkDTO.ListReq req = ChunkDTO.ListReq.builder()
+                .page(page)
+                .pageSize(pageSize)
+                .keywords(keywords)
+                .id(id)
+                .build();
 
         // 调用服务层获取强类型切片列表
         ChunkDTO.ListVO result = knowledgeFilesService.listChunks(datasetId, documentId, req);

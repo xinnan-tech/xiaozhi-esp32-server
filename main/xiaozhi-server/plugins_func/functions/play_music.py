@@ -5,10 +5,8 @@ import random
 import difflib
 import traceback
 from pathlib import Path
-from core.handle.sendAudioHandle import send_stt_message
-from plugins_func.register import register_function, ToolType, ActionResponse, Action
-from core.utils.dialogue import Message
 from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
+from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -22,7 +20,7 @@ play_music_function_desc = {
     "type": "function",
     "function": {
         "name": "play_music",
-        "description": "唱歌、听歌、播放音乐的方法。",
+        "description": "当用户要求播放音乐、歌曲时调用。",
         "parameters": {
             "type": "object",
             "properties": {
@@ -38,36 +36,14 @@ play_music_function_desc = {
 
 
 @register_function("play_music", play_music_function_desc, ToolType.SYSTEM_CTL)
-def play_music(conn: "ConnectionHandler", song_name: str):
+async def play_music(conn: "ConnectionHandler", song_name: str):
     try:
         music_intent = (
             f"播放音乐 {song_name}" if song_name != "random" else "随机播放音乐"
         )
-
-        # 检查事件循环状态
-        if not conn.loop.is_running():
-            conn.logger.bind(tag=TAG).error("事件循环未运行，无法提交任务")
-            return ActionResponse(
-                action=Action.RESPONSE, result="系统繁忙", response="请稍后再试"
-            )
-
-        # 提交异步任务
-        task = conn.loop.create_task(
-            handle_music_command(conn, music_intent)  # 封装异步逻辑
-        )
-
-        # 非阻塞回调处理
-        def handle_done(f):
-            try:
-                f.result()  # 可在此处理成功逻辑
-                conn.logger.bind(tag=TAG).info("播放完成")
-            except Exception as e:
-                conn.logger.bind(tag=TAG).error(f"播放失败: {e}")
-
-        task.add_done_callback(handle_done)
-
+        await handle_music_command(conn, music_intent)
         return ActionResponse(
-            action=Action.NONE, result="指令已接收", response="正在为您播放音乐"
+            action=Action.RECORD, result="指令已接收", response="正在为您播放音乐"
         )
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"处理音乐意图错误: {e}")
@@ -217,8 +193,8 @@ async def play_local_music(conn: "ConnectionHandler", specific_file=None):
             conn.logger.bind(tag=TAG).error(f"选定的音乐文件不存在: {music_path}")
             return
         text = _get_random_play_prompt(selected_music)
-        await send_stt_message(conn, text)
-        conn.dialogue.put(Message(role="assistant", content=text))
+        conn.tts.store_tts_text(conn.sentence_id, text)
+        # conn.dialogue.put(Message(role="assistant", content=text))
 
         if conn.intent_type == "intent_llm":
             conn.tts.tts_text_queue.put(

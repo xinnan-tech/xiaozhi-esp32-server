@@ -12,4 +12,12 @@ public interface AgentChatSummaryService {
      * @return 保存结果
      */
     boolean generateAndSaveChatSummary(String sessionId);
+
+    /**
+     * 根据会话ID生成聊天标题并保存
+     *
+     * @param sessionId 会话ID
+     * @return 是否成功
+     */
+    boolean generateAndSaveChatTitle(String sessionId);
 }

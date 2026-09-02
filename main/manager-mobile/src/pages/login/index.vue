@@ -401,7 +401,9 @@ onMounted(async () => {
           <text class="policy-link" @click="goToUserAgreement">
             {{ t('login.userAgreement') }}
           </text>
-          <text class="policy-divider">|</text>
+          <text class="policy-divider">
+            {{ '|' }}
+          </text>
           <text class="policy-link" @click="goToPrivacyPolicy">
             {{ t('login.privacyPolicy') }}
           </text>

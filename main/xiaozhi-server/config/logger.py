@@ -1,11 +1,12 @@
 import os
 import sys
+import asyncio
 from loguru import logger
 from config.config_loader import load_config
 from config.settings import check_config_file
-from datetime import datetime
+from core.utils.cache.manager import cache_manager, CacheType
 
-SERVER_VERSION = "0.9.2"
+SERVER_VERSION = "0.9.6"
 _logger_initialized = False
 
 
@@ -45,10 +46,15 @@ def formatter(record):
     return record["message"]
 
 
-def setup_logging():
-    check_config_file()
+def setup_logging(config=None):
     """从配置文件中读取日志配置，并设置日志输出格式和级别"""
-    config = load_config()
+    if config is None:
+        check_config_file()
+        # 先查缓存，避免在 async 上下文中重复 await load_config
+        config = cache_manager.get(CacheType.CONFIG, "main_config")
+        if config is None:
+            # 缓存也没有（理论上不该发生），才走 asyncio.run
+            config = asyncio.run(load_config())
     log_config = config["log"]
     global _logger_initialized
 

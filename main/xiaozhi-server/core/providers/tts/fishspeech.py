@@ -169,6 +169,7 @@ class TTSProvider(TTSProviderBase):
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/msgpack",
             },
+            timeout=self.tts_timeout,
         )
 
         if response.status_code == 200:

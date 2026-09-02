@@ -578,3 +578,164 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202603231037.sql
+  - changeSet:
+      id: 202603311200
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202603311200.sql
+  - changeSet:
+      id: 202604010930
+      author: rainv123
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202604010930.sql
+  - changeSet:
+      id: 202604011035
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202604011035.sql
+  - changeSet:
+      id: 202604011545
+      author: rainv123
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202604011545.sql
+  - changeSet:
+      id: 202604161357
+      author: hrz
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202604161357.sql
+  - changeSet:
+      id: 202604201719
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202604201719.sql
+  - changeSet:
+      id: 202604211515  
+      author: rainv123
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202604211515.sql
+  - changeSet:
+      id: 202604211700
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202604211700.sql
+  - changeSet:
+      id: 202604300930
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202604300930.sql
+  - changeSet:
+      id: 202605071037
+      author: fyb
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202605071037.sql
+  - changeSet:
+      id: 202605071120
+      author: fyb
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202605071120.sql
+  - changeSet:
+      id: 202605081008
+      author: fyb
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202605081008.sql
+  - changeSet:
+      id: 202605121509
+      author: DaGou12138
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202605121509.sql
+  - changeSet:
+      id: 202605251426
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202605251426.sql
+  - changeSet:
+      id: 202606231030
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202606231030.sql
+  - changeSet:
+      id: 202606261131
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202606261131.sql
+  - changeSet:
+      id: 202607011405
+      author: LauraGPT
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607011405.sql
+  - changeSet:
+      id: 202607071530
+      author: tykechen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607071530.sql
+  - changeSet:
+      id: 202607101200
+      author: tykechen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607101200.sql
+  - changeSet:
+      id: 202607290930
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607290930.sql
+  - changeSet:
+      id: 202608061000
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202608061030.sql
+  - changeSet:
+      id: 202608061800
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202608061800.sql
+  - changeSet:
+      id: 202608131030
+      author: tykechen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202608131030.sql

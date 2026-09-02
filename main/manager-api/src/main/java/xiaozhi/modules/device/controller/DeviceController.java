@@ -8,6 +8,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,13 +23,17 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.Result;
+import xiaozhi.modules.device.dto.DeviceAddressBookAliasDTO;
+import xiaozhi.modules.device.dto.DeviceAddressBookPermissionDTO;
 import xiaozhi.modules.device.dto.DeviceManualAddDTO;
 import xiaozhi.modules.device.dto.DeviceRegisterDTO;
 import xiaozhi.modules.device.dto.DeviceToolsCallReqDTO;
 import xiaozhi.modules.device.dto.DeviceUnBindDTO;
 import xiaozhi.modules.device.dto.DeviceUpdateDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
+import xiaozhi.modules.device.service.DeviceAddressBookService;
 import xiaozhi.modules.device.service.DeviceService;
+import xiaozhi.modules.device.vo.UserShowDeviceListVO;
 import xiaozhi.modules.security.user.SecurityUser;
 import xiaozhi.modules.sys.service.SysParamsService;
 
@@ -37,11 +42,14 @@ import xiaozhi.modules.sys.service.SysParamsService;
 @RequestMapping("/device")
 public class DeviceController {
     private final DeviceService deviceService;
+    private final DeviceAddressBookService deviceAddressBookService;
     private final RedisUtils redisUtils;
     private final SysParamsService sysParamsService;
 
-    public DeviceController(DeviceService deviceService, RedisUtils redisUtils, SysParamsService sysParamsService) {
+    public DeviceController(DeviceService deviceService, DeviceAddressBookService deviceAddressBookService,
+            RedisUtils redisUtils, SysParamsService sysParamsService) {
         this.deviceService = deviceService;
+        this.deviceAddressBookService = deviceAddressBookService;
         this.redisUtils = redisUtils;
         this.sysParamsService = sysParamsService;
     }
@@ -78,10 +86,10 @@ public class DeviceController {
     @GetMapping("/bind/{agentId}")
     @Operation(summary = "获取已绑定设备")
     @RequiresPermissions("sys:role:normal")
-    public Result<List<DeviceEntity>> getUserDevices(@PathVariable String agentId) {
+    public Result<List<UserShowDeviceListVO>> getUserDevices(@PathVariable String agentId) {
         UserDetail user = SecurityUser.getUser();
-        List<DeviceEntity> devices = deviceService.getUserDevices(user.getId(), agentId);
-        return new Result<List<DeviceEntity>>().ok(devices);
+        List<UserShowDeviceListVO> devices = deviceService.getUserDeviceList(user.getId(), agentId);
+        return new Result<List<UserShowDeviceListVO>>().ok(devices);
     }
 
     @PostMapping("/bind/{agentId}")
@@ -117,7 +125,9 @@ public class DeviceController {
             return new Result<Void>().error("设备不存在");
         }
         BeanUtils.copyProperties(deviceUpdateDTO, entity);
-        deviceService.updateById(entity);
+        if (!deviceService.updateById(entity)) {
+            return new Result<Void>().error(ErrorCode.UPDATE_DATA_FAILED);
+        }
         return new Result<Void>();
     }
 
@@ -158,5 +168,49 @@ public class DeviceController {
         Result<Object> response = new Result<Object>();
         response.setMsg("Tools called successfully");
         return response.ok(result);
+    }
+
+    @GetMapping("/address-book/{macAddress}")
+    @Operation(summary = "获取设备通讯录")
+    @RequiresPermissions("sys:role:normal")
+    public Result<Object> getAddressBook(@PathVariable String macAddress) {
+        return new Result<Object>().ok(deviceAddressBookService.getAddressBookList(macAddress));
+    }
+
+    @GetMapping("/address-book/call")
+    @Operation(summary = "根据昵称发起呼叫")
+    public Result<Map<String, Object>> callByNickname(String callerMac, String nickname,
+            @RequestParam(required = false, defaultValue = "false") boolean answer) {
+        Map<String, Object> result = deviceAddressBookService.callByNickname(callerMac, nickname, answer);
+        if (result == null) {
+            return new Result<Map<String, Object>>().error("未找到对应设备");
+        }
+        return new Result<Map<String, Object>>().ok(result);
+    }
+
+    @PutMapping("/address-book/alias")
+    @Operation(summary = "更新设备通讯录别名")
+    @RequiresPermissions("sys:role:normal")
+    public Result<Void> updateAlias(@Valid @RequestBody DeviceAddressBookAliasDTO dto) {
+        UserDetail user = SecurityUser.getUser();
+        DeviceEntity callerDevice = deviceService.getDeviceByMacAddress(dto.getMacAddress());
+        if (callerDevice == null || !callerDevice.getUserId().equals(user.getId())) {
+            return new Result<Void>().error("无权限操作该设备");
+        }
+        deviceAddressBookService.saveOrUpdate(dto.getMacAddress(), dto.getTargetMac(), dto.getAlias(), null);
+        return new Result<Void>();
+    }
+
+    @PutMapping("/address-book/permission")
+    @Operation(summary = "更新设备通讯录权限")
+    @RequiresPermissions("sys:role:normal")
+    public Result<Void> updatePermission(@Valid @RequestBody DeviceAddressBookPermissionDTO dto) {
+        UserDetail user = SecurityUser.getUser();
+        DeviceEntity callerDevice = deviceService.getDeviceByMacAddress(dto.getMacAddress());
+        if (callerDevice == null || !callerDevice.getUserId().equals(user.getId())) {
+            return new Result<Void>().error("无权限操作该设备");
+        }
+        deviceAddressBookService.saveOrUpdate(dto.getMacAddress(), dto.getTargetMac(), null, dto.getHasPermission());
+        return new Result<Void>();
     }
 }

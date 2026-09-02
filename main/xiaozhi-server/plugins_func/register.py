@@ -14,6 +14,7 @@ from plugins.register import (
     DeviceTypeRegistry,
     FunctionRegistry,
     all_function_registry,
+    module_func_map,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "DeviceTypeRegistry",
     "FunctionRegistry",
     "all_function_registry",
+    "module_func_map",
 ]

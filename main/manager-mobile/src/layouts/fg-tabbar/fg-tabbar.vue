@@ -38,10 +38,8 @@ onLoad(() => {
   <wd-tabbar
     v-if="customTabbarEnable"
     v-model="tabbarStore.curIdx"
-    bordered
-    safe-area-inset-bottom
-    placeholder
-    fixed
+
+    safe-area-inset-bottom bordered placeholder fixed
     @change="selectTabBar"
   >
     <block v-for="(item, idx) in tabbarList" :key="item.path">

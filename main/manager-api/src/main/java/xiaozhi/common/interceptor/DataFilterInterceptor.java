@@ -67,7 +67,7 @@ public class DataFilterInterceptor implements InnerInterceptor {
     private String getSelect(String buildSql, DataScope scope) {
         try {
             Select select = (Select) CCJSqlParserUtil.parse(buildSql);
-            PlainSelect plainSelect = (PlainSelect) select.getSelectBody();
+            PlainSelect plainSelect = select.getPlainSelect();
 
             Expression expression = plainSelect.getWhere();
             if (expression == null) {

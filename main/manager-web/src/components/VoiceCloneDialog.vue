@@ -1,6 +1,11 @@
 <template>
-    <el-dialog :title="$t('voiceClone.dialogTitle')" :visible.sync="visible" width="900px" top="10vh"
-        :before-close="handleClose" class="voice-clone-dialog">
+    <CustomDialog
+        :title="$t('voiceClone.dialogTitle')"
+        :visible.sync="innerVisible"
+        width="900px"
+        :footer="false"
+        @close="handleDialogClose"
+    >
         <div class="dialog-content">
             <!-- 步骤指示器 -->
             <div class="steps-header">
@@ -73,22 +78,28 @@
                 </div>
             </div>
         </div>
-
-        <span slot="footer" class="dialog-footer">
-            <el-button @click="handleClose">{{ currentStep === 1 ? $t('voiceClone.cancel') : $t('voiceClone.prevStep')
-                }}</el-button>
-            <el-button type="primary" @click="handleNext" :loading="uploading">
+        <div class="custom-footer">
+            <CustomButton @click="handleCancel">
+                {{ currentStep === 1 ? $t('voiceClone.cancel') : $t('voiceClone.prevStep') }}
+            </CustomButton>
+            <CustomButton type="confirm" :loading="uploading" @click="handleNext">
                 {{ currentStep === 1 ? $t('voiceClone.nextStep') : $t('voiceClone.upload') }}
-            </el-button>
-        </span>
-    </el-dialog>
+            </CustomButton>
+        </div>
+    </CustomDialog>
 </template>
 
 <script>
 import Api from "@/apis/api";
+import CustomDialog from './CustomDialog.vue';
+import CustomButton from './CustomButton.vue';
 
 export default {
     name: 'VoiceCloneDialog',
+    components: {
+        CustomDialog,
+        CustomButton
+    },
     props: {
         visible: {
             type: Boolean,
@@ -122,6 +133,14 @@ export default {
         };
     },
     computed: {
+        innerVisible: {
+            get() {
+                return this.visible;
+            },
+            set(val) {
+                this.$emit('update:visible', val);
+            }
+        },
         selectedDuration() {
             if (this.selectionStart !== null && this.selectionEnd !== null && this.audioBuffer) {
                 const duration = this.audioBuffer.duration;
@@ -146,13 +165,15 @@ export default {
         }
     },
     methods: {
-        handleClose() {
+        handleCancel() {
             if (this.currentStep === 2) {
                 this.currentStep = 1;
             } else {
-                this.resetDialog();
                 this.$emit('update:visible', false);
             }
+        },
+        handleDialogClose() {
+            this.resetDialog();
         },
         resetDialog() {
             this.currentStep = 1;
@@ -509,13 +530,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.voice-clone-dialog {
-    ::v-deep .el-dialog__body {
-        padding: 20px 30px;
-    }
-}
-
-
 .steps-header {
     display: flex;
     justify-content: center;
@@ -578,7 +592,6 @@ export default {
     background: #e4e7ed;
     margin-left: 12px;
 }
-
 .step-content {
     padding: 20px 0;
 }
@@ -685,10 +698,7 @@ export default {
     gap: 12px;
     margin-top: 20px;
 }
-
-.dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
+.custom-footer {
+    text-align: right;
 }
 </style>

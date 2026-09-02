@@ -43,6 +43,7 @@ class Action(Enum):
     NONE = (1, "啥也不干")
     RESPONSE = (2, "直接回复")
     REQLLM = (3, "调用函数后再请求llm生成回复")
+    RECORD = (4, "记录工具调用到对话历史，不调用LLM")
 
     def __init__(self, code, message):
         self.code = code
@@ -92,6 +93,8 @@ class DeviceTypeRegistry:
 
 # 初始化函数注册字典
 all_function_registry = {}
+# 模块名 -> 函数名列表的映射，用于将模块级别的插件名展开为具体的函数名
+module_func_map = {}
 
 
 def register_function(name, desc, type=None):
@@ -99,6 +102,9 @@ def register_function(name, desc, type=None):
 
     def decorator(func):
         all_function_registry[name] = FunctionItem(name, desc, func, type)
+        # 记录模块名到函数名的映射，用于 expand 模块级别的插件配置
+        module_name = func.__module__.split(".")[-1]
+        module_func_map.setdefault(module_name, []).append(name)
         logger.bind(tag=TAG).debug(f"函数 '{name}' 已加载，可以注册使用")
         return func
 

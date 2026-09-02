@@ -7,7 +7,7 @@ export interface Device {
   id: string
   userId: string
   macAddress: string
-  lastConnectedAt: string
+  lastConnectedAtTimestamp: string | null
   autoUpdate: number
   board: string
   alias?: string

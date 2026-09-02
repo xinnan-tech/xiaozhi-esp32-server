@@ -133,7 +133,7 @@ public class AgentTagServiceImpl extends BaseServiceImpl<AgentTagDao, AgentTagEn
         }
 
         if (tagIds != null && !tagIds.isEmpty()) {
-            List<AgentTagEntity> tagIdEntities = baseDao.selectBatchIds(tagIds);
+            List<AgentTagEntity> tagIdEntities = baseDao.selectByIds(tagIds);
             for (AgentTagEntity tag : tagIdEntities) {
                 if (tag != null && (currentTagNames.contains(tag.getTagName()) ||
                         newTagNames.contains(tag.getTagName()))) {

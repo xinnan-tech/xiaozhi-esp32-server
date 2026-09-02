@@ -1,9 +1,9 @@
 import random
-import requests
-import json
+import httpx
+from io import BytesIO
+from markitdown import MarkItDown, StreamInfo
 from config.logger import setup_logging
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
-from markitdown import MarkItDown
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -51,33 +51,28 @@ CHANNEL_MAP = {
     "虫部落": "chongbuluo-latest",
 }
 
-
 # 默认新闻来源字典，当配置中没有指定时使用
 DEFAULT_NEWS_SOURCES = "澎湃新闻;百度热搜;财联社"
 
+def _get_newsnow_config(conn):
+    # 从连接配置获取
+    plugins = conn.config.get("plugins", {})
+    newsnow = plugins.get("get_news_from_newsnow", {})
+    sources = newsnow.get("news_sources", "")
+    if isinstance(sources, str) and sources.strip():
+        return sources
+
+    return ""
 
 def get_news_sources_from_config(conn):
     """从配置中获取新闻源字符串"""
     try:
-        # 尝试从插件配置中获取新闻源
-        if (
-            conn.config.get("plugins")
-            and conn.config["plugins"].get("get_news_from_newsnow")
-            and conn.config["plugins"]["get_news_from_newsnow"].get("news_sources")
-        ):
-            # 获取配置的新闻源字符串
-            news_sources_config = conn.config["plugins"]["get_news_from_newsnow"][
-                "news_sources"
-            ]
+        result = _get_newsnow_config(conn)
+        if result:
+            logger.bind(tag=TAG).debug(f"使用配置的新闻源: {result}")
+            return result
 
-            if isinstance(news_sources_config, str) and news_sources_config.strip():
-                logger.bind(tag=TAG).debug(f"使用配置的新闻源: {news_sources_config}")
-                return news_sources_config
-            else:
-                logger.bind(tag=TAG).warning("新闻源配置为空或格式错误，使用默认配置")
-        else:
-            logger.bind(tag=TAG).debug("未找到新闻源配置，使用默认配置")
-
+        logger.bind(tag=TAG).debug("未找到新闻源配置，使用默认配置")
         return DEFAULT_NEWS_SOURCES
 
     except Exception as e:
@@ -85,20 +80,14 @@ def get_news_sources_from_config(conn):
         return DEFAULT_NEWS_SOURCES
 
 
-# 从CHANNEL_MAP获取所有可用的新闻源名称
-available_sources = list(CHANNEL_MAP.keys())
-example_sources_str = "、".join(available_sources)
+# 从默认配置获取可用的新闻源名称（运行时由get_news_sources_from_config动态获取）
+example_sources_str = DEFAULT_NEWS_SOURCES.replace(";","、")
 
 GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC = {
     "type": "function",
     "function": {
         "name": "get_news_from_newsnow",
-        "description": (
-            "获取最新新闻，随机选择一条新闻进行播报。"
-            f"用户可以选择不同的新闻源，标准的名称是：{example_sources_str}"
-            "例如用户要求百度新闻，其实就是百度热搜。如果没有指定，默认从澎湃新闻获取。"
-            "用户可以要求获取详细内容，此时会获取新闻的详细内容。"
-        ),
+        "description": "当用户要求查看或收听新闻时调用（如'来条新闻''今天有什么新闻'）。",
         "parameters": {
             "type": "object",
             "properties": {
@@ -121,7 +110,7 @@ GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC = {
 }
 
 
-def fetch_news_from_api(conn: "ConnectionHandler", source="thepaper"):
+async def fetch_news_from_api(conn: "ConnectionHandler", source="thepaper"):
     """从API获取新闻列表"""
     try:
         api_url = f"https://newsnow.busiyi.world/api/s?id={source}"
@@ -131,8 +120,8 @@ def fetch_news_from_api(conn: "ConnectionHandler", source="thepaper"):
             api_url = news_config["url"] + source
 
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(api_url, headers=headers, timeout=10)
-        response.raise_for_status()
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
+            response = await client.get(api_url, headers=headers)
 
         data = response.json()
 
@@ -147,16 +136,23 @@ def fetch_news_from_api(conn: "ConnectionHandler", source="thepaper"):
         return []
 
 
-def fetch_news_detail(url):
+async def fetch_news_detail(url):
     """获取新闻详情页内容并使用MarkItDown清理HTML"""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
+            response = await client.get(url, headers=headers)
 
         # 使用MarkItDown清理HTML内容
         md = MarkItDown(enable_plugins=False)
-        result = md.convert(response)
+        result = md.convert_stream(
+            BytesIO(response.content),
+            stream_info=StreamInfo(
+                mimetype="text/html",
+                extension=".html",
+                charset=response.encoding or "utf-8",
+            ),
+        )
 
         # 获取清理后的文本内容
         clean_text = result.text_content
@@ -177,7 +173,7 @@ def fetch_news_detail(url):
     GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC,
     ToolType.SYSTEM_CTL,
 )
-def get_news_from_newsnow(
+async def get_news_from_newsnow(
     conn: "ConnectionHandler",
     source: str = "澎湃新闻",
     detail: bool = False,
@@ -217,7 +213,7 @@ def get_news_from_newsnow(
             )
 
             # 获取新闻详情
-            detail_content = fetch_news_detail(url)
+            detail_content = await fetch_news_detail(url)
 
             if not detail_content or detail_content == "无法获取详细内容":
                 return ActionResponse(
@@ -233,7 +229,7 @@ def get_news_from_newsnow(
                 # f"新闻来源: {source_name}\n"
                 f"详细内容: {detail_content}\n\n"
                 f"(请对上述新闻内容进行总结，提取关键信息，以自然、流畅的方式向用户播报，"
-                f"不要提及这是总结，就像是在讲述一个完整的新闻故事)"
+                f"不要提及这是总结，就像是在讲述一个完整的新闻)"
             )
 
             return ActionResponse(Action.REQLLM, detail_report, None)
@@ -259,7 +255,7 @@ def get_news_from_newsnow(
         logger.bind(tag=TAG).info(f"获取新闻: 新闻源={source}({english_source_id})")
 
         # 获取新闻列表
-        news_items = fetch_news_from_api(conn, english_source_id)
+        news_items = await fetch_news_from_api(conn, english_source_id)
 
         if not news_items:
             return ActionResponse(

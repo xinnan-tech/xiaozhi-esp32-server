@@ -2,114 +2,83 @@
   <div class="welcome">
     <HeaderBar />
 
-    <div class="operation-bar">
-      <h2 class="page-title">{{ $t('device.management') }}</h2>
-      <div class="right-operations">
-        <el-input :placeholder="$t('device.searchPlaceholder')" v-model="searchKeyword" class="search-input"
-          @keyup.enter.native="handleSearch" clearable />
-        <el-button class="btn-search" @click="handleSearch">{{ $t('device.search') }}</el-button>
-      </div>
-    </div>
-
     <div class="main-wrapper">
       <div class="content-panel">
         <div class="content-area">
           <el-card class="device-card" shadow="never">
-            <el-table ref="deviceTable" :data="paginatedDeviceList" class="transparent-table"
-              :header-cell-class-name="headerCellClassName" v-loading="loading"
-              :element-loading-text="$t('deviceManagement.loading')" element-loading-spinner="el-icon-loading"
-              element-loading-background="rgba(255, 255, 255, 0.7)">
-              <el-table-column :label="$t('modelConfig.select')" align="center" width="120">
-                <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.selected"></el-checkbox>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('device.model')" prop="model" align="center">
-                <template slot-scope="scope">
-                  {{ getFirmwareTypeName(scope.row.model) }}
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('device.firmwareVersion')" prop="firmwareVersion"
-                align="center"></el-table-column>
-              <el-table-column :label="$t('device.macAddress')" prop="macAddress" align="center"></el-table-column>
-              <el-table-column :label="$t('device.bindTime')" prop="bindTime" align="center"></el-table-column>
-              <el-table-column :label="$t('device.lastConversation')" prop="lastConversation"
-                align="center"></el-table-column>
-              <el-table-column v-if="mqttServiceAvailable" :label="$t('device.deviceStatus')" prop="deviceStatus" align="center">
-                <template slot-scope="scope">
-                  <el-tag v-if="scope.row.deviceStatus === 'online'" type="success">{{ $t('device.online') }}</el-tag>
-                  <el-tag v-else type="danger">{{ $t('device.offline') }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('device.remark')" align="center">
-                <template #default="{ row }">
-                  <el-input v-show="row.isEdit" v-model="row.remark" size="mini" maxlength="64" show-word-limit
-                    @blur="onRemarkBlur(row)" @keyup.enter.native="onRemarkEnter(row)" />
-                  <span v-show="!row.isEdit" class="remark-view">
-                    <i class="el-icon-edit" @click="row.isEdit = true" style="cursor: pointer;"></i>
-                    <span @click="row.isEdit = true">
-                      {{ row.remark || '-' }}
-                    </span>
-                  </span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('device.autoUpdate')" align="center">
-                <template slot-scope="scope">
-                  <el-switch v-model="scope.row.otaSwitch" size="mini" active-color="#13ce66" inactive-color="#ff4949"
-                    @change="handleOtaSwitchChange(scope.row)"></el-switch>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('device.operation')" align="center">
-                <template slot-scope="scope">
-                  <el-button size="mini" type="text" @click="handleUnbind(scope.row.device_id)">
-                    {{ $t('device.unbind') }}
-                  </el-button>
-                  <el-button v-if="isGenerate(scope.row)" size="mini" type="text" @click="handleGenertor(scope.row)">
-                    {{ $t('device.deviceThemeGeneration') }}
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-
-            <div class="table_bottom">
-              <div class="ctrl_btn">
-                <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
-                  {{ isCurrentPageAllSelected ? $t('common.deselectAll') : $t('common.selectAll') }}
-                </el-button>
-                <el-button type="success" size="mini" class="add-device-btn" @click="handleAddDevice">
-                  {{ $t('device.bindWithCode') }}
-                </el-button>
-                <el-button type="success" size="mini" class="add-device-btn" @click="handleManualAddDevice">
-                  {{ $t('device.manualAdd') }}
-                </el-button>
-                <el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteSelected">
-                  {{ $t('device.unbind') }}
-                </el-button>
-              </div>
-              <div class="custom-pagination">
-                <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                  <el-option v-for="item in pageSizeOptions" :key="item"
-                    :label="$t('dictManagement.itemsPerPage').replace('{items}', item)" :value="item">
-                  </el-option>
-                </el-select>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
-                  {{ $t('dictManagement.firstPage') }}
-                </button>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
-                  {{ $t('dictManagement.prevPage') }}
-                </button>
-                <button v-for="page in visiblePages" :key="page" class="pagination-btn"
-                  :class="{ active: page === currentPage }" @click="goToPage(page)">
-                  {{ page }}
-                </button>
-                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
-                  {{ $t('dictManagement.nextPage') }}
-                </button>
-                <span class="total-text">
-                  {{ $t('dictManagement.totalRecords').replace('{total}', deviceList.length) }}
-                </span>
+            <div class="operation-header">
+              <h2 class="page-title">{{ $t('device.management') }}</h2>
+              <div class="right-operations">
+                <el-input :placeholder="$t('device.searchPlaceholder')" v-model="searchKeyword" class="search-input"
+                  @keyup.enter.native="handleSearch" clearable />
+                <CustomButton icon="el-icon-search" type="confirm" @click="handleSearch">{{ $t('device.search') }}</CustomButton>
               </div>
             </div>
+            <CustomTable
+              ref="deviceTable"
+              :data="paginatedDeviceList"
+              :columns="tableColumns"
+              :loading="loading"
+              :loading-text="$t('deviceManagement.loading')"
+              :show-selection="true"
+              :show-operations="true"
+              :operations-label="$t('device.operation')"
+              :total="filteredDeviceList.length"
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-size-options="pageSizeOptions"
+              @size-change="handlePageSizeChange"
+              @page-change="goToPage"
+            >
+              <template slot="model" slot-scope="scope">
+                {{ getFirmwareTypeName(scope.row.model) }}
+              </template>
+              <template slot="macAddress" slot-scope="scope">
+                <MacAddressMask :macAddress="scope.row.macAddress" />
+              </template>
+              <template slot="deviceStatus" slot-scope="scope">
+                <el-tag v-if="scope.row.deviceStatus === 'online'" type="success">{{ $t('device.online') }}</el-tag>
+                <el-tag v-else type="danger">{{ $t('device.offline') }}</el-tag>
+              </template>
+              <template slot="alias" slot-scope="scope">
+                <el-input v-show="scope.row.isEdit" v-model="scope.row.alias" size="mini" maxlength="64" show-word-limit
+                  @blur="onAliasBlur(scope.row)" @keyup.enter.native="onAliasEnter(scope.row)" />
+                <span v-show="!scope.row.isEdit" class="alias-view">
+                  <i class="el-icon-edit" @click="scope.row.isEdit = true" style="cursor: pointer;"></i>
+                  <span @click="scope.row.isEdit = true">
+                    {{ scope.row.alias || '-' }}
+                  </span>
+                </span>
+              </template>
+              <template slot="otaSwitch" slot-scope="scope">
+                <el-switch v-model="scope.row.otaSwitch" size="mini" active-color="#13ce66" inactive-color="#ff4949"
+                  @change="handleOtaSwitchChange(scope.row)"></el-switch>
+              </template>
+              <template slot="operations" slot-scope="scope">
+                <el-button size="mini" type="text" @click="handleUnbind(scope.row.device_id)">
+                  {{ $t('device.unbind') }}
+                </el-button>
+                <el-button v-if="isGenerate(scope.row)" size="mini" type="text" @click="handleGenertor(scope.row)">
+                  {{ $t('device.deviceThemeGeneration') }}
+                </el-button>
+              </template>
+              <template slot="footer-btns">
+                <div class="ctrl_btn">
+                  <CustomButton :icon="isCurrentPageAllSelected ? 'el-icon-circle-close' : 'el-icon-circle-check'" size="small" @click="handleSelectAll">
+                    {{ isCurrentPageAllSelected ? $t('common.deselectAll') : $t('common.selectAll') }}
+                  </CustomButton>
+                  <CustomButton icon="el-icon-plus" type="add" size="small" @click="handleAddDevice">
+                    {{ $t('device.bindWithCode') }}
+                  </CustomButton>
+                  <CustomButton icon="el-icon-plus" type="add" size="small" @click="handleManualAddDevice">
+                    {{ $t('device.manualAdd') }}
+                  </CustomButton>
+                  <CustomButton size="small" type="delete" icon="el-icon-delete" @click="deleteSelected">
+                    {{ $t('device.unbind') }}
+                  </CustomButton>
+                </div>
+              </template>
+            </CustomTable>
           </el-card>
         </div>
       </div>
@@ -131,13 +100,27 @@ import AddDeviceDialog from "@/components/AddDeviceDialog.vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import ManualAddDeviceDialog from "@/components/ManualAddDeviceDialog.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
+import MacAddressMask from "@/components/MacAddressMask.vue";
+import CustomButton from "@/components/CustomButton.vue";
+import CustomTable from "@/components/CustomTable.vue";
+import {
+  compareTimestamps,
+  formatCreateDate,
+  formatTimestamp,
+  hasTimestampValue,
+  parseLegacyDate,
+  parseTimestamp,
+} from '@/utils/deviceTime.mjs';
 
 export default {
   components: {
     HeaderBar,
     AddDeviceDialog,
     ManualAddDeviceDialog,
-    VersionFooter
+    VersionFooter,
+    MacAddressMask,
+    CustomButton,
+    CustomTable,
   },
   data() {
     return {
@@ -154,7 +137,7 @@ export default {
       loading: false,
       userApi: null,
       firmwareTypes: [],
-      mqttServiceAvailable: false, // MQTT服务是否可用
+      mqttServiceAvailable: false,
     };
   },
   computed: {
@@ -172,28 +155,24 @@ export default {
       const end = start + this.pageSize;
       return this.filteredDeviceList.slice(start, end);
     },
-    pageCount() {
-      return Math.ceil(this.filteredDeviceList.length / this.pageSize);
-    },
-    // 计算当前页是否全选
     isCurrentPageAllSelected() {
       return this.paginatedDeviceList.length > 0 &&
         this.paginatedDeviceList.every(device => device.selected);
     },
-    visiblePages() {
-      const pages = [];
-      const maxVisible = 3;
-      let start = Math.max(1, this.currentPage - 1);
-      let end = Math.min(this.pageCount, start + maxVisible - 1);
-
-      if (end - start + 1 < maxVisible) {
-        start = Math.max(1, end - maxVisible + 1);
+    tableColumns() {
+      const columns = [
+        { prop: 'model', label: this.$t('device.model'), align: 'center' },
+        { prop: 'firmwareVersion', label: this.$t('device.firmwareVersion'), align: 'center' },
+        { prop: 'macAddress', label: this.$t('device.macAddress'), align: 'center' },
+        { prop: 'bindTime', label: this.$t('device.bindTime'), align: 'center' },
+        { prop: 'lastConversation', label: this.$t('device.lastConversation'), align: 'center' },
+      ];
+      if (this.mqttServiceAvailable) {
+        columns.push({ prop: 'deviceStatus', label: this.$t('device.deviceStatus'), align: 'center' });
       }
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      return pages;
+      columns.push({ prop: 'alias', label: this.$t('device.alias'), align: 'center' });
+      columns.push({ prop: 'otaSwitch', label: this.$t('device.autoUpdate'), align: 'center' });
+      return columns;
     },
   },
   mounted() {
@@ -283,41 +262,39 @@ export default {
     handleManualAddDevice() {
       this.manualAddDeviceDialogVisible = true;
     },
-    submitRemark(row) {
+    submitAlias(row) {
       if (row._submitting) return;
 
-      const text = (row.remark || '').trim();
+      const text = (row.alias || '').trim();
       if (text.length > 64) {
-        this.$message.warning(this.$t('device.remarkTooLong'));
+        this.$message.warning(this.$t('device.aliasTooLong'));
         return;
       }
-      if (text === row._originalRemark) {
+      if (text === row._originalAlias) {
         return;
       }
 
       row._submitting = true;
       this.updateDeviceInfo(row.device_id, { alias: text }, (ok, resp) => {
         if (ok) {
-          row._originalRemark = text;
-          this.$message.success(this.$t('device.remarkSaved'));
+          row._originalAlias = text;
+          this.$message.success(this.$t('device.aliasSaved'));
         } else {
-          row.remark = row._originalRemark;
-          this.$message.error(resp.msg || this.$t('device.remarkSaveFailed'));
+          row.alias = row._originalAlias;
+          this.$message.error(resp.msg || this.$t('device.aliasSaveFailed'));
         }
         row._submitting = false;
       });
     },
-    // 备注输入框：失焦时提交
-    onRemarkBlur(row) {
+    onAliasBlur(row) {
       row.isEdit = false;
       setTimeout(() => {
-        this.submitRemark(row);
-      }, 100); // 延迟 100ms，避开 enter+blur 同时触发的窗口
+        this.submitAlias(row);
+      }, 100);
     },
-    // 备注输入框：按回车时提交
-    onRemarkEnter(row) {
+    onAliasEnter(row) {
       row.isEdit = false;
-      this.submitRemark(row);
+      this.submitAlias(row);
     },
     handleUnbind(device_id) {
       this.$confirm(this.$t('device.confirmUnbind'), this.$t('message.warning'), {
@@ -348,15 +325,6 @@ export default {
       sessionStorage.setItem('devicePath', window.location.href);
       window.location.href = url;
     },
-    goFirst() {
-      this.currentPage = 1;
-    },
-    goPrev() {
-      if (this.currentPage > 1) this.currentPage--;
-    },
-    goNext() {
-      if (this.currentPage < this.pageCount) this.currentPage++;
-    },
     goToPage(page) {
       this.currentPage = page;
     },
@@ -367,29 +335,34 @@ export default {
         this.loading = false;
         if (data.code === 0) {
           this.deviceList = data.data.map(device => {
+            const hasCreateDateTimestamp = hasTimestampValue(device.createDateTimestamp);
+            const rawBindTime = hasCreateDateTimestamp
+              ? parseTimestamp(device.createDateTimestamp)
+              : parseLegacyDate(device.createDate);
             return {
               device_id: device.id,
               model: device.board,
               firmwareVersion: device.appVersion,
               macAddress: device.macAddress,
-              bindTime: device.createDate,
-              lastConversation: device.lastConnectedAt,
-              remark: device.alias,
-              _originalRemark: device.alias,
+              bindTime: formatCreateDate(device.createDateTimestamp, device.createDate),
+              lastConversation: formatTimestamp(device.lastConnectedAtTimestamp),
+              alias: device.alias,
+              _originalAlias: device.alias,
               isEdit: false,
               _submitting: false,
               otaSwitch: device.autoUpdate === 1,
-              rawBindTime: new Date(device.createDate).getTime(),
+              rawBindTime,
               selected: false,
-              // 初始设置为离线状态
               deviceStatus: 'offline'
             };
           })
-            .sort((a, b) => a.rawBindTime - b.rawBindTime);
+            .sort((firstDevice, secondDevice) => compareTimestamps(
+              firstDevice.rawBindTime,
+              secondDevice.rawBindTime,
+            ));
           this.activeSearchKeyword = "";
           this.searchKeyword = "";
 
-          // 获取设备列表后，立即获取设备状态
           this.fetchDeviceStatus(agentId);
         } else {
           this.$message.error(data.msg || this.$t('device.getListFailed'));
@@ -397,47 +370,35 @@ export default {
       });
     },
 
-    // 获取设备状态
     fetchDeviceStatus(agentId) {
-      // 开启表格等待状态，处理动态加载表头导致鼠标所在行的hover事件无法移除的问题
       this.loading = true;
       Api.device.getDeviceStatus(agentId, ({ data }) => {
         this.loading = false;
         if (data.code === 0) {
           try {
-            // 解析后端返回的设备状态JSON
             const statusData = JSON.parse(data.data);
 
-            // 直接使用解析后的数据作为设备状态映射（不需要devices字段包装）
             if (statusData && typeof statusData === 'object') {
-              // 成功获取到设备状态
               this.mqttServiceAvailable = true;
-              // 更新设备状态
               this.updateDeviceStatusFromResponse(statusData);
             } else {
-              // 数据格式不正确，MQTT服务不可用
               this.mqttServiceAvailable = false;
             }
           } catch (error) {
-            // JSON解析失败，MQTT服务不可用
             this.mqttServiceAvailable = false;
           }
         } else {
-          // 接口调用失败，MQTT服务不可用
           this.mqttServiceAvailable = false;
         }
       });
     },
 
-    // 根据API响应更新设备状态
     updateDeviceStatusFromResponse(deviceStatusMap) {
       this.deviceList.forEach(device => {
-        // 构建设备的MQTT客户端ID
         const macAddress = device.macAddress ? device.macAddress.replace(/:/g, '_') : 'unknown';
         const groupId = device.model ? device.model.replace(/:/g, '_') : 'GID_default';
         const mqttClientId = `${groupId}@@@${macAddress}@@@${macAddress}`;
 
-        // 从状态映射中获取设备状态
         if (deviceStatusMap[mqttClientId]) {
           const statusInfo = deviceStatusMap[mqttClientId];
 
@@ -454,16 +415,9 @@ export default {
 
           device.deviceStatus = isOnline ? 'online' : 'offline';
         } else {
-          // 如果没有找到对应的状态信息，默认为离线
           device.deviceStatus = 'offline';
         }
       });
-    },
-    headerCellClassName({ columnIndex }) {
-      if (columnIndex === 0) {
-        return "custom-selection-header";
-      }
-      return "";
     },
     getFirmwareTypeName(type) {
       const firmwareType = this.firmwareTypes.find(item => item.key === type)
@@ -484,7 +438,6 @@ export default {
         this.$message.error(msg || this.$t('message.error'))
       })
     },
-    // 判断是否可以生成表情、主题、字体bin文件
     isGenerate(row) {
       const version = row.firmwareVersion.replace(/\./g, '');
       return Number(version) >= 200;
@@ -493,7 +446,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .welcome {
   min-width: 900px;
   min-height: 506px;
@@ -501,34 +454,33 @@ export default {
   display: flex;
   position: relative;
   flex-direction: column;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd);
+  background: #eff4ff;
   background-size: cover;
   -webkit-background-size: cover;
   -o-background-size: cover;
+  overflow: hidden;
 }
 
 .main-wrapper {
-  height: calc(100vh - 63px - 35px - 72px);
-  margin: 0 22px;
-  border-radius: 15px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  height: calc(100vh - 63px - 35px);
+  padding: 20px 22px 0;
   position: relative;
-  background: rgba(237, 242, 255, 0.5);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
-.operation-bar {
+.operation-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  justify-content: space-between;
+  padding: 0 0 16px 0;
 }
 
 .page-title {
+  font-weight: 500;
   font-size: 24px;
   margin: 0;
-  color: #2c3e50;
 }
 
 .right-operations {
@@ -538,74 +490,10 @@ export default {
 }
 
 .search-input {
-  width: 280px;
-  border-radius: 4px;
-}
-
-.btn-search {
-  background: linear-gradient(135deg, #6b8cff, #a966ff);
-  border: none;
-  color: white;
-}
-
-::v-deep .search-input .el-input__inner {
-  border-radius: 4px;
-  border: 1px solid #DCDFE6;
-  background-color: white;
-  transition: border-color 0.2s;
-}
-
-::v-deep .page-size-select {
-  width: 100px;
-  margin-right: 8px;
-}
-
-::v-deep .page-size-select .el-input__inner {
-  height: 32px;
-  line-height: 32px;
-  border-radius: 4px;
-  border: 1px solid #e4e7ed;
-  background: #dee7ff;
-  color: #606266;
-  font-size: 14px;
-}
-
-::v-deep .page-size-select .el-input__suffix {
-  right: 6px;
-  width: 15px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  top: 6px;
-  border-radius: 4px;
-}
-
-::v-deep .page-size-select .el-input__suffix-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-::v-deep .page-size-select .el-icon-arrow-up:before {
-  content: "";
-  display: inline-block;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 9px solid #606266;
-  position: relative;
-  transform: rotate(0deg);
-  transition: transform 0.3s;
-}
-
-::v-deep .search-input .el-input__inner:focus {
-  border-color: #6b8cff;
-  outline: none;
+  width: 240px;
 }
 
 .content-panel {
-  flex: 1;
   display: flex;
   overflow: hidden;
   height: 100%;
@@ -626,176 +514,26 @@ export default {
 
 .device-card {
   background: white;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   border: none;
   box-shadow: none;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
   overflow: hidden;
-}
 
-::v-deep .el-card__body {
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
+  ::v-deep .el-card__body {
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
 }
-
-.table_bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  /* padding-bottom: 10px; */
-}
-
 
 .ctrl_btn {
   display: flex;
   gap: 8px;
-  padding-left: 26px;
 }
-
-.ctrl_btn .el-button {
-  min-width: 72px;
-  height: 32px;
-  padding: 7px 12px 7px 10px;
-  font-size: 12px;
-  border-radius: 4px;
-  line-height: 1;
-  font-weight: 500;
-  border: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.ctrl_btn .el-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.ctrl_btn .el-button--primary {
-  background: #5f70f3;
-  color: white;
-}
-
-.ctrl_btn .el-button--success {
-  background: #5bc98c;
-  color: white;
-}
-
-.ctrl_btn .el-button--danger {
-  background: #fd5b63;
-  color: white;
-}
-
-.custom-pagination {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.custom-pagination .el-select {
-  margin-right: 8px;
-}
-
-.custom-pagination .pagination-btn:first-child,
-.custom-pagination .pagination-btn:nth-child(2),
-.custom-pagination .pagination-btn:nth-last-child(2),
-.custom-pagination .pagination-btn:nth-child(3) {
-  min-width: 60px;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 4px;
-  border: 1px solid #e4e7ed;
-  background: #dee7ff;
-  color: #606266;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.custom-pagination .pagination-btn:first-child:hover,
-.custom-pagination .pagination-btn:nth-child(2):hover,
-.custom-pagination .pagination-btn:nth-last-child(2):hover,
-.custom-pagination .pagination-btn:nth-child(3):hover {
-  background: #d7dce6;
-}
-
-.custom-pagination .pagination-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.custom-pagination .pagination-btn:not(:first-child):not(:nth-child(3)):not(:nth-child(2)):not(:nth-last-child(2)) {
-  min-width: 28px;
-  height: 32px;
-  padding: 0;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: #606266;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.custom-pagination .pagination-btn:not(:first-child):not(:nth-child(3)):not(:nth-child(2)):not(:nth-last-child(2)):hover {
-  background: rgba(245, 247, 250, 0.3);
-}
-
-.custom-pagination .pagination-btn.active {
-  background: #5f70f3 !important;
-  color: #ffffff !important;
-  border-color: #5f70f3 !important;
-}
-
-.custom-pagination .pagination-btn.active:hover {
-  background: #6d7cf5 !important;
-}
-
-.custom-pagination .total-text {
-  color: #909399;
-  font-size: 14px;
-  margin-left: 10px;
-}
-
-:deep(.transparent-table) {
-  background: white;
-  border: none;
-}
-
-:deep(.transparent-table .el-table__header th) {
-  background: white !important;
-  color: black;
-  border-right: none !important;
-}
-
-:deep(.transparent-table .el-table__body tr td) {
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-  border-right: none !important;
-}
-
-:deep(.transparent-table .el-table__header tr th:first-child .cell),
-:deep(.transparent-table .el-table__body tr td:first-child .cell) {
-  padding-left: 10px;
-}
-
-:deep(.el-icon-edit) {
-  color: #7079aa;
-  cursor: pointer;
-}
-
-:deep(.el-icon-edit:hover) {
-  color: #5a64b5;
-}
-
-:deep(.custom-selection-header .el-checkbox) {
-  display: none !important;
-}
-
 
 :deep(.el-table .el-button--text) {
   color: #7079aa;
@@ -805,51 +543,12 @@ export default {
   color: #5a64b5;
 }
 
-:deep(.transparent-table) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  /* max-height: calc(100vh - 40vh); */
+:deep(.el-icon-edit) {
+  color: #7079aa;
+  cursor: pointer;
 }
 
-:deep(.el-table__body-wrapper) {
-  flex: 1;
-  overflow-y: auto;
-  max-height: none !important;
-}
-
-:deep(.el-table__header-wrapper) {
-  flex-shrink: 0;
-}
-
-@media (min-width: 1144px) {
-  .table_bottom {
-    margin-top: 40px;
-  }
-
-  :deep(.transparent-table) .el-table__body tr td {
-    padding-top: 16px;
-    padding-bottom: 16px;
-  }
-}
-
-:deep(.el-checkbox__inner) {
-  background-color: #eeeeee !important;
-  border-color: #cccccc !important;
-}
-
-:deep(.el-checkbox__inner:hover) {
-  border-color: #cccccc !important;
-}
-
-:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-  background-color: #5f70f3 !important;
-  border-color: #5f70f3 !important;
-}
-
-::v-deep .el-table--border::after,
-::v-deep .el-table--group::after,
-::v-deep .el-table::before {
-  display: none !important;
+:deep(.el-icon-edit:hover) {
+  color: #5a64b5;
 }
 </style>

@@ -164,7 +164,7 @@ public class ModelProviderServiceImpl extends BaseServiceImpl<ModelProviderDao, 
 
     @Override
     public void delete(List<String> ids) {
-        if (modelProviderDao.deleteBatchIds(ids) == 0) {
+        if (modelProviderDao.deleteByIds(ids) == 0) {
             throw new RenException(ErrorCode.DELETE_DATA_FAILED);
         }
     }

@@ -114,7 +114,12 @@ public class SysParamsController {
         // 校验mqtt密钥长度
         validateMqttSecretLength(dto.getParamCode(), dto.getParamValue());
 
-        sysParamsService.update(dto);
+        // 如果是系统功能菜单配置，使用特殊处理
+        if (Constant.SYSTEM_WEB_MENU.equals(dto.getParamCode())) {
+            sysParamsService.updateSystemWebMenu(dto.getParamValue());
+        } else {
+            sysParamsService.update(dto);
+        }
         configService.getConfig(false);
         return new Result<Void>();
     }

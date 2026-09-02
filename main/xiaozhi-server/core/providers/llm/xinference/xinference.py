@@ -74,12 +74,15 @@ class LLMProvider(LLMProviderBase):
             tools=functions,
         )
 
-        for chunk in stream:
-            delta = chunk.choices[0].delta
-            content = delta.content
-            tool_calls = delta.tool_calls
+        try:
+            for chunk in stream:
+                delta = chunk.choices[0].delta
+                content = delta.content
+                tool_calls = delta.tool_calls
 
-            if content:
-                yield content, tool_calls
-            elif tool_calls:
-                yield None, tool_calls
+                if content:
+                    yield content, tool_calls
+                elif tool_calls:
+                    yield None, tool_calls
+        finally:
+            stream.close()

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onHide, onLaunch, onShow } from '@dcloudio/uni-app'
-import { watch, onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { usePageAuth } from '@/hooks/usePageAuth'
-import { useConfigStore } from '@/store'
 import { t } from '@/i18n'
+import { useConfigStore } from '@/store'
 import { useLangStore } from '@/store/lang'
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only'
 
@@ -37,9 +37,9 @@ function updateTabBarText() {
       success: () => {},
       fail: (err) => {
         console.log('设置首页tabBar文本失败:', err)
-      }
+      },
     })
-    
+
     // 设置配网tabBar文本
     uni.setTabBarItem({
       index: 1,
@@ -47,9 +47,9 @@ function updateTabBarText() {
       success: () => {},
       fail: (err) => {
         console.log('设置配网tabBar文本失败:', err)
-      }
+      },
     })
-    
+
     // 设置系统tabBar文本
     uni.setTabBarItem({
       index: 2,
@@ -57,9 +57,10 @@ function updateTabBarText() {
       success: () => {},
       fail: (err) => {
         console.log('设置系统tabBar文本失败:', err)
-      }
+      },
     })
-  } catch (error) {
+  }
+  catch (error) {
     console.log('更新tabBar文本时出错:', error)
   }
 }

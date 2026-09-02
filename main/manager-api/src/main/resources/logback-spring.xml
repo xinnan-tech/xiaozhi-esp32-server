@@ -1,20 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- 启用JansiConsoleAppender以确保控制台输出有颜色 -->
-    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
-    
-    <!-- 确保日志目录存在 -->
-    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
-    
     <!-- 定义日志文件存储位置 -->
     <property name="LOG_HOME" value="./logs" />
-    
-    <!-- 使用自定义的初始化监听器确保日志目录存在 -->
-    <define name="LOGBACK_DIR_CHECK" class="ch.qos.logback.core.property.FileExistsPropertyDefiner">
-        <path>${LOG_HOME}</path>
-        <createIfMissing>true</createIfMissing>
-    </define>
-    
+
     <!-- 引入Spring Boot默认配置 -->
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
     

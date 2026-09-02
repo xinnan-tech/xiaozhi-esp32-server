@@ -1,15 +1,14 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createSSRApp } from 'vue'
 import App from './App.vue'
-import { routeInterceptor } from './router/interceptor'
-
-import store from './store'
-import '@/style/index.scss'
-import 'virtual:uno.css'
-
 // 导入国际化相关功能
 import { initI18n } from './i18n'
-import { useLangStore } from './store/lang'
+
+import { routeInterceptor } from './router/interceptor'
+import store from './store'
+
+import '@/style/index.scss'
+import 'virtual:uno.css'
 
 export function createApp() {
   const app = createSSRApp(App)

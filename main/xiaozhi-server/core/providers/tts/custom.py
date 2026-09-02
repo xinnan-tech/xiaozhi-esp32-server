@@ -38,9 +38,19 @@ class TTSProvider(TTSProviderBase):
             request_params[k] = v
 
         if self.method.upper() == "POST":
-            resp = requests.post(self.url, json=request_params, headers=self.headers)
+            resp = requests.post(
+                self.url,
+                json=request_params,
+                headers=self.headers,
+                timeout=self.tts_timeout,
+            )
         else:
-            resp = requests.get(self.url, params=request_params, headers=self.headers)
+            resp = requests.get(
+                self.url,
+                params=request_params,
+                headers=self.headers,
+                timeout=self.tts_timeout,
+            )
         if resp.status_code == 200:
             if output_file:
                 with open(output_file, "wb") as file:

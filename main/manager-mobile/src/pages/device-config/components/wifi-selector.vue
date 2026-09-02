@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, defineEmits, defineExpose, onMounted, ref } from 'vue'
-import { useToast } from 'wot-design-uni'
+import { computed, onMounted, ref } from 'vue'
+import { useToast } from 'wot-design-uni/components/wd-toast'
 import { t } from '@/i18n'
 
 // 类型定义
@@ -71,9 +71,9 @@ async function checkESP32Connection() {
 // 扫描WiFi网络
 async function scanWifi() {
   if (!isConnectedToESP32.value) {
-      toast.error(t('deviceConfig.connectXiaozhiHotspot'))
-      return
-    }
+    toast.error(t('deviceConfig.connectXiaozhiHotspot'))
+    return
+  }
 
   scanning.value = true
   console.log('开始扫描WiFi网络')
@@ -85,13 +85,23 @@ async function scanWifi() {
       timeout: 10000,
     })
 
-    console.log(t('deviceConfig.wifiScanResponse') + ':', response)
+    console.log(`${t('deviceConfig.wifiScanResponse')}:`, response)
 
     if (response.statusCode === 200 && response.data) {
       const data = response.data as any
       if (data.success && Array.isArray(data.networks)) {
         wifiNetworks.value = data.networks
         console.log(`${t('deviceConfig.scanSuccess')}，发现 ${data.networks.length} ${t('deviceConfig.networks')}`)
+      }
+      else if (data.aps && Array.isArray(data.aps)) {
+        // 兼容 { data: { support_5g, aps } } 格式
+        wifiNetworks.value = data.aps.map((item: any) => ({
+          ssid: item.ssid,
+          rssi: item.rssi,
+          authmode: item.authmode,
+          channel: item.channel || 0,
+        }))
+        console.log(`${t('deviceConfig.scanSuccess')}，发现 ${data.aps.length} ${t('deviceConfig.networks')}`)
       }
       else if (Array.isArray(response.data)) {
         // 兼容旧格式
@@ -111,8 +121,8 @@ async function scanWifi() {
     }
   }
   catch (error) {
-    console.error(t('deviceConfig.wifiScanFailed') + ':', error)
-      toast.error(t('deviceConfig.scanFailedCheckConnection'))
+    console.error(`${t('deviceConfig.wifiScanFailed')}:`, error)
+    toast.error(t('deviceConfig.scanFailedCheckConnection'))
   }
   finally {
     scanning.value = false
@@ -125,9 +135,9 @@ async function showNetworkSelector() {
   await checkESP32Connection()
 
   if (!isConnectedToESP32.value) {
-      toast.error(t('deviceConfig.connectXiaozhiHotspot'))
-      return
-    }
+    toast.error(t('deviceConfig.connectXiaozhiHotspot'))
+    return
+  }
 
   selectorExpanded.value = true
 
@@ -213,73 +223,73 @@ onMounted(() => {
     <!-- Xiaozhi连接状态 -->
     <view v-if="props.autoConnect" class="connection-status">
       <view v-if="!isConnectedToESP32" class="status-warning">
-          <view class="status-content">
-            <text class="warning-text">
-              {{ t('deviceConfig.connectXiaozhiHotspot') }} (xiaozhi-XXXXXX)
-            </text>
-            <wd-button
-              size="small"
-              type="primary"
-              :loading="checkingConnection"
-              @click="checkESP32Connection"
-            >
-              {{ checkingConnection ? t('deviceConfig.checking') : t('deviceConfig.reCheck') }}
-            </wd-button>
-          </view>
+        <view class="status-content">
+          <text class="warning-text">
+            {{ t('deviceConfig.connectXiaozhiHotspot') }} (xiaozhi-XXXXXX)
+          </text>
+          <wd-button
+            size="small"
+            type="primary"
+            :loading="checkingConnection"
+            @click="checkESP32Connection"
+          >
+            {{ checkingConnection ? t('deviceConfig.checking') : t('deviceConfig.reCheck') }}
+          </wd-button>
         </view>
+      </view>
       <view v-else class="status-success">
-          <view class="status-content">
-            <text class="success-text">
-              {{ t('deviceConfig.connectedXiaozhiHotspot') }}
-            </text>
-            <wd-button
-              size="small"
-              :loading="checkingConnection"
-              @click="checkESP32Connection"
-            >
-              {{ checkingConnection ? t('deviceConfig.checking') : t('deviceConfig.refreshStatus') }}
-            </wd-button>
-          </view>
+        <view class="status-content">
+          <text class="success-text">
+            {{ t('deviceConfig.connectedXiaozhiHotspot') }}
+          </text>
+          <wd-button
+            size="small"
+            :loading="checkingConnection"
+            @click="checkESP32Connection"
+          >
+            {{ checkingConnection ? t('deviceConfig.checking') : t('deviceConfig.refreshStatus') }}
+          </wd-button>
         </view>
+      </view>
     </view>
 
     <!-- WiFi网络选择器 -->
     <view class="network-selector">
-        <view class="selector-item" @click="showNetworkSelector">
-          <text class="selector-label">
-            {{ t('deviceConfig.wifiNetwork') }}
-          </text>
-          <text class="selector-value">
-            {{ networkDisplayText }}
-          </text>
-          <wd-icon name="arrow-right" custom-class="arrow-icon" />
-        </view>
+      <view class="selector-item" @click="showNetworkSelector">
+        <text class="selector-label">
+          {{ t('deviceConfig.wifiNetwork') }}
+        </text>
+        <text class="selector-value">
+          {{ networkDisplayText }}
+        </text>
+        <wd-icon name="arrow-right" custom-class="arrow-icon" />
       </view>
+    </view>
 
     <!-- 展开的网络列表 -->
     <view v-if="selectorExpanded" class="network-list-overlay">
       <view class="network-list-container">
         <view class="list-header">
-            <text class="list-title">
-              {{ t('deviceConfig.selectWifiNetwork') }}
-            </text>
-            <view class="list-actions">
-              <wd-button
-                type="primary"
-                size="small"
-                :loading="scanning"
-                @click="scanWifi"
-              >
-                {{ scanning ? t('deviceConfig.scanning') : t('deviceConfig.refreshScan') }}
-              </wd-button>
-              <wd-button
-                size="small"
-                @click="selectorExpanded = false"
-              >
-                {{ t('deviceConfig.cancel') }}
-              </wd-button>
-            </view>
+          <text class="list-title">
+            {{ t('deviceConfig.selectWifiNetwork') }}
+          </text>
+          <view class="list-actions">
+            <wd-button
+              type="primary"
+              size="small"
+              :loading="scanning"
+              @click="scanWifi"
+            >
+              {{ scanning ? t('deviceConfig.scanning') : t('deviceConfig.refreshScan') }}
+            </wd-button>
+            <wd-button
+              size="small"
+              @click="selectorExpanded = false"
+            >
+              {{ t('deviceConfig.cancel') }}
+            </wd-button>
           </view>
+        </view>
 
         <view class="network-list">
           <view v-if="wifiNetworks.length === 0 && !scanning" class="empty-state">
@@ -313,7 +323,7 @@ onMounted(() => {
               </view>
               <view class="wifi-security">
                 <text class="security-icon">
-                  {{ network.authmode === 0 ? t('deviceConfig.open') : t('deviceConfig.encrypted') }}
+                  {{ network.authmode === 0 ? t('deviceConfig.open') : t('deviceConfig.encryptedNetwork') }}
                 </text>
               </view>
             </view>
@@ -325,17 +335,17 @@ onMounted(() => {
     <!-- 密码输入 -->
     <view v-if="selectedNetwork && selectedNetwork.authmode > 0" class="password-section">
       <view class="password-item">
-          <text class="password-label">
-            {{ t('deviceConfig.networkPassword') }}
-          </text>
-          <wd-input
-            v-model="password"
-            :placeholder="t('deviceConfig.enterWifiPassword')"
-            show-password
-            clearable
-            @input="onPasswordChange"
-          />
-        </view>
+        <text class="password-label">
+          {{ t('deviceConfig.wifiPassword') }}
+        </text>
+        <wd-input
+          v-model="password"
+          :placeholder="t('deviceConfig.enterWifiPassword')"
+          show-password
+          clearable
+          @input="onPasswordChange"
+        />
+      </view>
     </view>
   </view>
 </template>

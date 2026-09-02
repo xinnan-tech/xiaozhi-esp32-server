@@ -19,6 +19,8 @@ import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.modules.knowledge.dao.KnowledgeBaseDao;
+import xiaozhi.modules.knowledge.dao.DocumentDao;
+import xiaozhi.modules.knowledge.entity.DocumentEntity;
 import xiaozhi.modules.knowledge.dto.KnowledgeBaseDTO;
 import xiaozhi.modules.knowledge.dto.dataset.DatasetDTO;
 import xiaozhi.modules.knowledge.entity.KnowledgeBaseEntity;
@@ -46,6 +48,7 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
         implements KnowledgeBaseService {
 
     private final KnowledgeBaseDao knowledgeBaseDao;
+    private final DocumentDao documentDao;
     private final ModelConfigService modelConfigService;
     private final ModelConfigDao modelConfigDao;
     private final RedisUtils redisUtils;
@@ -67,24 +70,105 @@ public class KnowledgeBaseServiceImpl extends BaseServiceImpl<KnowledgeBaseDao, 
 
         // Enrich with Document Count from RAG (Optional / Lazy)
         if (pageData != null && pageData.getList() != null) {
-            for (KnowledgeBaseDTO dto : pageData.getList()) {
+            pageData.getList().removeIf(dto -> {
                 enrichDocumentCount(dto);
-            }
+                // syncDatasetFromRAG 检测到 RAGFlow 端已删除时，会将本地记录清理
+                // 此时 datasetId 被置空作为标记，需要在列表中移除该条目
+                return dto.getDatasetId() == null;
+            });
         }
         return pageData;
     }
 
     private void enrichDocumentCount(KnowledgeBaseDTO dto) {
+        syncDatasetFromRAG(dto);
+    }
+
+    /**
+     * 从 RAGFlow 同步数据集信息：检测删除、同步名称/简介、获取文档数量
+     * 每次列表刷新时实时查询 RAGFlow，确保立即感知远端变更
+     */
+    private void syncDatasetFromRAG(KnowledgeBaseDTO dto) {
         try {
-            if (StringUtils.isNotBlank(dto.getDatasetId()) && StringUtils.isNotBlank(dto.getRagModelId())) {
-                KnowledgeBaseAdapter adapter = getAdapterByModelId(dto.getRagModelId());
-                if (adapter != null) {
-                    dto.setDocumentCount(adapter.getDocumentCount(dto.getDatasetId()));
+            if (StringUtils.isBlank(dto.getDatasetId()) || StringUtils.isBlank(dto.getRagModelId())) {
+                return;
+            }
+
+            KnowledgeBaseAdapter adapter = getAdapterByModelId(dto.getRagModelId());
+            if (adapter == null) {
+                return;
+            }
+
+            DatasetDTO.InfoVO datasetInfo = adapter.getDatasetInfo(dto.getDatasetId());
+            // getDatasetInfo 正常返回 null 表示远端确实不存在；异常时已抛出 RenException 由外层 catch 接管
+            if (datasetInfo == null) {
+                // RAGFlow 端已确认删除 → 本地级联清理
+                log.info("数据集 {} 在 RAGFlow 端不存在，执行本地清理", dto.getDatasetId());
+                cleanupLocalDataset(dto.getDatasetId(), dto.getId());
+                // 标记为已删除，让上层从列表中移除
+                dto.setDatasetId(null);
+                return;
+            }
+
+            // 同步名称（去掉 username_ 前缀）
+            String ragflowName = datasetInfo.getName();
+            if (StringUtils.isNotBlank(ragflowName)) {
+                String localName = ragflowName.contains("_") ? ragflowName.substring(ragflowName.indexOf('_') + 1) : ragflowName;
+                if (!localName.equals(dto.getName())) {
+                    log.info("同步知识库名称: {} -> {}", dto.getName(), localName);
+                    KnowledgeBaseEntity entity = knowledgeBaseDao.selectById(dto.getId());
+                    if (entity != null) {
+                        entity.setName(localName);
+                        knowledgeBaseDao.updateById(entity);
+                        dto.setName(localName);
+                    }
                 }
             }
+
+            // 同步简介
+            String ragflowDesc = datasetInfo.getDescription();
+            String localDesc = dto.getDescription();
+            boolean descChanged = (ragflowDesc == null && localDesc != null) || (ragflowDesc != null && !ragflowDesc.equals(localDesc));
+            if (descChanged) {
+                log.info("同步知识库简介: datasetId={}", dto.getDatasetId());
+                KnowledgeBaseEntity entity = knowledgeBaseDao.selectById(dto.getId());
+                if (entity != null) {
+                    entity.setDescription(ragflowDesc);
+                    knowledgeBaseDao.updateById(entity);
+                    dto.setDescription(ragflowDesc);
+                }
+            }
+
+            // 设置文档数量（保留原有功能）
+            if (datasetInfo.getDocumentCount() != null) {
+                dto.setDocumentCount(datasetInfo.getDocumentCount().intValue());
+            }
+
         } catch (Exception e) {
-            log.warn("无法获取知识库 {} 的文档计数: {}", dto.getName(), e.getMessage());
+            log.error("同步数据集信息失败 {}: {}", dto.getName(), e.getMessage());
             dto.setDocumentCount(0);
+            dto.setErrorMessage(e.getMessage());
+        }
+    }
+
+    /**
+     * 本地级联清理：RAGFlow 端已删除时，清理本地所有关联数据
+     * 不调用 RAGFlow 删除 API
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void cleanupLocalDataset(String datasetId, String entityId) {
+        try {
+            // 1. 删除文档影子记录
+            documentDao.delete(new QueryWrapper<DocumentEntity>().eq("dataset_id", datasetId));
+            // 2. 删除插件映射
+            knowledgeBaseDao.deletePluginMappingByKnowledgeBaseId(entityId);
+            // 3. 删除知识库记录
+            knowledgeBaseDao.deleteById(entityId);
+            // 4. 清理缓存
+            redisUtils.delete(RedisKeys.getKnowledgeBaseCacheKey(entityId));
+            log.info("本地级联清理完成: datasetId={}, entityId={}", datasetId, entityId);
+        } catch (Exception e) {
+            log.error("本地级联清理失败: datasetId={}, entityId={}", datasetId, entityId, e);
         }
     }
 

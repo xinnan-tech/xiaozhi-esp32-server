@@ -13,9 +13,9 @@ http://192.168.1.25:8003/xiaozhi/ota/
 ```
 如果显示“OTA接口运行正常，向设备发送的websocket地址是：ws://xxx:8000/xiaozhi/v1/
 
-你可以使用项目自带的`test_page.html`测试一下，是否能连上ota页面输出的websocket地址。
+你可以启动`digital-human`模块后打开`index.html`测试一下，是否能连上ota页面输出的websocket地址。
 
-如果访问不到，你需要到配置文件`.config.yaml`里修改`server.websocket`的地址，重启后再重新测试，直到`test_page.html`能正常访问。
+如果访问不到，你需要到配置文件`.config.yaml`里修改`server.websocket`的地址，重启后再重新测试，直到`index.html`能正常访问。
 
 成功后，请往下进行第2步
 

@@ -9,23 +9,23 @@
 </route>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
-import { useConfigStore } from "@/store";
-import { getEnvBaseUrl, sm2Encrypt } from "@/utils";
-import { toast } from "@/utils/toast";
-// 导入国际化相关功能
-import { t, initI18n } from "@/i18n";
+import { onLoad } from '@dcloudio/uni-app'
+import { computed, onMounted, ref } from 'vue'
 // 导入API接口
-import { retrievePassword, sendSmsCode } from "@/api/auth";
+import { retrievePassword, sendSmsCode } from '@/api/auth'
+// 导入国际化相关功能
+import { initI18n, t } from '@/i18n'
+import { useConfigStore } from '@/store'
+import { getEnvBaseUrl, sm2Encrypt } from '@/utils'
+import { toast } from '@/utils/toast'
 
 // 获取屏幕边界到安全区域距离
-let safeAreaInsets;
-let systemInfo;
+let safeAreaInsets
+let systemInfo
 
 // #ifdef MP-WEIXIN
 // 微信小程序使用新的API
-systemInfo = uni.getWindowInfo();
+systemInfo = uni.getWindowInfo()
 safeAreaInsets = systemInfo.safeArea
   ? {
       top: systemInfo.safeArea.top,
@@ -33,147 +33,148 @@ safeAreaInsets = systemInfo.safeArea
       bottom: systemInfo.windowHeight - systemInfo.safeArea.bottom,
       left: systemInfo.safeArea.left,
     }
-  : null;
+  : null
 // #endif
 
 // #ifndef MP-WEIXIN
 // 其他平台继续使用uni API
-systemInfo = uni.getSystemInfoSync();
-safeAreaInsets = systemInfo.safeAreaInsets;
+systemInfo = uni.getSystemInfoSync()
+safeAreaInsets = systemInfo.safeAreaInsets
 // #endif
 
 // 表单数据
 interface ForgotPasswordData {
-  mobile: string;
-  captcha: string;
-  captchaId: string;
-  mobileCaptcha: string;
-  newPassword: string;
-  confirmPassword: string;
-  areaCode: string;
+  mobile: string
+  captcha: string
+  captchaId: string
+  mobileCaptcha: string
+  newPassword: string
+  confirmPassword: string
+  areaCode: string
 }
 
 const formData = ref<ForgotPasswordData>({
-  mobile: "",
-  captcha: "",
-  captchaId: "",
-  mobileCaptcha: "",
-  newPassword: "",
-  confirmPassword: "",
-  areaCode: "+86",
-});
+  mobile: '',
+  captcha: '',
+  captchaId: '',
+  mobileCaptcha: '',
+  newPassword: '',
+  confirmPassword: '',
+  areaCode: '+86',
+})
 
 // 验证码图片
-const captchaImage = ref("");
-const loading = ref(false);
+const captchaImage = ref('')
+const loading = ref(false)
 
 // 获取配置store
-const configStore = useConfigStore();
+const configStore = useConfigStore()
 
 // State for area code action sheet
-const showAreaCodeSheet = ref(false);
-const selectedAreaCode = ref("+86");
+const showAreaCodeSheet = ref(false)
+const selectedAreaCode = ref('+86')
+// 短信验证码倒计时
+const smsCountdown = ref(0)
+const smsLoading = ref(false)
 const areaCodeList = computed(() =>
   (configStore.config.mobileAreaList || []).map((item) => {
     return {
       value: item.key,
       label: `${item.name} (${item.key})`,
-    };
-  })
-);
+    }
+  }),
+)
 
 const canSendMobileCaptcha = computed(() => {
-  const mobile = formData.value.mobile;
-  const phoneRegex = /^1[3-9]\d{9}$/;
-  return phoneRegex.test(mobile) && smsCountdown.value === 0;
-});
+  const mobile = formData.value.mobile
+  const phoneRegex = /^1[3-9]\d{9}$/
+  return phoneRegex.test(mobile) && smsCountdown.value === 0
+})
 
 // SM2公钥
 const sm2PublicKey = computed(() => {
-  return configStore.config.sm2PublicKey;
-});
-
-// 短信验证码倒计时
-const smsCountdown = ref(0);
-const smsLoading = ref(false);
+  return configStore.config.sm2PublicKey
+})
 
 // 打开区号选择弹窗
 function openAreaCodeSheet() {
-  showAreaCodeSheet.value = true;
+  showAreaCodeSheet.value = true
 }
 
 // 选择区号
-function selectAreaCode(item: { value: string; label: string }) {
-  selectedAreaCode.value = item.value;
-  formData.value.areaCode = item.value;
-  showAreaCodeSheet.value = false;
+function selectAreaCode(item: { value: string, label: string }) {
+  selectedAreaCode.value = item.value
+  formData.value.areaCode = item.value
+  showAreaCodeSheet.value = false
 }
 
 // 关闭区号选择弹窗
 function closeAreaCodeSheet() {
-  showAreaCodeSheet.value = false;
+  showAreaCodeSheet.value = false
 }
 
 // 生成UUID
 function generateUUID() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
 }
 
 // 获取图形验证码
 async function refreshCaptcha() {
-  const uuid = generateUUID();
-  formData.value.captchaId = uuid;
-  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`;
+  const uuid = generateUUID()
+  formData.value.captchaId = uuid
+  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`
 }
 
 // 发送短信验证码
 async function handleSendSmsCode() {
   // 手机号格式验证
-  const phoneRegex = /^1[3-9]\d{9}$/;
+  const phoneRegex = /^1[3-9]\d{9}$/
   if (!phoneRegex.test(formData.value.mobile)) {
-    toast.warning(t("retrievePassword.inputCorrectMobile"));
-    return;
+    toast.warning(t('retrievePassword.inputCorrectMobile'))
+    return
   }
 
   if (!formData.value.captcha) {
-    toast.warning(t("retrievePassword.captchaRequired"));
-    return;
+    toast.warning(t('retrievePassword.captchaRequired'))
+    return
   }
 
   try {
-    smsLoading.value = true;
+    smsLoading.value = true
     // 将手机号转换为国际格式
-    const internationalPhone = formData.value.areaCode + formData.value.mobile;
+    const internationalPhone = formData.value.areaCode + formData.value.mobile
     // 调用发送短信验证码API
     await sendSmsCode({
       phone: internationalPhone,
       captcha: formData.value.captcha,
-      captchaId: formData.value.captchaId
+      captchaId: formData.value.captchaId,
     })
 
-    toast.success(t("retrievePassword.captchaSendSuccess"));
+    toast.success(t('retrievePassword.captchaSendSuccess'))
 
     // 开始倒计时
-    smsCountdown.value = 60;
+    smsCountdown.value = 60
     const timer = setInterval(() => {
-      smsCountdown.value--;
+      smsCountdown.value--
       if (smsCountdown.value <= 0) {
-        clearInterval(timer);
+        clearInterval(timer)
       }
-    }, 1000);
-  } catch (error: any) {
+    }, 1000)
+  }
+  catch (error: any) {
     // 处理验证码错误
-    if (error.message.includes("请求错误[10067]")) {
-      toast.warning(t("login.captchaError"));
+    if (error.message.includes('请求错误[10067]')) {
+      toast.warning(t('login.captchaError'))
     }
     // 发送失败重新获取图形验证码
-    refreshCaptcha();
-  } finally {
-    smsLoading.value = false;
+    refreshCaptcha()
+  }
+  finally {
+    smsLoading.value = false
   }
 }
 
@@ -181,64 +182,65 @@ async function handleSendSmsCode() {
 async function handleResetPassword() {
   // 表单验证
   if (!formData.value.mobile) {
-    toast.warning(t("retrievePassword.mobileRequired"));
-    return;
+    toast.warning(t('retrievePassword.mobileRequired'))
+    return
   }
 
   // 手机号格式验证
-  const phoneRegex = /^1[3-9]\d{9}$/;
+  const phoneRegex = /^1[3-9]\d{9}$/
   if (!phoneRegex.test(formData.value.mobile)) {
-    toast.warning(t("retrievePassword.inputCorrectMobile"));
-    return;
+    toast.warning(t('retrievePassword.inputCorrectMobile'))
+    return
   }
 
   // 将手机号转换为国际格式
-  const internationalPhone = formData.value.areaCode + formData.value.mobile;
+  const internationalPhone = formData.value.areaCode + formData.value.mobile
 
   if (!formData.value.captcha) {
-    toast.warning(t("retrievePassword.captchaRequired"));
-    return;
+    toast.warning(t('retrievePassword.captchaRequired'))
+    return
   }
 
   if (!formData.value.mobileCaptcha) {
-    toast.warning(t("retrievePassword.mobileCaptchaRequired"));
-    return;
+    toast.warning(t('retrievePassword.mobileCaptchaRequired'))
+    return
   }
 
   if (!formData.value.newPassword) {
-    toast.warning(t("retrievePassword.newPasswordRequired"));
-    return;
+    toast.warning(t('retrievePassword.newPasswordRequired'))
+    return
   }
 
   if (!formData.value.confirmPassword) {
-    toast.warning(t("retrievePassword.confirmNewPasswordRequired"));
-    return;
+    toast.warning(t('retrievePassword.confirmNewPasswordRequired'))
+    return
   }
 
   if (formData.value.newPassword !== formData.value.confirmPassword) {
-    toast.warning(t("retrievePassword.passwordsNotMatch"));
-    return;
+    toast.warning(t('retrievePassword.passwordsNotMatch'))
+    return
   }
 
   try {
-    loading.value = true;
+    loading.value = true
 
     // 检查SM2公钥是否配置
     if (!sm2PublicKey.value) {
-      toast.warning(t("sm2.publicKeyNotConfigured"));
-      return;
+      toast.warning(t('sm2.publicKeyNotConfigured'))
+      return
     }
 
     // 加密密码
-    let encryptedPassword;
+    let encryptedPassword
     try {
       // 拼接图形验证码和新密码进行加密
-      const captchaAndPassword = formData.value.captcha + formData.value.newPassword;
-      encryptedPassword = sm2Encrypt(sm2PublicKey.value, captchaAndPassword);
-    } catch (error) {
-      console.error("密码加密失败:", error);
-      toast.warning(t("sm2.encryptionFailed"));
-      return;
+      const captchaAndPassword = formData.value.captcha + formData.value.newPassword
+      encryptedPassword = sm2Encrypt(sm2PublicKey.value, captchaAndPassword)
+    }
+    catch (error) {
+      console.error('密码加密失败:', error)
+      toast.warning(t('sm2.encryptionFailed'))
+      return
     }
 
     // 调用重置密码API
@@ -246,53 +248,56 @@ async function handleResetPassword() {
       phone: internationalPhone,
       code: formData.value.mobileCaptcha,
       password: encryptedPassword,
-      captchaId: formData.value.captchaId
+      captchaId: formData.value.captchaId,
     })
 
-    toast.success(t("retrievePassword.passwordUpdateSuccess"));
+    toast.success(t('retrievePassword.passwordUpdateSuccess'))
 
     // 跳转到登录页
     setTimeout(() => {
       uni.redirectTo({
-        url: "/pages/login/index",
-      });
-    }, 1000);
-  } catch (error: any) {
+        url: '/pages/login/index',
+      })
+    }, 1000)
+  }
+  catch (error: any) {
     // 处理验证码错误
-    if (error.message.includes("请求错误[10067]")) {
-      toast.warning(t("login.captchaError"));
+    if (error.message.includes('请求错误[10067]')) {
+      toast.warning(t('login.captchaError'))
     }
     // 重置失败重新获取验证码
-    refreshCaptcha();
-  } finally {
-    loading.value = false;
+    refreshCaptcha()
+  }
+  finally {
+    loading.value = false
   }
 }
 
 // 返回登录
 function goBack() {
   uni.redirectTo({
-    url: "/pages/login/index",
-  });
+    url: '/pages/login/index',
+  })
 }
 
 // 页面加载时获取验证码
 onLoad(() => {
-  refreshCaptcha();
-});
+  refreshCaptcha()
+})
 
 // 组件挂载时确保配置已加载
 onMounted(async () => {
   if (!configStore.config.name) {
     try {
-      await configStore.fetchPublicConfig();
-    } catch (error) {
-      console.error("获取配置失败:", error);
+      await configStore.fetchPublicConfig()
+    }
+    catch (error) {
+      console.error('获取配置失败:', error)
     }
   }
   // 初始化国际化
-  initI18n();
-});
+  initI18n()
+})
 </script>
 
 <template>
@@ -471,7 +476,7 @@ onMounted(async () => {
   min-height: 100vh;
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: -50%;
     left: -50%;
@@ -713,10 +718,7 @@ onMounted(async () => {
       margin-bottom: 30rpx;
       box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
       transition: all 0.3s ease;
-      background-color: var(
-        --wot-button-primary-bg-color,
-        var(--wot-color-theme, #4d80f0)
-      );
+      background-color: var(--wot-button-primary-bg-color, var(--wot-color-theme, #4d80f0));
       text-align: center;
       line-height: 80rpx;
 

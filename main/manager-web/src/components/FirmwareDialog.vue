@@ -1,18 +1,25 @@
 <template>
-  <el-dialog :title="title" :visible.sync="dialogVisible" :close-on-click-modal="false" @close="handleClose"
-    @open="handleOpen">
-    <el-form ref="form" :model="form" :rules="rules" label-width="auto">
+  <CustomDialog
+    :title="title"
+    :visible.sync="visible"
+    width="800px"
+    @confirm="submit"
+    @close="cancel"
+    @open="handleOpen"
+    :confirmLoading="saving"
+  >
+    <el-form ref="form" :model="form" :rules="rules" label-width="auto" label-position="left" class="firmware-form">
       <el-form-item :label="$t('firmwareDialog.firmwareName')" prop="firmwareName">
-        <el-input v-model="form.firmwareName" :placeholder="$t('firmwareDialog.firmwareNamePlaceholder')"></el-input>
+        <el-input v-model="form.firmwareName" :placeholder="$t('firmwareDialog.firmwareNamePlaceholder')" />
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.firmwareType')" prop="type">
-        <el-select v-model="form.type" :placeholder="$t('firmwareDialog.firmwareTypePlaceholder')" style="width: 100%;"
-          filterable :disabled="isTypeDisabled">
+        <el-select v-model="form.type" :placeholder="$t('firmwareDialog.firmwareTypePlaceholder')"
+          class="custom-select" filterable :disabled="isTypeDisabled">
           <el-option v-for="item in firmwareTypes" :key="item.key" :label="item.name" :value="item.key"></el-option>
         </el-select>
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.version')" prop="version">
-        <el-input v-model="form.version" :placeholder="$t('firmwareDialog.versionPlaceholder')"></el-input>
+        <el-input v-model="form.version" :placeholder="$t('firmwareDialog.versionPlaceholder')" />
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.firmwareFile')" prop="firmwarePath">
         <el-upload ref="upload" class="upload-demo" action="#" :http-request="handleUpload"
@@ -29,21 +36,21 @@
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.remark')" prop="remark">
         <el-input type="textarea" v-model="form.remark"
-          :placeholder="$t('firmwareDialog.remarkPlaceholder')"></el-input>
+          :placeholder="$t('firmwareDialog.remarkPlaceholder')" />
       </el-form-item>
     </el-form>
-    <div slot="footer" class="dialog-footer">
-      <el-button @click="handleCancel">{{ $t('button.cancel') }}</el-button>
-      <el-button type="primary" @click="handleSubmit">{{ $t('button.save') }}</el-button>
-    </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
 import Api from '@/apis/api';
+import CustomDialog from './CustomDialog.vue';
 
 export default {
   name: 'FirmwareDialog',
+  components: {
+    CustomDialog
+  },
   props: {
     visible: {
       type: Boolean,
@@ -68,7 +75,7 @@ export default {
       uploadProgress: 0,
       uploadStatus: '',
       isUploading: false,
-      dialogVisible: this.visible,
+      saving: false,
       rules: {
         firmwareName: [
           { required: true, message: this.$t('firmwareDialog.requiredFirmwareName'), trigger: 'blur' }
@@ -92,28 +99,8 @@ export default {
       return !!this.form.id
     }
   },
-  created() {
-    // 移除 getDictDataByType 调用
-  },
-  watch: {
-    visible(val) {
-      this.dialogVisible = val;
-    },
-    dialogVisible(val) {
-      this.$emit('update:visible', val);
-    },
-  },
   methods: {
-    // 移除 getFirmwareTypes 方法
-    handleClose() {
-      this.dialogVisible = false;
-      this.$emit('cancel');
-    },
-    handleCancel() {
-      this.$refs.form.clearValidate();
-      this.$emit('cancel');
-    },
-    handleSubmit() {
+    submit() {
       this.$refs.form.validate(valid => {
         if (valid) {
           // 如果是新增模式且没有上传文件，则提示错误
@@ -121,10 +108,19 @@ export default {
             this.$message.error(this.$t('firmwareDialog.requiredFirmwareFile'))
             return
           }
+          this.saving = true
           // 提交成功后将关闭对话框的逻辑交给父组件处理
           this.$emit('submit', this.form)
         }
       })
+    },
+    cancel() {
+      this.saving = false
+      this.$emit('cancel')
+    },
+    // 提供给父组件调用以重置saving状态
+    resetSaving() {
+      this.saving = false
     },
     beforeUpload(file) {
       const isValidSize = file.size / 1024 / 1024 < 100
@@ -197,6 +193,7 @@ export default {
       this.uploadProgress = 0
       this.uploadStatus = ''
       this.isUploading = false
+      this.saving = false
       // 重置表单中的文件相关字段
       if (!this.form.id) {  // 只在新增时重置
         this.form.firmwarePath = ''
@@ -213,25 +210,24 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-::v-deep .el-dialog {
-  border-radius: 20px;
-}
-
-.upload-demo {
-  text-align: left;
-}
-
-.el-upload__tip {
-  line-height: 1.2;
-  padding-top: 2%;
-  color: #909399;
-}
-
-.hint-text {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
+<style scoped lang="scss">
+.firmware-form {
+  .custom-select {
+    width: 100%;
+  }
+  .upload-demo {
+    text-align: left;
+  }
+  .el-upload__tip {
+    line-height: 1.2;
+    padding-top: 2%;
+    color: #909399;
+  }
+  .hint-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+  }
 }
 </style>

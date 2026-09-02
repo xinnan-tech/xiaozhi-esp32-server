@@ -2,7 +2,7 @@ package xiaozhi.modules.agent.service.impl;
 
 import org.springframework.stereotype.Service;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.repository.CrudRepository;
 
 import xiaozhi.modules.agent.dao.AiAgentChatAudioDao;
 import xiaozhi.modules.agent.entity.AgentChatAudioEntity;
@@ -16,7 +16,7 @@ import xiaozhi.modules.agent.service.AgentChatAudioService;
  * @since 1.0.0
  */
 @Service
-public class AgentChatAudioServiceImpl extends ServiceImpl<AiAgentChatAudioDao, AgentChatAudioEntity>
+public class AgentChatAudioServiceImpl extends CrudRepository<AiAgentChatAudioDao, AgentChatAudioEntity>
         implements AgentChatAudioService {
     @Override
     public String saveAudio(byte[] audioData) {

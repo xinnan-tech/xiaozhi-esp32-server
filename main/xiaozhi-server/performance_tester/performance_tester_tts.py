@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import time
+import threading
 from typing import Dict
 import yaml
 from tabulate import tabulate
@@ -17,8 +18,8 @@ description = "非流式语音合成性能测试"
 
 
 class TTSPerformanceTester:
-    def __init__(self):
-        self.config = load_config()
+    def __init__(self, config):
+        self.config = config
         self.test_sentences = self.config.get("module_test", {}).get(
             "test_sentences",
             [
@@ -43,6 +44,21 @@ class TTSPerformanceTester:
 
             module_type = config.get("type", tts_name)
             tts = create_tts_instance(module_type, config, delete_audio_file=True)
+
+            # 设置 mock conn 对象，避免 TTS 实现访问 self.conn.sample_rate 时为 None
+            class MockConn:
+                sample_rate = 16000
+                audio_format = "pcm"
+                stop_event = threading.Event()  # 需要是真正的 Event 对象
+                client_abort = False
+                headers = {}
+            tts.conn = MockConn()
+
+            # 设置 mock opus_encoder，避免某些 TTS 访问 self.opus_encoder 时为 None
+            class MockOpusEncoder:
+                pass
+            if not hasattr(tts, 'opus_encoder') or tts.opus_encoder is None:
+                tts.opus_encoder = MockOpusEncoder()
 
             print(f"测试 TTS: {tts_name}")
 
@@ -174,10 +190,10 @@ class TTSPerformanceTester:
 
 # 为了performance_tester.py的调用需求
 async def main():
-    tester = TTSPerformanceTester()
+    config = await load_config()
+    tester = TTSPerformanceTester(config)
     await tester.run()
 
 
 if __name__ == "__main__":
-    tester = TTSPerformanceTester()
-    asyncio.run(tester.run())
+    asyncio.run(main())

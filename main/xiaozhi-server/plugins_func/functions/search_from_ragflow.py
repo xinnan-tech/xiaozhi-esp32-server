@@ -1,5 +1,5 @@
-import requests
-import sys
+import json
+import httpx
 from config.logger import setup_logging
 from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from typing import TYPE_CHECKING
@@ -28,7 +28,7 @@ SEARCH_FROM_RAGFLOW_FUNCTION_DESC = {
 @register_function(
     "search_from_ragflow", SEARCH_FROM_RAGFLOW_FUNCTION_DESC, ToolType.SYSTEM_CTL
 )
-def search_from_ragflow(conn: "ConnectionHandler", question=None):
+async def search_from_ragflow(conn: "ConnectionHandler", question=None):
     # 确保字符串参数正确处理编码
     if question and isinstance(question, str):
         # 确保问题参数是UTF-8编码的字符串
@@ -49,13 +49,8 @@ def search_from_ragflow(conn: "ConnectionHandler", question=None):
 
     try:
         # 使用ensure_ascii=False确保JSON序列化时正确处理中文
-        response = requests.post(
-            url,
-            json=payload,
-            headers=headers,
-            timeout=5,
-            verify=False,
-        )
+        async with httpx.AsyncClient(timeout=httpx.Timeout(5.0, connect=3.0), verify=False) as client:
+            response = await client.post(url, json=payload, headers=headers)
 
         # 显式设置响应的编码为utf-8
         response.encoding = "utf-8"
@@ -64,7 +59,6 @@ def search_from_ragflow(conn: "ConnectionHandler", question=None):
 
         # 先获取文本内容，然后手动处理JSON解码
         response_text = response.text
-        import json
 
         result = json.loads(response_text)
 
@@ -110,48 +104,30 @@ def search_from_ragflow(conn: "ConnectionHandler", question=None):
             context_text = "根据知识库查询结果，没有相关信息。"
         return ActionResponse(Action.REQLLM, context_text, None)
 
-    except requests.exceptions.RequestException as e:
-        # 网络请求异常
-        error_type = type(e).__name__
-        logger.bind(tag=TAG).error(
-            f"RAGflow网络请求失败，异常类型：{error_type}，详情：{str(e)}"
-        )
+    except httpx.TimeoutException as e:
+        error_response = "RAG接口请求超时"
+        error_response += "\n可能原因：RAGflow服务响应缓慢或网络延迟"
+        error_response += "\n解决方案：请稍后重试或检查RAGflow服务性能"
+        return ActionResponse(Action.RESPONSE, None, error_response)
 
-        # 根据异常类型提供更详细的错误信息和解决方案
-        if isinstance(e, requests.exceptions.ConnectTimeout):
-            error_response = "RAG接口连接超时（5秒）"
-            error_response += "\n可能原因：RAGflow服务未启动或网络连接问题"
-            error_response += "\n解决方案：请检查RAGflow服务状态和网络连接"
-
-        elif isinstance(e, requests.exceptions.ConnectionError):
-            error_response = "无法连接到RAG接口"
-            error_response += "\n可能原因：RAGflow服务地址错误或服务未运行"
-            error_response += "\n解决方案：请检查RAGflow服务地址配置和服务状态"
-
-        elif isinstance(e, requests.exceptions.Timeout):
-            error_response = "RAG接口请求超时"
-            error_response += "\n可能原因：RAGflow服务响应缓慢或网络延迟"
-            error_response += "\n解决方案：请稍后重试或检查RAGflow服务性能"
-
-        elif isinstance(e, requests.exceptions.HTTPError):
-            # 处理HTTP错误状态码
-            if hasattr(e.response, "status_code"):
-                status_code = e.response.status_code
-                error_response = f"RAG接口HTTP错误（状态码：{status_code}）"
-
-                # 尝试获取响应内容中的错误信息
-                try:
-                    error_detail = e.response.json().get("error", {}).get("message", "")
-                    if error_detail:
-                        error_response += f"\n错误详情：{error_detail}"
-                except:
-                    pass
-            else:
-                error_response = f"RAG接口HTTP异常：{str(e)}"
-
+    except httpx.HTTPStatusError as e:
+        if hasattr(e.response, "status_code"):
+            status_code = e.response.status_code
+            error_response = f"RAG接口HTTP错误（状态码：{status_code}）"
+            try:
+                error_detail = e.response.json().get("error", {}).get("message", "")
+                if error_detail:
+                    error_response += f"\n错误详情：{error_detail}"
+            except:
+                pass
         else:
-            error_response = f"RAG接口网络异常（{error_type}）：{str(e)}"
+            error_response = f"RAG接口HTTP异常：{str(e)}"
+        return ActionResponse(Action.RESPONSE, None, error_response)
 
+    except httpx.HTTPError as e:
+        error_response = "无法连接到RAG接口"
+        error_response += "\n可能原因：RAGflow服务地址错误或服务未运行"
+        error_response += "\n解决方案：请检查RAGflow服务地址配置和服务状态"
         return ActionResponse(Action.RESPONSE, None, error_response)
 
     except Exception as e:

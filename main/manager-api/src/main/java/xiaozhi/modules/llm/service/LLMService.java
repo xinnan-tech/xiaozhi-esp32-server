@@ -67,4 +67,13 @@ public interface LLMService {
      * @return 是否可用
      */
     boolean isAvailable(String modelId);
+
+    /**
+     * 生成会话标题
+     * 
+     * @param conversation 对话内容
+     * @param modelId      模型ID
+     * @return 标题（约15字）
+     */
+    String generateTitle(String conversation, String modelId);
 }

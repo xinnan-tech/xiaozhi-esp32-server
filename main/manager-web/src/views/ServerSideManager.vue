@@ -1,38 +1,37 @@
 <template>
   <div class="welcome">
     <HeaderBar />
-
-    <div class="operation-bar">
-      <h2 class="page-title">{{ $t('serverSideManager.pageTitle') }}</h2>
-    </div>
-
     <div class="main-wrapper">
       <div class="content-panel">
         <div class="content-area">
           <el-card class="params-card" shadow="never">
-            <el-table ref="paramsTable" :data="paramsList" class="transparent-table" v-loading="loading"
-              :element-loading-text="$t('serverSideManager.loading')" element-loading-spinner="el-icon-loading"
-              element-loading-background="rgba(255, 255, 255, 0.7)" :header-cell-class-name="headerCellClassName">
-              <el-table-column :label="$t('modelConfig.select')" align="center" width="120">
-                <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.selected"></el-checkbox>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('serverSideManager.wsAddress')" prop="address" align="center"></el-table-column>
-              <el-table-column :label="$t('serverSideManager.operation')" prop="operator" align="center" show-overflow-tooltip>
-                <template slot-scope="scope">
-                  <el-button size="medium" type="text" @click="emitAction(scope.row, actionMap.restart)">{{ $t('serverSideManager.restart') }}</el-button>
-                  <el-button size="medium" type="text"
-                    @click="emitAction(scope.row, actionMap.update_config)">{{ $t('serverSideManager.updateConfig') }}</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+            <div class="operation-header">
+              <h2 class="page-title">{{ $t('serverSideManager.pageTitle') }}</h2>
+            </div>
+            <el-card class="server-list-card">
+              <div v-for="(item, index) in paramsList" :key="index" class="server-list" v-loading="loading">
+                <div class="server-card">
+                  <div class="server-info">
+                    <span class="server-label">{{ $t('serverSideManager.wsAddress') }}</span>
+                    <span class="server-value">{{ item.address }}</span>
+                  </div>
+                  <el-button class="copy-button" type="text" size="small" @click="copyAddress(item.address)">{{ $t('common.copyAddress') }}</el-button>
+                </div>
+                <el-divider />
+                <div class="header-actions">
+                  <CustomButton icon="el-icon-refresh-right" size="small" @click="emitAction(item, actionMap.restart)">{{
+                    $t('serverSideManager.restart') }}</CustomButton>
+                  <CustomButton icon="el-icon-setting" size="small" type="confirm" @click="emitAction(item, actionMap.update_config)">
+                    {{ $t('serverSideManager.updateConfig') }}
+                  </CustomButton>
+                </div>
+                <el-empty v-if="paramsList.length === 0 && !loading" :description="$t('common.noData')"></el-empty>
+              </div>
+            </el-card>
           </el-card>
         </div>
       </div>
     </div>
-
-
     <el-footer>
       <version-footer />
     </el-footer>
@@ -41,59 +40,22 @@
 
 <script>
 import Api from "@/apis/api";
+import CustomButton from "@/components/CustomButton.vue";
 import HeaderBar from "@/components/HeaderBar.vue";
-import ParamDialog from "@/components/ParamDialog.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
-import i18n from '@/i18n';
 
 export default {
-  components: { HeaderBar, ParamDialog, VersionFooter },
+  components: { HeaderBar, VersionFooter, CustomButton },
   data() {
     return {
       paramsList: [],
-      currentPage: 1,
       loading: false,
-      pageSize: 10,
-      pageSizeOptions: [10, 20, 50, 100],
-      total: 0,
-      dialogVisible: false,
-      dialogTitle: '',
-      isAllSelected: false,
-      sensitive_keys: ["api_key", "personal_access_token", "access_token", "token", "secret", "access_key_secret", "secret_key"],
-      paramForm: {
-        id: null,
-        paramCode: "",
-        paramValue: "",
-        remark: ""
-      },
     };
   },
   created() {
     this.fetchParams();
   },
-  mounted() {
-    this.dialogTitle = this.$t('paramManagement.addParam');
-  },
-
   computed: {
-    pageCount() {
-      return Math.ceil(this.total / this.pageSize);
-    },
-    visiblePages() {
-      const pages = [];
-      const maxVisible = 3;
-      let start = Math.max(1, this.currentPage - 1);
-      let end = Math.min(this.pageCount, start + maxVisible - 1);
-
-      if (end - start + 1 < maxVisible) {
-        start = Math.max(1, end - maxVisible + 1);
-      }
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      return pages;
-    },
     actionMap() {
       return {
         restart: {
@@ -112,11 +74,6 @@ export default {
     }
   },
   methods: {
-    handlePageSizeChange(val) {
-      this.pageSize = val;
-      this.currentPage = 1;
-      this.fetchParams();
-    },
     fetchParams() {
       this.loading = true;
       Api.admin.getWsServerList(
@@ -125,7 +82,6 @@ export default {
           this.loading = false;
           if (data.code === 0) {
             this.paramsList = data.data.map(item => ({ address: item }));
-            this.total = data.data.length;
           } else {
             this.$message.error({
               message: data.msg || this.$t('serverSideManager.getServerListFailed'),
@@ -139,12 +95,10 @@ export default {
       if (actionItem === undefined || rowItem.address === undefined) {
         return;
       }
-      // 弹开询问框
       this.$confirm(actionItem.message, actionItem.title, {
-        confirmButtonText: actionItem.confirmText, // 确认按钮文本
-        cancelButtonText: this.$t('common.cancel') // 取消按钮文本
+        confirmButtonText: actionItem.confirmText,
+        cancelButtonText: this.$t('common.cancel')
       }).then(() => {
-        // 用户点击了确认按钮
         Api.admin.sendWsServerAction({
           targetWs: rowItem.address,
           action: actionItem.value
@@ -163,13 +117,14 @@ export default {
         })
       })
     },
-    headerCellClassName({ columnIndex }) {
-      if (columnIndex === 0) {
-        return "custom-selection-header";
-      }
-      return "";
+    copyAddress(address) {
+      navigator.clipboard.writeText(address).then(() => {
+        this.$message.success(this.$t('common.copySuccess'));
+      }).catch(() => {
+        this.$message.error(this.$t('common.copyFailed'));
+      });
     }
-  },
+  }
 };
 </script>
 
@@ -182,54 +137,28 @@ export default {
   position: relative;
   flex-direction: column;
   background-size: cover;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  background: #eff4ff;
   -webkit-background-size: cover;
   -o-background-size: cover;
   overflow: hidden;
 }
 
 .main-wrapper {
-  // 顶部 63px 底部 35px 查询58px
-  height: calc(100vh - 63px - 35px - 58px);
-  margin: 0 22px;
-  border-radius: 15px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  height: calc(100vh - 63px - 35px);
+  padding: 20px 22px 0;
   position: relative;
-  background: rgba(237, 242, 255, 0.5);
   display: flex;
   flex-direction: column;
-}
-
-.operation-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
+  box-sizing: border-box;
 }
 
 .page-title {
+  font-weight: 500;
   font-size: 24px;
   margin: 0;
 }
 
-.right-operations {
-  display: flex;
-  gap: 10px;
-  margin-left: auto;
-}
-
-.search-input {
-  width: 240px;
-}
-
-.btn-search {
-  background: linear-gradient(135deg, #6b8cff, #a966ff);
-  border: none;
-  color: white;
-}
-
 .content-panel {
-  flex: 1;
   display: flex;
   overflow: hidden;
   height: 100%;
@@ -258,7 +187,7 @@ export default {
   overflow: hidden;
 
   ::v-deep .el-card__body {
-    padding: 15px;
+    padding: 14px 20px;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -266,197 +195,78 @@ export default {
   }
 }
 
-.table_bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  padding-bottom: 10px;
+.server-list {
+  padding: 16px 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px #ececec;
 }
 
-.ctrl_btn {
-  display: flex;
-  gap: 8px;
-  padding-left: 26px;
-
-  .el-button {
-    min-width: 72px;
-    height: 32px;
-    padding: 7px 12px 7px 10px;
-    font-size: 12px;
-    border-radius: 4px;
-    line-height: 1;
-    font-weight: 500;
-    border: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-  }
-
-  .el-button--primary {
-    background: #5f70f3;
-    color: white;
-  }
-
-  .el-button--danger {
-    background: #fd5b63;
-    color: white;
-  }
-}
-
-:deep(.transparent-table) {
-  background: white;
+.server-list-card {
   flex: 1;
-  width: 100%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: none;
+
+  ::v-deep .el-card__body {
+    gap: 20px;
+    overflow: auto;
+    padding: 16px;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  ::v-deep .el-divider {
+    margin: 16px 0 !important;
+    background: #ecf2fb !important;
+  }
+}
+
+.header-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.operation-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 16px 0;
+  box-sizing: border-box;
+}
+
+.server-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(239, 243, 252, 0.4);
+  border: 1px solid #ecf2fb;
+}
+
+.server-info {
   display: flex;
   flex-direction: column;
-
-  .el-table__body-wrapper {
-    flex: 1;
-    overflow-y: auto;
-    max-height: none !important;
-  }
-
-  .el-table__header-wrapper {
-    flex-shrink: 0;
-  }
-
-  .el-table__header th {
-    background: white !important;
-    color: black;
-  }
-
-  &::before {
-    display: none;
-  }
-
-  .el-table__body tr {
-    background-color: white;
-
-    td {
-      border-top: 1px solid rgba(0, 0, 0, 0.04);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-    }
-  }
+  align-items: flex-start;
 }
 
-
-:deep(.el-checkbox__inner) {
-  background-color: #eeeeee !important;
-  border-color: #cccccc !important;
+.server-label {
+  font-size: 16px;
+  font-weight: 500;
 }
 
-:deep(.el-checkbox__inner:hover) {
-  border-color: #cccccc !important;
+.server-value {
+  margin-top: 10px;
+  font-size: 14px;
 }
 
-:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-  background-color: #5f70f3 !important;
-  border-color: #5f70f3 !important;
+.server-actions {
+  display: flex;
+  gap: 8px;
 }
-
-@media (min-width: 1144px) {
-  .table_bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 40px;
-  }
-
-  :deep(.transparent-table) {
-    .el-table__body tr {
-      td {
-        padding-top: 16px;
-        padding-bottom: 16px;
-      }
-
-      &+tr {
-        margin-top: 10px;
-      }
-    }
-  }
-}
-
-:deep(.el-table .el-button--text) {
-  color: #7079aa;
-}
-
-:deep(.el-table .el-button--text:hover) {
-  color: #5a64b5;
-}
-
-.el-button--success {
-  background: #5bc98c;
-  color: white;
-}
-
-:deep(.el-table .cell) {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.page-size-select {
-  width: 100px;
-  margin-right: 10px;
-
-  :deep(.el-input__inner) {
-    height: 32px;
-    line-height: 32px;
-    border-radius: 4px;
-    border: 1px solid #e4e7ed;
-    background: #dee7ff;
-    color: #606266;
-    font-size: 14px;
-  }
-
-  :deep(.el-input__suffix) {
-    right: 6px;
-    width: 15px;
-    height: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    top: 6px;
-    border-radius: 4px;
-  }
-
-  :deep(.el-input__suffix-inner) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-  }
-
-  :deep(.el-icon-arrow-up:before) {
-    content: "";
-    display: inline-block;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 9px solid #606266;
-    position: relative;
-    transform: rotate(0deg);
-    transition: transform 0.3s;
-  }
-}
-
-:deep(.el-table) {
-  .el-table__body-wrapper {
-    transition: height 0.3s ease;
-  }
-}
-
-.el-table {
-  --table-max-height: calc(100vh - 40vh);
-  max-height: var(--table-max-height);
-
-  .el-table__body-wrapper {
-    max-height: calc(var(--table-max-height) - 40px);
-    overflow-y: auto;
-  }
+.copy-button {
+  font-size: 14px;
+  color: #5778ff;
 }
 </style>

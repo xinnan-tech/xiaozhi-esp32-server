@@ -4,9 +4,12 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import xiaozhi.common.utils.JsonUtils;
 
 /**
  * 智能体更新DTO
@@ -33,10 +36,13 @@ public class AgentUpdateDTO implements Serializable {
     @Schema(description = "大语言模型标识", example = "llm_model_02", nullable = true)
     private String llmModelId;
 
-    @Schema(description = "VLLM模型标识", example = "vllm_model_02", required = false)
+    @Schema(description = "小模型标识", example = "slm_model_02", nullable = true)
+    private String slmModelId;
+
+    @Schema(description = "VLLM模型标识", example = "vllm_model_02", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private String vllmModelId;
 
-    @Schema(description = "语音合成模型标识", example = "tts_model_02", required = false)
+    @Schema(description = "语音合成模型标识", example = "tts_model_02", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private String ttsModelId;
 
     @Schema(description = "音色标识", example = "voice_02", nullable = true)
@@ -85,14 +91,52 @@ public class AgentUpdateDTO implements Serializable {
     @Schema(description = "上下文源配置", nullable = true)
     private List<ContextProviderDTO> contextProviders;
 
+    @Schema(description = "替换词文件ID列表", nullable = true)
+    private List<String> correctWordFileIds;
+
+    @Schema(description = "标签名称列表", nullable = true)
+    private List<String> tagNames;
+
+    @Schema(description = "标签ID列表", nullable = true)
+    private List<String> tagIds;
+
     @Data
     @Schema(description = "插件函数信息")
     public static class FunctionInfo implements Serializable {
+        private static final TypeReference<HashMap<String, Object>> PARAM_INFO_TYPE = new TypeReference<>() {
+        };
+
         @Schema(description = "插件ID", example = "plugin_01")
         private String pluginId;
 
         @Schema(description = "函数参数信息", nullable = true)
-        private HashMap<String, Object> paramInfo;
+        private HashMap<String, Object> paramInfo = new HashMap<>();
+
+        public void setParamInfo(Object paramInfo) {
+            this.paramInfo = normalizeParamInfo(paramInfo);
+        }
+
+        private static HashMap<String, Object> normalizeParamInfo(Object paramInfo) {
+            if (paramInfo == null) {
+                return new HashMap<>();
+            }
+            if (paramInfo instanceof String value) {
+                if (value.trim().isEmpty()) {
+                    return new HashMap<>();
+                }
+                return JsonUtils.parseObject(value, PARAM_INFO_TYPE);
+            }
+            if (paramInfo instanceof Map<?, ?> value) {
+                HashMap<String, Object> normalized = new HashMap<>();
+                value.forEach((key, val) -> {
+                    if (key != null) {
+                        normalized.put(String.valueOf(key), val);
+                    }
+                });
+                return normalized;
+            }
+            return JsonUtils.parseObject(JsonUtils.toJsonString(paramInfo), PARAM_INFO_TYPE);
+        }
 
         private static final long serialVersionUID = 1L;
     }

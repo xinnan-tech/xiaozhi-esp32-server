@@ -32,7 +32,7 @@ class ASRProvider(ASRProviderBase):
         os.makedirs(self.output_dir, exist_ok=True)
 
     async def speech_to_text(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus", artifacts=None
+        self, opus_data: List[bytes], session_id: str, artifacts=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本"""
         if not opus_data:

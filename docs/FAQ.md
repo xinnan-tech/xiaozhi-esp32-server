@@ -40,8 +40,8 @@ conda install conda-forge::ffmpeg
 |:---:|:---:|:---:|
 | ASR(语音识别) | FunASR(本地) | 👍XunfeiStreamASR(讯飞流式) |
 | LLM(大模型) | glm-4-flash(智谱) | 👍qwen-flash(阿里百炼) |
-| VLLM(视觉大模型) | glm-4v-flash(智谱) | 👍qwen2.5-vl-3b-instructh(阿里百炼) |
-| TTS(语音合成) | ✅LinkeraiTTS(灵犀流式) | 👍HuoshanDoubleStreamTTS(火山流式) |
+| VLLM(视觉大模型) | glm-4v-flash(智谱) | 👍qwen3.5-flash(阿里百炼) |
+| TTS(语音合成) | EdgeTTS(微软) | 👍HuoshanDoubleStreamTTS(火山流式) |
 | Intent(意图识别) | function_call(函数调用) | function_call(函数调用) |
 | Memory(记忆功能) | mem_local_short(本地短期记忆） | mem_local_short（本地短期记忆） |
 
@@ -65,13 +65,14 @@ VAD:
 3、[如何部署MQTT网关开启MQTT+UDP协议](./mqtt-gateway-integration.md)<br/>
 4、[如何自动拉取本项目最新代码自动编译和启动](./dev-ops-integration.md)<br/>
 5、[如何与Nginx集成](https://github.com/xinnan-tech/xiaozhi-esp32-server/issues/791)<br/>
+6、[修改代码后怎么编译自己的Docker镜像](./docker-build.md)<br/>
 
-### 9、编译固件相关教程
+### 8、编译固件相关教程
 1、[如何自己编译小智固件](./firmware-build.md)<br/>
 2、[如何基于虾哥编译好的固件修改OTA地址](./firmware-setting.md)<br/>
 3、[单模块部署如何配置固件OTA自动升级](./ota-upgrade-guide.md)<br/>
 
-### 10、拓展相关教程
+### 9、拓展相关教程
 1、[如何开启手机号码注册智控台](./ali-sms-integration.md)<br/>
 2、[如何集成HomeAssistant实现智能家居控制](./homeassistant-integration.md)<br/>
 3、[如何开启视觉模型实现拍照识物](./mcp-vision-integration.md)<br/>
@@ -83,6 +84,13 @@ VAD:
 9、[知识库ragflow集成指南](./ragflow-integration.md)<br/>
 10、[如何部署上下文源](./context-provider-integration.md)<br/>
 11、[如何集成PowerMem智能记忆](./powermem-integration.md)<br/>
+12、[如何配置天气插件查询天气](./weather-integration.md)<br/>
+13、[如何开启设备呼叫插件](./device-call-guide.md)<br/>
+14、[如何开启联网搜索功能](./web-search-integration.md)<br/>
+
+### 10、数字人相关教程
+1、[数字人digital-human启动方法](./digital-human-wakeword.md)<br/>
+2、[如何在N100迷你主机上部署数字人digital-human](./all-in-one-digital-human-setup.md)<br/>
 
 ### 11、语音克隆、本地语音部署相关教程
 1、[如何在智控台克隆音色](./huoshan-streamTTS-voice-cloning.md)<br/>

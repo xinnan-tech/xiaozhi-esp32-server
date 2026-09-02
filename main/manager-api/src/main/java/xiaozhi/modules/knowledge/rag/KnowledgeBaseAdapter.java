@@ -176,11 +176,20 @@ public abstract class KnowledgeBaseAdapter {
 
         /**
          * 获取数据集的文档数量
-         * 
+         *
          * @param datasetId 数据集ID
          * @return 文档数量
          */
         public abstract Integer getDocumentCount(String datasetId);
+
+        /**
+         * 获取数据集完整信息（名称、简介、文档数量等）
+         * 用于检测 RAGFlow 端是否已删除、同步名称/简介变更
+         *
+         * @param datasetId 数据集ID
+         * @return 数据集详情，若 RAGFlow 端不存在则返回 null
+         */
+        public abstract DatasetDTO.InfoVO getDatasetInfo(String datasetId);
 
         /**
          * 发送流式请求 (SSE)

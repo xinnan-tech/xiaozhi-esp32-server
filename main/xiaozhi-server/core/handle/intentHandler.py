@@ -10,6 +10,7 @@ from core.providers.tts.dto.dto import ContentType
 from core.handle.helloHandle import checkWakeupWords
 from plugins_func.register import Action, ActionResponse
 from core.handle.sendAudioHandle import send_stt_message
+from core.handle.reportHandle import enqueue_tool_report
 from core.utils.util import remove_punctuation_and_length
 from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType
 
@@ -117,8 +118,17 @@ async def process_intent_result(
 
                                         请根据以上信息回答用户的问题：{original_text}"""
 
-                    response = conn.intent.replyResult(context_prompt, original_text)
-                    speak_txt(conn, response)
+                    # 使用异步调用避免阻塞事件循环，影响其他设备的音频播放
+                    try:
+                        response = asyncio.run_coroutine_threadsafe(
+                            conn.intent.replyResult(context_prompt, original_text),
+                            conn.loop,
+                        ).result()
+                    except Exception as e:
+                        conn.logger.bind(tag=TAG).error(f"LLM生成回复失败: {e}")
+                        response = None
+                    if response:
+                        speak_txt(conn, response)
 
                 conn.executor.submit(process_context_result)
                 return True
@@ -141,10 +151,23 @@ async def process_intent_result(
             await send_stt_message(conn, original_text)
             conn.client_abort = False
 
+            # 准备工具调用参数
+            tool_input = {}
+            if function_args:
+                if isinstance(function_args, str):
+                    tool_input = json.loads(function_args) if function_args else {}
+                elif isinstance(function_args, dict):
+                    tool_input = function_args
+
+            # 上报工具调用
+            enqueue_tool_report(conn, function_name, tool_input)
+
             # 使用executor执行函数调用和结果处理
             def process_function_call():
                 conn.dialogue.put(Message(role="user", content=original_text))
-
+                
+                # 工具调用超时时间
+                tool_call_timeout = int(conn.config.get("tool_call_timeout", 30))
                 # 使用统一工具处理器处理所有工具调用
                 try:
                     result = asyncio.run_coroutine_threadsafe(
@@ -152,14 +175,17 @@ async def process_intent_result(
                             conn, function_call_data
                         ),
                         conn.loop,
-                    ).result()
+                    ).result(timeout=tool_call_timeout)
                 except Exception as e:
                     conn.logger.bind(tag=TAG).error(f"工具调用失败: {e}")
                     result = ActionResponse(
-                        action=Action.ERROR, result=str(e), response=str(e)
+                        action=Action.ERROR, result="工具调用超时，请一会再试下哈", response="工具调用超时，请一会再试下哈"
                     )
 
+                # 上报工具调用结果
                 if result:
+                    enqueue_tool_report(conn, function_name, tool_input, str(result.result) if result.result else None, report_tool_call=False)
+
                     if result.action == Action.RESPONSE:  # 直接回复前端
                         text = result.response
                         if text is not None:
@@ -167,7 +193,15 @@ async def process_intent_result(
                     elif result.action == Action.REQLLM:  # 调用函数后再请求llm生成回复
                         text = result.result
                         conn.dialogue.put(Message(role="tool", content=text))
-                        llm_result = conn.intent.replyResult(text, original_text)
+                        # 使用异步调用避免阻塞事件循环，影响其他设备的音频播放
+                        try:
+                            llm_result = asyncio.run_coroutine_threadsafe(
+                                conn.intent.replyResult(text, original_text),
+                                conn.loop,
+                            ).result()
+                        except Exception as e:
+                            conn.logger.bind(tag=TAG).error(f"LLM生成回复失败: {e}")
+                            llm_result = text
                         if llm_result is None:
                             llm_result = text
                         speak_txt(conn, llm_result)
@@ -175,7 +209,7 @@ async def process_intent_result(
                         result.action == Action.NOTFOUND
                         or result.action == Action.ERROR
                     ):
-                        text = result.result
+                        text = result.response if result.response else result.result
                         if text is not None:
                             speak_txt(conn, text)
                     elif function_name != "play_music":
@@ -197,8 +231,8 @@ async def process_intent_result(
 
 
 def speak_txt(conn: "ConnectionHandler", text):
-    # 记录文本
-    conn.tts_MessageText = text
+    # 记录文本到 sentence_id 映射
+    conn.tts.store_tts_text(conn.sentence_id, text)
 
     conn.tts.tts_text_queue.put(
         TTSMessageDTO(

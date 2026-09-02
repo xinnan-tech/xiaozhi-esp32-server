@@ -22,10 +22,10 @@ public class SqlFilter {
             return null;
         }
         // 去掉'|"|;|\字符
-        str = StringUtils.replace(str, "'", "");
-        str = StringUtils.replace(str, "\"", "");
-        str = StringUtils.replace(str, ";", "");
-        str = StringUtils.replace(str, "\\", "");
+        str = str.replace("'", "");
+        str = str.replace("\"", "");
+        str = str.replace(";", "");
+        str = str.replace("\\", "");
 
         // 转换成小写
         str = str.toLowerCase();

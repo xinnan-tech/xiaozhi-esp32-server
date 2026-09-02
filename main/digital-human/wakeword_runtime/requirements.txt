@@ -1,0 +1,3 @@
+sherpa-onnx==1.12.29
+sounddevice>=0.4.4
+pypinyin==0.55.0

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useToast } from 'wot-design-uni'
+import { useToast } from 'wot-design-uni/components/wd-toast'
 import { t } from '@/i18n'
 
 // 类型定义
@@ -228,15 +228,15 @@ async function generateAndPlay() {
   generating.value = true
 
   try {
-    console.log(t('deviceConfig.generatingUltrasonicConfigAudio') + '...')
+    console.log(`${t('deviceConfig.generatingUltrasonicConfigAudio')}...`)
 
     // 准备配网数据 - 参考HTML文件格式
     const dataStr = `${props.selectedNetwork.ssid}\n${props.password}`
     const textBytes = stringToBytes(dataStr)
     const fullBytes = [...START_BYTES, ...textBytes, checksum(textBytes), ...END_BYTES]
 
-    console.log(t('deviceConfig.configData') + ':', { ssid: props.selectedNetwork.ssid, password: props.password })
-    console.log(t('deviceConfig.dataBytesLength') + ':', textBytes.length)
+    console.log(`${t('deviceConfig.configData')}:`, { ssid: props.selectedNetwork.ssid, password: props.password })
+    console.log(`${t('deviceConfig.dataBytesLength')}:`, textBytes.length)
 
     // 转换为比特流
     let bits: number[] = []
@@ -244,7 +244,7 @@ async function generateAndPlay() {
       bits = bits.concat(toBits(b))
     })
 
-    console.log(t('deviceConfig.bitStreamLength') + ':', bits.length)
+    console.log(`${t('deviceConfig.bitStreamLength')}:`, bits.length)
 
     // AFSK调制 - 减少采样率降低文件大小
     const reducedSampleRate = 22050 // 降低采样率
@@ -267,7 +267,7 @@ async function generateAndPlay() {
     const base64 = arrayBufferToBase64(wavBuffer)
     const dataUri = `data:audio/wav;base64,${base64}`
 
-    console.log(t('deviceConfig.base64Length') + ':', base64.length, t('deviceConfig.about'), Math.round(base64.length / 1024), 'KB')
+    console.log(`${t('deviceConfig.base64Length')}:`, base64.length, t('deviceConfig.about'), Math.round(base64.length / 1024), 'KB')
 
     // 检查数据大小
     if (base64.length > 1024 * 1024) { // 超过1MB
@@ -277,7 +277,7 @@ async function generateAndPlay() {
     audioFilePath.value = dataUri
     audioGenerated.value = true
 
-    console.log(t('deviceConfig.audioGenerationSuccess') + '，比特流长度:', bits.length, t('deviceConfig.samplePoints') + ':', floatBuf.length)
+    console.log(`${t('deviceConfig.audioGenerationSuccess')}，比特流长度:`, bits.length, `${t('deviceConfig.samplePoints')}:`, floatBuf.length)
 
     toast.success(t('deviceConfig.soundWaveGenerationSuccess'))
 
@@ -287,8 +287,8 @@ async function generateAndPlay() {
     }, 800) // 增加延迟时间
   }
   catch (error) {
-    console.error(t('deviceConfig.audioGenerationFailed') + ':', error)
-      toast.error(`${t('deviceConfig.soundWaveGenerationFailed')}: ${error.message || error}`)
+    console.error(`${t('deviceConfig.audioGenerationFailed')}:`, error)
+    toast.error(`${t('deviceConfig.soundWaveGenerationFailed')}: ${error.message || error}`)
   }
   finally {
     generating.value = false
@@ -384,7 +384,7 @@ async function playAudio() {
     })
 
     innerAudioContext.onError((error) => {
-      console.error(t('deviceConfig.audioPlaybackFailed') + ':', error)
+      console.error(`${t('deviceConfig.audioPlaybackFailed')}:`, error)
       playing.value = false
 
       let errorMsg = t('deviceConfig.audioPlaybackFailed')
@@ -417,10 +417,10 @@ async function playAudio() {
     }, 300)
   }
   catch (error) {
-    console.error(t('deviceConfig.audioPlaybackError') + ':', error)
-      playing.value = false
-      await cleanupAudio()
-      toast.error(`${t('deviceConfig.playbackFailed')}: ${error.message}`)
+    console.error(`${t('deviceConfig.audioPlaybackError')}:`, error)
+    playing.value = false
+    await cleanupAudio()
+    toast.error(`${t('deviceConfig.playbackFailed')}: ${error.message}`)
   }
 }
 
@@ -433,7 +433,7 @@ async function cleanupAudio() {
       console.log(t('deviceConfig.cleaningUpAudioContext'))
     }
     catch (e) {
-      console.log(t('deviceConfig.cleaningUpAudioContextFailed') + ':', e)
+      console.log(`${t('deviceConfig.cleaningUpAudioContextFailed')}:`, e)
     }
     finally {
       audioContext.value = null
@@ -483,38 +483,38 @@ async function stopAudio() {
         :disabled="!canGenerate"
         @click="generateAndPlay"
       >
-        {{ generating ? t('deviceConfig.generating') : '🎵 ' + t('deviceConfig.generateAndPlaySoundWave') }}
-        </wd-button>
+        {{ generating ? t('deviceConfig.generating') : `🎵 ${t('deviceConfig.generateAndPlaySoundWave')}` }}
+      </wd-button>
 
-        <wd-button
-          v-if="audioGenerated"
-          type="success"
-          size="large"
-          block
-          :loading="playing"
-          @click="playAudio"
-        >
-          {{ playing ? t('deviceConfig.playing') : '🔊 ' + t('deviceConfig.playSoundWave') }}
-        </wd-button>
+      <wd-button
+        v-if="audioGenerated"
+        type="success"
+        size="large"
+        block
+        :loading="playing"
+        @click="playAudio"
+      >
+        {{ playing ? t('deviceConfig.playing') : `🔊 ${t('deviceConfig.playSoundWave')}` }}
+      </wd-button>
 
-        <wd-button
-          v-if="playing"
-          type="warning"
-          size="large"
-          block
-          @click="stopAudio"
-        >
-          ⏹️ {{ t('deviceConfig.stopPlaying') }}
-        </wd-button>
+      <wd-button
+        v-if="playing"
+        type="warning"
+        size="large"
+        block
+        @click="stopAudio"
+      >
+        ⏹️ {{ t('deviceConfig.stopPlaying') }}
+      </wd-button>
     </view>
 
     <!-- 音频控制选项 -->
     <view v-if="audioGenerated" class="audio-options">
       <view class="option-item">
-          <wd-checkbox v-model="autoLoop">
-            {{ t('deviceConfig.autoLoopPlaySoundWave') }}
-          </wd-checkbox>
-        </view>
+        <wd-checkbox v-model="autoLoop">
+          {{ t('deviceConfig.autoLoopPlaySoundWave') }}
+        </wd-checkbox>
+      </view>
     </view>
 
     <!-- 音频播放器 -->
@@ -531,33 +531,33 @@ async function stopAudio() {
 
     <!-- 使用说明 -->
     <view class="help-section">
-        <view class="help-title">
-          {{ t('deviceConfig.ultrasonicConfigInstructions') }}
-        </view>
-        <view class="help-content">
-          <text class="help-item">
-            1. {{ t('deviceConfig.ensureWifiNetworkSelectedAndPasswordEntered') }}
-          </text>
-          <text class="help-item">
-            2. {{ t('deviceConfig.clickGenerateAndPlaySoundWave') }}
-          </text>
-          <text class="help-item">
-            3. {{ t('deviceConfig.bringPhoneCloseToXiaozhiDevice') }}
-          </text>
-          <text class="help-item">
-            4. {{ t('deviceConfig.duringAudioPlaybackXiaozhiWillReceive') }}
-          </text>
-          <text class="help-item">
-            5. {{ t('deviceConfig.afterConfigSuccessDeviceWillConnect') }}
-          </text>
-          <text class="help-tip">
-            {{ t('deviceConfig.usesAfskModulation') }}
-          </text>
-          <text class="help-tip">
-            {{ t('deviceConfig.ensureModeratePhoneVolume') }}
-          </text>
-        </view>
+      <view class="help-title">
+        {{ t('deviceConfig.ultrasonicConfigInstructions') }}
       </view>
+      <view class="help-content">
+        <text class="help-item">
+          1. {{ t('deviceConfig.ensureWifiNetworkSelectedAndPasswordEntered') }}
+        </text>
+        <text class="help-item">
+          2. {{ t('deviceConfig.clickGenerateAndPlaySoundWave') }}
+        </text>
+        <text class="help-item">
+          3. {{ t('deviceConfig.bringPhoneCloseToXiaozhiDevice') }}
+        </text>
+        <text class="help-item">
+          4. {{ t('deviceConfig.duringAudioPlaybackXiaozhiWillReceive') }}
+        </text>
+        <text class="help-item">
+          5. {{ t('deviceConfig.afterConfigSuccessDeviceWillConnect') }}
+        </text>
+        <text class="help-tip">
+          {{ t('deviceConfig.usesAfskModulation') }}
+        </text>
+        <text class="help-tip">
+          {{ t('deviceConfig.ensureModeratePhoneVolume') }}
+        </text>
+      </view>
+    </view>
   </view>
 </template>
 

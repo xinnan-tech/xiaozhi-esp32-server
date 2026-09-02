@@ -2,6 +2,7 @@ import os
 import sys
 import copy
 import json
+import re
 import uuid
 import time
 import queue
@@ -10,6 +11,8 @@ import threading
 import traceback
 import subprocess
 import websockets
+import opuslib_next
+import numpy as np
 
 from plugins.manager import PluginManager
 from plugins import scan_plugins, register_plugins_to_conn
@@ -26,19 +29,20 @@ from core.utils.modules_initialize import (
     initialize_tts,
     initialize_asr,
 )
-from core.handle.reportHandle import report
+from core.handle.reportHandle import report, enqueue_tool_report
 from core.providers.tts.default import DefaultTTS
 from concurrent.futures import ThreadPoolExecutor
 from core.utils.dialogue import Message, Dialogue
 from core.providers.asr.dto.dto import InterfaceType
 from core.handle.textHandle import handleTextMessage
 from core.providers.tools.unified_tool_handler import UnifiedToolHandler
-from plugins.register import Action
+from plugins.register import Action, ActionResponse, all_function_registry, module_func_map
+from plugins_func.loadplugins import auto_import_modules
 from core.auth import AuthenticationError
 from config.config_loader import get_private_config_from_api
 from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
 from config.logger import setup_logging, build_module_string, create_connection_logger
-from config.manage_api_client import DeviceNotFoundException, DeviceBindException
+from config.manage_api_client import DeviceNotFoundException, DeviceBindException, generate_and_save_chat_title
 from core.utils.prompt_manager import PromptManager
 from core.utils.voiceprint_provider import VoiceprintProvider
 from core.utils.util import get_system_error_response
@@ -79,12 +83,34 @@ TOOL_CALLING_RULES = """
 </tool_calling>
 """
 
+# 扫描 plugins/ 下的统一插件（拦截插件 + MCP 函数）
 scan_plugins()
-# auto_import_modules("plugins_func.functions")
+# 兼容：加载 plugins_func/functions 下的旧MCP函数
+auto_import_modules("plugins_func.functions")
 
 
 class TTSException(RuntimeError):
     pass
+
+# direct_answer 虚拟工具定义
+# 不是真实工具，是路由机制：将"调不调工具"的二选一变为"调哪个"的多选，防止小模型误触发真实工具
+DIRECT_ANSWER_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "direct_answer",
+        "description": "当用户的请求不匹配其他任何工具时，可用此选项直接回复。将回复内容写在response参数里。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "type": "string",
+                    "description": "你回复用户的完整内容",
+                },
+            },
+            "required": ["response"],
+        },
+    },
+}
 
 
 class ConnectionHandler:
@@ -127,6 +153,7 @@ class ConnectionHandler:
         self.client_abort = False
         self.client_is_speaking = False
         self.client_listen_mode = "auto"
+        self.client_aec = False  # 是否启用了服务端AEC
 
         # 线程任务相关
         self.loop = None  # 在 handle_connection 中获取运行中的事件循环
@@ -159,24 +186,21 @@ class ConnectionHandler:
         self.client_voice_window = deque(maxlen=5)
         self.first_activity_time = 0.0  # 记录首次活动的时间（毫秒）
         self.last_activity_time = 0.0  # 统一的活动时间戳（毫秒）
+        self.vad_last_voice_time = 0.0  # 记录用户最后一次说话的时间（毫秒）
         self.client_voice_stop = False
         self.last_is_voice = False
 
         # asr相关变量
         # 因为实际部署时可能会用到公共的本地ASR，不能把变量暴露给公共ASR
         # 所以涉及到ASR的变量，需要在这里定义，属于connection的私有变量
-        self.asr_audio = []
+        self.asr_audio = []  # 存储PCM帧列表，供VAD和ASR共享
         self.asr_audio_queue = queue.Queue()
         self.current_speaker = None  # 存储当前说话人
+        self.introduced_speakers = set()  # 已"首次引入"的说话人，控制只在首轮带名字
+        self.system_introduced_speakers = set()  # 已在 system 注入过身份的说话人，控制 system 身份只首轮出现
 
         # llm相关变量
         self.dialogue = Dialogue()
-
-        # 工具调用统计（用于监控和自动恢复）
-        self.tool_call_stats = {
-            'last_call_turn': -1,  # 上次调用工具的轮数
-            'consecutive_no_call': 0,  # 连续未调用次数
-        }
 
         # tts相关变量
         self.sentence_id = None
@@ -210,6 +234,11 @@ class ConnectionHandler:
         
         # 初始化插件管理器
         self.plugin_manager = PluginManager()
+
+        # 初始化通话状态
+        self.calling = False
+        # 标记当前是否为来电接听模式
+        self.incoming_call = None
 
     async def handle_connection(self, ws: websockets.ServerConnection):
         try:
@@ -250,6 +279,9 @@ class ConnectionHandler:
             # 启动超时检查任务
             self.timeout_task = asyncio.create_task(self._check_timeout())
 
+            # 启动AEC缓存清理任务
+            self._aec_cache_cleanup_task = asyncio.create_task(self._check_aec_cache_expiry())
+
             self.welcome_msg = self.config["xiaozhi"]
             self.welcome_msg["session_id"] = self.session_id
 
@@ -289,6 +321,26 @@ class ConnectionHandler:
     async def _save_and_close(self, ws):
         """保存记忆并关闭连接"""
         try:
+            # 守护线程1：独立生成标题（不依赖记忆模型）
+            if self.session_id:
+                def generate_title_task():
+                    try:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(
+                            generate_and_save_chat_title(self.session_id)
+                        )
+                    except Exception as e:
+                        self.logger.bind(tag=TAG).error(f"生成标题失败: {e}")
+                    finally:
+                        try:
+                            loop.close()
+                        except Exception:
+                            pass
+
+                threading.Thread(target=generate_title_task, daemon=True).start()
+
+            # 守护线程2：走老流程记忆保存（仅记忆，不含标题）
             if self.memory:
                 # 使用线程池异步保存记忆
                 def save_memory_task():
@@ -365,12 +417,14 @@ class ConnectionHandler:
                 if handled:
                     return
 
-            # 不需要头部处理或没有头部时，直接处理原始消息
-            self.asr_audio_queue.put(message)
+            # 入口处直接解码PCM，避免VAD和ASR重复解码
+            pcm_frame = self._decode_opus_packet(message)
+            if pcm_frame:
+                self.asr_audio_queue.put(pcm_frame)
 
     async def _process_mqtt_audio_message(self, message):
         """
-        处理来自MQTT网关的音频消息，解析16字节头部并提取音频数据
+        处理来自MQTT网关的音频消息，解析16字节头部并提取音频数据，在入队前进行AEC处理
 
         Args:
             message: 包含头部的音频消息
@@ -379,58 +433,167 @@ class ConnectionHandler:
             bool: 是否成功处理了消息
         """
         try:
-            # 提取头部信息
+            # 解析timestamp
             timestamp = int.from_bytes(message[8:12], "big")
-            audio_length = int.from_bytes(message[12:16], "big")
 
-            # 提取音频数据
-            if audio_length > 0 and len(message) >= 16 + audio_length:
-                # 有指定长度，提取精确的音频数据
-                audio_data = message[16 : 16 + audio_length]
-                # 基于时间戳进行排序处理
-                self._process_websocket_audio(audio_data, timestamp)
+            audio_data = message[16:]
+            # 入口直接解码PCM
+            pcm_frame = self._decode_opus_packet(audio_data)
+            if not pcm_frame:
                 return True
-            elif len(message) > 16:
-                # 没有指定长度或长度无效，去掉头部后处理剩余数据
-                audio_data = message[16:]
-                self.asr_audio_queue.put(audio_data)
-                return True
+
+            # AEC处理：如果timestamp>0且启用了AEC
+            if timestamp > 0 and self.client_aec:
+                pcm_frame = self._apply_aec(timestamp, pcm_frame)
+
+            self.asr_audio_queue.put(pcm_frame)
+            return True
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"解析WebSocket音频包失败: {e}")
 
         # 处理失败，返回False表示需要继续处理
         return False
 
-    def _process_websocket_audio(self, audio_data, timestamp):
-        """处理WebSocket格式的音频包"""
-        # 初始化时间戳序列管理
-        if not hasattr(self, "audio_timestamp_buffer"):
-            self.audio_timestamp_buffer = {}
-            self.last_processed_timestamp = 0
-            self.max_timestamp_buffer_size = 20
+    def _apply_aec(self, timestamp: int, pcm_frame: bytes) -> bytes:
+        """应用AEC处理 - 综合算法：互相关延迟估计 + Wiener滤波 + 频谱减法"""
+        try:
+            if not pcm_frame or len(pcm_frame) == 0:
+                return pcm_frame
 
-        # 如果时间戳是递增的，直接处理
-        if timestamp >= self.last_processed_timestamp:
-            self.asr_audio_queue.put(audio_data)
-            self.last_processed_timestamp = timestamp
+            if not hasattr(self, "aec_audio_cache") or not self.aec_audio_cache:
+                return pcm_frame
 
-            # 处理缓冲区中的后续包
-            processed_any = True
-            while processed_any:
-                processed_any = False
-                for ts in sorted(self.audio_timestamp_buffer.keys()):
-                    if ts > self.last_processed_timestamp:
-                        buffered_audio = self.audio_timestamp_buffer.pop(ts)
-                        self.asr_audio_queue.put(buffered_audio)
-                        self.last_processed_timestamp = ts
-                        processed_any = True
-                        break
-        else:
-            # 乱序包，暂存
-            if len(self.audio_timestamp_buffer) < self.max_timestamp_buffer_size:
-                self.audio_timestamp_buffer[timestamp] = audio_data
-            else:
-                self.asr_audio_queue.put(audio_data)
+            mic_audio = np.frombuffer(pcm_frame, dtype=np.int16).astype(np.float32)
+            mic_rms = np.sqrt(np.mean(mic_audio ** 2))
+
+            if mic_rms < 100:
+                return pcm_frame
+
+            sorted_timestamps = sorted(self.aec_audio_cache.keys())
+            if len(sorted_timestamps) < 2:
+                return pcm_frame
+
+            # ========== 匹配参考帧（对数功率谱匹配） ==========
+            n = len(mic_audio)
+
+            # 找最接近的timestamp作为起点
+            closest_idx = min(range(len(sorted_timestamps)), key=lambda i: abs(sorted_timestamps[i] - timestamp))
+
+            # 预计算 mic_audio 的对数功率谱（循环内共用，避免重复FFT）
+            mic_window = np.hanning(n)
+            mic_fft = np.fft.rfft(mic_audio * mic_window)
+            mic_psd = np.abs(mic_fft) ** 2
+            mic_log_psd = 10 * np.log10(mic_psd + 1e-8)
+            mic_P_xx = np.dot(mic_log_psd, mic_log_psd)
+
+            # 用对数功率谱匹配找最佳帧：前后各找2帧
+            best_corr = -1
+            best_ref_idx = closest_idx
+            best_ref_rms = 0.0
+
+            for offset in range(-2, 3):  # T-2, T-1, T, T+1, T+2
+                test_idx = closest_idx + offset
+                if test_idx < 0 or test_idx >= len(sorted_timestamps):
+                    continue
+                test_ts = sorted_timestamps[test_idx]
+                test_ref = np.frombuffer(self.aec_audio_cache[test_ts], dtype=np.int16).astype(np.float32)
+                test_ref_rms = np.sqrt(np.mean(test_ref ** 2))
+                if test_ref_rms < 50:
+                    continue
+
+                # 对数功率谱相关性
+                test_window = np.hanning(len(test_ref))
+                test_fft = np.fft.rfft(test_ref * test_window)
+                test_psd = np.abs(test_fft) ** 2
+                test_log_psd = 10 * np.log10(test_psd + 1e-8)
+                P_xy = np.dot(mic_log_psd, test_log_psd)
+                P_yy = np.dot(test_log_psd, test_log_psd)
+                corr = abs(P_xy) / (np.sqrt(mic_P_xx) * np.sqrt(P_yy) + 1e-8)
+
+                if corr > best_corr:
+                    best_corr = corr
+                    best_ref_idx = test_idx
+                    best_ref_rms = test_ref_rms
+
+            best_ts = sorted_timestamps[best_ref_idx]
+            best_ref = np.frombuffer(self.aec_audio_cache[best_ts], dtype=np.int16).astype(np.float32)
+            ref_rms = best_ref_rms
+
+            if ref_rms < 50:
+                return pcm_frame
+
+            # 对齐参考信号（直接截取相同长度）
+            aligned_ref = best_ref[:n]
+            if len(aligned_ref) < n:
+                aligned_ref = np.pad(aligned_ref, (0, n - len(aligned_ref)))
+
+            # ========== 频域 AEC 处理（谱减法） ==========
+            # 时域信号经过声学路径后相位失真，导致时域相关性低且P_xy正负不定
+            # 频域幅度谱不受相位影响，对数功率谱相关性稳定在0.97+
+            # 公式：result_mag = max(|mic_fft| - |ref_fft| * scale * coef, 0)
+
+            mic_mag = np.abs(mic_fft)
+            mic_phase = np.angle(mic_fft)
+            ref_fft = np.fft.rfft(aligned_ref * np.hanning(n))
+            ref_mag = np.abs(ref_fft)
+
+            # 频域计算回声比例 scale
+            scale = np.sum(mic_mag * ref_mag) / (np.dot(ref_mag, ref_mag) + 1e-8)
+
+            # 自适应系数：根据scale和coh动态调整
+            # scale大（回声强）-> coef大；coh高（匹配准）-> coef大
+            raw_coef = 1.0 + scale * 3 + (best_corr - 0.97) * 30
+            coef = max(0.5, min(3.0, raw_coef))
+
+            # 谱减法（过减 + 半波整流）
+            echo_mag = ref_mag * scale * coef
+            result_mag = np.maximum(mic_mag - echo_mag * 1.5, mic_mag * 0.1)
+
+            # 保留相位重建信号
+            result_fft = result_mag * np.exp(1j * mic_phase)
+            output = np.fft.irfft(result_fft, n)
+
+            # 高置信度是纯回声时，再压一下确保VAD检测不到
+            if best_corr >= 0.97 and ref_rms > 500:
+                output = output * 0.3
+
+            # 后处理：限幅
+            output = np.clip(output, -32768, 32767)
+
+            # 转换为bytes
+            result = output.astype(np.int16).tobytes()
+
+            return result
+
+        except Exception as e:
+            self.logger.bind(tag=TAG).warning(f"[AEC] 处理失败: {e}")
+            return pcm_frame
+
+    def _decode_opus_packet(self, opus_packet: bytes) -> bytes:
+        """
+        解码Opus数据包为PCM数据
+
+        Args:
+            opus_packet: Opus编码的音频数据
+
+        Returns:
+            bytes: 解码后的PCM数据，失败返回None
+        """
+        try:
+            if not opus_packet or len(opus_packet) == 0:
+                return None
+
+            self._init_connection_state(self)
+            pcm_frame = self._connection_opus_decoder.decode(opus_packet, 960)
+            return pcm_frame
+        except Exception as e:
+            self.logger.bind(tag=TAG).debug(f"Opus解码失败: {e}")
+            return None
+
+    def _init_connection_state(self, conn):
+        """为连接初始化独立的Opus解码器"""
+        if not hasattr(conn, "_connection_opus_decoder"):
+            conn._connection_opus_decoder = opuslib_next.Decoder(16000, 1)
 
     async def handle_restart(self, message):
         """处理服务器重启请求"""
@@ -527,6 +690,8 @@ class ConnectionHandler:
             self._init_report_threads()
             """更新系统提示词"""
             self._init_prompt_enhancement()
+            """注入工具调用few-shot示例（仅function_call模式）"""
+            self._inject_tool_call_fewshot()
 
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
@@ -536,11 +701,74 @@ class ConnectionHandler:
         # 更新上下文信息
         self.prompt_manager.update_context_info(self, self.client_ip)
         enhanced_prompt = self.prompt_manager.build_enhanced_prompt(
-            self.config["prompt"], self.device_id, self.client_ip
+            self.config["prompt"],
+            self.device_id,
+            self.client_ip,
+            emoji_enabled=(self.features or {}).get("emoji", True),
         )
         if enhanced_prompt:
             self.change_system_prompt(enhanced_prompt)
             self.logger.bind(tag=TAG).debug("系统提示词已增强更新")
+
+    def _inject_tool_call_fewshot(self):
+        """注入工具调用 few-shot 示例到对话历史。
+        结构：正样本（工具调用示例）放在动态 system 之前，可命中前缀缓存；
+        负样本（直接回答示例）放在动态 system 之后、紧挨真实用户消息，
+        确保模型在处理用户消息前最后看到的是"不调工具"的行为模式。
+        """
+        if self.intent_type != "function_call":
+            return
+        if not hasattr(self, "func_handler") or self.func_handler is None:
+            return
+
+        tools = self.func_handler.get_functions()
+        if not tools:
+            return
+
+        tool_names = {t.get("function", {}).get("name") for t in tools}
+
+        # === few-shot 示例（is_temporary）===
+        # 展示 direct_answer 携带 response 参数的用法，一次调用完成回复
+
+        # 示例1：direct_answer（回复内容写在 response 参数里，无需递归）
+        da_tc_id = "fewshot_da_001"
+        self.dialogue.put(Message(role="user", content="给我讲个故事吧", is_temporary=True))
+        self.dialogue.put(Message(
+            role="assistant",
+            tool_calls=[{
+                "id": da_tc_id,
+                "function": {"arguments": '{"response": "好呀，你想听什么类型的呀？童话、冒险还是搞笑的？选一个我给你开讲~"}', "name": "direct_answer"},
+                "type": "function", "index": 0,
+            }],
+            is_temporary=True,
+        ))
+        self.dialogue.put(Message(
+            role="tool", tool_call_id=da_tc_id,
+            content="已直接回复", is_temporary=True,
+        ))
+
+        # 示例2：真实工具调用（handle_exit_intent）
+        if "handle_exit_intent" in tool_names:
+            tc_id = "fewshot_exit_001"
+            self.dialogue.put(Message(role="user", content="拜拜", is_temporary=True))
+            self.dialogue.put(Message(
+                role="assistant",
+                tool_calls=[{
+                    "id": tc_id,
+                    "function": {"arguments": '{"say_goodbye": "再见，下次再聊~"}', "name": "handle_exit_intent"},
+                    "type": "function", "index": 0,
+                }],
+                is_temporary=True,
+            ))
+            self.dialogue.put(Message(
+                role="tool", tool_call_id=tc_id,
+                content="退出意图已处理", is_temporary=True,
+            ))
+            self.dialogue.put(Message(
+                role="assistant", content="再见，下次再聊~", is_temporary=True,
+            ))
+
+        self.logger.bind(tag=TAG).debug("已注入工具调用 few-shot 示例")
 
     def _init_report_threads(self):
         """初始化ASR和TTS上报线程"""
@@ -623,6 +851,7 @@ class ConnectionHandler:
                 self.headers.get("client-id", self.headers.get("device-id")),
             )
             private_config["delete_audio"] = bool(self.config.get("delete_audio", True))
+            private_config["tts_timeout"] = self.config.get("tts_timeout", 15)
             self.logger.bind(tag=TAG).info(
                 f"{time.time() - begin_time} 秒，异步获取差异化配置成功: {json.dumps(filter_sensitive_info(private_config), ensure_ascii=False)}"
             )
@@ -693,10 +922,27 @@ class ConnectionHandler:
                 plugin_from_server = private_config.get("plugins", {})
                 for plugin, config_str in plugin_from_server.items():
                     plugin_from_server[plugin] = json.loads(config_str)
+                # 将模块级别的插件配置复制到各具体函数名，
+                # 方便后续 per-function 查找描述、news_sources 等配置
+                for module_name, func_names in module_func_map.items():
+                    if module_name in plugin_from_server:
+                        module_config = plugin_from_server[module_name]
+                        for func_name in func_names:
+                            if func_name not in plugin_from_server:
+                                plugin_from_server[func_name] = module_config
                 self.config["plugins"] = plugin_from_server
+                # 将模块级别的插件名展开为具体函数名
+                expanded_functions = []
+                for plugin_key in plugin_from_server.keys():
+                    if plugin_key in all_function_registry:
+                        expanded_functions.append(plugin_key)
+                    elif plugin_key in module_func_map:
+                        expanded_functions.extend(module_func_map[plugin_key])
+                    else:
+                        expanded_functions.append(plugin_key)
                 self.config["Intent"][self.config["selected_module"]["Intent"]][
                     "functions"
-                ] = plugin_from_server.keys()
+                ] = expanded_functions
         if private_config.get("prompt", None) is not None:
             self.config["prompt"] = private_config["prompt"]
         # 获取声纹信息
@@ -712,6 +958,13 @@ class ConnectionHandler:
             self.config["mcp_endpoint"] = private_config["mcp_endpoint"]
         if private_config.get("context_providers", None) is not None:
             self.config["context_providers"] = private_config["context_providers"]
+
+        # 注入替换词到 TTS 模块配置
+        if private_config.get("correct_words", None) is not None:
+            select_tts_module = self.config["selected_module"]["TTS"]
+            self.config["TTS"][select_tts_module]["correct_words"] = private_config[
+                "correct_words"
+            ]
 
         # 使用 run_in_executor 在线程池中执行 initialize_modules，避免阻塞主循环
         try:
@@ -840,20 +1093,27 @@ class ConnectionHandler:
         self.dialogue.update_system_message(self.prompt)
 
     def chat(self, query, depth=0):
+        # 保存当前任务的sentence_id到局部变量，避免被新任务覆盖
+        current_sentence_id = None
+
         if query is not None:
             self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
 
         # 为最顶层时新建会话ID和发送FIRST请求
         if depth == 0:
-            self.sentence_id = str(uuid.uuid4().hex)
+            current_sentence_id = str(uuid.uuid4().hex)
+            self.sentence_id = current_sentence_id  # 更新共享属性
             self.dialogue.put(Message(role="user", content=query))
             self.tts.tts_text_queue.put(
                 TTSMessageDTO(
-                    sentence_id=self.sentence_id,
+                    sentence_id=current_sentence_id,
                     sentence_type=SentenceType.FIRST,
                     content_type=ContentType.ACTION,
                 )
             )
+        else:
+            # 递归调用时，使用当前的sentence_id
+            current_sentence_id = self.sentence_id
 
         # 设置最大递归深度，避免无限循环，可根据实际需求调整
         MAX_DEPTH = 5
@@ -872,32 +1132,6 @@ class ConnectionHandler:
                 )
             )
 
-        # 长对话工具调用提醒：当对话轮数较多时，提醒模型正确使用工具
-        force_reminder = False  # 是否强制提醒
-
-        if depth == 0 and query is not None:
-            dialogue_length = len(self.dialogue.dialogue)
-            current_turn = dialogue_length // 2
-
-            # 检测距离上一次连续未调用工具的情况
-            if self.tool_call_stats['last_call_turn'] >= 0:
-                turns_since_last = current_turn - self.tool_call_stats['last_call_turn']
-                if turns_since_last > 3:  # 超过3轮未调用
-                    self.logger.bind(tag=TAG).warning(
-                        f"检测到{turns_since_last}轮未调用工具，可能进入偷懒模式，将强制注入提醒"
-                    )
-                    force_reminder = True
-
-            # 对话历史截断：防止历史过长导致模型"偷懒模式"扩散
-            # 当对话历史超过阈值时，保留最近的 10 轮对话
-            # max_dialogue_turns = 10
-            # if dialogue_length > max_dialogue_turns * 2:
-            #     removed = self.dialogue.trim_history(max_turns=max_dialogue_turns)
-            #     if removed > 0:
-            #         self.logger.bind(tag=TAG).info(
-            #             f"对话历史过长({dialogue_length}条)，已智能截断保留最近{max_dialogue_turns}轮，移除{removed}条消息"
-            #         )
-
         # Define intent functions
         functions = None
         # 达到最大深度时，禁用工具调用，强制 LLM 直接回答
@@ -906,42 +1140,13 @@ class ConnectionHandler:
                 and hasattr(self, "func_handler")
                 and not force_final_answer
         ):
-            functions = self.func_handler.get_functions()
-
-        # 长对话工具调用规则强化：动态生成基于当前可用工具的提醒
-        tool_call_reminder = None
-        if depth == 0 and query is not None and functions is not None:
-            dialogue_length = len(self.dialogue.dialogue)
-            # 当对话历史超过4条消息时，注入规则强化
-            if dialogue_length > 4:
-                tool_summary = self._get_tool_summary(functions)
-                if tool_summary:
-                    # 根据对话长度和偷懒检测，使用不同强度的提醒
-                    if force_reminder:
-                        # 强提醒 - 包含完整规则前缀
-                        tool_call_reminder = (
-                            TOOL_CALLING_RULES +
-                            f"[重要提醒] 多轮未使用工具，检查回复是否遗漏了必要的工具调用！上一轮未使用工具，本轮必须重新判断是否需要工具。"
-                            f"当前可用工具: {tool_summary}。"
-                        )
-                        reminder_level = "强"
-                    else:
-                        # 中等提醒 - 包含规则前缀
-                        tool_call_reminder = (
-                            TOOL_CALLING_RULES +
-                            f"当前可用工具: {tool_summary}。"
-                            f"仅当用户请求涉及实时信息查询或执行操作时调用，日常对话无需调用。"
-                        )
-                        reminder_level = "中"
-                    self.logger.bind(tag=TAG).debug(
-                        f"对话历史较长({dialogue_length}条)，已注入{reminder_level}等级工具调用规则强化，当前可用工具：{tool_summary}"
-                    )
+            functions = list(self.func_handler.get_functions())
+            # 仅在第一层调用时注入 direct_answer 虚拟工具
+            # 递归调用（depth>0）不注入，避免模型在生成文本回复时再次调 direct_answer 导致循环
+            if functions is not None and depth == 0:
+                functions.append(DIRECT_ANSWER_TOOL)
 
         response_message = []
-
-        # 如果有工具调用提醒，临时添加到对话中（标记为临时消息）
-        if tool_call_reminder:
-            self.dialogue.put(Message(role="user", content=tool_call_reminder, is_temporary=True))
 
         try:
             # 使用带记忆的对话
@@ -953,12 +1158,20 @@ class ConnectionHandler:
                 )
                 memory_str = future.result()
 
+            # 仅在该说话人首次出现时把身份注入 system，之后靠对话历史首轮保留，
+            # 避免每轮在 system 重复出现名字诱导模型反复称呼
+            speaker_for_system = None
+            cs = (self.current_speaker or "").strip()
+            if cs and cs != "未知说话人" and cs not in self.system_introduced_speakers:
+                self.system_introduced_speakers.add(cs)
+                speaker_for_system = cs
+
             if self.intent_type == "function_call" and functions is not None:
                 # 使用支持functions的streaming接口
                 llm_responses = self.llm.response_with_functions(
                     self.session_id,
                     self.dialogue.get_llm_dialogue_with_memory(
-                        memory_str, self.config.get("voiceprint", {})
+                        memory_str, self.config.get("voiceprint", {}), speaker_for_system
                     ),
                     functions=functions,
                 )
@@ -966,7 +1179,7 @@ class ConnectionHandler:
                 llm_responses = self.llm.response(
                     self.session_id,
                     self.dialogue.get_llm_dialogue_with_memory(
-                        memory_str, self.config.get("voiceprint", {})
+                        memory_str, self.config.get("voiceprint", {}), speaker_for_system
                     ),
                 )
         except Exception as e:
@@ -978,7 +1191,6 @@ class ConnectionHandler:
         # 支持多个并行工具调用 - 使用列表存储
         tool_calls_list = []  # 格式: [{"id": "", "name": "", "arguments": ""}]
         content_arguments = ""
-        self.client_abort = False
         emotion_flag = True
         try:
             for response in llm_responses:
@@ -999,15 +1211,40 @@ class ConnectionHandler:
                     if tools_call is not None and len(tools_call) > 0:
                         tool_call_flag = True
                         self._merge_tool_calls(tool_calls_list, tools_call)
+
+                    # 流式提取 direct_answer 的 response 参数，实时送 TTS
+                    # 使用安全缓冲区，防止 JSON 闭合符号泄漏到 TTS
+                    _DA_STREAM_BUFFER = 5
+                    for tc in tool_calls_list:
+                        if tc["name"] == "direct_answer" and tc.get("arguments"):
+                            da_text = self._extract_direct_answer_response(tc["arguments"])
+                            sent_len = tc.get("_da_sent", 0)
+                            if da_text and len(da_text) > sent_len:
+                                safe_end = max(sent_len, len(da_text) - _DA_STREAM_BUFFER)
+                                if safe_end > sent_len:
+                                    new_part = da_text[sent_len:safe_end]
+                                    # 清理 delta 中可能泄漏的 JSON 闭合垃圾
+                                    new_part = self._clean_response_garbage(new_part)
+                                    if new_part:
+                                        tc["_da_sent"] = safe_end
+                                        self.tts.tts_text_queue.put(
+                                            TTSMessageDTO(
+                                                sentence_id=current_sentence_id,
+                                                sentence_type=SentenceType.MIDDLE,
+                                                content_type=ContentType.TEXT,
+                                                content_detail=new_part,
+                                            )
+                                        )
                 else:
                     content = response
 
                 # 在llm回复中获取情绪表情，一轮对话只在开头获取一次
                 if emotion_flag and content is not None and content.strip():
-                    asyncio.run_coroutine_threadsafe(
-                        textUtils.get_emotion(self, content),
-                        self.loop,
-                    )
+                    if (self.features or {}).get("emoji", True):
+                        asyncio.run_coroutine_threadsafe(
+                            textUtils.get_emotion(self, content),
+                            self.loop,
+                        )
                     emotion_flag = False
 
                 if content is not None and len(content) > 0:
@@ -1015,7 +1252,7 @@ class ConnectionHandler:
                         response_message.append(content)
                         self.tts.tts_text_queue.put(
                             TTSMessageDTO(
-                                sentence_id=self.sentence_id,
+                                sentence_id=current_sentence_id,
                                 sentence_type=SentenceType.MIDDLE,
                                 content_type=ContentType.TEXT,
                                 content_detail=content,
@@ -1025,7 +1262,7 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"LLM stream processing error: {e}")
             self.tts.tts_text_queue.put(
                 TTSMessageDTO(
-                    sentence_id=self.sentence_id,
+                    sentence_id=current_sentence_id,
                     sentence_type=SentenceType.MIDDLE,
                     content_type=ContentType.TEXT,
                     content_detail=get_system_error_response(self.config),
@@ -1034,7 +1271,7 @@ class ConnectionHandler:
             if depth == 0:
                 self.tts.tts_text_queue.put(
                     TTSMessageDTO(
-                        sentence_id=self.sentence_id,
+                        sentence_id=current_sentence_id,
                         sentence_type=SentenceType.LAST,
                         content_type=ContentType.ACTION,
                     )
@@ -1071,25 +1308,61 @@ class ConnectionHandler:
                     )
 
             if not bHasError and len(tool_calls_list) > 0:
-                # 更新工具调用统计
-                if depth == 0:
-                    current_turn = len(self.dialogue.dialogue) // 2
-                    self.tool_call_stats['last_call_turn'] = current_turn
-                    self.tool_call_stats['consecutive_no_call'] = 0
+                # 处理 direct_answer 虚拟工具
+                direct_answer_calls = [tc for tc in tool_calls_list if tc["name"] == "direct_answer"]
+                real_tool_calls = [tc for tc in tool_calls_list if tc["name"] != "direct_answer"]
+
+                if direct_answer_calls:
                     self.logger.bind(tag=TAG).debug(
-                        f"工具调用统计更新: 当前轮次={current_turn}"
+                        f"模型选择 direct_answer，流式已播报，写入对话历史"
                     )
+                    for tc in direct_answer_calls:
+                        da_response = self._extract_direct_answer_response(tc.get("arguments", "{}"))
+                        if da_response:
+                            # 刷新流式缓冲区中未发送的部分
+                            sent_len = tc.get("_da_sent", 0)
+                            remaining = da_response[sent_len:]
+                            if remaining:
+                                remaining = self._clean_response_garbage(remaining)
+                                if remaining:
+                                    self.tts.tts_text_queue.put(
+                                        TTSMessageDTO(
+                                            sentence_id=current_sentence_id,
+                                            sentence_type=SentenceType.MIDDLE,
+                                            content_type=ContentType.TEXT,
+                                            content_detail=remaining,
+                                        )
+                                    )
+                            # 写入对话历史
+                            da_response = self._clean_response_garbage(da_response)
+                            self.tts.store_tts_text(current_sentence_id, da_response)
+                            self.dialogue.put(Message(role="assistant", content=da_response))
 
-                # 如需要大模型先处理一轮，添加相关处理后的日志情况
-                if len(response_message) > 0:
-                    text_buff = "".join(response_message)
-                    self.tts_MessageText = text_buff
-                    self.dialogue.put(Message(role="assistant", content=text_buff))
-                response_message.clear()
+                    if not real_tool_calls:
+                        if depth == 0:
+                            self.tts.tts_text_queue.put(
+                                TTSMessageDTO(
+                                    sentence_id=current_sentence_id,
+                                    sentence_type=SentenceType.LAST,
+                                    content_type=ContentType.ACTION,
+                                )
+                            )
+                        return
 
+                    tool_calls_list = real_tool_calls
+
+            if not bHasError and len(tool_calls_list) > 0:
                 self.logger.bind(tag=TAG).debug(
                     f"检测到 {len(tool_calls_list)} 个工具调用"
                 )
+
+                # LLM 流式阶段已播报过的文本
+                streamed_text = ""
+                if len(response_message) > 0:
+                    streamed_text = "".join(response_message)
+                    self.tts.store_tts_text(current_sentence_id, streamed_text)
+                    self.dialogue.put(Message(role="assistant", content=streamed_text))
+                response_message.clear()
 
                 # 收集所有工具调用的 Future
                 futures_with_data = []
@@ -1098,38 +1371,56 @@ class ConnectionHandler:
                         f"function_name={tool_call_data['name']}, function_id={tool_call_data['id']}, function_arguments={tool_call_data['arguments']}"
                     )
 
+                    # 使用公共方法上报工具调用
+                    tool_input = json.loads(tool_call_data.get("arguments") or "{}")
+                    enqueue_tool_report(self, tool_call_data['name'], tool_input)
+
                     future = asyncio.run_coroutine_threadsafe(
                         self.func_handler.handle_llm_function_call(
                             self, tool_call_data
                         ),
                         self.loop,
                     )
-                    futures_with_data.append((future, tool_call_data))
+                    futures_with_data.append((future, tool_call_data, tool_input))
 
+                # 工具调用超时时间，可配置，默认30秒
+                tool_call_timeout = int(self.config.get("tool_call_timeout", 30))
                 # 等待协程结束（实际等待时长为最慢的那个）
                 tool_results = []
-                for future, tool_call_data in futures_with_data:
-                    result = future.result()
-                    tool_results.append((result, tool_call_data))
 
-                # 统一处理所有工具调用结果
+                for future, tool_call_data, tool_input in futures_with_data:
+                    try:
+                        result = future.result(timeout=tool_call_timeout)
+                        tool_results.append((result, tool_call_data))
+                        # 使用公共方法上报工具调用结果
+                        enqueue_tool_report(self, tool_call_data['name'], tool_input, str(result.result) if result.result else None, report_tool_call=False)
+
+                    except Exception as e:
+                        self.logger.bind(tag=TAG).error(
+                            f"工具调用超时或异常: {tool_call_data['name']}, 错误: {e}"
+                        )
+                        # 超时时返回错误响应，避免整个流程卡死
+                        tool_results.append((
+                            ActionResponse(action=Action.ERROR, result="哎呀，网络遇到点问题，请稍后再试下！"),
+                            tool_call_data
+                        ))
+                        # 上报工具调用错误
+                        enqueue_tool_report(self, tool_call_data['name'], tool_input, str(e), report_tool_call=False)
+
+                # 统一处理工具调用结果
                 if tool_results:
-                    self._handle_function_result(tool_results, depth=depth)
+                    self._handle_function_result(tool_results, depth=depth, streamed_text=streamed_text)
 
         # 存储对话内容
         if len(response_message) > 0:
             text_buff = "".join(response_message)
-            self.tts_MessageText = text_buff
+            self.tts.store_tts_text(current_sentence_id, text_buff)
             self.dialogue.put(Message(role="assistant", content=text_buff))
-
-            # 更新工具调用统计：如果没有调用工具，增加计数
-            if depth == 0 and not tool_call_flag:
-                self.tool_call_stats['consecutive_no_call'] += 1
 
         if depth == 0:
             self.tts.tts_text_queue.put(
                 TTSMessageDTO(
-                    sentence_id=self.sentence_id,
+                    sentence_id=current_sentence_id,
                     sentence_type=SentenceType.LAST,
                     content_type=ContentType.ACTION,
                 )
@@ -1141,56 +1432,79 @@ class ConnectionHandler:
                 )
             )
 
-            # 清理临时插入的工具调用提醒消息（使用标记清理）
-            if tool_call_reminder and len(self.dialogue.dialogue) > 0:
-                original_length = len(self.dialogue.dialogue)
-                self.dialogue.dialogue = [
-                    msg for msg in self.dialogue.dialogue
-                    if not getattr(msg, 'is_temporary', False)
-                ]
-                if len(self.dialogue.dialogue) < original_length:
-                    self.logger.bind(tag=TAG).debug("已清理临时的工具调用提醒消息")
-
         return True
 
-    def _get_tool_summary(self, functions: list) -> str:
-        """
-        从工具定义中提取摘要，用于规则强化注入
-
-        Args:
-            functions: 工具列表
-
-        Returns:
-            str: 工具名称字符串
-        """
-        if not functions:
-            return ""
-
-        datas = []
-        for func in functions:
-            func_info = func.get("function", {})
-            name = func_info.get("name", "")
-            datas.append(name)
-        result = "、".join(datas)
-        return result
-
-    def _handle_function_result(self, tool_results, depth):
+    def _handle_function_result(self, tool_results, depth, streamed_text=""):
         need_llm_tools = []
+        record_tools = []
 
         for result, tool_call_data in tool_results:
             if result.action in [
                 Action.RESPONSE,
                 Action.NOTFOUND,
                 Action.ERROR,
-            ]:  # 直接回复前端
+            ]:
                 text = result.response if result.response else result.result
-                self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
+                if streamed_text and text in streamed_text:
+                    self.logger.bind(tag=TAG).debug(
+                        f"Skipping duplicate TTS for tool {tool_call_data['name']}, already streamed"
+                    )
+                else:
+                    self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
+                    self.tts.store_tts_text(self.sentence_id, text)
                 self.dialogue.put(Message(role="assistant", content=text))
             elif result.action == Action.REQLLM:
-                # 收集需要 LLM 处理的工具
                 need_llm_tools.append((result, tool_call_data))
+            elif result.action == Action.RECORD:
+                record_tools.append((result, tool_call_data))
             else:
                 pass
+
+        # Action.RECORD：写入完整工具调用链（assistant(tool_calls) → tool(result) → assistant(response)）
+        # 模型从历史中学到工具调用模式，不额外调用LLM
+        if record_tools:
+            # 构造 assistant 消息（含 tool_calls），记录"模型调用了哪些工具"
+            all_tool_calls = [
+                {
+                    "id": tool_call_data["id"],
+                    "function": {
+                        "arguments": (
+                            "{}"
+                            if tool_call_data["arguments"] == ""
+                            else tool_call_data["arguments"]
+                        ),
+                        "name": tool_call_data["name"],
+                    },
+                    "type": "function",
+                    "index": idx,
+                }
+                for idx, (_, tool_call_data) in enumerate(record_tools)
+            ]
+            self.dialogue.put(Message(role="assistant", tool_calls=all_tool_calls))
+
+            # 写入每条工具的执行结果，记录"工具返回了什么"
+            for result, tool_call_data in record_tools:
+                text = result.result or ""
+                self.dialogue.put(
+                    Message(
+                        role="tool",
+                        tool_call_id=(
+                            str(uuid.uuid4())
+                            if tool_call_data["id"] is None
+                            else tool_call_data["id"]
+                        ),
+                        content=text,
+                    )
+                )
+
+            # 用固定文本作为最终回复，补全标准三段式，保证下一条消息是 user 而非接 tool
+            response_parts = []
+            for result, _ in record_tools:
+                resp = result.response or result.result
+                if resp:
+                    response_parts.append(resp)
+            if response_parts:
+                self.dialogue.put(Message(role="assistant", content="，".join(response_parts)))
 
         if need_llm_tools:
             all_tool_calls = [
@@ -1277,6 +1591,13 @@ class ConnectionHandler:
             ):
                 self.vad.release_conn_resources(self)
 
+            # 清理opus解码器
+            if hasattr(self, "_connection_opus_decoder"):
+                try:
+                    delattr(self, "_connection_opus_decoder")
+                except Exception:
+                    pass
+
             # 清理音频缓冲区
             if hasattr(self, "audio_buffer"):
                 self.audio_buffer.clear()
@@ -1289,6 +1610,20 @@ class ConnectionHandler:
                 except asyncio.CancelledError:
                     pass
                 self.timeout_task = None
+
+            # 取消AEC缓存清理任务
+            if hasattr(self, "_aec_cache_cleanup_task") and self._aec_cache_cleanup_task and not self._aec_cache_cleanup_task.done():
+                self._aec_cache_cleanup_task.cancel()
+                try:
+                    await self._aec_cache_cleanup_task
+                except asyncio.CancelledError:
+                    pass
+                self._aec_cache_cleanup_task = None
+
+            # 清理AEC缓存
+            if hasattr(self, "aec_audio_cache"):
+                self.aec_audio_cache.clear()
+                self.aec_audio_cache_time.clear()
 
             # 清理工具处理器资源
             if hasattr(self, "func_handler") and self.func_handler:
@@ -1404,6 +1739,7 @@ class ConnectionHandler:
         self.client_voice_stop = False
         self.client_voice_window.clear()
         self.last_is_voice = False
+        self.vad_last_voice_time = 0.0
 
         # Clear ASR buffers
         self.asr_audio.clear()
@@ -1451,6 +1787,81 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"超时检查任务出错: {e}")
         finally:
             self.logger.bind(tag=TAG).info("超时检查任务已退出")
+
+    async def _check_aec_cache_expiry(self):
+        """定期清理过期的AEC缓存"""
+        try:
+            while not self.stop_event.is_set():
+                if hasattr(self, "aec_audio_cache") and self.aec_audio_cache:
+                    current_time = time.time()
+                    expired_keys = [
+                        ts for ts, cache_time in list(self.aec_audio_cache_time.items())
+                        if current_time - cache_time > 120  # 2分钟过期
+                    ]
+                    for ts in expired_keys:
+                        self.aec_audio_cache.pop(ts, None)
+                        self.aec_audio_cache_time.pop(ts, None)
+                    if expired_keys:
+                        self.logger.bind(tag=TAG).debug(f"[AEC] 清理过期缓存 {len(expired_keys)} 条")
+                # 每30秒检查一次
+                await asyncio.sleep(30)
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"AEC缓存清理任务出错: {e}")
+
+    @staticmethod
+    def _extract_direct_answer_response(arguments_str):
+        """从 direct_answer 的参数中提取 response 值。
+        优先使用 json.loads 标准解析，流式阶段 fallback 到字符串提取。
+        """
+        if not arguments_str:
+            return ""
+        # 优先尝试标准 JSON 解析（适用于完整且格式正确的 JSON）
+        try:
+            data = json.loads(arguments_str)
+            if isinstance(data, dict) and "response" in data:
+                return data["response"]
+        except (json.JSONDecodeError, TypeError):
+            pass
+        # Fallback：流式阶段 JSON 可能不完整，使用字符串提取
+        marker = '"response": "'
+        idx = arguments_str.find(marker)
+        if idx < 0:
+            marker = '"response":"'
+            idx = arguments_str.find(marker)
+        if idx < 0:
+            return ""
+        start = idx + len(marker)
+        raw = arguments_str[start:]
+        # 去掉末尾的 JSON 闭合符号（如果已完整）
+        if raw.endswith('"}'):
+            raw = raw[:-2]
+        elif raw.endswith('"'):
+            raw = raw[:-1]
+        # 处理 JSON 转义
+        raw = raw.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\')
+        return raw
+
+    @staticmethod
+    def _clean_response_garbage(text):
+        """清理 response 中可能泄漏的 JSON 闭合符号。
+        模型有时会在 response 内容中生成 JSON 闭合字符（如 ）"}} 或 '})，
+        这些不是故事内容的一部分，需要去除。
+        """
+        if not text:
+            return text
+        # 清理独立一行的 JSON 闭合垃圾（如 ）"}}  '}}  "}}  }}  } ）
+        _garbage_chars = frozenset('")\'}）')
+        lines = text.split('\n')
+        cleaned = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped and len(stripped) <= 8 and all(c in _garbage_chars for c in stripped):
+                continue
+            cleaned.append(line)
+        result = '\n'.join(cleaned)
+        # 清理末尾残留的 JSON 闭合符号
+        result = re.sub(r'["\'}\]]+$', '', result.rstrip()).rstrip()
+        return result
 
     def _merge_tool_calls(self, tool_calls_list, tools_call):
         """合并工具调用列表

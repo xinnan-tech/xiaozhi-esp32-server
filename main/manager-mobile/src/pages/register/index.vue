@@ -9,15 +9,14 @@
 </route>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
-import { register, sendSmsCode } from '@/api/auth';
-import { useConfigStore } from '@/store';
-import { getEnvBaseUrl } from '@/utils';
-import { toast } from '@/utils/toast';
+import { computed, onMounted, ref } from 'vue'
+import { register, sendSmsCode } from '@/api/auth'
 // 导入国际化相关功能
-import { t, initI18n } from '@/i18n';
+import { initI18n, t } from '@/i18n'
+import { useConfigStore } from '@/store'
 // 导入SM2加密工具
-import { sm2Encrypt } from '@/utils';
+import { getEnvBaseUrl, sm2Encrypt } from '@/utils'
+import { toast } from '@/utils/toast'
 
 // 获取屏幕边界到安全区域距离
 let safeAreaInsets
@@ -135,9 +134,9 @@ function generateUUID() {
 
 // 获取验证码
 async function refreshCaptcha() {
-  const uuid = generateUUID();
-  formData.value.captchaId = uuid;
-  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`;
+  const uuid = generateUUID()
+  formData.value.captchaId = uuid
+  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`
 }
 
 // 发送短信验证码
@@ -253,7 +252,8 @@ async function handleRegister() {
       // 拼接验证码和密码
       const captchaAndPassword = formData.value.captcha + formData.value.password
       encryptedPassword = sm2Encrypt(sm2PublicKey.value, captchaAndPassword)
-    } catch (error) {
+    }
+    catch (error) {
       console.error('密码加密失败:', error)
       toast.warning(t('sm2.encryptionFailed'))
       return
@@ -275,7 +275,7 @@ async function handleRegister() {
     // 跳转到登录页
     setTimeout(() => {
       uni.redirectTo({
-        url: '/pages/login/index'
+        url: '/pages/login/index',
       })
     }, 1000)
   }
@@ -299,7 +299,7 @@ async function handleRegister() {
 // 返回登录
 function goBack() {
   uni.redirectTo({
-    url: '/pages/login/index'
+    url: '/pages/login/index',
   })
 }
 
@@ -321,8 +321,6 @@ onMounted(async () => {
   // 初始化国际化
   initI18n()
 })
-
-
 </script>
 
 <template>
@@ -385,41 +383,41 @@ onMounted(async () => {
         <view class="input-group">
           <view class="input-wrapper">
             <wd-input
-                v-model="formData.password"
-                custom-class="styled-input"
-                no-border
-                :placeholder="t('register.enterPassword')"
-                show-password
-                :maxlength="20"
-              />
-            </view>
+              v-model="formData.password"
+              custom-class="styled-input"
+              no-border
+              :placeholder="t('register.enterPassword')"
+              show-password
+              :maxlength="20"
+            />
+          </view>
         </view>
 
         <view class="input-group">
           <view class="input-wrapper">
             <wd-input
-                v-model="formData.confirmPassword"
-                custom-class="styled-input"
-                no-border
-                :placeholder="t('register.confirmPassword')"
-                show-password
-                :maxlength="20"
-              />
-            </view>
+              v-model="formData.confirmPassword"
+              custom-class="styled-input"
+              no-border
+              :placeholder="t('register.confirmPassword')"
+              show-password
+              :maxlength="20"
+            />
+          </view>
         </view>
 
         <view class="input-group">
           <view class="input-wrapper captcha-wrapper">
             <wd-input
-                v-model="formData.captcha"
-                custom-class="styled-input"
-                no-border
-                :placeholder="t('register.enterCode')"
-                :maxlength="6"
-              />
-              <view class="captcha-image" @click="refreshCaptcha">
-                <image :src="captchaImage" class="captcha-img" />
-              </view>
+              v-model="formData.captcha"
+              custom-class="styled-input"
+              no-border
+              :placeholder="t('register.enterCode')"
+              :maxlength="6"
+            />
+            <view class="captcha-image" @click="refreshCaptcha">
+              <image :src="captchaImage" class="captcha-img" />
+            </view>
           </view>
         </view>
 
@@ -427,21 +425,21 @@ onMounted(async () => {
         <view v-if="enableMobileRegister" class="input-group">
           <view class="input-wrapper sms-wrapper">
             <wd-input
-                v-model="formData.mobileCaptcha"
-                custom-class="styled-input"
-                no-border
-                :placeholder="t('register.enterCode')"
-                type="number"
-                :maxlength="6"
-              />
-              <wd-button
-                :loading="smsLoading"
-                :disabled="smsCountdown > 0"
-                custom-class="sms-btn"
-                @click="sendSmsVerification"
-              >
-                {{ smsCountdown > 0 ? `${smsCountdown}s` : t('register.getCode') }}
-              </wd-button>
+              v-model="formData.mobileCaptcha"
+              custom-class="styled-input"
+              no-border
+              :placeholder="t('register.enterCode')"
+              type="number"
+              :maxlength="6"
+            />
+            <wd-button
+              :loading="smsLoading"
+              :disabled="smsCountdown > 0"
+              custom-class="sms-btn"
+              @click="sendSmsVerification"
+            >
+              {{ smsCountdown > 0 ? `${smsCountdown}s` : t('register.getCode') }}
+            </wd-button>
           </view>
         </view>
 
@@ -462,7 +460,6 @@ onMounted(async () => {
             {{ t('register.loginNow') }}
           </text>
         </view>
-
       </view>
     </view>
 
@@ -508,8 +505,6 @@ onMounted(async () => {
         </view>
       </view>
     </wd-action-sheet>
-
-
   </view>
 </template>
 

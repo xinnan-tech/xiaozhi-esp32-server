@@ -9,7 +9,7 @@
 </route>
 
 <script lang="ts" setup>
-import { useMessage } from 'wot-design-uni'
+import { useMessage } from 'wot-design-uni/components/wd-message-box'
 import { getMcpAddress, getMcpTools } from '@/api/agent/agent'
 import { t } from '@/i18n'
 import { usePluginStore } from '@/store'
@@ -41,17 +41,32 @@ const tempParams = ref<Record<string, any>>({})
 const arrayTextCache = ref<Record<string, string>>({})
 const jsonTextCache = ref<Record<string, string>>({})
 
+function normalizeFunctionParams(paramInfo: any, fallback: Record<string, any> = {}) {
+  if (!paramInfo)
+    return { ...fallback }
+  if (typeof paramInfo === 'string') {
+    try {
+      const parsed = JSON.parse(paramInfo)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : { ...fallback }
+    }
+    catch {
+      return { ...fallback }
+    }
+  }
+  return typeof paramInfo === 'object' && !Array.isArray(paramInfo) ? { ...fallback, ...paramInfo } : { ...fallback }
+}
+
 async function mergeFunctions() {
   selectedList.value = functions.value.map((mapping) => {
     const meta = allFunctions.value.find(f => f.id === mapping.pluginId)
     if (!meta) {
-      return { id: mapping.pluginId, name: mapping.pluginId, params: {} }
+      return { id: mapping.pluginId, name: mapping.pluginId, params: normalizeFunctionParams(mapping.paramInfo) }
     }
 
     return {
       id: mapping.pluginId,
       name: meta.name,
-      params: mapping.paramInfo || { ...meta.params },
+      params: normalizeFunctionParams(mapping.paramInfo, meta.params),
       fieldsMeta: meta.fieldsMeta,
     }
   })
@@ -91,7 +106,7 @@ function selectFunction(func: any) {
   selectedList.value = [...selectedList.value, {
     id: func.id,
     name: func.name,
-    params: { ...func.params },
+    params: normalizeFunctionParams(func.params),
     fieldsMeta: func.fieldsMeta,
   }]
 
@@ -118,7 +133,7 @@ function editFunction(func: any) {
   currentFunction.value = func
 
   // 直接使用当前函数的参数
-  tempParams.value = { ...func.params }
+  tempParams.value = normalizeFunctionParams(func.params)
 
   // 初始化文本缓存
   if (func.fieldsMeta) {
@@ -252,7 +267,7 @@ function getFieldRemark(field: any) {
 watch(() => selectedList.value, (newSelectedList) => {
   const finalFunctions = newSelectedList.map(f => ({
     pluginId: f.id,
-    paramInfo: f.params,
+    paramInfo: normalizeFunctionParams(f.params),
   }))
   pluginStore.updateFunctions(finalFunctions)
 })

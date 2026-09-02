@@ -1,38 +1,38 @@
 <template>
   <div class="welcome">
     <HeaderBar />
-
-    <div class="operation-bar">
-          <h2 class="page-title">{{ $t('header.featureManagement') }}</h2>
-        </div>
-
     <div class="main-wrapper">
       <div class="content-panel">
         <div class="content-area">
           <el-card class="feature-card" shadow="never">
             <div class="config-header">
-              <div class="header-icon">
-                <img loading="lazy" src="@/assets/home/equipment.png" alt="" />
-              </div>
+              <h2 class="page-title">{{ $t('header.featureManagement') }}</h2>
               <div class="header-actions">
-                <el-button @click="!isSaving && toggleSelectAll()" class="btn-select-all" :disabled="isSaving">
+                <CustomButton :icon="isAllSelected ? 'el-icon-circle-close' : 'el-icon-circle-check'" size="medium" @click="!isSaving && toggleSelectAll()" :disabled="isSaving">
                   {{ isAllSelected ? $t('featureManagement.deselectAll') : $t('featureManagement.selectAll') }}
-                </el-button>
-                <el-button type="primary" class="save-btn" @click="handleSave" :disabled="isSaving">
-                  {{ isSaving ? $t('featureManagement.saving') : $t('featureManagement.save') }}
-                </el-button>
-                <el-button class="reset-btn" @click="handleReset" :disabled="isSaving">
+                </CustomButton>
+                <CustomButton icon="el-icon-refresh" size="medium" @click="handleReset" :disabled="isSaving">
                   {{ $t('featureManagement.reset') }}
-                </el-button>
+                </CustomButton>
+                <CustomButton icon="el-icon-setting" size="medium" type="confirm" @click="handleSave" :disabled="isSaving">
+                  {{ isSaving ? $t('featureManagement.saving') : $t('featureManagement.save') }}
+                </CustomButton>
               </div>
             </div>
             <div class="divider"></div>
-            
+
             <!-- 功能分组容器 - 左右布局 -->
             <div class="feature-groups-container">
               <!-- 功能管理分组 -->
               <div v-if="featureManagementFeatures.length > 0" class="feature-group">
-                <h3 class="group-title">{{ $t('featureManagement.group.featureManagement') }}</h3>
+                <div class="group-title">
+                  <img src="@/assets/setting/menu.png" alt="" width="28" height="28">
+                  <div class="group-header">
+                    <span class="group-name">{{ $t('featureManagement.groupName.featureManagement') }}</span>
+                    <span class="module-count">{{ $t('featureManagement.moduleCount', { count: featureManagementFeatures.length }) }}</span>
+                  </div>
+                </div>
+                <p class="group-description">{{ $t('featureManagement.groupDescription.featureManagement') }}</p>
                 <div class="features-grid">
                   <div
                     v-for="feature in featureManagementFeatures"
@@ -41,23 +41,35 @@
                     :class="{ 'feature-enabled': feature.enabled, 'feature-disabled': isSaving }"
                     @click="!isSaving && toggleFeature(feature)"
                   >
-                    <div class="feature-header">
-                      <h3 class="feature-name">{{ $t(`feature.${feature.id}.name`) }}</h3>
-                      <el-checkbox
-                        v-model="feature.enabled"
-                        @change="!isSaving && toggleFeature(feature)"
-                        class="feature-checkbox"
-                        :disabled="isSaving"
-                      />
+                    <img :src="featureIcons[feature.id]" alt="" width="60" height="60">
+                    <div class="feature-content">
+                      <div class="feature-header">
+                        <h3 class="feature-name">{{ $t(`feature.${feature.id}.name`) }}</h3>
+                        <div class="feature-checkbox-container">
+                          <el-checkbox
+                            v-model="feature.enabled"
+                            @change="!isSaving && toggleFeature(feature)"
+                            class="feature-checkbox"
+                            :disabled="isSaving"
+                          />
+                        </div>
+                      </div>
+                      <p class="feature-description">{{ $t(`feature.${feature.id}.description`) }}</p>
                     </div>
-                    <p class="feature-description">{{ $t(`feature.${feature.id}.description`) }}</p>
                   </div>
                 </div>
               </div>
-              
+
               <!-- 语音管理分组 -->
               <div v-if="voiceManagementFeatures.length > 0" class="feature-group">
-                <h3 class="group-title">{{ $t('featureManagement.group.voiceManagement') }}</h3>
+                <div class="group-title">
+                  <img src="@/assets/setting/agent.png" alt="" width="28" height="28">
+                  <div class="group-header">
+                    <span class="group-name">{{ $t('featureManagement.groupName.voiceManagement') }}</span>
+                    <span class="module-count">{{ $t('featureManagement.moduleCount', { count: voiceManagementFeatures.length }) }}</span>
+                  </div>
+                </div>
+                <p class="group-description">{{ $t('featureManagement.groupDescription.voiceManagement') }}</p>
                 <div class="features-grid">
                   <div
                     v-for="feature in voiceManagementFeatures"
@@ -66,16 +78,21 @@
                     :class="{ 'feature-enabled': feature.enabled, 'feature-disabled': isSaving }"
                     @click="!isSaving && toggleFeature(feature)"
                   >
-                    <div class="feature-header">
-                      <h3 class="feature-name">{{ $t(`feature.${feature.id}.name`) }}</h3>
-                      <el-checkbox
-                        v-model="feature.enabled"
-                        @change="!isSaving && toggleFeature(feature)"
-                        class="feature-checkbox"
-                        :disabled="isSaving"
-                      />
+                    <img :src="voiceManagementIcons[feature.id]" alt="" width="60" height="60">
+                    <div class="feature-content">
+                      <div class="feature-header">
+                        <h3 class="feature-name">{{ $t(`feature.${feature.id}.name`) }}</h3>
+                        <div class="feature-checkbox-container">
+                          <el-checkbox
+                            v-model="feature.enabled"
+                            @change="!isSaving && toggleFeature(feature)"
+                            class="feature-checkbox"
+                            :disabled="isSaving"
+                          />
+                        </div>
+                      </div>
+                      <p class="feature-description">{{ $t(`feature.${feature.id}.description`) }}</p>
                     </div>
-                    <p class="feature-description">{{ $t(`feature.${feature.id}.description`) }}</p>
                   </div>
                 </div>
               </div>
@@ -101,19 +118,41 @@
 import HeaderBar from "@/components/HeaderBar.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
 import featureManager from "@/utils/featureManager.js";
+import CustomButton from "@/components/CustomButton.vue";
+
+import voiceprintIcon from '@/assets/setting/voiceprint.png'
+import voiceCloneIcon from '@/assets/setting/voiceclone.png'
+import knowledgeBaseIcon from '@/assets/setting/knowledgeBase.png'
+import mcpAccessPointIcon from '@/assets/setting/mcpAccessPoint.png'
+import addressBookIcon from '@/assets/setting/addressBook.png'
+import vadIcon from '@/assets/setting/vad.png'
+import asrIcon from '@/assets/setting/asr.png'
 
 export default {
   name: "FeatureManagement",
   components: {
     HeaderBar,
-    VersionFooter
+    VersionFooter,
+    CustomButton
   },
   data() {
     return {
       pendingChanges: false,
       featureManagementFeatures: [],
       voiceManagementFeatures: [],
-      isSaving: false // 添加保存状态锁定
+      isSaving: false, // 添加保存状态锁定
+      // 功能模块图标映射
+      featureIcons: {
+        'voiceprintRecognition': voiceprintIcon,
+        'voiceClone': voiceCloneIcon,
+        'knowledgeBase': knowledgeBaseIcon,
+        'mcpAccessPoint': mcpAccessPointIcon,
+        'addressBook': addressBookIcon,
+      },
+      voiceManagementIcons: {
+        'vad': vadIcon,
+        'asr': asrIcon,
+      },
     }
   },
   computed: {
@@ -183,7 +222,7 @@ export default {
       })
       
       // 重新加载配置
-      this.featureManagementFeatures = await this.getFeaturesByIds(['voiceprintRecognition', 'voiceClone', 'knowledgeBase', 'mcpAccessPoint'])
+      this.featureManagementFeatures = await this.getFeaturesByIds(['voiceprintRecognition', 'voiceClone', 'knowledgeBase', 'mcpAccessPoint', 'addressBook'])
       this.voiceManagementFeatures = await this.getFeaturesByIds(['vad', 'asr'])
       
       // 恢复用户的选择状态（如果存在）
@@ -317,7 +356,9 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/global.scss';
+
 .welcome {
   min-width: 900px;
   min-height: 506px;
@@ -326,7 +367,7 @@ export default {
   position: relative;
   flex-direction: column;
   background-size: cover;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  background: #eff4ff;
   -webkit-background-size: cover;
   -o-background-size: cover;
   overflow: hidden;
@@ -336,10 +377,11 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 22px 24px;
 }
 
 .page-title {
+  font-weight: 500;
   font-size: 24px;
   margin: 0;
 }
@@ -376,60 +418,18 @@ export default {
 
 .divider {
   height: 1px;
-  background: #e0e0e0;
+  background: #f3f1f1;
   margin-bottom: 20px;
 }
 
-.btn-select-all {
-  background: #e6ebff;
-  color: #5778ff;
-  border: 1px solid #adbdff;
-  border-radius: 18px;
-  padding: 8px 16px;
-  height: 32px;
-  font-size: 14px;
-}
-
-.btn-select-all:hover {
-  background: #d0d8ff;
-}
-
-.save-btn {
-  background: #5778ff;
-  color: white;
-  border: none;
-  border-radius: 18px;
-  padding: 8px 16px;
-  height: 32px;
-  font-size: 14px;
-}
-
-.save-btn:hover {
-  background: #4a6ae8;
-}
-
-.reset-btn {
-  background: #e6ebff;
-  color: #5778ff;
-  border: 1px solid #adbdff;
-  border-radius: 18px;
-  padding: 8px 16px;
-  height: 32px;
-}
-
-.reset-btn:hover {
-  background: #d0d8ff;
-}
-
 .main-wrapper {
-  height: calc(100vh - 63px - 35px - 58px);
-  margin: 0 22px;
+  height: calc(100vh - 63px - 35px);
+  margin: 20px 22px 0;
   border-radius: 15px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: relative;
-  background: rgba(237, 242, 255, 0.5);
   display: flex;
   flex-direction: column;
+  overflow: auto;
 }
 
 .content-panel {
@@ -463,11 +463,12 @@ export default {
 }
 
 .feature-card ::v-deep .el-card__body {
-  padding: 24px;
+  padding: 14px 20px;
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
+  @include scrollbar-style;
 }
 
 .features-grid {
@@ -478,9 +479,8 @@ export default {
 
 .feature-card-item {
   display: flex;
-  flex-direction: column;
   padding: 20px;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 2px solid #e0e0e0;
   background-color: white;
   cursor: pointer;
@@ -491,25 +491,37 @@ export default {
 
 .feature-card-item:hover {
   border-color: #869bf0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
 }
 
 .feature-card-item.feature-enabled {
-  border-color:#5778ff;
-  box-shadow: 0 4px 16px rgba(95, 112, 243, 0.2);
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(to right, #4a7cfd, #8154fc) border-box;
+  box-shadow: 0 4px 10px rgba(95, 112, 243, 0.2);
   transform: translateY(-2px);
+}
+.feature-content {
+  width: 100%;
+  margin-left: 16px;
 }
 
 .feature-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  margin-bottom: 6px;
+}
+.feature-checkbox-container {
+  margin-top: 4px;
+  display: flex;
   align-items: center;
-  margin-bottom: 12px;
+  margin-left: 30px;
 }
 
 .feature-checkbox ::v-deep .el-checkbox__input {
-  transform: scale(1.2);
+  transform: scale(1.5);
 }
 
 .feature-checkbox ::v-deep .el-checkbox__input.is-checked .el-checkbox__inner {
@@ -521,25 +533,26 @@ export default {
   color: #5778ff;
 }
 
-
 .feature-name {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
   font-size: 18px;
+  line-height: 1.4;
   font-weight: 600;
   color: #333;
   margin: 0;
   transition: color 0.3s ease;
 }
 
-
 .feature-description {
   font-size: 14px;
   line-height: 1.6;
   color: #666;
-  margin: 0 0 12px 0;
+  margin: 0;
   transition: color 0.3s ease;
   text-align: left;
 }
-
 
 /* 功能分组容器 - 左右布局 */
 .feature-groups-container {
@@ -571,13 +584,39 @@ export default {
 }
 
 .group-title {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
   font-size: 18px;
+  line-height: 18px;
   font-weight: 600;
   color: #303133;
-  margin-bottom: 12px;
-  padding-left: 12px;
-  border-left: 4px solid #5f70f3;
+  margin-bottom: 0;
   text-align: left;
+}
+.group-name {
+  margin-left: 10px;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+}
+
+.module-count {
+  margin-left: 13px;
+  font-size: 12px;
+  background: #ebebfe;
+  color: #5778ff;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+.group-description {
+  margin-top: 6px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .features-grid {

@@ -1,23 +1,23 @@
+import type { Language } from '@/store/lang'
 import { ref } from 'vue'
 import { useLangStore } from '@/store/lang'
-import type { Language } from '@/store/lang'
 
+import de from './de'
+import en from './en'
+import pt_BR from './pt_BR'
+import vi from './vi'
 // 导入各个语言的翻译文件
 import zh_CN from './zh_CN'
-import en from './en'
 import zh_TW from './zh_TW'
-import de from './de'
-import vi from './vi'
-import pt_BR from './pt_BR'
 
 // 语言包映射
 const messages = {
-  zh_CN: zh_CN,
+  zh_CN,
   en,
-  zh_TW: zh_TW,
+  zh_TW,
   de,
   vi,
-  pt_BR: pt_BR,
+  pt_BR,
 }
 
 // 当前使用的语言
@@ -42,7 +42,7 @@ export function t(key: string, params?: Record<string, string | number>): string
 
   // 直接查找扁平键名
   if (langMessages && typeof langMessages === 'object' && key in langMessages) {
-    let value = langMessages[key]
+    const value = langMessages[key]
     if (typeof value === 'string') {
       // 处理参数替换
       if (params) {

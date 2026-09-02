@@ -7,6 +7,7 @@ import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.BaseService;
 import xiaozhi.modules.agent.dto.AgentCreateDTO;
 import xiaozhi.modules.agent.dto.AgentDTO;
+import xiaozhi.modules.agent.dto.AgentMemoryDTO;
 import xiaozhi.modules.agent.dto.AgentUpdateDTO;
 import xiaozhi.modules.agent.entity.AgentEntity;
 import xiaozhi.modules.agent.vo.AgentInfoVO;
@@ -36,6 +37,15 @@ public interface AgentService extends BaseService<AgentEntity> {
     AgentInfoVO getAgentById(String id);
 
     /**
+     * 根据ID获取当前用户有权访问的智能体
+     *
+     * @param id     智能体ID
+     * @param userId 当前用户ID
+     * @return 智能体实体
+     */
+    AgentInfoVO getAgentById(String id, Long userId);
+
+    /**
      * 插入智能体
      *
      * @param entity 智能体实体
@@ -49,6 +59,13 @@ public interface AgentService extends BaseService<AgentEntity> {
      * @param userId 用户ID
      */
     void deleteAgentByUserId(Long userId);
+
+    /**
+     * 删除智能体及其关联数据
+     *
+     * @param agentId 智能体ID
+     */
+    void deleteAgent(String agentId);
 
     /**
      * 获取用户智能体列表
@@ -92,6 +109,41 @@ public interface AgentService extends BaseService<AgentEntity> {
      * @param dto     更新智能体所需的信息
      */
     void updateAgentById(String agentId, AgentUpdateDTO dto);
+
+    /**
+     * 更新当前用户有权访问的智能体
+     *
+     * @param agentId 智能体ID
+     * @param dto     更新智能体所需的信息
+     * @param userId  当前用户ID
+     */
+    void updateAgentById(String agentId, AgentUpdateDTO dto, Long userId);
+
+    /**
+     * 根据设备MAC地址更新当前用户有权访问的智能体记忆
+     *
+     * @param macAddress 设备MAC地址
+     * @param dto        智能体记忆
+     * @param userId     当前用户ID
+     */
+    void updateAgentMemoryByDeviceMacAddress(String macAddress, AgentMemoryDTO dto, Long userId);
+
+    /**
+     * 删除当前用户有权访问的智能体
+     *
+     * @param agentId 智能体ID
+     * @param userId  当前用户ID
+     */
+    void deleteAgentById(String agentId, Long userId);
+
+    /**
+     * 更新智能体
+     *
+     * @param agentId        智能体ID
+     * @param dto            更新智能体所需的信息
+     * @param createSnapshot 是否创建配置快照
+     */
+    void updateAgentById(String agentId, AgentUpdateDTO dto, boolean createSnapshot);
 
     /**
      * 创建智能体

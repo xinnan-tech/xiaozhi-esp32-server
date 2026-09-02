@@ -61,6 +61,7 @@ const loading = ref(false)
 // 音频播放相关
 const audioContext = ref<UniApp.InnerAudioContext | null>(null)
 const playingAudioId = ref<string | null>(null)
+const expandedToolResults = ref({})
 
 // 返回上一页
 function goBack() {
@@ -124,8 +125,50 @@ function getSpeakerName(message: ChatMessage): string {
 
 // 格式化时间
 function formatTime(timeStr: string) {
-  const date = new Date(timeStr)
-  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  if (!timeStr)
+    return t('chatHistory.unknownTime')
+
+  // 处理时间字符串，确保格式正确
+  const date = new Date(timeStr.replace(' ', 'T')) // 转换为ISO格式
+  const now = new Date()
+
+  // 检查日期是否有效
+  if (Number.isNaN(date.getTime())) {
+    return timeStr // 如果解析失败，直接返回原字符串
+  }
+
+  const diff = now.getTime() - date.getTime()
+
+  // 小于1分钟
+  if (diff < 60000)
+    return t('chatHistory.justNow')
+
+  // 小于1小时
+  if (diff < 3600000)
+    return t('chatHistory.minutesAgo', { minutes: Math.floor(diff / 60000) })
+
+  // 小于1天（24小时）
+  if (diff < 86400000)
+    return t('chatHistory.hoursAgo', { hours: Math.floor(diff / 3600000) })
+
+  // 小于7天
+  if (diff < 604800000) {
+    const days = Math.floor(diff / 86400000)
+    return t('chatHistory.daysAgo', { days })
+  }
+
+  // 超过7天，显示具体日期
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const currentYear = now.getFullYear()
+
+  // 如果是当前年份，不显示年份
+  if (year === currentYear) {
+    return `${month}-${day}`
+  }
+
+  return `${year}-${month}-${day}`
 }
 
 // 播放音频
@@ -192,16 +235,65 @@ const playAudio = debounce(async (audioId: string) => {
   }
 }, 400)
 
+function extractContentFromString(content: string) {
+  if (!content || content.trim() === '') {
+    return content
+  }
+
+  // 尝试解析为 JSON
+  try {
+    const jsonObj = JSON.parse(content)
+
+    // 如果是数组格式（包含 text 和 tool）
+    if (Array.isArray(jsonObj)) {
+      return jsonObj
+    }
+
+    // 如果是对象且有 content 字段
+    if (jsonObj && typeof jsonObj === 'object' && jsonObj.content) {
+      return jsonObj.content
+    }
+  }
+  catch (e) {
+    // 如果不是有效的 JSON，直接返回原内容
+  }
+
+  // 如果不是 JSON 格式或没有 content 字段，直接返回原内容
+  return content
+}
+
+function toggleToolResult(messageIndex, itemIndex) {
+  const key = `${messageIndex}-${itemIndex}`
+  expandedToolResults.value[key] = !expandedToolResults.value[key]
+}
+
+function isToolResultCollapsed(messageIndex, itemIndex) {
+  const key = `${messageIndex}-${itemIndex}`
+  // 默认折叠（true表示折叠）
+  return !expandedToolResults.value[key]
+}
+
+function getFirstLineText(text: string) {
+  if (!text) {
+    return ''
+  }
+  const firstLine = text.split('\n')[0]
+  return firstLine.length < text.length ? `${firstLine}...` : text
+}
+
 onLoad((options) => {
   if (options?.sessionId && options?.agentId) {
     sessionId.value = options.sessionId
     agentId.value = options.agentId
-    loadChatHistory()
   }
   else {
     console.error('缺少必要参数')
     toast.error(t('chatHistory.parameterError'))
   }
+})
+
+onShow(() => {
+  loadChatHistory()
 })
 
 // 页面销毁时清理音频资源
@@ -256,6 +348,7 @@ onUnload(() => {
             :class="{
               'items-end': message.chatType === 1,
               'items-start': message.chatType === 2,
+              'tool-message': message.chatType === 3,
             }"
           >
             <!-- 消息气泡 -->
@@ -263,11 +356,39 @@ onUnload(() => {
               class="shadow-message break-words rounded-[20rpx] p-[24rpx] leading-[1.4]"
               :class="{
                 'bg-[#336cff] text-white': message.chatType === 1,
-                'bg-white text-[#232338] border border-[#eeeeee]': message.chatType === 2,
+                'bg-white text-[#232338] border border-[#eeeeee]': [2, 3].includes(message.chatType),
               }"
             >
+              <template v-if="Array.isArray(extractContentFromString(message.content))">
+                <div class="content-wrapper">
+                  <div v-for="(item, idx) in extractContentFromString(message.content)" :key="idx">
+                    <div v-if="item.type === 'text'" class="text-content">
+                      {{ item.text }}
+                    </div>
+                    <div v-else-if="item.type === 'tool'" class="tool-call-text">
+                      {{ item.text }}
+                    </div>
+                    <div v-else-if="item.type === 'tool_result'" class="tool-call-text">
+                      <div v-if="item.text && item.text.length > 80" class="tool-result-wrapper">
+                        <div v-if="isToolResultCollapsed(index, idx)" class="tool-result-collapsed">
+                          {{ getFirstLineText(item.text) }}
+                        </div>
+                        <div v-else class="tool-result-expanded">
+                          {{ item.text }}
+                        </div>
+                        <span class="tool-toggle-btn" @click="toggleToolResult(index, idx)">
+                          <wd-icon :name="isToolResultCollapsed(index, idx) ? 'arrow-down' : 'arrow-up'" size="12" />
+                        </span>
+                      </div>
+                      <div v-else>
+                        {{ item.text }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
               <!-- 内容区域 - 使用flex布局让图标和文本对齐 -->
-              <view class="flex items-center gap-[12rpx]">
+              <view v-else class="flex items-center gap-[12rpx]">
                 <!-- 音频播放图标 -->
                 <view
                   v-if="message.audioId"
@@ -333,5 +454,47 @@ onUnload(() => {
 
 .animate-pulse-audio {
   animation: pulse-audio 1.5s infinite;
+}
+
+.text-content {
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.tool-call-text {
+  color: #1890ff;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+  font-size: 24rpx;
+  display: block;
+  margin-top: 8rpx;
+}
+
+.user-message .tool-call-text {
+  color: #e6f7ff;
+}
+
+.tool-message .message-content {
+  background-color: #f0f0f0;
+}
+
+.tool-result-wrapper {
+  position: relative;
+  padding-right: 40rpx;
+}
+
+.tool-result-collapsed {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-toggle-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  cursor: pointer;
+  color: #1890ff;
+  font-size: 24rpx;
 }
 </style>

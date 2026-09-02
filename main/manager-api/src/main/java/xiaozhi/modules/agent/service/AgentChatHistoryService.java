@@ -3,7 +3,7 @@ package xiaozhi.modules.agent.service;
 import java.util.List;
 import java.util.Map;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.repository.IRepository;
 
 import xiaozhi.common.page.PageData;
 import xiaozhi.modules.agent.dto.AgentChatHistoryDTO;
@@ -18,7 +18,7 @@ import xiaozhi.modules.agent.vo.AgentChatHistoryUserVO;
  * @version 1.0, 2025/4/30
  * @since 1.0.0
  */
-public interface AgentChatHistoryService extends IService<AgentChatHistoryEntity> {
+public interface AgentChatHistoryService extends IRepository<AgentChatHistoryEntity> {
 
     /**
      * 根据智能体ID获取会话列表
@@ -36,6 +36,14 @@ public interface AgentChatHistoryService extends IService<AgentChatHistoryEntity
      * @return 聊天记录列表
      */
     List<AgentChatHistoryDTO> getChatHistoryBySessionId(String agentId, String sessionId);
+
+    /**
+     * 根据会话ID获取智能体ID
+     *
+     * @param sessionId 会话ID
+     * @return 智能体ID
+     */
+    String getAgentIdBySessionId(String sessionId);
 
     /**
      * 根据智能体ID删除聊天记录
@@ -61,6 +69,14 @@ public interface AgentChatHistoryService extends IService<AgentChatHistoryEntity
      * @return 聊天内容
      */
     String getContentByAudioId(String audioId);
+
+    /**
+     * 根据音频ID获取智能体ID
+     *
+     * @param audioId 音频ID
+     * @return 智能体ID
+     */
+    String getAgentIdByAudioId(String audioId);
 
 
     /**

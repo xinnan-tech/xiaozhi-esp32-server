@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :title="title" :visible="dialogVisible" width="600px" class="knowledge-base-dialog" @close="handleClose">
+  <CustomDialog :title="title" :visible.sync="dialogVisible" width="600px" class="knowledge-base-dialog" @close="handleClose" @confirm="handleSubmit">
     <el-form ref="knowledgeBaseForm" :model="form" :rules="rules" label-width="100px" size="medium">
       <el-form-item :label="$t('knowledgeBaseDialog.name')" prop="name">
         <el-input v-model="form.name" :placeholder="$t('knowledgeBaseDialog.namePlaceholder')" clearable></el-input>
@@ -16,15 +16,12 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <div slot="footer" class="dialog-footer">
-      <el-button @click="handleClose">{{ $t('knowledgeBaseDialog.cancel') }}</el-button>
-      <el-button type="primary" @click="handleSubmit">{{ $t('knowledgeBaseDialog.confirm') }}</el-button>
-    </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
 import Api from "@/apis/api";
+import CustomDialog from "./CustomDialog.vue";
 
 export default {
   name: "KnowledgeBaseDialog",
@@ -92,6 +89,9 @@ export default {
         ]
       }
     };
+  },
+  components: {
+    CustomDialog
   },
   watch: {
     visible(val) {

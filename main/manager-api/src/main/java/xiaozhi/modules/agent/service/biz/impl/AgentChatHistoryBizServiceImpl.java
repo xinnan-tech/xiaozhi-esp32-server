@@ -52,7 +52,7 @@ public class AgentChatHistoryBizServiceImpl implements AgentChatHistoryBizServic
     public Boolean report(AgentChatHistoryReportDTO report) {
         String macAddress = report.getMacAddress();
         Byte chatType = report.getChatType();
-        Long reportTimeMillis = null != report.getReportTime() ? report.getReportTime() * 1000
+        Long reportTimeMillis = null != report.getReportTime() ? report.getReportTime()
                 : System.currentTimeMillis();
         log.info("小智设备聊天上报请求: macAddress={}, type={} reportTime={}", macAddress, chatType, reportTimeMillis);
 

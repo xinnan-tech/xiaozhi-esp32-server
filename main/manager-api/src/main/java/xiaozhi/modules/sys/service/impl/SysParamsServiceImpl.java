@@ -22,6 +22,7 @@ import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.common.utils.SM2Utils;
+import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.sys.dao.SysParamsDao;
 import xiaozhi.modules.sys.dto.SysParamsDTO;
 import xiaozhi.modules.sys.entity.SysParamsEntity;
@@ -35,6 +36,7 @@ import xiaozhi.modules.sys.service.SysParamsService;
 @Service
 public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParamsEntity> implements SysParamsService {
     private final SysParamsRedis sysParamsRedis;
+    private final AgentPluginMappingService agentPluginMappingService;
 
     @Override
     public PageData<SysParamsDTO> page(Map<String, Object> params) {
@@ -269,5 +271,61 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
             throw new RenException(promptStr.formatted(substring));
         }
         return true;
+    }
+    @Override
+    public String getSystemWebMenu(boolean fromCache) {
+        return getValue(Constant.SYSTEM_WEB_MENU, fromCache);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSystemWebMenu(String configJson) {
+        // 获取当前配置
+        String currentConfig = getSystemWebMenu(false);
+        Map<String, Object> currentMap = null;
+        Map<String, Object> newMap = null;
+
+        try {
+            if (StringUtils.isNotBlank(currentConfig)) {
+                currentMap = JsonUtils.parseMap(currentConfig);
+            }
+            if (StringUtils.isNotBlank(configJson)) {
+                newMap = JsonUtils.parseMap(configJson);
+            }
+        } catch (Exception e) {
+            throw new RenException(ErrorCode.PARAM_JSON_INVALID);
+        }
+
+        // 检查addressBook功能是否被关闭
+        if (currentMap != null && newMap != null) {
+            Map<?, ?> currentFeatures = Map.class.cast(currentMap.get("features"));
+            Map<?, ?> newFeatures = Map.class.cast(newMap.get("features"));
+
+            if (currentFeatures != null && newFeatures != null) {
+                Object currentAddressBookObj = currentFeatures.get("addressBook");
+                Object newAddressBookObj = newFeatures.get("addressBook");
+
+                Boolean currentEnabled = false;
+                Boolean newEnabled = false;
+
+                if (currentAddressBookObj instanceof Map<?, ?> currentAddressBook) {
+                    Object enabled = currentAddressBook.get("enabled");
+                    currentEnabled = enabled != null ? Boolean.class.cast(enabled) : false;
+                }
+
+                if (newAddressBookObj instanceof Map<?, ?> newAddressBook) {
+                    Object enabled = newAddressBook.get("enabled");
+                    newEnabled = enabled != null ? Boolean.class.cast(enabled) : false;
+                }
+
+                // 如果之前是启用状态，现在被禁用，删除所有call_device插件
+                if (Boolean.TRUE.equals(currentEnabled) && !Boolean.TRUE.equals(newEnabled)) {
+                    agentPluginMappingService.deleteByPluginId("SYSTEM_PLUGIN_CALL_DEVICE");
+                }
+            }
+        }
+
+        // 更新配置
+        updateValueByCode(Constant.SYSTEM_WEB_MENU, configJson);
     }
 }

@@ -68,7 +68,7 @@ class ASRPerformanceTester:
         """测试单个音频文件的性能"""
         try:
             start_time = time.time()
-            text, _ = await stt.speech_to_text([audio_data], "1", stt.audio_format)
+            text, _ = await stt.speech_to_text_wrapper([audio_data], "1", stt.audio_format)
             if text is None:
                 return None
             

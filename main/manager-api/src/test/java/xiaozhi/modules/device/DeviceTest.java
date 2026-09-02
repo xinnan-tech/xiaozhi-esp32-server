@@ -1,7 +1,6 @@
 package xiaozhi.modules.device;
 
 import java.util.HashMap;
-import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +10,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import lombok.extern.slf4j.Slf4j;
+import xiaozhi.common.exception.ErrorCode;
+import xiaozhi.common.exception.RenException;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.service.SysUserService;
@@ -27,11 +28,13 @@ public class DeviceTest {
     private SysUserService sysUserService;
 
     @Test
-    public void testSaveUser() {
+    public void testRejectWeakPassword() {
         SysUserDTO userDTO = new SysUserDTO();
         userDTO.setUsername("test");
-        userDTO.setPassword(UUID.randomUUID().toString());
-        sysUserService.save(userDTO);
+        userDTO.setPassword("weak-password-123");
+
+        RenException exception = Assertions.assertThrows(RenException.class, () -> sysUserService.save(userDTO));
+        Assertions.assertEquals(ErrorCode.PASSWORD_WEAK_ERROR, exception.getCode());
     }
 
     @Test

@@ -1,56 +1,54 @@
 <template>
-  <el-dialog :visible="visible" :close-on-click-modal="false" @update:visible="handleVisibleChange" width="57%" center custom-class="custom-dialog"
-    :show-close="false" class="center-dialog">
-
-    <div style="margin: 0 18px; text-align: left; padding: 10px; border-radius: 10px;">
-      <div style="font-size: 30px; color: #3d4566; margin-top: -15px; margin-bottom: 20px; text-align: center;">
-        {{ title }}
-      </div>
-
-      <button class="custom-close-btn" @click="handleClose">×</button>
-
-      <el-form :model="form" label-width="auto" :rules="rules" ref="form" class="custom-form">
-        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-          <el-form-item :label="$t('providerDialog.category')" prop="modelType" style="flex: 1;">
-            <el-select v-model="form.modelType" :placeholder="$t('providerDialog.selectCategory')" class="custom-input-bg" style="width: 100%;">
+  <CustomDialog
+    :title="title"
+    :visible.sync="visible"
+    width="57%"
+    class="provider-dialog-wrapper"
+    @confirm="submit"
+    @close="handleClose"
+    :confirmLoading="saving"
+  >
+    <div class="dialog-container">
+      <el-form :model="form" :rules="rules" ref="form" label-width="auto" label-position="left" class="provider-form">
+        <div class="form-row">
+          <el-form-item :label="$t('providerDialog.category')" prop="modelType" class="form-item">
+            <el-select v-model="form.modelType" :placeholder="$t('providerDialog.selectCategory')" class="custom-select">
               <el-option v-for="item in modelTypes" :key="item.value" :label="item.label" :value="item.value">
               </el-option>
             </el-select>
           </el-form-item>
 
-          <el-form-item :label="$t('providerDialog.code')" prop="providerCode" style="flex: 1;">
-            <el-input v-model="form.providerCode" :placeholder="$t('providerDialog.inputCode')" class="custom-input-bg"></el-input>
+          <el-form-item :label="$t('providerDialog.code')" prop="providerCode" class="form-item">
+            <el-input v-model="form.providerCode" :placeholder="$t('providerDialog.inputCode')" class="custom-input"></el-input>
           </el-form-item>
         </div>
 
-        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-          <el-form-item :label="$t('providerDialog.name')" prop="name" style="flex: 1;">
-            <el-input v-model="form.name" :placeholder="$t('providerDialog.inputName')" class="custom-input-bg"></el-input>
+        <div class="form-row">
+          <el-form-item :label="$t('providerDialog.name')" prop="name" class="form-item">
+            <el-input v-model="form.name" :placeholder="$t('providerDialog.inputName')" class="custom-input"></el-input>
           </el-form-item>
-          <el-form-item :label="$t('providerDialog.sort')" prop="sort" style="flex: 1;">
-            <el-input-number v-model="form.sort" :min="0" controls-position="right" class="custom-input-bg"
+          <el-form-item :label="$t('providerDialog.sort')" prop="sort" class="form-item">
+            <el-input-number v-model="form.sort" :min="0" controls-position="right" class="custom-input-number"
               style="width: 100%;"></el-input-number>
           </el-form-item>
         </div>
 
-        <div style="font-size: 20px; font-weight: bold; color: #3d4566; margin-bottom: 15px;">
-          {{ $t('providerDialog.fieldConfig') }}
-          <div style="display: inline-block; float: right;">
-            <el-button type="primary" @click="addField" size="small" style="background: #5bc98c; border: none;"
+        <div class="field-config-header">
+          <span class="field-config-title">{{ $t('providerDialog.fieldConfig') }}</span>
+          <div class="field-config-actions">
+            <el-button type="primary" @click="addField" size="small" class="btn-add"
               :disabled="hasIncompleteFields">
               {{ $t('providerDialog.add') }}
             </el-button>
-            <el-button type="primary" @click="toggleSelectAllFields" size="small"
-              style="background: #5f70f3; border: none; margin-left: 10px;">
+            <el-button type="primary" @click="toggleSelectAllFields" size="small" class="btn-select-all">
               {{ isAllFieldsSelected ? $t('providerDialog.deselectAll') : $t('providerDialog.selectAll') }}
             </el-button>
-            <el-button type="danger" @click="batchRemoveFields" size="small"
-              style="background: red; border: none; margin-left: 10px;">
+            <el-button type="danger" @click="batchRemoveFields" size="small" class="btn-batch-delete">
               {{ $t('providerDialog.batchDelete') }}
             </el-button>
           </div>
         </div>
-        <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
+        <div class="divider"></div>
 
         <div class="fields-container">
           <el-table :data="form.fields" style="width: 100%;" border size="medium" :key="tableKey">
@@ -122,26 +120,27 @@
         </div>
       </el-form>
     </div>
-
-    <div style="display: flex; justify-content: center;">
-      <el-button type="primary" @click="submit" class="save-btn" :loading="saving">{{ $t('providerDialog.save') }}</el-button>
-    </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
+import CustomDialog from './CustomDialog.vue';
 export default {
+  name: 'ProviderDialog',
   props: {
     title: String,
     visible: Boolean,
     form: Object,
     modelTypes: Array
   },
+  components: {
+    CustomDialog
+  },
   data() {
     return {
       saving: false,
       isAllFieldsSelected: false,
-      tableKey: 0 // 用于强制表格重新渲染
+      tableKey: 0
     };
   },
   computed: {
@@ -199,16 +198,8 @@ export default {
       }));
     },
 
-    handleVisibleChange(val) {
-      this.$emit('update:visible', val);
-      if (!val) {
-        this.resetForm();
-      }
-    },
-
     handleClose() {
       this.resetForm();
-      this.$emit('update:visible', false);
       this.$emit('cancel');
     },
 
@@ -288,7 +279,7 @@ export default {
     },
 
     forceTableRerender() {
-      this.tableKey += 1; // 改变key值强制表格重新渲染
+      this.tableKey += 1;
     },
 
     submit() {
@@ -331,8 +322,7 @@ export default {
       }
       this.isAllFieldsSelected = false;
       this.forceTableRerender();
-    },
-
+    }
   },
   watch: {
     visible(val) {
@@ -344,97 +334,40 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
-::v-deep .custom-dialog.el-dialog {
-  margin-top: 0 !important;
-  border-radius: 20px !important;
-}
-
-::v-deep .custom-dialog .el-dialog__header {
-  padding: 0;
-  border-bottom: none;
-}
-
-.custom-close-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  border: 2px solid #cfcfcf;
-  background: none;
-  font-size: 30px;
-  font-weight: lighter;
-  color: #cfcfcf;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-  padding: 0;
-  outline: none;
-}
-
-.custom-close-btn:hover {
-  color: #409EFF;
-  border-color: #409EFF;
-}
-
-.custom-form .el-form-item {
-  margin-bottom: 20px;
-}
-
-.custom-form .el-form-item__label {
-  color: #3d4566;
-  font-weight: normal;
-  text-align: right;
-  padding-right: 20px;
-}
-
-.custom-input-bg .el-input__inner {
-  background-color: #f6f8fc;
-  height: 32px;
-}
-
-.custom-input-bg .el-input__inner::-webkit-input-placeholder {
-  color: #9c9f9e;
-}
-
-.fields-container {
-  margin-bottom: 20px;
-}
-
-.save-btn {
-  background: #e6f0fd;
-  color: #237ff4;
-  border: 1px solid #b3d1ff;
-  width: 150px;
-  height: 40px;
-  font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-.save-btn:hover {
-  background: linear-gradient(to right, #237ff4, #9c40d5);
-  color: white;
-  border: none;
-}
-
-.el-table {
-  border-radius: 4px;
-}
-
-.el-table::before {
-  display: none;
-}
-
-.el-table th,
-.el-table td {
-  padding: 8px 0;
-}
-
-.el-button.is-circle {
-  border-radius: 2px;
+<style scoped lang="scss">
+.provider-dialog-wrapper {
+  .provider-form {
+    .form-row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .form-item {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    .custom-select {
+      width: 100%;
+    }
+    .custom-input-number {
+      width: 100%;
+    }
+  }
+  .field-config-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    .field-config-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #3d4566;
+    }
+  }
+  .divider {
+    height: 2px;
+    background: #e9e9e9;
+    margin-bottom: 22px;
+  }
 }
 </style>

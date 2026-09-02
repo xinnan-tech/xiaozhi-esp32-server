@@ -105,7 +105,8 @@
                   > 
                     <el-switch
                       v-model="scope.row.isEnabled"
-                      class="custom-switch"
+                      active-color="#5778ff"
+                      inactive-color="#DCDFE6"
                       :active-value="1"
                       :inactive-value="0"
                       disabled
@@ -115,7 +116,8 @@
                   <el-switch
                     v-else
                     v-model="scope.row.isEnabled"
-                    class="custom-switch"
+                    active-color="#5778ff"
+                    inactive-color="#DCDFE6"
                     :active-value="1"
                     :inactive-value="0"
                     @change="handleStatusChange(scope.row)"
@@ -126,7 +128,8 @@
                 <template slot-scope="scope">
                   <el-switch
                     v-model="scope.row.isDefault"
-                    class="custom-switch"
+                    active-color="#5778ff"
+                    inactive-color="#DCDFE6"
                     :active-value="1"
                     :inactive-value="0"
                     @change="handleDefaultChange(scope.row)"
@@ -184,76 +187,33 @@
             </el-table>
             <div class="table-footer">
               <div class="batch-actions">
-                <el-button size="mini" type="primary" @click="selectAll">
+                <CustomButton :icon="isAllSelected ? 'el-icon-circle-close' : 'el-icon-circle-check'" type="default" size="small" @click="selectAll">
                   {{
                     isAllSelected
                       ? $t("modelConfig.deselectAll")
                       : $t("modelConfig.selectAll")
                   }}
-                </el-button>
-                <el-button type="success" size="mini" @click="addModel" class="add-btn">
+                </CustomButton>
+                <CustomButton icon="el-icon-plus" type="add" size="small" @click="addModel">
                   {{ $t("modelConfig.add") }}
-                </el-button>
-                <el-button
-                  size="mini"
-                  type="danger"
+                </CustomButton>
+                <CustomButton
+                  type="delete"
+                  size="small"
                   icon="el-icon-delete"
                   @click="batchDelete"
                 >
                   {{ $t("modelConfig.delete") }}
-                </el-button>
+                </CustomButton>
               </div>
-              <div class="custom-pagination">
-                <el-select
-                  v-model="pageSize"
-                  @change="handlePageSizeChange"
-                  class="page-size-select"
-                >
-                  <el-option
-                    v-for="item in pageSizeOptions"
-                    :key="item"
-                    :label="$t('modelConfig.itemsPerPage', { items: item })"
-                    :value="item"
-                  >
-                  </el-option>
-                </el-select>
-
-                <button
-                  class="pagination-btn"
-                  :disabled="currentPage === 1"
-                  @click="goFirst"
-                >
-                  {{ $t("modelConfig.firstPage") }}
-                </button>
-                <button
-                  class="pagination-btn"
-                  :disabled="currentPage === 1"
-                  @click="goPrev"
-                >
-                  {{ $t("modelConfig.prevPage") }}
-                </button>
-
-                <button
-                  v-for="page in visiblePages"
-                  :key="page"
-                  class="pagination-btn"
-                  :class="{ active: page === currentPage }"
-                  @click="goToPage(page)"
-                >
-                  {{ page }}
-                </button>
-
-                <button
-                  class="pagination-btn"
-                  :disabled="currentPage === pageCount"
-                  @click="goNext"
-                >
-                  {{ $t("modelConfig.nextPage") }}
-                </button>
-                <span class="total-text">{{
-                  $t("modelConfig.totalRecords", { total })
-                }}</span>
-              </div>
+              <CustomPagination
+                :total="total"
+                :current-page="currentPage"
+                :page-size="pageSize"
+                :page-size-options="pageSizeOptions"
+                @size-change="handlePageSizeChange"
+                @page-change="handlePageChange"
+              />
             </div>
           </el-card>
         </div>
@@ -288,9 +248,11 @@ import AddModelDialog from "@/components/AddModelDialog.vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import ModelEditDialog from "@/components/ModelEditDialog.vue";
 import TtsModel from "@/components/TtsModel.vue";
+import CustomPagination from "@/components/CustomPagination.vue";
+import CustomButton from "@/components/CustomButton.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
 export default {
-  components: { HeaderBar, ModelEditDialog, TtsModel, AddModelDialog, VersionFooter },
+  components: { HeaderBar, ModelEditDialog, TtsModel, AddModelDialog, VersionFooter, CustomPagination, CustomButton },
   data() {
     return {
       addDialogVisible: false,
@@ -333,24 +295,6 @@ export default {
       return (
         this.$t("modelConfig." + this.activeTab) || this.$t("modelConfig.modelConfig")
       );
-    },
-    pageCount() {
-      return Math.ceil(this.total / this.pageSize);
-    },
-    visiblePages() {
-      const pages = [];
-      const maxVisible = 3;
-      let start = Math.max(1, this.currentPage - 1);
-      let end = Math.min(this.pageCount, start + maxVisible - 1);
-
-      if (end - start + 1 < maxVisible) {
-        start = Math.max(1, end - maxVisible + 1);
-      }
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      return pages;
     },
   },
 
@@ -481,9 +425,9 @@ export default {
           this.$message.info(this.$t("modelConfig.deleteCancelled"));
         });
     },
-    handleCurrentChange(page) {
+    handlePageChange(page) {
       this.currentPage = page;
-      this.$refs.modelTable.clearSelection();
+      this.loadData();
     },
     handleModelSave({ provideCode, formData, done }) {
       const modelType = this.activeTab;
@@ -556,28 +500,6 @@ export default {
           });
         }
       });
-    },
-
-    // 分页器
-    goFirst() {
-      this.currentPage = 1;
-      this.loadData();
-    },
-    goPrev() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-        this.loadData();
-      }
-    },
-    goNext() {
-      if (this.currentPage < this.pageCount) {
-        this.currentPage++;
-        this.loadData();
-      }
-    },
-    goToPage(page) {
-      this.currentPage = page;
-      this.loadData();
     },
 
     // 获取模型配置列表
@@ -654,7 +576,7 @@ export default {
   position: relative;
   flex-direction: column;
   background-size: cover;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  background: #eff4ff;
   -webkit-background-size: cover;
   -o-background-size: cover;
 }
@@ -664,9 +586,7 @@ export default {
   height: calc(100vh - 63px - 35px - 72px);
   margin: 0 22px;
   border-radius: 15px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: relative;
-  background: rgba(237, 242, 255, 0.5);
 }
 
 .operation-bar {
@@ -793,50 +713,6 @@ export default {
   transition: border-color 0.2s;
 }
 
-::v-deep .page-size-select {
-  width: 100px;
-  margin-right: 8px;
-}
-
-::v-deep .page-size-select .el-input__inner {
-  height: 32px;
-  line-height: 32px;
-  border-radius: 4px;
-  border: 1px solid #e4e7ed;
-  background: #dee7ff;
-  color: #606266;
-  font-size: 14px;
-}
-
-::v-deep .page-size-select .el-input__suffix {
-  right: 6px;
-  width: 15px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  top: 6px;
-  border-radius: 4px;
-}
-
-::v-deep .page-size-select .el-input__suffix-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-::v-deep .page-size-select .el-icon-arrow-up:before {
-  content: "";
-  display: inline-block;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 9px solid #606266;
-  position: relative;
-  transform: rotate(0deg);
-  transition: transform 0.3s;
-}
-
 ::v-deep .search-input .el-input__inner:focus {
   border-color: #6b8cff;
   outline: none;
@@ -869,53 +745,53 @@ export default {
   background: white;
 }
 
-.batch-actions {
-  display: flex;
-  gap: 8px;
-}
+// .batch-actions {
+//   display: flex;
+//   gap: 8px;
+// }
 
-.batch-actions .el-button {
-  min-width: 72px;
-  height: 32px;
-  padding: 7px 12px 7px 10px;
-  font-size: 12px;
-  border-radius: 4px;
-  line-height: 1;
-  font-weight: 500;
-  border: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
+// .batch-actions .el-button {
+//   min-width: 72px;
+//   height: 32px;
+//   padding: 7px 12px 7px 10px;
+//   font-size: 12px;
+//   border-radius: 4px;
+//   line-height: 1;
+//   font-weight: 500;
+//   border: none;
+//   transition: all 0.3s ease;
+//   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+// }
 
-.batch-actions .el-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
+// .batch-actions .el-button:hover {
+//   transform: translateY(-1px);
+//   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+// }
 
-.batch-actions .el-button--primary {
-  background: #5f70f3 !important;
-  color: white;
-}
+// .batch-actions .el-button--primary {
+//   background: #5f70f3 !important;
+//   color: white;
+// }
 
-.batch-actions .el-button--success {
-  background: #5bc98c;
-  color: white;
-}
+// .batch-actions .el-button--success {
+//   background: #5bc98c;
+//   color: white;
+// }
 
-.batch-actions .el-button--danger {
-  background: #fd5b63;
-  color: white;
-}
+// .batch-actions .el-button--danger {
+//   background: #fd5b63;
+//   color: white;
+// }
 
-.batch-actions .el-button:first-child {
-  background: linear-gradient(135deg, #409eff, #6b8cff);
-  border: none;
-  color: white;
-}
+// .batch-actions .el-button:first-child {
+//   background: linear-gradient(135deg, #409eff, #6b8cff);
+//   border: none;
+//   color: white;
+// }
 
-.batch-actions .el-button:first-child:hover {
-  background: linear-gradient(135deg, #3a8ee6, #5a7cff);
-}
+// .batch-actions .el-button:first-child:hover {
+//   background: linear-gradient(135deg, #3a8ee6, #5a7cff);
+// }
 
 .el-table th ::v-deep .el-table__cell {
   overflow: hidden;
@@ -954,7 +830,7 @@ export default {
 
 ::v-deep .el-table__body .el-checkbox__inner {
   display: inline-block !important;
-  background: #e6edfa;
+  background: #ffffff;
 }
 
 ::v-deep .el-table thead th:not(:first-child) .cell {
@@ -1016,73 +892,6 @@ export default {
 ::v-deep .el-table .cell {
   padding-left: 10px;
   padding-right: 10px;
-}
-
-/* 分页器 */
-.custom-pagination {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  /* 导航按钮样式 (首页、上一页、下一页) */
-  .pagination-btn:first-child,
-  .pagination-btn:nth-child(2),
-  .pagination-btn:nth-child(3),
-  .pagination-btn:nth-last-child(2) {
-    min-width: 60px;
-    height: 32px;
-    padding: 0 12px;
-    border-radius: 4px;
-    border: 1px solid #e4e7ed;
-    background: #dee7ff;
-    color: #606266;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background: #d7dce6;
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  }
-
-  /* 数字按钮样式 */
-  .pagination-btn:not(:first-child):not(:nth-child(2)):not(:nth-child(3)):not(:nth-last-child(2)) {
-    min-width: 28px;
-    height: 32px;
-    padding: 0;
-    border-radius: 4px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: #606266;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background: rgba(245, 247, 250, 0.3);
-    }
-  }
-
-  .pagination-btn.active {
-    background: #5f70f3 !important;
-    color: #ffffff !important;
-    border-color: #5f70f3 !important;
-
-    &:hover {
-      background: #6d7cf5 !important;
-    }
-  }
-
-  .total-text {
-    color: #909399;
-    font-size: 14px;
-    margin-left: 10px;
-  }
 }
 
 .model-card {

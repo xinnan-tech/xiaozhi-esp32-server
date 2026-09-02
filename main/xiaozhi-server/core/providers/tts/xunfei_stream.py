@@ -117,6 +117,7 @@ class TTSProvider(TTSProviderBase):
         # WebSocket配置
         self.ws = None
         self._monitor_task = None
+        self.activate_session = False
 
         # 序列号管理
         self.text_seq = 0
@@ -128,7 +129,7 @@ class TTSProvider(TTSProviderBase):
     async def _ensure_connection(self):
         """确保WebSocket连接可用"""
         try:
-            logger.bind(tag=TAG).info("开始建立新连接...")
+            logger.bind(tag=TAG).debug("开始建立新连接...")
 
             # 生成认证URL
             auth_url = XunfeiWSAuth.create_auth_url(
@@ -141,7 +142,7 @@ class TTSProvider(TTSProviderBase):
                 ping_timeout=10,
                 close_timeout=10,
             )
-            logger.bind(tag=TAG).info("WebSocket连接建立成功")
+            logger.bind(tag=TAG).debug("WebSocket连接建立成功")
             return self.ws
         except Exception as e:
             logger.bind(tag=TAG).error(f"建立连接失败: {str(e)}")
@@ -153,35 +154,42 @@ class TTSProvider(TTSProviderBase):
         while not self.conn.stop_event.is_set():
             try:
                 message = self.tts_text_queue.get(timeout=1)
-                logger.bind(tag=TAG).debug(
-                    f"收到TTS任务｜{message.sentence_type.name} ｜ {message.content_type.name} | 会话ID: {self.conn.sentence_id}"
-                )
 
-                if message.sentence_type == SentenceType.FIRST:
-                    # 重置序列号
-                    self.text_seq = 0
-                    self.conn.client_abort = False
-                # 增加序列号
-                self.text_seq += 1
                 if self.conn.client_abort:
                     logger.bind(tag=TAG).info("收到打断信息，终止TTS文本处理线程")
                     continue
+
+                # 过滤旧消息：检查sentence_id是否匹配
+                if message.sentence_id != self.conn.sentence_id:
+                    continue
+
+                logger.bind(tag=TAG).debug(
+                    f"收到TTS任务｜{message.sentence_type.name} ｜ {message.content_type.name} | 会话ID: {message.sentence_id}"
+                )
+
+                if message.sentence_type == SentenceType.FIRST:
+                    # 重置流式处理状态
+                    self.reset_stream_state()
+                    # 重置序列号
+                    self.text_seq = 0
+                # 增加序列号
+                self.text_seq += 1
 
                 if message.sentence_type == SentenceType.FIRST:
                     # 初始化参数
                     try:
                         if not getattr(self.conn, "sentence_id", None):
                             self.conn.sentence_id = uuid.uuid4().hex
-                            logger.bind(tag=TAG).info(f"自动生成新的 会话ID: {self.conn.sentence_id}")
+                            logger.bind(tag=TAG).debug(f"自动生成新的 会话ID: {self.conn.sentence_id}")
 
-                        logger.bind(tag=TAG).info("开始启动TTS会话...")
+                        logger.bind(tag=TAG).debug("开始启动TTS会话...")
                         future = asyncio.run_coroutine_threadsafe(
                             self.start_session(self.conn.sentence_id),
                             loop=self.conn.loop,
                         )
-                        future.result()
+                        future.result(timeout=self.tts_timeout)
                         self.before_stop_play_files.clear()
-                        logger.bind(tag=TAG).info("TTS会话启动成功")
+                        logger.bind(tag=TAG).debug("TTS会话启动成功")
 
                     except Exception as e:
                         logger.bind(tag=TAG).error(f"启动TTS会话失败: {str(e)}")
@@ -198,8 +206,7 @@ class TTSProvider(TTSProviderBase):
                                 self.text_to_speak(message.content_detail, None),
                                 loop=self.conn.loop,
                             )
-                            future.result()
-                            logger.bind(tag=TAG).debug("TTS文本发送成功")
+                            future.result(timeout=self.tts_timeout)
                         except Exception as e:
                             logger.bind(tag=TAG).error(f"发送TTS文本失败: {str(e)}")
                             # 不使用continue，确保后续处理不被中断
@@ -216,7 +223,7 @@ class TTSProvider(TTSProviderBase):
                 # 处理会话结束
                 if message.sentence_type == SentenceType.LAST:
                     try:
-                        logger.bind(tag=TAG).info("开始结束TTS会话...")
+                        logger.bind(tag=TAG).debug("开始结束TTS会话...")
                         asyncio.run_coroutine_threadsafe(
                             self.finish_session(self.conn.sentence_id),
                             loop=self.conn.loop,
@@ -240,10 +247,17 @@ class TTSProvider(TTSProviderBase):
                 return
 
             filtered_text = MarkdownCleaner.clean_markdown(text)
+
             if filtered_text:
-                # 发送文本合成请求
-                run_request = self._build_base_request(status=1,text=filtered_text)
-                await self.ws.send(json.dumps(run_request))
+                # 使用滑动窗口匹配处理跨分片的替换词
+                confirmed_texts, self._pending_prefix = self._match_stream_text(filtered_text)
+
+                # 发送每个确定的文本片段
+                for txt in confirmed_texts:
+                    if txt and self.ws:
+                        # 发送文本合成请求
+                        run_request = self._build_base_request(status=1, text=txt)
+                        await self.ws.send(json.dumps(run_request))
             return
 
         except Exception as e:
@@ -257,30 +271,28 @@ class TTSProvider(TTSProviderBase):
             raise
 
     async def start_session(self, session_id):
-        logger.bind(tag=TAG).info(f"开始会话～～{session_id}")
+        logger.bind(tag=TAG).debug(f"开始会话～～{session_id}")
         try:
-            # 会话开始时检测上个会话的监听状态
-            if (
-                self._monitor_task is not None
-                and isinstance(self._monitor_task, Task)
-                and not self._monitor_task.done()
-            ):
-                logger.bind(tag=TAG).info(
-                    "检测到未完成的上个会话，关闭监听任务和连接..."
-                )
+            # 上个会话处于激活状态时关闭上个连接新建链接
+            if self.activate_session:
                 await self.close()
+
+            # 设置会话激活标志
+            self.activate_session = True
 
             # 建立新连接
             await self._ensure_connection()
 
             # 启动监听任务
-            self._monitor_task = asyncio.create_task(self._start_monitor_tts_response())
+            if self._monitor_task is None or self._monitor_task.done():
+                logger.bind(tag=TAG).debug("启动监听任务...")
+                self._monitor_task = asyncio.create_task(self._start_monitor_tts_response())
 
             # 发送会话启动请求
             start_request = self._build_base_request(status=0)
 
             await self.ws.send(json.dumps(start_request))
-            logger.bind(tag=TAG).info("会话启动请求已发送")
+            logger.bind(tag=TAG).debug("会话启动请求已发送")
         except Exception as e:
             logger.bind(tag=TAG).error(f"启动会话失败: {str(e)}")
             # 确保清理资源
@@ -288,13 +300,13 @@ class TTSProvider(TTSProviderBase):
             raise
 
     async def finish_session(self, session_id):
-        logger.bind(tag=TAG).info(f"关闭会话～～{session_id}")
+        logger.bind(tag=TAG).debug(f"关闭会话～～{session_id}")
         try:
             if self.ws:
                 # 发送会话结束请求
                 stop_request = self._build_base_request(status=2)
                 await self.ws.send(json.dumps(stop_request))
-                logger.bind(tag=TAG).info("会话结束请求已发送")
+                logger.bind(tag=TAG).debug("会话结束请求已发送")
 
                 if self._monitor_task:
                     try:
@@ -310,6 +322,8 @@ class TTSProvider(TTSProviderBase):
 
     async def close(self):
         """资源清理"""
+        await super().close()
+        self.activate_session = False
         if self._monitor_task:
             try:
                 self._monitor_task.cancel()
@@ -358,17 +372,19 @@ class TTSProvider(TTSProviderBase):
                                     )
                                 elif status == 2:
                                     logger.bind(tag=TAG).debug("收到结束状态的音频数据，TTS合成完成")
+                                    self.activate_session = False
                                     self._process_before_stop_play_files()
                                     break
                                 else:
-                                    if self.conn.tts_MessageText:
+                                    tts_text = self.get_tts_text(self.conn.sentence_id)
+                                    if tts_text:
                                         logger.bind(tag=TAG).info(
-                                            f"句子语音生成成功： {self.conn.tts_MessageText}"
+                                            f"句子语音生成成功： {tts_text}"
                                         )
                                         self.tts_audio_queue.put(
-                                            (SentenceType.FIRST, [], self.conn.tts_MessageText)
+                                            (SentenceType.FIRST, [], tts_text)
                                         )
-                                        self.conn.tts_MessageText = None
+                                        self.clear_tts_text(self.conn.sentence_id)
                                     try:
                                         audio_bytes = base64.b64decode(audio_data)
                                         self.opus_encoder.encode_pcm_to_opus_stream(
@@ -405,6 +421,7 @@ class TTSProvider(TTSProviderBase):
                 self.ws = None
         # 监听任务退出时清理引用
         finally:
+            self.activate_session = False
             self._monitor_task = None
 
     def to_tts(self, text: str) -> list:
@@ -433,6 +450,8 @@ class TTSProvider(TTSProviderBase):
 
                 try:
                     filtered_text = MarkdownCleaner.clean_markdown(text)
+                    if self._correct_words_pattern:
+                        filtered_text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], filtered_text)
 
                     text_request = self._build_base_request(status=2,text=filtered_text)
 

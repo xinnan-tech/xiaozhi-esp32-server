@@ -4,7 +4,6 @@ import base64
 import hashlib
 import asyncio
 import websockets
-import opuslib_next
 import gc
 from time import mktime
 from datetime import datetime
@@ -33,7 +32,6 @@ class ASRProvider(ASRProviderBase):
         self.interface_type = InterfaceType.STREAM
         self.config = config
         self.text = ""
-        self.decoder = opuslib_next.Decoder(16000, 1)
         self.asr_ws = None
         self.forward_task = None
         self.is_processing = False
@@ -100,9 +98,9 @@ class ASRProvider(ASRProviderBase):
     async def open_audio_channels(self, conn: "ConnectionHandler"):
         await super().open_audio_channels(conn)
 
-    async def receive_audio(self, conn: "ConnectionHandler", audio, audio_have_voice):
+    async def receive_audio(self, conn: "ConnectionHandler", pcm_frame, audio_have_voice):
         # 先调用父类方法处理基础逻辑
-        await super().receive_audio(conn, audio, audio_have_voice)
+        await super().receive_audio(conn, pcm_frame, audio_have_voice)
 
         # 如果本次有声音，且之前没有建立连接
         if audio_have_voice and self.asr_ws is None and not self.is_processing:
@@ -116,7 +114,6 @@ class ASRProvider(ASRProviderBase):
         # 发送当前音频数据
         if self.asr_ws and self.is_processing and self.server_ready:
             try:
-                pcm_frame = self.decoder.decode(audio, 960)
                 await self._send_audio_frame(pcm_frame, STATUS_CONTINUE_FRAME)
             except Exception as e:
                 logger.bind(tag=TAG).warning(f"发送音频数据时发生错误: {e}")
@@ -148,19 +145,15 @@ class ASRProvider(ASRProviderBase):
 
             # 发送首帧音频
             if conn.asr_audio and len(conn.asr_audio) > 0:
-                first_audio = conn.asr_audio[-1] if conn.asr_audio else b""
-                pcm_frame = (
-                    self.decoder.decode(first_audio, 960) if first_audio else b""
-                )
-                await self._send_audio_frame(pcm_frame, STATUS_FIRST_FRAME)
+                first_pcm = conn.asr_audio[-1] if conn.asr_audio else b""
+                await self._send_audio_frame(first_pcm, STATUS_FIRST_FRAME)
                 self.server_ready = True
                 logger.bind(tag=TAG).info("已发送首帧，开始识别")
 
                 # 发送缓存的音频数据
-                for cached_audio in conn.asr_audio[-10:]:
+                for cached_pcm in conn.asr_audio[-10:]:
                     try:
-                        pcm_frame = self.decoder.decode(cached_audio, 960)
-                        await self._send_audio_frame(pcm_frame, STATUS_CONTINUE_FRAME)
+                        await self._send_audio_frame(cached_pcm, STATUS_CONTINUE_FRAME)
                     except Exception as e:
                         logger.bind(tag=TAG).info(f"发送缓存音频数据时发生错误: {e}")
                         break
@@ -322,7 +315,7 @@ class ASRProvider(ASRProviderBase):
 
         logger.bind(tag=TAG).debug("ASR会话清理完成")
 
-    async def speech_to_text(self, opus_data, session_id, audio_format, artifacts=None):
+    async def speech_to_text(self, opus_data, session_id, artifacts=None):
         """获取识别结果"""
         result = self.text
         self.text = ""
@@ -341,13 +334,4 @@ class ASRProvider(ASRProviderBase):
                 pass
             self.forward_task = None
         self.is_processing = False
-
-        # 显式释放decoder资源
-        if hasattr(self, "decoder") and self.decoder is not None:
-            try:
-                del self.decoder
-                self.decoder = None
-                logger.bind(tag=TAG).debug("Xunfei decoder resources released")
-            except Exception as e:
-                logger.bind(tag=TAG).debug(f"释放Xunfei decoder资源时出错: {e}")
 

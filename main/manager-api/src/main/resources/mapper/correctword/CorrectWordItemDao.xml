@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.correctword.dao.CorrectWordItemDao">
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO ai_agent_correct_word_item (id, file_id, source_word, target_word)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.fileId}, #{item.sourceWord}, #{item.targetWord})
+        </foreach>
+    </insert>
+
+</mapper>

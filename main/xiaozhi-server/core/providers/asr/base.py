@@ -10,7 +10,6 @@ import asyncio
 import tempfile
 import traceback
 import threading
-import opuslib_next
 
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
@@ -59,13 +58,13 @@ class ASRProviderBase(ABC):
                 continue
 
     # 接收音频
-    async def receive_audio(self, conn: "ConnectionHandler", audio, audio_have_voice):
+    async def receive_audio(self, conn: "ConnectionHandler", pcm_frame, audio_have_voice):
         if conn.client_listen_mode == "manual":
             # 手动模式：缓存音频用于ASR识别
-            conn.asr_audio.append(audio)
+            conn.asr_audio.append(pcm_frame)
         else:
             # 自动/实时模式：使用VAD检测
-            conn.asr_audio.append(audio)
+            conn.asr_audio.append(pcm_frame)
 
             # 如果没有语音，且之前也没有声音，缓存部分音频
             if not audio_have_voice and not conn.client_have_voice:
@@ -74,11 +73,12 @@ class ASRProviderBase(ABC):
 
             # 自动模式下通过VAD检测到语音停止时触发识别
             if conn.asr.interface_type != InterfaceType.STREAM and conn.client_voice_stop:
-                asr_audio_task = conn.asr_audio.copy()
+                # 直接使用asr_audio中的PCM数据
+                pcm_bytes = b"".join(conn.asr_audio)
+                # 检查是否有足够的音频数据（每帧1920字节，15帧约28800字节）
+                if len(pcm_bytes) > 1920 * 15:
+                    await self.handle_voice_stop(conn, [pcm_bytes])
                 conn.reset_audio_states()
-
-                if len(asr_audio_task) > 15:
-                    await self.handle_voice_stop(conn, asr_audio_task)
 
     # 处理语音停止
     async def handle_voice_stop(self, conn: "ConnectionHandler", asr_audio_task: List[bytes]):
@@ -86,12 +86,8 @@ class ASRProviderBase(ABC):
         try:
             total_start_time = time.monotonic()
 
-            # 准备音频数据
-            if conn.audio_format == "pcm":
-                pcm_data = asr_audio_task
-            else:
-                pcm_data = self.decode_opus(asr_audio_task)
-
+            # 数据已经是PCM直接使用
+            pcm_data = asr_audio_task
             combined_pcm_data = b"".join(pcm_data)
 
             # 预先准备WAV数据
@@ -101,7 +97,7 @@ class ASRProviderBase(ABC):
 
             # 定义ASR任务
             asr_task = self.speech_to_text_wrapper(
-                asr_audio_task, conn.session_id, conn.audio_format
+                asr_audio_task, conn.session_id
             )
 
             if conn.voiceprint_provider and wav_data:
@@ -168,10 +164,10 @@ class ASRProviderBase(ABC):
             self.stop_ws_connection()
 
             if text_len > 0:
-                # 使用自定义模块进行上报
-                await startToChat(conn, enhanced_text)
                 audio_snapshot = asr_audio_task.copy()
                 enqueue_asr_report(conn, enhanced_text, audio_snapshot)
+                # 使用自定义模块进行上报
+                await startToChat(conn, enhanced_text)
         except Exception as e:
             logger.bind(tag=TAG).error(f"处理语音停止失败: {e}")
             import traceback
@@ -270,15 +266,11 @@ class ASRProviderBase(ABC):
         return file_path
 
     async def speech_to_text_wrapper(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, pcm_data: List[bytes], session_id: str
     ) -> Tuple[Optional[str], Optional[str]]:
         file_path = None
         temp_path = None
         try:
-            if audio_format == "pcm":
-                pcm_data = opus_data
-            else:
-                pcm_data = self.decode_opus(opus_data)
             combined_pcm_data = b"".join(pcm_data)
 
             free_space = shutil.disk_usage(self.output_dir).free
@@ -304,7 +296,7 @@ class ASRProviderBase(ABC):
                 )
 
             text, _ = await self.speech_to_text(
-                opus_data, session_id, audio_format, artifacts
+                pcm_data, session_id, artifacts
             )
             return text, file_path
         except OSError as e:
@@ -332,50 +324,13 @@ class ASRProviderBase(ABC):
         self,
         opus_data: List[bytes],
         session_id: str,
-        audio_format="opus",
         artifacts: Optional[AudioArtifacts] = None,
     ) -> Tuple[Optional[str], Optional[str]]:
         """将语音数据转换为文本
 
         :param opus_data: 输入的Opus音频数据
         :param session_id: 会话ID
-        :param audio_format: 音频格式，默认"opus"
         :param artifacts: 音频工件，包含PCM数据、文件路径等
         :return: 识别结果文本和文件路径（如果有）
         """
         pass
-
-    @staticmethod
-    def decode_opus(opus_data: List[bytes]) -> List[bytes]:
-        """将Opus音频数据解码为PCM数据"""
-        decoder = None
-        try:
-            decoder = opuslib_next.Decoder(16000, 1)
-            pcm_data = []
-            buffer_size = 960  # 每次处理960个采样点 (60ms at 16kHz)
-
-            for i, opus_packet in enumerate(opus_data):
-                try:
-                    if not opus_packet or len(opus_packet) == 0:
-                        continue
-
-                    pcm_frame = decoder.decode(opus_packet, buffer_size)
-                    if pcm_frame and len(pcm_frame) > 0:
-                        pcm_data.append(pcm_frame)
-
-                except opuslib_next.OpusError as e:
-                    logger.bind(tag=TAG).warning(f"Opus解码错误，跳过数据包 {i}: {e}")
-                except Exception as e:
-                    logger.bind(tag=TAG).error(f"音频处理错误，数据包 {i}: {e}")
-
-            return pcm_data
-
-        except Exception as e:
-            logger.bind(tag=TAG).error(f"音频解码过程发生错误: {e}")
-            return []
-        finally:
-            if decoder is not None:
-                try:
-                    del decoder
-                except Exception as e:
-                    logger.bind(tag=TAG).debug(f"释放decoder资源时出错: {e}")

@@ -1,6 +1,26 @@
 import { getServiceUrl } from '../api';
 import RequestService from '../httpRequest';
 
+const CALLBACK_RETRY_LIMIT = 10;
+const CALLBACK_RETRY_DELAY_MS = 2000;
+const CALLBACK_RETRY_WINDOW_MS = CALLBACK_RETRY_LIMIT * CALLBACK_RETRY_DELAY_MS;
+
+function retryCallbackRequest(retry, retryCount, onTerminalFailure, error, retryStartedAt) {
+  if (!onTerminalFailure) {
+    RequestService.reAjaxFun(() => retry(retryCount + 1));
+    return;
+  }
+  const startedAt = retryStartedAt || Date.now();
+  if (retryCount >= CALLBACK_RETRY_LIMIT || Date.now() - startedAt >= CALLBACK_RETRY_WINDOW_MS) {
+    RequestService.clearRequestTime();
+    if (onTerminalFailure) {
+      onTerminalFailure(error);
+    }
+    return;
+  }
+  setTimeout(() => retry(retryCount + 1, startedAt), CALLBACK_RETRY_DELAY_MS);
+}
+
 export default {
   // 获取模型配置列表
   getModelList(params, callback) {
@@ -92,8 +112,9 @@ export default {
       }).send()
   },
   // 获取模型名称列表
-  getModelNames(modelType, modelName, callback) {
-    RequestService.sendRequest()
+  getModelNames(modelType, modelName, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+    const retryWindowStartedAt = retryStartedAt || Date.now();
+    const request = RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/names`)
       .method('GET')
       .data({ modelType, modelName })
@@ -101,15 +122,34 @@ export default {
         RequestService.clearRequestTime();
         callback(res);
       })
-      .networkFail(() => {
-        RequestService.reAjaxFun(() => {
-          this.getModelNames(modelType, modelName, callback);
-        });
-      }).send();
+      .networkFail((error) => {
+        retryCallbackRequest(
+          (nextRetryCount, nextRetryStartedAt) => this.getModelNames(
+            modelType,
+            modelName,
+            callback,
+            onTerminalFailure,
+            nextRetryCount,
+            nextRetryStartedAt
+          ),
+          retryCount,
+          onTerminalFailure,
+          error,
+          retryWindowStartedAt
+        );
+      });
+    if (onTerminalFailure) {
+      request.fail((error) => {
+        RequestService.clearRequestTime();
+        onTerminalFailure(error);
+      });
+    }
+    request.send();
   },
   // 获取LLM模型名称列表
-  getLlmModelCodeList(modelName, callback) {
-    RequestService.sendRequest()
+  getLlmModelCodeList(modelName, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+    const retryWindowStartedAt = retryStartedAt || Date.now();
+    const request = RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/llm/names`)
       .method('GET')
       .data({ modelName })
@@ -117,29 +157,65 @@ export default {
         RequestService.clearRequestTime();
         callback(res);
       })
-      .networkFail(() => {
-        RequestService.reAjaxFun(() => {
-          this.getLlmModelCodeList(modelName, callback);
-        });
-      }).send();
+      .networkFail((error) => {
+        retryCallbackRequest(
+          (nextRetryCount, nextRetryStartedAt) => this.getLlmModelCodeList(
+            modelName,
+            callback,
+            onTerminalFailure,
+            nextRetryCount,
+            nextRetryStartedAt
+          ),
+          retryCount,
+          onTerminalFailure,
+          error,
+          retryWindowStartedAt
+        );
+      });
+    if (onTerminalFailure) {
+      request.fail((error) => {
+        RequestService.clearRequestTime();
+        onTerminalFailure(error);
+      });
+    }
+    request.send();
   },
   // 获取模型音色列表
-  getModelVoices(modelId, voiceName, callback) {
+  getModelVoices(modelId, voiceName, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+    const retryWindowStartedAt = retryStartedAt || Date.now();
     const queryParams = new URLSearchParams({
       voiceName: voiceName || ''
     }).toString();
-    RequestService.sendRequest()
+    const request = RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/${modelId}/voices?${queryParams}`)
       .method('GET')
       .success((res) => {
         RequestService.clearRequestTime();
         callback(res);
       })
-      .networkFail(() => {
-        RequestService.reAjaxFun(() => {
-          this.getModelVoices(modelId, voiceName, callback);
-        });
-      }).send();
+      .networkFail((error) => {
+        retryCallbackRequest(
+          (nextRetryCount, nextRetryStartedAt) => this.getModelVoices(
+            modelId,
+            voiceName,
+            callback,
+            onTerminalFailure,
+            nextRetryCount,
+            nextRetryStartedAt
+          ),
+          retryCount,
+          onTerminalFailure,
+          error,
+          retryWindowStartedAt
+        );
+      });
+    if (onTerminalFailure) {
+      request.fail((error) => {
+        RequestService.clearRequestTime();
+        onTerminalFailure(error);
+      });
+    }
+    request.send();
   },
   // 获取单个模型配置
   getModelConfig(id, callback) {
@@ -323,8 +399,9 @@ export default {
       }).send()
   },
   // 获取插件列表
-  getPluginFunctionList(params, callback) {
-    RequestService.sendRequest()
+  getPluginFunctionList(params, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+    const retryWindowStartedAt = retryStartedAt || Date.now();
+    const request = RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/provider/plugin/names`)
       .method('GET')
       .success((res) => {
@@ -332,11 +409,30 @@ export default {
         callback(res)
       })
       .networkFail((err) => {
-        this.$message.error(err.msg || '获取插件列表失败')
-        RequestService.reAjaxFun(() => {
-          this.getPluginFunctionList(params, callback)
-        })
-      }).send()
+        if (!onTerminalFailure && this.$message) {
+          this.$message.error(err.msg || '获取插件列表失败');
+        }
+        retryCallbackRequest(
+          (nextRetryCount, nextRetryStartedAt) => this.getPluginFunctionList(
+            params,
+            callback,
+            onTerminalFailure,
+            nextRetryCount,
+            nextRetryStartedAt
+          ),
+          retryCount,
+          onTerminalFailure,
+          err,
+          retryWindowStartedAt
+        );
+      });
+    if (onTerminalFailure) {
+      request.fail((error) => {
+        RequestService.clearRequestTime();
+        onTerminalFailure(error);
+      });
+    }
+    request.send()
   },
 
   // 获取RAG模型列表

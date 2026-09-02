@@ -1,0 +1,6 @@
+-- 新增联网搜索工具配置字段
+SET @data_exists = (SELECT COUNT(*) FROM ai_model_provider WHERE id = 'SYSTEM_PLUGIN_WEB_SEARCH');
+SET @sql = IF(@data_exists = 0,
+    'INSERT INTO `ai_model_provider` (`id`, `model_type`, `provider_code`, `name`, `fields`, `sort`, `creator`, `create_date`, `updater`, `update_date`) VALUES (''SYSTEM_PLUGIN_WEB_SEARCH'', ''Plugin'', ''web_search'', ''联网搜索'', ''[{\"key\": \"provider\", \"type\": \"string\", \"label\": \"搜索源：metaso / tavily\", \"default\": \"metaso\", \"editing\": false, \"selected\": false}, {\"key\": \"description\", \"type\": \"string\", \"label\": \"工具描述\", \"default\": \"联网搜索工具。当用户明确需要联网搜索问题时使用此工具。\", \"editing\": false, \"selected\": false}, {\"key\": \"max_results\", \"type\": \"string\", \"label\": \"返回数量\", \"default\": \"5\", \"editing\": false, \"selected\": false}, {\"key\": \"api_key\", \"type\": \"string\", \"label\": \"apiKey\", \"default\": \"mk-XXXX\", \"editing\": false, \"selected\": false}]'', 80, 1988490863118454785, ''2026-05-11 17:15:35'', 1988490863118454785, ''2026-05-12 10:55:49'')',
+    'SELECT ''data already exists, skip'' AS msg');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

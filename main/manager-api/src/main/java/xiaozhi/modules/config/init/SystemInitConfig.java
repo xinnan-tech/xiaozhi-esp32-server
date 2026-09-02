@@ -9,6 +9,7 @@ import xiaozhi.common.constant.Constant;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.config.service.ConfigService;
+import xiaozhi.modules.device.service.DeviceAddressBookService;
 import xiaozhi.modules.sys.service.SysParamsService;
 
 @Configuration
@@ -24,6 +25,9 @@ public class SystemInitConfig {
     @Autowired
     private RedisUtils redisUtils;
 
+    @Autowired
+    private DeviceAddressBookService deviceAddressBookService;
+
     @PostConstruct
     public void init() {
         // 检查版本号
@@ -37,5 +41,8 @@ public class SystemInitConfig {
 
         sysParamsService.initServerSecret();
         configService.getConfig(false);
+
+        // 初始化设备通讯录缓存
+        deviceAddressBookService.refreshCache();
     }
 }

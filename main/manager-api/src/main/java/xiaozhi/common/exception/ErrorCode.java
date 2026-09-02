@@ -256,4 +256,8 @@ public interface ErrorCode {
     int MCP_ACCESS_POINT_ADDRESS_NO_PERMISSION = 10200; // 没有权限查看该智能体的MCP接入点地址
     int MCP_ACCESS_POINT_ADDRESS_NOT_CONFIGURED = 10201; // 请联系管理员进入参数管理配置mcp接入点地址
     int MCP_ACCESS_POINT_TOOLS_LIST_NO_PERMISSION = 10202; // 没有权限查看该智能体的MCP工具列表
+
+    // 替换词相关错误码
+    int CORRECT_WORD_FILE_NAME_EXISTS = 10203; // 文件名已存在
+    int FILE_SIZE_OVER_LIMIT = 10204; // 文件大小超过限制
 }

@@ -51,7 +51,9 @@ class TTSProvider(TTSProviderBase):
             "if_sr": self.if_sr,
         }
 
-        resp = requests.get(self.url, params=request_params)
+        resp = requests.get(
+            self.url, params=request_params, timeout=self.tts_timeout
+        )
         if resp.status_code == 200:
             if output_file:
                 with open(output_file, "wb") as file:

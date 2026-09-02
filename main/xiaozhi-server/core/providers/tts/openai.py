@@ -47,7 +47,9 @@ class TTSProvider(TTSProviderBase):
             "response_format": self.audio_file_type,
             "speed": self.speed,
         }
-        response = requests.post(self.api_url, json=data, headers=headers)
+        response = requests.post(
+            self.api_url, json=data, headers=headers, timeout=self.tts_timeout
+        )
         if response.status_code == 200:
             if output_file:
                 with open(output_file, "wb") as audio_file:

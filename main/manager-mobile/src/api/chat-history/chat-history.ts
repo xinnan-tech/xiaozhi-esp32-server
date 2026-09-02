@@ -34,6 +34,9 @@ export function getChatHistory(agentId: string, sessionId: string) {
       ignoreAuth: false,
       toast: false,
     },
+    cacheFor: {
+      expire: -1,
+    },
   })
 }
 

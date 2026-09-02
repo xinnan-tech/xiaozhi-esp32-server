@@ -1,4 +1,5 @@
 import os
+import asyncio
 from config.config_loader import read_config, get_project_dir, load_config
 
 
@@ -20,7 +21,7 @@ def check_config_file():
         )
 
     # 检查是否从API读取配置
-    config = load_config()
+    config = asyncio.run(load_config())
     if config.get("read_config_from_api", False):
         print("从API读取配置")
         old_config_origin = read_config(custom_config_file)

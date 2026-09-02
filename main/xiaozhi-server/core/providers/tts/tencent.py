@@ -154,7 +154,10 @@ class TTSProvider(TTSProviderBase):
 
             # 发送请求
             resp = requests.post(
-                self.api_url, json.dumps(request_json), headers=headers
+                self.api_url,
+                json.dumps(request_json),
+                headers=headers,
+                timeout=self.tts_timeout,
             )
 
             # 检查响应

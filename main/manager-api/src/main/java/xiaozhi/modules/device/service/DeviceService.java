@@ -31,6 +31,11 @@ public interface DeviceService extends BaseService<DeviceEntity> {
     List<DeviceEntity> getUserDevices(Long userId, String agentId);
 
     /**
+     * 获取用户指定智能体的设备列表（带时区处理），
+     */
+    List<UserShowDeviceListVO> getUserDeviceList(Long userId, String agentId);
+
+    /**
      * 解绑设备
      */
     void unbindDevice(Long userId, String deviceId);
@@ -133,4 +138,4 @@ public interface DeviceService extends BaseService<DeviceEntity> {
      */
     Object callDeviceTool(String deviceId, String toolName, Map<String, Object> arguments);
 
-}
+    }

@@ -10,7 +10,7 @@
 
 <script lang="ts" setup>
 import { onLoad } from '@dcloudio/uni-app'
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import CustomTabs from '@/components/custom-tabs/index.vue'
 import { t } from '@/i18n'
 import ChatHistory from '@/pages/chat-history/index.vue'

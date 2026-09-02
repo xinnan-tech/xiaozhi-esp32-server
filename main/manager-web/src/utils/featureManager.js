@@ -34,6 +34,11 @@ class FeatureManager {
                 name: 'feature.asr.name',
                 enabled: false,
                 description: 'feature.asr.description'
+            },
+            addressBook: {
+                name: 'feature.addressBook.name',
+                enabled: false,
+                description: 'feature.addressBook.description'
             }
         };
         this.currentFeatures = { ...this.defaultFeatures }; // 当前内存中的配置
@@ -220,7 +225,7 @@ class FeatureManager {
                     paramValue: JSON.stringify({
                         features: config,
                         groups: {
-                            featureManagement: ["voiceprintRecognition", "voiceClone", "knowledgeBase", "mcpAccessPoint"],
+                            featureManagement: ["voiceprintRecognition", "voiceClone", "knowledgeBase", "mcpAccessPoint", "addressBook"],
                             voiceManagement: ["vad", "asr"]
                         }
                     }),
@@ -264,7 +269,8 @@ class FeatureManager {
             knowledgeBase: features.knowledgeBase?.enabled || false,
             mcpAccessPoint: features.mcpAccessPoint?.enabled || false,
             vad: features.vad?.enabled || false,
-            asr: features.asr?.enabled || false
+            asr: features.asr?.enabled || false,
+            addressBook: features.addressBook?.enabled || false
         };
     }
 
@@ -325,6 +331,9 @@ class FeatureManager {
         const features = this.getAllFeatures();
         Object.keys(featureUpdates).forEach(featureKey => {
             if (features[featureKey]) {
+                features[featureKey].enabled = featureUpdates[featureKey];
+            } else if (this.defaultFeatures[featureKey]) {
+                features[featureKey] = { ...this.defaultFeatures[featureKey] };
                 features[featureKey].enabled = featureUpdates[featureKey];
             }
         });

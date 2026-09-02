@@ -128,7 +128,7 @@ public class SysDictTypeServiceImpl extends BaseServiceImpl<SysDictTypeDao, SysD
 
         // 设置更新者和创建者名称
         if (!userIds.isEmpty()) {
-            List<SysUserEntity> sysUserEntities = sysUserDao.selectBatchIds(userIds);
+            List<SysUserEntity> sysUserEntities = sysUserDao.selectByIds(userIds);
             // 把List转成Map，Map<Long, String>
             Map<Long, String> userNameMap = sysUserEntities.stream().collect(Collectors.toMap(SysUserEntity::getId,
                     SysUserEntity::getUsername, (existing, replacement) -> existing));

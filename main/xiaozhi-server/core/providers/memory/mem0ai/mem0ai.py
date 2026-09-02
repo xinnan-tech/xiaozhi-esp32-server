@@ -1,4 +1,5 @@
 import json
+import asyncio
 import traceback
 
 from ..base import MemoryProviderBase, logger
@@ -30,38 +31,43 @@ class MemoryProvider(MemoryProviderBase):
             self.use_mem0 = False
 
     async def save_memory(self, msgs, session_id=None):
-        if not self.use_mem0:
-            return None
-        if len(msgs) < 2:
-            return None
-
         try:
-            # Format the content as a message list for mem0
-            messages = []
-            for message in msgs:
-                if message.role == "system":
-                    continue
+            if self.use_mem0 and len(msgs) >= 2:
+                # Format the content as a message list for mem0
+                messages = []
+                for message in msgs:
+                    if message.role == "system":
+                        continue
 
-                content = message.content
+                    if message.role == "tool":
+                        continue
 
-                # Extract content from JSON format if present (for ASR with emotion/language tags)
-                # Same logic as in query_memory method
-                try:
-                    if content and content.strip().startswith("{") and content.strip().endswith("}"):
-                        data = json.loads(content)
-                        if "content" in data:
-                            content = data["content"]
-                except (json.JSONDecodeError, KeyError, TypeError):
-                    # If parsing fails, use original content
-                    pass
+                    content = message.content
 
-                messages.append({"role": message.role, "content": content})
+                    if content is None:
+                        continue
 
-            result = self.client.add(messages, user_id=self.role_id)
-            logger.bind(tag=TAG).debug(f"Save memory result: {result}")
+                    # Extract content from JSON format if present (for ASR with emotion/language tags)
+                    # Same logic as in query_memory method
+                    try:
+                        if content and content.strip().startswith("{") and content.strip().endswith("}"):
+                            data = json.loads(content)
+                            if "content" in data:
+                                content = data["content"]
+                    except (json.JSONDecodeError, KeyError, TypeError):
+                        # If parsing fails, use original content
+                        pass
+
+                    messages.append({"role": message.role, "content": content})
+
+                result = await asyncio.to_thread(
+                    self.client.add, messages, user_id=self.role_id
+                )
+                logger.bind(tag=TAG).debug(f"Save memory result: {result}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"保存记忆失败: {str(e)}")
-            return None
+
+        return None
 
     async def query_memory(self, query: str) -> str:
         if not self.use_mem0:
@@ -81,7 +87,9 @@ class MemoryProvider(MemoryProviderBase):
             except (json.JSONDecodeError, KeyError):
                 pass
 
-            results = self.client.search(search_query, filters=filters)
+            results = await asyncio.to_thread(
+                self.client.search, search_query, filters=filters
+            )
             if not results or "results" not in results:
                 return ""
 

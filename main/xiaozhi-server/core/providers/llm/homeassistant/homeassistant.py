@@ -39,13 +39,12 @@ class LLMProvider(LLMProviderBase):
         }
 
         # 发起 POST 请求
-        response = requests.post(self.api_url, json=payload, headers=headers)
+        with requests.post(self.api_url, json=payload, headers=headers) as response:
+            # 检查请求是否成功
+            response.raise_for_status()
 
-        # 检查请求是否成功
-        response.raise_for_status()
-
-        # 解析返回数据
-        data = response.json()
+            # 解析返回数据
+            data = response.json()
         speech = (
             data.get("response", {})
             .get("speech", {})

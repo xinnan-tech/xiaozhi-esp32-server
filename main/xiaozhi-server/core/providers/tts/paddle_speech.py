@@ -111,7 +111,7 @@ class TTSProvider(TTSProviderBase):
                 await ws.send(json.dumps(data_request))
 
                 audio_chunks = b""
-                timeout_seconds = 60  # 设置超时
+                timeout_seconds = self.tts_timeout
                 try:
                     while True:
                         response = await asyncio.wait_for(ws.recv(), timeout=timeout_seconds)

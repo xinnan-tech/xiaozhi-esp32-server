@@ -1,7 +1,6 @@
 import time
 import os
 import numpy as np
-import opuslib_next
 import onnxruntime
 from config.logger import setup_logging
 from core.providers.vad.base import VADProviderBase
@@ -39,8 +38,6 @@ class VADProvider(VADProviderBase):
 
     def _init_connection_state(self, conn):
         """为连接初始化独立的 VAD 状态"""
-        if not hasattr(conn, "_vad_opus_decoder"):
-            conn._vad_opus_decoder = opuslib_next.Decoder(16000, 1)
         if not hasattr(conn, "_vad_state"):
             conn._vad_state = np.zeros((2, 1, 128), dtype=np.float32)
         if not hasattr(conn, "_vad_context"):
@@ -48,14 +45,14 @@ class VADProvider(VADProviderBase):
 
     def release_conn_resources(self, conn):
         """释放连接的 VAD 资源（连接关闭时调用）"""
-        for attr in ("_vad_opus_decoder", "_vad_state", "_vad_context"):
+        for attr in ("_vad_state", "_vad_context"):
             if hasattr(conn, attr):
                 try:
                     delattr(conn, attr)
                 except Exception:
                     pass
 
-    def is_vad(self, conn, opus_packet):
+    def is_vad(self, conn, pcm_frame):
         # 手动模式：直接返回True，不进行实时VAD检测，所有音频都缓存
         if conn.client_listen_mode == "manual":
             return True
@@ -63,7 +60,7 @@ class VADProvider(VADProviderBase):
         try:
             self._init_connection_state(conn)
 
-            pcm_frame = conn._vad_opus_decoder.decode(opus_packet, 960)
+            # pcm_frame已经是处理后的PCM数据
             conn.client_audio_buffer.extend(pcm_frame)
 
             client_have_voice = False
@@ -107,15 +104,13 @@ class VADProvider(VADProviderBase):
 
                 # 如果之前有声音，但本次没有声音，且与上次有声音的时间差已经超过了静默阈值，则认为已经说完一句话
                 if conn.client_have_voice and not client_have_voice:
-                    stop_duration = time.time() * 1000 - conn.last_activity_time
+                    stop_duration = time.time() * 1000 - conn.vad_last_voice_time
                     if stop_duration >= self.silence_threshold_ms:
                         conn.client_voice_stop = True
                 if client_have_voice:
                     conn.client_have_voice = True
-                    conn.last_activity_time = time.time() * 1000
+                    conn.vad_last_voice_time = time.time() * 1000
 
             return client_have_voice
-        except opuslib_next.OpusError as e:
-            logger.bind(tag=TAG).info(f"解码错误: {e}")
         except Exception as e:
             logger.bind(tag=TAG).error(f"Error processing audio packet: {e}")

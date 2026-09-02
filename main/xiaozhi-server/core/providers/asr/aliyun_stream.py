@@ -7,7 +7,6 @@ import hashlib
 import asyncio
 import requests
 import websockets
-import opuslib_next
 from urllib import parse
 from datetime import datetime
 from config.logger import setup_logging
@@ -74,7 +73,6 @@ class ASRProvider(ASRProviderBase):
         self.interface_type = InterfaceType.STREAM
         self.config = config
         self.text = ""
-        self.decoder = opuslib_next.Decoder(16000, 1)
         self.asr_ws = None
         self.forward_task = None
         self.is_processing = False
@@ -129,9 +127,9 @@ class ASRProvider(ASRProviderBase):
     async def open_audio_channels(self, conn):
         await super().open_audio_channels(conn)
 
-    async def receive_audio(self, conn, audio, audio_have_voice):
+    async def receive_audio(self, conn, pcm_frame, audio_have_voice):
         # 先调用父类方法处理基础逻辑
-        await super().receive_audio(conn, audio, audio_have_voice)
+        await super().receive_audio(conn, pcm_frame, audio_have_voice)
 
         # 只在有声音且没有连接时建立连接（排除正在停止的情况）
         if audio_have_voice and not self.is_processing and not self.asr_ws:
@@ -144,7 +142,6 @@ class ASRProvider(ASRProviderBase):
 
         if self.asr_ws and self.is_processing and self.server_ready:
             try:
-                pcm_frame = self.decoder.decode(audio, 960)
                 await self.asr_ws.send(pcm_frame)
             except Exception as e:
                 logger.bind(tag=TAG).warning(f"发送音频失败: {str(e)}")
@@ -232,10 +229,9 @@ class ASRProvider(ASRProviderBase):
 
                         # 发送缓存音频
                         if conn.asr_audio:
-                            for cached_audio in conn.asr_audio[-10:]:
+                            for cached_pcm in conn.asr_audio[-10:]:
                                 try:
-                                    pcm_frame = self.decoder.decode(cached_audio, 960)
-                                    await self.asr_ws.send(pcm_frame)
+                                    await self.asr_ws.send(cached_pcm)
                                 except Exception as e:
                                     logger.bind(tag=TAG).warning(f"发送缓存音频失败: {e}")
                                     break
@@ -328,7 +324,7 @@ class ASRProvider(ASRProviderBase):
 
         logger.bind(tag=TAG).debug("ASR会话清理完成")
 
-    async def speech_to_text(self, opus_data, session_id, audio_format, artifacts=None):
+    async def speech_to_text(self, opus_data, session_id, artifacts=None):
         """获取识别结果"""
         result = self.text
         self.text = ""
@@ -337,10 +333,3 @@ class ASRProvider(ASRProviderBase):
     async def close(self):
         """关闭资源"""
         await self._cleanup()
-        if hasattr(self, 'decoder') and self.decoder is not None:
-            try:
-                del self.decoder
-                self.decoder = None
-                logger.bind(tag=TAG).debug("Aliyun decoder resources released")
-            except Exception as e:
-                logger.bind(tag=TAG).debug(f"释放Aliyun decoder资源时出错: {e}")
