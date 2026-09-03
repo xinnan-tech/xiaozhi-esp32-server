@@ -35,17 +35,43 @@ class Dialogue:
         if m.tool_calls is not None:
             dialogue.append({"role": m.role, "tool_calls": m.tool_calls})
         elif m.role == "tool":
-            dialogue.append(
-                {
-                    "role": m.role,
-                    "tool_call_id": (
-                        str(uuid.uuid4()) if m.tool_call_id is None else m.tool_call_id
-                    ),
-                    "content": m.content,
-                }
+            tool_call_id = (
+                str(uuid.uuid4()) if m.tool_call_id is None else m.tool_call_id
             )
+            # A tool/function_response message is only valid when a preceding
+            # assistant message issued a matching tool_call. Some paths (e.g. the
+            # intent REQLLM handler) inject a bare tool result with no matching
+            # tool_call; replaying that to Gemini's OpenAI-compat endpoint yields
+            # HTTP 400 "function_response.name: Name cannot be empty" (gemini-3.5
+            # rejects it; gemini-2.5 tolerated it). Demote such orphans to a plain
+            # assistant context message so the turn survives.
+            if self._has_matching_tool_call(tool_call_id, dialogue):
+                dialogue.append(
+                    {
+                        "role": m.role,
+                        "tool_call_id": tool_call_id,
+                        "content": m.content,
+                    }
+                )
+            else:
+                dialogue.append({"role": "assistant", "content": m.content})
         else:
             dialogue.append({"role": m.role, "content": m.content})
+
+    @staticmethod
+    def _has_matching_tool_call(tool_call_id, dialogue):
+        """True if an already-serialized assistant message carries a tool_call
+        whose id equals ``tool_call_id``. Handles dict- and object-shaped
+        tool_calls."""
+        for entry in reversed(dialogue):
+            tool_calls = entry.get("tool_calls") if isinstance(entry, dict) else None
+            if not tool_calls:
+                continue
+            for tc in tool_calls:
+                tc_id = tc.get("id") if isinstance(tc, dict) else getattr(tc, "id", None)
+                if tc_id == tool_call_id:
+                    return True
+        return False
 
     def get_llm_dialogue(self) -> List[Dict[str, str]]:
         # 直接调用get_llm_dialogue_with_memory，传入None作为memory_str
