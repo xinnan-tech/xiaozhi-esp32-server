@@ -10,6 +10,40 @@ from core.utils.alibl_endpoint import (
     build_ws_connect_options,
     resolve_ws_url,
 )
+from core.utils.alibl_event import extract_sentence_start_text
+
+
+class AliBLStreamEventTests(unittest.TestCase):
+    def test_sentence_begin_returns_original_text(self):
+        event = {
+            "payload": {
+                "output": {
+                    "type": "sentence-begin",
+                    "original_text": "第一句。",
+                }
+            }
+        }
+        self.assertEqual(extract_sentence_start_text(event), "第一句。")
+
+    def test_non_begin_events_do_not_return_subtitles(self):
+        for event_type in ("sentence-synthesis", "sentence-end"):
+            event = {
+                "payload": {
+                    "output": {
+                        "type": event_type,
+                        "original_text": "第一句。",
+                    }
+                }
+            }
+            self.assertIsNone(extract_sentence_start_text(event))
+
+    def test_empty_sentence_text_is_ignored(self):
+        event = {
+            "payload": {
+                "output": {"type": "sentence-begin", "original_text": "  "}
+            }
+        }
+        self.assertIsNone(extract_sentence_start_text(event))
 
 
 class AliBLWorkspaceEndpointTests(unittest.TestCase):
