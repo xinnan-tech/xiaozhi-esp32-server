@@ -1139,6 +1139,8 @@ TTS:
     # cosyvoice-v3和部分音色需要申请开通
     type: alibl_stream
     api_key: 你的api_key
+    # 默认兼容旧地址；业务空间请替换为 wss://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference
+    ws_url: wss://dashscope.aliyuncs.com/api-ws/v1/inference/
     model: "cosyvoice-v2"
     voice: "longcheng_v2"
     output_dir: tmp/
