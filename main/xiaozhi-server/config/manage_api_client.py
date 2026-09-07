@@ -60,31 +60,33 @@ class ManageApiClient:
         """确保异步客户端已创建（为每个事件循环创建独立的客户端）"""
         import asyncio
 
-        if cls._closed:
-            raise Exception("ManageApiClient已关闭，不再创建新的HTTP客户端")
-
         try:
             loop = asyncio.get_running_loop()
             loop_id = id(loop)
 
-            # 为每个事件循环创建独立的客户端
-            if loop_id not in cls._async_clients:
-                # 服务端可能主动关闭连接，httpx 连接池无法正确检测和清理
-                limits = httpx.Limits(
-                    max_keepalive_connections=0,  # 禁用 keep-alive，每次都新建连接
-                )
-                cls._async_clients[loop_id] = httpx.AsyncClient(
-                    base_url=cls.config.get("url"),
-                    headers={
-                        "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
-                        "Accept": "application/json",
-                        "Authorization": "Bearer " + cls._secret,
-                    },
-                    timeout=cls.config.get("timeout", 30),
-                    limits=limits,  # 使用限制
-                    trust_env=False,
-                )
-            return cls._async_clients[loop_id]
+            # 检查关闭状态与创建连接池必须是同一个临界区，避免 safe_close()
+            # 清空连接池后又有请求将新客户端写回。
+            with cls._instance_lock:
+                if cls._closed:
+                    raise Exception("ManageApiClient已关闭，不再创建新的HTTP客户端")
+
+                if loop_id not in cls._async_clients:
+                    # 服务端可能主动关闭连接，httpx 连接池无法正确检测和清理
+                    limits = httpx.Limits(
+                        max_keepalive_connections=0,  # 禁用 keep-alive，每次都新建连接
+                    )
+                    cls._async_clients[loop_id] = httpx.AsyncClient(
+                        base_url=cls.config.get("url"),
+                        headers={
+                            "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
+                            "Accept": "application/json",
+                            "Authorization": "Bearer " + cls._secret,
+                        },
+                        timeout=cls.config.get("timeout", 30),
+                        limits=limits,  # 使用限制
+                        trust_env=False,
+                    )
+                return cls._async_clients[loop_id]
         except RuntimeError:
             # 如果没有运行中的事件循环，创建一个临时的
             raise Exception("必须在异步上下文中调用")
@@ -176,13 +178,15 @@ class ManageApiClient:
 
         with cls._instance_lock:
             cls._closed = True
-            for client in list(cls._async_clients.values()):
-                try:
-                    asyncio.run(client.aclose())
-                except Exception:
-                    pass
+            clients = list(cls._async_clients.values())
             cls._async_clients.clear()
             cls._instance = None
+
+        for client in clients:
+            try:
+                asyncio.run(client.aclose())
+            except Exception:
+                pass
 
 
 def api_guard(error_msg: str = None, raise_when_closed: bool = False):
