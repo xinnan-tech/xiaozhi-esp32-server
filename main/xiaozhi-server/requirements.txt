@@ -25,7 +25,7 @@ cozepy==0.20.0
 mem0ai==1.0.0
 powermem>=0.3.1
 bs4==0.0.2
-modelscope==1.32.0
+modelscope==1.39.1
 sherpa_onnx==1.12.29
 mcp==1.22.0
 cnlunar==0.2.0
