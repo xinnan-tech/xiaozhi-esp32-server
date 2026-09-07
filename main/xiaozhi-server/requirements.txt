@@ -7,7 +7,7 @@ numpy==1.26.4
 websockets==14.2
 #--------- 以下是可升级的依赖
 pyyml==0.0.2
-silero_vad==6.1.0
+silero_vad==6.2.1
 opuslib_next==1.1.5
 pydub==0.25.1
 funasr==1.2.7
