@@ -64,16 +64,19 @@ async def _wait_for_audio_completion(conn: "ConnectionHandler"):
     """
     if hasattr(conn, "audio_rate_controller") and conn.audio_rate_controller:
         rate_controller = conn.audio_rate_controller
+        send_delay_ms = conn.config.get("tts_audio_send_delay", 0)
         conn.logger.bind(tag=TAG).debug(
             f"等待音频发送完成，队列中还有 {len(rate_controller.queue)} 个包"
         )
         await rate_controller.queue_empty_event.wait()
 
-        # 等待预缓冲包播放完成
-        # 前N个包直接发送，增加2个网络抖动包，需要额外等待它们在客户端播放完成
-        frame_duration_ms = rate_controller.frame_duration
-        pre_buffer_playback_time = (PRE_BUFFER_COUNT + 2) * frame_duration_ms / 1000.0
-        await asyncio.sleep(pre_buffer_playback_time)
+        if send_delay_ms > 0:
+            # 自定义节奏：等待最后帧在客户端播放完成
+            playback_time = 2 * rate_controller.interval_ms / 1000.0
+        else:
+            # 默认节奏：前 N 帧预缓冲已直接发出，需要等待它们播放完成
+            playback_time = (PRE_BUFFER_COUNT + 2) * rate_controller.interval_ms / 1000.0
+        await asyncio.sleep(playback_time)
 
         conn.logger.bind(tag=TAG).debug("音频发送完成")
 
@@ -127,12 +130,12 @@ async def sendAudio(
     if audios is None or len(audios) == 0:
         return
 
-    send_delay = conn.config.get("tts_audio_send_delay", -1) / 1000.0
+    send_delay_ms = conn.config.get("tts_audio_send_delay", 0)
     is_single_packet = isinstance(audios, bytes)
 
     # 初始化或获取 RateController
     rate_controller, flow_control = _get_or_create_rate_controller(
-        conn, frame_duration, is_single_packet
+        conn, frame_duration, is_single_packet, send_delay_ms
     )
 
     # 统一转换为列表处理
@@ -140,12 +143,12 @@ async def sendAudio(
 
     # 发送音频包
     await _send_audio_with_rate_control(
-        conn, audio_list, rate_controller, flow_control, send_delay
+        conn, audio_list, rate_controller, flow_control, send_delay_ms
     )
 
 
 def _get_or_create_rate_controller(
-    conn: "ConnectionHandler", frame_duration, is_single_packet
+    conn: "ConnectionHandler", frame_duration, is_single_packet, send_delay_ms=0
 ):
     """
     获取或创建 RateController 和 flow_control
@@ -154,6 +157,7 @@ def _get_or_create_rate_controller(
         conn: 连接对象
         frame_duration: 帧时长
         is_single_packet: 是否单包模式（True: TTS流式单包, False: 批量包）
+        send_delay_ms: 自定义发送间隔（毫秒）。
 
     Returns:
         (rate_controller, flow_control)
@@ -183,7 +187,9 @@ def _get_or_create_rate_controller(
     if need_reset:
         # 创建或获取 rate_controller
         if not hasattr(conn, "audio_rate_controller"):
-            conn.audio_rate_controller = AudioRateController(frame_duration)
+            conn.audio_rate_controller = AudioRateController(
+                frame_duration, send_delay=send_delay_ms
+            )
         else:
             conn.audio_rate_controller.reset()
 
@@ -225,7 +231,7 @@ def _start_background_sender(conn: "ConnectionHandler", rate_controller, flow_co
 
 
 async def _send_audio_with_rate_control(
-    conn: "ConnectionHandler", audio_list, rate_controller, flow_control, send_delay
+    conn: "ConnectionHandler", audio_list, rate_controller, flow_control, send_delay_ms
 ):
     """
     使用 rate_controller 发送音频包
@@ -235,7 +241,7 @@ async def _send_audio_with_rate_control(
         audio_list: 音频包列表
         rate_controller: 速率控制器
         flow_control: 流控状态
-        send_delay: 固定延迟（秒），-1表示使用动态流控
+        send_delay_ms: 自定义发送间隔（毫秒）。
     """
     for packet in audio_list:
         if conn.client_abort:
@@ -243,16 +249,15 @@ async def _send_audio_with_rate_control(
 
         conn.last_activity_time = time.time() * 1000
 
-        # 预缓冲：前N个包直接发送
-        if flow_control["packet_count"] < PRE_BUFFER_COUNT:
-            await _do_send_audio(conn, packet, flow_control)
-        elif send_delay > 0:
-            # 固定延迟模式
-            await asyncio.sleep(send_delay)
-            await _do_send_audio(conn, packet, flow_control)
-        else:
-            # 动态流控模式：仅添加到队列，由后台循环负责发送
+        if send_delay_ms > 0:
+            # 自定义节奏模式：所有包入队按 send_delay 发（关闭预缓冲）
             rate_controller.add_audio(packet)
+        else:
+            # 默认节奏模式（60ms/包）：前 N 包预缓冲直接发，后续入队由后台任务按 interval_ms 节奏发
+            if flow_control["packet_count"] < PRE_BUFFER_COUNT:
+                await _do_send_audio(conn, packet, flow_control)
+            else:
+                rate_controller.add_audio(packet)
 
 
 async def _do_send_audio(conn: "ConnectionHandler", opus_packet, flow_control):
