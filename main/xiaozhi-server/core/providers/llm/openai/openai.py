@@ -27,6 +27,10 @@ class LLMProvider(LLMProviderBase):
             self.base_url = config.get("base_url")
         else:
             self.base_url = config.get("url")
+        self.enable_function_call = (
+            str(config.get("enable_function_call", True)).strip().lower()
+            not in ("false", "0", "no", "off")
+        )
         
         timeout_config = config.get("timeout")
         if isinstance(timeout_config, dict):
@@ -136,6 +140,20 @@ class LLMProvider(LLMProviderBase):
             responses.close()
 
     def response_with_functions(self, session_id, dialogue, functions=None, **kwargs):
+        if not self.enable_function_call:
+            logger.bind(tag=TAG).warning(
+                "当前模型已禁用 function call，回退为纯文本流式输出"
+            )
+            response_stream = self.response(session_id, dialogue, **kwargs)
+            try:
+                for token in response_stream:
+                    yield token, None
+            finally:
+                close = getattr(response_stream, "close", None)
+                if callable(close):
+                    close()
+            return
+
         dialogue = self.normalize_dialogue(dialogue)
 
         request_params = {
