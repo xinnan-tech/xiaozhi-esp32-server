@@ -439,9 +439,9 @@ class TTSProviderBase(ABC):
                 if sentence_type is not SentenceType.MIDDLE:
                     if self.report_on_last:
                         # 累积模式：适用于全程只有一个语音流的TTS（如seed-tts-2.0）
-                        # FIRST时累积文本，音频持续累积，仅在LAST时统一上报
+                        # FIRST时只记录文本，音频持续累积，仅在LAST时统一上报
                         if text:
-                            enqueue_text = f"{enqueue_text or ''}{text}"
+                            enqueue_text = text
                         if sentence_type == SentenceType.LAST:
                             enqueue_tts_report(self.conn, enqueue_text, enqueue_audio)
                             enqueue_audio = []
