@@ -11,6 +11,8 @@ from asyncio import Task
 from typing import Callable, Any
 from config.logger import setup_logging
 from core.utils.tts import MarkdownCleaner
+from core.utils.alibl_endpoint import build_ws_connect_options, resolve_ws_url
+from core.utils.alibl_event import extract_sentence_start_text
 from core.providers.tts.base import TTSProviderBase
 from core.providers.tts.dto.dto import SentenceType, ContentType, InterfaceType
 
@@ -36,11 +38,13 @@ class TTSProvider(TTSProviderBase):
         self.report_on_last = True
 
         # WebSocket配置
-        self.ws_url = "wss://dashscope.aliyuncs.com/api-ws/v1/inference/"
+        self.ws_url = resolve_ws_url(config.get("ws_url"))
+        self.ws_connect_options = build_ws_connect_options(self.tts_timeout)
         self.ws = None
         self._monitor_task = None
         self.activate_session = False
         self.last_active_time = None
+        self._legacy_subtitle_sent = False
 
         # 模型和音色配置
         self.model = config.get("model", "cosyvoice-v2")
@@ -89,6 +93,7 @@ class TTSProvider(TTSProviderBase):
                 ping_interval=30,
                 ping_timeout=10,
                 close_timeout=10,
+                **self.ws_connect_options,
             )
 
             logger.bind(tag=TAG).debug("WebSocket连接建立成功")
@@ -129,6 +134,9 @@ class TTSProvider(TTSProviderBase):
                 if message.sentence_type == SentenceType.FIRST:
                     # 重置流式处理状态
                     self.reset_stream_state()
+                    self.current_sentence_id = message.sentence_id
+                    self.tts_audio_first_sentence = True
+                    self._legacy_subtitle_sent = False
                     # 初始化会话
                     try:
                         if not getattr(self.conn, "sentence_id", None): 
@@ -356,25 +364,31 @@ class TTSProvider(TTSProviderBase):
 
                             if event == "task-started":
                                 logger.bind(tag=TAG).debug("TTS任务启动成功~")
-                                self.tts_audio_queue.put((SentenceType.FIRST, [], None))
                             elif event == "result-generated":
-                                # 发送缓存的数据
-                                tts_text = self.get_tts_text(self.conn.sentence_id)
+                                output = data.get("payload", {}).get("output", {})
+                                output_type = output.get("type")
+                                tts_text = extract_sentence_start_text(data)
+                                if tts_text:
+                                    tts_text = self._restore_original_text(tts_text)
+                                elif not output_type and not self._legacy_subtitle_sent:
+                                    tts_text = self.get_tts_text(task_id)
+                                    self._legacy_subtitle_sent = bool(tts_text)
                                 if tts_text:
                                     logger.bind(tag=TAG).info(
                                         f"句子语音生成成功： {tts_text}"
                                     )
                                     self.tts_audio_queue.put(
-                                        (SentenceType.FIRST, [], tts_text)
+                                        (SentenceType.FIRST, [], tts_text, task_id)
                                     )
-                                    self.clear_tts_text(self.conn.sentence_id)
                             elif event == "task-finished":
                                 logger.bind(tag=TAG).debug("TTS任务完成~")
                                 self.activate_session = False
+                                self.clear_tts_text(task_id)
                                 self._process_before_stop_play_files()
                             elif event == "task-failed":
                                 error_code = header.get("error_code", "unknown")
                                 error_message = header.get("error_message", "未知错误")
+                                self.clear_tts_text(task_id)
                                 logger.bind(tag=TAG).error(
                                     f"TTS任务失败: {error_code} - {error_message}"
                                 )
@@ -403,6 +417,7 @@ class TTSProvider(TTSProviderBase):
                 self.ws = None
         # 监听任务退出时清理引用
         finally:
+            self.clear_tts_text(getattr(self, "current_sentence_id", None))
             self.activate_session = False
             self._monitor_task = None
 
@@ -444,6 +459,7 @@ class TTSProvider(TTSProviderBase):
                     ping_timeout=10,
                     close_timeout=10,
                     max_size=10 * 1024 * 1024,
+                    **self.ws_connect_options,
                 )
 
                 try:
