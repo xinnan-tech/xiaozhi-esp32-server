@@ -279,7 +279,10 @@ class ConnectionHandler:
         """保存记忆并关闭连接"""
         try:
             # 守护线程1：独立生成标题（不依赖记忆模型）
-            if self.session_id:
+            # 仅在服务端开启 chat_history 上报时才触发标题生成，
+            # 否则服务端无法按 session_id 反查到对应的 agent/chat_history，
+            # 会抛出"智能体未找到"错误
+            if self.session_id and self.chat_history_conf != 0:
                 def generate_title_task():
                     try:
                         loop = asyncio.new_event_loop()
