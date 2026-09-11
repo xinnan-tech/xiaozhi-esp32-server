@@ -48,13 +48,13 @@ class App {
         startWakewordBridgeListener();
         // 检查麦克风可用性
         await this.checkMicrophoneAvailability();
-        // 检查摄像头可用性
+        // 检查Camera可用性
         this.checkCameraAvailability();
         // 初始化Live2D
         await this.initLive2D();
-        // 初始化摄像头
+        // 初始化Camera
         this.initCamera();
-        // 关闭加载loading
+        // Tắt加载loading
         this.setModelLoadingStatus(false);
         log('应用初始化完成', 'success');
     }
@@ -121,13 +121,13 @@ class App {
         }
     }
 
-    // 检查摄像头可用性
+    // 检查Camera可用性
     checkCameraAvailability() {
         window.cameraAvailable = true;
-        log('摄像头可用性检查完成: 默认已绑定验证码', 'success');
+        log('Camera可用性检查完成: 默认已绑定验证码', 'success');
     }
 
-    // 初始化摄像头
+    // 初始化Camera
     async initCamera() {
         const cameraContainer = document.getElementById('cameraContainer');
         const cameraVideo = document.getElementById('cameraVideo');
@@ -136,7 +136,7 @@ class App {
         const dialBtn = document.getElementById('dialBtn');
 
         if (!cameraContainer || !cameraVideo) {
-            log('摄像头元素未找到，跳过初始化', 'warning');
+            log('Camera元素未找到，跳过初始化', 'warning');
             return Promise.resolve(false);
         }
 
@@ -190,10 +190,10 @@ class App {
             window.startCamera = async () => {
                 try {
                     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                        log('浏览器不支持摄像头API', 'warning');
+                        log('浏览器不支持CameraAPI', 'warning');
                         return false;
                     }
-                    log('正在请求摄像头权限...', 'info');
+                    log('正在请求Camera权限...', 'info');
                     this.cameraStream = await navigator.mediaDevices.getUserMedia({
                         video: { width: 180, height: 240, facingMode: this.currentFacingMode },
                         audio: false
@@ -206,23 +206,23 @@ class App {
                     }
                     cameraContainer.classList.add('active');
 
-                    // 切换时挂断情况
+                    // 切换时Ngắt kết nối情况
                     const hasActive = dialBtn.classList.contains('dial-active');
                     if (!hasActive) {
                         cameraContainer.classList.remove('active');
                         cameraSwitch.classList.remove('active');
                         window.stopCamera();
                     }
-                    log('摄像头已启动', 'success');
+                    log('Camera已启动', 'success');
                     return true;
                 } catch (error) {
-                    log(`启动摄像头失败: ${error.name} - ${error.message}`, 'error');
+                    log(`启动Camera失败: ${error.name} - ${error.message}`, 'error');
                     if (error.name === 'NotAllowedError') {
-                        log('摄像头权限被拒绝，请检查浏览器设置', 'warning');
+                        log('Camera权限被拒绝，请检查浏览器设置', 'warning');
                     } else if (error.name === 'NotFoundError') {
-                        log('未找到摄像头设备', 'warning');
+                        log('未找到Camera设备', 'warning');
                     } else if (error.name === 'NotReadableError') {
-                        log('摄像头已被其他程序占用', 'warning');
+                        log('Camera已被其他程序占用', 'warning');
                     }
                     return false;
                 }
@@ -233,7 +233,7 @@ class App {
                     this.cameraStream.getTracks().forEach(track => track.stop());
                     this.cameraStream = null;
                     cameraVideo.srcObject = null;
-                    log('摄像头已关闭', 'info');
+                    log('Camera đã tắt', 'info');
                 }
             };
 
@@ -269,10 +269,10 @@ class App {
                     const video = cameraVideo;
 
                     if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
-                        log('无法拍照：摄像头未就绪', 'warning');
+                        log('无法拍照：Camera未就绪', 'warning');
                         resolve({
                             success: false,
-                            error: '摄像头未就绪，请确保已连接且摄像头已启动'
+                            error: 'Camera未就绪，请确保Đã kết nối且Camera已启动'
                         });
                         return;
                     }
@@ -356,7 +356,7 @@ class App {
                 });
             };
 
-            log('摄像头初始化完成', 'success');
+            log('Camera初始化完成', 'success');
             resolve(true);
         });
     }

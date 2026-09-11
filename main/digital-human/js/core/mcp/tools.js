@@ -30,7 +30,7 @@ export async function initMcpTools() {
             const parsedTools = JSON.parse(savedTools);
             // 合并默认工具和用户保存的工具，保留用户自定义的工具
             const defaultToolNames = new Set(defaultMcpTools.map(t => t.name));
-            // 添加默认工具中不存在的新工具
+            // 添加默认工具中不存在的Công cụ mới
             parsedTools.forEach(tool => {
                 if (!defaultToolNames.has(tool.name)) {
                     defaultMcpTools.push(tool);
@@ -61,7 +61,7 @@ function renderMcpTools() {
         countSpan.textContent = `${mcpTools.length} 个工具`;
     }
     if (mcpTools.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 30px; color: #999;">暂无工具，点击下方按钮添加新工具</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 30px; color: #999;">暂无工具，点击下方按钮添加Công cụ mới</div>';
         return;
     }
     container.innerHTML = mcpTools.map((tool, index) => {
@@ -77,7 +77,7 @@ function renderMcpTools() {
                             ✏️ 编辑
                         </button>
                         <button class="mcp-delete-btn" onclick="window.mcpModule.deleteMcpTool(${index})">
-                            🗑️ 删除
+                            🗑️ Xóa
                         </button>
                     </div>
                 </div>
@@ -131,7 +131,7 @@ function renderMcpProperties() {
                 <span class="mcp-property-value">${prop.description || '-'}</span>
             </div>
             <div class="mcp-property-row-action">
-                <button class="mcp-property-delete-btn" onclick="event.stopPropagation(); window.mcpModule.deleteMcpProperty(${index})">删除</button>
+                <button class="mcp-property-delete-btn" onclick="event.stopPropagation(); window.mcpModule.deleteMcpProperty(${index})">Xóa</button>
             </div>
         </div>
     `).join('');
@@ -199,7 +199,7 @@ function openPropertyModal(index = null) {
 }
 
 /**
- * 关闭参数编辑模态框
+ * Tắt参数编辑模态框
  */
 function closePropertyModal() {
     document.getElementById('mcpPropertyModal').style.display = 'none';
@@ -266,7 +266,7 @@ function handlePropertySubmit(e) {
 }
 
 /**
- * 删除参数
+ * Xóa参数
  */
 function deleteMcpProperty(index) {
     mcpProperties.splice(index, 1);
@@ -317,7 +317,7 @@ function setupMcpEventListeners() {
 function openMcpModal(index = null) {
     const isConnected = websocket && websocket.readyState === WebSocket.OPEN;
     if (isConnected) {
-        alert('WebSocket 已连接，无法编辑工具');
+        alert('WebSocket Đã kết nối，无法编辑工具');
         return;
     }
     mcpEditingIndex = index;
@@ -354,7 +354,7 @@ function openMcpModal(index = null) {
 }
 
 /**
- * 关闭模态框
+ * Tắt模态框
  */
 function closeMcpModal() {
     document.getElementById('mcpToolModal').style.display = 'none';
@@ -377,7 +377,7 @@ function handleMcpSubmit(e) {
     // 检查名称重复
     const isDuplicate = mcpTools.some((tool, index) => tool.name === name && index !== mcpEditingIndex);
     if (isDuplicate) {
-        showMcpError('工具名称已存在，请使用不同的名称');
+        showMcpError('Tên công cụ已存在，请使用不同的名称');
         return;
     }
     // 解析模拟返回结果
@@ -416,7 +416,7 @@ function handleMcpSubmit(e) {
     const tool = { name, description, inputSchema, mockResponse };
     if (mcpEditingIndex !== null) {
         mcpTools[mcpEditingIndex] = tool;
-        log(`已更新工具: ${name}`, 'success');
+        log(`已更Công cụ mới: ${name}`, 'success');
     } else {
         mcpTools.push(tool);
         log(`已添加工具: ${name}`, 'success');
@@ -442,20 +442,20 @@ function editMcpTool(index) {
 }
 
 /**
- * 删除工具
+ * Xóa工具
  */
 function deleteMcpTool(index) {
     const isConnected = websocket && websocket.readyState === WebSocket.OPEN;
     if (isConnected) {
-        alert('WebSocket 已连接，无法编辑工具');
+        alert('WebSocket Đã kết nối，无法编辑工具');
         return;
     }
-    if (confirm(`确定要删除工具 "${mcpTools[index].name}" 吗？`)) {
+    if (confirm(`确定要Xóa工具 "${mcpTools[index].name}" 吗？`)) {
         const toolName = mcpTools[index].name;
         mcpTools.splice(index, 1);
         saveMcpTools();
         renderMcpTools();
-        log(`已删除工具: ${toolName}`, 'info');
+        log(`已Xóa工具: ${toolName}`, 'info');
     }
 }
 
@@ -492,7 +492,7 @@ export async function executeMcpTool(toolName, toolArgs) {
             return result;
         } else {
             log('拍照功能不可用', 'warning');
-            return { success: false, error: '摄像头未启动或不支持拍照功能' };
+            return { success: false, error: 'Camera未启动或不支持拍照功能' };
         }
     }
 
