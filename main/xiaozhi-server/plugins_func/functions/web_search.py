@@ -112,6 +112,43 @@ async def _search_tavily(api_key: str, query: str, max_results: int) -> str:
     return "\n".join(lines)
 
 
+async def _search_serply(api_key: str, query: str, max_results: int) -> str:
+    """调用Serply搜索API"""
+    url = "https://api.serply.io/v1/search"
+    headers = {
+        "X-Api-Key": api_key,
+        "User-Agent": "xiaozhi-esp32-server",
+    }
+    # Serply单页最多返回10条，且返回条数可能略多于num，需要本地再截断一次
+    params = {"q": query, "num": min(max_results, 10)}
+    logger.bind(tag=TAG).debug(f"Serply搜索请求 | URL: {url} | params: {params}")
+    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=3.0)) as client:
+        response = await client.get(url, params=params, headers=headers)
+    data = response.json()
+    logger.bind(tag=TAG).debug(f"Serply搜索响应 | status: {response.status_code}")
+
+    if response.status_code != 200:
+        detail = data.get("detail", "") if isinstance(data, dict) else ""
+        logger.bind(tag=TAG).error(
+            f"Serply搜索失败 | status: {response.status_code} | detail: {detail}"
+        )
+        return "联网搜索请求失败，请检查API Key是否正确。"
+
+    results = data.get("results", [])
+    if not results:
+        return "未找到相关搜索结果。"
+
+    lines = ["【联网搜索结果】"]
+    for i, item in enumerate(results[:max_results], 1):
+        title = item.get("title", "无标题")
+        snippet = item.get("description", "")
+        lines.append(f"{i}. 标题：{title}")
+        if snippet:
+            lines.append(f"   摘要：{snippet}")
+
+    return "\n".join(lines)
+
+
 @register_function("web_search", WEB_SEARCH_FUNCTION_DESC, ToolType.SYSTEM_CTL)
 async def web_search(conn: "ConnectionHandler", query: str = None):
     logger.bind(tag=TAG).info(f"web_search 被调用 | query={query}")
@@ -136,6 +173,8 @@ async def web_search(conn: "ConnectionHandler", query: str = None):
             result_text = await _search_metaso(api_key, query, max_results)
         elif provider == "tavily":
             result_text = await _search_tavily(api_key, query, max_results)
+        elif provider == "serply":
+            result_text = await _search_serply(api_key, query, max_results)
         else:
             return ActionResponse(
                 Action.REQLLM,
