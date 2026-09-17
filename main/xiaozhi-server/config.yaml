@@ -172,17 +172,18 @@ plugins:
     # ragflow知识库id
     dataset_ids: ["123456789"]
   # 联网搜索插件配置
-  # 支持秘塔(metaso)和Tavily两个搜索源
+  # 支持秘塔(metaso)、Tavily和Serply三个搜索源
   # 秘塔API Key申请：https://metaso.cn/search-api/api-keys
   # Tavily API Key申请：https://app.tavily.com/home
+  # Serply API Key申请：https://serply.io
   web_search:
-    # 搜索源：metaso / tavily
+    # 搜索源：metaso / tavily / serply
     provider: "metaso"
     # 工具描述，用于告知LLM何时调用此工具，可根据需要自定义
     description: "联网搜索工具。当用户明确需要联网搜索问题时使用此工具。"
     # 返回结果数量（默认5）
     max_results: 5
-    # 秘塔API Key（mk-前缀） / Tavily API Key（tvly-前缀）
+    # 秘塔API Key（mk-前缀） / Tavily API Key（tvly-前缀） / Serply API Key
     api_key: "mk-xxx"
 # 声纹识别配置
 voiceprint:
