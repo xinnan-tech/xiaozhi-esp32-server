@@ -10,6 +10,8 @@ from core.handle.abortHandle import handleAbortMessage
 from core.handle.intentHandler import handle_user_intent
 from core.utils.output_counter import check_device_output_limit
 from core.handle.sendAudioHandle import send_stt_message, SentenceType
+from core.providers.tts.dto.dto import ContentType, TTSMessageDTO
+from plugins.base import PluginAction
 
 TAG = __name__
 
@@ -94,13 +96,35 @@ async def startToChat(conn: "ConnectionHandler", text):
         # 如果意图已被处理，不再进行聊天
         return
 
-    # 意图未被处理，继续常规聊天流程，使用实际文本内容
     await send_stt_message(conn, actual_text)
 
     # 准备开始新会话
     conn.client_abort = False
 
-    conn.executor.submit(conn.chat, actual_text)
+    # 插件处理：文本预处理和拦截
+    processed_text = actual_text
+    if hasattr(conn, "plugin_manager") and conn.plugin_manager:
+        result, action = await conn.plugin_manager.process_text(conn, actual_text)
+
+        if action == PluginAction.CLOSE:
+            # 拦截后结束 - 播放结果并关闭连接
+            if result:
+                conn.tts.tts_one_sentence(conn, ContentType.TEXT, content_detail=result)
+                conn.tts.tts_end(conn)
+            return
+
+        elif action == PluginAction.INTERCEPT:
+            # 拦截但不结束 - 播放结果
+            if result:
+                conn.tts.tts_one_sentence(conn, ContentType.TEXT, content_detail=result)
+                conn.tts.tts_end(conn)
+            return
+
+        # RELEASE - 继续处理
+        processed_text = result
+
+    # 意图未被处理且插件未拦截，继续常规聊天流程
+    conn.executor.submit(conn.chat, processed_text)
 
 
 async def no_voice_close_connect(conn: "ConnectionHandler", have_voice):

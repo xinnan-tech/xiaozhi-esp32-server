@@ -109,6 +109,45 @@ class TTSProviderBase(ABC):
         self.tts_stop_request = False
         self.processed_chars = 0
         self.is_first_sentence = True
+        self.tts_sentence_type = SentenceType.LAST
+
+    def tts_start(self,conn,sentence_id=None):
+        if not sentence_id:
+            if conn.sentence_id:
+                sentence_id = conn.sentence_id
+            else:
+                sentence_id = str(uuid.uuid4().hex)
+                conn.sentence_id = sentence_id
+        if self.tts_sentence_type==SentenceType.LAST:
+            self.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=sentence_id,
+                    sentence_type=SentenceType.FIRST,
+                    content_type=ContentType.ACTION
+                )
+            )
+            self.tts_sentence_type=SentenceType.FIRST
+            print("start")
+        return
+
+    def tts_end(self,conn,sentence_id=None):
+        if not sentence_id:
+            if conn.sentence_id:
+                sentence_id = conn.sentence_id
+            else:
+                sentence_id = str(uuid.uuid4().hex)
+                conn.sentence_id = sentence_id
+        if self.tts_sentence_type!=SentenceType.LAST:
+            self.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=sentence_id,
+                    sentence_type=SentenceType.LAST,
+                    content_type=ContentType.ACTION
+                )
+            )
+            self.tts_sentence_type=SentenceType.LAST
+            print("end")
+        return    
 
     def generate_filename(self, extension=".wav"):
         return os.path.join(
@@ -291,6 +330,7 @@ class TTSProviderBase(ABC):
             else:
                 sentence_id = str(uuid.uuid4().hex)
                 conn.sentence_id = sentence_id
+        self.tts_start(conn)
         # 对于单句的文本，进行分段处理
         segments = re.split(r"([。！？!?；;\n])", content_detail)
         for seg in segments:
@@ -303,6 +343,7 @@ class TTSProviderBase(ABC):
                     content_file=content_file,
                 )
             )
+        self.tts_sentence_type=SentenceType.MIDDLE
 
     async def open_audio_channels(self, conn):
         self.conn = conn
