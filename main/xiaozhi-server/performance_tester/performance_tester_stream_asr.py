@@ -24,8 +24,8 @@ except ImportError:
     dashscope = None
 
 class BaseASRTester:
-    def __init__(self, config_key: str):
-        self.config = load_config()
+    def __init__(self, config_key: str, config):
+        self.config = config
         self.config_key = config_key
         self.asr_config = self.config.get("ASR", {}).get(config_key, {})
         self.test_audio_files = self._load_test_audio_files()
@@ -63,8 +63,8 @@ class BaseASRTester:
 
 
 class DoubaoStreamASRTester(BaseASRTester):
-    def __init__(self):
-        super().__init__("DoubaoStreamASR")
+    def __init__(self, config):
+        super().__init__("DoubaoStreamASR", config)
         from core.providers.asr.doubao_stream import ASRProvider as DoubaoStreamProvider
         self.provider = DoubaoStreamProvider(self.asr_config, delete_audio_file=False)
 
@@ -128,8 +128,8 @@ class DoubaoStreamASRTester(BaseASRTester):
 
 
 class QwenASRFlashTester(BaseASRTester):
-    def __init__(self):
-        super().__init__("Qwen3ASRFlash")
+    def __init__(self, config):
+        super().__init__("Qwen3ASRFlash", config)
 
     async def _test_single(self, audio_file_info):
         temp_file_path = None
@@ -213,8 +213,8 @@ class QwenASRFlashTester(BaseASRTester):
 
 
 class XunfeiStreamASRTester(BaseASRTester):
-    def __init__(self):
-        super().__init__("XunfeiStreamASR")
+    def __init__(self, config):
+        super().__init__("XunfeiStreamASR", config)
 
     def _create_url(self):
         url = "wss://iat-api.xfyun.cn/v2/iat"
@@ -325,13 +325,14 @@ class XunfeiStreamASRTester(BaseASRTester):
 
         return self._calculate_result("讯飞流式ASR", latencies, test_count)
 class ASRPerformanceSuite:
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.testers = []
         self.results = []
 
     def register_tester(self, tester_class):
         try:
-            tester = tester_class()
+            tester = tester_class(self.config)
             self.testers.append(tester)
             print(f"已注册测试器: {tester.config_key}")
         except Exception as e:
@@ -390,7 +391,8 @@ async def main():
     parser.add_argument("--count", type=int, default=5, help="测试次数")
     args = parser.parse_args()
 
-    suite = ASRPerformanceSuite()
+    config = await load_config()
+    suite = ASRPerformanceSuite(config)
     suite.register_tester(DoubaoStreamASRTester)
     suite.register_tester(QwenASRFlashTester)
     suite.register_tester(XunfeiStreamASRTester)

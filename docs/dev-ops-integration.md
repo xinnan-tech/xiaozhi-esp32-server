@@ -51,7 +51,7 @@ cp 你原来的model.pt完整路径 /home/system/xiaozhi/xiaozhi-esp32-server/ma
 
 # 第四步 建立三个自动编译文件
 
-## 4.1 自动编译mananger-web模块
+## 4.1 自动编译manager-web模块
 在`/home/system/xiaozhi/`目录下，创建名字为`update_8001.sh`的文件，内容如下
 
 ```
@@ -106,7 +106,7 @@ fi
 
 nohup java -jar xiaozhi-esp32-api.jar --spring.profiles.active=dev &
 
-tail tail -f nohup.out
+tail -f nohup.out
 ```
 
 保存好后执行赋权命令

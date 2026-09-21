@@ -40,13 +40,13 @@
                 <el-tag v-if="scope.row.deviceStatus === 'online'" type="success">{{ $t('device.online') }}</el-tag>
                 <el-tag v-else type="danger">{{ $t('device.offline') }}</el-tag>
               </template>
-              <template slot="remark" slot-scope="scope">
-                <el-input v-show="scope.row.isEdit" v-model="scope.row.remark" size="mini" maxlength="64" show-word-limit
-                  @blur="onRemarkBlur(scope.row)" @keyup.enter.native="onRemarkEnter(scope.row)" />
-                <span v-show="!scope.row.isEdit" class="remark-view">
+              <template slot="alias" slot-scope="scope">
+                <el-input v-show="scope.row.isEdit" v-model="scope.row.alias" size="mini" maxlength="64" show-word-limit
+                  @blur="onAliasBlur(scope.row)" @keyup.enter.native="onAliasEnter(scope.row)" />
+                <span v-show="!scope.row.isEdit" class="alias-view">
                   <i class="el-icon-edit" @click="scope.row.isEdit = true" style="cursor: pointer;"></i>
                   <span @click="scope.row.isEdit = true">
-                    {{ scope.row.remark || '-' }}
+                    {{ scope.row.alias || '-' }}
                   </span>
                 </span>
               </template>
@@ -170,7 +170,7 @@ export default {
       if (this.mqttServiceAvailable) {
         columns.push({ prop: 'deviceStatus', label: this.$t('device.deviceStatus'), align: 'center' });
       }
-      columns.push({ prop: 'remark', label: this.$t('device.remark'), align: 'center' });
+      columns.push({ prop: 'alias', label: this.$t('device.alias'), align: 'center' });
       columns.push({ prop: 'otaSwitch', label: this.$t('device.autoUpdate'), align: 'center' });
       return columns;
     },
@@ -262,39 +262,39 @@ export default {
     handleManualAddDevice() {
       this.manualAddDeviceDialogVisible = true;
     },
-    submitRemark(row) {
+    submitAlias(row) {
       if (row._submitting) return;
 
-      const text = (row.remark || '').trim();
+      const text = (row.alias || '').trim();
       if (text.length > 64) {
-        this.$message.warning(this.$t('device.remarkTooLong'));
+        this.$message.warning(this.$t('device.aliasTooLong'));
         return;
       }
-      if (text === row._originalRemark) {
+      if (text === row._originalAlias) {
         return;
       }
 
       row._submitting = true;
       this.updateDeviceInfo(row.device_id, { alias: text }, (ok, resp) => {
         if (ok) {
-          row._originalRemark = text;
-          this.$message.success(this.$t('device.remarkSaved'));
+          row._originalAlias = text;
+          this.$message.success(this.$t('device.aliasSaved'));
         } else {
-          row.remark = row._originalRemark;
-          this.$message.error(resp.msg || this.$t('device.remarkSaveFailed'));
+          row.alias = row._originalAlias;
+          this.$message.error(resp.msg || this.$t('device.aliasSaveFailed'));
         }
         row._submitting = false;
       });
     },
-    onRemarkBlur(row) {
+    onAliasBlur(row) {
       row.isEdit = false;
       setTimeout(() => {
-        this.submitRemark(row);
+        this.submitAlias(row);
       }, 100);
     },
-    onRemarkEnter(row) {
+    onAliasEnter(row) {
       row.isEdit = false;
-      this.submitRemark(row);
+      this.submitAlias(row);
     },
     handleUnbind(device_id) {
       this.$confirm(this.$t('device.confirmUnbind'), this.$t('message.warning'), {
@@ -346,8 +346,8 @@ export default {
               macAddress: device.macAddress,
               bindTime: formatCreateDate(device.createDateTimestamp, device.createDate),
               lastConversation: formatTimestamp(device.lastConnectedAtTimestamp),
-              remark: device.alias,
-              _originalRemark: device.alias,
+              alias: device.alias,
+              _originalAlias: device.alias,
               isEdit: false,
               _submitting: false,
               otaSwitch: device.autoUpdate === 1,

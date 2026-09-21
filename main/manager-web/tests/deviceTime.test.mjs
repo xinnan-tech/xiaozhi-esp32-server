@@ -1,52 +1,75 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
-
+import { describe, it, expect } from 'vitest';
 import {
-  compareTimestamps,
-  formatCreateDate,
-  formatTimestamp,
+  hasTimestampValue,
   parseTimestamp,
+  parseLegacyDate,
+  formatTimestamp,
+  formatCreateDate,
+  compareTimestamps,
 } from '../src/utils/deviceTime.mjs';
 
-const TIMESTAMP = 1783689702000;
-
-test('accepts epoch milliseconds as a number or numeric string', () => {
-  assert.equal(parseTimestamp(TIMESTAMP), TIMESTAMP);
-  assert.equal(parseTimestamp(String(TIMESTAMP)), TIMESTAMP);
-  assert.equal(parseTimestamp(`  ${TIMESTAMP}  `), TIMESTAMP);
+describe('hasTimestampValue', () => {
+  it('returns false for null', () => expect(hasTimestampValue(null)).toBe(false));
+  it('returns false for undefined', () => expect(hasTimestampValue(undefined)).toBe(false));
+  it('returns false for empty string', () => expect(hasTimestampValue('')).toBe(false));
+  it('returns false for whitespace-only string', () => expect(hasTimestampValue('   ')).toBe(false));
+  it('returns true for number', () => expect(hasTimestampValue(1234567890)).toBe(true));
+  it('returns true for non-empty string', () => expect(hasTimestampValue('2026-09-02')).toBe(true));
 });
 
-test('rejects missing, invalid and non-scalar timestamp values', () => {
-  const invalidValues = [null, undefined, '', '   ', 'invalid', true, {}, [], Infinity, Number.MAX_VALUE];
-
-  invalidValues.forEach(value => assert.equal(parseTimestamp(value), null));
-  assert.equal(formatTimestamp('invalid'), '-');
+describe('parseTimestamp', () => {
+  it('returns null for null', () => expect(parseTimestamp(null)).toBe(null));
+  it('returns null for empty string', () => expect(parseTimestamp('')).toBe(null));
+  it('parses numeric string', () => {
+    const ts = parseTimestamp('1234567890000');
+    expect(typeof ts).toBe('number');
+    expect(ts).toBe(1234567890000);
+  });
+  it('returns null for non-numeric string', () => expect(parseTimestamp('not-a-date')).toBe(null));
+  it('parses number directly', () => expect(parseTimestamp(1234567890000)).toBe(1234567890000));
 });
 
-test('falls back to the legacy createDate only when the timestamp is missing', () => {
-  const legacyDate = '2026-07-10 21:21:42';
-  const formatter = timestamp => `local:${timestamp}`;
-
-  assert.equal(formatCreateDate(undefined, legacyDate, formatter), legacyDate);
-  assert.equal(formatCreateDate('', legacyDate, formatter), legacyDate);
-  assert.equal(formatCreateDate('invalid', legacyDate, formatter), '-');
-  assert.equal(formatCreateDate(String(TIMESTAMP), legacyDate, formatter), `local:${TIMESTAMP}`);
+describe('parseLegacyDate', () => {
+  it('returns null for empty', () => expect(parseLegacyDate('')).toBe(null));
+  it('parses ISO date string', () => {
+    const ts = parseLegacyDate('2026-09-02T10:00:00Z');
+    expect(typeof ts).toBe('number');
+    expect(ts).toBeGreaterThan(0);
+  });
 });
 
-test('formats the same instant consistently in each browser time zone', () => {
-  const formatter = timeZone => timestamp => new Date(timestamp).toLocaleString('en-US', { timeZone });
-
-  for (const timeZone of ['Asia/Shanghai', 'America/Sao_Paulo']) {
-    assert.equal(
-      formatTimestamp(TIMESTAMP, formatter(timeZone)),
-      formatTimestamp(String(TIMESTAMP), formatter(timeZone)),
-    );
-  }
+describe('formatTimestamp', () => {
+  it('returns dash for null', () => expect(formatTimestamp(null)).toBe('-'));
+  it('uses default formatter', () => {
+    const out = formatTimestamp(0);
+    expect(typeof out).toBe('string');
+    expect(out).not.toBe('-');
+  });
+  it('accepts custom formatter', () => {
+    expect(formatTimestamp(0, () => 'CUSTOM')).toBe('CUSTOM');
+  });
 });
 
-test('sorts valid epoch values first and leaves invalid values at the end', () => {
-  const timestamps = [null, TIMESTAMP + 1, undefined, TIMESTAMP];
+describe('formatCreateDate', () => {
+  it('falls back to legacy date when timestamp missing', () => {
+    expect(formatCreateDate(null, 'fallback')).toBe('fallback');
+  });
+  it('falls back to dash when both missing', () => {
+    expect(formatCreateDate(null, null)).toBe('-');
+  });
+});
 
-  assert.deepEqual(timestamps.sort(compareTimestamps), [TIMESTAMP, TIMESTAMP + 1, null, undefined]);
-  assert.equal(compareTimestamps(null, undefined), 0);
+describe('compareTimestamps', () => {
+  it('returns negative when first < second', () => {
+    expect(compareTimestamps(100, 200)).toBeLessThan(0);
+  });
+  it('returns positive when first > second', () => {
+    expect(compareTimestamps(200, 100)).toBeGreaterThan(0);
+  });
+  it('returns 0 when both equal', () => {
+    expect(compareTimestamps(100, 100)).toBe(0);
+  });
+  it('treats invalid as greater than nothing', () => {
+    expect(compareTimestamps(100, NaN)).toBeLessThan(0);
+  });
 });

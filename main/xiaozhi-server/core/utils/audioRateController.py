@@ -13,12 +13,16 @@ class AudioRateController:
     解决高并发下的时间累积误差问题
     """
 
-    def __init__(self, frame_duration=60):
+    def __init__(self, frame_duration=60, send_delay=0):
         """
         Args:
             frame_duration: 单个音频帧时长（毫秒），默认60ms
+            send_delay: 自定义发送间隔（毫秒）。
+                        0 = 按 frame_duration 节奏发；
+                        >0 = 按 send_delay 节奏发（主线程不入队延迟，无预缓冲）
         """
-        self.frame_duration = frame_duration
+        # 流控间隔（毫秒）：send_delay > 0 时用配置值，否则用 frame_duration
+        self.interval_ms = send_delay if send_delay > 0 else frame_duration
         self.queue = deque()
         self.play_position = 0  # 虚拟播放位置（毫秒）
         self.start_timestamp = None  # 开始时间戳（只读，不修改）
@@ -51,7 +55,7 @@ class AudioRateController:
         if len(self.queue) == 0 and self.play_position > 0:
             elapsed_since_empty = (time.monotonic() - self._last_queue_empty_time) * 1000
             # 只有间隔超过1帧时长，才认为是真正的"暂停恢复"
-            if elapsed_since_empty >= self.frame_duration:
+            if elapsed_since_empty >= self.interval_ms:
                 self.start_timestamp = time.monotonic() - (self.play_position / 1000)
                 self.logger.bind(tag=TAG).debug(
                     f"队列从空恢复，重置时间戳，当前播放位置: {self.play_position}ms，间隔: {elapsed_since_empty:.0f}ms"
@@ -71,7 +75,7 @@ class AudioRateController:
         """
         if len(self.queue) == 0 and self.play_position > 0:
             elapsed_since_empty = (time.monotonic() - self._last_queue_empty_time) * 1000
-            if elapsed_since_empty >= self.frame_duration:
+            if elapsed_since_empty >= self.interval_ms:
                 self.start_timestamp = time.monotonic() - (self.play_position / 1000)
                 self.logger.bind(tag=TAG).debug(
                     f"队列从空恢复，重置时间戳，当前播放位置: {self.play_position}ms，间隔: {elapsed_since_empty:.0f}ms"
@@ -138,7 +142,7 @@ class AudioRateController:
 
                 # 时间已到，从队列移除并发送
                 self.queue.popleft()
-                self.play_position += self.frame_duration
+                self.play_position += self.interval_ms
                 try:
                     await send_audio_callback(opus_packet)
                 except Exception as e:

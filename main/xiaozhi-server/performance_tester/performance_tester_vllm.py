@@ -15,8 +15,8 @@ description = "视觉识别模型性能测试"
 
 
 class AsyncVisionPerformanceTester:
-    def __init__(self):
-        self.config = load_config()
+    def __init__(self, config):
+        self.config = config
 
         self.test_images = [
             "../../docs/images/demo1.png",
@@ -184,7 +184,8 @@ class AsyncVisionPerformanceTester:
 
 
 async def main():
-    tester = AsyncVisionPerformanceTester()
+    config = await load_config()
+    tester = AsyncVisionPerformanceTester(config)
     await tester.run()
 
 

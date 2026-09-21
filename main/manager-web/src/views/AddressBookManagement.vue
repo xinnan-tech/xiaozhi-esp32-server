@@ -846,21 +846,20 @@ export default {
     font-size: 12px;
     color: #686f85;
     text-align: left;
+    gap: 4px;
 
     .online {
-      margin-left: 4px;
       color: #686f85;
       display: inline-flex;
       align-items: center;
       gap: 4px;
 
       .status-dot {
-        margin-top: -3px;
-        margin-right: 4px;
         width: 9px;
         height: 9px;
         border-radius: 50%;
         background: #4eb36c;
+        flex-shrink: 0;
       }
     }
 
@@ -871,12 +870,11 @@ export default {
       gap: 4px;
 
       .status-dot {
-        margin-top: -3px;
-        margin-right: 4px;
         width: 9px;
         height: 9px;
         border-radius: 50%;
         background: #999;
+        flex-shrink: 0;
       }
     }
   }

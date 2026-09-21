@@ -25,7 +25,7 @@ EMOTION_EMOJI_MAP = {
 #     "<|Cough|>": "🤧",
 # }
 
-def lang_tag_filter(text: str) -> dict | str:
+def lang_tag_filter(text: str) -> dict:
     """
     解析 FunASR 识别结果，按顺序提取标签和纯文本内容
 
@@ -33,8 +33,8 @@ def lang_tag_filter(text: str) -> dict | str:
         text: ASR 识别的原始文本，可能包含多种标签
 
     Returns:
-        dict: {"language": "zh", "emotion": "SAD", "emoji": "😔", "content": "你好"} 如果有标签
-        str: 纯文本，如果没有标签
+        dict: {"language": "zh", "emotion": "SAD", "emoji": "😔", "content": "你好"} 如果有标签，
+              {"content": "纯文本"} 如果没有标签
 
     Examples:
         FunASR 输出格式：<|语种|><|情绪|><|事件|><|其他选项|>原文
@@ -43,7 +43,7 @@ def lang_tag_filter(text: str) -> dict | str:
         >>> lang_tag_filter("<|en|><|HAPPY|><|Speech|><|withitn|>Hello hello.")
         {"language": "en", "emotion": "HAPPY", "emoji": "🙂", "content": "Hello hello."}
         >>> lang_tag_filter("plain text")
-        "plain text"
+        {"content": "plain text"}
     """
     # 提取所有标签（按顺序）
     tag_pattern = r"<\|([^|]+)\|>"
@@ -52,9 +52,9 @@ def lang_tag_filter(text: str) -> dict | str:
     # 移除所有 <|...|> 格式的标签，获取纯文本
     clean_text = re.sub(tag_pattern, "", text).strip()
 
-    # 如果没有标签，直接返回纯文本
+    # 保持返回结构一致，避免调用方把纯文本误当成字典访问。
     if not all_tags:
-        return clean_text
+        return {"content": clean_text}
 
     # 按照 FunASR 的固定顺序提取标签，返回 dict
     language = all_tags[0] if len(all_tags) > 0 else "zh"
@@ -76,4 +76,3 @@ def lang_tag_filter(text: str) -> dict | str:
     #     result["event"] = EVENT_EMOJI_MAP[event]
 
     return result
-

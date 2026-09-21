@@ -45,7 +45,7 @@ python download_models.py
 python -m tools.api_server --listen 0.0.0.0:6006 
 ```
 
-然后用浏览器去到aotodl实例页面
+然后用浏览器去到autodl实例页面
 ```
 https://autodl.com/console/instance/list
 ```

@@ -335,7 +335,7 @@ npm run serve
 如果确定使用`conda`，则安装好后，开始执行以下命令。
 
 重要提示！windows 用户，可以通过安装`Anaconda`来管理环境。安装好`Anaconda`后，在`开始`那里搜索`anaconda`相关的关键词，
-找到`Anaconda Prpmpt`，使用管理员身份运行它。如下图。
+找到`Anaconda Prompt`，使用管理员身份运行它。如下图。
 
 ![conda_prompt](./images/conda_env_1.png)
 

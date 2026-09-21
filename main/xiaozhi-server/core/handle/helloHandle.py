@@ -54,13 +54,15 @@ async def handleHelloMessage(conn: "ConnectionHandler", msg_json):
         if features.get("mcp"):
             conn.logger.bind(tag=TAG).debug("客户端支持MCP")
             conn.mcp_client = MCPClient()
-            # 发送初始化
-            asyncio.create_task(send_mcp_initialize_message(conn))
         if features.get("aec"):
             conn.logger.bind(tag=TAG).debug("客户端启用了服务端AEC")
             conn.client_aec = True
 
     await conn.websocket.send(json.dumps(conn.welcome_msg))
+
+    # The device waits for the server hello before processing MCP messages.
+    if features and features.get("mcp"):
+        asyncio.create_task(send_mcp_initialize_message(conn))
 
 
 async def checkWakeupWords(conn: "ConnectionHandler", text):

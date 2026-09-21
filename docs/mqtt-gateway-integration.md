@@ -86,7 +86,7 @@ SERVER_SECRET=Te1st12134  # 服务器密钥，请保持和智控台（server.sec
 - 注意不要用简单的密码，比如`123456`、`test`等。
 - 注意不要用简单的密码，比如`123456`、`test`等。
 
-`SERVER_SECRET` 是用生成websocket连接的认证信息。
+`SERVER_SECRET` 是用于生成websocket连接的认证信息。
 
 1、如果你是全模块部署，且你的智控台的参数管理里`server.auth.enabled`设置成了`true`，那么，`SERVER_SECRET`需要和智控台（`server.secret`）保持一致。
 

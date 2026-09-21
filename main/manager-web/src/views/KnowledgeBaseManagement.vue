@@ -148,6 +148,8 @@
       :title="$t('knowledgeFileUpload.uploadDocument')"
       :visible.sync="uploadDialogVisible"
       width="800px"
+      :close-on-click-modal="false"
+      :confirmLoading="uploading"
       @close="handleUploadDialogClose"
       @confirm="handleBatchUploadSubmit"
     >
