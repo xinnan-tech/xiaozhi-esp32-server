@@ -1,9 +1,11 @@
 """
-向后兼容模块 - plugins_func.register
+向后兼容模块 - plugins_func 包
 
-此模块提供向后兼容，实际从 plugins.register 导入
+此模块提供向后兼容，允许旧代码继续使用 plugins_func 路径
+实际功能已迁移到 plugins 包
 """
 
+# 从新路径导入所有内容
 from plugins.register import (
     register_function,
     register_device_function,
@@ -14,7 +16,6 @@ from plugins.register import (
     DeviceTypeRegistry,
     FunctionRegistry,
     all_function_registry,
-    module_func_map,
 )
 
 __all__ = [
@@ -27,5 +28,4 @@ __all__ = [
     "DeviceTypeRegistry",
     "FunctionRegistry",
     "all_function_registry",
-    "module_func_map",
 ]
