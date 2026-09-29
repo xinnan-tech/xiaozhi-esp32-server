@@ -28,7 +28,7 @@ bs4==0.0.2
 modelscope==1.39.1
 sherpa_onnx==1.12.29
 mcp==1.22.0
-cnlunar==0.2.0
+cnlunar==0.2.4
 PySocks==1.7.1
 dashscope==1.25.2
 baidu-aip==4.16.13
