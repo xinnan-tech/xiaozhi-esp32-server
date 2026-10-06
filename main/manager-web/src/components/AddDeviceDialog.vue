@@ -74,9 +74,11 @@ export default {
     },
     cancel() {
       this.deviceCode = "";
+      this.$emit('update:visible', false);
     },
     handleClose() {
       this.deviceCode = "";
+      this.$emit('update:visible', false);
     }
   }
 }

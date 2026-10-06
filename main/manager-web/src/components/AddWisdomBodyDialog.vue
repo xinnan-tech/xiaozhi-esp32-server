@@ -67,9 +67,11 @@ export default {
     },
     cancel() {
       this.wisdomBodyName = "";
+      this.$emit('update:visible', false);
     },
     handleClose() {
       this.wisdomBodyName = "";
+      this.$emit('update:visible', false);
     }
   }
 }

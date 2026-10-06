@@ -149,6 +149,7 @@ export default {
     cancel() {
       this.saving = false; // 取消时重置状态
       this.dialogKey = Date.now();
+      this.$emit('update:visible', false);
       this.$emit('cancel');
     },
 
