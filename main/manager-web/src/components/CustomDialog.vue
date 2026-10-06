@@ -54,7 +54,7 @@ export default {
     },
     width: {
       type: String,
-      default: "600px"
+      default: "720px"
     },
     footer: {
       type: Boolean,
@@ -129,6 +129,10 @@ export default {
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  ::v-deep .el-dialog__body {
+    min-height: 360px;
   }
 
   ::v-deep .el-dialog__header {
