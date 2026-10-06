@@ -75,6 +75,7 @@
       :confirm-loading="confirmLoading"
       :footer="true"
       :width="'1200px'"
+      size="large"
       @confirm="handleDialogConfirm"
       @cancel="dialogVisible = false"
     >

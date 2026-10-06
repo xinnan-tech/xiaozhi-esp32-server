@@ -3,6 +3,7 @@
         :title="$t('voiceClone.dialogTitle')"
         :visible.sync="innerVisible"
         width="900px"
+        size="large"
         :footer="false"
         @close="handleDialogClose"
     >

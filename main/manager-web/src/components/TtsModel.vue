@@ -1,5 +1,5 @@
 <template>
-  <CustomDialog :visible.sync="localVisible" :title="$t('modelConfig.voiceManagement')" width="90%"
+  <CustomDialog :visible.sync="localVisible" :title="$t('modelConfig.voiceManagement')" width="90%" size="large"
     :close-on-click-modal="true" :destroy-on-close="false" :footer="false" :append-to-body="true"
     @close="handleClose">
     <div class="scroll-wrapper">

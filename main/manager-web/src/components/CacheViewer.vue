@@ -204,4 +204,23 @@ h3 {
   margin-bottom: 10px;
   font-weight: 500;
 }
+
+::v-deep .el-dialog {
+  margin: 0 auto !important;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+::v-deep .el-dialog__wrapper {
+  align-items: stretch;
+}
+
+::v-deep .el-dialog__body {
+  flex: 1;
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+}
 </style>

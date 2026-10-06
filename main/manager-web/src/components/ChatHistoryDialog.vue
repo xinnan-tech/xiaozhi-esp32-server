@@ -3,6 +3,7 @@
         :title="$t('chatHistory.with') + agentName + $t('chatHistory.dialogTitle')"
         :visible.sync="dialogVisible"
         width="80%"
+        size="large"
         :footer="false"
         :close-on-click-modal="false"
         custom-class="chat-history-dialog">

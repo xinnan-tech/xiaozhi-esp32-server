@@ -3,6 +3,7 @@
     :title="title"
     :visible.sync="visible"
     width="57%"
+    size="large"
     class="provider-dialog-wrapper"
     @confirm="submit"
     @close="handleClose"

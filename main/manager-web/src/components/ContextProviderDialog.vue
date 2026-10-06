@@ -3,6 +3,7 @@
     :title="$t('contextProviderDialog.title')"
     :visible.sync="dialogVisible"
     width="720px"
+    size="large"
     class="context-provider-dialog"
     :closeOnClickModal="false"
     :confirmText="$t('contextProviderDialog.confirm')"

@@ -2,7 +2,8 @@
   <CustomDialog
     :visible.sync="dialogVisible"
     :title="$t('modelConfigDialog.addModel')"
-    width="57%"
+    width="960px"
+    size="large"
     class="add-model-dialog"
     :confirmLoading="saving"
     @close="handleClose"

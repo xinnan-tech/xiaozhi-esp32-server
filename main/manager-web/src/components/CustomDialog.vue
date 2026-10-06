@@ -7,7 +7,7 @@
     :close-on-press-escape="closeOnPressEscape"
     :show-close="showClose"
     :destroy-on-close="destroyOnClose"
-    :custom-class="customClass"
+    :custom-class="dialogCustomClass"
     class="custom-dialog"
     @close="handleClose"
     @open="handleOpen"
@@ -80,6 +80,11 @@ export default {
       type: String,
       default: ""
     },
+    size: {
+      type: String,
+      default: "small",
+      validator: (val) => ["small", "large"].includes(val),
+    },
     cancelText: {
       type: String,
       default: "取消"
@@ -93,6 +98,14 @@ export default {
     return {
       dialogVisible: this.visible
     };
+  },
+  computed: {
+    dialogCustomClass() {
+      const classes = ["custom-dialog"];
+      if (this.customClass) classes.push(this.customClass);
+      if (this.size === "large") classes.push("custom-dialog--large");
+      return classes.join(" ");
+    },
   },
   components: {
     CustomButton
@@ -124,131 +137,145 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.custom-dialog {
-  ::v-deep .el-dialog {
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin: 5vh auto !important;
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100vh - 10vh);
-  }
+/* wrapper 上带 custom-dialog class（来自 :class prop），用 :global() 命中它本身 */
+:global(.el-dialog__wrapper.custom-dialog) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
 
-  ::v-deep .el-dialog__wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: auto;
-  }
+/* 内部 .el-dialog（custom-class 应用到它上面）才有 custom-dialog--large；
+   默认 .custom-dialog 也通过 customClass prop 传到内部 dialog 上时命中 */
+::v-deep .el-dialog.custom-dialog {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 5vh auto !important;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 10vh);
+}
 
-  ::v-deep .el-dialog__body {
-    max-height: calc(100vh - 220px);
-    overflow-y: auto;
-  }
+::v-deep .el-dialog__body {
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
 
-  ::v-deep + .v-modal {
-    background: rgba(15, 23, 42, 0.55) !important;
-    backdrop-filter: blur(2px);
-  }
+::v-deep + .v-modal {
+  background: rgba(15, 23, 42, 0.55) !important;
+  backdrop-filter: blur(2px);
+}
 
-  ::v-deep .el-dialog__header {
-    padding: 16px 20px 12px;
-    background: linear-gradient(135deg, #e2eeff, #edeafe);
-    text-align: left;
-  }
+::v-deep .el-dialog__header {
+  padding: 16px 20px 12px;
+  background: linear-gradient(135deg, #e2eeff, #edeafe);
+  text-align: left;
+}
 
-  ::v-deep .el-dialog__title {
-    font-size: 16px;
+::v-deep .el-dialog__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+::v-deep .dialog-title {
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  > span {
+    line-height: 18px;
     font-weight: 500;
-    color: #1a1a1a;
   }
+}
 
-  .dialog-title {
+::v-deep .title-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+}
+
+::v-deep .el-dialog__headerbtn {
+  top: 12px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .el-dialog__close {
     font-size: 18px;
-    display: inline-flex;
-    align-items: center;
-    > span {
-      line-height: 18px;
-      font-weight: 500;
-    }
+    color: #666;
+    position: static;
+    transform: none;
   }
 
-  .title-icon {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
-  }
-
-  ::v-deep .el-dialog__headerbtn {
-    top: 12px;
-    right: 16px;
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 50%;
+  &:hover {
     background: #fff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 
     .el-dialog__close {
-      font-size: 18px;
-      color: #666;
-      position: static;
-      transform: none;
-    }
-
-    &:hover {
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-
-      .el-dialog__close {
-        color: #333;
-      }
+      color: #333;
     }
   }
+}
 
-  ::v-deep .el-dialog__body {
-    padding: 20px;
-  }
+::v-deep .el-dialog__body {
+  padding: 20px;
+}
 
-  ::v-deep .el-dialog__footer {
-    padding: 12px 20px 16px;
-  }
+::v-deep .el-dialog__footer {
+  padding: 12px 20px 16px;
+}
 
-  .dialog-footer {
+::v-deep .dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+
+  .el-button {
+    padding: 10px 20px;
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+  }
 
-    .el-button {
-      padding: 10px 20px;
-      display: flex;
-      align-items: center;
-    }
+  .el-button--primary {
+    background: linear-gradient(to right, #4a7cfd, #8154fc);
+    border: none;
 
-    .el-button--primary {
+    &:hover,
+    &:focus {
       background: linear-gradient(to right, #4a7cfd, #8154fc);
-      border: none;
-
-      &:hover,
-      &:focus {
-        background: linear-gradient(to right, #4a7cfd, #8154fc);
-        opacity: 0.85;
-      }
-    }
-
-    .confirm-inner {
-      display: inline-flex;
-      align-items: center;
-    }
-
-    .confirm-icon {
-      width: 16px;
-      height: 16px;
-      margin-right: 4px;
+      opacity: 0.85;
     }
   }
+
+  .confirm-inner {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .confirm-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+  }
+}
+
+/* size="large"：dialog 撑满整个浏览器高度 */
+::v-deep .el-dialog.custom-dialog.custom-dialog--large {
+  margin: 0 auto !important;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+}
+
+::v-deep .el-dialog.custom-dialog--large .el-dialog__body {
+  max-height: calc(100vh - 120px);
+  flex: 1;
 }
 </style>

@@ -2,7 +2,8 @@
   <CustomDialog
     :title="$t('modelConfigDialog.editModel')"
     :visible.sync="dialogVisible"
-    width="720px"
+    width="960px"
+    size="large"
     class="model-edit-dialog"
     :confirmLoading="saving"
     @confirm="handleSave"
@@ -465,6 +466,10 @@ export default {
 @import '@/styles/global.scss';
 
 .model-edit-dialog {
+  ::v-deep .el-dialog__body {
+    padding: 24px 40px;
+  }
+
   .header-row {
     display: flex;
     justify-content: space-between;
