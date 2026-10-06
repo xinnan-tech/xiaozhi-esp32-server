@@ -127,7 +127,9 @@ export default {
             })
             .fail((err) => {
                 RequestService.clearRequestTime();
-                callback(res);
+                if (failCallback) {
+                    failCallback(err);
+                }
             })
             .networkFail((err) => {
                 console.error('获取设备状态失败:', err);
