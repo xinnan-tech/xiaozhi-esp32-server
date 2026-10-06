@@ -2,7 +2,7 @@
   <CustomDialog
     :title="$t('contextProviderDialog.title')"
     :visible.sync="dialogVisible"
-    width="720px"
+    width="960px"
     size="large"
     class="context-provider-dialog"
     :closeOnClickModal="false"

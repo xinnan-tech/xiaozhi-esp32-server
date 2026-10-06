@@ -2115,11 +2115,11 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: 0 auto !important;
-  border-radius: 0;
+  margin: 10px auto !important;
+  border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  height: 100vh;
-  max-height: 100vh;
+  height: calc(100vh - 20px);
+  max-height: calc(100vh - 20px);
 }
 
 ::v-deep .el-dialog__wrapper {

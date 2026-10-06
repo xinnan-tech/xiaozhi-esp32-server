@@ -74,7 +74,7 @@
       :visible.sync="dialogVisible"
       :confirm-loading="confirmLoading"
       :footer="true"
-      :width="'1200px'"
+      :width="'1080px'"
       size="large"
       @confirm="handleDialogConfirm"
       @cancel="dialogVisible = false"
@@ -93,7 +93,7 @@
             :placeholder="$t('templateQuickConfig.agentSettings.systemPromptPlaceholder')"
             show-word-limit
             maxlength="2000"
-            :rows="16"
+            :autosize="{ minRows: 16 }"
           />
         </el-form-item>
       </el-form>

@@ -104,6 +104,7 @@ export default {
       const classes = ["custom-dialog"];
       if (this.customClass) classes.push(this.customClass);
       if (this.size === "large") classes.push("custom-dialog--large");
+      if (String(this.width).includes("%")) classes.push("custom-dialog--fluid");
       return classes.join(" ");
     },
   },
@@ -266,16 +267,21 @@ export default {
   }
 }
 
-/* size="large"：dialog 撑满整个浏览器高度 */
+/* size="large"：dialog 上下各留 10px 让边框和圆角可见，但仍占满大部分浏览器高度 */
 ::v-deep .el-dialog.custom-dialog.custom-dialog--large {
-  margin: 0 auto !important;
-  height: 100vh;
-  max-height: 100vh;
-  border-radius: 0;
+  margin: 10px auto !important;
+  height: calc(100vh - 20px);
+  max-height: calc(100vh - 20px);
+  border-radius: 10px;
+}
+
+::v-deep .el-dialog.custom-dialog.custom-dialog--large.custom-dialog--fluid {
+  max-width: var(--dialog-table-max);
 }
 
 ::v-deep .el-dialog.custom-dialog--large .el-dialog__body {
-  max-height: calc(100vh - 120px);
+  max-height: calc(100vh - 20px - 110px);
   flex: 1;
+  min-height: 0;
 }
 </style>

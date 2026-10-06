@@ -2,7 +2,7 @@
   <CustomDialog
     :title="title"
     :visible.sync="visible"
-    width="57%"
+    width="960px"
     size="large"
     class="provider-dialog-wrapper"
     @confirm="submit"

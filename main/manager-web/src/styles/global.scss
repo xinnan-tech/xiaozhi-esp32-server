@@ -44,3 +44,10 @@ select:-webkit-autofill:focus {
     border-radius: 3px;
   }
 }
+
+// 大弹框宽度档位（三档：表单 / 代码 / 表格）
+:root {
+  --dialog-form: 960px;
+  --dialog-code: 1080px;
+  --dialog-table-max: 1280px;
+}
