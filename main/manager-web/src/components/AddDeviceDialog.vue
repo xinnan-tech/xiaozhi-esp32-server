@@ -67,19 +67,18 @@ export default {
             });
           }
         }
-      );
+      ).fail(() => { this.loading = false; });
     },
     closeDialog() {
+      this.loading = false;
       this.deviceCode = '';
       this.$emit('update:visible', false);
     },
     cancel() {
-      this.deviceCode = "";
-      this.$emit('update:visible', false);
+      this.closeDialog();
     },
     handleClose() {
-      this.deviceCode = "";
-      this.$emit('update:visible', false);
+      this.closeDialog();
     }
   }
 }

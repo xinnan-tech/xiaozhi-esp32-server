@@ -111,6 +111,10 @@ export default {
           this.saving = true
           // 提交成功后将关闭对话框的逻辑交给父组件处理
           this.$emit('submit', this.form)
+          // 兜底：父组件若未在回调内重置 saving，3 秒后强制释放加载状态
+          setTimeout(() => {
+            this.saving = false
+          }, 3000)
         }
       })
     },

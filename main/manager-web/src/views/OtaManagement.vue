@@ -68,7 +68,7 @@
         </div>
 
         <!-- 新增/编辑固件对话框 -->
-        <firmware-dialog :title="dialogTitle" :visible.sync="dialogVisible" :form="firmwareForm"
+        <firmware-dialog ref="firmwareDialog" :title="dialogTitle" :visible.sync="dialogVisible" :form="firmwareForm"
             :firmware-types="firmwareTypes" @submit="handleSubmit" @cancel="dialogVisible = false" />
         <el-footer>
             <version-footer />
@@ -210,6 +210,7 @@ export default {
                             showClose: true
                         });
                     }
+                    this.$refs.firmwareDialog?.resetSaving();
                 });
             } else {
                 Api.ota.saveOta(form, (res) => {
@@ -227,6 +228,7 @@ export default {
                             showClose: true
                         });
                     }
+                    this.$refs.firmwareDialog?.resetSaving();
                 });
             }
         },

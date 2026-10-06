@@ -309,6 +309,11 @@ export default {
               this.resetForm();
             }
           });
+
+          // 兜底：父组件若未在回调内清 saving，3 秒后强制释放加载状态
+          setTimeout(() => {
+            this.saving = false;
+          }, 3000);
         }
       });
     },
