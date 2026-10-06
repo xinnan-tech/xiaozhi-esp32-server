@@ -138,16 +138,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-/* wrapper 上带 custom-dialog class（来自 :class prop），用 :global() 命中它本身 */
-:global(.el-dialog__wrapper.custom-dialog) {
+/* 弹框垂直居中：element-ui 把 .el-dialog__wrapper 渲染到 body 上，需要 deep 选择器穿透 */
+::v-deep .el-dialog__wrapper.custom-dialog {
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: auto;
 }
 
-/* 内部 .el-dialog（custom-class 应用到它上面）才有 custom-dialog--large；
-   默认 .custom-dialog 也通过 customClass prop 传到内部 dialog 上时命中 */
+/* 内部 .el-dialog 也带 custom-dialog class（来自 customClass prop），用于区分大小档 */
 ::v-deep .el-dialog.custom-dialog {
   border-radius: 10px;
   overflow: hidden;
@@ -161,9 +160,11 @@ export default {
 ::v-deep .el-dialog__body {
   max-height: calc(100vh - 220px);
   overflow-y: auto;
+  padding: 20px;
 }
 
-::v-deep + .v-modal {
+/* PopupManager 把 .v-modal 挂到 body 末尾，用后代选择器穿透命中 */
+::v-deep .v-modal {
   background: rgba(15, 23, 42, 0.55) !important;
   backdrop-filter: blur(2px);
 }
@@ -224,10 +225,6 @@ export default {
       color: #333;
     }
   }
-}
-
-::v-deep .el-dialog__body {
-  padding: 20px;
 }
 
 ::v-deep .el-dialog__footer {

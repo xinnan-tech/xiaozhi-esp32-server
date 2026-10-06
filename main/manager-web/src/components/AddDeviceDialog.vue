@@ -71,6 +71,7 @@ export default {
     },
     closeDialog() {
       this.deviceCode = '';
+      this.$emit('update:visible', false);
     },
     cancel() {
       this.deviceCode = "";

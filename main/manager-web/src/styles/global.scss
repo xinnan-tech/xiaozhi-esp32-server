@@ -45,9 +45,7 @@ select:-webkit-autofill:focus {
   }
 }
 
-// 大弹框宽度档位（三档：表单 / 代码 / 表格）
+// 大弹框宽度档位（表格档使用）
 :root {
-  --dialog-form: 960px;
-  --dialog-code: 1080px;
   --dialog-table-max: 1280px;
 }
