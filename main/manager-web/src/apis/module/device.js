@@ -4,7 +4,7 @@ import RequestService from '../httpRequest';
 export default {
     // 已绑设备
     getAgentBindDevices(agentId, callback) {
-        RequestService.sendRequest()
+        return RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/bind/${agentId}`)
             .method('GET')
             .success((res) => {
@@ -20,7 +20,7 @@ export default {
     },
     // 解绑设备
     unbindDevice(device_id, callback) {
-        RequestService.sendRequest()
+        return RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/unbind`)
             .method('POST')
             .data({ deviceId: device_id })
@@ -37,7 +37,7 @@ export default {
     },
     // 绑定设备
     bindDevice(agentId, deviceCode, callback) {
-        RequestService.sendRequest()
+        return RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/bind/${agentId}/${deviceCode}`)
             .method('POST')
             .success((res) => {
@@ -52,7 +52,7 @@ export default {
             }).send();
     },
     updateDeviceInfo(id, payload, callback) {
-        RequestService.sendRequest()
+        return RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/update/${id}`)
             .method('PUT')
             .data(payload)
@@ -70,7 +70,7 @@ export default {
     },
     // 手动添加设备
     manualAddDevice(params, callback) {
-        RequestService.sendRequest()
+        return RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/manual-add`)
             .method('POST')
             .data(params)
@@ -87,7 +87,7 @@ export default {
     },
     // 获取设备状态
     getDeviceStatus(agentId, callback) {
-        RequestService.sendRequest()
+        return RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/bind/${agentId}`)
             .method('POST')
             .data({}) // 发送空对象作为请求体
