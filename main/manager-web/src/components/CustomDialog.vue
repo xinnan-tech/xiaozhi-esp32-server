@@ -131,8 +131,9 @@ export default {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
-  ::v-deep .el-dialog__body {
-    min-height: 360px;
+  ::v-deep + .v-modal {
+    background: rgba(15, 23, 42, 0.55) !important;
+    backdrop-filter: blur(2px);
   }
 
   ::v-deep .el-dialog__header {

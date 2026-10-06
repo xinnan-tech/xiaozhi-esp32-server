@@ -1,51 +1,53 @@
 <template>
-  <el-dialog :visible="visible" @close="handleClose"  width="25%" center @open="handleOpen">
-    <div
-      style="margin: 0 10px 10px;display: flex;align-items: center;gap: 10px;font-weight: 700;font-size: 20px;text-align: left;color: #3d4566;">
-      <div
-        style="width: 40px;height: 40px;border-radius: 50%;background: #5778ff;display: flex;align-items: center;justify-content: center;">
-        <img loading="lazy" src="@/assets/home/equipment.png" alt="" style="width: 18px;height: 15px;" />
+  <CustomDialog
+    :title="$t('addAgentDialog.title')"
+    :visible.sync="visible"
+    width="420px"
+    @confirm="confirm"
+    @cancel="cancel"
+    @close="handleClose"
+    :confirmText="$t('addAgentDialog.confirm')"
+    :cancelText="$t('addAgentDialog.cancel')"
+    @open="handleOpen"
+  >
+    <div class="add-agent-body">
+      <div class="add-agent-label">
+        <span class="required">*</span>
+        {{ $t('addAgentDialog.agentName') }}
       </div>
-      {{ $t('addAgentDialog.title') }}
+      <el-input
+        maxLength="64"
+        ref="inputRef"
+        :placeholder="$t('addAgentDialog.placeholder')"
+        v-model="wisdomBodyName"
+        class="add-agent-input"
+        @keyup.enter.native="confirm"
+      />
     </div>
-    <div style="height: 1px;background: #e8f0ff;" />
-    <div style="margin: 22px 15px;">
-      <div style="font-weight: 400;text-align: left;color: #3d4566;">
-        <div style="color: red;display: inline-block;">*</div> {{ $t('addAgentDialog.agentName') }}：
-      </div>
-      <div class="input-46" style="margin-top: 12px;">
-        <el-input maxLength="64" ref="inputRef" :placeholder="$t('addAgentDialog.placeholder')" v-model="wisdomBodyName" @keyup.enter.native="confirm" />
-      </div>
-    </div>
-    <div style="display: flex;margin: 15px 15px;gap: 7px;">
-      <div class="dialog-btn" @click="confirm">
-        {{ $t('addAgentDialog.confirm') }}
-      </div>
-      <div class="dialog-btn" style="background: #e6ebff;border: 1px solid #adbdff;color: #5778ff;" @click="cancel">
-        {{ $t('addAgentDialog.cancel') }}
-      </div>
-    </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
 import Api from '@/apis/api';
+import CustomDialog from './CustomDialog.vue';
 
 export default {
   name: 'AddWisdomBodyDialog',
+  components: { CustomDialog },
   props: {
     visible: { type: Boolean, required: true }
   },
   data() {
     return {
-      wisdomBodyName: "",
-      inputRef: null
+      wisdomBodyName: ""
     }
   },
   methods: {
     handleOpen() {
       this.$nextTick(() => {
-        this.$refs.inputRef.focus();
+        if (this.$refs.inputRef && this.$refs.inputRef.focus) {
+          this.$refs.inputRef.focus();
+        }
       });
     },
     confirm() {
@@ -64,50 +66,36 @@ export default {
       });
     },
     cancel() {
-      this.$emit('update:visible', false)
-      this.wisdomBodyName = ""
+      this.wisdomBodyName = "";
     },
     handleClose() {
-      this.$emit('update:visible', false);
-    },
+      this.wisdomBodyName = "";
+    }
   }
 }
 </script>
 
 <style scoped>
-.input-46 {
-  border: 1px solid #e4e6ef;
-  background: #f6f8fb;
-  border-radius: 15px;
+.add-agent-body {
+  padding: 6px 4px 4px;
 }
 
-.dialog-btn {
-  cursor: pointer;
-  flex: 1;
-  border-radius: 23px;
-  background: #5778ff;
+.add-agent-label {
+  font-size: 14px;
+  color: #475569;
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.add-agent-label .required {
+  color: #f56c6c;
+  margin-right: 2px;
+}
+
+.add-agent-input ::v-deep(.el-input__inner) {
   height: 40px;
-  font-weight: 500;
-  font-size: 12px;
-  color: #fff;
-  line-height: 40px;
-  text-align: center;
-}
-
-::v-deep .el-dialog {
-  border-radius: 15px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-::v-deep .el-dialog__headerbtn {
-  display: none;
-}
-
-::v-deep .el-dialog__body {
-  padding: 4px 6px;
-}
-
-::v-deep .el-dialog__header {
-  padding: 10px;
+  border-radius: 8px;
+  border-color: #e2e8f0;
+  font-size: 14px;
 }
 </style>
