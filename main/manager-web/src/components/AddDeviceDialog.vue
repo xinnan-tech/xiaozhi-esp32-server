@@ -51,7 +51,8 @@ export default {
       this.loading = true;
       Api.device.bindDevice(
         this.agentId,
-        this.deviceCode, ({ data }) => {
+        this.deviceCode,
+        ({ data }) => {
           this.loading = false;
           if (data.code === 0) {
             this.$emit('refresh');
@@ -66,8 +67,16 @@ export default {
               showClose: true
             });
           }
+        },
+        (err) => {
+          this.loading = false;
+          const msg = err && err.data && err.data.msg;
+          this.$message.error({
+            message: msg || this.$t('device.bindFailed'),
+            showClose: true
+          });
         }
-      ).fail(() => { this.loading = false; });
+      );
     },
     closeDialog() {
       this.loading = false;

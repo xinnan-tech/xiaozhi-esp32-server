@@ -19,7 +19,7 @@ export default {
             })
             .networkFail(() => {
                 RequestService.reAjaxFun(() => {
-                    this.login(loginForm, callback)
+                    this.login(loginForm, callback, failCallback)
                 })
             }).send()
     },
