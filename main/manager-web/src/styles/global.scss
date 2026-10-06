@@ -63,3 +63,11 @@ select:-webkit-autofill:focus {
   justify-content: center;
   overflow: auto;
 }
+
+/* 首页删除智能体确认弹框 wrapper 居中（非 CustomDialog，需单独命中） */
+.el-dialog__wrapper.delete-agent-dialog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}

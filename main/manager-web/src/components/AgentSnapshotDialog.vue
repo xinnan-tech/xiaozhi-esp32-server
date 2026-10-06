@@ -2284,9 +2284,6 @@ export default {
 
 .snapshot-table-wrapper {
   min-height: 420px;
-  max-height: 62vh;
-  overflow: auto;
-  @include scrollbar-style;
 }
 
 .version-cell {
@@ -2331,10 +2328,7 @@ export default {
 
 .snapshot-diff {
   min-height: 420px;
-  max-height: 68vh;
-  overflow: auto;
   padding-right: 2px;
-  @include scrollbar-style;
 }
 
 .restore-risk-alert {
