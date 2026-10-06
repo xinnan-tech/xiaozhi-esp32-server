@@ -138,15 +138,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-/* 弹框垂直居中：element-ui 把 .el-dialog__wrapper 渲染到 body 上，需要 deep 选择器穿透 */
-::v-deep .el-dialog__wrapper.custom-dialog {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-}
-
-/* 内部 .el-dialog 也带 custom-dialog class（来自 customClass prop），用于区分大小档 */
+/* 大档与小档通过 .custom-dialog--large 区分 */
 ::v-deep .el-dialog.custom-dialog {
   border-radius: 10px;
   overflow: hidden;
@@ -259,7 +251,7 @@ export default {
   }
 }
 
-/* size="large"：dialog 上下各留 10px 让边框和圆角可见，但仍占满大部分浏览器高度 */
+/* 大档：上下各留 10px 让边框和圆角可见 */
 ::v-deep .el-dialog.custom-dialog.custom-dialog--large {
   margin: 10px auto !important;
   height: calc(100vh - 20px);
