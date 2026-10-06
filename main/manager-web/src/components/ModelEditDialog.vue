@@ -2,7 +2,7 @@
   <CustomDialog
     :title="$t('modelConfigDialog.editModel')"
     :visible.sync="dialogVisible"
-    width="57%"
+    width="720px"
     class="model-edit-dialog"
     :confirmLoading="saving"
     @confirm="handleSave"
@@ -464,11 +464,6 @@ export default {
 <style lang="scss" scoped>
 @import '@/styles/global.scss';
 
-::v-deep .el-dialog__body {
-  max-height: calc(100vh - 220px);
-  overflow-y: auto;
-  @include scrollbar-style;
-}
 .model-edit-dialog {
   .header-row {
     display: flex;

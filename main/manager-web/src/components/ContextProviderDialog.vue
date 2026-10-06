@@ -1,11 +1,13 @@
 <template>
-  <el-dialog
-    :visible.sync="dialogVisible"
-    width="900px"
+  <CustomDialog
     :title="$t('contextProviderDialog.title')"
-    :close-on-click-modal="false"
-    custom-class="context-provider-dialog"
-    append-to-body
+    :visible.sync="dialogVisible"
+    width="720px"
+    class="context-provider-dialog"
+    :closeOnClickModal="false"
+    :confirmText="$t('contextProviderDialog.confirm')"
+    :cancelText="$t('contextProviderDialog.cancel')"
+    @confirm="handleConfirm"
   >
     <div class="dialog-content">
       <el-empty v-if="localProviders.length === 0" :description="$t('contextProviderDialog.noContextApi')">
@@ -51,7 +53,7 @@
                   size="small"
                   class="flex-1"
                 ></el-input>
-                
+
                 <div class="row-controls">
                   <el-button
                     type="primary"
@@ -104,17 +106,15 @@
         </div>
       </div>
     </div>
-
-    <span slot="footer" class="dialog-footer">
-      <el-button @click="dialogVisible = false">{{ $t('contextProviderDialog.cancel') }}</el-button>
-      <el-button type="primary" @click="handleConfirm">{{ $t('contextProviderDialog.confirm') }}</el-button>
-    </span>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
+import CustomDialog from './CustomDialog.vue';
+
 export default {
   name: 'ContextProviderDialog',
+  components: { CustomDialog },
   props: {
     visible: {
       type: Boolean,
@@ -157,7 +157,7 @@ export default {
           headers: Object.entries(headers).map(([key, value]) => ({ key, value }))
         };
       });
-      
+
       // 如果为空，添加一个默认块
       if (this.localProviders.length === 0) {
          this.localProviders.push({ url: '', headers: [{ key: '', value: '' }] });
@@ -193,19 +193,22 @@ export default {
             headers: headersObj
           };
         });
-      
+
       this.$emit('confirm', result);
-      this.dialogVisible = false;
+      this.$emit('update:visible', false);
     }
   }
 };
 </script>
 
 <style scoped>
+.context-provider-dialog ::v-deep .el-dialog__body {
+  padding: 16px 20px;
+}
 .dialog-content {
-  max-height: 60vh;
+  max-height: calc(100vh - 280px);
   overflow-y: auto;
-  padding: 20px 25px;
+  padding: 0 5px;
 }
 
 .dialog-content::-webkit-scrollbar {
@@ -230,7 +233,7 @@ export default {
   flex: 1;
   border-radius: 12px;
   border: 1px solid #e4e7ed;
-  border-left: 4px solid #409EFF; /* 左侧强调色 */
+  border-left: 4px solid #409EFF;
   background-color: #fff;
   transition: all 0.3s ease;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
@@ -261,7 +264,7 @@ export default {
   text-align: right;
   font-size: 13px;
   white-space: nowrap;
-  line-height: 32px; /* 垂直居中对齐 */
+  line-height: 32px;
 }
 
 .flex-1 {
@@ -327,3 +330,4 @@ export default {
   margin-right: 8px;
 }
 </style>
+

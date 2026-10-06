@@ -129,6 +129,22 @@ export default {
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin: 5vh auto !important;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 10vh);
+  }
+
+  ::v-deep .el-dialog__wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+  }
+
+  ::v-deep .el-dialog__body {
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
   }
 
   ::v-deep + .v-modal {
