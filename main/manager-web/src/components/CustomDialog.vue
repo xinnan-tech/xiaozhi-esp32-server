@@ -163,12 +163,7 @@ export default {
   padding: 20px;
 }
 
-/* PopupManager 把 .v-modal 挂到 body 末尾，用后代选择器穿透命中 */
-::v-deep .v-modal {
-  background: rgba(15, 23, 42, 0.55) !important;
-  backdrop-filter: blur(2px);
-}
-
+/* .v-modal 样式由 global.scss 全局定义 */
 ::v-deep .el-dialog__header {
   padding: 16px 20px 12px;
   background: linear-gradient(135deg, #e2eeff, #edeafe);

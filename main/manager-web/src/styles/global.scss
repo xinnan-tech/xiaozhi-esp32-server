@@ -49,3 +49,9 @@ select:-webkit-autofill:focus {
 :root {
   --dialog-table-max: 1280px;
 }
+
+/* 全局弹框遮罩：脱离 dialog wrapper 层级，需全局生效 */
+.v-modal {
+  background: rgba(15, 23, 42, 0.55) !important;
+  backdrop-filter: blur(2px);
+}
