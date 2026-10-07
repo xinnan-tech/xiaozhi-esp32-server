@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | manager-api（Java 后端） | `8002` | 启动失败，需手动释放 | Tomcat 默认端口；通过 `application.yml` 中 `server.port` 改 |
 | manager-web（Vue 前端 dev） | `8001` | `vue-cli-service` 自动顺延到 `8002/8003/...` | 配置在 `main/manager-web/vue.config.js` 的 `devServer.port` |
+| manager-mobile（uni-app / vite） | 未配置（vite 默认 5173） | 由 `VITE_APP_PORT` 环境变量决定；未设时 vite 取默认 | 端口在 `main/manager-mobile/vite.config.ts` 的 `server.port`，从 `env/` 下 `VITE_APP_PORT` 读取 |
 
 后端固定 `8002` 是因为 manager-web 的 `vue.config.js` 把 `/xiaozhi` 反向代理到 `http://127.0.0.1:8002`，改了后端端口必须同步改前端代理，否则 dev 页所有请求 404。
 
@@ -69,5 +70,5 @@ ss -tlnp | grep ':8002'
 
 ## 常见误判
 
-- `curl http://127.0.0.1:8002/xiaozhi/...` 看起来像后端在响应：其实是前端 dev 的 `/xiaozhi` 代理，**代理目标是你环境变量 `VUE_APP_API_BASE_URL` 配置的后端**，可能不是你本机的 8002。检查 `.env.development` 与 `vue.config.js` 的 `proxy.target`。
+- `curl http://127.0.0.1:8002/xiaozhi/...` 看起来像后端在响应：其实是前端 dev 的 `/xiaozhi` 代理，**代理目标在 `vue.config.js:47` 的 `proxy.target` 里硬编码 `http://127.0.0.1:8002`，改 `.env.development` 里的 `VUE_APP_API_BASE_URL` 不会影响这个代理**。改了后端 8002 但忘了同步改 `vue.config.js` proxy.target，前端所有 `/xiaozhi/...` 请求都会 404 — 检查 `vue.config.js` 的 `proxy.target`，而不是 `.env.development`。
 - 多个旧会话残留 vue-cli 进程：常见于并发跑多个分支时忘了关 dev server，`ss -tlnp` 能一眼看到。
