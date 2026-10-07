@@ -9,7 +9,7 @@
   >
     <el-form :model="deviceForm" :rules="rules" ref="deviceForm" label-width="auto">
       <el-form-item :label="$t('manualAddDeviceDialog.deviceType')" prop="board">
-        <el-select v-model="deviceForm.board" :placeholder="$t('manualAddDeviceDialog.deviceTypePlaceholder')" style="width: 100%">
+        <el-select v-model="deviceForm.board" :placeholder="$t('manualAddDeviceDialog.deviceTypePlaceholder')" style="width: 100%" filterable>
           <el-option
             v-for="item in firmwareTypes"
             :key="item.key"

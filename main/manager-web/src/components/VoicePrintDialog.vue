@@ -9,7 +9,7 @@
   >
     <el-form :model="form" :rules="rules" ref="form" label-width="auto" label-position="left" class="param-form">
       <el-form-item :label="$t('voicePrintDialog.voicePrintVector')" prop="audioId" class="form-item">
-        <el-select v-model="form.audioId" :placeholder="$t('voicePrintDialog.selectVoiceMessage')" class="custom-select">
+        <el-select v-model="form.audioId" :placeholder="$t('voicePrintDialog.selectVoiceMessage')" class="custom-select" filterable>
           <el-option v-for="item in valueTypeOptions" :key="item.audioId" :label="item.content" :value="item.audioId">
             <span style="float: left">{{ item.content }}</span>
             <span style="float: right; color: #8492a6; font-size: 13px">

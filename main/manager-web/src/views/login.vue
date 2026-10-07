@@ -74,7 +74,7 @@
             <template v-else>
               <div class="input-box">
                 <div style="display: flex; align-items: center; width: 100%">
-                  <el-select v-model="form.areaCode" style="width: 220px; margin-right: 10px">
+                  <el-select v-model="form.areaCode" style="width: 220px; margin-right: 10px" filterable>
                     <el-option v-for="item in mobileAreaList" :key="item.key" :label="`${item.name} (${item.key})`"
                       :value="item.key" />
                   </el-select>

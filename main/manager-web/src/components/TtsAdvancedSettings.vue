@@ -75,6 +75,8 @@
         <el-select
           v-model="replacementWordIds"
           multiple
+          filterable
+          collapse-tags
           :placeholder="$t('replacementDialog.selectPlaceholder')"
           class="replacement-word-select"
         >
