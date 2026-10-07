@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | manager-api（Java 后端） | `8002` | 启动失败，需手动释放 | Tomcat 默认端口；通过 `application.yml` 中 `server.port` 改 |
 | manager-web（Vue 前端 dev） | `8001` | `vue-cli-service` 自动顺延到 `8002/8003/...` | 配置在 `main/manager-web/vue.config.js` 的 `devServer.port` |
-| manager-mobile（uni-app / vite） | 未配置（vite 默认 5173） | 由 `VITE_APP_PORT` 环境变量决定；未设时 vite 取默认 | 端口在 `main/manager-mobile/vite.config.ts` 的 `server.port`，从 `env/` 下 `VITE_APP_PORT` 读取 |
+| manager-mobile（uni-app / vite） | `dev:h5` = `9000`（`env/.env` 下的 `VITE_APP_PORT`） | `dev:app` / `dev:mp-weixin` 等走 build，不占端口 | `server.port` 配置在 `main/manager-mobile/vite.config.ts:157`；`vite.config.ts:158` 注释明示「仅 H5 端生效，其他端走 build」 |
 
 后端固定 `8002` 是因为 manager-web 的 `vue.config.js` 把 `/xiaozhi` 反向代理到 `http://127.0.0.1:8002`，改了后端端口必须同步改前端代理，否则 dev 页所有请求 404。
 
