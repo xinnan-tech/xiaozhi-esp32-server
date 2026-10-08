@@ -1,20 +1,25 @@
 import os
 import asyncio
+from dotenv import load_dotenv
 from config.config_loader import read_config, get_project_dir, load_config
 
+# Carrega as variáveis do arquivo .env para o ambiente Python
+load_dotenv()
+XIAOZHI_BASE_URL = os.getenv("XIAOZHI_BASE_URL", "http://host.docker.internal:8002/xiaozhi")
+XIAOZHI_USER_TOKEN = os.getenv("XIAOZHI_USER_TOKEN", "")
+DEFAULT_AGENT_ID = os.getenv("DEFAULT_AGENT_ID", "a69fbf960e9840f09a2ba12dd3ff4c15")
 
 default_config_file = "config.yaml"
 config_file_valid = False
-
 
 def check_config_file():
     global config_file_valid
     if config_file_valid:
         return
-    """
-    简化的配置检查，仅提示用户配置文件的使用情况
-    """
-    custom_config_file = get_project_dir() + "data/." + default_config_file
+
+    # os.path.join garante a montagem correta de caminhos no Linux/Docker
+    custom_config_file = os.path.join(get_project_dir(), "data", f".{default_config_file}")
+    
     if not os.path.exists(custom_config_file):
         raise FileNotFoundError(
             "找不到data/.config.yaml文件，请按教程确认该配置文件是否存在"
