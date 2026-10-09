@@ -51,6 +51,14 @@ def lang_tag_filter(text: str) -> dict:
 
     # 移除所有 <|...|> 格式的标签，获取纯文本
     clean_text = re.sub(tag_pattern, "", text).strip()
+    # SenseVoice 对日语等偶尔按词输出空格（如「今日 の こと を」），去掉中日文字符之间的空格；
+    # 韩文、英文的词间空格不受影响
+    clean_text = re.sub(
+        r"(?<=[\u3000-\u303f\u3040-\u30ff\u4e00-\u9fff\uff01-\uff60])\s+"
+        r"(?=[\u3000-\u303f\u3040-\u30ff\u4e00-\u9fff\uff01-\uff60])",
+        "",
+        clean_text,
+    )
 
     # 保持返回结构一致，避免调用方把纯文本误当成字典访问。
     if not all_tags:
