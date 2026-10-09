@@ -196,7 +196,7 @@
       @confirm="runRetrievalTest"
     >
       <div class="retrieval-test-form">
-        <el-form :model="retrievalTestForm" label-width="100px">
+        <el-form :model="retrievalTestForm" label-width="100px" @submit.native.prevent>
           <el-form-item :label="$t('knowledgeFileUpload.testQuestion')" required>
             <el-input
               v-model="retrievalTestForm.question"
