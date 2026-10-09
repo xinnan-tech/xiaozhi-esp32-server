@@ -190,7 +190,8 @@
     <CustomDialog
       :title="$t('knowledgeFileUpload.retrievalTest')"
       :visible.sync="retrievalTestDialogVisible"
-      width="900px"
+      width="1200px"
+      size="large"
       :close-on-click-modal="false"
       :confirm-text="$t('knowledgeFileUpload.executeTest')"
       :confirmLoading="retrievalTestLoading"
@@ -1175,8 +1176,20 @@ export default {
 
 /* ========== Retrieval Test Dialog ========== */
 .retrieval-test-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .retrieval-test-result {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .result-chunks {
-    max-height: 400px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
   }
 
