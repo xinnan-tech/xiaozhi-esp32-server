@@ -414,7 +414,8 @@ export default {
 <style scoped>
 .chat-container {
     display: flex;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
 }
 
 .session-list {
@@ -611,10 +612,6 @@ export default {
     display: flex;
     gap: 10px;
     border-top: 1px solid #eee;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
     background-color: white;
 }
 
@@ -625,24 +622,14 @@ export default {
 
 <style>
 .chat-history-dialog {
-    display: flex;
-    flex-direction: column;
     min-width: 700px;
-    margin: 0 !important;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    height: 98vh;
     max-width: 85vw;
-    border-radius: 12px;
-    overflow: hidden;
 }
 
 .chat-history-dialog .el-dialog__body {
     padding: 0;
     overflow: hidden;
-    height: calc(90vh - 54px);
-    /* 减去标题栏的高度 */
+    display: flex;
+    flex-direction: column;
 }
 </style>

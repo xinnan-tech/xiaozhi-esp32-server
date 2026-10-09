@@ -114,6 +114,7 @@
       :title="`${$t('knowledgeFileUpload.viewSlices')} - ${currentDocumentName}`"
       :visible.sync="sliceDialogVisible"
       width="1200px"
+      size="large"
       :footer="false"
     >
       <div class="slice-management">
@@ -1014,10 +1015,12 @@ export default {
 .slice-content-container {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .slice-cards-container {
-  max-height: 60vh;
+  flex: 1;
   overflow-y: auto;
   padding-right: 4px;
 
@@ -1082,6 +1085,7 @@ export default {
 }
 
 .no-slice-data {
+  flex: 1;
   min-height: 200px;
   display: flex;
   align-items: center;
