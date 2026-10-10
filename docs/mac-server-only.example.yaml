@@ -1,0 +1,39 @@
+# Copy to main/xiaozhi-server/data/.config.yaml in your own checkout.
+# The destination is git-ignored. This example contains no working API key.
+# It overrides config.yaml; all omitted values keep upstream defaults.
+# The loopback address is for Mac-only testing. Use the Mac's LAN address when
+# connecting a physical ESP32 and review authentication before LAN exposure.
+server:
+  ip: 127.0.0.1
+  port: 8000
+  http_port: 8003
+  websocket: ws://127.0.0.1:8000/xiaozhi/v1/
+
+selected_module:
+  VAD: SileroVAD
+  ASR: FunASR
+  LLM: ChatGLMLLM
+  TTS: EdgeTTS
+  Memory: nomem
+  Intent: nointent
+
+ASR:
+  FunASR:
+    type: fun_local
+    model_dir: models/SenseVoiceSmall
+    output_dir: tmp/
+    language: zh
+
+LLM:
+  ChatGLMLLM:
+    type: openai
+    model_name: glm-4-flash
+    url: https://open.bigmodel.cn/api/paas/v4/
+    # Contains "你的" so the upstream performance tester skips this placeholder.
+    api_key: "你的API密钥_仅填入本地忽略文件"
+
+TTS:
+  EdgeTTS:
+    type: edge
+    voice: zh-CN-XiaoxiaoNeural
+    output_dir: tmp/
