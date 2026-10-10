@@ -4,7 +4,7 @@
 
 ## 2026-10-10 复测
 
-本节在本地分支 `feature/child-agent-dialogue-20261010` 复核；它包含前一部署提交。因上游 GitHub 连接只有读取权限，尚未推送到 GitHub，也未创建 PR。
+本节在本地分支 `feature/child-agent-dialogue-20261010` 复核；它包含前一部署提交。验证后的改动发布到 fork 的 `feature/mac-deployment-child-agent-20261010` 分支，供上游 PR 审查。
 
 | 操作 | 本次实际结果 | 判定 |
 |---|---|---|
