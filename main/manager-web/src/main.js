@@ -22,6 +22,13 @@ Vue.config.productionTip = false
 // 注册Service Worker
 registerServiceWorker();
 
+// 应用启动时把 localStorage 里的 token 同步进 store，避免守卫放行后首次请求时
+// httpRequest 读到 state.token=null 而漏带 Authorization 头触发 401 跳登录
+const cachedToken = localStorage.getItem('token')
+if (cachedToken) {
+  store.commit('setToken', cachedToken)
+}
+
 // 创建Vue实例
 new Vue({
   router,

@@ -2,7 +2,9 @@ package xiaozhi.modules.security.service.impl;
 
 import java.util.Date;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import cn.hutool.core.date.DateUtil;
 import lombok.AllArgsConstructor;
@@ -79,6 +81,36 @@ public class SysUserTokenServiceImpl extends BaseServiceImpl<SysUserTokenDao, Sy
         tokenDTO.setExpire(EXPIRE);
         tokenDTO.setClientHash(clientHash);
         return new Result<TokenDTO>().ok(tokenDTO);
+    }
+
+    @Override
+    @Transactional
+    public Result<TokenDTO> refreshToken(String oldToken) {
+        if (StringUtils.isBlank(oldToken)) {
+            throw new RenException(ErrorCode.UNAUTHORIZED);
+        }
+        SysUserTokenEntity tokenEntity = baseDao.getByToken(oldToken);
+        if (tokenEntity == null) {
+            throw new RenException(ErrorCode.TOKEN_INVALID);
+        }
+        if (tokenEntity.getExpireDate().before(new Date())) {
+            throw new RenException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // CAS 更新：并发场景下只有一个请求能匹配到该 oldToken，另一个返 0 行
+        String newToken = TokenGenerator.generateValue();
+        Date now = new Date();
+        Date expireTime = new Date(now.getTime() + EXPIRE * 1000L);
+        int affected = baseDao.refreshTokenCAS(tokenEntity.getUserId(), oldToken, newToken, expireTime, now);
+        if (affected == 0) {
+            throw new RenException(ErrorCode.TOKEN_INVALID);
+        }
+
+        TokenDTO dto = new TokenDTO();
+        dto.setToken(newToken);
+        dto.setExpire(EXPIRE);
+        dto.setClientHash(HttpContextUtils.getClientCode());
+        return new Result<TokenDTO>().ok(dto);
     }
 
     @Override

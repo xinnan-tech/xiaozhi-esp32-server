@@ -21,6 +21,13 @@ public interface SysUserTokenService extends BaseService<SysUserTokenEntity> {
      */
     Result<TokenDTO> createToken(Long userId);
 
+    /**
+     * 用旧token换新token，旧token立即失效
+     *
+     * @param oldToken 旧token字符串
+     */
+    Result<TokenDTO> refreshToken(String oldToken);
+
     SysUserDTO getUserByToken(String token);
 
     /**
