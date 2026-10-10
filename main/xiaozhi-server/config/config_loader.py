@@ -7,8 +7,6 @@ from config.manage_api_client import (
     get_server_config,
     get_agent_models,
     get_correct_words,
-    DeviceNotFoundException,
-    DeviceBindException,
 )
 
 
@@ -94,13 +92,11 @@ async def get_private_config_from_api(config, device_id, client_id):
     agent_result = results[0]
     correct_words = results[1] if not isinstance(results[1], Exception) else None
 
-    # 抛出业务异常
-    if isinstance(agent_result, DeviceNotFoundException):
-        raise agent_result
-    if isinstance(agent_result, DeviceBindException):
+    # 设备配置是必需的，不能将请求失败当成空配置继续使用公共模型。
+    if isinstance(agent_result, Exception):
         raise agent_result
 
-    private_config = agent_result if not isinstance(agent_result, Exception) else {}
+    private_config = agent_result
     if correct_words:
         private_config["correct_words"] = correct_words
     return private_config
