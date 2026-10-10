@@ -104,17 +104,8 @@ class LLMPerformanceTester:
             # 更详细的错误信息
             error_msg = str(e).lower()
             print(f"{llm_name} 响应收集异常: {error_msg}")
-            # 对于502错误或网络错误，直接抛出异常让上层处理
-            if (
-                "502" in error_msg
-                or "bad gateway" in error_msg
-                or "error code: 502" in error_msg
-                or "异常" in str(e)
-                or "错误" in str(e)
-            ):
-                raise e
-            # 对于其他错误，可以返回部分结果
-            return chunks, first_token_time
+            # A provider failure (including 401) must never count as a response.
+            raise
 
         return chunks, first_token_time
 
@@ -197,6 +188,10 @@ class LLMPerformanceTester:
 
             except Exception as timeout_error:
                 print(f"{llm_name} 处理异常: {timeout_error}")
+                return None
+
+            if not any(isinstance(chunk, str) and chunk.strip() for chunk in response_chunks):
+                print(f"{llm_name} 未返回有效文本")
                 return None
 
             response_time = time.time() - sentence_start

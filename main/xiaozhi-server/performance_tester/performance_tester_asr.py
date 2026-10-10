@@ -3,6 +3,7 @@ import logging
 import os
 import time
 import concurrent.futures
+import subprocess
 from typing import Dict, Optional
 import aiohttp
 from tabulate import tabulate
@@ -57,9 +58,20 @@ class ASRPerformanceTester:
             print(f"[DEBUG] 找到音频文件: {file_list}")
             for file_name in file_list:
                 file_path = os.path.join(wav_root, file_name)
-                if os.path.getsize(file_path) > 300 * 1024:  # 300KB
-                    with open(file_path, "rb") as f:
-                        test_wav_list.append(f.read())
+                if not file_name.lower().endswith(".wav") or os.path.getsize(file_path) <= 300 * 1024:
+                    continue
+                # speech_to_text_wrapper receives 16 kHz mono PCM, not WAV headers.
+                try:
+                    pcm = subprocess.run(
+                        ["ffmpeg", "-v", "error", "-i", file_path, "-ar", "16000",
+                         "-ac", "1", "-f", "s16le", "-"],
+                        check=True, capture_output=True,
+                    ).stdout
+                except (OSError, subprocess.CalledProcessError) as exc:
+                    print(f" 跳过无法解码的音频 {file_name}: {exc}")
+                    continue
+                if pcm:
+                    test_wav_list.append(pcm)
         else:
             print(f" 目录不存在: {wav_root}")
         return test_wav_list
@@ -68,8 +80,9 @@ class ASRPerformanceTester:
         """测试单个音频文件的性能"""
         try:
             start_time = time.time()
-            text, _ = await stt.speech_to_text_wrapper([audio_data], "1", stt.audio_format)
-            if text is None:
+            text, _ = await stt.speech_to_text_wrapper([audio_data], "1")
+            recognized = text.get("content") if isinstance(text, dict) else text
+            if not isinstance(recognized, str) or not recognized.strip():
                 return None
             
             duration = time.time() - start_time
