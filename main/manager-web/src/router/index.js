@@ -67,6 +67,10 @@ const routes = [
     name: 'UserManagement',
     component: function () {
       return import('../views/UserManagement.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: '用户管理'
     }
   },
   {
@@ -147,6 +151,10 @@ const routes = [
     name: 'DictManagement',
     component: function () {
       return import('../views/DictManagement.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: '字典管理'
     }
   },
   {
@@ -154,6 +162,10 @@ const routes = [
     name: 'ProviderManagement',
     component: function () {
       return import('../views/ProviderManagement.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: '模型供应方管理'
     }
   },
   // 添加默认角色管理路由
@@ -162,6 +174,10 @@ const routes = [
     name: 'AgentTemplateManagement',
     component: function () {
       return import('../views/AgentTemplateManagement.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: '智能体模板管理'
     }
   },
   // 添加模板快速配置路由
@@ -170,6 +186,10 @@ const routes = [
     name: 'TemplateQuickConfig',
     component: function () {
       return import('../views/TemplateQuickConfig.vue')
+    },
+    meta: {
+      requiresAuth: true,
+      title: '模板快速配置'
     }
   },
   // 功能配置页面路由
@@ -228,20 +248,28 @@ VueRouter.prototype.push = function push(location) {
   })
 }
 
-// 需要登录才能访问的路由
-const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig', 'KnowledgeBaseManagement', 'KnowledgeFileUpload', 'AddressBookManagement']
+// 把入参清洗为站内绝对路径，避免 //evil.com 这类协议相对 URL 跳出域名
+function safeRedirect(target) {
+  if (typeof target !== 'string' || target.length === 0) return '/'
+  if (!target.startsWith('/')) return '/'
+  if (target.startsWith('//') || target.startsWith('/\\')) return '/'
+  return target
+}
 
-// 路由守卫
+// 任何路由段上 meta.requiresAuth === true 都视为需要登录
+// 匿名白名单按 name 匹配，避免被误标时也拦住 anon 路由
+const anonRouteNames = new Set(['login', 'Register', 'RetrievePassword', 'welcome'])
+
 router.beforeEach((to, from, next) => {
-  // 检查是否是需要保护的路由
-  if (protectedRoutes.includes(to.name)) {
-    // 从localStorage获取token
-    const token = localStorage.getItem('token')
-    if (!token) {
-      // 未登录，跳转到登录页
-      next({ name: 'login', query: { redirect: to.fullPath } })
-      return
-    }
+  if (anonRouteNames.has(to.name)) {
+    next()
+    return
+  }
+  const requiresAuth = to.matched.some(r => r.meta && r.meta.requiresAuth === true)
+  if (requiresAuth && !localStorage.getItem('token')) {
+    const target = safeRedirect(to.query.redirect || to.path)
+    next({ name: 'login', query: { redirect: target } })
+    return
   }
   next()
 })
