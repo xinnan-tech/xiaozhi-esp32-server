@@ -93,24 +93,6 @@
       }
     },
     {
-      "path": "pages/agent/provider",
-      "type": "page",
-      "layout": "default",
-      "style": {
-        "navigationBarTitleText": "Edit source",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/agent/speedPitch",
-      "type": "page",
-      "layout": "default",
-      "style": {
-        "navigationBarTitleText": "Voice Settings",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/agent/tools",
       "type": "page",
       "layout": "default",
