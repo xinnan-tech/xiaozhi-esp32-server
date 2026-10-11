@@ -190,13 +190,14 @@ Run the owning subsystem checks after each slice when possible.
 ### Python server
 
 ```bash
-python3 main/xiaozhi-server/test/test_runner.py
+cd main/xiaozhi-server
+PYTHONPATH=. pytest tests/ -q
 ```
 
-Or project venv if needed:
+Or the interactive harness:
 
 ```bash
-./.venv-xiaozhi/bin/python main/xiaozhi-server/test/test_runner.py
+cd main/xiaozhi-server && PYTHONPATH=. python3 ../digital-human/test_runner.py
 ```
 
 ### Manager API

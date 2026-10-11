@@ -1,16 +1,16 @@
 ---
-name: 文档改进建议（Documentation Improvement）
-about: 提出对项目文档的改进或补充建议
-title: "[Docs] 简短描述改进内容"
+name: Documentation Improvement
+about: Propose improvements or additions to the project documentation
+title: "[Docs] Short description of the improvement"
 labels: documentation
 assignees: ''
 ---
 
-## 📚 改进描述
-<!-- 描述需要改进的文档部分以及存在的问题 -->
+## 📚 Improvement Description
+<!-- Describe the documentation section that needs improvement and why -->
 
-## ✨ 改进建议
-<!-- 提出具体的改进方案或内容 -->
+## ✨ Proposed Improvement
+<!-- Describe the concrete improvement or replacement content -->
 
-## 📋 其他信息
-<!-- 在此添加任何其他相关信息 -->
+## 📋 Additional Context
+<!-- Add any other relevant information here -->

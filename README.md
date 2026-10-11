@@ -215,7 +215,7 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
-| Local use | 3D-Speaker | 3D-Speaker |
+| External HTTP service | Any voiceprint API compatible with the built-in `VoiceprintProvider` protocol (see [guide](./docs/guides/voiceprint.md)) | Self-hosted services |
 
 ---
 

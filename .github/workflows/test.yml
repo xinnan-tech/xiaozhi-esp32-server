@@ -10,6 +10,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  westernization-audit:
+    name: Westernization audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run westernization audit
+        run: bash scripts/westernization_audit.sh
+
   python:
     name: Python (xiaozhi-server)
     runs-on: ubuntu-latest
@@ -28,12 +36,7 @@ jobs:
       - name: Run smoke test
         working-directory: main/xiaozhi-server
         run: |
-          if [ -f tests/test_smoke.py ]; then
-            pytest tests/test_smoke.py -x -q
-          else
-            echo "::warning::Slice 2 not done yet — tests/test_smoke.py missing"
-            exit 0
-          fi
+          pytest tests/test_smoke.py -x -q
 
   java:
     name: Java (manager-api)

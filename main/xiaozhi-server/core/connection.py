@@ -55,19 +55,21 @@ auto_import_modules("plugins_func.functions")
 class TTSException(RuntimeError):
     pass
 
-# direct_answer 虚拟工具定义
-# 不是真实工具，是路由机制：将"调不调工具"的二选一变为"调哪个"的多选，防止小模型误触发真实工具
+# direct_answer virtual tool definition.
+# Not a real tool: it is a routing mechanism that turns the binary
+# "call a tool or not" choice into a "which one" selection, which stops small
+# models from misfiring real tools.
 DIRECT_ANSWER_TOOL = {
     "type": "function",
     "function": {
         "name": "direct_answer",
-        "description": "当用户的请求不匹配其他任何工具时，可用此选项直接回复。将回复内容写在response参数里。",
+        "description": "Use this option to reply directly when the user's request matches no other tool. Write your full reply in the response parameter.",
         "parameters": {
             "type": "object",
             "properties": {
                 "response": {
                     "type": "string",
-                    "description": "你回复用户的完整内容",
+                    "description": "The complete reply you give to the user",
                 },
             },
             "required": ["response"],

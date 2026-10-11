@@ -15,16 +15,6 @@ from jinja2 import Template
 
 TAG = __name__
 
-WEEKDAY_MAP = {
-    "Monday": "星期一",
-    "Tuesday": "星期二",
-    "Wednesday": "星期三",
-    "Thursday": "星期四",
-    "Friday": "星期五",
-    "Saturday": "星期六",
-    "Sunday": "星期日",
-}
-
 EMOJI_List = [
     "😶",
     "🙂",
@@ -153,7 +143,7 @@ class PromptManager:
             from core.utils.util import get_ip_info
 
             ip_info = get_ip_info(client_ip, self.logger)
-            city = ip_info.get("city", "未知位置")
+            city = ip_info.get("city", "Unknown location")
             location = f"{city}"
 
             # 存入缓存
@@ -161,7 +151,7 @@ class PromptManager:
             return location
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"获取位置信息失败: {e}")
-            return "未知位置"
+            return "Unknown location"
 
     def _get_weather_info(self, conn: "ConnectionHandler", location: str) -> str:
         """获取天气信息"""
@@ -184,7 +174,7 @@ class PromptManager:
             async def _call():
                 try:
                     result_holder.append(
-                        await get_weather(conn, location=location, lang="zh_CN")
+                        await get_weather(conn, location=location, lang="en_US")
                     )
                 except Exception as e:
                     exception_holder.append(e)

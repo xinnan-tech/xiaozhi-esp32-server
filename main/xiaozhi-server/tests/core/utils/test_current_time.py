@@ -1,7 +1,7 @@
 """Tests for core/utils/current_time.py.
 
 Uses freezegun to control `datetime.now()` so the tests don't flake
-around midnight, and to verify the weekday/lunar mapping logic.
+around midnight, and to verify the weekday/date formatting logic.
 """
 from datetime import datetime
 
@@ -27,8 +27,8 @@ def test_get_current_date_format_is_iso():
 
 
 @freeze_time("2026-09-02 10:30:00")  # 2026-09-02 is a Wednesday
-def test_get_current_weekday_returns_chinese_label():
-    assert current_time.get_current_weekday() == "星期三"
+def test_get_current_weekday_returns_english_label():
+    assert current_time.get_current_weekday() == "Wednesday"
 
 
 def test_weekday_map_has_all_seven_days():
@@ -36,6 +36,8 @@ def test_weekday_map_has_all_seven_days():
         "Monday", "Tuesday", "Wednesday", "Thursday",
         "Friday", "Saturday", "Sunday",
     }
+    # Western builds map each weekday to its English name.
+    assert all(k == v for k, v in current_time.WEEKDAY_MAP.items())
 
 
 @freeze_time("2026-09-02 10:30:00")
@@ -43,15 +45,14 @@ def test_get_current_time_info_returns_four_tuple():
     info = current_time.get_current_time_info()
     assert isinstance(info, tuple)
     assert len(info) == 4
-    time_str, date_str, weekday, lunar = info
+    time_str, date_str, weekday, formatted_date = info
     assert time_str == "10:30"
     assert date_str == "2026-09-02"
-    assert weekday == "星期三"
-    assert "年" in lunar  # lunar output contains "年"
+    assert weekday == "Wednesday"
+    assert formatted_date == "September 02, 2026"
 
 
 @freeze_time("2026-09-02 10:30:00")
-def test_get_current_lunar_date_contains_year():
-    """cnlunar should produce a string containing 年 character."""
-    lunar = current_time.get_current_lunar_date()
-    assert "年" in lunar
+def test_get_current_lunar_date_is_gregorian_alias():
+    """Western builds return the formatted Gregorian date."""
+    assert current_time.get_current_lunar_date() == "September 02, 2026"

@@ -86,9 +86,12 @@ def get_ip_info(ip_addr, logger):
         # Cache miss: resolve the IP through the API.
         if is_private_ip(ip_addr):
             ip_addr = ""
-        url = f"https://whois.pconline.com.cn/ipJson.jsp?json=true&ip={ip_addr}"
-        resp = requests.get(url).json()
-        ip_info = {"city": resp.get("city")}
+        # ip-api.com returns English place names worldwide; status=="fail"
+        # (e.g. private/loopback addresses) yields an empty city.
+        url = f"http://ip-api.com/json/{ip_addr}?fields=status,city&lang=en"
+        resp = requests.get(url, timeout=5).json()
+        city = resp.get("city") if resp.get("status") == "success" else None
+        ip_info = {"city": city or ""}
 
         # Store the result in cache.
         cache_manager.set(CacheType.IP_INFO, ip_addr, ip_info)

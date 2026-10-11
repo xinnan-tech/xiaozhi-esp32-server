@@ -12,10 +12,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Pip mirror and network resilience (same mirror family as upstream product)
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
-    pip config set global.trusted-host mirrors.aliyun.com && \
-    pip config set global.timeout 120 && \
+# Pip network resilience (default PyPI index)
+RUN pip config set global.timeout 120 && \
     pip config set install.retries 5
 
 ENV LANG=en_US.UTF-8 \

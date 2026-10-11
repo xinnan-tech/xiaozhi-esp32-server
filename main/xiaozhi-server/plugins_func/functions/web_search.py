@@ -15,7 +15,8 @@ TAG = __name__
 logger = setup_logging()
 
 _DEFAULT_DESCRIPTION = (
-    "联网搜索工具。当用户明确需要联网搜索问题时使用此工具。"
+    "Web search tool. Use this tool when the user explicitly asks for "
+    "current information from the internet."
 )
 
 WEB_SEARCH_FUNCTION_DESC = {
@@ -28,7 +29,7 @@ WEB_SEARCH_FUNCTION_DESC = {
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "搜索关键词或问题",
+                    "description": "Search keywords or question",
                 }
             },
             "required": ["query"],
@@ -38,7 +39,7 @@ WEB_SEARCH_FUNCTION_DESC = {
 
 
 async def _search_metaso(api_key: str, query: str, max_results: int) -> str:
-    """调用秘塔搜索API"""
+    """Call the Metaso search API"""
     url = "https://metaso.cn/api/v1/search"
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -53,32 +54,32 @@ async def _search_metaso(api_key: str, query: str, max_results: int) -> str:
         "includeRawContent": False,
         "conciseSnippet": False,
     }
-    logger.bind(tag=TAG).debug(f"秘塔搜索请求 | URL: {url} | payload: {payload}")
+    logger.bind(tag=TAG).debug(f"Metaso search request | URL: {url} | payload: {payload}")
     async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=3.0)) as client:
         response = await client.post(url, json=payload, headers=headers)
     data = response.json()
-    logger.bind(tag=TAG).debug(f"秘塔搜索响应 | status: {response.status_code}")
+    logger.bind(tag=TAG).debug(f"Metaso search response | status: {response.status_code}")
 
     webpages = data.get("webpages", [])
     if not webpages:
-        return "未找到相关搜索结果。"
+        return "No related search results found."
 
-    lines = ["【联网搜索结果】"]
+    lines = ["[Web search results]"]
     for i, item in enumerate(webpages, 1):
-        title = item.get("title", "无标题")
+        title = item.get("title", "Untitled")
         snippet = item.get("summary", "")
         date = item.get("date", "")
-        lines.append(f"{i}. 标题：{title}")
+        lines.append(f"{i}. Title: {title}")
         if date:
-            lines.append(f"   日期：{date}")
+            lines.append(f"   Date: {date}")
         if snippet:
-            lines.append(f"   摘要：{snippet}")
+            lines.append(f"   Summary: {snippet}")
 
     return "\n".join(lines)
 
 
 async def _search_tavily(api_key: str, query: str, max_results: int) -> str:
-    """调用Tavily搜索API"""
+    """Call the Tavily search API"""
     url = "https://api.tavily.com/search"
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -90,81 +91,82 @@ async def _search_tavily(api_key: str, query: str, max_results: int) -> str:
         "search_depth": "advanced",
         "include_answer": "advanced",
     }
-    logger.bind(tag=TAG).debug(f"Tavily搜索请求 | URL: {url} | payload: {payload}")
+    logger.bind(tag=TAG).debug(f"Tavily search request | URL: {url} | payload: {payload}")
     async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=3.0)) as client:
         response = await client.post(url, json=payload, headers=headers)
     data = response.json()
-    logger.bind(tag=TAG).debug(f"Tavily搜索响应 | status: {response.status_code} | data: {data}")
+    logger.bind(tag=TAG).debug(f"Tavily search response | status: {response.status_code} | data: {data}")
 
     results = data.get("results", [])
     if not results:
-        return "未找到相关搜索结果。"
+        return "No related search results found."
 
     answer = data.get("answer", "")
-    lines = [f"【联网搜索结果】\n总结：{answer}"]
+    lines = [f"[Web search results]\nSummary: {answer}"]
     # for i, item in enumerate(results, 1):
-    #     title = item.get("title", "无标题")
+    #     title = item.get("title", "Untitled")
     #     summary = item.get("content", "")
-    #     lines.append(f"{i}. 标题：{title}")
+    #     lines.append(f"{i}. Title: {title}")
     #     if summary:
-    #         lines.append(f"   摘要：{summary}")
+    #         lines.append(f"   Summary: {summary}")
 
     return "\n".join(lines)
 
 
 async def _search_serply(api_key: str, query: str, max_results: int) -> str:
-    """调用Serply搜索API"""
+    """Call the Serply search API"""
     url = "https://api.serply.io/v1/search"
     headers = {
         "X-Api-Key": api_key,
         "User-Agent": "xiaozhi-esp32-server",
     }
-    # Serply单页最多返回10条，且返回条数可能略多于num，需要本地再截断一次
+    # Serply returns at most 10 items per page and may return slightly more
+    # than num, so truncate locally once more.
     params = {"q": query, "num": min(max_results, 10)}
-    logger.bind(tag=TAG).debug(f"Serply搜索请求 | URL: {url} | params: {params}")
+    logger.bind(tag=TAG).debug(f"Serply search request | URL: {url} | params: {params}")
     async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=3.0)) as client:
         response = await client.get(url, params=params, headers=headers)
     data = response.json()
-    logger.bind(tag=TAG).debug(f"Serply搜索响应 | status: {response.status_code}")
+    logger.bind(tag=TAG).debug(f"Serply search response | status: {response.status_code}")
 
     if response.status_code != 200:
         detail = data.get("detail", "") if isinstance(data, dict) else ""
         logger.bind(tag=TAG).error(
-            f"Serply搜索失败 | status: {response.status_code} | detail: {detail}"
+            f"Serply search failed | status: {response.status_code} | detail: {detail}"
         )
-        return "联网搜索请求失败，请检查API Key是否正确。"
+        return "Web search request failed. Please check that the API key is correct."
 
     results = data.get("results", [])
     if not results:
-        return "未找到相关搜索结果。"
+        return "No related search results found."
 
-    lines = ["【联网搜索结果】"]
+    lines = ["[Web search results]"]
     for i, item in enumerate(results[:max_results], 1):
-        title = item.get("title", "无标题")
+        title = item.get("title", "Untitled")
         snippet = item.get("description", "")
-        lines.append(f"{i}. 标题：{title}")
+        lines.append(f"{i}. Title: {title}")
         if snippet:
-            lines.append(f"   摘要：{snippet}")
+            lines.append(f"   Summary: {snippet}")
 
     return "\n".join(lines)
 
 
 @register_function("web_search", WEB_SEARCH_FUNCTION_DESC, ToolType.SYSTEM_CTL)
 async def web_search(conn: "ConnectionHandler", query: str = None):
-    logger.bind(tag=TAG).info(f"web_search 被调用 | query={query}")
+    logger.bind(tag=TAG).info(f"web_search called | query={query}")
     if not query:
-        return ActionResponse(Action.REQLLM, "请提供搜索关键词。", None)
+        return ActionResponse(Action.REQLLM, "Please provide search keywords.", None)
 
     web_search_config = conn.config.get("plugins", {}).get("web_search", {})
     provider = web_search_config.get("provider", "").lower()
     max_results = int(web_search_config.get("max_results", 3))
-    logger.bind(tag=TAG).info(f"web_search 配置 | provider={provider} | max_results={max_results} | config_keys={list(web_search_config.keys())}")
+    logger.bind(tag=TAG).info(f"web_search config | provider={provider} | max_results={max_results} | config_keys={list(web_search_config.keys())}")
 
     api_key = web_search_config.get("api_key", "")
     if not api_key:
         return ActionResponse(
             Action.REQLLM,
-            "联网搜索功能未配置API Key，请在配置文件中填写。",
+            "Web search has no API key configured. Please fill it in the config file.",
             None,
         )
 
@@ -178,18 +180,18 @@ async def web_search(conn: "ConnectionHandler", query: str = None):
         else:
             return ActionResponse(
                 Action.REQLLM,
-                f"联网搜索功能未配置或配置的搜索源无效（当前：{provider}），请检查配置。",
+                f"Web search is not configured or the search provider is invalid (current: {provider}). Please check the configuration.",
                 None,
             )
-        logger.bind(tag=TAG).info(f"搜索结果组装完成:\n{result_text}")
+        logger.bind(tag=TAG).info(f"Search results assembled:\n{result_text}")
     except httpx.TimeoutException:
-        logger.bind(tag=TAG).error("联网搜索请求超时")
-        result_text = "联网搜索请求超时，请稍后重试。"
+        logger.bind(tag=TAG).error("Web search request timed out")
+        result_text = "The web search request timed out. Please try again later."
     except httpx.HTTPStatusError as e:
-        logger.bind(tag=TAG).error(f"联网搜索请求失败: {e}")
-        result_text = "联网搜索请求失败，请稍后重试。"
+        logger.bind(tag=TAG).error(f"Web search request failed: {e}")
+        result_text = "The web search request failed. Please try again later."
     except Exception as e:
-        logger.bind(tag=TAG).error(f"联网搜索异常: {e}")
-        result_text = "联网搜索出现异常，请稍后重试。"
+        logger.bind(tag=TAG).error(f"Web search error: {e}")
+        result_text = "The web search hit an error. Please try again later."
 
     return ActionResponse(Action.REQLLM, result_text, None)

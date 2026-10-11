@@ -185,13 +185,15 @@ Identify users by their voice patterns.
 ```yaml
 # Voiceprint configuration
 voiceprint:
-  enabled: true
   url: http://192.168.1.100:8005/voiceprint/health?key=abcd
   speakers:
     - "user1,John,John is a software engineer"
     - "user2,Jane,Jane is a designer"
     - "user3,Bob,Bob is a student"
 ```
+
+See [Voiceprint Recognition](../guides/voiceprint.md) for the service
+protocol and privacy notes.
 
 #### **Voice Commands**
 - "Do you know who I am?"

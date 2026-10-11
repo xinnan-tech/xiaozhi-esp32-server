@@ -14,13 +14,13 @@ hass_get_state_function_desc = {
     "type": "function",
     "function": {
         "name": "hass_get_state",
-        "description": "获取homeassistant里设备的状态,包括查询灯光亮度、颜色、色温,媒体播放器的音量,设备的暂停、继续操作",
+        "description": "Get device state in homeassistant, including light brightness, color, color temperature, media player volume, and device pause/resume state",
         "parameters": {
             "type": "object",
             "properties": {
                 "entity_id": {
                     "type": "string",
-                    "description": "需要操作的设备id,homeassistant里的entity_id",
+                    "description": "Device id to query, entity_id in homeassistant",
                 }
             },
             "required": ["entity_id"],
