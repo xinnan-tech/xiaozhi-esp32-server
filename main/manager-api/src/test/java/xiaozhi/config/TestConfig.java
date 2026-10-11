@@ -54,14 +54,17 @@ public class TestConfig {
         private final java.util.Map<String, Object> mockCache = new java.util.concurrent.ConcurrentHashMap<>();
         private final java.util.Map<String, java.util.Map<String, Object>> mockHashCache = new java.util.concurrent.ConcurrentHashMap<>();
 
+        @Override
         public void set(String key, Object value) {
             mockCache.put(key, value);
         }
 
+        @Override
         public void set(String key, Object value, long timeout) {
             mockCache.put(key, value);
         }
 
+        @Override
         public Object get(String key) {
             return mockCache.get(key);
         }

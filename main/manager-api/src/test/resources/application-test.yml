@@ -58,10 +58,12 @@ spring:
       enabled: true
       path: /h2-console
 
-# Disable Redis for testing
+# Redis is mocked (MockRedisUtils in TestConfig), but the aspect must let
+# calls through; with open=false RedisAspect swallows every RedisUtils call
+# and returns null, so even the in-memory mock would be unreachable.
 renren:
   redis:
-    open: false
+    open: true
 
 # MyBatis Plus configuration for testing
 mybatis-plus:
