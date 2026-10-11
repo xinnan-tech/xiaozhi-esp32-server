@@ -388,7 +388,7 @@ export default {
           this.isAllSelected = false;
           return;
         }
-        // 分组不多时全部展开；较多时默认展开前几组
+        // Expand all groups if few; expand first few by default if many
         const preferOpen = keys.length <= 5 ? keys.slice() : keys.slice(0, 3);
         const stillValid = (this.activeCollapse || []).filter(k => keys.includes(k));
         this.activeCollapse = stillValid.length ? stillValid : preferOpen;
@@ -550,7 +550,7 @@ export default {
         const collected = [];
         let page = 1;
         let total = Infinity;
-        // 按 total 循环拉全部分页，避免超过 FETCH_LIMIT 时聚合视图缺数据
+        // Loop through all pages by total to avoid missing data in the aggregated view when exceeding FETCH_LIMIT
         while (collected.length < total) {
           const pageData = await this.fetchParamsPage(page);
           const list = pageData.list || [];
@@ -558,7 +558,7 @@ export default {
           collected.push(...list);
           if (!list.length) break;
           page += 1;
-          // 防御：异常 total / 接口异常时避免死循环
+          // Defense: Avoid infinite loops on abnormal total or API errors
           if (page > 200) break;
         }
 
@@ -570,7 +570,7 @@ export default {
         }));
         this.isAllSelected = false;
 
-        // 若当前分类已无数据，回退到全部
+        // If the current category has no data, fall back to all
         const exists = this.categoryTabs.some(t => t.key === this.activeCategory);
         if (!exists) {
           this.activeCategory = 'all';

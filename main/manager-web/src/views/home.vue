@@ -32,7 +32,7 @@
                   >
                     <i slot="suffix" class="el-icon-search search-icon" @click="handleSearch"></i>
                   </el-input>
-                  <!-- 搜索历史下拉框 -->
+                  <!-- Search history dropdown -->
                   <div v-if="showHistory && searchHistory.length > 0" class="search-history-dropdown">
                     <div class="search-history-header">
                       <span>{{ $t("header.searchHistory") }}</span>
@@ -257,27 +257,27 @@ export default {
       this.currentAgentName = agentName;
       this.showChatHistory = true;
     },
-    // 处理搜索
+    // Handle search
     handleSearch() {
       const searchValue = this.search.trim();
 
-      // 如果搜索内容为空，触发重置事件
+      // If search content is empty, trigger reset event
       if (!searchValue) {
         this.handleSearchReset();
         return;
       }
 
-      // 保存搜索历史
+      // Save search history
       this.saveSearchHistory(searchValue);
 
-      // 搜索完成后让输入框失去焦点，从而触发blur事件隐藏搜索历史
+      // Blur the input field after search completion to trigger the blur event and hide search history
       if (this.$refs.searchInput) {
         this.$refs.searchInput.blur();
       }
 
       this.isSearching = true;
       this.isLoading = true;
-      // 检测MAC地址格式：包含4个冒号
+      // Detect MAC address format: contains 4 colons
       const isMac = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(searchValue)
       const searchType = isMac ? 'mac' : 'name';
       Api.agent.searchAgent(searchValue, searchType, ({ data }) => {
@@ -289,26 +289,26 @@ export default {
         }
         this.isLoading = false;
       }, (error) => {
-        console.error('搜索智能体失败:', error);
+        console.error('Failed to search agents:', error);
         this.isLoading = false;
         this.$message.error(this.$t('message.searchFailed'));
       });
     },
 
-    // 显示搜索历史
+    // Show search history
     showSearchHistory() {
       this.showHistory = true;
     },
 
-    // 隐藏搜索历史
+    // Hide search history
     hideSearchHistory() {
-      // 延迟隐藏，以便点击事件能够执行
+      // Delay hiding to allow click events to execute
       setTimeout(() => {
         this.showHistory = false;
       }, 200);
     },
 
-    // 加载搜索历史
+    // Load search history
     loadSearchHistory() {
       try {
         const history = localStorage.getItem(this.SEARCH_HISTORY_KEY);
@@ -316,56 +316,56 @@ export default {
           this.searchHistory = JSON.parse(history);
         }
       } catch (error) {
-        console.error("加载搜索历史失败:", error);
+        console.error("Failed to load search history:", error);
         this.searchHistory = [];
       }
     },
 
-    // 保存搜索历史
+    // Save search history
     saveSearchHistory(keyword) {
       if (!keyword || this.searchHistory.includes(keyword)) {
         return;
       }
 
-      // 添加到历史记录开头
+      // Add to beginning of history
       this.searchHistory.unshift(keyword);
 
-      // 限制历史记录数量
+      // Limit history record count
       if (this.searchHistory.length > this.MAX_HISTORY_COUNT) {
         this.searchHistory = this.searchHistory.slice(0, this.MAX_HISTORY_COUNT);
       }
 
-      // 保存到localStorage
+      // Save to localStorage
       try {
         localStorage.setItem(this.SEARCH_HISTORY_KEY, JSON.stringify(this.searchHistory));
       } catch (error) {
-        console.error("保存搜索历史失败:", error);
+        console.error("Failed to save search history:", error);
       }
     },
 
-    // 选择搜索历史项
+    // Select search history item
     selectSearchHistory(keyword) {
       this.search = keyword;
       this.handleSearch();
     },
 
-    // 移除单个搜索历史项
+    // Remove single search history item
     removeSearchHistory(index) {
       this.searchHistory.splice(index, 1);
       try {
         localStorage.setItem(this.SEARCH_HISTORY_KEY, JSON.stringify(this.searchHistory));
       } catch (error) {
-        console.error("更新搜索历史失败:", error);
+        console.error("Failed to update search history:", error);
       }
     },
 
-    // 清空所有搜索历史
+    // Clear all search history
     clearSearchHistory() {
       this.searchHistory = [];
       try {
         localStorage.removeItem(this.SEARCH_HISTORY_KEY);
       } catch (error) {
-        console.error("清空搜索历史失败:", error);
+        console.error("Failed to clear search history:", error);
       }
     },
   }

@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
-@Schema(description = "智能体快照标签")
+@Schema(description = "Agent snapshot tag")
 public class AgentSnapshotTagDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

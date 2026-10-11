@@ -15,12 +15,12 @@
         @selection-change="handleSelectionChange"
         @row-click="handleRowClick"
       >
-        <!-- 选择列 -->
+        <!-- Select column -->
         <el-table-column
           v-if="showSelection"
           width="55"
           align="center"
-          label="选择"
+          label="Select"
         >
           <template slot-scope="scope">
             <slot
@@ -37,7 +37,7 @@
           </template>
         </el-table-column>
 
-        <!-- 动态列 -->
+        <!-- Dynamic column -->
         <el-table-column
           v-for="column in columns"
           :key="column.prop"
@@ -49,7 +49,7 @@
           :show-overflow-tooltip="column.showOverflowTooltip !== false"
         >
           <template slot-scope="scope">
-            <!-- 自定义插槽：优先使用 column.slot 指定的插槽名，否则用 column.prop 作为插槽名 -->
+            <!-- Custom slots: Prioritize the slot name specified by column.slot, otherwise use column.prop as the slot name -->
             <slot
               v-if="$scopedSlots[column.slot] || $scopedSlots[column.prop]"
               :name="column.slot || column.prop"
@@ -57,14 +57,14 @@
               :$index="scope.$index"
               :column="column"
             />
-            <!-- 默认显示 -->
+            <!-- Visible by Default -->
             <template v-else>
               {{ scope.row[column.prop] }}
             </template>
           </template>
         </el-table-column>
 
-        <!-- 操作列 -->
+        <!-- Action column -->
         <el-table-column
           v-if="showOperations"
           :label="operationsLabel"
@@ -78,7 +78,7 @@
       </el-table>
     </div>
 
-    <!-- 分页 -->
+    <!-- Pagination -->
     <div class="table-footer">
       <slot name="footer-btns"></slot>
       <CustomPagination
@@ -103,35 +103,35 @@ export default {
     CustomPagination
   },
   props: {
-    // 表格数据
+    // Table data
     data: {
       type: Array,
       default: () => []
     },
-    // 列配置
+    // Column config
     columns: {
       type: Array,
       default: () => []
     },
-    // 是否显示选择框
+    // Show selection box
     showSelection: {
       type: Boolean,
       default: false
     },
-    // 是否显示操作列
+    // Show action column
     showOperations: {
       type: Boolean,
       default: false
     },
     operationsLabel: {
       type: String,
-      default: '操作'
+      default: 'Action'
     },
     operationsWidth: {
       type: [String, Number],
       default: 180
     },
-    // 分页相关
+    // Pagination Related
     showPagination: {
       type: Boolean,
       default: true
@@ -152,7 +152,7 @@ export default {
       type: Array,
       default: () => [10, 20, 50, 100]
     },
-    // 加载状态
+    // Loading status
     loading: {
       type: Boolean,
       default: false
@@ -169,7 +169,7 @@ export default {
       type: String,
       default: 'rgba(255, 255, 255, 0.7)'
     },
-    // 自定义类名
+    // Custom class name
     tableClass: {
       type: String,
       default: ''
@@ -189,30 +189,30 @@ export default {
     }
   },
   methods: {
-    // 复选框变化
+    // Checkbox change
     handleCheckboxChange(row) {
       this.$set(row, 'selected', !row.selected);
     },
-    // 分页事件
+    // Pagination Events
     handleSizeChange(val) {
       this.$emit('size-change', val);
     },
     handlePageChange(page) {
       this.$emit('page-change', page);
     },
-    // 选择事件
+    // Select Event
     handleSelectionChange(selection) {
       this.$emit('selection-change', selection);
     },
-    // 行点击事件
+    // Row click event
     handleRowClick(row, column, event) {
       this.$emit('row-click', row, column, event);
     },
-    // 清除选择
+    // Clear selection
     clearSelection() {
       this.$refs.tableRef && this.$refs.tableRef.clearSelection();
     },
-    // 切换选择
+    // Toggle Selection
     toggleRowSelection(row, selected) {
       this.$refs.tableRef && this.$refs.tableRef.toggleRowSelection(row, selected);
     }

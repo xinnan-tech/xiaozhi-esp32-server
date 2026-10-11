@@ -13,27 +13,27 @@ import xiaozhi.modules.device.entity.DeviceAddressBookEntity;
 public interface DeviceAddressBookDao extends BaseMapper<DeviceAddressBookEntity> {
 
     /**
-     * 新增设备通讯录记录
+     * Add device contact record
      */
     int insertAddressBook(DeviceAddressBookEntity entity);
 
     /**
-     * 获取设备通讯录列表
+     * Get device contacts list
      */
     List<DeviceAddressBookEntity> getAddressBookList(@Param("macAddress") String macAddress);
 
     /**
-     * 更新别名
+     * Update alias
      */
     void updateAlias(@Param("macAddress") String macAddress, @Param("targetMac") String targetMac, @Param("alias") String alias);
 
     /**
-     * 更新权限
+     * Update permissions
      */
     void updatePermission(@Param("macAddress") String macAddress, @Param("targetMac") String targetMac, @Param("hasPermission") Boolean hasPermission);
 
     /**
-     * 批量删除设备相关的通讯录记录
+     * Batch delete contact records associated with devices
      */
     void deleteByMacAddresses(@Param("macAddresses") List<String> macAddresses);
 }

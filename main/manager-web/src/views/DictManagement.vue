@@ -127,7 +127,7 @@
               </el-checkbox-group>
             </div>
           </div>
-          <!-- 右侧字典数据列表 -->
+          <!-- Right-side dictionary data list -->
           <div class="content-area">
             <CustomTable :data="dictDataList" :columns="tableColumns" :loading="dictDataLoading" :show-selection="true"
               :show-operations="true" :operations-label="$t('dictManagement.operation')" :total="total"
@@ -174,11 +174,11 @@
         </el-footer>
     </div>
 
-    <!-- 使用字典类型编辑弹框组件 -->
+    <!-- Use dictionary type edit dialog component -->
     <DictTypeDialog :visible.sync="dictTypeDialogVisible" :title="dictTypeDialogTitle" :dictTypeData="dictTypeForm"
       @save="saveDictType" />
 
-    <!-- 使用字典数据编辑弹框组件 -->
+    <!-- Use dictionary data edit dialog component -->
     <DictDataDialog :visible.sync="dictDataDialogVisible" :title="dictDataDialogTitle" :dictData="dictDataForm"
       :dictTypeId="selectedDictType?.id" @save="saveDictData" />
     <el-footer style="flex-shrink:unset;">
@@ -514,26 +514,26 @@ export default {
   },
   methods: {
     handleCheckAllChange(val) {
-      // 根据当前实际选中状态决定是全选还是取消全选
+      // Determine whether to select all or deselect all based on current selection state
       const isAllSelected = this.checkedDictTypesIds.length === this.dictTypeList.length;
       if (isAllSelected) {
-        // 已全选，取消全选
+        // All selected, deselect all
         this.checkedDictTypesIds = [];
         this.checkAll = false;
         this.selectedDictTypes = [];
       } else {
-        // 未全选，执行全选
+        // Not all selected, select all
         this.checkedDictTypesIds = this.dictTypeList.map(item => item.dictName);
         this.checkAll = true;
         this.selectedDictTypes = [...this.dictTypeList];
       }
-      // 重置 indeterminate 状态
+      // Reset indeterminate state
       this.isIndeterminate = false;
     },
     handleDictTypeSelectionChange(checkedIds) {
-      // 更新选中的字典类型列表
+      // Update selected dictionary type list
       this.selectedDictTypes = this.dictTypeList.filter(item => checkedIds.includes(item.dictName));
-      // 部分选中时 checkAll 为 true，isIndeterminate 为 true 显示半选状态
+      // When partially selected, checkAll is true and isIndeterminate is true to display the indeterminate state
       this.checkAll = checkedIds.length > 0;
       this.isIndeterminate = checkedIds.length > 0 && checkedIds.length < this.dictTypeList.length;
     },
@@ -556,7 +556,7 @@ export default {
         }
       ]
     },
-    // 字典类型相关方法
+    // Dictionary type related methods
     loadDictTypeList() {
       this.dictTypeLoading = true
       dictApi.getDictTypeList({
@@ -623,7 +623,7 @@ export default {
       })
     },
 
-    // 字典数据相关方法
+    // Dictionary data related methods
     loadDictDataList(dictTypeId) {
       if (!dictTypeId) return
       this.dictDataLoading = true

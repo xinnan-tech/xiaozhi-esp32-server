@@ -119,14 +119,14 @@ Today's date: {today_date} ({today_weekday})
 
 Please answer the user's question using the information above: {original_text}"""
 
-                    # 使用异步调用避免阻塞事件循环，影响其他设备的音频播放
+                    # Use async calls to avoid blocking the event loop and affecting audio playback on other devices
                     try:
                         response = asyncio.run_coroutine_threadsafe(
                             conn.intent.replyResult(context_prompt, original_text),
                             conn.loop,
                         ).result()
                     except Exception as e:
-                        conn.logger.bind(tag=TAG).error(f"LLM生成回复失败: {e}")
+                        conn.logger.bind(tag=TAG).error(f"LLM reply generation failed: {e}")
                         response = None
                     if response:
                         speak_txt(conn, response)
@@ -194,14 +194,14 @@ Please answer the user's question using the information above: {original_text}""
                     elif result.action == Action.REQLLM:  # Ask the LLM to produce a follow-up reply.
                         text = result.result
                         conn.dialogue.put(Message(role="tool", content=text))
-                        # 使用异步调用避免阻塞事件循环，影响其他设备的音频播放
+                        # Use async calls to avoid blocking the event loop and affecting audio playback on other devices
                         try:
                             llm_result = asyncio.run_coroutine_threadsafe(
                                 conn.intent.replyResult(text, original_text),
                                 conn.loop,
                             ).result()
                         except Exception as e:
-                            conn.logger.bind(tag=TAG).error(f"LLM生成回复失败: {e}")
+                            conn.logger.bind(tag=TAG).error(f"LLM reply generation failed: {e}")
                             llm_result = text
                         if llm_result is None:
                             llm_result = text

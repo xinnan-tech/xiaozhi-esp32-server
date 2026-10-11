@@ -78,7 +78,7 @@ class DeviceTypeRegistry:
 
 # Initialize function registry dictionary
 all_function_registry = {}
-# 模块名 -> 函数名列表的映射，用于将模块级别的插件名展开为具体的函数名
+# Mapping of module names to function name lists, used to expand module-level plugin names into specific function names
 module_func_map = {}
 
 

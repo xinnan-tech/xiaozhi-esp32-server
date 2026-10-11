@@ -64,7 +64,7 @@ export default {
             trigger: "blur"
           },
           {
-            pattern: /^[一-龥a-zA-Z0-9\s-_]+$/,
+            pattern: /^[\u4e00-\u9fa5a-zA-Z0-9\s-_]+$/,
             message: this.$t("addressBookDialog.namePattern"),
             trigger: "blur"
           }

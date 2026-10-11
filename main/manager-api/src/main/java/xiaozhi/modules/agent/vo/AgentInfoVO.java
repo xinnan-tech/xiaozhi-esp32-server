@@ -23,9 +23,9 @@ public class AgentInfoVO extends AgentEntity
     @Schema(description = "Context-provider configuration")
     private List<ContextProviderDTO> contextProviders;
 
-    @Schema(description = "替换词文件ID列表")
+    @Schema(description = "List of replacement word file IDs")
     private List<String> correctWordFileIds;
 
-    @Schema(description = "当前配置版本号")
+    @Schema(description = "Current config version")
     private Integer currentVersionNo;
 }

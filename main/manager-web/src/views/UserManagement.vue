@@ -280,7 +280,7 @@ export default {
       }).then(() => {
         Api.admin.deleteUser(row.userid, ({ data }) => {
           if (data.code === 0) {
-            // 删除后检查是否需要调整页码
+            // Check if page number adjustment is needed after deletion
             const newTotal = this.total - 1;
             const maxPage = Math.max(1, Math.ceil(newTotal / this.pageSize));
             if (this.currentPage > maxPage) {

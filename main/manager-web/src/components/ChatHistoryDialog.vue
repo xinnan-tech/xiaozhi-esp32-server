@@ -236,7 +236,7 @@ export default {
                     if (this.messages.length > 0 && this.messages[0].macAddress) {
                         this.currentMacAddress = this.messages[0].macAddress;
                     }
-                    // 更新会话列表中的聊天记录数量
+                    // Update chat history count in session list
                     this.sessions = this.sessions.map(item => {
                         if (item.sessionId === session.sessionId) {
                             item.chatCount = this.messages.length;
@@ -599,7 +599,7 @@ export default {
     transform: translate(-50%, -50%);
     height: 90vh;
     max-width: 85vw;
-    /* 兜底，防止 size="large" 那个 height 没有生效时弹框缩成内容高度 */
+    /* Fallback to prevent the dialog from collapsing to content height when height for size="large" is not applied */
     height: calc(100vh - 20px) !important;
 }
 

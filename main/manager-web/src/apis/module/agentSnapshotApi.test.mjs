@@ -21,7 +21,7 @@ test("snapshot restore sends the preview token once without an automatic replay"
   const source = sourceBetween(
     agentApiSource,
     "restoreAgentSnapshot(agentId",
-    "// 删除智能体配置快照"
+    "// Delete Agent config snapshot"
   );
 
   assert.match(source, /restoreAgentSnapshot\(agentId, snapshotId, currentStateToken, callback, onTerminalFailure\)/);
@@ -35,7 +35,7 @@ test("snapshot deletion terminates on network failure without an automatic repla
   const source = sourceBetween(
     agentApiSource,
     "deleteAgentSnapshot(agentId",
-    "// 新增方法：获取智能体模板"
+    "// New method: Get Agent template"
   );
 
   assert.match(source, /deleteAgentSnapshot\(agentId, snapshotId, callback, onTerminalFailure\)/);

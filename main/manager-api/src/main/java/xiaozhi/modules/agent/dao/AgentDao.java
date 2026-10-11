@@ -38,18 +38,18 @@ public interface AgentDao extends BaseDao<AgentEntity> {
     AgentInfoVO selectAgentInfoById(@Param("agentId") String agentId);
 
     /**
-     * 锁定智能体主记录，用于串行化同一智能体的配置写入
+     * Lock Agent main record to serialize config writes for the same Agent
      *
-     * @param agentId 智能体ID
+     * @param agentId Agent ID
      */
     AgentEntity selectByIdForUpdate(@Param("agentId") String agentId);
 
     /**
-     * 精确写入快照覆盖的智能体字段，包括目标快照中的 null 值。
-     * 不更新所属用户、创建信息等不属于快照的字段。
+     * Precisely overwrite Agent fields in the snapshot, including null values from the target snapshot.
+     * Do not update fields not included in the snapshot, such as owner user and creation info
      *
-     * @param agent 已应用目标快照的智能体
-     * @return 受影响行数
+     * @param agent Agent with target snapshot applied
+     * @return Number of affected rows
      */
     int updateSnapshotFields(@Param("agent") AgentEntity agent);
 }

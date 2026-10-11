@@ -30,7 +30,7 @@ import com.sun.net.httpserver.HttpServer;
 
 import cn.hutool.crypto.digest.DigestUtil;
 
-@DisplayName("MQTT Gateway 日期鉴权回归测试")
+@DisplayName("MQTT Gateway date authentication regression test")
 class MqttGatewayAuthorizationTest {
 
     private static final String SIGNATURE_KEY = "test-signature-key";
@@ -46,7 +46,7 @@ class MqttGatewayAuthorizationTest {
     }
 
     @Test
-    @DisplayName("以 UTC 日期生成当天、前一天和后一天三个候选 token")
+    @DisplayName("Generate three candidate tokens for today, yesterday, and tomorrow based on UTC date")
     void generatesUtcDateCandidates() {
         List<String> tokens = MqttGatewayAuthorization.generateDailyTokens(SIGNATURE_KEY, FIXED_INSTANT);
 
@@ -56,9 +56,9 @@ class MqttGatewayAuthorizationTest {
                 tokenFor("2026-07-15")), tokens);
     }
 
-    @ParameterizedTest(name = "Gateway 时区 {0}")
+    @ParameterizedTest(name = "Gateway timezone {0}")
     @MethodSource("gatewayTimeZones")
-    @DisplayName("候选 token 覆盖上海和圣保罗 Gateway 的本地日期")
+    @DisplayName("Candidate tokens cover local dates for Shanghai and São Paulo Gateways")
     void coversGatewayLocalDate(String gatewayTimeZone, Instant now, int expectedTokenIndex) {
         String gatewayDate = now.atZone(ZoneId.of(gatewayTimeZone)).toLocalDate().toString();
         List<String> tokens = MqttGatewayAuthorization.generateDailyTokens(SIGNATURE_KEY, now);
@@ -67,7 +67,7 @@ class MqttGatewayAuthorizationTest {
     }
 
     @Test
-    @DisplayName("仅在 401 时按日期候选重试并保留请求体")
+    @DisplayName("Retry with date candidates and preserve request body only on 401")
     void retriesOnlyAuthenticationFailures() throws IOException {
         AtomicInteger requestCount = new AtomicInteger();
         List<String> authorizationHeaders = new ArrayList<>();
@@ -98,7 +98,7 @@ class MqttGatewayAuthorizationTest {
 
     @ParameterizedTest(name = "HTTP {0}")
     @ValueSource(ints = { 403, 500 })
-    @DisplayName("非 401 错误不重试且向上抛出")
+    @DisplayName("Do not retry non-401 errors and propagate them")
     void doesNotRetryNonAuthenticationFailure(int statusCode) throws IOException {
         AtomicInteger requestCount = new AtomicInteger();
         startServer(exchange -> {
@@ -117,7 +117,7 @@ class MqttGatewayAuthorizationTest {
     }
 
     @Test
-    @DisplayName("所有日期候选被拒绝时不把错误响应当作设备离线数据")
+    @DisplayName("Do not treat error responses as device offline data when all date candidates are rejected")
     void propagatesAuthenticationFailureAfterAllCandidatesAreRejected() throws IOException {
         AtomicInteger requestCount = new AtomicInteger();
         startServer(exchange -> {
@@ -135,10 +135,10 @@ class MqttGatewayAuthorizationTest {
         assertEquals(3, requestCount.get());
     }
 
-    @ParameterizedTest(name = "密钥值 [{0}]")
+    @ParameterizedTest(name = "Key value [{0}]")
     @NullAndEmptySource
     @ValueSource(strings = { " ", "null", " NULL " })
-    @DisplayName("缺少或占位签名密钥时在发起 HTTP 请求前失败")
+    @DisplayName("Fail before HTTP request if signature key is missing or placeholder")
     void rejectsMissingSignatureKeyBeforeSendingRequest(String signatureKey) {
         MqttGatewayAuthorization.GatewayRequestException exception = assertThrows(
                 MqttGatewayAuthorization.GatewayRequestException.class,

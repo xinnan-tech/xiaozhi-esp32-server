@@ -97,7 +97,7 @@
       "type": "page",
       "layout": "default",
       "style": {
-        "navigationBarTitleText": "编辑源",
+        "navigationBarTitleText": "Edit source",
         "navigationStyle": "custom"
       }
     },
@@ -106,7 +106,7 @@
       "type": "page",
       "layout": "default",
       "style": {
-        "navigationBarTitleText": "语音设置",
+        "navigationBarTitleText": "Voice Settings",
         "navigationStyle": "custom"
       }
     },
@@ -194,7 +194,7 @@
       "type": "page",
       "layout": "default",
       "style": {
-        "navigationBarTitleText": "设置",
+        "navigationBarTitleText": "Settings",
         "navigationStyle": "custom"
       }
     },

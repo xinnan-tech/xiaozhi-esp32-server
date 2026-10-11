@@ -114,7 +114,7 @@ public class SysParamsController {
         // Validate MQTT secret length
         validateMqttSecretLength(dto.getParamCode(), dto.getParamValue());
 
-        // 如果是系统功能菜单配置，使用特殊处理
+        // If it is a system function menu config, apply special handling
         if (Constant.SYSTEM_WEB_MENU.equals(dto.getParamCode())) {
             sysParamsService.updateSystemWebMenu(dto.getParamValue());
         } else {

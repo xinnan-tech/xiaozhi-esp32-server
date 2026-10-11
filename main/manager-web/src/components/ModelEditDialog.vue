@@ -181,7 +181,7 @@ export default {
     },
     handleClose() {
       this.saving = false;
-      // 处理关闭弹窗闪动问题
+      // Fix flickering issue when closing modal
       setTimeout(() => {
         this.resetForm();
       }, 200)

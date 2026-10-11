@@ -24,7 +24,7 @@ class ManageApiClient:
     _instance_lock = threading.Lock()
     _async_clients = {}  # One client per event loop
     _secret = None
-    _closed = False  # safe_close() 后置为 True，关闭后不再创建新连接
+    _closed = False  # Set to True after safe_close(); no new connections will be created after closure.
 
     def __new__(cls, config):
         """Singleton ensures a single global instance and supports config injection."""
@@ -155,12 +155,12 @@ class ManageApiClient:
 
     @classmethod
     def _get_instance(cls):
-        """线程安全地获取单例实例引用
+        """Thread-safely get singleton instance reference
 
-        调用方应使用返回的局部引用，而不是判空后再次读取
-        ManageApiClient._instance：即使随后 safe_close() 将 _instance
-        置为 None，已获取的引用仍指向原对象，从而消除"判空之后、
-        使用之前实例被置空"的 TOCTOU 竞态窗口。
+        Callers should use the returned local reference instead of re-reading after null check
+        ManageApiClient._instance: even if safe_close() subsequently sets _instance
+        Set to None; the acquired reference still points to the original object, eliminating the "null check after,
+        Use TOCTOU race window where previous instance was nullified
         """
         with cls._instance_lock:
             return cls._instance

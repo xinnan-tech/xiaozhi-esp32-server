@@ -1,33 +1,33 @@
-# 数字人digital-human启动方法
+# Digital human startup method
 
-## 概述
+## Overview
 
-测试页面集成了基于 **Sherpa-ONNX** 的高精度语音唤醒功能，支持自定义唤醒词和实时检测。使用轻量级关键词检测模型，提供毫秒级响应速度。
+The test page integrates high-precision voice wake-up based on **Sherpa-ONNX**, supporting custom wake words and real-time detection. It uses a lightweight keyword spotting model for millisecond-level response times.
 
-## 唤醒词模型
+## Wake word model
 
-### 模型下载（必需）
+### Model download (required)
 
-**重要说明**: 项目不包含模型文件，需要提前下载配置。
+**Important note**: The project does not include model files; download and configure them in advance.
 
-### 官方模型下载地址
+### Official model download URL
 
-- **官方模型列表**: <https://csukuangfj.github.io/sherpa/onnx/kws/pretrained_models/index.html>
-- **推荐模型**: `sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01`
+- **Official model list**: <https://csukuangfj.github.io/sherpa/onnx/kws/pretrained_models/index.html>
+- **Recommended model**: `sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01`
 
-### 下载和配置步骤
+### Download and configuration steps
 
-#### 1. 下载模型包
+#### 1. Download model package
 
 ```bash
-# 方法1：直接下载（推荐）
+# Method 1: Direct download (recommended)
 cd main/digital-human/wakeword_runtime/
 wget https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
 
-# 解压
+# Unzip
 tar xvf sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
 
-# 方法2：使用ModelScope
+# Method 2: Use ModelScope
 pip install modelscope
 python -c "
 from modelscope import snapshot_download
@@ -35,112 +35,112 @@ snapshot_download('pkufool/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
 "
 ```
 
-#### 2. 配置模型文件
+#### 2. Configure model files
 
-模型包下载后包含以下文件：
+Model package contains the following files after download:
 
 ```
 sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01/
-├── encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx    # 速度优先
+├── encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx    # Speed Priority
 ├── encoder-epoch-12-avg-2-chunk-16-left-64.onnx
-├── encoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx    # 速度优先
-├── encoder-epoch-99-avg-1-chunk-16-left-64.onnx         # 精度优先
+├── encoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx    # Speed Priority
+├── encoder-epoch-99-avg-1-chunk-16-left-64.onnx         # Accuracy priority
 ├── decoder-epoch-12-avg-2-chunk-16-left-64.onnx
-├── decoder-epoch-99-avg-1-chunk-16-left-64.onnx         # 精度优先
-├── joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx     # 速度优先
+├── decoder-epoch-99-avg-1-chunk-16-left-64.onnx         # Accuracy priority
+├── joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx     # Speed Priority
 ├── joiner-epoch-12-avg-2-chunk-16-left-64.onnx
-├── joiner-epoch-99-avg-1-chunk-16-left-64.int8.onnx     # 速度优先
-├── joiner-epoch-99-avg-1-chunk-16-left-64.onnx          # 精度优先
-├── tokens.txt                    # Token映射表（必需）
-├── keywords_raw.txt              # 模型包里可能附带（可选，runtime 不依赖）
-├── keywords.txt                  # 现成的
-├── test_wavs/                    # 测试音频（可选）
-├── configuration.json            # 模型元信息（可选）
-└── README.md                     # 说明文档（可选）
+├── joiner-epoch-99-avg-1-chunk-16-left-64.int8.onnx     # Speed Priority
+├── joiner-epoch-99-avg-1-chunk-16-left-64.onnx          # Accuracy priority
+├── tokens.txt                    # Token mapping table (required)
+├── keywords_raw.txt              # Model package may include optional assets (runtime does not depend on them)
+├── keywords.txt                  # Ready-made
+├── test_wavs/                    # Test audio (optional)
+├── configuration.json            # Model metadata (optional)
+└── README.md                     # Documentation (optional)
 ```
 
-#### 3. 选择配置方案
+#### 3. Select config scheme
 
-**方案一：精度优先（推荐）**
+**Option 1: Prioritize accuracy (recommended)**
 
 ```bash
 cd sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
 
-# 创建模型目录
+# Create model directory
 mkdir -p ../models
 
-# 复制精度优先的epoch-99 fp32三件套
+# Copy the accuracy-priority epoch-99 fp32 triplet
 cp encoder-epoch-99-avg-1-chunk-16-left-64.onnx ../models/encoder.onnx
 cp decoder-epoch-99-avg-1-chunk-16-left-64.onnx ../models/decoder.onnx
 cp joiner-epoch-99-avg-1-chunk-16-left-64.onnx ../models/joiner.onnx
 
-# 复制配套文件
+# Copy companion files
 cp tokens.txt ../models/tokens.txt
-# keywords_raw.txt 如果模型包里附带，可自行保留；runtime 不依赖它
+# keywords_raw.txt can be kept if included in the model package; runtime does not depend on it
 ```
 
-**方案二：速度优先**
+**Option 2: Speed priority**
 
 ```bash
 cd sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
 
-# 创建模型目录
+# Create model directory
 mkdir -p ../models
 
-# 复制速度优先的epoch-99 int8三件套
+# Copy the speed-priority epoch-99 int8 triplet
 cp encoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx ../models/encoder.onnx
 cp decoder-epoch-99-avg-1-chunk-16-left-64.onnx ../models/decoder.onnx
 cp joiner-epoch-99-avg-1-chunk-16-left-64.int8.onnx ../models/joiner.onnx
 
-# 复制配套文件
+# Copy companion files
 cp tokens.txt ../models/tokens.txt
 ```
 
-**注意事项**:
+**Notes:
 
-- **不要混用 fp32 与 int8**：三个模型文件必须保持一致的精度
-- **优先选择 epoch-99**：比 epoch-12 训练更充分，精度更高
-- **必需文件**：`encoder.onnx` + `decoder.onnx` + `joiner.onnx` + `tokens.txt` + `keywords.txt`
+- **Do not mix fp32 and int8**: all three model files must use the same precision
+- **Prefer epoch-99**: trained more thoroughly than epoch-12, with higher accuracy
+- **Required Files**: `encoder.onnx` + `decoder.onnx` + `joiner.onnx` + `tokens.txt` + `keywords.txt`
 
-### 最终模型文件结构
+### Final model file structure
 
-配置完成后，模型文件应放在 `wakeword_runtime/models/` 目录下，完整路径为 `main/digital-human/wakeword_runtime/models/`：
+After configuration, model files should be placed in the `wakeword_runtime/models/` directory. The full path is `main/digital-human/wakeword_runtime/models/`:
 
 ```
 wakeword_runtime/models/
-├── encoder.onnx      # 编码器模型（重命名后）
-├── decoder.onnx      # 解码器模型（重命名后）
-├── joiner.onnx       # 连接器模型（重命名后）
-├── tokens.txt        # 拼音 Token 映射表（228行版本）
-├── keywords.txt      # 关键词配置文件（首次启动自动生成）
-└── keywords_raw.txt  # 可选，runtime 不依赖
+├── encoder.onnx      # Encoder model (after renaming)
+├── decoder.onnx      # Decoder model (after renaming)
+├── joiner.onnx       # Connector model (after rename)
+├── tokens.txt        # Pinyin token mapping table (228-line version)
+├── keywords.txt      # Keyword config file (auto-generated on first launch)
+└── keywords_raw.txt  # Optional, runtime independent
 ```
 
-## 启动方式
+## Startup method
 
-在 `main/digital-human` 目录执行：
+Execute in `main/digital-human` directory:
 
 ```bash
 pip install -r wakeword_runtime/requirements.txt
 python start.py
 ```
 
-启动后默认地址：
+Default address after startup:
 
-- 页面地址：`http://127.0.0.1:8006/index.html`
-- 事件桥地址：`ws://127.0.0.1:8006/wakeword-ws`
-- 健康检查：`http://127.0.0.1:8006/health`
+- Page address: `http://127.0.0.1:8006/index.html`
+- Event bridge address: `ws://127.0.0.1:8006/wakeword-ws`
+- Health check: `http://127.0.0.1:8006/health`
 
-停止方式：
+Stop Method:
 
-- 在运行终端按 `Ctrl+C`
-- 会同时停止静态页面服务、事件桥和唤醒词检测流程
+- Press `Ctrl+C` in the running terminal
+- Simultaneously stops static page service, event bridge, and wake word detection process
 
-## 配置文件说明
+## Config file description
 
-配置文件位于 [main/digital-human/wakeword_runtime/config.json](../main/digital-human/wakeword_runtime/config.json)。
+The config file is located at [main/digital-human/wakeword_runtime/config.json](../main/digital-human/wakeword_runtime/config.json).
 
-当前主要配置项：
+Current main configuration items:
 
 ```json
 {
@@ -170,51 +170,51 @@ python start.py
 }
 ```
 
-各字段含义：
+Field descriptions:
 
-| 参数 | 说明 |
+| Parameter | Description |
 | --- | --- |
-| `wakeword.enabled` | 是否启用本地唤醒词检测 |
-| `model_dir` | 模型和词表所在目录 |
-| `audio.input_device` | 麦克风输入设备，默认使用系统默认设备 |
-| `audio.sample_rate` | 采样率，默认 `16000` |
-| `audio.channels` | 声道数，默认 `1` |
-| `detector.num_threads` | 检测器线程数 |
-| `detector.provider` | 推理 provider，当前通常为 `cpu` |
-| `detector.max_active_paths` | 搜索路径数 |
-| `detector.keywords_score` | 关键词增强分数 |
-| `detector.keywords_threshold` | 检测阈值 |
-| `detector.num_trailing_blanks` | 尾随空白数量 |
-| `detector.cooldown_seconds` | 连续触发冷却时间 |
-| `logging.level` | 日志等级 |
-| `logging.dir` | 日志目录 |
-| `logging.file` | 日志文件名 |
+| `wakeword.enabled` | Enable local wake word detection |
+| `model_dir` | Directory containing the model and vocabulary |
+| `audio.input_device` | Microphone input device, defaults to system default device |
+| `audio.sample_rate` | Sample rate, default `16000` |
+| `audio.channels` | Number of channels, default `1` |
+| `detector.num_threads` | Detector thread count |
+| `detector.provider` | Inference provider, currently usually `cpu` |
+| `detector.max_active_paths` | Search path count |
+| `detector.keywords_score` | Keyword enhancement score |
+| `detector.keywords_threshold` | Detection threshold |
+| `detector.num_trailing_blanks` | Trailing whitespace count |
+| `detector.cooldown_seconds` | Continuous trigger cooldown time |
+| `logging.level` | Log level |
+| `logging.dir` | Log directory |
+| `logging.file` | Log file name |
 
-## 推荐使用流程
+## Recommended workflow
 
-### 首次使用
+### First Use
 
-1. 准备 `models/` 目录下的模型文件和 `tokens.txt`
-2. 确认 `models/keywords.txt` 存在
-3. 在 `digital-human` 目录运行 `python start.py`
-4. 浏览器打开 `http://127.0.0.1:8006/index.html`
-5. 进入设置页检查“唤醒词”配置
+1. Prepare model files and `tokens.txt` in the `models/` directory
+2. Verify `models/keywords.txt` exists
+3. Run `python start.py` in the `digital-human` directory
+4. Open `http://127.0.0.1:8006/index.html` in the browser
+5. Go to the settings page and check the "wake word" config
 
-### 修改唤醒词
+### Modify Wake Word
 
-1. 打开数字人页面设置
-2. 切到“唤醒词”页签
-3. 修改启用状态或唤醒词列表
-4. 点击“应用唤醒词”
-5. 根据提示决定是否立即重启
+1. Open digital human page settings
+2. Switch to "Wake Word" tab
+3. Modify enabled status or wake word list
+4. Click " to apply the wake word"
+5. Decide whether to restart immediately based on prompt
 
-### 禁用唤醒词
+### Disable wake word
 
-1. 将“启用本地唤醒词”改成禁用
-2. 点击“应用唤醒词”
-3. 建议立即重启一次
+1. Change "Enable local wake word" to disabled
+2. Click " to apply the wake word"
+3. Recommend immediate restart
 
-禁用后：
+When disabled:
 
-- 页面与事件桥仍然可用
-- 唤醒词检测不会继续运行
+- Page and event bridge remain available
+- Wake word detection will not continue running

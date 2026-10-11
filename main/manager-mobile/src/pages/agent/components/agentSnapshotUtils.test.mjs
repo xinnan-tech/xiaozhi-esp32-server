@@ -19,7 +19,7 @@ test('rejects empty TTS metadata while keeping language-less voices selectable w
   assert.equal(hasUsableTtsVoiceMetadata([]), false)
   assert.equal(hasUsableTtsVoiceMetadata(voices), true)
   assert.deepEqual(filterTtsVoicesByLanguage(voices, ''), voices)
-  assert.deepEqual(filterTtsVoicesByLanguage(voices, 'zh-CN'), [])
+  assert.deepEqual(filterTtsVoicesByLanguage(voices, 'en-US'), [])
 })
 
 test('keeps inherited TTS values distinct from explicit zero', () => {

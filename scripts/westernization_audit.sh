@@ -35,11 +35,10 @@ content_skip_exts = {
 }
 main_exceptions = (
     "main/manager-api/src/main/resources/db/changelog",
-    "main/manager-web/public/generator/assets",
+    "main/manager-web/public/generator",
 )
 generated_exception_paths = (
-    "main/manager-web/public/generator/assets",
-    "main/manager-web/public/generator/index.html",
+    "main/manager-web/public/generator",
 )
 path_skip_prefixes = (
     ".git",
@@ -151,7 +150,7 @@ if live_status == 0 and path_status == 0:
     print("Westernization baseline is clean outside intentional exceptions.")
     print("Intentional exceptions:")
     print("- append-only Liquibase history under main/manager-api/src/main/resources/db/changelog")
-    print("- generated generator bundle under main/manager-web/public/generator/assets")
+    print("- vendored generator bundle under main/manager-web/public/generator")
     sys.exit(0)
 
 print("Westernization baseline still has non-exempt findings.")
@@ -187,7 +186,7 @@ CONTENT_IGNORE=(
 MAIN_IGNORE=(
   "${CONTENT_IGNORE[@]}"
   "!main/manager-api/src/main/resources/db/changelog/**"
-  "!main/manager-web/public/generator/assets/**"
+  "!main/manager-web/public/generator/**"
 )
 
 CONTENT_PATTERN='[\p{Han}]|zh-C''N|zh-T''W'
@@ -282,8 +281,7 @@ section "Generated Bundle Exceptions"
 if show_limited_matches \
   "Generated bundle exceptions" \
   "$CONTENT_PATTERN" \
-  main/manager-web/public/generator/assets \
-  main/manager-web/public/generator/index.html \
+  main/manager-web/public/generator \
   -g '!**/*.png' -g '!**/*.jpg' -g '!**/*.jpeg'; then
   echo
   echo "Generated bundle exceptions detected above."
@@ -312,7 +310,7 @@ if [[ "$live_status" -eq 0 && "$path_status" -eq 0 ]]; then
   echo "Westernization baseline is clean outside intentional exceptions."
   echo "Intentional exceptions:"
   echo "- append-only Liquibase history under main/manager-api/src/main/resources/db/changelog"
-  echo "- generated generator bundle under main/manager-web/public/generator/assets"
+  echo "- vendored generator bundle under main/manager-web/public/generator"
   exit 0
 fi
 

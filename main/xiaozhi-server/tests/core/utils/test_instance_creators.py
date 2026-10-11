@@ -31,7 +31,7 @@ from core.utils import intent, llm, memory  # noqa: E402  (unreachable when skip
 def test_create_instance_raises_for_unknown_class(factory, module_type):
     with pytest.raises(ValueError) as exc_info:
         factory("definitely-not-a-real-provider-name-xyz")
-    assert "不支持" in str(exc_info.value) or "不支持的" in str(exc_info.value)
+    assert "not supported" in str(exc_info.value) or "unsupported" in str(exc_info.value)
 
 
 @pytest.mark.parametrize("factory,module_type", [

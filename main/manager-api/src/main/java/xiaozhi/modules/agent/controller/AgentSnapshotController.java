@@ -25,7 +25,7 @@ import xiaozhi.modules.agent.service.AgentSnapshotService;
 import xiaozhi.modules.agent.vo.AgentSnapshotVO;
 import xiaozhi.modules.security.user.SecurityUser;
 
-@Tag(name = "智能体快照")
+@Tag(name = "Agent snapshot")
 @AllArgsConstructor
 @RestController
 @RequestMapping("/agent/{agentId}/snapshots")
@@ -34,7 +34,7 @@ public class AgentSnapshotController {
     private final AgentService agentService;
 
     @GetMapping
-    @Operation(summary = "获取智能体快照列表")
+    @Operation(summary = "Get Agent snapshot list")
     @RequiresPermissions("sys:role:normal")
     public Result<PageData<AgentSnapshotVO>> page(
             @PathVariable String agentId,
@@ -44,7 +44,7 @@ public class AgentSnapshotController {
     }
 
     @GetMapping("/{snapshotId}")
-    @Operation(summary = "获取智能体快照详情")
+    @Operation(summary = "Get agent snapshot details")
     @RequiresPermissions("sys:role:normal")
     public Result<AgentSnapshotVO> getSnapshot(@PathVariable String agentId, @PathVariable String snapshotId) {
         checkPermission(agentId);
@@ -52,7 +52,7 @@ public class AgentSnapshotController {
     }
 
     @PostMapping("/{snapshotId}/restore")
-    @Operation(summary = "恢复智能体快照")
+    @Operation(summary = "Restore agent snapshot")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> restore(@PathVariable String agentId, @PathVariable String snapshotId,
             @RequestBody @Valid AgentSnapshotRestoreDTO request) {
@@ -62,7 +62,7 @@ public class AgentSnapshotController {
     }
 
     @DeleteMapping("/{snapshotId}")
-    @Operation(summary = "删除智能体历史快照")
+    @Operation(summary = "Delete agent history snapshot")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> deleteSnapshot(@PathVariable String agentId, @PathVariable String snapshotId) {
         checkPermission(agentId);
@@ -73,7 +73,7 @@ public class AgentSnapshotController {
     private void checkPermission(String agentId) {
         UserDetail user = SecurityUser.getUser();
         if (user == null || !agentService.checkAgentPermission(agentId, user.getId())) {
-            throw new RenException("没有权限访问该智能体快照");
+            throw new RenException("No permission to access this agent snapshot");
         }
     }
 }

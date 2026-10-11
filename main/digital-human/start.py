@@ -39,7 +39,7 @@ def main() -> int:
                 app.setup()
                 app.start()
             except Exception as e:
-                print(f"警告: 唤醒词服务启动失败({e})，测试页面仍可正常使用")
+                print(f"Warning: Wake word service failed to start ({e}), test page remains usable")
         http_server.serve_forever()
     except KeyboardInterrupt:
         print("test runtime stopped")

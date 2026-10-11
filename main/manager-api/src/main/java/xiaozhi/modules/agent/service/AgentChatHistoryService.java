@@ -38,10 +38,10 @@ public interface AgentChatHistoryService extends IRepository<AgentChatHistoryEnt
     List<AgentChatHistoryDTO> getChatHistoryBySessionId(String agentId, String sessionId);
 
     /**
-     * 根据会话ID获取智能体ID
+     * Get agent ID by session ID
      *
-     * @param sessionId 会话ID
-     * @return 智能体ID
+     * @param sessionId Session ID
+     * @return Agent ID
      */
     String getAgentIdBySessionId(String sessionId);
 
@@ -79,10 +79,10 @@ public interface AgentChatHistoryService extends IRepository<AgentChatHistoryEnt
     String getContentByAudioId(String audioId);
 
     /**
-     * 根据音频ID获取智能体ID
+     * Get agent ID by audio ID
      *
-     * @param audioId 音频ID
-     * @return 智能体ID
+     * @param audioId Audio ID
+     * @return Agent ID
      */
     String getAgentIdByAudioId(String audioId);
 

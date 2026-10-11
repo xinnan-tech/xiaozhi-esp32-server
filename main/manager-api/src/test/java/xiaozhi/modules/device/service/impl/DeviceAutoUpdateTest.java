@@ -19,7 +19,7 @@ import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.OtaService;
 import xiaozhi.modules.sys.service.SysParamsService;
 
-@DisplayName("设备自动升级回归测试")
+@DisplayName("Device auto-upgrade regression test")
 class DeviceAutoUpdateTest {
 
     private static final String MAC_ADDRESS = "00:11:22:33:44:55";
@@ -27,7 +27,7 @@ class DeviceAutoUpdateTest {
     private static final String CURRENT_VERSION = "1.0.0";
 
     @Test
-    @DisplayName("#3299 自动升级关闭时 OTA 响应不包含固件")
+    @DisplayName("#3299 OTA response excludes firmware when auto-upgrade is disabled")
     void disabledAutoUpdateOmitsFirmware() {
         OtaService otaService = mock(OtaService.class);
         DeviceServiceImpl service = proxiedService(deviceWithAutoUpdate(0), otaService);
@@ -40,7 +40,7 @@ class DeviceAutoUpdateTest {
     }
 
     @Test
-    @DisplayName("自动升级开启时继续执行固件查询")
+    @DisplayName("Continue firmware query when auto-upgrade is enabled.")
     void enabledAutoUpdateChecksFirmware() {
         OtaService otaService = mock(OtaService.class);
         when(otaService.getLatestOta(BOARD_TYPE)).thenReturn(null);

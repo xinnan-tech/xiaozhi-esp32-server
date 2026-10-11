@@ -125,13 +125,13 @@ class IntentProvider(IntentProviderBase):
         return prompt
 
     async def replyResult(self, text: str, original_text: str):
-        """使用 asyncio.to_thread 避免阻塞事件循环"""
+        """Use asyncio.to_thread to avoid blocking the event loop"""
         try:
             user_prompt = (
-                "请根据以上内容，像人类一样说话的口吻回复用户，要求简洁，请直接返回结果。用户现在说："
+                "Reply to the user in a human-like tone based on the above content. Keep it concise and return the result directly. The user now says:"
                 + original_text
             )
-            # 使用 to_thread 将同步阻塞调用放到线程池中执行，不阻塞事件循环
+            # Use to_thread to run synchronous blocking calls in a thread pool, avoiding event loop blocking
             llm_result = await asyncio.to_thread(
                 self.llm.response_no_stream,
                 system_prompt=text,
@@ -222,7 +222,7 @@ class IntentProvider(IntentProviderBase):
         )
 
         try:
-            # 使用 to_thread 将同步阻塞调用放到线程池中，避免阻塞事件循环
+            # Use to_thread to offload synchronous blocking calls to a thread pool, avoiding event loop blocking
             intent = await asyncio.to_thread(
                 self.llm.response_no_stream,
                 system_prompt=prompt_music,

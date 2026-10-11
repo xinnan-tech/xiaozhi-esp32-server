@@ -91,13 +91,13 @@ public class AgentUpdateDTO implements Serializable {
     @Schema(description = "Context-provider configuration", nullable = true)
     private List<ContextProviderDTO> contextProviders;
 
-    @Schema(description = "替换词文件ID列表", nullable = true)
+    @Schema(description = "List of replacement word file IDs", nullable = true)
     private List<String> correctWordFileIds;
 
-    @Schema(description = "标签名称列表", nullable = true)
+    @Schema(description = "Tag name list", nullable = true)
     private List<String> tagNames;
 
-    @Schema(description = "标签ID列表", nullable = true)
+    @Schema(description = "Tag ID list", nullable = true)
     private List<String> tagIds;
 
     @Data

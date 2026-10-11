@@ -73,9 +73,9 @@ class ASRProviderBase(ABC):
 
             # Trigger recognition when VAD marks the end of speech.
             if conn.asr.interface_type != InterfaceType.STREAM and conn.client_voice_stop:
-                # 直接使用asr_audio中的PCM数据
+                # Use PCM data from asr_audio directly
                 pcm_bytes = b"".join(conn.asr_audio)
-                # 检查是否有足够的音频数据（每帧1920字节，15帧约28800字节）
+                # Check if there is sufficient audio data (1920 bytes per frame, ~28800 bytes for 15 frames)
                 if len(pcm_bytes) > 1920 * 15:
                     await self.handle_voice_stop(conn, [pcm_bytes])
                 conn.reset_audio_states()

@@ -1,14 +1,14 @@
 const { defineConfig } = require('@vue/cli-service');
 const dotenv = require('dotenv');
-// TerserPlugin 用于压缩 JavaScript
+// TerserPlugin is used to compress JavaScript
 const TerserPlugin = require('terser-webpack-plugin');
-// CompressionPlugin 开启 Gzip 压缩
+// CompressionPlugin enables Gzip compression
 const CompressionPlugin = require('compression-webpack-plugin')
-// BundleAnalyzerPlugin 用于分析打包后的文件
+// BundleAnalyzerPlugin is used to analyze bundled files
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-// WorkboxPlugin 用于生成Service Worker
+// WorkboxPlugin generates the Service Worker
 const { InjectManifest } = require('workbox-webpack-plugin');
-// 引入 path 模块
+// Import path module
 
 const path = require('path')
 
@@ -16,10 +16,10 @@ function resolve(dir) {
   return path.join(__dirname, dir)
 }
 
-// 确保加载 .env 文件
+// Ensure the .env file is loaded
 dotenv.config();
 
-// 定义CDN资源列表，确保Service Worker也能访问
+// Define the CDN resource list to ensure Service Worker accessibility
 const cdnResources = {
   css: [
     'https://unpkg.com/element-ui@2.15.14/lib/theme-chalk/index.css',
@@ -35,13 +35,13 @@ const cdnResources = {
   ]
 };
 
-// 判断是否使用CDN
+// Check if CDN is used
 const useCDN = process.env.VUE_APP_USE_CDN === 'true';
 
 module.exports = defineConfig({
-  productionSourceMap: process.env.NODE_ENV !== 'production', // 生产环境不生成 source map
+  productionSourceMap: process.env.NODE_ENV !== 'production', // Do not generate source maps in production
   devServer: {
-    port: 8001, // 指定端口为 8001
+    port: 8001, // Set port to 8001
     proxy: {
       '/xiaozhi': {
         target: 'http://127.0.0.1:8002',
@@ -49,23 +49,23 @@ module.exports = defineConfig({
       }
     },
     client: {
-      overlay: false, // 不显示 webpack 错误覆盖层
+      overlay: false, // Do not display webpack error overlay
     },
   },
   publicPath: process.env.VUE_APP_PUBLIC_PATH || "/",
   chainWebpack: config => {
 
-    // 修改 HTML 插件配置，动态插入 CDN 链接
+    // Modify HTML plugin config to dynamically insert CDN links
     config.plugin('html')
       .tap(args => {
-        // 根据配置决定是否使用CDN
+        // Determine whether to use CDN based on config
         if (process.env.NODE_ENV === 'production' && useCDN) {
           args[0].cdn = cdnResources;
         }
         return args;
       });
 
-    // 代码分割优化
+    // Code splitting optimization
     config.optimization.splitChunks({
       chunks: 'all',
       minSize: 20000,
@@ -87,14 +87,14 @@ module.exports = defineConfig({
       }
     });
 
-    // 启用优化设置
+    // Enable optimization settings
     config.optimization.usedExports(true);
     config.optimization.concatenateModules(true);
     config.optimization.minimize(true);
   },
   configureWebpack: config => {
     if (process.env.NODE_ENV === 'production') {
-      // 开启多线程编译
+      // Enable multi-threaded compilation
       config.optimization = {
         minimize: true,
         minimizer: [
@@ -119,23 +119,23 @@ module.exports = defineConfig({
         })
       );
 
-      // 根据是否使用CDN来决定是否添加Service Worker
+      // Conditionally add Service Worker based on CDN usage
       config.plugins.push(
         new InjectManifest({
           swSrc: path.resolve(__dirname, 'src/service-worker.js'),
           swDest: 'service-worker.js',
           exclude: [/\.map$/, /asset-manifest\.json$/],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
-          // 自定义Service Worker注入点
+          // Custom Service Worker injection point
           injectionPoint: 'self.__WB_MANIFEST',
-          // 添加额外信息传递给Service Worker
+          // Pass additional info to Service Worker
           additionalManifestEntries: useCDN ?
             [{ url: 'cdn-mode', revision: 'enabled' }] :
             [{ url: 'cdn-mode', revision: 'disabled' }]
         })
       );
 
-      // 如果使用CDN，则配置externals排除依赖包
+      // If using a CDN, configure externals to exclude dependencies
       if (useCDN) {
         config.externals = {
           'vue': 'Vue',
@@ -146,32 +146,32 @@ module.exports = defineConfig({
           'opus-decoder': 'OpusDecoder'
         };
       } else {
-        // 确保不使用CDN时不设置externals，让webpack打包所有依赖
+        // Ensure externals are not set when CDN is disabled, allowing webpack to bundle all dependencies
         config.externals = {};
       }
 
-      if (process.env.ANALYZE === 'true') {  // 通过环境变量控制
+      if (process.env.ANALYZE === 'true') {  // Control via environment variables
         config.plugins.push(
           new BundleAnalyzerPlugin({
-            analyzerMode: 'server',    // 开启本地服务器模式
-            openAnalyzer: true,        // 自动打开浏览器
-            analyzerPort: 8888         // 指定端口号
+            analyzerMode: 'server',    // Enable local server mode
+            openAnalyzer: true,        // Automatically open browser
+            analyzerPort: 8888         // Specify port number
           })
         );
       }
       config.cache = {
-        type: 'filesystem',  // 使用文件系统缓存
-        cacheDirectory: path.resolve(__dirname, '.webpack_cache'),  // 自定义缓存目录
-        allowCollectingMemory: true,  // 启用内存收集
-        compression: 'gzip',  // 启用gzip压缩缓存
-        maxAge: 5184000000, // 缓存有效期为 1个月
+        type: 'filesystem',  // Use filesystem cache
+        cacheDirectory: path.resolve(__dirname, '.webpack_cache'),  // Custom cache directory
+        allowCollectingMemory: true,  // Enable memory collection
+        compression: 'gzip',  // Enable gzip compression cache
+        maxAge: 5184000000, // Cache validity period is 1 month
         buildDependencies: {
-          config: [__filename]  // 每次配置文件修改时缓存失效
+          config: [__filename]  // Invalidate cache on every config file modification
         }
       };
     }
   },
-  // 将CDN资源信息暴露给service-worker.js
+  // Expose CDN resource info to service-worker.js
   pwa: {
     workboxOptions: {
       skipWaiting: true,

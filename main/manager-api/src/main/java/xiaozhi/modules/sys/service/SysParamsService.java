@@ -55,17 +55,17 @@ public interface SysParamsService extends BaseService<SysParamsEntity> {
     void initServerSecret();
 
     /**
-     * 获取系统功能菜单配置
+     * Get system function menu configuration
      *
-     * @param fromCache 是否从缓存获取
-     * @return 系统功能菜单配置JSON字符串
+     * @param fromCache Whether retrieved from cache
+     * @return System function menu config JSON string
      */
     String getSystemWebMenu(boolean fromCache);
 
     /**
-     * 更新系统功能菜单配置（自动处理功能相关的插件清理）
+     * Update system feature menu config (automatically handles cleanup of feature-related plugins)
      *
-     * @param configJson 新的系统功能菜单配置JSON
+     * @param configJson New system feature menu config JSON
      */
     void updateSystemWebMenu(String configJson);
 }

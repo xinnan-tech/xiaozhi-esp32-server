@@ -18,7 +18,7 @@ class AudioRateController:
         Args:
             frame_duration: Duration of each audio frame in milliseconds.
         """
-        # 流控间隔（毫秒）：send_delay > 0 时用配置值，否则用 frame_duration
+        # Flow control interval (ms): use config value if send_delay > 0, otherwise use frame_duration
         self.interval_ms = send_delay if send_delay > 0 else frame_duration
         self.queue = deque()
         self.play_position = 0  # Virtual playback position in milliseconds.

@@ -215,7 +215,7 @@ export default {
       confirmLoading: false,
       form: {
         id: null,
-        agentCode: "小智",
+        agentCode: "Xiaozhi",
         agentName: "",
         systemPrompt: "",
         sort: 0,
@@ -223,10 +223,10 @@ export default {
       },
       formRules: {
         agentName: [
-          { required: true, message: "请输入助手昵称", trigger: "blur" }
+          { required: true, message: "Enter assistant nickname", trigger: "blur" }
         ],
         systemPrompt: [
-          { required: true, message: "请输入角色介绍", trigger: "blur" }
+          { required: true, message: "Enter role description", trigger: "blur" }
         ]
       },
       originalForm: null

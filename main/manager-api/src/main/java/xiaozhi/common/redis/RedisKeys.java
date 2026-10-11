@@ -189,7 +189,7 @@ public class RedisKeys {
     }
 
     /**
-     * 设备通讯录缓存Key
+     * Device contacts cache key
      */
     public static String getAddressBookKey() {
         return "device:address_book:all";

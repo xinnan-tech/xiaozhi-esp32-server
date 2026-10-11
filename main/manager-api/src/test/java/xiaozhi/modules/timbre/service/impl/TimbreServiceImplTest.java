@@ -27,10 +27,10 @@ class TimbreServiceImplTest {
         VoiceCloneDao voiceCloneDao = mock(VoiceCloneDao.class);
         TimbreServiceImpl service = new TimbreServiceImpl(timbreDao, voiceCloneDao, mock(RedisUtils.class));
         TimbreEntity timbre = new TimbreEntity();
-        timbre.setLanguages("，， ; 普通话；粤语");
+        timbre.setLanguages(",, ; Mandarin; Cantonese");
         when(timbreDao.selectById("voice-id")).thenReturn(timbre);
 
-        assertEquals("普通话", service.getDefaultLanguageById("voice-id"));
+        assertEquals("Mandarin", service.getDefaultLanguageById("voice-id"));
 
         verify(voiceCloneDao, never()).selectById("voice-id");
     }
@@ -41,7 +41,7 @@ class TimbreServiceImplTest {
         VoiceCloneDao voiceCloneDao = mock(VoiceCloneDao.class);
         TimbreServiceImpl service = new TimbreServiceImpl(timbreDao, voiceCloneDao, mock(RedisUtils.class));
         VoiceCloneEntity voiceClone = new VoiceCloneEntity();
-        voiceClone.setLanguages("、, English，中文");
+        voiceClone.setLanguages(",, English, Chinese");
         when(voiceCloneDao.selectById("clone-id")).thenReturn(voiceClone);
 
         assertEquals("English", service.getDefaultLanguageById("clone-id"));
@@ -53,7 +53,7 @@ class TimbreServiceImplTest {
         VoiceCloneDao voiceCloneDao = mock(VoiceCloneDao.class);
         TimbreServiceImpl service = new TimbreServiceImpl(timbreDao, voiceCloneDao, mock(RedisUtils.class));
         TimbreEntity timbre = new TimbreEntity();
-        timbre.setLanguages(",，、；;;,,");
+        timbre.setLanguages(",,,;;;,,");
         when(timbreDao.selectById("voice-id")).thenReturn(timbre);
 
         assertNull(service.getDefaultLanguageById("voice-id"));
@@ -100,7 +100,7 @@ class TimbreServiceImplTest {
         service.save(validTimbreData());
 
         verify(timbreDao).insert(argThat((TimbreEntity entity) ->
-                "测试音色".equals(entity.getName()) && entity.getSort() == 0L));
+                "Test voice".equals(entity.getName()) && entity.getSort() == 0L));
     }
 
     @Test
@@ -122,8 +122,8 @@ class TimbreServiceImplTest {
 
     private TimbreDataDTO validTimbreData() {
         TimbreDataDTO dto = new TimbreDataDTO();
-        dto.setLanguages("中文");
-        dto.setName("测试音色");
+        dto.setLanguages("Chinese");
+        dto.setName("Test voice");
         dto.setTtsModelId("TTS_Test");
         dto.setTtsVoice("test-voice");
         return dto;

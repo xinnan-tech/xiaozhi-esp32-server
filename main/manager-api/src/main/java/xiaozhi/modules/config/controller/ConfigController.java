@@ -46,7 +46,7 @@ public class ConfigController {
     }
 
     @PostMapping("correct-words")
-    @Operation(summary = "获取智能体替换词")
+    @Operation(summary = "Get agent replacement words")
     public Result<Object> getCorrectWords(@Valid @RequestBody CorrectWordsDTO dto) {
         ValidatorUtils.validateEntity(dto);
         List<String> list = configService.getCorrectWords(dto.getMacAddress());

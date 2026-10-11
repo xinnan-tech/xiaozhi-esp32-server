@@ -3,7 +3,7 @@
     <HeaderBar />
 
     <div class="page-content">
-      <!-- 左侧设备列表 -->
+      <!-- Left device list -->
       <div class="left-panel">
         <div class="left-header">
           <h1 class="main-title">{{ $t('addressBookManagement.mainTitle') }}</h1>
@@ -20,7 +20,7 @@
           />
         </div>
 
-        <!-- 智能体列表 -->
+        <!-- Agent list -->
         <el-collapse accordion class="agent-collapse" v-model="expandedAgentId">
           <el-collapse-item v-for="agent in filteredAgents" :key="agent.id" :name="agent.id">
             <template slot="title">
@@ -59,10 +59,10 @@
         </el-collapse>
       </div>
 
-      <!-- 右侧通讯录详情 -->
+      <!-- Right side contacts details -->
       <div class="right-panel">
         <div class="device-detail" v-if="selectedDevice">
-          <!-- 设备信息头部 -->
+          <!-- Device info header -->
           <div class="device-header">
             <div class="device-left">
               <div class="device-avatar-large">
@@ -85,11 +85,11 @@
                   <i v-if="!isEditingAlias" class="el-icon-edit" @click="handleStartEdit"></i>
                 </div>
                 <div class="device-mac">
-                  {{ $t('addressBookManagement.macAddress') }}：
+                  {{ $t('addressBookManagement.macAddress') }}:
                   <MacAddressMask :macAddress="selectedDevice.deviceId" />
                 </div>
                 <div class="device-status">
-                  <span>{{ $t('addressBookManagement.status') }}：</span>
+                  <span>{{ $t('addressBookManagement.status') }}:</span>
                   <span :class="selectedDevice.online ? 'online' : 'offline'">
                   <i class="status-dot"></i>
                   <span>{{ selectedDevice.online ? $t('addressBookManagement.online') : $t('addressBookManagement.offline') }}</span></span>
@@ -133,7 +133,7 @@
             </div>
           </div>
 
-          <!-- 权限管理区域 -->
+          <!-- Permission management area -->
           <div class="permission-section">
             <div class="section-header">
               <div class="section-title">
@@ -250,13 +250,13 @@ export default {
         this.filteredAgents = this.agentDeviceOptions;
         return;
       }
-      // 过滤：匹配智能体名称、设备名称或MAC地址
+      // Filter: Match agent name, device name, or MAC address
       this.filteredAgents = this.agentDeviceOptions.filter(agent => {
-        // 匹配智能体名称
+        // Match agent name
         if (agent.agentName.toLowerCase().includes(keyword)) {
           return true;
         }
-        // 匹配设备名称或MAC地址
+        // Match device name or MAC address
         if (agent.devices && agent.devices.some(device => {
           const name = (device.name || '').toLowerCase();
           const mac = (device.deviceId || '').toLowerCase();
@@ -279,7 +279,7 @@ export default {
                   id: device.id,
                   name: (device.alias && device.alias.trim()) ? device.alias : device.id,
                   alias: device.alias || '',
-                  addressBookAlias: '',  // 通讯录别名，初始为空
+                  addressBookAlias: '',  // Contact alias, initially empty
                   type: device.board,
                   deviceId: device.macAddress,
                   remarks: device.alias || '',
@@ -297,9 +297,9 @@ export default {
             const firstDevice = agentList[0] || {};
             this.agentDeviceOptions = agentList;
             this.filteredAgents = agentList;
-            // 默认选中第一项
+            // Select first item by default
             this.handleDeviceClick(firstDevice.devices?.[0] || {}, firstDevice);
-            // 获取设备状态
+            // Get device status
             this.fetchDeviceStatus();
           });
         } else {
@@ -309,7 +309,7 @@ export default {
       });
     },
     fetchDeviceStatus() {
-      // 为每个智能体获取设备状态
+      // Get device status for each agent
       this.agentDeviceOptions.forEach(agent => {
         if (!agent.id) return;
         Api.device.getDeviceStatus(agent.id, (statusRes) => {
@@ -358,11 +358,11 @@ export default {
       this.expandedAgentId = agent.id;
       this.selectedAgent = agent;
       this.selectedDevice = device;
-      // 加载所有设备用于权限选择（排除当前设备）
+      // Load all devices for permission selection (excluding the current device)
       this.allDevices = this.agentDeviceOptions
         .flatMap(agent => agent.devices || [])
         .filter(d => d.id !== device.id);
-      // 加载通讯录权限
+      // Load contacts permissions
       this.loadAddressBookPermissions(device.deviceId);
     },
     loadAddressBookPermissions(macAddress) {
@@ -391,7 +391,7 @@ export default {
               permission
             ])
           );
-          // 设置已选择的权限
+          // Set selected permissions
           const permittedTargetMacs = new Set(
             permissions
               .filter(p => p.hasPermission)
@@ -400,9 +400,9 @@ export default {
           this.selectedPermissions = this.allDevices
             .filter(device => permittedTargetMacs.has((device.deviceId || '').toLowerCase()))
             .map(device => device.deviceId);
-          // 保存初始权限状态（用于对比变更）
+          // Save initial permission state (for change comparison)
           this.originalPermissions = [...this.selectedPermissions];
-          // 更新设备的通讯录别名
+          // Update device contact alias
           this.allDevices.forEach(device => {
             const addrBook = permissionsByTargetMac.get((device.deviceId || '').toLowerCase());
             if (addrBook) {
@@ -547,7 +547,7 @@ export default {
         Api.agent.updateAgentConfig(this.selectedAgent.id, { agentName: newName }, ({ data }) => {
           if (data.code === 0) {
             this.selectedAgent.agentName = newName;
-            // 更新列表中的智能体名称
+            // Update agent name in list
             const agentInList = this.agentDeviceOptions.find(a => a.id === this.selectedAgent.id);
             if (agentInList) {
               agentInList.agentName = newName;
@@ -586,7 +586,7 @@ export default {
       return formatCreateDate(device.createDateTimestamp, device.createDate);
     },
     getDeviceAvatar(deviceId) {
-      // 根据 deviceId 计算 MD5，选择对应的头像
+      // Compute MD5 based on deviceId to select the corresponding avatar
       const avatars = [
         require('@/assets/device-avatars/xiaozhi-logo1.png'),
         require('@/assets/device-avatars/xiaozhi-logo2.png'),
@@ -605,7 +605,7 @@ export default {
         require('@/assets/device-avatars/xiaozhi-logo15.png'),
         require('@/assets/device-avatars/xiaozhi-logo16.png')
       ];
-      // 简单的哈希算法，根据 deviceId 分配头像
+      // Simple hash algorithm to assign avatars based on deviceId
       let hash = 0;
       for (let i = 0; i < deviceId.length; i++) {
         hash = ((hash << 5) - hash) + deviceId.charCodeAt(i);

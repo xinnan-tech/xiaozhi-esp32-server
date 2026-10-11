@@ -105,19 +105,19 @@ def opus_to_wav(conn: "ConnectionHandler", opus_data):
         # Return the full WAV payload.
         return bytes(wav_header) + pcm_data_bytes
     except Exception as e:
-        conn.logger.bind(tag=TAG).error(f"PCM转WAV失败: {e}", exc_info=True)
+        conn.logger.bind(tag=TAG).error(f"PCM to WAV conversion failed: {e}", exc_info=True)
         raise
 
 
 def opus_to_wav(conn: "ConnectionHandler", opus_data):
-    """将Opus数据转换为WAV格式的字节流
+    """ converts Opus data to a WAV format byte stream
 
     Args:
-        conn: 连接对象
-        opus_data: Opus音频数据（可能是列表或bytes）
+        conn: Connection object
+        opus_data: Opus audio data (list or bytes)
 
     Returns:
-        bytes: WAV格式的音频数据
+        bytes: WAV audio data
     """
     decoder = None
     try:
@@ -130,13 +130,13 @@ def opus_to_wav(conn: "ConnectionHandler", opus_data):
                     pcm_frame = decoder.decode(opus_packet, 960)
                     pcm_data.append(pcm_frame)
                 except opuslib_next.OpusError as e:
-                    conn.logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
+                    conn.logger.bind(tag=TAG).error(f"Opus decode error: {e}", exc_info=True)
         elif isinstance(opus_data, bytes):
             pcm_frame = decoder.decode(opus_data, 960)
             pcm_data.append(pcm_frame)
 
         if not pcm_data:
-            raise ValueError("没有有效的音频数据")
+            raise ValueError("No valid audio data")
 
         pcm_data_bytes = b"".join(pcm_data)
 

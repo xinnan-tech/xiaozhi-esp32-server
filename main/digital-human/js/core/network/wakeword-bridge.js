@@ -16,7 +16,7 @@ export function startWakewordBridgeListener() {
     }
 
     shouldReconnect = true;
-    log('正在连接本地唤醒事件桥...', 'info');
+    log('Connecting to local wake event bridge...', 'info');
     tryConnect();
     return wakewordSocket;
 }
@@ -28,15 +28,15 @@ function tryConnect() {
         wakewordSocket = new WebSocket(bridgeUrl);
         wakewordSocket.onopen = () => {
             reconnectAttempts = 0;
-            log(`本地唤醒事件桥已连接: ${bridgeUrl}`, 'success');
-            // 连接成功后自动保存地址，刷新后仍能记住
+            log(`Local wake event bridge connected: ${bridgeUrl}`, 'success');
+            // Auto-save address after successful connection, persists after refresh
             localStorage.setItem('xz_tester_wakewordWsUrl', bridgeUrl);
             const urlInput = document.getElementById('wakewordWsUrl');
             if (urlInput) urlInput.value = bridgeUrl;
         };
 
         wakewordSocket.onerror = () => {
-            log(`本地唤醒事件桥连接失败: ${bridgeUrl}`, 'error');
+            log(`Local wake event bridge connection failed: ${bridgeUrl}`, 'error');
         };
 
         wakewordSocket.onmessage = async (event) => {
@@ -48,12 +48,12 @@ function tryConnect() {
                 }
 
                 if (message.success === false) {
-                    log(`本地唤醒事件桥返回错误: ${message.error || '未知错误'}`, 'error');
+                    log(`Local wake event bridge returned error: ${message.error || 'Unknown error'}`, 'error');
                     return;
                 }
 
                 if (message.type === 'bridge_connected') {
-                    log('本地唤醒监听已就绪', 'info');
+                    log('Local wake word listener ready', 'info');
                     if (onNextBridgeConnectedCallback) {
                         const cb = onNextBridgeConnectedCallback;
                         onNextBridgeConnectedCallback = null;
@@ -63,28 +63,28 @@ function tryConnect() {
                 }
 
                 if (message.type === 'service_ready') {
-                    log('本地唤醒服务已启动', 'info');
+                    log('Local wake word service started', 'info');
                     return;
                 }
 
                 if (message.type === 'wakeword_config') {
                     uiController.applyWakewordConfig(message.payload || {});
-                    log('已同步本地唤醒词配置', 'info');
+                    log('Local wake word configuration synced', 'info');
                     return;
                 }
 
                 if (message.type === 'service_stopping') {
-                    log('本地唤醒服务正在停止', 'warning');
+                    log('Local wake word service stopping', 'warning');
                     return;
                 }
 
                 if (message.type === 'wake_word_detected') {
-                    const wakeWord = message.payload?.wake_word || '唤醒词';
-                    log(`检测到本地唤醒事件: ${wakeWord}`, 'info');
+                    const wakeWord = message.payload?.wake_word || 'wake word';
+                    log(`Local wake event detected: ${wakeWord}`, 'info');
                     await uiController.triggerWakewordDial(wakeWord);
                 }
             } catch (error) {
-                log(`解析本地唤醒事件失败: ${error.message}`, 'error');
+                log(`Failed to parse local wake word event: ${error.message}`, 'error');
             }
         };
 
@@ -93,7 +93,7 @@ function tryConnect() {
                 wakewordSocket = null;
             }
 
-            rejectAllWakewordRequests('本地唤醒事件桥已断开');
+            rejectAllWakewordRequests('Local wake event bridge disconnected');
 
             if (!shouldReconnect) {
                 return;
@@ -105,7 +105,7 @@ function tryConnect() {
 
             reconnectAttempts += 1;
             const delay = Math.min(1000 * reconnectAttempts, 5000);
-            log(`本地唤醒事件桥将在 ${delay}ms 后重连: ${bridgeUrl}`, 'warning');
+            log(`Local wake event bridge will reconnect in ${delay}ms: ${bridgeUrl}`, 'warning');
             reconnectTimer = window.setTimeout(() => {
                 reconnectTimer = null;
                 tryConnect();
@@ -114,7 +114,7 @@ function tryConnect() {
 
         return wakewordSocket;
     } catch (error) {
-        log(`启动本地唤醒监听失败: ${error.message}`, 'error');
+        log(`Failed to start local wake word listener: ${error.message}`, 'error');
         return null;
     }
 }
@@ -138,7 +138,7 @@ export function stopWakewordBridgeListener() {
 
 export function sendWakewordBridgeMessage(type, payload = {}, requestId = null) {
     if (!wakewordSocket || wakewordSocket.readyState !== WebSocket.OPEN) {
-        log('本地唤醒事件桥未连接，无法发送消息', 'warning');
+        log('Local wake event bridge not connected, cannot send message', 'warning');
         return false;
     }
 
@@ -156,7 +156,7 @@ export function requestWakewordBridge(type, payload = {}, timeout = 5000) {
     return new Promise((resolve, reject) => {
         const timer = window.setTimeout(() => {
             pendingWakewordRequests.delete(requestId);
-            reject(new Error('本地唤醒服务响应超时'));
+            reject(new Error('Local wake service response timed out'));
         }, timeout);
 
         pendingWakewordRequests.set(requestId, { resolve, reject, timer });
@@ -164,7 +164,7 @@ export function requestWakewordBridge(type, payload = {}, timeout = 5000) {
         if (!sendWakewordBridgeMessage(type, payload, requestId)) {
             window.clearTimeout(timer);
             pendingWakewordRequests.delete(requestId);
-            reject(new Error('本地唤醒事件桥未连接'));
+            reject(new Error('Local wake event bridge not connected'));
         }
     });
 }
@@ -209,7 +209,7 @@ function settleWakewordRequest(message) {
     pendingWakewordRequests.delete(message.requestId);
 
     if (message.success === false) {
-        pendingRequest.reject(new Error(message.error || '本地唤醒服务返回失败'));
+        pendingRequest.reject(new Error(message.error || 'Local wake service returned failure'));
         return;
     }
 

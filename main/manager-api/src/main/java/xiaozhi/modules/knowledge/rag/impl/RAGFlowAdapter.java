@@ -32,11 +32,11 @@ import xiaozhi.modules.knowledge.rag.KnowledgeBaseAdapter;
 import xiaozhi.modules.knowledge.rag.RAGFlowClient;
 
 /**
- * RAGFlow知识库适配器实现
+ * RAGFlow knowledge base adapter implementation
  * <p>
- * 重构说明 (Refactoring Note):
- * 本类已升级为使用 {@link RAGFlowClient} 统一处理 HTTP 通信。
- * 解决了旧代码中 Timeout 缺失、Error Handling 分散的问题。
+ * Refactoring Note:
+ * This class has been upgraded to use {@link RAGFlowClient} for unified HTTP communication.
+ * Resolved issues in legacy code: missing Timeout and scattered Error Handling.
  * </p>
  */
 @Slf4j
@@ -46,7 +46,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
 
     private Map<String, Object> config;
     private ObjectMapper objectMapper;
-    // Client 实例，初始化时创建
+    // Client instance, created during initialization
     private RAGFlowClient client;
 
     public RAGFlowAdapter() {
@@ -66,18 +66,18 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
         String baseUrl = getConfigValue(config, "base_url", "baseUrl");
         String apiKey = getConfigValue(config, "api_key", "apiKey");
 
-        // 初始化 Client，默认超时 30s，可通过 config 扩展
+        // Initialize Client with a default timeout of 30s, extendable via config
         int timeout = 30;
         Object timeoutObj = getConfigValue(config, "timeout", "timeout");
         if (timeoutObj != null) {
             try {
                 timeout = Integer.parseInt(timeoutObj.toString());
             } catch (Exception e) {
-                log.warn("解析超时配置失败，使用默认值 30s");
+                log.warn("Failed to parse timeout config, using default 30s");
             }
         }
         this.client = new RAGFlowClient(baseUrl, apiKey, timeout);
-        log.info("RAGFlow适配器初始化完成，Client已就绪");
+        log.info("RAGFlow adapter initialized, Client ready");
     }
 
     @Override
@@ -97,7 +97,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             throw new RenException(ErrorCode.RAG_API_ERROR_API_KEY_NULL);
         }
 
-        if (apiKey.contains("你")) {
+        if (apiKey.contains("You")) {
             throw new RenException(ErrorCode.RAG_API_ERROR_API_KEY_INVALID);
         }
 
@@ -109,7 +109,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     /**
-     * 辅助方法：支持多种键名获取配置（兼容 camelCase 和 snake_case）
+     * Helper method: retrieve config using multiple key names (supports camelCase and snake_case)
      */
     private String getConfigValue(Map<String, Object> config, String snakeKey, String camelKey) {
         if (config.containsKey(snakeKey)) {
@@ -122,15 +122,15 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     /**
-     * 辅助方法：确保 Client 已初始化
+     * Helper method: ensure Client is initialized
      */
     private RAGFlowClient getClient() {
         if (this.client == null) {
-            // 尝试重新初始化
+            // Attempt re-initialization
             if (this.config != null) {
                 initialize(this.config);
             } else {
-                throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND, "适配器未初始化"); // 应该抛出 RuntimeException
+                throw new RenException(ErrorCode.RAG_CONFIG_NOT_FOUND, "Adapter not initialized"); // should throw a RuntimeException
             }
         }
         return this.client;
@@ -146,9 +146,9 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public PageData<KnowledgeFilesDTO> getDocumentList(String datasetId, DocumentDTO.ListReq req) {
         try {
-            log.info("=== [RAGFlow] 获取文档列表: datasetId={} ===", datasetId);
+            log.info("=== [RAGFlow] Fetching document list: datasetId={} ===", datasetId);
 
-            // 使用 Jackson 将 DTO 转为 Map 作为查询参数
+            // Use Jackson to convert DTO to Map as query parameters
             Map<String, Object> params = objectMapper.convertValue(req, new TypeReference<Map<String, Object>>() {
             });
 
@@ -159,7 +159,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
                     req.getPageSize() != null ? req.getPageSize() : 10);
 
         } catch (Exception e) {
-            log.error("获取文档列表失败", e);
+            log.error("Failed to get document list", e);
             throw convertToRenException(e);
         }
     }
@@ -167,7 +167,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public DocumentDTO.InfoVO getDocumentById(String datasetId, String documentId) {
         try {
-            log.info("=== [RAGFlow] 获取文档详情: datasetId={}, documentId={} ===", datasetId, documentId);
+            log.info("=== [RAGFlow] Fetch document details: datasetId={}, documentId={} ===", datasetId, documentId);
             DocumentDTO.ListReq req = DocumentDTO.ListReq.builder()
                     .id(documentId)
                     .page(1)
@@ -187,7 +187,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             }
             return null;
         } catch (Exception e) {
-            log.error("获取文档详情失败: documentId={}", documentId, e);
+            log.error("Failed to get document details: documentId={}", documentId, e);
             throw convertToRenException(e);
         }
     }
@@ -197,7 +197,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
         String datasetId = req.getDatasetId();
         MultipartFile file = req.getFile();
         try {
-            log.info("=== [RAGFlow] 上传文档: datasetId={} ===", datasetId);
+            log.info("=== [RAGFlow] Upload document: datasetId={} ===", datasetId);
 
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", new MultipartFileResource(file));
@@ -209,7 +209,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
                 body.add("meta", objectMapper.writeValueAsString(req.getMetaFields()));
             }
             if (req.getChunkMethod() != null) {
-                // 将枚举值转为 RAGFlow 期待的字符串（如 NAIVE -> naive）
+                // Convert enum values to strings expected by RAGFlow (e.g., NAIVE -> naive).
                 body.add("chunk_method", req.getChunkMethod().name().toLowerCase());
             }
             if (req.getParserConfig() != null) {
@@ -226,7 +226,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             return parseUploadResponse(dataObj, datasetId, file);
 
         } catch (Exception e) {
-            log.error("文档上传失败", e);
+            log.error("Document upload failed", e);
             throw convertToRenException(e);
         }
     }
@@ -268,11 +268,11 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public void deleteDocument(String datasetId, DocumentDTO.BatchIdReq req) {
         try {
-            log.info("=== [RAGFlow] 批量删除文档: datasetId={}, count={} ===", datasetId,
+            log.info("=== [RAGFlow] Batch delete documents: datasetId={}, count={} ===", datasetId,
                     req.getIds() != null ? req.getIds().size() : 0);
             getClient().delete("/api/v1/datasets/" + datasetId + "/documents", req);
         } catch (Exception e) {
-            log.error("批量删除文档失败: datasetId={}", datasetId, e);
+            log.error("Failed to batch delete documents: datasetId={}", datasetId, e);
             throw convertToRenException(e);
         }
     }
@@ -280,14 +280,14 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public boolean parseDocuments(String datasetId, List<String> documentIds) {
         try {
-            log.info("=== [RAGFlow] 解析文档 ===");
+            log.info("=== [RAGFlow] Parsing document ===");
             Map<String, Object> body = new HashMap<>();
             body.put("document_ids", documentIds);
 
             getClient().post("/api/v1/datasets/" + datasetId + "/chunks", body);
             return true;
         } catch (Exception e) {
-            log.error("解析文档失败", e);
+            log.error("Failed to parse document", e);
             throw convertToRenException(e);
         }
     }
@@ -295,7 +295,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public ChunkDTO.ListVO listChunks(String datasetId, String documentId, ChunkDTO.ListReq req) {
         try {
-            // [提灯重构] 使用 objectMapper 动态转换查询参数，消除硬编码
+            // [Lantern Refactor] Use objectMapper to dynamically convert query parameters, eliminating hardcoding
             Map<String, Object> params = objectMapper.convertValue(req, new TypeReference<Map<String, Object>>() {
             });
 
@@ -304,7 +304,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
 
             Object dataObj = response.get("data");
             if (dataObj == null) {
-                log.warn("[RAGFlow] listChunks 响应 data 为空, docId={}", documentId);
+                log.warn("[RAGFlow] listChunks response data is empty, docId={}", documentId);
                 return ChunkDTO.ListVO.builder()
                         .chunks(new ArrayList<>())
                         .total(0L)
@@ -317,7 +317,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             }
             return result;
         } catch (Exception e) {
-            log.error("获取切片失败: docId={}", documentId, e);
+            log.error("Failed to get slice: docId={}", documentId, e);
             throw convertToRenException(e);
         }
     }
@@ -325,18 +325,18 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public RetrievalDTO.ResultVO retrievalTest(RetrievalDTO.TestReq req) {
         try {
-            // [Production Reinforce] 参数防御性对齐：RAGFlow Python 端对 0 或负数分页敏感
-            // 解决 ValueError('Search does not support negative slicing.')
+            // [Production Reinforce] Defensive parameter alignment: RAGFlow Python side is sensitive to 0 or negative pagination values
+            // Resolve ValueError('Search does not support negative slicing.')
             if (req.getPage() != null && req.getPage() < 1) {
                 req.setPage(1);
             }
             if (req.getPageSize() != null && req.getPageSize() < 1) {
-                req.setPageSize(10); // 默认 10 条
+                req.setPageSize(10); // Default 10 items
             }
             if (req.getTopK() != null && req.getTopK() < 1) {
-                req.setTopK(1024); // RAGFlow 内部默认 TopK
+                req.setTopK(1024); // RAGFlow internal default TopK
             }
-            // 相似度阈值归一化 (0.0 ~ 1.0)
+            // Normalize similarity threshold (0.0 ~ 1.0)
             if (req.getSimilarityThreshold() != null) {
                 if (req.getSimilarityThreshold() < 0f)
                     req.setSimilarityThreshold(0.2f);
@@ -344,12 +344,12 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
                     req.setSimilarityThreshold(1.0f);
             }
 
-            // [提灯重构] 直接透传强类型 DTO，由 getClient 处理序列化
+            // [Lantern refactor] Pass through strongly-typed DTOs directly; let getClient handle serialization
             Map<String, Object> response = getClient().post("/api/v1/retrieval", req);
 
             Object dataObj = response.get("data");
             if (dataObj == null) {
-                log.warn("[RAGFlow] retrievalTest 响应 data 为空");
+                log.warn("[RAGFlow] retrievalTest response data is empty");
                 return RetrievalDTO.ResultVO.builder()
                         .chunks(new ArrayList<>())
                         .docAggs(new ArrayList<>())
@@ -363,7 +363,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             }
             return result;
         } catch (Exception e) {
-            log.error("召回测试失败", e);
+            log.error("Recall test failed", e);
             throw convertToRenException(e);
         }
     }
@@ -374,7 +374,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             getClient().get("/api/v1/health", null);
             return true;
         } catch (Exception e) {
-            log.error("连接测试失败: {}", e.getMessage());
+            log.error("Connection test failed: {}", e.getMessage());
             return false;
         }
     }
@@ -383,7 +383,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     public Map<String, Object> getStatus() {
         Map<String, Object> status = new HashMap<>();
         status.put("adapterType", getAdapterType());
-        status.put("configKeys", config != null ? config.keySet() : "未配置");
+        status.put("configKeys", config != null ? config.keySet() : "Not configured");
         status.put("connectionTest", testConnection());
         status.put("lastChecked", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
         return status;
@@ -392,9 +392,9 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public Map<String, Object> getSupportedConfig() {
         Map<String, Object> supportedConfig = new HashMap<>();
-        supportedConfig.put("base_url", "RAGFlow API基础URL");
-        supportedConfig.put("api_key", "RAGFlow API密钥");
-        supportedConfig.put("timeout", "请求超时时间（毫秒）");
+        supportedConfig.put("base_url", "RAGFlow API base URL");
+        supportedConfig.put("api_key", "RAGFlow API key");
+        supportedConfig.put("timeout", "Request timeout (ms)");
         return supportedConfig;
     }
 
@@ -408,8 +408,8 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public DatasetDTO.InfoVO createDataset(DatasetDTO.CreateReq req) {
         try {
-            // [Production Fix] 强化默认值处理，防止 RAGFlow API 因空字符串或缺失字段报错 (Code 101)
-            // 解决 "Field: <avatar> - Message: <Missing MIME prefix>" 等校验失败
+            // [Production Fix] Strengthen default value handling to prevent RAGFlow API errors (Code 101) due to empty strings or missing fields
+            // Resolve validation failures such as "Field: <avatar> - Message: <Missing MIME prefix>"
             if (StringUtils.isBlank(req.getPermission())) {
                 req.setPermission("me");
             }
@@ -417,33 +417,33 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
                 req.setChunkMethod("naive");
             }
 
-            // 🤖 自动补全嵌入模型：优先使用请求传参，其次使用配置中的默认模型
+            // 🤖 Auto-complete embedding model: prioritize request parameters, then use the default model from config
             if (StringUtils.isBlank(req.getEmbeddingModel())) {
                 String defaultModel = (String) getConfigValue(config, "embedding_model", "embeddingModel");
                 if (StringUtils.isNotBlank(defaultModel)) {
-                    log.info("RAGFlow: 使用配置中的默认嵌入模型: {}", defaultModel);
+                    log.info("RAGFlow: Using default embedding model from config: {}", defaultModel);
                     req.setEmbeddingModel(defaultModel);
                 }
-                // 若配置中也无默认值，则留空由 RAGFlow 服务端自行兜底（或抛出业务异常）
+                // If no default value is configured, leave it empty to let the RAGFlow server handle it (or throw a business exception)
             }
 
-            // 🖼️ 自动补全头像：若为空则提供一个 1x1 透明像素，防止 RAGFlow 校验 MIME Prefix 失败
+            // 🖼️ Auto-complete avatar: Provide a 1x1 transparent pixel if empty to prevent RAGFlow MIME Prefix validation failures.
             if (StringUtils.isBlank(req.getAvatar())) {
                 req.setAvatar(
                         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
             }
 
-            // 直接将强类型请求对象传给 Client，Jackson 会处理 JsonProperty 映射
+            // Pass the strongly-typed request object directly to the Client; Jackson handles JsonProperty mapping.
             Map<String, Object> response = getClient().post("/api/v1/datasets", req);
 
-            // 安全地获取 data 并通过 DatasetDTO.InfoVO 进行全量映射
+            // Safely retrieve data and perform full mapping via DatasetDTO.InfoVO.
             Object dataObj = response.get("data");
             if (dataObj != null) {
                 return objectMapper.convertValue(dataObj, DatasetDTO.InfoVO.class);
             }
             throw new RenException(ErrorCode.RAG_API_ERROR, "Invalid response from createDataset: missing data object");
         } catch (Exception e) {
-            log.error("创建数据集失败", e);
+            log.error("Failed to create dataset", e);
             throw convertToRenException(e);
         }
     }
@@ -451,7 +451,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public DatasetDTO.InfoVO updateDataset(String datasetId, DatasetDTO.UpdateReq req) {
         try {
-            // RAGFlow API 更新建议路径带 ID
+            // RAGFlow API update suggestion path with ID
             Map<String, Object> response = getClient().put("/api/v1/datasets/" + datasetId, req);
 
             Object dataObj = response.get("data");
@@ -460,7 +460,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             }
             return null;
         } catch (Exception e) {
-            log.error("更新数据集失败", e);
+            log.error("Failed to update dataset", e);
             throw convertToRenException(e);
         }
     }
@@ -468,7 +468,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public DatasetDTO.BatchOperationVO deleteDataset(DatasetDTO.BatchIdReq req) {
         try {
-            // RAGFlow 批量删除接口使用 DELETE /api/v1/datasets
+            // RAGFlow batch delete API uses DELETE /api/v1/datasets
             Map<String, Object> response = getClient().delete("/api/v1/datasets", req);
 
             Object dataObj = response.get("data");
@@ -477,7 +477,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             }
             return null;
         } catch (Exception e) {
-            log.error("批量删除数据集失败", e);
+            log.error("Failed to batch delete datasets", e);
             throw convertToRenException(e);
         }
     }
@@ -508,10 +508,10 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
                     return objectMapper.convertValue(list.get(0), DatasetDTO.InfoVO.class);
                 }
             }
-            // RAGFlow 端不存在该数据集
+            // Dataset not found in RAGFlow
             return null;
         } catch (Exception e) {
-            log.warn("获取数据集信息失败: datasetId={}, error={}", datasetId, e.getMessage());
+            log.warn("Failed to get dataset info: datasetId={}, error={}", datasetId, e.getMessage());
             throw convertToRenException(e);
         }
     }
@@ -521,7 +521,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
         try {
             getClient().postStream(endpoint, body, onData);
         } catch (Exception e) {
-            log.error("流式请求失败", e);
+            log.error("Streaming request failed", e);
             throw convertToRenException(e);
         }
     }
@@ -529,20 +529,20 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public Object postSearchBotAsk(Map<String, Object> config, Object body,
             Consumer<String> onData) {
-        // SearchBot 实际上是 Dataset 检索的一种封装，或者是未公开的 API？
-        // 假设 RAGFlow 没有显式的 /searchbots 接口供 SDK 调用，而是 Dataset Retrieval 或者 Chat。
-        // 但根据 BotDTO，它是 /api/v1/searchbots/ask (假设)
-        // 这里的 config 可能是覆盖用的，或者我们只是用 adapter 实例已有的 client。
-        // 但 Bot 可能使用不同的 API Key？通常 Adapter 实例绑定了一个 Key。
-        // 如果 Bot 使用系统 Key，则直接用 getClient()。
+        // Is SearchBot a wrapper for Dataset retrieval, or an undocumented API?
+        // Assume RAGFlow does not expose an explicit /searchbots endpoint for SDK calls, but rather Dataset Retrieval or Chat.
+        // But according to BotDTO, it is /api/v1/searchbots/ask (assumed)
+        // The config here may be for overriding, or we simply use the existing client from the adapter instance.
+        // But the Bot might use a different API Key? Typically, an Adapter instance is bound to one Key.
+        // If the Bot uses the system key, use getClient() directly.
 
-        // 暂时假设 endpoint /api/v1/searchbots/ask 存在（或者类似的）
-        // 如果是流式:
+        // Temporarily assume endpoint /api/v1/searchbots/ask exists (or similar)
+        // If streaming:
         try {
             getClient().postStream("/api/v1/searchbots/ask", body, onData);
             return null;
         } catch (Exception e) {
-            log.error("SearchBot Ask 失败", e);
+            log.error("SearchBot Ask failed", e);
             throw convertToRenException(e);
         }
     }
@@ -550,17 +550,17 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     @Override
     public void postAgentBotCompletion(Map<String, Object> config, String agentId, Object body,
             Consumer<String> onData) {
-        // AgentBot 对应 /api/v1/agentbots/{id}/completions
+        // AgentBot maps to /api/v1/agentbots/{id}/completions
         try {
             getClient().postStream("/api/v1/agentbots/" + agentId + "/completions", body, onData);
         } catch (Exception e) {
-            log.error("AgentBot Completion 失败", e);
+            log.error("AgentBot Completion failed", e);
             throw convertToRenException(e);
         }
     }
 
-    // 复用原有的辅助解析方法，保持兼容
-    // [Bug Fix] 不再吞掉反序列化异常，避免上层误判"文档已删除"
+    // Reuse existing helper parsing method for compatibility
+    // [Bug Fix] No longer swallow deserialization exceptions to prevent upper-layer misjudgment"document deleted"
     private PageData<KnowledgeFilesDTO> parseDocumentListResponse(Object dataObj, long curPage, long pageSize) {
         if (dataObj == null) {
             return new PageData<>(new ArrayList<>(), 0);
@@ -569,18 +569,18 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
         Map<?, ?> dataMap = Map.class.cast(dataObj);
         List<?> documents = List.class.cast(dataMap.get("docs"));
         if (documents == null || documents.isEmpty()) {
-            // RAGFlow 明确返回了空文档列表，这是合法的"真空"
+            // RAGFlow explicitly returned an empty document list, this is a valid " empty"
             return new PageData<>(new ArrayList<>(), 0);
         }
 
         List<KnowledgeFilesDTO> list = new ArrayList<>();
         for (Object docObj : documents) {
             try {
-                // 单文档转换容错：一个文档反序列化失败不影响其他文档
+                // Single document conversion fault tolerance: deserialization failure of one document does not affect others
                 DocumentDTO.InfoVO info = objectMapper.convertValue(docObj, DocumentDTO.InfoVO.class);
                 list.add(mapToKnowledgeFilesDTO(info, null));
             } catch (Exception e) {
-                log.warn("[RAGFlow] 单文档 DTO 转换失败，跳过该文档: {}", e.getMessage());
+                log.warn("[RAGFlow] Single-document DTO conversion failed, skipping document: {}", e.getMessage());
             }
         }
 
@@ -595,7 +595,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     private KnowledgeFilesDTO parseUploadResponse(Object dataObj, String datasetId, MultipartFile file) {
         KnowledgeFilesDTO result = null;
 
-        // 尝试从响应数据中提取文档ID (documentId)
+        // Attempt to extract the document ID (documentId) from the response data
         if (dataObj != null) {
             try {
                 DocumentDTO.InfoVO info = null;
@@ -612,13 +612,13 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
                     result = mapToKnowledgeFilesDTO(info, datasetId);
                 }
             } catch (Exception e) {
-                log.warn("解析上传响应数据失败: {}", e.getMessage());
+                log.warn("Failed to parse upload response data: {}", e.getMessage());
             }
         }
 
         if (result == null) {
-            log.error("未能从RAGFlow响应中提取到documentId，响应内容: {}", dataObj);
-            // 这里应该返回一个最小化的包含基础信息的 DTO 而不是 null，防止上游 NPE
+            log.error("Failed to extract documentId from RAGFlow response; content: {}", dataObj);
+            // Return a minimal DTO with basic info instead of null here to prevent upstream NPE
             result = new KnowledgeFilesDTO();
             result.setDatasetId(datasetId);
             result.setName(file.getOriginalFilename());
@@ -630,8 +630,8 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
     }
 
     /**
-     * 将 RAGFlow 的强类型 InfoVO 映射到内部使用的 KnowledgeFilesDTO
-     * 确保所有可用字段（名称、大小、状态、配置等）都得到全量同步
+     * Map RAGFlow's strongly-typed InfoVO to the internal KnowledgeFilesDTO
+     * Ensure all available fields (name, size, status, config, etc.) are fully synchronized
      */
     private KnowledgeFilesDTO mapToKnowledgeFilesDTO(DocumentDTO.InfoVO info, String datasetId) {
         KnowledgeFilesDTO dto = new KnowledgeFilesDTO();
@@ -644,7 +644,7 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
         dto.setName(info.getName());
         dto.setFileSize(info.getSize());
 
-        // 状态映射
+        // Status mapping
         if (info.getRun() != null) {
             dto.setRun(info.getRun().name());
         }
@@ -652,10 +652,10 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
         if (StringUtils.isNotBlank(info.getStatus())) {
             dto.setStatus(info.getStatus());
         } else {
-            dto.setStatus("1"); // 默认启用
+            dto.setStatus("1"); // Enabled by Default
         }
 
-        // 时间同步
+        // Time sync
         if (info.getCreateTime() != null) {
             dto.setCreatedAt(new Date(info.getCreateTime()));
         }
@@ -663,16 +663,16 @@ public class RAGFlowAdapter extends KnowledgeBaseAdapter {
             dto.setUpdatedAt(new Date(info.getUpdateTime()));
         }
 
-        // 核心元数据补齐 (Issue 1)
+        // Complete core metadata (Issue 1)
         dto.setProgress(info.getProgress());
         dto.setThumbnail(info.getThumbnail());
         dto.setProcessDuration(info.getProcessDuration());
         dto.setSourceType(info.getSourceType());
         dto.setChunkCount(info.getChunkCount() != null ? info.getChunkCount().intValue() : 0);
         dto.setTokenCount(info.getTokenCount());
-        dto.setError(info.getProgressMsg()); // 将进度描述映射为错误信息提示
+        dto.setError(info.getProgressMsg()); // Map progress descriptions to error messages
 
-        // 扩展字段同步
+        // Sync extended fields
         dto.setMetaFields(info.getMetaFields());
         if (info.getChunkMethod() != null) {
             dto.setChunkMethod(info.getChunkMethod().name().toLowerCase());

@@ -385,7 +385,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
                 }
             }
 
-            // 删除在新JSON中不存在的非敏感字段
+            // Delete non-sensitive fields that do not exist in the new JSON
             for (String oldKey : originalJson.keySet().toArray(new String[0])) {
                 if (!modelConfigBodyDTO.getConfigJson().containsKey(oldKey)
                         && !SensitiveDataUtils.isSensitiveField(oldKey)) {
@@ -419,16 +419,16 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
             original.set(key, new JSONObject());
         }
 
-        // 获取 original 中的子对象
+        // Get sub-object from original
         Object originalValue = original.get(key);
         JSONObject originalChild;
 
-        // 检查 originalValue 是否是 JSONObject 类型
+        // Check if originalValue is of JSONObject type
         if (originalValue instanceof JSONObject) {
             originalChild = (JSONObject) originalValue;
         } else {
-            // 如果不是 JSONObject 类型，记录警告并创建新的 JSON 对象
-            log.warn("mergeJson: key '{}' 的值不是 JSONObject 类型 (实际类型：{})，将创建新对象",
+            // If not a JSONObject type, log a warning and create a new JSON object
+            log.warn("mergeJson: value for key '{}' is not a JSONObject type (actual type: {}), creating new object",
                     key, originalValue != null ? originalValue.getClass().getSimpleName() : "null");
             originalChild = new JSONObject();
             original.set(key, originalChild);
@@ -446,7 +446,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
             }
         }
 
-        // 删除在新 JSON 中不存在的非敏感子字段
+        // Delete non-sensitive subfields that do not exist in the new JSON
         for (String oldChildKey : originalChild.keySet().toArray(new String[0])) {
             if (!updated.containsKey(oldChildKey) && !SensitiveDataUtils.isSensitiveField(oldChildKey)) {
                 originalChild.remove(oldChildKey);
@@ -523,7 +523,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         if (!agents.isEmpty()) {
             String agentNames = agents.stream()
                     .map(AgentEntity::getAgentName)
-                    .collect(Collectors.joining("、"));
+                    .collect(Collectors.joining(","));
             throw new RenException(ErrorCode.MODEL_REFERENCED_BY_AGENT, agentNames);
         }
     }

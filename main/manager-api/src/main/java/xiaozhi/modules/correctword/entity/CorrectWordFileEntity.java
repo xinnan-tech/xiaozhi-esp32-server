@@ -11,31 +11,31 @@ import lombok.Data;
 
 @Data
 @TableName("ai_agent_correct_word_file")
-@Schema(description = "智能体替换词文件")
+@Schema(description = "Agent replacement word file")
 public class CorrectWordFileEntity {
 
     @TableId(type = IdType.ASSIGN_UUID)
-    @Schema(description = "替换词文件ID")
+    @Schema(description = "Replacement word file ID")
     private String id;
 
-    @Schema(description = "原始文件名")
+    @Schema(description = "Original filename")
     private String fileName;
 
-    @Schema(description = "替换词数量")
+    @Schema(description = "Replacement word count")
     private Integer wordCount;
 
-    @Schema(description = "文件原始内容（用于下载）")
+    @Schema(description = "Original file content (for download)")
     private String content;
 
-    @Schema(description = "创建者")
+    @Schema(description = "Creator")
     private Long creator;
 
-    @Schema(description = "创建时间")
+    @Schema(description = "Creation Time")
     private Date createdAt;
 
-    @Schema(description = "更新者")
+    @Schema(description = "Updated by")
     private Long updater;
 
-    @Schema(description = "更新时间")
+    @Schema(description = "Update time")
     private Date updatedAt;
 }

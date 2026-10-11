@@ -21,12 +21,12 @@ import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.vo.UserShowDeviceListVO;
 import xiaozhi.modules.security.config.WebMvcConfig;
 
-@DisplayName("设备时间序列化回归测试")
+@DisplayName("Device time serialization regression test")
 class DeviceTimeSerializationTest {
 
-    @ParameterizedTest(name = "浏览器时区 {0}")
+    @ParameterizedTest(name = "Browser timezone {0}")
     @ValueSource(strings = { "Asia/Shanghai", "America/Sao_Paulo" })
-    @DisplayName("#3280 绑定时间和最后连接时间在任意浏览器时区都表示同一时刻")
+    @DisplayName("#3280 Bind time and last connection time represent the same moment in any browser timezone")
     void serializedDeviceTimesDescribeTheSameInstantAcrossBrowserTimeZones(String browserTimeZone) {
         Instant connectedAt = Instant.parse("2026-07-10T13:21:42Z");
         DeviceEntity entity = new DeviceEntity();
@@ -46,22 +46,22 @@ class DeviceTimeSerializationTest {
 
         assertAll(
                 () -> assertTrue(payload.path("createDateTimestamp").isTextual(),
-                        "Long 时间戳必须遵循现有 JSON 契约序列化为字符串"),
+                        "Long timestamps must be serialized as strings per existing JSON contract"),
                 () -> assertTrue(payload.path("lastConnectedAtTimestamp").isTextual(),
-                        "Long 时间戳必须遵循现有 JSON 契约序列化为字符串"),
+                        "Long timestamps must be serialized as strings per existing JSON contract"),
                 () -> assertEquals(connectedAt, createDate,
-                        "createDateTimestamp 必须保留源时间点"),
+                        "createDateTimestamp must preserve source timestamp"),
                 () -> assertEquals(connectedAt, lastConnectedAt,
-                        "lastConnectedAtTimestamp 必须保留源时间点"),
+                        "lastConnectedAtTimestamp must preserve the original timestamp"),
                 () -> assertEquals(lastConnectedAt.atZone(browserZone).toLocalDateTime(),
                         createDate.atZone(browserZone).toLocalDateTime(),
-                        "绑定时间和最后连接时间在同一浏览器中必须显示为相同的本地时间"),
+                        "Bound time and last connection time must display as the same local time in the same browser"),
                 () -> assertTrue(payload.path("createDate").isTextual(),
-                        "兼容字段 createDate 必须继续保留"));
+                        "Retain the legacy field createDate for compatibility"));
     }
 
     @Test
-    @DisplayName("时间为空时新旧字段均保持 null")
+    @DisplayName("When time is empty, both old and new fields remain null")
     void nullDeviceTimesRemainNull() {
         DeviceEntity entity = new DeviceEntity();
         DeviceServiceImpl deviceService = serviceReturning(entity);
@@ -76,9 +76,9 @@ class DeviceTimeSerializationTest {
                 () -> assertTrue(payload.path("createDate").isNull()));
     }
 
-    @ParameterizedTest(name = "自动升级状态 {0}")
+    @ParameterizedTest(name = "Auto-upgrade status {0}")
     @ValueSource(ints = { 0, 1 })
-    @DisplayName("#3299 设备列表按 autoUpdate 契约返回真实开关状态")
+    @DisplayName("#3299 Device list returns actual toggle states per autoUpdate contract")
     void serializedDeviceContainsAutoUpdateState(int autoUpdate) {
         DeviceEntity entity = new DeviceEntity();
         entity.setAutoUpdate(autoUpdate);
@@ -92,7 +92,7 @@ class DeviceTimeSerializationTest {
                 () -> assertEquals(autoUpdate, device.getAutoUpdate()),
                 () -> assertEquals(autoUpdate, payload.path("autoUpdate").asInt()),
                 () -> assertTrue(payload.path("otaUpgrade").isMissingNode(),
-                        "设备列表不应继续暴露未映射的旧字段 otaUpgrade"));
+                        "Device list should not continue exposing unmapped legacy field otaUpgrade"));
     }
 
     private DeviceServiceImpl serviceReturning(DeviceEntity entity) {

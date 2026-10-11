@@ -15,126 +15,126 @@ import xiaozhi.modules.device.vo.UserShowDeviceListVO;
 
 public interface DeviceService extends BaseService<DeviceEntity> {
     /**
-     * 获取设备在线数据
+     * Get device online data
      */
     String getDeviceOnlineData(String agentId);
 
     /**
-     * 检查设备是否激活
+     * Check if device is active
      */
     DeviceReportRespDTO checkDeviceActive(String macAddress, String clientId,
             DeviceReportReqDTO deviceReport);
 
     /**
-     * 获取用户指定智能体的设备列表，
+     * Retrieve device list for user-specified Agent,
      */
     List<DeviceEntity> getUserDevices(Long userId, String agentId);
 
     /**
-     * 获取用户指定智能体的设备列表（带时区处理），
+     * Get device list for user-specified agent (with timezone handling),
      */
     List<UserShowDeviceListVO> getUserDeviceList(Long userId, String agentId);
 
     /**
-     * 解绑设备
+     * Unbind device
      */
     void unbindDevice(Long userId, String deviceId);
 
     /**
-     * 设备激活
+     * Device Activation
      */
     Boolean deviceActivation(String agentId, String activationCode);
 
     /**
-     * 删除此用户的所有设备
+     * Delete all devices for this user
      * 
-     * @param userId 用户id
+     * @param userId User ID
      */
     void deleteByUserId(Long userId);
 
     /**
-     * 删除指定智能体关联的所有设备
+     * Delete all devices associated with the specified Agent
      * 
-     * @param agentId 智能体id
+     * @param agentId Agent ID
      */
     void deleteByAgentId(String agentId);
 
     /**
-     * 获取指定用户的设备数量
+     * Get device count for specified user
      * 
-     * @param userId 用户id
-     * @return 设备数量
+     * @param userId User ID
+     * @return Device count
      */
     Long selectCountByUserId(Long userId);
 
     /**
-     * 分页获取全部设备信息
+     * Paginate to retrieve all device information
      *
-     * @param dto 分页查找参数
-     * @return 用户列表分页数据
+     * @param dto Pagination search parameters
+     * @return Paginated user list data
      */
     PageData<UserShowDeviceListVO> page(DevicePageUserDTO dto);
 
     /**
-     * 根据MAC地址获取设备信息
+     * Get device info by MAC address
      * 
-     * @param macAddress MAC地址
-     * @return 设备信息
+     * @param macAddress MAC address
+     * @return Device info
      */
     DeviceEntity getDeviceByMacAddress(String macAddress);
 
     /**
-     * 根据设备ID获取激活码
+     * Get activation code by device ID
      * 
-     * @param deviceId 设备ID
-     * @return 激活码
+     * @param deviceId Device ID
+     * @return activation code
      */
     String geCodeByDeviceId(String deviceId);
 
     /**
-     * 获取这个智能体设备理的最近的最后连接时间
+     * Get the last connection time for this agent device
      * 
-     * @param agentId 智能体id
-     * @return 返回设备最近的最后连接时间
+     * @param agentId Agent ID
+     * @return Returns the device's most recent last connection time
      */
     Date getLatestLastConnectionTime(String agentId);
 
     /**
-     * 手动添加设备
+     * Add device manually
      */
     void manualAddDevice(Long userId, DeviceManualAddDTO dto);
 
     /**
-     * 更新设备连接信息
+     * Update device connection info
      */
     void updateDeviceConnectionInfo(String agentId, String deviceId, String appVersion);
 
     /**
-     * 生成WebSocket认证token
+     * Generate WebSocket authentication token
      *
-     * @param clientId 客户端ID
-     * @param username 用户名(通常为deviceId)
-     * @return 认证token字符串
-     * @throws Exception 生成token时的异常
+     * @param clientId Client ID
+     * @param username Username (typically deviceId)
+     * @return Authentication token string
+     * @throws Exception Exception during token generation
      */
     String generateWebSocketToken(String clientId, String username) throws Exception;
 
     /**
-     * 根据MAC地址搜索设备
+     * Search device by MAC address
      *
-     * @param macAddress MAC地址关键词
-     * @param userId     用户ID
-     * @return 设备列表
+     * @param macAddress MAC address keyword
+     * @param userId User ID
+     * @return Device list
      */
     List<DeviceEntity> searchDevicesByMacAddress(String macAddress, Long userId);
 
     /**
-     * 获取设备工具列表
+     * Get device tool list
      */
     Object getDeviceTools(String deviceId);
 
     /**
-     * 调用设备工具
+     * Invoke Device Tool
      */
     Object callDeviceTool(String deviceId, String toolName, Map<String, Object> arguments);
 

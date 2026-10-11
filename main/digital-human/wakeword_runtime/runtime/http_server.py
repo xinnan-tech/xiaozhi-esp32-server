@@ -162,7 +162,7 @@ class TestRuntimeHttpServer:
                         "wakeword_config",
                         {},
                         success=False,
-                        error=f"读取唤醒词配置失败: {exc}",
+                        error=f"Failed to read wake word config: {exc}",
                     )
 
             def _handle_bridge_request(self, bridge: WakewordEventBridge, raw_message: str) -> str | None:
@@ -191,7 +191,7 @@ class TestRuntimeHttpServer:
                             {},
                             request_id=request_id,
                             success=False,
-                            error=f"保存唤醒词配置失败: {exc}",
+                            error=f"Failed to save wake word config: {exc}",
                         )
 
                 if message_type == "restart_wakeword_service":

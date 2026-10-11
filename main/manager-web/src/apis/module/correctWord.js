@@ -23,7 +23,7 @@ function retryCallbackRequest(retry, retryCount, onTerminalFailure, error, retry
 
 
 export default {
-    // 获取替换词文件列表
+    // Get replacement word file list
     getFileList(params, callback) {
         const queryParams = new URLSearchParams({
             page: params.page,
@@ -38,14 +38,14 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('获取替换词文件列表失败:', err)
+                console.error('Failed to fetch replacement word file list:', err)
                 RequestService.reAjaxFun(() => {
                     this.getFileList(params, callback)
                 })
             }).send()
     },
 
-    // 获取所有替换词文件（不分页）
+    // Get all replacement-word files (no pagination)
     selectAll(callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
         const retryWindowStartedAt = retryStartedAt || Date.now()
         const request = RequestService.sendRequest()
@@ -56,7 +56,7 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('获取所有替换词文件失败:', err)
+                console.error('Failed to get all replacement word files:', err)
                 retryCallbackRequest(
                     (nextRetryCount, nextRetryStartedAt) => this.selectAll(
                         callback,
@@ -79,7 +79,7 @@ export default {
         request.send()
     },
 
-    // 下载替换词文件
+    // Download replacement word file
     downloadFile(id, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/correct-word/file/download/${id}`)
@@ -94,7 +94,7 @@ export default {
             }).send()
     },
 
-    // 新增替换词文件
+    // Add replacement word file
     addFile(data, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/correct-word/file`)
@@ -110,7 +110,7 @@ export default {
             }).send()
     },
 
-    // 更新替换词文件
+    // Update replacement word file
     updateFile(data, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/correct-word/file/${data.id}`)
@@ -129,7 +129,7 @@ export default {
             }).send()
     },
 
-    // 删除替换词文件
+    // Delete replacement word file
     deleteFile(id, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/correct-word/file/${id}`)
@@ -139,14 +139,14 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('删除替换词文件失败:', err)
+                console.error('Failed to delete replacement word file:', err)
                 RequestService.reAjaxFun(() => {
                     this.deleteFile(id, callback)
                 })
             }).send()
     },
 
-    // 批量删除替换词文件
+    // Batch delete replacement word files
     batchDeleteFile(ids, callback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/correct-word/file/batch-delete`)
@@ -157,7 +157,7 @@ export default {
                 callback(res)
             })
             .networkFail((err) => {
-                console.error('批量删除替换词文件失败:', err)
+                console.error('Failed to batch delete replacement word files:', err)
                 RequestService.reAjaxFun(() => {
                     this.batchDeleteFile(ids, callback)
                 })

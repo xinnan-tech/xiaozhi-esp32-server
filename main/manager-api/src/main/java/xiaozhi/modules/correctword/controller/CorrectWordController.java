@@ -34,14 +34,14 @@ import xiaozhi.modules.correctword.vo.CorrectWordFileVO;
 
 @RestController
 @RequestMapping("/correct-word")
-@Tag(name = "替换词管理")
+@Tag(name = "Replacement word management")
 @AllArgsConstructor
 public class CorrectWordController {
 
     private final CorrectWordFileService correctWordFileService;
 
     @PostMapping("/file")
-    @Operation(summary = "创建替换词文件")
+    @Operation(summary = "Create replacement word file")
     @RequiresPermissions("sys:role:normal")
     public Result<CorrectWordFileVO> createFile(@Valid @RequestBody CorrectWordFileCreateDTO dto) {
         CorrectWordFileVO vo = correctWordFileService.createFile(dto);
@@ -49,7 +49,7 @@ public class CorrectWordController {
     }
 
     @PutMapping("/file/{fileId}")
-    @Operation(summary = "修改替换词文件")
+    @Operation(summary = "Modify replacement word file")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> updateFile(@PathVariable String fileId, @Valid @RequestBody CorrectWordFileCreateDTO dto) {
         correctWordFileService.updateFile(fileId, dto);
@@ -57,11 +57,11 @@ public class CorrectWordController {
     }
 
     @GetMapping("/file/list")
-    @Operation(summary = "分页获取当前用户替换词文件列表")
+    @Operation(summary = "Paginate current user's replacement word file list")
     @RequiresPermissions("sys:role:normal")
     @Parameters({
-            @Parameter(name = Constant.PAGE, description = "当前页码，从1开始", required = true),
-            @Parameter(name = Constant.LIMIT, description = "每页显示记录数", required = true),
+            @Parameter(name = Constant.PAGE, description = "Current page number, starting from 1", required = true),
+            @Parameter(name = Constant.LIMIT, description = "Records per page", required = true),
     })
     public Result<PageData<CorrectWordFileVO>> listFiles(
             @Parameter(hidden = true) @RequestParam Map<String, Object> params) {
@@ -70,7 +70,7 @@ public class CorrectWordController {
     }
 
     @GetMapping("/file/select")
-    @Operation(summary = "智能体获取当前用户替换词文件列表")
+    @Operation(summary = "Agent retrieves the current user's replacement word file list")
     @RequiresPermissions("sys:role:normal")
     public Result<List<CorrectWordFileVO>> listAllFiles() {
         List<CorrectWordFileVO> list = correctWordFileService.listAllFiles();
@@ -78,7 +78,7 @@ public class CorrectWordController {
     }
 
     @GetMapping("/file/download/{fileId}")
-    @Operation(summary = "下载替换词文件")
+    @Operation(summary = "Download replacement word file")
     @RequiresPermissions("sys:role:normal")
     public ResponseEntity<byte[]> downloadFile(@PathVariable String fileId) {
         CorrectWordFileVO vo = correctWordFileService.getFileContent(fileId);
@@ -96,7 +96,7 @@ public class CorrectWordController {
     }
 
     @DeleteMapping("/file/{fileId}")
-    @Operation(summary = "删除替换词文件")
+    @Operation(summary = "Delete replacement word file")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> deleteFile(@PathVariable String fileId) {
         correctWordFileService.deleteFile(fileId);
@@ -104,7 +104,7 @@ public class CorrectWordController {
     }
 
     @PostMapping("/file/batch-delete")
-    @Operation(summary = "批量删除替换词文件")
+    @Operation(summary = "Batch delete replacement word files")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> batchDeleteFiles(@RequestBody List<String> fileIds) {
         if (fileIds == null || fileIds.isEmpty()) {

@@ -62,7 +62,7 @@ class VADProvider(VADProviderBase):
         try:
             self._init_connection_state(conn)
 
-            # pcm_frame已经是处理后的PCM数据
+            # pcm_frame is already processed PCM data
             conn.client_audio_buffer.extend(pcm_frame)
 
             client_have_voice = False

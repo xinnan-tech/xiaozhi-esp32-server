@@ -120,7 +120,7 @@ export default {
           }
           // After successful submission, let parent component handle dialog closing logic
           this.$emit('submit', this.form)
-          // 兜底：父组件若未在回调内重置 saving，3 秒后强制释放加载状态
+          // Fallback: If parent component does not reset saving in callback, force release loading state after 3 seconds
           setTimeout(() => {
             this.saving = false
           }, 3000)
@@ -131,7 +131,7 @@ export default {
       this.saving = false
       this.$emit('cancel')
     },
-    // 提供给父组件调用以重置saving状态
+    // Expose to parent component to reset saving state
     resetSaving() {
       this.saving = false
     },

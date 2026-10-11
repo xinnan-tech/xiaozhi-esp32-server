@@ -342,7 +342,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         wrapper.eq("id", deviceId);
         baseDao.delete(wrapper);
 
-        // 删除设备相关的通讯录权限记录
+        // Delete contact permissions related to the device
         deviceAddressBookService.deleteByMacAddresses(Collections.singletonList(macAddress));
     }
 
@@ -362,17 +362,17 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
     @Override
     public void deleteByAgentId(String agentId) {
-        // 先查询该智能体下的所有设备，获取mac地址用于删除通讯录记录
+        // Query all devices under this Agent first to get MAC addresses for deleting contact records
         QueryWrapper<DeviceEntity> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("agent_id", agentId);
         List<DeviceEntity> devices = baseDao.selectList(queryWrapper);
 
-        // 删除设备
+        // Delete device
         UpdateWrapper<DeviceEntity> wrapper = new UpdateWrapper<>();
         wrapper.eq("agent_id", agentId);
         baseDao.delete(wrapper);
 
-        // 批量删除这些设备相关的所有通讯录权限记录
+        // Batch delete all contact permissions related to these devices
         if (!devices.isEmpty()) {
             List<String> macAddresses = devices.stream()
                     .map(DeviceEntity::getMacAddress)

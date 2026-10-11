@@ -8,66 +8,66 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
-@Schema(description = "知识库知识库")
+@Schema(description = "Knowledge base")
 public class KnowledgeBaseDTO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @Schema(description = "唯一标识")
+    @Schema(description = "Unique identifier")
     private String id;
 
-    @Schema(description = "知识库ID")
+    @Schema(description = "Knowledge base ID")
     private String datasetId;
 
-    @Schema(description = "RAG模型配置ID")
+    @Schema(description = "RAG model config ID")
     private String ragModelId;
 
-    @Schema(description = "知识库名称")
+    @Schema(description = "Knowledge base name")
     private String name;
 
-    @Schema(description = "知识库头像(Base64)")
+    @Schema(description = "Knowledge base avatar (Base64)")
     private String avatar;
 
-    @Schema(description = "知识库描述")
+    @Schema(description = "Knowledge base description")
     private String description;
 
-    @Schema(description = "嵌入模型名称")
+    @Schema(description = "Embedding model name")
     private String embeddingModel;
 
-    @Schema(description = "权限设置: me/team")
+    @Schema(description = "Permission settings: me/team")
     private String permission;
 
-    @Schema(description = "分块方法")
+    @Schema(description = "Chunking Method")
     private String chunkMethod;
 
-    @Schema(description = "解析器配置(JSON String)")
+    @Schema(description = "Parser config (JSON String)")
     private String parserConfig;
 
-    @Schema(description = "分块总数")
+    @Schema(description = "Total Chunks")
     private Long chunkCount;
 
-    @Schema(description = "总Token数")
+    @Schema(description = "Total tokens")
     private Long tokenNum;
 
-    @Schema(description = "状态(0:禁用 1:启用)")
+    @Schema(description = "Status (0: disabled, 1: enabled)")
     private Integer status;
 
-    @Schema(description = "创建者")
+    @Schema(description = "Creator")
     private Long creator;
 
-    @Schema(description = "创建时间")
+    @Schema(description = "Creation Time")
     private Date createdAt;
 
-    @Schema(description = "更新者")
+    @Schema(description = "Updated by")
     private Long updater;
 
-    @Schema(description = "更新时间")
+    @Schema(description = "Update time")
     private Date updatedAt;
 
-    @Schema(description = "文档数量")
+    @Schema(description = "Document count")
     private Integer documentCount;
 
-    @Schema(description = "异常提示")
+    @Schema(description = "Error message")
     private String errorMessage;
 }

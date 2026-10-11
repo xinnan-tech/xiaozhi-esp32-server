@@ -86,7 +86,7 @@ onMounted(() => {
 
 <template>
   <view class="h-screen flex flex-col bg-[#f5f7fb]">
-    <!-- 头部导航 -->
+    <!-- Header navigation -->
     <wd-navbar
       :title="t('contextProviderDialog.title')"
       safe-area-inset-top

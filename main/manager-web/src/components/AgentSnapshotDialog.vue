@@ -1433,7 +1433,7 @@ export default {
           }
           resolve();
         }, () => {
-          // 权限不足或元数据服务不可用时保留原始 ID，不扩大文件列表的访问边界。
+          // Retain original ID when permissions are insufficient or metadata service is unavailable; do not expand file list access boundaries
           this.correctWordMetadataLoaded = true;
           resolve();
         });
