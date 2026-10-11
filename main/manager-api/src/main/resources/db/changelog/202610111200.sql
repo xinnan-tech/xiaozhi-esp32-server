@@ -48,3 +48,29 @@ SET `fields` = JSON_SET(
     '$[3].default', 'tvly-XXXX'
 )
 WHERE `id` = 'SYSTEM_PLUGIN_WEB_SEARCH';
+
+-- News plugin: the seed queue carried feeds.reuters.com URLs, but Reuters
+-- shut its public RSS down in 2020, so every fetch fell through to fallback.
+-- Point the stored defaults at live western feeds (matches the server-side
+-- get_news.py built-in sources).
+UPDATE `sys_params`
+SET `param_value` = 'https://feeds.bbci.co.uk/news/world/rss.xml'
+WHERE `param_code` = 'plugins.get_news.default_rss_url';
+
+UPDATE `sys_params`
+SET `param_value` = '{"world":"https://feeds.bbci.co.uk/news/world/rss.xml","technology":"https://techcrunch.com/feed/","business":"https://feeds.bbci.co.uk/news/business/rss.xml"}'
+WHERE `param_code` = 'plugins.get_news.category_urls';
+
+UPDATE `ai_model_provider`
+SET `fields` = JSON_SET(
+    `fields`,
+    '$[0].default', 'https://feeds.bbci.co.uk/news/world/rss.xml',
+    '$[0].description', 'Fallback RSS URL when built-in sources fail. Built-in sources include BBC, CNN, NPR, Guardian, TechCrunch and Ars Technica.'
+)
+WHERE `id` = 'SYSTEM_PLUGIN_NEWS';
+
+-- Home Assistant demo devices referenced China-region cloud switches
+-- (cuco_cn / iot_cn entity ids). Use neutral example entity ids instead.
+UPDATE `sys_params`
+SET `param_value` = 'Living Room,Toy Light,switch.living_room_toy_light;Bedroom,Table Lamp,switch.bedroom_table_lamp'
+WHERE `param_code` = 'plugins.home_assistant.devices';
