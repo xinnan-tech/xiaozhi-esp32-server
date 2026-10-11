@@ -287,7 +287,7 @@ public class OTAMagController {
 
             // Return the file path.
             return new Result<String>().ok(filePath.toString());
-        } catch (IOException | NoSuchAlgorithmException e) {
+        } catch (IOException e) {
             return new Result<String>().error("File upload failed: " + e.getMessage());
         }
     }

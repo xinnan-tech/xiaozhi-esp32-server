@@ -57,6 +57,8 @@ public interface TimbreService extends BaseService<TimbreEntity> {
 
     List<VoiceDTO> getVoiceNames(String ttsModelId, String voiceName);
 
+    String getDefaultLanguageById(String id);
+
     /**
      * Get timbre name by ID
      * 

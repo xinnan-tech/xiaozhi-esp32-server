@@ -36,6 +36,8 @@ public interface AgentService extends BaseService<AgentEntity> {
      */
     AgentInfoVO getAgentById(String id);
 
+    AgentInfoVO getAgentById(String id, Long userId);
+
     /**
      * Insert an agent.
      *
@@ -50,6 +52,8 @@ public interface AgentService extends BaseService<AgentEntity> {
      * @param userId user ID
      */
     void deleteAgentByUserId(Long userId);
+
+    void deleteAgent(String agentId);
 
     /**
      * Get a user's agents.
@@ -93,6 +97,14 @@ public interface AgentService extends BaseService<AgentEntity> {
      * @param dto     updated agent data
      */
     void updateAgentById(String agentId, AgentUpdateDTO dto);
+
+    void updateAgentById(String agentId, AgentUpdateDTO dto, Long userId);
+
+    void updateAgentById(String agentId, AgentUpdateDTO dto, boolean createSnapshot);
+
+    void updateAgentMemoryByDeviceMacAddress(String macAddress, AgentMemoryDTO dto, Long userId);
+
+    void deleteAgentById(String agentId, Long userId);
 
     /**
      * Create an agent.

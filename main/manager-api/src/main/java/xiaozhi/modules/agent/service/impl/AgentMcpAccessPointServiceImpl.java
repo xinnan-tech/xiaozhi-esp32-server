@@ -226,7 +226,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
      */
     private static String encryptToken(String agentId, String key) {
         // Use MD5 to encrypt agent ID
-        String md5 = HashEncryptionUtil.Md5hexDigest(agentId);
+        String md5 = DigestUtil.md5Hex(agentId);
         // AES needs encrypted text
         String json = "{\"agentId\": \"%s\"}".formatted(md5);
         // Encrypt to token value

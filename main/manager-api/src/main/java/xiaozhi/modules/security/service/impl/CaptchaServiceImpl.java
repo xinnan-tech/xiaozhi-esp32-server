@@ -2,6 +2,7 @@ package xiaozhi.modules.security.service.impl;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Random;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;

@@ -21,6 +21,7 @@ import xiaozhi.common.constant.Constant;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.JsonUtils;
+import xiaozhi.common.utils.ToolUtil;
 import xiaozhi.modules.agent.Enums.AgentChatHistoryType;
 import xiaozhi.modules.agent.dao.AiAgentChatHistoryDao;
 import xiaozhi.modules.agent.dto.AgentChatHistoryDTO;
