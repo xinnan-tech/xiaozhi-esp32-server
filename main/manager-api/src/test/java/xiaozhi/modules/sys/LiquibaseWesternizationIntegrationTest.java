@@ -280,25 +280,280 @@ WHERE r.sort = 0;
         }
         normalized = splitMultiAddColumnAlterStatements(normalized);
         normalized = normalizeJsonSetCalls(normalized);
+        normalized = convertDoubleQuotedStringLiterals(normalized);
         return normalized;
     }
 
-    private String splitMultiAddColumnAlterStatements(String sql) {
-        Pattern pattern = Pattern.compile(
-            "(?is)ALTER\\s+TABLE\\s+(`?\\w+`?)\\s+(ADD\\s+COLUMN\\s+.*?),(\\s*ADD\\s+COLUMN\\s+.*?);"
-        );
-
-        String normalized = sql;
-        while (true) {
-            Matcher matcher = pattern.matcher(normalized);
-            if (!matcher.find()) {
-                return normalized;
+    /**
+     * H2 (unlike MySQL) parses "..." as an identifier, not a string literal.
+     * Walk the SQL with a small state machine so only true double-quoted string
+     * literals are rewritten to single-quoted form; single-quoted payloads and
+     * backtick identifiers are copied through untouched.
+     */
+    private String convertDoubleQuotedStringLiterals(String sql) {
+        StringBuilder out = new StringBuilder(sql.length());
+        int i = 0;
+        int n = sql.length();
+        while (i < n) {
+            char c = sql.charAt(i);
+            if (c == '-' && i + 1 < n && sql.charAt(i + 1) == '-') {
+                int end = sql.indexOf('\n', i);
+                if (end < 0) {
+                    end = n;
+                }
+                out.append(sql, i, end);
+                i = end;
+                continue;
             }
-            String replacement =
-                "ALTER TABLE " + matcher.group(1) + " " + matcher.group(2) + ";\n" +
-                "ALTER TABLE " + matcher.group(1) + " " + matcher.group(3).trim() + ";";
-            normalized = matcher.replaceFirst(Matcher.quoteReplacement(replacement));
+            if (c == '/' && i + 1 < n && sql.charAt(i + 1) == '*') {
+                int end = sql.indexOf("*/", i + 2);
+                if (end < 0) {
+                    end = n;
+                } else {
+                    end += 2;
+                }
+                out.append(sql, i, end);
+                i = end;
+                continue;
+            }
+            if (c == '`') {
+                int end = sql.indexOf('`', i + 1);
+                if (end < 0) {
+                    end = n - 1;
+                }
+                out.append(sql, i, end + 1);
+                i = end + 1;
+                continue;
+            }
+            if (c == '\'') {
+                int j = i + 1;
+                StringBuilder body = new StringBuilder("'");
+                while (j < n) {
+                    char d = sql.charAt(j);
+                    if (d == '\\' && j + 1 < n) {
+                        body.append(d).append(sql.charAt(j + 1));
+                        j += 2;
+                        continue;
+                    }
+                    if (d == '\'') {
+                        if (j + 1 < n && sql.charAt(j + 1) == '\'') {
+                            body.append("''");
+                            j += 2;
+                            continue;
+                        }
+                        body.append('\'');
+                        j++;
+                        break;
+                    }
+                    body.append(d);
+                    j++;
+                }
+                out.append(body);
+                i = j;
+                continue;
+            }
+            if (c == '"') {
+                StringBuilder content = new StringBuilder();
+                int j = i + 1;
+                boolean closed = false;
+                while (j < n) {
+                    char d = sql.charAt(j);
+                    if (d == '\\' && j + 1 < n) {
+                        if (sql.charAt(j + 1) == '"') {
+                            content.append('"');
+                        } else {
+                            content.append(d).append(sql.charAt(j + 1));
+                        }
+                        j += 2;
+                        continue;
+                    }
+                    if (d == '"') {
+                        if (j + 1 < n && sql.charAt(j + 1) == '"') {
+                            content.append('"');
+                            j += 2;
+                            continue;
+                        }
+                        closed = true;
+                        j++;
+                        break;
+                    }
+                    content.append(d);
+                    j++;
+                }
+                if (!closed) {
+                    // unterminated; copy through unchanged
+                    out.append(sql, i, j);
+                    i = j;
+                    continue;
+                }
+                out.append('\'').append(content.toString().replace("'", "''")).append('\'');
+                i = j;
+                continue;
+            }
+            out.append(c);
+            i++;
         }
+        return out.toString();
+    }
+
+    /**
+     * H2 does not support multiple clauses in one ALTER TABLE, so split any
+     * top-level comma inside ALTER TABLE ... ; into separate statements.
+     * Commas inside parentheses or quotes are ignored.
+     */
+    private String splitMultiAddColumnAlterStatements(String sql) {
+        StringBuilder out = new StringBuilder(sql.length());
+        int i = 0;
+        int n = sql.length();
+        while (i < n) {
+            // Never touch line comments (e.g. "-- rollback ALTER TABLE ..."):
+            // splitting them would turn commented SQL into live statements.
+            int lineEnd = sql.indexOf('\n', i);
+            if (lineEnd < 0) {
+                lineEnd = n;
+            }
+            String line = sql.substring(i, Math.min(lineEnd, n));
+            if (line.isBlank() || line.stripLeading().startsWith("--")) {
+                out.append(sql, i, Math.min(lineEnd + 1, n));
+                i = Math.min(lineEnd + 1, n);
+                continue;
+            }
+            int alterAt = sql.regionMatches(true, i, "ALTER TABLE", 0, 11) ? i : findAlter(sql, i);
+            if (alterAt < 0) {
+                out.append(sql, i, n);
+                break;
+            }
+            if (alterAt > i && sql.substring(i, alterAt).contains("\n--")) {
+                // an ALTER found on a line after a comment line: defer to line loop
+                int nextBreak = sql.indexOf('\n', i) + 1;
+                out.append(sql, i, nextBreak);
+                i = nextBreak;
+                continue;
+            }
+            // locate the terminating semicolon of this statement (quote-aware)
+            int end = statementEnd(sql, alterAt);
+            String stmt = sql.substring(alterAt, end + 1);
+            String split = splitAlterStatement(stmt);
+            out.append(sql, i, alterAt).append(split);
+            i = end + 1;
+        }
+        return out.toString();
+    }
+
+    private int findAlter(String sql, int from) {
+        boolean lineStart = from == 0 || sql.charAt(from - 1) == '\n';
+        for (int j = from; j + 11 <= sql.length(); j++) {
+            char c = sql.charAt(j);
+            if (c == '\n') {
+                lineStart = true;
+                continue;
+            }
+            if (lineStart && !Character.isWhitespace(c) && sql.regionMatches(j, "--", 0, 2)) {
+                int eol = sql.indexOf('\n', j);
+                j = (eol < 0) ? sql.length() : eol - 1;  // skip whole comment line
+                continue;
+            }
+            if (lineStart && !Character.isWhitespace(c)) {
+                lineStart = false;
+            }
+            if (sql.regionMatches(true, j, "ALTER TABLE", 0, 11)
+                    && (j == 0 || sql.charAt(j - 1) == '\n' || Character.isWhitespace(sql.charAt(j - 1)))) {
+                return j;
+            }
+        }
+        return -1;
+    }
+
+    private int statementEnd(String sql, int from) {
+        boolean inSingle = false;
+        boolean inDouble = false;
+        boolean inBacktick = false;
+        for (int j = from; j < sql.length(); j++) {
+            char c = sql.charAt(j);
+            if (c == '\\' && (inSingle || inDouble)) {
+                j++;
+                continue;
+            }
+            if (c == '\'' && !inDouble && !inBacktick) {
+                inSingle = !inSingle;
+            } else if (c == '"' && !inSingle && !inBacktick) {
+                inDouble = !inDouble;
+            } else if (c == '`' && !inSingle && !inDouble) {
+                inBacktick = !inBacktick;
+            } else if (c == ';' && !inSingle && !inDouble && !inBacktick) {
+                return j;
+            }
+        }
+        return sql.length() - 1;
+    }
+
+    private String splitAlterStatement(String stmt) {
+        // strip trailing semicolon
+        String body = stmt.trim();
+        if (body.endsWith(";")) {
+            body = body.substring(0, body.length() - 1);
+        }
+        List<String> parts = new ArrayList<>();
+        int depth = 0;
+        boolean inSingle = false;
+        boolean inDouble = false;
+        boolean inBacktick = false;
+        StringBuilder current = new StringBuilder();
+        for (int j = 0; j < body.length(); j++) {
+            char c = body.charAt(j);
+            if (c == '\\' && (inSingle || inDouble)) {
+                current.append(c);
+                if (j + 1 < body.length()) {
+                    current.append(body.charAt(++j));
+                }
+                continue;
+            }
+            if (c == '\'' && !inDouble && !inBacktick) {
+                inSingle = !inSingle;
+            } else if (c == '"' && !inSingle && !inBacktick) {
+                inDouble = !inDouble;
+            } else if (c == '`' && !inSingle && !inDouble) {
+                inBacktick = !inBacktick;
+            } else if (!inSingle && !inDouble && !inBacktick) {
+                if (c == '(') {
+                    depth++;
+                } else if (c == ')') {
+                    depth--;
+                } else if (c == ',' && depth == 0) {
+                    parts.add(current.toString());
+                    current.setLength(0);
+                    continue;
+                }
+            }
+            current.append(c);
+        }
+        parts.add(current.toString());
+        if (parts.size() <= 1) {
+            return stmt;
+        }
+        Matcher header = Pattern.compile("(?is)^(ALTER\\s+TABLE\\s+`?\\w+`?)\\s*(.*)$")
+            .matcher(parts.get(0).trim());
+        if (!header.matches()) {
+            return stmt;
+        }
+        String table = header.group(1);
+        StringBuilder rebuilt = new StringBuilder();
+        List<String> clauses = new ArrayList<>();
+        if (!header.group(2).isBlank()) {
+            clauses.add(header.group(2).trim());
+        }
+        for (int p = 1; p < parts.size(); p++) {
+            if (!parts.get(p).trim().isEmpty()) {
+                clauses.add(parts.get(p).trim());
+            }
+        }
+        if (clauses.size() <= 1) {
+            return stmt;
+        }
+        for (String clause : clauses) {
+            rebuilt.append(table).append(' ').append(clause).append(";\n");
+        }
+        return rebuilt.toString();
     }
 
     private String normalizeJsonSetCalls(String sql) {
@@ -526,7 +781,7 @@ WHERE r.sort = 0;
 
     private void assertLatestChangeSetApplied(Connection connection) throws SQLException {
         String latestId = scalar(connection, "SELECT MAX(ID) FROM DATABASECHANGELOG");
-        Assertions.assertEquals("202606131500", latestId, "latest downstream cleanup migration should be applied");
+        Assertions.assertEquals("202610111200", latestId, "latest downstream cleanup migration should be applied");
     }
 
     private void assertRequiredSeedCoverage(Connection connection) throws SQLException {
@@ -553,7 +808,7 @@ WHERE r.sort = 0;
 
         assertExists(connection, "SELECT 1 FROM ai_model_provider WHERE id = 'SYSTEM_PLUGIN_WEATHER' AND name = 'Weather Service'");
         assertExists(connection, "SELECT 1 FROM ai_model_provider WHERE id = 'SYSTEM_PLUGIN_NEWS' AND name = 'News Service'");
-        assertExists(connection, "SELECT 1 FROM ai_model_provider WHERE id = 'SYSTEM_PLUGIN_HA_GET_STATE' AND name = 'HomeAssistant Device Status Query'");
+        assertExists(connection, "SELECT 1 FROM ai_model_provider WHERE id = 'SYSTEM_PLUGIN_HA_STATE' AND name = 'HomeAssistant Device Control'");
         assertExists(connection, "SELECT 1 FROM ai_model_provider WHERE id = 'SYSTEM_PLUGIN_HA_GET_CALENDAR' AND name = 'Standard Calendar Information Service'");
         assertExists(connection, "SELECT 1 FROM ai_model_provider WHERE id = 'SYSTEM_PLUGIN_CHANGE_ROLE' AND name = 'Role Switching Service'");
         assertExists(connection, "SELECT 1 FROM ai_model_provider WHERE id = 'SYSTEM_ASR_GeminiASR' AND name = 'Gemini Speech Recognition'");

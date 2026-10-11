@@ -753,3 +753,87 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202606131500.sql
+  - changeSet:
+      id: 202606231030
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202606231030.sql
+  - changeSet:
+      id: 202606261131
+      author: RanChen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202606261131.sql
+  - changeSet:
+      id: 202607011405
+      author: LauraGPT
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607011405.sql
+  - changeSet:
+      id: 202607071530
+      author: tykechen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607071530.sql
+  - changeSet:
+      id: 202607101200
+      author: tykechen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607101200.sql
+  - changeSet:
+      id: 202607290930
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202607290930.sql
+  - changeSet:
+      id: 202608061000
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202608061030.sql
+  - changeSet:
+      id: 202608061800
+      author: cgd
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202608061800.sql
+  - changeSet:
+      id: 202608131030
+      author: tykechen
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202608131030.sql
+  - changeSet:
+      id: 202609021000
+      author: JacobNg1
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202609021000.sql
+  - changeSet:
+      id: 202609172100
+      author: googio
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202609172100.sql
+  - changeSet:
+      id: 202610111200
+      author: lapy
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202610111200.sql
