@@ -64,8 +64,11 @@ async def play_music(conn: "ConnectionHandler", song_name: str):
 
         task.add_done_callback(handle_done)
 
+        # RECORD: write the tool-call chain into dialogue history (so the
+        # model remembers it played a song) without TTS'ing this line —
+        # handle_music_command speaks the play prompt itself.
         return ActionResponse(
-            action=Action.NONE, result="Command received", response="Playing music for you"
+            action=Action.RECORD, result="Command received", response="Playing music for you"
         )
     except Exception as e:
         conn.logger.bind(tag=TAG).error(f"Error handling music intent: {e}")
@@ -177,14 +180,15 @@ def _get_random_play_prompt(song_name):
     """Generate random playback prompt"""
     # Remove file extension
     clean_name = os.path.splitext(song_name)[0]
+    # No decorative brackets around the title: TTS would read them aloud.
     prompts = [
-        f"Playing for you, 《{clean_name}》",
-        f"Please enjoy the song, 《{clean_name}》",
-        f"About to play for you, 《{clean_name}》",
-        f"Now bringing you, 《{clean_name}》",
-        f"Let's listen together, 《{clean_name}》",
-        f"Next please enjoy, 《{clean_name}》",
-        f"Now presenting to you, 《{clean_name}》",
+        f"Playing for you, {clean_name}",
+        f"Please enjoy the song, {clean_name}",
+        f"About to play for you, {clean_name}",
+        f"Now bringing you, {clean_name}",
+        f"Let's listen together, {clean_name}",
+        f"Next please enjoy, {clean_name}",
+        f"Now presenting to you, {clean_name}",
     ]
     # Use random.choice directly, don't set seed
     return random.choice(prompts)

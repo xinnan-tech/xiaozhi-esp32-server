@@ -186,49 +186,51 @@ def fetch_news_detail(url):
 
 def get_news_sources():
     """Get list of news sources with fallback options"""
+    # Note: Reuters discontinued its public RSS feeds in 2020; the sources
+    # below are live feeds (BBC / NPR / Guardian / CNN / TechCrunch / Ars).
+    # First entry per category is tried first, later entries are fallbacks.
     return {
         "world": [
-            "https://feeds.reuters.com/reuters/worldNews",
-            "https://rss.cnn.com/rss/edition.rss",
             "https://feeds.bbci.co.uk/news/world/rss.xml",
-            "https://feeds.reuters.com/Reuters/worldNews",
-            "https://rss.cnn.com/rss/edition_world.rss"
+            "https://rss.cnn.com/rss/edition_world.rss",
+            "https://feeds.npr.org/1004/rss.xml",
+            "https://www.theguardian.com/world/rss",
+            "https://rss.cnn.com/rss/edition.rss"
         ],
         "technology": [
-            "https://feeds.reuters.com/reuters/technologyNews",
-            "https://rss.cnn.com/rss/edition_technology.rss",
-            "https://feeds.feedburner.com/oreilly/radar",
             "https://techcrunch.com/feed/",
-            "https://feeds.reuters.com/reuters/technologyNews"
+            "https://feeds.arstechnica.com/arstechnica/index",
+            "https://rss.cnn.com/rss/edition_technology.rss",
+            "https://www.theverge.com/rss/index.xml"
         ],
         "business": [
-            "https://feeds.reuters.com/reuters/businessNews",
             "https://rss.cnn.com/rss/money_latest.rss",
-            "https://feeds.reuters.com/news/wealth",
-            "https://feeds.reuters.com/reuters/businessNews",
+            "https://www.theguardian.com/uk/business/rss",
+            "https://feeds.bbci.co.uk/news/business/rss.xml",
             "https://rss.cnn.com/rss/edition_business.rss"
         ],
         "sports": [
-            "https://feeds.reuters.com/reuters/sportsNews",
+            "https://feeds.bbci.co.uk/sport/rss.xml",
             "https://rss.cnn.com/rss/edition_sport.rss",
-            "https://feeds.reuters.com/reuters/sportsNews",
+            "https://www.theguardian.com/uk/sport/rss",
             "https://rss.cnn.com/rss/edition_football.rss"
         ],
         "health": [
-            "https://feeds.reuters.com/reuters/healthNews",
+            "https://feeds.bbci.co.uk/news/health/rss.xml",
             "https://rss.cnn.com/rss/edition_health.rss",
-            "https://feeds.reuters.com/reuters/healthNews"
+            "https://feeds.npr.org/1128/rss.xml"
         ],
         "politics": [
-            "https://rss.cnn.com/rss/edition.rss",
             "https://feeds.bbci.co.uk/news/politics/rss.xml",
-            "https://feeds.reuters.com/Reuters/PoliticsNews",
-            "https://rss.cnn.com/rss/edition_politics.rss"
+            "https://rss.cnn.com/rss/edition_politics.rss",
+            "https://www.theguardian.com/politics/rss",
+            "https://feeds.npr.org/1014/rss.xml"
         ],
         "science": [
-            "https://rss.cnn.com/rss/edition.rss",
             "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
-            "https://feeds.reuters.com/reuters/scienceNews"
+            "https://feeds.npr.org/1007/rss.xml",
+            "https://www.theguardian.com/science/rss",
+            "https://rss.cnn.com/rss/edition_space.rss"
         ]
     }
 
@@ -357,7 +359,7 @@ def get_news(
             mapped_category = "world"  # Default category
 
         cache_key = f"news_{mapped_category}_{lang}"
-        cached_report = cache_module.cache_manager.get(cache_module.CacheType.WEATHER, cache_key, namespace="news")
+        cached_report = cache_module.cache_manager.get(cache_module.CacheType.NEWS, cache_key, namespace="news")
         if cached_report:
             return ActionResponse(Action.REQLLM, cached_report, None)
 
@@ -379,7 +381,7 @@ def get_news(
         # Fallback to configuration if built-in sources fail
         if not news_items:
             rss_config = conn.config.get("plugins", {}).get("get_news", {})
-            fallback_url = rss_config.get("default_rss_url", "https://feeds.reuters.com/reuters/worldNews")
+            fallback_url = rss_config.get("default_rss_url", "https://feeds.bbci.co.uk/news/world/rss.xml")
             logger.bind(tag=TAG).info(f"Trying fallback source: {fallback_url}")
             news_items = fetch_news_from_rss(fallback_url)
             used_source = fallback_url
@@ -416,7 +418,7 @@ def get_news(
             f"If the user asks for more details, tell them they can say 'please provide more details about this news' to get more content)"
         )
 
-        cache_module.cache_manager.set(cache_module.CacheType.WEATHER, cache_key, news_report, namespace="news")
+        cache_module.cache_manager.set(cache_module.CacheType.NEWS, cache_key, news_report, namespace="news")
 
         return ActionResponse(Action.REQLLM, news_report, None)
 

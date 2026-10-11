@@ -91,7 +91,7 @@ async def hass_set_state(conn: "ConnectionHandler", entity_id="", state=None):
     try:
         ha_response = await handle_hass_set_state(conn, entity_id, state)
         return ActionResponse(Action.REQLLM, ha_response, None)
-    except asyncio.TimeoutError:
+    except httpx.TimeoutException:
         logger.bind(tag=TAG).error("Set Home Assistant status timeout")
         return ActionResponse(Action.ERROR, "Request timeout", None)
     except Exception as e:
@@ -255,7 +255,8 @@ async def handle_hass_set_state(conn: "ConnectionHandler", entity_id, state):
         data = {"entity_id": entity_id, arg: value}
     url = f"{base_url}/api/services/{domain}/{action}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    response = requests.post(url, headers=headers, json=data, timeout=5)  # Set 5 second timeout
+    async with httpx.AsyncClient(timeout=httpx.Timeout(5.0, connect=3.0)) as client:
+        response = await client.post(url, headers=headers, json=data)
     logger.bind(tag=TAG).info(
         f"Set status: {description}, url: {url}, return_code: {response.status_code}"
     )

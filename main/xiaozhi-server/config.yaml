@@ -76,6 +76,9 @@ enable_stop_tts_notify: false
 # Whether to enable notification sound after speaking, sound effect address
 stop_tts_notify_voice: "config/assets/tts_notify.mp3"
 
+# Default system prompt template file (resolved relative to xiaozhi-server dir)
+prompt_template: agent-base-prompt.txt
+
 exit_commands:
   - "exit"
   - "close"
@@ -135,14 +138,14 @@ plugins:
   # News plugin configuration - RSS feeds from major news sources
   # The plugin automatically uses multiple sources with fallback for reliability
   get_news:
-    default_rss_url: "https://feeds.reuters.com/reuters/worldNews"
-    # Built-in sources include: Reuters, CNN, BBC, Guardian, TechCrunch, and more
-    # These are automatically rotated for variety and reliability
+    default_rss_url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+    # Built-in sources include: BBC, CNN, NPR, Guardian, TechCrunch, Ars Technica, and more
+    # Each category tries its sources in order and falls back on failure
     # Custom sources can be added here if needed
   home_assistant:
     devices:
-      - Living Room,Toy Light,switch.cuco_cn_460494544_cp1_on_p_2_1
-      - Bedroom,Table Lamp,switch.iot_cn_831898993_socn1_on_p_2_1
+      - Living Room,Toy Light,switch.living_room_toy_light
+      - Bedroom,Table Lamp,switch.bedroom_table_lamp
     base_url: http://homeassistant.local:8123
     api_key: your_home_assistant_api_access_token
   play_music:
@@ -158,10 +161,10 @@ plugins:
     api_key: "ragflow-xxx"
     dataset_ids: ["123456789"]
   web_search:
-    provider: "metaso"
+    provider: "tavily"
     description: "Web search tool. Use when the user explicitly asks for current information from the internet."
     max_results: 5
-    api_key: "mk-xxx"
+    api_key: "tvly-xxx"
 
 # Voiceprint recognition configuration
 voiceprint:
@@ -490,8 +493,8 @@ TTS:
       input: "{prompt_text}"
       response_format: "mp3"
       download_format: "mp3"
-      voice: "zf_xiaoxiao"
-      lang_code: "z"
+      voice: "af_heart"
+      lang_code: "en-us"
       return_download_link: true
       speed: 1
       stream: false

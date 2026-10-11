@@ -111,7 +111,10 @@ class TTSProvider(TTSProviderBase):
         logger.bind(tag=TAG).debug(f"Making Kokoro TTS API request to: {self.api_url}")
         
         try:
-            response = requests.post(self.api_url, json=data, headers=headers, timeout=30)
+            # requests is blocking; keep the shared event loop free
+            response = await asyncio.to_thread(
+                requests.post, self.api_url, json=data, headers=headers, timeout=30
+            )
             
             if response.status_code == 200:
                 logger.bind(tag=TAG).debug(f"Kokoro TTS API request successful, audio size: {len(response.content)} bytes")
@@ -171,9 +174,7 @@ class TTSProvider(TTSProviderBase):
                 # Ensure directory exists
                 os.makedirs(os.path.dirname(output_file), exist_ok=True)
             
-            # Use the kokoro_tts package
-            # Note: This is a placeholder implementation as the exact API may vary
-            # The actual implementation would depend on the kokoro_tts package structure
+            # Delegate to the synchronous worker (kokoro-tts CLI in a thread)
             logger.bind(tag=TAG).debug(f"Generating audio with Kokoro TTS package")
             
             # Run in executor to avoid blocking the event loop
@@ -204,11 +205,13 @@ class TTSProvider(TTSProviderBase):
             raise Exception(error_msg)
     
     def _generate_with_package(self, text, output_file):
-        """Synchronous wrapper for kokoro_tts package"""
+        """Synchronous worker: run the kokoro-tts CLI as a subprocess.
+
+        The kokoro_tts python distribution exposes no stable documented
+        in-process API, so the "package" path shells out to its console
+        script in a worker thread (same engine as the async CLI path).
+        """
         try:
-            # This is where we'd use the actual kokoro_tts package
-            # Since the exact API is not documented, we'll use a CLI fallback
-            # but with proper error handling
             import subprocess
             
             # Create temporary input file
@@ -217,7 +220,7 @@ class TTSProvider(TTSProviderBase):
                 temp_input_path = temp_input.name
             
             try:
-                # Build CLI command as fallback
+                # Build CLI command
                 cmd = [
                     "kokoro-tts",
                     temp_input_path,
@@ -259,7 +262,9 @@ class TTSProvider(TTSProviderBase):
                 temp_input.write(text)
                 temp_input_path = temp_input.name
             
-            # Generate output file if not provided
+            # Generate output file if not provided; remember who owns it so
+            # the "return raw audio" path below can actually fire
+            return_audio_data = not output_file
             if not output_file:
                 output_file = self.generate_filename()
             else:
@@ -291,7 +296,7 @@ class TTSProvider(TTSProviderBase):
                 logger.bind(tag=TAG).debug(f"Kokoro TTS CLI successful, output saved to: {output_file}")
                 
                 # If no output_file was provided originally, return the audio data
-                if not output_file:
+                if return_audio_data:
                     with open(output_file, "rb") as f:
                         audio_data = f.read()
                     # Clean up temporary output file

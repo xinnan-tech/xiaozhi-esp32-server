@@ -26,7 +26,7 @@ class TTSProvider(TTSProviderBase):
         super().__init__(config, delete_audio_file)
         
         if not ELEVENLABS_AVAILABLE:
-            raise ImportError("ElevenLabs package not installed. Please run: pip install elevenlabs==2.16.0")
+            raise ImportError("ElevenLabs package not installed. Please run: pip install elevenlabs==2.41.0")
         
         self.api_key = config.get("api_key")
         self.api_url = config.get("api_url", "https://api.elevenlabs.io/v1/text-to-speech")
@@ -77,11 +77,20 @@ class TTSProvider(TTSProviderBase):
             f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}",
         )
 
+    def _voice_settings(self):
+        """Voice settings honored by every call path (SDK + raw requests)."""
+        return {
+            "stability": self.stability,
+            "similarity_boost": self.similarity_boost,
+            "style": self.style,
+            "use_speaker_boost": self.use_speaker_boost,
+        }
+
     async def text_to_speak(self, text, output_file):
         logger.bind(tag=TAG).debug(f"Sending ElevenLabs TTS request with voice_id: {self.voice_id}, text length: {len(text)}")
         
         try:
-            # Use ElevenLabs SDK 2.16.0+ streaming API for better performance
+            # Use ElevenLabs SDK streaming API for better performance
             logger.bind(tag=TAG).debug(f"Generating audio with ElevenLabs SDK streaming")
             
             # Use the streaming method for real-time audio generation
@@ -89,7 +98,8 @@ class TTSProvider(TTSProviderBase):
                 text=text,
                 voice_id=self.voice_id,
                 model_id=self.model_id,
-                output_format=self.output_format
+                output_format=self.output_format,
+                voice_settings=self._voice_settings()
             )
             
             # Collect all audio chunks from the stream
@@ -121,7 +131,8 @@ class TTSProvider(TTSProviderBase):
                     text=text,
                     voice_id=self.voice_id,
                     model_id=self.model_id,
-                    output_format=self.output_format
+                    output_format=self.output_format,
+                    voice_settings=self._voice_settings()
                 )
                 
                 # Handle both bytes and generator responses

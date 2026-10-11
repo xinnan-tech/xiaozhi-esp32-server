@@ -4,6 +4,7 @@ import io
 import wave
 import uuid
 import json
+import asyncio
 import torch
 import whisper
 from config.logger import setup_logging
@@ -108,8 +109,12 @@ class ASRProvider(ASRProviderBase):
             
             logger.bind(tag=TAG).debug(f"Starting Whisper transcription with options: {transcribe_options}")
             
-            # Transcribe audio
-            result = self.model.transcribe(file_path, **transcribe_options)
+            # Transcribe audio. transcribe() is a multi-second CPU-bound
+            # call: run it on a worker thread so the shared asyncio loop
+            # (all audio handling for every connection) keeps flowing.
+            result = await asyncio.to_thread(
+                self.model.transcribe, file_path, **transcribe_options
+            )
             
             decode_time = time.time() - decode_start_time
             logger.bind(tag=TAG).info(f"Whisper transcription completed in {decode_time:.2f}s")

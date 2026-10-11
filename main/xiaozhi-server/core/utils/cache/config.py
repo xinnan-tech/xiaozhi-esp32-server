@@ -13,13 +13,13 @@ class CacheType(Enum):
 
     LOCATION = "location"
     WEATHER = "weather"
-    LUNAR = "lunar"
     INTENT = "intent"
     IP_INFO = "ip_info"
     CONFIG = "config"
     DEVICE_PROMPT = "device_prompt"
     VOICEPRINT_HEALTH = "voiceprint_health"  # Voiceprint health-check cache.
     AUDIO_DATA = "audio_data"  # Audio data cache.
+    NEWS = "news"  # Latest-news brief cache (short TTL; news goes stale fast).
 
 
 @dataclass
@@ -44,9 +44,6 @@ class CacheConfig:
             CacheType.WEATHER: cls(
                 strategy=CacheStrategy.TTL, ttl=28800, max_size=1000  # 8 hours.
             ),
-            CacheType.LUNAR: cls(
-                strategy=CacheStrategy.TTL, ttl=2592000, max_size=365  # 30 days.
-            ),
             CacheType.INTENT: cls(
                 strategy=CacheStrategy.TTL_LRU, ttl=600, max_size=1000  # 10 minutes.
             ),
@@ -61,6 +58,9 @@ class CacheConfig:
             ),
             CacheType.AUDIO_DATA: cls(
                 strategy=CacheStrategy.TTL, ttl=600, max_size=100  # 10 minutes.
+            ),
+            CacheType.NEWS: cls(
+                strategy=CacheStrategy.TTL, ttl=900, max_size=200  # 15 minutes.
             ),
         }
         return configs.get(cache_type, cls())

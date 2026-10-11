@@ -23,3 +23,5 @@ manager-api:
   url: http://127.0.0.1:8002/xiaozhi
   # Your manager-api token, which is the server.secret copied just now
   secret: your_server.secret_value
+# Default system prompt template file (used when manager-api does not supply one)
+prompt_template: agent-base-prompt.txt

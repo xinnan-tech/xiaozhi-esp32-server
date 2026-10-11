@@ -4,8 +4,6 @@ Manages and updates system prompts, including fast initialization and async enha
 """
 
 import os
-import asyncio
-import threading
 from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -119,17 +117,12 @@ class PromptManager:
 
     def _get_current_time_info(self) -> tuple:
         """Get current time info"""
-        from .current_time import (
-            get_current_date,
-            get_current_weekday,
-            get_current_lunar_date,
-        )
+        from .current_time import get_current_date, get_current_weekday
 
         today_date = get_current_date()
         today_weekday = get_current_weekday()
-        lunar_date = get_current_lunar_date() + "\n"
 
-        return today_date, today_weekday, lunar_date
+        return today_date, today_weekday
 
     def _get_location_info(self, client_ip: str) -> str:
         """Get location info"""
@@ -161,33 +154,15 @@ class PromptManager:
             if cached_weather is not None:
                 return cached_weather
 
-            # Cache miss, calling async get_weather function
-            # Windows ProactorEventLoop does not support run_coroutine_threadsafe().result()
-            # Therefore use call_soon_threadsafe to submit task + threading.Event to wait for result
-            # Note: Event.wait() blocks only the current thread pool thread, not the main event loop
+            # Cache miss: call the get_weather plugin directly.
+            # get_weather is a plain sync function (blocking requests with a
+            # bounded timeout); this method only runs on executor worker
+            # threads (see connection._initialize_components), never on the
+            # event loop, so calling it inline is safe.
             from plugins_func.functions.get_weather import get_weather
             from plugins_func.register import ActionResponse
 
-            result_holder = []
-            exception_holder = []
-
-            async def _call():
-                try:
-                    result_holder.append(
-                        await get_weather(conn, location=location, lang="en_US")
-                    )
-                except Exception as e:
-                    exception_holder.append(e)
-                finally:
-                    event.set()
-
-            event = threading.Event()
-            conn.loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_call()))
-            if not event.wait(timeout=10):
-                raise TimeoutError("Weather info retrieval timed out")
-            if exception_holder:
-                raise exception_holder[0]
-            result = result_holder[0]
+            result = get_weather(conn, location=location, lang="en_US")
             if isinstance(result, ActionResponse):
                 weather_report = result.result
                 self.cache_manager.set(self.CacheType.WEATHER, location, weather_report)
@@ -245,7 +220,7 @@ class PromptManager:
 
         try:
             # Get the latest time info (no cache)
-            today_date, today_weekday, lunar_date = self._get_current_time_info()
+            today_date, today_weekday = self._get_current_time_info()
 
             # Get cached context information
             local_address = ""
@@ -264,12 +239,12 @@ class PromptManager:
                         or ""
                     )
 
-            # Get TTS selected language, default is Chinese
+            # Get TTS selected language; western builds default to English
             language = (
                 self.config.get("TTS", {})
                 .get(self.config.get("selected_module", {}).get("TTS", ""), {})
                 .get("language")
-                or "Chinese"
+                or "English"
             )
             self.logger.bind(tag=TAG).debug(f"Selected language retrieved: {language}")
 
@@ -280,7 +255,6 @@ class PromptManager:
                 current_time="{{current_time}}",
                 today_date=today_date,
                 today_weekday=today_weekday,
-                lunar_date=lunar_date,
                 local_address=local_address,
                 weather_info=weather_info,
                 emojiList=EMOJI_List,

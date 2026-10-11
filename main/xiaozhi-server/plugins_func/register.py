@@ -87,6 +87,10 @@ def register_function(name, desc, type=None):
 
     def decorator(func):
         all_function_registry[name] = FunctionItem(name, desc, func, type)
+        # Track module name -> function names so module-level plugin
+        # configuration can be expanded into concrete function names.
+        module_name = func.__module__.split(".")[-1]
+        module_func_map.setdefault(module_name, []).append(name)
         logger.bind(tag=TAG).debug(f"Function '{name}' loaded and ready for registration")
         return func
 

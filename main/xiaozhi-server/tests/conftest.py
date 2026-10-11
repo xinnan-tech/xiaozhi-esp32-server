@@ -212,10 +212,6 @@ _MOCKED_MODULES: tuple[str, ...] = (
     # Note: Real third-party packages like openai / httpx / requests are usually installed in the conda environment,
     # Shimming the entire module breaks submodules like ``openai.types`` / ``httpx.AsyncClient``
     # Parse. Only shim if the corresponding package is not installed (__getattr__ still follows the real import path).
-    "anthropic",
-    "dashscope",
-    "tencentcloud",
-    "xunfei",
     "vosk",
     "edge_tts",
     "elevenlabs",

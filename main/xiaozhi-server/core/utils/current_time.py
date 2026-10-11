@@ -49,11 +49,6 @@ def get_current_date_formatted() -> str:
         return "Failed to get date"
 
 
-def get_current_lunar_date() -> str:
-    """Backward-compatible alias; western builds use formatted Gregorian date."""
-    return get_current_date_formatted()
-
-
 def get_current_time_info() -> tuple:
     """
     Get current time information

@@ -230,7 +230,7 @@ class OTAHandler(BaseHandler):
             return_json = {
                 "server_time": {
                     "timestamp": int(round(time.time() * 1000)),
-                    "timezone_offset": server_config.get("timezone_offset", 8) * 60,
+                    "timezone_offset": server_config.get("timezone_offset", 0) * 60,
                 },
                 "firmware": {
                     "version": device_version,

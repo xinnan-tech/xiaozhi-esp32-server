@@ -130,10 +130,6 @@ class ServerPluginExecutor(ToolExecutor):
                             "description"
                         ] = fun_description
 
-                # News plugin: Update news source parameter descriptions based on config
-                if func_name == "get_news_from_newsnow":
-                    self._init_news_source_description(func_item, func_name)
-
                 tools[func_name] = ToolDefinition(
                     name=func_name,
                     description=func_item.description,
@@ -145,20 +141,3 @@ class ServerPluginExecutor(ToolExecutor):
     def has_tool(self, tool_name: str) -> bool:
         """Check if specified server-side plugin tool exists"""
         return tool_name in all_function_registry
-
-    def _init_news_source_description(self, func_item, func_name):
-        """Initialize news tool parameter descriptions based on connection config"""
-        news_sources = (
-            self.config.get("plugins", {})
-            .get(func_name, {})
-            .get("news_sources", "")
-        )
-        if not news_sources:
-            news_sources = "The Paper; Baidu Hot Search; Cailian Press"
-        sources_str = news_sources.replace(";", ",")
-        try:
-            func_item.description["function"]["parameters"]["properties"]["source"][
-                "description"
-            ] = f"Standard Chinese name of the news source, e.g., {sources_str}. Optional parameter; defaults to the default news source if not provided"
-        except (KeyError, TypeError):
-            pass

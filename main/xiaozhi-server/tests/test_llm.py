@@ -10,7 +10,6 @@ Interface contract (core/providers/llm/base.py):
     response_no_stream(system_prompt, user_content) -> str
 
 Special handling:
-- CozeLLM checks bot_id / user_id instead of api_key
 - Ollama requires model_name + local service availability
 - placeholder detection ("Your" / "placeholder" / "xxx" / "sk-xxx")
 - Since the LLM is a synchronous generator, it cannot directly use asyncio.wait_for -> use a thread pool
@@ -45,12 +44,7 @@ def _build_provider():
 
     # In any mode: if key is a placeholder, skip. Real requests require a real key; in mock mode
     # Running without a real key will cause errors in the real SDK network stack (openai/edge_tts).
-    if name == "CozeLLM":
-        if any(x in cfg.get("bot_id", "") for x in ["Your"]) or any(
-            x in cfg.get("user_id", "") for x in ["Your"]
-        ):
-            pytest.skip("bot_id/user_id for LLM 'CozeLLM' not configured")
-    elif name == "Ollama":
+    if name == "Ollama":
         if not cfg.get("model_name"):
             pytest.skip("model_name for LLM 'Ollama' is not configured")
     elif not has_real_key(cfg, "api_key"):

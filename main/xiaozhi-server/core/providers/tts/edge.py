@@ -24,8 +24,26 @@ class TTSProvider(TTSProviderBase):
             self.voice = config.get("voice")
         self.audio_file_type = config.get("format", "mp3")
 
+        volume = config.get("volume", "50")
+        self.volume = int(volume) if volume else 50
+
+        speech_rate = config.get("rate", "0")
+        self.speech_rate = int(speech_rate) if speech_rate else 0
+
+        pitch_rate = config.get("pitch", "0")
+        self.pitch_rate = int(pitch_rate) if pitch_rate else 0
+
+        # Apply percentage-adjusted params (ttsVolume/ttsRate/ttsPitch)
+        # coming from the manager console, per TTS_PARAM_CONFIG above.
+        self._apply_percentage_params(config)
+
+        self.edge_rate = f"{self.speech_rate:+}%"
+        self.edge_volume = f"{self.volume:+}%"
+        self.edge_pitch = f"{self.pitch_rate:+}Hz"
+
         logger.debug(
-            f"Edge TTS parameters initialized: voice={self.voice}, format={self.audio_file_type}"
+            f"Edge TTS parameters initialized: voice={self.voice}, format={self.audio_file_type}, "
+            f"rate={self.edge_rate}, volume={self.edge_volume}, pitch={self.edge_pitch}"
         )
 
     def generate_filename(self, extension=".mp3"):
@@ -39,7 +57,13 @@ class TTSProvider(TTSProviderBase):
         
         try:
             logger.bind(tag=TAG).debug(f"Creating Edge TTS communicate object")
-            communicate = edge_tts.Communicate(text, voice=self.voice)
+            communicate = edge_tts.Communicate(
+                text,
+                voice=self.voice,
+                rate=self.edge_rate,
+                volume=self.edge_volume,
+                pitch=self.edge_pitch,
+            )
             
             if output_file:
                 logger.bind(tag=TAG).debug(f"Writing Edge TTS audio to file: {output_file}")

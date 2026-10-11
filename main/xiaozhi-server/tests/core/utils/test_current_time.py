@@ -50,9 +50,3 @@ def test_get_current_time_info_returns_four_tuple():
     assert date_str == "2026-09-02"
     assert weekday == "Wednesday"
     assert formatted_date == "September 02, 2026"
-
-
-@freeze_time("2026-09-02 10:30:00")
-def test_get_current_lunar_date_is_gregorian_alias():
-    """Western builds return the formatted Gregorian date."""
-    assert current_time.get_current_lunar_date() == "September 02, 2026"
