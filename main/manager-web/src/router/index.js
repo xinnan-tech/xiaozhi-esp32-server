@@ -98,17 +98,6 @@ const routes = [
       title: 'Knowledge Base'
     }
   },
-  {
-    path: '/knowledge-file-upload',
-    name: 'KnowledgeFileUpload',
-    component: function () {
-      return import('../views/KnowledgeFileUpload.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Document Upload'
-    }
-  },
 
   {
     path: '/server-side-management',

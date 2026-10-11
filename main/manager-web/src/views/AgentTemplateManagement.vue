@@ -37,7 +37,7 @@
               :cell-style="{ padding: '10px 20px' }"
             >
               <!-- Remove @row-click="handleRowClick" -->
-              <!-- Custom selection column, header shows "Select" text, data rows show checkboxes -->
+              <!-- Customize the selection column: header text 'Select', data rows with checkboxes -->
               <el-table-column
                 :label="$t('agentTemplateManagement.select')"
                 align="center"
@@ -62,7 +62,7 @@
                   <span>{{ scope.row.agentName }}</span>
                 </template>
               </el-table-column>
-              <!-- Changed to serial number column and moved here -->
+              <!-- Change to index column and move here -->
               <el-table-column
                 :label="$t('agentTemplateManagement.serialNumber')"
                 min-width="120"
@@ -91,7 +91,7 @@
               </el-table-column>
             </el-table>
 
-            <!-- Table bottom operation bar -->
+            <!-- Table bottom action bar -->
             <div class="table_bottom">
               <div class="ctrl_btn">
                 <el-button
@@ -130,126 +130,69 @@
                   @size-change="handlePageSizeChange"
                   @current-change="handlePageChange"
                 />
-                <CustomButton icon="el-icon-search" type="confirm" @click="handleSearch">
-                  {{ $t("agentTemplateManagement.search") }}
-                </CustomButton>
               </div>
             </div>
-            <CustomTable
-              ref="templateTable"
-              :data="templateList"
-              :columns="tableColumns"
-              :loading="templateLoading"
-              :show-selection="true"
-              :show-operations="true"
-              :operations-label="$t('agentTemplateManagement.action')"
-              :total="total"
-              :current-page="currentPage"
-              :page-size="pageSize"
-              :page-size-options="pageSizeOptions"
-              @size-change="handlePageSizeChange"
-              @page-change="handlePageChange"
-            >
-              <template slot="selection" slot-scope="scope">
-                <el-checkbox v-model="scope.row.selected" @change="handleRowSelectionChange(scope.row)"></el-checkbox>
-              </template>
-              <template slot="serialNumber" slot-scope="scope">
-                <span>{{ (currentPage - 1) * pageSize + scope.$index + 1 }}</span>
-              </template>
-              <template slot="operations" slot-scope="scope">
-                <el-button size="mini" type="text" @click="editTemplate(scope.row)">
-                  {{ $t("agentTemplateManagement.editTemplate") }}
-                </el-button>
-                <el-button size="mini" type="text" @click="deleteTemplate(scope.row)">
-                  {{ $t("agentTemplateManagement.deleteTemplate") }}
-                </el-button>
-              </template>
-              <template slot="footer-btns">
-                <div class="ctrl_btn">
-                  <CustomButton :icon="isAllSelected ? 'el-icon-circle-close' : 'el-icon-circle-check'" size="small" @click="handleSelectAll">
-                    {{ isAllSelected ? $t("agentTemplateManagement.deselectAll") : $t("agentTemplateManagement.selectAll") }}
-                  </CustomButton>
-                  <CustomButton type="add" icon="el-icon-plus" size="small" @click="showAddTemplateDialog">
-                    {{ $t("agentTemplateManagement.createTemplate") }}
-                  </CustomButton>
-                  <CustomButton size="small" type="delete" icon="el-icon-delete" @click="batchDeleteTemplate">
-                    {{ $t("agentTemplateManagement.batchDelete") }}
-                  </CustomButton>
-                </div>
-              </template>
-            </CustomTable>
           </el-card>
         </div>
       </div>
     </div>
+    <el-footer>
+      <version-footer />
+    </el-footer>
   </div>
 </template>
 
 <script>
 import HeaderBar from "@/components/HeaderBar";
 import agentApi from "@/apis/module/agent";
+import VersionFooter from "@/components/VersionFooter.vue";
 
 export default {
   name: "AgentTemplateManagement",
   components: {
     HeaderBar,
+    VersionFooter
   },
 
   data() {
     return {
-      // Template related
+      // Template-related
       templateList: [],
       templateLoading: false,
       selectedTemplates: [],
-      isAllSelected: false, // Add select all state
+      isAllSelected: false, // Add select-all state
 
       search: "",
-      // Pagination related data
+      // Pagination-related data
       pageSizeOptions: [10, 20, 50, 100],
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      tableColumns: [],
-      dialogVisible: false,
-      dialogTitle: "",
-      confirmLoading: false,
-      form: {
-        id: null,
-        agentCode: "Xiaozhi",
-        agentName: "",
-        systemPrompt: "",
-        sort: 0,
-        model: { ...DEFAULT_MODEL_CONFIG }
-      },
-      formRules: {
-        agentName: [
-          { required: true, message: "Enter assistant nickname", trigger: "blur" }
-        ],
-        systemPrompt: [
-          { required: true, message: "Enter role description", trigger: "blur" }
-        ]
-      },
-      originalForm: null
     };
   },
   created() {
-    this.initTableColumns();
     this.loadTemplateList();
   },
-  // Add hasSelected property in computed section
+  // Add hasSelected property to the computed section
   computed: {
+    pageCount() {
+      return Math.ceil(this.total / this.pageSize);
+    },
+    visiblePages() {
+      return this.getVisiblePages();
+    },
     hasSelected() {
       return this.selectedTemplates.length > 0;
-    }
+    },
   },
   methods: {
     // Load template list
-    // Improve error handling logic for loadTemplateList method
+    // Improve error handling in the loadTemplateList method
     loadTemplateList() {
       this.templateLoading = true;
       const params = {
         page: this.currentPage,
-        limit: this.pageSize
+        limit: this.pageSize,
       };
       if (this.search) {
         params.agentName = this.search;
@@ -263,7 +206,7 @@ export default {
             if (res && typeof res === "object") {
               if (res.data && res.data.code === 0) {
                 const responseData = res.data.data || {};
-                // Add selected property to each template
+                // Add a selected property to each template
                 this.templateList = Array.isArray(responseData.list)
                   ? responseData.list.map((item) => ({ ...item, selected: false }))
                   : [];
@@ -288,29 +231,36 @@ export default {
           (error) => {
             this.templateList = [];
             this.total = 0;
-            this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.fetchTemplateFailed"));
+            this.templateLoading = false;
+            this.$message.error(this.$t("common.networkError"));
           }
-          this.templateLoading = false;
-        },
-        (error) => {
-          this.templateList = [];
-          this.total = 0;
-          this.templateLoading = false;
-          this.$message.error(this.$t("common.networkError"));
-        }
-      );
+        );
+      } catch (error) {
+        this.templateList = [];
+        this.total = 0;
+        this.templateLoading = false;
+        this.$message.error(this.$t("agentTemplateManagement.fetchTemplateBackendError"));
+      }
     },
 
     // Search templates
     handleSearch() {
-      this.currentPage = 1;
-      this.loadTemplateList();
+      if (this.search) {
+        const searchValue = this.search.toLowerCase();
+        const filteredList = this.templateList.filter((template) =>
+          template.agentName.toLowerCase().includes(searchValue)
+        );
+        this.templateList = filteredList;
+        this.total = filteredList.length;
+      } else {
+        this.loadTemplateList();
+      }
     },
 
-    // Modify showAddTemplateDialog method to navigate to same page as edit page
+    // Modify showAddTemplateDialog to navigate to the same page as the edit page
     // Show add template dialog
     showAddTemplateDialog() {
-      // Navigate to template quick config page, not passing templateId parameter means add new
+      // Navigate to the template quick config page. Omitting templateId indicates a new entry
       this.$router.push({
         path: "/template-quick-config",
       });
@@ -318,15 +268,12 @@ export default {
 
     // Edit template
     editTemplate(row) {
-      // Navigate to template quick config page and pass template ID parameter
+      // Navigate to the template quick config page and pass the template ID parameter
       this.$router.push({
         path: "/template-quick-config",
         query: { templateId: row.id },
       });
     },
-    handleDialogConfirm() {
-      this.$refs.dialogForm.validate((valid) => {
-        if (!valid) return;
 
     // Delete template
     deleteTemplate(row) {
@@ -336,7 +283,7 @@ export default {
         {
           confirmButtonText: this.$t("common.confirm"),
           cancelButtonText: this.$t("common.cancel"),
-          type: "warning"
+          type: "warning",
         }
       )
         .then(() => {
@@ -352,7 +299,7 @@ export default {
                 );
               }
             } else {
-              this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.deleteFailed"));
+              this.$message.error(this.$t("agentTemplateManagement.deleteBackendError"));
             }
           });
         })
@@ -367,18 +314,22 @@ export default {
         this.$message.warning(this.$t("agentTemplateManagement.selectTemplate"));
         return;
       }
+
       this.$confirm(
-        this.$t("agentTemplateManagement.confirmBatchDelete", { count: this.selectedTemplates.length }),
+        this.$t("agentTemplateManagement.confirmBatchDelete", {
+          count: this.selectedTemplates.length,
+        }),
         this.$t("common.warning"),
         {
           confirmButtonText: this.$t("common.confirm"),
           cancelButtonText: this.$t("common.cancel"),
-          type: "warning"
+          type: "warning",
         }
       )
         .then(() => {
-          // Ensure parameter format is correct - use id array as request body
+          // Ensure correct parameter format - send id array as request body
           const ids = this.selectedTemplates.map((template) => template.id);
+
           agentApi.batchDeleteAgentTemplate(ids, (res) => {
             if (res && typeof res === "object") {
               if (res.data && res.data.code === 0) {
@@ -387,7 +338,7 @@ export default {
                 );
                 // Reload template list
                 this.loadTemplateList();
-                // Clear selected state
+                // Clear selection state
                 this.selectedTemplates = [];
                 this.isAllSelected = false;
               } else {
@@ -396,7 +347,7 @@ export default {
                 );
               }
             } else {
-              this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.batchDeleteFailed"));
+              this.$message.error(this.$t("agentTemplateManagement.deleteBackendError"));
             }
           });
         })
@@ -405,11 +356,12 @@ export default {
         });
     },
 
-    // Complete pagination related methods
+    // Improve pagination-related methods
     handlePageChange(page) {
       this.currentPage = page;
       this.loadTemplateList();
     },
+
     handlePageSizeChange(size) {
       this.pageSize = size;
       this.currentPage = 1;
@@ -464,7 +416,7 @@ export default {
       return pages;
     },
 
-    // Modify handleSelectAll method
+    // Modify the handleSelectAll method
     handleSelectAll() {
       this.isAllSelected = !this.isAllSelected;
       this.templateList.forEach((row) => {
@@ -476,49 +428,47 @@ export default {
 
     // Handle row selection change
     handleRowSelectionChange(row) {
-      // Find selected templates
+      // Find selected template
       this.selectedTemplates = this.templateList.filter((template) => template.selected);
-      // Update select all state
+      // Update select-all state
       this.isAllSelected =
         this.templateList.length > 0 &&
         this.selectedTemplates.length === this.templateList.length;
-    }
-  }
+    },
+  },
 };
 </script>
 
 <style scoped lang="scss">
 /* Basic background and layout settings */
 .welcome {
-  min-width: 900px;
-  min-height: 506px;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
-  position: relative;
   flex-direction: column;
-  background: #eff4ff;
+  position: relative;
+  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
   background-size: cover;
   overflow: hidden;
+  width: 100%;
 }
 
-/* Operation bar styles */
+/* Action bar styles */
 .operation-bar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0 0 16px 0;
+  align-items: center;
+  padding: 16px 24px;
 }
 
 .page-title {
-  font-weight: 500;
   font-size: 24px;
   margin: 0;
 }
 
 .right-operations {
   display: flex;
+  align-items: center;
   gap: 10px;
-  margin-left: auto;
 }
 
 .search-input {
@@ -533,11 +483,10 @@ export default {
 
 /* Main container styles */
 .main-wrapper {
-  margin: 5px 22px;
+  // Top 63px, bottom 35px, query 72px
+  height: calc(100vh - 63px - 35px - 72px);
+  margin: 0 22px;
   border-radius: 15px;
-  min-height: calc(100vh - 24vh);
-  height: auto;
-  max-height: 80vh;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: relative;
   background: rgba(237, 242, 255, 0.5);
@@ -546,9 +495,10 @@ export default {
 }
 
 .content-panel {
+  width: 100%;
+  flex: 1;
   display: flex;
   overflow: hidden;
-  height: 100%;
   border-radius: 15px;
   background: transparent;
   border: 1px solid #fff;
@@ -556,26 +506,25 @@ export default {
 
 .content-area {
   flex: 1;
-  height: 100%;
   min-width: 600px;
-  overflow: auto;
+  overflow-x: auto;
   background-color: white;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 /* Template card styles */
 .template-card {
-  background: white;
+  border: none;
+  box-shadow: none;
   flex: 1;
   display: flex;
   flex-direction: column;
-  border: none;
-  box-shadow: none;
   overflow: hidden;
 
-  ::v-deep .el-card__body {
-    padding: 14px 20px;
+  :deep(.el-card__body) {
+    padding: 15px;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -628,7 +577,7 @@ export default {
     color: #5a64b5;
   }
 
-  /* Cell text styles */
+  /* Cell text style */
   .cell {
     white-space: nowrap;
     overflow: hidden;
@@ -636,13 +585,13 @@ export default {
   }
 }
 
-/* Table bottom operation bar */
+/* Table bottom action bar */
 .table_bottom {
   display: flex;
   justify-content: space-between !important;
   align-items: center;
   margin-top: auto;
-  padding: 0 20px 15px !important;
+  padding: 0 20px !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -650,13 +599,39 @@ export default {
 /* Control button styles */
 .ctrl_btn {
   display: flex;
-}
+  gap: 8px;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
 
-:deep(.el-table .el-button--text) {
-  color: #7079aa;
-}
+  .el-button {
+    min-width: 72px;
+    height: 32px;
+    padding: 7px 12px 7px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    line-height: 1;
+    font-weight: 500;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 
-:deep(.el-table .el-button--text:hover) {
-  color: #5a64b5;
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  .el-button--primary {
+    background: #5f70f3;
+    color: white;
+  }
+  .el-button--success {
+    background: #5bc98c;
+    color: white;
+  }
+  .el-button--danger {
+    background: #fd5b63;
+    color: white;
+  }
 }
 </style>

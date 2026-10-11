@@ -364,57 +364,92 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/global.scss';
-
-.model-edit-dialog {
-  ::v-deep .el-dialog__body {
-    padding: 24px 40px;
-  }
-
-  .header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-  }
-
-  .section-title {
-    margin-bottom: 10px;
-    font-size: 20px;
-    font-weight: bold;
-    color: #3d4566;
-    text-align: left;
-  }
-
-.custom-close-btn:hover {
-  color: #409EFF;
-  border-color: #409EFF;
+.custom-dialog {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: white;
+  padding-bottom: 17px;
 }
 
-  .switch-item {
-    display: flex;
-    align-items: center;
+.custom-dialog .el-dialog__header {
+  padding: 0;
+  border-bottom: none;
+}
 
-    &.hidden {
-      display: none;
-    }
+.center-dialog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    .switch-label {
-      margin-right: 8px;
-    }
-  }
+.custom-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 2px solid #cfcfcf;
+  background: none;
+  font-size: 30px;
+  font-weight: lighter;
+  color: #cfcfcf;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  padding: 0;
+  outline: none;
+}
 
-  .section-divider {
-    height: 1px;
-    background: #e9e9e9;
-    margin-bottom: 18px;
-  }
+.custom-close-btn:hover {
+  color: #409eff;
+  border-color: #409eff;
+}
 
-  .form-row {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 0;
-  }
+.custom-select .el-input__suffix {
+  background: #e6e8ea;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  top: 9px;
+}
+
+.custom-select .el-input__suffix-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.custom-select .el-icon-arrow-up:before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid #c0c4cc;
+  position: relative;
+  top: -2px;
+  transform: rotate(180deg);
+}
+
+.custom-form .el-form-item {
+  margin-bottom: 20px;
+}
+
+.custom-form .el-form-item__label {
+  color: #3d4566;
+  font-weight: normal;
+  text-align: right;
+  padding-right: 20px;
+}
 
 .custom-form .el-form-item.prop-remark .el-form-item__label {
   margin-top: -4px;
@@ -460,7 +495,7 @@ export default {
   background-color: white;
   top: 3px;
   left: 4px;
-  transition: all .3s;
+  transition: all 0.3s;
 }
 
 .custom-switch.is-checked .el-switch__core {

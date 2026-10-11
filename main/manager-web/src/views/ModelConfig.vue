@@ -560,7 +560,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .el-switch {
   height: 23px;
 }
@@ -727,7 +727,7 @@ export default {
   background-color: transparent !important;
 }
 
-.data-table /deep/ .el-table__row {
+.data-table ::v-deep .el-table__row {
   background-color: transparent !important;
 }
 
@@ -796,7 +796,7 @@ export default {
 //   background: linear-gradient(135deg, #3a8ee6, #5a7cff);
 // }
 
-.el-table th /deep/ .el-table__cell {
+.el-table th ::v-deep .el-table__cell {
   overflow: hidden;
   -webkit-user-select: none;
   -moz-user-select: none;

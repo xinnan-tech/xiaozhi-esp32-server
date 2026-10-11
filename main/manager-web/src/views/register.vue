@@ -102,9 +102,9 @@
           <!-- Keep the same agreement statement -->
           <div style="font-size: 14px;color: #979db1;">
             {{ $t('register.agreeTo') }}
-            <div style="display: inline-block;color: #5778FF;cursor: pointer;">{{ $t('register.userAgreement') }}</div>
+            <div style="display: inline-block;color: #5778FF;cursor: pointer;" @click="openPage('/user-agreement-en.html')">{{ $t('register.userAgreement') }}</div>
             {{ $t('register.and') }}
-            <div style="display: inline-block;color: #5778FF;cursor: pointer;">{{ $t('register.privacyPolicy') }}</div>
+            <div style="display: inline-block;color: #5778FF;cursor: pointer;" @click="openPage('/privacy-policy-en.html')">{{ $t('register.privacyPolicy') }}</div>
           </div>
         </div>
       </el-main>
@@ -314,6 +314,9 @@ export default {
 
     goToLogin() {
       goToPage('/login')
+    },
+    openPage(url) {
+      window.open(url, '_blank')
     }
   },
   beforeDestroy() {

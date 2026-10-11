@@ -121,11 +121,13 @@
           </div>
           <div style="font-size: 14px; color: #979db1">
             {{ $t("login.agreeTo") }}
-            <div style="display: inline-block; color: #5778ff; cursor: pointer">
+            <div style="display: inline-block; color: #5778ff; cursor: pointer"
+              @click="openPage('/user-agreement-en.html')">
               {{ $t("login.userAgreement") }}
             </div>
             {{ $t("login.and") }}
-            <div style="display: inline-block; color: #5778ff; cursor: pointer">
+            <div style="display: inline-block; color: #5778ff; cursor: pointer"
+              @click="openPage('/privacy-policy-en.html')">
               {{ $t("login.privacyPolicy") }}
             </div>
           </div>
@@ -329,6 +331,9 @@ export default {
     },
     goToForgetPassword() {
       goToPage("/retrieve-password");
+    },
+    openPage(url) {
+      window.open(url, "_blank");
     },
   },
 };

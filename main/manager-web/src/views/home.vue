@@ -446,16 +446,20 @@ export default {
   border-radius: 20px;
 }
 
-  .left-add {
-    width: 105px;
-    height: 34px;
-    border-radius: 17px;
-    background: #5778ff;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    line-height: 34px;
+.search-container {
+  width: 360px;
+  margin-right: 5px;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.custom-search-input {
+  &::v-deep .el-input__inner {
+    border-radius: 20px;
+    border: 1px solid transparent;
+    box-shadow: 0 2px 2px 0 #cfe1fb;
   }
   &::v-deep .el-input__suffix {
     right: 10px;

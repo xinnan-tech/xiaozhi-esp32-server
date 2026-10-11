@@ -23,6 +23,7 @@
     "opus-decoder": "^0.7.7",
     "opus-recorder": "^8.0.5",
     "sm-crypto": "^0.4.0",
+    "v-code-diff": "^1.16.0",
     "vue": "^2.6.14",
     "vue-axios": "^3.5.2",
     "vue-i18n": "^8.28.2",
