@@ -82,16 +82,9 @@ This project provides two deployment methods. Please choose based on your specif
 | **Full Module Installation** | Intelligent dialogue, IOT, MCP endpoints, voiceprint recognition, visual perception, OTA, intelligent control console | Complete functionality experience, data stored in database |[①Docker Version](./docs/installation/docker.md) / [②Source Code Deployment](./docs/installation/local.md) | 2 cores 4GB if all APIs| - |
 
 
-> 💡 Note: Below is a test platform deployed with the latest code. You can burn and test if needed. Concurrent users: 6, data will be cleared daily.
-
-```
-Intelligent Control Console Address: https://2662r3426b.vicp.fun
-Intelligent Control Console Address (H5): https://2662r3426b.vicp.fun/h5/index.html
-
-Service Test Tool: https://2662r3426b.vicp.fun/test/
-OTA Interface Address: https://2662r3426b.vicp.fun/xiaozhi/ota/
-Websocket Interface Address: wss://2662r3426b.vicp.fun/xiaozhi/v1/
-```
+> 💡 Tip: This fork does not operate a public demo platform. Follow the
+> [Docker quick start](./docs/installation/docker.md) to run your own instance —
+> the console, OTA and WebSocket endpoints are all served by your deployment.
 
 #### 🚩 Configuration Description and Recommendations
 > [!Note]
@@ -188,8 +181,8 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
-| Interface calls | OpenAITTS, EdgeTTS | EdgeTTS |
-| Local services | CustomTTS | CustomTTS |
+| Interface calls | OpenAITTS, EdgeTTS, ElevenLabsTTS | EdgeTTS |
+| Local services | KokoroTTS, CustomTTS | KokoroTTS, CustomTTS |
 
 ---
 
@@ -205,7 +198,7 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
-| Local deployment | SherpaASR, VoskASR, **WhisperASR** | SherpaASR, VoskASR, **WhisperASR** |
+| Local deployment | VoskASR, **WhisperASR** | VoskASR, **WhisperASR** |
 | OpenAI interface calls | OpenaiASR, GroqASR | OpenaiASR, GroqASR |
 | Google interface calls | GeminiASR | GeminiASR |
 
