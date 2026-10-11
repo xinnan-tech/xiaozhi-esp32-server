@@ -130,8 +130,54 @@
                   @size-change="handlePageSizeChange"
                   @current-change="handlePageChange"
                 />
+                <CustomButton icon="el-icon-search" type="confirm" @click="handleSearch">
+                  {{ $t("agentTemplateManagement.search") }}
+                </CustomButton>
               </div>
             </div>
+            <CustomTable
+              ref="templateTable"
+              :data="templateList"
+              :columns="tableColumns"
+              :loading="templateLoading"
+              :show-selection="true"
+              :show-operations="true"
+              :operations-label="$t('agentTemplateManagement.action')"
+              :total="total"
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-size-options="pageSizeOptions"
+              @size-change="handlePageSizeChange"
+              @page-change="handlePageChange"
+            >
+              <template slot="selection" slot-scope="scope">
+                <el-checkbox v-model="scope.row.selected" @change="handleRowSelectionChange(scope.row)"></el-checkbox>
+              </template>
+              <template slot="serialNumber" slot-scope="scope">
+                <span>{{ (currentPage - 1) * pageSize + scope.$index + 1 }}</span>
+              </template>
+              <template slot="operations" slot-scope="scope">
+                <el-button size="mini" type="text" @click="editTemplate(scope.row)">
+                  {{ $t("agentTemplateManagement.editTemplate") }}
+                </el-button>
+                <el-button size="mini" type="text" @click="deleteTemplate(scope.row)">
+                  {{ $t("agentTemplateManagement.deleteTemplate") }}
+                </el-button>
+              </template>
+              <template slot="footer-btns">
+                <div class="ctrl_btn">
+                  <CustomButton :icon="isAllSelected ? 'el-icon-circle-close' : 'el-icon-circle-check'" size="small" @click="handleSelectAll">
+                    {{ isAllSelected ? $t("agentTemplateManagement.deselectAll") : $t("agentTemplateManagement.selectAll") }}
+                  </CustomButton>
+                  <CustomButton type="add" icon="el-icon-plus" size="small" @click="showAddTemplateDialog">
+                    {{ $t("agentTemplateManagement.createTemplate") }}
+                  </CustomButton>
+                  <CustomButton size="small" type="delete" icon="el-icon-delete" @click="batchDeleteTemplate">
+                    {{ $t("agentTemplateManagement.batchDelete") }}
+                  </CustomButton>
+                </div>
+              </template>
+            </CustomTable>
           </el-card>
         </div>
       </div>
@@ -163,22 +209,38 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
+      tableColumns: [],
+      dialogVisible: false,
+      dialogTitle: "",
+      confirmLoading: false,
+      form: {
+        id: null,
+        agentCode: "小智",
+        agentName: "",
+        systemPrompt: "",
+        sort: 0,
+        model: { ...DEFAULT_MODEL_CONFIG }
+      },
+      formRules: {
+        agentName: [
+          { required: true, message: "请输入助手昵称", trigger: "blur" }
+        ],
+        systemPrompt: [
+          { required: true, message: "请输入角色介绍", trigger: "blur" }
+        ]
+      },
+      originalForm: null
     };
   },
   created() {
+    this.initTableColumns();
     this.loadTemplateList();
   },
   // Add hasSelected property in computed section
   computed: {
-    pageCount() {
-      return Math.ceil(this.total / this.pageSize);
-    },
-    visiblePages() {
-      return this.getVisiblePages();
-    },
     hasSelected() {
       return this.selectedTemplates.length > 0;
-    },
+    }
   },
   methods: {
     // Load template list
@@ -187,7 +249,7 @@ export default {
       this.templateLoading = true;
       const params = {
         page: this.currentPage,
-        limit: this.pageSize,
+        limit: this.pageSize
       };
       if (this.search) {
         params.agentName = this.search;
@@ -226,30 +288,23 @@ export default {
           (error) => {
             this.templateList = [];
             this.total = 0;
-            this.templateLoading = false;
-            this.$message.error(this.$t("common.networkError"));
+            this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.fetchTemplateFailed"));
           }
-        );
-      } catch (error) {
-        this.templateList = [];
-        this.total = 0;
-        this.templateLoading = false;
-        this.$message.error(this.$t("agentTemplateManagement.fetchTemplateBackendError"));
-      }
+          this.templateLoading = false;
+        },
+        (error) => {
+          this.templateList = [];
+          this.total = 0;
+          this.templateLoading = false;
+          this.$message.error(this.$t("common.networkError"));
+        }
+      );
     },
 
     // Search templates
     handleSearch() {
-      if (this.search) {
-        const searchValue = this.search.toLowerCase();
-        const filteredList = this.templateList.filter((template) =>
-          template.agentName.toLowerCase().includes(searchValue)
-        );
-        this.templateList = filteredList;
-        this.total = filteredList.length;
-      } else {
-        this.loadTemplateList();
-      }
+      this.currentPage = 1;
+      this.loadTemplateList();
     },
 
     // Modify showAddTemplateDialog method to navigate to same page as edit page
@@ -269,6 +324,9 @@ export default {
         query: { templateId: row.id },
       });
     },
+    handleDialogConfirm() {
+      this.$refs.dialogForm.validate((valid) => {
+        if (!valid) return;
 
     // Delete template
     deleteTemplate(row) {
@@ -278,7 +336,7 @@ export default {
         {
           confirmButtonText: this.$t("common.confirm"),
           cancelButtonText: this.$t("common.cancel"),
-          type: "warning",
+          type: "warning"
         }
       )
         .then(() => {
@@ -294,7 +352,7 @@ export default {
                 );
               }
             } else {
-              this.$message.error(this.$t("agentTemplateManagement.deleteBackendError"));
+              this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.deleteFailed"));
             }
           });
         })
@@ -309,22 +367,18 @@ export default {
         this.$message.warning(this.$t("agentTemplateManagement.selectTemplate"));
         return;
       }
-
       this.$confirm(
-        this.$t("agentTemplateManagement.confirmBatchDelete", {
-          count: this.selectedTemplates.length,
-        }),
+        this.$t("agentTemplateManagement.confirmBatchDelete", { count: this.selectedTemplates.length }),
         this.$t("common.warning"),
         {
           confirmButtonText: this.$t("common.confirm"),
           cancelButtonText: this.$t("common.cancel"),
-          type: "warning",
+          type: "warning"
         }
       )
         .then(() => {
           // Ensure parameter format is correct - use id array as request body
           const ids = this.selectedTemplates.map((template) => template.id);
-
           agentApi.batchDeleteAgentTemplate(ids, (res) => {
             if (res && typeof res === "object") {
               if (res.data && res.data.code === 0) {
@@ -342,7 +396,7 @@ export default {
                 );
               }
             } else {
-              this.$message.error(this.$t("agentTemplateManagement.deleteBackendError"));
+              this.$message.error(res?.data?.msg || this.$t("agentTemplateManagement.batchDeleteFailed"));
             }
           });
         })
@@ -356,7 +410,6 @@ export default {
       this.currentPage = page;
       this.loadTemplateList();
     },
-
     handlePageSizeChange(size) {
       this.pageSize = size;
       this.currentPage = 1;
@@ -429,41 +482,43 @@ export default {
       this.isAllSelected =
         this.templateList.length > 0 &&
         this.selectedTemplates.length === this.templateList.length;
-    },
-  },
+    }
+  }
 };
 </script>
 
 <style scoped lang="scss">
 /* Basic background and layout settings */
 .welcome {
-  min-height: 100vh;
+  min-width: 900px;
+  min-height: 506px;
+  height: 100vh;
   display: flex;
-  flex-direction: column;
   position: relative;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  flex-direction: column;
+  background: #eff4ff;
   background-size: cover;
   overflow: hidden;
-  width: 100%;
 }
 
 /* Operation bar styles */
 .operation-bar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  justify-content: space-between;
+  padding: 0 0 16px 0;
 }
 
 .page-title {
+  font-weight: 500;
   font-size: 24px;
   margin: 0;
 }
 
 .right-operations {
   display: flex;
-  align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .search-input {
@@ -491,10 +546,9 @@ export default {
 }
 
 .content-panel {
-  width: 100%;
-  flex: 1;
   display: flex;
   overflow: hidden;
+  height: 100%;
   border-radius: 15px;
   background: transparent;
   border: 1px solid #fff;
@@ -502,25 +556,26 @@ export default {
 
 .content-area {
   flex: 1;
+  height: 100%;
   min-width: 600px;
-  overflow-x: auto;
+  overflow: auto;
   background-color: white;
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 
 /* Template card styles */
 .template-card {
-  border: none;
-  box-shadow: none;
+  background: white;
   flex: 1;
   display: flex;
   flex-direction: column;
+  border: none;
+  box-shadow: none;
   overflow: hidden;
 
-  :deep(.el-card__body) {
-    padding: 15px;
+  ::v-deep .el-card__body {
+    padding: 14px 20px;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -595,39 +650,13 @@ export default {
 /* Control button styles */
 .ctrl_btn {
   display: flex;
-  gap: 8px;
-  padding-left: 0 !important;
-  margin-left: 0 !important;
+}
 
-  .el-button {
-    min-width: 72px;
-    height: 32px;
-    padding: 7px 12px 7px 10px;
-    font-size: 12px;
-    border-radius: 4px;
-    line-height: 1;
-    font-weight: 500;
-    border: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+:deep(.el-table .el-button--text) {
+  color: #7079aa;
+}
 
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-  }
-
-  .el-button--primary {
-    background: #5f70f3;
-    color: white;
-  }
-  .el-button--success {
-    background: #5bc98c;
-    color: white;
-  }
-  .el-button--danger {
-    background: #fd5b63;
-    color: white;
-  }
+:deep(.el-table .el-button--text:hover) {
+  color: #5a64b5;
 }
 </style>

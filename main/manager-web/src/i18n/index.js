@@ -5,6 +5,14 @@ import de from './de';
 import vi from './vi';
 import ptBR from './pt_BR';
 
+import enLocale from 'element-ui/lib/locale/lang/en'
+import zhLocale from 'element-ui/lib/locale/lang/zh-CN'
+import twLocale from 'element-ui/lib/locale/lang/zh-TW'
+import deLocale from 'element-ui/lib/locale/lang/de'
+import viLocale from 'element-ui/lib/locale/lang/vi'
+import ptBRLocale from 'element-ui/lib/locale/lang/pt-br'
+
+
 Vue.use(VueI18n);
 
 export const supportedLanguages = Object.freeze([

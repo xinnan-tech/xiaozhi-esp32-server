@@ -12,6 +12,7 @@ logger = setup_logging()
 # Domains and provider-specific parameters for disabling thinking mode by default.
 THINKING_DISABLED_DOMAINS = {
     "aliyuncs.com": {"enable_thinking": False},
+    "deepseek.com": {"thinking": {"type": "disabled"}},
     "bigmodel.cn": {"thinking": {"type": "disabled"}},
     "moonshot.cn": {"thinking": {"type": "disabled"}},
     "volces.com": {"thinking": {"type": "disabled"}},

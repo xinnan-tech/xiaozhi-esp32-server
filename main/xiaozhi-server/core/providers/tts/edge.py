@@ -10,6 +10,12 @@ logger = setup_logging()
 
 
 class TTSProvider(TTSProviderBase):
+    TTS_PARAM_CONFIG = [
+        ("ttsVolume", "volume", 0, 100, 50, int),
+        ("ttsRate", "speech_rate", -100, 100, 0, int),
+        ("ttsPitch", "pitch_rate", -100, 100, 0, int),
+    ]
+
     def __init__(self, config, delete_audio_file):
         super().__init__(config, delete_audio_file)
         if config.get("private_voice"):

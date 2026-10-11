@@ -25,6 +25,7 @@
               :step="1"
               :format-tooltip="formatTooltip"
               class="tts-slider"
+              @change="markTtsSettingChanged('volume')"
             />
             <span class="slider-hint">{{ $t('roleConfig.volumeHint') }}</span>
           </div>
@@ -40,6 +41,7 @@
               :step="1"
               :format-tooltip="formatTooltip"
               class="tts-slider"
+              @change="markTtsSettingChanged('speed')"
             />
             <span class="slider-hint">{{ $t('roleConfig.speedHint') }}</span>
           </div>
@@ -55,6 +57,7 @@
               :step="1"
               :format-tooltip="formatTooltip"
               class="tts-slider"
+              @change="markTtsSettingChanged('pitch')"
             />
             <span class="slider-hint">{{ $t('roleConfig.pitchHint') }}</span>
         </div>
@@ -72,6 +75,8 @@
         <el-select
           v-model="replacementWordIds"
           multiple
+          filterable
+          collapse-tags
           :placeholder="$t('replacementDialog.selectPlaceholder')"
           class="replacement-word-select"
         >
@@ -122,6 +127,11 @@ export default {
         speed: 0,
         pitch: 0,
       },
+      changedTtsFields: {
+        volume: false,
+        speed: false,
+        pitch: false,
+      },
       replacementWordIds: [],
       replacementWordList: []
     };
@@ -141,6 +151,11 @@ export default {
       if (newVal) {
         // 当抽屉打开时，复制当前设置到本地
         this.localSettings = { ...this.settings };
+        this.changedTtsFields = {
+          volume: false,
+          speed: false,
+          pitch: false,
+        };
         this.replacementWordIds = [...this.checkedReplacementWordIds];
         this.fetchReplacementWordList();
       }
@@ -156,8 +171,17 @@ export default {
     },
     handleSave() {
       // 保存设置并关闭
-      this.$emit('save', { ...this.localSettings, replacementWordIds: this.replacementWordIds });
+      const changedTtsFields = Object.keys(this.changedTtsFields)
+        .filter((field) => this.changedTtsFields[field]);
+      this.$emit('save', {
+        ...this.localSettings,
+        changedTtsFields,
+        replacementWordIds: this.replacementWordIds
+      });
       this.handleClose();
+    },
+    markTtsSettingChanged(field) {
+      this.$set(this.changedTtsFields, field, true);
     },
     formatTooltip(val) {
       return `${val}%`;

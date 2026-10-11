@@ -1,13 +1,33 @@
 import { getServiceUrl } from '../api';
 import RequestService from '../httpRequest';
 
+const CALLBACK_RETRY_LIMIT = 10;
+const CALLBACK_RETRY_DELAY_MS = 2000;
+const CALLBACK_RETRY_WINDOW_MS = CALLBACK_RETRY_LIMIT * CALLBACK_RETRY_DELAY_MS;
+
+function retryCallbackRequest(retry, retryCount, onTerminalFailure, error, retryStartedAt) {
+    if (!onTerminalFailure) {
+        RequestService.reAjaxFun(() => retry(retryCount + 1))
+        return
+    }
+    const startedAt = retryStartedAt || Date.now()
+    if (retryCount >= CALLBACK_RETRY_LIMIT || Date.now() - startedAt >= CALLBACK_RETRY_WINDOW_MS) {
+        RequestService.clearRequestTime()
+        if (onTerminalFailure) {
+            onTerminalFailure(error)
+        }
+        return
+    }
+    setTimeout(() => retry(retryCount + 1, startedAt), CALLBACK_RETRY_DELAY_MS)
+}
+
 
 export default {
     // 获取替换词文件列表
     getFileList(params, callback) {
         const queryParams = new URLSearchParams({
             page: params.page,
-            pageSize: params.pageSize
+            limit: params.pageSize
         }).toString();
 
         RequestService.sendRequest()
@@ -26,8 +46,9 @@ export default {
     },
 
     // 获取所有替换词文件（不分页）
-    selectAll(callback) {
-        RequestService.sendRequest()
+    selectAll(callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+        const retryWindowStartedAt = retryStartedAt || Date.now()
+        const request = RequestService.sendRequest()
             .url(`${getServiceUrl()}/correct-word/file/select`)
             .method('GET')
             .success((res) => {
@@ -36,10 +57,26 @@ export default {
             })
             .networkFail((err) => {
                 console.error('获取所有替换词文件失败:', err)
-                RequestService.reAjaxFun(() => {
-                    this.selectAll(callback)
-                })
-            }).send()
+                retryCallbackRequest(
+                    (nextRetryCount, nextRetryStartedAt) => this.selectAll(
+                        callback,
+                        onTerminalFailure,
+                        nextRetryCount,
+                        nextRetryStartedAt
+                    ),
+                    retryCount,
+                    onTerminalFailure,
+                    err,
+                    retryWindowStartedAt
+                )
+            })
+        if (onTerminalFailure) {
+            request.fail((error) => {
+                RequestService.clearRequestTime()
+                onTerminalFailure(error)
+            })
+        }
+        request.send()
     },
 
     // 下载替换词文件

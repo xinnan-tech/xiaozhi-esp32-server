@@ -119,8 +119,17 @@ Today's date: {today_date} ({today_weekday})
 
 Please answer the user's question using the information above: {original_text}"""
 
-                    response = conn.intent.replyResult(context_prompt, original_text)
-                    speak_txt(conn, response)
+                    # 使用异步调用避免阻塞事件循环，影响其他设备的音频播放
+                    try:
+                        response = asyncio.run_coroutine_threadsafe(
+                            conn.intent.replyResult(context_prompt, original_text),
+                            conn.loop,
+                        ).result()
+                    except Exception as e:
+                        conn.logger.bind(tag=TAG).error(f"LLM生成回复失败: {e}")
+                        response = None
+                    if response:
+                        speak_txt(conn, response)
 
                 conn.executor.submit(process_context_result)
                 return True
@@ -185,7 +194,15 @@ Please answer the user's question using the information above: {original_text}""
                     elif result.action == Action.REQLLM:  # Ask the LLM to produce a follow-up reply.
                         text = result.result
                         conn.dialogue.put(Message(role="tool", content=text))
-                        llm_result = conn.intent.replyResult(text, original_text)
+                        # 使用异步调用避免阻塞事件循环，影响其他设备的音频播放
+                        try:
+                            llm_result = asyncio.run_coroutine_threadsafe(
+                                conn.intent.replyResult(text, original_text),
+                                conn.loop,
+                            ).result()
+                        except Exception as e:
+                            conn.logger.bind(tag=TAG).error(f"LLM生成回复失败: {e}")
+                            llm_result = text
                         if llm_result is None:
                             llm_result = text
                         speak_txt(conn, llm_result)

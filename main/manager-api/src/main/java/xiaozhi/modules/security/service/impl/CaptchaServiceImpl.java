@@ -1,8 +1,7 @@
 package xiaozhi.modules.security.service.impl;
 
 import java.io.IOException;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +12,7 @@ import com.google.common.cache.CacheBuilder;
 import com.wf.captcha.SpecCaptcha;
 import com.wf.captcha.base.Captcha;
 
+import cn.hutool.core.util.RandomUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import xiaozhi.common.constant.Constant;
@@ -41,7 +41,7 @@ public class CaptchaServiceImpl implements CaptchaService {
      * Local Cache expires in 5 minutes
      */
     Cache<String, String> localCache = CacheBuilder.newBuilder().maximumSize(1000)
-            .expireAfterAccess(5, TimeUnit.MINUTES).build();
+            .expireAfterAccess(Duration.ofMinutes(5)).build();
 
     @Override
     public void create(HttpServletResponse response, String uuid) throws IOException {
@@ -113,7 +113,7 @@ public class CaptchaServiceImpl implements CaptchaService {
         }
 
         String key = RedisKeys.getSMSValidateCodeKey(phone);
-        String validateCodes = generateValidateCode(6);
+        String validateCodes = RandomUtil.randomNumbers(6);
 
         // Set verification code
         setCache(key, validateCodes);

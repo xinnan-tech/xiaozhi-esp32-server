@@ -89,6 +89,10 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
+            .fail((err) => {
+                RequestService.clearRequestTime()
+                failCallback(err)
+            })
             .networkFail((err) => {
                 console.error('Failed to add parameter:', err)
                 RequestService.reAjaxFun(() => {

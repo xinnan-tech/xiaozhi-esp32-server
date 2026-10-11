@@ -15,10 +15,9 @@
             :placeholder="$t('addressBookManagement.searchPlaceholder')"
             v-model="searchKeyword"
             class="search-input"
-            @keyup.enter="handleSearch"
+            @input="handleSearch"
             clearable
           />
-          <el-button class="btn-search" @click="handleSearch">{{ $t('addressBookManagement.search') }}</el-button>
         </div>
 
         <!-- 智能体列表 -->
@@ -121,7 +120,7 @@
                 <i class="el-icon-time"></i>
                 <div class="stat-content">
                   <div class="stat-label">{{ $t('addressBookManagement.addTime') }}</div>
-                  <div class="stat-value">{{ selectedDevice.createDate || '-' }}</div>
+                  <div class="stat-value">{{ formatDeviceCreateDate(selectedDevice) }}</div>
                 </div>
               </div>
               <div class="stat-item">
@@ -142,25 +141,24 @@
                 <p class="section-desc">{{ $t('addressBookManagement.setPermissionDesc', { count: selectedPermissions.length }) }}</p>
               </div>
               <div class="section-actions">
-                <el-button size="small" @click="handleCancel">{{ $t('common.cancel') }}</el-button>
-                <el-button size="small" @click="handleToggleSelectAll">
-                  {{ isAllSelected ? $t('addressBookManagement.deselectAll') : $t('addressBookManagement.selectAll') }}
-                </el-button>
-                <el-button type="primary" size="small" @click="handleSavePermissions">{{ $t('addressBookManagement.save') }}</el-button>
+                <CustomButton size="small" :disabled="permissionsLoading" @click="handleCancel">{{ $t('common.cancel') }}</CustomButton>
+                <CustomButton size="small" :disabled="permissionsLoading" @click="handleToggleSelectAll">{{ isAllSelected ? $t('addressBookManagement.deselectAll') : $t('addressBookManagement.selectAll') }}</CustomButton>
+                <CustomButton type="confirm" size="small" :disabled="permissionsLoading" @click="handleSavePermissions">{{ $t('addressBookManagement.save') }}</CustomButton>
               </div>
             </div>
 
-            <div class="permission-grid">
+            <div v-loading="permissionsLoading" class="permission-grid">
               <div
                 v-for="device in allDevices"
                 :key="device.id"
                 class="permission-item"
-                :class="{ active: selectedPermissions.includes(device.id) }"
+                :class="{ active: selectedPermissions.includes(device.deviceId) }"
               >
                 <el-checkbox
                   class="permission-checkbox"
-                  :value="selectedPermissions.includes(device.id)"
-                  @change="(checked) => handlePermissionToggle(device.id, checked)"
+                  :disabled="permissionsLoading"
+                  :value="selectedPermissions.includes(device.deviceId)"
+                  @change="(checked) => handlePermissionToggle(device.deviceId, checked)"
                 ></el-checkbox>
                 <div class="permission-avatar">
                   <img :src="getDeviceAvatar(device.id)" alt="avatar" />
@@ -209,10 +207,12 @@ import VersionFooter from "@/components/VersionFooter.vue";
 import Api from "@/apis/api.js";
 import AddressBookApi from "@/apis/module/addressBook.js";
 import MacAddressMask from "@/components/MacAddressMask.vue";
+import CustomButton from "@/components/CustomButton.vue";
+import { formatCreateDate, parseTimestamp } from '@/utils/deviceTime.mjs';
 
 export default {
   name: "AddressBookManagement",
-  components: { HeaderBar, VersionFooter, MacAddressMask },
+  components: { HeaderBar, VersionFooter, MacAddressMask, CustomButton },
   data() {
     return {
       searchKeyword: "",
@@ -230,7 +230,9 @@ export default {
       editAgentNameValue: '',
       editingDeviceId: null,
       editingDeviceName: '',
-      mqttServiceAvailable: false
+      mqttServiceAvailable: false,
+      permissionRequestSequence: 0,
+      permissionsLoading: false
     };
   },
   created() {
@@ -283,7 +285,8 @@ export default {
                   remarks: device.alias || '',
                   online: false,
                   createDate: device.createDate,
-                  lastConnectedAt: device.lastConnectedAt,
+                  createDateTimestamp: device.createDateTimestamp,
+                  lastConnectedAt: device.lastConnectedAtTimestamp,
                   deviceStatus: 'offline'
                 }));
                 resolve();
@@ -291,8 +294,11 @@ export default {
             });
           });
           Promise.all(agentPromises).then(() => {
+            const firstDevice = agentList[0] || {};
             this.agentDeviceOptions = agentList;
             this.filteredAgents = agentList;
+            // 默认选中第一项
+            this.handleDeviceClick(firstDevice.devices?.[0] || {}, firstDevice);
             // 获取设备状态
             this.fetchDeviceStatus();
           });
@@ -348,17 +354,6 @@ export default {
         }
       });
     },
-    handleAgentClick(agent) {
-      if (this.expandedAgentId === agent.id) {
-        this.expandedAgentId = null;
-        this.selectedAgent = null;
-        this.selectedDevice = null;
-      } else {
-        this.expandedAgentId = agent.id;
-        this.selectedAgent = agent;
-        this.selectedDevice = null;
-      }
-    },
     handleDeviceClick(device, agent) {
       this.expandedAgentId = agent.id;
       this.selectedAgent = agent;
@@ -371,18 +366,45 @@ export default {
       this.loadAddressBookPermissions(device.deviceId);
     },
     loadAddressBookPermissions(macAddress) {
+      const requestId = ++this.permissionRequestSequence;
+      this.permissionsLoading = true;
+      this.selectedPermissions = [];
+      this.originalPermissions = [];
+      this.editingDeviceId = null;
+      this.editingDeviceName = '';
+      this.allDevices.forEach(device => {
+        device.addressBookAlias = '';
+      });
       AddressBookApi.getAddressBookList(macAddress, (res) => {
+        if (
+          requestId !== this.permissionRequestSequence ||
+          this.selectedDevice?.deviceId !== macAddress
+        ) {
+          return;
+        }
+        this.permissionsLoading = false;
         if (res.data?.code === 0) {
           const permissions = res.data.data || [];
+          const permissionsByTargetMac = new Map(
+            permissions.map(permission => [
+              (permission.targetMac || '').toLowerCase(),
+              permission
+            ])
+          );
           // 设置已选择的权限
-          this.selectedPermissions = permissions
-            .filter(p => p.hasPermission)
-            .map(p => p.targetMac);
+          const permittedTargetMacs = new Set(
+            permissions
+              .filter(p => p.hasPermission)
+              .map(p => (p.targetMac || '').toLowerCase())
+          );
+          this.selectedPermissions = this.allDevices
+            .filter(device => permittedTargetMacs.has((device.deviceId || '').toLowerCase()))
+            .map(device => device.deviceId);
           // 保存初始权限状态（用于对比变更）
           this.originalPermissions = [...this.selectedPermissions];
           // 更新设备的通讯录别名
           this.allDevices.forEach(device => {
-            const addrBook = permissions.find(p => p.targetMac === device.deviceId);
+            const addrBook = permissionsByTargetMac.get((device.deviceId || '').toLowerCase());
             if (addrBook) {
               device.addressBookAlias = addrBook.alias || '';
             } else {
@@ -393,6 +415,7 @@ export default {
       });
     },
     handleStartEditPermission(device) {
+      if (this.permissionsLoading) return;
       this.editingDeviceId = device.id;
       this.editingDeviceName = device.addressBookAlias || device.name;
       this.$nextTick(() => {
@@ -410,8 +433,8 @@ export default {
           alias: newName
         }, (res) => {
           if (res.data?.code === 0) {
-            device.addressBookAlias = newName;
             this.$message.success(this.$t('addressBookManagement.aliasSaved'));
+            this.loadAddressBookPermissions(this.selectedDevice.deviceId);
           } else {
             this.$message.error(res.data?.msg || this.$t('addressBookManagement.saveFailed'));
           }
@@ -420,13 +443,14 @@ export default {
       this.editingDeviceId = null;
       this.editingDeviceName = '';
     },
-    handlePermissionToggle(deviceId, checked) {
+    handlePermissionToggle(targetMac, checked) {
+      if (this.permissionsLoading) return;
       if (checked) {
-        if (!this.selectedPermissions.includes(deviceId)) {
-          this.selectedPermissions.push(deviceId);
+        if (!this.selectedPermissions.includes(targetMac)) {
+          this.selectedPermissions.push(targetMac);
         }
       } else {
-        const index = this.selectedPermissions.indexOf(deviceId);
+        const index = this.selectedPermissions.indexOf(targetMac);
         if (index > -1) {
           this.selectedPermissions.splice(index, 1);
         }
@@ -436,21 +460,22 @@ export default {
       if (this.isAllSelected) {
         this.selectedPermissions = [];
       } else {
-        this.selectedPermissions = this.allDevices.map(d => d.id);
+        this.selectedPermissions = this.allDevices.map(d => d.deviceId);
       }
     },
     handleCancel() {
       this.selectedPermissions = [];
     },
     handleSavePermissions() {
+      if (this.permissionsLoading) return;
       const promises = this.allDevices
         .filter(device => {
-          const isNowSelected = this.selectedPermissions.includes(device.id);
-          const wasOriginallySelected = this.originalPermissions.includes(device.id);
+          const isNowSelected = this.selectedPermissions.includes(device.deviceId);
+          const wasOriginallySelected = this.originalPermissions.includes(device.deviceId);
           return isNowSelected !== wasOriginallySelected;
         })
         .map(device => {
-          const hasPermission = this.selectedPermissions.includes(device.id);
+          const hasPermission = this.selectedPermissions.includes(device.deviceId);
           return new Promise((resolve) => {
             AddressBookApi.updatePermission({
               macAddress: this.selectedDevice.deviceId,
@@ -467,6 +492,7 @@ export default {
         } else if (results.every(r => r)) {
           this.$message.success(this.$t('addressBookManagement.permissionSaved'));
           this.originalPermissions = [...this.selectedPermissions];
+          this.loadAddressBookPermissions(this.selectedDevice.deviceId);
         } else {
           this.$message.error(this.$t('addressBookManagement.partialSaveFailed'));
         }
@@ -535,9 +561,10 @@ export default {
       this.isEditingAgentName = false;
     },
     getTimeAgo(timestamp) {
-      if (!timestamp) return '-';
+      const ts = parseTimestamp(timestamp);
+      if (ts === null) return '-';
       const now = new Date();
-      const date = new Date(timestamp);
+      const date = new Date(ts);
       const diff = now - date;
 
       const seconds = Math.floor(diff / 1000);
@@ -553,6 +580,10 @@ export default {
       if (days < 30) return this.$t('addressBookManagement.daysAgo', { days });
       if (months < 12) return this.$t('addressBookManagement.monthsAgo', { months });
       return this.$t('addressBookManagement.yearsAgo', { years });
+    },
+    formatDeviceCreateDate(device) {
+      if (!device) return '-';
+      return formatCreateDate(device.createDateTimestamp, device.createDate);
     },
     getDeviceAvatar(deviceId) {
       // 根据 deviceId 计算 MD5，选择对应的头像
@@ -595,7 +626,7 @@ export default {
   display: flex;
   flex-direction: column;
   background-size: cover;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  background: #eff4ff;
   -webkit-background-size: cover;
   -o-background-size: cover;
   overflow: hidden;
@@ -815,21 +846,20 @@ export default {
     font-size: 12px;
     color: #686f85;
     text-align: left;
+    gap: 4px;
 
     .online {
-      margin-left: 4px;
       color: #686f85;
       display: inline-flex;
       align-items: center;
       gap: 4px;
 
       .status-dot {
-        margin-top: -3px;
-        margin-right: 4px;
         width: 9px;
         height: 9px;
         border-radius: 50%;
         background: #4eb36c;
+        flex-shrink: 0;
       }
     }
 
@@ -840,12 +870,11 @@ export default {
       gap: 4px;
 
       .status-dot {
-        margin-top: -3px;
-        margin-right: 4px;
         width: 9px;
         height: 9px;
         border-radius: 50%;
         background: #999;
+        flex-shrink: 0;
       }
     }
   }
@@ -954,8 +983,8 @@ export default {
     }
 
     .section-actions {
+      margin-top: 4px;
       display: flex;
-      gap: 8px;
     }
   }
 }
@@ -1136,14 +1165,6 @@ export default {
 
 .search-input {
   flex: 1;
-}
-
-.btn-search {
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #6b8cff, #a966ff);
-  border: none;
-  color: white;
-  width: 80px;
 }
 
 .agent-card {

@@ -71,6 +71,7 @@
 
 <script>
 import Api from '@/apis/api';
+import CustomDialog from '@/components/CustomDialog.vue';
 import MacAddressMask from '@/components/MacAddressMask.vue';
 
 export default {
@@ -107,6 +108,7 @@ export default {
         };
     },
     components: {
+        CustomDialog,
         MacAddressMask,
     },
     watch: {
@@ -198,9 +200,6 @@ export default {
             this.loading = false;
             this.hasMore = true;
             this.isFirstLoad = true;
-        },
-        handleClose() {
-            this.dialogVisible = false;
         },
         loadSessions() {
             if (this.loading || (!this.isFirstLoad && !this.hasMore)) {
@@ -399,7 +398,8 @@ export default {
 <style scoped>
 .chat-container {
     display: flex;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
 }
 
 .session-list {
@@ -591,8 +591,6 @@ export default {
 
 <style>
 .chat-history-dialog {
-    display: flex;
-    flex-direction: column;
     min-width: 700px;
     margin: 0 !important;
     position: absolute;
@@ -601,13 +599,8 @@ export default {
     transform: translate(-50%, -50%);
     height: 90vh;
     max-width: 85vw;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.chat-history-dialog .el-dialog__header {
-    background-color: #e6f7ff;
-    padding: 15px 20px;
+    /* 兜底，防止 size="large" 那个 height 没有生效时弹框缩成内容高度 */
+    height: calc(100vh - 20px) !important;
 }
 
 .chat-history-dialog .el-dialog__body {

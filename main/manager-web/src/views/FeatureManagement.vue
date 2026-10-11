@@ -8,13 +8,13 @@
             <div class="config-header">
               <h2 class="page-title">{{ $t('header.featureManagement') }}</h2>
               <div class="header-actions">
-                <CustomButton size="small" @click="!isSaving && toggleSelectAll()" :disabled="isSaving">
+                <CustomButton :icon="isAllSelected ? 'el-icon-circle-close' : 'el-icon-circle-check'" size="medium" @click="!isSaving && toggleSelectAll()" :disabled="isSaving">
                   {{ isAllSelected ? $t('featureManagement.deselectAll') : $t('featureManagement.selectAll') }}
                 </CustomButton>
-                <CustomButton size="small" @click="handleReset" :disabled="isSaving">
+                <CustomButton icon="el-icon-refresh" size="medium" @click="handleReset" :disabled="isSaving">
                   {{ $t('featureManagement.reset') }}
                 </CustomButton>
-                <CustomButton size="small" type="confirm" @click="handleSave" :disabled="isSaving">
+                <CustomButton icon="el-icon-setting" size="medium" type="confirm" @click="handleSave" :disabled="isSaving">
                   {{ isSaving ? $t('featureManagement.saving') : $t('featureManagement.save') }}
                 </CustomButton>
               </div>
@@ -45,18 +45,16 @@
                     <div class="feature-content">
                       <div class="feature-header">
                         <h3 class="feature-name">{{ $t(`feature.${feature.id}.name`) }}</h3>
-                        <span v-if="feature.enabled" class="feature-enabled-tag">{{ $t('featureManagement.enabled') }}</span>
-                        <span v-else class="feature-disabled-tag">{{ $t('featureManagement.disabled') }}</span>
+                        <div class="feature-checkbox-container">
+                          <el-checkbox
+                            v-model="feature.enabled"
+                            @change="!isSaving && toggleFeature(feature)"
+                            class="feature-checkbox"
+                            :disabled="isSaving"
+                          />
+                        </div>
                       </div>
                       <p class="feature-description">{{ $t(`feature.${feature.id}.description`) }}</p>
-                    </div>
-                    <div class="feature-checkbox-container">
-                      <el-checkbox
-                        v-model="feature.enabled"
-                        @change="!isSaving && toggleFeature(feature)"
-                        class="feature-checkbox"
-                        :disabled="isSaving"
-                      />
                     </div>
                   </div>
                 </div>
@@ -84,18 +82,16 @@
                     <div class="feature-content">
                       <div class="feature-header">
                         <h3 class="feature-name">{{ $t(`feature.${feature.id}.name`) }}</h3>
-                        <span v-if="feature.enabled" class="feature-enabled-tag">{{ $t('featureManagement.enabled') }}</span>
-                        <span v-else class="feature-disabled-tag">{{ $t('featureManagement.disabled') }}</span>
+                        <div class="feature-checkbox-container">
+                          <el-checkbox
+                            v-model="feature.enabled"
+                            @change="!isSaving && toggleFeature(feature)"
+                            class="feature-checkbox"
+                            :disabled="isSaving"
+                          />
+                        </div>
                       </div>
                       <p class="feature-description">{{ $t(`feature.${feature.id}.description`) }}</p>
-                    </div>
-                    <div class="feature-checkbox-container">
-                      <el-checkbox
-                        v-model="feature.enabled"
-                        @change="!isSaving && toggleFeature(feature)"
-                        class="feature-checkbox"
-                        :disabled="isSaving"
-                      />
                     </div>
                   </div>
                 </div>
@@ -360,7 +356,9 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/global.scss';
+
 .welcome {
   min-width: 900px;
   min-height: 506px;
@@ -369,7 +367,7 @@ export default {
   position: relative;
   flex-direction: column;
   background-size: cover;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  background: #eff4ff;
   -webkit-background-size: cover;
   -o-background-size: cover;
   overflow: hidden;
@@ -383,6 +381,7 @@ export default {
 }
 
 .page-title {
+  font-weight: 500;
   font-size: 24px;
   margin: 0;
 }
@@ -427,11 +426,10 @@ export default {
   height: calc(100vh - 63px - 35px);
   margin: 20px 22px 0;
   border-radius: 15px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: relative;
-  background: rgba(237, 242, 255, 0.5);
   display: flex;
   flex-direction: column;
+  overflow: auto;
 }
 
 .content-panel {
@@ -465,11 +463,12 @@ export default {
 }
 
 .feature-card ::v-deep .el-card__body {
-  padding: 24px;
+  padding: 14px 20px;
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
+  @include scrollbar-style;
 }
 
 .features-grid {
@@ -504,15 +503,18 @@ export default {
   transform: translateY(-2px);
 }
 .feature-content {
+  width: 100%;
   margin-left: 16px;
 }
 
 .feature-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   margin-bottom: 6px;
 }
 .feature-checkbox-container {
+  margin-top: 4px;
   display: flex;
   align-items: center;
   margin-left: 30px;
@@ -531,35 +533,17 @@ export default {
   color: #5778ff;
 }
 
-.feature-enabled-tag {
-  background: #5778ff;
-  font-size: 14px;
-  color: #FFFFFF;
-  padding: 4px 8px;
-  border-radius: 10px;
-  margin-left: 10px;
-  font-weight: 500;
-}
-
-.feature-disabled-tag {
-  background: #DCDFE6;
-  font-size: 14px;
-  color: #FFFFFF;
-  padding: 4px 8px;
-  border-radius: 10px;
-  margin-left: 10px;
-  font-weight: 500;
-}
-
 .feature-name {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
   font-size: 18px;
-  line-height: 18px;
+  line-height: 1.4;
   font-weight: 600;
   color: #333;
   margin: 0;
   transition: color 0.3s ease;
 }
-
 
 .feature-description {
   font-size: 14px;
@@ -569,7 +553,6 @@ export default {
   transition: color 0.3s ease;
   text-align: left;
 }
-
 
 /* 功能分组容器 - 左右布局 */
 .feature-groups-container {

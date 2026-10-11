@@ -1,5 +1,6 @@
 import os
 import re
+import math
 import uuid
 import queue
 import asyncio
@@ -37,7 +38,9 @@ class TTSProviderBase(ABC):
         self.delete_audio_file = delete_audio_file
         self.audio_file_type = "wav"
         self.output_file = config.get("output_dir", "tmp/")
-        self.tts_timeout = int(config.get("tts_timeout", 15))
+        self.tts_timeout = float(config.get("tts_timeout", 15))
+        if not math.isfinite(self.tts_timeout) or self.tts_timeout <= 0:
+            raise ValueError("tts_timeout must be a positive finite number")
         self.tts_text_queue = queue.Queue()
         self.tts_audio_queue = queue.Queue()
         self.tts_audio_first_sentence = True

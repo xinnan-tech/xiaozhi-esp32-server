@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useMessage } from 'wot-design-uni'
 import { bindDevice, getBindDevices, getFirmwareTypes, unbindDevice, updateDeviceAutoUpdate } from '@/api/device'
 import { toast } from '@/utils/toast'
+import { parseDeviceLastConnectedAtTimestamp } from './deviceTimeUtils.mjs'
 
 defineOptions({
   name: 'DeviceManage',

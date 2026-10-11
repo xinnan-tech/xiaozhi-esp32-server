@@ -18,8 +18,8 @@
             <span style="margin-right: 8px;">{{ $t('modelConfigDialog.enable') }}</span>
             <el-switch v-model="formData.isEnabled" class="custom-switch"></el-switch>
           </div>
-          <div style="display: none; align-items: center;">
-            <span style="margin-right: 8px;">{{ $t('modelConfigDialog.setDefault') }}</span>
+          <div class="switch-item" style="display: none;">
+            <span>{{ $t('modelConfigDialog.setDefault') }}</span>
             <el-switch v-model="formData.isDefault" class="custom-switch"></el-switch>
           </div>
         </div>
@@ -36,7 +36,7 @@
           </el-form-item>
         </div>
 
-        <div style="display: flex; gap: 20px; margin-bottom: 0;">
+        <div class="form-row">
           <el-form-item :label="$t('modelConfigDialog.supplier')" prop="supplier" style="flex: 1;">
             <el-select v-model="formData.supplier" :placeholder="$t('modelConfigDialog.selectSupplier')" class="custom-select custom-input-bg"
               style="width: 100%;" @focus="loadProviders" filterable>
@@ -47,7 +47,6 @@
             <el-input v-model="formData.sort" type="number" :placeholder="$t('modelConfigDialog.enterSortOrder')" class="custom-input-bg"></el-input>
           </el-form-item>
         </div>
-
 
         <el-form-item :label="$t('modelConfigDialog.docLink')" prop="docLink" style="margin-bottom: 27px;">
           <el-input v-model="formData.docLink" :placeholder="$t('modelConfigDialog.enterDocLink')" class="custom-input-bg"></el-input>
@@ -91,8 +90,12 @@
 
 <script>
 import Api from '@/apis/api';
+import CustomDialog from './CustomDialog.vue';
 export default {
   name: 'AddModelDialog',
+  components: {
+    CustomDialog
+  },
   props: {
     visible: { type: Boolean, required: true },
     modelType: { type: String, required: true }
@@ -172,16 +175,10 @@ export default {
       });
       this.formData.configJson = { ...defaultConfig };
     },
-    handleVisibleChange(val) {
-      this.dialogVisible = val;
-      this.$emit('update:visible', val);
-      if (!val) {
-        this.resetForm();
-      }
-    },
 
     handleClose() {
       this.saving = false;
+      this.dialogVisible = false;
       this.$emit('update:visible', false);
     },
     initDynamicConfig() {
@@ -218,7 +215,7 @@ export default {
 
       try {
         this.$emit('confirm', submitData);
-        this.$emit('update:visible', false);
+        this.handleClose();
         this.resetForm();
       } catch (e) {
         console.error(e);
@@ -250,91 +247,69 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss" scoped>
+@import '@/styles/global.scss';
+
+::v-deep .el-dialog {
+  margin-top: 6vh !important;
+}
+::v-deep .el-dialog__body {
+  max-height: 60vh;
+  overflow-y: auto;
+  @include scrollbar-style;
+}
 .add-model-dialog {
-  position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  background: white;
-  padding-bottom: 17px;
-}
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-.add-model-dialog .el-dialog__header {
-  padding: 0;
-  border-bottom: none;
-}
+  .section-title {
+    margin-bottom: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #3d4566;
+    text-align: left;
+  }
 
-.center-dialog {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  .switch-group {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
 
-.center-dialog .el-dialog {
-  margin: 0 0 auto !important;
-  display: flex;
-  flex-direction: column;
-}
+  .switch-item {
+    display: flex;
+    align-items: center;
 
-.custom-close-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  border: 2px solid #cfcfcf;
-  background: none;
-  font-size: 30px;
-  font-weight: lighter;
-  color: #cfcfcf;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-  padding: 0;
-  outline: none;
-}
+    span {
+      margin-right: 8px;
+    }
+  }
 
-.custom-close-btn:hover {
-  color: #409EFF;
-  border-color: #409EFF;
-}
+  .divider {
+    height: 1px;
+    background: #e9e9e9;
+    margin-bottom: 16px;
+  }
 
-.custom-select .el-input__suffix {
-  background: #e6e8ea;
-  right: 6px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  top: 9px;
-}
+  .form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 0;
+  }
 
-.custom-select .el-input__suffix-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-.custom-select .el-icon-arrow-up:before {
-  content: "";
-  display: inline-block;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 7px solid #c0c4cc;
-  position: relative;
-  top: -2px;
-  transform: rotate(180deg);
+  .dialog-footer {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 16px 20px;
+  }
 }
 
 .custom-form .el-form-item {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .custom-form .el-form-item__label {
@@ -392,7 +367,7 @@ export default {
   background-color: white;
   top: 3px;
   left: 4px;
-  transition: all .3s;
+  transition: all 0.3s;
 }
 
 .custom-switch.is-checked .el-switch__core {
@@ -407,12 +382,10 @@ export default {
   background-color: #1b47ee;
 }
 
-
-[style*="display: flex"] {
-  gap: 20px;
-}
-
 .custom-input-bg .el-input__inner {
+  height: 32px;
+}
+::v-deep .el-input__inner {
   height: 32px;
 }
 </style>

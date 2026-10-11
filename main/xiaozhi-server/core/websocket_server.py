@@ -42,7 +42,7 @@ TAG = __name__
 class WebSocketServer:
     def __init__(self, config: dict):
         self.config = config
-        self.logger = setup_logging()
+        self.logger = setup_logging(config)
         self.config_lock = asyncio.Lock()
         modules = initialize_modules(
             self.logger,
@@ -74,7 +74,11 @@ class WebSocketServer:
         port = int(server_config.get("port", 8000))
 
         async with websockets.serve(
-            self._handle_connection, host, port, process_request=self._http_response
+            self._handle_connection,
+            host,
+            port,
+            process_request=self._http_response,
+            ping_interval=None,
         ):
             await asyncio.Future()
 

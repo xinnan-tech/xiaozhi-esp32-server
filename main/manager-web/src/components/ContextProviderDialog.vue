@@ -1,11 +1,14 @@
 <template>
-  <el-dialog
-    :visible.sync="dialogVisible"
-    width="900px"
+  <CustomDialog
     :title="$t('contextProviderDialog.title')"
-    :close-on-click-modal="false"
-    custom-class="context-provider-dialog"
-    append-to-body
+    :visible.sync="dialogVisible"
+    width="960px"
+    size="large"
+    class="context-provider-dialog"
+    :closeOnClickModal="false"
+    :confirmText="$t('contextProviderDialog.confirm')"
+    :cancelText="$t('contextProviderDialog.cancel')"
+    @confirm="handleConfirm"
   >
     <div class="dialog-content">
       <el-empty v-if="localProviders.length === 0" :description="$t('contextProviderDialog.noContextApi')">
@@ -51,7 +54,7 @@
                   size="small"
                   class="flex-1"
                 ></el-input>
-                
+
                 <div class="row-controls">
                   <el-button
                     type="primary"
@@ -104,17 +107,15 @@
         </div>
       </div>
     </div>
-
-    <span slot="footer" class="dialog-footer">
-      <el-button @click="dialogVisible = false">{{ $t('contextProviderDialog.cancel') }}</el-button>
-      <el-button type="primary" @click="handleConfirm">{{ $t('contextProviderDialog.confirm') }}</el-button>
-    </span>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
+import CustomDialog from './CustomDialog.vue';
+
 export default {
   name: 'ContextProviderDialog',
+  components: { CustomDialog },
   props: {
     visible: {
       type: Boolean,
@@ -193,19 +194,22 @@ export default {
             headers: headersObj
           };
         });
-      
+
       this.$emit('confirm', result);
-      this.dialogVisible = false;
+      this.$emit('update:visible', false);
     }
   }
 };
 </script>
 
 <style scoped>
+.context-provider-dialog ::v-deep .el-dialog__body {
+  padding: 16px 20px;
+}
 .dialog-content {
-  max-height: 60vh;
+  max-height: calc(100vh - 280px);
   overflow-y: auto;
-  padding: 20px 25px;
+  padding: 0 5px;
 }
 
 .dialog-content::-webkit-scrollbar {
@@ -327,3 +331,4 @@ export default {
   margin-right: 8px;
 }
 </style>
+

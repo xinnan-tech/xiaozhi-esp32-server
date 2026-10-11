@@ -1,35 +1,29 @@
 <template>
   <div class="welcome">
     <HeaderBar />
-    <div class="operation-bar">
-      <h2 class="page-title">{{ $t('knowledgeBaseManagement.title') }}</h2>
-      <div class="right-operations">
-        <el-input
-          :placeholder="$t('knowledgeBaseManagement.searchPlaceholder')"
-          v-model="searchKbName"
-          class="search-input"
-          @keyup.enter.native="handleSearchKb"
-          clearable
-          prefix-icon="el-icon-search"
-        />
-        <el-button class="btn-upload" @click="handleSearchKb">
-          <i class="el-icon-search"></i>
-          {{ $t('knowledgeBaseManagement.search') }}
-        </el-button>
-        <el-button class="btn-new-kb" @click="showAddDialog">
-          <i class="el-icon-plus"></i>
-          {{ $t('knowledgeBaseManagement.addKnowledgeBase') }}
-        </el-button>
-      </div>
-    </div>
-
     <div class="main-wrapper">
       <div class="content-panel">
         <div class="content-area" v-loading="loading" :element-loading-text="$t('knowledgeBaseManagement.loading')">
           <!-- Knowledge Base Cards Section -->
           <div class="kb-section" :style="{ height: filteredKnowledgeBases.length > 0 ? 'fit-content' : '100%' }">
             <div class="kb-section-header">
-              <div class="kb-section-title">{{ $t('knowledgeBaseManagement.switchKnowledgeBase') }}</div>
+              <h2 class="page-title">{{ $t('knowledgeBaseManagement.title') }}</h2>
+              <div class="right-operations">
+                <el-input
+                  :placeholder="$t('knowledgeBaseManagement.searchPlaceholder')"
+                  v-model="searchKbName"
+                  class="search-input"
+                  @keyup.enter.native="handleSearchKb"
+                  clearable
+                  prefix-icon="el-icon-search"
+                />
+                <CustomButton icon="el-icon-search" @click="handleSearchKb">
+                  {{ $t('knowledgeBaseManagement.search') }}
+                </CustomButton>
+                <CustomButton type="confirm" icon="el-icon-plus" @click="showAddDialog">
+                  {{ $t('knowledgeBaseManagement.addKnowledgeBase') }}
+                </CustomButton>
+              </div>
             </div>
             <div class="kb-cards-wrapper" :style="{ height: filteredKnowledgeBases.length > 0 ? 'fit-content' : '100%' }">
               <div class="kb-arrow left" @click="scrollCards(-1)" v-if="filteredKnowledgeBases.length > 0">
@@ -120,6 +114,7 @@
       :title="`${$t('knowledgeFileUpload.viewSlices')} - ${currentDocumentName}`"
       :visible.sync="sliceDialogVisible"
       width="1200px"
+      size="large"
       :footer="false"
     >
       <div class="slice-management">
@@ -154,6 +149,8 @@
       :title="$t('knowledgeFileUpload.uploadDocument')"
       :visible.sync="uploadDialogVisible"
       width="800px"
+      :close-on-click-modal="false"
+      :confirmLoading="uploading"
       @close="handleUploadDialogClose"
       @confirm="handleBatchUploadSubmit"
     >
@@ -193,14 +190,15 @@
     <CustomDialog
       :title="$t('knowledgeFileUpload.retrievalTest')"
       :visible.sync="retrievalTestDialogVisible"
-      width="900px"
+      width="1200px"
+      size="large"
       :close-on-click-modal="false"
       :confirm-text="$t('knowledgeFileUpload.executeTest')"
       :confirmLoading="retrievalTestLoading"
       @confirm="runRetrievalTest"
     >
       <div class="retrieval-test-form">
-        <el-form :model="retrievalTestForm" label-width="100px">
+        <el-form :model="retrievalTestForm" label-width="100px" @submit.native.prevent>
           <el-form-item :label="$t('knowledgeFileUpload.testQuestion')" required>
             <el-input
               v-model="retrievalTestForm.question"
@@ -258,9 +256,10 @@ import KnowledgeBaseItem from "./KnowledgeBaseItem.vue";
 import ManualIcon from "@/components/ManualIcon.vue";
 import CustomDialog from "@/components/CustomDialog.vue";
 import CustomPagination from "@/components/CustomPagination.vue";
+import CustomButton from "@/components/CustomButton.vue";
 
 export default {
-  components: { HeaderBar, VersionFooter, KnowledgeBaseDialog, KnowledgeBaseItem, ManualIcon, CustomDialog, CustomPagination },
+  components: { HeaderBar, VersionFooter, KnowledgeBaseDialog, KnowledgeBaseItem, ManualIcon, CustomDialog, CustomPagination, CustomButton },
   data() {
     return {
       knowledgeBases: [],
@@ -297,11 +296,7 @@ export default {
   },
   computed: {
     filteredKnowledgeBases() {
-      if (!this.searchKbName) return this.knowledgeBases;
-      const keyword = this.searchKbName.toLowerCase();
-      return this.knowledgeBases.filter(kb =>
-        kb.name.toLowerCase().includes(keyword)
-      );
+      return this.knowledgeBases;
     },
   },
   created() {
@@ -704,7 +699,7 @@ export default {
   display: flex;
   position: relative;
   flex-direction: column;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  background: #eff4ff;
   background-size: cover;
   -webkit-background-size: cover;
   -o-background-size: cover;
@@ -712,11 +707,13 @@ export default {
 }
 
 .main-wrapper {
-  height: calc(100vh - 63px - 35px - 72px);
-  margin: 0 22px;
+  height: calc(100vh - 63px - 35px);
+  margin: 20px 22px 0;
+  border-radius: 15px;
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .operation-bar {
@@ -727,51 +724,20 @@ export default {
 }
 
 .page-title {
+  font-weight: 500;
   font-size: 24px;
   margin: 0;
 }
 
 .right-operations {
   display: flex;
-  gap: 10px;
   margin-left: auto;
   align-items: center;
 }
 
 .search-input {
+  margin-right: 10px;
   width: 240px;
-}
-
-.btn-upload {
-  height: 40px;
-  padding: 0 20px;
-  border: 1px solid #2f5bff !important;
-  border-radius: 8px;
-  background: #fff;
-  color: #2f5bff;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f2f6ff;
-  }
-}
-
-.btn-new-kb {
-  height: 40px;
-  padding: 0 20px;
-  border: none !important;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6a5cff, #2f5bff) !important;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  transition: opacity 0.2s;
-
-  &:hover {
-    opacity: 0.9;
-  }
 }
 
 .content-panel {
@@ -797,7 +763,6 @@ export default {
   background: #fff;
   border-radius: 10px;
   padding: 14px 20px;
-  box-shadow: 0 4px 16px rgba(31, 42, 68, 0.06);
   border: 1px solid #f0f3f9;
 }
 
@@ -805,7 +770,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  padding: 0 0 16px 0;
 }
 
 .kb-section-title {
@@ -1051,10 +1016,12 @@ export default {
 .slice-content-container {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .slice-cards-container {
-  max-height: 60vh;
+  flex: 1;
   overflow-y: auto;
   padding-right: 4px;
 
@@ -1119,6 +1086,7 @@ export default {
 }
 
 .no-slice-data {
+  flex: 1;
   min-height: 200px;
   display: flex;
   align-items: center;
@@ -1126,6 +1094,7 @@ export default {
 }
 
 .slice-pagination {
+  margin-top: 20px;
   display: flex;
   justify-content: center;
 }
@@ -1207,8 +1176,20 @@ export default {
 
 /* ========== Retrieval Test Dialog ========== */
 .retrieval-test-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .retrieval-test-result {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .result-chunks {
-    max-height: 400px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
   }
 

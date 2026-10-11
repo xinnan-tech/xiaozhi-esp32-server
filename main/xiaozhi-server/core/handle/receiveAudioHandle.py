@@ -47,7 +47,6 @@ async def resume_vad_detection(conn: "ConnectionHandler"):
 async def startToChat(conn: "ConnectionHandler", text):
     # Check whether the input is JSON with speaker metadata.
     speaker_name = None
-    language_tag = None
     actual_text = text
 
     try:

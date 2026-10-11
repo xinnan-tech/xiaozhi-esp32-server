@@ -4,6 +4,8 @@
 """
 
 import os
+import asyncio
+import threading
 from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -169,12 +171,33 @@ class PromptManager:
             if cached_weather is not None:
                 return cached_weather
 
-            # 缓存未命中，调用get_weather函数获取
+            # 缓存未命中，调用 async get_weather 函数
+            # Windows ProactorEventLoop 不支持 run_coroutine_threadsafe().result()
+            # 因此用 call_soon_threadsafe 提交任务 + threading.Event 等待结果
+            # 注意：Event.wait() 只阻塞当前线程池线程，不阻塞主事件循环
             from plugins_func.functions.get_weather import get_weather
             from plugins_func.register import ActionResponse
 
-            # 调用get_weather函数
-            result = get_weather(conn, location=location, lang="zh_CN")
+            result_holder = []
+            exception_holder = []
+
+            async def _call():
+                try:
+                    result_holder.append(
+                        await get_weather(conn, location=location, lang="zh_CN")
+                    )
+                except Exception as e:
+                    exception_holder.append(e)
+                finally:
+                    event.set()
+
+            event = threading.Event()
+            conn.loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_call()))
+            if not event.wait(timeout=10):
+                raise TimeoutError("获取天气信息超时")
+            if exception_holder:
+                raise exception_holder[0]
+            result = result_holder[0]
             if isinstance(result, ActionResponse):
                 weather_report = result.result
                 self.cache_manager.set(self.CacheType.WEATHER, location, weather_report)

@@ -1,6 +1,7 @@
 package xiaozhi.modules.timbre.service.impl;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +41,8 @@ import xiaozhi.modules.voiceclone.entity.VoiceCloneEntity;
 @AllArgsConstructor
 @Service
 public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> implements TimbreService {
+
+    private static final Pattern LANGUAGE_SEPARATOR = Pattern.compile("[、；;,，]");
 
     private final TimbreDao timbreDao;
     private final VoiceCloneDao voiceCloneDao;
@@ -96,6 +99,9 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     @Transactional(rollbackFor = Exception.class)
     public void save(TimbreDataDTO dto) {
         isTtsModelId(dto.getTtsModelId());
+        if (dto.getSort() == null) {
+            dto.setSort(0L);
+        }
         TimbreEntity timbreEntity = ConvertUtils.sourceToTarget(dto, TimbreEntity.class);
         baseDao.insert(timbreEntity);
     }
@@ -114,7 +120,7 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String[] ids) {
-        baseDao.deleteBatchIds(Arrays.asList(ids));
+        baseDao.deleteByIds(Arrays.asList(ids));
     }
 
     @Override
@@ -156,6 +162,32 @@ public class TimbreServiceImpl extends BaseServiceImpl<TimbreDao, TimbreEntity> 
         }
 
         return CollectionUtil.isEmpty(voiceDTOs) ? null : voiceDTOs;
+    }
+
+    @Override
+    public String getDefaultLanguageById(String id) {
+        if (StringUtils.isBlank(id)) {
+            return null;
+        }
+
+        TimbreEntity timbre = timbreDao.selectById(id);
+        if (timbre != null) {
+            return firstNonBlankLanguage(timbre.getLanguages());
+        }
+
+        VoiceCloneEntity voiceClone = voiceCloneDao.selectById(id);
+        return voiceClone == null ? null : firstNonBlankLanguage(voiceClone.getLanguages());
+    }
+
+    private String firstNonBlankLanguage(String languages) {
+        if (StringUtils.isBlank(languages)) {
+            return null;
+        }
+        return LANGUAGE_SEPARATOR.splitAsStream(languages)
+                .map(StringUtils::trimToNull)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     /**

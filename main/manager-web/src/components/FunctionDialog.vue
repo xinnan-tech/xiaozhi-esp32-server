@@ -656,6 +656,7 @@ export default {
 .drawer-footer {
   position: absolute;
   bottom: 0;
+  z-index: 2;
   width: 100%;
   border-top: 1px solid #e8e8e8;
   padding: 10px 16px;

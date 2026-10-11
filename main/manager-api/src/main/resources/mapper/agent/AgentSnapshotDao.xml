@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xiaozhi.modules.agent.dao.AgentSnapshotDao">
+
+    <select id="selectMaxVersionNo" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(version_no), 0)
+        FROM ai_agent_snapshot
+        WHERE agent_id = #{agentId}
+    </select>
+
+    <select id="selectLatestSnapshot" resultType="xiaozhi.modules.agent.entity.AgentSnapshotEntity">
+        SELECT id,
+               agent_id       AS agentId,
+               user_id        AS userId,
+               version_no     AS versionNo,
+               snapshot_data  AS snapshotData,
+               changed_fields AS changedFields,
+               source,
+               restore_from_snapshot_id AS restoreFromSnapshotId,
+               restore_from_version_no  AS restoreFromVersionNo,
+               creator,
+               created_at     AS createdAt,
+               redaction_version AS redactionVersion
+        FROM ai_agent_snapshot
+        WHERE agent_id = #{agentId}
+        ORDER BY version_no DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectNextSnapshot" resultType="xiaozhi.modules.agent.entity.AgentSnapshotEntity">
+        SELECT id,
+               agent_id       AS agentId,
+               user_id        AS userId,
+               version_no     AS versionNo,
+               snapshot_data  AS snapshotData,
+               changed_fields AS changedFields,
+               source,
+               restore_from_snapshot_id AS restoreFromSnapshotId,
+               restore_from_version_no  AS restoreFromVersionNo,
+               creator,
+               created_at     AS createdAt,
+               redaction_version AS redactionVersion
+        FROM ai_agent_snapshot
+        WHERE agent_id = #{agentId}
+          AND version_no &gt; #{versionNo}
+        ORDER BY version_no ASC
+        LIMIT 1
+    </select>
+
+    <insert id="insertWithNextVersion">
+        INSERT INTO ai_agent_snapshot (
+            id,
+            agent_id,
+            user_id,
+            version_no,
+            snapshot_data,
+            changed_fields,
+            source,
+            restore_from_snapshot_id,
+            restore_from_version_no,
+            creator,
+            created_at,
+            redaction_version
+        )
+        SELECT #{snapshot.id},
+               #{snapshot.agentId},
+               #{snapshot.userId},
+               COALESCE(MAX(version_no), 0) + 1,
+               #{snapshot.snapshotData},
+               #{snapshot.changedFields},
+               #{snapshot.source},
+               #{snapshot.restoreFromSnapshotId},
+               #{snapshot.restoreFromVersionNo},
+               #{snapshot.creator},
+               #{snapshot.createdAt},
+               #{snapshot.redactionVersion}
+        FROM ai_agent_snapshot
+        WHERE agent_id = #{snapshot.agentId}
+    </insert>
+
+    <delete id="deleteOlderThanKeepLimit">
+        DELETE FROM ai_agent_snapshot
+        WHERE agent_id = #{agentId}
+          AND id NOT IN (
+              SELECT id
+              FROM (
+                  SELECT id
+                  FROM ai_agent_snapshot
+                  WHERE agent_id = #{agentId}
+                  ORDER BY version_no DESC
+                  LIMIT #{keepLimit}
+              ) retained_snapshots
+          )
+    </delete>
+
+    <select id="selectLegacyRedactionBatch" resultType="xiaozhi.modules.agent.entity.AgentSnapshotEntity">
+        SELECT id,
+               snapshot_data AS snapshotData,
+               redaction_version AS redactionVersion
+        FROM ai_agent_snapshot
+        WHERE redaction_version &lt; #{targetRedactionVersion}
+          AND (#{afterId} IS NULL OR id &gt; #{afterId})
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <update id="updateRedactedSnapshots">
+        UPDATE ai_agent_snapshot
+        SET snapshot_data = CASE id
+            <foreach collection="snapshots" item="snapshot">
+                WHEN #{snapshot.id} THEN #{snapshot.snapshotData}
+            </foreach>
+            ELSE snapshot_data
+            END,
+            redaction_version = #{redactionVersion}
+        WHERE redaction_version &lt; #{redactionVersion}
+          AND id IN
+          <foreach collection="snapshots" item="snapshot" open="(" separator="," close=")">
+              #{snapshot.id}
+          </foreach>
+    </update>
+
+</mapper>

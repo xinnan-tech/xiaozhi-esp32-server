@@ -1,5 +1,7 @@
 import os
 import base64
+import functools
+import threading
 from typing import Optional, Dict
 
 import httpx
@@ -21,6 +23,7 @@ class ManageApiClient:
     _instance = None
     _async_clients = {}  # One client per event loop
     _secret = None
+    _closed = False  # safe_close() 后置为 True，关闭后不再创建新连接
 
     def __new__(cls, config):
         """Singleton ensures a single global instance and supports config injection."""
@@ -48,6 +51,7 @@ class ManageApiClient:
         cls.retry_delay = cls.config.get("retry_delay", 10)  # Initial retry delay (seconds)
         # Defer AsyncClient creation until first use
         cls._async_clients = {}
+        cls._closed = False
 
     @classmethod
     async def _ensure_async_client(cls):
@@ -148,17 +152,33 @@ class ManageApiClient:
                     raise
 
     @classmethod
+    def _get_instance(cls):
+        """线程安全地获取单例实例引用
+
+        调用方应使用返回的局部引用，而不是判空后再次读取
+        ManageApiClient._instance：即使随后 safe_close() 将 _instance
+        置为 None，已获取的引用仍指向原对象，从而消除"判空之后、
+        使用之前实例被置空"的 TOCTOU 竞态窗口。
+        """
+        with cls._instance_lock:
+            return cls._instance
+
+    @classmethod
     def safe_close(cls):
         """Safely close all async connection pools."""
         import asyncio
 
-        for client in list(cls._async_clients.values()):
+        with cls._instance_lock:
+            cls._closed = True
+            clients = list(cls._async_clients.values())
+            cls._async_clients.clear()
+            cls._instance = None
+
+        for client in clients:
             try:
                 asyncio.run(client.aclose())
             except Exception:
                 pass
-        cls._async_clients.clear()
-        cls._instance = None
 
 
 async def get_server_config() -> Optional[Dict]:
@@ -168,8 +188,9 @@ async def get_server_config() -> Optional[Dict]:
     )
 
 
+@api_guard(raise_when_closed=True)
 async def get_agent_models(
-    mac_address: str, client_id: str, selected_module: Dict
+    instance, mac_address: str, client_id: str, selected_module: Dict
 ) -> Optional[Dict]:
     """Fetch agent model config."""
     return await ManageApiClient._instance._execute_async_request(
@@ -183,16 +204,13 @@ async def get_agent_models(
     )
 
 
-async def get_correct_words(mac_address: str) -> Optional[Dict]:
+@api_guard("获取替换词失败")
+async def get_correct_words(instance, mac_address: str) -> Optional[Dict]:
     """获取智能体替换词"""
-    try:
-        return await ManageApiClient._instance._execute_async_request(
-            "POST", "/config/correct-words",
-            json={"macAddress": mac_address}
-        )
-    except Exception as e:
-        print(f"获取替换词失败: {e}")
-        return None
+    return await instance._execute_async_request(
+        "POST", "/config/correct-words",
+        json={"macAddress": mac_address}
+    )
 
 
 async def generate_and_save_chat_summary(session_id: str) -> Optional[Dict]:
@@ -219,8 +237,9 @@ async def generate_and_save_chat_title(session_id: str) -> Optional[Dict]:
         return None
 
 
+@api_guard("TTS上报失败")
 async def report(
-    mac_address: str, session_id: str, chat_type: int, content: str, audio, report_time
+    instance, mac_address: str, session_id: str, chat_type: int, content: str, audio, report_time
 ) -> Optional[Dict]:
     """Async chat history report."""
     if not content or not ManageApiClient._instance:
@@ -243,20 +262,29 @@ async def report(
     except Exception as e:
         print(f"TTS report failed: {e}")
         return None
+    return await instance._execute_async_request(
+        "POST",
+        f"/agent/chat-history/report",
+        json={
+            "macAddress": mac_address,
+            "sessionId": session_id,
+            "chatType": chat_type,
+            "content": content,
+            "reportTime": report_time,
+            "audioBase64": (
+                base64.b64encode(audio).decode("utf-8") if audio else None
+            ),
+        },
+    )
 
 
-async def lookup_address_book(caller_mac: str, nickname: str) -> Optional[Dict]:
+@api_guard("通讯录查找失败")
+async def lookup_address_book(instance, caller_mac: str, nickname: str) -> Optional[Dict]:
     """根据昵称查找目标设备"""
-    if not ManageApiClient._instance:
-        return None
-    try:
-        return await ManageApiClient._instance._execute_async_request(
-            "GET",
-            f"/device/address-book/lookup?callerMac={caller_mac}&nickname={nickname}",
-        )
-    except Exception as e:
-        print(f"通讯录查找失败: {e}")
-        return None
+    return await instance._execute_async_request(
+        "GET",
+        f"/device/address-book/lookup?callerMac={caller_mac}&nickname={nickname}",
+    )
 
 
 def init_service(config):

@@ -1,11 +1,12 @@
 """Server-side Plugin Tool Executor"""
 
+import asyncio
 from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.connection import ConnectionHandler
 from ..base import ToolType, ToolDefinition, ToolExecutor
-from plugins_func.register import all_function_registry, Action, ActionResponse
+from plugins_func.register import all_function_registry, module_func_map, Action, ActionResponse
 
 
 class ServerPluginExecutor(ToolExecutor):
@@ -41,6 +42,10 @@ class ServerPluginExecutor(ToolExecutor):
                 # Default without conn parameter
                 result = func_item.func(**arguments)
 
+            # 兼容 async def 工具函数
+            if asyncio.iscoroutine(result):
+                result = await result
+
             return result
 
         except Exception as e:
@@ -48,6 +53,43 @@ class ServerPluginExecutor(ToolExecutor):
                 action=Action.ERROR,
                 response=str(e),
             )
+
+    def _expand_plugin_names(self, config_functions):
+        """将模块级别的插件名展开为具体函数名。
+
+        在一个 function 文件中可能注册多个 @register_function，
+        配置中如果使用的是模块名（文件名），需要展开为具体的函数名列表。
+        """
+        if not isinstance(config_functions, list):
+            try:
+                config_functions = list(config_functions)
+            except TypeError:
+                return []
+
+        expanded = []
+        for name in config_functions:
+            if name in module_func_map:
+                # 模块名，展开为该模块下所有注册函数名
+                expanded.extend(module_func_map[name])
+            elif name in all_function_registry:
+                # 精确匹配函数名，直接保留
+                expanded.append(name)
+            else:
+                # 未知名称，保留原值（可能是 MCP 或其他工具）
+                expanded.append(name)
+        return expanded
+
+    def _get_plugin_description(self, func_name):
+        """获取插件函数的描述，优先精确匹配函数名，其次匹配模块名。"""
+        plugins = self.config.get("plugins", {})
+        # 精确匹配函数名
+        if func_name in plugins:
+            return plugins[func_name].get("description", "")
+        # 通过 module_func_map 反向查找模块名
+        for module_name, func_names in module_func_map.items():
+            if func_name in func_names and module_name in plugins:
+                return plugins[module_name].get("description", "")
+        return ""
 
     def get_tools(self) -> Dict[str, ToolDefinition]:
         """Get all registered server-side plugin tools"""

@@ -23,6 +23,7 @@
           </div>
         </div>
       </div>
+    </div>
 
       <div style="height: 2px; background: #e9e9e9; margin-bottom: 22px;"></div>
 
@@ -96,6 +97,7 @@ import Api from '@/apis/api';
 
 export default {
   name: "ModelEditDialog",
+  components: { CustomDialog },
   props: {
     visible: { type: Boolean, default: false },
     modelData: {
@@ -131,6 +133,11 @@ export default {
     };
   },
   computed: {
+    title() {
+      return this.modelData.duplicateMode
+        ? this.$t("modelConfigDialog.duplicateModel")
+        : this.$t("modelConfigDialog.editModel");
+    },
     chunkedCallInfoFields() {
       const chunkSize = 2;
       const result = [];
@@ -155,9 +162,9 @@ export default {
     },
     visible(val) {
       this.dialogVisible = val;
-      if (val) {
-        this.loadProviders();
-      }
+    },
+    dialogVisible(val) {
+      this.$emit("update:visible", val);
     },
     'form.configJson.type'(newVal) {
       if (newVal && this.providersLoaded) {
@@ -166,6 +173,19 @@ export default {
     }
   },
   methods: {
+    handleOpen() {
+      this.loadProviders();
+      if (this.modelData.id) {
+        this.loadModelData();
+      }
+    },
+    handleClose() {
+      this.saving = false;
+      // 处理关闭弹窗闪动问题
+      setTimeout(() => {
+        this.resetForm();
+      }, 200)
+    },
     resetForm() {
       this.form = {
         id: "",
@@ -344,92 +364,57 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.custom-dialog {
-  position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  background: white;
-  padding-bottom: 17px;
-}
+@import '@/styles/global.scss';
 
-.custom-dialog .el-dialog__header {
-  padding: 0;
-  border-bottom: none;
-}
+.model-edit-dialog {
+  ::v-deep .el-dialog__body {
+    padding: 24px 40px;
+  }
 
-.center-dialog {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
 
-.custom-close-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  border: 2px solid #cfcfcf;
-  background: none;
-  font-size: 30px;
-  font-weight: lighter;
-  color: #cfcfcf;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-  padding: 0;
-  outline: none;
-}
+  .section-title {
+    margin-bottom: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #3d4566;
+    text-align: left;
+  }
 
 .custom-close-btn:hover {
   color: #409EFF;
   border-color: #409EFF;
 }
 
-.custom-select .el-input__suffix {
-  background: #e6e8ea;
-  right: 6px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  top: 9px;
-}
+  .switch-item {
+    display: flex;
+    align-items: center;
 
-.custom-select .el-input__suffix-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
+    &.hidden {
+      display: none;
+    }
 
-.custom-select .el-icon-arrow-up:before {
-  content: "";
-  display: inline-block;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 7px solid #c0c4cc;
-  position: relative;
-  top: -2px;
-  transform: rotate(180deg);
-}
+    .switch-label {
+      margin-right: 8px;
+    }
+  }
 
-.custom-form .el-form-item {
-  margin-bottom: 20px;
-}
+  .section-divider {
+    height: 1px;
+    background: #e9e9e9;
+    margin-bottom: 18px;
+  }
 
-.custom-form .el-form-item__label {
-  color: #3d4566;
-  font-weight: normal;
-  text-align: right;
-  padding-right: 20px;
-}
+  .form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 0;
+  }
 
 .custom-form .el-form-item.prop-remark .el-form-item__label {
   margin-top: -4px;

@@ -1,7 +1,15 @@
 <template>
-  <el-dialog :title="title" :visible.sync="dialogVisible" :close-on-click-modal="false" @close="handleClose"
-    @open="handleOpen" width="500px">
-    <el-form ref="form" :model="form" :rules="rules" label-width="120px">
+  <CustomDialog
+    :title="title"
+    :visible.sync="dialogVisible"
+    :close-on-click-modal="false"
+    width="600px"
+    @close="handleClose"
+    @open="handleOpen"
+    @cancel="handleCancel"
+    @confirm="handleSubmit"
+  >
+    <el-form ref="form" :model="form" :rules="rules" label-width="auto">
       <el-form-item :label="$t('voiceClone.platformName')" prop="modelId">
         <el-select v-model="form.modelId" :placeholder="$t('voiceClone.platformNamePlaceholder')" filterable
           style="width: 100%" @change="handlePlatformChange">
@@ -31,19 +39,16 @@
         </el-input>
       </el-form-item>
     </el-form>
-
-    <div slot="footer" class="dialog-footer">
-      <el-button @click="handleCancel">{{ $t('voiceClone.operationCancelled') }}</el-button>
-      <el-button type="primary" @click="handleSubmit">{{ $t('voiceClone.addNew') }}</el-button>
-    </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
 import Api from '@/apis/api';
+import CustomDialog from './CustomDialog.vue';
 
 export default {
   name: 'VoiceCloneDialog',
+  components: { CustomDialog },
   props: {
     visible: {
       type: Boolean,
@@ -154,9 +159,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-::v-deep .el-dialog {
-  border-radius: 20px;
-}
-</style>

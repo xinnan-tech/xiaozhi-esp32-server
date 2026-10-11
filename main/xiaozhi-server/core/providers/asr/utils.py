@@ -25,7 +25,7 @@ EMOTION_EMOJI_MAP = {
 #     "<|Cough|>": "🤧",
 # }
 
-def lang_tag_filter(text: str) -> dict | str:
+def lang_tag_filter(text: str) -> dict:
     """
     Parse FunASR output and extract tags plus plain-text content in order.
 
@@ -43,7 +43,7 @@ def lang_tag_filter(text: str) -> dict | str:
         >>> lang_tag_filter("<|en|><|HAPPY|><|Speech|><|withitn|>Hello hello.")
         {"language": "en", "emotion": "HAPPY", "emoji": "🙂", "content": "Hello hello."}
         >>> lang_tag_filter("plain text")
-        "plain text"
+        {"content": "plain text"}
     """
     # Extract all tags in order.
     tag_pattern = r"<\|([^|]+)\|>"
@@ -54,7 +54,7 @@ def lang_tag_filter(text: str) -> dict | str:
 
     # Return the plain text if no tags are present.
     if not all_tags:
-        return clean_text
+        return {"content": clean_text}
 
     # Extract tags according to FunASR's fixed ordering.
     language = all_tags[0] if len(all_tags) > 0 else "zh"

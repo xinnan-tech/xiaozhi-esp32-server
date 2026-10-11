@@ -33,7 +33,7 @@ safeAreaInsets = systemInfo.safeArea
       bottom: systemInfo.windowHeight - systemInfo.safeArea.bottom,
       left: systemInfo.safeArea.left,
     }
-  : null;
+  : null
 // #endif
 
 // #ifndef MP-WEIXIN
@@ -44,13 +44,13 @@ safeAreaInsets = systemInfo.safeAreaInsets;
 
 // Form data model.
 interface ForgotPasswordData {
-  mobile: string;
-  captcha: string;
-  captchaId: string;
-  mobileCaptcha: string;
-  newPassword: string;
-  confirmPassword: string;
-  areaCode: string;
+  mobile: string
+  captcha: string
+  captchaId: string
+  mobileCaptcha: string
+  newPassword: string
+  confirmPassword: string
+  areaCode: string
 }
 
 const formData = ref<ForgotPasswordData>({
@@ -78,9 +78,9 @@ const areaCodeList = computed(() =>
     return {
       value: item.key,
       label: `${item.name} (${item.key})`,
-    };
-  })
-);
+    }
+  }),
+)
 
 function isValidMobileNumber(value: string) {
   const normalized = value.replace(/\D/g, "");
@@ -103,7 +103,7 @@ const smsLoading = ref(false);
 
 // Open the area-code picker.
 function openAreaCodeSheet() {
-  showAreaCodeSheet.value = true;
+  showAreaCodeSheet.value = true
 }
 
 // Select an area code.
@@ -115,23 +115,23 @@ function selectAreaCode(item: { value: string; label: string }) {
 
 // Close the area-code picker.
 function closeAreaCodeSheet() {
-  showAreaCodeSheet.value = false;
+  showAreaCodeSheet.value = false
 }
 
 // Generate a UUID for the captcha request.
 function generateUUID() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
 }
 
 // Refresh the image captcha.
 async function refreshCaptcha() {
-  const uuid = generateUUID();
-  formData.value.captchaId = uuid;
-  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`;
+  const uuid = generateUUID()
+  formData.value.captchaId = uuid
+  captchaImage.value = `${getEnvBaseUrl()}/user/captcha?uuid=${uuid}&t=${Date.now()}`
 }
 
 // Send the SMS verification code.
@@ -143,8 +143,8 @@ async function handleSendSmsCode() {
   }
 
   if (!formData.value.captcha) {
-    toast.warning(t("retrievePassword.captchaRequired"));
-    return;
+    toast.warning(t('retrievePassword.captchaRequired'))
+    return
   }
 
   try {
@@ -155,17 +155,17 @@ async function handleSendSmsCode() {
     await sendSmsCode({
       phone: internationalPhone,
       captcha: formData.value.captcha,
-      captchaId: formData.value.captchaId
+      captchaId: formData.value.captchaId,
     })
 
-    toast.success(t("retrievePassword.captchaSendSuccess"));
+    toast.success(t('retrievePassword.captchaSendSuccess'))
 
     // Start the countdown timer.
     smsCountdown.value = 60;
     const timer = setInterval(() => {
-      smsCountdown.value--;
+      smsCountdown.value--
       if (smsCountdown.value <= 0) {
-        clearInterval(timer);
+        clearInterval(timer)
       }
     }, 1000);
   } catch (error: any) {
@@ -184,8 +184,8 @@ async function handleSendSmsCode() {
 async function handleResetPassword() {
   // Validate the form.
   if (!formData.value.mobile) {
-    toast.warning(t("retrievePassword.mobileRequired"));
-    return;
+    toast.warning(t('retrievePassword.mobileRequired'))
+    return
   }
 
   // Validate the phone number format.
@@ -198,37 +198,37 @@ async function handleResetPassword() {
   const internationalPhone = formData.value.areaCode + formData.value.mobile;
 
   if (!formData.value.captcha) {
-    toast.warning(t("retrievePassword.captchaRequired"));
-    return;
+    toast.warning(t('retrievePassword.captchaRequired'))
+    return
   }
 
   if (!formData.value.mobileCaptcha) {
-    toast.warning(t("retrievePassword.mobileCaptchaRequired"));
-    return;
+    toast.warning(t('retrievePassword.mobileCaptchaRequired'))
+    return
   }
 
   if (!formData.value.newPassword) {
-    toast.warning(t("retrievePassword.newPasswordRequired"));
-    return;
+    toast.warning(t('retrievePassword.newPasswordRequired'))
+    return
   }
 
   if (!formData.value.confirmPassword) {
-    toast.warning(t("retrievePassword.confirmNewPasswordRequired"));
-    return;
+    toast.warning(t('retrievePassword.confirmNewPasswordRequired'))
+    return
   }
 
   if (formData.value.newPassword !== formData.value.confirmPassword) {
-    toast.warning(t("retrievePassword.passwordsNotMatch"));
-    return;
+    toast.warning(t('retrievePassword.passwordsNotMatch'))
+    return
   }
 
   try {
-    loading.value = true;
+    loading.value = true
 
     // Ensure the SM2 public key is configured.
     if (!sm2PublicKey.value) {
-      toast.warning(t("sm2.publicKeyNotConfigured"));
-      return;
+      toast.warning(t('sm2.publicKeyNotConfigured'))
+      return
     }
 
     // Encrypt the password before sending it.
@@ -248,10 +248,10 @@ async function handleResetPassword() {
       phone: internationalPhone,
       code: formData.value.mobileCaptcha,
       password: encryptedPassword,
-      captchaId: formData.value.captchaId
+      captchaId: formData.value.captchaId,
     })
 
-    toast.success(t("retrievePassword.passwordUpdateSuccess"));
+    toast.success(t('retrievePassword.passwordUpdateSuccess'))
 
     // Redirect back to the login page.
     setTimeout(() => {
@@ -274,14 +274,14 @@ async function handleResetPassword() {
 // Return to the login page.
 function goBack() {
   uni.redirectTo({
-    url: "/pages/login/index",
-  });
+    url: '/pages/login/index',
+  })
 }
 
 // Fetch the captcha when the page loads.
 onLoad(() => {
-  refreshCaptcha();
-});
+  refreshCaptcha()
+})
 
 // Ensure configuration and i18n are loaded on mount.
 onMounted(async () => {
@@ -473,7 +473,7 @@ onMounted(async () => {
   min-height: 100vh;
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: -50%;
     left: -50%;
@@ -715,10 +715,7 @@ onMounted(async () => {
       margin-bottom: 30rpx;
       box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
       transition: all 0.3s ease;
-      background-color: var(
-        --wot-button-primary-bg-color,
-        var(--wot-color-theme, #4d80f0)
-      );
+      background-color: var(--wot-button-primary-bg-color, var(--wot-color-theme, #4d80f0));
       text-align: center;
       line-height: 80rpx;
 

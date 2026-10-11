@@ -38,10 +38,15 @@ public interface DeviceAddressBookService {
     void refreshCache();
 
     /**
-     * 根据昵称查找目标设备信息
+     * 根据昵称发起呼叫
      * @param callerMac 主叫方MAC地址
      * @param nickname 被叫方昵称
-     * @return {targetMac: 目标MAC, callerNickname: 目标如何称呼主叫方}
+     * @param isAnswer 是否为接听模式（跳过权限检查）
      */
-    Map<String, String> lookupByNickname(String callerMac, String nickname);
+    Map<String, Object> callByNickname(String callerMac, String nickname, boolean isAnswer);
+
+    /**
+     * 批量删除设备相关的通讯录记录
+     */
+    void deleteByMacAddresses(List<String> macAddresses);
 }

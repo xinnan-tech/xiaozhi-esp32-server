@@ -65,12 +65,12 @@ public class ConfigServiceImpl implements ConfigService {
     private final CorrectWordFileService correctWordFileService;
 
     @Override
-    public Object getConfig(Boolean isCache) {
+    public Map<String, Object> getConfig(Boolean isCache) {
         if (isCache) {
             // Check Redis first.
             Object cachedConfig = redisUtils.get(RedisKeys.getServerConfigKey());
             if (cachedConfig != null) {
-                return cachedConfig;
+                return JsonUtils.toStringObjectMap(cachedConfig);
             }
         }
 
@@ -277,10 +277,10 @@ public class ConfigServiceImpl implements ConfigService {
             // Walk every key except the final one.
             for (int i = 0; i < keys.length - 1; i++) {
                 String key = keys[i];
-                if (!current.containsKey(key)) {
-                    current.put(key, new HashMap<String, Object>());
-                }
-                current = (Map<String, Object>) current.get(key);
+                Object nestedConfig = current.computeIfAbsent(key, ignored -> new HashMap<String, Object>());
+                Map<String, Object> nestedMap = JsonUtils.toStringObjectMap(nestedConfig);
+                current.put(key, nestedMap);
+                current = nestedMap;
             }
 
             // Handle the final key.

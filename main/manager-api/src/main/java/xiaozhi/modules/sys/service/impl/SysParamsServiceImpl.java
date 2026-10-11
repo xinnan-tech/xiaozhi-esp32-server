@@ -287,10 +287,10 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
 
         try {
             if (StringUtils.isNotBlank(currentConfig)) {
-                currentMap = JsonUtils.parseObject(currentConfig, Map.class);
+                currentMap = JsonUtils.parseMap(currentConfig);
             }
             if (StringUtils.isNotBlank(configJson)) {
-                newMap = JsonUtils.parseObject(configJson, Map.class);
+                newMap = JsonUtils.parseMap(configJson);
             }
         } catch (Exception e) {
             throw new RenException(ErrorCode.PARAM_JSON_INVALID);
@@ -298,8 +298,8 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
 
         // 检查addressBook功能是否被关闭
         if (currentMap != null && newMap != null) {
-            Map<String, Object> currentFeatures = (Map<String, Object>) currentMap.get("features");
-            Map<String, Object> newFeatures = (Map<String, Object>) newMap.get("features");
+            Map<?, ?> currentFeatures = Map.class.cast(currentMap.get("features"));
+            Map<?, ?> newFeatures = Map.class.cast(newMap.get("features"));
 
             if (currentFeatures != null && newFeatures != null) {
                 Object currentAddressBookObj = currentFeatures.get("addressBook");
@@ -308,16 +308,14 @@ public class SysParamsServiceImpl extends BaseServiceImpl<SysParamsDao, SysParam
                 Boolean currentEnabled = false;
                 Boolean newEnabled = false;
 
-                if (currentAddressBookObj instanceof Map) {
-                    Map<String, Object> currentAddressBook = (Map<String, Object>) currentAddressBookObj;
-                    currentEnabled = currentAddressBook.get("enabled") != null
-                        ? (Boolean) currentAddressBook.get("enabled") : false;
+                if (currentAddressBookObj instanceof Map<?, ?> currentAddressBook) {
+                    Object enabled = currentAddressBook.get("enabled");
+                    currentEnabled = enabled != null ? Boolean.class.cast(enabled) : false;
                 }
 
-                if (newAddressBookObj instanceof Map) {
-                    Map<String, Object> newAddressBook = (Map<String, Object>) newAddressBookObj;
-                    newEnabled = newAddressBook.get("enabled") != null
-                        ? (Boolean) newAddressBook.get("enabled") : false;
+                if (newAddressBookObj instanceof Map<?, ?> newAddressBook) {
+                    Object enabled = newAddressBook.get("enabled");
+                    newEnabled = enabled != null ? Boolean.class.cast(enabled) : false;
                 }
 
                 // 如果之前是启用状态，现在被禁用，删除所有call_device插件

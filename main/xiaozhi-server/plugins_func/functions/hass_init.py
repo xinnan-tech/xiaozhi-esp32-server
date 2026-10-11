@@ -15,7 +15,7 @@ def append_devices_to_prompt(conn):
         config_source = (
             "home_assistant"
             if plugins_config.get("home_assistant")
-            else "hass_get_state"
+            else "hass_state"
         )
 
         if "hass_get_state" in funcs or "hass_set_state" in funcs:
@@ -32,7 +32,7 @@ def initialize_hass_handler(conn):
 
     plugins_config = conn.config.get("plugins", {})
     config_source = (
-        "home_assistant" if plugins_config.get("home_assistant") else "hass_get_state"
+        "home_assistant" if plugins_config.get("home_assistant") else "hass_state"
     )
     if not plugins_config.get(config_source):
         return ha_config

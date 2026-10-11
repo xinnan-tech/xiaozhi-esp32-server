@@ -1,8 +1,7 @@
-from plugins_func.register import register_function, ToolType, ActionResponse, Action
-from plugins_func.functions.hass_init import initialize_hass_handler
+import httpx
 from config.logger import setup_logging
-import asyncio
-import requests
+from plugins_func.functions.hass_init import initialize_hass_handler
+from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -37,7 +36,7 @@ hass_play_music_function_desc = {
 @register_function(
     "hass_play_music", hass_play_music_function_desc, ToolType.SYSTEM_CTL
 )
-def hass_play_music(conn: "ConnectionHandler", entity_id="", media_content_id="random"):
+async def hass_play_music(conn: "ConnectionHandler", entity_id="", media_content_id="random"):
     try:
         # Execute music playback command
         future = asyncio.run_coroutine_threadsafe(
@@ -60,7 +59,10 @@ async def handle_hass_play_music(
     url = f"{base_url}/api/services/music_assistant/play_media"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     data = {"entity_id": entity_id, "media_id": media_content_id}
-    response = requests.post(url, headers=headers, json=data)
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
+        response = await client.post(url, headers=headers, json=data)
+
     if response.status_code == 200:
         return f"Playing music of {media_content_id}"
     else:

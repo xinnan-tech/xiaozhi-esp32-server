@@ -43,11 +43,8 @@ class MemoryProvider(MemoryProviderBase):
         self.memory_client = None
         self.enable_user_profile = False
         self.last_profile_content = ""  # Cache for user profile from UserMemory
-
         try:
-            # Check if user profile mode is enabled
-            self.enable_user_profile = config.get("enable_user_profile", False)
-            
+            self.enable_user_profile = str(config.get("enable_user_profile", False)).lower() == 'true'
             # Get configuration parameters
             database_provider = config.get("database_provider", "sqlite")
             llm_provider = config.get("llm_provider", "qwen")
@@ -186,13 +183,19 @@ class MemoryProvider(MemoryProviderBase):
                     messages.append({"role": message.role, "content": content})
 
                 # Add memory using PowerMem SDK
-                result = self.memory_client.add(
-                    messages=messages,
-                    user_id=self.role_id
-                )
-                # Handle both sync and async returns
-                if asyncio.iscoroutine(result):
-                    result = await result
+                if self.enable_user_profile:
+                    # UserMemory uses sync add
+                    result = await asyncio.to_thread(
+                        self.memory_client.add,
+                        messages=messages,
+                        user_id=self.role_id
+                    )
+                else:
+                    # AsyncMemory uses async add
+                    result = await self.memory_client.add(
+                        messages=messages,
+                        user_id=self.role_id
+                    )
 
                 logger.bind(tag=TAG).debug(f"Save memory result: {result}")
 

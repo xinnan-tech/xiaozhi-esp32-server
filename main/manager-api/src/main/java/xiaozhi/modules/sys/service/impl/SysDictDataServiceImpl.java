@@ -12,6 +12,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
+import cn.hutool.core.collection.CollUtil;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.exception.RenException;
 import xiaozhi.common.exception.ErrorCode;
@@ -20,7 +21,7 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
-import xiaozhi.common.utils.ToolUtil;
+import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.modules.sys.dao.SysDictDataDao;
 import xiaozhi.modules.sys.dao.SysUserDao;
 import xiaozhi.modules.sys.dto.SysDictDataDTO;
@@ -170,7 +171,7 @@ public class SysDictDataServiceImpl extends BaseServiceImpl<SysDictDataDao, SysD
 
         // Read from Redis cache first.
         String key = RedisKeys.getDictDataByTypeKey(dictType);
-        List<SysDictDataItem> cachedData = (List<SysDictDataItem>) redisUtils.get(key);
+        List<SysDictDataItem> cachedData = JsonUtils.toList(redisUtils.get(key), SysDictDataItem.class);
         if (cachedData != null) {
             return cachedData;
         }

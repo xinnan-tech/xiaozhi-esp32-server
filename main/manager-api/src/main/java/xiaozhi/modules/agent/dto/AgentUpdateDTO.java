@@ -4,9 +4,12 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import xiaozhi.common.utils.JsonUtils;
 
 /**
  * Agent update DTO.
@@ -90,6 +93,12 @@ public class AgentUpdateDTO implements Serializable {
 
     @Schema(description = "替换词文件ID列表", nullable = true)
     private List<String> correctWordFileIds;
+
+    @Schema(description = "标签名称列表", nullable = true)
+    private List<String> tagNames;
+
+    @Schema(description = "标签ID列表", nullable = true)
+    private List<String> tagIds;
 
     @Data
     @Schema(description = "Plugin function information")

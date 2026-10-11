@@ -93,6 +93,24 @@
       }
     },
     {
+      "path": "pages/agent/provider",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationBarTitleText": "编辑源",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/agent/speedPitch",
+      "type": "page",
+      "layout": "default",
+      "style": {
+        "navigationBarTitleText": "语音设置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/agent/tools",
       "type": "page",
       "layout": "default",

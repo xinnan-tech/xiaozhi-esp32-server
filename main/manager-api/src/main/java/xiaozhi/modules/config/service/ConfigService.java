@@ -10,7 +10,7 @@ public interface ConfigService {
      * @param isCache 是否缓存
      * @return 配置信息
      */
-    Object getConfig(Boolean isCache);
+    Map<String, Object> getConfig(Boolean isCache);
 
     /**
      * 获取智能体模型配置

@@ -59,6 +59,10 @@ async def handleHelloMessage(conn: "ConnectionHandler", msg_json):
 
     await conn.websocket.send(json.dumps(conn.welcome_msg))
 
+    # The device waits for the server hello before processing MCP messages.
+    if features and features.get("mcp"):
+        asyncio.create_task(send_mcp_initialize_message(conn))
+
 
 async def checkWakeupWords(conn: "ConnectionHandler", text):
     enable_wakeup_words_response_cache = conn.config[

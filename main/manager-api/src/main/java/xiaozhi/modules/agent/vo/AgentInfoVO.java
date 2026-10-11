@@ -1,7 +1,5 @@
 package xiaozhi.modules.agent.vo;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -28,4 +26,7 @@ public class AgentInfoVO extends AgentEntity
 
     @Schema(description = "替换词文件ID列表")
     private List<String> correctWordFileIds;
+
+    @Schema(description = "当前配置版本号")
+    private Integer currentVersionNo;
 }

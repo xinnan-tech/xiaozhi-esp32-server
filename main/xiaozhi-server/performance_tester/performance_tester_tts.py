@@ -17,8 +17,8 @@ description = "Non-streaming speech synthesis performance test"
 
 
 class TTSPerformanceTester:
-    def __init__(self):
-        self.config = load_config()
+    def __init__(self, config):
+        self.config = config
         self.test_sentences = self.config.get("module_test", {}).get(
             "test_sentences",
             [
@@ -174,10 +174,10 @@ class TTSPerformanceTester:
 
 # For performance_tester.py calling requirements
 async def main():
-    tester = TTSPerformanceTester()
+    config = await load_config()
+    tester = TTSPerformanceTester(config)
     await tester.run()
 
 
 if __name__ == "__main__":
-    tester = TTSPerformanceTester()
-    asyncio.run(tester.run())
+    asyncio.run(main())

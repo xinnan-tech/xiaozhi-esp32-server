@@ -1,4 +1,7 @@
 spring:
+  messages:
+    encoding: UTF-8
+    basename: i18n/messages
   data:
     redis:
       host: localhost
@@ -19,4 +22,4 @@ renren:
 logging:
   level:
     xiaozhi.modules.device: DEBUG
-    org.springframework.data.redis: DEBUG 
+    org.springframework.data.redis: DEBUG

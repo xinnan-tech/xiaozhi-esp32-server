@@ -138,10 +138,4 @@ public interface DeviceService extends BaseService<DeviceEntity> {
      */
     Object callDeviceTool(String deviceId, String toolName, Map<String, Object> arguments);
 
-    /**
-     * 转发呼叫请求到网关
-     * @return 网关响应 {status, message}
-     */
-    Map<String, Object> forwardCallRequest(String callerMac, String targetMac, String callerNickname);
-
-}
+    }

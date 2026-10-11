@@ -36,6 +36,7 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
     static {
         THINKING_DISABLED_DOMAINS.put("aliyuncs.com", Map.of("enable_thinking", false));
         Map<String, Object> thinkingDisabled = Map.of("thinking", Map.of("type", "disabled"));
+        THINKING_DISABLED_DOMAINS.put("deepseek.com", thinkingDisabled);
         THINKING_DISABLED_DOMAINS.put("bigmodel.cn", thinkingDisabled);
         THINKING_DISABLED_DOMAINS.put("moonshot.cn", thinkingDisabled);
         THINKING_DISABLED_DOMAINS.put("volces.com", thinkingDisabled);
@@ -116,13 +117,11 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model != null ? model : "gpt-3.5-turbo");
 
-            Map<String, Object>[] messages = new Map[1];
             Map<String, Object> message = new HashMap<>();
             message.put("role", "user");
             message.put("content", prompt);
-            messages[0] = message;
 
-            requestBody.put("messages", messages);
+            requestBody.put("messages", List.of(message));
             requestBody.put("temperature", temperature != null ? temperature : 0.7);
             requestBody.put("max_tokens", maxTokens != null ? maxTokens : 2000);
 
@@ -212,13 +211,11 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model != null ? model : "gpt-3.5-turbo");
 
-            Map<String, Object>[] messages = new Map[1];
             Map<String, Object> message = new HashMap<>();
             message.put("role", "user");
             message.put("content", prompt);
-            messages[0] = message;
 
-            requestBody.put("messages", messages);
+            requestBody.put("messages", List.of(message));
             requestBody.put("temperature", 0.2);
             requestBody.put("max_tokens", 2000);
 
@@ -368,13 +365,11 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model != null ? model : "gpt-3.5-turbo");
 
-            Map<String, Object>[] messages = new Map[1];
             Map<String, Object> message = new HashMap<>();
             message.put("role", "user");
             message.put("content", prompt);
-            messages[0] = message;
 
-            requestBody.put("messages", messages);
+            requestBody.put("messages", List.of(message));
             requestBody.put("temperature", 0.3);
             requestBody.put("max_tokens", 50);
 

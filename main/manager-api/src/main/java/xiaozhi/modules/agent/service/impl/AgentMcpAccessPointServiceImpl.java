@@ -12,11 +12,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import cn.hutool.crypto.digest.DigestUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.utils.AESUtils;
-import xiaozhi.common.utils.HashEncryptionUtil;
 import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.modules.agent.Enums.XiaoZhiMcpJsonRpcJson;
 import xiaozhi.modules.agent.service.AgentMcpAccessPointService;
@@ -76,7 +76,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 // Wait for initialization response (id=1) - Remove fixed delay, change to response-driven
                 List<String> initResponses = client.listenerWithoutClose(response -> {
                     try {
-                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        Map<String, Object> jsonMap = JsonUtils.parseMap(response);
                         if (jsonMap != null && Integer.valueOf(1).equals(jsonMap.get("id"))) {
                             // Check if there is a result field, indicating successful initialization
                             return jsonMap.containsKey("result") && !jsonMap.containsKey("error");
@@ -92,7 +92,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 boolean initSucceeded = false;
                 for (String response : initResponses) {
                     try {
-                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        Map<String, Object> jsonMap = JsonUtils.parseMap(response);
                         if (jsonMap != null && Integer.valueOf(1).equals(jsonMap.get("id"))) {
                             if (jsonMap.containsKey("result")) {
                                 log.info("MCP initialization successful, Agent ID: {}", id);
@@ -123,7 +123,7 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 // Wait for tools list response (id=2)
                 List<String> toolsResponses = client.listener(response -> {
                     try {
-                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        Map<String, Object> jsonMap = JsonUtils.parseMap(response);
                         return jsonMap != null && Integer.valueOf(2).equals(jsonMap.get("id"));
                     } catch (Exception e) {
                         log.warn("Failed to parse tools list response: {}", response, e);
@@ -134,18 +134,18 @@ public class AgentMcpAccessPointServiceImpl implements AgentMcpAccessPointServic
                 // Process tools list response
                 for (String response : toolsResponses) {
                     try {
-                        Map<String, Object> jsonMap = JsonUtils.parseObject(response, Map.class);
+                        Map<String, Object> jsonMap = JsonUtils.parseMap(response);
                         if (jsonMap != null && Integer.valueOf(2).equals(jsonMap.get("id"))) {
                             // Check if there is a result field
                             Object resultObj = jsonMap.get("result");
-                            if (resultObj instanceof Map) {
-                                Map<String, Object> resultMap = (Map<String, Object>) resultObj;
+                            if (resultObj instanceof Map<?, ?>) {
+                                Map<String, Object> resultMap = JsonUtils.toStringObjectMap(resultObj);
                                 Object toolsObj = resultMap.get("tools");
                                 if (toolsObj instanceof List) {
                                     List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
                                     // Extract tool name list
                                     List<String> result = toolsList.stream()
-                                            .map(tool -> (String) tool.get("name"))
+                                            .map(tool -> String.class.cast(tool.get("name")))
                                             .filter(name -> name != null)
                                             .sorted()
                                             .collect(Collectors.toList());

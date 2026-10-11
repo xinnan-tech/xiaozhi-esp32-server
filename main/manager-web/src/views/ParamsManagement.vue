@@ -1,15 +1,29 @@
 <template>
-    <div class="welcome">
-        <HeaderBar />
-
-        <div class="operation-bar">
-            <h2 class="page-title">{{ $t('paramManagement.pageTitle') }}</h2>
-            <div class="right-operations">
-                <el-input :placeholder="$t('paramManagement.searchPlaceholder')" v-model="searchCode"
-                    class="search-input" @keyup.enter.native="handleSearch" clearable />
-                <el-button class="btn-search" @click="handleSearch">{{ $t('paramManagement.search') }}</el-button>
+  <div class="welcome">
+    <HeaderBar />
+    <div class="main-wrapper">
+      <div class="content-panel">
+        <div class="content-area">
+          <el-card class="params-card" shadow="never">
+            <div class="operation-header">
+              <div class="title-block">
+                <h2 class="page-title">{{ $t('paramManagement.pageTitle') }}</h2>
+                <span class="total-hint">{{ $t('paramManagement.totalRecords', { total: filteredTotal }) }}</span>
+              </div>
+              <div class="right-operations">
+                <el-input
+                  :placeholder="$t('paramManagement.searchPlaceholder')"
+                  v-model="searchCode"
+                  class="search-input"
+                  @keyup.enter.native="handleSearch"
+                  @clear="handleSearch"
+                  clearable
+                />
+                <CustomButton icon="el-icon-search" type="confirm" @click="handleSearch">
+                  {{ $t('paramManagement.search') }}
+                </CustomButton>
+              </div>
             </div>
-        </div>
 
         <div class="main-wrapper">
             <div class="content-panel">
@@ -90,7 +104,6 @@
                     </el-card>
                 </div>
             </div>
-        </div>
 
         <!-- Add/Edit parameter dialog -->
         <param-dialog ref="paramDialog" :title="dialogTitle" :visible.sync="dialogVisible" :form="paramForm"
@@ -99,6 +112,19 @@
             <version-footer />
         </el-footer>
     </div>
+
+    <param-dialog
+      ref="paramDialog"
+      :title="dialogTitle"
+      :visible.sync="dialogVisible"
+      :form="paramForm"
+      @submit="handleSubmit"
+      @cancel="dialogVisible = false"
+    />
+    <el-footer>
+      <version-footer />
+    </el-footer>
+  </div>
 </template>
 
 <script>
@@ -106,6 +132,15 @@ import Api from "@/apis/api";
 import HeaderBar from "@/components/HeaderBar.vue";
 import ParamDialog from "@/components/ParamDialog.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
+import CustomButton from "@/components/CustomButton.vue";
+
+const TOP_GROUP_ORDER = ['server', 'plugins', 'log', 'session_state', 'general'];
+const FETCH_LIMIT = 500;
+
+const SERVER_SUB_ORDER = [
+  '_root', 'auth', 'connection', 'registry', 'resilience', 'metrics', 'tracing'
+];
+
 export default {
     components: { HeaderBar, ParamDialog, VersionFooter },
     data() {
@@ -130,30 +165,11 @@ export default {
             },
         };
     },
-    created() {
-        this.fetchParams();
-
+    filteredTotal() {
+      return this.filteredParams.length;
     },
-
-    computed: {
-        pageCount() {
-            return Math.ceil(this.total / this.pageSize);
-        },
-        visiblePages() {
-            const pages = [];
-            const maxVisible = 3;
-            let start = Math.max(1, this.currentPage - 1);
-            let end = Math.min(this.pageCount, start + maxVisible - 1);
-
-            if (end - start + 1 < maxVisible) {
-                start = Math.max(1, end - maxVisible + 1);
-            }
-
-            for (let i = start; i <= end; i++) {
-                pages.push(i);
-            }
-            return pages;
-        },
+    selectedCount() {
+      return this.filteredParams.filter(item => item.selected).length;
     },
     methods: {
         handlePageSizeChange(val) {
@@ -361,22 +377,392 @@ export default {
             return 'header-cell';
         }
     }
+  },
+  watch: {
+    displaySections: {
+      immediate: true,
+      handler(sections) {
+        const keys = sections.map(s => s.key);
+        if (!keys.length) {
+          this.activeCollapse = [];
+          this.isAllSelected = false;
+          return;
+        }
+        // 分组不多时全部展开；较多时默认展开前几组
+        const preferOpen = keys.length <= 5 ? keys.slice() : keys.slice(0, 3);
+        const stillValid = (this.activeCollapse || []).filter(k => keys.includes(k));
+        this.activeCollapse = stillValid.length ? stillValid : preferOpen;
+        this.syncSelectAllState();
+      }
+    },
+    categoryTabs(tabs) {
+      if (!tabs.some(t => t.key === this.activeCategory)) {
+        this.activeCategory = 'all';
+        this.activeSubCategory = 'all';
+      }
+    }
+  },
+  created() {
+    this.fetchParams();
+  },
+  methods: {
+    getTopGroup(paramCode = '') {
+      if (paramCode.startsWith('server.')) return 'server';
+      if (paramCode.startsWith('plugins.')) return 'plugins';
+      if (paramCode.startsWith('log.')) return 'log';
+      if (paramCode.startsWith('session_state.')) return 'session_state';
+      return 'general';
+    },
+    getSubGroup(paramCode = '') {
+      const top = this.getTopGroup(paramCode);
+      const parts = paramCode.split('.');
+      if (top === 'server') {
+        return parts.length >= 3 ? parts[1] : '_root';
+      }
+      if (top === 'plugins') {
+        return parts.length >= 3 ? parts[1] : '_root';
+      }
+      if (top === 'log' || top === 'session_state') {
+        return '_all';
+      }
+      return '_all';
+    },
+    getTopGroupLabel(key) {
+      const map = {
+        server: 'paramManagement.group.server',
+        plugins: 'paramManagement.group.plugins',
+        log: 'paramManagement.group.log',
+        session_state: 'paramManagement.group.session',
+        general: 'paramManagement.group.general'
+      };
+      return this.$t(map[key] || 'paramManagement.group.general');
+    },
+    getSubGroupLabel(top, sub) {
+      if (sub === '_all') return this.getTopGroupLabel(top);
+      if (sub === '_root') return this.$t('paramManagement.subgroup.root');
+
+      const known = {
+        'server.auth': 'paramManagement.subgroup.auth',
+        'server.connection': 'paramManagement.subgroup.connection',
+        'server.registry': 'paramManagement.subgroup.registry',
+        'server.resilience': 'paramManagement.subgroup.resilience',
+        'server.metrics': 'paramManagement.subgroup.metrics',
+        'server.tracing': 'paramManagement.subgroup.tracing'
+      };
+      const i18nKey = known[`${top}.${sub}`];
+      if (i18nKey) return this.$t(i18nKey);
+
+      if (top === 'plugins') {
+        return this.$t('paramManagement.subgroup.plugin', { name: sub });
+      }
+      return sub;
+    },
+    orderSubKeys(keys, top) {
+      if (top === 'server') {
+        return [
+          ...SERVER_SUB_ORDER.filter(k => keys.includes(k)),
+          ...keys.filter(k => !SERVER_SUB_ORDER.includes(k)).sort()
+        ];
+      }
+      return keys.slice().sort((a, b) => {
+        if (a === '_root' || a === '_all') return -1;
+        if (b === '_root' || b === '_all') return 1;
+        return a.localeCompare(b);
+      });
+    },
+    buildSections(items, withinTopCategory) {
+      const bucket = {};
+      items.forEach(item => {
+        const top = this.getTopGroup(item.paramCode);
+        const sub = this.getSubGroup(item.paramCode);
+        const key = withinTopCategory ? `${top}.${sub}` : `${top}.${sub}`;
+        if (!bucket[key]) {
+          bucket[key] = {
+            key,
+            top,
+            sub,
+            items: []
+          };
+        }
+        bucket[key].items.push(item);
+      });
+
+      const sections = Object.values(bucket).map(section => {
+        const label = withinTopCategory
+          ? this.getSubGroupLabel(section.top, section.sub)
+          : (section.sub === '_all' || section.sub === '_root'
+            ? this.getTopGroupLabel(section.top)
+            : `${this.getTopGroupLabel(section.top)} · ${this.getSubGroupLabel(section.top, section.sub)}`);
+        return {
+          key: section.key,
+          label,
+          hint: withinTopCategory ? null : null,
+          items: section.items.slice().sort((a, b) => a.paramCode.localeCompare(b.paramCode)),
+          _top: section.top,
+          _sub: section.sub
+        };
+      });
+
+      sections.sort((a, b) => {
+        const topDiff = TOP_GROUP_ORDER.indexOf(a._top) - TOP_GROUP_ORDER.indexOf(b._top);
+        if (topDiff !== 0) return topDiff;
+        const orderA = this.orderSubKeys([a._sub, b._sub], a._top);
+        return orderA.indexOf(a._sub) - orderA.indexOf(b._sub);
+      });
+
+      return sections;
+    },
+    selectCategory(key) {
+      if (this.activeCategory === key) return;
+      this.activeCategory = key;
+      this.activeSubCategory = 'all';
+      this.isAllSelected = false;
+      this.allParams.forEach(row => { row.selected = false; });
+    },
+    selectSubCategory(key) {
+      if (this.activeSubCategory === key) return;
+      this.activeSubCategory = key;
+      this.isAllSelected = false;
+      this.filteredParams.forEach(row => { row.selected = false; });
+      this.syncSelectAllState();
+    },
+    fetchParamsPage(page) {
+      return new Promise((resolve, reject) => {
+        Api.admin.getParamsList(
+          {
+            page,
+            limit: FETCH_LIMIT,
+            paramCode: ""
+          },
+          ({ data }) => {
+            if (data.code === 0) {
+              resolve(data.data || {});
+            } else {
+              reject(new Error(data.msg || this.$t('paramManagement.getParamsListFailed')));
+            }
+          }
+        );
+      });
+    },
+    async fetchParams() {
+      this.loading = true;
+      try {
+        const collected = [];
+        let page = 1;
+        let total = Infinity;
+        // 按 total 循环拉全部分页，避免超过 FETCH_LIMIT 时聚合视图缺数据
+        while (collected.length < total) {
+          const pageData = await this.fetchParamsPage(page);
+          const list = pageData.list || [];
+          total = typeof pageData.total === 'number' ? pageData.total : collected.length + list.length;
+          collected.push(...list);
+          if (!list.length) break;
+          page += 1;
+          // 防御：异常 total / 接口异常时避免死循环
+          if (page > 200) break;
+        }
+
+        this.allParams = collected.map(item => ({
+          ...item,
+          valueType: item.valueType || "string",
+          selected: false,
+          showValue: false
+        }));
+        this.isAllSelected = false;
+
+        // 若当前分类已无数据，回退到全部
+        const exists = this.categoryTabs.some(t => t.key === this.activeCategory);
+        if (!exists) {
+          this.activeCategory = 'all';
+          this.activeSubCategory = 'all';
+        }
+      } catch (err) {
+        this.$message.error({
+          message: (err && err.message) || this.$t('paramManagement.getParamsListFailed'),
+          showClose: true
+        });
+      } finally {
+        this.loading = false;
+      }
+    },
+    handleSearch() {
+      this.appliedSearch = this.searchCode;
+      this.activeSubCategory = 'all';
+      this.$nextTick(() => {
+        if (!this.categoryTabs.some(t => t.key === this.activeCategory)) {
+          this.activeCategory = 'all';
+        }
+        this.syncSelectAllState();
+      });
+    },
+    syncSelectAllState() {
+      const list = this.filteredParams;
+      this.isAllSelected = list.length > 0 && list.every(row => row.selected);
+    },
+    handleSelectAll() {
+      this.isAllSelected = !this.isAllSelected;
+      this.filteredParams.forEach(row => {
+        row.selected = this.isAllSelected;
+      });
+    },
+    formatValue(value) {
+      if (value == null) return '';
+      const text = String(value);
+      return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+    },
+    showAddDialog() {
+      this.dialogTitle = this.$t('paramManagement.addParam');
+      this.paramForm = {
+        id: null,
+        paramCode: "",
+        paramValue: "",
+        valueType: "string",
+        remark: ""
+      };
+      this.dialogVisible = true;
+    },
+    editParam(row) {
+      this.dialogTitle = this.$t('paramManagement.editParam');
+      this.paramForm = {
+        id: row.id,
+        paramCode: row.paramCode,
+        paramValue: row.paramValue,
+        valueType: row.valueType || "string",
+        remark: row.remark
+      };
+      this.dialogVisible = true;
+    },
+    handleSubmit(form) {
+      if (form.id) {
+        Api.admin.updateParam(form, ({ data }) => {
+          this.dialogVisible = false;
+          this.fetchParams();
+          this.$message.success({
+            message: this.$t('paramManagement.updateSuccess'),
+            showClose: true
+          });
+        }, ({ data }) => {
+          this.$message.error({
+            message: data.msg || this.$t('paramManagement.updateFailed'),
+            showClose: true
+          });
+          if (this.$refs.paramDialog && typeof this.$refs.paramDialog.resetSaving === 'function') {
+            this.$refs.paramDialog.resetSaving();
+          }
+        });
+      } else {
+        Api.admin.addParam(form, ({ data }) => {
+          if (data.code === 0) {
+            this.dialogVisible = false;
+            this.fetchParams();
+            this.$message.success({
+              message: this.$t('paramManagement.addSuccess'),
+              showClose: true
+            });
+          } else {
+            this.$message.error({
+              message: data.msg || this.$t('paramManagement.addFailed'),
+              showClose: true
+            });
+            if (this.$refs.paramDialog && typeof this.$refs.paramDialog.resetSaving === 'function') {
+              this.$refs.paramDialog.resetSaving();
+            }
+          }
+        }, ({ data }) => {
+          this.$message.error({
+            message: data.msg || this.$t('paramManagement.updateFailed'),
+            showClose: true
+          });
+          if (this.$refs.paramDialog && typeof this.$refs.paramDialog.resetSaving === 'function') {
+            this.$refs.paramDialog.resetSaving();
+          }
+        });
+      }
+    },
+    deleteSelectedParams() {
+      const selectedParams = this.filteredParams.filter(row => row.selected);
+      if (selectedParams.length === 0) {
+        this.$message.warning({
+          message: this.$t('paramManagement.selectParamsFirst'),
+          showClose: true
+        });
+        return;
+      }
+      this.deleteParams(selectedParams);
+    },
+    deleteParam(row) {
+      if (!row.id) {
+        this.$message.warning({
+          message: this.$t('paramManagement.selectParamsFirst'),
+          showClose: true
+        });
+        return;
+      }
+      this.deleteParams([row]);
+    },
+    deleteParams(params) {
+      const paramCount = params.length;
+      const paramIds = params.map(param => param.id).filter(id => id);
+      if (paramIds.length === 0) {
+        this.$message.error({
+          message: this.$t('paramManagement.invalidParamId'),
+          showClose: true
+        });
+        return;
+      }
+      this.$confirm(this.$t('paramManagement.confirmBatchDelete', { paramCount }), this.$t('message.warning'), {
+        confirmButtonText: this.$t('button.ok'),
+        cancelButtonText: this.$t('button.cancel'),
+        type: 'warning'
+      }).then(() => {
+        Api.admin.deleteParam(paramIds, ({ data }) => {
+          if (data.code === 0) {
+            this.fetchParams();
+            this.$message.success({
+              message: this.$t('paramManagement.batchDeleteSuccess', { paramCount }),
+              showClose: true
+            });
+          } else {
+            this.$message.error({
+              message: data.msg || this.$t('paramManagement.deleteFailed'),
+              showClose: true
+            });
+          }
+        });
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: this.$t('paramManagement.operationCancelled'),
+          duration: 1000
+        });
+      });
+    },
+    isSensitiveParam(paramCode) {
+      return this.sensitive_keys.some(key => paramCode.toLowerCase().includes(key));
+    },
+    maskSensitiveValue(value) {
+      if (!value || value.length <= 4) {
+        return '****';
+      }
+      return value.substring(0, 2) + '****' + value.substring(value.length - 2);
+    },
+    toggleSensitiveValue(row) {
+      row.showValue = !row.showValue;
+    }
+  }
 };
 </script>
 
 <style lang="scss" scoped>
 .welcome {
-    min-width: 900px;
-    min-height: 506px;
-    height: 100vh;
-    display: flex;
-    position: relative;
-    flex-direction: column;
-    background-size: cover;
-    background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
-    -webkit-background-size: cover;
-    -o-background-size: cover;
-    overflow: hidden;
+  min-width: 900px;
+  min-height: 506px;
+  height: 100vh;
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  background: #eff4ff;
+  overflow: hidden;
 }
 
 .main-wrapper {
@@ -392,70 +778,77 @@ export default {
     flex-direction: column;
 }
 
-.operation-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
+.operation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 12px 0;
+  gap: 16px;
+}
+
+.title-block {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .page-title {
-    font-size: 24px;
-    margin: 0;
+  font-weight: 500;
+  font-size: 24px;
+  margin: 0;
+}
+
+.total-hint {
+  color: #8b93b5;
+  font-size: 13px;
 }
 
 .right-operations {
-    display: flex;
-    gap: 10px;
-    margin-left: auto;
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
 }
 
 .search-input {
-    width: 240px;
-}
-
-.btn-search {
-    background: linear-gradient(135deg, #6b8cff, #a966ff);
-    border: none;
-    color: white;
+  width: 280px;
 }
 
 .content-panel {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-    height: 100%;
-    border-radius: 15px;
-    background: transparent;
-    border: 1px solid #fff;
+  display: flex;
+  overflow: hidden;
+  height: 100%;
+  border-radius: 15px;
+  background: transparent;
+  border: 1px solid #fff;
 }
 
 .content-area {
-    flex: 1;
-    height: 100%;
-    min-width: 600px;
-    overflow: auto;
-    background-color: white;
-    display: flex;
-    flex-direction: column;
+  flex: 1;
+  height: 100%;
+  min-width: 600px;
+  overflow: hidden;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
 }
 
 .params-card {
-    background: white;
-    flex: 1;
+  background: white;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+
+  ::v-deep .el-card__body {
+    padding: 14px 20px;
     display: flex;
     flex-direction: column;
-    border: none;
-    box-shadow: none;
+    flex: 1;
     overflow: hidden;
-
-    ::v-deep .el-card__body {
-        padding: 15px;
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        overflow: hidden;
-    }
+    min-height: 0;
+  }
 }
 
 .table_bottom {
@@ -467,182 +860,23 @@ export default {
 }
 
 .ctrl_btn {
-    display: flex;
-    gap: 8px;
-    padding-left: 26px;
-
-    .el-button {
-        min-width: 72px;
-        height: 32px;
-        padding: 7px 12px 7px 10px;
-        font-size: 12px;
-        border-radius: 4px;
-        line-height: 1;
-        font-weight: 500;
-        border: none;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-
-        &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-    }
-
-    .el-button--primary {
-        background: #5f70f3;
-        color: white;
-    }
-
-    .el-button--danger {
-        background: #fd5b63;
-        color: white;
-    }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
 }
 
-.custom-pagination {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.footer-meta {
+  color: #8b93b5;
+  font-size: 12px;
+  white-space: nowrap;
 
-    .el-select {
-        margin-right: 8px;
-    }
-
-    .pagination-btn:first-child,
-    .pagination-btn:nth-child(2),
-    .pagination-btn:nth-last-child(2),
-    .pagination-btn:nth-child(3) {
-        min-width: 60px;
-        height: 32px;
-        padding: 0 12px;
-        border-radius: 4px;
-        border: 1px solid #e4e7ed;
-        background: #dee7ff;
-        color: #606266;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-
-        &:hover {
-            background: #d7dce6;
-        }
-
-        &:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-    }
-
-    .pagination-btn:not(:first-child):not(:nth-child(3)):not(:nth-child(2)):not(:nth-last-child(2)) {
-        min-width: 28px;
-        height: 32px;
-        padding: 0;
-        border-radius: 4px;
-        border: 1px solid transparent;
-        background: transparent;
-        color: #606266;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-
-        &:hover {
-            background: rgba(245, 247, 250, 0.3);
-        }
-    }
-
-    .pagination-btn.active {
-        background: #5f70f3 !important;
-        color: #ffffff !important;
-        border-color: #5f70f3 !important;
-
-        &:hover {
-            background: #6d7cf5 !important;
-        }
-    }
-
-    .total-text {
-        color: #909399;
-        font-size: 14px;
-        margin-left: 10px;
-    }
-}
-
-:deep(.transparent-table) {
-    background: white;
-    flex: 1;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-
-    .el-table__body-wrapper {
-        flex: 1;
-        overflow-y: auto;
-        max-height: none !important;
-    }
-
-    .el-table__header-wrapper {
-        flex-shrink: 0;
-    }
-
-    .el-table__header th {
-        background: white !important;
-        color: black;
-    }
-
-    &::before {
-        display: none;
-    }
-
-    .el-table__body tr {
-        background-color: white;
-
-        td {
-            border-top: 1px solid rgba(0, 0, 0, 0.04);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-        }
-    }
-}
-
-
-:deep(.el-checkbox__inner) {
-    background-color: #ffffff !important;
-    border-color: #cccccc !important;
-}
-
-:deep(.el-checkbox__inner:hover) {
-    border-color: #cccccc !important;
-}
-
-:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-    background-color: #5f70f3 !important;
-    border-color: #5f70f3 !important;
-}
-
-@media (min-width: 1144px) {
-    .table_bottom {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 40px;
-    }
-
-    :deep(.transparent-table) {
-        .el-table__body tr {
-            td {
-                padding-top: 16px;
-                padding-bottom: 16px;
-            }
-
-            &+tr {
-                margin-top: 10px;
-            }
-        }
-    }
+  .sep {
+    margin: 0 6px;
+  }
 }
 
 :deep(.el-table .el-button--text) {
-    color: #7079aa;
+  color: #7079aa;
 }
 
 :deep(.el-table .el-button--text:hover) {

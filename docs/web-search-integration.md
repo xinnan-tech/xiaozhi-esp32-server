@@ -2,13 +2,14 @@
 
 ## 功能简介
 
-联网搜索插件 `web_search` 支持在对话过程中实时联网搜索信息并返回结果。插件支持两个搜索源：秘塔（Metaso）和Tavily，用户可根据需要选择其中一个。
+联网搜索插件 `web_search` 支持在对话过程中实时联网搜索信息并返回结果。插件支持三个搜索源：秘塔（Metaso）、Tavily和Serply，用户可根据需要选择其中一个。
 
 ## API Key申请指南
 
-目前我们适配了`秘塔搜索`和`Tavily搜索`。
+目前我们适配了`秘塔搜索`、`Tavily搜索`和`Serply搜索`。
 - Tavily搜索：每个月1000次免费额度。
 - 秘塔搜索：拥有较为优质的国内数据源。
+- Serply搜索：返回谷歌搜索结果，注册赠送2500次免费额度，额度用完后需要付费。
 
 ## API Key申请指南
 
@@ -24,6 +25,13 @@
 - 在控制台中创建API Key
 - 复制生成的API Key（以 `tvly-` 为前缀），这是配置所需的关键信息
 
+### 方式三：使用Serply搜索
+
+- 访问 [Serply](https://serply.io)，注册并登录账号
+- 在控制台中创建API Key
+- 复制生成的API Key，这是配置所需的关键信息
+- 接口说明见 [Serply文档](https://serply.io/docs)
+
 ## 配置方式
 
 ### 方式1. 使用智控台部署（推荐）
@@ -32,14 +40,14 @@
 - 进入"配置角色"页面，选择要配置的智能体
 - 点击"编辑功能"按钮，在右侧参数配置区域找到"联网搜索"插件
 - 勾选"联网搜索"
-- 填入搜索源（`metaso`或`tavily`），并将对应的`API Key`填入配置项
+- 填入搜索源（`metaso`、`tavily`或`serply`），并将对应的`API Key`填入配置项
 - 保存配置，再保存智能体配置
 
 ### 方式2. 单模块xiaozhi-server部署
 
 在 `data/.config.yaml` 中配置：
 
-- 将搜索源填入 `provider`，可选值为 `metaso` 或 `tavily`
+- 将搜索源填入 `provider`，可选值为 `metaso`、`tavily` 或 `serply`
 - 将申请到的API Key填入 `api_key`
 
 ```yaml

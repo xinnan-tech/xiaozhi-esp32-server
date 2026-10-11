@@ -15,9 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.repository.IRepository;
 
+import cn.hutool.core.collection.CollUtil;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.ErrorCode;
@@ -29,11 +30,11 @@ import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.user.UserDetail;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.JsonUtils;
-import xiaozhi.common.utils.ToolUtil;
 import xiaozhi.modules.agent.dao.AgentDao;
 import xiaozhi.modules.agent.dao.AgentTagDao;
 import xiaozhi.modules.agent.dto.AgentCreateDTO;
 import xiaozhi.modules.agent.dto.AgentDTO;
+import xiaozhi.modules.agent.dto.AgentMemoryDTO;
 import xiaozhi.modules.agent.dto.AgentTagDTO;
 import xiaozhi.modules.agent.dto.AgentUpdateDTO;
 import xiaozhi.modules.agent.entity.AgentContextProviderEntity;
@@ -45,6 +46,7 @@ import xiaozhi.modules.agent.service.AgentChatHistoryService;
 import xiaozhi.modules.agent.service.AgentContextProviderService;
 import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.agent.service.AgentService;
+import xiaozhi.modules.agent.service.AgentSnapshotService;
 import xiaozhi.modules.agent.service.AgentTagService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.agent.vo.AgentInfoVO;
@@ -76,6 +78,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
     private final AgentContextProviderService agentContextProviderService;
     private final AgentTagService agentTagService;
     private final CorrectWordFileService correctWordFileService;
+    private final AgentSnapshotService agentSnapshotService;
 
     @Override
     public PageData<AgentEntity> adminAgentList(Map<String, Object> params) {
@@ -92,6 +95,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         if (agent == null) {
             throw new RenException(ErrorCode.AGENT_NOT_FOUND);
         }
+        requireCurrentUserPermissionIfPresent(agent);
 
         if (agent.getMemModelId() != null && agent.getMemModelId().equals(Constant.MEMORY_NO_MEM)) {
             agent.setChatHistoryConf(Constant.ChatHistoryConfEnum.IGNORE.getCode());
@@ -109,9 +113,69 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
         // 查询替换词文件ID列表
         List<String> correctWordFileIds = correctWordFileService.getAgentCorrectWordFileIds(id);
         agent.setCorrectWordFileIds(correctWordFileIds);
+        agent.setCurrentVersionNo(agentSnapshotService.getCurrentVersionNo(id));
 
         // 无需额外查询插件列表，已通过SQL查询出来
         return agent;
+    }
+
+    @Override
+    public AgentInfoVO getAgentById(String id, Long userId) {
+        AgentInfoVO agent = getAgentById(id);
+        requireAgentPermission(agent, userId);
+        return agent;
+    }
+
+    private AgentEntity getAgentEntityOrThrow(String agentId) {
+        AgentEntity agent = agentDao.selectById(agentId);
+        if (agent == null) {
+            throw new RenException(ErrorCode.AGENT_NOT_FOUND);
+        }
+        return agent;
+    }
+
+    private boolean isCurrentUserSuperAdmin() {
+        UserDetail user = SecurityUser.getUser();
+        return user != null && Integer.valueOf(SuperAdminEnum.YES.value()).equals(user.getSuperAdmin());
+    }
+
+    private void requireCurrentUserPermissionIfPresent(AgentEntity agent) {
+        Long userId = SecurityUser.getUserId();
+        if (userId != null) {
+            requireAgentPermission(agent, userId);
+        }
+    }
+
+    private boolean hasAgentPermission(AgentEntity agent, Long userId) {
+        if (agent == null) {
+            return false;
+        }
+        if (isCurrentUserSuperAdmin()) {
+            return true;
+        }
+        return userId != null && userId.equals(agent.getUserId());
+    }
+
+    private void requireAgentPermission(AgentEntity agent, Long userId) {
+        if (!hasAgentPermission(agent, userId)) {
+            throw new RenException(ErrorCode.NO_PERMISSION);
+        }
+    }
+
+    private boolean hasDevicePermission(DeviceEntity device, Long userId) {
+        if (device == null) {
+            return false;
+        }
+        if (isCurrentUserSuperAdmin()) {
+            return true;
+        }
+        return userId != null && userId.equals(device.getUserId());
+    }
+
+    private void requireDevicePermission(DeviceEntity device, Long userId) {
+        if (!hasDevicePermission(device, userId)) {
+            throw new RenException(ErrorCode.NO_PERMISSION);
+        }
     }
 
     @Override
@@ -135,10 +199,30 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteAgentByUserId(Long userId) {
-        UpdateWrapper<AgentEntity> wrapper = new UpdateWrapper<>();
-        wrapper.eq("user_id", userId);
-        baseDao.delete(wrapper);
+        List<AgentEntity> agents = baseDao.selectList(new QueryWrapper<AgentEntity>()
+                .select("id")
+                .eq("user_id", userId));
+        for (AgentEntity agent : agents) {
+            deleteAgent(agent.getId());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAgent(String agentId) {
+        if (agentDao.selectByIdForUpdate(agentId) == null) {
+            return;
+        }
+        deviceService.deleteByAgentId(agentId);
+        agentChatHistoryService.deleteByAgentId(agentId, true, true);
+        agentPluginMappingService.deleteByAgentId(agentId);
+        agentContextProviderService.deleteByAgentId(agentId);
+        correctWordFileService.deleteMappingsByAgentId(agentId);
+        agentTagService.deleteAgentTags(agentId);
+        agentSnapshotService.deleteByAgentId(agentId);
+        deleteById(agentId);
     }
 
     @Override
@@ -159,13 +243,13 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
                         .map(DeviceEntity::getAgentId)
                         .distinct()
                         .collect(Collectors.toList());
-                if (ToolUtil.isNotEmpty(agentIds)) {
+                if (CollUtil.isNotEmpty(agentIds)) {
                     w.or().in("id", agentIds);
                 }
 
                 // 按标签名搜索
                 List<String> tagAgentIds = agentTagService.getAgentIdsByTagName(keyword);
-                if (ToolUtil.isNotEmpty(tagAgentIds)) {
+                if (CollUtil.isNotEmpty(tagAgentIds)) {
                     w.or().in("id", tagAgentIds);
                 }
             });
@@ -207,7 +291,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
 
         // 获取标签列表
         List<AgentTagEntity> tags = agentTagDao.selectByAgentId(agent.getId());
-        if (ToolUtil.isNotEmpty(tags)) {
+        if (CollUtil.isNotEmpty(tags)) {
             dto.setTags(tags.stream().map(this::convertTagToDTO).collect(Collectors.toList()));
         }
 
@@ -254,32 +338,46 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
 
     @Override
     public boolean checkAgentPermission(String agentId, Long userId) {
-        if (SecurityUser.getUser() == null || SecurityUser.getUser().getId() == null) {
-            return false;
-        }
-        // 获取智能体信息
-        AgentEntity agent = getAgentById(agentId);
-        if (agent == null) {
-            return false;
-        }
-
-        // 如果是超级管理员，直接返回true
-        if (SecurityUser.getUser().getSuperAdmin() == SuperAdminEnum.YES.value()) {
-            return true;
-        }
-
-        // 检查是否是智能体的所有者
-        return userId.equals(agent.getUserId());
+        AgentEntity agent = agentDao.selectById(agentId);
+        return hasAgentPermission(agent, userId);
     }
 
     // 根据id更新智能体信息
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateAgentById(String agentId, AgentUpdateDTO dto) {
-        // 先查询现有实体
-        AgentEntity existingEntity = this.getAgentById(agentId);
-        if (existingEntity == null) {
+        updateAgentById(agentId, dto, true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAgentById(String agentId, AgentUpdateDTO dto, Long userId) {
+        updateAgentById(agentId, dto, userId, true);
+    }
+
+    // 根据id更新智能体信息
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAgentById(String agentId, AgentUpdateDTO dto, boolean createSnapshot) {
+        updateAgentById(agentId, dto, null, createSnapshot);
+    }
+
+    private void updateAgentById(String agentId, AgentUpdateDTO dto, Long userId, boolean createSnapshot) {
+        AgentEntity lockedAgent = agentDao.selectByIdForUpdate(agentId);
+        if (lockedAgent == null) {
             throw new RenException(ErrorCode.AGENT_NOT_FOUND);
+        }
+        if (userId == null) {
+            requireCurrentUserPermissionIfPresent(lockedAgent);
+        } else {
+            requireAgentPermission(lockedAgent, userId);
+        }
+
+        // 锁定后查询现有实体和关联配置
+        AgentEntity existingEntity = this.getAgentById(agentId);
+        if (createSnapshot) {
+            int currentVersionNo = agentSnapshotService.getCurrentVersionNo(agentId);
+            agentSnapshotService.createSnapshot(agentId, currentVersionNo == 0 ? "initial" : "current");
         }
 
         // 只更新提供的非空字段
@@ -385,10 +483,10 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
                     .toList();
 
             if (!toUpdate.isEmpty()) {
-                agentPluginMappingService.updateBatchById(toUpdate);
+                agentPluginMappingService.updateBatchById(toUpdate, IRepository.DEFAULT_BATCH_SIZE);
             }
             if (!toInsert.isEmpty()) {
-                agentPluginMappingService.saveBatch(toInsert);
+                agentPluginMappingService.saveBatch(toInsert, IRepository.DEFAULT_BATCH_SIZE);
             }
 
             // 5. 删除本次不在提交列表里的插件映射
@@ -397,7 +495,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
                     .map(AgentPluginMapping::getId)
                     .toList();
             if (!toDelete.isEmpty()) {
-                agentPluginMappingService.removeBatchByIds(toDelete);
+                agentPluginMappingService.removeByIds(toDelete);
             }
         }
 
@@ -430,11 +528,42 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             correctWordFileService.saveAgentCorrectWords(agentId, dto.getCorrectWordFileIds());
         }
 
-        boolean b = validateLLMIntentParams(dto.getLlmModelId(), dto.getIntentModelId());
+        // 更新智能体标签
+        if (dto.getTagNames() != null || dto.getTagIds() != null) {
+            agentTagService.saveAgentTags(agentId, dto.getTagIds(), dto.getTagNames());
+        }
+
+        boolean b = validateLLMIntentParams(existingEntity.getLlmModelId(), existingEntity.getIntentModelId());
         if (!b) {
             throw new RenException(ErrorCode.LLM_INTENT_PARAMS_MISMATCH);
         }
         this.updateById(existingEntity);
+        if (createSnapshot) {
+            agentSnapshotService.createSnapshot(agentId, "config");
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAgentMemoryByDeviceMacAddress(String macAddress, AgentMemoryDTO dto, Long userId) {
+        DeviceEntity device = deviceService.getDeviceByMacAddress(macAddress);
+        if (device == null || StringUtils.isBlank(device.getAgentId()) || dto == null) {
+            return;
+        }
+
+        requireDevicePermission(device, userId);
+
+        AgentUpdateDTO agentUpdateDTO = new AgentUpdateDTO();
+        agentUpdateDTO.setSummaryMemory(dto.getSummaryMemory());
+        updateAgentById(device.getAgentId(), agentUpdateDTO, userId, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAgentById(String agentId, Long userId) {
+        AgentEntity agent = getAgentEntityOrThrow(agentId);
+        requireAgentPermission(agent, userId);
+        deleteAgent(agentId);
     }
 
     /**
@@ -490,10 +619,16 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             }
 
             entity.setTtsVoiceId(template.getTtsVoiceId());
+            entity.setTtsLanguage(defaultIfBlank(template.getTtsLanguage(),
+                    timbreModelService.getDefaultLanguageById(entity.getTtsVoiceId())));
             entity.setMemModelId(template.getMemModelId());
             entity.setIntentModelId(template.getIntentModelId());
             entity.setSystemPrompt(template.getSystemPrompt());
             entity.setSummaryMemory(template.getSummaryMemory());
+            if (Constant.MEMORY_NO_MEM.equals(entity.getMemModelId())
+                    || Constant.MEMORY_MEM_REPORT_ONLY.equals(entity.getMemModelId())) {
+                entity.setSummaryMemory("");
+            }
 
             // 根据记忆模型类型设置默认的chatHistoryConf值
             if (template.getMemModelId() != null) {
@@ -542,7 +677,7 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             mapping.setPluginId(pluginId);
 
             Map<String, Object> paramInfo = new HashMap<>();
-            List<Map<String, Object>> fields = JsonUtils.parseObject(provider.getFields(), List.class);
+            List<Map<String, Object>> fields = JsonUtils.parseMapList(provider.getFields());
             if (fields != null) {
                 for (Map<String, Object> field : fields) {
                     paramInfo.put((String) field.get("key"), field.get("default"));
@@ -553,8 +688,13 @@ public class AgentServiceImpl extends BaseServiceImpl<AgentDao, AgentEntity> imp
             toInsert.add(mapping);
         }
         // 保存默认插件
-        agentPluginMappingService.saveBatch(toInsert);
+        agentPluginMappingService.saveBatch(toInsert, IRepository.DEFAULT_BATCH_SIZE);
+        agentSnapshotService.createSnapshot(entity.getId(), "initial");
         return entity.getId();
+    }
+
+    private String defaultIfBlank(String value, String defaultValue) {
+        return StringUtils.isBlank(value) ? defaultValue : value;
     }
 
     private String getDefaultLLMModelId() {

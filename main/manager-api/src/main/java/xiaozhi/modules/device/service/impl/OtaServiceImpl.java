@@ -56,7 +56,7 @@ public class OtaServiceImpl extends BaseServiceImpl<OtaDao, OtaEntity> implement
 
     @Override
     public void delete(String[] ids) {
-        baseDao.deleteBatchIds(Arrays.asList(ids));
+        baseDao.deleteByIds(Arrays.asList(ids));
     }
 
     @Override

@@ -536,7 +536,8 @@ class LLMPerformanceTester:
 
 
 async def main():
-    tester = LLMPerformanceTester()
+    config = await load_config()
+    tester = LLMPerformanceTester(config)
     await tester.run()
 
 

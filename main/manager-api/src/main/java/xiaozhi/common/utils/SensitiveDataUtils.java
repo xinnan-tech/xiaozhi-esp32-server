@@ -75,11 +75,11 @@ public class SensitiveDataUtils {
             Object value = jsonObject.get(key);
 
             if (SENSITIVE_FIELDS.contains(key.toLowerCase()) && value instanceof String) {
-                result.put(key, maskMiddle((String) value));
+                result.set(key, maskMiddle((String) value));
             } else if (value instanceof JSONObject) {
-                result.put(key, maskSensitiveFields((JSONObject) value));
+                result.set(key, maskSensitiveFields((JSONObject) value));
             } else {
-                result.put(key, value);
+                result.set(key, value);
             }
         }
 

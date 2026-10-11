@@ -110,11 +110,16 @@ celerybeat.pid
 # Environments
 .env
 .venv
+/.venv-*/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Repository-local runtimes and package-manager caches
+/.runtime/
+/main/manager-web/.npm-cache/
 
 # Spyder project settings
 .spyderproject

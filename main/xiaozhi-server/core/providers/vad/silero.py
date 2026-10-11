@@ -1,7 +1,6 @@
 import time
 import os
 import numpy as np
-import opuslib_next
 import onnxruntime
 from config.logger import setup_logging
 from core.providers.vad.base import VADProviderBase
@@ -63,7 +62,7 @@ class VADProvider(VADProviderBase):
         try:
             self._init_connection_state(conn)
 
-            pcm_frame = conn._vad_opus_decoder.decode(opus_packet, 960)
+            # pcm_frame已经是处理后的PCM数据
             conn.client_audio_buffer.extend(pcm_frame)
 
             client_have_voice = False

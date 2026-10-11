@@ -46,9 +46,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.pagination-wrapper {
-  margin-top: 20px;
-}
 ::v-deep .el-pagination {
   .btn-next,
   .btn-prev,

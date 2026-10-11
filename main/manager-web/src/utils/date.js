@@ -39,6 +39,7 @@ function formatDateTool(date, fmt) {
   const o = {
     'M+': date.getMonth() + 1,
     'd+': date.getDate(),
+    'H+': date.getHours(),
     'h+': date.getHours(),
     'm+': date.getMinutes(),
     's+': date.getSeconds()

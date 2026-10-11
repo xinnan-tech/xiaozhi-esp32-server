@@ -1,5 +1,6 @@
-import { ref } from 'vue'
+import type { Ref } from 'vue'
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
 // Supported language type
 export type Language = 'en' | 'de' | 'vi' | 'pt_BR'

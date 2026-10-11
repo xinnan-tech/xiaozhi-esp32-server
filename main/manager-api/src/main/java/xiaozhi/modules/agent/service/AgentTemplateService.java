@@ -1,6 +1,6 @@
 package xiaozhi.modules.agent.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.repository.IRepository;
 
 import xiaozhi.modules.agent.entity.AgentTemplateEntity;
 
@@ -9,7 +9,7 @@ import xiaozhi.modules.agent.entity.AgentTemplateEntity;
  * @description Database operation Service for table [ai_agent_template(agent configuration template table)]
  * @createDate 2025-03-22 11:48:18
  */
-public interface AgentTemplateService extends IService<AgentTemplateEntity> {
+public interface AgentTemplateService extends IRepository<AgentTemplateEntity> {
 
     /**
      * Get default template

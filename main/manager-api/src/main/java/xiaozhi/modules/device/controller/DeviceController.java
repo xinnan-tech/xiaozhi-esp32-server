@@ -8,6 +8,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -124,7 +125,9 @@ public class DeviceController {
             return new Result<Void>().error("设备不存在");
         }
         BeanUtils.copyProperties(deviceUpdateDTO, entity);
-        deviceService.updateById(entity);
+        if (!deviceService.updateById(entity)) {
+            return new Result<Void>().error(ErrorCode.UPDATE_DATA_FAILED);
+        }
         return new Result<Void>();
     }
 
@@ -174,20 +177,26 @@ public class DeviceController {
         return new Result<Object>().ok(deviceAddressBookService.getAddressBookList(macAddress));
     }
 
-    @GetMapping("/address-book/lookup")
-    @Operation(summary = "根据昵称查找目标设备")
-    public Result<Map<String, String>> lookupByNickname(String callerMac, String nickname) {
-        Map<String, String> result = deviceAddressBookService.lookupByNickname(callerMac, nickname);
+    @GetMapping("/address-book/call")
+    @Operation(summary = "根据昵称发起呼叫")
+    public Result<Map<String, Object>> callByNickname(String callerMac, String nickname,
+            @RequestParam(required = false, defaultValue = "false") boolean answer) {
+        Map<String, Object> result = deviceAddressBookService.callByNickname(callerMac, nickname, answer);
         if (result == null) {
-            return new Result<Map<String, String>>().error("未找到对应设备");
+            return new Result<Map<String, Object>>().error("未找到对应设备");
         }
-        return new Result<Map<String, String>>().ok(result);
+        return new Result<Map<String, Object>>().ok(result);
     }
 
     @PutMapping("/address-book/alias")
     @Operation(summary = "更新设备通讯录别名")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> updateAlias(@Valid @RequestBody DeviceAddressBookAliasDTO dto) {
+        UserDetail user = SecurityUser.getUser();
+        DeviceEntity callerDevice = deviceService.getDeviceByMacAddress(dto.getMacAddress());
+        if (callerDevice == null || !callerDevice.getUserId().equals(user.getId())) {
+            return new Result<Void>().error("无权限操作该设备");
+        }
         deviceAddressBookService.saveOrUpdate(dto.getMacAddress(), dto.getTargetMac(), dto.getAlias(), null);
         return new Result<Void>();
     }
@@ -196,14 +205,12 @@ public class DeviceController {
     @Operation(summary = "更新设备通讯录权限")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> updatePermission(@Valid @RequestBody DeviceAddressBookPermissionDTO dto) {
+        UserDetail user = SecurityUser.getUser();
+        DeviceEntity callerDevice = deviceService.getDeviceByMacAddress(dto.getMacAddress());
+        if (callerDevice == null || !callerDevice.getUserId().equals(user.getId())) {
+            return new Result<Void>().error("无权限操作该设备");
+        }
         deviceAddressBookService.saveOrUpdate(dto.getMacAddress(), dto.getTargetMac(), null, dto.getHasPermission());
         return new Result<Void>();
-    }
-
-    @GetMapping("/call/forward")
-    @Operation(summary = "转发呼叫请求到网关")
-    public Result<Map<String, Object>> forwardCallRequest(String callerMac, String targetMac, String callerNickname) {
-        Map<String, Object> result = deviceService.forwardCallRequest(callerMac, targetMac, callerNickname);
-        return new Result<Map<String, Object>>().ok(result);
     }
 }

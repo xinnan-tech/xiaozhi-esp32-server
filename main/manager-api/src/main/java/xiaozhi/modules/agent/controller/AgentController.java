@@ -28,10 +28,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import xiaozhi.common.constant.Constant;
+import xiaozhi.common.exception.ErrorCode;
+import xiaozhi.common.exception.RenException;
 import xiaozhi.common.page.PageData;
 import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.user.UserDetail;
+import xiaozhi.common.utils.JsonUtils;
 import xiaozhi.common.utils.Result;
 import xiaozhi.common.utils.ResultUtils;
 import xiaozhi.modules.agent.dto.AgentChatHistoryDTO;
@@ -48,15 +51,10 @@ import xiaozhi.modules.agent.service.AgentTagService;
 import xiaozhi.modules.agent.service.AgentChatAudioService;
 import xiaozhi.modules.agent.service.AgentChatHistoryService;
 import xiaozhi.modules.agent.service.AgentChatSummaryService;
-import xiaozhi.modules.agent.service.AgentContextProviderService;
-import xiaozhi.modules.agent.service.AgentPluginMappingService;
 import xiaozhi.modules.agent.service.AgentService;
 import xiaozhi.modules.agent.service.AgentTemplateService;
-import xiaozhi.modules.correctword.service.CorrectWordFileService;
 import xiaozhi.modules.agent.vo.AgentChatHistoryUserVO;
 import xiaozhi.modules.agent.vo.AgentInfoVO;
-import xiaozhi.modules.device.entity.DeviceEntity;
-import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.security.user.SecurityUser;
 
 @Tag(name = "智能体管理")
@@ -64,17 +62,39 @@ import xiaozhi.modules.security.user.SecurityUser;
 @RestController
 @RequestMapping("/agent")
 public class AgentController {
+    private static final long AUDIO_PLAY_TOKEN_EXPIRE_SECONDS = 300L;
+
     private final AgentService agentService;
     private final AgentTemplateService agentTemplateService;
-    private final DeviceService deviceService;
     private final AgentChatHistoryService agentChatHistoryService;
     private final AgentChatAudioService agentChatAudioService;
-    private final AgentPluginMappingService agentPluginMappingService;
-    private final AgentContextProviderService agentContextProviderService;
     private final AgentChatSummaryService agentChatSummaryService;
     private final RedisUtils redisUtils;
     private final AgentTagService agentTagService;
-    private final CorrectWordFileService correctWordFileService;
+
+    private void requireAgentPermission(String agentId) {
+        if (!agentService.checkAgentPermission(agentId, SecurityUser.getUserId())) {
+            throw new RenException(ErrorCode.NO_PERMISSION);
+        }
+    }
+
+    private String requireSessionAgent(String sessionId) {
+        String agentId = agentChatHistoryService.getAgentIdBySessionId(sessionId);
+        if (StringUtils.isBlank(agentId)) {
+            throw new RenException(ErrorCode.AGENT_NOT_FOUND);
+        }
+        agentService.getAgentById(agentId);
+        return agentId;
+    }
+
+    private String requireAudioPermission(String audioId) {
+        String agentId = agentChatHistoryService.getAgentIdByAudioId(audioId);
+        if (StringUtils.isBlank(agentId)) {
+            throw new RenException(ErrorCode.NO_PERMISSION);
+        }
+        requireAgentPermission(agentId);
+        return agentId;
+    }
 
     @GetMapping("/list")
     @Operation(summary = "获取用户智能体列表")
@@ -106,7 +126,7 @@ public class AgentController {
     @Operation(summary = "获取智能体详情")
     @RequiresPermissions("sys:role:normal")
     public Result<AgentInfoVO> getAgentById(@PathVariable("id") String id) {
-        AgentInfoVO agent = agentService.getAgentById(id);
+        AgentInfoVO agent = agentService.getAgentById(id, SecurityUser.getUserId());
         return ResultUtils.success(agent);
     }
 
@@ -120,20 +140,16 @@ public class AgentController {
 
     @PutMapping("/saveMemory/{macAddress}")
     @Operation(summary = "根据设备id更新智能体")
+    @RequiresPermissions("sys:role:normal")
     public Result<Void> updateByDeviceId(@PathVariable String macAddress, @RequestBody @Valid AgentMemoryDTO dto) {
-        DeviceEntity device = deviceService.getDeviceByMacAddress(macAddress);
-        if (device == null) {
-            return new Result<>();
-        }
-        AgentUpdateDTO agentUpdateDTO = new AgentUpdateDTO();
-        agentUpdateDTO.setSummaryMemory(dto.getSummaryMemory());
-        agentService.updateAgentById(device.getAgentId(), agentUpdateDTO);
-        return new Result<>();
+        agentService.updateAgentMemoryByDeviceMacAddress(macAddress, dto, SecurityUser.getUserId());
+        return new Result<Void>().ok(null);
     }
 
     @PostMapping("/chat-summary/{sessionId}/save")
     @Operation(summary = "根据会话ID生成聊天记录总结并保存（异步执行）")
     public Result<Void> generateAndSaveChatSummary(@PathVariable String sessionId) {
+        requireSessionAgent(sessionId);
         try {
             // 异步执行总结生成任务，立即返回成功响应
             new Thread(() -> {
@@ -155,6 +171,7 @@ public class AgentController {
     @PostMapping("/chat-title/{sessionId}/generate")
     @Operation(summary = "根据会话ID生成聊天标题")
     public Result<Void> generateAndSaveChatTitle(@PathVariable String sessionId) {
+        requireSessionAgent(sessionId);
         agentChatSummaryService.generateAndSaveChatTitle(sessionId);
         return new Result<Void>().ok(null);
     }
@@ -163,7 +180,7 @@ public class AgentController {
     @Operation(summary = "更新智能体")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> update(@PathVariable String id, @RequestBody @Valid AgentUpdateDTO dto) {
-        agentService.updateAgentById(id, dto);
+        agentService.updateAgentById(id, dto, SecurityUser.getUserId());
         return new Result<>();
     }
 
@@ -171,18 +188,7 @@ public class AgentController {
     @Operation(summary = "删除智能体")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> delete(@PathVariable String id) {
-        // 先删除关联的设备
-        deviceService.deleteByAgentId(id);
-        // 删除关联的聊天记录
-        agentChatHistoryService.deleteByAgentId(id, true, true);
-        // 删除关联的插件
-        agentPluginMappingService.deleteByAgentId(id);
-        // 删除关联的上下文源配置
-        agentContextProviderService.deleteByAgentId(id);
-        // 删除关联的替换词文件关联记录
-        correctWordFileService.deleteMappingsByAgentId(id);
-        // 再删除智能体
-        agentService.deleteById(id);
+        agentService.deleteAgentById(id, SecurityUser.getUserId());
         return new Result<>();
     }
 
@@ -205,6 +211,7 @@ public class AgentController {
     public Result<PageData<AgentChatSessionDTO>> getAgentSessions(
             @PathVariable("id") String id,
             @Parameter(hidden = true) @RequestParam Map<String, Object> params) {
+        requireAgentPermission(id);
         params.put("agentId", id);
         PageData<AgentChatSessionDTO> page = agentChatHistoryService.getSessionListByAgentId(params);
         return new Result<PageData<AgentChatSessionDTO>>().ok(page);
@@ -252,6 +259,7 @@ public class AgentController {
     @RequiresPermissions("sys:role:normal")
     public Result<String> getContentByAudioId(
             @PathVariable("id") String id) {
+        requireAudioPermission(id);
         // 查询聊天记录
         String data = agentChatHistoryService.getContentByAudioId(id);
         return new Result<String>().ok(data);
@@ -261,12 +269,13 @@ public class AgentController {
     @Operation(summary = "获取音频下载ID")
     @RequiresPermissions("sys:role:normal")
     public Result<String> getAudioId(@PathVariable("audioId") String audioId) {
+        requireAudioPermission(audioId);
         byte[] audioData = agentChatAudioService.getAudio(audioId);
         if (audioData == null) {
             return new Result<String>().error("音频不存在");
         }
         String uuid = UUID.randomUUID().toString();
-        redisUtils.set(RedisKeys.getAgentAudioIdKey(uuid), audioId);
+        redisUtils.set(RedisKeys.getAgentAudioIdKey(uuid), audioId, AUDIO_PLAY_TOKEN_EXPIRE_SECONDS);
         return new Result<String>().ok(uuid);
     }
 
@@ -322,6 +331,7 @@ public class AgentController {
     @Operation(summary = "获取智能体的标签")
     @RequiresPermissions("sys:role:normal")
     public Result<List<AgentTagDTO>> getAgentTags(@PathVariable String id) {
+        requireAgentPermission(id);
         List<AgentTagDTO> tags = agentTagService.getTagsByAgentId(id);
         return new Result<List<AgentTagDTO>>().ok(tags);
     }
@@ -330,9 +340,13 @@ public class AgentController {
     @Operation(summary = "保存智能体的标签")
     @RequiresPermissions("sys:role:normal")
     public Result<Void> saveAgentTags(@PathVariable String id, @RequestBody Map<String, Object> params) {
-        List<String> tagIds = (List<String>) params.get("tagIds");
-        List<String> tagNames = (List<String>) params.get("tagNames");
-        agentTagService.saveAgentTags(id, tagIds, tagNames);
+        requireAgentPermission(id);
+        List<String> tagIds = JsonUtils.toList(params.get("tagIds"), String.class);
+        List<String> tagNames = JsonUtils.toList(params.get("tagNames"), String.class);
+        AgentUpdateDTO dto = new AgentUpdateDTO();
+        dto.setTagIds(tagIds);
+        dto.setTagNames(tagNames);
+        agentService.updateAgentById(id, dto);
         return new Result<Void>().ok(null);
     }
 

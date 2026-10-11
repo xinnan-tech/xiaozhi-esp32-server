@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python (xiaozhi-server)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: 'main/xiaozhi-server/requirements.txt'
+      - name: Install dependencies
+        working-directory: main/xiaozhi-server
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio freezegun
+      - name: Run smoke test
+        working-directory: main/xiaozhi-server
+        run: |
+          if [ -f tests/test_smoke.py ]; then
+            pytest tests/test_smoke.py -x -q
+          else
+            echo "::warning::Slice 2 not done yet — tests/test_smoke.py missing"
+            exit 0
+          fi
+
+  java:
+    name: Java (manager-api)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+      - name: Run tests
+        working-directory: main/manager-api
+        run: mvn -B -q test -DfailIfNoTests=false
+
+  web:
+    name: Vue (manager-web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: main/manager-web/package-lock.json
+      - name: Run tests
+        working-directory: main/manager-web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run test:unit

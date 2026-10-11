@@ -1,28 +1,6 @@
 <template>
   <div class="welcome">
     <HeaderBar />
-
-    <div class="operation-bar">
-      <h2 class="page-title">{{ $t('header.providerManagement') }}</h2>
-      <div class="right-operations">
-        <el-dropdown trigger="click" @command="handleSelectModelType" @visible-change="handleDropdownVisibleChange">
-          <el-button class="category-btn">
-            {{ $t('providerManagement.categoryFilter') }} {{ selectedModelTypeLabel }}<i class="el-icon-arrow-down el-icon--right"
-              :class="{ 'rotate-down': DropdownVisible }"></i>
-          </el-button>
-          <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item command="">{{ $t('common.all') }}</el-dropdown-item>
-            <el-dropdown-item v-for="item in translatedModelTypes" :key="item.value" :command="item.value">
-              {{ item.label }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </el-dropdown>
-        <el-input :placeholder="$t('providerManagement.searchPlaceholder')" v-model="searchName" class="search-input" @keyup.enter.native="handleSearch"
-          clearable />
-        <el-button class="btn-search" @click="handleSearch">{{ $t('common.search') }}</el-button>
-      </div>
-    </div>
-
     <div class="main-wrapper">
       <div class="content-panel">
         <div class="content-area">
@@ -51,66 +29,60 @@
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </el-dropdown>
-                </template>
-                <template slot-scope="scope">
-                  <el-tag :type="getModelTypeTag(scope.row.modelType)">
-                    {{ getModelTypeLabel(scope.row.modelType) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('providerManagement.providerCode')" prop="providerCode" align="center" width="150"></el-table-column>
-              <el-table-column :label="$t('common.name')" prop="name" align="center"></el-table-column>
-              <el-table-column :label="$t('providerManagement.fieldConfig')" align="center">
-                <template slot-scope="scope">
-                  <el-popover placement="top-start" width="400" trigger="hover">
-                    <div v-for="field in scope.row.fields" :key="field.key" class="field-item">
-                      <span class="field-label">{{ field.label }}:</span>
-                      <span class="field-type">{{ field.type }}</span>
-                      <span v-if="isSensitiveField(field.key)" class="sensitive-tag">{{ $t('common.sensitive') }}</span>
-                    </div>
-                    <el-button slot="reference" size="mini" type="text">{{ $t('providerManagement.viewFields') }}</el-button>
-                  </el-popover>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('common.sort')" prop="sort" align="center" width="80"></el-table-column>
-              <el-table-column :label="$t('common.action')" align="center" width="180">
-                <template slot-scope="scope">
-                  <el-button size="mini" type="text" @click="editProvider(scope.row)">{{ $t('common.edit') }}</el-button>
-                  <el-button size="mini" type="text" @click="deleteProvider(scope.row)">{{ $t('common.delete') }}</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-
-            <div class="table_bottom">
-              <div class="ctrl_btn">
-                <el-button size="mini" type="primary" class="select-all-btn" @click="handleSelectAll">
-                  {{ isAllSelected ? $t('common.deselectAll') : $t('common.selectAll') }}
-                </el-button>
-                <el-button size="mini" type="success" @click="showAddDialog">{{ $t('common.add') }}</el-button>
-                <el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteSelectedProviders">{{ $t('common.delete') }}
-                </el-button>
-              </div>
-              <div class="custom-pagination">
-                <el-select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                  <el-option v-for="item in pageSizeOptions" :key="item" :label="$t('common.perPage', { number: item })" :value="item">
-                  </el-option>
-                </el-select>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goFirst">
-                  {{ $t('common.firstPage') }}
-                </button>
-                <button class="pagination-btn" :disabled="currentPage === 1" @click="goPrev">
-                  {{ $t('common.prevPage') }}
-                </button>
-                <button v-for="page in visiblePages" :key="page" class="pagination-btn"
-                  :class="{ active: page === currentPage }" @click="goToPage(page)">
-                  {{ page }}
-                </button>
-                <button class="pagination-btn" :disabled="currentPage === pageCount" @click="goNext">
-                  {{ $t('common.nextPage') }}
-                </button>
-                <span class="total-text">{{ $t('common.totalRecords', { number: total }) }}</span>
+                <CustomButton icon="el-icon-search" type="confirm" @click="handleSearch">{{ $t('common.search') }}</CustomButton>
               </div>
             </div>
+            <CustomTable
+              ref="providersTable"
+              :data="filteredProvidersList"
+              :columns="tableColumns"
+              :loading="loading"
+              :show-selection="true"
+              :show-operations="true"
+              :operations-label="$t('common.action')"
+              :total="total"
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-size-options="pageSizeOptions"
+              @size-change="handlePageSizeChange"
+              @page-change="goToPage"
+            >
+              <template slot="selection" slot-scope="scope">
+                <el-checkbox v-model="scope.row.selected"></el-checkbox>
+              </template>
+              <template slot="modelType" slot-scope="scope">
+                <el-tag :type="getModelTypeTag(scope.row.modelType)">
+                  {{ getModelTypeLabel(scope.row.modelType) }}
+                </el-tag>
+              </template>
+              <template slot="fields" slot-scope="scope">
+                <el-popover placement="top-start" width="400" trigger="hover">
+                  <div v-for="field in scope.row.fields" :key="field.key" class="field-item">
+                    <span class="field-label">{{ field.label }}:</span>
+                    <span class="field-type">{{ field.type }}</span>
+                    <span v-if="isSensitiveField(field.key)" class="sensitive-tag">{{ $t('common.sensitive') }}</span>
+                  </div>
+                  <el-button slot="reference" size="mini" type="text">{{ $t('providerManagement.viewFields') }}</el-button>
+                </el-popover>
+              </template>
+              <template slot="operations" slot-scope="scope">
+                <el-button size="mini" type="text" @click="editProvider(scope.row)">{{ $t('common.edit') }}</el-button>
+                <el-button size="mini" type="text" @click="deleteProvider(scope.row)">{{ $t('common.delete') }}</el-button>
+              </template>
+              <template slot="footer-btns">
+                <div class="ctrl_btn">
+                  <CustomButton :icon="isAllSelected ? 'el-icon-circle-close' : 'el-icon-circle-check'" size="small" @click="handleSelectAll">
+                    {{ isAllSelected ? $t('common.deselectAll') : $t('common.selectAll') }}
+                  </CustomButton>
+                  <CustomButton type="add" icon="el-icon-plus" size="small" @click="showAddDialog">
+                    {{ $t('common.add') }}
+                  </CustomButton>
+                  <CustomButton size="small" type="delete" icon="el-icon-delete" @click="deleteSelectedProviders">
+                    {{ $t('common.delete') }}
+                  </CustomButton>
+                </div>
+              </template>
+            </CustomTable>
           </el-card>
         </div>
       </div>
@@ -131,9 +103,11 @@ import Api from "@/apis/api";
 import HeaderBar from "@/components/HeaderBar.vue";
 import ProviderDialog from "@/components/ProviderDialog.vue";
 import VersionFooter from "@/components/VersionFooter.vue";
+import CustomButton from "@/components/CustomButton.vue";
+import CustomTable from "@/components/CustomTable.vue";
 
 export default {
-  components: { HeaderBar, ProviderDialog, VersionFooter },
+  components: { HeaderBar, ProviderDialog, VersionFooter, CustomButton, CustomTable },
   data() {
     return {
       searchName: "",
@@ -157,7 +131,7 @@ export default {
       dialogVisible: false,
       dialogTitle: "Add Provider",
       isAllSelected: false,
-      isDropdownOpen: false,
+      DropdownVisible: false,
       sensitive_keys: ["api_key", "personal_access_token", "access_token", "token", "secret", "access_key_secret", "secret_key"],
       providerForm: {
         id: null,
@@ -167,10 +141,11 @@ export default {
         fields: [],
         sort: 0
       },
-      DropdownVisible: false,
+      tableColumns: []
     };
   },
   created() {
+    this.initTableColumns();
     this.fetchProviders();
   },
   computed: {
@@ -184,24 +159,6 @@ export default {
       if (!this.searchModelType) return `（${this.$t('providerManagement.all')}）`;
       const selectedType = this.modelTypes.find(item => item.value === this.searchModelType);
       return selectedType ? `（${this.$t(selectedType.labelKey)}）` : "";
-    },
-    pageCount() {
-      return Math.ceil(this.total / this.pageSize);
-    },
-    visiblePages() {
-      const pages = [];
-      const maxVisible = 3;
-      let start = Math.max(1, this.currentPage - 1);
-      let end = Math.min(this.pageCount, start + maxVisible - 1);
-
-      if (end - start + 1 < maxVisible) {
-        start = Math.max(1, end - maxVisible + 1);
-      }
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      return pages;
     },
     filteredProvidersList() {
       return this.providersList;
@@ -220,6 +177,38 @@ export default {
     }
   },
   methods: {
+    initTableColumns() {
+      this.tableColumns = [
+        {
+          prop: 'modelType',
+          label: this.$t('providerManagement.category'),
+          align: 'center',
+          width: 200
+        },
+        {
+          prop: 'providerCode',
+          label: this.$t('providerManagement.providerCode'),
+          align: 'center',
+          width: 150
+        },
+        {
+          prop: 'name',
+          label: this.$t('common.name'),
+          align: 'center'
+        },
+        {
+          prop: 'fields',
+          label: this.$t('providerManagement.fieldConfig'),
+          align: 'center'
+        },
+        {
+          prop: 'sort',
+          label: this.$t('common.sort'),
+          align: 'center',
+          width: 80
+        }
+      ];
+    },
     fetchProviders() {
       this.loading = true;
 
@@ -254,7 +243,6 @@ export default {
       this.fetchProviders();
     },
     handleSelectModelType(value) {
-      this.isDropdownOpen = false;
       this.searchModelType = value;
       this.handleSearch();
     },
@@ -285,18 +273,23 @@ export default {
       this.dialogVisible = true;
     },
     handleSubmit({ form, done }) {
-      this.loading = true;
       if (form.id) {
         // Edit
         Api.model.updateModelProvider(form, ({ data }) => {
-
           if (data.code === 0) {
             this.fetchProviders(); // Refresh table
             this.$message.success({
-            message: this.$t('common.updateSuccess'),
-            showClose: true
-          });
+              message: this.$t('common.updateSuccess'),
+              showClose: true
+            });
+            this.dialogVisible = false;
+          } else {
+            this.$message.error({
+              message: data.msg || this.$t('common.updateFailure'),
+              showClose: true
+            });
           }
+          done && done();
         });
       } else {
         // Add
@@ -304,16 +297,20 @@ export default {
           if (data.code === 0) {
             this.fetchProviders(); // Refresh table
             this.$message.success({
-            message: this.$t('common.addSuccess'),
-            showClose: true
-          });
+              message: this.$t('common.addSuccess'),
+              showClose: true
+            });
             this.total += 1;
+            this.dialogVisible = false;
+          } else {
+            this.$message.error({
+              message: data.msg || this.$t('common.addFailure'),
+              showClose: true
+            });
           }
+          done && done();
         });
       }
-      this.loading = false;
-      this.dialogVisible = false;
-      done && done();
     },
     deleteSelectedProviders() {
       const selectedRows = this.providersList.filter(row => row.selected);
@@ -338,7 +335,6 @@ export default {
         const ids = providers.map(provider => provider.id);
         Api.model.deleteModelProviderByIds(ids, ({ data }) => {
           if (data.code === 0) {
-
             this.isAllSelected = false;
             this.fetchProviders(); // Refresh table
 
@@ -432,13 +428,15 @@ export default {
       }
     },
     goToPage(page) {
-      this.currentPage = page;
-      this.fetchProviders();
+      if (page !== this.currentPage) {
+        this.currentPage = page;
+        this.fetchProviders();
+      }
     },
     handleDropdownVisibleChange(visible) {
       this.DropdownVisible = visible;
-    },
-  },
+    }
+  }
 };
 </script>
 
@@ -451,7 +449,7 @@ export default {
   position: relative;
   flex-direction: column;
   background-size: cover;
-  background: linear-gradient(to bottom right, #dce8ff, #e4eeff, #e6cbfd) center;
+  background: #eff4ff;
   -webkit-background-size: cover;
   -o-background-size: cover;
   overflow: hidden;
@@ -465,19 +463,20 @@ export default {
   max-height: 80vh;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: relative;
-  background: rgba(237, 242, 255, 0.5);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
-.operation-bar {
+.operation-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  justify-content: space-between;
+  padding: 0 0 16px 0;
 }
 
 .page-title {
+  font-weight: 500;
   font-size: 24px;
   margin: 0;
 }
@@ -486,20 +485,14 @@ export default {
   display: flex;
   gap: 10px;
   margin-left: auto;
+  align-items: center;
 }
 
 .search-input {
   width: 240px;
 }
 
-.btn-search {
-  background: linear-gradient(135deg, #6b8cff, #a966ff);
-  border: none;
-  color: white;
-}
-
 .content-panel {
-  flex: 1;
   display: flex;
   overflow: hidden;
   height: 100%;
@@ -518,20 +511,17 @@ export default {
   flex-direction: column;
 }
 
-.el-card {
-  border: none;
-}
-
 .provider-card {
   background: white;
   flex: 1;
   display: flex;
   flex-direction: column;
+  border: none;
   box-shadow: none;
   overflow: hidden;
 
   ::v-deep .el-card__body {
-    padding: 15px;
+    padding: 14px 20px;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -843,40 +833,6 @@ export default {
   }
 }
 
-.dropdown-trigger {
-  font-size: 14px;
-  color: #303133;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-
-  &:hover {
-    color: #409EFF;
-  }
-}
-
-.dropdown-trigger.active {
-  color: #409EFF;
-}
-
-.dropdown-arrow {
-  display: inline-block;
-  margin-left: 5px;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 7px solid black;
-  position: relative;
-  transition: transform 0.3s ease;
-  transform: rotate(0deg);
-
-  &.is-active {
-    transform: rotate(180deg);
-    border-top-color: #409EFF;
-  }
-}
-
 .rotate-down {
   transform: rotate(180deg);
   transition: transform 0.3s ease;
@@ -886,20 +842,12 @@ export default {
   transition: transform 0.3s ease;
 }
 
-.dropdown-trigger {
-  font-size: 14px;
-  color: #303133;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-
-  &:hover {
-    color: #409EFF;
-  }
+:deep(.el-table .el-button--text) {
+  color: #7079aa;
 }
 
-.dropdown-trigger.active {
-  color: #409EFF;
+:deep(.el-table .el-button--text:hover) {
+  color: #5a64b5;
 }
 
 /* Ensure selection column header style is correct */

@@ -7,11 +7,11 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import xiaozhi.modules.agent.dto.ContextProviderDTO;
+import xiaozhi.modules.agent.typehandler.ContextProviderListTypeHandler;
 
 @Data
 @TableName(value = "ai_agent_context_provider", autoResultMap = true)

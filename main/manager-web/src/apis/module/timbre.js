@@ -79,6 +79,7 @@ export default {
                 remark: params.remark,
                 referenceAudio: params.referenceAudio,
                 referenceText: params.referenceText,
+                sort: params.sort,
                 ttsModelId: params.ttsModelId,
                 ttsVoice: params.voiceCode,
                 voiceDemo: params.voiceDemo || ''

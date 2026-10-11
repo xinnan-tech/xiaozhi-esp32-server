@@ -10,7 +10,6 @@ import asyncio
 import tempfile
 import traceback
 import threading
-import opuslib_next
 
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
@@ -74,7 +73,11 @@ class ASRProviderBase(ABC):
 
             # Trigger recognition when VAD marks the end of speech.
             if conn.asr.interface_type != InterfaceType.STREAM and conn.client_voice_stop:
-                asr_audio_task = conn.asr_audio.copy()
+                # 直接使用asr_audio中的PCM数据
+                pcm_bytes = b"".join(conn.asr_audio)
+                # 检查是否有足够的音频数据（每帧1920字节，15帧约28800字节）
+                if len(pcm_bytes) > 1920 * 15:
+                    await self.handle_voice_stop(conn, [pcm_bytes])
                 conn.reset_audio_states()
 
                 if len(asr_audio_task) > 15:
@@ -101,7 +104,7 @@ class ASRProviderBase(ABC):
 
             # Start the ASR task.
             asr_task = self.speech_to_text_wrapper(
-                asr_audio_task, conn.session_id, conn.audio_format
+                asr_audio_task, conn.session_id
             )
 
             if conn.voiceprint_provider and wav_data:
@@ -280,15 +283,11 @@ class ASRProviderBase(ABC):
         return file_path
 
     async def speech_to_text_wrapper(
-        self, opus_data: List[bytes], session_id: str, audio_format="opus"
+        self, pcm_data: List[bytes], session_id: str
     ) -> Tuple[Optional[str], Optional[str]]:
         file_path = None
         temp_path = None
         try:
-            if audio_format == "pcm":
-                pcm_data = opus_data
-            else:
-                pcm_data = self.decode_opus(opus_data)
             combined_pcm_data = b"".join(pcm_data)
 
             free_space = shutil.disk_usage(self.output_dir).free
@@ -314,7 +313,7 @@ class ASRProviderBase(ABC):
                 )
 
             text, _ = await self.speech_to_text(
-                opus_data, session_id, audio_format, artifacts
+                pcm_data, session_id, artifacts
             )
             return text, file_path
         except OSError as e:
@@ -342,7 +341,6 @@ class ASRProviderBase(ABC):
         self,
         opus_data: List[bytes],
         session_id: str,
-        audio_format="opus",
         artifacts: Optional[AudioArtifacts] = None,
     ) -> Tuple[Optional[str], Optional[str]]:
         """Convert speech data into text.

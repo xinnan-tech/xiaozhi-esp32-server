@@ -25,9 +25,6 @@
         <result column="memModelId" property="memModelId"/>
         <result column="intentModelId" property="intentModelId"/>
 
-        <result column="functions" property="functions"
-                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
-
         <result column="chatHistoryConf" property="chatHistoryConf"/>
         <result column="systemPrompt" property="systemPrompt"/>
         <result column="summaryMemory" property="summaryMemory"/>
@@ -38,6 +35,13 @@
         <result column="createdAt" property="createdAt"/>
         <result column="updater" property="updater"/>
         <result column="updatedAt" property="updatedAt"/>
+        <collection property="functions"
+                    ofType="xiaozhi.modules.agent.entity.AgentPluginMapping">
+            <id column="functionId" property="id"/>
+            <result column="functionAgentId" property="agentId"/>
+            <result column="pluginId" property="pluginId"/>
+            <result column="paramInfo" property="paramInfo"/>
+        </collection>
     </resultMap>
 
     <select id="selectAgentInfoById" resultMap="AgentInfoMap">
@@ -58,19 +62,6 @@
                a.tts_pitch         AS ttsPitch,
                a.mem_model_id      AS memModelId,
                a.intent_model_id   AS intentModelId,
-               COALESCE(
-                       (SELECT JSON_ARRAYAGG(
-                                       JSON_OBJECT(
-                                               'id', m.id,
-                                               'agentId', m.agent_id,
-                                               'pluginId', m.plugin_id,
-                                               'paramInfo', m.param_info
-                                       )
-                               )
-                        FROM ai_agent_plugin_mapping m
-                        WHERE m.agent_id = a.id),
-                       JSON_ARRAY()
-               )                   AS functions,
                a.chat_history_conf AS chatHistoryConf,
                a.system_prompt     AS systemPrompt,
                a.summary_memory    AS summaryMemory,
@@ -80,8 +71,50 @@
                a.creator,
                a.created_at        AS createdAt,
                a.updater,
-               a.updated_at        AS updatedAt
+               a.updated_at        AS updatedAt,
+               f.id                AS functionId,
+               f.agent_id          AS functionAgentId,
+               f.plugin_id         AS pluginId,
+               f.param_info        AS paramInfo
         FROM ai_agent a
+        LEFT JOIN ai_agent_plugin_mapping f ON f.agent_id = a.id
         WHERE a.id = #{agentId}
+        ORDER BY f.id ASC
     </select>
-</mapper> 
+
+    <select id="selectByIdForUpdate" resultType="xiaozhi.modules.agent.entity.AgentEntity">
+        SELECT *
+        FROM ai_agent
+        WHERE id = #{agentId}
+        FOR UPDATE
+    </select>
+
+    <update id="updateSnapshotFields">
+        UPDATE ai_agent
+        SET agent_code = #{agent.agentCode,jdbcType=VARCHAR},
+            agent_name = #{agent.agentName,jdbcType=VARCHAR},
+            asr_model_id = #{agent.asrModelId,jdbcType=VARCHAR},
+            vad_model_id = #{agent.vadModelId,jdbcType=VARCHAR},
+            llm_model_id = #{agent.llmModelId,jdbcType=VARCHAR},
+            slm_model_id = #{agent.slmModelId,jdbcType=VARCHAR},
+            vllm_model_id = #{agent.vllmModelId,jdbcType=VARCHAR},
+            tts_model_id = #{agent.ttsModelId,jdbcType=VARCHAR},
+            tts_voice_id = #{agent.ttsVoiceId,jdbcType=VARCHAR},
+            tts_language = #{agent.ttsLanguage,jdbcType=VARCHAR},
+            tts_volume = #{agent.ttsVolume,jdbcType=INTEGER},
+            tts_rate = #{agent.ttsRate,jdbcType=INTEGER},
+            tts_pitch = #{agent.ttsPitch,jdbcType=INTEGER},
+            mem_model_id = #{agent.memModelId,jdbcType=VARCHAR},
+            intent_model_id = #{agent.intentModelId,jdbcType=VARCHAR},
+            chat_history_conf = #{agent.chatHistoryConf,jdbcType=INTEGER},
+            system_prompt = #{agent.systemPrompt,jdbcType=LONGVARCHAR},
+            summary_memory = #{agent.summaryMemory,jdbcType=LONGVARCHAR},
+            lang_code = #{agent.langCode,jdbcType=VARCHAR},
+            language = #{agent.language,jdbcType=VARCHAR},
+            sort = #{agent.sort,jdbcType=INTEGER},
+            updater = #{agent.updater,jdbcType=BIGINT},
+            updated_at = #{agent.updatedAt,jdbcType=TIMESTAMP}
+        WHERE id = #{agent.id}
+    </update>
+
+</mapper>

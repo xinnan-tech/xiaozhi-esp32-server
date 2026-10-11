@@ -34,7 +34,7 @@ public class TimbreDataDTO {
 
     @Schema(description = "Sort Order")
     @Min(value = 0, message = "{sort.number}")
-    private long sort;
+    private Long sort;
 
     @Schema(description = "Corresponding TTS Model Primary Key")
     @NotBlank(message = "{timbre.ttsModelId.require}")

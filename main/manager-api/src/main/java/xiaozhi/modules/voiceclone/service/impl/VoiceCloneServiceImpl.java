@@ -17,6 +17,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import cn.hutool.core.collection.CollUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.exception.ErrorCode;
@@ -25,7 +26,6 @@ import xiaozhi.common.page.PageData;
 import xiaozhi.common.service.impl.BaseServiceImpl;
 import xiaozhi.common.utils.ConvertUtils;
 import xiaozhi.common.utils.DateUtils;
-import xiaozhi.common.utils.ToolUtil;
 import xiaozhi.modules.model.entity.ModelConfigEntity;
 import xiaozhi.modules.model.service.ModelConfigService;
 import xiaozhi.modules.sys.dao.SysUserDao;
@@ -119,14 +119,14 @@ public class VoiceCloneServiceImpl extends BaseServiceImpl<VoiceCloneDao, VoiceC
             entity.setTrainStatus(0); // Default to training in progress.
             batchInsertList.add(entity);
         }
-        if (ToolUtil.isNotEmpty(batchInsertList)) {
+        if (CollUtil.isNotEmpty(batchInsertList)) {
             insertBatch(batchInsertList);
         }
     }
 
     @Override
     public void delete(String[] ids) {
-        baseDao.deleteBatchIds(Arrays.asList(ids));
+        baseDao.deleteByIds(Arrays.asList(ids));
     }
 
     @Override

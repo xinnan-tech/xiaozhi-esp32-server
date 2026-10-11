@@ -33,6 +33,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.js",
+    "src/**/*.mjs",
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.jsx",

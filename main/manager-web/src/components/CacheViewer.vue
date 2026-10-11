@@ -2,7 +2,7 @@
   <el-dialog
     :title="$t('cache.dialogTitle')"
     :visible.sync="visible"
-    width="70%"
+    width="80%"
     :before-close="handleClose"
   >
     <div v-if="isLoading" class="loading-container">
@@ -203,5 +203,25 @@ h3 {
   margin-top: 20px;
   margin-bottom: 10px;
   font-weight: 500;
+}
+
+::v-deep .el-dialog {
+  margin: 10px auto !important;
+  height: calc(100vh - 20px);
+  max-height: calc(100vh - 20px);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  max-width: 1280px;
+}
+
+::v-deep .el-dialog__wrapper {
+  align-items: stretch;
+}
+
+::v-deep .el-dialog__body {
+  flex: 1;
+  max-height: calc(100vh - 20px - 130px);
+  overflow-y: auto;
 }
 </style>

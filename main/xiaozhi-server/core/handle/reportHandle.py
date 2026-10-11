@@ -33,17 +33,23 @@ async def report(conn: "ConnectionHandler", type, text, opus_data, report_time):
         report_time: Report timestamp.
     """
     try:
-        if opus_data:
-            audio_data = opus_to_wav(conn, opus_data)
+        if audio_data:
+
+            if chat_type == 1:
+                wav_data = pcm_to_wav(conn, audio_data)
+            elif chat_type == 2:
+                wav_data = opus_to_wav(conn, audio_data)
+            else:
+                wav_data = None
         else:
             audio_data = None
         # Execute the async report request.
         await manage_report(
             mac_address=conn.device_id,
             session_id=conn.session_id,
-            chat_type=type,
+            chat_type=chat_type,
             content=text,
-            audio=audio_data,
+            audio=wav_data,
             report_time=report_time,
         )
     except Exception as e:
@@ -60,7 +66,6 @@ def opus_to_wav(conn: "ConnectionHandler", opus_data):
     Returns:
         bytes: WAV-format audio data.
     """
-    decoder = None
     try:
         decoder = opuslib_next.Decoder(16000, 1)  # 16 kHz, mono
         pcm_data = []
@@ -99,6 +104,58 @@ def opus_to_wav(conn: "ConnectionHandler", opus_data):
 
         # Return the full WAV payload.
         return bytes(wav_header) + pcm_data_bytes
+    except Exception as e:
+        conn.logger.bind(tag=TAG).error(f"PCM转WAV失败: {e}", exc_info=True)
+        raise
+
+
+def opus_to_wav(conn: "ConnectionHandler", opus_data):
+    """将Opus数据转换为WAV格式的字节流
+
+    Args:
+        conn: 连接对象
+        opus_data: Opus音频数据（可能是列表或bytes）
+
+    Returns:
+        bytes: WAV格式的音频数据
+    """
+    decoder = None
+    try:
+        decoder = opuslib_next.Decoder(16000, 1)
+        pcm_data = []
+
+        if isinstance(opus_data, list):
+            for opus_packet in opus_data:
+                try:
+                    pcm_frame = decoder.decode(opus_packet, 960)
+                    pcm_data.append(pcm_frame)
+                except opuslib_next.OpusError as e:
+                    conn.logger.bind(tag=TAG).error(f"Opus解码错误: {e}", exc_info=True)
+        elif isinstance(opus_data, bytes):
+            pcm_frame = decoder.decode(opus_data, 960)
+            pcm_data.append(pcm_frame)
+
+        if not pcm_data:
+            raise ValueError("没有有效的音频数据")
+
+        pcm_data_bytes = b"".join(pcm_data)
+
+        wav_header = bytearray()
+        wav_header.extend(b"RIFF")
+        wav_header.extend((36 + len(pcm_data_bytes)).to_bytes(4, "little"))
+        wav_header.extend(b"WAVE")
+        wav_header.extend(b"fmt ")
+        wav_header.extend((16).to_bytes(4, "little"))
+        wav_header.extend((1).to_bytes(2, "little"))
+        wav_header.extend((1).to_bytes(2, "little"))
+        wav_header.extend((16000).to_bytes(4, "little"))
+        wav_header.extend((32000).to_bytes(4, "little"))
+        wav_header.extend((2).to_bytes(2, "little"))
+        wav_header.extend((16).to_bytes(2, "little"))
+        wav_header.extend(b"data")
+        wav_header.extend(len(pcm_data_bytes).to_bytes(4, "little"))
+
+        return bytes(wav_header) + pcm_data_bytes
     finally:
         if decoder is not None:
             try:
@@ -121,6 +178,10 @@ def enqueue_tts_report(conn: "ConnectionHandler", text, opus_data):
         text: Synthesized text.
         opus_data: Opus audio data.
     """
+    if not conn.read_config_from_api or conn.need_bind or not conn.report_tts_enable:
+        return
+    if conn.chat_history_conf == 0:
+        return
     try:
         # Use the connection queue and pass text plus binary data directly.
         if conn.chat_history_conf == 2:
@@ -189,6 +250,10 @@ def enqueue_asr_report(conn: "ConnectionHandler", text, opus_data):
         text: Recognized text.
         opus_data: Opus audio data.
     """
+    if not conn.read_config_from_api or conn.need_bind or not conn.report_asr_enable:
+        return
+    if conn.chat_history_conf == 0:
+        return
     try:
         # Use the connection queue and pass text plus binary data directly.
         if conn.chat_history_conf == 2:

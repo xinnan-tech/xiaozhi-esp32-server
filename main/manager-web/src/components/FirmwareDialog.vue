@@ -2,7 +2,7 @@
   <el-dialog :title="title" :visible.sync="dialogVisible" :close-on-click-modal="false" @close="handleClose" @open="handleOpen">
     <el-form ref="form" :model="form" :rules="rules" label-width="auto">
       <el-form-item :label="$t('firmwareDialog.firmwareName')" prop="firmwareName">
-        <el-input v-model="form.firmwareName" :placeholder="$t('firmwareDialog.firmwareNamePlaceholder')"></el-input>
+        <el-input v-model="form.firmwareName" :placeholder="$t('firmwareDialog.firmwareNamePlaceholder')" />
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.firmwareType')" prop="type">
         <el-select v-model="form.type" :placeholder="$t('firmwareDialog.firmwareTypePlaceholder')" style="width: 100%;" filterable :disabled="isTypeDisabled">
@@ -10,7 +10,7 @@
         </el-select>
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.version')" prop="version">
-        <el-input v-model="form.version" :placeholder="$t('firmwareDialog.versionPlaceholder')"></el-input>
+        <el-input v-model="form.version" :placeholder="$t('firmwareDialog.versionPlaceholder')" />
       </el-form-item>
       <el-form-item :label="$t('firmwareDialog.firmwareFile')" prop="firmwarePath">
         <el-upload ref="upload" class="upload-demo" action="#" :http-request="handleUpload"
@@ -29,18 +29,18 @@
         <el-input type="textarea" v-model="form.remark" :placeholder="$t('firmwareDialog.remarkPlaceholder')"></el-input>
       </el-form-item>
     </el-form>
-    <div slot="footer" class="dialog-footer">
-      <el-button @click="handleCancel">{{ $t('button.cancel') }}</el-button>
-      <el-button type="primary" @click="handleSubmit">{{ $t('button.save') }}</el-button>
-    </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
 import Api from '@/apis/api';
+import CustomDialog from './CustomDialog.vue';
 
 export default {
   name: 'FirmwareDialog',
+  components: {
+    CustomDialog
+  },
   props: {
     visible: {
       type: Boolean,
@@ -65,7 +65,7 @@ export default {
       uploadProgress: 0,
       uploadStatus: '',
       isUploading: false,
-      dialogVisible: this.visible,
+      saving: false,
       rules: {
         firmwareName: [
           { required: true, message: this.$t('firmwareDialog.requiredFirmwareName'), trigger: 'blur' }
@@ -120,8 +120,20 @@ export default {
           }
           // After successful submission, let parent component handle dialog closing logic
           this.$emit('submit', this.form)
+          // 兜底：父组件若未在回调内重置 saving，3 秒后强制释放加载状态
+          setTimeout(() => {
+            this.saving = false
+          }, 3000)
         }
       })
+    },
+    cancel() {
+      this.saving = false
+      this.$emit('cancel')
+    },
+    // 提供给父组件调用以重置saving状态
+    resetSaving() {
+      this.saving = false
     },
     beforeUpload(file) {
       const isValidSize = file.size / 1024 / 1024 < 100
@@ -210,25 +222,24 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-::v-deep .el-dialog {
-  border-radius: 20px;
-}
-
-.upload-demo {
-  text-align: left;
-}
-
-.el-upload__tip {
-  line-height: 1.2;
-  padding-top: 2%;
-  color: #909399;
-}
-
-.hint-text {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
+<style scoped lang="scss">
+.firmware-form {
+  .custom-select {
+    width: 100%;
+  }
+  .upload-demo {
+    text-align: left;
+  }
+  .el-upload__tip {
+    line-height: 1.2;
+    padding-top: 2%;
+    color: #909399;
+  }
+  .hint-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+  }
 }
 </style>

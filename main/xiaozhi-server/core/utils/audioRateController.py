@@ -13,12 +13,13 @@ class AudioRateController:
     Sends audio on a 60 ms frame cadence to avoid timing drift under load.
     """
 
-    def __init__(self, frame_duration=60):
+    def __init__(self, frame_duration=60, send_delay=0):
         """
         Args:
             frame_duration: Duration of each audio frame in milliseconds.
         """
-        self.frame_duration = frame_duration
+        # 流控间隔（毫秒）：send_delay > 0 时用配置值，否则用 frame_duration
+        self.interval_ms = send_delay if send_delay > 0 else frame_duration
         self.queue = deque()
         self.play_position = 0  # Virtual playback position in milliseconds.
         self.start_timestamp = None  # Start timestamp, set once per send cycle.
@@ -70,7 +71,7 @@ class AudioRateController:
         """
         if len(self.queue) == 0 and self.play_position > 0:
             elapsed_since_empty = (time.monotonic() - self._last_queue_empty_time) * 1000
-            if elapsed_since_empty >= self.frame_duration:
+            if elapsed_since_empty >= self.interval_ms:
                 self.start_timestamp = time.monotonic() - (self.play_position / 1000)
                 self.logger.bind(tag=TAG).debug(
                     f"Queue resumed from empty state; reset timestamp. Playback position: {self.play_position}ms, gap: {elapsed_since_empty:.0f}ms"
@@ -138,7 +139,7 @@ class AudioRateController:
 
                 # Remove the packet from the queue and send it.
                 self.queue.popleft()
-                self.play_position += self.frame_duration
+                self.play_position += self.interval_ms
                 try:
                     await send_audio_callback(opus_packet)
                 except Exception as e:

@@ -1,5 +1,9 @@
 package xiaozhi.modules.sys;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +17,7 @@ import xiaozhi.modules.security.controller.LoginController;
 import xiaozhi.modules.security.dto.LoginDTO;
 import xiaozhi.modules.security.dto.SmsVerificationDTO;
 import xiaozhi.modules.sys.dto.RetrievePasswordDTO;
+import xiaozhi.modules.sys.service.SysUserService;
 
 @Slf4j
 @SpringBootTest
@@ -23,8 +28,13 @@ class loginControllerTest {
     @Autowired
     LoginController loginController;
 
+    @MockitoBean
+    SysUserService sysUserService;
+
     @Test
     public void testRegister() {
+        when(sysUserService.getAllowUserRegister()).thenReturn(false);
+
         LoginDTO loginDTO = new LoginDTO();
         loginDTO.setUsername("test-user");
         loginDTO.setPassword("test-password");

@@ -9,7 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.repository.CrudRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ import xiaozhi.modules.model.service.ModelConfigService;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AgentPluginMappingServiceImpl extends ServiceImpl<AgentPluginMappingMapper, AgentPluginMapping>
+public class AgentPluginMappingServiceImpl extends CrudRepository<AgentPluginMappingMapper, AgentPluginMapping>
         implements AgentPluginMappingService {
     private final AgentPluginMappingMapper agentPluginMappingMapper;
     private final KnowledgeBaseService knowledgeBaseService;

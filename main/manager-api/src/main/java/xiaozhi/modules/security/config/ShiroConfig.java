@@ -4,16 +4,19 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.session.mgt.SessionManager;
 import org.apache.shiro.spring.LifecycleBeanPostProcessor;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.config.ShiroFilterConfiguration;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+import org.apache.shiro.web.mgt.WebSecurityManager;
 import org.apache.shiro.web.session.mgt.DefaultWebSessionManager;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Role;
 
 import jakarta.servlet.Filter;
 import xiaozhi.modules.security.oauth2.Oauth2Filter;
@@ -39,7 +42,7 @@ public class ShiroConfig {
     }
 
     @Bean("securityManager")
-    public SecurityManager securityManager(Oauth2Realm oAuth2Realm, SessionManager sessionManager) {
+    public WebSecurityManager securityManager(Oauth2Realm oAuth2Realm, SessionManager sessionManager) {
         DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
         securityManager.setRealm(oAuth2Realm);
         securityManager.setSessionManager(sessionManager);
@@ -48,7 +51,8 @@ public class ShiroConfig {
     }
 
     @Bean("shiroFilter")
-    public ShiroFilterFactoryBean shirFilter(SecurityManager securityManager, SysParamsService sysParamsService) {
+    public static ShiroFilterFactoryBean shirFilter(@Lazy WebSecurityManager securityManager,
+            @Lazy SysParamsService sysParamsService) {
         ShiroFilterConfiguration config = new ShiroFilterConfiguration();
         config.setFilterOncePerRequest(true);
 
@@ -87,8 +91,7 @@ public class ShiroConfig {
         filterMap.put("/user/retrieve-password", "anon");
         // Use server service filter for config path
         filterMap.put("/config/**", "server");
-        filterMap.put("/device/address-book/lookup", "server");
-        filterMap.put("/device/call/forward", "server");
+        filterMap.put("/device/address-book/call", "server");
         filterMap.put("/agent/chat-history/report", "server");
         filterMap.put("/agent/chat-history/download/**", "anon");
         filterMap.put("/agent/chat-summary/**", "server");
@@ -102,12 +105,14 @@ public class ShiroConfig {
     }
 
     @Bean("lifecycleBeanPostProcessor")
-    public LifecycleBeanPostProcessor lifecycleBeanPostProcessor() {
+    public static LifecycleBeanPostProcessor lifecycleBeanPostProcessor() {
         return new LifecycleBeanPostProcessor();
     }
 
     @Bean
-    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(SecurityManager securityManager) {
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    public static AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(
+            @Lazy WebSecurityManager securityManager) {
         AuthorizationAttributeSourceAdvisor advisor = new AuthorizationAttributeSourceAdvisor();
         advisor.setSecurityManager(securityManager);
         return advisor;

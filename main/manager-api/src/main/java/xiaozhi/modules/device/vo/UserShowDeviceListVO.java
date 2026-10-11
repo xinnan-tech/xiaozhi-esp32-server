@@ -32,16 +32,19 @@ public class UserShowDeviceListVO {
     @Schema(description = "设备别名")
     private String alias;
 
-    @Schema(description = "开启OTA")
-    private Integer otaUpgrade;
+    @Schema(description = "自动更新开关(0关闭/1开启)")
+    private Integer autoUpdate;
 
     @Schema(description = "最近对话时间")
     private String recentChatTime;
 
-    @Schema(description = "最后连接时间(UTC毫秒)")
+    @Schema(description = "最后连接时间戳（毫秒）", type = "string", example = "1783689702000")
     private Long lastConnectedAtTimestamp;
 
-    @Schema(description = "绑定时间")
+    @Schema(description = "绑定时间戳（毫秒）", type = "string", example = "1783689702000")
+    private Long createDateTimestamp;
+
+    @Schema(description = "绑定时间（兼容字段，请使用 createDateTimestamp）", deprecated = true)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "UTC")
     private Date createDate;
 

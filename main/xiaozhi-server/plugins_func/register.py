@@ -78,6 +78,8 @@ class DeviceTypeRegistry:
 
 # Initialize function registry dictionary
 all_function_registry = {}
+# 模块名 -> 函数名列表的映射，用于将模块级别的插件名展开为具体的函数名
+module_func_map = {}
 
 
 def register_function(name, desc, type=None):

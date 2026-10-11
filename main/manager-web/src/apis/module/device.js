@@ -11,10 +11,16 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
+            .fail((err) => {
+                RequestService.clearRequestTime();
+                if (failCallback) {
+                    failCallback(err);
+                }
+            })
             .networkFail((err) => {
                 console.error('Failed to get device list:', err);
                 RequestService.reAjaxFun(() => {
-                    this.getAgentBindDevices(agentId, callback);
+                    this.getAgentBindDevices(agentId, callback, failCallback);
                 });
             }).send();
     },
@@ -28,10 +34,16 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
+            .fail((err) => {
+                RequestService.clearRequestTime();
+                if (failCallback) {
+                    failCallback(err);
+                }
+            })
             .networkFail((err) => {
                 console.error('Failed to unbind device:', err);
                 RequestService.reAjaxFun(() => {
-                    this.unbindDevice(device_id, callback);
+                    this.unbindDevice(device_id, callback, failCallback);
                 });
             }).send();
     },
@@ -44,14 +56,20 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
+            .fail((err) => {
+                RequestService.clearRequestTime();
+                if (failCallback) {
+                    failCallback(err);
+                }
+            })
             .networkFail((err) => {
                 console.error('Failed to bind device:', err);
                 RequestService.reAjaxFun(() => {
-                    this.bindDevice(agentId, deviceCode, callback);
+                    this.bindDevice(agentId, deviceCode, callback, failCallback);
                 });
             }).send();
     },
-    updateDeviceInfo(id, payload, callback) {
+    updateDeviceInfo(id, payload, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/update/${id}`)
             .method('PUT')
@@ -60,11 +78,17 @@ export default {
                 RequestService.clearRequestTime()
                 callback(res)
             })
+            .fail((err) => {
+                RequestService.clearRequestTime();
+                if (failCallback) {
+                    failCallback(err);
+                }
+            })
             .networkFail((err) => {
                 console.error('Failed to update OTA status:', err)
                 this.$message.error(err.msg || 'Failed to update OTA status')
                 RequestService.reAjaxFun(() => {
-                    this.updateDeviceInfo(id, payload, callback)
+                    this.updateDeviceInfo(id, payload, callback, failCallback)
                 })
             }).send()
     },
@@ -78,10 +102,16 @@ export default {
                 RequestService.clearRequestTime();
                 callback(res);
             })
+            .fail((err) => {
+                RequestService.clearRequestTime();
+                if (failCallback) {
+                    failCallback(err);
+                }
+            })
             .networkFail((err) => {
                 console.error('Failed to manually add device:', err);
                 RequestService.reAjaxFun(() => {
-                    this.manualAddDevice(params, callback);
+                    this.manualAddDevice(params, callback, failCallback);
                 });
             }).send();
     },
@@ -98,7 +128,7 @@ export default {
             .networkFail((err) => {
                 console.error('Failed to get device status:', err);
                 RequestService.reAjaxFun(() => {
-                    this.getDeviceStatus(agentId, callback);
+                    this.getDeviceStatus(agentId, callback, failCallback);
                 });
             }).send();
     },

@@ -1,6 +1,6 @@
+import type { Language } from '@/store/lang'
 import { ref } from 'vue'
 import { useLangStore } from '@/store/lang'
-import type { Language } from '@/store/lang'
 
 // Import translation files
 import en from './en'
@@ -38,7 +38,7 @@ export function t(key: string, params?: Record<string, string | number>): string
 
   // Direct lookup for flat keys
   if (langMessages && typeof langMessages === 'object' && key in langMessages) {
-    let value = langMessages[key]
+    const value = langMessages[key]
     if (typeof value === 'string') {
       // Apply parameter replacements
       if (params) {

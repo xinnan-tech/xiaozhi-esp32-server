@@ -5,10 +5,8 @@ import random
 import difflib
 import traceback
 from pathlib import Path
-from core.handle.sendAudioHandle import send_stt_message
-from plugins_func.register import register_function, ToolType, ActionResponse, Action
-from core.utils.dialogue import Message
 from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType, ContentType
+from plugins_func.register import register_function, ToolType, ActionResponse, Action
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -38,7 +36,7 @@ play_music_function_desc = {
 
 
 @register_function("play_music", play_music_function_desc, ToolType.SYSTEM_CTL)
-def play_music(conn: "ConnectionHandler", song_name: str):
+async def play_music(conn: "ConnectionHandler", song_name: str):
     try:
         music_intent = (
             f"play music {song_name}" if song_name != "random" else "play random music"

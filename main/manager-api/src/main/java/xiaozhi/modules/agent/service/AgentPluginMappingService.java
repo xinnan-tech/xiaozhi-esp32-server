@@ -2,7 +2,7 @@ package xiaozhi.modules.agent.service;
 
 import java.util.List;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.repository.IRepository;
 
 import xiaozhi.modules.agent.entity.AgentPluginMapping;
 
@@ -10,7 +10,7 @@ import xiaozhi.modules.agent.entity.AgentPluginMapping;
  * @description 针对表【ai_agent_plugin_mapping(Agent与插件的唯一映射表)】的数据库操作Service
  * @createDate 2025-05-25 22:33:17
  */
-public interface AgentPluginMappingService extends IService<AgentPluginMapping> {
+public interface AgentPluginMappingService extends IRepository<AgentPluginMapping> {
 
     /**
      * 根据智能体id获取插件参数

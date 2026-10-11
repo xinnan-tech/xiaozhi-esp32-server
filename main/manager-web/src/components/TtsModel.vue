@@ -1,9 +1,7 @@
 <template>
-  <el-dialog :visible.sync="localVisible" width="90%" @close="handleClose" :show-close="false" :append-to-body="true"
-    :close-on-click-modal="true">
-    <button class="custom-close-btn" @click="handleClose">
-      ×
-    </button>
+  <CustomDialog :visible.sync="localVisible" :title="$t('modelConfig.voiceManagement')" width="80%" size="large"
+    :close-on-click-modal="true" :destroy-on-close="false" :footer="false" :append-to-body="true"
+    @close="handleClose">
     <div class="scroll-wrapper">
       <div class="table-container" ref="tableContainer" @scroll="handleScroll">
         <el-table v-loading="loading" :data="filteredTtsModels" style="width: 100%;" class="data-table"
@@ -86,25 +84,27 @@
       </div>
     </div>
     <div class="action-buttons">
-      <el-button type="primary" size="mini" @click="toggleSelectAll" style="background: #606ff3;border: None">
+      <CustomButton :icon="selectAll ? 'el-icon-circle-close' : 'el-icon-circle-check'" size="small" type="default" @click="toggleSelectAll">
         {{ selectAll ? $t('ttsModel.deselectAll') : $t('ttsModel.selectAll') }}
-      </el-button>
-      <el-button type="primary" size="mini" @click="addNew" style="background: #5bc98c;border: None;">
+      </CustomButton>
+      <CustomButton icon="el-icon-plus" size="small" type="add" @click="addNew">
         {{ $t('ttsModel.add') }}
-      </el-button>
-      <el-button type="primary" size="mini" @click="deleteRow(filteredTtsModels.filter(row => row.selected))"
-        style="background: red;border:None">{{ $t('ttsModel.delete') }}
-      </el-button>
+      </CustomButton>
+      <CustomButton icon="el-icon-delete" size="small" type="delete" @click="deleteRow(filteredTtsModels.filter(row => row.selected))">
+        {{ $t('ttsModel.delete') }}
+      </CustomButton>
     </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
 import Api from "@/apis/api";
 import AudioPlayer from './AudioPlayer.vue';
+import CustomDialog from './CustomDialog.vue';
+import CustomButton from './CustomButton.vue';
 
 export default {
-  components: { AudioPlayer },
+  components: { AudioPlayer, CustomDialog, CustomButton },
   props: {
     visible: {
       type: Boolean,
@@ -674,11 +674,6 @@ export default {
   margin: 0 auto;
 }
 
-.action-buttons .el-button {
-  padding: 8px 15px;
-  font-size: 11px;
-}
-
 .edit-btn,
 .delete-btn,
 .save-btn {
@@ -710,9 +705,8 @@ export default {
 
 /* Button group positioning adjustment */
 .action-buttons {
-  position: static;
-  padding: 15px 0;
-  background: white;
+  padding-top: 10px;
+  text-align: left;
 }
 
 /* Input field adaptive */

@@ -1,39 +1,37 @@
 <template>
-  <el-dialog :visible="visible" @close="handleClose" width="24%" center>
-    <div
-      style="margin: 0 10px 10px;display: flex;align-items: center;gap: 10px;font-weight: 700;font-size: 20px;text-align: left;color: #3d4566;">
-      <div
-        style="width: 40px;height: 40px;border-radius: 50%;background: #5778ff;display: flex;align-items: center;justify-content: center;">
-        <img src="@/assets/home/equipment.png" alt="" style="width: 18px;height: 15px;" />
+  <CustomDialog
+    :title="$t('device.dialogTitle')"
+    :visible.sync="visible"
+    width="420px"
+    :confirmLoading="loading"
+    @confirm="confirm"
+    @cancel="cancel"
+    @close="handleClose"
+    :confirmText="$t('device.confirmButton')"
+    :cancelText="$t('device.cancelButton')"
+  >
+    <div class="add-device-body">
+      <div class="add-device-label">
+        <span class="required">*</span>
+        {{ $t('device.verificationCode') }}
       </div>
-      {{ $t('device.dialogTitle') }}
+      <el-input
+        :placeholder="$t('device.verificationCodePlaceholder')"
+        v-model="deviceCode"
+        class="add-device-input"
+        @keyup.enter.native="confirm"
+      />
     </div>
-    <div style="height: 1px;background: #e8f0ff;" />
-    <div style="margin: 22px 15px;">
-      <div style="font-weight: 400;font-size: 14px;text-align: left;color: #3d4566;">
-        <div style="color: red;display: inline-block;">*</div>
-        <span style="font-size: 11px"> {{ $t('device.verificationCode') }}</span>
-      </div>
-      <div class="input-46" style="margin-top: 12px;">
-        <el-input :placeholder="$t('device.verificationCodePlaceholder')" v-model="deviceCode" @keyup.enter.native="confirm" />
-      </div>
-    </div>
-    <div style="display: flex;margin: 15px 15px;gap: 7px;">
-      <div class="dialog-btn" @click="confirm">
-        {{ $t('device.confirmButton') }}
-      </div>
-      <div class="dialog-btn" style="background: #e6ebff;border: 1px solid #adbdff;color: #5778ff;" @click="cancel">
-        {{ $t('device.cancelButton') }}
-      </div>
-    </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
 import Api from '@/apis/api';
+import CustomDialog from './CustomDialog.vue';
 
 export default {
   name: 'AddDeviceDialog',
+  components: { CustomDialog },
   props: {
     visible: { type: Boolean, required: true },
     agentId: { type: String, required: true }
@@ -53,7 +51,8 @@ export default {
       this.loading = true;
       Api.device.bindDevice(
         this.agentId,
-        this.deviceCode, ({ data }) => {
+        this.deviceCode,
+        ({ data }) => {
           this.loading = false;
           if (data.code === 0) {
             this.$emit('refresh');
@@ -68,59 +67,53 @@ export default {
               showClose: true
             });
           }
+        },
+        (err) => {
+          this.loading = false;
+          const msg = err && err.data && err.data.msg;
+          this.$message.error({
+            message: msg || this.$t('device.bindFailed'),
+            showClose: true
+          });
         }
       );
     },
     closeDialog() {
-      this.$emit('update:visible', false);
+      this.loading = false;
       this.deviceCode = '';
-
+      this.$emit('update:visible', false);
     },
     cancel() {
-      this.$emit('update:visible', false)
-      this.deviceCode = ""
+      this.closeDialog();
     },
     handleClose() {
-      this.$emit('update:visible', false);
-    },
+      this.closeDialog();
+    }
   }
 }
 </script>
 
 <style scoped>
-.input-46 {
-  border: 1px solid #e4e6ef;
-  background: #f6f8fb;
-  border-radius: 10px;
+.add-device-body {
+  padding: 6px 4px 4px;
 }
 
-.dialog-btn {
-  cursor: pointer;
-  flex: 1;
-  border-radius: 23px;
-  background: #5778ff;
+.add-device-label {
+  font-size: 14px;
+  color: #475569;
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.add-device-label .required {
+  color: #f56c6c;
+  margin-right: 2px;
+}
+
+.add-device-input ::v-deep(.el-input__inner) {
   height: 40px;
-  font-weight: 500;
-  font-size: 12px;
-  color: #fff;
-  line-height: 40px;
-  text-align: center;
-}
-
-::v-deep .el-dialog {
-  border-radius: 15px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-::v-deep .el-dialog__headerbtn {
-  display: none;
-}
-
-::v-deep .el-dialog__body {
-  padding: 4px 6px;
-}
-
-::v-deep .el-dialog__header {
-  padding: 10px;
+  border-radius: 8px;
+  border-color: #e2e8f0;
+  font-size: 14px;
 }
 </style>

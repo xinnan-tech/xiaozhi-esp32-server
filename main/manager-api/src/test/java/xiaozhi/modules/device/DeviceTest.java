@@ -1,7 +1,6 @@
 package xiaozhi.modules.device;
 
 import java.util.HashMap;
-import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +32,7 @@ public class DeviceTest {
     private SysUserService sysUserService;
 
     @Test
-    public void testSaveUser() {
+    public void testRejectWeakPassword() {
         SysUserDTO userDTO = new SysUserDTO();
         userDTO.setUsername("test");
         userDTO.setPassword("TestPassword123!");

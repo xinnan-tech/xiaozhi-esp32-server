@@ -92,7 +92,8 @@ class Dialogue:
         return result
 
     def get_llm_dialogue_with_memory(
-            self, memory_str: str = None, voiceprint_config: dict = None
+            self, memory_str: str = None, voiceprint_config: dict = None,
+            current_speaker: str = None,
     ) -> List[Dict[str, str]]:
         # 构建对话
         dialogue = []
@@ -103,50 +104,31 @@ class Dialogue:
         )
 
         if system_message:
-            # 以 <context> 为分界点，拆分静态 system prompt 和动态上下文
-            # 静态部分（规则、身份等）保持不变，可命中前缀缓存
-            # 动态部分（时间、天气、记忆等）作为第二条 system 消息，保持 system 权威性
             full_prompt = system_message.content
-            context_match = re.search(r"<context>", full_prompt)
-            if context_match:
-                static_part = full_prompt[:context_match.start()]
-                dynamic_part = full_prompt[context_match.start():]
-            else:
-                static_part = full_prompt
-                dynamic_part = ""
 
-            # 第一段：静态 system prompt（前缀缓存可命中）
-            dialogue.append({"role": "system", "content": static_part})
-
-        # 第二段：few-shot 示例（会话内不变，也是缓存前缀的一部分）
-        non_system_messages = [m for m in self.dialogue if m.role != "system"]
-        fewshot_messages = [m for m in non_system_messages if m.is_temporary]
-        complete_fewshot = self._ensure_tool_calls_complete(fewshot_messages)
-        for m in complete_fewshot:
-            self.getMessages(m, dialogue)
-
-        # 第三段：动态上下文 system prompt（时间、记忆、说话人等）
-        # 保持 system 角色以确保模型权威性，不降级为 user
-        if system_message and dynamic_part:
             # 替换时间占位符
-            dynamic_part = dynamic_part.replace(
+            full_prompt = full_prompt.replace(
                 "{{current_time}}", datetime.now().strftime("%H:%M")
             )
 
             # 填充记忆
             if memory_str is not None:
-                dynamic_part = re.sub(
+                full_prompt = re.sub(
                     r"<memory>.*?</memory>",
                     f"<memory>\n{memory_str}\n</memory>",
-                    dynamic_part,
+                    full_prompt,
                     flags=re.DOTALL,
                 )
 
             # 追加说话人信息
             try:
-                speakers = voiceprint_config.get("speakers", [])
-                if speakers:
-                    dynamic_part += "\n<speakers_info>"
+                current_speaker_name = (current_speaker or "").strip()
+                # 仅在本轮注入了有效身份时才输出 speakers_info，避免列表里的名字每轮
+                # 重复出现诱导模型反复称呼；后续轮不再注入身份，靠对话历史首轮保留
+                if current_speaker_name and current_speaker_name != "未知说话人":
+                    speakers = voiceprint_config.get("speakers", [])
+                    speakers_info = "\n<speakers_info>"
+                    speakers_info += f"\n当前说话人：{current_speaker_name}"
                     for speaker_str in speakers:
                         try:
                             parts = speaker_str.split(",", 2)
@@ -155,16 +137,24 @@ class Dialogue:
                                 description = (
                                     parts[2].strip() if len(parts) >= 3 else ""
                                 )
-                                dynamic_part += f"\n- {name}：{description}"
+                                speakers_info += f"\n- {name}：{description}"
                         except:
                             pass
-                    dynamic_part += "\n</speakers_info>"
+                    speakers_info += "\n</speakers_info>"
+                    full_prompt += speakers_info
             except:
                 pass
 
-            dialogue.append({"role": "system", "content": dynamic_part})
+            dialogue.append({"role": "system", "content": full_prompt})
 
-        # 第四段：实际对话历史（不含 few-shot）
+        # 第二段：few-shot 示例（会话内不变）
+        non_system_messages = [m for m in self.dialogue if m.role != "system"]
+        fewshot_messages = [m for m in non_system_messages if m.is_temporary]
+        complete_fewshot = self._ensure_tool_calls_complete(fewshot_messages)
+        for m in complete_fewshot:
+            self.getMessages(m, dialogue)
+
+        # 第三段：实际对话历史（不含 few-shot）
         actual_messages = [m for m in non_system_messages if not m.is_temporary]
         complete_actual = self._ensure_tool_calls_complete(actual_messages)
         for m in complete_actual:
