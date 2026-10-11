@@ -1,6 +1,7 @@
 package xiaozhi.modules.config.init;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
@@ -14,6 +15,7 @@ import xiaozhi.modules.sys.service.SysParamsService;
 
 @Configuration
 @DependsOn("liquibase")
+@ConditionalOnProperty(prefix = "spring.liquibase", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class SystemInitConfig {
 
     @Autowired

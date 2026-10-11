@@ -3,6 +3,7 @@ package xiaozhi.modules.agent.service.impl;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import xiaozhi.modules.agent.service.AgentSnapshotService;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(prefix = "spring.liquibase", name = "enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 public class AgentSnapshotRedactionRunner implements SmartInitializingSingleton {
     static final long ROLLING_DEPLOYMENT_INITIAL_DELAY_MILLIS = 5_000;

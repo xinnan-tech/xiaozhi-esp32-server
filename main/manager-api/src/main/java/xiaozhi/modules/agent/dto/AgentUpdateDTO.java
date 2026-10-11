@@ -103,11 +103,34 @@ public class AgentUpdateDTO implements Serializable {
     @Data
     @Schema(description = "Plugin function information")
     public static class FunctionInfo implements Serializable {
+        private static final TypeReference<HashMap<String, Object>> PARAM_INFO_TYPE = new TypeReference<>() {};
+
         @Schema(description = "Plugin ID", example = "plugin_01")
         private String pluginId;
 
         @Schema(description = "Function parameter information", nullable = true)
-        private HashMap<String, Object> paramInfo;
+        private HashMap<String, Object> paramInfo = new HashMap<>();
+
+        public void setParamInfo(Object paramInfo) {
+            this.paramInfo = normalizeParamInfo(paramInfo);
+        }
+
+        private static HashMap<String, Object> normalizeParamInfo(Object paramInfo) {
+            if (paramInfo == null || (paramInfo instanceof String value && value.trim().isEmpty())) {
+                return new HashMap<>();
+            }
+            if (paramInfo instanceof String value) {
+                return JsonUtils.parseObject(value, PARAM_INFO_TYPE);
+            }
+            if (paramInfo instanceof Map<?, ?> value) {
+                HashMap<String, Object> normalized = new HashMap<>();
+                value.forEach((key, entryValue) -> {
+                    if (key != null) normalized.put(String.valueOf(key), entryValue);
+                });
+                return normalized;
+            }
+            return JsonUtils.parseObject(JsonUtils.toJsonString(paramInfo), PARAM_INFO_TYPE);
+        }
 
         private static final long serialVersionUID = 1L;
     }

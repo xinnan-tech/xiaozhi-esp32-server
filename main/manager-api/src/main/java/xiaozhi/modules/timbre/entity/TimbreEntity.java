@@ -42,7 +42,8 @@ public class TimbreEntity {
     private String referenceText;
 
     @Schema(description = "Sort Order")
-    private long sort;
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
+    private Long sort;
 
     @Schema(description = "Corresponding TTS Model Primary Key")
     private String ttsModelId;
