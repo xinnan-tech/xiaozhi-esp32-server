@@ -32,7 +32,7 @@ public class TimbreDetailsVO implements Serializable {
     private String referenceText;
 
     @Schema(description = "Sort Order")
-    private long sort;
+    private Long sort;
 
     @Schema(description = "Corresponding TTS Model Primary Key")
     private String ttsModelId;
