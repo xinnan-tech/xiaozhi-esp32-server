@@ -6,8 +6,6 @@ import vi from './vi';
 import ptBR from './pt_BR';
 
 import enLocale from 'element-ui/lib/locale/lang/en'
-import zhLocale from 'element-ui/lib/locale/lang/zh-CN'
-import twLocale from 'element-ui/lib/locale/lang/zh-TW'
 import deLocale from 'element-ui/lib/locale/lang/de'
 import viLocale from 'element-ui/lib/locale/lang/vi'
 import ptBRLocale from 'element-ui/lib/locale/lang/pt-br'
@@ -31,10 +29,11 @@ export const getLanguageLabelKey = (lang) => {
 const getDefaultLanguage = () => {
   const savedLang = localStorage.getItem('userLanguage');
   if (savedLang) {
-    if (savedLang === 'zh_CN' || savedLang === 'zh_TW') {
-      return 'en';
+    // Legacy installs may have stored a language this fork no longer ships.
+    if (supportedLanguages.some((item) => item.code === savedLang)) {
+      return savedLang;
     }
-    return savedLang;
+    return 'en';
   }
   const browserLang = navigator.language || navigator.userLanguage;
   if (browserLang.indexOf('de') === 0) {

@@ -6,7 +6,7 @@ export default {
   'login.requiredMobile': 'Please enter a valid mobile phone number',
   'login.loginSuccess': 'Login successful!',
 
-  // HeaderBar组件文本
+  // HeaderBar component text
   'header.smartManagement': 'Agents',
   'header.modelConfig': 'Models',
   'header.knowledgeBase': 'Knowledge',
@@ -17,7 +17,7 @@ export default {
   'header.paramDictionary': 'More',
   'header.paramManagement': 'Params Management',
   'header.dictManagement': 'Dict Management',
-  'header.agentTemplate': 'Default Role Templates', // 添加这一行
+  'header.agentTemplate': 'Default Role Templates', // Add this line
   'header.searchHistory': 'Search History',
   'header.clearHistory': 'Clear History',
   'header.providerManagement': 'Provider Management',
@@ -31,10 +31,10 @@ export default {
   // McpToolCallDialog component text
   'mcpToolCall.title': 'Tool Call',
   'mcpToolCall.execute': 'Execute',
-  'mcpToolCall.chooseFunction': '1、Choose Function',
+  'mcpToolCall.chooseFunction': '1,Choose Function',
   'mcpToolCall.searchFunction': 'Search Function',
   'mcpToolCall.noResults': 'No matching functions found',
-  'mcpToolCall.settings': '2、Parameter Settings',
+  'mcpToolCall.settings': '2,Parameter Settings',
   'mcpToolCall.inputPlaceholder': 'Please enter {label}',
   'mcpToolCall.valueRange': 'Value range: {min} - {max}',
   'mcpToolCall.selectPlaceholder': 'Please select {label}',
@@ -46,7 +46,7 @@ export default {
   'mcpToolCall.minValue': 'Minimum value is {value}',
   'mcpToolCall.maxValue': 'Maximum value is {value}',
   'mcpToolCall.selectTool': 'Please select a tool to execute',
-  'mcpToolCall.executionResult': '3、Execution Result',
+  'mcpToolCall.executionResult': '3,Execution Result',
   'mcpToolCall.copyResult': 'Copy Result',
   'mcpToolCall.noResultYet': 'No result yet',
   'mcpToolCall.loadingToolList': 'Loading tool list...',
@@ -714,8 +714,8 @@ export default {
   'common.copyAddress': 'Copy address',
 
   // Language switch
-  'language.zhCN': '中文简体',
-  'language.zhTW': '中文繁體',
+  'language.zhCN': 'Simplified Chinese',
+  'language.zhTW': 'Traditional Chinese',
   'language.en': 'English',
   'language.de': 'Deutsch',
   'language.vi': 'Tiếng Việt',
@@ -1011,7 +1011,7 @@ export default {
   'roleConfig.tooltip.contextProvider': 'When XiaoZhi is awakened, fetch external system data and dynamically inject it into the LLM system prompt',
   'roleConfig.tooltip.roleIntroduction': 'Define the AI agent\'s role positioning, personality traits, behavioral norms, and professional knowledge background',
   'roleConfig.tooltip.memoryHis': 'Summarize chat record content',
-  'roleConfig.tooltip.languageCode': 'Set language code such as zh-CN, en-US, etc., used for specific feature recognition',
+  'roleConfig.tooltip.languageCode': 'Set a BCP-47 language code such as en-US, used for specific feature recognition',
   'roleConfig.tooltip.interactionLanguage': 'Set the interaction language, specifying the primary language the AI agent uses for communication',
   'roleConfig.tooltip.vad': 'Voice Activity Detection: Detects when the user starts or stops speaking, used to determine conversation start and end, enabling interrupt functionality',
   'roleConfig.tooltip.asr': 'Automatic Speech Recognition: Converts user speech to text, the first step in human-computer dialogue, supporting multilingual recognition',
