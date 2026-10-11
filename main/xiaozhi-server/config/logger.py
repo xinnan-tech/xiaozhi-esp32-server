@@ -46,10 +46,15 @@ def formatter(record):
     return record["message"]
 
 
-def setup_logging():
-    check_config_file()
+def setup_logging(config=None):
     """Read log configuration from config file and set log output format and level"""
-    config = load_config()
+    if config is None:
+        check_config_file()
+        # Check the cache first to avoid re-awaiting load_config in an async context
+        config = cache_manager.get(CacheType.CONFIG, "main_config")
+        if config is None:
+            # Cache also empty (should not happen in theory); only then run asyncio
+            config = asyncio.run(load_config())
     log_config = config["log"]
     global _logger_initialized
 

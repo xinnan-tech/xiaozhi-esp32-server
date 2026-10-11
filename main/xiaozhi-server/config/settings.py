@@ -21,7 +21,7 @@ def check_config_file():
         )
 
     # Check if reading configuration from API
-    config = load_config()
+    config = asyncio.run(load_config())
     if config.get("read_config_from_api", False):
         print("Reading configuration from API")
         old_config_origin = read_config(custom_config_file)
