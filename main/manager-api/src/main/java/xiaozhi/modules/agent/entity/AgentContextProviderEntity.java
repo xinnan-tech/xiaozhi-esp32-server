@@ -26,7 +26,7 @@ public class AgentContextProviderEntity {
     private String agentId;
 
     @Schema(description = "Context-provider configuration")
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(typeHandler = ContextProviderListTypeHandler.class)
     private List<ContextProviderDTO> contextProviders;
 
     @Schema(description = "Created by")

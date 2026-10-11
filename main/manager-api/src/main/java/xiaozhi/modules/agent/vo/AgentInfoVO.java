@@ -18,7 +18,6 @@ import java.util.List;
 public class AgentInfoVO extends AgentEntity
 {
     @Schema(description = "Plugin list ID")
-    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<AgentPluginMapping> functions;
 
     @Schema(description = "Context-provider configuration")

@@ -21,16 +21,18 @@ class DeviceBindException(Exception):
 
 class ManageApiClient:
     _instance = None
+    _instance_lock = threading.Lock()
     _async_clients = {}  # One client per event loop
     _secret = None
     _closed = False  # safe_close() 后置为 True，关闭后不再创建新连接
 
     def __new__(cls, config):
         """Singleton ensures a single global instance and supports config injection."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._init_client(config)
-        return cls._instance
+        with cls._instance_lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._init_client(config)
+            return cls._instance
 
     @classmethod
     def _init_client(cls, config):
@@ -62,23 +64,23 @@ class ManageApiClient:
             loop = asyncio.get_running_loop()
             loop_id = id(loop)
 
-            # Create one client per event loop
-            if loop_id not in cls._async_clients:
-                # Server may close connections; disable keep-alive to avoid stale sockets
-                limits = httpx.Limits(
-                    max_keepalive_connections=0,  # Disable keep-alive
-                )
-                cls._async_clients[loop_id] = httpx.AsyncClient(
-                    base_url=cls.config.get("url"),
-                    headers={
-                        "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
-                        "Accept": "application/json",
-                        "Authorization": "Bearer " + cls._secret,
-                    },
-                    timeout=cls.config.get("timeout", 30),
-                    limits=limits,
-                )
-            return cls._async_clients[loop_id]
+            with cls._instance_lock:
+                if cls._closed:
+                    raise Exception("ManageApiClient is closed; no new HTTP client can be created")
+                if loop_id not in cls._async_clients:
+                    limits = httpx.Limits(max_keepalive_connections=0)
+                    cls._async_clients[loop_id] = httpx.AsyncClient(
+                        base_url=cls.config.get("url"),
+                        headers={
+                            "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
+                            "Accept": "application/json",
+                            "Authorization": "Bearer " + cls._secret,
+                        },
+                        timeout=cls.config.get("timeout", 30),
+                        limits=limits,
+                        trust_env=False,
+                    )
+                return cls._async_clients[loop_id]
         except RuntimeError:
             # No running loop
             raise Exception("Must be called from an async context")
@@ -181,9 +183,31 @@ class ManageApiClient:
                 pass
 
 
-async def get_server_config() -> Optional[Dict]:
+def api_guard(error_msg: str = None, raise_when_closed: bool = False):
+    """Inject a stable client instance and avoid shutdown races for API calls."""
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            instance = ManageApiClient._get_instance()
+            if instance is None:
+                if raise_when_closed:
+                    raise Exception("ManageApiClient is not initialized or has been closed")
+                return None
+            if error_msg is None:
+                return await func(instance, *args, **kwargs)
+            try:
+                return await func(instance, *args, **kwargs)
+            except Exception as exc:
+                print(f"{error_msg}: {exc}")
+                return None
+        return wrapper
+    return decorator
+
+
+@api_guard(raise_when_closed=True)
+async def get_server_config(instance) -> Optional[Dict]:
     """Fetch server base config."""
-    return await ManageApiClient._instance._execute_async_request(
+    return await instance._execute_async_request(
         "POST", "/config/server-base"
     )
 
@@ -193,7 +217,7 @@ async def get_agent_models(
     instance, mac_address: str, client_id: str, selected_module: Dict
 ) -> Optional[Dict]:
     """Fetch agent model config."""
-    return await ManageApiClient._instance._execute_async_request(
+    return await instance._execute_async_request(
         "POST",
         "/config/agent-models",
         json={
@@ -204,63 +228,33 @@ async def get_agent_models(
     )
 
 
-@api_guard("获取替换词失败")
+@api_guard("Failed to get correction words")
 async def get_correct_words(instance, mac_address: str) -> Optional[Dict]:
-    """获取智能体替换词"""
+    """Fetch agent correction words."""
     return await instance._execute_async_request(
         "POST", "/config/correct-words",
         json={"macAddress": mac_address}
     )
 
 
-async def generate_and_save_chat_summary(session_id: str) -> Optional[Dict]:
+@api_guard("Failed to generate and save chat summary")
+async def generate_and_save_chat_summary(instance, session_id: str) -> Optional[Dict]:
     """Generate and save chat summary."""
-    try:
-        return await ManageApiClient._instance._execute_async_request(
-            "POST",
-            f"/agent/chat-summary/{session_id}/save",
-        )
-    except Exception as e:
-        print(f"Failed to generate and save chat summary: {e}")
-        return None
+    return await instance._execute_async_request("POST", f"/agent/chat-summary/{session_id}/save")
 
 
-async def generate_and_save_chat_title(session_id: str) -> Optional[Dict]:
+@api_guard("Failed to generate and save chat title")
+async def generate_and_save_chat_title(instance, session_id: str) -> Optional[Dict]:
     """Generate and save a chat title."""
-    try:
-        return await ManageApiClient._instance._execute_async_request(
-            "POST",
-            f"/agent/chat-title/{session_id}/generate",
-        )
-    except Exception as e:
-        print(f"Failed to generate and save chat title: {e}")
-        return None
+    return await instance._execute_async_request("POST", f"/agent/chat-title/{session_id}/generate")
 
 
-@api_guard("TTS上报失败")
+@api_guard("TTS report failed")
 async def report(
     instance, mac_address: str, session_id: str, chat_type: int, content: str, audio, report_time
 ) -> Optional[Dict]:
     """Async chat history report."""
-    if not content or not ManageApiClient._instance:
-        return None
-    try:
-        return await ManageApiClient._instance._execute_async_request(
-            "POST",
-            f"/agent/chat-history/report",
-            json={
-                "macAddress": mac_address,
-                "sessionId": session_id,
-                "chatType": chat_type,
-                "content": content,
-                "reportTime": report_time,
-                "audioBase64": (
-                    base64.b64encode(audio).decode("utf-8") if audio else None
-                ),
-            },
-        )
-    except Exception as e:
-        print(f"TTS report failed: {e}")
+    if not content:
         return None
     return await instance._execute_async_request(
         "POST",
@@ -278,9 +272,9 @@ async def report(
     )
 
 
-@api_guard("通讯录查找失败")
+@api_guard("Address-book lookup failed")
 async def lookup_address_book(instance, caller_mac: str, nickname: str) -> Optional[Dict]:
-    """根据昵称查找目标设备"""
+    """Look up a target device by nickname."""
     return await instance._execute_async_request(
         "GET",
         f"/device/address-book/lookup?callerMac={caller_mac}&nickname={nickname}",
