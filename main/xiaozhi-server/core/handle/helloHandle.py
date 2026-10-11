@@ -54,12 +54,11 @@ async def handleHelloMessage(conn: "ConnectionHandler", msg_json):
         if features.get("mcp"):
             conn.logger.bind(tag=TAG).debug("Client supports MCP")
             conn.mcp_client = MCPClient()
-            # Send the MCP initialization message.
-            asyncio.create_task(send_mcp_initialize_message(conn))
 
     await conn.websocket.send(json.dumps(conn.welcome_msg))
 
     # The device waits for the server hello before processing MCP messages.
+    # Send the MCP initialization message exactly once, after the hello reply.
     if features and features.get("mcp"):
         asyncio.create_task(send_mcp_initialize_message(conn))
 
