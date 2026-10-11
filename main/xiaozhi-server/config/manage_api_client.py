@@ -22,7 +22,6 @@ class DeviceBindException(Exception):
 class ManageApiClient:
     _instance = None
     _instance_lock = threading.Lock()  # 保护 _instance 与 _closed 的读写
-    _async_clients = {}  # 为每个事件循环存储独立的客户端
     _secret = None
     _closed = False  # safe_close() 后置为 True，关闭后不再创建新连接
 
@@ -52,72 +51,47 @@ class ManageApiClient:
         cls.max_retries = cls.config.get("max_retries", 6)  # 最大重试次数
         cls.retry_delay = cls.config.get("retry_delay", 10)  # 初始重试延迟(秒)
         # 不在这里创建 AsyncClient，延迟到实际使用时创建
-        cls._async_clients = {}
         cls._closed = False
 
     @classmethod
     async def _ensure_async_client(cls):
-        """确保异步客户端已创建（为每个事件循环创建独立的客户端）"""
-        import asyncio
-
-        try:
-            loop = asyncio.get_running_loop()
-            loop_id = id(loop)
-
-            # 检查关闭状态与创建连接池必须是同一个临界区，避免 safe_close()
-            # 清空连接池后又有请求将新客户端写回。
-            with cls._instance_lock:
-                if cls._closed:
-                    raise Exception("ManageApiClient已关闭，不再创建新的HTTP客户端")
-
-                if loop_id not in cls._async_clients:
-                    # 服务端可能主动关闭连接，httpx 连接池无法正确检测和清理
-                    limits = httpx.Limits(
-                        max_keepalive_connections=0,  # 禁用 keep-alive，每次都新建连接
-                    )
-                    cls._async_clients[loop_id] = httpx.AsyncClient(
-                        base_url=cls.config.get("url"),
-                        headers={
-                            "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
-                            "Accept": "application/json",
-                            "Authorization": "Bearer " + cls._secret,
-                        },
-                        timeout=cls.config.get("timeout", 30),
-                        limits=limits,  # 使用限制
-                        trust_env=False,
-                    )
-                return cls._async_clients[loop_id]
-        except RuntimeError:
-            # 如果没有运行中的事件循环，创建一个临时的
-            raise Exception("必须在异步上下文中调用")
+        """创建请求专用客户端，避免临时事件循环的客户端永久累积。"""
+        with cls._instance_lock:
+            if cls._closed:
+                raise Exception("ManageApiClient已关闭，不再创建新的HTTP客户端")
+            return httpx.AsyncClient(
+                base_url=cls.config.get("url"),
+                headers={
+                    "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
+                    "Accept": "application/json",
+                    "Authorization": "Bearer " + cls._secret,
+                },
+                timeout=cls.config.get("timeout", 30),
+                limits=httpx.Limits(max_keepalive_connections=0),
+                trust_env=False,
+            )
 
     @classmethod
     async def _async_request(cls, method: str, endpoint: str, **kwargs) -> Dict:
-        """发送单次异步HTTP请求并处理响应"""
-        # 确保客户端已创建
+        """客户端由本次请求持有，并在创建它的事件循环中关闭。"""
         client = await cls._ensure_async_client()
-        endpoint = endpoint.lstrip("/")
-        response = None
-        try:
-            response = await client.request(method, endpoint, **kwargs)
-            response.raise_for_status()
-
-            result = response.json()
-
-            # 处理API返回的业务错误
-            if result.get("code") == 10041:
-                raise DeviceNotFoundException(result.get("msg"))
-            elif result.get("code") == 10042:
-                raise DeviceBindException(result.get("msg"))
-            elif result.get("code") != 0:
-                raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
-
-            # 返回成功数据
-            return result.get("data") if result.get("code") == 0 else None
-        finally:
-            # 确保响应被关闭（即使异常也会执行）
-            if response is not None:
-                await response.aclose()
+        async with client:
+            endpoint = endpoint.lstrip("/")
+            response = None
+            try:
+                response = await client.request(method, endpoint, **kwargs)
+                response.raise_for_status()
+                result = response.json()
+                if result.get("code") == 10041:
+                    raise DeviceNotFoundException(result.get("msg"))
+                elif result.get("code") == 10042:
+                    raise DeviceBindException(result.get("msg"))
+                elif result.get("code") != 0:
+                    raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
+                return result.get("data") if result.get("code") == 0 else None
+            finally:
+                if response is not None:
+                    await response.aclose()
 
     @classmethod
     def _should_retry(cls, exception: Exception) -> bool:
@@ -173,20 +147,10 @@ class ManageApiClient:
 
     @classmethod
     def safe_close(cls):
-        """安全关闭所有异步连接池"""
-        import asyncio
-
+        """关闭请求入口；在途请求在各自事件循环中释放客户端。"""
         with cls._instance_lock:
             cls._closed = True
-            clients = list(cls._async_clients.values())
-            cls._async_clients.clear()
             cls._instance = None
-
-        for client in clients:
-            try:
-                asyncio.run(client.aclose())
-            except Exception:
-                pass
 
 
 def api_guard(error_msg: str = None, raise_when_closed: bool = False):
