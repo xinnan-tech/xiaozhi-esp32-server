@@ -142,26 +142,34 @@ Actions:
 
 ## Generator Rule
 
-Treat this as special:
+The device-theme generator is a separate Vite/Vue app. Its built output is
+vendored into this repo:
 
 - `main/manager-web/public/generator/assets/**` is generated output
 - `main/manager-web/public/generator/index.html` is tied to that output
+- `main/manager-web/public/generator/static/**` is functional device data
+  (charset codepoint tables, CJK font glyph tables, emoji gifs, wakeword
+  model blobs) shipped byte-for-byte to the firmware toolchain
 
 Do not hand-edit the built bundle unless absolutely necessary.
 
-Preferred flow:
+The generator source repo is a separate checkout:
 
-1. update generator source
-2. rebuild generator
-3. sync rebuilt assets into `main/manager-web/public/generator`
+- remote: `https://github.com/78/xiaozhi-assets-generator`
+  (westernization branch, translated locales/comments, relative asset base)
+- working copy during rebuild work: `/tmp/xiaozhi-assets-generator`
 
-Generator source currently lives outside the main repo worktree during rebuild
-work:
+Rebuild flow:
 
-- `/tmp/xiaozhi-assets-generator`
+1. update generator source (never the bundle directly)
+2. `cd web && npm run build` (default base `./` so the bundle works under
+   whatever path the console mounts it at, e.g. `/generator/`)
+3. replace `main/manager-web/public/generator` with the fresh `web/dist`
+4. run `./scripts/westernization_audit.sh`
 
-If Han-script appears in the generated bundle, check generator source locales
-first before attempting bundle surgery.
+If Han-script appears in the generated code bundle, fix the generator source
+first before attempting bundle surgery. The audit treats the code bundle as
+live source; only `generator/static` data is exempt.
 
 ## Audit Workflow
 
@@ -174,12 +182,19 @@ Use the audit script after meaningful rebase batches:
 What it enforces:
 
 - live source/docs must be clean of Han-script and Chinese locale tags
+- this includes the vendored generator code bundle
+  (`main/manager-web/public/generator/assets/**` and `index.html`)
 - path names must be clean of Han-script
 
 Intentional exception zones:
 
-- `main/manager-api/src/main/resources/db/changelog`
-- `main/manager-web/public/generator/assets`
+- `main/manager-api/src/main/resources/db/changelog` (append-only Liquibase
+  history; fresh installs are migrated and cleaned to English by the append
+  downstream changeset)
+- `main/manager-web/public/generator/static/**` (functional device data shipped
+  byte-for-byte: charset codepoint lists, CJK glyph tables, wakeword blobs)
+- one allowlisted line inside the generator bundle: the third-party opentype.js
+  LCID-to-BCP47 font-name table (it maps locale ids such as 1028)
 
 If the audit fails outside those areas, fix the violations before moving on.
 

@@ -5,6 +5,20 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Exception policy (agreed 2026-10-12):
+#  - Append-only Liquibase history under
+#    main/manager-api/src/main/resources/db/changelog keeps its historical
+#    Chinese seed/updates (a fresh install is migrated + cleaned to English by
+#    the append-only 202610111200.sql changeset).
+#  - main/manager-web/public/generator/static is functional device data
+#    (charset codepoint tables, CJK glyph tables, emoji gifs, wakeword model
+#    blobs) consumed byte-for-byte by the firmware toolchain: exempt.
+#  - The generator CODE bundle (generator/assets/**, generator/index.html) is
+#    rebuilt from the translated generator source and is NOT exempt; it is
+#    scanned like live source. One allowlisted artefact is tolerated: the
+#    opentype.js LCID -> BCP47 table (e.g. 1028 -> zh TW locale id), a font
+#    parsing table, not user-facing text.
+
 if ! command -v rg >/dev/null 2>&1; then
   if ! command -v python3 >/dev/null 2>&1; then
     echo "ripgrep (rg) or python3 is required for this audit." >&2
@@ -20,6 +34,8 @@ root = Path(".")
 locale_pattern = "zh-" + "CN|" + "zh-" + "TW"
 content_pattern = re.compile(r"[\u4e00-\u9fff]|" + locale_pattern)
 path_pattern = re.compile(r"[\u4e00-\u9fff]")
+# Third-party LCID -> BCP47 mapping in vendored opentype.js (font name tables).
+allowline_pattern = re.compile(r"\d+:\"zh-(?:CN|TW)\"")
 
 content_skip_dirs = {
     ".git",
@@ -33,13 +49,10 @@ content_skip_exts = {
     ".ttf", ".woff", ".woff2", ".mp3", ".wav", ".opus", ".pdf",
     ".ico", ".svg",
 }
-main_exceptions = (
-    "main/manager-api/src/main/resources/db/changelog",
-    "main/manager-web/public/generator",
-)
-generated_exception_paths = (
-    "main/manager-web/public/generator",
-)
+changelog_exception = "main/manager-api/src/main/resources/db/changelog"
+generator_root = "main/manager-web/public/generator"
+generator_data_exception = generator_root + "/static"
+live_exceptions = (changelog_exception, generator_data_exception)
 path_skip_prefixes = (
     ".git",
     "node_modules",
@@ -73,7 +86,7 @@ def candidate_files():
     except Exception:
         return [path for path in root.rglob("*") if path.is_file()]
 
-def scan_paths(predicate):
+def scan_paths(predicate, allowlist=False):
     matches = []
     for path in candidate_files():
         if not path.is_file():
@@ -87,11 +100,13 @@ def scan_paths(predicate):
             continue
         for line_no, line in enumerate(text.splitlines(), 1):
             if content_pattern.search(line):
+                if allowlist and allowline_pattern.search(line):
+                    continue
                 matches.append((path_text, line_no, line[:240]))
     return matches
 
 section("Live Source And Docs Audit")
-live_matches = scan_paths(lambda path_text: not is_under(path_text, main_exceptions))
+live_matches = scan_paths(lambda path_text: not is_under(path_text, live_exceptions), allowlist=True)
 if live_matches:
     for path_text, line_no, line in live_matches:
         print(f"{path_text}:{line_no}:{line}")
@@ -102,7 +117,7 @@ else:
     live_status = 0
 
 section("Historical Changelog Exceptions")
-changelog_matches = scan_paths(lambda path_text: is_under(path_text, (main_exceptions[0],)))
+changelog_matches = scan_paths(lambda path_text: is_under(path_text, (changelog_exception,)))
 if changelog_matches:
     print(f"{len(changelog_matches)} match(es). Showing up to 40:")
     for path_text, line_no, line in changelog_matches[:40]:
@@ -111,21 +126,19 @@ if changelog_matches:
         print("... truncated ...")
     print("\nHistorical changelog exceptions detected above.")
 else:
-    print("No matches.")
     print("No historical changelog hits.")
 
-section("Generated Bundle Exceptions")
-generated_matches = scan_paths(lambda path_text: is_under(path_text, generated_exception_paths))
-if generated_matches:
-    print(f"{len(generated_matches)} match(es). Showing up to 40:")
-    for path_text, line_no, line in generated_matches[:40]:
+section("Vendored Device Data Exceptions")
+data_matches = scan_paths(lambda path_text: is_under(path_text, (generator_data_exception,)))
+if data_matches:
+    print(f"{len(data_matches)} match(es). Showing up to 40:")
+    for path_text, line_no, line in data_matches[:40]:
         print(f"{path_text}:{line_no}:{line}")
-    if len(generated_matches) > 40:
+    if len(data_matches) > 40:
         print("... truncated ...")
-    print("\nGenerated bundle exceptions detected above.")
+    print("\nVendored device data exceptions detected above (byte-exact data, not prose).")
 else:
-    print("No matches.")
-    print("No generated bundle hits.")
+    print("No vendored device data hits.")
 
 section("Path Audit")
 path_matches = []
@@ -149,8 +162,9 @@ section("Summary")
 if live_status == 0 and path_status == 0:
     print("Westernization baseline is clean outside intentional exceptions.")
     print("Intentional exceptions:")
-    print("- append-only Liquibase history under main/manager-api/src/main/resources/db/changelog")
-    print("- vendored generator bundle under main/manager-web/public/generator")
+    print("- append-only Liquibase history under " + changelog_exception)
+    print("- vendored device data under " + generator_data_exception)
+    print("- opentype.js LCID table (1028:\"zh-" "TW\") inside the generator bundle")
     sys.exit(0)
 
 print("Westernization baseline still has non-exempt findings.")
@@ -186,10 +200,13 @@ CONTENT_IGNORE=(
 MAIN_IGNORE=(
   "${CONTENT_IGNORE[@]}"
   "!main/manager-api/src/main/resources/db/changelog/**"
-  "!main/manager-web/public/generator/**"
+  "!main/manager-web/public/generator/static/**"
 )
 
 CONTENT_PATTERN='[\p{Han}]|zh-C''N|zh-T''W'
+# Third-party LCID -> BCP47 mapping inside the vendored opentype.js font
+# parser (e.g. LCID 1028 mapped to a zh TW locale id); font metadata, not text.
+ALLOWLINE_PATTERN='[0-9]+:"zh-(CN|TW)"'
 PATH_IGNORE=(
   "./.git"
   "./node_modules"
@@ -257,7 +274,8 @@ show_limited_matches() {
 
 section "Live Source And Docs Audit"
 collect_audit_roots
-if run_rg "$CONTENT_PATTERN" "${MAIN_IGNORE[@]}"; then
+if matches="$(run_rg "$CONTENT_PATTERN" "${MAIN_IGNORE[@]}" | rg -v "$ALLOWLINE_PATTERN" || true)" && [[ -n "$matches" ]]; then
+  printf '%s\n' "$matches"
   echo
   echo "Live source/doc audit: FAIL"
   live_status=1
@@ -277,16 +295,16 @@ else
   echo "No historical changelog hits."
 fi
 
-section "Generated Bundle Exceptions"
+section "Vendored Device Data Exceptions"
 if show_limited_matches \
-  "Generated bundle exceptions" \
+  "Vendored device data exceptions" \
   "$CONTENT_PATTERN" \
-  main/manager-web/public/generator \
+  main/manager-web/public/generator/static \
   -g '!**/*.png' -g '!**/*.jpg' -g '!**/*.jpeg'; then
   echo
-  echo "Generated bundle exceptions detected above."
+  echo "Vendored device data exceptions detected above (byte-exact data, not prose)."
 else
-  echo "No generated bundle hits."
+  echo "No vendored device data hits."
 fi
 
 section "Path Audit"
@@ -310,7 +328,8 @@ if [[ "$live_status" -eq 0 && "$path_status" -eq 0 ]]; then
   echo "Westernization baseline is clean outside intentional exceptions."
   echo "Intentional exceptions:"
   echo "- append-only Liquibase history under main/manager-api/src/main/resources/db/changelog"
-  echo "- vendored generator bundle under main/manager-web/public/generator"
+  echo "- vendored device data under main/manager-web/public/generator/static"
+  echo "- opentype.js LCID font-name table inside the generator bundle"
   exit 0
 fi
 
