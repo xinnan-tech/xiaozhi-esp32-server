@@ -179,11 +179,21 @@ Use the audit script after meaningful rebase batches:
 ./scripts/westernization_audit.sh
 ```
 
+The audit is a single Python implementation
+(`scripts/westernization_audit.py`, wrapped by
+`scripts/westernization_audit.sh`) so local and CI runs cannot diverge.
+It scans `git ls-files -co --exclude-standard`, i.e. tracked files are
+inspected even when a broad gitignore rule (e.g. `*.json`) hides them from
+ripgrep; files with a NUL byte or media/font/model extensions are skipped as
+binary blobs.
+
 What it enforces:
 
 - live source/docs must be clean of Han-script and Chinese locale tags
 - this includes the vendored generator code bundle
   (`main/manager-web/public/generator/assets/**` and `index.html`)
+- this includes vendored model metadata (`.cdi3.json`, `.physics3.json`) which
+  ships editable display names
 - path names must be clean of Han-script
 
 Intentional exception zones:
