@@ -286,6 +286,10 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                    <proc>full</proc>
+                    <compilerArgs>
+                        <arg>-Xlint:deprecation,unchecked</arg>
+                    </compilerArgs>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -293,16 +297,6 @@
                             <version>1.18.36</version>
                         </path>
                     </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <proc>full</proc>
-                    <compilerArgs>
-                        <arg>-Xlint:deprecation,unchecked</arg>
-                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
