@@ -4,550 +4,550 @@
 		{
 			"Id": "ParamAngleX",
 			"GroupId": "",
-			"Name": "角度 X"
+			"Name": "Angle X"
 		},
 		{
 			"Id": "ParamAngleY",
 			"GroupId": "",
-			"Name": "角度 Y"
+			"Name": "Angle Y"
 		},
 		{
 			"Id": "ParamAngleZ",
 			"GroupId": "",
-			"Name": "角度 Z"
+			"Name": "Angle Z"
 		},
 		{
 			"Id": "ParamEyeLOpen",
 			"GroupId": "ParamGroupExpression",
-			"Name": "左眼 开闭"
+			"Name": "Left Eye Open/Close"
 		},
 		{
 			"Id": "ParamEyeLSmile",
 			"GroupId": "ParamGroupExpression",
-			"Name": "左眼 微笑"
+			"Name": "Left Eye Smile"
 		},
 		{
 			"Id": "ParamEyeLForm",
 			"GroupId": "ParamGroupExpression",
-			"Name": "左眼 变形"
+			"Name": "Left Eye Deform"
 		},
 		{
 			"Id": "ParamEyeROpen",
 			"GroupId": "ParamGroupExpression",
-			"Name": "右眼 开闭"
+			"Name": "Right Eye Open/Close"
 		},
 		{
 			"Id": "ParamEyeRSmile",
 			"GroupId": "ParamGroupExpression",
-			"Name": "右眼 微笑"
+			"Name": "Right Eye Smile"
 		},
 		{
 			"Id": "ParamEyeRForm",
 			"GroupId": "ParamGroupExpression",
-			"Name": "右眼 变形"
+			"Name": "Right Eye Deform"
 		},
 		{
 			"Id": "ParamEyeBallX",
 			"GroupId": "ParamGroupExpression",
-			"Name": "眼珠 X"
+			"Name": "Pupils X"
 		},
 		{
 			"Id": "ParamEyeBallY",
 			"GroupId": "ParamGroupExpression",
-			"Name": "眼珠 Y"
+			"Name": "Pupils Y"
 		},
 		{
 			"Id": "ParamEyeBallForm",
 			"GroupId": "ParamGroupExpression",
-			"Name": "眼珠 缩放"
+			"Name": "Pupils Scale"
 		},
 		{
 			"Id": "ParamBrowLY",
 			"GroupId": "ParamGroupExpression",
-			"Name": "左眉 上下"
+			"Name": "Left Brow Up/Down"
 		},
 		{
 			"Id": "ParamBrowRY",
 			"GroupId": "ParamGroupExpression",
-			"Name": "右眉 上下"
+			"Name": "Right Brow Up/Down"
 		},
 		{
 			"Id": "ParamBrowLX",
 			"GroupId": "ParamGroupExpression",
-			"Name": "左眉 左右"
+			"Name": "Left Brow Left/Right"
 		},
 		{
 			"Id": "ParamBrowRX",
 			"GroupId": "ParamGroupExpression",
-			"Name": "右眉 左右"
+			"Name": "Right Brow Left/Right"
 		},
 		{
 			"Id": "ParamBrowLAngle",
 			"GroupId": "ParamGroupExpression",
-			"Name": "左眉 角度"
+			"Name": "Left Brow Angle"
 		},
 		{
 			"Id": "ParamBrowRAngle",
 			"GroupId": "ParamGroupExpression",
-			"Name": "右眉 角度"
+			"Name": "Right Brow Angle"
 		},
 		{
 			"Id": "ParamBrowLForm",
 			"GroupId": "ParamGroupExpression",
-			"Name": "左眉 变形"
+			"Name": "Left Brow Deform"
 		},
 		{
 			"Id": "ParamBrowLForm2",
 			"GroupId": "ParamGroupExpression",
-			"Name": "左眉 变形2"
+			"Name": "Left Brow Deform 2"
 		},
 		{
 			"Id": "ParamBrowRForm",
 			"GroupId": "ParamGroupExpression",
-			"Name": "右眉 变形"
+			"Name": "Right Brow Deform"
 		},
 		{
 			"Id": "ParamBrowRForm2",
 			"GroupId": "ParamGroupExpression",
-			"Name": "右眉 变形2"
+			"Name": "Right Brow Deform 2"
 		},
 		{
 			"Id": "ParamMouthForm",
 			"GroupId": "ParamGroupExpression",
-			"Name": "嘴 变形"
+			"Name": "Mouth Deform"
 		},
 		{
 			"Id": "ParamMouthOpenY",
 			"GroupId": "ParamGroupExpression",
-			"Name": "嘴 开闭"
+			"Name": "Mouth Open/Close"
 		},
 		{
 			"Id": "ParamMouthForm2",
 			"GroupId": "ParamGroupExpression",
-			"Name": "嘴 变形2"
+			"Name": "Mouth Deform 2"
 		},
 		{
 			"Id": "ParamTeethOn",
 			"GroupId": "ParamGroupExpression",
-			"Name": "牙齿的显示"
+			"Name": "Teeth Show"
 		},
 		{
 			"Id": "ParamCheek",
 			"GroupId": "ParamGroupExpression",
-			"Name": "害羞"
+			"Name": "Shy"
 		},
 		{
 			"Id": "ParamGlassUD",
 			"GroupId": "ParamGroupExpression",
-			"Name": "眼镜 上下"
+			"Name": "Glasses Up/Down"
 		},
 		{
 			"Id": "ParamGrassWhite",
 			"GroupId": "ParamGroupExpression",
-			"Name": "镜片 白"
+			"Name": "Lens White"
 		},
 		{
 			"Id": "ParamGrassHighlight",
 			"GroupId": "ParamGroupExpression",
-			"Name": "镜片 反光显示"
+			"Name": "Lens Reflection Show"
 		},
 		{
 			"Id": "ParamGrassHighlightMove",
 			"GroupId": "ParamGroupExpression",
-			"Name": "镜片 反光移动"
+			"Name": "Lens Reflection Move"
 		},
 		{
 			"Id": "ParamBodyAngleX",
 			"GroupId": "ParamGroupBody",
-			"Name": "身体的旋转 X"
+			"Name": "Body Rotation X"
 		},
 		{
 			"Id": "ParamBodyAngleY",
 			"GroupId": "ParamGroupBody",
-			"Name": "身体的旋转 Y"
+			"Name": "Body Rotation Y"
 		},
 		{
 			"Id": "ParamBodyAngleZ",
 			"GroupId": "ParamGroupBody",
-			"Name": "身体的旋转 Z"
+			"Name": "Body Rotation Z"
 		},
 		{
 			"Id": "ParamWaistAngleZ",
 			"GroupId": "ParamGroupBody",
-			"Name": "腰的旋转 Z"
+			"Name": "Waist Rotation Z"
 		},
 		{
 			"Id": "ParamBodyPosition",
 			"GroupId": "ParamGroupBody",
-			"Name": "身体的前后"
+			"Name": "Body Front/Back"
 		},
 		{
 			"Id": "ParamBreath",
 			"GroupId": "ParamGroupBody",
-			"Name": "呼吸"
+			"Name": "Breathing"
 		},
 		{
 			"Id": "ParamLeftShoulderUp",
 			"GroupId": "ParamGroupBody",
-			"Name": "左肩的上下"
+			"Name": "Left Shoulder Up/Down"
 		},
 		{
 			"Id": "ParamRightShoulderUp",
 			"GroupId": "ParamGroupBody",
-			"Name": "右肩的上下"
+			"Name": "Right Shoulder Up/Down"
 		},
 		{
 			"Id": "ParamAllX",
 			"GroupId": "ParamGroup",
-			"Name": "整体的移动 X"
+			"Name": "Overall Move X"
 		},
 		{
 			"Id": "ParamAllY",
 			"GroupId": "ParamGroup",
-			"Name": "整体的移动 Y"
+			"Name": "Overall Move Y"
 		},
 		{
 			"Id": "ParamAllRotate",
 			"GroupId": "ParamGroup",
-			"Name": "整体的旋转"
+			"Name": "Overall Rotation"
 		},
 		{
 			"Id": "ParamHairFront",
 			"GroupId": "ParamGroupSway",
-			"Name": "头发摇动 前"
+			"Name": "Hair Sway Front"
 		},
 		{
 			"Id": "ParamHairSide",
 			"GroupId": "ParamGroupSway",
-			"Name": "头发摇动 侧"
+			"Name": "Hair Sway Side"
 		},
 		{
 			"Id": "ParamHairBack",
 			"GroupId": "ParamGroupSway",
-			"Name": "头发摇动 后"
+			"Name": "Hair Sway Back"
 		},
 		{
 			"Id": "ParamHairFrontFuwa",
 			"GroupId": "ParamGroupSway",
-			"Name": "前发 蓬松"
+			"Name": "Front Hair Fluffy"
 		},
 		{
 			"Id": "ParamHairSideFuwa",
 			"GroupId": "ParamGroupSway",
-			"Name": "侧发 蓬松"
+			"Name": "Side Hair Fluffy"
 		},
 		{
 			"Id": "ParamHairBackFuwa",
 			"GroupId": "ParamGroupSway",
-			"Name": "后发 蓬松"
+			"Name": "Back Hair Fluffy"
 		},
 		{
 			"Id": "ParamJacket",
 			"GroupId": "ParamGroupSway",
-			"Name": "燕尾的摇动"
+			"Name": "Tail Sway"
 		},
 		{
 			"Id": "ParamChainWaist",
 			"GroupId": "ParamGroupSway",
-			"Name": "表链A的摇动"
+			"Name": "Watch Chain A Sway"
 		},
 		{
 			"Id": "ParamWatchSwingA1",
 			"GroupId": "ParamGroupSway",
-			"Name": "怀表A 摇动1"
+			"Name": "Pocket Watch A Sway 1"
 		},
 		{
 			"Id": "ParamWatchSwingA2",
 			"GroupId": "ParamGroupSway",
-			"Name": "怀表A 摇动2"
+			"Name": "Pocket Watch A Sway 2"
 		},
 		{
 			"Id": "ParamWatchBChain",
 			"GroupId": "ParamGroupSway",
-			"Name": "怀表B 表链的摇动"
+			"Name": "Pocket Watch B Chain Sway"
 		},
 		{
 			"Id": "ParamWatchAX",
 			"GroupId": "ParamGroup8",
-			"Name": "怀表A 横向旋转"
+			"Name": "Pocket Watch A Horizontal Rotation"
 		},
 		{
 			"Id": "ParamWatchBSwitch",
 			"GroupId": "ParamGroup9",
-			"Name": "怀表B 开关"
+			"Name": "Pocket Watch B Open/Close"
 		},
 		{
 			"Id": "ParamWatchBOpen",
 			"GroupId": "ParamGroup9",
-			"Name": "怀表B 表盖的开闭"
+			"Name": "Pocket Watch B Lid Open/Close"
 		},
 		{
 			"Id": "ParamWatchBOpen2",
 			"GroupId": "ParamGroup9",
-			"Name": "怀表B 表盘的开闭"
+			"Name": "Pocket Watch B Dial Open/Close"
 		},
 		{
 			"Id": "ParamWatchBX",
 			"GroupId": "ParamGroup9",
-			"Name": "怀表B 横向旋转"
+			"Name": "Pocket Watch B Horizontal Rotation"
 		},
 		{
 			"Id": "ParamWatchBRoll",
 			"GroupId": "ParamGroup9",
-			"Name": "怀表B 旋转"
+			"Name": "Pocket Watch B Rotate"
 		},
 		{
 			"Id": "ParamWatchBLR",
 			"GroupId": "ParamGroup9",
-			"Name": "怀表B 左右"
+			"Name": "Pocket Watch B Left/Right"
 		},
 		{
 			"Id": "ParamWatchBUD",
 			"GroupId": "ParamGroup9",
-			"Name": "怀表B 上下"
+			"Name": "Pocket Watch B Up/Down"
 		},
 		{
 			"Id": "ParamArmAL01",
 			"GroupId": "ParamGroup3",
-			"Name": "左手臂A 肩"
+			"Name": "Left Arm A Shoulder"
 		},
 		{
 			"Id": "ParamArmAL02",
 			"GroupId": "ParamGroup3",
-			"Name": "左肩A 手肘旋转"
+			"Name": "Left Shoulder A Elbow Rotation"
 		},
 		{
 			"Id": "ParamArmAL03",
 			"GroupId": "ParamGroup3",
-			"Name": "左手臂A 手腕"
+			"Name": "Left Arm A Wrist"
 		},
 		{
 			"Id": "ParamArmAL04",
 			"GroupId": "ParamGroup3",
-			"Name": "左手臂A 前臂的前后"
+			"Name": "Left Arm A Forearm Front/Back"
 		},
 		{
 			"Id": "ParamArmAR01",
 			"GroupId": "ParamGroup2",
-			"Name": "右手臂A 肩的旋转"
+			"Name": "Right Arm A Shoulder Rotation"
 		},
 		{
 			"Id": "ParamArmAR02",
 			"GroupId": "ParamGroup2",
-			"Name": "右手臂A 手肘的旋转"
+			"Name": "Right Arm A Elbow Rotation"
 		},
 		{
 			"Id": "ParamArmAR03",
 			"GroupId": "ParamGroup2",
-			"Name": "右手臂A 手腕的旋转"
+			"Name": "Right Arm A Wrist Rotation"
 		},
 		{
 			"Id": "ParamArmAR04",
 			"GroupId": "ParamGroup2",
-			"Name": "右手臂A 前臂的前后"
+			"Name": "Right Arm A Forearm Front/Back"
 		},
 		{
 			"Id": "ParamArmBR01",
 			"GroupId": "ParamGroup4",
-			"Name": "右手臂B 肩的旋转"
+			"Name": "Right Arm B Shoulder Rotation"
 		},
 		{
 			"Id": "ParamArmBR02",
 			"GroupId": "ParamGroup4",
-			"Name": "右手臂B 手肘的旋转"
+			"Name": "Right Arm B Elbow Rotation"
 		},
 		{
 			"Id": "ParamArmBR03",
 			"GroupId": "ParamGroup4",
-			"Name": "右手臂B 手腕的旋转"
+			"Name": "Right Arm B Wrist Rotation"
 		},
 		{
 			"Id": "ParamArmBRHand01",
 			"GroupId": "ParamGroup4",
-			"Name": "右手01 显示"
+			"Name": "Right Hand 01 Show"
 		},
 		{
 			"Id": "ParamArmBRHand01Roll",
 			"GroupId": "ParamGroup4",
-			"Name": "右手01 手指弯曲"
+			"Name": "Right Hand 01 Finger Curl"
 		},
 		{
 			"Id": "ParamArmBRHand05",
 			"GroupId": "ParamGroup4",
-			"Name": "右手05 显示"
+			"Name": "Right Hand 05 Show"
 		},
 		{
 			"Id": "ParamArmBRHand05Roll1",
 			"GroupId": "ParamGroup4",
-			"Name": "右手05 手指弯曲1"
+			"Name": "Right Hand 05 Finger Curl 1"
 		},
 		{
 			"Id": "ParamArmBRHand05Roll2",
 			"GroupId": "ParamGroup4",
-			"Name": "右手05 手指弯曲2"
+			"Name": "Right Hand 05 Finger Curl 2"
 		},
 		{
 			"Id": "ParamArmBRHand05Roll3",
 			"GroupId": "ParamGroup4",
-			"Name": "右手05 手指弯曲3"
+			"Name": "Right Hand 05 Finger Curl 3"
 		},
 		{
 			"Id": "ParamArmCR01",
 			"GroupId": "ParamGroup5",
-			"Name": "左手臂C 肩的旋转"
+			"Name": "Left Arm C Shoulder Rotation"
 		},
 		{
 			"Id": "ParamArmCR02",
 			"GroupId": "ParamGroup5",
-			"Name": "左手臂C 手肘的旋转"
+			"Name": "Left Arm C Elbow Rotation"
 		},
 		{
 			"Id": "ParamArmCR03",
 			"GroupId": "ParamGroup5",
-			"Name": "左手臂C 手腕的旋转"
+			"Name": "Left Arm C Wrist Rotation"
 		},
 		{
 			"Id": "ParamArmCLHandRoll1",
 			"GroupId": "ParamGroup5",
-			"Name": "左手C 手指弯曲1"
+			"Name": "Left Hand C Finger Curl 1"
 		},
 		{
 			"Id": "ParamArmDL01",
 			"GroupId": "ParamGroup6",
-			"Name": "左手臂D 肩的旋转"
+			"Name": "Left Arm D Shoulder Rotation"
 		},
 		{
 			"Id": "ParamArmDL02",
 			"GroupId": "ParamGroup6",
-			"Name": "左手臂D 手肘的旋转"
+			"Name": "Left Arm D Elbow Rotation"
 		},
 		{
 			"Id": "ParamArmDL03",
 			"GroupId": "ParamGroup6",
-			"Name": "左手臂D 手腕的旋转"
+			"Name": "Left Arm D Wrist Rotation"
 		},
 		{
 			"Id": "ParamArmDLHand03Roll",
 			"GroupId": "ParamGroup6",
-			"Name": "左手03 手指弯曲"
+			"Name": "Left Hand 03 Finger Curl"
 		},
 		{
 			"Id": "ParamArmER01",
 			"GroupId": "ParamGroup7",
-			"Name": "右手臂E 肩的旋转"
+			"Name": "Right Arm E Shoulder Rotation"
 		},
 		{
 			"Id": "ParamArmER02",
 			"GroupId": "ParamGroup7",
-			"Name": "右手臂E 手肘的旋转"
+			"Name": "Right Arm E Elbow Rotation"
 		},
 		{
 			"Id": "ParamArmER03",
 			"GroupId": "ParamGroup7",
-			"Name": "右手臂E 手腕的旋转"
+			"Name": "Right Arm E Wrist Rotation"
 		},
 		{
 			"Id": "ParamArmER04",
 			"GroupId": "ParamGroup7",
-			"Name": "右手臂E 上臂的长度"
+			"Name": "Right Arm E Upper Arm Length"
 		},
 		{
 			"Id": "ParamArmERHand04",
 			"GroupId": "ParamGroup7",
-			"Name": "右手04 显示"
+			"Name": "Right Hand 04 Show"
 		},
 		{
 			"Id": "ParamArmERHand04Roll1",
 			"GroupId": "ParamGroup7",
-			"Name": "右手04 手指弯曲1"
+			"Name": "Right Hand 04 Finger Curl 1"
 		},
 		{
 			"Id": "ParamArmERHand04Roll2",
 			"GroupId": "ParamGroup7",
-			"Name": "右手04 手指弯曲2"
+			"Name": "Right Hand 04 Finger Curl 2"
 		},
 		{
 			"Id": "ParamArmERHand06",
 			"GroupId": "ParamGroup7",
-			"Name": "右手06 显示"
+			"Name": "Right Hand 06 Show"
 		},
 		{
 			"Id": "ParamArmERHand06Roll1",
 			"GroupId": "ParamGroup7",
-			"Name": "右手06 手指弯曲1"
+			"Name": "Right Hand 06 Finger Curl 1"
 		},
 		{
 			"Id": "ParamArmERHand06Roll2",
 			"GroupId": "ParamGroup7",
-			"Name": "右手06 手指弯曲2"
+			"Name": "Right Hand 06 Finger Curl 2"
 		}
 	],
 	"ParameterGroups": [
 		{
 			"Id": "ParamGroupExpression",
 			"GroupId": "",
-			"Name": "表情"
+			"Name": "Expression"
 		},
 		{
 			"Id": "ParamGroupBody",
 			"GroupId": "",
-			"Name": "身体"
+			"Name": "Body"
 		},
 		{
 			"Id": "ParamGroup",
 			"GroupId": "",
-			"Name": "整体移动"
+			"Name": "Overall Move"
 		},
 		{
 			"Id": "ParamGroupSway",
 			"GroupId": "",
-			"Name": "摇动"
+			"Name": "Sway"
 		},
 		{
 			"Id": "ParamGroup8",
 			"GroupId": "",
-			"Name": "怀表A"
+			"Name": "Pocket Watch A"
 		},
 		{
 			"Id": "ParamGroup9",
 			"GroupId": "",
-			"Name": "怀表B"
+			"Name": "Pocket Watch B"
 		},
 		{
 			"Id": "ParamGroup3",
 			"GroupId": "",
-			"Name": "左手臂A"
+			"Name": "Left Arm A"
 		},
 		{
 			"Id": "ParamGroup2",
 			"GroupId": "",
-			"Name": "右手臂A"
+			"Name": "Right Arm A"
 		},
 		{
 			"Id": "ParamGroup4",
 			"GroupId": "",
-			"Name": "右手臂B"
+			"Name": "Right Arm B"
 		},
 		{
 			"Id": "ParamGroup5",
 			"GroupId": "",
-			"Name": "左手臂C"
+			"Name": "Left Arm C"
 		},
 		{
 			"Id": "ParamGroup6",
 			"GroupId": "",
-			"Name": "左手臂D"
+			"Name": "Left Arm D"
 		},
 		{
 			"Id": "ParamGroup7",
 			"GroupId": "",
-			"Name": "右手臂E"
+			"Name": "Right Arm E"
 		}
 	],
 	"Parts": [
 		{
 			"Id": "PartCredit",
-			"Name": "名牌"
+			"Name": "Name Tag"
 		},
 		{
 			"Id": "PartCore",
@@ -555,123 +555,123 @@
 		},
 		{
 			"Id": "PartGlass",
-			"Name": "眼镜"
+			"Name": "Glasses"
 		},
 		{
 			"Id": "PartWatchA",
-			"Name": "怀表A"
+			"Name": "Pocket Watch A"
 		},
 		{
 			"Id": "PartWatchB",
-			"Name": "怀表B"
+			"Name": "Pocket Watch B"
 		},
 		{
 			"Id": "PartHairFront",
-			"Name": "前发"
+			"Name": "Front Hair"
 		},
 		{
 			"Id": "PartHead",
-			"Name": "头"
+			"Name": "Head"
 		},
 		{
 			"Id": "PartUpperBody",
-			"Name": "上半身"
+			"Name": "Upper Body"
 		},
 		{
 			"Id": "PartHairBack",
-			"Name": "后发"
+			"Name": "Back Hair"
 		},
 		{
 			"Id": "PartLowerBody",
-			"Name": "下半身"
+			"Name": "Lower Body"
 		},
 		{
 			"Id": "PartArmAL",
-			"Name": "左手臂A"
+			"Name": "Left Arm A"
 		},
 		{
 			"Id": "PartArmAR",
-			"Name": "右手臂A"
+			"Name": "Right Arm A"
 		},
 		{
 			"Id": "PartArmBR",
-			"Name": "右手臂B"
+			"Name": "Right Arm B"
 		},
 		{
 			"Id": "PartArmCL",
-			"Name": "左手臂C"
+			"Name": "Left Arm C"
 		},
 		{
 			"Id": "PartArmDL",
-			"Name": "左手臂D"
+			"Name": "Left Arm D"
 		},
 		{
 			"Id": "PartArmER",
-			"Name": "右手臂E"
+			"Name": "Right Arm E"
 		},
 		{
 			"Id": "PartEyeBlow",
-			"Name": "眉毛"
+			"Name": "Eyebrows"
 		},
 		{
 			"Id": "PartEyeR",
-			"Name": "右眼"
+			"Name": "Right Eye"
 		},
 		{
 			"Id": "PartEyeL",
-			"Name": "左眼"
+			"Name": "Left Eye"
 		},
 		{
 			"Id": "PartHairLine",
-			"Name": "发际线"
+			"Name": "Hairline"
 		},
 		{
 			"Id": "PartHairShadow",
-			"Name": "头发阴影"
+			"Name": "Hair Shadow"
 		},
 		{
 			"Id": "PartNose",
-			"Name": "鼻子"
+			"Name": "Nose"
 		},
 		{
 			"Id": "PartMouth",
-			"Name": "嘴"
+			"Name": "Mouth"
 		},
 		{
 			"Id": "PartJacket",
-			"Name": "燕尾服"
+			"Name": "Tailcoat"
 		},
 		{
 			"Id": "PartArmALFore",
-			"Name": "左手臂A 前臂"
+			"Name": "Left Arm A Forearm"
 		},
 		{
 			"Id": "PartArmARFore",
-			"Name": "右手臂A 前臂"
+			"Name": "Right Arm A Forearm"
 		},
 		{
 			"Id": "PartHand11",
-			"Name": "手套_1"
+			"Name": "Glove_1"
 		},
 		{
 			"Id": "PartHand51",
-			"Name": "手套_5"
+			"Name": "Glove_5"
 		},
 		{
 			"Id": "PartHand21",
-			"Name": "手套_2"
+			"Name": "Glove_2"
 		},
 		{
 			"Id": "PartHand31",
-			"Name": "手套_3"
+			"Name": "Glove_3"
 		},
 		{
 			"Id": "PartHand41",
-			"Name": "手套_4"
+			"Name": "Glove_4"
 		},
 		{
 			"Id": "PartHand61",
-			"Name": "手套_6"
+			"Name": "Glove_6"
 		}
 	],
 	"CombinedParameters": [

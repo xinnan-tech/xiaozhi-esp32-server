@@ -18,47 +18,47 @@
 		"PhysicsDictionary": [
 			{
 				"Id": "PhysicsSetting1",
-				"Name": "前发"
+				"Name": "Front Hair"
 			},
 			{
 				"Id": "PhysicsSetting2",
-				"Name": "后发"
+				"Name": "Back Hair"
 			},
 			{
 				"Id": "PhysicsSetting3",
-				"Name": "丝带 头发"
+				"Name": "Ribbon Hair"
 			},
 			{
 				"Id": "PhysicsSetting4",
-				"Name": "短裙 横向摇动"
+				"Name": "Short Skirt Horizontal Sway"
 			},
 			{
 				"Id": "PhysicsSetting5",
-				"Name": "短裙 纵向摇动"
+				"Name": "Short Skirt Vertical Sway"
 			},
 			{
 				"Id": "PhysicsSetting6",
-				"Name": "丝带 身体"
+				"Name": "Ribbon Body"
 			},
 			{
 				"Id": "PhysicsSetting7",
-				"Name": "胸 摇动"
+				"Name": "Chest Sway"
 			},
 			{
 				"Id": "PhysicsSetting8",
-				"Name": "辫子 右"
+				"Name": "Braid Right"
 			},
 			{
 				"Id": "PhysicsSetting9",
-				"Name": "辫子 左"
+				"Name": "Braid Left"
 			},
 			{
 				"Id": "PhysicsSetting10",
-				"Name": "侧发 右"
+				"Name": "Side Hair Right"
 			},
 			{
 				"Id": "PhysicsSetting11",
-				"Name": "侧发 左"
+				"Name": "Side Hair Left"
 			}
 		]
 	},

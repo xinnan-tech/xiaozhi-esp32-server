@@ -18,47 +18,47 @@
 		"PhysicsDictionary": [
 			{
 				"Id": "PhysicsSetting1",
-				"Name": "前髪　揺れ"
+				"Name": "Front Hair Sway"
 			},
 			{
 				"Id": "PhysicsSetting2",
-				"Name": "横髪　揺れ"
+				"Name": "Side Hair Sway"
 			},
 			{
 				"Id": "PhysicsSetting3",
-				"Name": "後ろ髪　揺れ"
+				"Name": "Back Hair Sway"
 			},
 			{
 				"Id": "PhysicsSetting4",
-				"Name": "前髪ふわ"
+				"Name": "Front Hair Fluffy"
 			},
 			{
 				"Id": "PhysicsSetting5",
-				"Name": "横髪ふわ"
+				"Name": "Side Hair Fluffy"
 			},
 			{
 				"Id": "PhysicsSetting6",
-				"Name": "後ろ髪ふわ"
+				"Name": "Back Hair Fluffy"
 			},
 			{
 				"Id": "PhysicsSetting7",
-				"Name": "燕尾揺れ"
+				"Name": "Tailcoat Sway"
 			},
 			{
 				"Id": "PhysicsSetting8",
-				"Name": "懐中時計腰　揺れ"
+				"Name": "Pocket Watch Waist Sway"
 			},
 			{
 				"Id": "PhysicsSetting9",
-				"Name": "腰のチェーン揺れ"
+				"Name": "Waist Chain Sway"
 			},
 			{
 				"Id": "PhysicsSetting10",
-				"Name": "懐中時計腰　横回転"
+				"Name": "Pocket Watch Waist Horizontal Rotation"
 			},
 			{
 				"Id": "PhysicsSetting11",
-				"Name": "懐中時計B チェーン揺れ"
+				"Name": "Pocket Watch B Chain Sway"
 			}
 		]
 	},
