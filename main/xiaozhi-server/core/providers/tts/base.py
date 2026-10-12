@@ -483,6 +483,37 @@ class TTSProviderBase(ABC):
         if hasattr(self, "ws") and self.ws:
             await self.ws.close()
 
+    # 右引号/右括号，以及它们对应的左侧符号
+    _QUOTE_PAIRS = (("「", "」"), ("『", "』"), ("“", "”"), ("（", "）"), ("《", "》"))
+    _CLOSERS = "」』”）》"
+
+    @classmethod
+    def _quote_safe_cut(cls, text, pos, punctuations):
+        """避免在引号内切分（如 「わぁ！」って / “好！”他说）。
+
+        候选位置之后紧跟的右引号和句末标点一并带走；若候选位于未闭合的引号内，
+        或右引号后句子还在继续，则顺延到下一个标点；都不安全时返回 -1，等待更多文本。
+        """
+        candidates = [pos] + [
+            i for i, ch in enumerate(text) if i > pos and ch in punctuations
+        ]
+        for candidate in candidates:
+            end = candidate + 1
+            carried_closer = False
+            while end < len(text) and (
+                text[end] in cls._CLOSERS or text[end] in punctuations
+            ):
+                carried_closer = carried_closer or text[end] in cls._CLOSERS
+                end += 1
+            segment = text[:end]
+            if any(segment.count(o) > segment.count(c) for o, c in cls._QUOTE_PAIRS):
+                continue
+            if carried_closer and (end == len(text) or not text[end].isspace()):
+                # 右引号之后句子还在继续（「…」って、“…”他说），或暂时看不到后文
+                continue
+            return end - 1
+        return -1
+
     def _get_segment_text(self):
         # 合并当前全部文本并处理未分割部分
         full_text = "".join(self.tts_text_buff)
@@ -503,6 +534,10 @@ class TTSProviderBase(ABC):
             ):
                 last_punct_pos = pos
 
+        if last_punct_pos != -1:
+            last_punct_pos = self._quote_safe_cut(
+                current_text, last_punct_pos, punctuations_to_use
+            )
         if last_punct_pos != -1:
             segment_text_raw = current_text[: last_punct_pos + 1]
             segment_text = textUtils.get_string_no_punctuation_or_emoji(
