@@ -53,22 +53,28 @@ class ManageApiClientLifecycleTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(await self.cls._execute_async_request('POST', '/report',
                              json={'value': 123}), {'ok': True})
 
-    async def test_retry_closes_each_attempt(self):
+    async def test_retry_reuses_client_until_request_ends(self):
+        """重试在同一个 client（池内同一 keep-alive 连接）上进行，
+        整个业务请求结束后才关闭——client 生命周期与业务请求对齐，
+        而不是与单次尝试对齐。"""
         async def handle(request):
             if len(self.requests) == 1:
                 return httpx.Response(503)
-            self.assertTrue(self.clients[0].is_closed)
+            # 第二次尝试时第一个 client 仍在服务（未被提前关闭）
+            self.assertFalse(self.clients[0].is_closed)
             return httpx.Response(200, json={'code': 0, 'data': True})
         with self.transport(handle):
             self.assertTrue(await self.cls._execute_async_request('POST', '/report'))
-        self.assertEqual(len(self.clients), 2)
+        self.assertEqual(len(self.clients), 1)
+        self.assertTrue(self.clients[0].is_closed)
 
-    async def test_timeout_exhaustion_closes_all_attempts(self):
+    async def test_timeout_exhaustion_reuses_client_until_request_ends(self):
         async def handle(request):
             raise httpx.ReadTimeout('synthetic timeout', request=request)
         with self.transport(handle), self.assertRaises(httpx.ReadTimeout):
             await self.cls._execute_async_request('POST', '/report')
-        self.assertEqual(len(self.clients), 2)
+        self.assertEqual(len(self.clients), 1)
+        self.assertTrue(self.clients[0].is_closed)
 
     async def test_nonretryable_http_error(self):
         async def handle(request):
@@ -118,10 +124,33 @@ class ManageApiClientLifecycleTest(unittest.IsolatedAsyncioTestCase):
         with self.transport(handle):
             self.assertTrue(await self.api.report('device', 'session', 1, 'text', None, 0))
             self.assertIsNone(await self.api.report('device', 'session', 1, 'later', None, 0))
-            if hasattr(self.cls, '_closed'):
-                with self.assertRaisesRegex(Exception, '已关闭'):
-                    await self.cls._execute_async_request('POST', '/report')
+            with self.assertRaisesRegex(Exception, '已关闭'):
+                await self.cls._execute_async_request('POST', '/report')
         self.assertEqual(len(self.clients), 1)
+
+    async def test_safe_close_interrupts_retry_backoff(self):
+        """safe_close 打断重试等待：已开始的尝试跑完，但不发起新尝试。
+
+        防回归：重试间隔若一次睡满 retry_delay，container SIGTERM
+        场景在途请求会拖满 max_retries × retry_delay 才收尾。
+        """
+        async def handle(request):
+            return httpx.Response(503)
+        original_delay = self.cls.retry_delay
+        self.cls.retry_delay = 5.0  # setUp 默认 0，观察不到打断
+        try:
+            with self.transport(handle):
+                task = asyncio.create_task(
+                    self.cls._execute_async_request('POST', '/report'))
+                await asyncio.sleep(0.2)  # 进入重试等待
+                self.cls.safe_close()
+                with self.assertRaises(httpx.HTTPStatusError):
+                    await task
+            # 只有第一次尝试：重试等待被打断，未发起新尝试
+            self.assertEqual(len(self.clients), 1)
+            self.assertEqual(len(self.requests), 1)
+        finally:
+            self.cls.retry_delay = original_delay
 
     async def test_many_temporary_loops_leave_no_open_clients(self):
         async def handle(request):

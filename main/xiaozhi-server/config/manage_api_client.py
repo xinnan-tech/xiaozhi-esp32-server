@@ -1,10 +1,18 @@
 import os
+import ssl
 import base64
+import asyncio
 import functools
 import threading
+import traceback
 from typing import Optional, Dict
 
 import httpx
+
+# 跨请求共享的 SSLContext：httpx 默认每个 AsyncClient 都重新
+# create_default_context() 并加载系统 CA（100+ 证书，毫秒级 CPU）。
+# Context 构造后只读，跨 client / 线程共享安全。
+_SHARED_SSL_CONTEXT = ssl.create_default_context()
 
 TAG = __name__
 
@@ -54,44 +62,71 @@ class ManageApiClient:
         cls._closed = False
 
     @classmethod
-    async def _ensure_async_client(cls):
-        """创建请求专用客户端，避免临时事件循环的客户端永久累积。"""
+    def _build_client(cls) -> httpx.AsyncClient:
+        """构造单次业务请求专用的 AsyncClient。
+
+        client 生命周期与"一次业务请求（含重试）"对齐：调用方用
+        ``async with`` 在创建它的同一事件循环里关闭它。不存在任何
+        跨请求 / 跨 loop 缓存，临时 loop 守护线程场景同样安全，
+        不会出现客户端随 loop 累积的问题。
+
+        锁内只做关闭检查和配置快照，client 构造在锁外进行，
+        避免并发请求在 ``threading.Lock`` 上串行阻塞事件循环线程。
+        """
         with cls._instance_lock:
             if cls._closed:
                 raise Exception("ManageApiClient已关闭，不再创建新的HTTP客户端")
-            return httpx.AsyncClient(
-                base_url=cls.config.get("url"),
-                headers={
-                    "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
-                    "Accept": "application/json",
-                    "Authorization": "Bearer " + cls._secret,
-                },
-                timeout=cls.config.get("timeout", 30),
-                limits=httpx.Limits(max_keepalive_connections=0),
-                trust_env=False,
-            )
+            base_url = cls.config.get("url")
+            secret = cls._secret
+            timeout = cls.config.get("timeout", 30)
+        return httpx.AsyncClient(
+            base_url=base_url,
+            headers={
+                "User-Agent": f"PythonClient/2.0 (PID:{os.getpid()})",
+                "Accept": "application/json",
+                "Authorization": "Bearer " + secret,
+            },
+            timeout=timeout,
+            # 连接复用限于单次业务请求内部：重试（含 retry_delay 级
+            # sleep）期间 keep-alive 连接保持在池中，下一次尝试直接
+            # 复用，仅在连接真坏掉时才重新握手。keepalive_expiry 需
+            # 覆盖 retry_delay，否则 sleep 期间连接已被池判定过期，
+            # 复用落空（退化为每次尝试重新握手，行为仍正确）。
+            # 请求结束 async with 必关 client，连接不会跨请求驻留。
+            limits=httpx.Limits(
+                max_keepalive_connections=1,
+                keepalive_expiry=30,
+            ),
+            trust_env=False,
+            verify=_SHARED_SSL_CONTEXT,
+        )
 
     @classmethod
-    async def _async_request(cls, method: str, endpoint: str, **kwargs) -> Dict:
-        """客户端由本次请求持有，并在创建它的事件循环中关闭。"""
-        client = await cls._ensure_async_client()
-        async with client:
-            endpoint = endpoint.lstrip("/")
-            response = None
-            try:
-                response = await client.request(method, endpoint, **kwargs)
-                response.raise_for_status()
-                result = response.json()
-                if result.get("code") == 10041:
-                    raise DeviceNotFoundException(result.get("msg"))
-                elif result.get("code") == 10042:
-                    raise DeviceBindException(result.get("msg"))
-                elif result.get("code") != 0:
-                    raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
-                return result.get("data") if result.get("code") == 0 else None
-            finally:
-                if response is not None:
+    async def _async_request(
+        cls, client: httpx.AsyncClient, method: str, endpoint: str, **kwargs
+    ) -> Dict:
+        """在给定 client 上执行单次请求；响应读取后立即释放回连接池。"""
+        endpoint = endpoint.lstrip("/")
+        response = None
+        try:
+            response = await client.request(method, endpoint, **kwargs)
+            response.raise_for_status()
+            result = response.json()
+            if result.get("code") == 10041:
+                raise DeviceNotFoundException(result.get("msg"))
+            elif result.get("code") == 10042:
+                raise DeviceBindException(result.get("msg"))
+            elif result.get("code") != 0:
+                raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
+            return result.get("data") if result.get("code") == 0 else None
+        finally:
+            if response is not None:
+                try:
                     await response.aclose()
+                except Exception:
+                    # 吞掉释放异常：否则它会覆盖原始业务异常，
+                    # 破坏 _execute_async_request 的重试判断
+                    pass
 
     @classmethod
     def _should_retry(cls, exception: Exception) -> bool:
@@ -102,6 +137,12 @@ class ManageApiClient:
         ):
             return True
 
+        # 请求间启用了池内 keep-alive 复用：服务端 / 负载均衡可能在
+        # keepalive 窗口内提前回收连接，复用时表现为对端断开，
+        # 重新握手重试即可。
+        if isinstance(exception, httpx.RemoteProtocolError):
+            return True
+
         # HTTP状态码错误
         if isinstance(exception, httpx.HTTPStatusError):
             status_code = exception.response.status_code
@@ -110,31 +151,59 @@ class ManageApiClient:
         return False
 
     @classmethod
-    async def _execute_async_request(cls, method: str, endpoint: str, **kwargs) -> Dict:
-        """带重试机制的异步请求执行器"""
-        import asyncio
+    async def _retry_wait(cls):
+        """可被 safe_close() 打断的重试等待。
 
-        retry_count = 0
-
-        while retry_count <= cls.max_retries:
-            try:
-                # 执行异步请求
-                return await cls._async_request(method, endpoint, **kwargs)
-            except Exception as e:
-                # 判断是否应该重试
-                if retry_count < cls.max_retries and cls._should_retry(e):
-                    retry_count += 1
-                    print(
-                        f"{method} {endpoint} 异步请求失败，将在 {cls.retry_delay:.1f} 秒后进行第 {retry_count} 次重试"
-                    )
-                    await asyncio.sleep(cls.retry_delay)
-                    continue
-                else:
-                    # 不重试，直接抛出异常
-                    raise
+        以 100ms 分片轮询 _closed：服务关闭后立即返回，由调用方
+        跳过剩余重试。不分片一次睡满 retry_delay 的话，container
+        SIGTERM 场景下在途请求要拖满 max_retries × retry_delay
+        （默认 60s）才收尾，会吃光进程退出宽限期。
+        """
+        remaining = cls.retry_delay
+        while remaining > 0 and not cls._closed:
+            step = min(0.1, remaining)
+            await asyncio.sleep(step)
+            remaining -= step
 
     @classmethod
-    def _get_instance(cls):
+    async def _execute_async_request(cls, method: str, endpoint: str, **kwargs) -> Dict:
+        """带重试机制的业务请求执行器。
+
+        client 只构造一次，整个重试过程复用（重试间隔期间连接
+        keep-alive 在池内保持），重试结束（成功或放弃）后由
+        ``async with`` 关闭 client 并释放连接。
+
+        safe_close() 不取消已开始的尝试（由它跑完当前这一次），
+        但会打断重试等待：之后不再发起新尝试，请求以最后一次
+        失败原因收尾。
+        """
+        client = cls._build_client()
+        async with client:
+            retry_count = 0
+
+            while retry_count <= cls.max_retries:
+                try:
+                    # 执行异步请求
+                    return await cls._async_request(client, method, endpoint, **kwargs)
+                except Exception as e:
+                    # 判断是否应该重试
+                    if retry_count < cls.max_retries and cls._should_retry(e):
+                        retry_count += 1
+                        print(
+                            f"{method} {endpoint} 异步请求失败，将在 {cls.retry_delay:.1f} 秒后进行第 {retry_count} 次重试"
+                        )
+                        await cls._retry_wait()
+                        if cls._closed:
+                            # safe_close 打断了重试等待：不发起新尝试，
+                            # 以本次失败原因收尾（已开始的尝试未被取消）
+                            raise
+                        continue
+                    else:
+                        # 不重试，直接抛出异常
+                        raise
+
+    @classmethod
+    def _get_instance(cls) -> Optional["ManageApiClient"]:
         """线程安全地获取单例实例引用
 
         调用方应使用返回的局部引用，而不是判空后再次读取
@@ -147,7 +216,11 @@ class ManageApiClient:
 
     @classmethod
     def safe_close(cls):
-        """关闭请求入口；在途请求在各自事件循环中释放客户端。"""
+        """关闭请求入口；在途请求在各自事件循环中释放客户端。
+
+        已开始的请求不会被取消，但重试等待会被打断（加速收尾），
+        详见 _execute_async_request / _retry_wait。
+        """
         with cls._instance_lock:
             cls._closed = True
             cls._instance = None
@@ -177,7 +250,9 @@ def api_guard(error_msg: str = None, raise_when_closed: bool = False):
             try:
                 return await func(instance, *args, **kwargs)
             except Exception as e:
-                print(f"{error_msg}: {e}")
+                # format_exc 拼进同一条 print：保持模块统一走 stdout，
+                # 且保留完整堆栈便于生产定位
+                print(f"{error_msg}: {e}\n{traceback.format_exc()}")
                 return None
 
         return wrapper
