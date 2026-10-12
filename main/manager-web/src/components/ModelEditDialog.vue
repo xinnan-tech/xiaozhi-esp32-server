@@ -94,6 +94,7 @@
 
 <script>
 import Api from '@/apis/api';
+import CustomDialog from './CustomDialog.vue';
 
 export default {
   name: "ModelEditDialog",
