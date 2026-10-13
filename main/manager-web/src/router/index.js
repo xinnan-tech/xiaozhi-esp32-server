@@ -81,10 +81,6 @@ const routes = [
     name: 'ParamsManagement',
     component: function () {
       return import('../views/ParamsManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Parameter Management'
     }
   },
   {
@@ -92,22 +88,13 @@ const routes = [
     name: 'KnowledgeBaseManagement',
     component: function () {
       return import('../views/KnowledgeBaseManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Knowledge Base'
     }
   },
-
   {
     path: '/server-side-management',
     name: 'ServerSideManager',
     component: function () {
       return import('../views/ServerSideManager.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Server Management'
     }
   },
   {
@@ -115,10 +102,6 @@ const routes = [
     name: 'OtaManagement',
     component: function () {
       return import('../views/OtaManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'OTA Management'
     }
   },
   {
@@ -126,10 +109,6 @@ const routes = [
     name: 'VoiceResourceManagement',
     component: function () {
       return import('../views/VoiceResourceManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Voice Resource'
     }
   },
   {
@@ -137,10 +116,6 @@ const routes = [
     name: 'VoiceCloneManagement',
     component: function () {
       return import('../views/VoiceCloneManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Voice Clone'
     }
   },
   {
@@ -165,7 +140,7 @@ const routes = [
       return import('../views/AgentTemplateManagement.vue')
     }
   },
-  // Add template quick config route
+  // Add template quick-config route
   {
     path: '/template-quick-config',
     name: 'TemplateQuickConfig',
@@ -173,16 +148,12 @@ const routes = [
       return import('../views/TemplateQuickConfig.vue')
     }
   },
-  // Function config page route
+  // Feature configuration page route
   {
     path: '/feature-management',
     name: 'FeatureManagement',
     component: function () {
       return import('../views/FeatureManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Feature Configuration'
     }
   },
   // Replacement word management
@@ -191,22 +162,14 @@ const routes = [
     name: 'ReplacementWordManagement',
     component: function () {
       return import('../views/ReplacementWordManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Replacement Word Management'
     }
   },
-  // Contacts management page route
+  // Address book management page route
   {
     path: '/address-book-management',
     name: 'AddressBookManagement',
     component: function () {
       return import('../views/AddressBookManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'Address Book Management'
     }
   },
 ]
@@ -215,12 +178,12 @@ const router = new VueRouter({
   routes
 })
 
-// Globally handle duplicate navigation by refreshing the page
+// Handle duplicate navigation globally by refreshing the page
 const originalPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {
   return originalPush.call(this, location).catch(err => {
     if (err.name === 'NavigationDuplicated') {
-      // If duplicate navigation, refresh page
+      // If duplicate navigation, refresh the page
       window.location.reload()
     } else {
       // Throw other errors normally
@@ -229,21 +192,27 @@ VueRouter.prototype.push = function push(location) {
   })
 }
 
-// Routes requiring login
-const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig', 'KnowledgeBaseManagement', 'KnowledgeFileUpload', 'AddressBookManagement']
+// Whitelist of routes accessible without login
+const anonRouteNames = new Set(['login', 'Register', 'RetrievePassword', 'welcome'])
 
-// Route Guard
+// Route guard
 router.beforeEach((to, from, next) => {
-  // Check if the route requires protection
-  if (protectedRoutes.includes(to.name)) {
-    // Get token from localStorage
-    const token = localStorage.getItem('token')
-    if (!token) {
-      // Not logged in, redirecting to login page
-      next({ name: 'login', query: { redirect: to.fullPath } })
-      return
-    }
+  const token = localStorage.getItem('token');
+  const isAnonRoute = anonRouteNames.has(to.name);
+
+  if (isAnonRoute && token) {
+    next({ name: 'home', replace: true })
+    return
   }
+
+  if (!isAnonRoute && !token) {
+    next({
+      name: 'login',
+      replace: true
+    })
+    return
+  }
+
   next()
 })
 

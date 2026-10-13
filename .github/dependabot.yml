@@ -3,4 +3,40 @@ updates:
   - package-ecosystem: pip
     directory: /main/xiaozhi-server
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      ai-services:
+        patterns:
+          - "openai*"
+          - "google-generativeai"
+          - "dashscope"
+          - "baidu-aip"
+          - "cozepy"
+          - "markitdown"
+          - "mem0ai"
+          - "powermem"
+      ai-models:
+        patterns:
+          - "funasr"
+          - "vosk"
+          - "silero_vad"
+          - "opuslib_next"
+          - "sherpa_onnx"
+          - "modelscope"
+      web-stack:
+        patterns:
+          - "httpx"
+          - "aiohttp"
+          - "aiohttp_cors"
+          - "requests"
+          - "pysocks"
+      everything-else:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "torch"
+      - dependency-name: "torchaudio"
+      - dependency-name: "numpy"
+      - dependency-name: "portalocker"
+      - dependency-name: "websockets"

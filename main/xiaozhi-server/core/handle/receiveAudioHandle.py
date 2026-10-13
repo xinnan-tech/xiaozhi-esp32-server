@@ -55,14 +55,25 @@ async def startToChat(conn: "ConnectionHandler", text):
             data = json.loads(text)
             if "speaker" in data and "content" in data:
                 speaker_name = data["speaker"]
-                language_tag = data["language"]
-                actual_text = data["content"]
+                actual_content = data["content"]
                 conn.logger.bind(tag=TAG).info(
                     f"Parsed speaker information: {speaker_name}"
                 )
 
-                # Keep the original JSON payload for downstream use.
-                actual_text = text
+                # Keep the {"speaker":...} JSON only on the speaker's first
+                # appearance so the model greets them naturally once; later
+                # turns degrade to plain text so the recurring name does not
+                # push the model to keep addressing them every turn.
+                if speaker_name not in conn.introduced_speakers:
+                    conn.introduced_speakers.add(speaker_name)
+                    actual_text = text
+                else:
+                    actual_text = actual_content
+            elif "content" in data:
+                # FunASR-style payloads return {"content","language","emotion"}:
+                # hand only the recognized text to the LLM, otherwise the raw
+                # JSON would enter the conversation history.
+                actual_text = data["content"]
     except (json.JSONDecodeError, KeyError):
         # Fall back to the original text if parsing fails.
         pass
