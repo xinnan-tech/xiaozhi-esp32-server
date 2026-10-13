@@ -9,11 +9,13 @@ __test__ = False
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import gc
 import importlib.util
 import os
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+import weakref
 
 import httpx
 
@@ -160,11 +162,8 @@ class ManageApiClientLifecycleTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.clients), 1)
 
     async def test_safe_close_interrupts_retry_backoff(self):
-        """safe_close 打断重试等待：已开始的尝试跑完，但不发起新尝试。
-
-        防回归：重试间隔若一次睡满 retry_delay，container SIGTERM
-        场景在途请求会拖满 max_retries × retry_delay 才收尾。
-        """
+        """safe_close 打断重试等待：已开始的尝试跑完，不发起新尝试，
+        以 ManageApiShutdownError 收尾（与重试耗尽的网络异常可区分）。"""
         async def handle(request):
             return httpx.Response(503)
         original_delay = self.cls.retry_delay
@@ -175,8 +174,9 @@ class ManageApiClientLifecycleTest(unittest.IsolatedAsyncioTestCase):
                     self.cls._execute_async_request('POST', '/report'))
                 await asyncio.sleep(0.2)  # 进入重试等待
                 self.cls.safe_close()
-                with self.assertRaises(httpx.HTTPStatusError):
+                with self.assertRaises(self.api.ManageApiShutdownError) as ctx:
                     await task
+                self.assertIsInstance(ctx.exception.__cause__, httpx.HTTPStatusError)
             # 只有第一次尝试：重试等待被打断，未发起新尝试
             self.assertEqual(len(self.clients), 1)
             self.assertEqual(len(self.requests), 1)
@@ -193,6 +193,12 @@ class ManageApiClientLifecycleTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(results))
         self.assertEqual(len(self.clients), 100)
         self.assertTrue(all(c.is_closed for c in self.clients))
+        # 缓存回归网：释放测试持有的强引用后 client 必须可被 GC 回收，
+        # 任何类级缓存（id(loop) dict / WeakKeyDictionary）重引入都会让存活数 > 0
+        refs = [weakref.ref(c) for c in self.clients]
+        self.clients.clear()
+        gc.collect()
+        self.assertEqual(sum(ref() is not None for ref in refs), 0)
 
 
 if __name__ == '__main__':

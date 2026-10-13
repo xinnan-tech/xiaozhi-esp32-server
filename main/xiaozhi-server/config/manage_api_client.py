@@ -24,6 +24,10 @@ class DeviceBindException(Exception):
         super().__init__(f"设备绑定异常，绑定码: {bind_code}")
 
 
+class ManageApiShutdownError(Exception):
+    """safe_close 打断重试等待后的收尾异常，__cause__ 保留最后一次失败原因。"""
+
+
 class ManageApiClient:
     _instance = None
     _instance_lock = threading.Lock()  # 保护 _instance 与 _closed 的读写
@@ -60,12 +64,9 @@ class ManageApiClient:
 
     @classmethod
     def _build_client(cls) -> httpx.AsyncClient:
-        """构造单次业务请求专用的 AsyncClient。
+        """构造单次业务请求（含重试）专用的 AsyncClient。
 
-        约束：client 生命周期与单次业务请求（含重试）对齐，由调用方
-        ``async with`` 在同一事件循环内关闭，禁止跨请求 / 跨 loop
-        缓存。锁内只做关闭检查与配置快照，构造在锁外执行，避免并发
-        请求在 threading.Lock 上串行阻塞事件循环。
+        约束：由调用方 ``async with`` 在同一 loop 内关闭，禁止跨请求缓存；构造在锁外执行，避免并发请求阻塞事件循环。
         """
         with cls._instance_lock:
             if cls._closed:
@@ -81,17 +82,15 @@ class ManageApiClient:
                 "Authorization": "Bearer " + secret,
             },
             timeout=timeout,
-            # 约束：连接复用仅限单次业务请求内部，请求结束必关 client；
-            # keepalive_expiry 动态覆盖 retry_delay，保证重试等待期间
-            # 池内连接不过期；连接真坏掉由 RemoteProtocolError 重试兜底。
+            # 连接复用仅限本次请求；keepalive_expiry 动态覆盖 retry_delay，
+            # 防止重试等待期间池内连接过期。
             limits=httpx.Limits(
                 max_keepalive_connections=1,
                 keepalive_expiry=max(30, cls.retry_delay + 5),
             ),
             trust_env=False,
-            # 约束：不共享 SSLContext——httpcore 建连会原地改写传入的
-            # context（OpenSSL 侧无锁），共享单例并发握手有竞态；走
-            # httpx 默认路径按 client 现建（certifi 信任库）。
+            # verify=True 现建 context：httpcore 建连会原地改写传入
+            # context（无锁），共享单例并发握手有竞态。
             verify=True,
         )
 
@@ -130,11 +129,8 @@ class ManageApiClient:
         ):
             return True
 
-        # 约束：RemoteProtocolError 仅在"未收到响应"（without sending
-        # a response）时重试——响应从未开始，重试安全；响应截断
-        # （incomplete message body）变体意味着服务端可能已处理请求，
-        # 重试非幂等 POST 会重复提交。文案依赖 httpcore，变更时退化
-        # 为不重试（安全方向）。
+        # RPE 仅"without sending a response"（响应未开始，安全）变体重试；
+        # 截断变体可能已处理请求会重复提交，文案变更时退化为不重试。
         if isinstance(exception, httpx.RemoteProtocolError):
             return "without sending a response" in str(exception)
 
@@ -147,10 +143,9 @@ class ManageApiClient:
 
     @classmethod
     async def _retry_wait(cls):
-        """可被 safe_close() 打断的重试等待：100ms 分片轮询 _closed。
+        """可被 safe_close() 打断的重试等待（100ms 分片轮询 _closed）。
 
-        约束：不得一次睡满 retry_delay——否则服务关闭后在途请求要
-        拖满 max_retries × retry_delay 才收尾，超出进程退出宽限期。
+        约束：不得一次睡满 retry_delay，否则关闭后收尾要拖满整个重试周期。
         """
         remaining = cls.retry_delay
         while remaining > 0 and not cls._closed:
@@ -162,10 +157,7 @@ class ManageApiClient:
     async def _execute_async_request(cls, method: str, endpoint: str, **kwargs) -> Dict:
         """带重试机制的业务请求执行器。
 
-        约束：client 整个重试过程只构造一次，重试结束（成功或放弃）
-        后由 ``async with`` 关闭并释放连接。safe_close() 不取消已开始
-        的尝试，但会打断重试等待：不再发起新尝试，以最后一次失败
-        原因收尾。
+        约束：client 整个重试过程只构造一次，结束后由 ``async with`` 关闭；safe_close 不取消已开始的尝试，只打断重试等待（抛 ManageApiShutdownError）。
         """
         client = cls._build_client()
         async with client:
@@ -184,9 +176,10 @@ class ManageApiClient:
                         )
                         await cls._retry_wait()
                         if cls._closed:
-                            # safe_close 打断了重试等待：不发起新尝试，
-                            # 以本次失败原因收尾（已开始的尝试未被取消）
-                            raise
+                            # 收尾必须可区分：裸 raise 会把 shutdown 早退伪装
+                            # 成网络抖动，掩盖服务下线信号
+                            raise ManageApiShutdownError(
+                                f"safe_close 已打断重试等待: {e}") from e
                         continue
                     else:
                         # 不重试，直接抛出异常
@@ -196,9 +189,7 @@ class ManageApiClient:
     def _get_instance(cls) -> Optional["ManageApiClient"]:
         """线程安全地获取单例实例引用。
 
-        约束：调用方必须持有并使用返回的局部引用，禁止判空后再次
-        读取 ManageApiClient._instance——safe_close() 可能在判空之后
-        将其置 None（TOCTOU 竞态窗口）。
+        约束：调用方必须持有返回的局部引用，禁止判空后重读 _instance（TOCTOU 窗口）。
         """
         with cls._instance_lock:
             return cls._instance
@@ -207,8 +198,7 @@ class ManageApiClient:
     def safe_close(cls):
         """关闭请求入口；在途请求在各自事件循环中释放客户端。
 
-        已开始的请求不取消；重试等待被打断、跳过剩余重试，
-        详见 _execute_async_request / _retry_wait。
+        已开始的请求不取消；重试等待被打断、跳过剩余重试（见 _retry_wait）。
         """
         with cls._instance_lock:
             cls._closed = True
