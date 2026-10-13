@@ -4,6 +4,15 @@ import edge_tts
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
 
+# 微软 2026-10 起对 legacy 消费者接口返回 403，
+# edge-tts 7.2.8 仍走 speech.platform.bing.com 走不通。
+# 上游 PR rany2/edge-tts#491 切到 api.msedgeservices.com 修好，
+# 但 7.2.8 仍是 PyPI 最新版本，临时把 WSS_URL 顶住。
+edge_tts.constants.WSS_URL = (
+    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
+    f"?Ocp-Apim-Subscription-Key={edge_tts.constants.TRUSTED_CLIENT_TOKEN}"
+)
+
 
 class TTSProvider(TTSProviderBase):
     TTS_PARAM_CONFIG = [
