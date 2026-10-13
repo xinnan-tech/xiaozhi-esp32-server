@@ -1,0 +1,39 @@
+# Test-only deployment config, tracked in git and used by tests/conftest.py as
+# a fallback when the real (gitignored) data/.config.yaml is absent — e.g. in
+# CI or a fresh checkout. Minimal single-module stub so provider tests can
+# construct objects against the mock shims in conftest. Placeholder keys only;
+# never point it at a real manager-api.
+manager-api:
+  url: ""
+  secret: ""
+
+selected_module:
+  VAD: SileroVAD
+  ASR: OpenaiASR
+  LLM: OpenAILLM
+  TTS: EdgeTTS
+  Memory: nomem
+  Intent: nointent
+
+ASR:
+  OpenaiASR:
+    type: openai
+    model_name: whisper-1
+    api_key: placeholder-key-do-not-use
+    base_url: http://127.0.0.1:18000/v1
+
+LLM:
+  OpenAILLM:
+    type: openai
+    model_name: gpt-4o-mini
+    api_key: placeholder-key-do-not-use
+    base_url: http://127.0.0.1:18000/v1
+
+TTS:
+  EdgeTTS:
+    type: edge
+    voice_name: en-US-AriaNeural
+
+Memory:
+  nomem:
+    type: nomem

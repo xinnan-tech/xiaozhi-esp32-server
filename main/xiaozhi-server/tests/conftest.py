@@ -66,9 +66,19 @@ except Exception:
 #   1. File pointed to by environment variable ``PYTEST_CONFIG_FILE`` (recommended - isolated test config)
 #   2. data/.config.yaml (Production / Single-module deployment config)
 _DEFAULT_CUSTOM = _PROJECT_ROOT / "data" / ".config.yaml"
-_CUSTOM_CONFIG = Path(os.environ["PYTEST_CONFIG_FILE"]) if os.environ.get(
-    "PYTEST_CONFIG_FILE"
-) else _DEFAULT_CUSTOM
+
+# Fresh checkout / CI fallback: the real data/.config.yaml is gitignored, so
+# without this the suite only passes on dev boxes that happen to have one.
+# Fall back to the tracked test-only config (placeholder keys, empty
+# manager-api block) so a clean clone runs the exact same provider tests.
+_TESTDATA_CONFIG = Path(__file__).resolve().parent / "testdata" / "test-config.yaml"
+if os.environ.get("PYTEST_CONFIG_FILE"):
+    # Explicit override always wins, even if the path does not exist yet.
+    _CUSTOM_CONFIG = Path(os.environ["PYTEST_CONFIG_FILE"])
+elif _DEFAULT_CUSTOM.exists():
+    _CUSTOM_CONFIG = _DEFAULT_CUSTOM
+else:
+    _CUSTOM_CONFIG = _TESTDATA_CONFIG
 
 
 def _load_via_file_merge() -> dict:
@@ -141,7 +151,17 @@ def _init_service_noop(_config):
 
 import config.config_loader as _cl  # noqa: E402
 import config.manage_api_client as _mac  # noqa: E402
+import config.settings as _settings  # noqa: E402
+import config.logger as _logger_mod  # noqa: E402
+
 _cl.load_config = _load_config_patched
+# data/.config.yaml is gitignored, so a fresh checkout (CI) has none: skip the
+# deployment-file check and keep log config coming from the merged CONFIG above.
+# config.logger binds these names at import time (via manage_api_client), so
+# patch the already-imported references as well, not just the source modules.
+_settings.check_config_file = lambda: None
+_logger_mod.check_config_file = lambda: None
+_logger_mod.load_config = _load_config_patched
 _mac.init_service = _init_service_noop
 _mac.get_server_config = _get_server_config_patched
 # Clear ManageApiClient singleton to avoid prior instantiation triggered by other code.
