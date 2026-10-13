@@ -58,10 +58,14 @@ else
 fi
 
 if command -v python3 >/dev/null 2>&1 && python3 -c 'import pytest' >/dev/null 2>&1; then
-  ( cd main/xiaozhi-server && PYTHONPATH=. pytest tests/test_smoke.py -q ) \
-    && echo "--- PASS: python smoke" || { echo "--- FAIL: python smoke"; fail=1; }
+  ( cd main/xiaozhi-server && PYTHONPATH=. pytest tests/ -q ) \
+    && echo "--- PASS: python tests" || { echo "--- FAIL: python tests"; fail=1; }
+  # Upstream ships unittest-only lifecycle tests (excluded from pytest via
+  # __test__ = False); run them explicitly.
+  ( cd main/xiaozhi-server && PYTHONPATH=. python3 -B -m unittest discover -s tests -p 'test_*lifecycle*.py' ) \
+    && echo "--- PASS: python lifecycle tests" || { echo "--- FAIL: python lifecycle tests"; fail=1; }
 else
-  echo "==> pytest not present - skipping python smoke"
+  echo "==> pytest not present - skipping python tests"
 fi
 
 echo

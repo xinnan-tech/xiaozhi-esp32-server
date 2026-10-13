@@ -310,6 +310,13 @@ def _install_mock_layer() -> None:
         shim.exceptions = _ShimModule(f"{name}.exceptions")
         sys.modules[name] = shim
         sys.modules[f"{name}.exceptions"] = shim.exceptions
+        if name == "edge_tts":
+            # core/providers/tts/edge.py imports edge_tts.communicate explicitly
+            # to monkey-patch WSS_URL; provide the submodule shim so the import
+            # resolves in mock mode (same pattern as opuslib_next above).
+            _comm = _ShimModule(f"{name}.communicate")
+            shim.communicate = _comm
+            sys.modules[f"{name}.communicate"] = _comm
 
     # Shorten asyncio.sleep to prevent retry loops from delaying execution.
     import asyncio
