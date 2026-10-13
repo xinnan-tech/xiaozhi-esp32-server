@@ -7,7 +7,7 @@ numpy==1.26.4
 websockets==14.2
 #--------- 以下是可升级的依赖
 pyyml==0.0.2
-silero_vad==6.2.1
+silero_vad==6.2.3
 opuslib_next==1.3.1
 pydub==0.25.1
 funasr==1.2.7
@@ -17,8 +17,8 @@ edge_tts==7.2.8
 httpx==0.28.1
 aiohttp==3.13.2
 aiohttp_cors==0.8.1
-ormsgpack==1.12.0
-ruamel.yaml==0.18.16
+ormsgpack==1.12.2
+ruamel.yaml==0.19.1
 loguru==0.7.3
 requests==2.32.5
 cozepy==0.20.0
@@ -26,17 +26,17 @@ mem0ai==1.0.0
 powermem>=0.3.1
 bs4==0.0.2
 modelscope==1.39.1
-sherpa_onnx==1.12.29
-mcp==1.22.0
-cnlunar==0.2.4
+sherpa_onnx==1.13.8
+mcp==2.3.0
+cnlunar==0.2.5
 PySocks==1.7.1
 dashscope==1.25.2
 baidu-aip==4.16.13
 aioconsole==0.8.2
 markitdown==0.1.3
 mcp-proxy==0.12.0
-PyJWT==2.10.1
-psutil==7.1.3
+PyJWT==2.15.1
+psutil==7.2.2
 portalocker==3.2.0  # 暂留 3.x：4.x 与 qdrant-client<1.20 的 portalocker<4.0 约束冲突 (PR #3360)
 Jinja2==3.1.6
 vosk==0.3.45
