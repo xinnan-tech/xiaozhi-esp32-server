@@ -66,4 +66,8 @@ jobs:
         working-directory: main/manager-web
         run: |
           npm ci --no-audit --no-fund
+          node scripts/integrity-check.js
+          npm run check:i18n
+          npm run test:snapshot
+          npm run test:contract
           npm run test:unit

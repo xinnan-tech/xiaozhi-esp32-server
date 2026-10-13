@@ -187,3 +187,4 @@ uploadfile
 !main/manager-mobile/**/*.json
 
 original-server
+scripts/.translate_cache.json

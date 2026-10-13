@@ -171,6 +171,71 @@ If Han-script appears in the generated code bundle, fix the generator source
 first before attempting bundle surgery. The audit treats the code bundle as
 live source; only `generator/static` data is exempt.
 
+## Verification Tooling (run these, don't trust the build)
+
+`npm run build` treats broken Vue templates as *warnings* and the unit suites
+do not mount full views, so a rebase can merge real breakage while everything
+stays green. The 2026-10 rebase shipped three such silent regressions (blank
+models page, `ReferenceError: request is not defined` when opening a role,
+provider management rendered as garbage). All are now machine-checked:
+
+| Check | Command | Catches |
+| --- | --- | --- |
+| Integrity | `node main/manager-web/scripts/integrity-check.js` | undefined identifiers (lost imports, dropped function params/`const request` bindings), mismatched template tags, duplicated Vue option keys (`computed:` twice clobbers the first) |
+| i18n | `cd main/manager-web && npm run check:i18n` | duplicate keys, cross-locale drift vs `en`, `$t('...')` keys with no definition in any locale |
+| Snapshot contract | `npm run test:snapshot` | agent snapshot API shape (`restoreAgentSnapshot` etc. were silently deleted once, while `AgentSnapshotDialog.vue` still called them) |
+| Han audit | `./scripts/westernization_audit.sh` | Chinese text/paths outside exception zones |
+| Everything | `./scripts/westernization_rebase_check.sh` | one gate chaining all of the above plus build and smoke suites |
+
+CI runs the same set: `Westernization audit` job plus the `Vue (manager-web)`
+job (`integrity-check -> check:i18n -> test:snapshot -> test:contract ->
+test:unit`). A nightly `Upstream Sync Check` workflow dry-merges
+`upstream/main` and runs the web gates on the merged result, so an incoming
+breaking merge alerts the night before a human syncs.
+
+### Known merge-corruption failure classes (2026-10 postmortem)
+
+These are the shapes the auto-merge produced; the integrity checker flags all
+of them, but knowing the shapes speeds up conflict resolution:
+
+1. **Lost import** - `components: { CustomDialog }` shorthand with no matching
+   `import`. The chunk throws at eval time; webpack 5 caches the failed module,
+   so vue-router silently registers `default === undefined` and the page
+   renders `<!---->` with no console error.
+2. **Dropped signature params / const bindings** - method bodies referencing
+   `request`, `onTerminalFailure`, `retryCount`, `retryWindowStartedAt`,
+   `failCallback` after the merge kept the old one-line signature. Compare
+   against `upstream/main` when a method looks half-converted.
+3. **Whole methods deleted** while callers survive in another merged file
+   (`getRAGModels`, snapshot API). The integrity checker cannot see this (no
+   undefined identifier), so `Api.*` cross-reference plus the snapshot contract
+   tests exist; re-run the cross-reference from the postmortem after big
+   merges (snippet in commit `583c5304` message area, or grep `Api\.\w+\.\w+`
+   and diff against module exports).
+4. **Interleaved implementations** - both an old `el-table` block and a new
+   `CustomTable` block merged into one view (ProviderManagement). When tags
+   mismatch like this, prefer taking upstream's newer version wholesale and
+   re-applying the few translation strings, instead of surgical repair.
+5. **Half-converted components** - root tag converted (`el-dialog` ->
+   `CustomDialog`) but closing tag/footer wiring left behind
+   (FirmwareDialog, AddWisdomBodyDialog, CustomDialog's duplicated `computed`).
+
+### Translation tool
+
+The Han->English batch translator used for sweeps is vendored:
+
+```bash
+# needs the local OpenAI-compatible endpoint (override via env)
+TRANSLATE_API=http://10.0.1.9:2000/v1/chat/completions \
+TRANSLATE_MODEL=qwen3.8:instruct \
+python3 scripts/translate_han_llm.py [path ...]   # no args = whole repo
+```
+
+It is placeholder-safe (printf/brace/tag/URL masking), batched, cached
+(`scripts/.translate_cache.json`, gitignored) and resumable. Never translate
+inside the generator bundle - fix generator source (see Generator Rule) and
+rebuild.
+
 ## Audit Workflow
 
 Use the audit script after meaningful rebase batches:
@@ -262,7 +327,16 @@ Harness files:
 
 ```bash
 cd main/manager-web
+npm run check:integrity   # AST/template/option-key checks (see tooling table)
+npm run check:i18n
+npm test
 npm run build
+```
+
+Or from the repo root, everything at once:
+
+```bash
+./scripts/westernization_rebase_check.sh
 ```
 
 ### Manager Mobile
@@ -299,6 +373,7 @@ A rebase is in good shape when all of these are true:
 - server runtime prompts and tool text are westernized
 - docs and filenames are clean outside intentional exception zones
 - `./scripts/westernization_audit.sh` passes
+- `./scripts/westernization_rebase_check.sh` passes (integrity, i18n, web tests, build)
 - `mvn -q -Dtest=LiquibaseWesternizationIntegrationTest test` passes
 
 ## Bad Smells
@@ -312,20 +387,27 @@ Stop and correct course if any of these happen:
   would do
 - old migrations are rewritten instead of adding cleanup migrations
 - the branch drifts into a single giant mixed overlay again
+- the web build is green but a page renders blank - the build only *warns* on
+  broken templates; run `scripts/integrity-check.js`, it makes those errors
+  fatal
+- a merged view/API file "looks fine" but half its function signatures changed
+  style - diff the file against `upstream/main`, not just against HEAD~1
 
 ## Practical Order On Future Rebases
 
 When upstream moves a lot, use this order:
 
 1. rebase or merge upstream into an integration branch
-2. restore provider/runtime deletions and relocalization
-3. restore admin API provider filtering and downstream cleanup migrations
-4. restore web/mobile surface cleanup
-5. restore docs/branding cleanup
-6. rebuild generator from source if needed
-7. run the audit script
-8. run subsystem validation
-9. only then promote the integration branch
+2. scan the merge result for the five corruption shapes listed under "Known
+   merge-corruption failure classes" (`integrity-check.js` finds 1, 2, 4, 5)
+3. restore provider/runtime deletions and relocalization
+4. restore admin API provider filtering and downstream cleanup migrations
+5. restore web/mobile surface cleanup
+6. restore docs/branding cleanup
+7. rebuild generator from source if needed
+8. run `./scripts/westernization_rebase_check.sh` (audit + web gates)
+9. run subsystem validation (mvn, pytest)
+10. only then promote the integration branch
 
 ## Final Reminder
 

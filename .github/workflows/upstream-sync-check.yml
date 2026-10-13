@@ -1,0 +1,51 @@
+name: Upstream Sync Check
+
+# Nightly dry-run: merge upstream/main into the downstream branch in a
+# throwaway workspace and run the web verification gates against the merged
+# result. This gives an early, loud signal ("the next sync will break") the
+# night before a human performs the real sync, instead of after deploy.
+# It never pushes anything.
+
+on:
+  schedule:
+    - cron: '30 4 * * *'   # 04:30 UTC daily
+  workflow_dispatch:
+
+jobs:
+  dry-merge:
+    name: Merge upstream/main and run web gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure git identity
+        run: |
+          git config user.email "ci@localhost"
+          git config user.name "upstream-sync-check"
+      - name: Merge upstream/main (dry run)
+        run: |
+          git remote add upstream https://github.com/xinnan-tech/xiaozhi-esp32-server.git || true
+          git fetch upstream main
+          git checkout -B sync-dry-run
+          if ! git merge --no-commit --no-ff upstream/main; then
+            echo "::error::upstream/main no longer merges cleanly into this branch; resolve conflicts before syncing"
+            git diff --name-only --diff-filter=U || true
+            exit 1
+          fi
+          echo "MERGED_CLEAN=1" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: main/manager-web/package-lock.json
+      - name: Web gates on merged tree
+        working-directory: main/manager-web
+        run: |
+          npm ci --no-audit --no-fund
+          node scripts/integrity-check.js
+          npm run --silent check:i18n
+          npm run --silent test:snapshot
+          npm run --silent test:contract
+      - name: Westernization audit on merged tree
+        run: bash scripts/westernization_audit.sh
