@@ -718,12 +718,10 @@ export default {
   'common.copyAddress': 'Copy address',
 
   // Language switch
-  'language.zhCN': 'Simplified Chinese',
-  'language.zhTW': 'Traditional Chinese',
   'language.en': 'English',
   'language.de': 'Deutsch',
   'language.vi': 'Tiếng Việt',
-  'language.ptBR': 'Português (Brasil)',
+  'language.pt_BR': 'Português (Brasil)',
 
   // Home page text
   'home.addAgent': 'Add Agent',
@@ -837,7 +835,6 @@ export default {
   'roleConfig.saveConfig': 'Save Configuration',
   'roleConfig.snapshotHistory': 'History',
   'roleConfig.currentVersion': 'Current Version {version}',
-  'roleConfig.functionName': 'Function Name',
   'roleConfig.reset': 'Reset',
   'roleConfig.agentName': 'Nickname',
   'roleConfig.roleTemplate': 'Template',
