@@ -1,4 +1,12 @@
-"""Run directly with unittest; no application/model dependencies or network."""
+"""ManageApiClient 生命周期回归测试：直接以 unittest 运行，不依赖应用/模型与网络。
+
+不进 pytest 套件：tests/conftest.py 的 mock 层（import 时全局替换
+asyncio.sleep 与 httpx.AsyncClient）与本文件的时序断言、MockTransport
+注入互相破坏；__test__ = False 使 pytest 跳过收集，请直接用 unittest 运行。
+Usage: python -B tests/test_manage_api_client_lifecycle.py -v
+"""
+__test__ = False
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import importlib.util
@@ -75,6 +83,29 @@ class ManageApiClientLifecycleTest(unittest.IsolatedAsyncioTestCase):
             await self.cls._execute_async_request('POST', '/report')
         self.assertEqual(len(self.clients), 1)
         self.assertTrue(self.clients[0].is_closed)
+
+    async def test_remote_protocol_error_without_response_triggers_retry(self):
+        """stale keep-alive 场景：响应从未开始，重试安全。"""
+        async def handle(request):
+            if len(self.requests) == 1:
+                raise httpx.RemoteProtocolError(
+                    'Server disconnected without sending a response.',
+                    request=request)
+            return httpx.Response(200, json={'code': 0, 'data': True})
+        with self.transport(handle):
+            self.assertTrue(await self.cls._execute_async_request('POST', '/report'))
+        self.assertEqual(len(self.requests), 2)
+
+    async def test_remote_protocol_error_incomplete_body_not_retried(self):
+        """响应中途截断：服务端很可能已处理完请求，重试非幂等 POST
+        会重复提交，必须直接失败。"""
+        async def handle(request):
+            raise httpx.RemoteProtocolError(
+                'Peer closed connection without sending complete message body '
+                '(discarded 10 of 100 read bytes)', request=request)
+        with self.transport(handle), self.assertRaises(httpx.RemoteProtocolError):
+            await self.cls._execute_async_request('POST', '/report')
+        self.assertEqual(len(self.requests), 1)
 
     async def test_nonretryable_http_error(self):
         async def handle(request):

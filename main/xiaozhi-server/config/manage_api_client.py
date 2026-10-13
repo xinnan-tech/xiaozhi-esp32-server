@@ -1,5 +1,4 @@
 import os
-import ssl
 import base64
 import asyncio
 import functools
@@ -9,12 +8,10 @@ from typing import Optional, Dict
 
 import httpx
 
-# 跨请求共享的 SSLContext：httpx 默认每个 AsyncClient 都重新
-# create_default_context() 并加载系统 CA（100+ 证书，毫秒级 CPU）。
-# Context 构造后只读，跨 client / 线程共享安全。
-_SHARED_SSL_CONTEXT = ssl.create_default_context()
-
 TAG = __name__
+
+# _retry_wait 的分片粒度：safe_close 后 ~100ms 内收尾，轮询开销可忽略
+_RETRY_WAIT_SLICE = 0.1
 
 
 class DeviceNotFoundException(Exception):
@@ -65,13 +62,10 @@ class ManageApiClient:
     def _build_client(cls) -> httpx.AsyncClient:
         """构造单次业务请求专用的 AsyncClient。
 
-        client 生命周期与"一次业务请求（含重试）"对齐：调用方用
-        ``async with`` 在创建它的同一事件循环里关闭它。不存在任何
-        跨请求 / 跨 loop 缓存，临时 loop 守护线程场景同样安全，
-        不会出现客户端随 loop 累积的问题。
-
-        锁内只做关闭检查和配置快照，client 构造在锁外进行，
-        避免并发请求在 ``threading.Lock`` 上串行阻塞事件循环线程。
+        约束：client 生命周期与单次业务请求（含重试）对齐，由调用方
+        ``async with`` 在同一事件循环内关闭，禁止跨请求 / 跨 loop
+        缓存。锁内只做关闭检查与配置快照，构造在锁外执行，避免并发
+        请求在 threading.Lock 上串行阻塞事件循环。
         """
         with cls._instance_lock:
             if cls._closed:
@@ -87,18 +81,18 @@ class ManageApiClient:
                 "Authorization": "Bearer " + secret,
             },
             timeout=timeout,
-            # 连接复用限于单次业务请求内部：重试（含 retry_delay 级
-            # sleep）期间 keep-alive 连接保持在池中，下一次尝试直接
-            # 复用，仅在连接真坏掉时才重新握手。keepalive_expiry 需
-            # 覆盖 retry_delay，否则 sleep 期间连接已被池判定过期，
-            # 复用落空（退化为每次尝试重新握手，行为仍正确）。
-            # 请求结束 async with 必关 client，连接不会跨请求驻留。
+            # 约束：连接复用仅限单次业务请求内部，请求结束必关 client；
+            # keepalive_expiry 动态覆盖 retry_delay，保证重试等待期间
+            # 池内连接不过期；连接真坏掉由 RemoteProtocolError 重试兜底。
             limits=httpx.Limits(
                 max_keepalive_connections=1,
-                keepalive_expiry=30,
+                keepalive_expiry=max(30, cls.retry_delay + 5),
             ),
             trust_env=False,
-            verify=_SHARED_SSL_CONTEXT,
+            # 约束：不共享 SSLContext——httpcore 建连会原地改写传入的
+            # context（OpenSSL 侧无锁），共享单例并发握手有竞态；走
+            # httpx 默认路径按 client 现建（certifi 信任库）。
+            verify=True,
         )
 
     @classmethod
@@ -118,14 +112,13 @@ class ManageApiClient:
                 raise DeviceBindException(result.get("msg"))
             elif result.get("code") != 0:
                 raise Exception(f"API返回错误: {result.get('msg', '未知错误')}")
-            return result.get("data") if result.get("code") == 0 else None
+            return result.get("data")
         finally:
             if response is not None:
                 try:
                     await response.aclose()
                 except Exception:
-                    # 吞掉释放异常：否则它会覆盖原始业务异常，
-                    # 破坏 _execute_async_request 的重试判断
+                    # 约束：必须吞掉释放异常，避免覆盖业务异常、破坏重试判断
                     pass
 
     @classmethod
@@ -137,11 +130,13 @@ class ManageApiClient:
         ):
             return True
 
-        # 请求间启用了池内 keep-alive 复用：服务端 / 负载均衡可能在
-        # keepalive 窗口内提前回收连接，复用时表现为对端断开，
-        # 重新握手重试即可。
+        # 约束：RemoteProtocolError 仅在"未收到响应"（without sending
+        # a response）时重试——响应从未开始，重试安全；响应截断
+        # （incomplete message body）变体意味着服务端可能已处理请求，
+        # 重试非幂等 POST 会重复提交。文案依赖 httpcore，变更时退化
+        # 为不重试（安全方向）。
         if isinstance(exception, httpx.RemoteProtocolError):
-            return True
+            return "without sending a response" in str(exception)
 
         # HTTP状态码错误
         if isinstance(exception, httpx.HTTPStatusError):
@@ -152,16 +147,14 @@ class ManageApiClient:
 
     @classmethod
     async def _retry_wait(cls):
-        """可被 safe_close() 打断的重试等待。
+        """可被 safe_close() 打断的重试等待：100ms 分片轮询 _closed。
 
-        以 100ms 分片轮询 _closed：服务关闭后立即返回，由调用方
-        跳过剩余重试。不分片一次睡满 retry_delay 的话，container
-        SIGTERM 场景下在途请求要拖满 max_retries × retry_delay
-        （默认 60s）才收尾，会吃光进程退出宽限期。
+        约束：不得一次睡满 retry_delay——否则服务关闭后在途请求要
+        拖满 max_retries × retry_delay 才收尾，超出进程退出宽限期。
         """
         remaining = cls.retry_delay
         while remaining > 0 and not cls._closed:
-            step = min(0.1, remaining)
+            step = min(_RETRY_WAIT_SLICE, remaining)
             await asyncio.sleep(step)
             remaining -= step
 
@@ -169,13 +162,10 @@ class ManageApiClient:
     async def _execute_async_request(cls, method: str, endpoint: str, **kwargs) -> Dict:
         """带重试机制的业务请求执行器。
 
-        client 只构造一次，整个重试过程复用（重试间隔期间连接
-        keep-alive 在池内保持），重试结束（成功或放弃）后由
-        ``async with`` 关闭 client 并释放连接。
-
-        safe_close() 不取消已开始的尝试（由它跑完当前这一次），
-        但会打断重试等待：之后不再发起新尝试，请求以最后一次
-        失败原因收尾。
+        约束：client 整个重试过程只构造一次，重试结束（成功或放弃）
+        后由 ``async with`` 关闭并释放连接。safe_close() 不取消已开始
+        的尝试，但会打断重试等待：不再发起新尝试，以最后一次失败
+        原因收尾。
         """
         client = cls._build_client()
         async with client:
@@ -204,12 +194,11 @@ class ManageApiClient:
 
     @classmethod
     def _get_instance(cls) -> Optional["ManageApiClient"]:
-        """线程安全地获取单例实例引用
+        """线程安全地获取单例实例引用。
 
-        调用方应使用返回的局部引用，而不是判空后再次读取
-        ManageApiClient._instance：即使随后 safe_close() 将 _instance
-        置为 None，已获取的引用仍指向原对象，从而消除"判空之后、
-        使用之前实例被置空"的 TOCTOU 竞态窗口。
+        约束：调用方必须持有并使用返回的局部引用，禁止判空后再次
+        读取 ManageApiClient._instance——safe_close() 可能在判空之后
+        将其置 None（TOCTOU 竞态窗口）。
         """
         with cls._instance_lock:
             return cls._instance
@@ -218,7 +207,7 @@ class ManageApiClient:
     def safe_close(cls):
         """关闭请求入口；在途请求在各自事件循环中释放客户端。
 
-        已开始的请求不会被取消，但重试等待会被打断（加速收尾），
+        已开始的请求不取消；重试等待被打断、跳过剩余重试，
         详见 _execute_async_request / _retry_wait。
         """
         with cls._instance_lock:
@@ -250,9 +239,12 @@ def api_guard(error_msg: str = None, raise_when_closed: bool = False):
             try:
                 return await func(instance, *args, **kwargs)
             except Exception as e:
-                # format_exc 拼进同一条 print：保持模块统一走 stdout，
-                # 且保留完整堆栈便于生产定位
-                print(f"{error_msg}: {e}\n{traceback.format_exc()}")
+                # 约束：httpx / 解析异常打全堆栈；业务语义异常只打
+                # message（消息自带上下文，堆栈是高频噪声）
+                if isinstance(e, (httpx.HTTPError, ValueError)):
+                    print(f"{error_msg}: {e}\n{traceback.format_exc()}")
+                else:
+                    print(f"{error_msg}: {e}")
                 return None
 
         return wrapper

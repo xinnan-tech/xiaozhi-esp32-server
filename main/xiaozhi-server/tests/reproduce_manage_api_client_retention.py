@@ -1,9 +1,14 @@
 """Offline reproduction: no real devices, credentials, HTTP server or model APIs.
 
-Usage: python -B reproduce.py path/to/config/manage_api_client.py
+Usage: python -B tests/reproduce_manage_api_client_retention.py path/to/config/manage_api_client.py
 Keeps CLOSED loop objects alive to avoid Python reusing their integer IDs.
 This makes the cache-lifetime check deterministic; it is not an RSS benchmark.
+
+依赖真实 httpx.AsyncClient + MockTransport，不进 pytest 套件
+（tests/conftest.py 的 mock 层会全局替换 AsyncClient）。
 """
+__test__ = False
+
 import asyncio
 import gc
 import importlib.util
