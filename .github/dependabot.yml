@@ -38,4 +38,5 @@ updates:
       - dependency-name: "torch"
       - dependency-name: "torchaudio"
       - dependency-name: "numpy"
+      - dependency-name: "portalocker"
       - dependency-name: "websockets"
