@@ -181,11 +181,6 @@ export default {
     handleDeviceManage() {
       this.$router.push('/device-management');
     },
-    handleSearch(regex) {
-      this.isSearching = true;
-      this.searchRegex = regex;
-      this.applySearchFilter();
-    },
     handleSearchReset() {
       this.isSearching = false;
       this.searchRegex = null;

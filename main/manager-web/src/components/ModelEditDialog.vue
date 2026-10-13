@@ -153,6 +153,9 @@ export default {
       this.resetProviders();
       this.loadProviders();
     },
+    visible(val) {
+      this.dialogVisible = val;
+    },
     dialogVisible(val) {
       this.$emit('update:visible', val);
       if (!val) {
@@ -160,12 +163,6 @@ export default {
       } else if (val && this.modelData.id) {
         this.loadModelData();
       }
-    },
-    visible(val) {
-      this.dialogVisible = val;
-    },
-    dialogVisible(val) {
-      this.$emit("update:visible", val);
     },
     'form.configJson.type'(newVal) {
       if (newVal && this.providersLoaded) {

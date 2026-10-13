@@ -134,54 +134,105 @@ for (const f of walk(SRC)) {
   }
 }
 
-// ---- Pass 3: duplicated top-level Vue options keys (class 3) -------------
+// ---- Pass 3: duplicated Vue option keys, AST-based (class 3) -------------
+// A duplicate key inside an options object is legal JS but silently clobbers
+// the first property at object-literal eval time. Rebase merges have produced
+// both top-level duplicates (two `computed:` blocks) and nested ones (two
+// `dialogVisible` handlers inside `watch:`), the latter disabling the model
+// edit dialog's data-population trigger. Check the export-default object at
+// depth 1 (Vue options) and inside the option maps at depth 2.
 const OPTION_KEYS = new Set([
   'name', 'components', 'directives', 'mixins', 'props', 'data', 'computed',
   'methods', 'watch', 'created', 'mounted', 'beforeMount', 'updated',
   'beforeUpdate', 'destroyed', 'beforeDestroy', 'activated', 'deactivated',
   'render', 'template', 'inheritAttrs', 'model', 'provide', 'inject', 'filters',
 ]);
-function dupOptionKeys(scriptCode) {
-  // Find `export default { ... }` object and read depth-1 keys.
-  const i = scriptCode.indexOf('export default');
-  if (i < 0) return [];
-  const start = scriptCode.indexOf('{', i);
-  if (start < 0) return [];
-  const keys = [];
-  let depth = 0, k = start, str = null;
-  while (k < scriptCode.length) {
-    const ch = scriptCode[k];
-    if (str) {
-      if (ch === '\\') { k += 2; continue; }
-      if (ch === str) str = null;
-      k++; continue;
+const OPTION_MAP_KEYS = new Set(['watch', 'computed', 'methods', 'filters', 'directives']);
+
+function nodeKey(p) {
+  if (!p.key) return null;
+  if (p.key.type === 'Identifier') return p.key.name;
+  if (p.key.type === 'Literal') return String(p.key.value);
+  return null;
+}
+
+function dupKeys(objExpr) {
+  if (!objExpr || objExpr.type !== 'ObjectExpression') return [];
+  const seen = new Map();
+  for (const p of objExpr.properties) {
+    if (p.type !== 'Property') continue; // spread etc.
+    const k = nodeKey(p);
+    if (k === null) continue;
+    seen.set(k, (seen.get(k) || 0) + 1);
+  }
+  return [...seen].filter(([, n]) => n > 1).map(([k]) => k);
+}
+
+function optionObject(node) {
+  // Property value is either an object literal (watch/computed/methods) or a
+  // function whose single return statement yields one (data).
+  if (!node) return null;
+  if (node.type === 'ObjectExpression') return node;
+  if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+    const body = node.body;
+    if (body.type === 'BlockStatement') {
+      const ret = body.body.find((s) => s.type === 'ReturnStatement');
+      if (ret && ret.argument && ret.argument.type === 'ObjectExpression') return ret.argument;
     }
-    if (ch === '"' || ch === "'" || ch === '`') { str = ch; k++; continue; }
-    if (ch === '{') { depth++; k++; continue; }
-    if (ch === '}') { depth--; if (depth === 0) break; k++; continue; }
-    if (depth === 1) {
-      const mm = /^([A-Za-z_$][\w$]*)\s*:/.exec(scriptCode.slice(k, k + 60));
-      if (mm) {
-        const ls = scriptCode.lastIndexOf('\n', k);
-        if (scriptCode.slice(ls + 1, k).trim() === '') {
-          keys.push(mm[1]);
-          k += mm[0].length - 1;
+  }
+  return null;
+}
+
+function exportDefaultObject(ast) {
+  for (const n of ast.body) {
+    if (n.type === 'ExportDefaultDeclaration') {
+      if (n.declaration.type === 'ObjectExpression') return n.declaration;
+      if (n.declaration.type === 'VariableDeclaration') {
+        for (const d of n.declaration.declarations) {
+          if (d.init && d.init.type === 'ObjectExpression') return d.init;
         }
       }
     }
-    k++;
   }
-  const seen = new Map();
-  for (const key of keys) seen.set(key, (seen.get(key) || 0) + 1);
-  return [...seen].filter(([key, n]) => n > 1 && OPTION_KEYS.has(key)).map(([key]) => key);
+  return null;
 }
+
 for (const f of walk(SRC)) {
   if (!f.endsWith('.vue')) continue;
   const raw = fs.readFileSync(f, 'utf8');
-  const sfc = parseComponent(raw);
-  const opts = sfc.script ? sfc.script.content : '';
-  for (const dup of dupOptionKeys(opts)) {
-    addError('DUP-OPT', f, null, `duplicate options key "${dup}" (later block clobbers the first)`);
+  for (const s of scriptsOf(f, raw)) {
+    let ast;
+    try {
+      ast = acorn.parse(s.code, {
+        ecmaVersion: 'latest', sourceType: 'module', locations: true, ranges: true,
+        allowReturnOutsideFunction: true, allowAwaitOutsideFunction: true,
+      });
+    } catch {
+      continue; // PARRESS already reported in pass 1
+    }
+    const root = exportDefaultObject(ast);
+    if (!root) continue;
+    for (const dup of dupKeys(root)) {
+      if (OPTION_KEYS.has(dup)) {
+        addError('DUP-OPT', f, s.offset, `duplicate options key "${dup}" (later value clobbers the first)`);
+      }
+    }
+    for (const p of root.properties) {
+      const k = nodeKey(p);
+      if (k === null) continue;
+      if (OPTION_MAP_KEYS.has(k)) {
+        for (const dup of dupKeys(optionObject(p.value))) {
+          addError('DUP-OPT', f, s.offset + (p.loc ? p.loc.start.line - 1 : 0),
+            `duplicate "${k}" key "${dup}" (later handler clobbers the first)`);
+        }
+      }
+      if (k === 'data') {
+        for (const dup of dupKeys(optionObject(p.value))) {
+          addError('DUP-OPT', f, s.offset + (p.loc ? p.loc.start.line - 1 : 0),
+            `duplicate data() key "${dup}" (later value clobbers the first)`);
+        }
+      }
+    }
   }
 }
 

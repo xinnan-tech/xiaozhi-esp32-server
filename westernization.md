@@ -181,7 +181,7 @@ provider management rendered as garbage). All are now machine-checked:
 
 | Check | Command | Catches |
 | --- | --- | --- |
-| Integrity | `node main/manager-web/scripts/integrity-check.js` | undefined identifiers (lost imports, dropped function params/`const request` bindings), mismatched template tags, duplicated Vue option keys (`computed:` twice clobbers the first) |
+| Integrity | `node main/manager-web/scripts/integrity-check.js` | undefined identifiers (lost imports, dropped function params/`const request` bindings), mismatched template tags, duplicated keys in `export default` options and inside `watch`/`computed`/`methods`/`data` (later value silently clobbers the first) |
 | i18n | `cd main/manager-web && npm run check:i18n` | duplicate keys, cross-locale drift vs `en`, `$t('...')` keys with no definition in any locale |
 | Snapshot contract | `npm run test:snapshot` | agent snapshot API shape (`restoreAgentSnapshot` etc. were silently deleted once, while `AgentSnapshotDialog.vue` still called them) |
 | Han audit | `./scripts/westernization_audit.sh` | Chinese text/paths outside exception zones |
@@ -219,6 +219,18 @@ of them, but knowing the shapes speeds up conflict resolution:
 5. **Half-converted components** - root tag converted (`el-dialog` ->
    `CustomDialog`) but closing tag/footer wiring left behind
    (FirmwareDialog, AddWisdomBodyDialog, CustomDialog's duplicated `computed`).
+6. **Duplicate keys inside option maps** - the 2026-10-11 merge left two
+   `dialogVisible` handlers inside `watch:` in ModelEditDialog.vue (the
+   later, trivial one clobbered the version holding the `loadModelData()`
+   open-trigger, so the model edit form opened empty), plus dead duplicate
+   `handleSearch` in home.vue and duplicate `formatFileSize` in
+   KnowledgeBaseManagement.vue (the latter two survived into the pushed
+   tree). Top-level `computed:` duplication was caught earlier; keys nested
+   in `watch`/`methods` are just as silent. `integrity-check.js` now parses
+   the options object and its `watch`/`computed`/`methods`/`data` maps and
+   fails on any duplicate key. After any rebase touching a `.vue` file that
+   exists on both sides, diff its option maps against upstream, not just
+   the template.
 
 ### Translation tool
 
