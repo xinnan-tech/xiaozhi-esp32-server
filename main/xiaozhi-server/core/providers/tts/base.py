@@ -6,12 +6,11 @@ import queue
 import asyncio
 import threading
 import traceback
-import concurrent.futures
 
 from core.utils import p3
 from datetime import datetime
 from core.utils import textUtils
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 from abc import ABC, abstractmethod
 from config.logger import setup_logging
 from core.utils import opus_encoder_utils
@@ -484,16 +483,33 @@ class TTSProviderBase(ABC):
             await self.ws.close()
 
     # 右引号/右括号，以及它们对应的左侧符号
-    _QUOTE_PAIRS = (("「", "」"), ("『", "』"), ("“", "”"), ("（", "）"), ("《", "》"))
-    _CLOSERS = "」』”）》"
+    _QUOTE_PAIRS = (
+        ("「", "」"),
+        ("『", "』"),
+        ("“", "”"),
+        ('"', '"'),
+        ("（", "）"),
+        ("《", "》"),
+        ("«", "»"),
+        ("„", "“"),
+        ("【", "】"),
+        ("〈", "〉"),
+        ("［", "］"),
+        ("[", "]"),
+    )
+    _CLOSERS = '」』”》）"»“】〉］]'
+    _QUOTE_CHARS = "".join(ch for pair in _QUOTE_PAIRS for ch in pair)
 
     @classmethod
-    def _quote_safe_cut(cls, text, pos, punctuations):
+    def _quote_safe_cut(cls, text: str, pos: int, punctuations) -> int:
         """避免在引号内切分（如 「わぁ！」って / “好！”他说）。
 
         候选位置之后紧跟的右引号和句末标点一并带走；若候选位于未闭合的引号内，
         或右引号后句子还在继续，则顺延到下一个标点；都不安全时返回 -1，等待更多文本。
         """
+        if not any(ch in cls._QUOTE_CHARS for ch in text):
+            # 全文不含引号/括号：不存在未闭合引号，右引号也无需携带，候选位置必然安全
+            return pos
         candidates = [pos] + [
             i for i, ch in enumerate(text) if i > pos and ch in punctuations
         ]
@@ -503,10 +519,22 @@ class TTSProviderBase(ABC):
             while end < len(text) and (
                 text[end] in cls._CLOSERS or text[end] in punctuations
             ):
-                carried_closer = carried_closer or text[end] in cls._CLOSERS
+                if text[end] in cls._CLOSERS:
+                    carried_closer = True
                 end += 1
             segment = text[:end]
-            if any(segment.count(o) > segment.count(c) for o, c in cls._QUOTE_PAIRS):
+            # 前后配对的引号（「」等）用计数差检测；前后同符的引号（"）用奇偶检测
+            balanced = True
+            for opener, closer in cls._QUOTE_PAIRS:
+                n_open = segment.count(opener)
+                if opener == closer:
+                    if n_open % 2:
+                        balanced = False
+                        break
+                elif n_open > segment.count(closer):
+                    balanced = False
+                    break
+            if not balanced:
                 continue
             if carried_closer and (end == len(text) or not text[end].isspace()):
                 # 右引号之后句子还在继续（「…」って、“…”他说），或暂时看不到后文
@@ -514,7 +542,7 @@ class TTSProviderBase(ABC):
             return end - 1
         return -1
 
-    def _get_segment_text(self):
+    def _get_segment_text(self) -> Optional[str]:
         # 合并当前全部文本并处理未分割部分
         full_text = "".join(self.tts_text_buff)
         current_text = full_text[self.processed_chars :]  # 从未处理的位置开始
@@ -527,19 +555,20 @@ class TTSProviderBase(ABC):
             else self.punctuations
         )
 
-        for punct in punctuations_to_use:
-            pos = current_text.rfind(punct)
-            if (pos != -1 and last_punct_pos == -1) or (
-                pos != -1 and pos < last_punct_pos
-            ):
-                last_punct_pos = pos
+        # 取每种标点最后出现位置的最早者作为切分点（与逐个 rfind 再取最小值等价）
+        last_seen = {}
+        for i, ch in enumerate(current_text):
+            if ch in punctuations_to_use:
+                last_seen[ch] = i
+        last_punct_pos = min(last_seen.values(), default=-1)
 
+        cut_pos = -1
         if last_punct_pos != -1:
-            last_punct_pos = self._quote_safe_cut(
+            cut_pos = self._quote_safe_cut(
                 current_text, last_punct_pos, punctuations_to_use
             )
-        if last_punct_pos != -1:
-            segment_text_raw = current_text[: last_punct_pos + 1]
+        if cut_pos != -1:
+            segment_text_raw = current_text[: cut_pos + 1]
             segment_text = textUtils.get_string_no_punctuation_or_emoji(
                 segment_text_raw
             )
