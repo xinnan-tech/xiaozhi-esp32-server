@@ -197,16 +197,22 @@ const anonRouteNames = new Set(['login', 'Register', 'RetrievePassword', 'welcom
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  if (anonRouteNames.has(to.name)) {
-    next()
+  const token = localStorage.getItem('token');
+  const isAnonRoute = anonRouteNames.has(to.name);
+
+  if (isAnonRoute && token) {
+    next({ name: 'home', replace: true })
     return
   }
-  // 非白名单路由必须登录
-  const token = localStorage.getItem('token')
-  if (!token) {
-    next({ name: 'login' })
+
+  if (!isAnonRoute && !token) {
+    next({
+      name: 'login',
+      replace: true
+    })
     return
   }
+
   next()
 })
 
