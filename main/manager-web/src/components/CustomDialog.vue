@@ -29,7 +29,7 @@
             <img src="@/assets/knowledge-base/star.png" class="confirm-icon" />
             {{ effectiveConfirmText }}
           </span>
-        </CustomButton>
+        </el-button>
       </div>
     </template>
   </el-dialog>
@@ -100,14 +100,7 @@ export default {
     },
     effectiveConfirmText() {
       return this.confirmText || this.$t("customDialog.confirmSave");
-    }
-  },
-  data() {
-    return {
-      dialogVisible: this.visible
-    };
-  },
-  computed: {
+    },
     dialogCustomClass() {
       const classes = ["custom-dialog"];
       if (this.customClass) classes.push(this.customClass);
@@ -115,6 +108,11 @@ export default {
       if (String(this.width).includes("%")) classes.push("custom-dialog--fluid");
       return classes.join(" ");
     },
+  },
+  data() {
+    return {
+      dialogVisible: this.visible
+    };
   },
   components: {
     CustomButton

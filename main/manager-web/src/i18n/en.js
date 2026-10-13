@@ -524,6 +524,7 @@ export default {
   'message.error': 'Operation Failed',
   'message.warning': 'Warning',
   'message.info': 'Information',
+  'message.searchFailed': 'Search failed, please try again later',
 
   // Cache related
   'cache.viewer': 'Cache Viewer',
@@ -701,6 +702,9 @@ export default {
   'common.updateSuccess': 'Update Success',
   'common.addSuccess': 'Add Success',
   'common.deleteSuccess': 'Delete Success',
+  'common.noData': 'No data',
+  'common.addFailure': 'Failed to add',
+  'common.updateFailure': 'Failed to update',
   'common.deleteFailure': 'Delete Failed, Please Try Again',
   'common.deleteCancelled': 'Delete Cancelled',
   'common.warning': 'Warning',

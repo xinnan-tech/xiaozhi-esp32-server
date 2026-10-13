@@ -5,23 +5,16 @@
       <div class="content-panel">
         <div class="content-area">
           <el-card class="provider-card" shadow="never">
-            <el-table ref="providersTable" :data="filteredProvidersList" class="transparent-table" v-loading="loading"
-              element-loading-text="Loading..." element-loading-spinner="el-icon-loading"
-              element-loading-background="rgba(255, 255, 255, 0.7)" :header-cell-class-name="headerCellClassName">
-              <el-table-column :label="$t('modelConfig.select')" align="center" width="120">
-                <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.selected"></el-checkbox>
-                </template>
-              </el-table-column>
-
-              <el-table-column :label="$t('providerManagement.category')" prop="modelType" align="center" width="200">
-                <template slot="header" slot-scope="scope">
-                  <el-dropdown trigger="click" @command="handleSelectModelType"
-                    @visible-change="isDropdownOpen = $event">
-                    <span class="dropdown-trigger" :class="{ 'active': isDropdownOpen }">
-                      {{ $t('providerManagement.category') }}{{ selectedModelTypeLabel }} <i class="dropdown-arrow"
-                        :class="{ 'is-active': isDropdownOpen }"></i>
-                    </span>
+            <div class="operation-header">
+              <h2 class="page-title">{{ $t('header.providerManagement') }}</h2>
+              <div class="right-operations">
+                <el-input :placeholder="$t('providerManagement.searchPlaceholder')" v-model="searchName" class="search-input"
+                  @keyup.enter.native="handleSearch" clearable />
+                  <el-dropdown trigger="click" @command="handleSelectModelType" @visible-change="handleDropdownVisibleChange">
+                    <CustomButton>
+                      {{ $t('providerManagement.categoryFilter') }}{{ selectedModelTypeLabel }}<i class="el-icon-arrow-down el-icon--right"
+                        :class="{ 'rotate-down': DropdownVisible }"></i>
+                    </CustomButton>
                     <el-dropdown-menu slot="dropdown">
                       <el-dropdown-item command="">{{ $t('common.all') }}</el-dropdown-item>
                       <el-dropdown-item v-for="item in translatedModelTypes" :key="item.value" :command="item.value">
@@ -121,7 +114,8 @@ export default {
         { value: "Intent", labelKey: 'providerManagement.modelType.Intent' },
         { value: "Memory", labelKey: 'providerManagement.modelType.Memory' },
         { value: "VAD", labelKey: 'providerManagement.modelType.VAD' },
-        { value: "Plugin", labelKey: 'providerManagement.modelType.Plugin' }
+        { value: "Plugin", labelKey: 'providerManagement.modelType.Plugin' },
+        { value: "RAG", labelKey: 'providerManagement.modelType.RAG' }
       ],
       currentPage: 1,
       loading: false,
@@ -162,18 +156,6 @@ export default {
     },
     filteredProvidersList() {
       return this.providersList;
-
-      // let list = this.providersList.filter(item => {
-      //   const nameMatch = item.name.toLowerCase().includes(this.searchName.toLowerCase());
-      //   const typeMatch = !this.searchModelType || item.model_type === this.searchModelType;
-      //   return nameMatch && typeMatch;
-      // });
-
-      // list.sort((a, b) => a.sort - b.sort);
-
-      // // Pagination handling
-      // const start = (this.currentPage - 1) * this.pageSize;
-      // return list.slice(start, start + this.pageSize);
     }
   },
   methods: {
@@ -274,10 +256,9 @@ export default {
     },
     handleSubmit({ form, done }) {
       if (form.id) {
-        // Edit
         Api.model.updateModelProvider(form, ({ data }) => {
           if (data.code === 0) {
-            this.fetchProviders(); // Refresh table
+            this.fetchProviders();
             this.$message.success({
               message: this.$t('common.updateSuccess'),
               showClose: true
@@ -292,10 +273,9 @@ export default {
           done && done();
         });
       } else {
-        // Add
         Api.model.addModelProvider(form, ({ data }) => {
           if (data.code === 0) {
-            this.fetchProviders(); // Refresh table
+            this.fetchProviders();
             this.$message.success({
               message: this.$t('common.addSuccess'),
               showClose: true
@@ -336,8 +316,7 @@ export default {
         Api.model.deleteModelProviderByIds(ids, ({ data }) => {
           if (data.code === 0) {
             this.isAllSelected = false;
-            this.fetchProviders(); // Refresh table
-
+            this.fetchProviders();
             this.$message.success({
               message: this.$t('common.deleteSuccess'),
               showClose: true
@@ -365,7 +344,8 @@ export default {
         'LLM': 'danger',
         'Intent': 'info',
         'Memory': '',
-        'VAD': 'primary'
+        'VAD': 'primary',
+        'RAG': 'warning'
       };
       return typeMap[type] || '';
     },
@@ -383,49 +363,6 @@ export default {
       this.pageSize = val;
       this.currentPage = 1;
       this.fetchProviders();
-    },
-    headerCellClassName({ columnIndex }) {
-      if (columnIndex === 0) {
-        return "custom-selection-header";
-      }
-      return "";
-    },
-    selectionCellClassName() {
-      return "custom-selection-cell";
-    },
-    updateSelectionHeaderText() {
-      // Ensure table is rendered
-      this.$nextTick(() => {
-        if (this.$refs.providersTable && this.$refs.providersTable.$el) {
-          const headerCheckbox = this.$refs.providersTable.$el.querySelector('.custom-selection-header .el-checkbox .el-checkbox__label');
-          if (headerCheckbox) {
-            headerCheckbox.textContent = this.$t('modelConfig.select');
-          }
-        }
-      });
-    },
-    mounted() {
-      this.updateSelectionHeaderText();
-    },
-    updated() {
-      this.updateSelectionHeaderText();
-    },
-    goFirst() {
-      this.currentPage = 1;
-      this.fetchProviders();
-    },
-    goPrev() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-        this.fetchProviders();
-      }
-    },
-    goNext() {
-      if (this.currentPage < this.pageCount) {
-        console.log("this.currentPage", this.currentPage);
-        this.currentPage++;
-        this.fetchProviders();
-      }
     },
     goToPage(page) {
       if (page !== this.currentPage) {
@@ -456,12 +393,9 @@ export default {
 }
 
 .main-wrapper {
-  margin: 5px 22px;
-  border-radius: 15px;
-  min-height: calc(100vh - 24vh);
-  height: auto;
-  max-height: 80vh;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  // Top 63px, bottom 35px
+  height: calc(100vh - 63px - 35px);
+  padding: 20px 22px 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -529,285 +463,8 @@ export default {
   }
 }
 
-.table_bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  padding-bottom: 10px;
-}
-
 .ctrl_btn {
   display: flex;
-  gap: 8px;
-  padding-left: 26px;
-
-  .el-button {
-    min-width: 72px;
-    height: 32px;
-    padding: 7px 12px 7px 10px;
-    font-size: 12px;
-    border-radius: 4px;
-    line-height: 1;
-    font-weight: 500;
-    border: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-  }
-
-  .el-button--primary {
-    background: #5f70f3;
-    color: white;
-  }
-
-  .el-button--danger {
-    background: #fd5b63;
-    color: white;
-  }
-}
-
-.custom-pagination {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  .el-select {
-    margin-right: 8px;
-  }
-
-  .pagination-btn:first-child,
-  .pagination-btn:nth-child(2),
-  .pagination-btn:nth-last-child(2),
-  .pagination-btn:nth-child(3) {
-    min-width: 60px;
-    height: 32px;
-    padding: 0 12px;
-    border-radius: 4px;
-    border: 1px solid #e4e7ed;
-    background: #dee7ff;
-    color: #606266;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background: #d7dce6;
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  }
-
-  .pagination-btn:not(:first-child):not(:nth-child(3)):not(:nth-child(2)):not(:nth-last-child(2)) {
-    min-width: 28px;
-    height: 32px;
-    padding: 0;
-    border-radius: 4px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: #606266;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background: rgba(245, 247, 250, 0.3);
-    }
-  }
-
-  .pagination-btn.active {
-    background: #5f70f3 !important;
-    color: #ffffff !important;
-    border-color: #5f70f3 !important;
-
-    &:hover {
-      background: #6d7cf5 !important;
-    }
-  }
-
-  .total-text {
-    color: #909399;
-    font-size: 14px;
-    margin-left: 10px;
-  }
-}
-
-:deep(.transparent-table) {
-  background: white;
-  flex: 1;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-
-  .el-table__body-wrapper {
-    flex: 1;
-    overflow-y: auto;
-    max-height: none !important;
-  }
-
-  .el-table__header-wrapper {
-    flex-shrink: 0;
-  }
-
-  .el-table__header th {
-    background: white !important;
-    color: black;
-  }
-
-  &::before {
-    display: none;
-  }
-
-  .el-table__body tr {
-    background-color: white;
-
-    td {
-      border-top: 1px solid rgba(0, 0, 0, 0.04);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-    }
-  }
-}
-
-
-:deep(.el-checkbox__inner) {
-  background-color: #ffffff !important;
-  border-color: #cccccc !important;
-}
-
-:deep(.el-checkbox__inner:hover) {
-  border-color: #cccccc !important;
-}
-
-:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-  background-color: #5f70f3 !important;
-  border-color: #5f70f3 !important;
-}
-
-@media (min-width: 1144px) {
-  .table_bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 40px;
-  }
-
-  :deep(.transparent-table) {
-    .el-table__body tr {
-      td {
-        padding-top: 16px;
-        padding-bottom: 16px;
-      }
-
-      &+tr {
-        margin-top: 10px;
-      }
-    }
-  }
-}
-
-:deep(.el-table .el-button--text) {
-  color: #7079aa;
-}
-
-:deep(.el-table .el-button--text:hover) {
-  color: #5a64b5;
-}
-
-.el-button--success {
-  background: #5bc98c;
-  color: white;
-}
-
-:deep(.el-table .cell) {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.page-size-select {
-  width: 100px;
-  margin-right: 10px;
-
-  :deep(.el-input__inner) {
-    height: 32px;
-    line-height: 32px;
-    border-radius: 4px;
-    border: 1px solid #e4e7ed;
-    background: #dee7ff;
-    color: #606266;
-    font-size: 14px;
-  }
-
-  :deep(.el-input__suffix) {
-    right: 6px;
-    width: 15px;
-    height: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    top: 6px;
-    border-radius: 4px;
-  }
-
-  :deep(.el-input__suffix-inner) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-  }
-
-  :deep(.el-icon-arrow-up:before) {
-    content: "";
-    display: inline-block;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 9px solid #606266;
-    position: relative;
-    transform: rotate(0deg);
-    transition: transform 0.3s;
-  }
-}
-
-:deep(.el-table) {
-  .el-table__body-wrapper {
-    transition: height 0.3s ease;
-  }
-}
-
-.el-table {
-  --table-max-height: calc(100vh - 40vh);
-  max-height: var(--table-max-height);
-
-  .el-table__body-wrapper {
-    max-height: calc(var(--table-max-height) - 40px);
-  }
-}
-
-:deep(.el-loading-mask) {
-  background-color: rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(2px);
-}
-
-:deep(.el-loading-spinner .circular) {
-  width: 28px;
-  height: 28px;
-}
-
-:deep(.el-loading-spinner .path) {
-  stroke: #6b8cff;
-}
-
-:deep(.el-loading-text) {
-  color: #6b8cff !important;
-  font-size: 14px;
-  margin-top: 8px;
 }
 
 .field-item {
@@ -848,27 +505,5 @@ export default {
 
 :deep(.el-table .el-button--text:hover) {
   color: #5a64b5;
-}
-
-/* Ensure selection column header style is correct */
-.custom-selection-header {
-  position: relative;
-}
-
-:deep(.custom-selection-header .el-checkbox) {
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-}
-
-:deep(.custom-selection-header .el-checkbox__label) {
-  position: relative;
-  white-space: nowrap;
-}
-
-:deep(.custom-selection-cell) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>

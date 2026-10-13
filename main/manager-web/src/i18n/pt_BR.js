@@ -525,6 +525,7 @@ export default {
   'message.error': 'Falha na Operação',
   'message.warning': 'Aviso',
   'message.info': 'Informação',
+  'message.searchFailed': 'Falha na pesquisa, tente novamente',
 
   // Cache
   'cache.viewer': 'Visualizador de Cache',
@@ -702,6 +703,9 @@ export default {
   'common.updateSuccess': 'Atualizado com Sucesso',
   'common.addSuccess': 'Adicionado com Sucesso',
   'common.deleteSuccess': 'Excluído com Sucesso',
+  'common.noData': 'Sem dados',
+  'common.addFailure': 'Falha ao adicionar',
+  'common.updateFailure': 'Falha ao atualizar',
   'common.deleteFailure': 'Falha ao Excluir. Por Favor, Tente Novamente',
   'common.deleteCancelled': 'Exclusão Cancelada',
   'common.warning': 'Aviso',

@@ -1,5 +1,14 @@
 <template>
-  <el-dialog :title="title" :visible.sync="dialogVisible" :close-on-click-modal="false" @close="handleClose" @open="handleOpen">
+  <CustomDialog
+    :title="title"
+    :visible.sync="dialogVisible"
+    :close-on-click-modal="false"
+    :confirm-loading="saving"
+    @confirm="handleSubmit"
+    @cancel="handleCancel"
+    @close="handleClose"
+    @open="handleOpen"
+  >
     <el-form ref="form" :model="form" :rules="rules" label-width="auto">
       <el-form-item :label="$t('firmwareDialog.firmwareName')" prop="firmwareName">
         <el-input v-model="form.firmwareName" :placeholder="$t('firmwareDialog.firmwareNamePlaceholder')" />
@@ -62,6 +71,7 @@ export default {
 
   data() {
     return {
+      dialogVisible: this.visible,
       uploadProgress: 0,
       uploadStatus: '',
       isUploading: false,

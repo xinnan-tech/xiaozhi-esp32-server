@@ -525,6 +525,7 @@ export default {
   'message.error': 'Operation fehlgeschlagen',
   'message.warning': 'Warnung',
   'message.info': 'Information',
+  'message.searchFailed': 'Suche fehlgeschlagen, bitte erneut versuchen',
 
   // Cache related
   'cache.viewer': 'Cache-Betrachter',
@@ -702,6 +703,9 @@ export default {
   'common.updateSuccess': 'Aktualisierung erfolgreich',
   'common.addSuccess': 'Hinzufügen erfolgreich',
   'common.deleteSuccess': 'Löschen erfolgreich',
+  'common.noData': 'Keine Daten',
+  'common.addFailure': 'Hinzufügen fehlgeschlagen',
+  'common.updateFailure': 'Aktualisierung fehlgeschlagen',
   'common.deleteFailure': 'Löschen fehlgeschlagen, bitte versuchen Sie es erneut',
   'common.deleteCancelled': 'Löschen abgebrochen',
   'common.warning': 'Warnung',

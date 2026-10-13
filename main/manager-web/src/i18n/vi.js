@@ -525,6 +525,7 @@ export default {
   'message.error': 'Thao tác thất bại',
   'message.warning': 'Cảnh báo',
   'message.info': 'Thông tin',
+  'message.searchFailed': 'Tìm kiếm thất bại, vui lòng thử lại',
 
   // Cache related
   'cache.viewer': 'Trình xem cache',
@@ -702,6 +703,9 @@ export default {
   'common.updateSuccess': 'Cập nhật thành công',
   'common.addSuccess': 'Thêm thành công',
   'common.deleteSuccess': 'Xóa thành công',
+  'common.noData': 'Không có dữ liệu',
+  'common.addFailure': 'Thêm thất bại',
+  'common.updateFailure': 'Cập nhật thất bại',
   'common.deleteFailure': 'Xóa thất bại, vui lòng thử lại',
   'common.deleteCancelled': 'Đã hủy xóa',
   'common.warning': 'Cảnh báo',

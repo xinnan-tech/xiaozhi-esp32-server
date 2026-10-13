@@ -24,24 +24,7 @@
         @keyup.enter.native="confirm"
       />
     </div>
-    <div style="height: 1px;background: #e8f0ff;" />
-    <div style="margin: 22px 15px;">
-      <div style="font-weight: 400;text-align: left;color: #3d4566;">
-        <div style="color: red;display: inline-block;">*</div> {{ $t('addAgentDialog.agentName') }}：
-      </div>
-      <div class="input-46" style="margin-top: 12px;">
-        <el-input ref="inputRef" :placeholder="$t('addAgentDialog.placeholder')" v-model="wisdomBodyName" @keyup.enter.native="confirm" />
-      </div>
-    </div>
-    <div style="display: flex;margin: 15px 15px;gap: 7px;">
-      <div class="dialog-btn" @click="confirm">
-        {{ $t('addAgentDialog.confirm') }}
-      </div>
-      <div class="dialog-btn" style="background: #e6ebff;border: 1px solid #adbdff;color: #5778ff;" @click="cancel">
-        {{ $t('addAgentDialog.cancel') }}
-      </div>
-    </div>
-  </el-dialog>
+  </CustomDialog>
 </template>
 
 <script>
