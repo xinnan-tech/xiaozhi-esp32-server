@@ -112,8 +112,9 @@ export default {
       }).send()
   },
   // Get model name list
-  getModelNames(modelType, modelName, callback) {
-    RequestService.sendRequest()
+  getModelNames(modelType, modelName, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+    const retryWindowStartedAt = retryStartedAt || Date.now();
+    const request = RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/names`)
       .method('GET')
       .data({ modelType, modelName })
@@ -146,8 +147,9 @@ export default {
     request.send();
   },
   // Get LLM model name list
-  getLlmModelCodeList(modelName, callback) {
-    RequestService.sendRequest()
+  getLlmModelCodeList(modelName, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+    const retryWindowStartedAt = retryStartedAt || Date.now();
+    const request = RequestService.sendRequest()
       .url(`${getServiceUrl()}/models/llm/names`)
       .method('GET')
       .data({ modelName })
@@ -179,7 +181,8 @@ export default {
     request.send();
   },
   // Get model voice list
-  getModelVoices(modelId, voiceName, callback) {
+  getModelVoices(modelId, voiceName, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+    const retryWindowStartedAt = retryStartedAt || Date.now();
     const queryParams = new URLSearchParams({
       voiceName: voiceName || ''
     }).toString();
@@ -408,6 +411,22 @@ export default {
         this.$message.error(err.msg || 'Failed to get plugin list')
         RequestService.reAjaxFun(() => {
           this.getPluginFunctionList(params, callback)
+        })
+      }).send()
+  },
+  // Get RAG model list
+  getRAGModels(callback) {
+    RequestService.sendRequest()
+      .url(`${getServiceUrl()}/datasets/rag-models`)
+      .method('GET')
+      .success((res) => {
+        RequestService.clearRequestTime()
+        callback(res)
+      })
+      .networkFail((err) => {
+        console.error('Failed to get RAG model list:', err)
+        RequestService.reAjaxFun(() => {
+          this.getRAGModels(callback)
         })
       }).send()
   }

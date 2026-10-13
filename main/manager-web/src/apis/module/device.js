@@ -3,7 +3,7 @@ import RequestService from '../httpRequest';
 
 export default {
     // Bound devices
-    getAgentBindDevices(agentId, callback) {
+    getAgentBindDevices(agentId, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/bind/${agentId}`)
             .method('GET')
@@ -25,7 +25,7 @@ export default {
             }).send();
     },
     // Unbind device
-    unbindDevice(device_id, callback) {
+    unbindDevice(device_id, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/unbind`)
             .method('POST')
@@ -48,7 +48,7 @@ export default {
             }).send();
     },
     // Bind device
-    bindDevice(agentId, deviceCode, callback) {
+    bindDevice(agentId, deviceCode, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/bind/${agentId}/${deviceCode}`)
             .method('POST')
@@ -93,7 +93,7 @@ export default {
             }).send()
     },
     // Manually add device
-    manualAddDevice(params, callback) {
+    manualAddDevice(params, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/manual-add`)
             .method('POST')
@@ -116,7 +116,7 @@ export default {
             }).send();
     },
     // Get device status
-    getDeviceStatus(agentId, callback) {
+    getDeviceStatus(agentId, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/device/bind/${agentId}`)
             .method('POST')

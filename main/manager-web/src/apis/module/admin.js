@@ -80,7 +80,7 @@ export default {
             }).send()
     },
     // Save
-    addParam(data, callback) {
+    addParam(data, callback, failCallback) {
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/admin/params`)
             .method('POST')
@@ -91,7 +91,9 @@ export default {
             })
             .fail((err) => {
                 RequestService.clearRequestTime()
-                failCallback(err)
+                if (failCallback) {
+                    failCallback(err)
+                }
             })
             .networkFail((err) => {
                 console.error('Failed to add parameter:', err)

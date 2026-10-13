@@ -116,7 +116,93 @@ export default {
                 });
             }).send();
     },
-    // New method: Get agent template
+    // Get agent config snapshot list
+    getAgentSnapshots(agentId, params, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+        const retryWindowStartedAt = retryStartedAt || Date.now()
+        const request = RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/${agentId}/snapshots`)
+            .method('GET')
+            .data(params)
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail((error) => {
+                retryCallbackRequest(
+                    (nextRetryCount, nextRetryStartedAt) => this.getAgentSnapshots(
+                        agentId,
+                        params,
+                        callback,
+                        onTerminalFailure,
+                        nextRetryCount,
+                        nextRetryStartedAt
+                    ),
+                    retryCount,
+                    onTerminalFailure,
+                    error,
+                    retryWindowStartedAt
+                )
+            })
+        attachTerminalFailure(request, onTerminalFailure).send();
+    },
+    // Get agent config snapshot detail
+    getAgentSnapshot(agentId, snapshotId, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+        const retryWindowStartedAt = retryStartedAt || Date.now()
+        const request = RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/${agentId}/snapshots/${snapshotId}`)
+            .method('GET')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail((error) => {
+                retryCallbackRequest(
+                    (nextRetryCount, nextRetryStartedAt) => this.getAgentSnapshot(
+                        agentId,
+                        snapshotId,
+                        callback,
+                        onTerminalFailure,
+                        nextRetryCount,
+                        nextRetryStartedAt
+                    ),
+                    retryCount,
+                    onTerminalFailure,
+                    error,
+                    retryWindowStartedAt
+                )
+            })
+        attachTerminalFailure(request, onTerminalFailure).send();
+    },
+    // Restore agent config snapshot
+    restoreAgentSnapshot(agentId, snapshotId, currentStateToken, callback, onTerminalFailure) {
+        const request = RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/${agentId}/snapshots/${snapshotId}/restore`)
+            .method('POST')
+            .data({ currentStateToken })
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail((error) => {
+                terminateCallbackRequest(onTerminalFailure, error)
+            })
+        attachTerminalFailure(request, onTerminalFailure).send();
+    },
+    // Delete Agent config snapshot
+    deleteAgentSnapshot(agentId, snapshotId, callback, onTerminalFailure) {
+        const request = RequestService.sendRequest()
+            .url(`${getServiceUrl()}/agent/${agentId}/snapshots/${snapshotId}`)
+            .method('DELETE')
+            .success((res) => {
+                RequestService.clearRequestTime();
+                callback(res);
+            })
+            .networkFail((error) => {
+                terminateCallbackRequest(onTerminalFailure, error)
+            })
+        attachTerminalFailure(request, onTerminalFailure).send();
+    },
+    // New method: Get Agent template
     getAgentTemplate(callback) {  // Remove templateName parameter
         RequestService.sendRequest()
             .url(`${getServiceUrl()}/agent/template`)
@@ -459,8 +545,9 @@ export default {
                 });
             }).send();
     },
-    getAgentTags(agentId, callback) {
-        RequestService.sendRequest()
+    getAgentTags(agentId, callback, onTerminalFailure, retryCount = 0, retryStartedAt = 0) {
+        const retryWindowStartedAt = retryStartedAt || Date.now()
+        const request = RequestService.sendRequest()
             .url(`${getServiceUrl()}/agent/${agentId}/tags`)
             .method('GET')
             .success((res) => {

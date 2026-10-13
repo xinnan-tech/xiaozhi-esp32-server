@@ -180,7 +180,7 @@ export default {
           this.captchaUrl = URL.createObjectURL(blob);
 
         } else {
-          console.error('Captcha loading exception:', error);
+          console.error('Captcha loading exception:', res);
           showDanger(this.$t('register.captchaLoadFailed'));
         }
       });
