@@ -81,10 +81,6 @@ const routes = [
     name: 'ParamsManagement',
     component: function () {
       return import('../views/ParamsManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '参数管理'
     }
   },
   {
@@ -92,10 +88,6 @@ const routes = [
     name: 'KnowledgeBaseManagement',
     component: function () {
       return import('../views/KnowledgeBaseManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '知识库管理'
     }
   },
   {
@@ -103,10 +95,6 @@ const routes = [
     name: 'ServerSideManager',
     component: function () {
       return import('../views/ServerSideManager.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '服务端管理'
     }
   },
   {
@@ -114,10 +102,6 @@ const routes = [
     name: 'OtaManagement',
     component: function () {
       return import('../views/OtaManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: 'OTA管理'
     }
   },
   {
@@ -125,10 +109,6 @@ const routes = [
     name: 'VoiceResourceManagement',
     component: function () {
       return import('../views/VoiceResourceManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '音色资源开通'
     }
   },
   {
@@ -136,10 +116,6 @@ const routes = [
     name: 'VoiceCloneManagement',
     component: function () {
       return import('../views/VoiceCloneManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '音色克隆管理'
     }
   },
   {
@@ -178,10 +154,6 @@ const routes = [
     name: 'FeatureManagement',
     component: function () {
       return import('../views/FeatureManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '功能配置'
     }
   },
   // 替换词管理
@@ -190,10 +162,6 @@ const routes = [
     name: 'ReplacementWordManagement',
     component: function () {
       return import('../views/ReplacementWordManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '替换词管理'
     }
   },
   // 通讯录管理页面路由
@@ -202,10 +170,6 @@ const routes = [
     name: 'AddressBookManagement',
     component: function () {
       return import('../views/AddressBookManagement.vue')
-    },
-    meta: {
-      requiresAuth: true,
-      title: '通讯录管理'
     }
   },
 ]
@@ -228,21 +192,27 @@ VueRouter.prototype.push = function push(location) {
   })
 }
 
-// 需要登录才能访问的路由
-const protectedRoutes = ['home', 'RoleConfig', 'DeviceManagement', 'UserManagement', 'ModelConfig', 'KnowledgeBaseManagement', 'KnowledgeFileUpload', 'AddressBookManagement']
+// 匿名可访问的路由白名单
+const anonRouteNames = new Set(['login', 'Register', 'RetrievePassword', 'welcome'])
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  // 检查是否是需要保护的路由
-  if (protectedRoutes.includes(to.name)) {
-    // 从localStorage获取token
-    const token = localStorage.getItem('token')
-    if (!token) {
-      // 未登录，跳转到登录页
-      next({ name: 'login', query: { redirect: to.fullPath } })
-      return
-    }
+  const token = localStorage.getItem('token');
+  const isAnonRoute = anonRouteNames.has(to.name);
+
+  if (isAnonRoute && token) {
+    next({ name: 'home', replace: true })
+    return
   }
+
+  if (!isAnonRoute && !token) {
+    next({
+      name: 'login',
+      replace: true
+    })
+    return
+  }
+
   next()
 })
 
