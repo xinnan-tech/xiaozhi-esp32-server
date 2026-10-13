@@ -61,6 +61,10 @@ async def startToChat(conn: "ConnectionHandler", text):
                     actual_text = text
                 else:
                     actual_text = actual_content
+            elif "content" in data:
+                # FunASR 等返回 {"content","language","emotion"}：只把识别正文交给 LLM，
+                # 否则整段 JSON 会进入对话历史
+                actual_text = str(data["content"])
     except (json.JSONDecodeError, KeyError):
         # 如果解析失败，继续使用原始文本
         pass
