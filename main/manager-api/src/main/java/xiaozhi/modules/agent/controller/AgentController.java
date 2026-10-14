@@ -350,4 +350,14 @@ public class AgentController {
         return new Result<Void>().ok(null);
     }
 
+
+    @PutMapping("/{id}/clear-memory")
+    @Operation(summary = "Limpar a memória do agente inteligente (chamada pelo serviço do sistema)")
+    public Result<Void> clearAgentMemory(@PathVariable("id") String id) {
+        AgentUpdateDTO dto = new AgentUpdateDTO();
+        dto.setSummaryMemory("");
+        agentService.updateAgentById(id, dto);
+        return new Result<Void>().ok(null);
+    }
+
 }

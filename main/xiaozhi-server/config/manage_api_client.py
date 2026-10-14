@@ -291,7 +291,14 @@ async def report(
             ),
         },
     )
-
+    
+@api_guard("Limpar memória do agente falhou")
+async def clear_agent_memory(instance, agent_id: str) -> Optional[Dict]:
+    """Limpa a memória resumida do agente no Java via rota de serviço"""
+    return await instance._execute_async_request(
+        "PUT",
+        f"/agent/{agent_id}/clear-memory",
+    )
 
 @api_guard("通讯录查找失败")
 async def lookup_address_book(instance, caller_mac: str, nickname: str) -> Optional[Dict]:

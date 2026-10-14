@@ -5,8 +5,6 @@ from config.config_loader import read_config, get_project_dir, load_config
 
 # Carrega as variáveis do arquivo .env para o ambiente Python
 load_dotenv()
-XIAOZHI_BASE_URL = os.getenv("XIAOZHI_BASE_URL", "http://host.docker.internal:8002/xiaozhi")
-XIAOZHI_USER_TOKEN = os.getenv("XIAOZHI_USER_TOKEN", "")
 DEFAULT_AGENT_ID = os.getenv("DEFAULT_AGENT_ID", "a69fbf960e9840f09a2ba12dd3ff4c15")
 
 default_config_file = "config.yaml"

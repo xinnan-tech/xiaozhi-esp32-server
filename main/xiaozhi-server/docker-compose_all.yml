@@ -1,35 +1,40 @@
-# Docker安装全模块
+# Docker installation with all modules
 
 version: '3'
 services:
-  # Server模块
+  # Server module
   xiaozhi-esp32-server:
-    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+    build:
+      context: ../../
+      dockerfile: Dockerfile-server
     container_name: xiaozhi-esp32-server
-    depends_on:
-      - xiaozhi-esp32-server-db
-      - xiaozhi-esp32-server-redis
     restart: always
-    networks:
-      - default
-    ports:
-      # ws服务端
-      - "8000:8000"
-      # http服务的端口，用于视觉分析接口
-      - "8003:8003"
     security_opt:
       - seccomp:unconfined
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     environment:
-      - TZ=Asia/Shanghai
+      - VOICE_PRINT_URL=http://192.168.1.178:8005/voiceprint/health?key=39fd8c01-c868-4197-8308-f91893864d6a
+      - TZ=America/Sao_Paulo
+    ports:
+      - "8000:8000"
+      - "8003:8003"
     volumes:
-      # 配置文件目录
+      # Persistent data files and large model files only:
       - ./data:/opt/xiaozhi-esp32-server/data
-      # 模型文件挂接，很重要
       - ./models/SenseVoiceSmall/model.pt:/opt/xiaozhi-esp32-server/models/SenseVoiceSmall/model.pt
 
-  # manager-api和manager-web模块
+      # (Optional) Allows real-time plugin editing without rebuilding the image after each change:
+      - ./plugins_func:/opt/xiaozhi-esp32-server/plugins_func
+
+  # Manager API and Manager Web
   xiaozhi-esp32-server-web:
-    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
+    build:
+      context: ../../                  # Project root directory (containing the 'main' and 'docs' directories)
+      dockerfile: Dockerfile-web      # Dockerfile name (if located in the root directory) or relative path, e.g., docs/docker/Dockerfile
     container_name: xiaozhi-esp32-server-web
     restart: always
     networks:
@@ -40,20 +45,19 @@ services:
       xiaozhi-esp32-server-redis:
         condition: service_healthy
     ports:
-      # 智控台
       - "8002:8002"
     environment:
-      - TZ=Asia/Shanghai
-      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://xiaozhi-esp32-server-db:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&connectTimeout=30000&socketTimeout=30000&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
+      - TZ=America/Sao_Paulo
+      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://xiaozhi-esp32-server-db:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Sao_Paulo&nullCatalogMeansCurrent=true&connectTimeout=30000&socketTimeout=30000&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
       - SPRING_DATASOURCE_DRUID_USERNAME=root
       - SPRING_DATASOURCE_DRUID_PASSWORD=123456
       - SPRING_DATA_REDIS_HOST=xiaozhi-esp32-server-redis
       - SPRING_DATA_REDIS_PASSWORD=
       - SPRING_DATA_REDIS_PORT=6379
     volumes:
-      # 配置文件目录
       - ./uploadfile:/uploadfile
-  # 数据库模块
+
+  # Database module
   xiaozhi-esp32-server-db:
     image: mysql:latest
     container_name: xiaozhi-esp32-server-db
@@ -65,16 +69,17 @@ services:
     restart: always
     networks:
       - default
-    expose:
-      - 3306
+    ports:
+      - "3306:3306"
     volumes:
       - ./mysql/data:/var/lib/mysql
     environment:
-      - TZ=Asia/Shanghai
+      - TZ=America/Sao_Paulo
       - MYSQL_ROOT_PASSWORD=123456
       - MYSQL_DATABASE=xiaozhi_esp32_server
       - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
-  # redis模块
+
+  # Redis module
   xiaozhi-esp32-server-redis:
     image: redis:8.0
     expose:
@@ -88,5 +93,6 @@ services:
       retries: 3
     networks:
       - default
+
 networks:
   default:
