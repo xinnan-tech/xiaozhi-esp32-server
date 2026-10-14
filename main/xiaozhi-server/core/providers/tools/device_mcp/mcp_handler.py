@@ -148,9 +148,8 @@ async def handle_mcp_message(
                     f"客户端MCP服务器信息: name={name}, version={version}"
                 )
 
-            await asyncio.sleep(1)
-            logger.bind(tag=TAG).debug("初始化完成，开始请求MCP工具列表")
-            await send_mcp_tools_list_request(conn)
+            # helloHandle 握手初期已并发预发 tools/list；此处再补一次作为兜底，client 收到两次也能正常处理
+            asyncio.create_task(send_mcp_tools_list_request(conn))
 
             return
 
