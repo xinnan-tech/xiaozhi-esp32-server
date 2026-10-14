@@ -4,6 +4,7 @@ import json
 import copy
 import wave
 import socket
+import sys
 import asyncio
 import requests
 import subprocess
@@ -12,7 +13,24 @@ import opuslib_next
 from io import BytesIO
 from core.utils import p3
 from pydub import AudioSegment
+import pydub.utils as _pdu
 from typing import Callable, Any
+
+# pydub 调 ffprobe / ffmpeg 是按 PATH 找第一个，但 PATH 里常被 IDE（Trae CN
+# 等）注入的精简版占位（不认 mp3 demuxer、没 cache 协议），导致解析 mp3
+# 字节流时 ffprobe 报 "Protocol not found"、stdout 空，pydub json.loads("")
+# 抛 JSONDecodeError，错误冒到 base.py 5-retry except 报"语音生成失败"。
+# 这里把 pydub 的 prober / encoder 显式绑到当前 Python 解释器同目录的
+# ffprobe / ffmpeg（conda env / 系统 venv 配套的完整版），不依赖 PATH 顺序；
+# 探测不到时优雅降级到 pydub 默认行为。
+_bin_dir = os.path.dirname(sys.executable)
+_conda_ffprobe = os.path.join(_bin_dir, "ffprobe")
+_conda_ffmpeg = os.path.join(_bin_dir, "ffmpeg")
+if os.path.isfile(_conda_ffprobe):
+    _pdu.get_prober_name = lambda: _conda_ffprobe
+    setattr(AudioSegment, "converter", _conda_ffmpeg)
+if os.path.isfile(_conda_ffmpeg):
+    _pdu.get_encoder_name = lambda: _conda_ffmpeg
 
 TAG = __name__
 
