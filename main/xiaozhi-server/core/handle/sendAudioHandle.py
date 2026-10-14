@@ -15,7 +15,7 @@ TAG = __name__
 # 音频帧时长（毫秒）
 AUDIO_FRAME_DURATION = 60
 # 预缓冲包数量，直接发送以减少延迟
-PRE_BUFFER_COUNT = 5
+PRE_BUFFER_COUNT = 2
 
 
 async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text, sentence_id=None):

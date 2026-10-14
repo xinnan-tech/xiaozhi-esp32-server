@@ -13,7 +13,11 @@ from core.providers.tts.dto.dto import SentenceType
 from core.utils.wakeup_word import WakeupWordsConfig
 from core.handle.sendAudioHandle import sendAudioMessage, send_tts_message
 from core.utils.util import remove_punctuation_and_length, opus_datas_to_wav_bytes
-from core.providers.tools.device_mcp import MCPClient, send_mcp_initialize_message
+from core.providers.tools.device_mcp import (
+    MCPClient,
+    send_mcp_initialize_message,
+    send_mcp_tools_list_request,
+)
 
 TAG = __name__
 
@@ -63,6 +67,8 @@ async def handleHelloMessage(conn: "ConnectionHandler", msg_json):
     # The device waits for the server hello before processing MCP messages.
     if features and features.get("mcp"):
         asyncio.create_task(send_mcp_initialize_message(conn))
+        # 并发预发 tools/list，让帧排在 audio 流之前到达 client
+        asyncio.create_task(send_mcp_tools_list_request(conn))
 
 
 async def checkWakeupWords(conn: "ConnectionHandler", text):
@@ -105,7 +111,7 @@ async def checkWakeupWords(conn: "ConnectionHandler", text):
         }
 
     # 获取音频数据
-    opus_packets = await audio_to_data(response.get("file_path"), use_cache=False)
+    opus_packets = await audio_to_data(response.get("file_path"), use_cache=True)
     # 播放唤醒词回复
     conn.client_abort = False
 
@@ -159,3 +165,22 @@ async def wakeupWordsResponse(conn: "ConnectionHandler"):
         # 确保在任何情况下都释放锁
         if _wakeup_response_lock.locked():
             _wakeup_response_lock.release()
+
+
+async def preheat_wakeup_audio_cache():
+    """进程启动时预热唤醒词音频编码缓存
+
+    把 wakeup_words/{voice}.wav 在 Opus 编码结果一次性算好塞进全局 cache，
+    后续每条连接上来就能直接命中，省掉 wav→PCM→Opus 的数百毫秒开销。
+    """
+    try:
+        file_path = "config/assets/wakeup_words_short.wav"
+        try:
+            response = wakeup_words_config.get_wakeup_response("default")
+            if response and response.get("file_path"):
+                file_path = response["file_path"]
+        except Exception:
+            pass
+        await audio_to_data(file_path, use_cache=True)
+    except Exception:
+        pass
