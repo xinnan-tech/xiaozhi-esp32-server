@@ -497,6 +497,9 @@ class TTSProviderBase(ABC):
         ("［", "］"),
         ("[", "]"),
     )
+    # 注意：“（U+201C）有双重语义：中文里是开引号（对应 ”），
+    # 德语 „…“ 里是闭引号；二者冲突时计数法无法兼顾，
+    # 德语句子的切分只能靠“不平衡就顺延”保守处理（最终由 flush 兜底）。
     _CLOSERS = '」』”》）"»“】〉］]'
     _QUOTE_CHARS = "".join(ch for pair in _QUOTE_PAIRS for ch in pair)
 

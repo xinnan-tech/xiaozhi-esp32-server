@@ -4,6 +4,8 @@ import pytest
 from core.providers.tts.base import TTSProviderBase
 
 
+# 最小 stub：仅需满足抽象方法实例化要求；object.__new__ 会绕过
+# abstractmethod 检查，若基类新增抽象方法这里不会自动报错，属预期（测试不调用）
 class _TTS(TTSProviderBase):
     async def text_to_speak(self, text, output_file):
         return None
@@ -73,9 +75,14 @@ def test_guillemets_are_not_split(step):
 
 @pytest.mark.parametrize("step", [1, 4])
 def test_german_low9_quotes_stay_whole(step):
-    # „…“ 的闭合符 “ 是中文引号的开引号，整句在 stop flush 时输出
+    # „…“ 的闭合符 “ 是中文引号的开引号：“ 总被 (“”, ””) 对计为 opener，
+    # 故 „…“ 闭合后依然判不平衡，无论后续有无句末标点（实测），
+    # 德语只能整句 stop flush —— 这是字符冲突下的保守预期，非缺陷
     text = "Er sagte " + _GOPEN + "Hallo!" + _GCLOSE + " und ging."
     assert _segments(text, step) == [text]
+    # 闭合 + 中文句号同样整句 flush：正路径因 “ 双重语义不可达
+    text2 = "Er sagte " + _GOPEN + "Hallo!" + _GCLOSE + "。Dann geht er。"
+    assert _segments(text2, step) == [text2]
 
 
 @pytest.mark.parametrize("step", [1, 4])
