@@ -4,6 +4,7 @@ import uuid
 import random
 import asyncio
 from typing import TYPE_CHECKING
+from config.logger import setup_logging
 
 if TYPE_CHECKING:
     from core.connection import ConnectionHandler
@@ -20,6 +21,7 @@ from core.providers.tools.device_mcp import (
 )
 
 TAG = __name__
+_wakeup_logger = setup_logging()
 
 WAKEUP_CONFIG = {
     "refresh_time": 10,
@@ -173,14 +175,17 @@ async def preheat_wakeup_audio_cache():
     把 wakeup_words/{voice}.wav 在 Opus 编码结果一次性算好塞进全局 cache，
     后续每条连接上来就能直接命中，省掉 wav→PCM→Opus 的数百毫秒开销。
     """
-    try:
-        file_path = "config/assets/wakeup_words_short.wav"
+    # 进程启动时 tts 还未初始化，无法拿到 conn.tts.voice，按常见 fallback 列表预热
+    preheat_voices = ["default", "female-shaonv", "male-qn-jingying"]
+    fallback_path = "config/assets/wakeup_words_short.wav"
+    for voice in preheat_voices:
+        file_path = fallback_path
         try:
-            response = wakeup_words_config.get_wakeup_response("default")
+            response = wakeup_words_config.get_wakeup_response(voice)
             if response and response.get("file_path"):
                 file_path = response["file_path"]
-        except Exception:
-            pass
-        await audio_to_data(file_path, use_cache=True)
-    except Exception:
-        pass
+            await audio_to_data(file_path, use_cache=True)
+        except Exception as e:
+            _wakeup_logger.bind(tag=TAG).warning(
+                f"预热 voice={voice} 失败: {e}"
+            )

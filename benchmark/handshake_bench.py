@@ -245,18 +245,29 @@ def run_one(url, run_idx, args, headers_extra=None):
     }
 
 
+def _percentile(vals, q):
+    """线性插值百分位（与 numpy 默认 method 一致）。"""
+    s = sorted(vals)
+    n = len(s)
+    if n == 0:
+        return None
+    if n == 1:
+        return s[0]
+    k = (n - 1) * q
+    f = int(k)
+    c = min(f + 1, n - 1)
+    if f == c:
+        return s[f]
+    return s[f] + (k - f) * (s[c] - s[f])
+
+
 def summarize(name, vals):
     vals = [v for v in vals if v is not None]
     if not vals:
         print(f"  {name}: no samples")
         return
-    vals_sorted = sorted(vals)
-    p50 = statistics.median(vals)
-    p95 = (
-        vals_sorted[max(0, int(0.95 * (len(vals_sorted) - 1)))]
-        if len(vals_sorted) >= 2
-        else vals_sorted[0]
-    )
+    p50 = _percentile(vals, 0.5)
+    p95 = _percentile(vals, 0.95)
     print(
         f"  {name}: n={len(vals)} min={min(vals):.0f} "
         f"p50={p50:.0f} p95={p95:.0f} max={max(vals):.0f} ms"
