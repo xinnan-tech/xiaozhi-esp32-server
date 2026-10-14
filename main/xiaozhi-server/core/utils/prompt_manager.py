@@ -253,6 +253,13 @@ class PromptManager:
         if not self.base_prompt_template:
             return user_prompt
 
+        device_cache_key = f"device_prompt:{device_id}"
+        cached_prompt = self.cache_manager.get(
+            self.CacheType.DEVICE_PROMPT, device_cache_key
+        )
+        if cached_prompt is not None:
+            return cached_prompt
+
         try:
             # 获取最新的时间信息（不缓存）
             today_date, today_weekday, lunar_date = self._get_current_time_info()
@@ -305,7 +312,7 @@ class PromptManager:
             self.cache_manager.set(
                 self.CacheType.DEVICE_PROMPT, device_cache_key, enhanced_prompt
             )
-            self.logger.bind(tag=TAG).info(
+            self.logger.bind(tag=TAG).debug(
                 f"构建增强提示词成功，长度: {len(enhanced_prompt)}"
             )
             return enhanced_prompt
