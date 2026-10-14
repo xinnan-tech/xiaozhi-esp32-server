@@ -1,0 +1,40 @@
+# Handshake bench (async drain 版) — 10 runs against ws://localhost:18000/xiaozhi/v1/
+
+# 方案 §1+§2+§3+§4+§5+§C 实施后
+
+--- run 1/10 ---
+  hello→first_audio: 369 ms | hello→tools_ready: 218 ms
+
+--- run 2/10 ---
+  hello→first_audio: 234 ms | hello→tools_ready: 222 ms
+
+--- run 3/10 ---
+  hello→first_audio: 228 ms | hello→tools_ready: 216 ms
+
+--- run 4/10 ---
+  hello→first_audio: 221 ms | hello→tools_ready: 212 ms
+
+--- run 5/10 ---
+  hello→first_audio: 245 ms | hello→tools_ready: 235 ms
+
+--- run 6/10 ---
+  hello→first_audio: 231 ms | hello→tools_ready: 216 ms
+
+--- run 7/10 ---
+  hello→first_audio: 234 ms | hello→tools_ready: 221 ms
+
+--- run 8/10 ---
+  hello→first_audio: 253 ms | hello→tools_ready: 240 ms
+
+--- run 9/10 ---
+  hello→first_audio: 245 ms | hello→tools_ready: 234 ms
+
+--- run 10/10 ---
+  hello→first_audio: 227 ms | hello→tools_ready: 215 ms
+
+## Summary
+  t_hello_to_first_audio_ms: n=10 min=221 p50=234 p95=253 max=369 ms
+  t_hello_to_tools_ready_ms: n=10 min=212 p50=219 p95=235 max=240 ms
+
+# 砍幅 vs baseline (ts02 p50=4019ms)：3800ms（-94.6%）
+# 目标 ≤1500ms：达成（219ms 远低于目标）
