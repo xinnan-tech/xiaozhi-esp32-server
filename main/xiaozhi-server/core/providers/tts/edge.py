@@ -45,26 +45,31 @@ def _install_metadata_patch():
       2. wrapper 仅吞 JSONDecodeError / UnicodeDecodeError；
          真协议错误冒泡给 base.py 重试
       3. 连续坏帧超 _METADATA_FALLBACK_COUNT 主动 raise NoAudioReceived
-      4. reload guard：再次执行时若当前类方法已是本模块 _wrapper 直接 return，
-         避免 importlib.reload / uvicorn --reload 场景下 wrapper 套 wrapper
-         导致 original 指向旧 wrapper，坏帧计数累加倍增
-      5. partial_text 变更时 reset 计数：长文本 stream() 内分多段
-         metadata 帧属正常现象，跨段不应累计
+      4. reload guard：再次执行时若当前类方法已是本模块 _wrapper 直接
+         return，避免 importlib.reload / uvicorn --reload 场景下 wrapper
+         套 wrapper 导致 original 指向旧 wrapper，坏帧计数累加倍增
+      5. reload 解套：再次安装时若 current 是上一次 wrapper（W1），
+         把新 wrapper 的 __wrapped__ 设为 W1.__wrapped__，跳过 W1 直接
+         调原方法，不让 fake metadata_ignored 帧在 success 路径上误触发
+         partial_text 变更重置
+      6. success 路径 reset 前判 result["type"] != "metadata_ignored"，
+         排除 wrapper 自己产出的 fake 帧
     """
     cls = edge_tts.communicate.Communicate
     current = cls.__dict__.get(_PARSED_METADATA_ATTR)
     if current is _metadata_wrapper:
         return
-    if _metadata_wrapper.__wrapped__ is not None and current is _metadata_wrapper.__wrapped__:
-        pass
-    elif current is None:
+    if current is None:
         logger.bind(tag=TAG).error(
             "edge-tts Communicate.{} 不存在，metadata patch 失效，"
             "升级 edge_tts 后清掉这段兜底",
             _PARSED_METADATA_ATTR,
         )
         return
-    _metadata_wrapper.__wrapped__ = current
+    # reload 解套：若 current 已是上一次的 wrapper，__wrapped__ 沿链追到底
+    underlying = getattr(current, "__wrapped__", None)
+    target = underlying if underlying is not None else current
+    _metadata_wrapper.__wrapped__ = target
     setattr(cls, _PARSED_METADATA_ATTR, _metadata_wrapper)
     logger.bind(tag=TAG).info(
         "edge-tts Communicate.{} patch 安装成功", _PARSED_METADATA_ATTR
@@ -96,11 +101,14 @@ def _make_metadata_wrapper():
                 "duration": 0,
                 "text": "",
             }
-        # 成功路径：partial_text 变更时 reset 计数，避免长文本跨段累加
-        partial = result.get("text") if isinstance(result, dict) else None
-        if partial is not None and self.state.get(_LAST_PARTIAL_TEXT_KEY) != partial:
-            self.state[_LAST_PARTIAL_TEXT_KEY] = partial
-            self.state["bad_metadata_count"] = 0
+        # 成功路径：partial_text 变更时 reset 计数。
+        # 跳过 wrapper 自己产出的 metadata_ignored fake 帧，避免内部假信号
+        # 误把计数清零，让 NoAudioReceived 永远到不了阈值。
+        if not (isinstance(result, dict) and result.get("type") == "metadata_ignored"):
+            partial = result.get("text") if isinstance(result, dict) else None
+            if partial is not None and self.state.get(_LAST_PARTIAL_TEXT_KEY) != partial:
+                self.state[_LAST_PARTIAL_TEXT_KEY] = partial
+                self.state["bad_metadata_count"] = 0
         return result
 
     _metadata_wrapper.__wrapped__ = None
