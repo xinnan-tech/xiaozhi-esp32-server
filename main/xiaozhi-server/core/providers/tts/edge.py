@@ -1,23 +1,8 @@
 import os
 import uuid
 import edge_tts
-import edge_tts.communicate  # 显式 import，下方要给本模块的 WSS_URL 重新赋值
 from datetime import datetime
 from core.providers.tts.base import TTSProviderBase
-
-# 微软 2026-10 起对 legacy 消费者接口返回 403，edge-tts 7.2.8 仍走
-# speech.platform.bing.com 走不通。上游 PR rany2/edge-tts#491 切到
-# api.msedgeservices.com 修好，但 7.2.8 仍是 PyPI 最新版本，临时把 WSS_URL 顶住。
-# TODO(7.2.9): 升 edge-tts ≥ 7.2.9 后删掉这段 monkey patch。
-_NEW_WSS_URL = (
-    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
-    f"?Ocp-Apim-Subscription-Key={edge_tts.constants.TRUSTED_CLIENT_TOKEN}"
-)
-# communicate.py 第 35 行 `from .constants import WSS_URL` 会在 import 时把
-# WSS_URL 复制成本模块局部名，只改 edge_tts.constants.WSS_URL 不会生效。
-# __stream() 走 LEGB 找的是 edge_tts.communicate.WSS_URL，所以这里两个都要改。
-edge_tts.constants.WSS_URL = _NEW_WSS_URL
-edge_tts.communicate.WSS_URL = _NEW_WSS_URL
 
 
 class TTSProvider(TTSProviderBase):
