@@ -15,12 +15,12 @@ openai==2.8.1
 google-generativeai==0.8.5
 edge_tts==7.3.1
 httpx==0.28.1
-aiohttp==3.13.2
+aiohttp==3.14.5
 aiohttp_cors==0.8.1
 ormsgpack==1.12.0
 ruamel.yaml==0.18.16
 loguru==0.7.3
-requests==2.32.5
+requests==2.34.2
 cozepy==0.20.0
 mem0ai==1.0.0
 powermem>=0.3.1
