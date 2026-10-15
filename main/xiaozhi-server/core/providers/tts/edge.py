@@ -12,6 +12,17 @@ from core.providers.tts.base import TTSProviderBase
 TAG = __name__
 logger = setup_logging()
 
+# 微软 2026-10 起对 legacy 消费者接口返回 403，edge-tts 7.3.1 仍走
+# speech.platform.bing.com 走不通。临时把 WSS_URL 切到
+# api.msedgeservices.com；升级到上游 PR rany2/edge-tts#491 合并后的版本
+# 可删掉这段 monkey patch。
+_NEW_WSS_URL = (
+    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
+    f"?Ocp-Apim-Subscription-Key={edge_tts.constants.TRUSTED_CLIENT_TOKEN}"
+)
+edge_tts.constants.WSS_URL = _NEW_WSS_URL
+edge_tts.communicate.WSS_URL = _NEW_WSS_URL
+
 # edge_tts 7.3.1 在 ws 返回坏 metadata 帧（非 JSON 或非 utf-8 bytes）时，
 # 父类 __parse_metadata 调 json.loads 抛 JSONDecodeError / UnicodeDecodeError；
 # stream() 的音频收帧循环被中断，听不到声音。
@@ -24,7 +35,7 @@ logger = setup_logging()
 #
 # Communicate 类内 `__parse_metadata` 写法在类外访问必须用 mangled 名
 # `_Communicate__parse_metadata`；直接用 `"__parse_metadata"` 字面访问永远拿不到。
-_METADATA_FALLBACK_COUNT = 5
+_METADATA_FALLBACK_COUNT = 10
 _PARSED_METADATA_ATTR = "_Communicate__parse_metadata"
 
 
