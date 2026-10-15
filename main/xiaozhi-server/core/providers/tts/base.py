@@ -130,6 +130,7 @@ class TTSProviderBase(ABC):
         if self._correct_words_pattern:
             text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], text)
         max_repeat_time = 5
+        success = False
         if self.delete_audio_file:
             # 需要删除文件的直接转为音频数据
             while max_repeat_time > 0:
@@ -146,6 +147,7 @@ class TTSProviderBase(ABC):
                             sample_rate=self.conn.sample_rate,
                             opus_encoder=self.opus_encoder,
                         )
+                        success = True
                         break
                     else:
                         max_repeat_time -= 1
@@ -154,13 +156,16 @@ class TTSProviderBase(ABC):
                         f"语音生成失败{5 - max_repeat_time + 1}次: {original_text}，错误: {e}"
                     )
                     max_repeat_time -= 1
-            if max_repeat_time > 0:
+            if success:
                 logger.bind(tag=TAG).info(
                     f"语音生成成功: {original_text}，重试{5 - max_repeat_time}次"
                 )
             else:
+                # 区分异常失败和"无异常但 audio_bytes 空"两种情况：
+                # 后者常见于网络到上游 ws 服务不通、stream() 内没收到 audio 帧
                 logger.bind(tag=TAG).error(
-                    f"语音生成失败: {original_text}，请检查网络或服务是否正常"
+                    f"语音生成失败: {original_text}，重试 {5} 次未产出音频，"
+                    "请检查网络或上游 TTS 服务"
                 )
             return None
         else:
@@ -199,6 +204,7 @@ class TTSProviderBase(ABC):
         if self._correct_words_pattern:
             text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], text)
         max_repeat_time = 5
+        success = False
         if self.delete_audio_file:
             # 需要删除文件的直接转为音频数据
             while max_repeat_time > 0:
@@ -213,6 +219,7 @@ class TTSProviderBase(ABC):
                             callback=lambda data: audio_datas.append(data),
                             sample_rate=self.conn.sample_rate,
                         )
+                        success = True
                         return audio_datas
                     else:
                         max_repeat_time -= 1
@@ -221,13 +228,14 @@ class TTSProviderBase(ABC):
                         f"语音生成失败{5 - max_repeat_time + 1}次: {original_text}，错误: {e}"
                     )
                     max_repeat_time -= 1
-            if max_repeat_time > 0:
+            if success:
                 logger.bind(tag=TAG).info(
                     f"语音生成成功: {original_text}，重试{5 - max_repeat_time}次"
                 )
             else:
                 logger.bind(tag=TAG).error(
-                    f"语音生成失败: {original_text}，请检查网络或服务是否正常"
+                    f"语音生成失败: {original_text}，重试 {5} 次未产出音频，"
+                    "请检查网络或上游 TTS 服务"
                 )
             return None
         else:
