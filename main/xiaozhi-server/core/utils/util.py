@@ -23,14 +23,30 @@ from typing import Callable, Any
 # 这里把 pydub 的 prober / encoder 显式绑到当前 Python 解释器同目录的
 # ffprobe / ffmpeg（conda env / 系统 venv 配套的完整版），不依赖 PATH 顺序；
 # 探测不到时优雅降级到 pydub 默认行为。
-_bin_dir = os.path.dirname(sys.executable)
-_conda_ffprobe = os.path.join(_bin_dir, "ffprobe")
-_conda_ffmpeg = os.path.join(_bin_dir, "ffmpeg")
-if os.path.isfile(_conda_ffprobe):
-    _pdu.get_prober_name = lambda: _conda_ffprobe
-    setattr(AudioSegment, "converter", _conda_ffmpeg)
-if os.path.isfile(_conda_ffmpeg):
-    _pdu.get_encoder_name = lambda: _conda_ffmpeg
+#
+# 注意：只覆写 pydub.utils 层的 get_prober_name / get_encoder_name（这是
+# pydub 真正查外部程序的入口），不动 AudioSegment.converter —— pydub 内部
+# 多处对 `AudioSegment.converter == "ffmpeg"` 做字符串等值比较，把 converter
+# 改成绝对路径会破坏那条分支。
+#
+# 延迟到 audio_to_data 第一次调用再注入，避免 import 期把 pydub 全局状态改
+# 坏；只读 PATH 的纯计算逻辑不依赖 pydub，import 路径完全洁净。
+_ffmpeg_paths_ready = False
+
+
+def _ensure_ffmpeg_paths():
+    global _ffmpeg_paths_ready
+    if _ffmpeg_paths_ready:
+        return
+    _ffmpeg_paths_ready = True
+    bin_dir = os.path.dirname(sys.executable)
+    ffprobe = os.path.join(bin_dir, "ffprobe")
+    ffmpeg = os.path.join(bin_dir, "ffmpeg")
+    if os.path.isfile(ffprobe):
+        _pdu.get_prober_name = lambda: ffprobe
+    if os.path.isfile(ffmpeg):
+        _pdu.get_encoder_name = lambda: ffmpeg
+
 
 TAG = __name__
 
@@ -276,6 +292,8 @@ async def audio_to_data(
     """
     from core.utils.cache.manager import cache_manager
     from core.utils.cache.config import CacheType
+
+    _ensure_ffmpeg_paths()
 
     # 生成缓存键，包含文件路径和编码类型
     cache_key = f"{audio_file_path}:{is_opus}"
