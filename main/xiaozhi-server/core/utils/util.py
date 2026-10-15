@@ -11,44 +11,39 @@ import subprocess
 import numpy as np
 import opuslib_next
 from io import BytesIO
+from contextlib import contextmanager
 from core.utils import p3
 from pydub import AudioSegment
-import pydub.utils as _pdu
 from typing import Callable, Any
 
-# pydub 调 ffprobe / ffmpeg 是按 PATH 找第一个，但 PATH 里常被 IDE（Trae CN
-# 等）注入的精简版占位（不认 mp3 demuxer、没 cache 协议），导致解析 mp3
-# 字节流时 ffprobe 报 "Protocol not found"、stdout 空，pydub json.loads("")
-# 抛 JSONDecodeError，错误冒到 base.py 5-retry except 报"语音生成失败"。
-# 这里把 pydub 的 prober / encoder 显式绑到当前 Python 解释器同目录的
-# ffprobe / ffmpeg（conda env / 系统 venv 配套的完整版），不依赖 PATH 顺序；
-# 探测不到时优雅降级到 pydub 默认行为。
-#
-# 注意：只覆写 pydub.utils 层的 get_prober_name / get_encoder_name（这是
-# pydub 真正查外部程序的入口），不动 AudioSegment.converter —— pydub 内部
-# 多处对 `AudioSegment.converter == "ffmpeg"` 做字符串等值比较，把 converter
-# 改成绝对路径会破坏那条分支。
-#
-# 延迟到 audio_to_data 第一次调用再注入，避免 import 期把 pydub 全局状态改
-# 坏；只读 PATH 的纯计算逻辑不依赖 pydub，import 路径完全洁净。
-_ffmpeg_paths_ready = False
+TAG = __name__
 
 
-def _ensure_ffmpeg_paths():
-    global _ffmpeg_paths_ready
-    if _ffmpeg_paths_ready:
+# 绕开 IDE（Trae CN 等）注入的精简版 ffmpeg/ffprobe PATH 占位：调用期间把
+# Python 解释器同目录的 bin 加到 PATH 前缀，pydub.utils.which() 会优先找到
+# conda env 自带的完整版，调用结束 try/finally 恢复原 PATH，不污染 import
+# 后的全局环境。环境变量 XIAOZHI_PYDUB_OVERRIDE_FFMPEG=0 时关闭。
+@contextmanager
+def _ffmpeg_path_override():
+    if os.environ.get("XIAOZHI_PYDUB_OVERRIDE_FFMPEG", "1") != "1":
+        yield
         return
-    _ffmpeg_paths_ready = True
     bin_dir = os.path.dirname(sys.executable)
     ffprobe = os.path.join(bin_dir, "ffprobe")
     ffmpeg = os.path.join(bin_dir, "ffmpeg")
-    if os.path.isfile(ffprobe):
-        _pdu.get_prober_name = lambda: ffprobe
-    if os.path.isfile(ffmpeg):
-        _pdu.get_encoder_name = lambda: ffmpeg
+    if not (os.path.isfile(ffprobe) or os.path.isfile(ffmpeg)):
+        yield
+        return
+    old_path = os.environ.get("PATH", "")
+    os.environ["PATH"] = bin_dir + os.pathsep + old_path
+    try:
+        yield
+    finally:
+        os.environ["PATH"] = old_path
 
 
-TAG = __name__
+# 委托给 util.ffmpeg_path_override，import util 后调用方一行就能用
+ffmpeg_path_override = _ffmpeg_path_override
 
 
 def get_local_ip():
@@ -263,21 +258,24 @@ def extract_json_from_string(input_string):
 def audio_to_data_stream(
     audio_file_path, is_opus=True, callback: Callable[[Any], Any] = None, sample_rate=16000, opus_encoder=None
 ) -> None:
-    # 获取文件后缀名
+    with _ffmpeg_path_override():
+        _audio_to_data_stream_inner(
+            audio_file_path, is_opus, callback, sample_rate, opus_encoder
+        )
+
+
+def _audio_to_data_stream_inner(
+    audio_file_path, is_opus, callback, sample_rate, opus_encoder
+):
     file_type = os.path.splitext(audio_file_path)[1]
     if file_type:
         file_type = file_type.lstrip(".")
-    # 读取音频文件，-nostdin 参数：不要从标准输入读取数据，否则FFmpeg会阻塞
+    # -nostdin：避免 ffmpeg 阻塞等 stdin
     audio = AudioSegment.from_file(
         audio_file_path, format=file_type, parameters=["-nostdin"]
     )
-
-    # 转换为单声道/指定采样率/16位小端编码（确保与编码器匹配）
     audio = audio.set_channels(1).set_frame_rate(sample_rate).set_sample_width(2)
-
-    # 获取原始PCM数据（16位小端）
-    raw_data = audio.raw_data
-    pcm_to_data_stream(raw_data, is_opus, callback, sample_rate, opus_encoder)
+    pcm_to_data_stream(audio.raw_data, is_opus, callback, sample_rate, opus_encoder)
 
 
 async def audio_to_data(
@@ -292,8 +290,6 @@ async def audio_to_data(
     """
     from core.utils.cache.manager import cache_manager
     from core.utils.cache.config import CacheType
-
-    _ensure_ffmpeg_paths()
 
     # 生成缓存键，包含文件路径和编码类型
     cache_key = f"{audio_file_path}:{is_opus}"
@@ -310,9 +306,10 @@ async def audio_to_data(
         if file_type:
             file_type = file_type.lstrip(".")
         # 读取音频文件，-nostdin 参数：不要从标准输入读取数据，否则FFmpeg会阻塞
-        audio = AudioSegment.from_file(
-            audio_file_path, format=file_type, parameters=["-nostdin"]
-        )
+        with _ffmpeg_path_override():
+            audio = AudioSegment.from_file(
+                audio_file_path, format=file_type, parameters=["-nostdin"]
+            )
 
         # 转换为单声道/16kHz采样率/16位小端编码（确保与编码器匹配）
         audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
@@ -371,9 +368,10 @@ def audio_bytes_to_data_stream(
         return p3.decode_opus_from_bytes_stream(audio_bytes, callback)
     else:
         # 其他格式用pydub
-        audio = AudioSegment.from_file(
-            BytesIO(audio_bytes), format=file_type, parameters=["-nostdin"]
-        )
+        with _ffmpeg_path_override():
+            audio = AudioSegment.from_file(
+                BytesIO(audio_bytes), format=file_type, parameters=["-nostdin"]
+            )
         audio = audio.set_channels(1).set_frame_rate(sample_rate).set_sample_width(2)
         raw_data = audio.raw_data
         pcm_to_data_stream(raw_data, is_opus, callback, sample_rate, opus_encoder)
