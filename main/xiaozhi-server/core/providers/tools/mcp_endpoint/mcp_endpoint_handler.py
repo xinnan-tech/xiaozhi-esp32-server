@@ -6,6 +6,7 @@ import re
 import websockets
 from config.logger import setup_logging
 from .mcp_endpoint_client import MCPEndpointClient
+from .mcp_speaker import build_mcp_endpoint_tool_payload
 
 TAG = __name__
 logger = setup_logging()
@@ -284,7 +285,11 @@ async def send_mcp_endpoint_tools_list_continue(
 
 
 async def call_mcp_endpoint_tool(
-    mcp_client: MCPEndpointClient, tool_name: str, args: str = "{}", timeout: int = 30
+    mcp_client: MCPEndpointClient,
+    tool_name: str,
+    args: str = "{}",
+    timeout: int = 30,
+    meta: dict = None,
 ):
     """
     调用指定的MCP接入点工具，并等待响应
@@ -350,16 +355,16 @@ async def call_mcp_endpoint_tool(
         raise e
 
     actual_name = mcp_client.name_mapping.get(tool_name, tool_name)
-    payload = {
-        "jsonrpc": "2.0",
-        "id": tool_call_id,
-        "method": "tools/call",
-        "params": {"name": actual_name, "arguments": arguments},
-    }
+    payload = build_mcp_endpoint_tool_payload(
+        tool_call_id, actual_name, arguments, meta
+    )
 
     message = json.dumps(payload)
+    log_suffix = ""
+    if meta:
+        log_suffix = f"，_meta: {json.dumps(meta, ensure_ascii=False)}"
     logger.bind(tag=TAG).info(
-        f"发送MCP接入点工具调用请求: {actual_name}，参数: {json.dumps(arguments, ensure_ascii=False)}"
+        f"发送MCP接入点工具调用请求: {actual_name}，参数: {json.dumps(arguments, ensure_ascii=False)}{log_suffix}"
     )
     await mcp_client.send_message(message)
 

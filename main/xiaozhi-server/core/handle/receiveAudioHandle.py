@@ -69,11 +69,13 @@ async def startToChat(conn: "ConnectionHandler", text):
         # 如果解析失败，继续使用原始文本
         pass
 
-    # 保存说话人信息到连接对象
+    # 保存说话人信息到连接对象。speaker_id 由声纹识别写入，这里只在没有说话人时清掉，
+    # 避免上一轮身份落到没有声纹的文本消息上。
     if speaker_name:
         conn.current_speaker = speaker_name
     else:
         conn.current_speaker = None
+        conn.current_speaker_id = None
 
     if conn.need_bind:
         await check_bind_device(conn)

@@ -3,13 +3,34 @@ import time
 import aiohttp
 import requests
 from urllib.parse import urlparse, parse_qs
-from typing import Optional, Dict
+from typing import Optional, Dict, NamedTuple
 from config.logger import setup_logging
 from core.utils.cache.manager import cache_manager
 from core.utils.cache.config import CacheType
 
 TAG = __name__
 logger = setup_logging()
+
+# 未命中声纹时沿用的展示名。下游只把这个名字交给 LLM，不把它当成真实身份。
+UNKNOWN_SPEAKER_NAME = "未知说话人"
+
+
+class SpeakerIdentification(NamedTuple):
+    """一次声纹识别结果。speaker_id 仅在命中已配置说话人时有值。"""
+
+    speaker_id: Optional[str]
+    name: Optional[str]
+
+
+def resolve_speaker_identification(
+    speaker_id, score, speaker_map, similarity_threshold
+) -> SpeakerIdentification:
+    """把声纹接口返回的 speaker_id / score 解析成展示名，并保留命中的 id。"""
+    if score < similarity_threshold:
+        return SpeakerIdentification(None, UNKNOWN_SPEAKER_NAME)
+    if speaker_id and speaker_id in speaker_map:
+        return SpeakerIdentification(speaker_id, speaker_map[speaker_id]["name"])
+    return SpeakerIdentification(None, UNKNOWN_SPEAKER_NAME)
 
 
 class VoiceprintProvider:
@@ -138,7 +159,16 @@ class VoiceprintProvider:
         return is_healthy
     
     async def identify_speaker(self, audio_data: bytes, session_id: str) -> Optional[str]:
-        """识别说话人"""
+        """识别说话人，返回展示名。需要 speaker_id 时用 identify_speaker_detail。"""
+        identified = await self.identify_speaker_detail(audio_data, session_id)
+        if identified is None:
+            return None
+        return identified.name
+
+    async def identify_speaker_detail(
+        self, audio_data: bytes, session_id: str
+    ) -> Optional[SpeakerIdentification]:
+        """识别说话人，同时返回声纹 id 和展示名。"""
         if not self.enabled or not self.api_url or not self.api_key:
             logger.bind(tag=TAG).debug("声纹识别功能已禁用或未配置，跳过识别")
             return None
@@ -171,18 +201,19 @@ class VoiceprintProvider:
                         
                         logger.bind(tag=TAG).info(f"声纹识别耗时: {total_elapsed_time:.3f}s")
                         
+                        identified = resolve_speaker_identification(
+                            speaker_id, score, self.speaker_map, self.similarity_threshold
+                        )
                         # 相似度阈值检查
                         if score < self.similarity_threshold:
                             logger.bind(tag=TAG).warning(f"声纹识别相似度{score:.3f}低于阈值{self.similarity_threshold}")
-                            return "未知说话人"
-                        
-                        if speaker_id and speaker_id in self.speaker_map:
-                            result_name = self.speaker_map[speaker_id]["name"]
-                            logger.bind(tag=TAG).info(f"声纹识别成功: {result_name} (相似度: {score:.3f})")
-                            return result_name
+                        elif identified.speaker_id:
+                            logger.bind(tag=TAG).info(
+                                f"声纹识别成功: {identified.name} (id: {identified.speaker_id}, 相似度: {score:.3f})"
+                            )
                         else:
                             logger.bind(tag=TAG).warning(f"未识别的说话人ID: {speaker_id}")
-                            return "未知说话人"
+                        return identified
                     else:
                         logger.bind(tag=TAG).error(f"声纹识别API错误: HTTP {response.status}")
                         return None
