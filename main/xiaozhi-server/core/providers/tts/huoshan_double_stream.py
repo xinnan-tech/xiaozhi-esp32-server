@@ -144,6 +144,7 @@ class TTSProvider(TTSProviderBase):
         self.ws = None
         self.interface_type = InterfaceType.DUAL_STREAM
         self._monitor_task = None  # 监听任务引用
+        self._session_start_future: asyncio.Future | None = None
         self.appId = config.get("appid")
         self.access_token = config.get("access_token")
         self.cluster = config.get("cluster")
@@ -423,6 +424,21 @@ class TTSProvider(TTSProviderBase):
             )
             await self.send_event(self.ws, header, optional, payload)
             logger.bind(tag=TAG).debug("会话启动请求已发送")
+
+            # 等 monitor 读到 SessionStarted / SessionFailed 帧，失败 / 超时让文本线程感知
+            loop = asyncio.get_event_loop()
+            self._session_start_future = loop.create_future()
+            try:
+                ok = await asyncio.wait_for(
+                    self._session_start_future, timeout=self.tts_timeout
+                )
+            finally:
+                self._session_start_future = None
+            if not ok:
+                await self.close()
+                raise RuntimeError(
+                    f"TTS 会话 {session_id} 被服务端拒绝 (SessionFailed)"
+                )
         except Exception as e:
             logger.bind(tag=TAG).error(f"启动会话失败: {str(e)}")
             # 确保清理资源
@@ -499,6 +515,16 @@ class TTSProvider(TTSProviderBase):
                     if res.optional.event == EVENT_ConnectionFinished:
                         logger.bind(tag=TAG).debug(f"链接关闭成功～～")
                         break
+
+                    # 把 SessionStarted / SessionFailed 解析结果回传给 start_session
+                    if (
+                        res.optional.event in (EVENT_SessionStarted, EVENT_SessionFailed)
+                        and res.optional.sessionId == self.conn.sentence_id
+                    ):
+                        if self._session_start_future and not self._session_start_future.done():
+                            self._session_start_future.set_result(
+                                res.optional.event == EVENT_SessionStarted
+                            )
 
                     # 只处理当前活跃会话的响应
                     if res.optional.sessionId and self.conn.sentence_id != res.optional.sessionId:
