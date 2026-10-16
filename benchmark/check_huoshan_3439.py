@@ -164,22 +164,51 @@ def test_to_tts_session_finished_flushes():
 
 
 def test_first_resets_opus_encoder():
-    """FIRST 分支调 reset_stream_state 后应再 opus_encoder.reset_state()。"""
-    p = build_provider()
-    # 验证当前代码里 FIRST 分支位置有 opus_encoder.reset_state 调用
-    src = open(
-        os.path.join(REPO, "main/xiaozhi-server/core/providers/tts/huoshan_double_stream.py")
-    ).read()
-    # 找 FIRST 分支后紧跟的 reset_state
-    import re
+    """FIRST 分支执行后 opus_encoder.reset_state() 被实际调用一次。"""
+    import queue
+    import threading
+    import time
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock, patch
 
-    m = re.search(
-        r"if message\.sentence_type == SentenceType\.FIRST:.*?self\.reset_stream_state\(\).*?self\.opus_encoder\.reset_state\(\)",
-        src,
-        re.DOTALL,
+    from core.providers.tts.dto.dto import ContentType, SentenceType
+
+    p = build_provider()
+    p.opus_encoder.reset_state.reset_mock()
+    p.reset_stream_state = MagicMock()  # mock 父类避免依赖
+    p.tts_text_queue = queue.Queue()
+    # start_session 走 mock，run_coroutine_threadsafe 替换为立刻完成
+
+    def _fake_rcts(coro, loop):
+        if asyncio.iscoroutine(coro):
+            coro.close()
+        f = asyncio.Future()
+        f.set_result(None)
+        return f
+
+    msg = SimpleNamespace(
+        sentence_type=SentenceType.FIRST,
+        content_type=ContentType.TEXT,
+        content_detail="x",
+        content_file=None,
+        sentence_id=p.conn.sentence_id,
     )
-    assert m is not None, "FIRST 分支应先 reset_stream_state 再 opus_encoder.reset_state()"
-    print("OK: FIRST 分支调 opus_encoder.reset_state() 重置跨轮残留")
+    p.tts_text_queue.put(msg)
+
+    with patch("asyncio.run_coroutine_threadsafe", side_effect=_fake_rcts):
+        t = threading.Thread(target=p.tts_text_priority_thread, daemon=True)
+        t.start()
+        time.sleep(0.3)
+        p.conn.stop_event.set()
+        t.join(timeout=2)
+
+    assert p.opus_encoder.reset_state.call_count == 1, (
+        f"FIRST 分支应调 opus_encoder.reset_state() 1 次，实际 {p.opus_encoder.reset_state.call_count}"
+    )
+    assert p.reset_stream_state.call_count == 1, (
+        f"FIRST 分支应先调 reset_stream_state() 1 次，实际 {p.reset_stream_state.call_count}"
+    )
+    print("OK: FIRST 分支调 reset_stream_state + opus_encoder.reset_state() 行为断言通过")
 
 
 def main() -> int:
