@@ -19,8 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -44,7 +42,6 @@ import xiaozhi.modules.agent.dto.AgentDTO;
 import xiaozhi.modules.agent.dto.AgentMemoryDTO;
 import xiaozhi.modules.agent.dto.AgentUpdateDTO;
 import xiaozhi.modules.agent.entity.AgentEntity;
-import xiaozhi.modules.agent.entity.AgentTemplateEntity;
 import xiaozhi.modules.agent.dto.AgentTagDTO;
 import xiaozhi.modules.agent.entity.AgentTagEntity;
 import xiaozhi.modules.agent.service.AgentTagService;
@@ -190,15 +187,6 @@ public class AgentController {
     public Result<Void> delete(@PathVariable String id) {
         agentService.deleteAgentById(id, SecurityUser.getUserId());
         return new Result<>();
-    }
-
-    @GetMapping("/template")
-    @Operation(summary = "智能体模板模板列表")
-    @RequiresPermissions("sys:role:normal")
-    public Result<List<AgentTemplateEntity>> templateList() {
-        List<AgentTemplateEntity> list = agentTemplateService
-                .list(new QueryWrapper<AgentTemplateEntity>().orderByAsc("sort"));
-        return new Result<List<AgentTemplateEntity>>().ok(list);
     }
 
     @GetMapping("/{id}/sessions")
