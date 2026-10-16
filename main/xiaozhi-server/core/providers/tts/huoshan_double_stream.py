@@ -509,11 +509,16 @@ class TTSProvider(TTSProviderBase):
 
     async def _start_monitor_tts_response(self):
         """监听TTS响应 - 长期运行"""
+        # 绑定本次任务的 ws / task 引用；清理前判 id，避免误关新连接
+        monitor_ws = self.ws
+        monitor_task = asyncio.current_task()
         try:
             while not self.conn.stop_event.is_set():
                 try:
+                    if monitor_ws is None:
+                        break
                     # 确保 `recv()` 运行在同一个 event loop
-                    msg = await self.ws.recv()
+                    msg = await monitor_ws.recv()
                     res = self.parser_response(msg)
                     self.print_response(res, "send_text res:")
 
@@ -532,12 +537,8 @@ class TTSProvider(TTSProviderBase):
                                 res.optional.event == EVENT_SessionStarted
                             )
 
-                    # 只处理当前活跃会话的响应
+                    # 只处理当前活跃会话的响应；旧会话事件不影响当前 activate_session
                     if res.optional.sessionId and self.conn.sentence_id != res.optional.sessionId:
-                        # 如果是会话结束相关事件，即使会话ID不匹配也要重置状态
-                        if res.optional.event in [EVENT_SessionCanceled, EVENT_SessionFailed, EVENT_SessionFinished]:
-                            logger.bind(tag=TAG).debug(f"收到残余下行结束响应重置会话状态～～")
-                            self.activate_session = False
                         continue
 
                     if res.optional.event == EVENT_SessionCanceled:
@@ -589,17 +590,16 @@ class TTSProvider(TTSProviderBase):
                     )
                     traceback.print_exc()
                     break
-            # 连接异常时关闭WebSocket
-            if self.ws:
+        finally:
+            # 只关自己绑定的 ws；只在 self._monitor_task 仍是本任务时清空引用
+            if self.ws is monitor_ws and self.ws is not None:
                 try:
                     await self.ws.close()
                 except:
                     pass
                 self.ws = None
-        # 监听任务退出时清理引用
-        finally:
-            self.activate_session = False
-            self._monitor_task = None
+            if self._monitor_task is monitor_task:
+                self._monitor_task = None
 
     async def send_event(
         self,
