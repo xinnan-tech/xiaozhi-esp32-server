@@ -7,7 +7,7 @@ import { createStreamingContext } from './stream-context.js?v=0205';
 export class AudioPlayer {
     constructor() {
         // 音频参数
-        this.SAMPLE_RATE = 16000;
+        this.SAMPLE_RATE = 24000;
         this.CHANNELS = 1;
         this.FRAME_SIZE = 960;
         this.MIN_AUDIO_DURATION = 0.12;
