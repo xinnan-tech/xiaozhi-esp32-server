@@ -2,7 +2,9 @@ import sys
 import uuid
 import signal
 import asyncio
+
 from aioconsole import ainput
+
 from config.settings import load_config
 from config.logger import setup_logging
 from core.utils.util import get_local_ip, validate_mcp_endpoint
@@ -12,14 +14,15 @@ from core.utils.util import check_ffmpeg_installed
 from core.utils.gc_manager import get_gc_manager
 
 TAG = __name__
+
 logger = setup_logging()
 
 
 async def wait_for_exit() -> None:
     """
-    阻塞直到收到 Ctrl‑C / SIGTERM。
-    - Unix: 使用 add_signal_handler
-    - Windows: 依赖 KeyboardInterrupt
+    Wait until Ctrl+C or SIGTERM is received.
+    - Unix: uses add_signal_handler.
+    - Windows: relies on KeyboardInterrupt.
     """
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()
@@ -27,126 +30,151 @@ async def wait_for_exit() -> None:
     if sys.platform != "win32":  # Unix / macOS
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, stop_event.set)
+
         await stop_event.wait()
     else:
-        # Windows：await一个永远pending的fut，
-        # 让 KeyboardInterrupt 冒泡到 asyncio.run，以此消除遗留普通线程导致进程退出阻塞的问题
+        # Windows: wait indefinitely to allow KeyboardInterrupt
+        # to propagate to asyncio.run, preventing remaining
+        # threads from blocking the shutdown process.
         try:
             await asyncio.Future()
-        except KeyboardInterrupt:  # Ctrl‑C
+        except KeyboardInterrupt:  # Ctrl+C
             pass
 
 
 async def monitor_stdin():
-    """监控标准输入，消费回车键"""
+    """Monitor standard input and wait for Enter to be pressed."""
     while True:
-        await ainput()  # 异步等待输入，消费回车
+        await ainput()  # Wait for input asynchronously
 
 
 async def main():
     check_ffmpeg_installed()
     config = await load_config()
 
-    # auth_key优先级：配置文件server.auth_key > manager-api.secret > 自动生成
-    # auth_key用于jwt认证，比如视觉分析接口的jwt认证、ota接口的token生成与websocket认证
-    # 获取配置文件中的auth_key
+    # Authentication key priority:
+    # server.auth_key > manager-api.secret > automatically generated key.
+    # The key is used for JWT authentication, visual analysis,
+    # OTA token generation, and WebSocket authentication.
+
+    # Retrieve the authentication key from the configuration file.
     auth_key = config["server"].get("auth_key", "")
-    
-    # 验证auth_key，无效则尝试使用manager-api.secret
+
+    # If the key is invalid, try using the management API secret.
     if not auth_key or len(auth_key) == 0 or "你" in auth_key:
         auth_key = config.get("manager-api", {}).get("secret", "")
-        # 验证secret，无效则生成随机密钥
+
+        # If the secret is also invalid, generate a random key.
         if not auth_key or len(auth_key) == 0 or "你" in auth_key:
             auth_key = str(uuid.uuid4().hex)
-    
+
     config["server"]["auth_key"] = auth_key
 
-    # 添加 stdin 监控任务
+    # Start the standard input monitoring task.
     stdin_task = asyncio.create_task(monitor_stdin())
 
-    # 启动全局GC管理器（5分钟清理一次）
+    # Start the global garbage collection manager (cleanup every 5 minutes).
     gc_manager = get_gc_manager(interval_seconds=300)
     await gc_manager.start()
 
-    # 启动 WebSocket 服务器
+    # Start the WebSocket server.
     ws_server = WebSocketServer(config)
     ws_task = asyncio.create_task(ws_server.start())
-    # 启动 Simple http 服务器
+
+    # Start the simple HTTP server.
     ota_server = SimpleHttpServer(config)
     ota_task = asyncio.create_task(ota_server.start())
 
     read_config_from_api = config.get("read_config_from_api", False)
     port = int(config["server"].get("http_port", 8003))
+
     if not read_config_from_api:
         logger.bind(tag=TAG).info(
-            "OTA接口是\t\thttp://{}:{}/xiaozhi/ota/",
+            "OTA interface available at:\thttp://{}:{}/xiaozhi/ota/",
             get_local_ip(),
             port,
         )
+
     logger.bind(tag=TAG).info(
-        "视觉分析接口是\thttp://{}:{}/mcp/vision/explain",
+        "Visual analysis interface available at:\thttp://{}:{}/mcp/vision/explain",
         get_local_ip(),
         port,
     )
+
     mcp_endpoint = config.get("mcp_endpoint", None)
+
     if mcp_endpoint is not None and "你" not in mcp_endpoint:
-        # 校验MCP接入点格式
+        # Validate the MCP endpoint URL format.
         if validate_mcp_endpoint(mcp_endpoint):
-            logger.bind(tag=TAG).info("mcp接入点是\t{}", mcp_endpoint)
-            # 将mcp计入点地址转成调用点
+            logger.bind(tag=TAG).info(
+                "MCP endpoint: {}",
+                mcp_endpoint,
+            )
+
+            # Convert the MCP endpoint URL to the corresponding call URL.
             mcp_endpoint = mcp_endpoint.replace("/mcp/", "/call/")
             config["mcp_endpoint"] = mcp_endpoint
         else:
-            logger.bind(tag=TAG).error("mcp接入点不符合规范")
-            config["mcp_endpoint"] = "你的接入点 websocket地址"
+            logger.bind(tag=TAG).error(
+                "The MCP endpoint URL has an invalid format."
+            )
+            config["mcp_endpoint"] = "MCP endpoint WebSocket URL"
 
-    # 获取WebSocket配置，使用安全的默认值
+    # Retrieve the WebSocket configuration, using safe default values.
     websocket_port = 8000
     server_config = config.get("server", {})
+
     if isinstance(server_config, dict):
         websocket_port = int(server_config.get("port", 8000))
 
     logger.bind(tag=TAG).info(
-        "Websocket地址是\tws://{}:{}/xiaozhi/v1/",
+        "WebSocket endpoint available at:\tws://{}:{}/xiaozhi/v1/",
         get_local_ip(),
         websocket_port,
     )
 
     logger.bind(tag=TAG).info(
-        "=======上面的地址是websocket协议地址，请勿用浏览器访问======="
+        "======= The endpoint above uses the WebSocket protocol. Do not access it through a browser. ======="
     )
+
     logger.bind(tag=TAG).info(
-        "如想测试websocket请启动digital-human模块，打开浏览器交互测试"
+        "To test the WebSocket connection, start the digital-human module and open the interaction test in your browser."
     )
+
     logger.bind(tag=TAG).info(
-        "=============================================================\n"
+        "================================================================================\n"
     )
 
     try:
-        await wait_for_exit()  # 阻塞直到收到退出信号
+        await wait_for_exit()  # Wait for a shutdown signal.
     except asyncio.CancelledError:
-        print("任务被取消，清理资源中...")
+        print("Task cancelled. Cleaning up resources...")
+
     finally:
-        # 停止全局GC管理器
+        # Stop the global garbage collection manager.
         await gc_manager.stop()
 
-        # 取消所有任务（关键修复点）
+        # Cancel all tasks to ensure a clean shutdown.
         stdin_task.cancel()
         ws_task.cancel()
+
         if ota_task:
             ota_task.cancel()
 
-        # 等待任务终止（必须加超时）
+        # Wait for the tasks to finish, with a timeout.
         await asyncio.wait(
-            [stdin_task, ws_task, ota_task] if ota_task else [stdin_task, ws_task],
+            [stdin_task, ws_task, ota_task]
+            if ota_task
+            else [stdin_task, ws_task],
             timeout=3.0,
             return_when=asyncio.ALL_COMPLETED,
         )
-        print("服务器已关闭，程序退出。")
+
+        print("Server stopped. Exiting the program.")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("手动中断，程序终止。")
+        print("Manual interruption detected. Shutting down the program.")
