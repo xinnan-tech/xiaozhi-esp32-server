@@ -145,6 +145,7 @@ class TTSProvider(TTSProviderBase):
         self.interface_type = InterfaceType.DUAL_STREAM
         self._monitor_task = None  # 监听任务引用
         self._session_start_future: asyncio.Future | None = None
+        self._pending_prefix = ""
         self.appId = config.get("appid")
         self.access_token = config.get("access_token")
         self.cluster = config.get("cluster")
@@ -429,7 +430,7 @@ class TTSProvider(TTSProviderBase):
             logger.bind(tag=TAG).debug("会话启动请求已发送")
 
             # 等 monitor 读到 SessionStarted / SessionFailed 帧，失败 / 超时让文本线程感知
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             self._session_start_future = loop.create_future()
             try:
                 ok = await asyncio.wait_for(
@@ -453,7 +454,7 @@ class TTSProvider(TTSProviderBase):
         try:
             if self.ws:
                 # 句尾替换词滑动窗口残留先发出去
-                if getattr(self, "_pending_prefix", ""):
+                if self._pending_prefix:
                     await self.text_to_speak(self._pending_prefix, None)
                 header = Header(
                     message_type=FULL_CLIENT_REQUEST,
