@@ -10,7 +10,6 @@ from config.manage_api_client import (
     DeviceNotFoundException,
     DeviceBindException,
 )
-from config.settings import DEFAULT_AGENT_ID
 
 def get_project_dir():
     """获取项目根目录"""

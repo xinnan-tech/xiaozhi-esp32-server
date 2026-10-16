@@ -84,4 +84,14 @@ public class AgentVoicePrintController {
         return new Result<List<AgentVoicePrintVO>>().ok(list);
     }
 
+    @PostMapping("/system")
+    @Operation(summary = "Criar biometria de voz (Chamada interna do sistema)")
+    public Result<Void> saveSystem(@RequestBody @Valid AgentVoicePrintSaveDTO dto) {
+        boolean b = agentVoicePrintService.insert(dto);
+        if (b) {
+            return new Result<>();
+        }
+        return new Result<Void>().error(ErrorCode.AGENT_VOICEPRINT_CREATE_FAILED);
+    }
+
 }

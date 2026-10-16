@@ -308,6 +308,31 @@ async def lookup_address_book(instance, caller_mac: str, nickname: str) -> Optio
         f"/device/address-book/lookup?callerMac={caller_mac}&nickname={nickname}",
     )
 
+@api_guard("Obter histórico de chat do sistema falhou")
+async def get_agent_chat_history_system(instance, agent_id: str) -> Optional[list]:
+    """Obtém o histórico de áudios do agente via API de serviço"""
+    return await instance._execute_async_request(
+        "GET",
+        f"/agent/{agent_id}/chat-history/system",
+    )
+
+
+@api_guard("Registro de biometria de voz falhou")
+async def register_voiceprint_system(
+    instance, agent_id: str, audio_id: str, speaker_id: str
+) -> Optional[Dict]:
+    """Cadastra a voz do usuário via API de serviço"""
+    return await instance._execute_async_request(
+        "POST",
+        "/agent/voice-print/system",
+        json={
+            "agentId": agent_id,
+            "audioId": audio_id,
+            "introduce": speaker_id,
+            "sourceName": speaker_id,
+        },
+    )
+    
 
 def init_service(config):
     ManageApiClient(config)

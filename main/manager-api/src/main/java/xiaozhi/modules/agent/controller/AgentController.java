@@ -360,4 +360,11 @@ public class AgentController {
         return new Result<Void>().ok(null);
     }
 
+    @GetMapping("/{id}/chat-history/system")
+    @Operation(summary = "Obter histórico recente de áudios (chamada pelo serviço do sistema)")
+    public Result<List<AgentChatHistoryUserVO>> getRecentlyFiftyByAgentIdSystem(@PathVariable("id") String id) {
+        List<AgentChatHistoryUserVO> data = agentChatHistoryService.getRecentlyFiftyByAgentId(id);
+        return new Result<List<AgentChatHistoryUserVO>>().ok(data);
+    }
+
 }
