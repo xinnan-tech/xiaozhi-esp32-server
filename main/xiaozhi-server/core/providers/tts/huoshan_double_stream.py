@@ -656,21 +656,23 @@ class TTSProvider(TTSProviderBase):
         # 解析结果
         # header
         header = response.header
-        num = 0b00001111
-        header.protocol_version = res[0] >> 4 & num
+        mask = 0b00001111
+        header.protocol_version = res[0] >> 4 & mask
         header.header_size = res[0] & 0x0F
-        header.message_type = (res[1] >> 4) & num
+        header.message_type = (res[1] >> 4) & mask
         header.message_type_specific_flags = res[1] & 0x0F
-        header.serialization_method = res[2] >> num
+        header.serialization_method = res[2] >> 4
         header.message_compression = res[2] & 0x0F
         header.reserved = res[3]
         #
-        offset = 4
+        offset = header.header_size * 4
         optional = response.optional
-        if header.message_type == FULL_SERVER_RESPONSE or AUDIO_ONLY_RESPONSE:
+        if header.message_type in (FULL_SERVER_RESPONSE, AUDIO_ONLY_RESPONSE):
             # read event
             if header.message_type_specific_flags == MsgTypeFlagWithEvent:
-                optional.event = int.from_bytes(res[offset:8], "big", signed=True)
+                optional.event = int.from_bytes(
+                    res[offset : offset + 4], "big", signed=True
+                )
                 offset += 4
                 if optional.event == EVENT_NONE:
                     return response
@@ -681,10 +683,11 @@ class TTSProvider(TTSProviderBase):
                     optional.response_meta_json, offset = self.read_res_content(
                         res, offset
                     )
-                elif (
-                    optional.event == EVENT_SessionStarted
-                    or optional.event == EVENT_SessionFailed
-                    or optional.event == EVENT_SessionFinished
+                elif optional.event in (
+                    EVENT_SessionStarted,
+                    EVENT_SessionFailed,
+                    EVENT_SessionFinished,
+                    EVENT_SessionCanceled,
                 ):
                     optional.sessionId, offset = self.read_res_content(res, offset)
                     optional.response_meta_json, offset = self.read_res_content(
