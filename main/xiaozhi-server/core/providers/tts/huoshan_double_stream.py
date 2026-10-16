@@ -307,6 +307,9 @@ class TTSProvider(TTSProviderBase):
                 if message.sentence_type == SentenceType.FIRST:
                     # 重置流式处理状态
                     self.reset_stream_state()
+                    # 重置 opus 流式编码器跨轮残留
+                    if hasattr(self, "opus_encoder") and self.opus_encoder:
+                        self.opus_encoder.reset_state()
                     # 初始化参数
                     try:
                         if not getattr(self.conn, "sentence_id", None): 
@@ -449,6 +452,9 @@ class TTSProvider(TTSProviderBase):
         logger.bind(tag=TAG).debug(f"关闭会话～～{session_id}")
         try:
             if self.ws:
+                # 句尾替换词滑动窗口残留先发出去
+                if getattr(self, "_pending_prefix", ""):
+                    await self.text_to_speak(self._pending_prefix, None)
                 header = Header(
                     message_type=FULL_CLIENT_REQUEST,
                     message_type_specific_flags=MsgTypeFlagWithEvent,
@@ -564,6 +570,11 @@ class TTSProvider(TTSProviderBase):
                         logger.bind(tag=TAG).info(f"句子语音生成成功：{self.tts_text}")
                     elif res.optional.event == EVENT_SessionFinished:
                         logger.bind(tag=TAG).debug(f"会话结束～～")
+                        # 句尾冲刷流式 opus 编码器不足一帧的 PCM 残量
+                        if hasattr(self, "opus_encoder") and self.opus_encoder:
+                            self.wav_to_opus_data_audio_raw_stream(
+                                b"", is_end=True, callback=self.handle_opus
+                            )
                         self.activate_session = False
                         self._process_before_stop_play_files()
                         # 非复用模式下，会话结束后发送 FinishConnection
@@ -846,6 +857,13 @@ class TTSProvider(TTSProviderBase):
                         ):
                             self.wav_to_opus_data_audio_raw_stream(res.payload, callback=lambda opus_frame: audio_data.append(opus_frame))
                         elif res.optional.event == EVENT_SessionFinished:
+                            # 句尾冲刷流式 opus 编码器不足一帧的 PCM 残量
+                            if hasattr(self, "opus_encoder") and self.opus_encoder:
+                                self.wav_to_opus_data_audio_raw_stream(
+                                    b"",
+                                    is_end=True,
+                                    callback=lambda opus_frame: audio_data.append(opus_frame),
+                                )
                             break
 
                 finally:
