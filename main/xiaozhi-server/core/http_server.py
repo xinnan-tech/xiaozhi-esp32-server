@@ -3,6 +3,7 @@ from aiohttp import web
 from config.logger import setup_logging
 from core.api.ota_handler import OTAHandler
 from core.api.vision_handler import VisionHandler
+from core.api.device_tool_handler import DeviceToolHandler
 
 TAG = __name__
 
@@ -13,6 +14,7 @@ class SimpleHttpServer:
         self.logger = setup_logging()
         self.ota_handler = OTAHandler(config)
         self.vision_handler = VisionHandler(config)
+        self.device_tool_handler = DeviceToolHandler(config)
 
     def _get_websocket_url(self, local_ip: str, port: int) -> str:
         """获取websocket地址
@@ -74,6 +76,15 @@ class SimpleHttpServer:
                         ),
                     ]
                 )
+
+                # 本机设备工具接口（默认关闭，只接受本机请求）
+                if server_config.get("device_tool_api", False):
+                    app.add_routes(
+                        [
+                            web.get("/xiaozhi/device/tools", self.device_tool_handler.handle_list),
+                            web.post("/xiaozhi/device/call", self.device_tool_handler.handle_call),
+                        ]
+                    )
 
                 # 运行服务
                 runner = web.AppRunner(app)
