@@ -16,12 +16,15 @@ THINKING_DISABLED_DOMAINS = {
     "bigmodel.cn": {"thinking": {"type": "disabled"}},
     "moonshot.cn": {"thinking": {"type": "disabled"}},
     "volces.com": {"thinking": {"type": "disabled"}},
+    "modelarts-maas.com": {"thinking": {"type": "disabled"}},
 }
 
 
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
         self.model_name = config.get("model_name")
+        # 可选实例级思考强度: off/disabled/none/disable | low/medium/high | 空/其他=按域名默认
+        self.thinking_mode = str(config.get("thinking") or "").strip().lower()
         self.api_key = config.get("api_key")
         if "base_url" in config:
             self.base_url = config.get("base_url")
@@ -80,7 +83,20 @@ class LLMProvider(LLMProviderBase):
         return dialogue
 
     def _apply_thinking_disabled(self, request_params: dict):
-        """根据域名自动禁用思考模式"""
+        """思考模式控制: 实例配置(thinking)优先, 否则按域名默认表"""
+        mode = getattr(self, "thinking_mode", "")
+        if mode in ("keep", "passthrough", "default"):
+            # 不干预: 既不发 thinking 参数也不查域名表(适用于强制思考/拒绝该参数的模型, 如 MaaS glm-5.3)
+            return
+        if mode in ("off", "disabled", "none", "disable"):
+            request_params.setdefault("extra_body", {}).update({"thinking": {"type": "disabled"}})
+            logger.bind(tag=TAG).info("思考强度=off: 已禁用思考模式(实例配置)")
+            return
+        if mode in ("low", "medium", "high"):
+            request_params.setdefault("extra_body", {}).update(
+                {"reasoning_effort": mode, "thinking": {"type": "enabled"}})
+            logger.bind(tag=TAG).info(f"思考强度={mode}: reasoning_effort 已设置(实例配置)")
+            return
         parsed_url = urlparse(self.base_url)
         domain = parsed_url.netloc
         for disabled_domain, params in THINKING_DISABLED_DOMAINS.items():
