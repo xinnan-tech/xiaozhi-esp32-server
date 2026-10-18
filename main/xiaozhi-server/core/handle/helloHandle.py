@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from core.connection import ConnectionHandler
 from core.utils.dialogue import Message
-from core.utils.util import audio_to_data
+from core.utils.util import audio_to_data, audio_to_data_stream
 from core.providers.tts.dto.dto import SentenceType
 from core.utils.wakeup_word import WakeupWordsConfig
 from core.handle.sendAudioHandle import sendAudioMessage, send_tts_message
@@ -144,6 +144,17 @@ async def wakeupWordsResponse(conn: "ConnectionHandler"):
         tts_result = await asyncio.to_thread(conn.tts.to_tts, result)
         if not tts_result:
             return
+
+        # Retained TTS audio is a file path, not a list of Opus frames.
+        if isinstance(tts_result, str):
+            opus_packets = []
+            await asyncio.to_thread(
+                audio_to_data_stream,
+                tts_result,
+                callback=opus_packets.append,
+                sample_rate=conn.sample_rate,
+            )
+            tts_result = opus_packets
 
         # 获取当前音色
         voice = getattr(conn.tts, "voice", "default")
