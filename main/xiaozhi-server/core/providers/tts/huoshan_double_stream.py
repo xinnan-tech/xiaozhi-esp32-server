@@ -144,7 +144,6 @@ class TTSProvider(TTSProviderBase):
         self.ws = None
         self.interface_type = InterfaceType.DUAL_STREAM
         self._monitor_task = None  # 监听任务引用
-        self._session_start_future: asyncio.Future | None = None
         self._pending_prefix = ""
         self.appId = config.get("appid")
         self.access_token = config.get("access_token")
@@ -428,21 +427,6 @@ class TTSProvider(TTSProviderBase):
             )
             await self.send_event(self.ws, header, optional, payload)
             logger.bind(tag=TAG).debug("会话启动请求已发送")
-
-            # 等 monitor 读到 SessionStarted / SessionFailed 帧，失败 / 超时让文本线程感知
-            loop = asyncio.get_running_loop()
-            self._session_start_future = loop.create_future()
-            try:
-                ok = await asyncio.wait_for(
-                    self._session_start_future, timeout=self.tts_timeout
-                )
-            finally:
-                self._session_start_future = None
-            if not ok:
-                await self.close()
-                raise RuntimeError(
-                    f"TTS 会话 {session_id} 被服务端拒绝 (SessionFailed)"
-                )
         except Exception as e:
             logger.bind(tag=TAG).error(f"启动会话失败: {str(e)}")
             # 确保清理资源
@@ -510,16 +494,10 @@ class TTSProvider(TTSProviderBase):
 
     async def _start_monitor_tts_response(self):
         """监听TTS响应 - 长期运行"""
-        # 绑定本次任务的 ws / task 引用；清理前判 id，避免误关新连接
-        monitor_ws = self.ws
-        monitor_task = asyncio.current_task()
         try:
             while not self.conn.stop_event.is_set():
                 try:
-                    if monitor_ws is None:
-                        break
-                    # 确保 `recv()` 运行在同一个 event loop
-                    msg = await monitor_ws.recv()
+                    msg = await self.ws.recv()
                     res = self.parser_response(msg)
                     self.print_response(res, "send_text res:")
 
@@ -528,22 +506,17 @@ class TTSProvider(TTSProviderBase):
                         logger.bind(tag=TAG).debug(f"链接关闭成功～～")
                         break
 
-                    # 把 SessionStarted / SessionFailed 解析结果回传给 start_session
-                    if (
-                        res.optional.event in (EVENT_SessionStarted, EVENT_SessionFailed)
-                        and res.optional.sessionId == self.conn.sentence_id
-                    ):
-                        if self._session_start_future and not self._session_start_future.done():
-                            self._session_start_future.set_result(
-                                res.optional.event == EVENT_SessionStarted
-                            )
-
                     # 只处理当前活跃会话的响应；旧会话事件不影响当前 activate_session
                     if res.optional.sessionId and self.conn.sentence_id != res.optional.sessionId:
                         continue
 
                     if res.optional.event == EVENT_SessionCanceled:
                         logger.bind(tag=TAG).debug(f"释放服务端资源成功～～")
+                        self.activate_session = False
+                    elif res.optional.event == EVENT_SessionFailed:
+                        logger.bind(tag=TAG).error(
+                            f"TTS 会话被服务端拒绝: {self.conn.sentence_id}"
+                        )
                         self.activate_session = False
                     elif not self.resource_type and res.optional.event == EVENT_TTSSentenceStart:
                         json_data = json.loads(res.payload.decode("utf-8"))
@@ -592,15 +565,14 @@ class TTSProvider(TTSProviderBase):
                     traceback.print_exc()
                     break
         finally:
-            # 只关自己绑定的 ws；只在 self._monitor_task 仍是本任务时清空引用
-            if self.ws is monitor_ws and self.ws is not None:
+            # 退出时关闭连接并清理引用
+            if self.ws:
                 try:
                     await self.ws.close()
                 except:
                     pass
                 self.ws = None
-            if self._monitor_task is monitor_task:
-                self._monitor_task = None
+            self._monitor_task = None
 
     async def send_event(
         self,

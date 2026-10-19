@@ -1,22 +1,24 @@
-"""PR-issue 3438 start_session 等 SessionStarted 确认回归测试。
+"""PR-issue 3438 会话启动失败可感知回归测试。
 
 复现：
-  1. start_session 旧逻辑 send_event 后立即返回，文本线程不感知 SessionFailed / 超时
-  2. 服务端 14s 内 26005 时整轮无声，无人感知
+  服务端拒绝 StartSession（SessionFailed）时，旧逻辑无任何处理分支：
+  整轮无声、activate_session 卡 True，下一轮靠 close 兜底且无日志
 
-修复：
-  - start_session 末尾 await asyncio.Future，monitor 收到 SessionStarted / SessionFailed
-    时 set_result；超时报错让文本线程感知
+修复（按评审收敛后的形态）：
+  - start_session 发送即返回，不等确认帧（无 future 机制）
+  - monitor matched 分支处理 SessionFailed：error 日志 + activate_session 复位
 
 Usage:
     python benchmark/check_huoshan_3438.py
 """
 from __future__ import annotations
 
-import asyncio
 import importlib.util
 import os
 import sys
+from unittest.mock import AsyncMock, MagicMock
+
+import websockets
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -34,83 +36,80 @@ _mock = _load_mock()
 build_provider = _mock.build_provider
 run = _mock.run
 
+from core.providers.tts.huoshan_double_stream import (  # noqa: E402
+    EVENT_SessionFailed,
+    EVENT_SessionStarted,
+)
 
-async def _set_result_later(p, value, delay=0.02):
-    await asyncio.sleep(delay)
-    if p._session_start_future and not p._session_start_future.done():
-        p._session_start_future.set_result(value)
+FULL_SERVER_RESPONSE = 0b1001
+MsgTypeFlagWithEvent = 0b100
 
 
-def test_session_started_success():
+def _build_session_event_frame(event: int, session_id: str, meta: str = "{}") -> bytes:
+    res = bytearray()
+    res.append((0b0001 << 4) | 1)
+    res.append((FULL_SERVER_RESPONSE << 4) | MsgTypeFlagWithEvent)
+    res.append((0b0001 << 4) | 0)
+    res.append(0)
+    res.extend(event.to_bytes(4, "big", signed=True))
+    enc = session_id.encode("utf-8")
+    res.extend(len(enc).to_bytes(4, "big", signed=True))
+    res.extend(enc)
+    meta_bytes = meta.encode("utf-8")
+    res.extend(len(meta_bytes).to_bytes(4, "big", signed=True))
+    res.extend(meta_bytes)
+    return bytes(res)
+
+
+def test_start_session_fire_and_forget():
+    """start_session 发送 StartSession 后立即返回，不等确认帧。"""
     p = build_provider()
-    p.tts_timeout = 1.0
+    p.send_event = AsyncMock()
+    p._ensure_connection = AsyncMock()
+    run(p.start_session("test-session-id"))
+    assert p.send_event.await_count == 1, "应恰好发送一次 StartSession"
+    print("OK: start_session 发送即返回，不阻塞等确认")
 
-    async def _send_then_signal(*args, **kwargs):
-        asyncio.create_task(_set_result_later(p, True, 0.02))
 
-    async def _noop_conn(*a, **k):
-        return None
-
-    p.send_event = _send_then_signal
-    p._ensure_connection = _noop_conn
-
-    run(p.start_session("sid"))
-    assert p._session_start_future is None, (
-        "start_session 完成后 _session_start_future 应清空"
+def test_monitor_session_failed_resets_flag():
+    """matched SessionFailed 帧：monitor 记 error 并复位 activate_session。"""
+    p = build_provider()
+    p.activate_session = True
+    p.ws.recv = AsyncMock(
+        side_effect=[
+            _build_session_event_frame(EVENT_SessionFailed, p.conn.sentence_id),
+            websockets.ConnectionClosed(None, None),
+        ]
     )
-    print("OK: SessionStarted 帧让 start_session 正常返回")
+    run(p._start_monitor_tts_response())
+    assert p.activate_session is False, (
+        f"SessionFailed 应复位 activate_session，实际 {p.activate_session}"
+    )
+    print("OK: SessionFailed 复位 activate_session，状态不卡 True")
 
 
-def test_session_failed_raises():
+def test_monitor_session_started_keeps_flag():
+    """matched SessionStarted 帧：不触碰 activate_session（仍为 True）。"""
     p = build_provider()
-    p.tts_timeout = 1.0
-
-    async def _send_then_signal(*args, **kwargs):
-        asyncio.create_task(_set_result_later(p, False, 0.02))
-
-    async def _noop_conn(*a, **k):
-        return None
-
-    p.send_event = _send_then_signal
-    p._ensure_connection = _noop_conn
-
-    raised = False
-    try:
-        run(p.start_session("sid"))
-    except RuntimeError as e:
-        raised = True
-        assert "SessionFailed" in str(e), f"异常文案应含 SessionFailed，实际 {e}"
-    assert raised, "start_session 在 SessionFailed 时应 raise RuntimeError"
-    print("OK: SessionFailed 帧让 start_session 抛 RuntimeError")
-
-
-def test_session_timeout_raises():
-    p = build_provider()
-    p.tts_timeout = 0.1
-
-    async def _send_no_signal(*args, **kwargs):
-        pass
-
-    async def _noop_conn(*a, **k):
-        return None
-
-    p.send_event = _send_no_signal
-    p._ensure_connection = _noop_conn
-
-    raised = False
-    try:
-        run(p.start_session("sid"))
-    except (RuntimeError, asyncio.TimeoutError):
-        raised = True
-    assert raised, "start_session 在超时时应 raise"
-    print("OK: start_session 超时抛错，文本线程能感知")
+    p.activate_session = True
+    p.ws.recv = AsyncMock(
+        side_effect=[
+            _build_session_event_frame(EVENT_SessionStarted, p.conn.sentence_id),
+            websockets.ConnectionClosed(None, None),
+        ]
+    )
+    run(p._start_monitor_tts_response())
+    assert p.activate_session is True, (
+        f"SessionStarted 不应触碰 activate_session，实际 {p.activate_session}"
+    )
+    print("OK: SessionStarted 不影响 activate_session")
 
 
 def main() -> int:
-    test_session_started_success()
-    test_session_failed_raises()
-    test_session_timeout_raises()
-    print("\nALL PASS: start_session 等 SessionStarted 确认（修复点 1）")
+    test_start_session_fire_and_forget()
+    test_monitor_session_failed_resets_flag()
+    test_monitor_session_started_keeps_flag()
+    print("\nALL PASS: 会话启动失败可感知（monitor 侧处理，无 future 机制）")
     return 0
 
 

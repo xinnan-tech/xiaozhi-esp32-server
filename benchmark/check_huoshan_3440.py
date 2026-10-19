@@ -1,16 +1,14 @@
-"""PR-issue 3440 monitor snapshot 隔离 + 旧会话事件不影响当前回归测试。
+"""PR-issue 3440 旧会话事件不影响当前会话 + 取消屏障回归测试。
 
 复现：
-  1. 旧会话结束事件（SessionCanceled/Failed/Finished）即使 sessionId 不匹配也会
-     reset 当前 activate_session，破坏 start_session 的"上个会话激活时关闭
-     新建"判断
-  2. monitor 循环直接用 self.ws.recv()，连接被重建后旧任务读新连接下行；
-     旧任务因读旧句柄异常退出时又会把新连接误关
+  旧会话结束事件（SessionCanceled/Failed/Finished）即使 sessionId 不匹配也会
+  reset 当前 activate_session，破坏 start_session 的"上个会话激活时关闭
+  新建"判断
 
-修复：
-  - monitor 入口绑定 monitor_ws = self.ws / monitor_task = current_task()；
-    recv 用 monitor_ws；finally 清理判 id(self.ws) is id(monitor_ws) 才关
-  - 旧 session 事件 continue 即可，不再 reset activate_session
+修复（按评审收敛后的形态）：
+  - 旧 session 事件 continue 跳过，不再 reset activate_session
+  - 旧连接误关/偷读由建连前的取消屏障（_cancel_monitor_task 等待任务退出）
+    保证，不依赖 snapshot 判 id
 
 Usage:
     python benchmark/check_huoshan_3440.py
@@ -105,60 +103,59 @@ def test_old_session_canceled_does_not_reset_activate():
     print("OK: 旧 session SessionCanceled 不 reset 当前 activate_session")
 
 
-def test_monitor_uses_snapshot_ws():
-    """monitor 入口绑定 monitor_ws，recv 用 monitor_ws，外部换 self.ws 不影响。"""
+def test_cancel_barrier_awaits_monitor_exit():
+    """取消屏障原语：_cancel_monitor_task 返回时旧监听任务必须已完全退出。
+
+    这是"旧监听任务不会读新连接/误关新连接"的根本保证：建新连接前
+    旧任务已被 cancel + await 收尸，其后才允许重赋 self.ws。
+    """
     p = build_provider()
-    # 把 self.ws 与 mock monitor 内部用的 ws 解耦
-    calls = []
 
-    async def _recv_log(*a, **k):
-        calls.append("recv_called")
-        raise websockets.ConnectionClosed(None, None)
+    async def _block_recv(*a, **k):
+        await asyncio.Event().wait()  # 模拟阻塞在 recv
 
-    ws_old = MagicMock()
-    ws_old.recv = _async_iter_mock([websockets.ConnectionClosed(None, None)])
-    ws_old.close = AsyncMock(side_effect=lambda: calls.append("old_close"))
-    ws_new = MagicMock()
-    ws_new.close = AsyncMock(side_effect=lambda: calls.append("new_close_should_not_appear"))
+    p.ws = MagicMock()
+    p.ws.recv = AsyncMock(side_effect=_block_recv)
+    p.ws.close = AsyncMock()
 
-    p.ws = ws_old
-    p._monitor_task = None  # 防 finally 比较
+    async def _drive():
+        m = asyncio.create_task(p._start_monitor_tts_response())
+        p._monitor_task = m
+        await asyncio.sleep(0.01)
+        assert not m.done(), "监听任务应仍在运行"
+        await p._cancel_monitor_task()
+        assert m.done() and m.cancelled(), (
+            "_cancel_monitor_task 返回时旧监听任务必须已退出"
+        )
+        assert p._monitor_task is None, "屏障应清空 _monitor_task 引用"
 
-    async def _drive_then_swap():
-        # 立即把 p.ws 换到 ws_new，模拟重建连接
-        async def _swap():
-            await asyncio.sleep(0.01)
-            p.ws = ws_new
-
-        await asyncio.gather(p._start_monitor_tts_response(), _swap())
-
-    run(_drive_then_swap())
-    assert "new_close_should_not_appear" not in calls, (
-        f"旧 monitor 不应误关新连接；calls={calls}"
-    )
-    print(f"OK: 旧 monitor 用 snapshot 隔离，未误关新连接（calls={calls}）")
+    run(_drive())
+    print("OK: 取消屏障等待旧监听任务完全退出后才返回")
 
 
-def test_source_has_snapshot_check():
-    """静态检查：_start_monitor_tts_response 入口有 monitor_ws = self.ws，
-    finally 清理有 self.ws is monitor_ws 判断。"""
+def test_source_has_cancel_barrier_and_skip():
+    """静态检查：mismatch 纯跳过存在；monitor finally 不再复位 activate_session。"""
     src = open(
-        os.path.join(REPO, "main/xiaozhi-server/core/providers/tts/huoshan_double_stream.py")
+        os.path.join(REPO, "main/xiaozhi-server/core/providers/tts/huoshan_double_stream.py"),
+        encoding="utf-8",
     ).read()
-    assert "monitor_ws = self.ws" in src, "monitor 入口应绑定 monitor_ws = self.ws"
-    assert "if self.ws is monitor_ws" in src, "finally 清理应判 self.ws is monitor_ws 才关"
-    assert "if self._monitor_task is monitor_task" in src, (
-        "finally 清理应判 self._monitor_task is monitor_task 才清空引用"
+    assert "self.conn.sentence_id != res.optional.sessionId" in src, (
+        "mismatch 分支应纯跳过（continue），不复位 activate_session"
     )
-    print("OK: monitor 入口绑定 snapshot，finally 清理有 id 比较")
+    monitor_src = src.split("async def _start_monitor_tts_response")[1]
+    finally_src = monitor_src.split("finally:")[1]
+    assert "activate_session" not in finally_src, (
+        "monitor finally 不应触碰 activate_session（避免覆盖新会话状态）"
+    )
+    print("OK: mismatch 纯跳过存在，finally 不触碰 activate_session")
 
 
 def main() -> int:
     test_old_session_finished_does_not_reset_activate()
     test_old_session_canceled_does_not_reset_activate()
-    test_monitor_uses_snapshot_ws()
-    test_source_has_snapshot_check()
-    print("\nALL PASS: 3440 monitor snapshot 隔离 + 旧会话事件不影响当前（修复点 3）")
+    test_cancel_barrier_awaits_monitor_exit()
+    test_source_has_cancel_barrier_and_skip()
+    print("\nALL PASS: 3440 旧会话事件不影响当前 + 取消屏障保证")
     return 0
 
 

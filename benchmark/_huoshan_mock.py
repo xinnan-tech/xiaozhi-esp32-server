@@ -38,7 +38,6 @@ def build_provider() -> Any:
     p.voice = "test-voice"
     p.activate_session = False
     p._monitor_task = None
-    p._session_start_future = None
     p._pending_prefix = ""
     p.tts_text = ""
     p.tts_audio_queue = MagicMock()
