@@ -330,6 +330,17 @@ export default {
         if (!configJson.hasOwnProperty(field.prop)) {
           configJson[field.prop] = "";
         } else if (field.type === "json-textarea") {
+          // 兼容已保存为 JSON 字符串的字典，避免再次序列化后无法编辑。
+          if (typeof configJson[field.prop] === "string") {
+            try {
+              const parsed = JSON.parse(configJson[field.prop]);
+              if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+                configJson[field.prop] = parsed;
+              }
+            } catch {
+              // 保留非法值的显示，由现有校验提示用户修正。
+            }
+          }
           this.$set(
             this.fieldJsonMap,
             field.prop,
