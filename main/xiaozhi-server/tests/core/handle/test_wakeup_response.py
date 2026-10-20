@@ -40,7 +40,8 @@ def wakeup_runtime(tmp_path, monkeypatch):
                         struct.pack(
                             "<h", int(8000 * math.sin(2 * math.pi * 440 * i / 22050))
                         )
-                        for i in range(22050)
+                        # 1.1s 源音频：给重采样留裕量，规避重采样器 off-by-one
+                        for i in range(int(22050 * 1.1))
                     )
                 )
             self.audio_bytes = buffer.getvalue()
@@ -97,6 +98,25 @@ def test_empty_synthesis_does_not_replace_cached_response(wakeup_runtime, tts_re
     wakeup_cache.generate_file_path.assert_not_called()
     wakeup_cache.update_wakeup_response.assert_not_called()
     assert not helloHandle._wakeup_response_lock.locked()
+
+
+def test_retained_file_skips_opus_roundtrip(wakeup_runtime, tmp_path, monkeypatch):
+    """保留文件路径必须直转 wav，不得经过 Opus 编解码。"""
+    from core.utils import util
+
+    helloHandle, wakeup_cache, LocalTTS = wakeup_runtime
+
+    def _forbid_opus(*_args, **_kwargs):
+        raise AssertionError("retained file path must not run Opus encoding")
+
+    monkeypatch.setattr(util, "pcm_to_data_stream", _forbid_opus)
+    tts = LocalTTS(tmp_path, False)
+    conn = SimpleNamespace(tts=tts, sample_rate=16000)
+    tts.conn = conn
+
+    asyncio.run(helloHandle.wakeupWordsResponse(conn))
+
+    assert wakeup_cache.get_wakeup_response(tts.voice) is not None
 
 
 def test_missing_retained_file_preserves_cache_and_releases_lock(wakeup_runtime):
