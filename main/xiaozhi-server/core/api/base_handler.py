@@ -31,13 +31,17 @@ class BaseHandler:
         response.headers["Access-Control-Allow-Headers"] = (
             "client-id, content-type, device-id, authorization"
         )
-        origin = self._resolve_cors_origin(
+        requested_origin = (
             request.headers.get("Origin") if request is not None else None
         )
+        origin = self._resolve_cors_origin(requested_origin)
+        if requested_origin:
+            # 只要请求带了 Origin 就标 Vary，哪怕这次没放行，
+            # 否则共享缓存会把带放行头的响应喂给别的来源
+            response.headers["Vary"] = "Origin"
         if origin:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Vary"] = "Origin"
 
     async def handle_options(self, request):
         """处理OPTIONS请求，添加CORS头信息"""

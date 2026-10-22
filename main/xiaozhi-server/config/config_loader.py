@@ -67,17 +67,19 @@ async def get_config_from_api_async(config):
         "url": config["manager-api"].get("url", ""),
         "secret": config["manager-api"].get("secret", ""),
     }
-    auth_enabled = config_data.get("server", {}).get("auth", {}).get("enabled", False)
-    # server的配置以本地为准
-    if config.get("server"):
-        config_data["server"] = {
-            "ip": config["server"].get("ip", ""),
-            "port": config["server"].get("port", ""),
-            "http_port": config["server"].get("http_port", ""),
-            "vision_explain": config["server"].get("vision_explain", ""),
-            "auth_key": config["server"].get("auth_key", ""),
-        }
-    config_data["server"]["auth"] = {"enabled": auth_enabled}
+    server_config = config_data.setdefault("server", {})
+    # 认证开关以智控台的参数管理为准，这里只补默认值。
+    # 不能重建整个 auth，否则接口返回的 allowed_devices、activation_codes
+    # 这些字段会被抹掉，智控台部署下等于配置写了不生效
+    server_config.setdefault("auth", {}).setdefault("enabled", False)
+
+    # server 的其余配置以本地为准，但只覆盖本地显式写过的字段。
+    # 整块替换会把接口返回的 cors、websocket 等一并吞掉。
+    # auth 例外，它归智控台管
+    for key, value in (config.get("server") or {}).items():
+        if key != "auth":
+            server_config[key] = value
+
     # 如果服务器没有prompt_template，则从本地配置读取
     if not config_data.get("prompt_template"):
         config_data["prompt_template"] = config.get("prompt_template")
