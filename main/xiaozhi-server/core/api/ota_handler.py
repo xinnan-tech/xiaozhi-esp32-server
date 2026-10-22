@@ -15,6 +15,12 @@ from core.api.base_handler import BaseHandler
 
 TAG = __name__
 
+# Device-Id 校验规则，与智控台 OTAController 使用同一套：
+# 冒号 / 连字符 / 下划线分隔的 6 段 hex，或无分隔符的 12 位 hex
+DEVICE_ID_PATTERN = re.compile(
+    r"^([0-9A-Fa-f]{2}[:\-_]){5}[0-9A-Fa-f]{2}$|^[0-9A-Fa-f]{12}$"
+)
+
 
 def _safe_basename(filename: str) -> str:
     # Prevent directory traversal
@@ -46,13 +52,7 @@ def _is_higher_version(a: str, b: str) -> bool:
 class OTAHandler(BaseHandler):
     def __init__(self, config: dict):
         super().__init__(config)
-        auth_config = config["server"].get("auth", {})
-        self.auth_enable = auth_config.get("enabled", False)
-        # 设备白名单
-        self.allowed_devices = set(auth_config.get("allowed_devices", []))
-        secret_key = config["server"]["auth_key"]
-        expire_seconds = auth_config.get("expire_seconds")
-        self.auth = AuthManager(secret_key=secret_key, expire_seconds=expire_seconds)
+        self._load_auth_config(config)
 
         # firmware storage
         self.bin_dir = os.path.join(os.getcwd(), "data", "bin")
@@ -62,6 +62,67 @@ class OTAHandler(BaseHandler):
             "ttl": config.get("firmware_cache_ttl", 30),
             "files_by_model": {},
         }
+
+    def _load_auth_config(self, config: dict):
+        """从配置加载认证相关属性，改配置后可重复调用"""
+        auth_config = config["server"].get("auth", {})
+        self.auth_enable = auth_config.get("enabled", False)
+        # 设备白名单：命中白名单只影响 token 有效期，不再跳过 token 校验
+        self.allowed_devices = set(auth_config.get("allowed_devices", []))
+        # 白名单设备的 token 有效期，默认与普通设备一致
+        self.allowed_expire_seconds = auth_config.get(
+            "allowed_devices_expire_seconds", None
+        )
+        # 一次性激活码，供无 token 的设备首次绑定；用掉即从内存移除
+        self.activation_codes = set(auth_config.get("activation_codes", []) or [])
+        secret_key = config["server"]["auth_key"]
+        expire_seconds = auth_config.get("expire_seconds")
+        issued_after = auth_config.get("issued_after", 0)
+        self.auth = AuthManager(
+            secret_key=secret_key,
+            expire_seconds=expire_seconds,
+            issued_after=issued_after,
+        )
+
+    def _issue_ws_token(
+        self, request, client_id: str, device_id: str
+    ) -> str:
+        """校验 OTA 凭证并签发 websocket token，无有效凭证返回空串。
+
+        接受两类凭证：已签发的 token（续签）或一次性激活码（首次绑定）。
+        """
+        auth_header = request.headers.get("Authorization", "")
+        presented = auth_header[7:] if auth_header.startswith("Bearer ") else ""
+        if not presented:
+            return ""
+
+        expire_seconds = None
+        if self.allowed_devices and device_id in self.allowed_devices:
+            expire_seconds = self.allowed_expire_seconds
+        if self.auth.verify_token(
+            presented,
+            client_id=client_id,
+            username=device_id,
+            expire_seconds=expire_seconds,
+        ):
+            return self.auth.generate_token(client_id, device_id)
+
+        if self._consume_activation_code(presented):
+            return self.auth.generate_token(client_id, device_id)
+
+        return ""
+
+    def _consume_activation_code(self, presented: str) -> bool:
+        """校验并作废一次性激活码"""
+        if presented not in self.activation_codes:
+            return False
+        self.activation_codes.discard(presented)
+        self.logger.bind(tag=TAG).info("激活码已使用并作废，设备完成首次绑定")
+        return True
+
+    def _is_valid_device_id(self, device_id: str) -> bool:
+        """Device-Id 会被拼进 MQTT topic，格式校验与智控台用同一套规则"""
+        return bool(DEVICE_ID_PATTERN.match(device_id))
 
     def _refresh_bin_cache_if_needed(self):
         now = int(time.time())
@@ -166,6 +227,39 @@ class OTAHandler(BaseHandler):
                 self.logger.bind(tag=TAG).info(f"OTA请求ClientID: {client_id}")
             else:
                 raise Exception("OTA请求ClientID为空")
+
+            # device_id 会拼进 MQTT topic，格式不合法的请求直接拒绝
+            if not self._is_valid_device_id(device_id):
+                self.logger.bind(tag=TAG).warning(
+                    f"OTA请求设备ID格式非法: {device_id}"
+                )
+                response = web.Response(
+                    text=json.dumps(
+                        {"success": False, "message": "invalid device-id"},
+                        separators=(",", ":"),
+                    ),
+                    content_type="application/json",
+                    status=400,
+                )
+                return response
+
+            # 开启认证时，MQTT 与 WebSocket 两条下发路径都必须先通过凭证校验
+            ws_token = ""
+            if self.auth_enable:
+                ws_token = self._issue_ws_token(request, client_id, device_id)
+                if not ws_token:
+                    self.logger.bind(tag=TAG).warning(
+                        f"OTA请求凭证无效: device_id={device_id}"
+                    )
+                    response = web.Response(
+                        text=json.dumps(
+                            {"success": False, "message": "invalid credential"},
+                            separators=(",", ":"),
+                        ),
+                        content_type="application/json",
+                        status=401,
+                    )
+                    return response
 
             data_json = {}
             try:
@@ -280,14 +374,8 @@ class OTAHandler(BaseHandler):
                 self.logger.bind(tag=TAG).info(f"为设备 {device_id} 下发MQTT网关配置")
 
             else:  # 未配置 mqtt_gateway，下发 WebSocket
-                # 如果开启了认证，则进行认证校验
-                token = ""
-                if self.auth_enable:
-                    if self.allowed_devices:
-                        if device_id not in self.allowed_devices:
-                            token = self.auth.generate_token(client_id, device_id)
-                    else:
-                        token = self.auth.generate_token(client_id, device_id)
+                # token 已在入口处完成凭证校验，认证关闭时保持不下发
+                token = ws_token
                 # NOTE: use websocket_port here
                 return_json["websocket"] = {
                     "url": self._get_websocket_url(local_ip, websocket_port),
@@ -349,7 +437,7 @@ class OTAHandler(BaseHandler):
                 content_type="application/json",
             )
         finally:
-            self._add_cors_headers(response)
+            self._add_cors_headers(response, request)
             return response
 
     async def handle_get(self, request):
@@ -366,7 +454,7 @@ class OTAHandler(BaseHandler):
             self.logger.bind(tag=TAG).error(f"OTA GET请求异常: {e}")
             response = web.Response(text="OTA接口异常", content_type="text/plain")
         finally:
-            self._add_cors_headers(response)
+            self._add_cors_headers(response, request)
             return response
 
     async def handle_download(self, request):
@@ -375,8 +463,36 @@ class OTAHandler(BaseHandler):
         URL: /xiaozhi/ota/download/{filename}
         - 只允许下载 data/bin 目录下的 .bin 文件
         - filename 必须是 basename 且匹配安全的模式
+        - 开启认证时需携带与 OTA 请求一致的凭证
         """
         try:
+            if self.auth_enable:
+                device_id = request.headers.get("Device-Id", "")
+                client_id = request.headers.get("Client-Id", "")
+                auth_header = request.headers.get("Authorization", "")
+                token = (
+                    auth_header[7:] if auth_header.startswith("Bearer ") else ""
+                )
+                expire_seconds = None
+                if self.allowed_devices and device_id in self.allowed_devices:
+                    expire_seconds = self.allowed_expire_seconds
+                authorized = (
+                    device_id
+                    and client_id
+                    and token
+                    and self.auth.verify_token(
+                        token,
+                        client_id=client_id,
+                        username=device_id,
+                        expire_seconds=expire_seconds,
+                    )
+                )
+                if not authorized:
+                    self.logger.bind(tag=TAG).warning(
+                        f"固件下载凭证无效: device_id={device_id}"
+                    )
+                    raise web.HTTPUnauthorized(text="unauthorized")
+
             fname = request.match_info.get("filename", "")
             if not fname:
                 raise web.HTTPBadRequest(text="filename required")
@@ -409,7 +525,7 @@ class OTAHandler(BaseHandler):
             resp = web.Response(text="download error", status=500)
         finally:
             try:
-                self._add_cors_headers(resp)
+                self._add_cors_headers(resp, request)
             except Exception:
                 pass
             return resp
