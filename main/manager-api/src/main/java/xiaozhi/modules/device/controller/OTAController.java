@@ -107,7 +107,7 @@ public class OTAController {
 
     /**
      * 简单判断mac地址是否有效（非严格）
-     * 
+     *
      * @param macAddress
      * @return
      */
@@ -115,8 +115,8 @@ public class OTAController {
         if (StringUtils.isBlank(macAddress)) {
             return false;
         }
-        // MAC地址通常为12位十六进制数字，可以包含冒号或连字符分隔符
-        String macPattern = "^([0-9A-Za-z]{2}[:-]){5}([0-9A-Za-z]{2})$";
+        // MAC地址为12位十六进制数字，可用冒号、连字符或下划线分隔，也接受无分隔符形态
+        String macPattern = "^([0-9A-Fa-f]{2}[:\\-_]){5}[0-9A-Fa-f]{2}$|^[0-9A-Fa-f]{12}$";
         return macAddress.matches(macPattern);
     }
 }

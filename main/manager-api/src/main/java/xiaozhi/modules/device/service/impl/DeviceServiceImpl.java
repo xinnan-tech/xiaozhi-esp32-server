@@ -219,13 +219,20 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // 检查是否启用认证并生成token
         String authEnabled = sysParamsService.getValue(Constant.SERVER_AUTH_ENABLED, true);
         if ("true".equalsIgnoreCase(authEnabled)) {
-            try {
-                // 生成token
-                String token = generateWebSocketToken(clientId, macAddress);
-                websocket.setToken(token);
-            } catch (Exception e) {
-                log.error("生成WebSocket token失败: {}", e.getMessage());
+            // 仅已登记绑定的设备签发 token；未登记的设备不返回可用凭证，
+            // 登记操作需登录智控台，因此不会成为任意 MAC 换取 token 的通道
+            if (deviceById == null) {
+                log.warn("设备未在智控台登记，跳过 WebSocket token 签发: {}", macAddress);
                 websocket.setToken("");
+            } else {
+                try {
+                    // 生成token
+                    String token = generateWebSocketToken(clientId, macAddress);
+                    websocket.setToken(token);
+                } catch (Exception e) {
+                    log.error("生成WebSocket token失败: {}", e.getMessage());
+                    websocket.setToken("");
+                }
             }
         } else {
             websocket.setToken("");
@@ -252,16 +259,20 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // 从系统参数获取MQTT Gateway地址，仅在配置有效时使用
         String mqttUdpConfig = sysParamsService.getValue(Constant.SERVER_MQTT_GATEWAY, true);
         if (mqttUdpConfig != null && !mqttUdpConfig.equals("null") && !mqttUdpConfig.isEmpty()) {
-            try {
-                String groupId = deviceById != null && deviceById.getBoard() != null ? deviceById.getBoard()
-                        : "GID_default";
-                DeviceReportRespDTO.MQTT mqtt = buildMqttConfig(macAddress, groupId);
-                if (mqtt != null) {
-                    mqtt.setEndpoint(mqttUdpConfig);
-                    response.setMqtt(mqtt);
+            // MQTT 配置含连接签名，与 websocket token 一样仅对已登记设备下发
+            if (deviceById == null) {
+                log.warn("设备未在智控台登记，跳过 MQTT 配置下发: {}", macAddress);
+            } else {
+                try {
+                    String groupId = deviceById.getBoard() != null ? deviceById.getBoard() : "GID_default";
+                    DeviceReportRespDTO.MQTT mqtt = buildMqttConfig(macAddress, groupId);
+                    if (mqtt != null) {
+                        mqtt.setEndpoint(mqttUdpConfig);
+                        response.setMqtt(mqtt);
+                    }
+                } catch (Exception e) {
+                    log.error("生成MQTT配置失败: {}", e.getMessage());
                 }
-            } catch (Exception e) {
-                log.error("生成MQTT配置失败: {}", e.getMessage());
             }
         }
 
