@@ -19,12 +19,18 @@ class AuthManager:
     在 Websocket 中，header:{Device-ID: device_id, Client-ID: client_id, Authorization: Bearer token, ......}
     """
 
-    def __init__(self, secret_key: str, expire_seconds: int = 60 * 60 * 24 * 30):
+    def __init__(
+        self,
+        secret_key: str,
+        expire_seconds: int = 60 * 60 * 24 * 30,
+        issued_after: int = 0,
+    ):
         if not expire_seconds or expire_seconds < 0:
             self.expire_seconds = 60 * 60 * 24 * 30
         else:
             self.expire_seconds = expire_seconds
         self.secret_key = secret_key
+        self.issued_after = issued_after or 0
 
     def _sign(self, content: str) -> str:
         """HMAC-SHA256签名并Base64编码"""
@@ -49,18 +55,28 @@ class AuthManager:
         token = f"{signature}.{ts}"
         return token
 
-    def verify_token(self, token: str, client_id: str, username: str) -> bool:
+    def verify_token(
+        self,
+        token: str,
+        client_id: str,
+        username: str,
+        expire_seconds: int | None = None,
+    ) -> bool:
         """
         验证token有效性
         Args:
             token: 客户端传入的token
             client_id: 连接使用的client_id
             username: 连接使用的username
+            expire_seconds: 本次校验采用的过期时长，不传时用实例默认值
         """
+        expire = self.expire_seconds if expire_seconds is None else expire_seconds
         try:
             sig_part, ts_str = token.split(".")
             ts = int(ts_str)
-            if int(time.time()) - ts > self.expire_seconds:
+            if ts < self.issued_after:
+                return False  # 签发时刻早于吊销线
+            if int(time.time()) - ts > expire:
                 return False  # 过期
 
             expected_sig = self._sign(f"{client_id}|{username}|{ts}")

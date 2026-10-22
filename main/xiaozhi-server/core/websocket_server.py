@@ -60,13 +60,26 @@ class WebSocketServer:
         self._intent = modules["intent"] if "intent" in modules else None
         self._memory = modules["memory"] if "memory" in modules else None
 
-        auth_config = self.config["server"].get("auth", {})
+        self._load_auth_config(self.config)
+
+    def _load_auth_config(self, config: dict):
+        """从配置加载认证相关属性，改配置后可重复调用"""
+        auth_config = config["server"].get("auth", {})
         self.auth_enable = auth_config.get("enabled", False)
-        # 设备白名单
+        # 设备白名单：命中白名单只影响 token 签发时长，不再跳过 token 校验
         self.allowed_devices = set(auth_config.get("allowed_devices", []))
-        secret_key = self.config["server"]["auth_key"]
+        # 白名单设备的 token 有效期，默认与普通设备一致，不因白名单放宽
+        self.allowed_expire_seconds = auth_config.get(
+            "allowed_devices_expire_seconds", None
+        )
+        secret_key = config["server"]["auth_key"]
         expire_seconds = auth_config.get("expire_seconds", None)
-        self.auth = AuthManager(secret_key=secret_key, expire_seconds=expire_seconds)
+        issued_after = auth_config.get("issued_after", 0)
+        self.auth = AuthManager(
+            secret_key=secret_key,
+            expire_seconds=expire_seconds,
+            issued_after=issued_after,
+        )
 
     async def start(self):
         server_config = self.config["server"]
@@ -105,9 +118,10 @@ class WebSocketServer:
             if "client-id" in query_params:
                 websocket.request.headers["client-id"] = query_params["client-id"][0]
             if "authorization" in query_params:
-                websocket.request.headers["authorization"] = query_params[
-                    "authorization"
-                ][0]
+                # token 只接受请求头携带，URL 查询串会落进反代访问日志
+                self.logger.bind(tag=TAG).warning(
+                    "忽略 URL 查询串中的 authorization，token 需通过请求头传递"
+                )
 
         """处理新连接，每次创建独立的ConnectionHandler"""
         # 先认证，后建立连接
@@ -178,6 +192,8 @@ class WebSocketServer:
                 )
                 # 更新配置
                 self.config = new_config
+                # 认证属性跟随配置刷新，避免改配置后不生效
+                self._load_auth_config(new_config)
                 # 重新初始化组件
                 modules = initialize_modules(
                     self.logger,
@@ -213,19 +229,21 @@ class WebSocketServer:
             headers = dict(websocket.request.headers)
             device_id = headers.get("device-id", None)
             client_id = headers.get("client-id", None)
-            if self.allowed_devices and device_id in self.allowed_devices:
-                # 如果属于白名单内的设备，不校验token，直接放行
-                return
+            token = headers.get("authorization", "")
+            if token.startswith("Bearer "):
+                token = token[7:]  # 移除'Bearer '前缀
             else:
-                # 否则校验token
-                token = headers.get("authorization", "")
-                if token.startswith("Bearer "):
-                    token = token[7:]  # 移除'Bearer '前缀
-                else:
-                    raise AuthenticationError("Missing or invalid Authorization header")
-                # 进行认证
-                auth_success = self.auth.verify_token(
-                    token, client_id=client_id, username=device_id
-                )
-                if not auth_success:
-                    raise AuthenticationError("Invalid token")
+                raise AuthenticationError("Missing or invalid Authorization header")
+            # 白名单设备只延长 token 有效期，仍然校验 token
+            expire_seconds = None
+            if self.allowed_devices and device_id in self.allowed_devices:
+                expire_seconds = self.allowed_expire_seconds
+            # 进行认证
+            auth_success = self.auth.verify_token(
+                token,
+                client_id=client_id,
+                username=device_id,
+                expire_seconds=expire_seconds,
+            )
+            if not auth_success:
+                raise AuthenticationError("Invalid token")

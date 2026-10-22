@@ -214,8 +214,12 @@ class ConnectionHandler:
                 self.client_ip = real_ip.split(",")[0].strip()
             else:
                 self.client_ip = ws.remote_address[0]
+            safe_headers = {
+                k: ("***" if k.lower() == "authorization" else v)
+                for k, v in self.headers.items()
+            }
             self.logger.bind(tag=TAG).info(
-                f"{self.client_ip} conn - Headers: {self.headers}"
+                f"{self.client_ip} conn - Headers: {safe_headers}"
             )
 
             self.device_id = self.headers.get("device-id", None)
