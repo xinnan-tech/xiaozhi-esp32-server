@@ -30,6 +30,17 @@ python start.py
 - 事件桥地址：ws://127.0.0.1:8006/wakeword-ws
 - 健康检查：http://127.0.0.1:8006/health
 
+# 开启认证后的用法
+
+服务端 `config.yaml` 里 `server.auth.enabled` 设为 `true` 时，本页面需要额外的凭证才能连上：
+
+1. **激活码**：向服务端运维要一个码，填进页面的「激活码」输入框。页面请求 OTA 时带上它，服务端换发一次 websocket token，用掉即失效。
+2. **设备MAC**：填无分隔符或带冒号的 12 位 MAC 都行，页面会统一去掉分隔符转小写后再发给服务端。OTA 请求头和 websocket 子协议用的是同一个值，签名才对得上。
+
+websocket 的凭证走子协议头而不是 URL：`Sec-WebSocket-Protocol: xiaozhi, t-<token>, d-<deviceId>, c-<clientId>`。浏览器不能自定义 websocket 请求头，服务端握手时只回显 `xiaozhi`。放进 URL 查询串的凭证不再被采信，理由是查询串会原样落进反代访问日志。
+
+不开启认证时以上都不用填，行为与之前一致。
+
 # 目录说明
 
 - `start.py`：模块启动入口

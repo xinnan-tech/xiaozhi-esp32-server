@@ -86,6 +86,10 @@ export function saveConfig() {
     localStorage.setItem('xz_tester_deviceMac', deviceMacInput.value);
     localStorage.setItem('xz_tester_deviceName', deviceNameInput.value);
     localStorage.setItem('xz_tester_clientId', clientIdInput.value);
+    const activationCodeInput = document.getElementById('activationCode');
+    if (activationCodeInput) {
+        localStorage.setItem('xz_tester_activationCode', activationCodeInput.value.trim());
+    }
     const emojiEnabledInput = document.getElementById('emojiEnabled');
     if (emojiEnabledInput) {
         localStorage.setItem('xz_tester_emojiEnabled', emojiEnabledInput.value);
@@ -107,6 +111,7 @@ export function getConfig() {
     const deviceMac = document.getElementById('deviceMac')?.value.trim() || '';
     const deviceName = document.getElementById('deviceName')?.value.trim() || '';
     const clientId = document.getElementById('clientId')?.value.trim() || '';
+    const activationCode = document.getElementById('activationCode')?.value.trim() || '';
     const emojiEnabled = document.getElementById('emojiEnabled')?.value !== 'false';
 
     return {
@@ -114,6 +119,7 @@ export function getConfig() {
         deviceName,
         deviceMac,
         clientId,
+        activationCode,
         emojiEnabled
     };
 }

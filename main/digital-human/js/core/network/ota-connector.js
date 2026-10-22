@@ -1,5 +1,11 @@
 import { log } from '../../utils/logger.js?v=0205';
 
+// 子协议值必须是合法的 token 字符，冒号不在其中，所以 Device-Id 去掉分隔符。
+// OTA 请求头与 websocket 子协议必须用同一个值，否则 token 签名对不上
+export function normalizeDeviceId(deviceId) {
+    return (deviceId || '').replace(/[:-_]/g, '').toLowerCase();
+}
+
 // WebSocket 连接
 export async function webSocketConnect(otaUrl, config) {
 
@@ -22,20 +28,22 @@ export async function webSocketConnect(otaUrl, config) {
     }
 
     // 使用OTA返回的websocket URL
-    let connUrl = new URL(websocket.url);
+    const connUrl = new URL(websocket.url);
 
-    // 添加token参数（从OTA响应中获取）
+    // 浏览器不能自定义 websocket 请求头，凭证和设备标识改走子协议头：
+    // xiaozhi, t-<token>, d-<deviceId>, c-<clientId>，服务端只回显 xiaozhi。
+    // 不再拼进 URL 查询串，那会原样落进反代访问日志
+    const subprotocols = [
+        'xiaozhi',
+        `d-${normalizeDeviceId(config.deviceId)}`,
+        `c-${config.clientId}`
+    ];
     if (websocket.token) {
-        if (websocket.token.startsWith("Bearer ")) {
-            connUrl.searchParams.append('authorization', websocket.token);
-        } else {
-            connUrl.searchParams.append('authorization', 'Bearer ' + websocket.token);
-        }
+        const token = websocket.token.startsWith('Bearer ')
+            ? websocket.token.slice(7)
+            : websocket.token;
+        subprotocols.splice(1, 0, `t-${token}`);
     }
-
-    // 添加认证参数（保持原有逻辑）
-    connUrl.searchParams.append('device-id', config.deviceId);
-    connUrl.searchParams.append('client-id', config.clientId);
 
     const wsurl = connUrl.toString()
 
@@ -45,7 +53,7 @@ export async function webSocketConnect(otaUrl, config) {
         document.getElementById('serverUrl').value = wsurl;
     }
 
-    return new WebSocket(connUrl.toString());
+    return new WebSocket(connUrl.toString(), subprotocols);
 }
 
 // 验证配置
@@ -68,8 +76,12 @@ async function sendOTA(otaUrl, config) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Device-Id': config.deviceId,
-                'Client-Id': config.clientId
+                'Device-Id': normalizeDeviceId(config.deviceId),
+                'Client-Id': config.clientId,
+                // 开了认证时，OTA 要拿激活码换首次 token；用掉即失效
+                ...(config.activationCode
+                    ? { 'Authorization': `Bearer ${config.activationCode}` }
+                    : {})
             },
             body: JSON.stringify({
                 version: 0,

@@ -4,6 +4,7 @@ import { getAudioPlayer } from './core/audio/player.js?v=0205';
 import { checkMicrophoneAvailability, isHttpNonLocalhost } from './core/audio/recorder.js?v=0205';
 import { initMcpTools } from './core/mcp/tools.js?v=0205';
 import { startWakewordBridgeListener } from './core/network/wakeword-bridge.js?v=0205';
+import { normalizeDeviceId } from './core/network/ota-connector.js?v=0205';
 import { uiController } from './ui/controller.js?v=0205';
 import { log } from './utils/logger.js?v=0205';
 
@@ -303,10 +304,10 @@ class App {
 
                             log(`正在发送图片到视觉分析接口: ${url}`, 'info');
 
-                            const deviceId = document.getElementById('deviceMac')?.value || '';
+                            const deviceId = normalizeDeviceId(document.getElementById('deviceMac')?.value || '');
                             const clientId = document.getElementById('clientId')?.value || '';
                             if (!deviceId || !clientId) {
-                                throw new Error('视觉分析失败：请填写设备MAC与客户端ID，两者需与设备上报的一致');
+                                throw new Error('视觉分析失败：请填写设备MAC与客户端ID');
                             }
 
                             const formData = new FormData();
