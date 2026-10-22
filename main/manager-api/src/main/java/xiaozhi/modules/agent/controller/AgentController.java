@@ -49,7 +49,6 @@ import xiaozhi.modules.agent.service.AgentChatAudioService;
 import xiaozhi.modules.agent.service.AgentChatHistoryService;
 import xiaozhi.modules.agent.service.AgentChatSummaryService;
 import xiaozhi.modules.agent.service.AgentService;
-import xiaozhi.modules.agent.service.AgentTemplateService;
 import xiaozhi.modules.agent.vo.AgentChatHistoryUserVO;
 import xiaozhi.modules.agent.vo.AgentInfoVO;
 import xiaozhi.modules.security.user.SecurityUser;
@@ -62,7 +61,6 @@ public class AgentController {
     private static final long AUDIO_PLAY_TOKEN_EXPIRE_SECONDS = 300L;
 
     private final AgentService agentService;
-    private final AgentTemplateService agentTemplateService;
     private final AgentChatHistoryService agentChatHistoryService;
     private final AgentChatAudioService agentChatAudioService;
     private final AgentChatSummaryService agentChatSummaryService;
