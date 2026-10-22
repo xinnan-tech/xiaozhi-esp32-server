@@ -304,7 +304,10 @@ class App {
                             log(`正在发送图片到视觉分析接口: ${url}`, 'info');
 
                             const deviceId = document.getElementById('deviceMac')?.value || '';
-                            const clientId = document.getElementById('clientId')?.value || 'web_test_client';
+                            const clientId = document.getElementById('clientId')?.value || '';
+                            if (!deviceId || !clientId) {
+                                throw new Error('视觉分析失败：请填写设备MAC与客户端ID，两者需与设备上报的一致');
+                            }
 
                             const formData = new FormData();
                             formData.append('question', question);
