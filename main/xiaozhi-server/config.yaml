@@ -32,9 +32,25 @@ server:
     # 是否启用认证
     enabled: false
     # 白名单设备ID列表
-    # 如果属于白名单内的设备，不校验token，直接放行
-    allowed_devices:
-      - "11:22:33:44:55:66"
+    # 命中白名单只延长该设备 token 的有效期，不再跳过 token 校验
+    # 格式为设备上报的 Device-Id（MAC），例如 "aa:bb:cc:dd:ee:ff"
+    # 不要把 Client-Id 填进来：它是 UUID v4，擦 FLASH 或重装后会变化，
+    # 当长期标识会导致设备直接被锁在门外
+    allowed_devices: []
+    # 白名单设备的 token 有效期（秒）。留空表示与 expire_seconds 一致，
+    # 不因进白名单就放宽；确有需要时可设置，但上限建议 90 天
+    allowed_devices_expire_seconds: null
+    # 一次性激活码，供没有 token 的设备首次接入时换取 token，用掉即失效
+    # 新设备接入流程：在此列表中预先加入一个码，设备带着该码请求 OTA 接口，
+    # 服务端签发 token 后自动从列表移除该码
+    activation_codes: []
+    # token 签发时刻下界（Unix 秒）。改成当前时间即可一次性作废所有存量 token，
+    # 设备下次开机请求 OTA 时会自动换发新 token，无需维护黑名单
+    issued_after: 0
+  # CORS 允许的来源列表。默认 ["*"] 表示回显任意来源的 Origin；
+  # 收紧时填具体来源，例如 ["https://your-console.example.com"]
+  cors:
+    allowed_origins: ["*"]
  # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port
   mqtt_gateway: null
   # MQTT签名密钥，用于生成MQTT连接密码，根据mqtt_gateway的.env文件配置
