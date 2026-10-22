@@ -17,9 +17,43 @@ TAG = __name__
 
 # Device-Id 校验规则，与智控台 OTAController 使用同一套：
 # 冒号 / 连字符 / 下划线分隔的 6 段 hex，或无分隔符的 12 位 hex
+# 用 fullmatch 而不是自带锚点的正则：$ 会放过结尾的换行，两端接受范围就不一致了
 DEVICE_ID_PATTERN = re.compile(
-    r"^([0-9A-Fa-f]{2}[:\-_]){5}[0-9A-Fa-f]{2}$|^[0-9A-Fa-f]{12}$"
+    r"([0-9A-Fa-f]{2}[:\-_]){5}[0-9A-Fa-f]{2}|[0-9A-Fa-f]{12}"
 )
+
+# Device-Model 会拼进 mqtt_client_id 进而参与密码签名，限制成不含
+# 分隔符与通配符的字符，避免拼出畸形凭证
+DEVICE_MODEL_PATTERN = re.compile(r"[A-Za-z0-9_\-]+")
+
+
+def _normalize_device_id(device_id: str) -> str:
+    """去掉分隔符转小写，让 aa:bb:cc:dd:ee:ff 与 aabbccddeeff 视为同一台设备"""
+    return re.sub(r"[:\-_]", "", device_id).lower()
+
+
+def _error_response(status: int, message: str) -> web.Response:
+    """OTA 拒绝响应，状态码与智控台 /ota/ 保持一致，固件按状态码判断才不会走偏"""
+    return web.Response(
+        text=json.dumps({"success": False, "message": message}, separators=(",", ":")),
+        content_type="application/json",
+        status=status,
+    )
+
+
+def _parse_activation_codes(raw_codes) -> Dict[str, str | None]:
+    """解析 activation_codes 成 码 -> 绑定的 Device-Id，不绑定时值为 None
+
+    支持两种写法：裸字符串表示不限设备，"码: Device-Id" 表示只能用这台设备换。
+    码本身不能带冒号，冒号只作分隔用。
+    """
+    codes: Dict[str, str | None] = {}
+    for raw in raw_codes:
+        code, _, bound_device = str(raw).partition(":")
+        code = code.strip()
+        if code:
+            codes[code] = bound_device.strip() or None
+    return codes
 
 
 def _safe_basename(filename: str) -> str:
@@ -73,8 +107,13 @@ class OTAHandler(BaseHandler):
         self.allowed_expire_seconds = auth_config.get(
             "allowed_devices_expire_seconds", None
         )
-        # 一次性激活码，供无 token 的设备首次绑定；用掉即从内存移除
-        self.activation_codes = set(auth_config.get("activation_codes", []) or [])
+        # 白名单设备首次接入免凭证自举一次，否则升级后没有任何换凭证的入口
+        self.allowed_bootstrap = auth_config.get("allowed_devices_bootstrap", True)
+        self.allowed_bootstrapped = set()
+        # 一次性激活码，供无 token 的设备首次绑定；写 "码: Device-Id" 可绑到具体设备
+        self.activation_codes = _parse_activation_codes(
+            auth_config.get("activation_codes", []) or []
+        )
         secret_key = config["server"]["auth_key"]
         expire_seconds = auth_config.get("expire_seconds")
         issued_after = auth_config.get("issued_after", 0)
@@ -83,46 +122,90 @@ class OTAHandler(BaseHandler):
             expire_seconds=expire_seconds,
             issued_after=issued_after,
         )
+        self._warn_if_locked_out()
 
-    def _issue_ws_token(
-        self, request, client_id: str, device_id: str
-    ) -> str:
-        """校验 OTA 凭证并签发 websocket token，无有效凭证返回空串。
+    def _warn_if_locked_out(self):
+        """存量白名单设备升级后若没有换凭证的入口会直接掉线，启动时说清楚"""
+        if not self.auth_enable:
+            return
+        if not self.allowed_devices:
+            return
+        if self.allowed_bootstrap or self.activation_codes:
+            return
+        self.logger.bind(tag=TAG).warning(
+            "配置了 allowed_devices 但既没开 allowed_devices_bootstrap 也没有 "
+            "activation_codes：这些白名单设备升级后没有凭证来源，会连不上。"
+            "请在 config.yaml 的 server.auth 里加一个 activation_codes，"
+            "或把 allowed_devices_bootstrap 设回 true"
+        )
 
-        接受两类凭证：已签发的 token（续签）或一次性激活码（首次绑定）。
+    def _expire_for(self, device_id: str):
+        """白名单设备的 token 有效期，其余设备沿用默认"""
+        if self.allowed_devices and device_id in self.allowed_devices:
+            return self.allowed_expire_seconds
+        return None
+
+    def _issue_ws_token(self, request, client_id: str, device_id: str) -> Tuple:
+        """校验 OTA 凭证并签发 websocket token。
+
+        返回 (token, 待作废的激活码)，无有效凭证时返回 ("", "")。
+        激活码不在这里作废，交给调用方在响应组装成功后回收，中途失败不烧凭证。
         """
         auth_header = request.headers.get("Authorization", "")
         presented = auth_header[7:] if auth_header.startswith("Bearer ") else ""
         if not presented:
-            return ""
+            return self._bootstrap_whitelisted(device_id, client_id), ""
 
-        expire_seconds = None
-        if self.allowed_devices and device_id in self.allowed_devices:
-            expire_seconds = self.allowed_expire_seconds
         if self.auth.verify_token(
             presented,
             client_id=client_id,
             username=device_id,
-            expire_seconds=expire_seconds,
+            expire_seconds=self._expire_for(device_id),
         ):
-            return self.auth.generate_token(client_id, device_id)
+            return self.auth.generate_token(client_id, device_id), ""
 
-        if self._consume_activation_code(presented):
-            return self.auth.generate_token(client_id, device_id)
+        if self._matches_activation_code(presented, device_id):
+            return self.auth.generate_token(client_id, device_id), presented
 
-        return ""
+        return "", ""
 
-    def _consume_activation_code(self, presented: str) -> bool:
-        """校验并作废一次性激活码"""
+    def _bootstrap_whitelisted(self, device_id: str, client_id: str) -> str:
+        """白名单设备首次接入免凭证换 token，每台设备只放行一次
+
+        白名单是运维在配置里显式列出的可信 MAC，不接受任何上报值，
+        也不新增信任来源；这里只是让升级前免 token 的存量设备换到凭证，
+        否则白名单去掉旁路后它们升级即掉线。之后必须带 token。
+        """
+        if not (
+            self.allowed_bootstrap
+            and self.allowed_devices
+            and device_id in self.allowed_devices
+            and device_id not in self.allowed_bootstrapped
+        ):
+            return ""
+        self.allowed_bootstrapped.add(device_id)
+        self.logger.bind(tag=TAG).warning(
+            f"白名单设备免凭证自举签发 token: {device_id}，此后该设备必须携带凭证"
+        )
+        return self.auth.generate_token(client_id, device_id)
+
+    def _matches_activation_code(self, presented: str, device_id: str) -> bool:
+        """激活码若绑定了设备，必须与上报的 Device-Id 一致"""
         if presented not in self.activation_codes:
             return False
-        self.activation_codes.discard(presented)
+        bound_device = self.activation_codes[presented]
+        if not bound_device:
+            return True
+        return _normalize_device_id(bound_device) == _normalize_device_id(device_id)
+
+    def _consume_activation_code(self, presented: str) -> None:
+        """作废一次性激活码，只在响应组装成功后调用"""
+        self.activation_codes.pop(presented, None)
         self.logger.bind(tag=TAG).info("激活码已使用并作废，设备完成首次绑定")
-        return True
 
     def _is_valid_device_id(self, device_id: str) -> bool:
         """Device-Id 会被拼进 MQTT topic，格式校验与智控台用同一套规则"""
-        return bool(DEVICE_ID_PATTERN.match(device_id))
+        return bool(DEVICE_ID_PATTERN.fullmatch(device_id))
 
     def _refresh_bin_cache_if_needed(self):
         now = int(time.time())
@@ -213,7 +296,12 @@ class OTAHandler(BaseHandler):
         try:
             data = await request.text()
             self.logger.bind(tag=TAG).debug(f"OTA请求方法: {request.method}")
-            self.logger.bind(tag=TAG).debug(f"OTA请求头: {request.headers}")
+            # OTA 请求开始携带 token 和一次性激活码，凭证不进日志
+            safe_headers = {
+                k: ("***" if k.lower() == "authorization" else v)
+                for k, v in request.headers.items()
+            }
+            self.logger.bind(tag=TAG).debug(f"OTA请求头: {safe_headers}")
             self.logger.bind(tag=TAG).debug(f"OTA请求数据: {data}")
 
             device_id = request.headers.get("device-id", "")
@@ -228,37 +316,18 @@ class OTAHandler(BaseHandler):
             else:
                 raise Exception("OTA请求ClientID为空")
 
-            # device_id 会拼进 MQTT topic，格式不合法的请求直接拒绝
-            if not self._is_valid_device_id(device_id):
-                self.logger.bind(tag=TAG).warning(
-                    f"OTA请求设备ID格式非法: {device_id}"
-                )
-                response = web.Response(
-                    text=json.dumps(
-                        {"success": False, "message": "invalid device-id"},
-                        separators=(",", ":"),
-                    ),
-                    content_type="application/json",
-                    status=400,
-                )
-                return response
-
             # 开启认证时，MQTT 与 WebSocket 两条下发路径都必须先通过凭证校验
             ws_token = ""
+            activation_code = ""
             if self.auth_enable:
-                ws_token = self._issue_ws_token(request, client_id, device_id)
+                ws_token, activation_code = self._issue_ws_token(
+                    request, client_id, device_id
+                )
                 if not ws_token:
                     self.logger.bind(tag=TAG).warning(
                         f"OTA请求凭证无效: device_id={device_id}"
                     )
-                    response = web.Response(
-                        text=json.dumps(
-                            {"success": False, "message": "invalid credential"},
-                            separators=(",", ":"),
-                        ),
-                        content_type="application/json",
-                        status=401,
-                    )
+                    response = _error_response(401, "invalid credential")
                     return response
 
             data_json = {}
@@ -329,12 +398,22 @@ class OTAHandler(BaseHandler):
             mqtt_gateway_endpoint = server_config.get("mqtt_gateway")
 
             if mqtt_gateway_endpoint:  # 如果配置了非空字符串
-                # 尝试从请求数据中获取设备型号（已解析 above）
-                try:
-                    group_id = f"GID_{device_model}".replace(":", "_").replace(" ", "_")
-                except Exception as e:
-                    self.logger.bind(tag=TAG).error(f"获取设备型号失败: {e}")
-                    group_id = "GID_default"
+                # 下面两个值都会拼进 MQTT 凭证，只在真下发 MQTT 时才校验，
+                # 免得不开 MQTT 的部署被无端拦下
+                if not self._is_valid_device_id(device_id):
+                    self.logger.bind(tag=TAG).warning(
+                        f"OTA请求设备ID格式非法: {device_id}"
+                    )
+                    response = _error_response(400, "invalid device-id")
+                    return response
+                if not DEVICE_MODEL_PATTERN.fullmatch(device_model):
+                    self.logger.bind(tag=TAG).warning(
+                        f"OTA请求设备型号格式非法: {device_model}"
+                    )
+                    response = _error_response(400, "invalid device-model")
+                    return response
+
+                group_id = f"GID_{device_model}"
 
                 mac_address_safe = device_id.replace(":", "_")
                 mqtt_client_id = f"{group_id}@@@{mac_address_safe}@@@{mac_address_safe}"
@@ -429,6 +508,9 @@ class OTAHandler(BaseHandler):
                 text=json.dumps(return_json, separators=(",", ":")),
                 content_type="application/json",
             )
+            # 响应已经组装成功，这时才作废激活码，中途出错不烧凭证
+            if activation_code:
+                self._consume_activation_code(activation_code)
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"OTA POST处理异常: {e}")
             return_json = {"success": False, "message": "request error."}
@@ -473,9 +555,6 @@ class OTAHandler(BaseHandler):
                 token = (
                     auth_header[7:] if auth_header.startswith("Bearer ") else ""
                 )
-                expire_seconds = None
-                if self.allowed_devices and device_id in self.allowed_devices:
-                    expire_seconds = self.allowed_expire_seconds
                 authorized = (
                     device_id
                     and client_id
@@ -484,7 +563,7 @@ class OTAHandler(BaseHandler):
                         token,
                         client_id=client_id,
                         username=device_id,
-                        expire_seconds=expire_seconds,
+                        expire_seconds=self._expire_for(device_id),
                     )
                 )
                 if not authorized:
