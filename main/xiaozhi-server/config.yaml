@@ -47,10 +47,12 @@ server:
     # token 签发时刻下界（Unix 秒）。改成当前时间即可一次性作废所有存量 token，
     # 设备下次开机请求 OTA 时会自动换发新 token，无需维护黑名单
     issued_after: 0
-  # CORS 允许的来源列表。默认 ["*"] 表示回显任意来源的 Origin；
-  # 收紧时填具体来源，例如 ["https://your-console.example.com"]
+  # CORS 允许的来源列表，默认空表示不做跨域放行
+  # 需要跨域时填具体来源，例如 ["https://your-console.example.com"]
+  # 注意：填 "*" 不会放行任意来源。来源不在名单里就不下发跨域头，
+  # 浏览器会直接拦下，带凭证的请求仍受同源保护
   cors:
-    allowed_origins: ["*"]
+    allowed_origins: []
  # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port
   mqtt_gateway: null
   # MQTT签名密钥，用于生成MQTT连接密码，根据mqtt_gateway的.env文件配置

@@ -33,10 +33,13 @@ OTHER_MAC = "11:22:33:44:55:66"
 CLIENT_ID = "7b94d69a-9808-4c59-9c9b-704333b38aff"
 
 
-def build_config(enabled=True, allowed=None, **extra):
+def build_config(enabled=True, allowed=None, cors=None, **extra):
     auth = {"enabled": enabled, "allowed_devices": allowed or []}
     auth.update(extra)
-    return {"server": {"auth": auth, "auth_key": SECRET}}
+    server = {"auth": auth, "auth_key": SECRET}
+    if cors is not None:
+        server["cors"] = cors
+    return {"server": server}
 
 
 def build_ws_server(config):
@@ -297,6 +300,81 @@ def test_handler_state_initialized():
     print("OK: OTAHandler 状态初始化完整")
 
 
+def _cors_headers_for(config, origin):
+    """给一个响应加跨域头后返回头字典"""
+    from aiohttp import web
+
+    ota = build_ota(config)
+    resp = web.Response(text="x")
+    ota._add_cors_headers(resp, fake_request({"Origin": origin}))
+    return resp.headers
+
+
+def test_cors_blocks_unknown_origin():
+    """默认配置下任意来源都拿不到跨域头，带凭证不可跨域读"""
+    headers = _cors_headers_for(build_config(enabled=True), "https://evil.example")
+    assert "Access-Control-Allow-Origin" not in headers, (
+        f"默认配置不应回显陌生来源，实际 {dict(headers)}"
+    )
+    assert "Access-Control-Allow-Credentials" not in headers, (
+        "未放行来源时不应下发允许带凭证的头"
+    )
+    print("OK: 默认配置下陌生来源无跨域头")
+
+
+def test_cors_wildcard_not_allowed():
+    """allowed_origins 配 * 也不回显，避免带凭证的跨域读取"""
+    headers = _cors_headers_for(
+        build_config(enabled=True, cors={"allowed_origins": ["*"]}),
+        "https://evil.example",
+    )
+    assert "Access-Control-Allow-Origin" not in headers, (
+        f"配 * 也不应回显来源，实际 {dict(headers)}"
+    )
+    assert "Access-Control-Allow-Credentials" not in headers, (
+        "配 * 时不得下发允许带凭证的头"
+    )
+    print("OK: allowed_origins 配 * 不放行任意来源")
+
+
+def test_cors_allows_listed_origin():
+    """名单内的来源正常放行"""
+    allowed = "https://console.example"
+    headers = _cors_headers_for(
+        build_config(enabled=True, cors={"allowed_origins": [allowed]}),
+        allowed,
+    )
+    assert headers.get("Access-Control-Allow-Origin") == allowed, (
+        f"名单内来源应被回显，实际 {dict(headers)}"
+    )
+    assert headers.get("Access-Control-Allow-Credentials") == "true"
+    other = _cors_headers_for(
+        build_config(enabled=True, cors={"allowed_origins": [allowed]}),
+        "https://evil.example",
+    )
+    assert "Access-Control-Allow-Origin" not in other, "名单外来源不应放行"
+    print("OK: 名单内来源放行、名单外拦截")
+
+
+def test_all_cors_call_sites_pass_request():
+    """所有跨域头调用点都要传 request，避免某条路径静默不发头"""
+    import re
+
+    pattern = re.compile(r"_add_cors_headers\(\s*\w+\s*\)")
+    offenders = []
+    for rel in (
+        "core/api/base_handler.py",
+        "core/api/ota_handler.py",
+        "core/api/vision_handler.py",
+    ):
+        path = os.path.join(SERVER, rel)
+        for line in open(path, encoding="utf-8"):
+            if pattern.search(line):
+                offenders.append(f"{rel}: {line.strip()}")
+    assert not offenders, f"这些调用点没传 request：{offenders}"
+    print("OK: 所有跨域头调用点都传了 request")
+
+
 def main() -> int:
     test_allowed_mac_without_token_rejected()
     test_allowed_mac_forged_client_id_rejected()
@@ -311,6 +389,10 @@ def main() -> int:
     test_mqtt_topic_injection_blocked()
     test_download_requires_credential()
     test_handler_state_initialized()
+    test_cors_blocks_unknown_origin()
+    test_cors_wildcard_not_allowed()
+    test_cors_allows_listed_origin()
+    test_all_cors_call_sites_pass_request()
     print("\nALL PASS: 3448 认证旁路已关闭")
     return 0
 
