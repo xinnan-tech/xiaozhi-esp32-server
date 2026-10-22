@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from core.connection import ConnectionHandler
 from core.utils.dialogue import Message
-from core.utils.util import audio_to_data
+from core.utils.util import audio_to_data, audio_file_to_wav_bytes
 from core.providers.tts.dto.dto import SentenceType
 from core.utils.wakeup_word import WakeupWordsConfig
 from core.handle.sendAudioHandle import sendAudioMessage, send_tts_message
@@ -148,8 +148,13 @@ async def wakeupWordsResponse(conn: "ConnectionHandler"):
         # 获取当前音色
         voice = getattr(conn.tts, "voice", "default")
 
-        # 使用链接的sample_rate
-        wav_bytes = opus_datas_to_wav_bytes(tts_result, sample_rate=conn.sample_rate)
+        # 保留的 TTS 音频是文件路径而非 Opus 帧：直接转目标采样率 wav，跳过有损 Opus 往返
+        if isinstance(tts_result, str):
+            wav_bytes = await asyncio.to_thread(
+                audio_file_to_wav_bytes, tts_result, conn.sample_rate
+            )
+        else:
+            wav_bytes = opus_datas_to_wav_bytes(tts_result, sample_rate=conn.sample_rate)
         file_path = wakeup_words_config.generate_file_path(voice)
         with open(file_path, "wb") as f:
             f.write(wav_bytes)
