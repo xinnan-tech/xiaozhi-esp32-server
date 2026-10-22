@@ -14,6 +14,10 @@ const functionDialogSource = await readFile(
   new URL('../src/components/FunctionDialog.vue', import.meta.url),
   'utf8',
 );
+const modelConfigSource = await readFile(
+  new URL('../src/views/ModelConfig.vue', import.meta.url),
+  'utf8',
+);
 
 test('address-book permission state consistently uses the target device MAC', () => {
   assert.match(
@@ -64,6 +68,19 @@ test('correct-word pagination maps the UI page size to the backend limit query',
     /new URLSearchParams\(\{\s*page: params\.page,\s*limit: params\.pageSize\s*\}\)/,
   );
   assert.doesNotMatch(correctWordApiSource, /pageSize: params\.pageSize/);
+});
+
+test('model navigation keeps all entries reachable on short screens', () => {
+  const navStyles = modelConfigSource.match(/\.nav-panel\s*\{([^}]*)\}/)?.[1];
+  const itemStyles = modelConfigSource.match(
+    /\.nav-panel\s+\.el-menu-item\s*\{([^}]*)\}/,
+  )?.[1];
+
+  assert.ok(navStyles, 'model navigation should define its layout');
+  assert.ok(itemStyles, 'model menu items should define their layout');
+  assert.match(navStyles, /box-sizing:\s*border-box;/);
+  assert.match(navStyles, /overflow-y:\s*auto;/);
+  assert.match(itemStyles, /flex-shrink:\s*0;/);
 });
 
 test('function dialog footer stays above the expanding MCP tools section', () => {
