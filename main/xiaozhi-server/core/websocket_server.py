@@ -38,6 +38,29 @@ from core.utils.util import check_vad_update, check_asr_update
 
 TAG = __name__
 
+# 浏览器不能自定义 websocket 请求头，约定把凭证和设备标识放进子协议头：
+# Sec-WebSocket-Protocol: xiaozhi, t-<token>, d-<deviceId>, c-<clientId>
+# 握手时只回显 xiaozhi，其余值由服务端自己解析。加前缀是为了让每个值
+# 都落在合法的子协议 token 字符集内（deviceId 的冒号就不合法）
+WS_SUBPROTOCOL = "xiaozhi"
+WS_SUBPROTOCOL_FIELDS = (("t-", "authorization"), ("d-", "device-id"), ("c-", "client-id"))
+
+
+def _parse_subprotocol_headers(headers: dict) -> dict:
+    """从子协议头里取出 token、device-id、client-id
+
+    取出来的值与请求头形态保持一致（authorization 带 Bearer 前缀），
+    这样下游不用关心凭证到底是从哪来的。
+    """
+    values = {}
+    for item in headers.get("sec-websocket-protocol", "").split(","):
+        item = item.strip()
+        for prefix, key in WS_SUBPROTOCOL_FIELDS:
+            if item.startswith(prefix) and len(item) > len(prefix):
+                value = item[len(prefix) :]
+                values[key] = f"Bearer {value}" if key == "authorization" else value
+    return values
+
 
 class WebSocketServer:
     def __init__(self, config: dict):
@@ -66,7 +89,7 @@ class WebSocketServer:
         """从配置加载认证相关属性，改配置后可重复调用"""
         auth_config = config["server"].get("auth", {})
         self.auth_enable = auth_config.get("enabled", False)
-        # 设备白名单：命中白名单只影响 token 签发时长，不再跳过 token 校验
+        # 设备白名单：命中白名单只影响 token 的校验时长，不再跳过校验本身
         self.allowed_devices = set(auth_config.get("allowed_devices", []))
         # 白名单设备的 token 有效期，默认与普通设备一致，不因白名单放宽
         self.allowed_expire_seconds = auth_config.get(
@@ -91,37 +114,33 @@ class WebSocketServer:
             host,
             port,
             process_request=self._http_response,
+            select_subprotocol=self._select_subprotocol,
             ping_interval=None,
         ):
             await asyncio.Future()
 
-    async def _handle_connection(self, websocket: websockets.ServerConnection):
-        headers = dict(websocket.request.headers)
-        if headers.get("device-id", None) is None:
-            # 尝试从 URL 的查询参数中获取 device-id
-            from urllib.parse import parse_qs, urlparse
+    def _select_subprotocol(self, connection, subprotocols):
+        """客户端按约定发了子协议就回显 xiaozhi，否则不选，回显会被浏览器拒掉"""
+        return WS_SUBPROTOCOL if WS_SUBPROTOCOL in subprotocols else None
 
-            # 从 WebSocket 请求中获取路径
-            request_path = websocket.request.path
-            if not request_path:
-                self.logger.bind(tag=TAG).error("无法获取请求路径")
-                await websocket.close()
-                return
-            parsed_url = urlparse(request_path)
-            query_params = parse_qs(parsed_url.query)
-            if "device-id" not in query_params:
-                await websocket.send("端口正常，如需测试连接，请启动digital-human测试")
-                await websocket.close()
-                return
-            else:
-                websocket.request.headers["device-id"] = query_params["device-id"][0]
-            if "client-id" in query_params:
-                websocket.request.headers["client-id"] = query_params["client-id"][0]
-            if "authorization" in query_params:
-                # token 只接受请求头携带，URL 查询串会落进反代访问日志
-                self.logger.bind(tag=TAG).warning(
-                    "忽略 URL 查询串中的 authorization，token 需通过请求头传递"
-                )
+    def _connection_headers(self, websocket: websockets.ServerConnection) -> dict:
+        """合并请求头与子协议头
+
+        请求头优先，两者都不从 URL 查询串取：查询串会原样落进反代访问日志，
+        设备标识和 token 都不该出现在那里。
+        """
+        headers = dict(websocket.request.headers)
+        for key, value in _parse_subprotocol_headers(headers).items():
+            if not headers.get(key):
+                headers[key] = value
+        return headers
+
+    async def _handle_connection(self, websocket: websockets.ServerConnection):
+        headers = self._connection_headers(websocket)
+        if headers.get("device-id", None) is None:
+            await websocket.send("端口正常，如需测试连接，请启动digital-human测试")
+            await websocket.close()
+            return
 
         """处理新连接，每次创建独立的ConnectionHandler"""
         # 先认证，后建立连接
@@ -226,7 +245,7 @@ class WebSocketServer:
     async def _handle_auth(self, websocket: websockets.ServerConnection):
         # 先认证，后建立连接
         if self.auth_enable:
-            headers = dict(websocket.request.headers)
+            headers = self._connection_headers(websocket)
             device_id = headers.get("device-id", None)
             client_id = headers.get("client-id", None)
             token = headers.get("authorization", "")
