@@ -3,6 +3,7 @@ package xiaozhi.modules.device.controller;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,15 +47,16 @@ public class OTAController {
             @Parameter(name = "Device-Id", description = "设备唯一标识", required = true, in = ParameterIn.HEADER) @RequestHeader("Device-Id") String deviceId,
             @Parameter(name = "Client-Id", description = "客户端标识", required = false, in = ParameterIn.HEADER) @RequestHeader(value = "Client-Id", required = false) String clientId) {
         if (StringUtils.isBlank(deviceId)) {
-            return createResponse(DeviceReportRespDTO.createError("Device ID is required"));
+            return createResponse(DeviceReportRespDTO.createError("Device ID is required"), HttpStatus.BAD_REQUEST);
         }
+        deviceId = normalizeDeviceId(deviceId);
         if (StringUtils.isBlank(clientId)) {
             clientId = deviceId;
         }
         boolean macAddressValid = isMacAddressValid(deviceId);
         // 设备Id和Mac地址应是一致的, 并且必须需要application字段
         if (!macAddressValid) {
-            return createResponse(DeviceReportRespDTO.createError("Invalid device ID"));
+            return createResponse(DeviceReportRespDTO.createError("Invalid device ID"), HttpStatus.BAD_REQUEST);
         }
         return createResponse(deviceService.checkDeviceActive(deviceId, clientId, deviceReportReqDTO));
     }
@@ -94,19 +96,50 @@ public class OTAController {
 
     @SneakyThrows
     private ResponseEntity<String> createResponse(DeviceReportRespDTO deviceReportRespDTO) {
+        return createResponse(deviceReportRespDTO, HttpStatus.OK);
+    }
+
+    @SneakyThrows
+    private ResponseEntity<String> createResponse(DeviceReportRespDTO deviceReportRespDTO, HttpStatus status) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         String json = objectMapper.writeValueAsString(deviceReportRespDTO);
         byte[] jsonBytes = json.getBytes(StandardCharsets.UTF_8);
         return ResponseEntity
-                .ok()
+                .status(status)
                 .contentType(MediaType.APPLICATION_JSON)
                 .contentLength(jsonBytes.length)
                 .body(json);
     }
 
     /**
-     * 简单判断mac地址是否有效（非严格）
+     * 把设备上报的 Device-Id 归一成小写冒号分隔的 MAC 形态。
+     * 入库存的是用户在智控台填的原始字符串，查询、签名、topic、缓存键
+     * 统一用归一后的值，否则同一台设备换个写法就会被当成没登记
+     *
+     * @param deviceId
+     * @return 归一后的 Device-Id；不是合法 MAC 时原样返回，交给后续校验拒绝
+     */
+    private static String normalizeDeviceId(String deviceId) {
+        if (StringUtils.isBlank(deviceId)) {
+            return deviceId;
+        }
+        String hex = deviceId.toLowerCase().replace(":", "").replace("-", "").replace("_", "");
+        if (hex.length() != 12) {
+            return deviceId;
+        }
+        StringBuilder mac = new StringBuilder(17);
+        for (int i = 0; i < 12; i += 2) {
+            if (i > 0) {
+                mac.append(':');
+            }
+            mac.append(hex, i, i + 2);
+        }
+        return mac.toString();
+    }
+
+    /**
+     * 判断 mac 地址是否有效，收紧为严格的十六进制 MAC 形态
      *
      * @param macAddress
      * @return

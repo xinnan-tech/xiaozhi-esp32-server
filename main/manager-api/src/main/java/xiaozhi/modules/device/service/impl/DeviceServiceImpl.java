@@ -198,7 +198,10 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // 设备未绑定，则返回当前上传的固件信息（不更新）以此兼容旧固件版本
         if (deviceById == null) {
             DeviceReportRespDTO.Firmware firmware = new DeviceReportRespDTO.Firmware();
-            firmware.setVersion(deviceReport.getApplication().getVersion());
+            String currentVersion = deviceReport != null && deviceReport.getApplication() != null
+                    ? deviceReport.getApplication().getVersion()
+                    : null;
+            firmware.setVersion(currentVersion);
             firmware.setUrl(Constant.INVALID_FIRMWARE_URL);
             response.setFirmware(firmware);
         } else {
