@@ -400,6 +400,19 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         return baseDao.selectOne(wrapper);
     }
 
+    @Override
+    public DeviceEntity getOwnedDeviceByMacAddress(String macAddress) {
+        DeviceEntity device = getDeviceByMacAddress(macAddress);
+        if (device == null) {
+            return null;
+        }
+        UserDetail user = SecurityUser.getUser();
+        if (user == null || device.getUserId() == null || !device.getUserId().equals(user.getId())) {
+            return null;
+        }
+        return device;
+    }
+
     private DeviceReportRespDTO.ServerTime buildServerTime() {
         DeviceReportRespDTO.ServerTime serverTime = new DeviceReportRespDTO.ServerTime();
         TimeZone tz = TimeZone.getDefault();
