@@ -139,6 +139,24 @@ class AddressBookAliasBackfillMigrationSqlTest {
     }
 
     @Test
+    @DisplayName("判重分组跟连接一样不区分大小写，大小写变体落进同一组")
+    void theCollisionGroupingIsCaseInsensitiveJustLikeTheJoin() throws SQLException, IOException {
+        insertDevice("dev-a", "aa:bb:cc:dd:ee:01", "甲的名字");
+        insertDevice("dev-b", "AA:BB:CC:DD:EE:01", "乙的名字");
+
+        // 子表原样跑一遍。判重要是哪一步变成逐字节比，这两行会各成一组、
+        // 各算出 COUNT(*) = 1，两台都去取名字，串名照旧发生。
+        // 这里不看别的，只钉住「这两行必须在一组里」
+        String collation = queryColumn(
+                "SELECT COLLATION(`mac_address`) FROM `%s`.`ai_device` LIMIT 1".formatted(SCHEMA), 0).get(0);
+        assertTrue(collation.endsWith("_ci"),
+                "这一列的比较规则不折叠大小写，判重分组会跟着变：" + collation);
+        assertEquals(1, groupsOf("SELECT `mac_address` AS grp FROM `%s`.`ai_device` GROUP BY `mac_address`"
+                        .formatted(SCHEMA)),
+                "只差大小写的两行被分成了两组，会各自去取名字");
+    }
+
+    @Test
     @DisplayName("只差大小写的一组设备算撞上了，大小写写法的行拿到的称呼一样")
     void aGroupDifferingOnlyByCaseCountsAsColliding() throws SQLException, IOException {
         // 四个用户各登记一次，写法两种大小写混着来。连接那句不区分大小写，
@@ -319,6 +337,11 @@ class AddressBookAliasBackfillMigrationSqlTest {
                 SELECT `alias` FROM `%s`.`ai_device_address_book`
                 WHERE `mac_address` IN ('%s') ORDER BY `mac_address`
                 """.formatted(SCHEMA, list), 0);
+    }
+
+    /** 分组之后剩几组，用来看同样的数据在两种比较规则下算不算同一组 */
+    private int groupsOf(String groupedSelect) throws SQLException {
+        return Integer.parseInt(queryColumn("SELECT COUNT(*) FROM (" + groupedSelect + ") t", 0).get(0));
     }
 
     private List<String> queryColumn(String sql, int column) throws SQLException {

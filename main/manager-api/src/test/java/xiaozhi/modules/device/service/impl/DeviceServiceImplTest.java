@@ -97,8 +97,9 @@ class DeviceServiceImplTest {
         DeviceServiceImpl service = service();
         doReturn(device).when(service).getDeviceByMacAddress(MAC);
 
+        // 匿名调用的实际形态：getUser() 返回空对象，id 是空的，不是返回 null
         try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
-            securityUser.when(SecurityUser::getUser).thenReturn(null);
+            securityUser.when(SecurityUser::getUser).thenReturn(new UserDetail());
 
             assertNull(service.getOwnedDeviceByMacAddress(MAC));
         }

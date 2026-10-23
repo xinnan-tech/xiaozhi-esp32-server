@@ -71,9 +71,7 @@ class DeviceControllerTest {
         when(deviceService.getOwnedDeviceByMacAddress(OTHER_MAC)).thenReturn(null);
         DeviceController controller = controller(deviceService, addressBookService);
 
-        try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class);
-                MockedStatic<MessageUtils> messageUtils = mockStatic(MessageUtils.class)) {
-            securityUser.when(SecurityUser::getUser).thenReturn(currentUser());
+        try (MockedStatic<MessageUtils> messageUtils = mockStatic(MessageUtils.class)) {
             messageUtils.when(() -> MessageUtils.getMessage(ErrorCode.DEVICE_NOT_EXIST))
                     .thenReturn("Device not exist");
 
@@ -95,14 +93,10 @@ class DeviceControllerTest {
         when(addressBookService.getAddressBookList(MAC)).thenReturn(entries);
         DeviceController controller = controller(deviceService, addressBookService);
 
-        try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
-            securityUser.when(SecurityUser::getUser).thenReturn(currentUser());
+        Result<Object> result = controller.getAddressBook(MAC);
 
-            Result<Object> result = controller.getAddressBook(MAC);
-
-            assertEquals(0, result.getCode());
-            assertEquals(entries, result.getData());
-        }
+        assertEquals(0, result.getCode());
+        assertEquals(entries, result.getData());
     }
 
     @Test
@@ -118,14 +112,10 @@ class DeviceControllerTest {
         dto.setTargetMac(MAC);
         dto.setAlias("office");
 
-        try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
-            securityUser.when(SecurityUser::getUser).thenReturn(currentUser());
+        Result<Void> result = controller.updateAlias(dto);
 
-            Result<Void> result = controller.updateAlias(dto);
-
-            assertEquals("无权限操作该设备", result.getMsg());
-            verify(addressBookService, never()).saveOrUpdate(OTHER_MAC, MAC, "office", null);
-        }
+        assertEquals("无权限操作该设备", result.getMsg());
+        verify(addressBookService, never()).saveOrUpdate(OTHER_MAC, MAC, "office", null);
     }
 
     @Test
@@ -141,14 +131,10 @@ class DeviceControllerTest {
         dto.setTargetMac(MAC);
         dto.setHasPermission(true);
 
-        try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
-            securityUser.when(SecurityUser::getUser).thenReturn(currentUser());
+        Result<Void> result = controller.updatePermission(dto);
 
-            Result<Void> result = controller.updatePermission(dto);
-
-            assertEquals("无权限操作该设备", result.getMsg());
-            verify(addressBookService, never()).saveOrUpdate(OTHER_MAC, MAC, null, true);
-        }
+        assertEquals("无权限操作该设备", result.getMsg());
+        verify(addressBookService, never()).saveOrUpdate(OTHER_MAC, MAC, null, true);
     }
 
     private DeviceController controller(DeviceService deviceService, DeviceAddressBookService addressBookService) {

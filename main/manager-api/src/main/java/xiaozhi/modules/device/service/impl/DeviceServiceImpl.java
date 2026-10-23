@@ -413,7 +413,9 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
             return null;
         }
         UserDetail user = SecurityUser.getUser();
-        if (user == null || device.getUserId() == null || !device.getUserId().equals(user.getId())) {
+        // getUser() 在取不到 subject、principal 时返回的是空对象，不是 null，
+        // 所以这里不会拿到 null。匿名调用走的就是空对象那一条，id 是空的，比不上
+        if (device.getUserId() == null || !device.getUserId().equals(user.getId())) {
             return null;
         }
         return device;
