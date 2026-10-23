@@ -12,15 +12,15 @@ opuslib_next==1.3.1
 pydub==0.25.1
 funasr==1.4.16
 # transformers>=5 要求 torch>=2.6，与本项目 torch 2.2.2 冲突（会禁用 PyTorch，fun_local 加载不了模型）
-transformers<5
+transformers<6
 openai==2.8.1
 google-generativeai==0.8.6
 edge_tts==7.3.1
 httpx==0.28.1
 aiohttp==3.14.5
 aiohttp_cors==0.8.1
-ormsgpack==1.12.2
-ruamel.yaml==0.18.16
+ormsgpack==1.13.0
+ruamel.yaml==0.19.1
 loguru==0.7.3
 requests==2.34.2
 cozepy==0.20.0
@@ -36,7 +36,7 @@ dashscope==1.27.7
 baidu-aip==4.16.13
 aioconsole==0.8.2
 markitdown==0.1.8
-mcp-proxy==0.12.0
+mcp-proxy==0.13.0
 PyJWT==2.15.1
 psutil==7.2.2
 portalocker==3.2.0  # 暂留 3.x：4.x 与 qdrant-client<1.20 的 portalocker<4.0 约束冲突 (PR #3360)
