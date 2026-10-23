@@ -1,9 +1,11 @@
 import { log } from '../../utils/logger.js?v=0205';
 
 // 子协议值必须是合法的 token 字符，冒号不在其中，所以 Device-Id 去掉分隔符。
-// OTA 请求头与 websocket 子协议必须用同一个值，否则 token 签名对不上
+// OTA 请求头与 websocket 子协议必须用同一个值，否则 token 签名对不上。
+// 方括号里横线必须写在最前面，写成 [:-_] 会当成 : 到 _ 的区间，
+// 连大写 A-Z 一起吃掉，大写 MAC 会被算成空串
 export function normalizeDeviceId(deviceId) {
-    return (deviceId || '').replace(/[:-_]/g, '').toLowerCase();
+    return (deviceId || '').replace(/[-:_]/g, '').toLowerCase();
 }
 
 // WebSocket 连接
@@ -28,8 +30,9 @@ export async function webSocketConnect(otaUrl, config) {
     }
 
     // token 存下来下次续签用：激活码用掉即作废，
-    // 不存的话第二次点连接必然被服务端拒
-    const issuedToken = (websocket.token || otaResult.mqtt?.token || '').replace(/^Bearer\s+/i, '');
+    // 不存的话第二次点连接必然被服务端拒。
+    // 响应里 websocket 和 mqtt 是二选一，带 mqtt 的响应走不到这里
+    const issuedToken = (websocket.token || '').replace(/^Bearer\s+/i, '');
     if (issuedToken) {
         sessionStorage.setItem('xz_tester_token', issuedToken);
         localStorage.setItem('xz_tester_token', issuedToken);

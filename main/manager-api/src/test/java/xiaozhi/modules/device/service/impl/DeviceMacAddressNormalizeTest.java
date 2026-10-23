@@ -10,9 +10,15 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.ibatis.exceptions.TooManyResultsException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -90,6 +96,42 @@ class DeviceMacAddressNormalizeTest {
     }
 
     @Test
+    @DisplayName("库里存了两行同一个 MAC 时取第一行，不抛 TooManyResultsException")
+    void duplicateRowsResolveToTheFirstOne() {
+        // 迁移脚本对重复组整组跳过，库里出现同 mac 的两行是可能的：
+        // 用户把同一台设备用两种写法各添加过一次，迁移前后都该读得出来
+        DeviceEntity older = storedDevice("AA-BB-CC-DD-EE-FF");
+        older.setId("dev-old");
+        DeviceEntity newer = storedDevice("aa:bb:cc:dd:ee:ff");
+        newer.setId("dev-new");
+
+        DeviceDao dao = mock(DeviceDao.class);
+        when(dao.selectList(any())).thenReturn(List.of(older, newer));
+        // selectOne 命中多行就是 MyBatis-Plus 抛的 TooManyResultsException，
+        // 这里照抄真库的行为：用 selectOne 的写法改回去，用例会带着这个异常炸掉
+        when(dao.selectOne(any())).thenThrow(
+                new TooManyResultsException("Expected one result (or null) to be returned by selectOne(), but found: 2"));
+        DeviceServiceImpl service = service(dao);
+
+        DeviceEntity found = service.getDeviceByMacAddress(CANONICAL);
+        assertSame(older, found, "重复行应按 id 排完取第一条，两次读到同一台");
+    }
+
+    @Test
+    @DisplayName("迁移脚本只刷归一后不会撞车的行，撞上的整组不动")
+    void migrationLeavesCollidingGroupsAlone() {
+        String sql = readChangelog("202610231200.sql");
+        assertTrue(sql.contains("COUNT(*) AS `n` FROM norm GROUP BY `nmac`"),
+                "迁移没做重复检测");
+        assertTrue(sql.contains("WHERE cnt.`n` = 1"),
+                "迁移没按组跳过重复行，会把两行刷成同一个 mac_address");
+        assertTrue(sql.contains("BINARY d.`mac_address` <> BINARY norm.`nmac`"),
+                "ai_device 走 utf8mb4_0900_ai_ci，不加 BINARY 的话大写行永远刷不掉");
+        assertTrue(sql.contains("COUNT(*) AS `n` FROM norm GROUP BY `ntmac`"),
+                "target_mac 那一段漏了重复检测");
+    }
+
+    @Test
     @DisplayName("手工添加按归一值查重、按归一值入库")
     void manualAddStoresNormalizedMac() {
         DeviceDao dao = mock(DeviceDao.class);
@@ -155,9 +197,9 @@ class DeviceMacAddressNormalizeTest {
     /** 只在查询值等于 storedMac 时才命中，用来验证查的是哪个值 */
     private DeviceDao daoMatchingOnly(String storedMac, DeviceEntity row) {
         DeviceDao dao = mock(DeviceDao.class);
-        when(dao.selectOne(any())).thenAnswer(invocation -> {
+        when(dao.selectList(any())).thenAnswer(invocation -> {
             Wrapper<DeviceEntity> wrapper = invocation.getArgument(0);
-            return storedMac.equals(queriedMac(wrapper)) ? row : null;
+            return storedMac.equals(queriedMac(wrapper)) ? List.of(row) : List.of();
         });
         return dao;
     }
@@ -167,6 +209,16 @@ class DeviceMacAddressNormalizeTest {
         device.setId(mac);
         device.setMacAddress(mac);
         return device;
+    }
+
+    private String readChangelog(String fileName) {
+        try {
+            return Files.readString(
+                    Path.of("src", "main", "resources", "db", "changelog", fileName),
+                    StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("读不到 " + fileName, e);
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -420,7 +420,14 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
     private DeviceEntity selectByMacAddress(String macAddress) {
         QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("mac_address", macAddress);
-        return baseDao.selectOne(wrapper);
+        // 按 id 排一下再取第一条：同一份重复数据每次得拿到同一台，
+        // 不然称呼和缓存键会跟着返回顺序变
+        wrapper.orderByAsc("id");
+        // 有重复行时 selectOne 直接抛 TooManyResultsException，报活和激活两条路一起崩，
+        // 库里还看不出发生过什么。迁移对撞车的行整组不动，那种库会同时存在两行，
+        // 取第一条让设备读得出来；两行归谁所有是人的判断，脚本不替人定
+        List<DeviceEntity> devices = baseDao.selectList(wrapper);
+        return devices.isEmpty() ? null : devices.get(0);
     }
 
     /**

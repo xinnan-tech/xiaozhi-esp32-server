@@ -1073,18 +1073,52 @@ def test_issued_after_future_timestamp_degrades():
 
 
 def test_reload_order_keeps_config_intact_on_bad_auth():
-    """10g. 换配置时先校验认证段：配错不能留下"配置换了一半、模块不再重建"的状态"""
-    ws_server = build_ws_server(build_config(enabled=True, allowed=[ALLOWED_MAC]))
-    before = ws_server.config
-    broken = build_config(enabled=True)
-    broken["server"]["auth"]["allowed_devices"] = "aa:bb:cc:dd:ee:ff"
+    """10g. 换配置时先校验认证段：配错不能留下"配置换了一半、模块不再重建"的状态
 
-    try:
-        ws_server._load_auth_config(broken)
-        raise AssertionError("配错的 auth 段应抛错")
-    except ValueError:
-        pass
-    assert ws_server.config is before, "校验没过就不该动 self.config"
+    走真的 update_config()：只直接调 _load_auth_config 的话，这条用例自己就断言了
+    "self.config 没被换"，可被测代码根本没走到赋值那一步，怎么改都能过。
+    真正要验的是校验抛错后 self.config 仍指向老对象、且模块没有重建过。
+    """
+    import config.config_loader as loader
+    import core.websocket_server as ws_mod
+
+    ws_server = build_ws_server(build_config(enabled=True, allowed=[ALLOWED_MAC]))
+    ws_server.config_lock = asyncio.Lock()
+    before = ws_server.config
+
+    # 接口真的返回了配错的 auth 段：allowed_devices 是标量字符串，set() 会逐字符拆开
+    broken = {
+        "selected_module": [],
+        "server": {
+            "ip": "10.0.0.9",
+            "auth": {"enabled": True, "allowed_devices": "aa:bb:cc:dd:ee:ff"},
+        },
+    }
+    # 模块重建是这条用例真正盯的副作用，校验没过就不该被触发
+    rebuilt = []
+    fake_modules = lambda *a, **k: (rebuilt.append(a[2]) or {})
+
+    async def fake_get_server_config():
+        return {k: (v.copy() if isinstance(v, dict) else v) for k, v in broken.items()}
+
+    with patch.object(loader, "read_config", return_value={}), patch.object(
+        loader, "get_project_dir", return_value="/tmp/"
+    ), patch.object(loader, "init_service"), patch.object(
+        loader, "get_server_config", fake_get_server_config
+    ), patch.object(
+        ws_mod, "initialize_modules", fake_modules
+    ), patch.object(
+        ws_mod, "check_vad_update", return_value=False
+    ), patch.object(
+        ws_mod, "check_asr_update", return_value=False
+    ):
+        ok = asyncio.run(ws_server.update_config())
+
+    assert ok is False, "认证段配错时 update_config 应返回失败"
+    assert ws_server.config is before, (
+        f"校验没过 self.config 就被换掉了：{ws_server.config['server']}"
+    )
+    assert rebuilt == [], f"校验没过还重建了模块：{rebuilt}"
     print("OK: 认证段校验失败时配置保持原样")
 
 
@@ -1239,29 +1273,195 @@ def test_tester_page_covers_both_localhost_spellings():
     print("OK: 文档写清了测试页的两种来源")
 
 
-def test_tester_page_reuses_token():
-    """10l. 测试页拿到 token 要存下来复用，激活码用一次就作废"""
-    connector = open(
-        os.path.join(REPO, "main", "digital-human", "js", "core", "network", "ota-connector.js"),
-        encoding="utf-8",
-    ).read()
-    manager = open(
-        os.path.join(REPO, "main", "digital-human", "js", "config", "manager.js"),
-        encoding="utf-8",
-    ).read()
+TESTER_JS = os.path.join(REPO, "main", "digital-human", "js")
+TESTER_JS_FILES = (
+    "utils/logger.js",
+    "config/manager.js",
+    "core/network/ota-connector.js",
+)
 
-    assert "xz_tester_token" in connector, "OTA 拿到的 token 没存下来"
-    assert "config.token || config.activationCode" in connector, (
-        "发 OTA 时应优先用 token，没有才用激活码"
+# 在 node 里真跑一遍测试页的连接流程：填激活码 → 连接 → 刷新 → 再连。
+# 只跑 ota-connector 和 manager 这两个模块，其余依赖靠下面的桩顶掉。
+TESTER_DRIVER = r"""
+function makeStorage() {
+    const m = new Map();
+    return {
+        getItem: k => (m.has(k) ? m.get(k) : null),
+        setItem: (k, v) => m.set(k, String(v)),
+        removeItem: k => m.delete(k),
+        _dump: () => Object.fromEntries(m),
+    };
+}
+globalThis.sessionStorage = makeStorage();
+globalThis.localStorage = makeStorage();
+globalThis.window = { location: { origin: 'http://127.0.0.1:8006' } };
+
+const inputs = {
+    deviceMac: { value: '' },
+    deviceName: { value: '' },
+    clientId: { value: '' },
+    otaUrl: { value: 'http://127.0.0.1:8002/ota/' },
+    wakewordWsUrl: { value: '' },
+    wakewordEnabled: { value: 'true' },
+    wakewordList: { value: '' },
+    emojiEnabled: { value: 'true' },
+    activationCode: { value: '' },
+    serverUrl: { value: '' },
+};
+globalThis.document = { getElementById: id => inputs[id] || null };
+
+const calls = [];
+let issued = process.env.ISSUED_FIRST;
+globalThis.fetch = async (url, opts) => {
+    calls.push({ url, headers: opts.headers, body: JSON.parse(opts.body) });
+    return {
+        ok: true, status: 200, statusText: 'OK',
+        json: async () => ({ websocket: { url: 'ws://127.0.0.1:8000/', token: issued } }),
+    };
+};
+class FakeWebSocket {
+    constructor(url, protocols) {
+        this.url = url;
+        this.protocols = protocols;
+        FakeWebSocket.last = this;
+    }
+}
+globalThis.WebSocket = FakeWebSocket;
+
+const { webSocketConnect } = await import('./js/core/network/ota-connector.js');
+const { loadConfig, saveConfig, getConfig } = await import('./js/config/manager.js');
+
+const mac = process.env.TESTER_MAC;
+loadConfig();
+inputs.deviceMac.value = mac;
+inputs.deviceName.value = '测试机';
+inputs.clientId.value = 'client-1';
+inputs.activationCode.value = process.env.ACTIVATION_CODE;
+saveConfig();
+
+// 页面上点连接按钮之前会再 loadConfig 一次，走的是同一条读回路径
+loadConfig();
+await webSocketConnect('http://127.0.0.1:8002/ota/', getConfig());
+const first = {
+    call: calls[calls.length - 1],
+    session: sessionStorage._dump(),
+    local: localStorage._dump(),
+};
+
+// 刷新页面：server 端激活码已作废，只有 token 能续签
+issued = process.env.ISSUED_SECOND;
+loadConfig();
+await webSocketConnect('http://127.0.0.1:8002/ota/', getConfig());
+const second = {
+    call: calls[calls.length - 1],
+    session: sessionStorage._dump(),
+    local: localStorage._dump(),
+    protocols: FakeWebSocket.last.protocols,
+};
+
+// logger 会往 stdout 写行，JSON 用标记包起来单独取
+process.stdout.write('<<<JSON' + JSON.stringify({ first, second, mac }) + '\n');
+"""
+
+
+def run_tester_page(mac: str, activation_code: str, issued_first: str, issued_second: str) -> dict:
+    """在 node 里跑一遍测试页的连接流程，返回实际发出去的请求和落库的凭证"""
+    import re
+    import shutil
+    import subprocess
+    import tempfile
+
+    work = tempfile.mkdtemp(prefix="check_auth_3448_js_")
+    try:
+        # node 按 ESM 加载，import 上的 ?v=0205 是浏览器缓存标记，磁盘上不存在这个文件
+        for rel in TESTER_JS_FILES:
+            dest = os.path.join(work, "js", rel)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(os.path.join(TESTER_JS, rel), encoding="utf-8") as fh:
+                body = re.sub(r"(\.js)\?v=\d+", r"\1", fh.read())
+            with open(dest, "w", encoding="utf-8") as fh:
+                fh.write(body)
+
+        driver = os.path.join(work, "driver.mjs")
+        with open(driver, "w", encoding="utf-8") as fh:
+            fh.write(TESTER_DRIVER)
+
+        env = dict(
+            os.environ,
+            TESTER_MAC=mac,
+            ACTIVATION_CODE=activation_code,
+            ISSUED_FIRST=issued_first,
+            ISSUED_SECOND=issued_second,
+        )
+        proc = subprocess.run(
+            ["node", driver], capture_output=True, text=True, env=env, timeout=120
+        )
+        assert proc.returncode == 0, f"node 跑测试页失败：{proc.stderr[-2000:]}"
+        payload = [
+            line for line in proc.stdout.splitlines() if line.startswith("<<<JSON")
+        ]
+        assert payload, f"node 没吐出结果：{proc.stdout[-2000:]}"
+        return json.loads(payload[0][len("<<<JSON") :])
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def test_tester_page_reuses_token():
+    """10l. 测试页拿到 token 要存下来复用，激活码用一次就作废
+
+    真在 node 里跑页面那条连接链，看实际发出去的 Authorization 和落库的凭证。
+    原来是 grep 子串，只能证明代码里出现过这几个词，证明不了第二次连用的是 token。
+    """
+    out = run_tester_page(
+        mac="AA:BB:CC:DD:EE:FF",
+        activation_code="CODE-1",
+        issued_first="TOKEN-1",
+        issued_second="TOKEN-2",
     )
-    assert "xz_tester_activationCode" in manager and "loadConfig" in manager
-    load_config_body = manager.split("export function loadConfig")[1].split("export function")[0]
-    assert "xz_tester_activationCode" in load_config_body, (
-        "激活码只写不读，刷新页面就断了"
+    first, second = out["first"], out["second"]
+
+    assert first["call"]["headers"].get("Authorization") == "Bearer CODE-1", (
+        f"首次应拿激活码换 token：{first['call']['headers']}"
     )
-    get_config_body = manager.split("export function getConfig")[1].split("// 保存连接URL")[0]
-    assert "xz_tester_token" in get_config_body, "存下来的 token 没传下去"
+    assert first["session"].get("xz_tester_token") == "TOKEN-1", (
+        f"下发的 token 没存进 sessionStorage：{first['session']}"
+    )
+    assert first["local"].get("xz_tester_token") == "TOKEN-1", (
+        f"刷新页面就没了，token 得存进 localStorage：{first['local']}"
+    )
+    assert second["call"]["headers"].get("Authorization") == "Bearer TOKEN-1", (
+        f"刷新后应拿上次的 token 续签，不是作废的激活码：{second['call']['headers']}"
+    )
+    assert second["session"].get("xz_tester_token") == "TOKEN-2", (
+        f"续签换的新 token 应覆盖旧的：{second['session']}"
+    )
+    assert "t-TOKEN-2" in second["protocols"], (
+        f"凭证要靠子协议带给 websocket 连接：{second['protocols']}"
+    )
     print("OK: 测试页会复用 token，激活码也读得回来")
+
+
+def test_tester_page_sends_normalized_device_id():
+    """10m. 大写 MAC 要发出小写去分隔符的 Device-Id，且与子协议头一致
+
+    测试页自己生成的随机 MAC 就是大写。这里曾写成 /[:-_]/g，那是 : 到 _ 的字符区间，
+    连大写 A-Z 一起吃掉，大写 MAC 算出来是空串。服务端只收 d- 后面非空的值，
+    空的话连接直接被判成"端口探测"关掉，测试页连都连不上。
+    """
+    out = run_tester_page(
+        mac="AA:BB:CC:DD:EE:FF",
+        activation_code="CODE-1",
+        issued_first="TOKEN-1",
+        issued_second="TOKEN-2",
+    )
+    want = "aabbccddeeff"
+    for phase in ("first", "second"):
+        got = out[phase]["call"]["headers"].get("Device-Id")
+        assert got == want, f"{phase} 的 Device-Id 应是 {want}，实际 {got!r}"
+    assert f"d-{want}" in out["second"]["protocols"], (
+        f"子协议头和请求头得是同一个值，否则 token 签名对不上：{out['second']['protocols']}"
+    )
+    print("OK: 大写 MAC 归一后才发出去，两处一致")
 
 
 def main() -> int:
@@ -1315,6 +1515,7 @@ def main() -> int:
     test_cors_empty_warn_reports_blocked_origin()
     test_tester_page_covers_both_localhost_spellings()
     test_tester_page_reuses_token()
+    test_tester_page_sends_normalized_device_id()
     print("\nALL PASS: 3448 认证旁路已关闭")
     return 0
 
