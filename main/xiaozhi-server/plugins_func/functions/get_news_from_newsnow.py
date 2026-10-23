@@ -55,6 +55,27 @@ CHANNEL_MAP = {
 # 默认新闻来源字典，当配置中没有指定时使用
 DEFAULT_NEWS_SOURCES = "澎湃新闻;百度热搜;财联社"
 
+DEFAULT_NEWS_API_URL = "https://newsnow.busiyi.world/api/s?id="
+
+
+def _build_news_api_url(source, configured_url=None):
+    """拼出新闻接口的请求地址和查询参数。
+
+    配置里带 {source} 占位符就替换占位符；否则把 id 设成新闻源 id，
+    这样配置里已经写了 id 时也不会拼出脏串。
+    """
+    api_url = str(configured_url).strip() if configured_url else DEFAULT_NEWS_API_URL
+    if "{source}" in api_url:
+        return api_url.replace("{source}", quote(source, safe="")), None
+    parts = urlsplit(api_url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query["id"] = source
+    return (
+        urlunsplit((parts.scheme, parts.netloc, parts.path, "", parts.fragment)),
+        query,
+    )
+
+
 def _get_newsnow_config(conn):
     # 从连接配置获取
     plugins = conn.config.get("plugins", {})
@@ -116,21 +137,9 @@ GET_NEWS_FROM_NEWSNOW_FUNCTION_DESC = {
 async def fetch_news_from_api(conn: "ConnectionHandler", source="thepaper"):
     """从API获取新闻列表"""
     try:
-        api_url = "https://newsnow.busiyi.world/api/s?id="
         news_config = conn.config.get("plugins", {}).get("get_news_from_newsnow", {})
         configured_url = news_config.get("url") if isinstance(news_config, dict) else None
-        if configured_url:
-            api_url = str(configured_url).strip()
-
-        if "{source}" in api_url:
-            api_url = api_url.replace("{source}", quote(source, safe=""))
-            request_params = None
-        else:
-            parts = urlsplit(api_url)
-            query = dict(parse_qsl(parts.query, keep_blank_values=True))
-            query["id"] = source
-            request_params = query
-            api_url = urlunsplit((parts.scheme, parts.netloc, parts.path, "", parts.fragment))
+        api_url, request_params = _build_news_api_url(source, configured_url)
 
         headers = {"User-Agent": "Mozilla/5.0"}
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:

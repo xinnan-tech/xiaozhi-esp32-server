@@ -121,7 +121,6 @@ async def fetch_city_info(location, api_key, api_host):
                 "key": api_key,
                 "location": location,
                 "lang": "zh",
-                "range": "cn",
                 "number": 1,
             },
             headers=HEADERS,
@@ -133,7 +132,10 @@ async def fetch_city_info(location, api_key, api_host):
             f"获取天气城市失败：HTTP {response.status_code} 返回了非 JSON 内容"
         )
         return None
-    if response.status_code != 200 or data.get("code") not in (None, "200", 200):
+    if not isinstance(data, dict):
+        logger.bind(tag=TAG).error("获取天气城市失败：响应不是 JSON 对象")
+        return None
+    if response.status_code != 200 or data.get("code") != "200":
         logger.bind(tag=TAG).error(
             f"获取天气城市失败：HTTP {response.status_code}，代码 {data.get('code')}"
         )
@@ -170,9 +172,9 @@ async def fetch_weather_data(city_info, api_key, api_host):
     except Exception as e:
         logger.bind(tag=TAG).warning(f"获取天气 JSON 接口失败，将尝试网页接口: {e}")
         return None
-    if now is None and daily is None:
+    if now is None or daily is None:
         return None
-    return now or {}, daily or {}
+    return now, daily
 
 
 def build_weather_report(city_info, now_data, daily_data):
@@ -188,6 +190,8 @@ def build_weather_report(city_info, now_data, daily_data):
         "风向": now.get("windDir"),
         "风力": now.get("windScale"),
         "能见度": f"{now['vis']}公里" if now.get("vis") is not None else None,
+        "气压": f"{now['pressure']}百帕" if now.get("pressure") is not None else None,
+        "降水量": f"{now['precip']}毫米" if now.get("precip") is not None else None,
     }
     current_basic = {key: value for key, value in current_basic.items() if value}
     if current_basic:
@@ -206,7 +210,9 @@ def build_weather_report(city_info, now_data, daily_data):
 
 
 async def fetch_weather_page(url):
-    async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(10.0, connect=3.0), follow_redirects=True
+    ) as client:
         response = await client.get(url, headers=HEADERS)
     return BeautifulSoup(response.text, "html.parser") if response.status_code == 200 else None
 
@@ -282,7 +288,9 @@ async def get_weather(conn: "ConnectionHandler", location: str = None, lang: str
     city_info = await fetch_city_info(location, api_key, api_host)
     if not city_info:
         return ActionResponse(
-            Action.REQLLM, f"未找到相关的城市: {location}，请确认地点是否正确", None
+            Action.REQLLM,
+            f"暂时查不到 {location} 的天气（城市未找到或天气服务不可用），请稍后再试",
+            None,
         )
     weather_data = await fetch_weather_data(city_info, api_key, api_host)
     if weather_data:
