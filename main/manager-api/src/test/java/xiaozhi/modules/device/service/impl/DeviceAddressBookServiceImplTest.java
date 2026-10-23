@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Date;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -339,6 +340,34 @@ class DeviceAddressBookServiceImplTest {
         verify(addressBookDao).insertAddressBook(entityCaptor.capture());
         assertEquals("尾号为ab的设备", entityCaptor.getValue().getAlias(),
                 "MAC 大小写不区分，末尾两位要跟着小写化，否则和迁移脚本产出的是两个称呼");
+    }
+
+    /**
+     * 接口按最近改过的排前面
+     *
+     * <p>
+     * 智控台那条 Vue 是按 targetMac 把 alias 合进 allDevices 的，接口顺序被丢掉了，
+     * 这条现在对 console 没有效果。用例留着是把这个契约钉住：哪天当无用代码删了，
+     * 会有用例报出来，而不是静悄悄换掉接口的返回顺序
+     */
+    @Test
+    void listPutsTheMostRecentlyTouchedEntryFirst() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceAddressBookEntity older = row(MAC, OTHER_MAC, "客厅");
+        older.setUpdateDate(new Date(1767321840000L));
+        DeviceAddressBookEntity newer = row(MAC, THIRD_MAC, "书房");
+        newer.setUpdateDate(new Date(1778000000000L));
+        DeviceAddressBookEntity neverTouched = row(MAC, "00:11:22:33:44:88", "阳台");
+        when(addressBookDao.getAddressBookList(MAC)).thenReturn(
+                new ArrayList<>(List.of(older, neverTouched, newer)));
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, mock(DeviceService.class), mock(SysParamsService.class));
+
+        List<DeviceAddressBookEntity> rows = service.getAddressBookList(MAC);
+
+        assertEquals(List.of("书房", "客厅", "阳台"), rows.stream().map(DeviceAddressBookEntity::getAlias).toList(),
+                "最近改过的应该排前面，没改过的排最后");
     }
 
     private String readChangelog(String fileName) {
