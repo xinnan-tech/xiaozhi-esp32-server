@@ -40,7 +40,7 @@ async def load_config():
     custom_config = read_config(custom_config_path)
 
     if custom_config.get("manager-api", {}).get("url"):
-        config = await get_config_from_api_async(custom_config)
+        config = await get_config_from_api_async()
     else:
         # 合并配置
         config = merge_configs(default_config, custom_config)
@@ -52,10 +52,16 @@ async def load_config():
     return config
 
 
-async def get_config_from_api_async(config):
-    """从Java API获取配置（异步版本）"""
+async def get_config_from_api_async():
+    """从Java API获取配置（异步版本），本地配置逐键覆盖上去
+
+    本地配置在这里自己读，不接受调用方传进来：调用方手里只有上一次合并
+    完的结果，拿它当"本地"会把旧值盖回这次新拉到的响应，改配置不生效。
+    """
+    local_config = read_config(get_project_dir() + "data/.config.yaml") or {}
+
     # 初始化API客户端
-    init_service(config)
+    init_service(local_config)
 
     # 获取服务器配置
     config_data = await get_server_config()
@@ -64,25 +70,36 @@ async def get_config_from_api_async(config):
 
     config_data["read_config_from_api"] = True
     config_data["manager-api"] = {
-        "url": config["manager-api"].get("url", ""),
-        "secret": config["manager-api"].get("secret", ""),
+        "url": local_config.get("manager-api", {}).get("url", ""),
+        "secret": local_config.get("manager-api", {}).get("secret", ""),
     }
     server_config = config_data.setdefault("server", {})
     # 认证开关以智控台的参数管理为准，这里只补默认值。
     # 不能重建整个 auth，否则接口返回的 allowed_devices、activation_codes
     # 这些字段会被抹掉，智控台部署下等于配置写了不生效
-    server_config.setdefault("auth", {}).setdefault("enabled", False)
+    server_auth = server_config.setdefault("auth", {})
+    server_auth.setdefault("enabled", False)
+    # 智控台只下发 enabled 这一个键，本地配的白名单、激活码、吊销线、有效期
+    # 得逐键并进去。整段跳过的话它们在官方全模块部署里一个都用不了，
+    # 而本地这边没有任何提示，配了等于没配。
+    # 智控台哪天开始下发这些键，以智控台为准
+    for key, value in ((local_config.get("server") or {}).get("auth") or {}).items():
+        if key != "enabled":
+            server_auth.setdefault(key, value)
 
     # server 的其余配置以本地为准，但只覆盖本地显式写过的字段。
     # 整块替换会把接口返回的 cors、websocket 等一并吞掉。
-    # auth 例外，它归智控台管
-    for key, value in (config.get("server") or {}).items():
+    # auth 例外，它归智控台管，在上面单独合并
+    # 注意 auth_key 在 server 下、不在 server.auth 里，它归这一段管；
+    # 而 config.yaml 里根本没有 auth_key 这一行，默认部署下压根不参与合并，
+    # 靠 app.py 回落到 manager-api.secret。要改它得显式写进 data/.config.yaml
+    for key, value in (local_config.get("server") or {}).items():
         if key != "auth":
             server_config[key] = value
 
     # 如果服务器没有prompt_template，则从本地配置读取
     if not config_data.get("prompt_template"):
-        config_data["prompt_template"] = config.get("prompt_template")
+        config_data["prompt_template"] = local_config.get("prompt_template")
     return config_data
 
 

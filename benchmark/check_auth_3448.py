@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import sys
 import time
@@ -79,10 +80,10 @@ def recording_logger():
     """收集日志调用，构造期发出的告警也要能拿到"""
     records = []
 
-    def bind(**kw):
-        def record(level):
-            return lambda *a, **k: records.append((level, " ".join(str(x) for x in a)))
+    def record(level):
+        return lambda *a, **k: records.append((level, " ".join(str(x) for x in a)))
 
+    def bind(**kw):
         return SimpleNamespace(
             info=record("info"),
             warning=record("warning"),
@@ -90,7 +91,15 @@ def recording_logger():
             debug=record("debug"),
         )
 
-    logger = SimpleNamespace(bind=bind)
+    # 顶层也挂上各级方法：core.auth 是模块级 logger.warning(...)，
+    # 不走 bind，不挂的话 patch 上去的对象调不到就报 AttributeError
+    logger = SimpleNamespace(
+        bind=bind,
+        info=record("info"),
+        warning=record("warning"),
+        error=record("error"),
+        debug=record("debug"),
+    )
     logger.records = records
     return logger
 
@@ -428,8 +437,11 @@ def test_expire_seconds_bad_type_falls_back():
 
 
 def test_issued_after_invalid_fails_fast():
-    """4c. 吊销线配成未来时间或字符串 → 启动即报错，不静默 401"""
-    for bad in (int(time.time()) + 3600, "not-a-number", -5):
+    """4c. 吊销线配成字符串或负数 → 启动即报错，不静默 401
+
+    未来时间戳不在这一类里：它降级成警告并截到当前，见 test_issued_after_future_timestamp_degrades。
+    """
+    for bad in ("not-a-number", -5):
         try:
             AuthManager(secret_key=SECRET, issued_after=bad)
         except ValueError:
@@ -845,10 +857,12 @@ def test_config_loader_keeps_api_and_local_keys():
     async def fake_get_server_config():
         return {k: (v.copy() if isinstance(v, dict) else v) for k, v in api_payload.items()}
 
-    with patch.object(loader, "init_service"), patch.object(
+    with patch.object(loader, "read_config", return_value=custom), patch.object(
+        loader, "get_project_dir", return_value="/tmp/"
+    ), patch.object(loader, "init_service"), patch.object(
         loader, "get_server_config", fake_get_server_config
     ):
-        merged = asyncio.run(loader.get_config_from_api_async(custom))
+        merged = asyncio.run(loader.get_config_from_api_async())
 
     server = merged["server"]
     assert server["auth"]["enabled"] is True, "认证开关应来自智控台"
@@ -862,6 +876,392 @@ def test_config_loader_keeps_api_and_local_keys():
     assert server["secret"] == "server-secret", server
     assert merged["read_config_from_api"] is True
     print("OK: 智控台部署下 server 字段逐键合并不丢失")
+
+
+# ------------------------------------------------- 10. round 2：8 条 P1 的接缝
+
+
+def test_subprotocol_reaches_session_layer():
+    """10a. 子协议合并结果必须落到 ConnectionHandler 读的那份 request.headers 上
+
+    之前 _connection_headers 只把合并结果交给 _handle_auth，
+    ConnectionHandler 又从头读了一遍 dict(ws.request.headers)，
+    结果浏览器连接认证过了但会话里没有 device-id，页面一直提示要绑定。
+    """
+    import inspect
+
+    from core.connection import ConnectionHandler
+
+    ws_server = build_ws_server(build_config(enabled=True, allowed=[ALLOWED_MAC]))
+    token = ws_server.auth.generate_token(CLIENT_ID, ALLOWED_MAC)
+    ws = fake_ws(subprotocol_header(ALLOWED_MAC, CLIENT_ID, token))
+
+    ws_server._connection_headers(ws)
+
+    # ConnectionHandler.handle_connection 就是这么读的（connection.py）
+    session_headers = dict(ws.request.headers)
+    assert session_headers.get("device-id"), (
+        "子协议里的 device-id 没落到 request.headers，会话拿不到设备标识"
+    )
+    assert session_headers.get("client-id") == CLIENT_ID, session_headers
+    assert session_headers.get("authorization", "").startswith("Bearer "), (
+        f"子协议里的 token 没落到 request.headers：{session_headers}"
+    )
+
+    # 兜住"ConnectionHandler 改成从别处取"——只测合并函数会漏掉这一半
+    source = inspect.getsource(ConnectionHandler.handle_connection)
+    assert "ws.request.headers" in source, (
+        "ConnectionHandler 不再从 ws.request.headers 取，合并结果可能落不到会话层，"
+        "请同步改 websocket_server._connection_headers 并更新本用例"
+    )
+    print("OK: 子协议凭证一路传到会话层")
+
+
+def test_mqtt_branch_returns_token():
+    """10b. MQTT 分支的响应体里必须带 token，且额度消耗与响应一致"""
+    config = build_config(
+        enabled=True,
+        allowed=[ALLOWED_MAC],
+        _server={"mqtt_gateway": "1.2.3.4:1883", "mqtt_signature_key": "sig-key"},
+    )
+    ota = build_ota(config)
+    request = FakeRequest({"device-id": ALLOWED_MAC, "client-id": CLIENT_ID})
+
+    resp = asyncio.run(ota.handle_post(request))
+    assert resp.status == 200, f"白名单自举应 200，实际 {resp.status}"
+    body = json.loads(resp.text)
+    assert body.get("mqtt"), f"应下发 MQTT 配置：{body}"
+    token = body["mqtt"].get("token")
+    assert token, (
+        f"MQTT 分支没带 token，激活码与自举名额却已经消耗掉了：{body['mqtt']}"
+    )
+
+    # 额度与响应一致：同一台设备不带凭证再来一次，必须被拒
+    again = asyncio.run(
+        ota.handle_post(FakeRequest({"device-id": ALLOWED_MAC, "client-id": CLIENT_ID}))
+    )
+    assert again.status == 401, (
+        f"第一次给了 token 却消耗了额度，第二次应 401，实际 {again.status}"
+    )
+
+    # 拿这个 token 能换到下一次，不至于只能连一次
+    renewed = asyncio.run(
+        ota.handle_post(
+            FakeRequest(
+                {"device-id": ALLOWED_MAC, "client-id": CLIENT_ID, **bearer(token)}
+            )
+        )
+    )
+    assert renewed.status == 200, f"MQTT 分支下发的 token 应可续签，实际 {renewed.status}"
+    print("OK: MQTT 分支下发 token，额度消耗与响应一致")
+
+
+def test_activation_code_returns_token_on_mqtt_branch():
+    """10c. 激活码绑定的 MQTT 设备也要拿到 token，否则码白烧"""
+    config = build_config(
+        enabled=True,
+        activation_codes=[f"mqtt-code: {ALLOWED_MAC}"],
+        _server={"mqtt_gateway": "1.2.3.4:1883", "mqtt_signature_key": "sig-key"},
+    )
+    ota = build_ota(config)
+
+    resp = asyncio.run(
+        ota.handle_post(
+            FakeRequest(
+                {
+                    "device-id": ALLOWED_MAC,
+                    "client-id": CLIENT_ID,
+                    **bearer("mqtt-code"),
+                }
+            )
+        )
+    )
+    assert resp.status == 200, f"激活码应 200，实际 {resp.status}"
+    body = json.loads(resp.text)
+    assert body["mqtt"].get("token"), f"激活码用掉却没下发 token：{body['mqtt']}"
+    print("OK: 激活码在 MQTT 分支也能换到 token")
+
+
+def test_whitelist_normalized_and_bootstrap_for_any_spelling():
+    """10d. 白名单按归一值比较：分隔符和大小写不同都该认同一台设备
+
+    websocket 侧认不认白名单只体现在 token 有效期上，
+    所以用"短有效期签发 + 白名单放长"来区分：认出来就过，认不出就过期。
+    """
+    from core.auth import normalize_device_id
+
+    for form in (
+        "aa:bb:cc:dd:ee:ff",
+        "AA:BB:CC:DD:EE:FF",
+        "aa-bb-cc-dd-ee-ff",
+        "aabbccddeeff",
+        "AA_BB_CC_DD_EE_FF",
+    ):
+        config = build_config(
+            enabled=True,
+            allowed=["AA-BB-CC-DD-EE-FF"],
+            allowed_devices_expire_seconds=7200,
+        )
+        ws_server = build_ws_server(config)
+        assert ws_server.allowed_devices == {"aabbccddeeff"}, (
+            f"加载时没归一：{ws_server.allowed_devices}"
+        )
+
+        # 造一个 10 秒前就签发的 token：白名单不认它就只有默认有效期，会过期
+        stale_ts = int(time.time()) - 10
+        content = f"{CLIENT_ID}|{form}|{stale_ts}"
+        signature = ws_server.auth._sign(content)
+        token = f"{signature}.{stale_ts}"
+
+        ok = run_ws_auth(
+            ws_server,
+            {"device-id": form, "client-id": CLIENT_ID, **bearer(token)},
+        )
+        assert ok, (
+            f"白名单写法 {form} 没认出来（归一值 {normalize_device_id(form)}），"
+            "会让这台设备的 token 拿到默认有效期"
+        )
+
+    # OTA 侧的白名单同样按归一值比较
+    ota = build_ota(build_config(enabled=True, allowed=["AA-BB-CC-DD-EE-FF"]))
+    assert ota.allowed_devices == {"aabbccddeeff"}, ota.allowed_devices
+    print("OK: 白名单认得各种分隔符与大小写写法")
+
+
+def test_list_config_rejects_scalar_string():
+    """10e. allowed_devices / activation_codes 配成字符串必须报错，不能逐字符拆"""
+    # allowed_devices 两边都读，activation_codes 只有 OTA 读，按各自加载的那一侧触发
+    for key, bad, load in (
+        ("allowed_devices", "aa:bb:cc:dd:ee:ff", build_ws_server),
+        ("activation_codes", "SecretCode1", build_ota),
+    ):
+        config = build_config(enabled=True)
+        config["server"]["auth"][key] = bad
+        try:
+            load(config)
+            raise AssertionError(f"server.auth.{key} 配成字符串应报错")
+        except ValueError:
+            pass
+    print("OK: 列表型配置配成字符串时报错")
+
+
+def test_issued_after_future_timestamp_degrades():
+    """10f. 填未来的吊销时刻只警告并截到当前，不该让整个进程起不来"""
+    from core.auth import normalize_issued_after
+
+    future = int(time.time()) + 60
+    logger = recording_logger()
+    with patch("core.auth.logger", logger):
+        clamped = normalize_issued_after(future)
+    assert clamped <= int(time.time()), f"未来时刻应截到当前，实际 {clamped}"
+    warned = " ".join(messages(logger, "warning"))
+    assert "issued_after" in warned, f"截断了却没提示：{warned}"
+
+    # 能构造出来，WebSocket / OTA / 视觉接口才不会一起没
+    with patch("core.auth.logger", logger):
+        manager = AuthManager(secret_key=SECRET, issued_after=future)
+    assert manager.issued_after <= int(time.time())
+
+    # 非整数与负数仍然是配错，该报错
+    for bad in ("abc", -1):
+        try:
+            normalize_issued_after(bad)
+            raise AssertionError(f"issued_after={bad!r} 应报错")
+        except ValueError:
+            pass
+    print("OK: 未来吊销时刻降级为警告，填错仍报错")
+
+
+def test_reload_order_keeps_config_intact_on_bad_auth():
+    """10g. 换配置时先校验认证段：配错不能留下"配置换了一半、模块不再重建"的状态"""
+    ws_server = build_ws_server(build_config(enabled=True, allowed=[ALLOWED_MAC]))
+    before = ws_server.config
+    broken = build_config(enabled=True)
+    broken["server"]["auth"]["allowed_devices"] = "aa:bb:cc:dd:ee:ff"
+
+    try:
+        ws_server._load_auth_config(broken)
+        raise AssertionError("配错的 auth 段应抛错")
+    except ValueError:
+        pass
+    assert ws_server.config is before, "校验没过就不该动 self.config"
+    print("OK: 认证段校验失败时配置保持原样")
+
+
+def test_config_loader_merges_local_auth_keys():
+    """10h. 全模块部署下本地配的四个认证项必须逐键并进去"""
+    import config.config_loader as loader
+
+    api_payload = {"server": {"ip": "10.0.0.5", "auth": {"enabled": True}}}
+    local = {
+        "manager-api": {"url": "http://console", "secret": "msecret"},
+        "server": {
+            "auth": {
+                "allowed_devices": ["aa:bb:cc:dd:ee:ff"],
+                "activation_codes": ["local-code"],
+                "issued_after": 1700000000,
+                "expire_seconds": 3600,
+            }
+        },
+    }
+
+    async def fake_get_server_config():
+        return {k: (v.copy() if isinstance(v, dict) else v) for k, v in api_payload.items()}
+
+    with patch.object(loader, "read_config", return_value=local), patch.object(
+        loader, "get_project_dir", return_value="/tmp/"
+    ), patch.object(loader, "init_service"), patch.object(
+        loader, "get_server_config", fake_get_server_config
+    ):
+        merged = asyncio.run(loader.get_config_from_api_async())
+
+    auth = merged["server"]["auth"]
+    assert auth["enabled"] is True, "认证开关应来自智控台"
+    for key, want in (
+        ("allowed_devices", ["aa:bb:cc:dd:ee:ff"]),
+        ("activation_codes", ["local-code"]),
+        ("issued_after", 1700000000),
+        ("expire_seconds", 3600),
+    ):
+        assert auth.get(key) == want, f"本地配的 {key} 没生效：{auth}"
+    assert merged["server"]["ip"] == "10.0.0.5", "接口返回的字段不该被吞"
+    print("OK: 全模块部署下本地四个认证项都并进去了")
+
+
+def test_update_config_keeps_local_auth_keys():
+    """10i. 走完 update_config()，本地四个认证项在 self.config 里仍然是本地配的值
+
+    这条断言覆盖整条链：本地配置 → get_config_from_api_async → 合并 → 赋回 self.config。
+    只测 get_config_from_api_async() 挡不住"入参传错"——传 self.config 或只传 server 段
+    都不报错，但四个键会悄悄变回空。
+    """
+    import config.config_loader as loader
+    import core.websocket_server as ws_mod
+
+    ws_server = build_ws_server(build_config(enabled=True, allowed=[ALLOWED_MAC]))
+    ws_server.config_lock = asyncio.Lock()
+
+    local = {
+        "manager-api": {"url": "http://console", "secret": "msecret"},
+        "server": {
+            "auth": {
+                "allowed_devices": ["aa:bb:cc:dd:ee:ff"],
+                "activation_codes": ["local-code"],
+                "issued_after": 1700000000,
+                "expire_seconds": 3600,
+            }
+        },
+    }
+    api_payload = {
+        "selected_module": [],
+        "server": {"ip": "10.0.0.9", "auth": {"enabled": True}},
+    }
+    # 刷新前就签好的 token：auth_key 只在启动时算一次，刷新配置不能把它换掉，
+    # 换了等于给所有在线设备换了一把密钥，token 集体作废
+    old_token = ws_server.auth.generate_token(CLIENT_ID, ALLOWED_MAC)
+
+    async def fake_get_server_config():
+        return {k: (v.copy() if isinstance(v, dict) else v) for k, v in api_payload.items()}
+
+    with patch.object(loader, "read_config", return_value=local), patch.object(
+        loader, "get_project_dir", return_value="/tmp/"
+    ), patch.object(loader, "init_service"), patch.object(
+        loader, "get_server_config", fake_get_server_config
+    ), patch.object(
+        ws_mod, "initialize_modules", return_value={}
+    ), patch.object(
+        ws_mod, "check_vad_update", return_value=False
+    ), patch.object(
+        ws_mod, "check_asr_update", return_value=False
+    ):
+        ok = asyncio.run(ws_server.update_config())
+    assert ok, f"update_config 应成功：{messages(ws_server.logger, 'error')}"
+
+    auth = ws_server.config["server"]["auth"]
+    for key, want in (
+        ("allowed_devices", ["aa:bb:cc:dd:ee:ff"]),
+        ("activation_codes", ["local-code"]),
+        ("issued_after", 1700000000),
+        ("expire_seconds", 3600),
+    ):
+        assert auth.get(key) == want, (
+            f"刷新配置后本地的 {key} 没了，说明入参传的是上次合并结果：{auth}"
+        )
+    assert ws_server.config["server"]["ip"] == "10.0.0.9", "接口返回的字段应生效"
+    assert ws_server.config["server"]["auth_key"] == SECRET, "auth_key 被刷新掉了"
+    assert ws_server.auth.verify_token(
+        old_token, client_id=CLIENT_ID, username=ALLOWED_MAC
+    ), "刷新配置让刷新前签的 token 失效了，等于给在线设备全换了一把密钥"
+    print("OK: update_config 刷新后本地认证项与接口字段都在")
+
+
+def test_cors_empty_warn_reports_blocked_origin():
+    """10j. 名单为空时跨域被拦，服务端要留信号，否则只有浏览器那头知道"""
+    with captured_warnings() as logger:
+        handler = VisionHandler(build_config(enabled=True, cors={"allowed_origins": []}))
+        response = _cors_headers_for(handler.config, "http://127.0.0.1:8006")
+        assert "Access-Control-Allow-Origin" not in response, "空名单不该放行"
+
+    warned = " ".join(messages(logger, "warning"))
+    assert "allowed_origins" in warned, f"被拦下却没留服务端信号：{warned}"
+    assert "127.0.0.1:8006" in warned, f"告警里应点名是哪个来源被拦：{warned}"
+    print("OK: 名单为空时服务端会点名被拦的来源")
+
+
+def test_tester_page_covers_both_localhost_spellings():
+    """10k. 测试页的两种打开方式都要在文档里写清，两个 origin 不是一回事"""
+    import re
+
+    readme = open(
+        os.path.join(REPO, "main", "digital-human", "README.md"), encoding="utf-8"
+    ).read()
+    for origin in ("http://127.0.0.1:8006", "http://localhost:8006"):
+        assert origin in readme, f"README 没写 {origin}，按这种地址打开会连不上"
+    assert "file://" in readme, "README 应说明用 file:// 打开没意义"
+
+    config_yaml = open(
+        os.path.join(SERVER, "config.yaml"), encoding="utf-8"
+    ).read()
+    # 说明写在 cors: 上方的注释里，正则得连注释一起框进来
+    block = re.search(
+        r"(?:^[ \t]*#.*\n)+^[ \t]*cors:\s*\n\s*allowed_origins:[^\n]*",
+        config_yaml,
+        re.M,
+    )
+    assert block, "config.yaml 里找不到 cors 配置"
+    comment = block.group(0)
+    assert "127.0.0.1:8006" in comment and "localhost:8006" in comment, (
+        "config.yaml 注释要同时写两个来源，只写一个按另一种方式打开照样不通"
+    )
+    assert '"null"' not in comment, (
+        '不该再引导填 "null"：页面检测到 file:// 会自己弹窗挡住，origin 不会是 null'
+    )
+    print("OK: 文档写清了测试页的两种来源")
+
+
+def test_tester_page_reuses_token():
+    """10l. 测试页拿到 token 要存下来复用，激活码用一次就作废"""
+    connector = open(
+        os.path.join(REPO, "main", "digital-human", "js", "core", "network", "ota-connector.js"),
+        encoding="utf-8",
+    ).read()
+    manager = open(
+        os.path.join(REPO, "main", "digital-human", "js", "config", "manager.js"),
+        encoding="utf-8",
+    ).read()
+
+    assert "xz_tester_token" in connector, "OTA 拿到的 token 没存下来"
+    assert "config.token || config.activationCode" in connector, (
+        "发 OTA 时应优先用 token，没有才用激活码"
+    )
+    assert "xz_tester_activationCode" in manager and "loadConfig" in manager
+    load_config_body = manager.split("export function loadConfig")[1].split("export function")[0]
+    assert "xz_tester_activationCode" in load_config_body, (
+        "激活码只写不读，刷新页面就断了"
+    )
+    get_config_body = manager.split("export function getConfig")[1].split("// 保存连接URL")[0]
+    assert "xz_tester_token" in get_config_body, "存下来的 token 没传下去"
+    print("OK: 测试页会复用 token，激活码也读得回来")
 
 
 def main() -> int:
@@ -903,6 +1303,18 @@ def main() -> int:
     test_cors_vary_always_written()
     test_all_cors_call_sites_pass_request()
     test_config_loader_keeps_api_and_local_keys()
+    test_subprotocol_reaches_session_layer()
+    test_mqtt_branch_returns_token()
+    test_activation_code_returns_token_on_mqtt_branch()
+    test_whitelist_normalized_and_bootstrap_for_any_spelling()
+    test_list_config_rejects_scalar_string()
+    test_issued_after_future_timestamp_degrades()
+    test_reload_order_keeps_config_intact_on_bad_auth()
+    test_config_loader_merges_local_auth_keys()
+    test_update_config_keeps_local_auth_keys()
+    test_cors_empty_warn_reports_blocked_origin()
+    test_tester_page_covers_both_localhost_spellings()
+    test_tester_page_reuses_token()
     print("\nALL PASS: 3448 认证旁路已关闭")
     return 0
 

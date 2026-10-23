@@ -9,7 +9,7 @@ import glob
 from typing import Dict, List, Tuple
 from aiohttp import web
 
-from core.auth import AuthManager
+from core.auth import AuthManager, auth_config_list, normalize_device_id
 from core.utils.util import get_local_ip, get_vision_url
 from core.api.base_handler import BaseHandler
 
@@ -25,11 +25,6 @@ DEVICE_ID_PATTERN = re.compile(
 # Device-Model 会拼进 mqtt_client_id 进而参与密码签名，限制成不含
 # 分隔符与通配符的字符，避免拼出畸形凭证
 DEVICE_MODEL_PATTERN = re.compile(r"[A-Za-z0-9_\-]+")
-
-
-def _normalize_device_id(device_id: str) -> str:
-    """去掉分隔符转小写，让 aa:bb:cc:dd:ee:ff 与 aabbccddeeff 视为同一台设备"""
-    return re.sub(r"[:\-_]", "", device_id).lower()
 
 
 def _error_response(status: int, message: str) -> web.Response:
@@ -102,7 +97,12 @@ class OTAHandler(BaseHandler):
         auth_config = config["server"].get("auth", {})
         self.auth_enable = auth_config.get("enabled", False)
         # 设备白名单：命中白名单只影响 token 有效期，不再跳过 token 校验
-        self.allowed_devices = set(auth_config.get("allowed_devices", []))
+        # 加载时就归一成去掉分隔符的小写，和激活码绑定、OTA 请求头用同一套写法，
+        # 否则同一台设备换个分隔符或大小写就既不认白名单也不认激活码，直接锁死
+        self.allowed_devices = {
+            normalize_device_id(item)
+            for item in auth_config_list(auth_config, "allowed_devices")
+        }
         # 白名单设备的 token 有效期，默认与普通设备一致
         self.allowed_expire_seconds = auth_config.get(
             "allowed_devices_expire_seconds", None
@@ -112,7 +112,7 @@ class OTAHandler(BaseHandler):
         self.allowed_bootstrapped = set()
         # 一次性激活码，供无 token 的设备首次绑定；写 "码: Device-Id" 可绑到具体设备
         self.activation_codes = _parse_activation_codes(
-            auth_config.get("activation_codes", []) or []
+            auth_config_list(auth_config, "activation_codes")
         )
         secret_key = config["server"]["auth_key"]
         expire_seconds = auth_config.get("expire_seconds")
@@ -141,7 +141,7 @@ class OTAHandler(BaseHandler):
 
     def _expire_for(self, device_id: str):
         """白名单设备的 token 有效期，其余设备沿用默认"""
-        if self.allowed_devices and device_id in self.allowed_devices:
+        if self.allowed_devices and normalize_device_id(device_id) in self.allowed_devices:
             return self.allowed_expire_seconds
         return None
 
@@ -179,11 +179,11 @@ class OTAHandler(BaseHandler):
         if not (
             self.allowed_bootstrap
             and self.allowed_devices
-            and device_id in self.allowed_devices
-            and device_id not in self.allowed_bootstrapped
+            and normalize_device_id(device_id) in self.allowed_devices
+            and normalize_device_id(device_id) not in self.allowed_bootstrapped
         ):
             return ""
-        self.allowed_bootstrapped.add(device_id)
+        self.allowed_bootstrapped.add(normalize_device_id(device_id))
         self.logger.bind(tag=TAG).warning(
             f"白名单设备免凭证自举签发 token: {device_id}，此后该设备必须携带凭证"
         )
@@ -196,7 +196,7 @@ class OTAHandler(BaseHandler):
         bound_device = self.activation_codes[presented]
         if not bound_device:
             return True
-        return _normalize_device_id(bound_device) == _normalize_device_id(device_id)
+        return normalize_device_id(bound_device) == normalize_device_id(device_id)
 
     def _consume_activation_code(self, presented: str) -> None:
         """作废一次性激活码，只在响应组装成功后调用"""
@@ -442,6 +442,8 @@ class OTAHandler(BaseHandler):
                     self.logger.bind(tag=TAG).warning("缺少MQTT签名密钥，密码留空")
 
                 # 构建MQTT配置（直接使用 mqtt_gateway 字符串）
+                # token 一并下发：开认证时固件下载要带凭证，MQTT 设备自己不会再
+                # 走一遍 OTA，不在这里给就永远换不到凭证
                 return_json["mqtt"] = {
                     "endpoint": mqtt_gateway_endpoint,
                     "client_id": mqtt_client_id,
@@ -449,6 +451,7 @@ class OTAHandler(BaseHandler):
                     "password": password,
                     "publish_topic": "device-server",
                     "subscribe_topic": f"devices/p2p/{mac_address_safe}",
+                    "token": ws_token,
                 }
                 self.logger.bind(tag=TAG).info(f"为设备 {device_id} 下发MQTT网关配置")
 

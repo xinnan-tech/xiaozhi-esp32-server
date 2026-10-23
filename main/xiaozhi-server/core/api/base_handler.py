@@ -2,11 +2,17 @@ from aiohttp import web
 from config.logger import setup_logging
 
 
+def allowed_origins(config: dict) -> list:
+    cors = config.get("server", {}).get("cors", {}) or {}
+    return cors.get("allowed_origins", []) or []
+
+
 class BaseHandler:
     def __init__(self, config: dict):
         self.config = config
         self.logger = setup_logging()
         self._cors_wildcard_warned = False
+        self._cors_empty_warned = False
 
     def _resolve_cors_origin(self, origin: str | None) -> str | None:
         """回显名单内的 Origin；其余情况不下发 CORS 头，由浏览器拦截
@@ -42,6 +48,16 @@ class BaseHandler:
         if origin:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
+        elif requested_origin and not allowed_origins(self.config):
+            # 名单空着的时候浏览器只会报一个不透明的跨域错误，
+            # 服务端这边一点信号都没有，读日志的人会一头雾水
+            if not self._cors_empty_warned:
+                self._cors_empty_warned = True
+                self.logger.bind(tag="BaseHandler").warning(
+                    f"cors.allowed_origins 是空的，本次来自 {requested_origin} 的"
+                    "跨域请求不会放行。浏览器侧只会报读不到状态码的错，"
+                    "排查这类问题时先把这个来源加进名单"
+                )
 
     async def handle_options(self, request):
         """处理OPTIONS请求，添加CORS头信息"""

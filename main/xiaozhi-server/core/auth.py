@@ -1,7 +1,10 @@
 import hmac
 import base64
 import hashlib
+import re
 import time
+
+from loguru import logger
 
 DEFAULT_EXPIRE_SECONDS = 60 * 60 * 24 * 30
 # 有效期上限，防止把过期时间配成准永久凭证
@@ -24,18 +27,25 @@ def normalize_expire_seconds(expire_seconds) -> int:
 
 
 def normalize_issued_after(issued_after) -> int:
-    """吊销时刻归一化，配置不合法时直接报错，不留到验签时静默失败"""
+    """吊销时刻归一化
+
+    非整数和负数直接报错——这两类是配错了，不会有人这么填。
+    超前的时间戳只降级成警告并截到当前时间：这一格最容易踩的是跨主机时钟偏差，
+    而吊销线超前本来就等于没设，不值得为它把整个进程拖到起不来。
+    """
     try:
         value = int(issued_after or 0)
     except (TypeError, ValueError):
         raise ValueError(f"server.auth.issued_after 必须是整数，当前值：{issued_after!r}")
     if value < 0:
         raise ValueError(f"server.auth.issued_after 不能为负数，当前值：{value}")
-    if value > int(time.time()):
-        raise ValueError(
-            "server.auth.issued_after 是吊销线，只能是过去或当前的时间戳，"
-            f"当前值：{value}"
+    now = int(time.time())
+    if value > now:
+        logger.warning(
+            f"server.auth.issued_after 填的是未来的时间戳（当前值 {value}，本机 {now}），"
+            "已截到当前时间。吊销线超前等于没设，请检查两台机器的时钟是否对得上"
         )
+        return now
     return value
 
 
@@ -43,6 +53,29 @@ class AuthenticationError(Exception):
     """认证异常"""
 
     pass
+
+
+def normalize_device_id(device_id: str) -> str:
+    """把 Device-Id 归一成去掉分隔符的小写
+
+    白名单、激活码绑定、OTA 请求头三处都要用同一个值比较，
+    同一台设备换个分隔符或大小写就会被一边认一边不认。
+    """
+    return re.sub(r"[:\-_]", "", device_id).lower()
+
+
+def auth_config_list(auth_config: dict, key: str) -> list:
+    """取 auth 段里的列表型配置，配成标量字符串时直接报错
+
+    不校验的话 set("aa:bb:cc:dd:ee:ff") 会逐字符拆成 7 个元素，
+    激活码字符串会被拆成十个单字符码，配了等于没配还看不出问题。
+    """
+    value = auth_config.get(key)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"server.auth.{key} 必须是列表，当前值：{value!r}")
+    return value
 
 
 class AuthManager:

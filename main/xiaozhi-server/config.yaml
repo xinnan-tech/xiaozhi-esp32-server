@@ -60,8 +60,10 @@ server:
   # 需要跨域时填具体来源，例如 ["https://your-console.example.com"]
   # 注意：填 "*" 不会放行任意来源。来源不在名单里就不下发跨域头，
   # 浏览器会直接拦下，带凭证的请求仍受同源保护
-  # 另：用本地文件直接打开的测试页面（如 digital-human/index.html）
-  # 浏览器上报的来源是 null，需要跨域时把 "null" 一并填进来
+  # 仓库自带的测试页（main/digital-human）用 HTTP 服务打开时来源是
+  # http://127.0.0.1:8006 或 http://localhost:8006——这是两个不同来源，
+  # 按哪种方式打开就得把哪个填进来，只填一个照样连不上。
+  # 用 file:// 直接双击打开的，页面会自己弹窗挡住，配置这一项没意义
   cors:
     allowed_origins: []
  # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port

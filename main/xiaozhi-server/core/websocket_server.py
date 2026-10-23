@@ -32,7 +32,12 @@ _setup_websockets_logger()
 
 from core.connection import ConnectionHandler
 from config.config_loader import get_config_from_api_async
-from core.auth import AuthManager, AuthenticationError
+from core.auth import (
+    AuthManager,
+    AuthenticationError,
+    auth_config_list,
+    normalize_device_id,
+)
 from core.utils.modules_initialize import initialize_modules
 from core.utils.util import check_vad_update, check_asr_update
 
@@ -90,7 +95,12 @@ class WebSocketServer:
         auth_config = config["server"].get("auth", {})
         self.auth_enable = auth_config.get("enabled", False)
         # 设备白名单：命中白名单只影响 token 的校验时长，不再跳过校验本身
-        self.allowed_devices = set(auth_config.get("allowed_devices", []))
+        # 和 OTA 侧同一套写法：加载时归一成去分隔符的小写，
+        # 否则设备换个分隔符或大小写上报，同一台设备一边认白名单一边不认
+        self.allowed_devices = {
+            normalize_device_id(device_id)
+            for device_id in auth_config_list(auth_config, "allowed_devices")
+        }
         # 白名单设备的 token 有效期，默认与普通设备一致，不因白名单放宽
         self.allowed_expire_seconds = auth_config.get(
             "allowed_devices_expire_seconds", None
@@ -128,11 +138,14 @@ class WebSocketServer:
 
         请求头优先，两者都不从 URL 查询串取：查询串会原样落进反代访问日志，
         设备标识和 token 都不该出现在那里。
+        合并结果写回 request.headers：ConnectionHandler 会再读一次那里，
+        不写回去浏览器连接就是认证过了但会话里没有 device-id。
         """
         headers = dict(websocket.request.headers)
         for key, value in _parse_subprotocol_headers(headers).items():
             if not headers.get(key):
                 headers[key] = value
+                websocket.request.headers[key] = value
         return headers
 
     async def _handle_connection(self, websocket: websockets.ServerConnection):
@@ -198,7 +211,7 @@ class WebSocketServer:
         try:
             async with self.config_lock:
                 # 重新获取配置（使用异步版本）
-                new_config = await get_config_from_api_async(self.config)
+                new_config = await get_config_from_api_async()
                 if new_config is None:
                     self.logger.bind(tag=TAG).error("获取新配置失败")
                     return False
@@ -209,10 +222,17 @@ class WebSocketServer:
                 self.logger.bind(tag=TAG).info(
                     f"检查VAD和ASR类型是否需要更新: {update_vad} {update_asr}"
                 )
+                # auth_key 是 app.py 启动时算出来写进 config 的，
+                # config.yaml 里没有这一行，重新拉一次接口就没了。
+                # 换掉了等于换了一把签名密钥，刷新前签发的 token 全部作废
+                new_config["server"].setdefault(
+                    "auth_key", self.config["server"]["auth_key"]
+                )
+                # 认证属性先跟着配置刷新：_load_auth_config 配错会抛，
+                # 抛了却已经把 self.config 换掉的话，模块不重建、配置还换了一半
+                self._load_auth_config(new_config)
                 # 更新配置
                 self.config = new_config
-                # 认证属性跟随配置刷新，避免改配置后不生效
-                self._load_auth_config(new_config)
                 # 重新初始化组件
                 modules = initialize_modules(
                     self.logger,
@@ -255,7 +275,9 @@ class WebSocketServer:
                 raise AuthenticationError("Missing or invalid Authorization header")
             # 白名单设备只延长 token 有效期，仍然校验 token
             expire_seconds = None
-            if self.allowed_devices and device_id in self.allowed_devices:
+            if self.allowed_devices and normalize_device_id(
+                device_id or ""
+            ) in self.allowed_devices:
                 expire_seconds = self.allowed_expire_seconds
             # 进行认证
             auth_success = self.auth.verify_token(

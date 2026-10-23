@@ -27,6 +27,14 @@ export async function webSocketConnect(otaUrl, config) {
         return;
     }
 
+    // token 存下来下次续签用：激活码用掉即作废，
+    // 不存的话第二次点连接必然被服务端拒
+    const issuedToken = (websocket.token || otaResult.mqtt?.token || '').replace(/^Bearer\s+/i, '');
+    if (issuedToken) {
+        sessionStorage.setItem('xz_tester_token', issuedToken);
+        localStorage.setItem('xz_tester_token', issuedToken);
+    }
+
     // 使用OTA返回的websocket URL
     const connUrl = new URL(websocket.url);
 
@@ -72,16 +80,15 @@ function validateConfig(config) {
 // OTA发送请求，验证状态，并返回响应数据
 async function sendOTA(otaUrl, config) {
     try {
+        // 有 token 用 token 续签，没有才用激活码换首次 token
+        const credential = config.token || config.activationCode;
         const res = await fetch(otaUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Device-Id': normalizeDeviceId(config.deviceId),
                 'Client-Id': config.clientId,
-                // 开了认证时，OTA 要拿激活码换首次 token；用掉即失效
-                ...(config.activationCode
-                    ? { 'Authorization': `Bearer ${config.activationCode}` }
-                    : {})
+                ...(credential ? { 'Authorization': `Bearer ${credential}` } : {})
             },
             body: JSON.stringify({
                 version: 0,
@@ -116,6 +123,14 @@ async function sendOTA(otaUrl, config) {
         const result = await res.json();
         return result; // 返回完整的响应数据
     } catch (err) {
+        // 跨域失败在浏览器里是不透明的：fetch 直接抛 TypeError，
+        // 拿不到状态码，也看不出是服务端没回跨域头还是服务没起来。
+        // 页面知道自己的来源，直接点名让人去加白名单
+        if (err instanceof TypeError) {
+            log(`请求 ${otaUrl} 被浏览器拦下（跨域）。把 ${window.location.origin} 加到服务端的 server.cors.allowed_origins 里`, 'error');
+        } else {
+            log(`OTA请求失败: ${err.message}`, 'error');
+        }
         return null; // 失败返回null
     }
 }
