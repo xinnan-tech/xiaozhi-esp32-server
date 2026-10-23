@@ -18,6 +18,7 @@ import xiaozhi.common.redis.RedisKeys;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.device.dao.DeviceAddressBookDao;
 import xiaozhi.modules.device.entity.DeviceAddressBookEntity;
+import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceAddressBookService;
 import xiaozhi.modules.device.service.DeviceService;
 import xiaozhi.modules.sys.service.SysParamsService;
@@ -86,7 +87,10 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
             callerNickname = targetBook.get(callerMac.toLowerCase());
         }
         if (StringUtils.isBlank(callerNickname)) {
-            callerNickname = deviceService.getDeviceByMacAddress(callerMac).getAlias();
+            DeviceEntity callerDevice = deviceService.getDeviceByMacAddress(callerMac);
+            if (callerDevice != null) {
+                callerNickname = callerDevice.getAlias();
+            }
             if (StringUtils.isBlank(callerNickname)) {
                 callerNickname = formatMacAsDeviceName(callerMac);
             }
@@ -154,14 +158,16 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
         QueryWrapper<DeviceAddressBookEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("mac_address", macAddress).eq("target_mac", targetMac);
         DeviceAddressBookEntity record = deviceAddressBookDao.selectOne(wrapper);
-        System.out.println("saveOrUpdate - mac=" + macAddress + ", targetMac=" + targetMac + ", alias=" + alias + ", record=" + (record == null ? "null" : "not null"));
         if (record == null) {
             DeviceAddressBookEntity entity = new DeviceAddressBookEntity();
             entity.setMacAddress(macAddress);
             entity.setTargetMac(targetMac);
-            // 如果 alias 为空，就默认使用设备名称
+            // 如果 alias 为空，就默认使用设备名称；对方设备尚未登记时退回尾号称呼
             if (StringUtils.isBlank(alias)) {
-                alias = deviceService.getDeviceByMacAddress(targetMac).getAlias();
+                DeviceEntity targetDevice = deviceService.getDeviceByMacAddress(targetMac);
+                alias = targetDevice == null
+                        ? formatMacAsDeviceName(targetMac)
+                        : targetDevice.getAlias();
             }
             // 检查重名
             alias = generateUniqueAlias(macAddress, targetMac, alias);
