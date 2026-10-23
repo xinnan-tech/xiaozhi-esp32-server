@@ -137,7 +137,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         deviceEntity.setBoard(board);
         deviceEntity.setAgentId(agentId);
         deviceEntity.setAppVersion(appVersion);
-        deviceEntity.setMacAddress(macAddress);
+        deviceEntity.setMacAddress(normalizeDeviceId(macAddress));
         deviceEntity.setUserId(user.getId());
         deviceEntity.setCreator(user.getId());
         deviceEntity.setAutoUpdate(1);
@@ -409,9 +409,46 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         if (StringUtils.isBlank(macAddress)) {
             return null;
         }
+        DeviceEntity device = selectByMacAddress(normalizeDeviceId(macAddress));
+        if (device != null) {
+            return device;
+        }
+        // 归一之前写进去的存量数据，原文再试一次，别让写法不同就查不到
+        return selectByMacAddress(macAddress);
+    }
+
+    private DeviceEntity selectByMacAddress(String macAddress) {
         QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("mac_address", macAddress);
         return baseDao.selectOne(wrapper);
+    }
+
+    /**
+     * 把 Device-Id 归一成小写冒号分隔的 MAC 形态
+     * <p>
+     * 入库、查询、签名、订阅地址、缓存键统一走这个值，否则同一台设备换个
+     * 分隔符或大小写就会被当成没登记，表现为静默不发凭证也不下发固件。
+     * 不是合法 MAC 时原样返回，交给后续校验拒绝。
+     *
+     * @param deviceId 设备上报或用户填写的 Device-Id
+     * @return 归一后的 Device-Id
+     */
+    public static String normalizeDeviceId(String deviceId) {
+        if (StringUtils.isBlank(deviceId)) {
+            return deviceId;
+        }
+        String hex = deviceId.toLowerCase().replace(":", "").replace("-", "").replace("_", "");
+        if (hex.length() != 12) {
+            return deviceId;
+        }
+        StringBuilder mac = new StringBuilder(17);
+        for (int i = 0; i < 12; i += 2) {
+            if (i > 0) {
+                mac.append(':');
+            }
+            mac.append(hex, i, i + 2);
+        }
+        return mac.toString();
     }
 
     private DeviceReportRespDTO.ServerTime buildServerTime() {
@@ -563,21 +600,22 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
     @Override
     public void manualAddDevice(Long userId, DeviceManualAddDTO dto) {
+        String macAddress = normalizeDeviceId(dto.getMacAddress());
         // 检查mac是否已存在
         QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("mac_address", dto.getMacAddress());
+        wrapper.eq("mac_address", macAddress);
         DeviceEntity exist = baseDao.selectOne(wrapper);
         if (exist != null) {
             throw new RenException(ErrorCode.MAC_ADDRESS_ALREADY_EXISTS);
         }
         Date now = new Date();
         DeviceEntity entity = new DeviceEntity();
-        entity.setId(dto.getMacAddress());
+        entity.setId(macAddress);
         entity.setUserId(userId);
         entity.setAgentId(dto.getAgentId());
         entity.setBoard(dto.getBoard());
         entity.setAppVersion(dto.getAppVersion());
-        entity.setMacAddress(dto.getMacAddress());
+        entity.setMacAddress(macAddress);
         entity.setCreateDate(now);
         entity.setUpdateDate(now);
         entity.setLastConnectedAt(now);

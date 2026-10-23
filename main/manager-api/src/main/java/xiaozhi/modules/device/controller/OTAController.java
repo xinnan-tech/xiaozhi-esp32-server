@@ -29,6 +29,7 @@ import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
+import xiaozhi.modules.device.service.impl.DeviceServiceImpl;
 import xiaozhi.modules.sys.service.SysParamsService;
 
 @Tag(name = "设备管理", description = "OTA 相关接口")
@@ -49,7 +50,7 @@ public class OTAController {
         if (StringUtils.isBlank(deviceId)) {
             return createResponse(DeviceReportRespDTO.createError("Device ID is required"), HttpStatus.BAD_REQUEST);
         }
-        deviceId = normalizeDeviceId(deviceId);
+        deviceId = DeviceServiceImpl.normalizeDeviceId(deviceId);
         if (StringUtils.isBlank(clientId)) {
             clientId = deviceId;
         }
@@ -110,32 +111,6 @@ public class OTAController {
                 .contentType(MediaType.APPLICATION_JSON)
                 .contentLength(jsonBytes.length)
                 .body(json);
-    }
-
-    /**
-     * 把设备上报的 Device-Id 归一成小写冒号分隔的 MAC 形态。
-     * 入库存的是用户在智控台填的原始字符串，查询、签名、topic、缓存键
-     * 统一用归一后的值，否则同一台设备换个写法就会被当成没登记
-     *
-     * @param deviceId
-     * @return 归一后的 Device-Id；不是合法 MAC 时原样返回，交给后续校验拒绝
-     */
-    private static String normalizeDeviceId(String deviceId) {
-        if (StringUtils.isBlank(deviceId)) {
-            return deviceId;
-        }
-        String hex = deviceId.toLowerCase().replace(":", "").replace("-", "").replace("_", "");
-        if (hex.length() != 12) {
-            return deviceId;
-        }
-        StringBuilder mac = new StringBuilder(17);
-        for (int i = 0; i < 12; i += 2) {
-            if (i > 0) {
-                mac.append(':');
-            }
-            mac.append(hex, i, i + 2);
-        }
-        return mac.toString();
     }
 
     /**
