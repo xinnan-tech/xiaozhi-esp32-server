@@ -408,10 +408,18 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
     @Override
     public DeviceEntity getOwnedDeviceByMacAddress(String macAddress) {
-        DeviceEntity device = getDeviceByMacAddress(macAddress);
-        if (device == null) {
+        if (StringUtils.isBlank(macAddress)) {
             return null;
         }
+        // 同一 MAC 可能有两行只差大小写，selectOne 会抛 TooManyResultsException
+        // 把整个读通讯录接口带崩。按 id 取第一条做归属校验，撞行不报错
+        QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
+        wrapper.eq("mac_address", macAddress).orderByAsc("id");
+        List<DeviceEntity> devices = baseDao.selectList(wrapper);
+        if (devices == null || devices.isEmpty()) {
+            return null;
+        }
+        DeviceEntity device = devices.get(0);
         UserDetail user = SecurityUser.getUser();
         // getUser() 在取不到 subject、principal 时返回的是空对象，不是 null，
         // 所以这里不会拿到 null。匿名调用走的就是空对象那一条，id 是空的，比不上

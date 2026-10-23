@@ -4,11 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,8 +39,7 @@ class DeviceServiceImplTest {
     @DisplayName("设备属于当前用户时返回设备")
     void deviceOwnedByCurrentUserIsReturned() {
         DeviceEntity device = device(USER_ID);
-        DeviceServiceImpl service = service();
-        doReturn(device).when(service).getDeviceByMacAddress(MAC);
+        DeviceServiceImpl service = serviceWithDeviceDao(daoReturning(device));
 
         try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
             securityUser.when(SecurityUser::getUser).thenReturn(user(USER_ID));
@@ -54,8 +51,7 @@ class DeviceServiceImplTest {
     @Test
     @DisplayName("设备属于他人时按查不到处理")
     void deviceOwnedByAnotherUserIsHidden() {
-        DeviceServiceImpl service = service();
-        doReturn(device(OTHER_USER_ID)).when(service).getDeviceByMacAddress(MAC);
+        DeviceServiceImpl service = serviceWithDeviceDao(daoReturning(device(OTHER_USER_ID)));
 
         try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
             securityUser.when(SecurityUser::getUser).thenReturn(user(USER_ID));
@@ -67,8 +63,7 @@ class DeviceServiceImplTest {
     @Test
     @DisplayName("设备未登记时按查不到处理")
     void unregisteredDeviceIsHidden() {
-        DeviceServiceImpl service = service();
-        doReturn(null).when(service).getDeviceByMacAddress(MAC);
+        DeviceServiceImpl service = serviceWithDeviceDao(daoReturning(List.of()));
 
         try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
             securityUser.when(SecurityUser::getUser).thenReturn(user(USER_ID));
@@ -80,8 +75,7 @@ class DeviceServiceImplTest {
     @Test
     @DisplayName("设备没有归属人时按查不到处理")
     void unboundDeviceIsHidden() {
-        DeviceServiceImpl service = service();
-        doReturn(device(null)).when(service).getDeviceByMacAddress(MAC);
+        DeviceServiceImpl service = serviceWithDeviceDao(daoReturning(device(null)));
 
         try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
             securityUser.when(SecurityUser::getUser).thenReturn(user(USER_ID));
@@ -93,15 +87,27 @@ class DeviceServiceImplTest {
     @Test
     @DisplayName("没有登录用户时按查不到处理")
     void anonymousCallerGetsNothing() {
-        DeviceEntity device = device(USER_ID);
-        DeviceServiceImpl service = service();
-        doReturn(device).when(service).getDeviceByMacAddress(MAC);
+        DeviceServiceImpl service = serviceWithDeviceDao(daoReturning(device(USER_ID)));
 
         // 匿名调用的实际形态：getUser() 返回空对象，id 是空的，不是返回 null
         try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
             securityUser.when(SecurityUser::getUser).thenReturn(new UserDetail());
 
             assertNull(service.getOwnedDeviceByMacAddress(MAC));
+        }
+    }
+
+    @Test
+    @DisplayName("库里同一 MAC 有两行只差大小写时，取第一条做归属校验，不再抛异常")
+    void duplicateMacDifferingOnlyInCaseStillReturnsTheDevice() {
+        DeviceEntity first = device(USER_ID, "device-1");
+        DeviceEntity second = device(USER_ID, "device-2");
+        DeviceServiceImpl service = serviceWithDeviceDao(daoReturning(List.of(first, second)));
+
+        try (MockedStatic<SecurityUser> securityUser = mockStatic(SecurityUser.class)) {
+            securityUser.when(SecurityUser::getUser).thenReturn(user(USER_ID));
+
+            assertSame(first, service.getOwnedDeviceByMacAddress(MAC));
         }
     }
 
@@ -144,14 +150,18 @@ class DeviceServiceImplTest {
         };
     }
 
-    private DeviceServiceImpl service() {
-        return spy(new DeviceServiceImpl(
-                mock(DeviceDao.class),
-                mock(SysUserUtilService.class),
-                mock(SysParamsService.class),
-                mock(RedisUtils.class),
-                mock(OtaService.class),
-                mock(DeviceAddressBookService.class)));
+    private DeviceServiceImpl serviceWithDeviceDao(DeviceDao dao) {
+        return serviceWithDao(dao, mock(DeviceAddressBookService.class));
+    }
+
+    private DeviceDao daoReturning(DeviceEntity device) {
+        return daoReturning(List.of(device));
+    }
+
+    private DeviceDao daoReturning(List<DeviceEntity> rows) {
+        DeviceDao dao = mock(DeviceDao.class);
+        when(dao.selectList(any())).thenReturn(rows);
+        return dao;
     }
 
     private DeviceEntity device(Long userId) {
