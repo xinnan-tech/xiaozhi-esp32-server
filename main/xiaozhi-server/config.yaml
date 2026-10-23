@@ -32,9 +32,40 @@ server:
     # 是否启用认证
     enabled: false
     # 白名单设备ID列表
-    # 如果属于白名单内的设备，不校验token，直接放行
-    allowed_devices:
-      - "11:22:33:44:55:66"
+    # 命中白名单只延长该设备 token 的有效期，不再跳过 token 校验
+    # 格式为设备上报的 Device-Id（MAC），例如 "aa:bb:cc:dd:ee:ff"
+    # 不要把 Client-Id 填进来：它是 UUID v4，擦 FLASH 或重装后会变化，
+    # 当长期标识会导致设备直接被锁在门外
+    allowed_devices: []
+    # 白名单设备的 token 有效期（秒）。留空表示与 expire_seconds 一致，
+    # 不因进白名单就放宽；确有需要时可设置，硬上限 90 天，超出会被截断
+    allowed_devices_expire_seconds: null
+    # 白名单设备首次接入免凭证换 token，每台设备只放行一次。
+    # 升级前靠白名单免 token 的存量设备，靠它换到凭证，否则升级即掉线。
+    # 白名单是运维显式列出的可信 MAC，这里不新增任何信任来源。
+    # 若配了 activation_codes 或不想要这条自举路径，设成 false
+    allowed_devices_bootstrap: true
+    # 一次性激活码，供没有 token 的设备首次接入时换取 token，用掉即失效
+    # 新设备接入流程：在此列表中预先加入一个码，设备带着该码请求 OTA 接口，
+    # 服务端签发 token 后自动从列表移除该码
+    # 写成 "码: Device-Id" 表示该码只能给这台设备用，例如 ["a1b2c3: aa:bb:cc:dd:ee:ff"]；
+    # 裸字符串表示不限设备。码本身不能带冒号
+    activation_codes: []
+    # token 吊销线（Unix 秒）：签发时刻早于它的 token 一律判为无效。
+    # 这是作废旧凭证的开关，不是"让设备换发新凭证"的开关——改大之后，
+    # 存量设备带旧 token 请求 OTA 会被拒，没有激活码就换不到新 token，
+    # 全网设备会一起下线。作废前请先确认 activation_codes 里有可用的码
+    issued_after: 0
+  # CORS 允许的来源列表，默认空表示不做跨域放行
+  # 需要跨域时填具体来源，例如 ["https://your-console.example.com"]
+  # 注意：填 "*" 不会放行任意来源。来源不在名单里就不下发跨域头，
+  # 浏览器会直接拦下，带凭证的请求仍受同源保护
+  # 仓库自带的测试页（main/digital-human）用 HTTP 服务打开时来源是
+  # http://127.0.0.1:8006 或 http://localhost:8006——这是两个不同来源，
+  # 按哪种方式打开就得把哪个填进来，只填一个照样连不上。
+  # 用 file:// 直接双击打开的，页面会自己弹窗挡住，配置这一项没意义
+  cors:
+    allowed_origins: []
  # MQTT网关配置，用于通过OTA下发到设备，根据mqtt_gateway的.env文件配置，格式为host:port
   mqtt_gateway: null
   # MQTT签名密钥，用于生成MQTT连接密码，根据mqtt_gateway的.env文件配置

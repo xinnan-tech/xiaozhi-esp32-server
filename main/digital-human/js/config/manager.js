@@ -72,6 +72,18 @@ export function loadConfig() {
     if (savedEmojiEnabled !== null && emojiEnabledInput) {
         emojiEnabledInput.value = savedEmojiEnabled;
     }
+
+    // 激活码和 token 要读回来，否则刷新页面就断了：
+    // 服务端激活码用掉即作废，读不回来就只能重新填一个
+    const activationCodeInput = document.getElementById('activationCode');
+    if (activationCodeInput) {
+        activationCodeInput.value = localStorage.getItem('xz_tester_activationCode') || '';
+    }
+    // token 是 OTA 下发回来的续签凭证，比激活码长效，放着下次直接用
+    const token = localStorage.getItem('xz_tester_token');
+    if (token) {
+        sessionStorage.setItem('xz_tester_token', token);
+    }
 }
 
 // 保存配置
@@ -86,6 +98,10 @@ export function saveConfig() {
     localStorage.setItem('xz_tester_deviceMac', deviceMacInput.value);
     localStorage.setItem('xz_tester_deviceName', deviceNameInput.value);
     localStorage.setItem('xz_tester_clientId', clientIdInput.value);
+    const activationCodeInput = document.getElementById('activationCode');
+    if (activationCodeInput) {
+        localStorage.setItem('xz_tester_activationCode', activationCodeInput.value.trim());
+    }
     const emojiEnabledInput = document.getElementById('emojiEnabled');
     if (emojiEnabledInput) {
         localStorage.setItem('xz_tester_emojiEnabled', emojiEnabledInput.value);
@@ -107,6 +123,8 @@ export function getConfig() {
     const deviceMac = document.getElementById('deviceMac')?.value.trim() || '';
     const deviceName = document.getElementById('deviceName')?.value.trim() || '';
     const clientId = document.getElementById('clientId')?.value.trim() || '';
+    const activationCode = document.getElementById('activationCode')?.value.trim() || '';
+    const token = sessionStorage.getItem('xz_tester_token') || '';
     const emojiEnabled = document.getElementById('emojiEnabled')?.value !== 'false';
 
     return {
@@ -114,6 +132,10 @@ export function getConfig() {
         deviceName,
         deviceMac,
         clientId,
+        activationCode,
+        // 有 token 就用它续签，激活码是一次性的，用掉即失效，
+        // 第二次再拿激活码去 OTA 会被拒
+        token,
         emojiEnabled
     };
 }

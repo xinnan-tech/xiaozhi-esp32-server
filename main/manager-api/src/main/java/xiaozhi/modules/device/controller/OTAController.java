@@ -3,6 +3,7 @@ package xiaozhi.modules.device.controller;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +29,7 @@ import xiaozhi.modules.device.dto.DeviceReportReqDTO;
 import xiaozhi.modules.device.dto.DeviceReportRespDTO;
 import xiaozhi.modules.device.entity.DeviceEntity;
 import xiaozhi.modules.device.service.DeviceService;
+import xiaozhi.modules.device.service.impl.DeviceServiceImpl;
 import xiaozhi.modules.sys.service.SysParamsService;
 
 @Tag(name = "设备管理", description = "OTA 相关接口")
@@ -46,15 +48,16 @@ public class OTAController {
             @Parameter(name = "Device-Id", description = "设备唯一标识", required = true, in = ParameterIn.HEADER) @RequestHeader("Device-Id") String deviceId,
             @Parameter(name = "Client-Id", description = "客户端标识", required = false, in = ParameterIn.HEADER) @RequestHeader(value = "Client-Id", required = false) String clientId) {
         if (StringUtils.isBlank(deviceId)) {
-            return createResponse(DeviceReportRespDTO.createError("Device ID is required"));
+            return createResponse(DeviceReportRespDTO.createError("Device ID is required"), HttpStatus.BAD_REQUEST);
         }
+        deviceId = DeviceServiceImpl.normalizeDeviceId(deviceId);
         if (StringUtils.isBlank(clientId)) {
             clientId = deviceId;
         }
         boolean macAddressValid = isMacAddressValid(deviceId);
         // 设备Id和Mac地址应是一致的, 并且必须需要application字段
         if (!macAddressValid) {
-            return createResponse(DeviceReportRespDTO.createError("Invalid device ID"));
+            return createResponse(DeviceReportRespDTO.createError("Invalid device ID"), HttpStatus.BAD_REQUEST);
         }
         return createResponse(deviceService.checkDeviceActive(deviceId, clientId, deviceReportReqDTO));
     }
@@ -94,20 +97,25 @@ public class OTAController {
 
     @SneakyThrows
     private ResponseEntity<String> createResponse(DeviceReportRespDTO deviceReportRespDTO) {
+        return createResponse(deviceReportRespDTO, HttpStatus.OK);
+    }
+
+    @SneakyThrows
+    private ResponseEntity<String> createResponse(DeviceReportRespDTO deviceReportRespDTO, HttpStatus status) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         String json = objectMapper.writeValueAsString(deviceReportRespDTO);
         byte[] jsonBytes = json.getBytes(StandardCharsets.UTF_8);
         return ResponseEntity
-                .ok()
+                .status(status)
                 .contentType(MediaType.APPLICATION_JSON)
                 .contentLength(jsonBytes.length)
                 .body(json);
     }
 
     /**
-     * 简单判断mac地址是否有效（非严格）
-     * 
+     * 判断 mac 地址是否有效，收紧为严格的十六进制 MAC 形态
+     *
      * @param macAddress
      * @return
      */
@@ -115,8 +123,8 @@ public class OTAController {
         if (StringUtils.isBlank(macAddress)) {
             return false;
         }
-        // MAC地址通常为12位十六进制数字，可以包含冒号或连字符分隔符
-        String macPattern = "^([0-9A-Za-z]{2}[:-]){5}([0-9A-Za-z]{2})$";
+        // MAC地址为12位十六进制数字，可用冒号、连字符或下划线分隔，也接受无分隔符形态
+        String macPattern = "^([0-9A-Fa-f]{2}[:\\-_]){5}[0-9A-Fa-f]{2}$|^[0-9A-Fa-f]{12}$";
         return macAddress.matches(macPattern);
     }
 }

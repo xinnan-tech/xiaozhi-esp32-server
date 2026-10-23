@@ -9,7 +9,7 @@ manager-api 该项目基于SpringBoot框架开发。
 # 开发环境
 JDK 21
 Maven 3.8+
-MySQL 8.0+
+MySQL 8.0.19+（迁移脚本 202610231200.sql 用了 WITH ... UPDATE 改写，8.0.19 才有；低版本会整段回滚导致服务起不来）
 Redis 5.0+
 Vue 3.x
 
