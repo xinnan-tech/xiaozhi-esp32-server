@@ -1,6 +1,7 @@
 package xiaozhi.modules.device.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,6 +41,8 @@ class DeviceAddressBookServiceImplTest {
     private static final String MAC = "00:11:22:33:44:55";
     private static final String OTHER_MAC = "00:11:22:33:44:66";
     private static final String THIRD_MAC = "00:11:22:33:44:77";
+    // 纯数字的 MAC 大小写化后跟原来一模一样，拿它造不出"只差大小写"的两行
+    private static final String HEX_MAC = "00:11:22:33:44:ab";
 
     @Test
     void newEntryUsesTheDedicatedAddressBookInsertMapping() {
@@ -153,7 +156,70 @@ class DeviceAddressBookServiceImplTest {
         assertEquals(inOrder, reversed, "同样的数据两次刷新结果不一样，缓存里的称呼会来回变");
     }
 
-    private Map<String, String> refreshAndRead(List<DeviceAddressBookEntity> rows) {
+    /**
+     * 库里能同时存在两条 owner 只差大小写的行：表是 utf8mb4_0900_ai_ci，
+     * 主键 (mac_address, target_mac) 大小写不敏感，target 不同就不会撞。
+     * 这是同一个人，算称呼和写缓存都得按小写归成一本
+     */
+    @Test
+    void ownersDifferingOnlyInCaseShareOneBook() {
+        String upper = HEX_MAC.toUpperCase();
+        assertNotEquals(HEX_MAC, upper, "这个用例得真的造出大小写差异才有效");
+
+        Map<String, Map<String, String>> books = refreshAndReadAll(List.of(
+                row(upper, OTHER_MAC, "客厅"),
+                row(HEX_MAC, THIRD_MAC, "客厅")));
+
+        Map<String, String> book = books.get(HEX_MAC);
+        assertNotNull(book, "同一个人被算成了两个人：" + books.keySet());
+        assertEquals(2, book.size(), "两台设备只剩一台，另一台从缓存里消失了：" + book);
+        assertEquals(OTHER_MAC + "|1", book.get("客厅"));
+        assertEquals(THIRD_MAC + "|1", book.get("客厅1"));
+        assertEquals(1, books.size(), "两种写法的地址被拆成了两本：" + books.keySet());
+    }
+
+    @Test
+    void listAndCacheAgreeWhenOwnersDifferOnlyInCase() {
+        String upper = HEX_MAC.toUpperCase();
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        when(addressBookDao.getAddressBookList(upper)).thenReturn(new ArrayList<>(List.of(
+                row(upper, OTHER_MAC, "客厅"), row(HEX_MAC, THIRD_MAC, "客厅"))));
+        when(addressBookDao.selectList(null)).thenReturn(List.of(
+                row(upper, OTHER_MAC, "客厅"), row(HEX_MAC, THIRD_MAC, "客厅")));
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, mock(DeviceService.class), mock(SysParamsService.class));
+
+        Map<String, String> shownToConsole = namesByTargetMac(service.getAddressBookList(upper));
+        assertEquals(2, shownToConsole.size(),
+                "接口按原值分组，同一个人的两台设备被算成一个，前端只能看到一台：" + shownToConsole);
+
+        service.refreshCache();
+        Map<String, String> callableNames = new HashMap<>();
+        cachedBook(service, redisUtils).get(HEX_MAC)
+                .forEach((name, macAndPerm) -> callableNames.put(name, macAndPerm.split("\\|")[0]));
+
+        assertEquals(shownToConsole, callableNames,
+                "接口按原值分组、缓存按小写分组，用户照前端看到的名字呼，命中的不是同一台设备");
+    }
+
+    @Test
+    void nameAssignmentDoesNotDependOnWhichSpellingOfTheOwnerCameBack() {
+        String upper = HEX_MAC.toUpperCase();
+        Map<String, String> expected = Map.of("客厅", OTHER_MAC + "|1", "客厅1", THIRD_MAC + "|1");
+
+        Map<String, String> lowerFirst = refreshAndRead(HEX_MAC, List.of(
+                row(HEX_MAC, OTHER_MAC, "客厅"), row(upper, THIRD_MAC, "客厅")));
+        Map<String, String> upperFirst = refreshAndRead(HEX_MAC, List.of(
+                row(upper, THIRD_MAC, "客厅"), row(HEX_MAC, OTHER_MAC, "客厅")));
+
+        assertEquals(expected, lowerFirst,
+                "同一个人的称呼取决于库里哪种写法先返回，刷新一次就换一次名字");
+        assertEquals(expected, upperFirst, "顺序反过来结果就该不一样：" + upperFirst);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Map<String, String>> refreshAndReadAll(List<DeviceAddressBookEntity> rows) {
         DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
         RedisUtils redisUtils = mock(RedisUtils.class);
         when(addressBookDao.selectList(null)).thenReturn(rows);
@@ -162,7 +228,15 @@ class DeviceAddressBookServiceImplTest {
 
         service.refreshCache();
 
-        return cachedBook(service, redisUtils).get(MAC);
+        return cachedBook(service, redisUtils);
+    }
+
+    private Map<String, String> refreshAndRead(List<DeviceAddressBookEntity> rows) {
+        return refreshAndRead(MAC, rows);
+    }
+
+    private Map<String, String> refreshAndRead(String owner, List<DeviceAddressBookEntity> rows) {
+        return refreshAndReadAll(rows).get(owner);
     }
 
     @SuppressWarnings("unchecked")
