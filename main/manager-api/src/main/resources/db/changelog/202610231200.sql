@@ -100,6 +100,33 @@ WHERE cnt.`n` = 1
 --   WHERE `mac_address` REGEXP '^([0-9A-Fa-f]{2}[-:_]?){5}[0-9A-Fa-f]{2}$'
 --   GROUP BY `nmac` HAVING `c` > 1;
 --
+-- ── 漏刷检查：刷完之后还有哪些行是原写法 ──────────────────────────────────
+-- 上一条只找重复组，而重复组本来就该留着原样，所以它查不出漏刷：
+-- 判重之外的行要是压根没被刷到，它一条也报不出来。
+-- 下面这条报的是「还是原写法」的所有行。跑出结果不一定是漏刷——
+-- 重复组在上面那条名单里的那些是故意留的，剩下的是真漏刷。
+--
+-- 第 ① 段在有重复组的表上整段刷不动过一次：MySQL 26.7.0 实测，
+-- 该刷的行一行没动、ROW_COUNT() 报 0、退出码 0、不打日志、不报错。
+-- 没有报错可等，只能靠这条查。
+--
+--   SELECT `id`, `mac_address` AS `still_original`,
+--          LOWER(CONCAT(SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 1, 2), ':',
+--                 SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 3, 2), ':',
+--                 SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 5, 2), ':',
+--                 SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 7, 2), ':',
+--                 SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 9, 2), ':',
+--                 SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 11, 2))) AS `should_be`
+--   FROM `ai_device`
+--   WHERE `mac_address` REGEXP '^([0-9A-Fa-f]{2}[-:_]?){5}[0-9A-Fa-f]{2}$'
+--     AND BINARY `mac_address` <> BINARY LOWER(CONCAT(SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 1, 2), ':',
+--                                                   SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 3, 2), ':',
+--                                                   SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 5, 2), ':',
+--                                                   SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 7, 2), ':',
+--                                                   SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 9, 2), ':',
+--                                                   SUBSTRING(REPLACE(REPLACE(REPLACE(`mac_address`,':',''),'-',''),'_',''), 11, 2)))
+--   ORDER BY `id`;
+--
 -- 三段合在一个 changeset 里，也就是一个事务（Liquibase 默认 runInTransaction 为真），
 -- 任何一段报错都会整体回滚、服务起不来。所以它们不该去撞，上面的 cnt 就是为这个。
 -- 值已经是对的三段都是空操作，重跑安全。

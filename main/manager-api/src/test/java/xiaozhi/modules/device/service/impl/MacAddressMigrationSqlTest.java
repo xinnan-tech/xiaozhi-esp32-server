@@ -1,6 +1,7 @@
 package xiaozhi.modules.device.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -211,6 +212,45 @@ class MacAddressMigrationSqlTest {
                 "撞的是主键唯一性，没撞上说明这组数据造得不对：" + failure.getMessage());
     }
 
+    @Test
+    @DisplayName("排查重复的那条 SQL 报出被跳过的组")
+    void duplicateDiagnosticListsTheSkippedGroup() throws SQLException {
+        insertDevice("d1", "AA-BB-CC-DD-EE-01");
+        insertDevice("d2", "aabbccddee01");
+        insertDevice("x1", "11-22-33-44-55-66");
+        runMigration();
+
+        assertEquals(List.of("aa:bb:cc:dd:ee:01"),
+                queryColumn(diagnostic("③ 刷完之后跑这个"), 0),
+                "只该报出被判重跳过的那个组，刷完了的行不该出现在名单里");
+    }
+
+    @Test
+    @DisplayName("漏刷检查报出还留在原写法的行")
+    void leftoverCheckFindsRowsStillInOriginalSpelling() throws SQLException {
+        insertDevice("d1", "AA-BB-CC-DD-EE-01");
+        insertDevice("d2", "aabbccddee01");
+        insertDevice("x1", "11-22-33-44-55-66");
+        insertDevice("u1", "AA:BB:CC:DD:EE:99");
+        runMigration();
+
+        assertEquals(List.of("AA-BB-CC-DD-EE-01", "aabbccddee01"),
+                queryColumn(diagnostic("漏刷检查"), 1),
+                "刷完只剩判重跳过的那两行是原写法，x1、u1 都该刷掉");
+    }
+
+    @Test
+    @DisplayName("漏刷检查能报出该刷没刷出来的行")
+    void leftoverCheckFindsRowsTheMigrationNeverTouched() throws SQLException {
+        insertDevice("d1", "AA-BB-CC-DD-EE-01");
+        insertDevice("d2", "aabbccddee01");
+        insertDevice("x1", "11-22-33-44-55-66");
+
+        assertEquals(List.of("d1", "d2", "x1"),
+                queryColumn(diagnostic("漏刷检查"), 0),
+                "整段迁移一行没动时漏刷检查要全报出来，不然迁移只做了一半没人知道");
+    }
+
     /** 按 Liquibase 的 sqlFile 那样读脚本：去注释，按分号切，在一个事务里逐句执行 */
     private void runMigration() throws SQLException {
         run(readChangelog("202610231200.sql"));
@@ -297,5 +337,53 @@ class MacAddressMigrationSqlTest {
         } catch (IOException e) {
             throw new IllegalStateException("读不到 " + fileName, e);
         }
+    }
+
+    /**
+     * 把脚本里注释掉的那段排查 SQL 整条取出来
+     *
+     * <p>
+     * 脚本里那一段是给人手工跑的，跑不走就等于没写。取出来在真库上执行一遍，
+     * 段里的 SQL 坏了、引用了不存在的列，这里会直接报错
+     */
+    private static String diagnostic(String marker) {
+        List<String> collected = new ArrayList<>();
+        boolean inBlock = false;
+        for (String line : readChangelog("202610231200.sql").split("\n")) {
+            if (!line.stripLeading().startsWith("--")) {
+                if (!collected.isEmpty()) {
+                    break;
+                }
+                continue;
+            }
+            if (!inBlock) {
+                inBlock = line.contains(marker);
+                if (!inBlock) {
+                    continue;
+                }
+            }
+            String body = line.stripLeading().substring(2).strip();
+            if (collected.isEmpty() && !body.startsWith("SELECT")) {
+                // 说明文字，去掉行首的 -- 之后就不是注释了，不能拼进语句里
+                continue;
+            }
+            collected.add(body);
+            if (body.endsWith(";")) {
+                break;
+            }
+        }
+        assertFalse(collected.isEmpty(), "脚本里找不到 " + marker + " 那段排查 SQL");
+        return String.join("\n", collected);
+    }
+
+    private List<String> queryColumn(String sql, int column) throws SQLException {
+        List<String> values = new ArrayList<>();
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(sql)) {
+            while (rows.next()) {
+                values.add(rows.getString(column + 1));
+            }
+        }
+        return values;
     }
 }
