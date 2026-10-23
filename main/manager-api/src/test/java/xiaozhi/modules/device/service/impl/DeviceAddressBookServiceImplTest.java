@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -34,6 +35,7 @@ class DeviceAddressBookServiceImplTest {
 
     private static final String MAC = "00:11:22:33:44:55";
     private static final String OTHER_MAC = "00:11:22:33:44:66";
+    private static final String THIRD_MAC = "00:11:22:33:44:77";
 
     @Test
     void newEntryUsesTheDedicatedAddressBookInsertMapping() {
@@ -101,6 +103,78 @@ class DeviceAddressBookServiceImplTest {
         verify(addressBookDao).insertAddressBook(entityCaptor.capture());
         assertEquals("尾号为66的设备", entityCaptor.getValue().getAlias(),
                 "登记了但没起名的设备落个空名，缓存刷新会跳过这条，对方永远呼不过来");
+    }
+
+    @Test
+    void refreshCacheKeepsEntriesWhoseAliasWasNeverFilledIn() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        when(addressBookDao.selectList(null)).thenReturn(List.of(row(MAC, OTHER_MAC, null)));
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, mock(DeviceService.class), mock(SysParamsService.class));
+
+        service.refreshCache();
+
+        Map<String, String> book = cachedBook(service, redisUtils).get(MAC);
+        assertNotNull(book, "空别名整条被跳过，这条设备就再也呼不过来了");
+        assertEquals(OTHER_MAC + "|1", book.get("尾号为66的设备"));
+    }
+
+    @Test
+    void refreshCacheDisambiguatesTwoEntriesSharingAnAlias() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        when(addressBookDao.selectList(null)).thenReturn(List.of(
+                row(MAC, OTHER_MAC, "客厅"),
+                row(MAC, THIRD_MAC, "客厅")));
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, mock(DeviceService.class), mock(SysParamsService.class));
+
+        service.refreshCache();
+
+        Map<String, String> book = cachedBook(service, redisUtils).get(MAC);
+        assertEquals(2, book.size(), "撞名的两台设备只留得下一台：" + book);
+        assertEquals(OTHER_MAC + "|1", book.get("客厅"));
+        assertEquals(THIRD_MAC + "|1", book.get("客厅1"));
+    }
+
+    @Test
+    void refreshCacheGivesTheSameResultWhateverOrderRowsComeBackIn() {
+        DeviceAddressBookEntity first = row(MAC, OTHER_MAC, "客厅");
+        DeviceAddressBookEntity second = row(MAC, THIRD_MAC, "客厅");
+
+        Map<String, String> inOrder = refreshAndRead(List.of(first, second));
+        Map<String, String> reversed = refreshAndRead(List.of(second, first));
+
+        assertEquals(inOrder, reversed, "同样的数据两次刷新结果不一样，缓存里的称呼会来回变");
+    }
+
+    private Map<String, String> refreshAndRead(List<DeviceAddressBookEntity> rows) {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        when(addressBookDao.selectList(null)).thenReturn(rows);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, mock(DeviceService.class), mock(SysParamsService.class));
+
+        service.refreshCache();
+
+        return cachedBook(service, redisUtils).get(MAC);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Map<String, String>> cachedBook(DeviceAddressBookServiceImpl service, RedisUtils redisUtils) {
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(redisUtils).set(eq(RedisKeys.getAddressBookKey()), captor.capture());
+        return (Map<String, Map<String, String>>) captor.getValue();
+    }
+
+    private DeviceAddressBookEntity row(String macAddress, String targetMac, String alias) {
+        DeviceAddressBookEntity entity = new DeviceAddressBookEntity();
+        entity.setMacAddress(macAddress);
+        entity.setTargetMac(targetMac);
+        entity.setAlias(alias);
+        entity.setHasPermission(Boolean.TRUE);
+        return entity;
     }
 
     @Test

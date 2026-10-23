@@ -1,6 +1,8 @@
 package xiaozhi.modules.device.service.impl;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,27 +109,42 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
         List<DeviceAddressBookEntity> allRecords = deviceAddressBookDao.selectList(null);
         Map<String, String> reverseMap = new HashMap<>();
 
-        for (DeviceAddressBookEntity entity : allRecords) {
+        // 去重要靠先后决定谁拿原名，而 selectList 不带 order by，返回顺序不保证。
+        // 排一次，同样的数据每次刷新出来的结果一样，缓存不会来回变
+        List<DeviceAddressBookEntity> ordered = new ArrayList<>(allRecords);
+        ordered.sort(Comparator
+                .comparing(DeviceAddressBookEntity::getMacAddress, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(DeviceAddressBookEntity::getTargetMac, Comparator.nullsFirst(Comparator.naturalOrder())));
+
+        for (DeviceAddressBookEntity entity : ordered) {
             String macA = entity.getMacAddress().toLowerCase();
             String macB = entity.getTargetMac().toLowerCase();
-            String alias = entity.getAlias();
             Boolean hasPermission = entity.getHasPermission();
 
-            // 构建正向映射: A对B的映射 nickname -> macB|permission
-            if (alias != null && !alias.isEmpty()) {
-                result.computeIfAbsent(macA, k -> new HashMap<>());
-                String permStr = (hasPermission != null && hasPermission) ? "1" : "0";
-                result.get(macA).put(alias, macB + "|" + permStr);
-            }
+            // 建表时 alias 默认是空的，用户没起名就是空的。这里补个尾号称呼，
+            // 整条跳过的话接口照样返回成功，对方却再也呼不过来
+            String alias = StringUtils.isBlank(entity.getAlias())
+                    ? formatMacAsDeviceName(macB)
+                    : entity.getAlias();
 
-            // 构建反向记录用于查找B对A的称呼
-            if (alias != null && !alias.isEmpty()) {
-                reverseMap.put(macB + ":" + macA, alias);
+            // 构建正向映射: A对B的映射 nickname -> macB|permission
+            // 昵称在同一个人的通讯录里是索引，撞名后写的会盖掉先写的，
+            // 按昵称呼会呼错设备。加后缀的写法跟 generateUniqueAlias 保持一致
+            Map<String, String> book = result.computeIfAbsent(macA, k -> new HashMap<>());
+            String uniqueAlias = alias;
+            int suffix = 1;
+            while (book.containsKey(uniqueAlias)) {
+                uniqueAlias = alias + suffix++;
             }
+            String permStr = (hasPermission != null && hasPermission) ? "1" : "0";
+            book.put(uniqueAlias, macB + "|" + permStr);
+
+            // 构建反向记录用于查找B对A的称呼，用同一个去重后的名字，两边才对得上
+            reverseMap.put(macB + ":" + macA, uniqueAlias);
         }
 
         // 构建反向映射: B对A的映射 macA -> nickname
-        for (DeviceAddressBookEntity entity : allRecords) {
+        for (DeviceAddressBookEntity entity : ordered) {
             String macA = entity.getMacAddress().toLowerCase();
             String macB = entity.getTargetMac().toLowerCase();
             String aliasBtoA = reverseMap.get(macA + ":" + macB);
