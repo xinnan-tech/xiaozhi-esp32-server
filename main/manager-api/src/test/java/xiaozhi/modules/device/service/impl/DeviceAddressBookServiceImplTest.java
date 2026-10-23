@@ -13,6 +13,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -169,12 +173,116 @@ class DeviceAddressBookServiceImplTest {
     }
 
     private DeviceAddressBookEntity row(String macAddress, String targetMac, String alias) {
+        return row(macAddress, targetMac, alias, Boolean.TRUE);
+    }
+
+    private DeviceAddressBookEntity row(String macAddress, String targetMac, String alias, Boolean hasPermission) {
         DeviceAddressBookEntity entity = new DeviceAddressBookEntity();
         entity.setMacAddress(macAddress);
         entity.setTargetMac(targetMac);
         entity.setAlias(alias);
-        entity.setHasPermission(Boolean.TRUE);
+        entity.setHasPermission(hasPermission);
         return entity;
+    }
+
+    @Test
+    void listAndCacheHandOutTheSameNameForCollidingEntries() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        // 两次 DAO 调用各给一份新行：取名会写回实体，共用同一份的话第二遍读到的是算过的名字
+        // 用可变列表，跟 MyBatis 实际返回的一致，免得排序那步先炸掉、断言根本没跑到
+        when(addressBookDao.getAddressBookList(MAC)).thenReturn(
+                new ArrayList<>(List.of(row(MAC, OTHER_MAC, "客厅"), row(MAC, THIRD_MAC, "客厅"))));
+        when(addressBookDao.selectList(null)).thenReturn(List.of(
+                row(MAC, OTHER_MAC, "客厅"), row(MAC, THIRD_MAC, "客厅")));
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, mock(DeviceService.class), mock(SysParamsService.class));
+
+        Map<String, String> shownToConsole = namesByTargetMac(service.getAddressBookList(MAC));
+        service.refreshCache();
+        Map<String, String> callableNames = new HashMap<>();
+        cachedBook(service, redisUtils).get(MAC)
+                .forEach((name, macAndPerm) -> callableNames.put(name, macAndPerm.split("\\|")[0]));
+
+        assertEquals(callableNames, shownToConsole,
+                "接口和缓存给的是两个名字，用户照前端看到的那个名字呼叫，命中的不是同一台设备");
+    }
+
+    @Test
+    void theCallableEntryKeepsThePlainNameWhenTwoCollide() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        // OTHER_MAC 的 target_mac 排在前面，没权限的那条会先占住原名
+        when(addressBookDao.selectList(null)).thenReturn(List.of(
+                row(MAC, OTHER_MAC, "客厅", Boolean.FALSE),
+                row(MAC, THIRD_MAC, "客厅", Boolean.TRUE)));
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, mock(DeviceService.class), mock(SysParamsService.class));
+
+        service.refreshCache();
+
+        Map<String, String> book = cachedBook(service, redisUtils).get(MAC);
+        assertEquals(THIRD_MAC + "|1", book.get("客厅"),
+                "能呼的那台被挤到后缀名上了，用户照前端看到的名字点，界面只会说没权限");
+        assertEquals(OTHER_MAC + "|0", book.get("客厅1"));
+    }
+
+    @Test
+    void listFillsInBlankAliasesSoTheConsoleShowsWhatCanBeCalled() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        when(addressBookDao.getAddressBookList(MAC)).thenReturn(new ArrayList<>(List.of(row(MAC, OTHER_MAC, null))));
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, mock(DeviceService.class), mock(SysParamsService.class));
+
+        List<DeviceAddressBookEntity> rows = service.getAddressBookList(MAC);
+
+        assertEquals("尾号为66的设备", rows.get(0).getAlias(),
+                "空别名原样返回的话前端回落显示设备名，用户照着那个名字呼叫却只会说找不到备注");
+    }
+
+    @Test
+    void migrationAndRuntimeAgreeOnTheNameTheyGiveAnUppercaseMac() {
+        // 迁移刷出来的名字和运行期算出来的名字必须一模一样，
+        // 不一样的话行已经在库里了，运行期再算一遍就对不上，缓存和库里从此两个称呼
+        String sql = readChangelog("202610231400.sql");
+        assertTrue(sql.contains("RIGHT(LOWER(b.`target_mac`), 2)"),
+                "迁移取末两位时没跟着小写化，大写 MAC 会迁出和运行期不一样的称呼");
+
+        // 运行期这一侧：saveOrUpdate 传的是 DTO 原样过来的地址，大小写没归一
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceService deviceService = mock(DeviceService.class);
+        when(addressBookDao.selectOne(any())).thenReturn(null);
+        when(addressBookDao.selectList(null)).thenReturn(List.of());
+        when(deviceService.getDeviceByMacAddress(anyString())).thenReturn(null);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, deviceService, mock(SysParamsService.class));
+
+        service.saveOrUpdate(MAC, "ff:ee:dd:cc:bb:AB", null, true);
+
+        ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
+        verify(addressBookDao).insertAddressBook(entityCaptor.capture());
+        assertEquals("尾号为ab的设备", entityCaptor.getValue().getAlias(),
+                "MAC 大小写不区分，末尾两位要跟着小写化，否则和迁移脚本产出的是两个称呼");
+    }
+
+    private String readChangelog(String fileName) {
+        Path path = Path.of("src", "main", "resources", "db", "changelog", fileName);
+        assertTrue(Files.exists(path), "找不到 " + path.toAbsolutePath());
+        try {
+            return Files.readString(path);
+        } catch (IOException e) {
+            throw new AssertionError("读不了 " + path.toAbsolutePath(), e);
+        }
+    }
+
+    private Map<String, String> namesByTargetMac(List<DeviceAddressBookEntity> rows) {
+        Map<String, String> byAlias = new HashMap<>();
+        for (DeviceAddressBookEntity row : rows) {
+            byAlias.put(row.getAlias(), row.getTargetMac());
+        }
+        return byAlias;
     }
 
     @Test
