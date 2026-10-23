@@ -14,10 +14,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.Date;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -317,13 +314,11 @@ class DeviceAddressBookServiceImplTest {
     }
 
     @Test
-    void migrationAndRuntimeAgreeOnTheNameTheyGiveAnUppercaseMac() {
-        // 迁移刷出来的名字和运行期算出来的名字必须一模一样，
-        // 不一样的话行已经在库里了，运行期再算一遍就对不上，缓存和库里从此两个称呼
-        String sql = readChangelog("202610231400.sql");
-        assertTrue(sql.contains("RIGHT(LOWER(b.`target_mac`), 2)"),
-                "迁移取末两位时没跟着小写化，大写 MAC 会迁出和运行期不一样的称呼");
-
+    void anUppercaseMacGetsTheSameNameWhicheverPathAddsItToTheBook() {
+        // 兜底称呼只有这一处算法：存进去的时候算一次，之后接口和缓存里显示的
+        // 都是同一个字符串。不跟着小写化的话同一个地址在两条路径上算出两个称呼，
+        // 用户照着看到的名字呼过去，命中的不是自己刚存的那台
+        //
         // 运行期这一侧：saveOrUpdate 传的是 DTO 原样过来的地址，大小写没归一
         DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
         RedisUtils redisUtils = mock(RedisUtils.class);
@@ -339,7 +334,7 @@ class DeviceAddressBookServiceImplTest {
         ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
         verify(addressBookDao).insertAddressBook(entityCaptor.capture());
         assertEquals("尾号为ab的设备", entityCaptor.getValue().getAlias(),
-                "MAC 大小写不区分，末尾两位要跟着小写化，否则和迁移脚本产出的是两个称呼");
+                "MAC 大小写不区分，末尾两位要跟着小写化，否则接口和呼叫那边算出来的称呼对不上");
     }
 
     /**
@@ -370,15 +365,6 @@ class DeviceAddressBookServiceImplTest {
                 "最近改过的应该排前面，没改过的排最后");
     }
 
-    private String readChangelog(String fileName) {
-        Path path = Path.of("src", "main", "resources", "db", "changelog", fileName);
-        assertTrue(Files.exists(path), "找不到 " + path.toAbsolutePath());
-        try {
-            return Files.readString(path);
-        } catch (IOException e) {
-            throw new AssertionError("读不了 " + path.toAbsolutePath(), e);
-        }
-    }
 
     private Map<String, String> namesByTargetMac(List<DeviceAddressBookEntity> rows) {
         Map<String, String> byAlias = new HashMap<>();

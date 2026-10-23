@@ -147,7 +147,7 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
      *
      * 昵称在同一个人的通讯录里是索引，同名后写的会盖掉先写的，按昵称呼会呼错设备。
      * 库里本来就有重名：空别名补出来的尾号称呼只有 256 种取值，一本通讯录十几条
-     * 没起名就撞上了，迁移刷出来的那些也是。所以显示和呼叫都得走这一份，
+     * 没起名就撞上了。所以显示和呼叫都得走这一份，
      * 不然前端看到的字和呼叫时用的名字对不上，用户照着点的名字呼不到人。
      * 不改传入的那个列表：它是 DAO 刚查出来的，调用方还要按自己的顺序用
      */
@@ -172,8 +172,7 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
         Map<String, Set<String>> takenByOwner = new HashMap<>();
         for (DeviceAddressBookEntity row : ordered) {
             // 建表时 alias 默认是空的，用户没起名就是空的，这是默认状态不是异常。
-            // 补个尾号称呼顶上，整条跳过的话接口照样返回成功，对方却再也呼不过来。
-            // 补出来的和迁移脚本产出的是同一个字符串，两边才对得上
+            // 补个尾号称呼顶上，整条跳过的话接口照样返回成功，对方却再也呼不过来
             String alias = StringUtils.isBlank(row.getAlias())
                     ? formatMacAsDeviceName(row.getTargetMac())
                     : row.getAlias();
@@ -310,7 +309,7 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
             return mac;
         }
         // MAC 本身不区分大小写，落库、查库走的都是小写化的值。
-        // 这里跟着小写化，不跟着的话同一个地址在迁移脚本和这里会算出两个称呼，
+        // 这里跟着小写化，不跟着的话同一个地址在两条路径上会算出两个称呼，
         // 数据搬到智控台上看到的名字就叫不到人了
         String lastTwo = mac.substring(mac.length() - 2).toLowerCase();
         return "尾号为" + lastTwo + "的设备";
