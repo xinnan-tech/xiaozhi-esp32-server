@@ -420,8 +420,9 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
     private DeviceEntity selectByMacAddress(String macAddress) {
         QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("mac_address", macAddress);
-        // 按 id 排一下再取第一条：同一份重复数据每次得拿到同一台，
-        // 不然称呼和缓存键会跟着返回顺序变
+        // 按 id 定序后取第一条。id 是 VARCHAR，比的是字符序而不是入库先后，
+        // 但主键保证同一组里 id 不重复，所以每次查询拿到的都是同一台；
+        // 不定序的话拿到哪台随数据库返回顺序变，称呼和缓存键跟着变
         wrapper.orderByAsc("id");
         // 有重复行时 selectOne 直接抛 TooManyResultsException，报活和激活两条路一起崩，
         // 库里还看不出发生过什么。迁移对撞车的行整组不动，那种库会同时存在两行，

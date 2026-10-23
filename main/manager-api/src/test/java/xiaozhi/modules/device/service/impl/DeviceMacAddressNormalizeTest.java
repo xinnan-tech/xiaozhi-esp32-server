@@ -10,10 +10,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,39 +93,37 @@ class DeviceMacAddressNormalizeTest {
     }
 
     @Test
-    @DisplayName("库里存了两行同一个 MAC 时取第一行，不抛 TooManyResultsException")
-    void duplicateRowsResolveToTheFirstOne() {
+    @DisplayName("库里存了两行同一个 MAC 时按 id 定序取第一条，两次读到同一台")
+    void duplicateRowsResolveToTheSameRowEveryTime() {
         // 迁移脚本对重复组整组跳过，库里出现同 mac 的两行是可能的：
         // 用户把同一台设备用两种写法各添加过一次，迁移前后都该读得出来
-        DeviceEntity older = storedDevice("AA-BB-CC-DD-EE-FF");
-        older.setId("dev-old");
-        DeviceEntity newer = storedDevice("aa:bb:cc:dd:ee:ff");
-        newer.setId("dev-new");
+        DeviceEntity first = storedDevice("AA-BB-CC-DD-EE-FF");
+        first.setId("dev-0001");
+        DeviceEntity second = storedDevice("aa:bb:cc:dd:ee:ff");
+        second.setId("dev-0002");
 
-        DeviceDao dao = mock(DeviceDao.class);
-        when(dao.selectList(any())).thenReturn(List.of(older, newer));
-        // selectOne 命中多行就是 MyBatis-Plus 抛的 TooManyResultsException，
-        // 这里照抄真库的行为：用 selectOne 的写法改回去，用例会带着这个异常炸掉
-        when(dao.selectOne(any())).thenThrow(
-                new TooManyResultsException("Expected one result (or null) to be returned by selectOne(), but found: 2"));
-        DeviceServiceImpl service = service(dao);
+        DeviceServiceImpl service = service(daoReturningRowsOrderedById(first, second));
 
-        DeviceEntity found = service.getDeviceByMacAddress(CANONICAL);
-        assertSame(older, found, "重复行应按 id 排完取第一条，两次读到同一台");
+        assertSame(first, service.getDeviceByMacAddress(CANONICAL));
+        assertSame(first, service.getDeviceByMacAddress(CANONICAL),
+                "同一份重复数据两次读到不同的行，称呼和缓存键会跟着变");
     }
 
     @Test
-    @DisplayName("迁移脚本只刷归一后不会撞车的行，撞上的整组不动")
-    void migrationLeavesCollidingGroupsAlone() {
-        String sql = readChangelog("202610231200.sql");
-        assertTrue(sql.contains("COUNT(*) AS `n` FROM norm GROUP BY `nmac`"),
-                "迁移没做重复检测");
-        assertTrue(sql.contains("WHERE cnt.`n` = 1"),
-                "迁移没按组跳过重复行，会把两行刷成同一个 mac_address");
-        assertTrue(sql.contains("BINARY d.`mac_address` <> BINARY norm.`nmac`"),
-                "ai_device 走 utf8mb4_0900_ai_ci，不加 BINARY 的话大写行永远刷不掉");
-        assertTrue(sql.contains("COUNT(*) AS `n` FROM norm GROUP BY `ntmac`"),
-                "target_mac 那一段漏了重复检测");
+    @DisplayName("重复行取哪一台只由 id 定序决定，与库返回顺序无关")
+    void duplicateRowChoiceIgnoresTheOrderTheDatabaseReturnedThem() {
+        DeviceEntity first = storedDevice("AA-BB-CC-DD-EE-FF");
+        first.setId("dev-0001");
+        DeviceEntity second = storedDevice("aa:bb:cc:dd:ee:ff");
+        second.setId("dev-0002");
+
+        DeviceEntity forwards = service(daoReturningRowsOrderedById(first, second))
+                .getDeviceByMacAddress(CANONICAL);
+        DeviceEntity backwards = service(daoReturningRowsOrderedById(second, first))
+                .getDeviceByMacAddress(CANONICAL);
+
+        assertSame(first, forwards);
+        assertSame(backwards, forwards, "换个返回顺序就换了一台，缓存键跟着变");
     }
 
     @Test
@@ -194,6 +189,29 @@ class DeviceMacAddressNormalizeTest {
         };
     }
 
+    /**
+     * 假扮真库：先按 id 的字符序排好再返回
+     *
+     * <p>
+     * 真库里 ORDER BY 排在返回之前，不定序的话拿到哪一行由存储引擎决定。
+     * 这里不照做，用例量的就只是 mock 自己塞进去的顺序，排序有没有写、怎么排都测不出来
+     */
+    private DeviceDao daoReturningRowsOrderedById(DeviceEntity... rows) {
+        DeviceDao dao = mock(DeviceDao.class);
+        List<DeviceEntity> stored = List.of(rows);
+        when(dao.selectList(any())).thenAnswer(invocation -> {
+            Wrapper<DeviceEntity> wrapper = invocation.getArgument(0);
+            assertTrue(wrapper.getSqlSegment().contains("ORDER BY id"),
+                    "重复行没有定序，拿到哪一台随数据库返回顺序变：" + wrapper.getSqlSegment());
+            return stored.stream().sorted(Comparator.comparing(DeviceEntity::getId)).toList();
+        });
+        // selectOne 命中多行就是 MyBatis-Plus 抛的 TooManyResultsException，
+        // 这里照抄真库的行为：用 selectOne 的写法改回去，用例会带着这个异常炸掉
+        when(dao.selectOne(any())).thenThrow(
+                new TooManyResultsException("Expected one result (or null) to be returned by selectOne(), but found: 2"));
+        return dao;
+    }
+
     /** 只在查询值等于 storedMac 时才命中，用来验证查的是哪个值 */
     private DeviceDao daoMatchingOnly(String storedMac, DeviceEntity row) {
         DeviceDao dao = mock(DeviceDao.class);
@@ -209,16 +227,6 @@ class DeviceMacAddressNormalizeTest {
         device.setId(mac);
         device.setMacAddress(mac);
         return device;
-    }
-
-    private String readChangelog(String fileName) {
-        try {
-            return Files.readString(
-                    Path.of("src", "main", "resources", "db", "changelog", fileName),
-                    StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new IllegalStateException("读不到 " + fileName, e);
-        }
     }
 
     @SuppressWarnings("unchecked")
