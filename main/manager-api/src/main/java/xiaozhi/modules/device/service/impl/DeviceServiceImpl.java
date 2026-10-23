@@ -316,6 +316,12 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         if (device == null) {
             return;
         }
+        // 后面删通讯录那步是按 mac_address 删的，不看 user_id。
+        // 设备本身因为带了 user_id 条件删不掉，通讯录却会照删不误，
+        // 任意登录用户知道对方的设备 id 就能把对方整本通讯录清空
+        if (userId == null || device.getUserId() == null || !device.getUserId().equals(userId)) {
+            return;
+        }
         String macAddress = device.getMacAddress();
         if (StringUtils.isNotBlank(device.getAgentId())) {
             // 清除智能体设备数量缓存
@@ -398,6 +404,29 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("mac_address", macAddress);
         return baseDao.selectOne(wrapper);
+    }
+
+    @Override
+    public DeviceEntity getOwnedDeviceByMacAddress(String macAddress) {
+        if (StringUtils.isBlank(macAddress)) {
+            return null;
+        }
+        // 同一 MAC 可能有两行只差大小写，selectOne 会抛 TooManyResultsException
+        // 把整个读通讯录接口带崩。按 id 取第一条做归属校验，撞行不报错
+        QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
+        wrapper.eq("mac_address", macAddress).orderByAsc("id");
+        List<DeviceEntity> devices = baseDao.selectList(wrapper);
+        if (devices == null || devices.isEmpty()) {
+            return null;
+        }
+        DeviceEntity device = devices.get(0);
+        UserDetail user = SecurityUser.getUser();
+        // getUser() 在取不到 subject、principal 时返回的是空对象，不是 null，
+        // 所以这里不会拿到 null。匿名调用走的就是空对象那一条，id 是空的，比不上
+        if (device.getUserId() == null || !device.getUserId().equals(user.getId())) {
+            return null;
+        }
+        return device;
     }
 
     private DeviceReportRespDTO.ServerTime buildServerTime() {
