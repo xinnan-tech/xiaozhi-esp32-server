@@ -4,6 +4,7 @@ from typing import Dict, Any
 from ..base import ToolType, ToolDefinition, ToolExecutor
 from plugins_func.register import Action, ActionResponse
 from .mcp_endpoint_handler import call_mcp_endpoint_tool
+from .mcp_speaker import should_forward_speaker, speaker_call_meta
 
 
 class MCPEndpointExecutor(ToolExecutor):
@@ -29,14 +30,21 @@ class MCPEndpointExecutor(ToolExecutor):
             )
 
         try:
-            # 转换参数为JSON字符串
+            # 转换参数为JSON字符串。说话人身份不写入参数，只放在 _meta。
             import json
+
+            meta = None
+            if should_forward_speaker(getattr(conn, "config", None)):
+                meta = speaker_call_meta(
+                    getattr(conn, "current_speaker_id", None),
+                    getattr(conn, "current_speaker", None),
+                )
 
             args_str = json.dumps(arguments) if arguments else "{}"
 
             # 调用MCP接入点工具
             result = await call_mcp_endpoint_tool(
-                conn.mcp_endpoint_client, tool_name, args_str
+                conn.mcp_endpoint_client, tool_name, args_str, meta=meta
             )
 
             resultJson = None

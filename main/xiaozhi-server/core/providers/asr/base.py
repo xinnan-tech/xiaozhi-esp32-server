@@ -101,7 +101,7 @@ class ASRProviderBase(ABC):
             )
 
             if conn.voiceprint_provider and wav_data:
-                voiceprint_task = conn.voiceprint_provider.identify_speaker(
+                voiceprint_task = conn.voiceprint_provider.identify_speaker_detail(
                     wav_data, conn.session_id
                 )
                 # 并发等待两个结果
@@ -119,11 +119,15 @@ class ASRProviderBase(ABC):
             else:
                 raw_text, _ = asr_result
 
+            speaker_id = None
             if isinstance(voiceprint_result, Exception):
                 logger.bind(tag=TAG).error(f"声纹识别失败: {voiceprint_result}")
                 speaker_name = ""
+            elif voiceprint_result is not None:
+                speaker_name = voiceprint_result.name or ""
+                speaker_id = voiceprint_result.speaker_id
             else:
-                speaker_name = voiceprint_result
+                speaker_name = ""
 
             # 判断 ASR 结果类型
             if isinstance(raw_text, dict):
@@ -164,6 +168,11 @@ class ASRProviderBase(ABC):
             self.stop_ws_connection()
 
             if text_len > 0:
+                # 声纹 id 不进入发给 LLM 的文本，留在连接上供本轮 MCP 接入点调用读取。
+                if isinstance(speaker_id, str) and speaker_id.strip():
+                    conn.current_speaker_id = speaker_id.strip()
+                else:
+                    conn.current_speaker_id = None
                 audio_snapshot = asr_audio_task.copy()
                 enqueue_asr_report(conn, enhanced_text, audio_snapshot)
                 # 使用自定义模块进行上报

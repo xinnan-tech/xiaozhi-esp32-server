@@ -158,7 +158,8 @@ class ConnectionHandler:
         # 所以涉及到ASR的变量，需要在这里定义，属于connection的私有变量
         self.asr_audio = []  # 存储PCM帧列表，供VAD和ASR共享
         self.asr_audio_queue = queue.Queue()
-        self.current_speaker = None  # 存储当前说话人
+        self.current_speaker = None  # 当前说话人展示名
+        self.current_speaker_id = None  # 声纹识别得到的 speaker_id
         self.introduced_speakers = set()  # 已"首次引入"的说话人，控制只在首轮带名字
         self.system_introduced_speakers = set()  # 已在 system 注入过身份的说话人，控制 system 身份只首轮出现
 
