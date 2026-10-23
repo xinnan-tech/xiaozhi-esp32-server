@@ -2,14 +2,23 @@ package xiaozhi.modules.device.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.common.user.UserDetail;
@@ -95,6 +104,45 @@ class DeviceServiceImplTest {
         }
     }
 
+    @Test
+    @DisplayName("解绑自己的设备时，通讯录跟着一起清")
+    void unbindOwnDeviceClearsItsAddressBook() {
+        DeviceDao dao = mock(DeviceDao.class);
+        when(dao.selectById("device-1")).thenReturn(device(USER_ID, "device-1"));
+        DeviceAddressBookService addressBookService = mock(DeviceAddressBookService.class);
+        DeviceServiceImpl service = serviceWithDao(dao, addressBookService);
+
+        service.unbindDevice(USER_ID, "device-1");
+
+        verify(dao).delete(any(UpdateWrapper.class));
+        verify(addressBookService).deleteByMacAddresses(List.of(MAC));
+    }
+
+    @Test
+    @DisplayName("解绑别人的设备时什么都不删，通讯录不能跟着没")
+    void unbindAnotherUsersDeviceDeletesNothing() {
+        DeviceDao dao = mock(DeviceDao.class);
+        when(dao.selectById("device-1")).thenReturn(device(OTHER_USER_ID, "device-1"));
+        DeviceAddressBookService addressBookService = mock(DeviceAddressBookService.class);
+        DeviceServiceImpl service = serviceWithDao(dao, addressBookService);
+
+        service.unbindDevice(USER_ID, "device-1");
+
+        verify(dao, never()).delete(any(UpdateWrapper.class));
+        verify(addressBookService, never()).deleteByMacAddresses(anyList());
+    }
+
+    private DeviceServiceImpl serviceWithDao(DeviceDao dao, DeviceAddressBookService addressBookService) {
+        // baseDao 由父类持有，子类内部赋给 this，测试类自己碰不到它
+        return new DeviceServiceImpl(
+                dao, mock(SysUserUtilService.class), mock(SysParamsService.class),
+                mock(RedisUtils.class), mock(OtaService.class), addressBookService) {
+            {
+                this.baseDao = dao;
+            }
+        };
+    }
+
     private DeviceServiceImpl service() {
         return spy(new DeviceServiceImpl(
                 mock(DeviceDao.class),
@@ -106,7 +154,12 @@ class DeviceServiceImplTest {
     }
 
     private DeviceEntity device(Long userId) {
+        return device(userId, null);
+    }
+
+    private DeviceEntity device(Long userId, String id) {
         DeviceEntity entity = new DeviceEntity();
+        entity.setId(id);
         entity.setMacAddress(MAC);
         entity.setUserId(userId);
         return entity;

@@ -165,9 +165,15 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
             // 如果 alias 为空，就默认使用设备名称；对方设备尚未登记时退回尾号称呼
             if (StringUtils.isBlank(alias)) {
                 DeviceEntity targetDevice = deviceService.getDeviceByMacAddress(targetMac);
-                alias = targetDevice == null
-                        ? formatMacAsDeviceName(targetMac)
-                        : targetDevice.getAlias();
+                if (targetDevice != null) {
+                    alias = targetDevice.getAlias();
+                }
+                // 设备登记了但用户没起过名，alias 建表就是 null，这是默认状态
+                // 不是异常。这时候落个 null 进去，缓存刷新会把整条跳过，
+                // 接口照样返回成功，对方却永远呼不过来
+                if (StringUtils.isBlank(alias)) {
+                    alias = formatMacAsDeviceName(targetMac);
+                }
             }
             // 检查重名
             alias = generateUniqueAlias(macAddress, targetMac, alias);

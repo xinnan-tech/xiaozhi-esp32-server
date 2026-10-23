@@ -316,6 +316,12 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         if (device == null) {
             return;
         }
+        // 后面删通讯录那步是按 mac_address 删的，不看 user_id。
+        // 设备本身因为带了 user_id 条件删不掉，通讯录却会照删不误，
+        // 任意登录用户知道对方的设备 id 就能把对方整本通讯录清空
+        if (userId == null || device.getUserId() == null || !device.getUserId().equals(userId)) {
+            return;
+        }
         String macAddress = device.getMacAddress();
         if (StringUtils.isNotBlank(device.getAgentId())) {
             // 清除智能体设备数量缓存
