@@ -8,7 +8,7 @@ Live 模式（``RUN_LIVE_API_TESTS=1``）：调真实 TTS provider。
     text_to_speak(text, output_file) -> 异步，把合成结果写到 output_file
 
 注意：
-- 3 个构造测试不依赖云服务；第 4 个 test_tts_text_to_speak_writes_nonempty_file
+- 3 个构造测试不依赖云服务；第 4 个 test_tts_text_to_speak_writes_file
   才是真链路测试，会真发 HTTP。
 - Mock 模式下：第 4 个测试断言宽松 —— 文件存在即可（shim 创建空文件），
   不强求 size > 0。Live 模式下严格校验 size > 0。
