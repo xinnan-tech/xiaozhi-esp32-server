@@ -2,7 +2,7 @@
 
 天气有两条路进模型：工具调用那条走插件，提示词那条走 {weather_info} 占位符。
 这条用例盯的是占位符那条：凭据没配好时它得给用户一句说明，不能留空让模型
-自己编天气；取到的报告也不能被空条目挡住。
+自己编天气；取到的报告和失败提示也不能被塞进长缓存。
 """
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 # 提示词里不能出现这个路径，模型会照着念给终端用户
 CREDENTIAL_HINT = "尚未配置和风天气 api_key，请参考 docs/weather-integration.md 申请后填入"
 WEATHER_REPORT = "您查询的位置是：北京\n\n当前天气: 晴\n"
+FAILURE_MESSAGE = "暂时查不到 北京 的天气（城市未找到或天气服务不可用），请稍后再试"
 
 
 @pytest.fixture(autouse=True)
@@ -67,18 +68,32 @@ class _FakeConn:
         self.device_id = "test-device"
 
 
-def _install_fake_plugin(monkeypatch):
-    """把真插件换成假的：按有没有 api_key 走两种返回"""
+def _install_fake_plugin(monkeypatch, responses=None):
+    """把真插件换成假的：按有没有 api_key 走两种返回
+
+    <p>
+    responses 给了就按顺序回，回完最后一条就一直回最后一条。返回调用次数，
+    用例要看插件被调了几次。
+    """
     import plugins_func.functions.get_weather as weather_module
     from plugins_func.register import Action, ActionResponse
 
+    calls = []
+
     async def _fake_get_weather(conn, location=None, lang="zh_CN"):
-        api_key = str(conn.config.get("plugins", {}).get("get_weather", {}).get("api_key") or "")
+        api_key = str(
+            conn.config.get("plugins", {}).get("get_weather", {}).get("api_key") or ""
+        )
+        calls.append(location)
         if not api_key.strip():
             return ActionResponse(Action.RESPONSE, None, CREDENTIAL_HINT)
+        if responses:
+            index = min(len(calls) - 1, len(responses) - 1)
+            return responses[index]
         return ActionResponse(Action.REQLLM, WEATHER_REPORT, None)
 
     monkeypatch.setattr(weather_module, "get_weather", _fake_get_weather)
+    return calls
 
 
 @pytest.fixture
@@ -135,13 +150,13 @@ def test_unconfigured_weather_gives_notice_and_caches_nothing(
 
 
 @pytest.mark.parametrize("stale", [None, ""])
-def test_empty_cached_entry_does_not_block_weather(
+def test_empty_cached_entry_is_cleared_and_weather_is_fetched_again(
     monkeypatch, _manager, _cache, stale
 ):
-    """缓存里留着空条目时，配好凭据后下一次就该出天气"""
+    """缓存里已经有空条目时，配好凭据后下一次就该出天气"""
     from core.utils.cache.manager import CacheType
 
-    _install_fake_plugin(monkeypatch)
+    calls = _install_fake_plugin(monkeypatch)
     loop = _FakeLoop()
     conn = _FakeConn(loop, api_key="not-a-real-key")
     _cache.set(CacheType.LOCATION, conn.client_ip, "北京")
@@ -153,13 +168,49 @@ def test_empty_cached_entry_does_not_block_weather(
         loop.close()
 
     assert "当前天气: 晴" in prompt
-    assert _cache.get(CacheType.WEATHER, "北京") == WEATHER_REPORT
+    # 存量空条目被清掉了，没有留在缓存里
+    assert _cache.get(CacheType.WEATHER, "北京") is None
+    assert len(calls) == 1
+
+
+def test_failed_weather_is_not_cached_and_is_fetched_again(
+    monkeypatch, _manager, _cache
+):
+    """插件说查不到天气时，那句话不能进长缓存，下一次要重新取"""
+    from core.utils.cache.manager import CacheType
+    from plugins_func.register import Action, ActionResponse
+
+    calls = _install_fake_plugin(
+        monkeypatch,
+        responses=[
+            ActionResponse(Action.REQLLM, FAILURE_MESSAGE, None),
+            ActionResponse(Action.REQLLM, WEATHER_REPORT, None),
+        ],
+    )
+    loop = _FakeLoop()
+    conn = _FakeConn(loop, api_key="not-a-real-key")
+    _cache.set(CacheType.LOCATION, conn.client_ip, "北京")
+
+    try:
+        first_prompt = _build_prompt(_manager, conn)
+        # 失败提示进提示词，用户能听到「暂时查不到」
+        assert "暂时查不到" in first_prompt
+        # 但它不能被存进 8 小时那档缓存，不然网络恢复了就出不来天气
+        assert _cache.get(CacheType.WEATHER, "北京") is None
+
+        second_prompt = _build_prompt(_manager, conn)
+    finally:
+        loop.close()
+
+    # 下一次重新取，插件被调了两次
+    assert len(calls) == 2
+    assert "当前天气: 晴" in second_prompt
 
 
 def test_configured_weather_report_goes_to_placeholder(
     monkeypatch, _manager, _cache
 ):
-    """凭据齐全：报告照旧进占位符，也照旧进缓存"""
+    """凭据齐全：报告照旧进占位符，缓存由插件那边管"""
     from core.utils.cache.manager import CacheType
 
     _install_fake_plugin(monkeypatch)
@@ -174,4 +225,5 @@ def test_configured_weather_report_goes_to_placeholder(
 
     assert "当前天气: 晴" in prompt
     assert "未配置" not in prompt
-    assert _cache.get(CacheType.WEATHER, "北京") == WEATHER_REPORT
+    # 提示词这一侧不再自己存一份，成功那份由插件按 8 小时存
+    assert _cache.get(CacheType.WEATHER, "北京") is None
