@@ -1,4 +1,6 @@
 import asyncio
+import datetime
+import re
 import httpx
 from bs4 import BeautifulSoup
 from config.logger import setup_logging
@@ -43,6 +45,36 @@ HEADERS = {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36"
     )
+}
+
+# 仓库里不再预置和风天气的凭据，自己部署的人得自己去申请一个
+WEATHER_CREDENTIAL_HINT = (
+    "尚未配置和风天气 api_key，请参考 docs/weather-integration.md 申请后填入"
+)
+WEATHER_HOST_HINT = (
+    "尚未配置和风天气 api_host，请参考 docs/weather-integration.md 申请后填入"
+)
+
+# 上游挂着的时候每次提问都要把整条链路重走一遍，用户要等二十几秒。
+# 失败结果短时间内不会变，先记下来直接回
+WEATHER_FAILURE_TTL = 300
+
+WEEKDAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+
+# 网页上写的是符号单位，报告里统一用中文，两条路径读出来的东西才对得上
+UNIT_NAMES = {
+    "km/h": "公里/小时",
+    "km": "公里",
+    "mm": "毫米",
+    "hpa": "百帕",
+    "°": "℃",
+    "°c": "℃",
+}
+
+# 网页上的参数名和接口返回的不一样，报告里用接口那套
+ITEM_NAMES = {
+    "大气压": "气压",
+    "相对湿度": "湿度",
 }
 
 # 天气代码 https://dev.qweather.com/docs/resource/icons/#weather-icons
@@ -112,6 +144,90 @@ WEATHER_CODE_MAP = {
 }
 
 
+def format_observation_time(raw_time):
+    """观测时间接口给的是带 T 的写法，报告里换成空格好看点"""
+    if not raw_time:
+        return None
+    return str(raw_time).replace("T", " ", 1)
+
+
+def format_forecast_date(raw_date, today=None):
+    """
+    预报日期统一成 今天/明天/后天 或者 星期加月日
+
+    <p>
+    接口给的是 2026-10-24 这种写法，网页上写的是 今天10月24日，
+    两条路径各写各的，用户听不出来是同一份数据。统一成一种写法。
+    """
+    if not raw_date:
+        return raw_date
+    text = str(raw_date).strip()
+    today = today or datetime.date.today()
+
+    iso = re.fullmatch(r"(\d{4})-(\d{1,2})-(\d{1,2})", text)
+    if iso:
+        year = int(iso.group(1))
+        month = int(iso.group(2))
+        day = int(iso.group(3))
+    else:
+        found = re.search(r"(\d{1,2})月(\d{1,2})日", text)
+        if not found:
+            return text
+        year = today.year
+        month = int(found.group(1))
+        day = int(found.group(2))
+
+    try:
+        date_value = datetime.date(year, month, day)
+    except ValueError:
+        return text
+
+    delta = (date_value - today).days
+    if delta == 0:
+        prefix = "今天"
+    elif delta == 1:
+        prefix = "明天"
+    elif delta == 2:
+        prefix = "后天"
+    else:
+        prefix = WEEKDAY_NAMES[date_value.weekday()]
+    return f"{prefix}{month}月{day}日"
+
+
+def normalize_unit(value):
+    """把单位符号换成中文写法，换不动就原样留着"""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return text
+    matched = re.fullmatch(r"(.+?)([a-zA-Z°℃/]+)", text)
+    if not matched:
+        return text
+    unit = matched.group(2).lower()
+    if unit not in UNIT_NAMES:
+        return text
+    return f"{matched.group(1)}{UNIT_NAMES[unit]}"
+
+
+def normalize_temperature(value):
+    """温度只留数值，单位在报告里统一写一次"""
+    if value is None:
+        return None
+    matched = re.match(r"-?\d+(?:\.\d+)?", str(value).strip())
+    return matched.group(0) if matched else None
+
+
+def normalize_wind_scale(value):
+    """风力统一成 3级 这种带单位的写法"""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.endswith("级"):
+        return text
+    return f"{text}级"
+
+
 async def fetch_city_info(location, api_key, api_host):
     url = f"https://{api_host}/geo/v2/city/lookup"
     async with httpx.AsyncClient(timeout=httpx.Timeout(5.0, connect=3.0)) as client:
@@ -165,7 +281,7 @@ async def fetch_weather_data(city_info, api_key, api_host):
         return data
 
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=3.0)) as client:
             now, daily = await asyncio.gather(
                 request(client, "now"), request(client, "7d")
             )
@@ -177,48 +293,87 @@ async def fetch_weather_data(city_info, api_key, api_host):
     return now, daily
 
 
+def format_weather_report(
+    city_name, current_text, current_basic, temps_list, observed_at=None
+):
+    """两条路径的报告走同一个模板，日期和单位的写法才对得上"""
+    weather_report = f"您查询的位置是：{city_name}\n\n当前天气: {current_text}\n"
+    if observed_at:
+        weather_report += f"观测时间：{observed_at}\n"
+
+    if current_basic:
+        weather_report += "详细参数：\n"
+        weather_report += "".join(
+            f"  · {key}: {value}\n" for key, value in current_basic.items()
+        )
+
+    weather_report += "\n未来7天预报：\n"
+    weather_report += "".join(
+        f"{date}: {weather}，气温 {low}~{high}℃\n"
+        for date, weather, high, low in temps_list
+    )
+    weather_report += "\n（如需某一天的具体天气，请告诉我日期）"
+    return weather_report
+
+
 def build_weather_report(city_info, now_data, daily_data):
     city_name = city_info.get("name") or city_info.get("adm2") or "未知位置"
     now = now_data.get("now", {})
-    weather_report = f"您查询的位置是：{city_name}\n\n"
-    weather_report += f"当前天气: {now.get('text', '未知')}\n"
 
     current_basic = {
         "温度": f"{now['temp']}℃" if now.get("temp") is not None else None,
         "体感温度": f"{now['feelsLike']}℃" if now.get("feelsLike") is not None else None,
         "湿度": f"{now['humidity']}%" if now.get("humidity") is not None else None,
         "风向": now.get("windDir"),
-        "风力": now.get("windScale"),
+        "风力": normalize_wind_scale(now.get("windScale")),
         "能见度": f"{now['vis']}公里" if now.get("vis") is not None else None,
         "气压": f"{now['pressure']}百帕" if now.get("pressure") is not None else None,
         "降水量": f"{now['precip']}毫米" if now.get("precip") is not None else None,
     }
     current_basic = {key: value for key, value in current_basic.items() if value}
-    if current_basic:
-        weather_report += "详细参数：\n"
-        weather_report += "".join(f"  · {key}: {value}\n" for key, value in current_basic.items())
 
-    weather_report += "\n未来7天预报：\n"
+    temps_list = []
     for item in daily_data.get("daily", [])[:7]:
-        date = item.get("fxDate", "未知日期")
+        date = format_forecast_date(item.get("fxDate") or "未知日期")
         weather = item.get("textDay") or WEATHER_CODE_MAP.get(item.get("iconDay"), "未知")
-        high = item.get("tempMax", "未知")
-        low = item.get("tempMin", "未知")
-        weather_report += f"{date}: {weather}，气温 {low}~{high}℃\n"
-    weather_report += "\n（如需某一天的具体天气，请告诉我日期）"
-    return weather_report
+        high = normalize_temperature(item.get("tempMax")) or "未知"
+        low = normalize_temperature(item.get("tempMin")) or "未知"
+        temps_list.append((date, weather, high, low))
+
+    # 观测时间在 now.obsTime 里，now.updateTime 是空的，兜底才用响应顶层那个
+    observed_at = format_observation_time(
+        now.get("obsTime") or now_data.get("updateTime")
+    )
+    return format_weather_report(
+        city_name, now.get("text", "未知"), current_basic, temps_list, observed_at
+    )
 
 
 async def fetch_weather_page(url):
+    # 网页只是兜底，等太久不值得，接口那边不通的话很快就该告诉用户
     async with httpx.AsyncClient(
-        timeout=httpx.Timeout(10.0, connect=3.0), follow_redirects=True
+        timeout=httpx.Timeout(5.0, connect=3.0), follow_redirects=True
     ) as client:
         response = await client.get(url, headers=HEADERS)
     return BeautifulSoup(response.text, "html.parser") if response.status_code == 200 else None
 
 
 def parse_weather_info(soup):
-    city_name = soup.select_one("h1.c-submenu__location").get_text(strip=True)
+    """
+    解析和风天气网页上的天气
+
+    <p>
+    页面的结构一变，取不到元素就返回 None。抛异常的话 Python 的原文
+    会被当成回复内容念给用户，听着像系统在报错。
+    """
+    if soup is None:
+        return None
+
+    city_element = soup.select_one("h1.c-submenu__location")
+    if city_element is None:
+        logger.bind(tag=TAG).warning("网页天气解析失败：取不到城市名")
+        return None
+    city_name = city_element.get_text(strip=True)
 
     current_abstract = soup.select_one(".c-city-weather-current .current-abstract")
     current_abstract = (
@@ -232,18 +387,40 @@ def parse_weather_info(soup):
         parts = item.get_text(strip=True, separator=" ").split(" ")
         if len(parts) == 2:
             key, value = parts[1], parts[0]
+            # 风向和风力挤在一项里，拆成两项跟接口那套对上
+            if key.endswith("风") and value.endswith("级"):
+                current_basic["风向"] = key
+                current_basic["风力"] = value
+                continue
+            key = ITEM_NAMES.get(key, key)
+            value = normalize_unit(value)
+            if not value or value == "0":
+                continue
             current_basic[key] = value
 
     temps_list = []
     for row in soup.select(".city-forecast-tabs__row")[:7]:  # 取前7天的数据
-        date = row.select_one(".date-bg .date").get_text(strip=True)
-        weather_code = (
-            row.select_one(".date-bg .icon")["src"].split("/")[-1].split(".")[0]
-        )
+        date_element = row.select_one(".date-bg .date")
+        icon_element = row.select_one(".date-bg .icon")
+        if date_element is None or icon_element is None:
+            logger.bind(tag=TAG).warning("网页天气解析失败：预报行缺日期或图标")
+            return None
+        icon_src = icon_element.get("src")
+        if not icon_src:
+            logger.bind(tag=TAG).warning("网页天气解析失败：预报行图标没有地址")
+            return None
+        weather_code = icon_src.split("/")[-1].split(".")[0]
         weather = WEATHER_CODE_MAP.get(weather_code, "未知")
         temps = [span.get_text(strip=True) for span in row.select(".tmp-cont .temp")]
         high_temp, low_temp = (temps[0], temps[-1]) if len(temps) >= 2 else (None, None)
-        temps_list.append((date, weather, high_temp, low_temp))
+        temps_list.append(
+            (
+                format_forecast_date(date_element.get_text(strip=True)),
+                weather,
+                normalize_temperature(high_temp) or "未知",
+                normalize_temperature(low_temp) or "未知",
+            )
+        )
 
     return city_name, current_abstract, current_basic, temps_list
 
@@ -253,10 +430,16 @@ async def get_weather(conn: "ConnectionHandler", location: str = None, lang: str
     from core.utils.cache.manager import cache_manager, CacheType
 
     weather_config = conn.config.get("plugins", {}).get("get_weather", {})
-    api_host = weather_config.get("api_host", "mj7p3y7naa.re.qweatherapi.com")
-    api_key = weather_config.get("api_key", "a861d0d5e7bf4ee1a83d9a9e4f96d4da")
+    api_key = str(weather_config.get("api_key") or "").strip()
+    api_host = str(weather_config.get("api_host") or "").strip()
     default_location = weather_config.get("default_location", "广州")
     client_ip = conn.client_ip
+
+    # 凭据没配就没法取数据，直接告诉用户去申请，别拿空 key 去撞接口
+    if not api_key:
+        return ActionResponse(Action.REQLLM, WEATHER_CREDENTIAL_HINT, None)
+    if not api_host:
+        return ActionResponse(Action.REQLLM, WEATHER_HOST_HINT, None)
 
     # 优先使用用户提供的location参数
     if not location:
@@ -280,39 +463,40 @@ async def get_weather(conn: "ConnectionHandler", location: str = None, lang: str
             location = default_location
     # 尝试从缓存获取完整天气报告
     weather_cache_key = f"full_weather_{location}_{lang}"
+    failure_cache_key = f"failed_weather_{location}_{lang}"
     cached_weather_report = cache_manager.get(CacheType.WEATHER, weather_cache_key)
     if cached_weather_report:
         return ActionResponse(Action.REQLLM, cached_weather_report, None)
+    # 刚失败过就不要再走一遍链路，用户等不起
+    cached_failure = cache_manager.get(CacheType.WEATHER, failure_cache_key)
+    if cached_failure:
+        return ActionResponse(Action.REQLLM, cached_failure, None)
 
     # 缓存未命中，获取实时天气数据
     city_info = await fetch_city_info(location, api_key, api_host)
     if not city_info:
-        return ActionResponse(
-            Action.REQLLM,
-            f"暂时查不到 {location} 的天气（城市未找到或天气服务不可用），请稍后再试",
-            None,
+        message = f"暂时查不到 {location} 的天气（城市未找到或天气服务不可用），请稍后再试"
+        cache_manager.set(
+            CacheType.WEATHER, failure_cache_key, message, ttl=WEATHER_FAILURE_TTL
         )
+        return ActionResponse(Action.REQLLM, message, None)
     weather_data = await fetch_weather_data(city_info, api_key, api_host)
     if weather_data:
         weather_report = build_weather_report(city_info, *weather_data)
     else:
         fx_link = city_info.get("fxLink")
         soup = await fetch_weather_page(fx_link) if fx_link else None
-        if not soup:
-            return ActionResponse(Action.REQLLM, None, "请求天气数据失败")
-        city_name, current_abstract, current_basic, temps_list = parse_weather_info(soup)
-        weather_report = f"您查询的位置是：{city_name}\n\n当前天气: {current_abstract}\n"
-        if current_basic:
-            weather_report += "详细参数：\n"
-            weather_report += "".join(
-                f"  · {key}: {value}\n" for key, value in current_basic.items() if value != "0"
+        parsed = parse_weather_info(soup)
+        if not parsed:
+            message = "暂时查不到天气数据，请稍后再试"
+            cache_manager.set(
+                CacheType.WEATHER, failure_cache_key, message, ttl=WEATHER_FAILURE_TTL
             )
-        weather_report += "\n未来7天预报：\n"
-        weather_report += "".join(
-            f"{date}: {weather}，气温 {low}~{high}\n"
-            for date, weather, high, low in temps_list
+            return ActionResponse(Action.REQLLM, message, "请求天气数据失败")
+        city_name, current_abstract, current_basic, temps_list = parsed
+        weather_report = format_weather_report(
+            city_name, current_abstract, current_basic, temps_list
         )
-        weather_report += "\n（如需某一天的具体天气，请告诉我日期）"
 
     # 缓存完整的天气报告
     cache_manager.set(CacheType.WEATHER, weather_cache_key, weather_report)
