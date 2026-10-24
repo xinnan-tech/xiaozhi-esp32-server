@@ -65,6 +65,13 @@ def _build_provider():
     ptype = get_provider_type("LLM", name)
     if not ptype:
         pytest.skip(f"LLM '{name}' 的 type 字段缺失")
+    if not LIVE_API_TESTS:
+        # mock 模式把网络拦了，这条链路拿不到真实回复，跑下来只是一次连接失败。
+        # 真要验这条链路，用 RUN_LIVE_API_TESTS=1 配真 key 跑
+        pytest.skip(
+            f"mock 模式不发真请求，跳过 LLM '{name}' 的链路验证。"
+            "真请求模式：export RUN_LIVE_API_TESTS=1 并填真 key 后再跑。"
+        )
     from core.utils.llm import create_instance
 
     return create_instance(ptype, cfg)

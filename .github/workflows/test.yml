@@ -25,19 +25,46 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest pytest-asyncio freezegun
-      - name: Run smoke test
+      - name: Prepare test config
         working-directory: main/xiaozhi-server
         run: |
-          if [ -f tests/test_smoke.py ]; then
-            pytest tests/test_smoke.py -x -q
-          else
-            echo "::warning::Slice 2 not done yet — tests/test_smoke.py missing"
-            exit 0
-          fi
+          # config/settings.py 在 import 期就要这个文件，缺了整套用例连收集都过不去。
+          # data/ 在 .gitignore 里，只能由这一步现造
+          mkdir -p data
+          printf '{}\n' > data/.config.yaml
+      - name: Run tests
+        working-directory: main/xiaozhi-server
+        run: |
+          # Edge TTS 那条要连微软公网，runner 的出口 IP 会被风控挡掉，先排除。
+          # 根治办法是给它打 live 标记，让 mock 模式下自动不收（另开一条改）
+          pytest tests/ -v -k "not test_tts_text_to_speak_writes_file"
 
   java:
     name: Java (manager-api)
     runs-on: ubuntu-latest
+    # 三个 @SpringBootTest 要真连 MySQL 和 Redis，空库即可，Liquibase 会自己建表
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: xiaozhi_esp32_server
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p123456"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+      redis:
+        image: redis:8.0
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -47,7 +74,7 @@ jobs:
           cache: 'maven'
       - name: Run tests
         working-directory: main/manager-api
-        run: mvn -B -q test -DfailIfNoTests=false
+        run: mvn -B test -DskipTests=false -DfailIfNoTests=false
 
   web:
     name: Vue (manager-web)
@@ -63,4 +90,6 @@ jobs:
         working-directory: main/manager-web
         run: |
           npm ci --no-audit --no-fund
+          npm run test:contract
           npm run test:unit
+          npm run build
