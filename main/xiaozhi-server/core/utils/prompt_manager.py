@@ -50,6 +50,12 @@ EMOJI_List = [
 ]
 
 
+# 天气取不到时给终端用户的一句话。给开发者的申请指引留在服务端日志里，
+# 仓库路径不能进提示词，模型会把它当内容念给用户
+WEATHER_NOT_CONFIGURED_NOTICE = "天气功能尚未配置，暂时查不到天气。"
+WEATHER_UNAVAILABLE_NOTICE = "暂时查不到天气信息。"
+
+
 class PromptManager:
     """系统提示词管理器，负责管理和更新系统提示词"""
 
@@ -58,6 +64,8 @@ class PromptManager:
         self.logger = logger or setup_logging()
         self.base_prompt_template = None
         self.last_update_time = 0
+        # 这次取到的天气内容，取不到时是一句给用户的说明
+        self._weather_content = ""
 
         # 导入全局缓存管理器
         from core.utils.cache.manager import cache_manager, CacheType
@@ -164,19 +172,24 @@ class PromptManager:
             return "未知位置"
 
     def _get_weather_info(self, conn: "ConnectionHandler", location: str) -> str:
-        """获取天气信息"""
-        try:
-            # 先从缓存获取
-            cached_weather = self.cache_manager.get(self.CacheType.WEATHER, location)
-            if cached_weather is not None:
-                return cached_weather
+        """获取天气信息
 
-            # 缓存未命中，调用 async get_weather 函数
+        <p>
+        这一路不再自己存天气。插件那边存了：成功的报告 8 小时，失败的提示
+        5 分钟。这边再存一份，存的是插件给什么就存什么，失败提示会被存成
+        8 小时，网络恢复了、凭据配好了也出不来天气。
+        """
+        try:
+            # 以前这条路过缓存，存进去的条目是空的时候，管理员把凭据配好之后
+            # 还得等它过期才出天气。没人读它了，清掉
+            self.cache_manager.delete(self.CacheType.WEATHER, location)
+
+            # 调用 async get_weather 函数
             # Windows ProactorEventLoop 不支持 run_coroutine_threadsafe().result()
             # 因此用 call_soon_threadsafe 提交任务 + threading.Event 等待结果
             # 注意：Event.wait() 只阻塞当前线程池线程，不阻塞主事件循环
             from plugins_func.functions.get_weather import get_weather
-            from plugins_func.register import ActionResponse
+            from plugins_func.register import Action, ActionResponse
 
             result_holder = []
             exception_holder = []
@@ -200,13 +213,24 @@ class PromptManager:
             result = result_holder[0]
             if isinstance(result, ActionResponse):
                 weather_report = result.result
-                self.cache_manager.set(self.CacheType.WEATHER, location, weather_report)
-                return weather_report
-            return "天气信息获取失败"
+                if weather_report:
+                    # 成功还是失败，插件那边分得很清楚：成功的存 8 小时，
+                    # 失败的只存 5 分钟。这边原样用，不另存
+                    self._weather_content = weather_report
+                    return weather_report
+                # 凭据没配好时插件给不出报告
+                if result.action == Action.RESPONSE:
+                    self._weather_content = WEATHER_NOT_CONFIGURED_NOTICE
+                else:
+                    self._weather_content = WEATHER_UNAVAILABLE_NOTICE
+                return self._weather_content
+            self._weather_content = WEATHER_UNAVAILABLE_NOTICE
+            return self._weather_content
 
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"获取天气信息失败: {e}")
-            return "天气信息获取失败"
+            self._weather_content = WEATHER_UNAVAILABLE_NOTICE
+            return self._weather_content
 
     def update_context_info(self, conn, client_ip: str):
         """同步更新上下文信息"""
@@ -246,6 +270,15 @@ class PromptManager:
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"更新上下文信息失败: {e}")
 
+    def _get_weather_context(self) -> str:
+        """给提示词用的天气内容
+
+        <p>
+        天气没取到时给一句说明，不留空。占位符空着的话，模型会自己编一个
+        天气出来。
+        """
+        return self._weather_content or WEATHER_UNAVAILABLE_NOTICE
+
     def build_enhanced_prompt(
         self, user_prompt: str, device_id: str, client_ip: str = None, *args, **kwargs
     ) -> str:
@@ -259,7 +292,6 @@ class PromptManager:
 
             # 获取缓存的上下文信息
             local_address = ""
-            weather_info = ""
 
             if client_ip:
                 # 获取位置信息（从全局缓存）
@@ -267,12 +299,8 @@ class PromptManager:
                     self.cache_manager.get(self.CacheType.LOCATION, client_ip) or ""
                 )
 
-                # 获取天气信息（从全局缓存）
-                if local_address:
-                    weather_info = (
-                        self.cache_manager.get(self.CacheType.WEATHER, local_address)
-                        or ""
-                    )
+            # 获取天气信息（取天气的那一步已经把内容放在管理器上了）
+            weather_info = self._get_weather_context()
 
             # 获取TTS选择的语言，默认值为中文
             language = (
