@@ -32,7 +32,7 @@
         <liquibase-core.version>4.20.0</liquibase-core.version>
         <aliyun-sms-version>4.1.0</aliyun-sms-version>
         <okio-version>3.4.0</okio-version>
-        <skipTests>true</skipTests>
+        <skipTests>false</skipTests>
         <argLine></argLine>
     </properties>
 
