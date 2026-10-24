@@ -47,10 +47,29 @@ if str(_PROJECT_ROOT) not in sys.path:
 # ---------------------------------------------------------------------------
 try:
     import opuslib_next  # noqa: F401
-except Exception:
+except Exception as _opus_import_error:
+    # opuslib_next 是 ctypes 绑定，pip 装上的是纯 Python 包，真正的编解码靠系统里的
+    # libopus.so。runner 上没装 libopus 时 import 会失败，这里换桩顶上。
+    # 桩只能撑住 import 链路，真要编解码得先把 libopus 装上
+    # （apt-get install libopus0，正式镜像 Dockerfile-server-base 里也是这么装的）。
+    print(
+        f"[conftest] opuslib_next 不可用，改用桩：{_opus_import_error}",
+        flush=True,
+    )
+
+    def _opus_unavailable(_self, *_args, **_kwargs):
+        raise RuntimeError(
+            "libopus 没装，Opus 编解码跑不了。"
+            "装法：apt-get install libopus0（正式镜像 Dockerfile-server-base 里也是这么装的）"
+        )
+
     _stub = types.ModuleType("opuslib_next")
-    _stub.Encoder = type("Encoder", (), {"__init__": lambda *a, **kw: None})
-    _stub.Decoder = type("Decoder", (), {"__init__": lambda *a, **kw: None})
+    _stub.Encoder = type(
+        "Encoder", (), {"__init__": lambda *a, **kw: None, "encode": _opus_unavailable}
+    )
+    _stub.Decoder = type(
+        "Decoder", (), {"__init__": lambda *a, **kw: None, "decode": _opus_unavailable}
+    )
     _stub.APPLICATION_AUDIO = 0
     _stub.OpusError = type("OpusError", (Exception,), {})
     _stub.constants = types.SimpleNamespace()
