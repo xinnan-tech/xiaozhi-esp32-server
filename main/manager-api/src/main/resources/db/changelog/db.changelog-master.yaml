@@ -753,9 +753,12 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202609172100.sql
+  # 下面两条是清理天气插件内置凭据用的，脚本内容在本 PR 里改过好几次，
+  # 标成 runOnChange：跑过旧版的库启动时直接重跑新版，不会报校验不一致
   - changeSet:
       id: 202610241030
       author: hrz
+      runOnChange: true
       changes:
         - sqlFile:
             encoding: utf8
@@ -763,6 +766,7 @@ databaseChangeLog:
   - changeSet:
       id: 202610241130
       author: hrz
+      runOnChange: true
       changes:
         - sqlFile:
             encoding: utf8
