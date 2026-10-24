@@ -1,7 +1,9 @@
 import os
 import asyncio
+import json
 import yaml
 from collections.abc import Mapping
+from loguru import logger
 from config.manage_api_client import (
     init_service,
     get_server_config,
@@ -10,6 +12,31 @@ from config.manage_api_client import (
     DeviceNotFoundException,
     DeviceBindException,
 )
+
+TAG = __name__
+
+_SENSITIVE_KEYWORDS = (
+    "secret",
+    "api_key",
+    "apikey",
+    "password",
+    "token",
+    "private_key",
+)
+
+
+def _mask_sensitive(data):
+    """打印配置前脱敏，避免把密钥写进日志"""
+    if isinstance(data, dict):
+        return {
+            key: "***"
+            if any(word in str(key).lower() for word in _SENSITIVE_KEYWORDS)
+            else _mask_sensitive(value)
+            for key, value in data.items()
+        }
+    if isinstance(data, list):
+        return [_mask_sensitive(item) for item in data]
+    return data
 
 
 def get_project_dir():
@@ -61,6 +88,11 @@ async def get_config_from_api_async(config):
     config_data = await get_server_config()
     if config_data is None:
         raise Exception("Failed to fetch server config from API")
+
+    logger.bind(tag=TAG).info(
+        "成功从manager-api获取配置: {}",
+        json.dumps(_mask_sensitive(config_data), ensure_ascii=False, indent=2),
+    )
 
     config_data["read_config_from_api"] = True
     config_data["manager-api"] = {

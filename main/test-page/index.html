@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小智语音测试页 - test_page</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+    <header class="header">
+        <div class="brand">
+            <div class="brand-mark">智</div>
+            <div class="brand-text">
+                <h1>小智语音测试页</h1>
+                <p>WebSocket 协议联调 · 支持文字与语音对话</p>
+            </div>
+        </div>
+        <div class="status">
+            <span id="statusDot" class="status-dot"></span>
+            <span id="statusText">未连接</span>
+        </div>
+    </header>
+
+    <section class="panel">
+        <div class="field grow">
+            <label for="otaUrl">OTA 地址</label>
+            <input id="otaUrl" type="text" spellcheck="false" placeholder="http://127.0.0.1:8002/xiaozhi/ota/">
+        </div>
+        <div class="field grow">
+            <label for="wsUrl">WebSocket 地址</label>
+            <input id="wsUrl" type="text" spellcheck="false" placeholder="ws://127.0.0.1:8000/xiaozhi/v1/">
+        </div>
+        <div class="field">
+            <label for="deviceId">设备 ID（虚拟 MAC）</label>
+            <input id="deviceId" type="text" spellcheck="false" placeholder="正在生成虚拟 MAC...">
+        </div>
+        <div class="field">
+            <label for="token">Token</label>
+            <input id="token" type="text" spellcheck="false" placeholder="留空时自动通过 OTA 获取">
+        </div>
+        <div class="actions">
+            <button id="connectBtn" class="btn primary">连接</button>
+            <button id="disconnectBtn" class="btn ghost" disabled>断开</button>
+        </div>
+    </section>
+
+    <main id="chat" class="chat" aria-live="polite">
+        <div class="system-msg">直接双击打开 index.html 即可使用。点击“连接”时会先请求 OTA 获取 WebSocket 地址与 Token，再建立连接；语音需要浏览器允许麦克风权限，若浏览器限制本地文件访问麦克风，请改用 http://127.0.0.1 或 https 访问。</div>
+    </main>
+
+    <footer class="composer">
+        <button id="micBtn" class="mic-btn" type="button" disabled>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h-2v2h6v-2h-2v-3.08A7 7 0 0 0 19 11h-2z"/>
+            </svg>
+            <span id="micLabel">开始说话</span>
+        </button>
+        <input id="textInput" type="text" placeholder="输入文字后按 Enter 发送" autocomplete="off" disabled>
+        <button id="sendBtn" class="btn primary" disabled>发送</button>
+    </footer>
+
+    <details class="debug">
+        <summary>协议日志 <span id="logCount">0</span></summary>
+        <pre id="log" class="log"></pre>
+    </details>
+</div>
+
+<script src="js/libopus.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

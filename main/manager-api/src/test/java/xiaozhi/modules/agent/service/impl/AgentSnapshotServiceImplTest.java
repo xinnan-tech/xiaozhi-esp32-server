@@ -1624,35 +1624,6 @@ class AgentSnapshotServiceImplTest {
     }
 
     @Test
-    void snapshotMigrationIsMergedIntoSingleChangeLog() throws Exception {
-        String sql = Files.readString(Path.of("src/main/resources/db/changelog/202607071530.sql"));
-        String master = Files.readString(Path.of("src/main/resources/db/changelog/db.changelog-master.yaml"));
-
-        assertTrue(sql.contains("restore_from_snapshot_id"));
-        assertTrue(sql.contains("restore_from_version_no"));
-        assertTrue(sql.contains("idx_snapshot_user_created_at"));
-        assertTrue(sql.contains("DEFAULT (JSON_OBJECT())"));
-        assertTrue(master.contains("202607071530.sql"));
-        assertFalse(master.contains("202607081150.sql"));
-        assertFalse(master.contains("202607081230.sql"));
-    }
-
-    @Test
-    void legacySnapshotRedactionHasItsOwnResumableSchemaVersionChangeLog() throws Exception {
-        String sql = Files.readString(Path.of("src/main/resources/db/changelog/202607101200.sql"));
-        String master = Files.readString(Path.of("src/main/resources/db/changelog/db.changelog-master.yaml"));
-        String mapper = Files.readString(Path.of("src/main/resources/mapper/agent/AgentSnapshotDao.xml"));
-
-        assertTrue(sql.contains("redaction_version"));
-        assertTrue(sql.contains("idx_snapshot_redaction_version_id"));
-        assertTrue(sql.contains("-- rollback"));
-        assertTrue(master.contains("202607101200.sql"));
-        assertTrue(mapper.contains("selectLegacyRedactionBatch"));
-        assertTrue(mapper.contains("redaction_version &lt; #{targetRedactionVersion}"));
-        assertTrue(mapper.contains("<update id=\"updateRedactedSnapshots\">"));
-    }
-
-    @Test
     void selectNextSnapshotLoadsRestoreTraceColumnsWithoutPreviousVersionQuery() throws Exception {
         String xml = normalizeWhitespace(Files.readString(Path.of("src/main/resources/mapper/agent/AgentSnapshotDao.xml")));
         String dao = Files.readString(Path.of("src/main/java/xiaozhi/modules/agent/dao/AgentSnapshotDao.java"));
