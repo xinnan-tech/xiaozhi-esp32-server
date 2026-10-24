@@ -82,6 +82,11 @@ jobs:
       - name: Run tests
         working-directory: main/manager-api
         run: mvn -B test -DskipTests=false -DfailIfNoTests=false
+      - name: Check the integration tests really ran
+        working-directory: main/manager-api
+        # 守卫在依赖不齐时会把整类集成测试跳过，这里盯一下它们有没有真跑，
+        # 免得门禁被悄悄掏空
+        run: bash scripts/check-integration-tests.sh
 
   web:
     name: Vue (manager-web)

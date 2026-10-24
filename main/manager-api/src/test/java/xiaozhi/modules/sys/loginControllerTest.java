@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,11 +19,17 @@ import xiaozhi.modules.security.dto.LoginDTO;
 import xiaozhi.modules.security.dto.SmsVerificationDTO;
 import xiaozhi.modules.sys.dto.RetrievePasswordDTO;
 import xiaozhi.modules.sys.service.SysUserService;
+import xiaozhi.testsupport.IntegrationTestEnvironment;
 
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("dev")
 class loginControllerTest {
+
+    @BeforeAll
+    static void checkDependencies() {
+        IntegrationTestEnvironment.requireDatabaseAndRedis();
+    }
 
     @Autowired
     LoginController loginController;
