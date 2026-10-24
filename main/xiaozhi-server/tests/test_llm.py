@@ -47,9 +47,12 @@ def _mock_chat_completions(monkeypatch):
 
     装在 httpx 这一层：provider 拼请求、走流式解析那套代码都是真的，
     只有网络那一段是假的。这样不用真 key 也能验证这条链路。
+
+    发出去的请求体记在返回的列表里，用例要检查 provider 真的把这次对话
+    装进了请求里。
     """
     if LIVE_API_TESTS:
-        yield
+        yield None
         return
 
     import httpx
@@ -93,8 +96,11 @@ def _mock_chat_completions(monkeypatch):
         ensure_ascii=False,
     ).encode("utf-8")
 
+    sent_requests = []
+
     def _fake_send(self, request, **kwargs):
         content = getattr(request, "content", b"") or b""
+        sent_requests.append(content)
         if b'"stream":true' in content.replace(b" ", b""):
             payload = stream_body
             headers = {"content-type": "text/event-stream"}
@@ -106,7 +112,34 @@ def _mock_chat_completions(monkeypatch):
         return response
 
     monkeypatch.setattr(httpx.Client, "send", _fake_send)
-    yield
+    yield sent_requests
+
+
+def _sent_body(requests):
+    """最后一次发出去的请求体。live 模式没有假接口，返回 None"""
+    if requests is None:
+        return None
+    assert requests, "provider 一次请求都没发出去"
+    return json.loads(requests[-1].decode("utf-8"))
+
+
+def _assert_request(body, provider, expected_contents):
+    """检查请求体：模型名在、这次对话在
+
+    <p>
+    只看回应非空的话，provider 把消息丢掉、自己编一句话回来，测试照样绿。
+    """
+    if body is None:
+        return
+    assert body.get("model"), "请求里得带上模型名"
+    expected_model = getattr(provider, "model_name", None)
+    if expected_model:
+        assert body["model"] == expected_model, "请求里的模型名跟配置对不上"
+    messages = body.get("messages") or []
+    assert messages, "请求里得带上对话"
+    contents = [message.get("content") for message in messages]
+    for text in expected_contents:
+        assert text in contents, f"请求里没有把「{text}」发出去"
 
 
 def _build_provider():
@@ -149,7 +182,7 @@ def _collect_with_timeout(provider, session_id: str, dialogue, timeout: float = 
         return future.result(timeout=timeout)
 
 
-def test_llm_response_streams_non_empty() -> None:
+def test_llm_response_streams_non_empty(_mock_chat_completions) -> None:
     """response(session_id, dialogue) 应产生非空 token 流。"""
     provider = _build_provider()
     dialogue = [
@@ -161,21 +194,33 @@ def test_llm_response_streams_non_empty() -> None:
     full = "".join(chunks).strip()
     assert isinstance(full, str), f"LLM chunks join 应是 str，得到 {type(full).__name__}"
     assert full, f"LLM 返回空响应（provider={type(provider).__name__}）"
+    # 回的得是假接口给的那句，不是随便一个非空串
+    assert full == _MOCK_ANSWER
+    _assert_request(
+        _sent_body(_mock_chat_completions),
+        provider,
+        ["你是助手", "用一句话说 hi"],
+    )
 
 
-def test_llm_response_no_stream_returns_string() -> None:
+def test_llm_response_no_stream_returns_string(_mock_chat_completions) -> None:
     """response_no_stream 应返回非空字符串。"""
     provider = _build_provider()
     text = provider.response_no_stream("你是助手", "介绍一下北京").strip()
 
     assert isinstance(text, str), f"response_no_stream 应返回 str，得到 {type(text).__name__}"
     assert text, "response_no_stream 返回空字符串"
+    assert text == _MOCK_ANSWER
+    _assert_request(
+        _sent_body(_mock_chat_completions), provider, ["你是助手", "介绍一下北京"]
+    )
 
 
-def test_llm_dialogue_min_length_one_user() -> None:
+def test_llm_dialogue_min_length_one_user(_mock_chat_completions) -> None:
     """至少一条 user 消息的 dialogue 应能跑通。"""
     provider = _build_provider()
     dialogue = [{"role": "user", "content": "ping"}]
     chunks = _collect_with_timeout(provider, "s1", dialogue, timeout=10.0)
 
     assert "".join(chunks).strip(), "单 user 消息应返回内容"
+    _assert_request(_sent_body(_mock_chat_completions), provider, ["ping"])
