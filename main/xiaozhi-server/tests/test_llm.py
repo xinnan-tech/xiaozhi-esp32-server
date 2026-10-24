@@ -32,6 +32,7 @@ from tests.conftest import (
     get_provider_type,
     get_selected_provider_name,
     has_real_key,
+    skip_or_fail,
 )
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -111,10 +112,10 @@ def _mock_chat_completions(monkeypatch):
 def _build_provider():
     name = get_selected_provider_name("LLM")
     if not name:
-        pytest.skip("selected_module.LLM 未设置")
+        skip_or_fail("selected_module.LLM 未设置")
     cfg = get_provider_config("LLM", name)
     if not cfg:
-        pytest.skip(f"LLM provider '{name}' 配置缺失")
+        skip_or_fail(f"LLM provider '{name}' 配置缺失")
 
     # 任何模式下：key 是占位符 → 真请求没法发。mock 模式有假接口顶上，
     # 但占位符本身是中文，httpx 拼 Authorization 头的时候会直接报编码错，
@@ -123,19 +124,19 @@ def _build_provider():
         if any(x in cfg.get("bot_id", "") for x in ["你的"]) or any(
             x in cfg.get("user_id", "") for x in ["你的"]
         ):
-            pytest.skip("LLM 'CozeLLM' 的 bot_id/user_id 未配置")
+            skip_or_fail("LLM 'CozeLLM' 的 bot_id/user_id 未配置")
     elif name == "Ollama":
         if not cfg.get("model_name"):
-            pytest.skip("LLM 'Ollama' 的 model_name 未配置")
+            skip_or_fail("LLM 'Ollama' 的 model_name 未配置")
     elif not has_real_key(cfg, "api_key"):
         if LIVE_API_TESTS:
-            pytest.skip(f"LLM '{name}' 的 api_key 未配置")
+            skip_or_fail(f"LLM '{name}' 的 api_key 未配置")
         cfg = dict(cfg)
         cfg["api_key"] = "mock-api-key"
 
     ptype = get_provider_type("LLM", name)
     if not ptype:
-        pytest.skip(f"LLM '{name}' 的 type 字段缺失")
+        skip_or_fail(f"LLM '{name}' 的 type 字段缺失")
     from core.utils.llm import create_instance
 
     return create_instance(ptype, cfg)

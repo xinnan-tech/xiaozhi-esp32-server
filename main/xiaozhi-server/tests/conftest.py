@@ -453,6 +453,27 @@ if not LIVE_API_TESTS:
 import pytest  # noqa: E402  (after conftest hooks so pytest is initialised)
 
 
+def is_ci() -> bool:
+    """GitHub Actions 上会带 CI=true"""
+    value = os.environ.get("CI")
+    if value is None:
+        return False
+    trimmed = value.strip()
+    return bool(trimmed) and trimmed.lower() != "false"
+
+
+def skip_or_fail(reason: str) -> None:
+    """本地缺东西就跳过，CI 里缺东西直接让 job 挂掉。
+
+    口径跟 manager-api 那边的 IntegrationTestEnvironment 一致：本地没起依赖的
+    机器上跳过就行，不该把构建从绿变成红；CI 里依赖必须真的在，缺了就失败，
+    不许静默跳过 —— 静默跳过等于门禁被掏空，还看不出来。
+    """
+    if is_ci():
+        raise RuntimeError(f"CI 环境里{reason}，这条用例必须真的跑起来，不能跳过")
+    pytest.skip(reason)
+
+
 def pytest_collection_modifyitems(config, items):
     """Mock 模式下：``live_api`` 标记的用例要真凭据或真网络，不收，并列出是哪几条。
 
