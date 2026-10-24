@@ -130,14 +130,15 @@ context_providers:
 
 # 插件的基础配置
 plugins:
-  # 获取天气插件的配置，这里填写你的api_key
-  # 这个密钥是项目共用的key，用多了可能会被限制
-  # 想稳定一点就自行申请替换，每天有1000次免费调用
+  # 获取天气插件的配置，这里填写你自己的api_key和apihost
+  # 仓库里不再预置凭据，申请流程写在 docs/weather-integration.md
   # 申请地址：https://console.qweather.com/#/apps/create-key/over
   # 申请后通过这个链接可以找到自己的apihost：https://console.qweather.com/setting?lang=zh
+  # 建key时要勾选三项权限：GeoAPI城市查询、实时天气、7天天气预报
+  # 只勾一两个的话JSON接口取不到数据，天气只能退到网页上抓
   get_weather:
-    api_host: "mj7p3y7naa.re.qweatherapi.com"
-    api_key: "a861d0d5e7bf4ee1a83d9a9e4f96d4da"
+    api_host: ""
+    api_key: ""
     default_location: "广州"
   # 获取新闻插件的配置，这里根据需要的新闻类型传入对应的url链接，默认支持社会、科技、财经新闻
   # 更多类型的新闻列表查看 https://www.chinanews.com.cn/rss/
