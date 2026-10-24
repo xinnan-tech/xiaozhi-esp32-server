@@ -212,11 +212,15 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
             DeviceAddressBookEntity entity = new DeviceAddressBookEntity();
             entity.setMacAddress(macAddress);
             entity.setTargetMac(targetMac);
-            // 如果 alias 为空，就默认使用设备名称；对方设备尚未登记时退回尾号称呼
+            // 调用方没起名就退回尾号称呼。对方设备在智控台上起的名字是对方的私产，
+            // 抄进调用方的通讯录等于把别人的昵称漏出去，所以别人的设备一律不去设备表取名
             if (StringUtils.isBlank(alias)) {
-                DeviceEntity targetDevice = deviceService.getDeviceByMacAddress(targetMac);
-                if (targetDevice != null) {
-                    alias = targetDevice.getAlias();
+                // 只有给自己那台设备起名时才用设备表里的名字，那本来就是调用方自己的
+                if (isOwnDevice(macAddress, targetMac)) {
+                    DeviceEntity ownDevice = deviceService.getDeviceByMacAddress(macAddress);
+                    if (ownDevice != null && StringUtils.isNotBlank(ownDevice.getAlias())) {
+                        alias = ownDevice.getAlias();
+                    }
                 }
                 // 设备登记了但用户没起过名，alias 建表就是 null，这是默认状态
                 // 不是异常。这时候落个 null 进去，缓存刷新会把整条跳过，
@@ -302,6 +306,16 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
      */
     private static String bookKey(String macAddress) {
         return macAddress == null ? null : macAddress.toLowerCase();
+    }
+
+    /**
+     * 目标设备是不是调用方自己那台
+     *
+     * <p>
+     * MAC 不区分大小写，比较前先按通讯录的键归一化，跟别处的比较口径保持一致
+     */
+    private static boolean isOwnDevice(String macAddress, String targetMac) {
+        return bookKey(macAddress) != null && bookKey(macAddress).equals(bookKey(targetMac));
     }
 
     private String formatMacAsDeviceName(String mac) {
