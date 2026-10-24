@@ -95,6 +95,10 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
             callerNickname = targetBook.get(bookKey(callerMac));
         }
         if (StringUtils.isBlank(callerNickname)) {
+            // 主叫显示名取的是主叫方自己那台设备在设备表里的名字，不是对方的。
+            // 对方那边给主叫方起的称呼在上面的 targetBook 里已经查过。
+            // 产品上按「来电显示」的口径处理，所以这里不套通讯录那套「不抄对方私产」的限制
+            // 这个接口没有登录用户上下文，归属校验那个查法在这里会返回空，只能用不校验归属的查法
             DeviceEntity callerDevice = deviceService.getDeviceByMacAddress(callerMac);
             if (callerDevice != null) {
                 callerNickname = callerDevice.getAlias();
@@ -217,7 +221,10 @@ public class DeviceAddressBookServiceImpl implements DeviceAddressBookService {
             if (StringUtils.isBlank(alias)) {
                 // 只有给自己那台设备起名时才用设备表里的名字，那本来就是调用方自己的
                 if (isOwnDevice(macAddress, targetMac)) {
-                    DeviceEntity ownDevice = deviceService.getDeviceByMacAddress(macAddress);
+                    // 用带归属校验的那个查法。设备表里同一个 MAC 可能有两行只差大小写，
+                    // 一次只准取一条的那种查法撞上这种数据会抛 TooManyResultsException，
+                    // 整个保存接口带崩；按 id 取第一条，撞行也不报错
+                    DeviceEntity ownDevice = deviceService.getOwnedDeviceByMacAddress(macAddress);
                     if (ownDevice != null && StringUtils.isNotBlank(ownDevice.getAlias())) {
                         alias = ownDevice.getAlias();
                     }
