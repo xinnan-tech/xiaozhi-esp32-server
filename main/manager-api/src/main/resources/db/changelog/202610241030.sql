@@ -114,7 +114,7 @@ SET `fields` = JSON_SET(
     `fields`,
     CONCAT('$[', @weather_api_key_pos - 1, '].default'), '',
     CONCAT('$[', @weather_api_key_pos - 1, '].label'),
-    '天气插件 API 密钥（到和风天气控制台申请，创建应用时勾选 GeoAPI 城市查询、实时天气、7 天天气预报三项权限；仓库里的 docs/weather-integration.md 有申请步骤）'
+    '天气插件 API 密钥（到和风天气控制台 https://console.qweather.com/project?lang=zh 申请，创建应用时勾选 GeoAPI 城市查询、实时天气、7 天天气预报三项权限；仓库里的 docs/weather-integration.md 有申请步骤）'
 )
 WHERE `id` = 'SYSTEM_PLUGIN_WEATHER'
   AND @weather_provider_untouched > 0
@@ -125,7 +125,7 @@ SET `fields` = JSON_SET(
     `fields`,
     CONCAT('$[', @weather_api_host_pos - 1, '].default'), '',
     CONCAT('$[', @weather_api_host_pos - 1, '].label'),
-    '开发者 API Host（和风天气控制台「设置」里查看，跟 API 密钥配套使用；仓库里的 docs/weather-integration.md 有申请步骤）'
+    '开发者 API Host（和风天气控制台「设置」https://console.qweather.com/setting?lang=zh 里查看，跟 API 密钥配套使用；仓库里的 docs/weather-integration.md 有申请步骤）'
 )
 WHERE `id` = 'SYSTEM_PLUGIN_WEATHER'
   AND @weather_provider_untouched > 0
