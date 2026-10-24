@@ -230,7 +230,8 @@ async def test_missing_fxlink_does_not_call_web_fallback(monkeypatch):
     )
 
     assert called == []
-    assert response.response == "请求天气数据失败"
+    assert response.result == "暂时查不到天气数据，请稍后再试"
+    assert response.response is None
 
 
 async def test_city_not_found_message_does_not_blame_the_place_name(monkeypatch):

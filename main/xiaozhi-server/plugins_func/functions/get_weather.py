@@ -61,6 +61,11 @@ WEATHER_FAILURE_TTL = 300
 
 WEEKDAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 
+# 报告里的「今天」按北京时间算。默认部署的服务器时区是 UTC，国内用户北京时间
+# 凌晨到早上八点这段时间服务器还在昨天，「今天」会说错一整天。
+# 时区自己造，不依赖 zoneinfo：容器和 Windows 上不一定有 tzdata
+BEIJING_TZ = datetime.timezone(datetime.timedelta(hours=8))
+
 # 网页上写的是符号单位，报告里统一用中文，两条路径读出来的东西才对得上
 UNIT_NAMES = {
     "km/h": "公里/小时",
@@ -151,6 +156,21 @@ def format_observation_time(raw_time):
     return str(raw_time).replace("T", " ", 1)
 
 
+def beijing_today(now=None):
+    """
+    北京时间今天是哪天
+
+    <p>
+    服务器本地时区不能拿来当准：默认部署写的是 UTC，国内用户北京时间凌晨到
+    早上八点这段时间，服务器还在昨天，「今天」会说错一整天。
+    """
+    if now is None:
+        now = datetime.datetime.now(datetime.timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=datetime.timezone.utc)
+    return now.astimezone(BEIJING_TZ).date()
+
+
 def format_forecast_date(raw_date, today=None):
     """
     预报日期统一成 今天/明天/后天 或者 星期加月日
@@ -162,7 +182,7 @@ def format_forecast_date(raw_date, today=None):
     if not raw_date:
         return raw_date
     text = str(raw_date).strip()
-    today = today or datetime.date.today()
+    today = today or beijing_today()
 
     iso = re.fullmatch(r"(\d{4})-(\d{1,2})-(\d{1,2})", text)
     if iso:
@@ -294,12 +314,20 @@ async def fetch_weather_data(city_info, api_key, api_host):
 
 
 def format_weather_report(
-    city_name, current_text, current_basic, temps_list, observed_at=None
+    city_name,
+    current_text,
+    current_basic,
+    temps_list,
+    observed_at=None,
+    data_updated_at=None,
 ):
     """两条路径的报告走同一个模板，日期和单位的写法才对得上"""
     weather_report = f"您查询的位置是：{city_name}\n\n当前天气: {current_text}\n"
     if observed_at:
         weather_report += f"观测时间：{observed_at}\n"
+    elif data_updated_at:
+        # 顶层那个是接口的数据更新时间，不是观测时间，标签得说清楚
+        weather_report += f"数据更新时间：{data_updated_at}\n"
 
     if current_basic:
         weather_report += "详细参数：\n"
@@ -340,12 +368,17 @@ def build_weather_report(city_info, now_data, daily_data):
         low = normalize_temperature(item.get("tempMin")) or "未知"
         temps_list.append((date, weather, high, low))
 
-    # 观测时间在 now.obsTime 里，now.updateTime 是空的，兜底才用响应顶层那个
-    observed_at = format_observation_time(
-        now.get("obsTime") or now_data.get("updateTime")
-    )
+    # 观测时间在 now.obsTime 里，没有的时候才用响应顶层那个数据更新时间，
+    # 两个不是一个意思，标签得分开写
+    observed_at = format_observation_time(now.get("obsTime"))
+    data_updated_at = format_observation_time(now_data.get("updateTime"))
     return format_weather_report(
-        city_name, now.get("text", "未知"), current_basic, temps_list, observed_at
+        city_name,
+        now.get("text", "未知"),
+        current_basic,
+        temps_list,
+        observed_at,
+        data_updated_at,
     )
 
 
@@ -398,6 +431,12 @@ def parse_weather_info(soup):
                 continue
             current_basic[key] = value
 
+    # 网页上标的当前时间，取不到就当作没有。页面结构变了不该抛异常
+    observed_at = None
+    time_element = soup.select_one(".current-weather__bg .current-time")
+    if time_element is not None:
+        observed_at = time_element.get_text(strip=True) or None
+
     temps_list = []
     for row in soup.select(".city-forecast-tabs__row")[:7]:  # 取前7天的数据
         date_element = row.select_one(".date-bg .date")
@@ -422,7 +461,7 @@ def parse_weather_info(soup):
             )
         )
 
-    return city_name, current_abstract, current_basic, temps_list
+    return city_name, current_abstract, current_basic, temps_list, observed_at
 
 
 @register_function("get_weather", GET_WEATHER_FUNCTION_DESC, ToolType.SYSTEM_CTL)
@@ -435,11 +474,20 @@ async def get_weather(conn: "ConnectionHandler", location: str = None, lang: str
     default_location = weather_config.get("default_location", "广州")
     client_ip = conn.client_ip
 
-    # 凭据没配就没法取数据，直接告诉用户去申请，别拿空 key 去撞接口
+    # 凭据没配就没法取数据，直接告诉用户去申请，别拿空 key 去撞接口。
+    # 这句话要让开发者原样听到：走 LLM 转述的话，文档路径会被转述掉
     if not api_key:
-        return ActionResponse(Action.REQLLM, WEATHER_CREDENTIAL_HINT, None)
+        logger.bind(tag=TAG).warning(
+            "未配置和风天气 api_key，天气插件没法取数据。"
+            "申请和填写步骤见 docs/weather-integration.md 的「API Key 申请指南」"
+        )
+        return ActionResponse(Action.RESPONSE, None, WEATHER_CREDENTIAL_HINT)
     if not api_host:
-        return ActionResponse(Action.REQLLM, WEATHER_HOST_HINT, None)
+        logger.bind(tag=TAG).warning(
+            "未配置和风天气 api_host，天气插件没法取数据。"
+            "申请和填写步骤见 docs/weather-integration.md 的「API Key 申请指南」"
+        )
+        return ActionResponse(Action.RESPONSE, None, WEATHER_HOST_HINT)
 
     # 优先使用用户提供的location参数
     if not location:
@@ -479,7 +527,7 @@ async def get_weather(conn: "ConnectionHandler", location: str = None, lang: str
         cache_manager.set(
             CacheType.WEATHER, failure_cache_key, message, ttl=WEATHER_FAILURE_TTL
         )
-        return ActionResponse(Action.REQLLM, message, None)
+        return ActionResponse(Action.REQLLM, message)
     weather_data = await fetch_weather_data(city_info, api_key, api_host)
     if weather_data:
         weather_report = build_weather_report(city_info, *weather_data)
@@ -492,10 +540,10 @@ async def get_weather(conn: "ConnectionHandler", location: str = None, lang: str
             cache_manager.set(
                 CacheType.WEATHER, failure_cache_key, message, ttl=WEATHER_FAILURE_TTL
             )
-            return ActionResponse(Action.REQLLM, message, "请求天气数据失败")
-        city_name, current_abstract, current_basic, temps_list = parsed
+            return ActionResponse(Action.REQLLM, message)
+        city_name, current_abstract, current_basic, temps_list, observed_at = parsed
         weather_report = format_weather_report(
-            city_name, current_abstract, current_basic, temps_list
+            city_name, current_abstract, current_basic, temps_list, observed_at
         )
 
     # 缓存完整的天气报告

@@ -3,12 +3,18 @@
 接口一律换成假客户端，不碰网络。
 """
 import datetime
+import os
+import time
+from datetime import date as _date
+from datetime import timedelta as _timedelta
+from datetime import timezone as _timezone
 
 import httpx
 import pytest
 from bs4 import BeautifulSoup
 
 from plugins_func.functions import get_weather as weather_module
+from plugins_func.register import Action
 
 
 class FakeResponse:
@@ -71,8 +77,13 @@ def _today():
     return datetime.date.today()
 
 
-def _web_page(date_text, temp_high="13°", temp_low="9°"):
+def _web_page(date_text, temp_high="13°", temp_low="9°", current_time=None):
     """照着和风天气网页的样子拼一段，解析要的就是这些结构和写法"""
+    time_block = (
+        f'<div class="current-weather__bg"><span class="current-time">{current_time}</span></div>'
+        if current_time
+        else ""
+    )
     return f"""
     <html>
       <h1 class="c-submenu__location">杭州市</h1>
@@ -87,6 +98,7 @@ def _web_page(date_text, temp_high="13°", temp_low="9°"):
           <div class="current-basic___item">1009hPa 大气压</div>
         </div>
       </div>
+      {time_block}
       <div class="city-forecast-tabs">
         <div class="city-forecast-tabs__row">
           <div class="date-bg">
@@ -108,12 +120,31 @@ def _web_page(date_text, temp_high="13°", temp_low="9°"):
 # ---------------------------------------------------------------------------
 
 
+class RecordingLogger:
+    """把日志收下来，好断言告警里带着文档路径"""
+
+    def __init__(self):
+        self.messages = []
+
+    def bind(self, **kwargs):
+        return self
+
+    def _record(self, message, *args, **kwargs):
+        self.messages.append(str(message))
+
+    warning = _record
+    error = _record
+    info = _record
+    debug = _record
+
+
 async def test_missing_api_key_points_at_the_application_doc():
     response = await weather_module.get_weather(
         FakeConn({"get_weather": {"api_host": "h"}}), location="没配密钥市"
     )
 
-    assert response.result == (
+    assert response.action == Action.RESPONSE
+    assert response.response == (
         "尚未配置和风天气 api_key，请参考 docs/weather-integration.md 申请后填入"
     )
 
@@ -123,7 +154,8 @@ async def test_missing_api_host_points_at_the_application_doc():
         FakeConn({"get_weather": {"api_key": "k"}}), location="没配主机市"
     )
 
-    assert response.result == (
+    assert response.action == Action.RESPONSE
+    assert response.response == (
         "尚未配置和风天气 api_host，请参考 docs/weather-integration.md 申请后填入"
     )
 
@@ -133,7 +165,34 @@ async def test_blank_api_key_counts_as_missing():
         FakeConn({"get_weather": {"api_key": "   ", "api_host": "h"}}), location="空密钥市"
     )
 
-    assert "尚未配置和风天气 api_key" in response.result
+    assert "尚未配置和风天气 api_key" in response.response
+
+
+async def test_missing_credentials_are_logged_with_the_doc_path(monkeypatch):
+    """日志里得写清楚缺哪一项、去哪儿申请，开发看日志就能定位"""
+    recorder = RecordingLogger()
+    monkeypatch.setattr(weather_module, "logger", recorder)
+
+    await weather_module.get_weather(
+        FakeConn({"get_weather": {"api_host": "h"}}), location="没配密钥市"
+    )
+
+    assert recorder.messages, "凭据缺失时一条日志都没有"
+    assert any(
+        "api_key" in message and "docs/weather-integration.md" in message
+        for message in recorder.messages
+    ), f"告警里没写清楚缺哪一项、文档在哪儿：{recorder.messages}"
+
+
+async def test_missing_credentials_are_not_cached():
+    """凭据缺失的提示不能进缓存，配好之后还得重新走一遍链路"""
+    from core.utils.cache.manager import cache_manager, CacheType
+
+    await weather_module.get_weather(
+        FakeConn({"get_weather": {"api_host": "h"}}), location="没配密钥市"
+    )
+
+    assert cache_manager.get(CacheType.WEATHER, "failed_weather_没配密钥市_zh_CN") is None
 
 
 async def test_no_credential_leaves_the_request_out(monkeypatch):
@@ -218,22 +277,90 @@ def test_report_carries_the_observation_time():
 
 
 def test_report_falls_back_to_the_top_level_update_time():
-    """now.updateTime 是空的，顶层那个才有用"""
+    """没有观测时间的时候，顶层那个是数据更新时间，标签不能写成观测时间"""
     report = weather_module.build_weather_report(
         {"name": "杭州"},
         {"updateTime": "2026-10-24T10:00+08:00", "now": {"text": "多云"}},
         {"daily": []},
     )
 
-    assert "观测时间：2026-10-24 10:00+08:00" in report
+    assert "数据更新时间：2026-10-24 10:00+08:00" in report
+    assert "观测时间" not in report
 
 
-def test_report_without_any_observation_time_has_no_empty_line():
+def test_report_prefers_the_observation_time_over_the_update_time():
+    report = weather_module.build_weather_report(
+        {"name": "杭州"},
+        {
+            "updateTime": "2026-10-24T10:00+08:00",
+            "now": {"text": "多云", "obsTime": "2026-10-24T09:52+08:00"},
+        },
+        {"daily": []},
+    )
+
+    assert "观测时间：2026-10-24 09:52+08:00" in report
+    assert "数据更新时间" not in report
+
+
+def test_report_without_any_time_has_no_empty_line():
     report = weather_module.build_weather_report(
         {"name": "杭州"}, {"now": {"text": "多云"}}, {"daily": []}
     )
 
     assert "观测时间" not in report
+    assert "数据更新时间" not in report
+
+
+# ---------------------------------------------------------------------------
+# 日期按北京时间
+# ---------------------------------------------------------------------------
+
+# 时间停在 UTC 的 10 月 23 日晚上 16:30，北京时间已经是 24 号了
+FROZEN_UTC = datetime.datetime(2026, 10, 23, 16, 30, tzinfo=datetime.timezone.utc)
+
+
+class FrozenDatetime(datetime.datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return FROZEN_UTC.astimezone(tz) if tz else FROZEN_UTC
+
+
+class FrozenDate(datetime.date):
+    """服务器本地时区是 UTC，这个时刻服务器那边还是 23 号"""
+
+    @classmethod
+    def today(cls):
+        return cls(2026, 10, 23)
+
+
+class FrozenDatetimeModule:
+    datetime = FrozenDatetime
+    date = FrozenDate
+    timezone = _timezone
+    timedelta = _timedelta
+
+
+def test_today_follows_beijing_time_not_the_server_clock(monkeypatch):
+    """服务器时区是 UTC 时，「今天」得按北京时间算，否则凌晨八点前会说错一整天"""
+    original_tz = os.environ.get("TZ")
+    os.environ["TZ"] = "UTC"
+    time.tzset()
+    try:
+        monkeypatch.setattr(weather_module, "datetime", FrozenDatetimeModule)
+
+        assert FROZEN_UTC.astimezone().date() == datetime.date(2026, 10, 23), "服务器本地还是 23 号"
+        assert weather_module.beijing_today() == datetime.date(2026, 10, 24)
+        assert (
+            weather_module.format_forecast_date("2026-10-24") == "今天10月24日"
+        ), "北京已经跨天了，「今天」还停在 23 号"
+        assert weather_module.format_forecast_date("2026-10-25") == "明天10月25日"
+    finally:
+        if original_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = original_tz
+        time.tzset()
+
 
 
 # ---------------------------------------------------------------------------
@@ -306,7 +433,7 @@ def test_web_page_units_are_written_in_chinese():
         BeautifulSoup(_web_page("今天10月24日"), "html.parser")
     )
 
-    _, _, current_basic, _ = parsed
+    _, _, current_basic, _, _ = parsed
     assert current_basic["能见度"] == "9公里"
     assert current_basic["气压"] == "1009百帕"
     assert current_basic["降水量"] == "0.0毫米"
@@ -321,9 +448,31 @@ def test_web_page_temperature_uses_the_same_unit_as_the_api_path():
         BeautifulSoup(_web_page("今天10月24日"), "html.parser")
     )
 
-    _, _, _, temps_list = parsed
+    _, _, _, temps_list, _ = parsed
     assert temps_list[0][2] == "13"
     assert temps_list[0][3] == "9"
+
+
+def test_web_page_carries_the_observation_time():
+    """网页这条路也得有观测时间，两条路径的报告才对得齐"""
+    parsed = weather_module.parse_weather_info(
+        BeautifulSoup(
+            _web_page("今天10月24日", current_time="10月24日 09:52"), "html.parser"
+        )
+    )
+
+    assert parsed[4] == "10月24日 09:52"
+    assert "观测时间：10月24日 09:52" in weather_module.format_weather_report(*parsed)
+
+
+def test_web_page_without_a_time_element_is_not_an_error():
+    """页面结构变了取不到时间，就当作没有，不能抛异常"""
+    parsed = weather_module.parse_weather_info(
+        BeautifulSoup(_web_page("今天10月24日"), "html.parser")
+    )
+
+    assert parsed[4] is None
+    assert "观测时间" not in weather_module.format_weather_report(*parsed)
 
 
 # ---------------------------------------------------------------------------
