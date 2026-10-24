@@ -454,8 +454,35 @@ import pytest  # noqa: E402  (after conftest hooks so pytest is initialised)
 
 
 def pytest_collection_modifyitems(config, items):
-    """Live 模式下：``live_api`` 标记的测试必须配齐密钥才能跑（否则 skip）。"""
+    """Mock 模式下：``live_api`` 标记的用例要真凭据或真网络，不收，并列出是哪几条。
+
+    以前是在 CI 命令行上用 ``-k`` 排除，看不出排掉了什么、为什么排。
+    改成打标记 + 这里统一剔除，日志里会一条条列出来，剔了什么一目了然。
+    """
     if LIVE_API_TESTS:
         return
-    # Mock 模式下不强行 skip：测试应该都能跑（用 shim）。
-    return
+
+    keep = []
+    drop = []
+    for item in items:
+        if "live_api" in item.keywords:
+            drop.append(item)
+        else:
+            keep.append(item)
+
+    if not drop:
+        return
+
+    print(
+        "\n[conftest] 下面这些用例要真凭据或真网络，mock 模式下不收：",
+        flush=True,
+    )
+    for item in drop:
+        print(f"[conftest]   - {item.nodeid}", flush=True)
+    print(
+        "[conftest] 真请求模式：export RUN_LIVE_API_TESTS=1 并配好凭据后再跑。\n",
+        flush=True,
+    )
+
+    config.hook.pytest_deselected(items=drop)
+    items[:] = keep

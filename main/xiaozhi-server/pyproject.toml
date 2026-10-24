@@ -5,6 +5,9 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-ra"
+markers = [
+    "live_api: 需要真凭据或真网络的用例，mock 模式下由 conftest 剔除并列出",
+]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]

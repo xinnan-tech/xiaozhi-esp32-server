@@ -42,9 +42,9 @@ jobs:
       - name: Run tests
         working-directory: main/xiaozhi-server
         run: |
-          # Edge TTS 那条要连微软公网，runner 的出口 IP 会被风控挡掉，先排除。
-          # 根治办法是给它打 live 标记，让 mock 模式下自动不收（另开一条改）
-          pytest tests/ -v -k "not test_tts_text_to_speak_writes_file"
+          # 要真凭据/真网络的用例由 tests/conftest.py 按 live_api 标记统一剔除，
+          # 剔掉的是哪几条会打在日志里
+          pytest tests/ -v
 
   java:
     name: Java (manager-api)
