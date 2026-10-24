@@ -89,6 +89,13 @@ _CUSTOM_CONFIG = Path(os.environ["PYTEST_CONFIG_FILE"]) if os.environ.get(
     "PYTEST_CONFIG_FILE"
 ) else _DEFAULT_CUSTOM
 
+# data/.config.yaml 在 .gitignore 里，本地没这个文件时现造一个空的。
+# 项目里好几个模块 import 的时候就要读它（config/logger.py 的 setup_logging
+# 直接抛 FileNotFoundError），缺了整份用例会收集不起来。CI 里也是这么造的
+_DEFAULT_CUSTOM.parent.mkdir(parents=True, exist_ok=True)
+if not _DEFAULT_CUSTOM.exists():
+    _DEFAULT_CUSTOM.write_text("{}\n", encoding="utf-8")
+
 
 def _load_via_file_merge() -> dict:
     """纯文件合并：config.yaml + data/.config.yaml。和生产单模块部署一致。"""
