@@ -1,0 +1,181 @@
+# 智能家居模板匹配配置文件
+# 基于模板和配置的精确匹配系统
+
+# 全局配置
+global:
+  default_area: "客厅"
+  restrict_to_default_area: true  # 规则8: 是否限制到默认区域
+  reply_on_no_match: false  # bool类型，true=拦截并回复，false=放行LLM（默认）
+  allow_continuous_conversation: true  # bool类型，true=支持连续对话（不关闭连接），false=单次对话后关闭
+
+# 默认设备配置（规则9,10）
+# - 如果为空: 规则10生效，返回所有匹配设备
+# - 如果有值: 规则9生效，只返回精准匹配的默认设备（非子串匹配）
+# - 示例:
+#     default_devices: ["客厅吊灯"]  # "打开吊灯" → ["客厅吊灯"] (精准匹配)
+#     default_devices: []           # "打开吊灯" → ["客厅吊灯", "副吊灯"] (所有匹配)
+#     default_devices: ["筒灯"]     # "打开吊灯" → ["客厅吊灯", "副吊灯"] (默认设备不在匹配中)
+default_devices:
+  - "客厅吊灯"
+
+# 操作映射（最高优先级）
+action_mapping:
+  turn_on: ["打开", "开启", "开", "启动"]
+  turn_off: ["关闭", "关", "关上", "停止"]
+  set_brightness: ["调亮", "调亮一点", "调亮些", "加亮", "调暗", "调暗一点", "调暗些", "调整为"]
+
+# 设备类别支持的操作映射（规则3）
+# 用户可自义每个设备类别支持的操作
+# 例如：添加空调设备支持温度调节
+device_class_operations:
+  light: ["turn_on", "turn_off", "set_brightness"]
+  switch: ["turn_on", "turn_off"]
+  else: []  # lock 的 turn_on=unlock, turn_off=lock
+  # 示例：用户可添加更多设备类别
+  # air_conditioner: ["turn_on", "turn_off", "set_temperature"]
+  # heater: ["turn_on", "turn_off", "set_temperature"]
+
+# 按操作定义的模板
+# 支持的占位符：
+# - 内置：{action_word}, {area}, {deviceName}, {request_word}, {all_word}
+# - 自定义：{brightness_value}, {number_value} 等 slots_config 中定义的占位符
+operation_templates:
+  turn_on:
+    - "{action_word} {all_word} {deviceName}"
+    - "{action_word} {area} {deviceName}"
+    - "{request_word} {action_word} {area} {deviceName}"
+    - "{request_word} {action_word} {deviceName}"
+
+  turn_off:
+    - "{action_word} {area} {deviceName}"
+    - "{action_word} {deviceName}"
+    - "{request_word} {action_word} {area} {deviceName}"
+    - "{request_word} {action_word} {deviceName}"
+
+  set_brightness:
+    - "{request_word} {area} {deviceName} 亮度 {construct_word} {brightness_value}"
+    - "{request_word} {area} {deviceName} 亮度 {construct_word} {number_value}"
+    # 传统模板（向后兼容）
+    - "{action_word} {area} {deviceName}"
+    - "{action_word} {deviceName}"
+    - "{request_word} {action_word} {area} {deviceName}"
+    - "{request_word} {action_word} {deviceName}"
+    # 新增模板（支持语义化亮度 - 使用自定义占位符）
+    - "{request_word} {deviceName} {construct_word} {brightness_value}"
+    - "{request_word} {deviceName} {construct_word} {number_value}"
+    - "{request_word} {deviceName} 亮度 {construct_word} {number_value}"
+    - "{request_word} {deviceName} {brightness_value}"
+    # 新增模板（支持数字提取 - 使用自定义占位符）
+    - "{action_word} {deviceName} {number_value}%"
+    - "{request_word} {action_word} {deviceName} {number_value}%"
+    - "{deviceName} {number_value}%"
+
+# Slots可匹配内容定义
+slots_config:
+  construct_word: ["调整为", "设置为", "改为", "变成", "调整到", "调到", "设为", "亮度调整为", "亮度调整到", "亮度设为", "亮度改为", "亮度调到"]
+  request_word: ["请", "帮我", "给我", "我要", "将", "把"]
+  all_word: ["全部", "所有", "都"]
+
+  # ==================== 自定义占位符配置 ====================
+  # 规则说明：
+  # 1. 字典格式 {key: value} - 检查key，返回key用于匹配，value可用于响应
+  # 2. 普通列表格式 ["值1", "值2"] - 检查存在性，返回匹配项
+  # 3. 字符串 "NUMBER" - 提取数字
+
+  # 自定义占位符 - 亮度值映射（字典格式）
+  # key用于模板匹配，value可用于响应替换
+  brightness_value:
+    "最亮": 100
+    "最暗": 1
+    "最亮了": 100
+    "最暗了": 1
+    "一档": 20
+    "二档": 40
+    "三档": 60
+    "四档": 80
+    "五档": 100
+    "低": 20
+    "中": 50
+    "高": 80
+    "最低": 1
+    "最高": 100
+    "亮一点": 80
+    "亮一些": 80
+    "暗一点": 20
+    "暗一些": 20
+    "全开": 100
+    "全关": 1
+
+  # 自定义占位符 - 数字提取
+  number_value: "NUMBER"
+
+# 响应配置（按操作区分，随机选择模板）
+# 支持的占位符：
+# - 内置：{deviceName}, {devices}, {value}
+# - 说明：所有占位符从extraction JSON中获取值，获取不到返回空字符串
+# - {value} 统一表示所有 xxx_value 的值（brightness_value, number_value 等）
+responses:
+  # 开关操作响应
+  turn_on:
+    - "已打开{deviceName}"
+    - "好的，已打开{deviceName}"
+    - "收到，正在打开{deviceName}"
+
+  turn_off:
+    - "已关闭{deviceName}"
+    - "好的，已关闭{deviceName}"
+    - "收到，正在关闭{deviceName}"
+
+  # 亮度操作响应（使用统一的 {value} 占位符）
+  set_brightness:
+    - "已将{deviceName}亮度调整为{value}"
+    - "好的，已将{deviceName}亮度设置为{value}"
+    - "收到，正在调整{deviceName}亮度为{value}"
+
+  # 无匹配响应（当 reply_on_no_match=true 时使用）
+  no_match:
+    - ""
+
+# 默认区域配置
+default_area:
+  name: "客厅"
+
+# 命令映射（精确匹配，最高优先级）
+# 格式：直接指定动作和设备列表
+# 注意：设备名必须与实际设备列表中的names字段完全匹配
+command_mappings:
+  "开灯":
+    action: "turn_on"
+    devices: ["客厅吊灯", "厨房筒灯"]
+  "关灯":
+    action: "turn_off"
+    devices: ["客厅吊灯", "厨房筒灯"]
+
+# 系统指令配置（首次交互时发送给LLM）
+# 支持占位符替换：
+# 1. 配置路径：{global.default_area}、{device_class_operations}、{action_mapping}、{default_devices}
+# 2. 自定义占位符：在 system_instruct_placeholders 中定义
+system_instruct: |
+
+  默认区域：{global.default_area}
+  支持的设备类别和操作：{device_class_operations}
+
+  如果用户的指令涉及设备操作，请你根据以上信息及device_info中的设备信息
+  1.根据用户的命令明确用户实际想要操作的设备。
+  2.根据上述信息确定是否支持对应操作，不在上述信息中的类型不支持任何操作。
+
+# 自定义占位符映射（可选）
+# 可以在这里定义任意自定义占位符，例如：
+# system_instruct_placeholders:
+#   user_name: "小明"
+#   version: "1.0"
+
+
+# 设备API配置（共用headers和timeout）
+device_api:
+  device_list_url: "https://nodered.lingyutech.top/hass/list"
+  device_control_url: "https://nodered.lingyutech.top/hass/set"
+  headers:
+    Authorization: "Bearer app-EzcZCPQZ26N5zSRjWN6a1l8X"
+    Content-Type: "application/json"
+  timeout: 10
