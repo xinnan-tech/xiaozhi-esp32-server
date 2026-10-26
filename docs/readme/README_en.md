@@ -210,7 +210,7 @@ This project provides the following testing tools to help you verify the system 
 
 | Tool Name | Location | Usage Method | Function Description |
 |:---:|:---|:---:|:---:|
-| Audio Interaction Test Tool | main》digital-human》index.html | In `main/digital-human`, run `pip install -r wakeword_runtime/requirements.txt` first, then `python start.py`, and open `http://127.0.0.1:8006/index.html` | Tests audio playback and reception functions, verifies if Python-side audio processing is normal |
+| Audio Interaction Test Tool | main》digital-human》index.html | In `main/digital-human`, install dependencies as its README says, then run `python start.py` and open `http://127.0.0.1:8006/index.html` | Tests audio playback and reception functions, verifies if Python-side audio processing is normal |
 | Model Response Test Tool | main》xiaozhi-server》performance_tester.py | Execute `python performance_tester.py` | Tests response speed of core modules such as ASR(speech recognition), LLM(large model), VLLM(vision model), TTS(speech synthesis) |
 
 > 💡 Note: When testing model speed, only models with configured keys will be tested.
