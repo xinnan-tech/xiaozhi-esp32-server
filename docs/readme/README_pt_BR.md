@@ -210,7 +210,7 @@ Este projeto fornece as seguintes ferramentas de teste para ajudá-lo a verifica
 
 | Nome da Ferramenta | Localização | Método de Uso | Descrição da Função |
 |:---:|:---|:---:|:---:|
-| Ferramenta de Teste de Interação por Áudio | main》digital-human》index.html | Execute `python start.py` em `main/digital-human` e depois abra `http://127.0.0.1:8006/index.html` | Testa as funções de reprodução e recepção de áudio, verifica se o processamento de áudio no lado Python está normal |
+| Ferramenta de Teste de Interação por Áudio | main》digital-human》index.html | Em `main/digital-human`, execute `pip install -r wakeword_runtime/requirements.txt` primeiro, depois `python start.py` e abra `http://127.0.0.1:8006/index.html` | Testa as funções de reprodução e recepção de áudio, verifica se o processamento de áudio no lado Python está normal |
 | Ferramenta de Teste de Resposta de Modelo | main》xiaozhi-server》performance_tester.py | Execute `python performance_tester.py` | Testa a velocidade de resposta de módulos principais como ASR(reconhecimento de fala), LLM(modelo de linguagem), VLLM(modelo de visão), TTS(síntese de voz) |
 
 > 💡 Nota: Ao testar a velocidade dos modelos, apenas os modelos com chaves configuradas serão testados.
