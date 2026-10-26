@@ -174,7 +174,7 @@ Dự án này cung cấp hai phương pháp triển khai, vui lòng chọn theo 
 
 Câu hỏi thường gặp và hướng dẫn liên quan, vui lòng tham khảo [liên kết này](../FAQ.md)
 
-> 💡 Gợi ý: Dưới đây là nền tảng thử nghiệm được triển khai theo mã mới nhất, có thể flash để thử nghiệm nếu cần, đồng thời là 6, dữ liệu sẽ được xóa mỗi ngày,
+> 💡 Gợi ý: Dưới đây là nền tảng thử nghiệm được triển khai theo mã mới nhất, có thể flash để thử nghiệm nếu cần, đồng thời là 6, dữ liệu sẽ được xóa mỗi ngày.
 
 ```
 Địa chỉ bảng điều khiển thông minh: https://2662r3426b.vicp.fun
