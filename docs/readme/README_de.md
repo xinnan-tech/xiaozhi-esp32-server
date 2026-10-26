@@ -6,7 +6,7 @@
 Dieses Projekt basiert auf der Theorie und Technologie der Mensch-Maschine-symbiotischen Intelligenz zur Entwicklung intelligenter Terminal-Hardware- und Software-Systeme<br/>und bietet Backend-Dienste für das Open-Source-Hardware-Projekt
 <a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a><br/>
 Implementiert mit Python, Java und Vue gemäß dem <a href="https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh">Xiaozhi-Kommunikationsprotokoll</a><br/>
-Unterstützt MQTT+UDP-Protokoll, Websocket-Protokoll, MCP-Endpunkte und Stimmabdruckerkennung
+Unterstützt MQTT+UDP-Protokoll, Websocket-Protokoll, MCP-Endpunkte, Stimmabdruckerkennung und Wissensdatenbank
 </p>
 
 <p align="center">
@@ -226,7 +226,7 @@ Dieses Projekt bietet die folgenden Testwerkzeuge, um Ihnen bei der Überprüfun
 | Stimmabdruckerkennung | Unterstützt Mehrbenutzer-Stimmabdruckregistrierung, -verwaltung und -erkennung, verarbeitet parallel mit ASR, Echtzeit-Sprecheridentitätserkennung und Weitergabe an LLM für personalisierte Antworten |
 | Intelligenter Dialog | Unterstützt mehrere LLM (große Sprachmodelle), implementiert intelligenten Dialog |
 | Visuelle Wahrnehmung | Unterstützt mehrere VLLM (Vision Large Models), implementiert multimodale Interaktion |
-| Absichtserkennung | Unterstützt LLM-Absichtserkennung, Function Call-Funktionsaufruf, bietet plugin-basierten Absichtsverarbeitungsmechanismus |
+| Absichtserkennung | Unterstützt externe LLM-Absichtserkennung, autonome Funktionsaufrufe durch große Modelle, bietet plugin-basierten Absichtsverarbeitungsmechanismus |
 | Gedächtnissystem | Unterstützt lokales Kurzzeitgedächtnis, mem0ai-Schnittstellengedächtnis, PowerMem intelligentes Gedächtnis, mit Gedächtniszusammenfassungsfunktion |
 | Wissensdatenbank | Unterstützt RAGFlow-Wissensdatenbank, ermöglicht großem Modell die Bewertung, ob Wissensdatenbank benötigt wird, bevor geantwortet wird |
 | Werkzeugaufruf | Unterstützt Client-IOT-Protokoll, Client-MCP-Protokoll, Server-MCP-Protokoll, MCP-Endpunktprotokoll, benutzerdefinierte Werkzeugfunktionen |
@@ -354,11 +354,10 @@ Die Stimmabdruckerkennung erfordert einen separat bereitgestellten [voiceprint-a
 | <img src="../images/logo_contributors.png" width="160"> | [Code-Mitwirkende](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors) | Dank an [alle Code-Mitwirkenden](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors), Ihre Bemühungen haben das Projekt robuster und leistungsfähiger gemacht. |
 
 
-<a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
-
+<a href="https://www.star-history.com/?repos=xinnan-tech%2Fxiaozhi-esp32-server&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&theme=dark&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
  </picture>
 </a>
