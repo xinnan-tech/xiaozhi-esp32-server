@@ -37,7 +37,7 @@ Compatible con el protocolo MQTT+UDP, el protocolo WebSocket, puntos de acceso M
 <p align="center">
 Liderado por el equipo del profesor Siyuan Liu (Universidad Tecnológica del Sur de China)
 </br>
-Desarrollado por el equipo del profesor Siyuan Liu (Universidad Tecnológica del Sur de China)
+刘思源教授团队主导研发（华南理工大学）
 </br>
 <img src="../images/hnlg.jpg" alt="Universidad Tecnológica del Sur de China (华南理工大学)" width="50%">
 </p>
