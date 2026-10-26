@@ -10,12 +10,13 @@ import concurrent.futures
 from contextlib import AsyncExitStack
 from typing import Optional, List, Dict, Any
 
+import httpx2
 from mcp import ClientSession, StdioServerParameters, Implementation
 from mcp.client.session import SamplingFnT, ElicitationFnT, ListRootsFnT, LoggingFnT, MessageHandlerFnT
 from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
-from mcp.client.streamable_http import streamablehttp_client
-from mcp.shared.session import ProgressFnT
+from mcp.client.streamable_http import streamable_http_client
+from mcp.shared.dispatcher import ProgressFnT  # mcp 2.x：从 mcp.shared.session 移来
 
 from config.logger import setup_logging
 from core.utils.util import sanitize_tool_name
@@ -203,13 +204,21 @@ class ServerMCPClient:
 
                     if transport_type == "streamable-http" or transport_type == "http":
                         # 使用 Streamable HTTP 传输
-                        http_r, http_w, get_session_id = await stack.enter_async_context(
-                            streamablehttp_client(
+                        # mcp 2.x：headers/timeout 改由 http_client 承载，产出从 3 元组变为 2 元组
+                        http_client = httpx2.AsyncClient(
+                            headers=headers,
+                            timeout=httpx2.Timeout(
+                                self.config.get("timeout", 30),
+                                read=self.config.get("sse_read_timeout", 60 * 5),
+                            ),
+                        )
+                        stack.push_async_callback(http_client.aclose)
+
+                        http_r, http_w = await stack.enter_async_context(
+                            streamable_http_client(
                                 url=self.config["url"],
-                                headers=headers,
-                                timeout=self.config.get("timeout", 30),
-                                sse_read_timeout=self.config.get("sse_read_timeout", 60 * 5),
-                                terminate_on_close=self.config.get("terminate_on_close", True)
+                                http_client=http_client,
+                                terminate_on_close=self.config.get("terminate_on_close", True),
                             )
                         )
                         read_stream, write_stream = http_r, http_w

@@ -14,4 +14,12 @@
 	<update id="logout">
 		update sys_user_token set expire_date = #{expireDate} where user_id = #{userId}
 	</update>
+
+	<update id="refreshTokenCAS">
+		update sys_user_token
+		set token = #{newToken}, update_date = #{updateDate}, expire_date = #{newExpire}
+		where token = #{oldToken}
+		  and expire_date > NOW()
+		  and user_id = #{userId}
+	</update>
 </mapper>

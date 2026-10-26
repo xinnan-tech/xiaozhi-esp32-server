@@ -44,7 +44,7 @@ class SensitiveDataUtilsTest {
     void maskMiddle_keeps_four_at_each_end_for_long_strings() {
         String masked = SensitiveDataUtils.maskMiddle("verylongapikeyvalue123");
         assertTrue(masked.startsWith("very"));
-        assertTrue(masked.endsWith("3123"));
+        assertTrue(masked.endsWith("e123"));
         assertTrue(masked.contains("****"));
         assertEquals("verylongapikeyvalue123".length(), masked.length());
     }

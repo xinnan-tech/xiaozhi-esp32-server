@@ -4,17 +4,65 @@ import json
 import copy
 import wave
 import socket
+import sys
 import asyncio
+import threading
 import requests
 import subprocess
 import numpy as np
 import opuslib_next
 from io import BytesIO
+from contextlib import contextmanager
 from core.utils import p3
 from pydub import AudioSegment
 from typing import Callable, Any
 
 TAG = __name__
+
+
+# 绕开 IDE（Trae CN 等）注入的精简版 ffmpeg/ffprobe PATH 占位：调用期间把
+# Python 解释器同目录的 bin 加到 PATH 前缀，pydub.utils.which() 会优先找到
+# conda env 自带的完整版，调用结束恢复原 PATH，不污染 import 后的全局。
+# 环境变量 XIAOZHI_PYDUB_OVERRIDE_FFMPEG=0 时关闭。
+#
+# 引用计数 + 锁：多线程并发进出 with 块时，只在第一个进入时记下原始 PATH
+# 并改写，ref_count 归零时才恢复。这样 finally 不会因多次保存/恢复错位
+# 导致 bin 前缀永久残留，也避免 try/finally 契约被多 thread 互相覆盖。
+_ffmpeg_path_lock = threading.Lock()
+_ffmpeg_ref_count = 0
+_ffmpeg_original_path: str | None = None
+
+
+@contextmanager
+def _ffmpeg_path_override():
+    if os.environ.get("XIAOZHI_PYDUB_OVERRIDE_FFMPEG", "1") != "1":
+        yield
+        return
+    bin_dir = os.path.dirname(sys.executable)
+    ffprobe = os.path.join(bin_dir, "ffprobe")
+    ffmpeg = os.path.join(bin_dir, "ffmpeg")
+    if not (os.path.isfile(ffprobe) or os.path.isfile(ffmpeg)):
+        yield
+        return
+
+    global _ffmpeg_ref_count, _ffmpeg_original_path
+    with _ffmpeg_path_lock:
+        if _ffmpeg_ref_count == 0:
+            _ffmpeg_original_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = bin_dir + os.pathsep + _ffmpeg_original_path
+        _ffmpeg_ref_count += 1
+    try:
+        yield
+    finally:
+        with _ffmpeg_path_lock:
+            _ffmpeg_ref_count -= 1
+            if _ffmpeg_ref_count == 0 and _ffmpeg_original_path is not None:
+                os.environ["PATH"] = _ffmpeg_original_path
+                _ffmpeg_original_path = None
+
+
+# 委托给 util.ffmpeg_path_override，import util 后调用方一行就能用
+ffmpeg_path_override = _ffmpeg_path_override
 
 
 def get_local_ip():
@@ -229,21 +277,24 @@ def extract_json_from_string(input_string):
 def audio_to_data_stream(
     audio_file_path, is_opus=True, callback: Callable[[Any], Any] = None, sample_rate=16000, opus_encoder=None
 ) -> None:
-    # 获取文件后缀名
+    with _ffmpeg_path_override():
+        _audio_to_data_stream_inner(
+            audio_file_path, is_opus, callback, sample_rate, opus_encoder
+        )
+
+
+def _audio_to_data_stream_inner(
+    audio_file_path, is_opus, callback, sample_rate, opus_encoder
+):
     file_type = os.path.splitext(audio_file_path)[1]
     if file_type:
         file_type = file_type.lstrip(".")
-    # 读取音频文件，-nostdin 参数：不要从标准输入读取数据，否则FFmpeg会阻塞
+    # -nostdin：避免 ffmpeg 阻塞等 stdin
     audio = AudioSegment.from_file(
         audio_file_path, format=file_type, parameters=["-nostdin"]
     )
-
-    # 转换为单声道/指定采样率/16位小端编码（确保与编码器匹配）
     audio = audio.set_channels(1).set_frame_rate(sample_rate).set_sample_width(2)
-
-    # 获取原始PCM数据（16位小端）
-    raw_data = audio.raw_data
-    pcm_to_data_stream(raw_data, is_opus, callback, sample_rate, opus_encoder)
+    pcm_to_data_stream(audio.raw_data, is_opus, callback, sample_rate, opus_encoder)
 
 
 async def audio_to_data(
@@ -274,9 +325,10 @@ async def audio_to_data(
         if file_type:
             file_type = file_type.lstrip(".")
         # 读取音频文件，-nostdin 参数：不要从标准输入读取数据，否则FFmpeg会阻塞
-        audio = AudioSegment.from_file(
-            audio_file_path, format=file_type, parameters=["-nostdin"]
-        )
+        with _ffmpeg_path_override():
+            audio = AudioSegment.from_file(
+                audio_file_path, format=file_type, parameters=["-nostdin"]
+            )
 
         # 转换为单声道/16kHz采样率/16位小端编码（确保与编码器匹配）
         audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
@@ -335,9 +387,10 @@ def audio_bytes_to_data_stream(
         return p3.decode_opus_from_bytes_stream(audio_bytes, callback)
     else:
         # 其他格式用pydub
-        audio = AudioSegment.from_file(
-            BytesIO(audio_bytes), format=file_type, parameters=["-nostdin"]
-        )
+        with _ffmpeg_path_override():
+            audio = AudioSegment.from_file(
+                BytesIO(audio_bytes), format=file_type, parameters=["-nostdin"]
+            )
         audio = audio.set_channels(1).set_frame_rate(sample_rate).set_sample_width(2)
         raw_data = audio.raw_data
         pcm_to_data_stream(raw_data, is_opus, callback, sample_rate, opus_encoder)
@@ -420,6 +473,21 @@ def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
                 del decoder
             except Exception:
                 pass
+
+
+def audio_file_to_wav_bytes(audio_file_path, sample_rate=16000):
+    """音频文件直接转目标采样率的 wav 字节流，不经 Opus 编解码，避免有损"""
+    file_type = os.path.splitext(audio_file_path)[1]
+    if file_type:
+        file_type = file_type.lstrip(".")
+    with _ffmpeg_path_override():
+        audio = AudioSegment.from_file(
+            audio_file_path, format=file_type, parameters=["-nostdin"]
+        )
+    audio = audio.set_channels(1).set_frame_rate(sample_rate).set_sample_width(2)
+    buffer = BytesIO()
+    audio.export(buffer, format="wav")
+    return buffer.getvalue()
 
 
 def check_vad_update(before_config, new_config):

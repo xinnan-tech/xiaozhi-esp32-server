@@ -110,8 +110,8 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         // 1. 参数验证
         validateEditParameters(modelType, provideCode, id, modelConfigBodyDTO);
 
-        // 2. 验证模型提供者
-        validateModelProvider(modelType, provideCode);
+        // 2. 验证模型提供者，使用注册类型的大小写
+        String registeredModelType = resolveModelType(modelType, provideCode);
 
         // 3. 获取原始配置（不经过敏感数据处理）
         ModelConfigEntity originalEntity = getOriginalConfigFromDb(id);
@@ -120,7 +120,7 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
         validateLlmConfiguration(modelConfigBodyDTO);
 
         // 5. 准备更新实体并处理敏感数据
-        ModelConfigEntity modelConfigEntity = prepareUpdateEntity(modelConfigBodyDTO, originalEntity, modelType, id);
+        ModelConfigEntity modelConfigEntity = prepareUpdateEntity(modelConfigBodyDTO, originalEntity, registeredModelType, id);
 
         // 6. 执行数据库更新
         modelConfigDao.updateById(modelConfigEntity);
@@ -136,9 +136,9 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     public ModelConfigDTO add(String modelType, String provideCode, ModelConfigBodyDTO modelConfigBodyDTO) {
         validateAddParameters(modelType, provideCode, modelConfigBodyDTO);
 
-        validateModelProvider(modelType, provideCode);
+        String registeredModelType = resolveModelType(modelType, provideCode);
 
-        ModelConfigEntity modelConfigEntity = prepareAddEntity(modelConfigBodyDTO, modelType);
+        ModelConfigEntity modelConfigEntity = prepareAddEntity(modelConfigBodyDTO, registeredModelType);
 
         modelConfigDao.insert(modelConfigEntity);
 
@@ -283,13 +283,14 @@ public class ModelConfigServiceImpl extends BaseServiceImpl<ModelConfigDao, Mode
     }
 
     /**
-     * 验证模型提供者
+     * 验证模型提供者并获取注册类型，保留 TTS、Memory、Intent 等类型的大小写
      */
-    private void validateModelProvider(String modelType, String provideCode) {
+    private String resolveModelType(String modelType, String provideCode) {
         List<ModelProviderDTO> providerList = modelProviderService.getList(modelType, provideCode);
         if (CollectionUtil.isEmpty(providerList)) {
             throw new RenException(ErrorCode.MODEL_PROVIDER_NOT_EXIST);
         }
+        return providerList.get(0).getModelType();
     }
 
     /**
