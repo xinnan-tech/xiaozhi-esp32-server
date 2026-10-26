@@ -254,7 +254,7 @@ Xiaozhi ist ein Ökosystem. Wenn Sie dieses Produkt verwenden, können Sie sich 
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Volcano Engine Doubao, DeepSeek, Zhipu ChatGLM, Gemini, iFLYTEK, LM Studio | Zhipu ChatGLM, Gemini |
+| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Volcano Engine Doubao, Volcano Engine AI Gateway, DeepSeek, Zhipu ChatGLM, Gemini, iFLYTEK, LM Studio | Zhipu ChatGLM, Gemini |
 | Ollama-Schnittstellenaufrufe | Ollama | - |
 | Dify-Schnittstellenaufrufe | Dify | - |
 | FastGPT-Schnittstellenaufrufe | FastGPT | - |
@@ -280,7 +280,7 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| Schnittstellenaufrufe | EdgeTTS, iFLYTEK, Volcano Engine Doubao TTS, Tencent Cloud, Alibaba Cloud TTS, AliYun Stream TTS, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS, Volcano Dual-Stream TTS | EdgeTTS, CosyVoiceSiliconflow (teilweise) |
+| Schnittstellenaufrufe | EdgeTTS, iFLYTEK, Volcano Engine Doubao TTS, Volcano Engine AI Gateway TTS, Tencent Cloud, Alibaba Cloud TTS, AliYun Stream TTS, Alibaba Bailian CosyVoice TTS, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS, Volcano Dual-Stream TTS | EdgeTTS, CosyVoiceSiliconflow (teilweise) |
 | Lokale Dienste | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, IndexStreamTTS, PaddleSpeechTTS | IndexStreamTTS, PaddleSpeechTTS, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
@@ -298,7 +298,7 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
 | Lokale Verwendung | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
-| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Alibaba Bailian Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
+| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, Doubao Streaming ASR V2, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Alibaba Bailian Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 
