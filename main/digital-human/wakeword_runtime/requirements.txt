@@ -1,3 +1,6 @@
 sherpa-onnx==1.12.29
 sounddevice>=0.4.4
 pypinyin==0.55.0
+# 唤醒词运行时在 core/detector.py、core/microphone.py 里直接用 numpy，
+# 版本跟 main/xiaozhi-server/requirements.txt 一致，两个模块共用一个环境时不会冲突
+numpy==1.26.4
