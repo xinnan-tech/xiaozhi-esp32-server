@@ -37,7 +37,7 @@ Compatible con el protocolo MQTT+UDP, el protocolo WebSocket, puntos de acceso M
 <p align="center">
 Liderado por el equipo del profesor Siyuan Liu (Universidad Tecnológica del Sur de China)
 </br>
-刘思源教授团队主导研发（华南理工大学）
+Desarrollado por el equipo del profesor Siyuan Liu (Universidad Tecnológica del Sur de China)
 </br>
 <img src="../images/hnlg.jpg" alt="Universidad Tecnológica del Sur de China (华南理工大学)" width="50%">
 </p>
@@ -153,7 +153,7 @@ Este proyecto debe usarse junto con hardware ESP32. Si ya ha comprado hardware r
 
 ## Advertencias ⚠️
 
-1. Este proyecto es software de código abierto. Este software no mantiene relación comercial alguna con los proveedores de API de terceros a los que se conecta (incluidos, entre otros, plataformas de reconocimiento de voz, modelos de lenguaje y síntesis de voz), y no ofrece ninguna garantía sobre la calidad de su servicio ni sobre la seguridad de los fondos. Se recomienda elegir de forma preferente proveedores que cuenten con las licencias de actividad correspondientes y leer con atención sus condiciones de servicio y su política de privacidad. Este software no custodia ninguna clave de cuenta, no interviene en el movimiento de fondos y no asume el riesgo de pérdida del saldo recargado.
+1. Este proyecto es software de código abierto. Este software no mantiene relación comercial alguna con los proveedores de API de terceros a los que se conecta (incluidos, entre otros, plataformas de reconocimiento de voz, modelos de lenguaje y síntesis de voz), y no ofrece ninguna garantía sobre la calidad del servicio de dichos proveedores ni sobre la seguridad de sus fondos. Se recomienda elegir de forma preferente proveedores que cuenten con las licencias de actividad correspondientes y leer con atención sus condiciones de servicio y su política de privacidad. Este software no custodia ninguna clave de cuenta, no interviene en el movimiento de fondos y no asume el riesgo de pérdida del saldo recargado.
 
 2. Las funciones de este proyecto no están completas y no ha superado una evaluación de seguridad de red. No lo utilice en entornos de producción. Si despliega este proyecto en una red pública con fines de aprendizaje, aplique las protecciones necesarias.
 
@@ -188,13 +188,13 @@ Dirección de la interfaz WebSocket: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 > [!Note]
 > Este proyecto ofrece dos esquemas de configuración:
 >
-> 1. Configuración `básica y totalmente gratuita`: adecuada para uso personal y doméstico. Todos los componentes usan opciones gratuitas y no hay que pagar nada más.
+> 1. `Configuración básica y totalmente gratuita`: adecuada para uso personal y doméstico. Todos los componentes usan opciones gratuitas y no hay que pagar nada más.
 >
 > 2. `Configuración en streaming`: adecuada para demostraciones, formación y escenarios con más de 2 usuarios concurrentes. Usa procesamiento en streaming, responde antes y se siente mejor.
 >
 > Desde la versión `0.5.2`, el proyecto admite la configuración en streaming. Frente a las versiones anteriores, el tiempo de respuesta mejora unos `2,5 segundos` y la experiencia de uso mejora de forma notable.
 
-| Módulo | Ajustes básicos gratuitos | Configuración en streaming |
+| Módulo | Configuración básica y totalmente gratuita | Configuración en streaming |
 |:---:|:---:|:---:|
 | ASR (reconocimiento de voz) | FunASR (local) | 👍XunfeiStreamASR (iFLYTEK en streaming) |
 | LLM (modelo de lenguaje) | glm-4-flash (Zhipu) | 👍qwen-flash (Alibaba Bailian) |
@@ -226,7 +226,7 @@ Este proyecto incluye las siguientes herramientas para comprobar el sistema y el
 | Huella de voz | Admite el registro, la gestión y el reconocimiento de la huella de voz de varios usuarios; se procesa en paralelo con el ASR, identifica en tiempo real quién habla y se lo pasa al LLM para una respuesta personalizada |
 | Diálogo inteligente | Admite varios LLM (modelos de lenguaje) para mantener un diálogo inteligente |
 | Percepción visual | Admite varios VLLM (modelos de visión) para una interacción multimodal |
-| Reconocimiento de intención | Admite el reconocimiento de intención con un modelo externo y la llamada autónoma a funciones del modelo, y ofrece un mecanismo de procesamiento de intenciones mediante plugins |
+| Reconocimiento de intención | Admite el reconocimiento de intención con el modelo de lenguaje (LLM) y la llamada autónoma a funciones del modelo, y ofrece un mecanismo de procesamiento de intenciones mediante plugins |
 | Sistema de memoria | Admite memoria local a corto plazo, memoria por la interfaz mem0ai y memoria inteligente PowerMem, con resumen de la memoria |
 | Base de conocimiento | Admite la base de conocimiento RAGFlow, para que el modelo decida si debe consultarla antes de responder |
 | Llamada a herramientas | Admite el protocolo IOT del cliente, el protocolo MCP del cliente, el protocolo MCP del servidor, el protocolo de punto de acceso MCP y funciones de herramientas personalizadas |
@@ -260,7 +260,7 @@ Xiaozhi es un ecosistema. Al usar este producto, también puede ver otros [proye
 | Llamadas por la interfaz FastGPT | FastGPT | - |
 | Llamadas por la interfaz Coze | Coze | - |
 | Llamadas por la interfaz Xinference | Xinference | - |
-| Llamadas por la interfaz Home Assistant | Home Assistant | - |
+| Llamadas por la interfaz HomeAssistant | HomeAssistant | - |
 
 En la práctica, se puede integrar cualquier LLM que admita llamadas por la interfaz OpenAI.
 
@@ -325,17 +325,17 @@ En la práctica, se puede integrar cualquier VLLM que admita llamadas por la int
 
 | Tipo | Plataforma | Forma de uso | Precio | Notas |
 |:------:|:-------------:|:----:|:-------:|:---------------------:|
-| Intent | intent_llm | Llamadas por interfaz | Según el precio del LLM | Reconoce la intención con el modelo; gran capacidad de generalización |
+| Intent | intent_llm | Llamadas por interfaz | Según el precio del LLM | Reconoce la intención mediante el modelo de lenguaje (LLM); gran capacidad de generalización |
 | Intent | function_call | Llamadas por interfaz | Según el precio del LLM | Completa la intención con llamadas a funciones del modelo; rápido y con buen resultado |
 | Intent | nointent | Modo sin intención | Gratuito | No reconoce la intención y devuelve directamente el resultado del diálogo |
 
 ---
 
-### RAG, generación aumentada por recuperación
+### Rag, generación aumentada por recuperación
 
 | Tipo | Plataforma | Forma de uso | Precio | Notas |
 |:------:|:-------------:|:----:|:-------:|:---------------------:|
-| RAG | ragflow | Llamadas por interfaz | Según los tokens consumidos en el troceado y la segmentación | Usa la generación aumentada por recuperación de RagFlow para dar respuestas más precisas |
+| Rag | ragflow | Llamadas por interfaz | Cobrado según los tokens consumidos en el troceado y la segmentación | Usa la generación aumentada por recuperación de RagFlow para dar respuestas más precisas |
 
 ---
 
