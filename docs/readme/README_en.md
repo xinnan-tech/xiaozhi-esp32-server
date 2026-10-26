@@ -168,8 +168,8 @@ This project provides two deployment methods. Please choose based on your specif
 #### 🚀 Deployment Method Selection
 | Deployment Method | Features | Applicable Scenarios | Deployment Docs | Configuration Requirements | Video Tutorials | 
 |---------|------|---------|---------|---------|---------|
-| **Simplified Installation** | Intelligent dialogue, single agent management | Low-configuration environments, data stored in config files, no database required | [①Docker Version](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Source Code Deployment](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 2 cores 4GB if using `FunASR`, 2 cores 2GB if all APIs | - | 
-| **Full Module Installation** | Intelligent dialogue, multi-user management, multi-agent management, intelligent console interface operation | Complete functionality experience, data stored in database |[①Docker Version](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Source Code Deployment](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Source Code Deployment Auto-Update Tutorial](../dev-ops-integration.md) | 4 cores 8GB if using `FunASR`, 2 cores 4GB if all APIs| [Local Source Code Startup Video Tutorial](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
+| **Simplified Installation** | Intelligent dialogue, single agent management | Low-configuration environments, data stored in config files, no database required | [①Docker Version](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Source Code Deployment](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| Local `FunASR` needs more memory; using APIs for everything keeps resource usage low | - | 
+| **Full Module Installation** | Intelligent dialogue, multi-user management, multi-agent management, intelligent console interface operation | Complete functionality experience, data stored in database |[①Docker Version](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Source Code Deployment](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Source Code Deployment Auto-Update Tutorial](../dev-ops-integration.md) | Local `FunASR` needs more memory plus database resources; using APIs for everything keeps resource usage low| [Local Source Code Startup Video Tutorial](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
 For frequently asked questions and related tutorials, please refer to [this link](../FAQ.md)
 
@@ -231,10 +231,10 @@ This project provides the following testing tools to help you verify the system 
 | Knowledge Base | Supports RAGFlow knowledge base, enabling LLM to judge whether to schedule the knowledge base after receiving the user's question, and then answer the question |
 | Tool Calling | Supports client IOT protocol, client MCP protocol, server MCP protocol, MCP endpoint protocol, custom tool functions |
 | Command Delivery | Supports MCP command delivery to ESP32 devices via MQTT protocol from Smart Console |
-| Management Backend | Provides Web management interface, supports user management, system configuration and device management; Supports Simplified Chinese, Traditional Chinese and English display |
-| Testing Tools | Provides performance testing tools, vision model testing tools, and audio interaction testing tools |
+| Management Backend | Provides Web management interface, supports user management, system configuration and device management; Supports Simplified Chinese, Traditional Chinese, English, German, Vietnamese and Brazilian Portuguese display |
+| Testing Tools | Provides model response performance testing tools and audio interaction testing tools |
 | Deployment Support | Supports Docker deployment and local deployment, provides complete configuration file management |
-| Plugin System | Supports functional plugin extensions, custom plugin development, and plugin hot-loading |
+| Plugin System | Supports functional plugin extensions and custom plugin development; newly added plugin files are loaded on the next device connection, code changes to already loaded plugins require a service restart |
 
 ### Under Development 🚧
 
@@ -280,8 +280,8 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
-| Interface calls | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud and Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi Streaming TTS, MinimaxTTS | Lingxi Streaming TTS, EdgeTTS, CosyVoiceSiliconflow(partial) |
-| Local services | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, Index-TTS, PaddleSpeech | Index-TTS, PaddleSpeech, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
+| Interface calls | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud and Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS | EdgeTTS, CosyVoiceSiliconflow(partial) |
+| Local services | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, IndexStreamTTS, PaddleSpeechTTS | IndexStreamTTS, PaddleSpeechTTS, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
 
@@ -297,8 +297,8 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
-| Local use | FunASR, SherpaASR | FunASR, SherpaASR |
-| Interface calls | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR | FunASRServer |
+| Local use | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
+| Interface calls | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 
@@ -306,7 +306,9 @@ In fact, any VLLM that supports OpenAI interface calls can be integrated and use
 
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
-| Local use | 3D-Speaker | 3D-Speaker |
+| Interface calls | Voiceprint service (voiceprint-api) | - |
+
+Voiceprint recognition requires a separately deployed [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) service (based on 3D-Speaker) and MySQL. See the [voiceprint integration guide](../voiceprint-integration.md).
 
 ---
 
