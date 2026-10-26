@@ -19,7 +19,7 @@ class SpeakerIdentification(NamedTuple):
     """一次声纹识别结果。speaker_id 仅在命中已配置说话人时有值。"""
 
     speaker_id: Optional[str]
-    name: Optional[str]
+    name: str
 
 
 def resolve_speaker_identification(
@@ -204,13 +204,13 @@ class VoiceprintProvider:
                         identified = resolve_speaker_identification(
                             speaker_id, score, self.speaker_map, self.similarity_threshold
                         )
-                        # 相似度阈值检查
-                        if score < self.similarity_threshold:
-                            logger.bind(tag=TAG).warning(f"声纹识别相似度{score:.3f}低于阈值{self.similarity_threshold}")
-                        elif identified.speaker_id:
+                        # 三种结果：命中 / 低于阈值 / id不在配置中
+                        if identified.speaker_id:
                             logger.bind(tag=TAG).info(
                                 f"声纹识别成功: {identified.name} (id: {identified.speaker_id}, 相似度: {score:.3f})"
                             )
+                        elif score < self.similarity_threshold:
+                            logger.bind(tag=TAG).warning(f"声纹识别相似度{score:.3f}低于阈值{self.similarity_threshold}")
                         else:
                             logger.bind(tag=TAG).warning(f"未识别的说话人ID: {speaker_id}")
                         return identified

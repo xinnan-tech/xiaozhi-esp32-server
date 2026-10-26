@@ -120,14 +120,12 @@ class ASRProviderBase(ABC):
                 raw_text, _ = asr_result
 
             speaker_id = None
+            speaker_name = ""
             if isinstance(voiceprint_result, Exception):
                 logger.bind(tag=TAG).error(f"声纹识别失败: {voiceprint_result}")
-                speaker_name = ""
             elif voiceprint_result is not None:
                 speaker_name = voiceprint_result.name or ""
                 speaker_id = voiceprint_result.speaker_id
-            else:
-                speaker_name = ""
 
             # 判断 ASR 结果类型
             if isinstance(raw_text, dict):
