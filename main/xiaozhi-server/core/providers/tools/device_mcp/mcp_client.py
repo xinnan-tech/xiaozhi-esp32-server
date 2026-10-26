@@ -17,7 +17,11 @@ class MCPClient:
         self.name_mapping = {}
         self.ready = False
         self.call_results = {}  # To store Futures for tool call responses
-        self.next_id = 1
+        # Handshake hardcodes id=1 (initialize) and id=2 (tools/list) in mcp_handler.
+        # JSON-RPC 2.0 forbids reusing request ids on the same connection, and
+        # compliant device MCP servers reject tools/call with id 1/2 (see #3461).
+        # Official protocol sequence expects the first tools/call to use id=3.
+        self.next_id = 3
         self.lock = asyncio.Lock()
         self._cached_available_tools = None  # Cache for get_available_tools
 

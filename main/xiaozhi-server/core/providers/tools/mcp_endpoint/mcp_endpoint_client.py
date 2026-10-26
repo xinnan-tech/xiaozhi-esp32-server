@@ -18,7 +18,9 @@ class MCPEndpointClient:
         self.name_mapping = {}
         self.ready = False
         self.call_results = {}  # To store Futures for tool call responses
-        self.next_id = 1
+        # Handshake hardcodes id=1 (initialize) and id=2 (tools/list) in
+        # mcp_endpoint_handler; tools/call must start at 3 to avoid id reuse.
+        self.next_id = 3
         self.lock = asyncio.Lock()
         self._cached_available_tools = None  # Cache for get_available_tools
         self.websocket = None  # WebSocket连接
