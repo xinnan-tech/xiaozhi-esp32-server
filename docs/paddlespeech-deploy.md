@@ -69,10 +69,19 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8092 (Press CTRL+C to quit)
 ```
 
-## 三、修改小智的配置文件
+## 三、配置小智服务
 ### 1. 无需修改代码（provider 已内置于 main/xiaozhi-server/core/providers/tts/paddle_speech.py）
 
-### 2.```main/xiaozhi-server/data/.config.yaml```
+### 2.新建 `main/xiaozhi-server/data/.config.yaml`
+
+`main/xiaozhi-server/data/` 目录不在仓库里，是被 `.gitignore` 忽略掉的，所以第一次用要先把它建出来，再在里面新建 `.config.yaml` 文件：
+
+```bash
+mkdir -p main/xiaozhi-server/data
+```
+
+这个文件是必需的，少了它小智服务起不来，会直接报错退出。
+
 使用单模块部署
 ```yaml
 selected_module:
@@ -90,12 +99,30 @@ TTS:
 采样率固定 24000，provider 内部写死，配置里不用写这一项。
 
 ### 3.启动xiaozhi服务
-回到仓库根目录，进入 `main/xiaozhi-server` 执行：
-```py
+
+小智服务用**另一个** Python 环境，不要用前面给 PaddleSpeech 建的 `paddle_env` —— 那个环境里装的是 PaddleSpeech 自己那套依赖，版本由它决定，跟本项目锁定的版本不一定一致（`paddlespeech` 对 numpy 没写版本上限，装进去的 numpy 未必是本项目要的那个）。本项目推荐的 Python 版本和依赖版本写在 `main/xiaozhi-server/requirements.txt` 里（文件开头写着推荐 python3.10，另外锁了 torch 2.2.2、numpy 1.26.4）。
+
+先建环境、装依赖（在仓库根目录执行）：
+```bash
+conda create -n xiaozhi_env python=3.10 -y
+conda activate xiaozhi_env
+cd main/xiaozhi-server
+pip install -r requirements.txt
+```
+
+然后在 `main/xiaozhi-server` 目录下启动（目录不能换：provider 是按相对路径 `core/providers/tts/` 找的，见 `core/utils/tts.py:35`）：
+```bash
 cd main/xiaozhi-server
 python app.py
 ```
-启动`main/digital-human`下的`python start.py`后，打开`http://127.0.0.1:8006/index.html`，测试连接和发送消息时paddlespeech端是否有输出日志
+
+要验证语音合成的实际输出，另开一个终端，在仓库根目录下跑数字人页面（这套代码另有一份依赖，在 `main/digital-human/wakeword_runtime/requirements.txt` 里，缺了会报缺包）：
+```bash
+cd main/digital-human
+python start.py
+```
+
+打开`http://127.0.0.1:8006/index.html`，测试连接和发送消息时paddlespeech端是否有输出日志
 
 输出日志参考：
 ```
