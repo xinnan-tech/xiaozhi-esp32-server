@@ -211,7 +211,7 @@ Este proyecto incluye las siguientes herramientas para comprobar el sistema y el
 | Herramienta | Ubicación | Uso | Qué hace |
 |:---:|:---|:---:|:---:|
 | Prueba de interacción de audio | main》digital-human》index.html | En `main/digital-human`, ejecute `python start.py` y abra `http://127.0.0.1:8006/index.html` | Prueba la reproducción y la recepción de audio, y comprueba que el procesamiento de audio en Python funciona |
-| Prueba de respuesta de los modelos | main》xiaozhi-server》performance_tester.py | Ejecute `python performance_tester.py` | Mide la velocidad de respuesta de los tres módulos principales: ASR (reconocimiento de voz), LLM (modelo de lenguaje), VLLM (modelo de visión) y TTS (síntesis de voz) |
+| Prueba de respuesta de los modelos | main》xiaozhi-server》performance_tester.py | Ejecute `python performance_tester.py` | Mide la velocidad de respuesta de los cuatro módulos principales: ASR (reconocimiento de voz), LLM (modelo de lenguaje), VLLM (modelo de visión) y TTS (síntesis de voz) |
 
 > 💡 Nota: al medir la velocidad de los modelos, solo se prueban los modelos que tienen una clave configurada.
 
