@@ -55,31 +55,31 @@ Möchten Sie die Nutzungseffekte sehen? Klicken Sie auf die Videos unten 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
         <picture>
-          <img alt="响应速度感受" src="../images/demo9.png" /></picture>
+          <img alt="Gefühl der Antwortgeschwindigkeit" src="../images/demo9.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
         <picture>
-          <img alt="速度优化秘诀" src="../images/demo6.png" /></picture>
+          <img alt="Das Geheimnis der Geschwindigkeitsoptimierung" src="../images/demo6.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1WEcxzFEAT" target="_blank">
         <picture>
-          <img alt="小智数字人 支持语音唤醒" src="../images/demo8.png" /></picture>
+          <img alt="Xiaozhi-Digitalmensch mit Sprachaktivierung" src="../images/demo8.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CKVz6UEuB" target="_blank">
         <picture>
-          <img alt="设备呼叫设备，打电话" src="../images/demo0.png" /></picture>
+          <img alt="Anruf von Gerät zu Gerät" src="../images/demo0.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
         <picture>
-          <img alt="复杂医疗场景" src="../images/demo1.png" /></picture>
+          <img alt="Komplexes medizinisches Szenario" src="../images/demo1.png" /></picture>
       </a>
     </td>
   </tr>
@@ -87,31 +87,31 @@ Möchten Sie die Nutzungseffekte sehen? Klicken Sie auf die Videos unten 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
         <picture>
-          <img alt="播放音乐查询天气播报新闻" src="../images/demo7.png" /></picture>
+          <img alt="Musik abspielen, Wetter abfragen und Nachrichten vorlesen" src="../images/demo7.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12J7WzBEaH" target="_blank">
         <picture>
-          <img alt="实时打断" src="../images/demo10.png" /></picture>
+          <img alt="Unterbrechung in Echtzeit" src="../images/demo10.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Co76z7EvK" target="_blank">
         <picture>
-          <img alt="拍照识物品" src="../images/demo12.png" /></picture>
+          <img alt="Objekte per Foto erkennen" src="../images/demo12.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
         <picture>
-          <img alt="控制家电开关" src="../images/demo5.png" /></picture>
+          <img alt="Haushaltsgeräte ein- und ausschalten" src="../images/demo5.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
         <picture>
-          <img alt="多指令任务" src="../images/demo11.png" /></picture>
+          <img alt="Aufgaben mit mehreren Befehlen" src="../images/demo11.png" /></picture>
       </a>
     </td>
   </tr>
@@ -119,31 +119,31 @@ Möchten Sie die Nutzungseffekte sehen? Klicken Sie auf die Videos unten 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
         <picture>
-          <img alt="MCP接入点" src="../images/demo13.png" /></picture>
+          <img alt="MCP-Endpunkt" src="../images/demo13.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
         <picture>
-          <img alt="MQTT指令下发" src="../images/demo4.png" /></picture>
+          <img alt="MQTT-Befehlsübermittlung" src="../images/demo4.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
         <picture>
-          <img alt="声纹识别" src="../images/demo14.png" /></picture>
+          <img alt="Stimmabdruckerkennung" src="../images/demo14.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
         <picture>
-          <img alt="自定义音色" src="../images/demo2.png" /></picture>
+          <img alt="Eigene Stimmfarbe" src="../images/demo2.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
         <picture>
-          <img alt="使用粤语交流" src="../images/demo3.png" /></picture>
+          <img alt="Gespräch auf Kantonesisch" src="../images/demo3.png" /></picture>
       </a>
     </td>
   </tr>
@@ -218,7 +218,7 @@ Dieses Projekt bietet die folgenden Testwerkzeuge, um Ihnen bei der Überprüfun
 ---
 ## Funktionsliste ✨
 ### Implementiert ✅
-![请参考-全模块安装架构图](../images/deploy2.png)
+![Architekturdiagramm der Installation aller Module](../images/deploy2.png)
 | Funktionsmodul | Beschreibung |
 |:---:|:---|
 | Kernarchitektur | Basierend auf [MQTT+UDP-Gateway](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mqtt-gateway-integration.md), WebSocket und HTTP-Servern, bietet vollständiges Konsolenverwaltungs- und Authentifizierungssystem |

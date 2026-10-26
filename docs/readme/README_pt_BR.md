@@ -55,31 +55,31 @@ Quer ver os efeitos de uso? Clique nos vídeos abaixo 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
         <picture>
-          <img alt="响应速度感受" src="../images/demo9.png" /></picture>
+          <img alt="A sensação da velocidade de resposta" src="../images/demo9.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
         <picture>
-          <img alt="速度优化秘诀" src="../images/demo6.png" /></picture>
+          <img alt="O segredo para otimizar a velocidade" src="../images/demo6.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1WEcxzFEAT" target="_blank">
         <picture>
-          <img alt="小智数字人 支持语音唤醒" src="../images/demo8.png" /></picture>
+          <img alt="Humano digital Xiaozhi com ativação por voz" src="../images/demo8.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CKVz6UEuB" target="_blank">
         <picture>
-          <img alt="设备呼叫设备，打电话" src="../images/demo0.png" /></picture>
+          <img alt="Chamadas de dispositivo para dispositivo" src="../images/demo0.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
         <picture>
-          <img alt="复杂医疗场景" src="../images/demo1.png" /></picture>
+          <img alt="Cenário médico complexo" src="../images/demo1.png" /></picture>
       </a>
     </td>
   </tr>
@@ -87,31 +87,31 @@ Quer ver os efeitos de uso? Clique nos vídeos abaixo 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
         <picture>
-          <img alt="播放音乐查询天气播报新闻" src="../images/demo7.png" /></picture>
+          <img alt="Reproduzir música, consultar o tempo e ler as notícias" src="../images/demo7.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12J7WzBEaH" target="_blank">
         <picture>
-          <img alt="实时打断" src="../images/demo10.png" /></picture>
+          <img alt="Interrupção em tempo real" src="../images/demo10.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Co76z7EvK" target="_blank">
         <picture>
-          <img alt="拍照识物品" src="../images/demo12.png" /></picture>
+          <img alt="Reconhecer objetos com uma foto" src="../images/demo12.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
         <picture>
-          <img alt="控制家电开关" src="../images/demo5.png" /></picture>
+          <img alt="Controlar o acionamento de eletrodomésticos" src="../images/demo5.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
         <picture>
-          <img alt="多指令任务" src="../images/demo11.png" /></picture>
+          <img alt="Tarefas com vários comandos" src="../images/demo11.png" /></picture>
       </a>
     </td>
   </tr>
@@ -119,31 +119,31 @@ Quer ver os efeitos de uso? Clique nos vídeos abaixo 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
         <picture>
-          <img alt="MCP接入点" src="../images/demo13.png" /></picture>
+          <img alt="Ponto de acesso MCP" src="../images/demo13.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
         <picture>
-          <img alt="MQTT指令下发" src="../images/demo4.png" /></picture>
+          <img alt="Envio de comandos MQTT" src="../images/demo4.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
         <picture>
-          <img alt="声纹识别" src="../images/demo14.png" /></picture>
+          <img alt="Reconhecimento de impressão vocal" src="../images/demo14.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
         <picture>
-          <img alt="自定义音色" src="../images/demo2.png" /></picture>
+          <img alt="Tom de voz personalizado" src="../images/demo2.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
         <picture>
-          <img alt="使用粤语交流" src="../images/demo3.png" /></picture>
+          <img alt="Conversa em cantonês" src="../images/demo3.png" /></picture>
       </a>
     </td>
   </tr>
@@ -218,7 +218,7 @@ Este projeto fornece as seguintes ferramentas de teste para ajudá-lo a verifica
 ---
 ## Lista de Funcionalidades ✨
 ### Implementado ✅
-![请参考-全模块安装架构图](../images/deploy2.png)
+![Diagrama de arquitetura da instalação de todos os módulos](../images/deploy2.png)
 | Módulo de Funcionalidade | Descrição |
 |:---:|:---|
 | Arquitetura Principal | Baseado em [gateway MQTT+UDP](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mqtt-gateway-integration.md), servidores WebSocket e HTTP, fornece sistema completo de gerenciamento de console e autenticação |
@@ -308,7 +308,7 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 |:---:|:---:|:---:|
 | Chamadas via interface | Serviço de voiceprint (voiceprint-api) | - |
 
-O reconhecimento de voz por impressão digital exige um serviço [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) implantado separadamente (baseado em 3D-Speaker) e MySQL. Veja o [guia de integração de voiceprint](../voiceprint-integration.md).
+O reconhecimento de impressão vocal exige um serviço [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) implantado separadamente (baseado em 3D-Speaker) e MySQL. Veja o [guia de integração de voiceprint](../voiceprint-integration.md).
 
 ---
 
