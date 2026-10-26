@@ -226,7 +226,7 @@ Este proyecto incluye las siguientes herramientas para comprobar el sistema y el
 | Huella de voz | Admite el registro, la gestión y el reconocimiento de la huella de voz de varios usuarios; se procesa en paralelo con el ASR, identifica en tiempo real quién habla y se lo pasa al LLM para una respuesta personalizada |
 | Diálogo inteligente | Admite varios LLM (modelos de lenguaje) para mantener un diálogo inteligente |
 | Percepción visual | Admite varios VLLM (modelos de visión) para una interacción multimodal |
-| Reconocimiento de intención | Admite el reconocimiento de intención con el modelo de lenguaje (LLM) y la llamada autónoma a funciones del modelo, y ofrece un mecanismo de procesamiento de intenciones mediante plugins |
+| Reconocimiento de intención | Admite el reconocimiento de intención con un modelo de lenguaje (LLM) externo y conectable, y la llamada autónoma a funciones del modelo, y ofrece un mecanismo de procesamiento de intenciones mediante plugins |
 | Sistema de memoria | Admite memoria local a corto plazo, memoria por la interfaz mem0ai y memoria inteligente PowerMem, con resumen de la memoria |
 | Base de conocimiento | Admite la base de conocimiento RAGFlow, para que el modelo decida si debe consultarla antes de responder |
 | Llamada a herramientas | Admite el protocolo IOT del cliente, el protocolo MCP del cliente, el protocolo MCP del servidor, el protocolo de punto de acceso MCP y funciones de herramientas personalizadas |
