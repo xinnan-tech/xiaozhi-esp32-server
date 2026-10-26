@@ -254,7 +254,7 @@ Xiaozhi ist ein Ökosystem. Wenn Sie dieses Produkt verwenden, können Sie sich 
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Volcano Engine Doubao, DeepSeek, Zhipu ChatGLM, Gemini, iFLYTEK | Zhipu ChatGLM, Gemini |
+| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Volcano Engine Doubao, DeepSeek, Zhipu ChatGLM, Gemini, iFLYTEK, LM Studio | Zhipu ChatGLM, Gemini |
 | Ollama-Schnittstellenaufrufe | Ollama | - |
 | Dify-Schnittstellenaufrufe | Dify | - |
 | FastGPT-Schnittstellenaufrufe | FastGPT | - |
@@ -298,7 +298,7 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
 | Lokale Verwendung | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
-| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
+| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Aliyun Bailian Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 

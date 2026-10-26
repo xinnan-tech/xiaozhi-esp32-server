@@ -254,7 +254,7 @@ Xiaozhi é um ecossistema. Ao utilizar este produto, você também pode conferir
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Chamadas via interface OpenAI | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK | Zhipu, Gemini |
+| Chamadas via interface OpenAI | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK, LM Studio | Zhipu, Gemini |
 | Chamadas via interface Ollama | Ollama | - |
 | Chamadas via interface Dify | Dify | - |
 | Chamadas via interface FastGPT | FastGPT | - |
@@ -298,7 +298,7 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
 | Uso local | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
-| Chamadas via interface | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
+| Chamadas via interface | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud e Bailian, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 

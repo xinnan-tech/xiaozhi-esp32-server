@@ -256,7 +256,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
-| openai 接口调用 | 阿里百炼、火山引擎、DeepSeek、智谱、Gemini、科大讯飞 | 智谱、Gemini |
+| openai 接口调用 | 阿里百炼、火山引擎、DeepSeek、智谱、Gemini、科大讯飞、LM Studio | 智谱、Gemini |
 | ollama 接口调用 | Ollama | - |
 | dify 接口调用 | Dify | - |
 | fastgpt 接口调用 | Fastgpt | - |
@@ -300,7 +300,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
 | 本地使用 | FunASR、SherpaASR、SherpaParaformerASR、VoskASR | FunASR、SherpaASR、SherpaParaformerASR、VoskASR |
-| 接口调用 | FunASRServer、火山引擎、科大讯飞、腾讯云、阿里云、百度云、OpenAI ASR、GroqASR、Qwen3ASRFlash | FunASRServer |
+| 接口调用 | FunASRServer、火山引擎、科大讯飞、腾讯云、阿里云及百炼、百度云、OpenAI ASR、GroqASR、Qwen3ASRFlash | FunASRServer |
 
 ---
 
