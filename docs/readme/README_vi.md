@@ -168,8 +168,8 @@ Dự án này cung cấp hai phương pháp triển khai, vui lòng chọn theo 
 #### 🚀 Lựa chọn phương pháp triển khai
 | Phương pháp triển khai | Đặc điểm | Tình huống áp dụng | Tài liệu triển khai | Yêu cầu cấu hình | Video hướng dẫn |
 |---------|------|---------|---------|---------|---------|
-| **Cài đặt tối giản** | Đối thoại thông minh, quản lý đơn tác nhân | Môi trường cấu hình thấp, dữ liệu lưu trong tệp cấu hình, không cần cơ sở dữ liệu | [①Phiên bản Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Triển khai mã nguồn](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 2 nhân 4GB nếu dùng `FunASR`, 2 nhân 2GB nếu toàn API | - |
-| **Cài đặt toàn bộ module** | Đối thoại thông minh, quản lý đa người dùng, quản lý đa tác nhân, bảng điều khiển thông minh | Trải nghiệm đầy đủ tính năng, dữ liệu lưu trong cơ sở dữ liệu |[①Phiên bản Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Triển khai mã nguồn](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Hướng dẫn tự động cập nhật triển khai mã nguồn](../dev-ops-integration.md) | 4 nhân 8GB nếu dùng `FunASR`, 2 nhân 4GB nếu toàn API| [Video hướng dẫn khởi động mã nguồn cục bộ](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
+| **Cài đặt tối giản** | Đối thoại thông minh, quản lý đơn tác nhân | Môi trường cấu hình thấp, dữ liệu lưu trong tệp cấu hình, không cần cơ sở dữ liệu | [①Phiên bản Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Triển khai mã nguồn](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| `FunASR` cục bộ cần nhiều bộ nhớ; dùng toàn API thì mức dùng tài nguyên thấp | - |
+| **Cài đặt toàn bộ module** | Đối thoại thông minh, quản lý đa người dùng, quản lý đa tác nhân, bảng điều khiển thông minh | Trải nghiệm đầy đủ tính năng, dữ liệu lưu trong cơ sở dữ liệu |[①Phiên bản Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Triển khai mã nguồn](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Hướng dẫn tự động cập nhật triển khai mã nguồn](../dev-ops-integration.md) | `FunASR` cục bộ cần nhiều bộ nhớ, thêm tài nguyên cơ sở dữ liệu; dùng toàn API thì mức dùng tài nguyên thấp| [Video hướng dẫn khởi động mã nguồn cục bộ](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
 Câu hỏi thường gặp và hướng dẫn liên quan, vui lòng tham khảo [liên kết này](../FAQ.md)
 
@@ -210,7 +210,7 @@ Dự án này cung cấp các công cụ kiểm tra sau để giúp bạn xác m
 
 | Tên công cụ | Vị trí | Phương pháp sử dụng | Mô tả chức năng |
 |:---:|:---|:---:|:---:|
-| Công cụ kiểm tra tương tác âm thanh | main》digital-human》index.html | Chạy `python start.py` trong `main/digital-human`, sau đó mở `http://127.0.0.1:8006/index.html` | Kiểm tra chức năng phát và nhận âm thanh, xác minh xử lý âm thanh phía Python có bình thường không |
+| Công cụ kiểm tra tương tác âm thanh | main》digital-human》index.html | Trong `main/digital-human`, chạy `pip install -r wakeword_runtime/requirements.txt` trước, rồi chạy `python start.py` và mở `http://127.0.0.1:8006/index.html` | Kiểm tra chức năng phát và nhận âm thanh, xác minh xử lý âm thanh phía Python có bình thường không |
 | Công cụ kiểm tra phản hồi mô hình | main》xiaozhi-server》performance_tester.py | Thực hiện `python performance_tester.py` | Kiểm tra tốc độ phản hồi của ba module cốt lõi ASR(Nhận dạng giọng nói), LLM(Mô hình lớn), VLLM(Mô hình thị giác), TTS(Tổng hợp giọng nói) |
 
 > 💡 Gợi ý: Khi kiểm tra tốc độ mô hình, chỉ kiểm tra các mô hình đã cấu hình khóa.
@@ -231,10 +231,10 @@ Dự án này cung cấp các công cụ kiểm tra sau để giúp bạn xác m
 | Kho tri thức | Hỗ trợ kho tri thức RAGFlow, cho phép mô hình lớn đánh giá cần gọi kho tri thức trước khi trả lời |
 | Gọi công cụ | Hỗ trợ giao thức IOT phía client, giao thức MCP phía client, giao thức MCP phía server, giao thức điểm truy cập MCP, hàm công cụ tùy chỉnh |
 | Gửi lệnh | Dựa vào giao thức MQTT, hỗ trợ gửi lệnh MCP từ bảng điều khiển thông minh xuống thiết bị ESP32 |
-| Backend quản lý | Cung cấp giao diện quản lý Web, hỗ trợ quản lý người dùng, cấu hình hệ thống và quản lý thiết bị; giao diện hỗ trợ hiển thị tiếng Trung giản thể, tiếng Trung phồn thể, tiếng Anh |
-| Công cụ kiểm tra | Cung cấp công cụ kiểm tra hiệu suất, công cụ kiểm tra mô hình thị giác và công cụ kiểm tra tương tác âm thanh |
+| Backend quản lý | Cung cấp giao diện quản lý Web, hỗ trợ quản lý người dùng, cấu hình hệ thống và quản lý thiết bị; giao diện hỗ trợ hiển thị tiếng Trung giản thể, tiếng Trung phồn thể, tiếng Anh, tiếng Đức, tiếng Việt và tiếng Bồ Đào Nha Brazil |
+| Công cụ kiểm tra | Cung cấp công cụ kiểm tra hiệu suất phản hồi mô hình và công cụ kiểm tra tương tác âm thanh |
 | Hỗ trợ triển khai | Hỗ trợ triển khai Docker và triển khai cục bộ, cung cấp quản lý tệp cấu hình hoàn chỉnh |
-| Hệ thống plugin | Hỗ trợ mở rộng plugin chức năng, phát triển plugin tùy chỉnh và hot loading plugin |
+| Hệ thống plugin | Hỗ trợ mở rộng plugin chức năng và phát triển plugin tùy chỉnh; file plugin mới được tải ở lần kết nối thiết bị tiếp theo, thay đổi mã của plugin đã tải cần khởi động lại dịch vụ |
 
 ### Đang phát triển 🚧
 
@@ -280,8 +280,8 @@ Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện openai đ�
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Gọi giao diện | EdgeTTS, iFlytek, Volcano Engine, Tencent Cloud, Alibaba Cloud và Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi streaming TTS, MinimaxTTS | Lingxi streaming TTS, EdgeTTS, CosyVoiceSiliconflow(một phần) |
-| Dịch vụ cục bộ | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, Index-TTS, PaddleSpeech | Index-TTS, PaddleSpeech, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
+| Gọi giao diện | EdgeTTS, iFlytek, Volcano Engine, Tencent Cloud, Alibaba Cloud và Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS | EdgeTTS, CosyVoiceSiliconflow(một phần) |
+| Dịch vụ cục bộ | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, IndexStreamTTS, PaddleSpeechTTS | IndexStreamTTS, PaddleSpeechTTS, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
 
@@ -297,8 +297,8 @@ Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện openai đ�
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Sử dụng cục bộ | FunASR, SherpaASR | FunASR, SherpaASR |
-| Gọi giao diện | FunASRServer, Volcano Engine, iFlytek, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR | FunASRServer |
+| Sử dụng cục bộ | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR |
+| Gọi giao diện | FunASRServer, Volcano Engine, iFlytek, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 
@@ -306,7 +306,9 @@ Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện openai đ�
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Sử dụng cục bộ | 3D-Speaker | 3D-Speaker |
+| Gọi giao diện | Dịch vụ nhận dạng giọng nói (voiceprint-api) | - |
+
+Nhận dạng giọng nói theo dấu vân tay cần dịch vụ [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) được triển khai riêng (dựa trên 3D-Speaker) và MySQL. Xem [hướng dẫn tích hợp voiceprint](../voiceprint-integration.md).
 
 ---
 

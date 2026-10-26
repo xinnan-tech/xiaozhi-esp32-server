@@ -167,8 +167,8 @@ Dieses Projekt bietet zwei Bereitstellungsmethoden. Bitte wählen Sie basierend 
 #### 🚀 Auswahl der Bereitstellungsmethode
 | Bereitstellungsmethode | Funktionen | Anwendungsszenarien | Deployment-Dokumente | Konfigurationsanforderungen | Video-Tutorials |
 |---------|------|---------|---------|---------|---------|
-| **Vereinfachte Installation** | Intelligenter Dialog, Einzel-Agenten-Verwaltung | Umgebungen mit geringer Konfiguration, Daten in Konfigurationsdateien gespeichert, keine Datenbank erforderlich | [①Docker-Version](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Quellcode-Deployment](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 2 Kerne 4GB bei Verwendung von `FunASR`, 2 Kerne 2GB bei allen APIs | - |
-| **Vollständige Modulinstallation** | Intelligenter Dialog, Mehrbenutzerverwaltung, Mehr-Agenten-Verwaltung, Intelligente Steuerkonsole-Bedienung | Vollständige Funktionserfahrung, Daten in Datenbank gespeichert |[①Docker-Version](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Quellcode-Deployment](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Quellcode-Deployment Auto-Update-Tutorial](../dev-ops-integration.md) | 4 Kerne 8GB bei Verwendung von `FunASR`, 2 Kerne 4GB bei allen APIs| [Video-Tutorial für lokalen Quellcode-Start](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
+| **Vereinfachte Installation** | Intelligenter Dialog, Einzel-Agenten-Verwaltung | Umgebungen mit geringer Konfiguration, Daten in Konfigurationsdateien gespeichert, keine Datenbank erforderlich | [①Docker-Version](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Quellcode-Deployment](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| Lokales `FunASR` benötigt mehr Arbeitsspeicher; bei durchgängiger API-Nutzung ist der Ressourcenverbrauch gering | - |
+| **Vollständige Modulinstallation** | Intelligenter Dialog, Mehrbenutzerverwaltung, Mehr-Agenten-Verwaltung, Intelligente Steuerkonsole-Bedienung | Vollständige Funktionserfahrung, Daten in Datenbank gespeichert |[①Docker-Version](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Quellcode-Deployment](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Quellcode-Deployment Auto-Update-Tutorial](../dev-ops-integration.md) | Lokales `FunASR` benötigt mehr Arbeitsspeicher, zusätzlich werden Datenbankressourcen benötigt; bei durchgängiger API-Nutzung ist der Ressourcenverbrauch gering| [Video-Tutorial für lokalen Quellcode-Start](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
 Häufige Fragen und entsprechende Tutorials finden Sie unter [diesem Link](../FAQ.md)
 
@@ -209,7 +209,7 @@ Dieses Projekt bietet die folgenden Testwerkzeuge, um Ihnen bei der Überprüfun
 
 | Werkzeugname | Standort | Verwendungsmethode | Funktionsbeschreibung |
 |:---:|:---|:---:|:---:|
-| Audio-Interaktionstesttool | main》digital-human》index.html | In `main/digital-human` `python start.py` ausführen und dann `http://127.0.0.1:8006/index.html` öffnen | Testet Audio-Wiedergabe- und Empfangsfunktionen, überprüft, ob die Python-seitige Audioverarbeitung normal ist |
+| Audio-Interaktionstesttool | main》digital-human》index.html | In `main/digital-human` zuerst `pip install -r wakeword_runtime/requirements.txt`, dann `python start.py` ausführen und `http://127.0.0.1:8006/index.html` öffnen | Testet Audio-Wiedergabe- und Empfangsfunktionen, überprüft, ob die Python-seitige Audioverarbeitung normal ist |
 | Modell-Reaktionstesttool | main》xiaozhi-server》performance_tester.py | Ausführen `python performance_tester.py` | Testet die Reaktionsgeschwindigkeit von ASR (Spracherkennung), LLM (großes Modell), VLLM (Vision-Modell), TTS (Sprachsynthese) drei Kernmodulen |
 
 > 💡 Hinweis: Beim Testen der Modellgeschwindigkeit werden nur Modelle mit konfigurierten Schlüsseln getestet.
@@ -230,10 +230,10 @@ Dieses Projekt bietet die folgenden Testwerkzeuge, um Ihnen bei der Überprüfun
 | Wissensdatenbank | Unterstützt RAGFlow-Wissensdatenbank, ermöglicht großem Modell die Bewertung, ob Wissensdatenbank benötigt wird, bevor geantwortet wird |
 | Werkzeugaufruf | Unterstützt Client-IOT-Protokoll, Client-MCP-Protokoll, Server-MCP-Protokoll, MCP-Endpunktprotokoll, benutzerdefinierte Werkzeugfunktionen |
 | Befehlsübermittlung | Basierend auf MQTT-Protokoll, unterstützt die Übermittlung von MCP-Befehlen von der intelligenten Steuerkonsole an ESP32-Geräte |
-| Verwaltungs-Backend | Bietet Web-Verwaltungsoberfläche, unterstützt Benutzerverwaltung, Systemkonfiguration und Geräteverwaltung; Oberfläche unterstützt vereinfachtes Chinesisch, traditionelles Chinesisch und englische Anzeige |
-| Testwerkzeuge | Bietet Leistungstestwerkzeuge, Vision-Modell-Testwerkzeuge und Audio-Interaktionstestwerkzeuge |
+| Verwaltungs-Backend | Bietet Web-Verwaltungsoberfläche, unterstützt Benutzerverwaltung, Systemkonfiguration und Geräteverwaltung; Oberfläche unterstützt vereinfachtes Chinesisch, traditionelles Chinesisch, Englisch, Deutsch, Vietnamesisch und brasilianisches Portugiesisch an |
+| Testwerkzeuge | Bietet Leistungstestwerkzeuge für Modellantworten und Audio-Interaktionstestwerkzeuge |
 | Deployment-Unterstützung | Unterstützt Docker-Deployment und lokales Deployment, bietet vollständige Konfigurationsdateiverwaltung |
-| Plugin-System | Unterstützt funktionale Plugin-Erweiterungen, benutzerdefinierte Plugin-Entwicklung und Plugin-Hot-Loading |
+| Plugin-System | Unterstützt funktionale Plugin-Erweiterungen und benutzerdefinierte Plugin-Entwicklung; neu hinzugefügte Plugin-Dateien werden bei der nächsten Geräteverbindung geladen, Änderungen an bereits geladenen Plugins erfordern einen Neustart des Dienstes |
 
 ### In Entwicklung 🚧
 
@@ -253,7 +253,7 @@ Xiaozhi ist ein Ökosystem. Wenn Sie dieses Produkt verwenden, können Sie sich 
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Volcano Engine Doubao, DeepSeek, Zhipu ChatGLM, Gemini | Zhipu ChatGLM, Gemini |
+| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Volcano Engine Doubao, DeepSeek, Zhipu ChatGLM, Gemini, iFLYTEK | Zhipu ChatGLM, Gemini |
 | Ollama-Schnittstellenaufrufe | Ollama | - |
 | Dify-Schnittstellenaufrufe | Dify | - |
 | FastGPT-Schnittstellenaufrufe | FastGPT | - |
@@ -279,8 +279,8 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| Schnittstellenaufrufe | EdgeTTS, Volcano Engine Doubao TTS, Tencent Cloud, Alibaba Cloud TTS, AliYun Stream TTS, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi Streaming TTS, MinimaxTTS, Volcano Dual-Stream TTS | Lingxi Streaming TTS, EdgeTTS, CosyVoiceSiliconflow (teilweise) |
-| Lokale Dienste | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, Index-TTS, PaddleSpeech | Index-TTS, PaddleSpeech, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
+| Schnittstellenaufrufe | EdgeTTS, iFLYTEK, Volcano Engine Doubao TTS, Tencent Cloud, Alibaba Cloud TTS, AliYun Stream TTS, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS, Volcano Dual-Stream TTS | EdgeTTS, CosyVoiceSiliconflow (teilweise) |
+| Lokale Dienste | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, IndexStreamTTS, PaddleSpeechTTS | IndexStreamTTS, PaddleSpeechTTS, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
 
@@ -296,8 +296,8 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| Lokale Verwendung | FunASR, SherpaASR | FunASR, SherpaASR |
-| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, TencentASR, AliyunASR, Aliyun Streaming ASR, Baidu ASR, OpenAI ASR | FunASRServer |
+| Lokale Verwendung | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR |
+| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 
@@ -305,7 +305,9 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| Lokale Verwendung | 3D-Speaker | 3D-Speaker |
+| Schnittstellenaufrufe | Voiceprint-Dienst (voiceprint-api) | - |
+
+Die Stimmabdruckerkennung erfordert einen separat bereitgestellten [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api)-Dienst (auf Basis von 3D-Speaker) sowie MySQL. Siehe [Anleitung zur Stimmabdruckerkennung](../voiceprint-integration.md).
 
 ---
 

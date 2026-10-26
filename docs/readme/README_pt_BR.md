@@ -167,8 +167,8 @@ Este projeto oferece dois métodos de implantação. Por favor, escolha de acord
 #### 🚀 Seleção do Método de Implantação
 | Método de Implantação | Funcionalidades | Cenários Aplicáveis | Documentação de Implantação | Requisitos de Configuração | Tutoriais em Vídeo |
 |---------|------|---------|---------|---------|---------|
-| **Instalação Simplificada** | Diálogo inteligente, gerenciamento de agente único | Ambientes de baixa configuração, dados armazenados em arquivos de configuração, sem necessidade de banco de dados | [①Versão Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Implantação via Código-Fonte](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 2 núcleos 4GB se usar `FunASR`, 2 núcleos 2GB se todas APIs | - |
-| **Instalação de Módulo Completo** | Diálogo inteligente, gerenciamento multiusuário, gerenciamento de múltiplos agentes, operação de interface do console inteligente | Experiência com funcionalidade completa, dados armazenados em banco de dados |[①Versão Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Implantação via Código-Fonte](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Tutorial de Atualização Automática via Código-Fonte](../dev-ops-integration.md) | 4 núcleos 8GB se usar `FunASR`, 2 núcleos 4GB se todas APIs| [Tutorial em Vídeo de Inicialização via Código-Fonte Local](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
+| **Instalação Simplificada** | Diálogo inteligente, gerenciamento de agente único | Ambientes de baixa configuração, dados armazenados em arquivos de configuração, sem necessidade de banco de dados | [①Versão Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Implantação via Código-Fonte](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| `FunASR` local exige mais memória; usar apenas APIs mantém o consumo de recursos baixo | - |
+| **Instalação de Módulo Completo** | Diálogo inteligente, gerenciamento multiusuário, gerenciamento de múltiplos agentes, operação de interface do console inteligente | Experiência com funcionalidade completa, dados armazenados em banco de dados |[①Versão Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Implantação via Código-Fonte](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Tutorial de Atualização Automática via Código-Fonte](../dev-ops-integration.md) | `FunASR` local exige mais memória e recursos de banco de dados; usar apenas APIs mantém o consumo de recursos baixo| [Tutorial em Vídeo de Inicialização via Código-Fonte Local](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
 Perguntas frequentes e tutoriais relacionados podem ser consultados [neste link](../FAQ.md)
 
@@ -209,7 +209,7 @@ Este projeto fornece as seguintes ferramentas de teste para ajudá-lo a verifica
 
 | Nome da Ferramenta | Localização | Método de Uso | Descrição da Função |
 |:---:|:---|:---:|:---:|
-| Ferramenta de Teste de Interação por Áudio | main》digital-human》index.html | Execute `python start.py` em `main/digital-human` e depois abra `http://127.0.0.1:8006/index.html` | Testa as funções de reprodução e recepção de áudio, verifica se o processamento de áudio no lado Python está normal |
+| Ferramenta de Teste de Interação por Áudio | main》digital-human》index.html | Em `main/digital-human`, execute `pip install -r wakeword_runtime/requirements.txt` primeiro, depois `python start.py` e abra `http://127.0.0.1:8006/index.html` | Testa as funções de reprodução e recepção de áudio, verifica se o processamento de áudio no lado Python está normal |
 | Ferramenta de Teste de Resposta de Modelo | main》xiaozhi-server》performance_tester.py | Execute `python performance_tester.py` | Testa a velocidade de resposta dos três módulos principais: ASR(reconhecimento de fala), LLM(modelo de linguagem), VLLM(modelo de visão), TTS(síntese de voz) |
 
 > 💡 Nota: Ao testar a velocidade dos modelos, apenas os modelos com chaves configuradas serão testados.
@@ -230,10 +230,10 @@ Este projeto fornece as seguintes ferramentas de teste para ajudá-lo a verifica
 | Base de Conhecimento | Suporta base de conhecimento RAGFlow, permitindo que o LLM julgue se deve acionar a base de conhecimento após receber a pergunta do usuário, e então responda à pergunta |
 | Chamada de Ferramentas | Suporta protocolo IOT do cliente, protocolo MCP do cliente, protocolo MCP do servidor, protocolo de endpoint MCP, funções de ferramentas personalizadas |
 | Envio de Comandos | Suporta envio de comandos MCP para dispositivos ESP32 via protocolo MQTT a partir do Console Inteligente |
-| Backend de Gerenciamento | Fornece interface de gerenciamento Web, suporta gerenciamento de usuários, configuração do sistema e gerenciamento de dispositivos; Suporta exibição em Chinês Simplificado, Chinês Tradicional e Inglês |
-| Ferramentas de Teste | Fornece ferramentas de teste de desempenho, ferramentas de teste de modelo de visão e ferramentas de teste de interação por áudio |
+| Backend de Gerenciamento | Fornece interface de gerenciamento Web, suporta gerenciamento de usuários, configuração do sistema e gerenciamento de dispositivos; Suporta exibição em Chinês Simplificado, Chinês Tradicional, Inglês, Alemão, Vietnamita e Português do Brasil |
+| Ferramentas de Teste | Fornece ferramentas de teste de desempenho de resposta de modelo e ferramentas de teste de interação por áudio |
 | Suporte à Implantação | Suporta implantação via Docker e implantação local, fornece gerenciamento completo de arquivos de configuração |
-| Sistema de Plugins | Suporta extensões de plugins funcionais, desenvolvimento de plugins personalizados e carregamento dinâmico de plugins |
+| Sistema de Plugins | Suporta extensões de plugins funcionais e desenvolvimento de plugins personalizados; novos arquivos de plugin são carregados na próxima conexão do dispositivo e alterações em plugins já carregados exigem reiniciar o serviço |
 
 ### Em Desenvolvimento 🚧
 
@@ -279,8 +279,8 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Chamadas via interface | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud e Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi Streaming TTS, MinimaxTTS | Lingxi Streaming TTS, EdgeTTS, CosyVoiceSiliconflow(parcial) |
-| Serviços locais | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, Index-TTS, PaddleSpeech | Index-TTS, PaddleSpeech, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
+| Chamadas via interface | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud e Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS | EdgeTTS, CosyVoiceSiliconflow(parcial) |
+| Serviços locais | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, IndexStreamTTS, PaddleSpeechTTS | IndexStreamTTS, PaddleSpeechTTS, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
 
@@ -296,8 +296,8 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Uso local | FunASR, SherpaASR | FunASR, SherpaASR |
-| Chamadas via interface | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR | FunASRServer |
+| Uso local | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR |
+| Chamadas via interface | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 
@@ -305,7 +305,9 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Uso local | 3D-Speaker | 3D-Speaker |
+| Chamadas via interface | Serviço de voiceprint (voiceprint-api) | - |
+
+O reconhecimento de voz por impressão digital exige um serviço [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) implantado separadamente (baseado em 3D-Speaker) e MySQL. Veja o [guia de integração de voiceprint](../voiceprint-integration.md).
 
 ---
 
