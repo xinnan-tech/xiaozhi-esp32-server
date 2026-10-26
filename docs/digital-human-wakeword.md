@@ -194,7 +194,7 @@ python start.py
 
 ### 首次使用
 
-1. 准备 `models/` 目录下的模型文件和 `tokens.txt`
+1. 先按上面「模型下载（必需）」那节把模型包下载解压，再按「配置模型文件」那节把模型放到 `models/` 目录，该目录下要有 `encoder.onnx`、`decoder.onnx`、`joiner.onnx` 和 `tokens.txt` 四个文件
 2. 确认 `models/keywords.txt` 存在
 3. 在 `digital-human` 目录运行 `python start.py`
 4. 浏览器打开 `http://127.0.0.1:8006/index.html`
