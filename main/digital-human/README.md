@@ -16,7 +16,7 @@ digital-human 是独立的数字人测试模块，负责提供本地测试页面
 pip install -r wakeword_runtime/requirements.txt
 ```
 
-唤醒词模型要另外下载：仓库里不带模型文件，默认配置（`wakeword_runtime/config.json` 里 `wakeword.enabled` 为 true）下，`wakeword_runtime/models/` 里没有模型文件时启动会打印「警告: 唤醒词服务启动失败」，页面能打开但麦克风采集起不来，音频收发是残的。模型下载地址和摆放位置见[唤醒词专题文档](../../docs/digital-human-wakeword.md)。
+唤醒词模型要另外下载：仓库里不带模型文件，默认配置（`wakeword_runtime/config.json` 里 `wakeword.enabled` 为 true）下，`wakeword_runtime/models/` 里没有模型文件时启动会打印「警告: 唤醒词服务启动失败」。页面能打开，麦克风的输入流也已经打开，但没有唤醒词检测在消费这些数据，语音唤不醒，页面上的其它功能不受影响。模型下载地址和摆放位置见[唤醒词专题文档](../../docs/digital-human-wakeword.md)。
 
 启动模块：
 

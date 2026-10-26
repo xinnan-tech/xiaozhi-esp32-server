@@ -100,7 +100,7 @@ cp tokens.txt ../models/tokens.txt
 
 - **不要混用 fp32 与 int8**：三个模型文件必须保持一致的精度
 - **优先选择 epoch-99**：比 epoch-12 训练更充分，精度更高
-- **必需文件**：`encoder.onnx` + `decoder.onnx` + `joiner.onnx` + `tokens.txt` + `keywords.txt`
+- **必需文件**：`encoder.onnx` + `decoder.onnx` + `joiner.onnx` + `tokens.txt` 四个，`keywords.txt` 不在其中，它不用自己准备，首次启动会用配置里的唤醒词自动生成
 
 ### 最终模型文件结构
 
@@ -195,10 +195,12 @@ python start.py
 ### 首次使用
 
 1. 先按上面「模型下载（必需）」那节把模型包下载解压，再按「配置模型文件」那节把模型放到 `models/` 目录，该目录下要有 `encoder.onnx`、`decoder.onnx`、`joiner.onnx` 和 `tokens.txt` 四个文件
-2. 确认 `models/keywords.txt` 存在
+2. `models/keywords.txt` 不用自己准备，首次启动会用配置里的唤醒词自动生成
 3. 在 `digital-human` 目录运行 `python start.py`
 4. 浏览器打开 `http://127.0.0.1:8006/index.html`
 5. 进入设置页检查“唤醒词”配置
+
+模型没放到位就启动，只会打印「警告: 唤醒词服务启动失败」：页面能打开，麦克风的输入流也已经打开，但没有唤醒词检测在消费这些数据，语音唤不醒。
 
 ### 修改唤醒词
 
