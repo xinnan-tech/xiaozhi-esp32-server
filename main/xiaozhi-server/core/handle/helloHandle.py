@@ -168,6 +168,9 @@ async def wakeupWordsResponse(conn: "ConnectionHandler"):
             f.write(wav_bytes)
         # 更新配置
         wakeup_words_config.update_wakeup_response(voice, file_path, result)
+        # 覆写文件后 mtime 变化使旧缓存失效，此处立刻预编码新文件，
+        # 下次唤醒直接命中缓存，编码成本不占用唤醒响应路径
+        await audio_to_data(file_path, use_cache=True)
     finally:
         # 确保在任何情况下都释放锁
         if _wakeup_response_lock.locked():

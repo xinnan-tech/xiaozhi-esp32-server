@@ -5,6 +5,7 @@
 
 import os
 import asyncio
+import hashlib
 import threading
 from typing import Dict, Any, TYPE_CHECKING
 
@@ -254,7 +255,12 @@ class PromptManager:
         if not self.base_prompt_template:
             return user_prompt
 
-        enhanced_cache_key = f"enhanced_prompt:{device_id}"
+        # 缓存键须覆盖所有渲染输入：emoji 开关、设备 prompt 变更否则会命中过期提示词
+        emoji_enabled = kwargs.get("emoji_enabled", True)
+        prompt_hash = hashlib.md5(user_prompt.encode("utf-8")).hexdigest()[:8]
+        enhanced_cache_key = (
+            f"enhanced_prompt:{device_id}:{emoji_enabled}:{prompt_hash}"
+        )
         cached_prompt = self.cache_manager.get(
             self.CacheType.DEVICE_PROMPT, enhanced_cache_key
         )
