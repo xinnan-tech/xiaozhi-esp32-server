@@ -298,7 +298,7 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
 | Lokale Verwendung | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
-| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Aliyun Bailian Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
+| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Alibaba Bailian Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 
