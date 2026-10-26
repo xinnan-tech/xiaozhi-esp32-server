@@ -211,7 +211,7 @@ Dự án này cung cấp các công cụ kiểm tra sau để giúp bạn xác m
 
 | Tên công cụ | Vị trí | Phương pháp sử dụng | Mô tả chức năng |
 |:---:|:---|:---:|:---:|
-| Công cụ kiểm tra tương tác âm thanh | main》digital-human》index.html | Chạy `python start.py` trong `main/digital-human`, sau đó mở `http://127.0.0.1:8006/index.html` | Kiểm tra chức năng phát và nhận âm thanh, xác minh xử lý âm thanh phía Python có bình thường không |
+| Công cụ kiểm tra tương tác âm thanh | main》digital-human》index.html | Trong `main/digital-human`, cài đặt các phụ thuộc theo README, rồi chạy `python start.py` và mở `http://127.0.0.1:8006/index.html` | Kiểm tra chức năng phát và nhận âm thanh, xác minh xử lý âm thanh phía Python có bình thường không |
 | Công cụ kiểm tra phản hồi mô hình | main》xiaozhi-server》performance_tester.py | Thực hiện `python performance_tester.py` | Kiểm tra tốc độ phản hồi của các module cốt lõi như ASR(Nhận dạng giọng nói), LLM(Mô hình lớn), VLLM(Mô hình thị giác), TTS(Tổng hợp giọng nói) |
 
 > 💡 Gợi ý: Khi kiểm tra tốc độ mô hình, chỉ kiểm tra các mô hình đã cấu hình khóa.
@@ -255,7 +255,7 @@ Xiaozhi là một hệ sinh thái, khi bạn sử dụng sản phẩm này, bạ
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Gọi giao diện openai | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFlytek | Zhipu, Gemini |
+| Gọi giao diện openai | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK, LM Studio | Zhipu, Gemini |
 | Gọi giao diện ollama | Ollama | - |
 | Gọi giao diện dify | Dify | - |
 | Gọi giao diện fastgpt | Fastgpt | - |
@@ -281,7 +281,7 @@ Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện openai đ�
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Gọi giao diện | EdgeTTS, iFlytek, Volcano Engine, Tencent Cloud, Alibaba Cloud và Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS | EdgeTTS, CosyVoiceSiliconflow(một phần) |
+| Gọi giao diện | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud và Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS | EdgeTTS, CosyVoiceSiliconflow(một phần) |
 | Dịch vụ cục bộ | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, IndexStreamTTS, PaddleSpeechTTS | IndexStreamTTS, PaddleSpeechTTS, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
@@ -299,7 +299,7 @@ Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện openai đ�
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
 | Sử dụng cục bộ | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
-| Gọi giao diện | FunASRServer, Volcano Engine, iFlytek, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
+| Gọi giao diện | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud và Bailian, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 

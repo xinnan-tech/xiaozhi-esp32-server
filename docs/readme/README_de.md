@@ -210,7 +210,7 @@ Dieses Projekt bietet die folgenden Testwerkzeuge, um Ihnen bei der Überprüfun
 
 | Werkzeugname | Standort | Verwendungsmethode | Funktionsbeschreibung |
 |:---:|:---|:---:|:---:|
-| Audio-Interaktionstesttool | main》digital-human》index.html | In `main/digital-human` `python start.py` ausführen und dann `http://127.0.0.1:8006/index.html` öffnen | Testet Audio-Wiedergabe- und Empfangsfunktionen, überprüft, ob die Python-seitige Audioverarbeitung normal ist |
+| Audio-Interaktionstesttool | main》digital-human》index.html | In `main/digital-human` zuerst die Abhängigkeiten wie in der README installieren, dann `python start.py` ausführen und `http://127.0.0.1:8006/index.html` öffnen | Testet Audio-Wiedergabe- und Empfangsfunktionen, überprüft, ob die Python-seitige Audioverarbeitung normal ist |
 | Modell-Reaktionstesttool | main》xiaozhi-server》performance_tester.py | Ausführen `python performance_tester.py` | Testet die Reaktionsgeschwindigkeit von Kernmodulen wie ASR (Spracherkennung), LLM (großes Modell), VLLM (Vision-Modell), TTS (Sprachsynthese) |
 
 > 💡 Hinweis: Beim Testen der Modellgeschwindigkeit werden nur Modelle mit konfigurierten Schlüsseln getestet.
@@ -254,7 +254,7 @@ Xiaozhi ist ein Ökosystem. Wenn Sie dieses Produkt verwenden, können Sie sich 
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Volcano Engine Doubao, DeepSeek, Zhipu ChatGLM, Gemini, iFLYTEK | Zhipu ChatGLM, Gemini |
+| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Volcano Engine Doubao, DeepSeek, Zhipu ChatGLM, Gemini, iFLYTEK, LM Studio | Zhipu ChatGLM, Gemini |
 | Ollama-Schnittstellenaufrufe | Ollama | - |
 | Dify-Schnittstellenaufrufe | Dify | - |
 | FastGPT-Schnittstellenaufrufe | FastGPT | - |
@@ -298,7 +298,7 @@ Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, int
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
 | Lokale Verwendung | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
-| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
+| Schnittstellenaufrufe | DoubaoASR, Doubao Streaming ASR, FunASRServer, iFLYTEK, TencentASR, AliyunASR, Aliyun Streaming ASR, Alibaba Bailian Streaming ASR, Baidu ASR, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 

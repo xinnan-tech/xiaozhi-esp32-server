@@ -212,7 +212,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 工具名称 | 位置 | 使用方法 | 功能说明 |
 |:---:|:---|:---:|:---:|
-| 音频交互测试工具 | main》digital-human》index.html | 在 `main/digital-human` 执行 `python start.py` 后访问 `http://127.0.0.1:8006/index.html` | 测试音频播放和接收功能，验证Python端音频处理是否正常 |
+| 音频交互测试工具 | main》digital-human》index.html | 在 `main/digital-human` 按其 README 装好依赖后执行 `python start.py`，然后访问 `http://127.0.0.1:8006/index.html` | 测试音频播放和接收功能，验证Python端音频处理是否正常 |
 | 模型响应测试工具 | main》xiaozhi-server》performance_tester.py | 执行 `python performance_tester.py` | 测试ASR(语音识别)、LLM(大模型)、VLLM(视觉模型)、TTS(语音合成)等核心模块的响应速度 |
 
 > 💡 提示：测试模型速度时，只会测试配置了密钥的模型。
@@ -256,7 +256,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
-| openai 接口调用 | 阿里百炼、火山引擎、DeepSeek、智谱、Gemini、科大讯飞 | 智谱、Gemini |
+| openai 接口调用 | 阿里百炼、火山引擎、DeepSeek、智谱、Gemini、科大讯飞、LM Studio | 智谱、Gemini |
 | ollama 接口调用 | Ollama | - |
 | dify 接口调用 | Dify | - |
 | fastgpt 接口调用 | Fastgpt | - |
@@ -300,7 +300,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
 | 本地使用 | FunASR、SherpaASR、SherpaParaformerASR、VoskASR | FunASR、SherpaASR、SherpaParaformerASR、VoskASR |
-| 接口调用 | FunASRServer、火山引擎、科大讯飞、腾讯云、阿里云、百度云、OpenAI ASR、GroqASR、Qwen3ASRFlash | FunASRServer |
+| 接口调用 | FunASRServer、火山引擎、科大讯飞、腾讯云、阿里云及百炼、百度云、OpenAI ASR、GroqASR、Qwen3ASRFlash | FunASRServer |
 
 ---
 
