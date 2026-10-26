@@ -27,13 +27,15 @@ wget https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-o
 # 解压
 tar xvf sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
 
-# 方法2：使用ModelScope
+# 方法2：使用ModelScope（这份仓库里只有 epoch-12 的文件，下面命令里的 epoch-99 要换成 epoch-12）
 pip install modelscope
 python -c "
 from modelscope import snapshot_download
-snapshot_download('pkufool/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01', cache_dir='./models')
+snapshot_download('pkufool/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01', local_dir='./sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01')
 "
 ```
+
+运行时只认 `models/` 目录下的四个固定文件名（`encoder.onnx`、`decoder.onnx`、`joiner.onnx`、`tokens.txt`），也不搜子目录。文件留在下载目录里不做拷贝改名，启动会报 `No valid model directory found`。两种方法下载完都要接着做下面「配置模型文件」那节的拷贝改名。
 
 #### 2. 配置模型文件
 
@@ -87,7 +89,7 @@ cd sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
 # 创建模型目录
 mkdir -p ../models
 
-# 复制速度优先的epoch-99 int8三件套
+# 复制速度优先的epoch-99 三件套：encoder 和 joiner 用 int8，decoder 只有 fp32 一版
 cp encoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx ../models/encoder.onnx
 cp decoder-epoch-99-avg-1-chunk-16-left-64.onnx ../models/decoder.onnx
 cp joiner-epoch-99-avg-1-chunk-16-left-64.int8.onnx ../models/joiner.onnx
@@ -98,7 +100,7 @@ cp tokens.txt ../models/tokens.txt
 
 **注意事项**:
 
-- **不要混用 fp32 与 int8**：三个模型文件必须保持一致的精度
+- **精度怎么选**：encoder 和 joiner 有 int8 和 fp32 两版，decoder 只有 fp32 一版（官方包里没有 int8 的 decoder），别去凑 int8 的 decoder
 - **优先选择 epoch-99**：比 epoch-12 训练更充分，精度更高
 - **必需文件**：`encoder.onnx` + `decoder.onnx` + `joiner.onnx` + `tokens.txt` 四个，`keywords.txt` 不在其中，它不用自己准备，首次启动会用配置里的唤醒词自动生成
 
