@@ -50,6 +50,7 @@ paddlespeech tts --input "你好，这是一次测试"
 
 ### 7.修改tts_online_application.yaml配置
 参考目录 ```"PaddleSpeech\demos\streaming_tts_server\conf\tts_online_application.yaml"```
+Linux / WSL 2 用正斜杠写法：```"PaddleSpeech/demos/streaming_tts_server/conf/tts_online_application.yaml"```
 选择```tts_online_application.yaml```文件用编辑器打开，设置```protocol```为```websocket```
 
 ### 8.启动服务
@@ -69,7 +70,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8092 (Press CTRL+C to quit)
 ```
 
 ## 三、修改小智的配置文件
-### 1.```main/xiaozhi-server/core/providers/tts/paddle_speech.py```
+### 1. 无需修改代码（provider 已内置于 main/xiaozhi-server/core/providers/tts/paddle_speech.py）
 
 ### 2.```main/xiaozhi-server/data/.config.yaml```
 使用单模块部署
@@ -79,16 +80,19 @@ selected_module:
 TTS:
   PaddleSpeechTTS:
       type: paddle_speech
-      protocol: websocket 
+      protocol: websocket  # 当前仅支持 websocket
       url:  ws://127.0.0.1:8092/paddlespeech/tts/streaming  # TTS 服务的 URL 地址，指向本地服务器 [websocket默认ws://127.0.0.1:8092/paddlespeech/tts/streaming]
       spk_id: 0  # 发音人 ID，0 通常表示默认的发音人
-      sample_rate: 24000  # 采样率 [websocket默认24000，http默认0 自动选择]
       speed: 1.0  # 语速，1.0 表示正常语速，>1 表示加快，<1 表示减慢
       volume: 1.0  # 音量，1.0 表示正常音量，>1 表示增大，<1 表示减小
       save_path:   # 保存路径
 ```
+采样率固定 24000，provider 内部写死，配置里不用写这一项。
+
 ### 3.启动xiaozhi服务
+回到仓库根目录，进入 `main/xiaozhi-server` 执行：
 ```py
+cd main/xiaozhi-server
 python app.py
 ```
 启动`main/digital-human`下的`python start.py`后，打开`http://127.0.0.1:8006/index.html`，测试连接和发送消息时paddlespeech端是否有输出日志
