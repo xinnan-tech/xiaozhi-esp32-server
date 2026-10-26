@@ -17,7 +17,7 @@ Suporte ao protocolo MQTT+UDP, protocolo WebSocket, ponto de acesso MCP, reconhe
 </p>
 
 <p align="center">
-  <a href="../../README.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-DFE0E5"></a>
+  <a href="../../README.md"><img alt="Chinês" src="https://img.shields.io/badge/简体中文-DFE0E5"></a>
   <a href="./README_en.md"><img alt="README in English" src="https://img.shields.io/badge/English-DFE0E5"></a>
   <a href="./README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Tiếng Việt-DFE0E5"></a>
   <a href="./README_de.md"><img alt="Deutsch" src="https://img.shields.io/badge/Deutsch-DFE0E5"></a>
@@ -39,7 +39,7 @@ Liderado pela Equipe do Professor Siyuan Liu (Universidade de Tecnologia do Sul 
 </br>
 刘思源教授团队主导研发（华南理工大学）
 </br>
-<img src="../images/hnlg.jpg" alt="Universidade de Tecnologia do Sul da China (华南理工大学)" width="50%">
+<img src="../images/hnlg.jpg" alt="Universidade de Tecnologia do Sul da China" width="50%">
 </p>
 
 ---
