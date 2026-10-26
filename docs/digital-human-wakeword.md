@@ -27,7 +27,11 @@ wget https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-o
 # 解压
 tar xvf sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
 
-# 方法2：使用ModelScope（这份仓库里只有 epoch-12 的文件，下面命令里的 epoch-99 要换成 epoch-12）
+# 方法2：使用ModelScope
+# 这份仓库里只有 epoch-12 的模型，文件名里的 avg 是 avg-2，不是 avg-1
+# 照抄下面「配置模型文件」的命令时，把 epoch-99-avg-1 换成 epoch-12-avg-2（avg 一起换，只换 epoch 数字会找不到文件）
+# 方法2 的前提是仓库里有 epoch-12 的 encoder 和 joiner 两份 .int8.onnx（速度优先那套要用），
+# 哪天仓库里缺了这两份 int8，方法2 就用不了，只能改用方法1
 pip install modelscope
 python -c "
 from modelscope import snapshot_download
