@@ -6,7 +6,7 @@
 Dự án này dựa trên lý thuyết và công nghệ trí tuệ cộng sinh người-máy để phát triển hệ thống phần mềm và phần cứng thiết bị đầu cuối thông minh<br/>Cung cấp dịch vụ backend cho dự án phần cứng thông minh mã nguồn mở
 <a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a><br/>
 Được triển khai bằng Python, Java, Vue theo <a href="https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh">giao thức truyền thông Xiaozhi</a><br/>
-Hỗ trợ giao thức MQTT+UDP, giao thức Websocket, điểm truy cập MCP, nhận dạng giọng nói và kho tri thức
+Hỗ trợ giao thức MQTT+UDP, giao thức Websocket, điểm truy cập MCP, nhận dạng vân giọng và kho tri thức
 </p>
 
 <p align="center">
@@ -170,7 +170,7 @@ Dự án này cung cấp hai phương pháp triển khai, vui lòng chọn theo 
 | Phương pháp triển khai | Đặc điểm | Tình huống áp dụng | Tài liệu triển khai | Yêu cầu cấu hình | Video hướng dẫn |
 |---------|------|---------|---------|---------|---------|
 | **Cài đặt tối giản** | Đối thoại thông minh, quản lý đơn tác nhân | Môi trường cấu hình thấp, dữ liệu lưu trong tệp cấu hình, không cần cơ sở dữ liệu | [①Phiên bản Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Triển khai mã nguồn](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| `FunASR` cục bộ cần nhiều bộ nhớ; dùng toàn API thì mức dùng tài nguyên thấp | - |
-| **Cài đặt toàn bộ module** | Đối thoại thông minh, quản lý đa người dùng, quản lý đa tác nhân, bảng điều khiển thông minh | Trải nghiệm đầy đủ tính năng, dữ liệu lưu trong cơ sở dữ liệu |[①Phiên bản Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Triển khai mã nguồn](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Hướng dẫn tự động cập nhật triển khai mã nguồn](../dev-ops-integration.md) | `FunASR` cục bộ cần nhiều bộ nhớ, thêm tài nguyên cơ sở dữ liệu; dùng toàn API thì mức dùng tài nguyên thấp| [Video hướng dẫn khởi động mã nguồn cục bộ](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
+| **Cài đặt toàn bộ module** | Đối thoại thông minh, quản lý đa người dùng, quản lý đa tác nhân, thao tác qua bảng điều khiển thông minh | Trải nghiệm đầy đủ tính năng, dữ liệu lưu trong cơ sở dữ liệu |[①Phiên bản Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Triển khai mã nguồn](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Hướng dẫn tự động cập nhật triển khai mã nguồn](../dev-ops-integration.md) | `FunASR` cục bộ cần nhiều bộ nhớ, thêm tài nguyên cơ sở dữ liệu; dùng toàn API thì mức dùng tài nguyên thấp| [Video hướng dẫn khởi động mã nguồn cục bộ](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
 Câu hỏi thường gặp và hướng dẫn liên quan, vui lòng tham khảo [liên kết này](../FAQ.md)
 
@@ -193,7 +193,7 @@ Công cụ kiểm tra dịch vụ: https://2662r3426b.vicp.fun/test/
 >
 > 2. `Cấu hình streaming`: Phù hợp với demo, đào tạo, hơn 2 đồng thời, v.v., sử dụng công nghệ xử lý streaming, tốc độ phản hồi nhanh hơn, trải nghiệm tốt hơn.
 >
-> Từ phiên bản `0.5.2`, dự án hỗ trợ cấu hình streaming, so với phiên bản đầu, tốc độ phản hồi cải thiện khoảng `2.5 giây`, cải thiện đáng kể trải nghiệm người dùng.
+> Từ phiên bản `0.5.2`, dự án hỗ trợ cấu hình streaming, so với các phiên bản trước đó, tốc độ phản hồi cải thiện khoảng `2.5 giây`, cải thiện đáng kể trải nghiệm người dùng.
 
 | Tên module | Cài đặt miễn phí cho người mới | Cấu hình streaming |
 |:---:|:---:|:---:|
@@ -307,9 +307,9 @@ Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện openai đ�
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Gọi giao diện | Dịch vụ nhận dạng giọng nói (voiceprint-api) | - |
+| Gọi giao diện | Dịch vụ nhận dạng vân giọng (voiceprint-api) | - |
 
-Nhận dạng giọng nói theo dấu vân tay cần dịch vụ [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) được triển khai riêng (dựa trên 3D-Speaker) và MySQL. Xem [hướng dẫn tích hợp voiceprint](../voiceprint-integration.md).
+Nhận dạng vân giọng cần dịch vụ [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) được triển khai riêng (dựa trên 3D-Speaker) và MySQL. Xem [hướng dẫn tích hợp voiceprint](../voiceprint-integration.md).
 
 ---
 
@@ -355,11 +355,10 @@ Nhận dạng giọng nói theo dấu vân tay cần dịch vụ [voiceprint-api
 | <img src="../images/logo_contributors.png" width="160"> | [Người đóng góp mã](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors) | Cảm ơn [tất cả người đóng góp mã](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors), sự cống hiến của bạn khiến dự án mạnh mẽ và vững chắc hơn. |
 
 
-<a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
-
+<a href="https://www.star-history.com/?repos=xinnan-tech%2Fxiaozhi-esp32-server&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&theme=dark&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
  </picture>
 </a>
