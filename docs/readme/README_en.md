@@ -229,7 +229,7 @@ This project provides the following testing tools to help you verify the system 
 | Intent Recognition | Supports pluggable external LLM intent recognition and autonomous LLM function calling, provides plugin-based intent processing mechanism |
 | Memory System | Supports local short-term memory, mem0ai interface memory, PowerMem intelligent memory, with memory summarization functionality |
 | Knowledge Base | Supports RAGFlow knowledge base, enabling LLM to judge whether to schedule the knowledge base after receiving the user's question, and then answer the question |
-| Tool Calling | Supports client IOT protocol, client MCP protocol, server MCP protocol, MCP endpoint protocol, custom tool functions |
+| Tool Calling | Supports client IOT protocol, client MCP protocol, server MCP protocol, MCP access point protocol, custom tool functions |
 | Command Delivery | Supports MCP command delivery to ESP32 devices via MQTT protocol from Smart Console |
 | Management Backend | Provides Web management interface, supports user management, system configuration and device management; Supports Simplified Chinese, Traditional Chinese, English, German, Vietnamese and Brazilian Portuguese display |
 | Testing Tools | Provides model response performance testing tools and audio interaction testing tools |
