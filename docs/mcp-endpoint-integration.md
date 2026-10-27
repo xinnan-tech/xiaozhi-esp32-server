@@ -16,15 +16,15 @@
 ### 如果你是单模块部署
 如果你是单模块部署，且你已经在配置文件里配置了MCP接入点地址，那么正常来说，单模块部署启动的时候，会输出如下的日志。
 ```
-250705[__main__]-INFO-初始化组件: vad成功 SileroVAD
-250705[__main__]-INFO-初始化组件: asr成功 FunASRServer
-250705[__main__]-INFO-OTA接口是          http://192.168.1.25:8002/xiaozhi/ota/
-250705[__main__]-INFO-视觉分析接口是     http://192.168.1.25:8002/mcp/vision/explain
-250705[__main__]-INFO-mcp接入点是        ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
-250705[__main__]-INFO-Websocket地址是    ws://192.168.1.25:8000/xiaozhi/v1/
-250705[__main__]-INFO-=======上面的地址是websocket协议地址，请勿用浏览器访问=======
-250705[__main__]-INFO-如想测试websocket请启动digital-human模块，打开浏览器交互测试
-250705[__main__]-INFO-=============================================================
+250705 13:04:20[0.9.8_00000000000000][core.utils.modules_initialize]-INFO-初始化组件: vad成功 SileroVAD
+250705 13:04:20[0.9.8_00000000000000][core.utils.modules_initialize]-INFO-初始化组件: asr成功 FunASRServer
+250705 13:04:20[0.9.8_00000000000000][__main__]-INFO-OTA接口是          http://192.168.1.25:8003/xiaozhi/ota/
+250705 13:04:20[0.9.8_00000000000000][__main__]-INFO-视觉分析接口是     http://192.168.1.25:8003/mcp/vision/explain
+250705 13:04:20[0.9.8_00000000000000][__main__]-INFO-mcp接入点是        ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
+250705 13:04:20[0.9.8_00000000000000][__main__]-INFO-Websocket地址是    ws://192.168.1.25:8000/xiaozhi/v1/
+250705 13:04:20[0.9.8_00000000000000][__main__]-INFO-=======上面的地址是websocket协议地址，请勿用浏览器访问=======
+250705 13:04:20[0.9.8_00000000000000][__main__]-INFO-如想测试websocket请启动digital-human模块，打开浏览器交互测试
+250705 13:04:20[0.9.8_00000000000000][__main__]-INFO-=============================================================
 ```
 
 如上，输出`mcp接入点是`中`ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc`就是你的`MCP接入点地址`。
@@ -80,15 +80,15 @@ python mcp_pipe.py calculator.py
 如果你是单模块部署，当设备连接后，会输出类似的日志，说明成功了
 
 ```
-250705 -INFO-正在初始化MCP接入点: wss://2662r3426b.vicp.fun/mcp_e 
-250705 -INFO-发送MCP接入点初始化消息
-250705 -INFO-MCP接入点连接成功
-250705 -INFO-MCP接入点初始化成功
-250705 -INFO-统一工具处理器初始化完成
-250705 -INFO-MCP接入点服务器信息: name=Calculator, version=1.9.4
-250705 -INFO-MCP接入点支持的工具数量: 1
-250705 -INFO-所有MCP接入点工具已获取，客户端准备就绪
-250705 -INFO-工具缓存已刷新
-250705 -INFO-当前支持的函数列表: [ 'get_time', 'get_lunar', 'play_music', 'get_weather', 'handle_exit_intent', 'calculator']
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-正在初始化MCP接入点: wss://2662r3426b.vicp.fun/mcp_e 
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-发送MCP接入点初始化消息
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-MCP接入点连接成功
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-MCP接入点初始化成功
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-DEBUG-统一工具处理器初始化完成
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-MCP接入点服务器信息: name=Calculator, version=1.9.4
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-MCP接入点支持的工具数量: 1
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-所有MCP接入点工具已获取，客户端准备就绪
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_manager]-DEBUG-工具缓存已刷新
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-当前支持的函数列表: [ 'get_time', 'get_lunar', 'play_music', 'get_weather', 'handle_exit_intent', 'calculator']
 ```
 如果包含了 `'calculator'`，说明设备将可以根据意图识别，调用计算器这个工具。
