@@ -80,7 +80,7 @@ python mcp_pipe.py calculator.py
 如果你是单模块部署，当设备连接后，会输出类似的日志，说明成功了
 
 ```
-250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-正在初始化MCP接入点: ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-正在初始化MCP接入点: ws://192.168.1.25:8004/mcp_endpoint/call/?token=abc
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-发送MCP接入点初始化消息
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-MCP接入点连接成功
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-MCP接入点初始化成功
