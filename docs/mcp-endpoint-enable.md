@@ -37,11 +37,13 @@ docker logs -f mcp-endpoint-server
 
 此时，日志里会输出类似以下的日志
 ```
-250705 13:04:20[0.0.7][src.server]-INFO-=====下面的地址分别是智控台/单模块MCP接入点地址====
+250705 13:04:20[0.0.7][src.server]-INFO-=====下面的地址分别是智控台/多模块MCP接入点地址====
 250705 13:04:20[0.0.7][src.server]-INFO-智控台MCP参数配置: http://172.22.0.2:8004/mcp_endpoint/health?key=abc
 250705 13:04:20[0.0.7][src.server]-INFO-单模块部署MCP接入点: ws://172.22.0.2:8004/mcp_endpoint/mcp/?token=abc
 250705 13:04:20[0.0.7][src.server]-INFO-=====请根据具体部署选择使用，请勿泄露给任何人======
 ```
+
+这行日志的措辞跟着 mcp-endpoint-server 的镜像版本走，不同版本可能不一样，以你实际看到的输出为准。
 
 请你把两个接口地址复制出来：
 
