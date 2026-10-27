@@ -121,7 +121,7 @@ wakeword_runtime/models/
 ├── encoder.onnx      # 编码器模型（重命名后）
 ├── decoder.onnx      # 解码器模型（重命名后）
 ├── joiner.onnx       # 连接器模型（重命名后）
-├── tokens.txt        # 拼音 Token 映射表（228行版本）
+├── tokens.txt        # 拼音 Token 映射表（227行版本）
 ├── keywords.txt      # 关键词配置文件（首次启动自动生成）
 └── keywords_raw.txt  # 可选，runtime 不依赖
 ```
