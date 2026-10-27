@@ -175,7 +175,7 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
 
 常见问题及相关教程，可参考[这个链接](./docs/FAQ.md)
 
-> 💡 提示：以下是按最新代码部署后的测试平台，有需要可烧录测试，并发为6个，每天会清空数据，
+> 💡 提示：以下是按最新代码部署后的测试平台，有需要可烧录测试，并发为6个，每天会清空数据。
 
 ```
 智控台地址: https://2662r3426b.vicp.fun
@@ -203,7 +203,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | VLLM(视觉大模型) | glm-4v-flash(智谱) | 👍qwen3.5-flash(阿里百炼) |
 | TTS(语音合成) | EdgeTTS(微软) | 👍HuoshanDoubleStreamTTS(火山流式) |
 | Intent(意图识别) | function_call(函数调用) | function_call(函数调用) |
-| Memory(记忆功能) | mem_local_short(本地短期记忆） | mem_local_short（本地短期记忆） |
+| Memory(记忆功能) | mem_local_short(本地短期记忆) | mem_local_short(本地短期记忆) |
 
 如果您关心各组件的耗时，请查阅[小智各组件性能测试报告](https://github.com/xinnan-tech/xiaozhi-performance-research)，可按报告中的测试方法在您的环境中实际测试。
 
@@ -231,7 +231,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | 意图识别 | 支持外挂的大模型意图识别、大模型自主函数调用，提供插件化意图处理机制 |
 | 记忆系统 | 支持本地短期记忆、mem0ai接口记忆、PowerMem智能记忆，具备记忆总结功能 |
 | 知识库 | 支持RAGFlow知识库，让大模型判断需要调度知识库后再回答 |
-| 工具调用 | 支持客户端IOT协议、客户MCP协议、服务端MCP协议、MCP接入点协议、自定义工具函数 |
+| 工具调用 | 支持客户端IOT协议、客户端MCP协议、服务端MCP协议、MCP接入点协议、自定义工具函数 |
 | 指令下发 | 依托MQTT协议，支持从智控台将MCP指令下发到ESP32设备 |
 | 管理后台 | 提供Web管理界面，支持用户管理、系统配置和设备管理；界面支持中文简体、中文繁体、英文、德语、越南语、巴西葡萄牙语显示 |
 | 测试工具 | 提供模型响应性能测试工具和音频交互测试工具 |
@@ -256,7 +256,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
-| openai 接口调用 | 阿里百炼、火山引擎、DeepSeek、智谱、Gemini、科大讯飞、LM Studio | 智谱、Gemini |
+| OpenAI 接口调用 | 阿里百炼、火山引擎、DeepSeek、智谱、Gemini、科大讯飞、LM Studio | 智谱、Gemini |
 | ollama 接口调用 | Ollama | - |
 | dify 接口调用 | Dify | - |
 | fastgpt 接口调用 | Fastgpt | - |
@@ -264,7 +264,7 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 | xinference 接口调用 | Xinference | - |
 | homeassistant 接口调用 | HomeAssistant | - |
 
-实际上，任何支持 openai 接口调用的 LLM 均可接入使用。
+实际上，任何支持 OpenAI 接口调用的 LLM 均可接入使用。
 
 ---
 
@@ -272,9 +272,9 @@ Websocket接口地址: wss://2662r3426b.vicp.fun/xiaozhi/v1/
 
 | 使用方式 | 支持平台 | 免费平台 |
 |:---:|:---:|:---:|
-| openai 接口调用 | 阿里百炼、智谱ChatGLMVLLM | 智谱ChatGLMVLLM |
+| OpenAI 接口调用 | 阿里百炼、智谱ChatGLMVLLM | 智谱ChatGLMVLLM |
 
-实际上，任何支持 openai 接口调用的 VLLM 均可接入使用。
+实际上，任何支持 OpenAI 接口调用的 VLLM 均可接入使用。
 
 ---
 

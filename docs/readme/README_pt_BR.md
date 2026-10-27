@@ -262,7 +262,7 @@ Xiaozhi é um ecossistema. Ao utilizar este produto, você também pode conferir
 | Chamadas via interface Xinference | Xinference | - |
 | Chamadas via interface HomeAssistant | HomeAssistant | - |
 
-Na verdade, qualquer LLM que suporte chamadas via interface openai pode ser integrado e utilizado.
+Na verdade, qualquer LLM que suporte chamadas via interface OpenAI pode ser integrado e utilizado.
 
 ---
 

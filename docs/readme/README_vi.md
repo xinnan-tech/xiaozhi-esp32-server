@@ -174,7 +174,7 @@ Dự án này cung cấp hai phương pháp triển khai, vui lòng chọn theo 
 
 Câu hỏi thường gặp và hướng dẫn liên quan, vui lòng tham khảo [liên kết này](../FAQ.md)
 
-> 💡 Gợi ý: Dưới đây là nền tảng thử nghiệm được triển khai theo mã mới nhất, có thể flash để thử nghiệm nếu cần, đồng thời là 6, dữ liệu sẽ được xóa mỗi ngày,
+> 💡 Gợi ý: Dưới đây là nền tảng thử nghiệm được triển khai theo mã mới nhất, có thể flash để thử nghiệm nếu cần, đồng thời là 6, dữ liệu sẽ được xóa mỗi ngày.
 
 ```
 Địa chỉ bảng điều khiển thông minh: https://2662r3426b.vicp.fun
@@ -255,7 +255,7 @@ Xiaozhi là một hệ sinh thái, khi bạn sử dụng sản phẩm này, bạ
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Gọi giao diện openai | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK, LM Studio | Zhipu, Gemini |
+| Gọi giao diện OpenAI | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK, LM Studio | Zhipu, Gemini |
 | Gọi giao diện ollama | Ollama | - |
 | Gọi giao diện dify | Dify | - |
 | Gọi giao diện fastgpt | Fastgpt | - |
@@ -263,7 +263,7 @@ Xiaozhi là một hệ sinh thái, khi bạn sử dụng sản phẩm này, bạ
 | Gọi giao diện xinference | Xinference | - |
 | Gọi giao diện homeassistant | HomeAssistant | - |
 
-Trên thực tế, bất kỳ LLM nào hỗ trợ gọi giao diện openai đều có thể truy cập sử dụng.
+Trên thực tế, bất kỳ LLM nào hỗ trợ gọi giao diện OpenAI đều có thể truy cập sử dụng.
 
 ---
 
@@ -271,9 +271,9 @@ Trên thực tế, bất kỳ LLM nào hỗ trợ gọi giao diện openai đề
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Gọi giao diện openai | Alibaba Bailian, Zhipu ChatGLMVLLM | Zhipu ChatGLMVLLM |
+| Gọi giao diện OpenAI | Alibaba Bailian, Zhipu ChatGLMVLLM | Zhipu ChatGLMVLLM |
 
-Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện openai đều có thể truy cập sử dụng.
+Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện OpenAI đều có thể truy cập sử dụng.
 
 ---
 
