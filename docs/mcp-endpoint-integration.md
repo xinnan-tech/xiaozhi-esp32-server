@@ -89,4 +89,6 @@ python mcp_pipe.py calculator.py
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-所有MCP接入点工具已获取，客户端准备就绪
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-当前支持的函数列表: [ 'get_time', 'get_lunar', 'play_music', 'get_weather', 'handle_exit_intent', 'calculator']
 ```
+上面这行地址跟启动日志里的不一样，是正常的：启动日志里的`mcp接入点是`是你在配置里填的接入点地址（`/mcp_endpoint/mcp/`），建立连接之前服务端会把它自动换成`/mcp_endpoint/call/`——小智端走的是调用点路由，MCP 服务端那边走的仍是`/mcp_endpoint/mcp/`——所以设备连上之后打印出来的是`/mcp_endpoint/call/`。配置里仍然填`/mcp_endpoint/mcp/`，不用改成`/call/`，填成`call`会被判为非法格式，启动时直接报错。
+
 如果包含了 `'calculator'`，说明设备将可以根据意图识别，调用计算器这个工具。
