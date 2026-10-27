@@ -229,7 +229,7 @@ Este projeto fornece as seguintes ferramentas de teste para ajudá-lo a verifica
 | Reconhecimento de Intenção | Suporta reconhecimento de intenção por LLM externo e conectável, chamada de função autônoma do modelo de linguagem, fornece mecanismo de processamento de intenção baseado em plugins |
 | Sistema de Memória | Suporta memória local de curto prazo, memória via interface mem0ai, memória inteligente PowerMem, com funcionalidade de resumo de memória |
 | Base de Conhecimento | Suporta base de conhecimento RAGFlow, permitindo que o LLM julgue se deve acionar a base de conhecimento após receber a pergunta do usuário, e então responda à pergunta |
-| Chamada de Ferramentas | Suporta protocolo IOT do cliente, protocolo MCP do cliente, protocolo MCP do servidor, protocolo de endpoint MCP, funções de ferramentas personalizadas |
+| Chamada de Ferramentas | Suporta protocolo IOT do cliente, protocolo MCP do cliente, protocolo MCP do servidor, protocolo de ponto de acesso MCP, funções de ferramentas personalizadas |
 | Envio de Comandos | Suporta envio de comandos MCP para dispositivos ESP32 via protocolo MQTT a partir do Console Inteligente |
 | Backend de Gerenciamento | Fornece interface de gerenciamento Web, suporta gerenciamento de usuários, configuração do sistema e gerenciamento de dispositivos; Suporta exibição em Chinês Simplificado, Chinês Tradicional, Inglês, Alemão, Vietnamita e Português do Brasil |
 | Ferramentas de Teste | Fornece ferramentas de teste de desempenho de resposta de modelo e ferramentas de teste de interação por áudio |

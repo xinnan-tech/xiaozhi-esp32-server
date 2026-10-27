@@ -55,7 +55,7 @@ Möchten Sie die Nutzungseffekte sehen? Klicken Sie auf die Videos unten 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
         <picture>
-          <img alt="Gefühl der Antwortgeschwindigkeit" src="../images/demo9.png" /></picture>
+          <img alt="Das Gefühl der Reaktionsgeschwindigkeit" src="../images/demo9.png" /></picture>
       </a>
     </td>
     <td>
