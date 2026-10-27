@@ -95,19 +95,18 @@ docker logs -f xiaozhi-esp32-server
 
 如果后期想升级版本，可以这么操作
 
-5.1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
+4.1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
 请注意是对关键密钥逐个复制，不要直接覆盖。因为新的`.config.yaml`文件可能有一些新的配置项，旧的`.config.yaml`文件不一定有。
 
-5.2、执行以下命令
+4.2、执行以下命令
 
 ```
 docker stop xiaozhi-esp32-server
 docker rm xiaozhi-esp32-server
 docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
-docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
 ```
 
-5.3、重新按docker方式部署
+4.3、重新按docker方式部署
 
 # 方式二：本地源码只运行Server
 
@@ -237,10 +236,11 @@ LLM:
 
 ```
 250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-OTA接口是           http://192.168.4.123:8003/xiaozhi/ota/
+250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-视觉分析接口是      http://192.168.4.123:8003/mcp/vision/explain
 250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-Websocket地址是     ws://192.168.4.123:8000/xiaozhi/v1/
 250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-=======上面的地址是websocket协议地址，请勿用浏览器访问=======
 250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-如想测试websocket请启动digital-human模块，打开浏览器交互测试
-250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-=======================================================
+250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-=============================================================
 ```
 
 正常来说，如果您是通过源码运行本项目，日志会有你的接口地址信息。
