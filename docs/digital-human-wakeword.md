@@ -30,8 +30,8 @@ tar xvf sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
 # 方法2：使用ModelScope
 # 这份仓库里只有 epoch-12 的模型，文件名里的 avg 是 avg-2，不是 avg-1
 # 照抄下面「配置模型文件」的命令时，把 epoch-99-avg-1 换成 epoch-12-avg-2（avg 一起换，只换 epoch 数字会找不到文件）
-# 方法2 的前提是仓库里有 epoch-12 的 encoder 和 joiner 两份 .int8.onnx（速度优先那套要用），
-# 哪天仓库里缺了这两份 int8，方法2 就用不了，只能改用方法1
+# int8 只决定你选方案一还是方案二，不是方法2 的前提：这份仓库里 epoch-12 的 fp32 三件套齐全，
+# 用方法2 + 方案一（精度优先）照样能配出四个必需文件
 pip install modelscope
 python -c "
 from modelscope import snapshot_download
@@ -39,11 +39,11 @@ snapshot_download('pkufool/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
 "
 ```
 
-运行时只认 `models/` 目录下的四个固定文件名（`encoder.onnx`、`decoder.onnx`、`joiner.onnx`、`tokens.txt`），也不搜子目录。文件留在下载目录里不做拷贝改名，启动会报 `No valid model directory found`。两种方法下载完都要接着做下面「配置模型文件」那节的拷贝改名。
+运行时只认 `models/` 目录下的四个固定文件名（`encoder.onnx`、`decoder.onnx`、`joiner.onnx`、`tokens.txt`），也不搜子目录（判定见 `wakeword_runtime/core/detector_assets.py`）。文件留在下载目录里不做拷贝改名，启动会报 `No valid model directory found`。两种方法下载完都要接着做下面「配置模型文件」那节的拷贝改名。
 
 #### 2. 配置模型文件
 
-模型包下载后包含以下文件：
+模型包下载后包含以下文件（epoch-99 那几行只有官方包有，ModelScope 那份只有 epoch-12）：
 
 ```
 sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01/
@@ -51,7 +51,9 @@ sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01/
 ├── encoder-epoch-12-avg-2-chunk-16-left-64.onnx
 ├── encoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx    # 速度优先
 ├── encoder-epoch-99-avg-1-chunk-16-left-64.onnx         # 精度优先
+├── decoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx    # 速度优先
 ├── decoder-epoch-12-avg-2-chunk-16-left-64.onnx
+├── decoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx    # 速度优先
 ├── decoder-epoch-99-avg-1-chunk-16-left-64.onnx         # 精度优先
 ├── joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx     # 速度优先
 ├── joiner-epoch-12-avg-2-chunk-16-left-64.onnx
@@ -93,7 +95,8 @@ cd sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
 # 创建模型目录
 mkdir -p ../models
 
-# 复制速度优先的epoch-99 三件套：encoder 和 joiner 用 int8，decoder 只有 fp32 一版
+# 复制速度优先的epoch-99 三件套：encoder 和 joiner 用 int8，decoder 用 fp32
+# 官方包里 decoder 也有 int8 版，但量化对 decoder 收益不大，一般仍用 fp32
 cp encoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx ../models/encoder.onnx
 cp decoder-epoch-99-avg-1-chunk-16-left-64.onnx ../models/decoder.onnx
 cp joiner-epoch-99-avg-1-chunk-16-left-64.int8.onnx ../models/joiner.onnx
@@ -104,7 +107,8 @@ cp tokens.txt ../models/tokens.txt
 
 **注意事项**:
 
-- **精度怎么选**：encoder 和 joiner 有 int8 和 fp32 两版，decoder 只有 fp32 一版（官方包里没有 int8 的 decoder），别去凑 int8 的 decoder
+- **精度怎么选**：encoder、joiner、decoder 三件套都有 int8 和 fp32 两版，官方包和 ModelScope 那份都是这样；官方文档的说法是量化对 decoder 收益不大，所以方案二里 encoder 和 joiner 用 int8、decoder 仍用 fp32
+- **int8 只决定选方案一还是方案二**：运行时只按上面的文件名找模型，不看你拷的是 int8 还是 fp32，所以方法2（ModelScope）配方案一（精度优先）照样能跑
 - **优先选择 epoch-99**：比 epoch-12 训练更充分，精度更高
 - **必需文件**：`encoder.onnx` + `decoder.onnx` + `joiner.onnx` + `tokens.txt` 四个，`keywords.txt` 不在其中，它不用自己准备，首次启动会用配置里的唤醒词自动生成
 
