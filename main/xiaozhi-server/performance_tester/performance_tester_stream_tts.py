@@ -647,8 +647,9 @@ class StreamTTSPerformanceTester:
         self.results.append(result)
         
         # 测试Linkerai TTS
-        result = await self.test_linkerai_tts(test_text, test_count)
-        self.results.append(result)
+        if self.config.get("TTS", {}).get("LinkeraiTTS"):
+            result = await self.test_linkerai_tts(test_text, test_count)
+            self.results.append(result)
         
         # 测试IndexStreamTTS
         result = await self.test_indexstream_tts(test_text, test_count)
