@@ -54,7 +54,7 @@ Linux / WSL 2 用正斜杠写法：```"PaddleSpeech/demos/streaming_tts_server/c
 选择```tts_online_application.yaml```文件用编辑器打开，设置```protocol```为```websocket```
 
 ### 8.启动服务
-```yaml
+```bash
 paddlespeech_server start --config_file ./demos/streaming_tts_server/conf/tts_online_application.yaml
 #官方默认启动命令：
 paddlespeech_server start --config_file ./conf/tts_online_application.yaml
@@ -74,7 +74,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8092 (Press CTRL+C to quit)
 
 ### 2.新建 `main/xiaozhi-server/data/.config.yaml`
 
-`main/xiaozhi-server/data/` 目录不在仓库里，是被 `.gitignore` 忽略掉的，所以第一次用要先把它建出来，再在里面新建 `.config.yaml` 文件：
+`main/xiaozhi-server/data/` 目录不在仓库里，是被 `.gitignore` 忽略掉的，所以第一次用要先把它建出来，再在里面新建 `.config.yaml` 文件（在仓库根目录执行，上面的 `cd PaddleSpeech` 之后当前目录还停在 PaddleSpeech 源码目录里）：
 
 ```bash
 mkdir -p main/xiaozhi-server/data
@@ -112,11 +112,12 @@ pip install -r requirements.txt
 
 然后在 `main/xiaozhi-server` 目录下启动（目录不能换：provider 是按相对路径 `core/providers/tts/` 找的，见 `core/utils/tts.py:35`）：
 ```bash
-cd main/xiaozhi-server
+# 上一段已经 cd 到 main/xiaozhi-server 了，这段不用再 cd
+# 如果是另开的新终端，先 cd main/xiaozhi-server 再执行
 python app.py
 ```
 
-要验证语音合成的实际输出，另开一个终端，在仓库根目录下跑数字人页面（这套代码另有一份依赖，在 `main/digital-human/wakeword_runtime/requirements.txt` 里，缺了会报缺包）：
+要验证语音合成的实际输出，另开一个终端，在仓库根目录下跑数字人页面（这套代码另有一份依赖清单，在 `main/digital-human/wakeword_runtime/requirements.txt` 里，缺了会报缺包；唤醒词那部分还要 numpy —— `core/detector.py:7` 和 `core/microphone.py:4` 在模块顶层就 import numpy，用上面建的 `xiaozhi_env` 跑的话 numpy 已经在里面，不会有这个问题）：
 ```bash
 cd main/digital-human
 python start.py
