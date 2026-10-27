@@ -120,18 +120,28 @@ async def checkWakeupWords(conn: "ConnectionHandler", text):
     # 将唤醒词回复视为新会话，生成新的 sentence_id，确保流控器重置
     conn.sentence_id = str(uuid.uuid4().hex)
 
-    conn.logger.bind(tag=TAG).info(f"播放唤醒词回复: {response.get('text')}")
-    await sendAudioMessage(conn, SentenceType.FIRST, opus_packets, response.get("text"))
-    await sendAudioMessage(conn, SentenceType.LAST, [], None)
-
     # 补充对话
     conn.dialogue.put(Message(role="assistant", content=response.get("text")))
+    conn.logger.bind(tag=TAG).info(f"播放唤醒词回复: {response.get('text')}")
+
+    await sendAudioMessage(conn, SentenceType.FIRST, opus_packets, response.get("text"))
+    asyncio.create_task(_finish_wakeup_reply(conn))
 
     # 检查是否需要更新唤醒词回复
     if time.time() - response.get("time", 0) > WAKEUP_CONFIG["refresh_time"]:
         if not _wakeup_response_lock.locked():
             asyncio.create_task(wakeupWordsResponse(conn))
     return True
+
+
+async def _finish_wakeup_reply(conn: "ConnectionHandler"):
+    """等音频队列清空后再发 stop（时序：全部音频帧→stop），期间不阻塞接收循环"""
+    try:
+        await sendAudioMessage(conn, SentenceType.LAST, [], None)
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        conn.logger.bind(tag=TAG).error(f"唤醒词回复收尾失败: {e}")
 
 
 async def wakeupWordsResponse(conn: "ConnectionHandler"):
