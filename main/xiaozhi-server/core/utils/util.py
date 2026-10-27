@@ -310,8 +310,12 @@ async def audio_to_data(
     from core.utils.cache.manager import cache_manager
     from core.utils.cache.config import CacheType
 
-    # 生成缓存键，包含文件路径和编码类型
-    cache_key = f"{audio_file_path}:{is_opus}"
+    # 缓存键含 mtime：文件被原地覆写时旧缓存自动失效（如唤醒词回复重新 TTS），避免播到过期音频
+    try:
+        mtime = os.path.getmtime(audio_file_path)
+        cache_key = f"{audio_file_path}:{mtime}:{is_opus}"
+    except OSError:
+        cache_key = f"{audio_file_path}:{is_opus}"
 
     # 尝试从缓存获取结果
     if use_cache:

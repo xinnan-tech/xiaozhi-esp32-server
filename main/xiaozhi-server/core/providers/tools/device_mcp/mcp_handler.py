@@ -62,11 +62,6 @@ async def handle_mcp_message(
                 logger.bind(tag=TAG).debug(
                     f"客户端MCP服务器信息: name={name}, version={version}"
                 )
-
-            await asyncio.sleep(1)
-            logger.bind(tag=TAG).debug("初始化完成，开始请求MCP工具列表")
-            await send_mcp_tools_list_request(conn)
-
             return
 
         elif msg_id == 2:  # mcpToolsListID
