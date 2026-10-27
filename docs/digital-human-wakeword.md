@@ -28,16 +28,22 @@ wget https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-o
 tar xvf sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
 
 # 方法2：使用ModelScope
+# 这份仓库里只有 epoch-12 的模型，文件名里的 avg 是 avg-2，不是 avg-1
+# 照抄下面「配置模型文件」的命令时，把 epoch-99-avg-1 换成 epoch-12-avg-2（avg 一起换，只换 epoch 数字会找不到文件）
+# int8 只决定你选方案一还是方案二，不是方法2 的前提：这份仓库里 epoch-12 的 fp32 三件套齐全，
+# 用方法2 + 方案一（精度优先）照样能配出四个必需文件
 pip install modelscope
 python -c "
 from modelscope import snapshot_download
-snapshot_download('pkufool/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01', cache_dir='./models')
+snapshot_download('pkufool/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01', local_dir='./sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01')
 "
 ```
 
+运行时只认 `models/` 目录下的四个固定文件名（`encoder.onnx`、`decoder.onnx`、`joiner.onnx`、`tokens.txt`），也不搜子目录（判定见 `wakeword_runtime/core/detector_assets.py`）。文件留在下载目录里不做拷贝改名，启动会报 `No valid model directory found`。两种方法下载完都要接着做下面「配置模型文件」那节的拷贝改名。
+
 #### 2. 配置模型文件
 
-模型包下载后包含以下文件：
+模型包下载后包含以下文件（epoch-99 那几行只有官方包有，ModelScope 那份只有 epoch-12）：
 
 ```
 sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01/
@@ -45,7 +51,9 @@ sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01/
 ├── encoder-epoch-12-avg-2-chunk-16-left-64.onnx
 ├── encoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx    # 速度优先
 ├── encoder-epoch-99-avg-1-chunk-16-left-64.onnx         # 精度优先
+├── decoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx    # 速度优先
 ├── decoder-epoch-12-avg-2-chunk-16-left-64.onnx
+├── decoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx    # 速度优先
 ├── decoder-epoch-99-avg-1-chunk-16-left-64.onnx         # 精度优先
 ├── joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx     # 速度优先
 ├── joiner-epoch-12-avg-2-chunk-16-left-64.onnx
@@ -87,7 +95,8 @@ cd sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
 # 创建模型目录
 mkdir -p ../models
 
-# 复制速度优先的epoch-99 int8三件套
+# 复制速度优先的epoch-99 三件套：encoder 和 joiner 用 int8，decoder 用 fp32
+# 官方包里 decoder 也有 int8 版，但量化对 decoder 收益不大，一般仍用 fp32
 cp encoder-epoch-99-avg-1-chunk-16-left-64.int8.onnx ../models/encoder.onnx
 cp decoder-epoch-99-avg-1-chunk-16-left-64.onnx ../models/decoder.onnx
 cp joiner-epoch-99-avg-1-chunk-16-left-64.int8.onnx ../models/joiner.onnx
@@ -98,9 +107,10 @@ cp tokens.txt ../models/tokens.txt
 
 **注意事项**:
 
-- **不要混用 fp32 与 int8**：三个模型文件必须保持一致的精度
+- **精度怎么选**：encoder、joiner、decoder 三件套都有 int8 和 fp32 两版，官方包和 ModelScope 那份都是这样；官方文档的说法是量化对 decoder 收益不大，所以方案二里 encoder 和 joiner 用 int8、decoder 仍用 fp32
+- **int8 只决定选方案一还是方案二**：运行时只按上面的文件名找模型，不看你拷的是 int8 还是 fp32，所以方法2（ModelScope）配方案一（精度优先）照样能跑
 - **优先选择 epoch-99**：比 epoch-12 训练更充分，精度更高
-- **必需文件**：`encoder.onnx` + `decoder.onnx` + `joiner.onnx` + `tokens.txt` + `keywords.txt`
+- **必需文件**：`encoder.onnx` + `decoder.onnx` + `joiner.onnx` + `tokens.txt` 四个，`keywords.txt` 不在其中，它不用自己准备，首次启动会用配置里的唤醒词自动生成
 
 ### 最终模型文件结构
 
@@ -111,7 +121,7 @@ wakeword_runtime/models/
 ├── encoder.onnx      # 编码器模型（重命名后）
 ├── decoder.onnx      # 解码器模型（重命名后）
 ├── joiner.onnx       # 连接器模型（重命名后）
-├── tokens.txt        # 拼音 Token 映射表（228行版本）
+├── tokens.txt        # 拼音 Token 映射表（227行版本）
 ├── keywords.txt      # 关键词配置文件（首次启动自动生成）
 └── keywords_raw.txt  # 可选，runtime 不依赖
 ```
@@ -194,11 +204,13 @@ python start.py
 
 ### 首次使用
 
-1. 准备 `models/` 目录下的模型文件和 `tokens.txt`
-2. 确认 `models/keywords.txt` 存在
+1. 先按上面「模型下载（必需）」那节把模型包下载解压，再按「配置模型文件」那节把模型放到 `models/` 目录，该目录下要有 `encoder.onnx`、`decoder.onnx`、`joiner.onnx` 和 `tokens.txt` 四个文件
+2. `models/keywords.txt` 不用自己准备，首次启动会用配置里的唤醒词自动生成
 3. 在 `digital-human` 目录运行 `python start.py`
 4. 浏览器打开 `http://127.0.0.1:8006/index.html`
 5. 进入设置页检查“唤醒词”配置
+
+模型没放到位就启动，只会打印「警告: 唤醒词服务启动失败」：页面能打开，麦克风的输入流也已经打开，但没有唤醒词检测在消费这些数据，语音唤不醒。
 
 ### 修改唤醒词
 

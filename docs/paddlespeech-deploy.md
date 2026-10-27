@@ -91,6 +91,8 @@ TTS:
 ```py
 python app.py
 ```
+启动`main/digital-human`下的`python start.py`前，先按[唤醒词模型说明](./digital-human-wakeword.md)把模型下载并配置到`main/digital-human/wakeword_runtime/models/`，默认配置下缺模型只会打印「警告: 唤醒词服务启动失败」。页面能打开，麦克风的输入流也已经打开，但没有唤醒词检测在消费这些数据，语音唤不醒。
+
 启动`main/digital-human`下的`python start.py`后，打开`http://127.0.0.1:8006/index.html`，测试连接和发送消息时paddlespeech端是否有输出日志
 
 输出日志参考：
