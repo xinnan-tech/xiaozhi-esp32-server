@@ -14,8 +14,9 @@ from core.utils.audioRateController import AudioRateController
 TAG = __name__
 # 音频帧时长（毫秒）
 AUDIO_FRAME_DURATION = 60
-# 预缓冲包数量，直接发送以减少延迟
-PRE_BUFFER_COUNT = 5
+# 预缓冲包数量。部分 ESP32-C3 客户端接收缓冲不足，突发预缓冲会导致播放中断，
+# 因此默认不做突发发送，全部交给 60ms 速率控制器。
+PRE_BUFFER_COUNT = 0
 
 
 async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text, sentence_id=None):
