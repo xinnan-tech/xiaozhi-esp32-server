@@ -82,7 +82,7 @@ class TTSProvider(TTSProviderBase):
         if self.protocol == "websocket":
             return await self.text_streaming(text, output_file)
         else:
-            raise ValueError("Unsupported protocol. Please use 'websocket' or 'http'.")
+            raise ValueError("Unsupported protocol. Please use 'websocket'.")
 
     async def text_streaming(self, text, output_file):
         try:
