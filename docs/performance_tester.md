@@ -63,10 +63,10 @@ python performance_tester.py
 | `HuoshanDoubleStreamTTS` | 火山引擎流式 TTS，无条件调用 |
 | `PaddleSpeechTTS` | PaddleSpeech 流式 TTS，无条件调用 |
 | `IndexStreamTTS` | IndexStream 流式 TTS，无条件调用 |
-| `LinkeraiTTS` | 无条件调用，但 `config.yaml` 的 TTS 段里没有这个供应器，要测得自己在 `.config.yaml` 里补上 |
+| `LinkeraiTTS` | `config.yaml` 的 TTS 段里没有这个供应器，没配就整项跳过、不出现在结果表里；要测得自己在 `.config.yaml` 里补上 |
 | `AliBLTTS` | 阿里百炼流式 TTS，默认就会测：判断读的是合并后的配置，`config.yaml` 里本来就带着这一项 |
 | `XunFeiTTS` | 讯飞流式 TTS，同上，默认就会测 |
 
 `AliBLTTS` 和 `XunFeiTTS` 这两项默认带的 key 是占位符，不在 `.config.yaml` 里换成自己的 key 就会报失败；想直接跳过，把这两项在 `.config.yaml` 里写成空的（键名下面不填内容）就行。
 
-标了「无条件调用」的这几个，配置里没有对应供应器时，那一项会报错后跳过，不影响其它项。
+标了「无条件调用」的这几个（`AliyunStreamTTS`、`HuoshanDoubleStreamTTS`、`PaddleSpeechTTS`、`IndexStreamTTS`），配置里没有对应供应器时，那一项会报错后跳过，不影响其它项。`LinkeraiTTS` 不在其中：没配就整项跳过，不报错，结果表里也不会出现这一行。
