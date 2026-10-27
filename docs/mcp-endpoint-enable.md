@@ -47,10 +47,6 @@ docker logs -f mcp-endpoint-server
 
 由于你是docker部署，切不可直接使用上面的地址！
 
-由于你是docker部署，切不可直接使用上面的地址！
-
-由于你是docker部署，切不可直接使用上面的地址！
-
 你先把地址复制出来，放在一个草稿里，你要知道你的电脑的局域网ip是什么，例如我的电脑局域网ip是`192.168.1.25`，那么
 原来我的接口地址
 ```
@@ -87,7 +83,7 @@ docker logs -f mcp-endpoint-server
 ```
 server:
   websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
-  http_port: 8002
+  http_port: 8003
 log:
   log_level: INFO
 
@@ -100,7 +96,7 @@ mcp_endpoint: 你的接入点websocket地址
 ```
 server:
   websocket: ws://你的ip或者域名:端口号/xiaozhi/v1/
-  http_port: 8002
+  http_port: 8003
 log:
   log_level: INFO
 
@@ -113,8 +109,8 @@ mcp_endpoint: ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=def
 ```
 250705[__main__]-INFO-初始化组件: vad成功 SileroVAD
 250705[__main__]-INFO-初始化组件: asr成功 FunASRServer
-250705[__main__]-INFO-OTA接口是          http://192.168.1.25:8002/xiaozhi/ota/
-250705[__main__]-INFO-视觉分析接口是     http://192.168.1.25:8002/mcp/vision/explain
+250705[__main__]-INFO-OTA接口是          http://192.168.1.25:8003/xiaozhi/ota/
+250705[__main__]-INFO-视觉分析接口是     http://192.168.1.25:8003/mcp/vision/explain
 250705[__main__]-INFO-mcp接入点是        ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
 250705[__main__]-INFO-Websocket地址是    ws://192.168.1.25:8000/xiaozhi/v1/
 250705[__main__]-INFO-=======上面的地址是websocket协议地址，请勿用浏览器访问=======
