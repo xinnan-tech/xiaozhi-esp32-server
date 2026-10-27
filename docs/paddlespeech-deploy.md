@@ -104,8 +104,8 @@ TTS:
 
 先建环境、装依赖（在仓库根目录执行）：
 ```bash
-conda create -n xiaozhi_env python=3.10 -y
-conda activate xiaozhi_env
+conda create -n xiaozhi-esp32-server python=3.10 -y
+conda activate xiaozhi-esp32-server
 cd main/xiaozhi-server
 pip install -r requirements.txt
 ```
@@ -117,7 +117,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-要验证语音合成的实际输出，另开一个终端，在仓库根目录下跑数字人页面（这套代码另有一份依赖清单，在 `main/digital-human/wakeword_runtime/requirements.txt` 里，缺了会报缺包；唤醒词那部分还要 numpy —— `core/detector.py:7` 和 `core/microphone.py:4` 在模块顶层就 import numpy，用上面建的 `xiaozhi_env` 跑的话 numpy 已经在里面，不会有这个问题）：
+要验证语音合成的实际输出，另开一个终端，在仓库根目录下跑数字人页面（这套代码另有一份依赖清单，在 `main/digital-human/wakeword_runtime/requirements.txt` 里，缺了会报缺包；唤醒词那部分还要 numpy —— `core/detector.py:7` 和 `core/microphone.py:4` 在模块顶层就 import numpy，用上面建的 `xiaozhi-esp32-server` 跑的话 numpy 已经在里面，不会有这个问题）：
 ```bash
 cd main/digital-human
 python start.py
