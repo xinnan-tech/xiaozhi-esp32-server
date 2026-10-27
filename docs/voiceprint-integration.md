@@ -105,6 +105,10 @@ mysql:
 
 注意！由于你的声纹识别服务是使用docker部署，`host`需要填写成你`mysql所在机器的局域网ip`。
 
+注意！由于你的声纹识别服务是使用docker部署，`host`需要填写成你`mysql所在机器的局域网ip`。
+
+注意！由于你的声纹识别服务是使用docker部署，`host`需要填写成你`mysql所在机器的局域网ip`。
+
 ## 第五步，启动程序
 这个项目是一个很简单的项目，建议使用docker运行。不过如果你不想使用docker运行，你可以参考[这个页面](https://github.com/xinnan-tech/voiceprint-api/blob/main/README.md)使用源码运行。以下是docker运行的方法
 
@@ -133,6 +137,10 @@ docker logs -f voiceprint-api
 ```
 
 请你把声纹接口地址复制出来：
+
+由于你是docker部署，切不可直接使用上面的地址！
+
+由于你是docker部署，切不可直接使用上面的地址！
 
 由于你是docker部署，切不可直接使用上面的地址！
 
