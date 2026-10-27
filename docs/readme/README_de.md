@@ -6,7 +6,7 @@
 Dieses Projekt basiert auf der Theorie und Technologie der Mensch-Maschine-symbiotischen Intelligenz zur Entwicklung intelligenter Terminal-Hardware- und Software-Systeme<br/>und bietet Backend-Dienste für das Open-Source-Hardware-Projekt
 <a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a><br/>
 Implementiert mit Python, Java und Vue gemäß dem <a href="https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh">Xiaozhi-Kommunikationsprotokoll</a><br/>
-Unterstützt MQTT+UDP-Protokoll, Websocket-Protokoll, MCP-Endpunkte, Stimmabdruckerkennung und Wissensdatenbank
+Unterstützt MQTT+UDP-Protokoll, Websocket-Protokoll, MCP-Zugriffspunkte, Stimmabdruckerkennung und Wissensdatenbank
 </p>
 
 <p align="center">
@@ -119,7 +119,7 @@ Möchten Sie die Nutzungseffekte sehen? Klicken Sie auf die Videos unten 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
         <picture>
-          <img alt="MCP-Endpunkt" src="../images/demo13.png" /></picture>
+          <img alt="MCP-Zugriffspunkt" src="../images/demo13.png" /></picture>
       </a>
     </td>
     <td>
@@ -229,7 +229,7 @@ Dieses Projekt bietet die folgenden Testwerkzeuge, um Ihnen bei der Überprüfun
 | Absichtserkennung | Unterstützt externe LLM-Absichtserkennung, autonome Funktionsaufrufe durch große Modelle, bietet plugin-basierten Absichtsverarbeitungsmechanismus |
 | Gedächtnissystem | Unterstützt lokales Kurzzeitgedächtnis, mem0ai-Schnittstellengedächtnis, PowerMem intelligentes Gedächtnis, mit Gedächtniszusammenfassungsfunktion |
 | Wissensdatenbank | Unterstützt RAGFlow-Wissensdatenbank, ermöglicht großem Modell die Bewertung, ob Wissensdatenbank benötigt wird, bevor geantwortet wird |
-| Werkzeugaufruf | Unterstützt Client-IOT-Protokoll, Client-MCP-Protokoll, Server-MCP-Protokoll, MCP-Endpunktprotokoll, benutzerdefinierte Werkzeugfunktionen |
+| Werkzeugaufruf | Unterstützt Client-IOT-Protokoll, Client-MCP-Protokoll, Server-MCP-Protokoll, MCP-Zugriffspunktprotokoll, benutzerdefinierte Werkzeugfunktionen |
 | Befehlsübermittlung | Basierend auf MQTT-Protokoll, unterstützt die Übermittlung von MCP-Befehlen von der intelligenten Steuerkonsole an ESP32-Geräte |
 | Verwaltungs-Backend | Bietet Web-Verwaltungsoberfläche, unterstützt Benutzerverwaltung, Systemkonfiguration und Geräteverwaltung; Oberfläche unterstützt vereinfachtes Chinesisch, traditionelles Chinesisch, Englisch, Deutsch, Vietnamesisch und brasilianisches Portugiesisch an |
 | Testwerkzeuge | Bietet Leistungstestwerkzeuge für Modellantworten und Audio-Interaktionstestwerkzeuge |
