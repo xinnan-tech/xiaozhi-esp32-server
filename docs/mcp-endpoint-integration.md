@@ -80,15 +80,13 @@ python mcp_pipe.py calculator.py
 如果你是单模块部署，当设备连接后，会输出类似的日志，说明成功了
 
 ```
-250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-正在初始化MCP接入点: wss://2662r3426b.vicp.fun/mcp_e 
+250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-正在初始化MCP接入点: ws://192.168.1.25:8004/mcp_endpoint/mcp/?token=abc
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-发送MCP接入点初始化消息
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-MCP接入点连接成功
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-MCP接入点初始化成功
-250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-DEBUG-统一工具处理器初始化完成
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-MCP接入点服务器信息: name=Calculator, version=1.9.4
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-MCP接入点支持的工具数量: 1
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.mcp_endpoint.mcp_endpoint_handler]-INFO-所有MCP接入点工具已获取，客户端准备就绪
-250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_manager]-DEBUG-工具缓存已刷新
 250705 13:04:20[0.9.8_00000000000000][core.providers.tools.unified_tool_handler]-INFO-当前支持的函数列表: [ 'get_time', 'get_lunar', 'play_music', 'get_weather', 'handle_exit_intent', 'calculator']
 ```
 如果包含了 `'calculator'`，说明设备将可以根据意图识别，调用计算器这个工具。
