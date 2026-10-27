@@ -217,7 +217,7 @@ LLM:
     api_key: xxxxxxxxxxxxxxx.xxxxxx
 ```
 
-建议先将最简单的配置运行起来，然后再去`xiaozhi-server/config.yaml`阅读配置的使用说明。
+建议先将最简单的配置运行起来，然后再去[`../main/xiaozhi-server/config.yaml`](../main/xiaozhi-server/config.yaml)阅读配置的使用说明。
 比如你要换更换模型，修改`selected_module`下的配置就行。
 
 ## 模型文件
