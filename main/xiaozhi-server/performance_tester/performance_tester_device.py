@@ -171,59 +171,65 @@ async def run(args) -> int:
                         log("msg", type=t, raw=json.dumps(msg, ensure_ascii=False)[:160])
 
             rx_task = asyncio.create_task(rx())
-            await ws.send(
-                json.dumps(
-                    {
-                        "type": "hello",
-                        "version": 1,
-                        "features": {"mcp": True},
-                        "transport": "websocket",
-                        "audio_params": {
-                            "format": "opus",
-                            "sample_rate": SAMPLE_RATE,
-                            "channels": 1,
-                            "frame_duration": 60,
+            try:
+                await ws.send(
+                    json.dumps(
+                        {
+                            "type": "hello",
+                            "version": 1,
+                            "features": {"mcp": True},
+                            "transport": "websocket",
+                            "audio_params": {
+                                "format": "opus",
+                                "sample_rate": SAMPLE_RATE,
+                                "channels": 1,
+                                "frame_duration": 60,
+                            },
                         },
-                    },
-                    ensure_ascii=False,
+                        ensure_ascii=False,
+                    )
                 )
-            )
-            log("hello_sent")
-            await asyncio.sleep(0.6)
-            await ws.send(
-                json.dumps(
-                    {"session_id": state["session"], "type": "listen", "state": "start", "mode": "auto"},
-                    ensure_ascii=False,
+                log("hello_sent")
+                await asyncio.sleep(0.6)
+                await ws.send(
+                    json.dumps(
+                        {"session_id": state["session"], "type": "listen", "state": "start", "mode": "auto"},
+                        ensure_ascii=False,
+                    )
                 )
-            )
-            log("listen_start")
+                log("listen_start")
 
-            next_at = time.monotonic()
-            sent = 0
-            for i in range(0, len(pcm) - FRAME_SAMPLES + 1, FRAME_SAMPLES):
-                await ws.send(enc.encode(pcm[i:i + FRAME_SAMPLES].tobytes(), FRAME_SAMPLES))
-                sent += 1
-                next_at += 0.06
-                delay = next_at - time.monotonic()
-                if delay > 0:
-                    await asyncio.sleep(delay)
-            log("frames_sent", n=sent)
+                next_at = time.monotonic()
+                sent = 0
+                for i in range(0, len(pcm) - FRAME_SAMPLES + 1, FRAME_SAMPLES):
+                    await ws.send(enc.encode(pcm[i:i + FRAME_SAMPLES].tobytes(), FRAME_SAMPLES))
+                    sent += 1
+                    next_at += 0.06
+                    delay = next_at - time.monotonic()
+                    if delay > 0:
+                        await asyncio.sleep(delay)
+                log("frames_sent", n=sent)
 
-            await asyncio.sleep(args.tail_silence)
-            await ws.send(
-                json.dumps(
-                    {"session_id": state["session"], "type": "listen", "state": "stop", "mode": "auto"},
-                    ensure_ascii=False,
+                await asyncio.sleep(args.tail_silence)
+                await ws.send(
+                    json.dumps(
+                        {"session_id": state["session"], "type": "listen", "state": "stop", "mode": "auto"},
+                        ensure_ascii=False,
+                    )
                 )
-            )
-            log("listen_stop")
+                log("listen_stop")
 
-            deadline = time.monotonic() + args.timeout
-            while time.monotonic() < deadline:
-                if state["tts"] and state["tts"][-1] == "stop":
-                    break
-                await asyncio.sleep(0.25)
-            rx_task.cancel()
+                deadline = time.monotonic() + args.timeout
+                while time.monotonic() < deadline:
+                    if state["tts"] and state["tts"][-1] == "stop":
+                        break
+                    await asyncio.sleep(0.25)
+            finally:
+                rx_task.cancel()
+                try:
+                    await rx_task
+                except BaseException:
+                    pass
     except websockets.exceptions.InvalidStatus as e:
         print(f"[device-sim] 握手失败：{e}（检查 url / 反向代理）")
         return 2
