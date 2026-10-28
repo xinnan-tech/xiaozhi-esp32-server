@@ -31,6 +31,7 @@ _setup_websockets_logger()
 
 
 from core.connection import ConnectionHandler
+from core.api.device_tool_handler import register_connection, unregister_connection
 from config.config_loader import get_config_from_api_async
 from core.auth import AuthManager, AuthenticationError
 from core.utils.modules_initialize import initialize_modules
@@ -127,11 +128,13 @@ class WebSocketServer:
             self._intent,
             self,  # 传入server实例
         )
+        register_connection(handler)
         try:
             await handler.handle_connection(websocket)
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"处理连接时出错: {e}")
         finally:
+            unregister_connection(handler)
             # 强制关闭连接（如果还没有关闭的话）
             try:
                 # 安全地检查WebSocket状态并关闭
