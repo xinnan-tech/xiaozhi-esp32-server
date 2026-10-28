@@ -144,6 +144,7 @@ class TTSProvider(TTSProviderBase):
         self.ws = None
         self.interface_type = InterfaceType.DUAL_STREAM
         self._monitor_task = None  # 监听任务引用
+        self._pending_prefix = ""
         self.appId = config.get("appid")
         self.access_token = config.get("access_token")
         self.cluster = config.get("cluster")
@@ -306,6 +307,9 @@ class TTSProvider(TTSProviderBase):
                 if message.sentence_type == SentenceType.FIRST:
                     # 重置流式处理状态
                     self.reset_stream_state()
+                    # 重置 opus 流式编码器跨轮残留
+                    if hasattr(self, "opus_encoder") and self.opus_encoder:
+                        self.opus_encoder.reset_state()
                     # 初始化参数
                     try:
                         if not getattr(self.conn, "sentence_id", None): 
@@ -433,6 +437,9 @@ class TTSProvider(TTSProviderBase):
         logger.bind(tag=TAG).debug(f"关闭会话～～{session_id}")
         try:
             if self.ws:
+                # 句尾替换词滑动窗口残留先发出去
+                if self._pending_prefix:
+                    await self.text_to_speak(self._pending_prefix, None)
                 header = Header(
                     message_type=FULL_CLIENT_REQUEST,
                     message_type_specific_flags=MsgTypeFlagWithEvent,
@@ -490,7 +497,6 @@ class TTSProvider(TTSProviderBase):
         try:
             while not self.conn.stop_event.is_set():
                 try:
-                    # 确保 `recv()` 运行在同一个 event loop
                     msg = await self.ws.recv()
                     res = self.parser_response(msg)
                     self.print_response(res, "send_text res:")
@@ -500,16 +506,17 @@ class TTSProvider(TTSProviderBase):
                         logger.bind(tag=TAG).debug(f"链接关闭成功～～")
                         break
 
-                    # 只处理当前活跃会话的响应
+                    # 只处理当前活跃会话的响应；旧会话事件不影响当前 activate_session
                     if res.optional.sessionId and self.conn.sentence_id != res.optional.sessionId:
-                        # 如果是会话结束相关事件，即使会话ID不匹配也要重置状态
-                        if res.optional.event in [EVENT_SessionCanceled, EVENT_SessionFailed, EVENT_SessionFinished]:
-                            logger.bind(tag=TAG).debug(f"收到残余下行结束响应重置会话状态～～")
-                            self.activate_session = False
                         continue
 
                     if res.optional.event == EVENT_SessionCanceled:
                         logger.bind(tag=TAG).debug(f"释放服务端资源成功～～")
+                        self.activate_session = False
+                    elif res.optional.event == EVENT_SessionFailed:
+                        logger.bind(tag=TAG).error(
+                            f"TTS 会话被服务端拒绝: {self.conn.sentence_id}"
+                        )
                         self.activate_session = False
                     elif not self.resource_type and res.optional.event == EVENT_TTSSentenceStart:
                         json_data = json.loads(res.payload.decode("utf-8"))
@@ -538,6 +545,11 @@ class TTSProvider(TTSProviderBase):
                         logger.bind(tag=TAG).info(f"句子语音生成成功：{self.tts_text}")
                     elif res.optional.event == EVENT_SessionFinished:
                         logger.bind(tag=TAG).debug(f"会话结束～～")
+                        # 句尾冲刷流式 opus 编码器不足一帧的 PCM 残量
+                        if hasattr(self, "opus_encoder") and self.opus_encoder:
+                            self.wav_to_opus_data_audio_raw_stream(
+                                b"", is_end=True, callback=self.handle_opus
+                            )
                         self.activate_session = False
                         self._process_before_stop_play_files()
                         # 非复用模式下，会话结束后发送 FinishConnection
@@ -552,16 +564,14 @@ class TTSProvider(TTSProviderBase):
                     )
                     traceback.print_exc()
                     break
-            # 连接异常时关闭WebSocket
+        finally:
+            # 退出时关闭连接并清理引用
             if self.ws:
                 try:
                     await self.ws.close()
                 except:
                     pass
                 self.ws = None
-        # 监听任务退出时清理引用
-        finally:
-            self.activate_session = False
             self._monitor_task = None
 
     async def send_event(
@@ -619,21 +629,23 @@ class TTSProvider(TTSProviderBase):
         # 解析结果
         # header
         header = response.header
-        num = 0b00001111
-        header.protocol_version = res[0] >> 4 & num
+        mask = 0b00001111
+        header.protocol_version = res[0] >> 4 & mask
         header.header_size = res[0] & 0x0F
-        header.message_type = (res[1] >> 4) & num
+        header.message_type = (res[1] >> 4) & mask
         header.message_type_specific_flags = res[1] & 0x0F
-        header.serialization_method = res[2] >> num
+        header.serialization_method = res[2] >> 4
         header.message_compression = res[2] & 0x0F
         header.reserved = res[3]
         #
-        offset = 4
+        offset = header.header_size * 4
         optional = response.optional
-        if header.message_type == FULL_SERVER_RESPONSE or AUDIO_ONLY_RESPONSE:
+        if header.message_type in (FULL_SERVER_RESPONSE, AUDIO_ONLY_RESPONSE):
             # read event
             if header.message_type_specific_flags == MsgTypeFlagWithEvent:
-                optional.event = int.from_bytes(res[offset:8], "big", signed=True)
+                optional.event = int.from_bytes(
+                    res[offset : offset + 4], "big", signed=True
+                )
                 offset += 4
                 if optional.event == EVENT_NONE:
                     return response
@@ -644,10 +656,11 @@ class TTSProvider(TTSProviderBase):
                     optional.response_meta_json, offset = self.read_res_content(
                         res, offset
                     )
-                elif (
-                    optional.event == EVENT_SessionStarted
-                    or optional.event == EVENT_SessionFailed
-                    or optional.event == EVENT_SessionFinished
+                elif optional.event in (
+                    EVENT_SessionStarted,
+                    EVENT_SessionFailed,
+                    EVENT_SessionFinished,
+                    EVENT_SessionCanceled,
                 ):
                     optional.sessionId, offset = self.read_res_content(res, offset)
                     optional.response_meta_json, offset = self.read_res_content(
@@ -820,6 +833,13 @@ class TTSProvider(TTSProviderBase):
                         ):
                             self.wav_to_opus_data_audio_raw_stream(res.payload, callback=lambda opus_frame: audio_data.append(opus_frame))
                         elif res.optional.event == EVENT_SessionFinished:
+                            # 句尾冲刷流式 opus 编码器不足一帧的 PCM 残量
+                            if hasattr(self, "opus_encoder") and self.opus_encoder:
+                                self.wav_to_opus_data_audio_raw_stream(
+                                    b"",
+                                    is_end=True,
+                                    callback=lambda opus_frame: audio_data.append(opus_frame),
+                                )
                             break
 
                 finally:

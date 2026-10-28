@@ -84,6 +84,16 @@ public interface DeviceService extends BaseService<DeviceEntity> {
     DeviceEntity getDeviceByMacAddress(String macAddress);
 
     /**
+     * 根据MAC地址获取当前登录用户名下的设备信息
+     * <p>
+     * 设备不存在或不属于当前用户时返回null，调用方无需再自行比对归属。
+     *
+     * @param macAddress MAC地址
+     * @return 当前用户名下的设备信息，不存在或无权限时返回null
+     */
+    DeviceEntity getOwnedDeviceByMacAddress(String macAddress);
+
+    /**
      * 根据设备ID获取激活码
      * 
      * @param deviceId 设备ID

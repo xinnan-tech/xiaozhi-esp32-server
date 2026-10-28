@@ -22,6 +22,7 @@ Suporte ao protocolo MQTT+UDP, protocolo WebSocket, ponto de acesso MCP, reconhe
   <a href="./README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Tiếng Việt-DFE0E5"></a>
   <a href="./README_de.md"><img alt="Deutsch" src="https://img.shields.io/badge/Deutsch-DFE0E5"></a>
   <a href="./README_pt_BR.md"><img alt="Português (Brasil)" src="https://img.shields.io/badge/Português (Brasil)-DBEDFA"></a>
+  <a href="./README_es.md"><img alt="Español" src="https://img.shields.io/badge/Español-DFE0E5"></a>
   <a href="https://github.com/xinnan-tech/xiaozhi-esp32-server/releases">
     <img alt="GitHub Contributors" src="https://img.shields.io/github/v/release/xinnan-tech/xiaozhi-esp32-server?logo=docker" />
   </a>
@@ -54,31 +55,31 @@ Quer ver os efeitos de uso? Clique nos vídeos abaixo 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
         <picture>
-          <img alt="响应速度感受" src="docs/images/demo9.png" /></picture>
+          <img alt="A sensação da velocidade de resposta" src="../images/demo9.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
         <picture>
-          <img alt="速度优化秘诀" src="docs/images/demo6.png" /></picture>
+          <img alt="O segredo para otimizar a velocidade" src="../images/demo6.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1WEcxzFEAT" target="_blank">
         <picture>
-          <img alt="小智数字人 支持语音唤醒" src="docs/images/demo8.png" /></picture>
+          <img alt="Humano digital Xiaozhi com ativação por voz" src="../images/demo8.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CKVz6UEuB" target="_blank">
         <picture>
-          <img alt="设备呼叫设备，打电话" src="docs/images/demo0.png" /></picture>
+          <img alt="Chamadas de dispositivo para dispositivo" src="../images/demo0.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
         <picture>
-          <img alt="复杂医疗场景" src="docs/images/demo1.png" /></picture>
+          <img alt="Cenário médico complexo" src="../images/demo1.png" /></picture>
       </a>
     </td>
   </tr>
@@ -86,31 +87,31 @@ Quer ver os efeitos de uso? Clique nos vídeos abaixo 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
         <picture>
-          <img alt="播放音乐查询天气播报新闻" src="docs/images/demo7.png" /></picture>
+          <img alt="Reproduzir música, consultar o tempo e ler as notícias" src="../images/demo7.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12J7WzBEaH" target="_blank">
         <picture>
-          <img alt="实时打断" src="docs/images/demo10.png" /></picture>
+          <img alt="Interrupção em tempo real" src="../images/demo10.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Co76z7EvK" target="_blank">
         <picture>
-          <img alt="拍照识物品" src="docs/images/demo12.png" /></picture>
+          <img alt="Reconhecer objetos com uma foto" src="../images/demo12.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
         <picture>
-          <img alt="控制家电开关" src="docs/images/demo5.png" /></picture>
+          <img alt="Controlar o acionamento de eletrodomésticos" src="../images/demo5.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
         <picture>
-          <img alt="多指令任务" src="docs/images/demo11.png" /></picture>
+          <img alt="Tarefas com vários comandos" src="../images/demo11.png" /></picture>
       </a>
     </td>
   </tr>
@@ -118,31 +119,31 @@ Quer ver os efeitos de uso? Clique nos vídeos abaixo 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
         <picture>
-          <img alt="MCP接入点" src="docs/images/demo13.png" /></picture>
+          <img alt="Ponto de acesso MCP" src="../images/demo13.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
         <picture>
-          <img alt="MQTT指令下发" src="docs/images/demo4.png" /></picture>
+          <img alt="Envio de comandos MQTT" src="../images/demo4.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
         <picture>
-          <img alt="声纹识别" src="docs/images/demo14.png" /></picture>
+          <img alt="Reconhecimento de impressão vocal" src="../images/demo14.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
         <picture>
-          <img alt="自定义音色" src="docs/images/demo2.png" /></picture>
+          <img alt="Tom de voz personalizado" src="../images/demo2.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
         <picture>
-          <img alt="使用粤语交流" src="docs/images/demo3.png" /></picture>
+          <img alt="Conversa em cantonês" src="../images/demo3.png" /></picture>
       </a>
     </td>
   </tr>
@@ -167,8 +168,8 @@ Este projeto oferece dois métodos de implantação. Por favor, escolha de acord
 #### 🚀 Seleção do Método de Implantação
 | Método de Implantação | Funcionalidades | Cenários Aplicáveis | Documentação de Implantação | Requisitos de Configuração | Tutoriais em Vídeo |
 |---------|------|---------|---------|---------|---------|
-| **Instalação Simplificada** | Diálogo inteligente, gerenciamento de agente único | Ambientes de baixa configuração, dados armazenados em arquivos de configuração, sem necessidade de banco de dados | [①Versão Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Implantação via Código-Fonte](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 2 núcleos 4GB se usar `FunASR`, 2 núcleos 2GB se todas APIs | - |
-| **Instalação de Módulo Completo** | Diálogo inteligente, gerenciamento multiusuário, gerenciamento de múltiplos agentes, operação de interface do console inteligente | Experiência com funcionalidade completa, dados armazenados em banco de dados |[①Versão Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Implantação via Código-Fonte](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Tutorial de Atualização Automática via Código-Fonte](../dev-ops-integration.md) | 4 núcleos 8GB se usar `FunASR`, 2 núcleos 4GB se todas APIs| [Tutorial em Vídeo de Inicialização via Código-Fonte Local](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
+| **Instalação Simplificada** | Diálogo inteligente, gerenciamento de agente único | Ambientes de baixa configuração, dados armazenados em arquivos de configuração, sem necessidade de banco de dados | [①Versão Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Implantação via Código-Fonte](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| `FunASR` local exige mais memória; usar apenas APIs mantém o consumo de recursos baixo | - |
+| **Instalação de Módulo Completo** | Diálogo inteligente, gerenciamento multiusuário, gerenciamento de múltiplos agentes, operação de interface do console inteligente | Experiência com funcionalidade completa, dados armazenados em banco de dados |[①Versão Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Implantação via Código-Fonte](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Tutorial de Atualização Automática via Código-Fonte](../dev-ops-integration.md) | `FunASR` local exige mais memória e recursos de banco de dados; usar apenas APIs mantém o consumo de recursos baixo| [Tutorial em Vídeo de Inicialização via Código-Fonte Local](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
 Perguntas frequentes e tutoriais relacionados podem ser consultados [neste link](../FAQ.md)
 
@@ -209,15 +210,15 @@ Este projeto fornece as seguintes ferramentas de teste para ajudá-lo a verifica
 
 | Nome da Ferramenta | Localização | Método de Uso | Descrição da Função |
 |:---:|:---|:---:|:---:|
-| Ferramenta de Teste de Interação por Áudio | main》digital-human》index.html | Execute `python start.py` em `main/digital-human` e depois abra `http://127.0.0.1:8006/index.html` | Testa as funções de reprodução e recepção de áudio, verifica se o processamento de áudio no lado Python está normal |
-| Ferramenta de Teste de Resposta de Modelo | main》xiaozhi-server》performance_tester.py | Execute `python performance_tester.py` | Testa a velocidade de resposta dos três módulos principais: ASR(reconhecimento de fala), LLM(modelo de linguagem), VLLM(modelo de visão), TTS(síntese de voz) |
+| Ferramenta de Teste de Interação por Áudio | main》digital-human》index.html | Em `main/digital-human`, instale as dependências como indica o README, depois execute `python start.py` e abra `http://127.0.0.1:8006/index.html` | Testa as funções de reprodução e recepção de áudio, verifica se o processamento de áudio no lado Python está normal |
+| Ferramenta de Teste de Resposta de Modelo | main》xiaozhi-server》performance_tester.py | Execute `python performance_tester.py` | Testa a velocidade de resposta de módulos principais como ASR(reconhecimento de fala), LLM(modelo de linguagem), VLLM(modelo de visão), TTS(síntese de voz) |
 
 > 💡 Nota: Ao testar a velocidade dos modelos, apenas os modelos com chaves configuradas serão testados.
 
 ---
 ## Lista de Funcionalidades ✨
 ### Implementado ✅
-![请参考-全模块安装架构图](../images/deploy2.png)
+![Diagrama de arquitetura da instalação de todos os módulos](../images/deploy2.png)
 | Módulo de Funcionalidade | Descrição |
 |:---:|:---|
 | Arquitetura Principal | Baseado em [gateway MQTT+UDP](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mqtt-gateway-integration.md), servidores WebSocket e HTTP, fornece sistema completo de gerenciamento de console e autenticação |
@@ -225,15 +226,15 @@ Este projeto fornece as seguintes ferramentas de teste para ajudá-lo a verifica
 | Reconhecimento de Impressão Vocal | Suporta registro, gerenciamento e reconhecimento de impressão vocal de múltiplos usuários, processa em paralelo com o ASR, reconhecimento de identidade do falante em tempo real e repassa ao LLM para respostas personalizadas |
 | Diálogo Inteligente | Suporta múltiplos LLM (modelos de linguagem de grande porte), implementa diálogo inteligente |
 | Percepção Visual | Suporta múltiplos VLLM (modelos de visão de grande porte), implementa interação multimodal |
-| Reconhecimento de Intenção | Suporta reconhecimento de intenção por LLM, Function Call (chamada de função), fornece mecanismo de processamento de intenção baseado em plugins |
+| Reconhecimento de Intenção | Suporta reconhecimento de intenção por LLM externo e conectável, chamada de função autônoma do modelo de linguagem, fornece mecanismo de processamento de intenção baseado em plugins |
 | Sistema de Memória | Suporta memória local de curto prazo, memória via interface mem0ai, memória inteligente PowerMem, com funcionalidade de resumo de memória |
 | Base de Conhecimento | Suporta base de conhecimento RAGFlow, permitindo que o LLM julgue se deve acionar a base de conhecimento após receber a pergunta do usuário, e então responda à pergunta |
-| Chamada de Ferramentas | Suporta protocolo IOT do cliente, protocolo MCP do cliente, protocolo MCP do servidor, protocolo de endpoint MCP, funções de ferramentas personalizadas |
+| Chamada de Ferramentas | Suporta protocolo IOT do cliente, protocolo MCP do cliente, protocolo MCP do servidor, protocolo de ponto de acesso MCP, funções de ferramentas personalizadas |
 | Envio de Comandos | Suporta envio de comandos MCP para dispositivos ESP32 via protocolo MQTT a partir do Console Inteligente |
-| Backend de Gerenciamento | Fornece interface de gerenciamento Web, suporta gerenciamento de usuários, configuração do sistema e gerenciamento de dispositivos; Suporta exibição em Chinês Simplificado, Chinês Tradicional e Inglês |
-| Ferramentas de Teste | Fornece ferramentas de teste de desempenho, ferramentas de teste de modelo de visão e ferramentas de teste de interação por áudio |
+| Backend de Gerenciamento | Fornece interface de gerenciamento Web, suporta gerenciamento de usuários, configuração do sistema e gerenciamento de dispositivos; Suporta exibição em Chinês Simplificado, Chinês Tradicional, Inglês, Alemão, Vietnamita e Português do Brasil |
+| Ferramentas de Teste | Fornece ferramentas de teste de desempenho de resposta de modelo e ferramentas de teste de interação por áudio |
 | Suporte à Implantação | Suporta implantação via Docker e implantação local, fornece gerenciamento completo de arquivos de configuração |
-| Sistema de Plugins | Suporta extensões de plugins funcionais, desenvolvimento de plugins personalizados e carregamento dinâmico de plugins |
+| Sistema de Plugins | Suporta extensões de plugins funcionais e desenvolvimento de plugins personalizados; novos arquivos de plugin são carregados na próxima conexão do dispositivo e alterações em plugins já carregados exigem reiniciar o serviço |
 
 ### Em Desenvolvimento 🚧
 
@@ -253,7 +254,7 @@ Xiaozhi é um ecossistema. Ao utilizar este produto, você também pode conferir
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Chamadas via interface OpenAI | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK | Zhipu, Gemini |
+| Chamadas via interface OpenAI | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK, LM Studio | Zhipu, Gemini |
 | Chamadas via interface Ollama | Ollama | - |
 | Chamadas via interface Dify | Dify | - |
 | Chamadas via interface FastGPT | FastGPT | - |
@@ -261,7 +262,7 @@ Xiaozhi é um ecossistema. Ao utilizar este produto, você também pode conferir
 | Chamadas via interface Xinference | Xinference | - |
 | Chamadas via interface HomeAssistant | HomeAssistant | - |
 
-Na verdade, qualquer LLM que suporte chamadas via interface openai pode ser integrado e utilizado.
+Na verdade, qualquer LLM que suporte chamadas via interface OpenAI pode ser integrado e utilizado.
 
 ---
 
@@ -279,8 +280,8 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Chamadas via interface | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud e Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi Streaming TTS, MinimaxTTS | Lingxi Streaming TTS, EdgeTTS, CosyVoiceSiliconflow(parcial) |
-| Serviços locais | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, Index-TTS, PaddleSpeech | Index-TTS, PaddleSpeech, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
+| Chamadas via interface | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud e Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS | EdgeTTS, CosyVoiceSiliconflow(parcial) |
+| Serviços locais | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, IndexStreamTTS, PaddleSpeechTTS | IndexStreamTTS, PaddleSpeechTTS, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
 
@@ -296,8 +297,8 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Uso local | FunASR, SherpaASR | FunASR, SherpaASR |
-| Chamadas via interface | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR | FunASRServer |
+| Uso local | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
+| Chamadas via interface | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud e Bailian, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 
@@ -305,7 +306,9 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Uso local | 3D-Speaker | 3D-Speaker |
+| Chamadas via interface | Serviço de voiceprint (voiceprint-api) | - |
+
+O reconhecimento de impressão vocal exige um serviço [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) implantado separadamente (baseado em 3D-Speaker) e MySQL. Veja o [guia de integração de voiceprint](../voiceprint-integration.md).
 
 ---
 
@@ -351,11 +354,10 @@ Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser int
 | <img src="../images/logo_contributors.png" width="160"> | [Contribuidores de Código](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors) | Agradecimentos a [todos os contribuidores de código](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors), seus esforços tornaram o projeto mais robusto e poderoso. |
 
 
-<a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
-
+<a href="https://www.star-history.com/?repos=xinnan-tech%2Fxiaozhi-esp32-server&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&theme=dark&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
  </picture>
 </a>

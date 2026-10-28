@@ -16,7 +16,7 @@
 点击它，下载本项目源码压缩包。下载到你电脑后，解压它，此时它的名字可能叫`voiceprint-api-main`
 你需要把它重命名成`voiceprint-api`。
 
-## 第二步， 创建数据库和表
+## 第二步， 确认 MySQL 能访问
 
 声纹识别需要依赖`mysql`数据库。如果你之前已经部署`智控台`，说明你已经安装了`mysql`。你可以共用它。
 
@@ -39,7 +39,7 @@ telnet 127.0.0.1 3306
     networks:
       - default
     expose:
-      - "3306:3306"
+      - 3306
 ```
 
 修改后
@@ -58,8 +58,9 @@ telnet 127.0.0.1 3306
 # 进入你docker-compose_all.yml所在的文件夹，例如我的是xiaozhi-server
 cd xiaozhi-server
 docker compose -f docker-compose_all.yml down
-docker compose -f docker-compose.yml up -d
+docker compose -f docker-compose_all.yml up -d
 ```
+数据库服务`xiaozhi-esp32-server-db`在`docker-compose_all.yml`里，最小化的`docker-compose.yml`只有服务本身，所以两条命令都用`docker-compose_all.yml`。
 
 启动完后，在宿主机再使用`telnet`命令，看看能不能正常访问`mysql`的`3306`端口。
 ```
@@ -171,6 +172,8 @@ http://192.168.1.25:8005/voiceprint/health?key=abcd
 然后搜索参数`server.voice_print`，此时，它的值应该是`null`值。
 点击修改按钮，把上一步得来的`声纹接口地址`粘贴到`参数值`里。然后保存。
 
+声纹识别的相似度阈值是另一个系统参数`server.voiceprint_similarity_threshold`（默认0.4，范围0.0-1.0，数值越高越严格），要调整就在同一个`参数管理`页面里改。
+
 如果能保存成功，说明一切顺利，你可以去智能体查看效果了。如果不成功，说明智控台无法访问声纹识别，很大概率是网络防火墙，或者没有填写正确的局域网ip。
 
 ## 第二步 设置智能体记忆模式
@@ -186,7 +189,7 @@ http://192.168.1.25:8005/voiceprint/health?key=abcd
 在智控台，`智能体管理`页面，在智能体的面板里，有一个`声纹识别`按钮，点击它。在底部有一个`新增按钮`。就可以对某个人说的话进行声纹注册。
 在弹出的框里，`描述`这个属性建议填写上，可以是这个人的职业、性格、爱好。方便智能体对说话人进行分析和了解。
 
-## 第三步 和你的智能体聊天
+## 第五步 验证效果
 
 将你的设备通电，问它，你知道我是谁吗？如果他能回答得出，说明声纹识别功能正常。
 
@@ -205,6 +208,9 @@ voiceprint:
     - "test1,张三,张三是一个程序员"
     - "test2,李四,李四是一个产品经理"
     - "test3,王五,王五是一个设计师"
+  # 声纹识别相似度阈值，范围0.0-1.0，默认0.4
+  # 数值越高越严格，减少误识别但可能增加拒识率
+  similarity_threshold: 0.4
 ```
 
 把上一步得来的 `声纹接口地址` 粘贴到 `url` 里。然后保存。

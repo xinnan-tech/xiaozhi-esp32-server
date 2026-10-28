@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -108,6 +109,17 @@ public class LoginController {
             throw new RenException(ErrorCode.ACCOUNT_PASSWORD_ERROR);
         }
         return sysUserTokenService.createToken(userDTO.getId());
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "刷新token：用旧token换新token")
+    public Result<TokenDTO> refresh(HttpServletRequest request) {
+        String authorization = request.getHeader(Constant.AUTHORIZATION);
+        if (StringUtils.isBlank(authorization) || !authorization.startsWith("Bearer ")) {
+            throw new RenException(ErrorCode.UNAUTHORIZED);
+        }
+        String oldToken = authorization.replace("Bearer ", "");
+        return sysUserTokenService.refreshToken(oldToken);
     }
 
     @PostMapping("/register")

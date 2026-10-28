@@ -310,8 +310,12 @@ async def audio_to_data(
     from core.utils.cache.manager import cache_manager
     from core.utils.cache.config import CacheType
 
-    # 生成缓存键，包含文件路径和编码类型
-    cache_key = f"{audio_file_path}:{is_opus}"
+    # 缓存键含 mtime：文件被原地覆写时旧缓存自动失效（如唤醒词回复重新 TTS），避免播到过期音频
+    try:
+        mtime = os.path.getmtime(audio_file_path)
+        cache_key = f"{audio_file_path}:{mtime}:{is_opus}"
+    except OSError:
+        cache_key = f"{audio_file_path}:{is_opus}"
 
     # 尝试从缓存获取结果
     if use_cache:
@@ -473,6 +477,21 @@ def opus_datas_to_wav_bytes(opus_datas, sample_rate=16000, channels=1):
                 del decoder
             except Exception:
                 pass
+
+
+def audio_file_to_wav_bytes(audio_file_path, sample_rate=16000):
+    """音频文件直接转目标采样率的 wav 字节流，不经 Opus 编解码，避免有损"""
+    file_type = os.path.splitext(audio_file_path)[1]
+    if file_type:
+        file_type = file_type.lstrip(".")
+    with _ffmpeg_path_override():
+        audio = AudioSegment.from_file(
+            audio_file_path, format=file_type, parameters=["-nostdin"]
+        )
+    audio = audio.set_channels(1).set_frame_rate(sample_rate).set_sample_width(2)
+    buffer = BytesIO()
+    audio.export(buffer, format="wav")
+    return buffer.getvalue()
 
 
 def check_vad_update(before_config, new_config):
