@@ -22,7 +22,7 @@ class ServerMCPExecutor(ToolExecutor):
             await self.mcp_manager.initialize_servers()
 
     async def execute(
-        self, conn, tool_name: str, arguments: Dict[str, Any]
+        self, conn, tool_name: str, arguments: Dict[str, Any], speaker=None
     ) -> ActionResponse:
         """执行服务端MCP工具"""
         if not self._initialized or not self.mcp_manager:

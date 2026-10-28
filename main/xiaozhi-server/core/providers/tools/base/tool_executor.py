@@ -11,9 +11,9 @@ class ToolExecutor(ABC):
 
     @abstractmethod
     async def execute(
-        self, conn, tool_name: str, arguments: Dict[str, Any]
+        self, conn, tool_name: str, arguments: Dict[str, Any], speaker=None
     ) -> ActionResponse:
-        """执行工具调用"""
+        """执行工具调用。speaker: 可选的说话人身份快照。"""
         pass
 
     @abstractmethod

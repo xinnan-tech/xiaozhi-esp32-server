@@ -1,8 +1,9 @@
 """MCP接入点工具执行器"""
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from ..base import ToolType, ToolDefinition, ToolExecutor
 from plugins_func.register import Action, ActionResponse
+from core.utils.voiceprint_provider import SpeakerIdentification
 from .mcp_endpoint_handler import call_mcp_endpoint_tool
 from .mcp_speaker import should_forward_speaker, speaker_call_meta
 
@@ -14,9 +15,9 @@ class MCPEndpointExecutor(ToolExecutor):
         self.conn = conn
 
     async def execute(
-        self, conn, tool_name: str, arguments: Dict[str, Any]
+        self, conn, tool_name: str, arguments: Dict[str, Any], speaker: Optional[SpeakerIdentification] = None
     ) -> ActionResponse:
-        """执行MCP接入点工具"""
+        """执行MCP接入点工具。speaker: 本轮说话人快照。"""
         if not hasattr(conn, "mcp_endpoint_client") or not conn.mcp_endpoint_client:
             return ActionResponse(
                 action=Action.ERROR,
@@ -34,11 +35,10 @@ class MCPEndpointExecutor(ToolExecutor):
             import json
 
             meta = None
-            if should_forward_speaker(getattr(conn, "config", None)):
-                meta = speaker_call_meta(
-                    getattr(conn, "current_speaker_id", None),
-                    getattr(conn, "current_speaker", None),
-                )
+            if speaker is not None and should_forward_speaker(
+                getattr(conn, "config", None)
+            ):
+                meta = speaker_call_meta(speaker.speaker_id, speaker.name)
 
             args_str = json.dumps(arguments) if arguments else "{}"
 

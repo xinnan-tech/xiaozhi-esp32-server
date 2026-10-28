@@ -17,7 +17,7 @@ from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType
 TAG = __name__
 
 
-async def handle_user_intent(conn: "ConnectionHandler", text):
+async def handle_user_intent(conn: "ConnectionHandler", text, speaker=None):
     # 预处理输入文本，处理可能的JSON格式
     try:
         if text.strip().startswith("{") and text.strip().endswith("}"):
@@ -172,7 +172,7 @@ async def process_intent_result(
                 try:
                     result = asyncio.run_coroutine_threadsafe(
                         conn.func_handler.handle_llm_function_call(
-                            conn, function_call_data
+                            conn, function_call_data, speaker=speaker
                         ),
                         conn.loop,
                     ).result(timeout=tool_call_timeout)

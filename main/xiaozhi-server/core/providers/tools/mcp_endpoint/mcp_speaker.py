@@ -13,7 +13,10 @@ def should_forward_speaker(config: Optional[dict]) -> bool:
     """mcp_forward_speaker 缺省为开启。显式 false 时不附带身份。"""
     if not isinstance(config, dict):
         return True
-    return bool(config.get("mcp_forward_speaker", True))
+    value = config.get("mcp_forward_speaker", True)
+    if value is None:
+        return True
+    return str(value).strip().lower() in ("true", "1", "yes")
 
 
 def speaker_call_meta(speaker_id: Any, speaker_name: Any) -> Optional[Dict[str, str]]:

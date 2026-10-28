@@ -23,7 +23,10 @@ class SpeakerIdentification(NamedTuple):
 
 
 def resolve_speaker_identification(
-    speaker_id, score, speaker_map, similarity_threshold
+    speaker_id: Optional[str],
+    score: float,
+    speaker_map: Dict[str, Dict[str, str]],
+    similarity_threshold: float,
 ) -> SpeakerIdentification:
     """把声纹接口返回的 speaker_id / score 解析成展示名，并保留命中的 id。"""
     if score < similarity_threshold:

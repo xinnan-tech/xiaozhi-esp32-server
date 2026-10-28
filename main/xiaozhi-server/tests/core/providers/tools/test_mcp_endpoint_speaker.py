@@ -8,7 +8,7 @@ from core.providers.tools.mcp_endpoint.mcp_speaker import (
     should_forward_speaker,
     speaker_call_meta,
 )
-from core.utils.voiceprint_provider import UNKNOWN_SPEAKER_NAME
+from core.utils.voiceprint_provider import UNKNOWN_SPEAKER_NAME, SpeakerIdentification
 
 
 def test_meta_includes_id_and_name():
@@ -29,6 +29,14 @@ def test_forwarding_defaults_on_and_can_be_disabled():
     assert should_forward_speaker({}) is True
     assert should_forward_speaker({"mcp_forward_speaker": True}) is True
     assert should_forward_speaker({"mcp_forward_speaker": False}) is False
+    # 字符串 false 可关闭；空值视为缺省开启
+    assert should_forward_speaker({"mcp_forward_speaker": "false"}) is False
+    assert should_forward_speaker({"mcp_forward_speaker": "False"}) is False
+    assert should_forward_speaker({"mcp_forward_speaker": "0"}) is False
+    assert should_forward_speaker({"mcp_forward_speaker": "true"}) is True
+    assert should_forward_speaker({"mcp_forward_speaker": None}) is True
+    # 空串按关闭处理，与 manager-api 的 Boolean.parseBoolean("") 一致
+    assert should_forward_speaker({"mcp_forward_speaker": ""}) is False
 
 
 def test_payload_adds_meta_without_touching_arguments():
@@ -57,11 +65,9 @@ class _Client:
 
 
 class _Conn:
-    def __init__(self, config=None, speaker_id="test1", speaker_name="张三"):
+    def __init__(self, config=None):
         self.mcp_endpoint_client = _Client()
         self.config = {} if config is None else config
-        self.current_speaker_id = speaker_id
-        self.current_speaker = speaker_name
 
 
 @pytest.mark.asyncio
@@ -80,7 +86,10 @@ async def test_executor_forwards_speaker_in_meta_only(monkeypatch):
     arguments = {"area": "客厅"}
     conn = _Conn()
     result = await executor_mod.MCPEndpointExecutor(conn).execute(
-        conn, "HassTurnOn", arguments
+        conn,
+        "HassTurnOn",
+        arguments,
+        speaker=SpeakerIdentification("test1", "张三"),
     )
 
     assert json.loads(captured["args"]) == {"area": "客厅"}
@@ -101,7 +110,12 @@ async def test_executor_skips_meta_when_disabled(monkeypatch):
 
     monkeypatch.setattr(executor_mod, "call_mcp_endpoint_tool", fake_call)
     conn = _Conn(config={"mcp_forward_speaker": False})
-    await executor_mod.MCPEndpointExecutor(conn).execute(conn, "HassTurnOn", {"area": "客厅"})
+    await executor_mod.MCPEndpointExecutor(conn).execute(
+        conn,
+        "HassTurnOn",
+        {"area": "客厅"},
+        speaker=SpeakerIdentification("test1", "张三"),
+    )
     assert captured["meta"] is None
 
 
@@ -116,6 +130,33 @@ async def test_executor_omits_meta_for_unknown_speaker(monkeypatch):
         return "done"
 
     monkeypatch.setattr(executor_mod, "call_mcp_endpoint_tool", fake_call)
-    conn = _Conn(speaker_id=None, speaker_name=UNKNOWN_SPEAKER_NAME)
-    await executor_mod.MCPEndpointExecutor(conn).execute(conn, "HassTurnOn", {})
+    conn = _Conn()
+    await executor_mod.MCPEndpointExecutor(conn).execute(
+        conn,
+        "HassTurnOn",
+        {},
+        speaker=SpeakerIdentification(None, UNKNOWN_SPEAKER_NAME),
+    )
     assert captured["meta"] is None
+
+
+@pytest.mark.asyncio
+async def test_executor_reads_snapshot_not_conn_state(monkeypatch):
+    """meta 取自快照，不受连接态影响。"""
+    from core.providers.tools.mcp_endpoint import mcp_endpoint_executor as executor_mod
+
+    captured = {}
+
+    async def fake_call(client, tool_name, args_str="{}", timeout=30, meta=None):
+        captured["meta"] = meta
+        return "done"
+
+    monkeypatch.setattr(executor_mod, "call_mcp_endpoint_tool", fake_call)
+    conn = _Conn()
+    await executor_mod.MCPEndpointExecutor(conn).execute(
+        conn,
+        "HassTurnOn",
+        {},
+        speaker=SpeakerIdentification("test1", "张三"),
+    )
+    assert captured["meta"] == {"speakerId": "test1", "speakerName": "张三"}

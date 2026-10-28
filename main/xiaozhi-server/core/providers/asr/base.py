@@ -17,6 +17,7 @@ from core.providers.asr.dto.dto import InterfaceType
 from core.handle.receiveAudioHandle import startToChat
 from core.handle.reportHandle import enqueue_asr_report
 from core.utils.util import remove_punctuation_and_length
+from core.utils.voiceprint_provider import SpeakerIdentification
 from core.handle.receiveAudioHandle import handleAudioMessage
 from typing import Optional, Tuple, List, NamedTuple, TYPE_CHECKING
 
@@ -119,13 +120,11 @@ class ASRProviderBase(ABC):
             else:
                 raw_text, _ = asr_result
 
-            speaker_id = None
             speaker_name = ""
             if isinstance(voiceprint_result, Exception):
                 logger.bind(tag=TAG).error(f"声纹识别失败: {voiceprint_result}")
             elif voiceprint_result is not None:
                 speaker_name = voiceprint_result.name or ""
-                speaker_id = voiceprint_result.speaker_id
 
             # 判断 ASR 结果类型
             if isinstance(raw_text, dict):
@@ -166,15 +165,16 @@ class ASRProviderBase(ABC):
             self.stop_ws_connection()
 
             if text_len > 0:
-                # 声纹 id 不进入发给 LLM 的文本，留在连接上供本轮 MCP 接入点调用读取。
-                if isinstance(speaker_id, str) and speaker_id.strip():
-                    conn.current_speaker_id = speaker_id.strip()
-                else:
-                    conn.current_speaker_id = None
+                # 本轮声纹身份快照，随调用链供 MCP 接入点工具使用
+                speaker = (
+                    voiceprint_result
+                    if isinstance(voiceprint_result, SpeakerIdentification)
+                    else None
+                )
                 audio_snapshot = asr_audio_task.copy()
                 enqueue_asr_report(conn, enhanced_text, audio_snapshot)
                 # 使用自定义模块进行上报
-                await startToChat(conn, enhanced_text)
+                await startToChat(conn, enhanced_text, speaker=speaker)
         except Exception as e:
             logger.bind(tag=TAG).error(f"处理语音停止失败: {e}")
             import traceback

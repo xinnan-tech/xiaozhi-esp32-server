@@ -3,6 +3,8 @@ import re
 from typing import List, Dict
 from datetime import datetime
 
+from core.utils.voiceprint_provider import UNKNOWN_SPEAKER_NAME
+
 
 class Message:
     def __init__(
@@ -125,7 +127,7 @@ class Dialogue:
                 current_speaker_name = (current_speaker or "").strip()
                 # 仅在本轮注入了有效身份时才输出 speakers_info，避免列表里的名字每轮
                 # 重复出现诱导模型反复称呼；后续轮不再注入身份，靠对话历史首轮保留
-                if current_speaker_name and current_speaker_name != "未知说话人":
+                if current_speaker_name and current_speaker_name != UNKNOWN_SPEAKER_NAME:
                     speakers = voiceprint_config.get("speakers", [])
                     speakers_info = "\n<speakers_info>"
                     speakers_info += f"\n当前说话人：{current_speaker_name}"
