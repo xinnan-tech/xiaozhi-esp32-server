@@ -19,6 +19,11 @@ THINKING_DISABLED_DOMAINS = {
     "modelarts-maas.com": {"thinking": {"type": "disabled"}},
 }
 
+# 域名规则的模型名豁免表: 强制思考模型不接受该参数注入(如 MaaS glm-5.3 传 thinking 必 400)
+THINKING_DISABLED_MODEL_EXCLUSIONS = {
+    "modelarts-maas.com": ("glm-5.3",),
+}
+
 
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
@@ -99,11 +104,18 @@ class LLMProvider(LLMProviderBase):
             return
         parsed_url = urlparse(self.base_url)
         domain = parsed_url.netloc
+        model_name = (self.model_name or "").lower()
         for disabled_domain, params in THINKING_DISABLED_DOMAINS.items():
-            if disabled_domain in domain:
-                request_params.setdefault("extra_body", {}).update(params)
-                logger.bind(tag=TAG).info(f"为域名 {domain} 禁用思考模式，参数: {params}")
+            if disabled_domain not in domain:
+                continue
+            exclusions = THINKING_DISABLED_MODEL_EXCLUSIONS.get(disabled_domain, ())
+            if any(ex in model_name for ex in exclusions):
+                logger.bind(tag=TAG).info(
+                    f"域名 {domain} 命中禁思考规则, 但模型 {self.model_name} 强制思考且拒绝该参数, 跳过注入")
                 break
+            request_params.setdefault("extra_body", {}).update(params)
+            logger.bind(tag=TAG).info(f"为域名 {domain} 禁用思考模式，参数: {params}")
+            break
 
     def response(self, session_id, dialogue, **kwargs):
         dialogue = self.normalize_dialogue(dialogue)
