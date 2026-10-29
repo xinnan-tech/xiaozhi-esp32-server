@@ -15,7 +15,7 @@ class DeviceIoTExecutor(ToolExecutor):
         self.iot_tools: Dict[str, ToolDefinition] = {}
 
     async def execute(
-        self, conn, tool_name: str, arguments: Dict[str, Any]
+        self, conn, tool_name: str, arguments: Dict[str, Any], speaker=None
     ) -> ActionResponse:
         """执行设备端IoT工具"""
         if not self.has_tool(tool_name):

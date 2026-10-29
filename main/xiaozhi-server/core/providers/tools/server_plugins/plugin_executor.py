@@ -17,7 +17,7 @@ class ServerPluginExecutor(ToolExecutor):
         self.config = conn.config
 
     async def execute(
-        self, conn: "ConnectionHandler", tool_name: str, arguments: Dict[str, Any]
+        self, conn: "ConnectionHandler", tool_name: str, arguments: Dict[str, Any], speaker=None
     ) -> ActionResponse:
         """执行服务端插件工具"""
         func_item = all_function_registry.get(tool_name)
