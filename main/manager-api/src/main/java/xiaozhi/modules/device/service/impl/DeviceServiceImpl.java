@@ -137,7 +137,7 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         deviceEntity.setBoard(board);
         deviceEntity.setAgentId(agentId);
         deviceEntity.setAppVersion(appVersion);
-        deviceEntity.setMacAddress(macAddress);
+        deviceEntity.setMacAddress(normalizeDeviceId(macAddress));
         deviceEntity.setUserId(user.getId());
         deviceEntity.setCreator(user.getId());
         deviceEntity.setAutoUpdate(1);
@@ -198,7 +198,10 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // 设备未绑定，则返回当前上传的固件信息（不更新）以此兼容旧固件版本
         if (deviceById == null) {
             DeviceReportRespDTO.Firmware firmware = new DeviceReportRespDTO.Firmware();
-            firmware.setVersion(deviceReport.getApplication().getVersion());
+            String currentVersion = deviceReport != null && deviceReport.getApplication() != null
+                    ? deviceReport.getApplication().getVersion()
+                    : null;
+            firmware.setVersion(currentVersion);
             firmware.setUrl(Constant.INVALID_FIRMWARE_URL);
             response.setFirmware(firmware);
         } else {
@@ -219,13 +222,20 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // 检查是否启用认证并生成token
         String authEnabled = sysParamsService.getValue(Constant.SERVER_AUTH_ENABLED, true);
         if ("true".equalsIgnoreCase(authEnabled)) {
-            try {
-                // 生成token
-                String token = generateWebSocketToken(clientId, macAddress);
-                websocket.setToken(token);
-            } catch (Exception e) {
-                log.error("生成WebSocket token失败: {}", e.getMessage());
+            // 仅已登记绑定的设备签发 token；未登记的设备不返回可用凭证，
+            // 登记操作需登录智控台，因此不会成为任意 MAC 换取 token 的通道
+            if (deviceById == null) {
+                log.warn("设备未在智控台登记，跳过 WebSocket token 签发: {}", macAddress);
                 websocket.setToken("");
+            } else {
+                try {
+                    // 生成token
+                    String token = generateWebSocketToken(clientId, macAddress);
+                    websocket.setToken(token);
+                } catch (Exception e) {
+                    log.error("生成WebSocket token失败: {}", e.getMessage());
+                    websocket.setToken("");
+                }
             }
         } else {
             websocket.setToken("");
@@ -252,16 +262,20 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         // 从系统参数获取MQTT Gateway地址，仅在配置有效时使用
         String mqttUdpConfig = sysParamsService.getValue(Constant.SERVER_MQTT_GATEWAY, true);
         if (mqttUdpConfig != null && !mqttUdpConfig.equals("null") && !mqttUdpConfig.isEmpty()) {
-            try {
-                String groupId = deviceById != null && deviceById.getBoard() != null ? deviceById.getBoard()
-                        : "GID_default";
-                DeviceReportRespDTO.MQTT mqtt = buildMqttConfig(macAddress, groupId);
-                if (mqtt != null) {
-                    mqtt.setEndpoint(mqttUdpConfig);
-                    response.setMqtt(mqtt);
+            // MQTT 配置含连接签名，与 websocket token 一样仅对已登记设备下发
+            if (deviceById == null) {
+                log.warn("设备未在智控台登记，跳过 MQTT 配置下发: {}", macAddress);
+            } else {
+                try {
+                    String groupId = deviceById.getBoard() != null ? deviceById.getBoard() : "GID_default";
+                    DeviceReportRespDTO.MQTT mqtt = buildMqttConfig(macAddress, groupId);
+                    if (mqtt != null) {
+                        mqtt.setEndpoint(mqttUdpConfig);
+                        response.setMqtt(mqtt);
+                    }
+                } catch (Exception e) {
+                    log.error("生成MQTT配置失败: {}", e.getMessage());
                 }
-            } catch (Exception e) {
-                log.error("生成MQTT配置失败: {}", e.getMessage());
             }
         }
 
@@ -401,9 +415,54 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
         if (StringUtils.isBlank(macAddress)) {
             return null;
         }
+        DeviceEntity device = selectByMacAddress(normalizeDeviceId(macAddress));
+        if (device != null) {
+            return device;
+        }
+        // 归一之前写进去的存量数据，原文再试一次，别让写法不同就查不到
+        return selectByMacAddress(macAddress);
+    }
+
+    private DeviceEntity selectByMacAddress(String macAddress) {
         QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("mac_address", macAddress);
-        return baseDao.selectOne(wrapper);
+        // 按 id 定序后取第一条。id 是 VARCHAR，比的是字符序而不是入库先后，
+        // 但主键保证同一组里 id 不重复，所以每次查询拿到的都是同一台；
+        // 不定序的话拿到哪台随数据库返回顺序变，称呼和缓存键跟着变
+        wrapper.orderByAsc("id");
+        // 有重复行时 selectOne 直接抛 TooManyResultsException，报活和激活两条路一起崩，
+        // 库里还看不出发生过什么。迁移对撞车的行整组不动，那种库会同时存在两行，
+        // 取第一条让设备读得出来；两行归谁所有是人的判断，脚本不替人定
+        List<DeviceEntity> devices = baseDao.selectList(wrapper);
+        return devices.isEmpty() ? null : devices.get(0);
+    }
+
+    /**
+     * 把 Device-Id 归一成小写冒号分隔的 MAC 形态
+     * <p>
+     * 入库、查询、签名、订阅地址、缓存键统一走这个值，否则同一台设备换个
+     * 分隔符或大小写就会被当成没登记，表现为静默不发凭证也不下发固件。
+     * 不是合法 MAC 时原样返回，交给后续校验拒绝。
+     *
+     * @param deviceId 设备上报或用户填写的 Device-Id
+     * @return 归一后的 Device-Id
+     */
+    public static String normalizeDeviceId(String deviceId) {
+        if (StringUtils.isBlank(deviceId)) {
+            return deviceId;
+        }
+        String hex = deviceId.toLowerCase().replace(":", "").replace("-", "").replace("_", "");
+        if (hex.length() != 12) {
+            return deviceId;
+        }
+        StringBuilder mac = new StringBuilder(17);
+        for (int i = 0; i < 12; i += 2) {
+            if (i > 0) {
+                mac.append(':');
+            }
+            mac.append(hex, i, i + 2);
+        }
+        return mac.toString();
     }
 
     @Override
@@ -578,21 +637,22 @@ public class DeviceServiceImpl extends BaseServiceImpl<DeviceDao, DeviceEntity> 
 
     @Override
     public void manualAddDevice(Long userId, DeviceManualAddDTO dto) {
+        String macAddress = normalizeDeviceId(dto.getMacAddress());
         // 检查mac是否已存在
         QueryWrapper<DeviceEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("mac_address", dto.getMacAddress());
+        wrapper.eq("mac_address", macAddress);
         DeviceEntity exist = baseDao.selectOne(wrapper);
         if (exist != null) {
             throw new RenException(ErrorCode.MAC_ADDRESS_ALREADY_EXISTS);
         }
         Date now = new Date();
         DeviceEntity entity = new DeviceEntity();
-        entity.setId(dto.getMacAddress());
+        entity.setId(macAddress);
         entity.setUserId(userId);
         entity.setAgentId(dto.getAgentId());
         entity.setBoard(dto.getBoard());
         entity.setAppVersion(dto.getAppVersion());
-        entity.setMacAddress(dto.getMacAddress());
+        entity.setMacAddress(macAddress);
         entity.setCreateDate(now);
         entity.setUpdateDate(now);
         entity.setLastConnectedAt(now);

@@ -1,5 +1,13 @@
 import { log } from '../../utils/logger.js?v=0205';
 
+// 子协议值必须是合法的 token 字符，冒号不在其中，所以 Device-Id 去掉分隔符。
+// OTA 请求头与 websocket 子协议必须用同一个值，否则 token 签名对不上。
+// 方括号里横线必须写在最前面，写成 [:-_] 会当成 : 到 _ 的区间，
+// 连大写 A-Z 一起吃掉，大写 MAC 会被算成空串
+export function normalizeDeviceId(deviceId) {
+    return (deviceId || '').replace(/[-:_]/g, '').toLowerCase();
+}
+
 // WebSocket 连接
 export async function webSocketConnect(otaUrl, config) {
 
@@ -21,21 +29,32 @@ export async function webSocketConnect(otaUrl, config) {
         return;
     }
 
-    // 使用OTA返回的websocket URL
-    let connUrl = new URL(websocket.url);
-
-    // 添加token参数（从OTA响应中获取）
-    if (websocket.token) {
-        if (websocket.token.startsWith("Bearer ")) {
-            connUrl.searchParams.append('authorization', websocket.token);
-        } else {
-            connUrl.searchParams.append('authorization', 'Bearer ' + websocket.token);
-        }
+    // token 存下来下次续签用：激活码用掉即作废，
+    // 不存的话第二次点连接必然被服务端拒。
+    // 响应里 websocket 和 mqtt 是二选一，带 mqtt 的响应走不到这里
+    const issuedToken = (websocket.token || '').replace(/^Bearer\s+/i, '');
+    if (issuedToken) {
+        sessionStorage.setItem('xz_tester_token', issuedToken);
+        localStorage.setItem('xz_tester_token', issuedToken);
     }
 
-    // 添加认证参数（保持原有逻辑）
-    connUrl.searchParams.append('device-id', config.deviceId);
-    connUrl.searchParams.append('client-id', config.clientId);
+    // 使用OTA返回的websocket URL
+    const connUrl = new URL(websocket.url);
+
+    // 浏览器不能自定义 websocket 请求头，凭证和设备标识改走子协议头：
+    // xiaozhi, t-<token>, d-<deviceId>, c-<clientId>，服务端只回显 xiaozhi。
+    // 不再拼进 URL 查询串，那会原样落进反代访问日志
+    const subprotocols = [
+        'xiaozhi',
+        `d-${normalizeDeviceId(config.deviceId)}`,
+        `c-${config.clientId}`
+    ];
+    if (websocket.token) {
+        const token = websocket.token.startsWith('Bearer ')
+            ? websocket.token.slice(7)
+            : websocket.token;
+        subprotocols.splice(1, 0, `t-${token}`);
+    }
 
     const wsurl = connUrl.toString()
 
@@ -45,7 +64,7 @@ export async function webSocketConnect(otaUrl, config) {
         document.getElementById('serverUrl').value = wsurl;
     }
 
-    return new WebSocket(connUrl.toString());
+    return new WebSocket(connUrl.toString(), subprotocols);
 }
 
 // 验证配置
@@ -64,12 +83,15 @@ function validateConfig(config) {
 // OTA发送请求，验证状态，并返回响应数据
 async function sendOTA(otaUrl, config) {
     try {
+        // 有 token 用 token 续签，没有才用激活码换首次 token
+        const credential = config.token || config.activationCode;
         const res = await fetch(otaUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Device-Id': config.deviceId,
-                'Client-Id': config.clientId
+                'Device-Id': normalizeDeviceId(config.deviceId),
+                'Client-Id': config.clientId,
+                ...(credential ? { 'Authorization': `Bearer ${credential}` } : {})
             },
             body: JSON.stringify({
                 version: 0,
@@ -104,6 +126,14 @@ async function sendOTA(otaUrl, config) {
         const result = await res.json();
         return result; // 返回完整的响应数据
     } catch (err) {
+        // 跨域失败在浏览器里是不透明的：fetch 直接抛 TypeError，
+        // 拿不到状态码，也看不出是服务端没回跨域头还是服务没起来。
+        // 页面知道自己的来源，直接点名让人去加白名单
+        if (err instanceof TypeError) {
+            log(`请求 ${otaUrl} 被浏览器拦下（跨域）。把 ${window.location.origin} 加到服务端的 server.cors.allowed_origins 里`, 'error');
+        } else {
+            log(`OTA请求失败: ${err.message}`, 'error');
+        }
         return null; // 失败返回null
     }
 }

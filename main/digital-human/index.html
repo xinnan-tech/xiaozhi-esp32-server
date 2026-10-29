@@ -155,8 +155,14 @@
                             <div class="config-row">
                                 <div class="config-item">
                                     <label for="clientId">客户端ID:</label>
-                                    <input type="text" id="clientId" value="web_test_client" placeholder="client-id">
+                                    <input type="text" id="clientId" placeholder="client-id（接口要求填写，服务端不校验）">
                                 </div>
+                                <div class="config-item">
+                                    <label for="activationCode">激活码:</label>
+                                    <input type="text" id="activationCode" placeholder="仅 auth.enabled: true 时需要">
+                                </div>
+                            </div>
+                            <div class="config-row">
                                 <div class="config-item">
                                     <label for="deviceName">设备名称:</label>
                                     <input type="text" id="deviceName" value="Web测试设备" maxlength="50"
