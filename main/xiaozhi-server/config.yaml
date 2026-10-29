@@ -666,6 +666,7 @@ LLM:
     type: ollama
     model_name: qwen2.5 #  使用的模型名称，需要预先使用ollama pull下载
     base_url: http://localhost:11434  # Ollama服务地址
+    api_key: ollama # 本地部署无需真实密钥，占位即可；走鉴权网关或Ollama Cloud时修改为真实key
   DifyLLM:
     # 定义LLM API类型
     type: dify
