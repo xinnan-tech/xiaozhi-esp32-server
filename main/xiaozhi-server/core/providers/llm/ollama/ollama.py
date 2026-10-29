@@ -10,7 +10,10 @@ logger = setup_logging()
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
         self.model_name = config.get("model_name")
-        self.base_url = config.get("base_url", "http://localhost:11434")
+        self.base_url = (config.get("base_url") or "http://localhost:11434").strip().rstrip("/")
+        # 兼容处理用户输入完整端点的情况
+        if self.base_url.endswith("/chat/completions"):
+            self.base_url = self.base_url[:-len("/chat/completions")].rstrip("/")
         # Initialize OpenAI client with Ollama base URL
         # 如果没有v1，增加v1
         if not self.base_url.endswith("/v1"):
@@ -18,7 +21,7 @@ class LLMProvider(LLMProviderBase):
 
         self.client = OpenAI(
             base_url=self.base_url,
-            api_key="ollama",  # Ollama doesn't need an API key but OpenAI client requires one
+            api_key=config.get("api_key") or "ollama",
         )
 
         # 检查是否是qwen3模型
