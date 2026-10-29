@@ -107,7 +107,7 @@ class ServerMCPClient:
                 "function": {
                     "name": name,
                     "description": tool.description,
-                    "parameters": tool.inputSchema,
+                    "parameters": getattr(tool, "input_schema", None) or getattr(tool, "inputSchema", {}),
                 },
             }
             for name, tool in self.tools_dict.items()
