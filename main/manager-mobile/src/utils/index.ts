@@ -2,6 +2,21 @@ import smCrypto from 'sm-crypto'
 import { pages, subPackages } from '@/pages.json'
 
 import { isMpWeixin } from './platform'
+import { ensureSecureRandomReady } from './secure-random'
+
+/**
+ * 获取 sm2 模块（确保密码学安全随机源已就绪）。
+ *
+ * sm-crypto >= 0.5.0（CVE-2026-73567 修复）强制要求 crypto.getRandomValues。
+ * 小程序等环境没有该 API，项目中通过 pnpm patch（patches/sm-crypto@0.5.8.patch）
+ * 将 sm-crypto 的熵池初始化推迟到首次取随机字节时，并由 secure-random.ts 提供
+ * 垫片。因此小程序端首次调用 sm2 前必须 await 本方法，用 wx.getRandomValues
+ * 预热真随机缓冲池；浏览器 / App WebView 原生支持时立即就绪。
+ */
+async function getSm2(): Promise<any> {
+  await ensureSecureRandomReady()
+  return smCrypto.sm2
+}
 
 /**
  * 运行时服务端地址覆盖存储键
@@ -201,11 +216,11 @@ export function getEnvBaseUploadUrl() {
 
 /**
  * 生成SM2密钥对（十六进制格式）
- * @returns {object} 包含公钥和私钥的对象
+ * @returns {Promise<object>} 包含公钥和私钥的对象
  */
-export function generateSm2KeyPairHex() {
+export async function generateSm2KeyPairHex() {
   // 使用sm-crypto库生成SM2密钥对
-  const sm2 = smCrypto.sm2
+  const sm2 = await getSm2()
   const keypair = sm2.generateKeyPairHex()
 
   return {
@@ -220,9 +235,9 @@ export function generateSm2KeyPairHex() {
  * SM2公钥加密
  * @param {string} publicKey 公钥（十六进制格式）
  * @param {string} plainText 明文
- * @returns {string} 加密后的密文（十六进制格式）
+ * @returns {Promise<string>} 加密后的密文（十六进制格式）
  */
-export function sm2Encrypt(publicKey: string, plainText: string): string {
+export async function sm2Encrypt(publicKey: string, plainText: string): Promise<string> {
   if (!publicKey) {
     throw new Error('公钥不能为null或undefined')
   }
@@ -231,7 +246,7 @@ export function sm2Encrypt(publicKey: string, plainText: string): string {
     throw new Error('明文不能为空')
   }
 
-  const sm2 = smCrypto.sm2
+  const sm2 = await getSm2()
   // SM2加密，添加04前缀表示未压缩公钥
   const encrypted = sm2.doEncrypt(plainText, publicKey, 1)
   // 转换为十六进制格式（与后端保持一致，添加04前缀）
@@ -244,10 +259,10 @@ export function sm2Encrypt(publicKey: string, plainText: string): string {
  * SM2私钥解密
  * @param {string} privateKey 私钥（十六进制格式）
  * @param {string} cipherText 密文（十六进制格式）
- * @returns {string} 解密后的明文
+ * @returns {Promise<string>} 解密后的明文（当前项目内暂无调用点，保留备用）
  */
-export function sm2Decrypt(privateKey: string, cipherText: string): string {
-  const sm2 = smCrypto.sm2
+export async function sm2Decrypt(privateKey: string, cipherText: string): Promise<string> {
+  const sm2 = await getSm2()
   // 移除04前缀（与后端保持一致）
   const dataWithoutPrefix = cipherText.startsWith('04') ? cipherText.substring(2) : cipherText
   // SM2解密
