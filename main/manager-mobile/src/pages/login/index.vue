@@ -202,7 +202,7 @@ async function handleLogin() {
     try {
       // 拼接验证码和密码
       const captchaAndPassword = formData.value.captcha + formData.value.password
-      encryptedPassword = sm2Encrypt(sm2PublicKey, captchaAndPassword)
+      encryptedPassword = await sm2Encrypt(sm2PublicKey, captchaAndPassword)
     }
     catch (error) {
       console.error('密码加密失败:', error)

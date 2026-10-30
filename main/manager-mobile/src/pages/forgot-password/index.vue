@@ -235,7 +235,7 @@ async function handleResetPassword() {
     try {
       // 拼接图形验证码和新密码进行加密
       const captchaAndPassword = formData.value.captcha + formData.value.newPassword
-      encryptedPassword = sm2Encrypt(sm2PublicKey.value, captchaAndPassword)
+      encryptedPassword = await sm2Encrypt(sm2PublicKey.value, captchaAndPassword)
     }
     catch (error) {
       console.error('密码加密失败:', error)
