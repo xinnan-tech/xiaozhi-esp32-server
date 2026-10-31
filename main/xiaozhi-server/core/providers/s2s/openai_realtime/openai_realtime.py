@@ -81,7 +81,7 @@ class S2SProvider(S2SProviderBase):
         self.barge_run = 0
         self._pending_barge = None
         self._tool_tasks: set[asyncio.Task] = set()
-        self._tools_sig = None
+        self._session_sig = None   # (指令全文, 工具名)：两者任一变了就重新 session.update
         self._idle_handle = None
         self.t_reply = time.monotonic()
         self.t_speech_stopped = None
@@ -117,12 +117,16 @@ class S2SProvider(S2SProviderBase):
                 funcs = []
         return to_realtime_tools(funcs, self.tools.allow or None)
 
-    def _session(self) -> dict:
-        tools = self._tool_list()
-        self._tools_sig = tuple(sorted(t["name"] for t in tools))
+    def _instructions(self) -> str:
         # 建成那一刻 conn.prompt 往往还是 None（快速提示词在之后才设置）：先用配置里的原始 prompt，别让第一轮没有人设
         instructions = (getattr(self.conn, "prompt", None) or (self.conn.config.get("prompt") if isinstance(getattr(self.conn, "config", None), dict) else None)
                         or self.config.get("instructions") or "")
+        return str(instructions)
+
+    def _session(self) -> dict:
+        tools = self._tool_list()
+        instructions = self._instructions()
+        self._session_sig = (instructions, tuple(sorted(t["name"] for t in tools)))
         return {
             "type": "realtime",
             "instructions": instructions,
@@ -178,8 +182,11 @@ class S2SProvider(S2SProviderBase):
         self.logger.bind(tag=TAG).info(f"会话配置已同步：指令 {len(session['instructions'])} 字、工具 {len(session['tools'])} 个")
 
     async def _maybe_refresh_tools(self) -> None:
+        """提示词或工具清单变了就重新同步：上游的 Home Assistant 设备清单（append_devices_to_prompt）和 MCP 工具
+        都是在我们第一次同步之后才异步挂上 conn.prompt / func_handler 的。"""
         tools = self._tool_list()
-        if tuple(sorted(t["name"] for t in tools)) != self._tools_sig:
+        sig = (self._instructions(), tuple(sorted(t["name"] for t in tools)))
+        if sig != self._session_sig:
             await self._refresh_session()
 
     async def _send(self, obj: dict) -> None:

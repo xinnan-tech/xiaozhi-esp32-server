@@ -340,6 +340,10 @@ def test_attach_succeeds_and_upstream_close_closes_connection():
         await rt.wait_for("session.update")
         p.after_components_ready()                                   # 执行器线程里的那次同步
         await rt.wait_for("session.update", 2)
+        conn.prompt = conn.prompt + "\n下面是我家智能设备列表（位置，设备名，entity_id）\n书房,书房灯,light.study_real\n"  # 上游 HA 插件事后追加
+        await rt.emit({"type": "input_audio_buffer.speech_started", "item_id": "u2", "audio_start_ms": 10})
+        upd = await rt.wait_for("session.update", 3)                 # 用户一开口就把新提示词同步上去
+        assert "light.study_real" in upd[2]["session"]["instructions"]
         await rt.ws.close()                                          # 上游断开
         await wait_until(lambda: conn.closed, what="连接被关闭")
     run_scenario(sc)
