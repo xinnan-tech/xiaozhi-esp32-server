@@ -17,4 +17,6 @@ async def handleAbortMessage(conn: "ConnectionHandler"):
         json.dumps({"type": "tts", "state": "stop", "session_id": conn.session_id})
     )
     conn.clearSpeakStatus()
+    if conn.s2s is not None:
+        await conn.s2s.cancel("device")  # S2S 模式：丢掉未发的帧、取消上游回复、把上下文截到已播位置
     conn.logger.bind(tag=TAG).info("Abort message received-end")

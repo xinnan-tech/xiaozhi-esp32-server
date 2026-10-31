@@ -22,6 +22,7 @@ from core.utils.util import (
 )
 from typing import Dict, Any
 from collections import deque
+from core.utils.s2s import attach_s2s
 from core.utils.modules_initialize import (
     initialize_modules,
     initialize_tts,
@@ -117,6 +118,7 @@ class ConnectionHandler:
         self.client_is_speaking = False
         self.client_listen_mode = "auto"
         self.client_aec = False  # 是否启用了服务端AEC
+        self.client_is_listening = False  # 设备 listen start 到 stop 之间为 True（S2S provider 据此决定是否把音频送模型）
 
         # 线程任务相关
         self.loop = None  # 在 handle_connection 中获取运行中的事件循环
@@ -173,6 +175,7 @@ class ConnectionHandler:
         # iot相关变量
         self.iot_descriptors = {}
         self.func_handler = None
+        self.s2s = None  # 语音进语音出 provider（selected_module.S2S）；None = 原版 VAD→ASR→LLM→TTS 级联
 
         self.cmd_exit = self.config["exit_commands"]
 
@@ -368,6 +371,12 @@ class ConnectionHandler:
         if isinstance(message, str):
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
+            if self.s2s is not None:
+                # S2S 模式：解完 Opus 直接交给 provider，不进 ASR 队列（没有 ASR 线程来取）
+                pcm_frame = self._decode_opus_packet(message)
+                if pcm_frame:
+                    await self.s2s.on_pcm(pcm_frame)
+                return
             if self.vad is None or self.asr is None:
                 return
 
@@ -605,12 +614,15 @@ class ConnectionHandler:
 
     def _initialize_components(self):
         try:
-            if self.tts is None:
+            if self.s2s is None:
+                self.s2s = attach_s2s(self)  # 选中 S2S 且上游会话建成则接管音频，不建 TTS / ASR；失败返回 None 走级联
+            if self.tts is None and self.s2s is None:
                 self.tts = self._initialize_tts()
             # 打开语音合成通道
-            asyncio.run_coroutine_threadsafe(
-                self.tts.open_audio_channels(self), self.loop
-            )
+            if self.s2s is None:
+                asyncio.run_coroutine_threadsafe(
+                    self.tts.open_audio_channels(self), self.loop
+                )
             if self.need_bind:
                 self.bind_completed_event.set()
                 return
@@ -632,15 +644,16 @@ class ConnectionHandler:
             """初始化本地组件"""
             if self.vad is None:
                 self.vad = self._vad
-            if self.asr is None:
+            if self.asr is None and self.s2s is None:
                 self.asr = self._initialize_asr()
 
             # 初始化声纹识别
             self._initialize_voiceprint()
             # 打开语音识别通道
-            asyncio.run_coroutine_threadsafe(
-                self.asr.open_audio_channels(self), self.loop
-            )
+            if self.s2s is None:
+                asyncio.run_coroutine_threadsafe(
+                    self.asr.open_audio_channels(self), self.loop
+                )
 
             """加载记忆"""
             self._initialize_memory()
@@ -652,6 +665,8 @@ class ConnectionHandler:
             self._init_prompt_enhancement()
             """注入工具调用few-shot示例（仅function_call模式）"""
             self._inject_tool_call_fewshot()
+            if self.s2s is not None:
+                self.s2s.after_components_ready()  # 把增强后的提示词与工具清单同步给上游会话
 
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"实例化组件失败: {e}")
@@ -1641,6 +1656,8 @@ class ConnectionHandler:
                 await self.tts.close()
             if self.asr:
                 await self.asr.close()
+            if self.s2s is not None:
+                await self.s2s.close()  # 关掉上游语音会话，不然设备断开后会话还挂着计费
 
             # 最后关闭线程池（避免阻塞）
             if self.executor:
