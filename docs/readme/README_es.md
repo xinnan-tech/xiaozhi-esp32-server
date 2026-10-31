@@ -168,8 +168,8 @@ Este proyecto ofrece dos formas de despliegue. Elija según lo que necesite:
 #### 🚀 Elección del método de despliegue
 | Método de despliegue | Características | Escenarios | Documentación de despliegue | Requisitos | Tutoriales en vídeo |
 |---------|------|---------|---------|---------|---------|
-| **Instalación simplificada** | Diálogo inteligente, gestión de un solo agente | Entornos con pocos recursos; los datos se guardan en archivos de configuración y no hace falta base de datos | [①Versión Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Despliegue desde el código fuente](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| 2 núcleos y 4 GB si usa `FunASR`; 2 núcleos y 2 GB si todo va por API | - |
-| **Instalación de todos los módulos** | Diálogo inteligente, gestión multiusuario, gestión de varios agentes, uso de la interfaz de la consola inteligente | Experiencia con todas las funciones; los datos se guardan en una base de datos |[①Versión Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Despliegue desde el código fuente](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Tutorial de actualización automática desde el código fuente](../dev-ops-integration.md) | 4 núcleos y 8 GB si usa `FunASR`; 2 núcleos y 4 GB si todo va por API | [Tutorial en vídeo para arrancar el código fuente en local](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
+| **Instalación simplificada** | Diálogo inteligente, gestión de un solo agente | Entornos con pocos recursos; los datos se guardan en archivos de configuración y no hace falta base de datos | [①Versión Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Despliegue desde el código fuente](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| Ejecutar `FunASR` en local consume bastante memoria; si todo va por API, el consumo de recursos es bajo | - |
+| **Instalación de todos los módulos** | Diálogo inteligente, gestión multiusuario, gestión de varios agentes, uso de la interfaz de la consola inteligente | Experiencia con todas las funciones; los datos se guardan en una base de datos |[①Versión Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Despliegue desde el código fuente](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Tutorial de actualización automática desde el código fuente](../dev-ops-integration.md) | Ejecutar `FunASR` en local consume bastante memoria, y además requiere recursos de base de datos; si todo va por API, el consumo de recursos es bajo | [Tutorial en vídeo para arrancar el código fuente en local](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
 Las preguntas frecuentes y los tutoriales relacionados están en [este enlace](../FAQ.md)
 
@@ -210,8 +210,8 @@ Este proyecto incluye las siguientes herramientas para comprobar el sistema y el
 
 | Herramienta | Ubicación | Uso | Qué hace |
 |:---:|:---|:---:|:---:|
-| Prueba de interacción de audio | main》digital-human》index.html | En `main/digital-human`, ejecute `python start.py` y abra `http://127.0.0.1:8006/index.html` | Prueba la reproducción y la recepción de audio, y comprueba que el procesamiento de audio en Python funciona |
-| Prueba de respuesta de los modelos | main》xiaozhi-server》performance_tester.py | Ejecute `python performance_tester.py` | Mide la velocidad de respuesta de los cuatro módulos principales: ASR (reconocimiento de voz), LLM (modelo de lenguaje), VLLM (modelo de visión) y TTS (síntesis de voz) |
+| Prueba de interacción de audio | main》digital-human》index.html | En `main/digital-human`, instale las dependencias como indica su README, después ejecute `python start.py` y abra `http://127.0.0.1:8006/index.html` | Prueba la reproducción y la recepción de audio, y comprueba que el procesamiento de audio en Python funciona |
+| Prueba de respuesta de los modelos | main》xiaozhi-server》performance_tester.py | Ejecute `python performance_tester.py` | Mide la velocidad de respuesta de los principales módulos: ASR (reconocimiento de voz), LLM (modelo de lenguaje), VLLM (modelo de visión) y TTS (síntesis de voz) |
 
 > 💡 Nota: al medir la velocidad de los modelos, solo se prueban los modelos que tienen una clave configurada.
 
@@ -226,15 +226,15 @@ Este proyecto incluye las siguientes herramientas para comprobar el sistema y el
 | Huella de voz | Admite el registro, la gestión y el reconocimiento de la huella de voz de varios usuarios; se procesa en paralelo con el ASR, identifica en tiempo real quién habla y se lo pasa al LLM para una respuesta personalizada |
 | Diálogo inteligente | Admite varios LLM (modelos de lenguaje) para mantener un diálogo inteligente |
 | Percepción visual | Admite varios VLLM (modelos de visión) para una interacción multimodal |
-| Reconocimiento de intención | Admite el reconocimiento de intención con el modelo de lenguaje (LLM) y la llamada autónoma a funciones del modelo, y ofrece un mecanismo de procesamiento de intenciones mediante plugins |
+| Reconocimiento de intención | Admite el reconocimiento de intención con un modelo de lenguaje (LLM) externo y conectable, y la llamada autónoma a funciones del modelo, y ofrece un mecanismo de procesamiento de intenciones mediante plugins |
 | Sistema de memoria | Admite memoria local a corto plazo, memoria por la interfaz mem0ai y memoria inteligente PowerMem, con resumen de la memoria |
 | Base de conocimiento | Admite la base de conocimiento RAGFlow, para que el modelo decida si debe consultarla antes de responder |
 | Llamada a herramientas | Admite el protocolo IOT del cliente, el protocolo MCP del cliente, el protocolo MCP del servidor, el protocolo de punto de acceso MCP y funciones de herramientas personalizadas |
 | Envío de instrucciones | Apoyado en el protocolo MQTT, permite enviar instrucciones MCP desde la consola inteligente a los dispositivos ESP32 |
-| Backend de administración | Ofrece una interfaz web de administración, con gestión de usuarios, configuración del sistema y gestión de dispositivos. La interfaz se muestra en chino simplificado, chino tradicional e inglés |
-| Herramientas de prueba | Incluye herramientas de prueba de rendimiento, de modelos de visión y de interacción de audio |
+| Backend de administración | Ofrece una interfaz web de administración, con gestión de usuarios, configuración del sistema y gestión de dispositivos. La interfaz se muestra en chino simplificado, chino tradicional, inglés, alemán, vietnamita y portugués de Brasil |
+| Herramientas de prueba | Incluye herramientas de prueba de rendimiento y de interacción de audio |
 | Soporte de despliegue | Admite el despliegue con Docker y el despliegue local, y ofrece una gestión completa de los archivos de configuración |
-| Sistema de plugins | Admite extensiones de plugins funcionales, el desarrollo de plugins propios y la carga en caliente de plugins |
+| Sistema de plugins | Admite extensiones de plugins funcionales y el desarrollo de plugins propios; los nuevos archivos de plugin se cargan automáticamente en la siguiente conexión del dispositivo, y los cambios en el código de un plugin ya cargado requieren reiniciar el servicio |
 
 ### En desarrollo 🚧
 
@@ -254,7 +254,7 @@ Xiaozhi es un ecosistema. Al usar este producto, también puede ver otros [proye
 
 | Forma de uso | Plataformas compatibles | Plataformas gratuitas |
 |:---:|:---:|:---:|
-| Llamadas por la interfaz OpenAI | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK | Zhipu, Gemini |
+| Llamadas por la interfaz OpenAI | Alibaba Bailian, Volcano Engine, DeepSeek, Zhipu, Gemini, iFLYTEK, LM Studio | Zhipu, Gemini |
 | Llamadas por la interfaz Ollama | Ollama | - |
 | Llamadas por la interfaz Dify | Dify | - |
 | Llamadas por la interfaz FastGPT | FastGPT | - |
@@ -280,8 +280,8 @@ En la práctica, se puede integrar cualquier VLLM que admita llamadas por la int
 
 | Forma de uso | Plataformas compatibles | Plataformas gratuitas |
 |:---:|:---:|:---:|
-| Llamadas por interfaz | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud y Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, GizwitsTTS, ACGNTTS, OpenAITTS, Lingxi Streaming TTS, MinimaxTTS | Lingxi Streaming TTS, EdgeTTS, CosyVoiceSiliconflow (parcial) |
-| Servicio local | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, Index-TTS, PaddleSpeech | Index-TTS, PaddleSpeech, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
+| Llamadas por interfaz | EdgeTTS, iFLYTEK, Volcano Engine, Tencent Cloud, Alibaba Cloud y Bailian, CosyVoiceSiliconflow, TTS302AI, CozeCnTTS, CustomTTS, OpenAITTS, MinimaxTTS | EdgeTTS, CosyVoiceSiliconflow (parcial) |
+| Servicio local | FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3, IndexStreamTTS, PaddleSpeechTTS | IndexStreamTTS, PaddleSpeechTTS, FishSpeech, GPT_SOVITS_V2, GPT_SOVITS_V3 |
 
 ---
 
@@ -297,8 +297,8 @@ En la práctica, se puede integrar cualquier VLLM que admita llamadas por la int
 
 | Forma de uso | Plataformas compatibles | Plataformas gratuitas |
 |:---:|:---:|:---:|
-| Uso local | FunASR, SherpaASR | FunASR, SherpaASR |
-| Llamadas por interfaz | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud, Baidu Cloud, OpenAI ASR | FunASRServer |
+| Uso local | FunASR, SherpaASR, SherpaParaformerASR, VoskASR | FunASR, SherpaASR, SherpaParaformerASR, VoskASR |
+| Llamadas por interfaz | FunASRServer, Volcano Engine, iFLYTEK, Tencent Cloud, Alibaba Cloud y Bailian, Baidu Cloud, OpenAI ASR, GroqASR, Qwen3ASRFlash | FunASRServer |
 
 ---
 
@@ -306,7 +306,9 @@ En la práctica, se puede integrar cualquier VLLM que admita llamadas por la int
 
 | Forma de uso | Plataformas compatibles | Plataformas gratuitas |
 |:---:|:---:|:---:|
-| Uso local | 3D-Speaker | 3D-Speaker |
+| Llamadas por interfaz | Servicio de reconocimiento de huella de voz (voiceprint-api) | - |
+
+El reconocimiento de huella de voz requiere desplegar por separado el servicio [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) (basado en 3D-Speaker), que depende de MySQL; consulte la [guía de integración de la huella de voz](../voiceprint-integration.md)
 
 ---
 

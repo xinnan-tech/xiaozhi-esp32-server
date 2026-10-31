@@ -6,7 +6,7 @@
 Dự án này dựa trên lý thuyết và công nghệ trí tuệ cộng sinh người-máy để phát triển hệ thống phần mềm và phần cứng thiết bị đầu cuối thông minh<br/>Cung cấp dịch vụ backend cho dự án phần cứng thông minh mã nguồn mở
 <a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a><br/>
 Được triển khai bằng Python, Java, Vue theo <a href="https://ccnphfhqs21z.feishu.cn/wiki/M0XiwldO9iJwHikpXD5cEx71nKh">giao thức truyền thông Xiaozhi</a><br/>
-Hỗ trợ giao thức MQTT+UDP, giao thức Websocket, điểm truy cập MCP, nhận dạng giọng nói và kho tri thức
+Hỗ trợ giao thức MQTT+UDP, giao thức Websocket, điểm truy cập MCP, nhận dạng vân giọng và kho tri thức
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ Spearheaded by Professor Siyuan Liu's Team (South China University of Technology
 </br>
 Được dẫn dắt bởi nhóm Giáo sư Lưu Tư Nguyên (Đại học Bách khoa Nam Trung Quốc)
 </br>
-<img src="../images/hnlg.jpg" alt="华南理工大学" width="50%">
+<img src="../images/hnlg.jpg" alt="Đại học Bách khoa Nam Trung Quốc" width="50%">
 </p>
 
 ---
@@ -55,31 +55,31 @@ Muốn xem hiệu quả sử dụng? Hãy xem video 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
         <picture>
-          <img alt="响应速度感受" src="../images/demo9.png" /></picture>
+          <img alt="Cảm giác tốc độ phản hồi" src="../images/demo9.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
         <picture>
-          <img alt="速度优化秘诀" src="../images/demo6.png" /></picture>
+          <img alt="Bí quyết tối ưu tốc độ" src="../images/demo6.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1WEcxzFEAT" target="_blank">
         <picture>
-          <img alt="小智数字人 支持语音唤醒" src="../images/demo8.png" /></picture>
+          <img alt="Người ảo số Xiaozhi có đánh thức bằng giọng nói" src="../images/demo8.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CKVz6UEuB" target="_blank">
         <picture>
-          <img alt="设备呼叫设备，打电话" src="../images/demo0.png" /></picture>
+          <img alt="Gọi giữa các thiết bị" src="../images/demo0.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
         <picture>
-          <img alt="复杂医疗场景" src="../images/demo1.png" /></picture>
+          <img alt="Tình huống y tế phức tạp" src="../images/demo1.png" /></picture>
       </a>
     </td>
   </tr>
@@ -87,31 +87,31 @@ Muốn xem hiệu quả sử dụng? Hãy xem video 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
         <picture>
-          <img alt="播放音乐查询天气播报新闻" src="../images/demo7.png" /></picture>
+          <img alt="Phát nhạc, tra cứu thời tiết và đọc tin tức" src="../images/demo7.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12J7WzBEaH" target="_blank">
         <picture>
-          <img alt="实时打断" src="../images/demo10.png" /></picture>
+          <img alt="Ngắt giữa chừng theo thời gian thực" src="../images/demo10.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Co76z7EvK" target="_blank">
         <picture>
-          <img alt="拍照识物品" src="../images/demo12.png" /></picture>
+          <img alt="Nhận dạng vật thể qua ảnh chụp" src="../images/demo12.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
         <picture>
-          <img alt="控制家电开关" src="../images/demo5.png" /></picture>
+          <img alt="Bật tắt thiết bị gia dụng" src="../images/demo5.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
         <picture>
-          <img alt="多指令任务" src="../images/demo11.png" /></picture>
+          <img alt="Nhiệm vụ nhiều lệnh" src="../images/demo11.png" /></picture>
       </a>
     </td>
   </tr>
@@ -119,31 +119,31 @@ Muốn xem hiệu quả sử dụng? Hãy xem video 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
         <picture>
-          <img alt="MCP接入点" src="../images/demo13.png" /></picture>
+          <img alt="Điểm truy cập MCP" src="../images/demo13.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
         <picture>
-          <img alt="MQTT指令下发" src="../images/demo4.png" /></picture>
+          <img alt="Gửi lệnh MQTT" src="../images/demo4.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
         <picture>
-          <img alt="声纹识别" src="../images/demo14.png" /></picture>
+          <img alt="Nhận dạng vân giọng" src="../images/demo14.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
         <picture>
-          <img alt="自定义音色" src="../images/demo2.png" /></picture>
+          <img alt="Giọng nói tùy chỉnh" src="../images/demo2.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
         <picture>
-          <img alt="使用粤语交流" src="../images/demo3.png" /></picture>
+          <img alt="Trò chuyện bằng tiếng Quảng Đông" src="../images/demo3.png" /></picture>
       </a>
     </td>
   </tr>
@@ -170,11 +170,11 @@ Dự án này cung cấp hai phương pháp triển khai, vui lòng chọn theo 
 | Phương pháp triển khai | Đặc điểm | Tình huống áp dụng | Tài liệu triển khai | Yêu cầu cấu hình | Video hướng dẫn |
 |---------|------|---------|---------|---------|---------|
 | **Cài đặt tối giản** | Đối thoại thông minh, quản lý đơn tác nhân | Môi trường cấu hình thấp, dữ liệu lưu trong tệp cấu hình, không cần cơ sở dữ liệu | [①Phiên bản Docker](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E5%8F%AA%E8%BF%90%E8%A1%8Cserver) / [②Triển khai mã nguồn](../Deployment.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E5%8F%AA%E8%BF%90%E8%A1%8Cserver)| `FunASR` cục bộ cần nhiều bộ nhớ; dùng toàn API thì mức dùng tài nguyên thấp | - |
-| **Cài đặt toàn bộ module** | Đối thoại thông minh, quản lý đa người dùng, quản lý đa tác nhân, bảng điều khiển thông minh | Trải nghiệm đầy đủ tính năng, dữ liệu lưu trong cơ sở dữ liệu |[①Phiên bản Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Triển khai mã nguồn](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Hướng dẫn tự động cập nhật triển khai mã nguồn](../dev-ops-integration.md) | `FunASR` cục bộ cần nhiều bộ nhớ, thêm tài nguyên cơ sở dữ liệu; dùng toàn API thì mức dùng tài nguyên thấp| [Video hướng dẫn khởi động mã nguồn cục bộ](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
+| **Cài đặt toàn bộ module** | Đối thoại thông minh, quản lý đa người dùng, quản lý đa tác nhân, thao tác qua bảng điều khiển thông minh | Trải nghiệm đầy đủ tính năng, dữ liệu lưu trong cơ sở dữ liệu |[①Phiên bản Docker](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%B8%80docker%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [②Triển khai mã nguồn](../Deployment_all.md#%E6%96%B9%E5%BC%8F%E4%BA%8C%E6%9C%AC%E5%9C%B0%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E5%85%A8%E6%A8%A1%E5%9D%97) / [③Hướng dẫn tự động cập nhật triển khai mã nguồn](../dev-ops-integration.md) | `FunASR` cục bộ cần nhiều bộ nhớ, thêm tài nguyên cơ sở dữ liệu; dùng toàn API thì mức dùng tài nguyên thấp| [Video hướng dẫn khởi động mã nguồn cục bộ](https://www.bilibili.com/video/BV1wBJhz4Ewe) |
 
 Câu hỏi thường gặp và hướng dẫn liên quan, vui lòng tham khảo [liên kết này](../FAQ.md)
 
-> 💡 Gợi ý: Dưới đây là nền tảng thử nghiệm được triển khai theo mã mới nhất, có thể flash để thử nghiệm nếu cần, đồng thời là 6, dữ liệu sẽ được xóa mỗi ngày,
+> 💡 Gợi ý: Dưới đây là nền tảng thử nghiệm được triển khai theo mã mới nhất, có thể flash để thử nghiệm nếu cần, đồng thời là 6, dữ liệu sẽ được xóa mỗi ngày.
 
 ```
 Địa chỉ bảng điều khiển thông minh: https://2662r3426b.vicp.fun
@@ -193,7 +193,7 @@ Công cụ kiểm tra dịch vụ: https://2662r3426b.vicp.fun/test/
 >
 > 2. `Cấu hình streaming`: Phù hợp với demo, đào tạo, hơn 2 đồng thời, v.v., sử dụng công nghệ xử lý streaming, tốc độ phản hồi nhanh hơn, trải nghiệm tốt hơn.
 >
-> Từ phiên bản `0.5.2`, dự án hỗ trợ cấu hình streaming, so với phiên bản đầu, tốc độ phản hồi cải thiện khoảng `2.5 giây`, cải thiện đáng kể trải nghiệm người dùng.
+> Từ phiên bản `0.5.2`, dự án hỗ trợ cấu hình streaming, so với các phiên bản trước đó, tốc độ phản hồi cải thiện khoảng `2.5 giây`, cải thiện đáng kể trải nghiệm người dùng.
 
 | Tên module | Cài đặt miễn phí cho người mới | Cấu hình streaming |
 |:---:|:---:|:---:|
@@ -219,7 +219,7 @@ Dự án này cung cấp các công cụ kiểm tra sau để giúp bạn xác m
 ---
 ## Danh sách tính năng ✨
 ### Đã thực hiện ✅
-![请参考-全模块安装架构图](../images/deploy2.png)
+![Sơ đồ kiến trúc cài đặt đầy đủ các module](../images/deploy2.png)
 | Module chức năng | Mô tả |
 |:---:|:---|
 | Kiến trúc cốt lõi | Dựa trên [cổng MQTT+UDP](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mqtt-gateway-integration.md), WebSocket, máy chủ HTTP, cung cấp hệ thống quản lý bảng điều khiển và xác thực hoàn chỉnh |
@@ -307,9 +307,9 @@ Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện OpenAI đ�
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Gọi giao diện | Dịch vụ nhận dạng giọng nói (voiceprint-api) | - |
+| Gọi giao diện | Dịch vụ nhận dạng vân giọng (voiceprint-api) | - |
 
-Nhận dạng giọng nói theo dấu vân tay cần dịch vụ [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) được triển khai riêng (dựa trên 3D-Speaker) và MySQL. Xem [hướng dẫn tích hợp voiceprint](../voiceprint-integration.md).
+Nhận dạng vân giọng cần dịch vụ [voiceprint-api](https://github.com/xinnan-tech/voiceprint-api) được triển khai riêng (dựa trên 3D-Speaker) và MySQL. Xem [hướng dẫn tích hợp voiceprint](../voiceprint-integration.md).
 
 ---
 
@@ -355,11 +355,10 @@ Nhận dạng giọng nói theo dấu vân tay cần dịch vụ [voiceprint-api
 | <img src="../images/logo_contributors.png" width="160"> | [Người đóng góp mã](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors) | Cảm ơn [tất cả người đóng góp mã](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors), sự cống hiến của bạn khiến dự án mạnh mẽ và vững chắc hơn. |
 
 
-<a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
-
+<a href="https://www.star-history.com/?repos=xinnan-tech%2Fxiaozhi-esp32-server&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&theme=dark&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
  </picture>
 </a>

@@ -55,31 +55,31 @@ Want to see the usage effects? Click the videos below 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1FMFyejExX" target="_blank">
         <picture>
-          <img alt="响应速度感受" src="../images/demo9.png" /></picture>
+          <img alt="The feel of the response speed" src="../images/demo9.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1vchQzaEse" target="_blank">
         <picture>
-          <img alt="速度优化秘诀" src="../images/demo6.png" /></picture>
+          <img alt="The secret to speeding things up" src="../images/demo6.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1WEcxzFEAT" target="_blank">
         <picture>
-          <img alt="小智数字人 支持语音唤醒" src="../images/demo8.png" /></picture>
+          <img alt="Xiaozhi digital human with voice wake-up" src="../images/demo8.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CKVz6UEuB" target="_blank">
         <picture>
-          <img alt="设备呼叫设备，打电话" src="../images/demo0.png" /></picture>
+          <img alt="Device-to-device calling" src="../images/demo0.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1C1tCzUEZh" target="_blank">
         <picture>
-          <img alt="复杂医疗场景" src="../images/demo1.png" /></picture>
+          <img alt="A complex medical scenario" src="../images/demo1.png" /></picture>
       </a>
     </td>
   </tr>
@@ -87,31 +87,31 @@ Want to see the usage effects? Click the videos below 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1VC96Y5EMH" target="_blank">
         <picture>
-          <img alt="播放音乐查询天气播报新闻" src="../images/demo7.png" /></picture>
+          <img alt="Play music, check the weather, and read the news" src="../images/demo7.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12J7WzBEaH" target="_blank">
         <picture>
-          <img alt="实时打断" src="../images/demo10.png" /></picture>
+          <img alt="Real-time interruption" src="../images/demo10.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Co76z7EvK" target="_blank">
         <picture>
-          <img alt="拍照识物品" src="../images/demo12.png" /></picture>
+          <img alt="Take a photo to identify objects" src="../images/demo12.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1pNXWYGEx1" target="_blank">
         <picture>
-          <img alt="控制家电开关" src="../images/demo5.png" /></picture>
+          <img alt="Turn home appliances on and off" src="../images/demo5.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1TJ7WzzEo6" target="_blank">
         <picture>
-          <img alt="多指令任务" src="../images/demo11.png" /></picture>
+          <img alt="Multi-command tasks" src="../images/demo11.png" /></picture>
       </a>
     </td>
   </tr>
@@ -119,31 +119,31 @@ Want to see the usage effects? Click the videos below 🎥
     <td>
       <a href="https://www.bilibili.com/video/BV1ZQKUzYExM" target="_blank">
         <picture>
-          <img alt="MCP接入点" src="../images/demo13.png" /></picture>
+          <img alt="MCP access point" src="../images/demo13.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1zUW5zJEkq" target="_blank">
         <picture>
-          <img alt="MQTT指令下发" src="../images/demo4.png" /></picture>
+          <img alt="MQTT command delivery" src="../images/demo4.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1Exu3zqEDe" target="_blank">
         <picture>
-          <img alt="声纹识别" src="../images/demo14.png" /></picture>
+          <img alt="Voiceprint recognition" src="../images/demo14.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV1CDKWemEU6" target="_blank">
         <picture>
-          <img alt="自定义音色" src="../images/demo2.png" /></picture>
+          <img alt="Custom voice timbre" src="../images/demo2.png" /></picture>
       </a>
     </td>
     <td>
       <a href="https://www.bilibili.com/video/BV12yA2egEaC" target="_blank">
         <picture>
-          <img alt="使用粤语交流" src="../images/demo3.png" /></picture>
+          <img alt="Talking in Cantonese" src="../images/demo3.png" /></picture>
       </a>
     </td>
   </tr>
@@ -218,7 +218,7 @@ This project provides the following testing tools to help you verify the system 
 ---
 ## Feature List ✨
 ### Implemented ✅
-![请参考-全模块安装架构图](../images/deploy2.png)
+![Full-module installation architecture diagram](../images/deploy2.png)
 | Feature Module | Description |
 |:---:|:---|
 | Core Architecture | Based on [MQTT+UDP gateway](https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mqtt-gateway-integration.md), WebSocket and HTTP servers, provides complete console management and authentication system |
@@ -226,10 +226,10 @@ This project provides the following testing tools to help you verify the system 
 | Voiceprint Recognition | Supports multi-user voiceprint registration, management, and recognition, processes in parallel with ASR, real-time speaker identity recognition and passes to LLM for personalized responses |
 | Intelligent Dialogue | Supports multiple LLM(large language models), implements intelligent dialogue |
 | Visual Perception | Supports multiple VLLM(vision large models), implements multimodal interaction |
-| Intent Recognition | Supports LLM intent recognition, Function Call function calling, provides plugin-based intent processing mechanism |
+| Intent Recognition | Supports pluggable external LLM intent recognition and autonomous LLM function calling, provides plugin-based intent processing mechanism |
 | Memory System | Supports local short-term memory, mem0ai interface memory, PowerMem intelligent memory, with memory summarization functionality |
 | Knowledge Base | Supports RAGFlow knowledge base, enabling LLM to judge whether to schedule the knowledge base after receiving the user's question, and then answer the question |
-| Tool Calling | Supports client IOT protocol, client MCP protocol, server MCP protocol, MCP endpoint protocol, custom tool functions |
+| Tool Calling | Supports client IOT protocol, client MCP protocol, server MCP protocol, MCP access point protocol, custom tool functions |
 | Command Delivery | Supports MCP command delivery to ESP32 devices via MQTT protocol from Smart Console |
 | Management Backend | Provides Web management interface, supports user management, system configuration and device management; Supports Simplified Chinese, Traditional Chinese, English, German, Vietnamese and Brazilian Portuguese display |
 | Testing Tools | Provides model response performance testing tools and audio interaction testing tools |
@@ -354,11 +354,10 @@ Voiceprint recognition requires a separately deployed [voiceprint-api](https://g
 | <img src="../images/logo_contributors.png" width="160"> | [Code Contributors](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors) | Thanks to [all code contributors](https://github.com/xinnan-tech/xiaozhi-esp32-server/graphs/contributors), your efforts have made the project more robust and powerful. |
 
 
-<a href="https://star-history.com/#xinnan-tech/xiaozhi-esp32-server&Date">
-
+<a href="https://www.star-history.com/?repos=xinnan-tech%2Fxiaozhi-esp32-server&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xinnan-tech/xiaozhi-esp32-server&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&theme=dark&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xinnan-tech/xiaozhi-esp32-server&type=date&legend=top-left&sealed_token=cQovHKgZjqEnQ-svfYfN392irNvGuq-6pyv4cA8nd2jQEhQLz1ETV4YHTVk2UZyLMFbCQuZA7jduRh3YbeK5WPYaRLrfmIimGQa3lram652jJL9oQk-UuSZA5H6L4dPIhZc8KCc-Ur_UAUNbly7TePpnTR2otGknBLCOjOliD4fk1st6z7tPEDVjSRx5" />
  </picture>
 </a>

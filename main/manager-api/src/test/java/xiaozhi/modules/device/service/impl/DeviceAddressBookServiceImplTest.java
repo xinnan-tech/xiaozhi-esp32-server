@@ -1,5 +1,6 @@
 package xiaozhi.modules.device.service.impl;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.ibatis.exceptions.TooManyResultsException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
@@ -75,7 +77,7 @@ class DeviceAddressBookServiceImplTest {
                 addressBookDao, redisUtils, deviceService, sysParamsService);
         when(addressBookDao.selectOne(any())).thenReturn(null);
         when(addressBookDao.selectList(null)).thenReturn(List.of());
-        when(deviceService.getDeviceByMacAddress(OTHER_MAC)).thenReturn(null);
+        when(deviceService.getOwnedDeviceByMacAddress(anyString())).thenReturn(null);
 
         service.saveOrUpdate(MAC, OTHER_MAC, null, true);
 
@@ -85,10 +87,11 @@ class DeviceAddressBookServiceImplTest {
         assertNotNull(entity.getAlias());
         assertEquals("尾号为66的设备", entity.getAlias());
         assertTrue(entity.getHasPermission());
+        verify(deviceService, never()).getOwnedDeviceByMacAddress(anyString());
     }
 
     @Test
-    void blankAliasOnRegisteredTargetWithoutNicknameFallsBackToMacSuffix() {
+    void blankAliasOnAnotherDeviceFallsBackToMacSuffixWithoutAskingTheDeviceTable() {
         DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
         RedisUtils redisUtils = mock(RedisUtils.class);
         DeviceService deviceService = mock(DeviceService.class);
@@ -101,6 +104,7 @@ class DeviceAddressBookServiceImplTest {
         registered.setMacAddress(OTHER_MAC);
         registered.setAlias(null);
         when(deviceService.getDeviceByMacAddress(OTHER_MAC)).thenReturn(registered);
+        when(deviceService.getOwnedDeviceByMacAddress(OTHER_MAC)).thenReturn(registered);
 
         service.saveOrUpdate(MAC, OTHER_MAC, null, true);
 
@@ -108,6 +112,171 @@ class DeviceAddressBookServiceImplTest {
         verify(addressBookDao).insertAddressBook(entityCaptor.capture());
         assertEquals("尾号为66的设备", entityCaptor.getValue().getAlias(),
                 "登记了但没起名的设备落个空名，缓存刷新会跳过这条，对方永远呼不过来");
+        verify(deviceService, never()).getDeviceByMacAddress(anyString());
+        verify(deviceService, never()).getOwnedDeviceByMacAddress(anyString());
+    }
+
+    @Test
+    void blankAliasOnRegisteredTargetDoesNotTakeOverTheirNickname() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceService deviceService = mock(DeviceService.class);
+        SysParamsService sysParamsService = mock(SysParamsService.class);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, deviceService, sysParamsService);
+        when(addressBookDao.selectOne(any())).thenReturn(null);
+        when(addressBookDao.selectList(null)).thenReturn(List.of());
+        DeviceEntity theirs = new DeviceEntity();
+        theirs.setMacAddress(OTHER_MAC);
+        theirs.setAlias("老王的音响");
+        when(deviceService.getDeviceByMacAddress(OTHER_MAC)).thenReturn(theirs);
+        when(deviceService.getOwnedDeviceByMacAddress(OTHER_MAC)).thenReturn(theirs);
+
+        service.saveOrUpdate(MAC, OTHER_MAC, null, true);
+
+        ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
+        verify(addressBookDao).insertAddressBook(entityCaptor.capture());
+        assertEquals("尾号为66的设备", entityCaptor.getValue().getAlias(),
+                "对方在智控台上给这台设备起的名字被抄进了调用方的通讯录");
+        verify(deviceService, never()).getDeviceByMacAddress(anyString());
+        verify(deviceService, never()).getOwnedDeviceByMacAddress(anyString());
+    }
+
+    @Test
+    void blankAliasOnOwnDeviceUsesTheNameFromItsOwnDeviceRow() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceService deviceService = mock(DeviceService.class);
+        SysParamsService sysParamsService = mock(SysParamsService.class);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, deviceService, sysParamsService);
+        when(addressBookDao.selectOne(any())).thenReturn(null);
+        when(addressBookDao.selectList(null)).thenReturn(List.of());
+        DeviceEntity mine = new DeviceEntity();
+        mine.setMacAddress(MAC);
+        mine.setAlias("我的书房");
+        when(deviceService.getOwnedDeviceByMacAddress(MAC)).thenReturn(mine);
+
+        service.saveOrUpdate(MAC, MAC, null, true);
+
+        ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
+        verify(addressBookDao).insertAddressBook(entityCaptor.capture());
+        assertEquals("我的书房", entityCaptor.getValue().getAlias(),
+                "给自己那台设备起名，用的就是自己设备表里的名字");
+    }
+
+    @Test
+    void ownDeviceWithoutAliasInDeviceTableFallsBackToMacSuffix() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceService deviceService = mock(DeviceService.class);
+        SysParamsService sysParamsService = mock(SysParamsService.class);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, deviceService, sysParamsService);
+        when(addressBookDao.selectOne(any())).thenReturn(null);
+        when(addressBookDao.selectList(null)).thenReturn(List.of());
+        DeviceEntity mine = new DeviceEntity();
+        mine.setMacAddress(MAC);
+        mine.setAlias(null);
+        when(deviceService.getOwnedDeviceByMacAddress(MAC)).thenReturn(mine);
+
+        service.saveOrUpdate(MAC, MAC, null, true);
+
+        ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
+        verify(addressBookDao).insertAddressBook(entityCaptor.capture());
+        assertEquals("尾号为55的设备", entityCaptor.getValue().getAlias(),
+                "自己的设备在设备表里也没起名，落个空名的话缓存刷新会跳过这条");
+    }
+
+    @Test
+    void duplicateDeviceRowsDifferingOnlyInCaseDoNotBreakNaming() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceService deviceService = mock(DeviceService.class);
+        SysParamsService sysParamsService = mock(SysParamsService.class);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, deviceService, sysParamsService);
+        when(addressBookDao.selectOne(any())).thenReturn(null);
+        when(addressBookDao.selectList(null)).thenReturn(List.of());
+        // 设备表里同一个 MAC 有两行只差大小写，一次只准取一条的那种查法会直接抛异常
+        when(deviceService.getDeviceByMacAddress(anyString()))
+                .thenThrow(new TooManyResultsException("selectOne 撞上两行只差大小写的数据"));
+        DeviceEntity first = new DeviceEntity();
+        first.setMacAddress(MAC);
+        first.setAlias("我的书房");
+        when(deviceService.getOwnedDeviceByMacAddress(MAC)).thenReturn(first);
+
+        assertDoesNotThrow(() -> service.saveOrUpdate(MAC, MAC, null, true),
+                "同 MAC 有两行只差大小写时，取名不能把整个接口带崩");
+
+        ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
+        verify(addressBookDao).insertAddressBook(entityCaptor.capture());
+        assertEquals("我的书房", entityCaptor.getValue().getAlias(),
+                "撞行时按 id 取第一条那条的名字");
+    }
+
+    @Test
+    void ownDeviceIsRecognizedWhateverCaseTheAddressIsWrittenIn() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceService deviceService = mock(DeviceService.class);
+        SysParamsService sysParamsService = mock(SysParamsService.class);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, deviceService, sysParamsService);
+        when(addressBookDao.selectOne(any())).thenReturn(null);
+        when(addressBookDao.selectList(null)).thenReturn(List.of());
+        DeviceEntity mine = new DeviceEntity();
+        mine.setMacAddress(HEX_MAC);
+        mine.setAlias("我的书房");
+        when(deviceService.getOwnedDeviceByMacAddress(HEX_MAC)).thenReturn(mine);
+
+        service.saveOrUpdate(HEX_MAC, HEX_MAC.toUpperCase(), null, true);
+
+        ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
+        verify(addressBookDao).insertAddressBook(entityCaptor.capture());
+        assertEquals("我的书房", entityCaptor.getValue().getAlias(),
+                "同一个地址写成大小写两种样子，就被当成别人的设备了");
+    }
+
+    @Test
+    void explicitAliasIsKeptAsIs() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceService deviceService = mock(DeviceService.class);
+        SysParamsService sysParamsService = mock(SysParamsService.class);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, deviceService, sysParamsService);
+        when(addressBookDao.selectOne(any())).thenReturn(null);
+        when(addressBookDao.selectList(null)).thenReturn(List.of());
+
+        service.saveOrUpdate(MAC, OTHER_MAC, "客厅", true);
+
+        ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
+        verify(addressBookDao).insertAddressBook(entityCaptor.capture());
+        assertEquals("客厅", entityCaptor.getValue().getAlias(),
+                "自己给别人的设备起名是通讯录的本意，不能被兜底逻辑改掉");
+        verify(deviceService, never()).getDeviceByMacAddress(anyString());
+        verify(deviceService, never()).getOwnedDeviceByMacAddress(anyString());
+    }
+
+    @Test
+    void blankAliasOnUnregisteredTargetDoesNotBlowUp() {
+        DeviceAddressBookDao addressBookDao = mock(DeviceAddressBookDao.class);
+        RedisUtils redisUtils = mock(RedisUtils.class);
+        DeviceService deviceService = mock(DeviceService.class);
+        SysParamsService sysParamsService = mock(SysParamsService.class);
+        DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
+                addressBookDao, redisUtils, deviceService, sysParamsService);
+        when(addressBookDao.selectOne(any())).thenReturn(null);
+        when(addressBookDao.selectList(null)).thenReturn(List.of());
+        when(deviceService.getOwnedDeviceByMacAddress(anyString())).thenReturn(null);
+
+        assertDoesNotThrow(() -> service.saveOrUpdate(MAC, OTHER_MAC, null, true),
+                "目标设备没登记时接口得正常返回，不能抛异常");
+
+        ArgumentCaptor<DeviceAddressBookEntity> entityCaptor = ArgumentCaptor.forClass(DeviceAddressBookEntity.class);
+        verify(addressBookDao).insertAddressBook(entityCaptor.capture());
+        assertEquals("尾号为66的设备", entityCaptor.getValue().getAlias());
     }
 
     @Test
@@ -325,7 +494,7 @@ class DeviceAddressBookServiceImplTest {
         DeviceService deviceService = mock(DeviceService.class);
         when(addressBookDao.selectOne(any())).thenReturn(null);
         when(addressBookDao.selectList(null)).thenReturn(List.of());
-        when(deviceService.getDeviceByMacAddress(anyString())).thenReturn(null);
+        when(deviceService.getOwnedDeviceByMacAddress(anyString())).thenReturn(null);
         DeviceAddressBookServiceImpl service = new DeviceAddressBookServiceImpl(
                 addressBookDao, redisUtils, deviceService, mock(SysParamsService.class));
 
