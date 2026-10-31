@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from core.connection import ConnectionHandler
 from core.utils.util import audio_to_data
 from core.handle.abortHandle import handleAbortMessage
+from core.utils.s2s import s2s_selected, s2s_on_text
 from core.handle.intentHandler import handle_user_intent
 from core.utils.output_counter import check_device_output_limit
 from core.handle.sendAudioHandle import send_stt_message, SentenceType
@@ -41,6 +42,9 @@ async def resume_vad_detection(conn: "ConnectionHandler"):
 
 
 async def startToChat(conn: "ConnectionHandler", text):
+    if conn.s2s is not None or s2s_selected(conn):
+        await s2s_on_text(conn, text)  # S2S 模式：文字（唤醒词 / 文字消息 / 结束语）交给语音模型；provider 还没建成就先排队
+        return
     # 检查输入是否是JSON格式（包含说话人信息）
     speaker_name = None
     actual_text = text

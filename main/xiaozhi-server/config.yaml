@@ -249,6 +249,9 @@ selected_module:
   # 意图识别可使用function_call，缺点：需要所选择的LLM支持function_call，优点：按需调用工具、速度快，理论上能全部操作所有iot指令
   # 默认免费的ChatGLMLLM就已经支持function_call，但是如果像追求稳定建议把LLM设置成：DoubaoLLM，使用的具体model_name是：doubao-seed-2-0-lite-260215
   Intent: function_call
+  # 语音进、语音出的全双工大脑（见下面的 S2S 配置块）；不填或留空 = 原版 VAD→ASR→LLM→TTS 级联。
+  # 选中后本连接不再初始化 TTS / ASR；上游会话握手失败会自动回退到级联，设备无感。
+  # S2S: OpenAIRealtime
 
 # 意图识别，是用于理解用户意图的模块，例如：播放音乐
 Intent:
@@ -767,6 +770,47 @@ VLLM:
     base_url: https://ark.cn-beijing.volces.com/api/v3
     model_name: lite
     api_key: 你的api_password
+# #####################################################################################
+# ##########################以下是语音进语音出（S2S）模型配置#################################
+# S2S（speech-to-speech）provider 把 VAD→ASR→LLM→TTS 中间那一格换成一个自己判轮次、自己出声、能被打断的实时语音模型。
+# 设备协议不变；工具（服务端插件 / server_mcp / 设备 MCP / MCP 接入点）照用 Intent=function_call 的统一工具处理器；
+# 转写写进对话历史，记忆模块照常保存。详见 docs/s2s-provider-integration.md。
+S2S:
+  OpenAIRealtime:
+    type: openai_realtime
+    # OpenAI 平台的 API key（platform.openai.com），直连 wss://api.openai.com/v1/realtime
+    api_key: 你的OpenAI平台密钥
+    url: wss://api.openai.com/v1/realtime
+    model_name: gpt-realtime
+    voice: marin
+    # 用户说话的转写模型（给设备显示、写进对话历史和记忆）
+    transcribe_model: gpt-4o-mini-transcribe
+    # 轮次检测：server_vad（静音满 vad_silence_ms 判停）或 semantic_vad（按语义判，vad_eagerness: low/medium/high/auto）
+    turn_detection: server_vad
+    vad_threshold: 0.5
+    vad_silence_ms: 400
+    vad_eagerness: auto
+    # 握手限时（秒）：超时就回退到原版级联
+    connect_timeout_s: 4
+    # 模型最后一次真的出声回答之后多少秒没有新回答就关连接（设备回待机）；0 = 不按空闲关闭
+    idle_close_s: 45
+    # 唤醒词的应答指令；留空则唤醒时不让模型开口
+    wake_greeting: 用户刚叫醒你，只用两三个字回应，比如“我在”。
+    # 残余回声门控：设备端 AEC 之后仍会漏一点播放回声，模型侧 VAD 会把它当成用户开口并打断自己。
+    # 需要上游 VAD 的 silero onnx 模型（selected_module.VAD 的 model_dir）；模型不在时只用能量判据。
+    echo_gate: true
+    gate_lag_prior_ms: 200
+    gate_lag_max_ms: 1200
+    # 本地插话：门控连续 N 帧判为人声就本地停播（比等模型侧 VAD 快）；0 = 关闭
+    local_barge: true
+    local_barge_frames: 3
+    # 工具白名单（空 = 全部）与每会话每分钟调用上限
+    tools_allow: []
+    tool_calls_per_minute: 12
+    # 调试：日志里记转写正文（默认不记）
+    log_text: false
+
+
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
