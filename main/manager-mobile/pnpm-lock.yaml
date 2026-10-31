@@ -11,6 +11,9 @@ patchedDependencies:
   '@dcloudio/uni-h5':
     hash: 5763725268e9a493075be3c82d91b590b9ae30e997a04a418494dd7d6d327b9d
     path: patches/@dcloudio__uni-h5.patch
+  sm-crypto@0.5.8:
+    hash: 134528f8afad01074c99f1aca5fe3807eedd510809c6b845233cd81452f6177c
+    path: patches/sm-crypto@0.5.8.patch
 
 importers:
 
@@ -92,8 +95,8 @@ importers:
         specifier: 3.2.1
         version: 3.2.1(pinia@2.0.36(typescript@5.7.2)(vue@3.5.15(typescript@5.7.2)))
       sm-crypto:
-        specifier: ^0.3.13
-        version: 0.3.14
+        specifier: ^0.5.8
+        version: 0.5.8(patch_hash=134528f8afad01074c99f1aca5fe3807eedd510809c6b845233cd81452f6177c)
       vue:
         specifier: ^3.4.21
         version: 3.5.15(typescript@5.7.2)
@@ -6026,8 +6029,8 @@ packages:
     resolution: {integrity: sha512-bSiSngZ/jWeX93BqeIAbImyTbEihizcwNjFoRUIY/T1wWQsfsm2Vw1agPKylXvQTU7iASGdHhyqRlqQzfz+Htg==}
     engines: {node: '>=18'}
 
-  sm-crypto@0.3.14:
-    resolution: {integrity: sha512-sR7NuGAJH93Om8keAF2/rj1EqFzEiUey4aKGyDo3nQ2BiVqhgq8UkiIoIp5qhV9w4pG7qArhfqyewcG8AbhXbg==}
+  sm-crypto@0.5.8:
+    resolution: {integrity: sha512-bpz1/PthgZHcLHyIl28mbYZHmeuTDrdWpwHZ7BGzFjQuB7OOhjlbcPEMt44aqUfZ2S5YJXM8v20xYO1j9CC45Q==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -14156,7 +14159,7 @@ snapshots:
       ansi-styles: 6.2.1
       is-fullwidth-code-point: 5.0.0
 
-  sm-crypto@0.3.14:
+  sm-crypto@0.5.8(patch_hash=134528f8afad01074c99f1aca5fe3807eedd510809c6b845233cd81452f6177c):
     dependencies:
       jsbn: 1.1.0
 

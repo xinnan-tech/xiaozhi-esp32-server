@@ -1,0 +1,28 @@
+diff --git a/src/sm2/rng.js b/src/sm2/rng.js
+index c6572c1756579fb100c0d7bdf0cec323971ec211..2ccb9f9c69b6b38b4a10d1b37dee1c50ccadb5f4 100644
+--- a/src/sm2/rng.js
++++ b/src/sm2/rng.js
+@@ -55,7 +55,14 @@ function rngSeedTime() {
+ }
+ 
+ // Initialize the pool with junk if needed.
+-if (rngPool == null) {
++// [xiaozhi patch] 熵池初始化从模块加载时推迟到首次取随机字节时（见 rngGetByte）。
++// 原因：微信小程序等环境没有同步的 crypto.getRandomValues，模块加载即取熵会直接抛异常；
++// 推迟后，调用方可在首次使用前异步准备好真随机源（见 manager-mobile/src/utils/secure-random.ts）。
++// fail-closed 语义保持不变：首次取熵时仍要求存在可用的 crypto.getRandomValues，否则抛出异常。
++function ensureRngPool() {
++  if (rngPool != null)
++    return
++
+   rngPool = []
+   rngPptr = 0
+   let t
+@@ -82,6 +89,7 @@ if (rngPool == null) {
+ 
+ function rngGetByte() {
+   if (rngState == null) {
++    ensureRngPool()
+     rngSeedTime()
+     rngState = new Arcfour()
+     rngState.init(rngPool)
