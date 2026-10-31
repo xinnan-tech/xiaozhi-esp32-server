@@ -22,6 +22,7 @@ from core.utils.util import (
 )
 from typing import Dict, Any
 from collections import deque
+from core.utils.device_overrides import apply_device_overrides
 from core.utils.modules_initialize import (
     initialize_modules,
     initialize_tts,
@@ -219,6 +220,9 @@ class ConnectionHandler:
             )
 
             self.device_id = self.headers.get("device-id", None)
+            # 按设备覆盖（data/devices.yaml）：选大脑 / 提示词 / LLM / TTS，见 docs/device-overrides.md。
+            # 放在拿到 device-id 的第一时间，后面的消息处理（唤醒词、组件初始化）都能看到覆盖后的配置
+            apply_device_overrides(self)
 
             # 认证通过,继续处理
             self.websocket = ws
