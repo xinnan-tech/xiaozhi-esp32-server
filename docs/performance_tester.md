@@ -70,3 +70,9 @@ python performance_tester.py
 `AliBLTTS` 和 `XunFeiTTS` 这两项默认带的 key 是占位符，不在 `.config.yaml` 里换成自己的 key 就会报失败；想直接跳过，把这两项在 `.config.yaml` 里写成空的（键名下面不填内容）就行。
 
 标了「无条件调用」的这几个（`AliyunStreamTTS`、`HuoshanDoubleStreamTTS`、`PaddleSpeechTTS`、`IndexStreamTTS`），供应器缺失或被清空时，那一项会报错，错误被测试方法内部的异常处理吃掉，这一项被记成失败 —— 结果表里会多出一行失败记录，但不影响其它项。带守卫的那几家（`AliBLTTS`、`XunFeiTTS`、`LinkeraiTTS`）是整项跳过：没配就不报错、结果表里也不会有这一行。
+
+## 设备协议 E2E 模拟器
+
+`performance_tester_device.py` 不测供应器延迟，而是按真实设备协议（`hello` → `listen` → opus 帧 → `listen stop`）连接服务端，验证 ASR → 工具/大模型 → TTS 全链路是否响应，适合复现「设备说话后无反应」类问题。用法、认证与限制见 [device-protocol-simulator.md](device-protocol-simulator.md)。
+
+需要真实麦克风/扬声器的多轮交互自测（打断、语料注入、时延面板），用交互式 TUI `device_simulator_tui.py`（引擎 `device_simulator.py`，也可无头跑回归场景），见 [device-simulator-tui.md](device-simulator-tui.md)。
