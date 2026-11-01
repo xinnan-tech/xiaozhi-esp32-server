@@ -98,7 +98,7 @@ export class WebSocketHandler {
         if (message.type === 'hello') {
             log(`服务器回应：${JSON.stringify(message, null, 2)}`, 'success');
             window.cameraAvailable = true;
-            log('连接成功，摄像头已可用', 'success');
+            log('连接成功，Camera已可用', 'success');
             uiController.updateDialButton(true);
 
             this._sendWakeupMessages(message.session_id);
@@ -112,19 +112,19 @@ export class WebSocketHandler {
             log(`识别结果: ${message.text}`, 'info');
             // 检查是否需要绑定设备
             if (message.text && (message.text.includes('绑定') || message.text.includes('bind'))) {
-                log('收到设备绑定提示，更新摄像头状态', 'warning');
+                log('收到设备绑定提示，更新Camera状态', 'warning');
                 window.cameraAvailable = false;
-                // 关闭摄像头
+                // TắtCamera
                 if (typeof window.stopCamera === 'function') {
                     window.stopCamera();
                 }
-                // 更新摄像头按钮状态
+                // 更新Camera按钮状态
                 const cameraBtn = document.getElementById('cameraBtn');
                 if (cameraBtn) {
                     cameraBtn.classList.remove('camera-active');
-                    cameraBtn.querySelector('.btn-text').textContent = '摄像头';
+                    cameraBtn.querySelector('.btn-text').textContent = 'Camera';
                     cameraBtn.disabled = true;
-                    cameraBtn.title = '请先绑定验证码';
+                    cameraBtn.title = 'Vui lòng liên kết mã xác minh trước';
                 }
             }
             // 使用新的聊天消息回调显示STT消息
@@ -256,7 +256,7 @@ export class WebSocketHandler {
             if (live2dManager) {
                 // 初始化音频分析器（使用音频播放器的上下文）
                 if (live2dManager.initializeAudioAnalyzer()) {
-                    log('Live2D音频分析器初始化完成，已连接到音频播放器', 'success');
+                    log('Live2D音频分析器初始化完成，Đã kết nối到音频播放器', 'success');
                 } else {
                     log('Live2D音频分析器初始化失败，将使用模拟动画', 'warning');
                 }
@@ -413,7 +413,7 @@ export class WebSocketHandler {
             // 设置 MCP 模块的 WebSocket 实例
             setMcpWebSocket(this.websocket);
 
-            // 设置录音器的WebSocket
+            // 设置Ghi âm器的WebSocket
             const audioRecorder = getAudioRecorder();
             audioRecorder.setWebSocket(this.websocket);
 
@@ -433,7 +433,7 @@ export class WebSocketHandler {
     setupEventHandlers() {
         this.websocket.onopen = async () => {
             const url = document.getElementById('serverUrl').value;
-            log(`已连接到服务器: ${url}`, 'success');
+            log(`Đã kết nối到服务器: ${url}`, 'success');
 
             if (this.onConnectionStateChange) {
                 this.onConnectionStateChange(true);
@@ -461,12 +461,12 @@ export class WebSocketHandler {
             const audioRecorder = getAudioRecorder();
             audioRecorder.stop();
 
-            // 关闭摄像头
+            // TắtCamera
             if (typeof window.stopCamera === 'function') {
                 window.stopCamera();
             }
 
-            // 隐藏摄像头显示区域
+            // 隐藏Camera显示区域
             const cameraContainer = document.getElementById('cameraContainer');
             if (cameraContainer) {
                 cameraContainer.classList.remove('active');
@@ -505,12 +505,12 @@ export class WebSocketHandler {
         const audioRecorder = getAudioRecorder();
         audioRecorder.stop();
 
-        // 关闭摄像头
+        // TắtCamera
         if (typeof window.stopCamera === 'function') {
             window.stopCamera();
         }
 
-        // 隐藏摄像头显示区域
+        // 隐藏Camera显示区域
         const cameraContainer = document.getElementById('cameraContainer');
         if (cameraContainer) {
             cameraContainer.classList.remove('active');
@@ -574,7 +574,7 @@ export class WebSocketHandler {
         return this.websocket;
     }
 
-    // 检查是否已连接
+    // 检查是否Đã kết nối
     isConnected() {
         return this.websocket && this.websocket.readyState === WebSocket.OPEN;
     }
