@@ -74,3 +74,5 @@ python performance_tester.py
 ## 设备协议 E2E 模拟器
 
 `performance_tester_device.py` 不测供应器延迟，而是按真实设备协议（`hello` → `listen` → opus 帧 → `listen stop`）连接服务端，验证 ASR → 工具/大模型 → TTS 全链路是否响应，适合复现「设备说话后无反应」类问题。用法、认证与限制见 [device-protocol-simulator.md](device-protocol-simulator.md)。
+
+需要真实麦克风/扬声器的多轮交互自测（打断、语料注入、时延面板），用交互式 TUI `device_simulator_tui.py`（引擎 `device_simulator.py`，也可无头跑回归场景），见 [device-simulator-tui.md](device-simulator-tui.md)。

@@ -2,7 +2,7 @@
 
 `performance_tester/performance_tester_device.py` 用真实设备协议（`hello` → `listen` → `opus` 音频帧 → `listen stop`）连接 xiaozhi-server，用于回归验证「设备说话后无反应」这类端到端问题：服务端到底有没有完成 ASR、有没有触发工具/大模型、有没有下发 TTS。
 
-它不替代固件测试：不涉及麦克风/扬声器声学链路，也不验证固件看门狗与重连逻辑。
+它不替代固件测试：不涉及麦克风/扬声器声学链路，也不验证固件看门狗与重连逻辑。需要真实麦克风/扬声器交互式多轮自测时，用同族的交互式模拟器 `performance_tester/device_simulator_tui.py`（见 `docs/device-simulator-tui.md`）。
 
 ## 快速开始
 
@@ -74,7 +74,7 @@ python performance_tester.py
 
 `performance_tester/performance_tester_device.py` connects to xiaozhi-server using the real device protocol (`hello` → `listen` → Opus frames → `listen stop`) to reproduce and verify end-to-end "device says something, server never responds" issues: did ASR produce text, did the tool/LLM run, did TTS audio come back?
 
-It is **not** a firmware or acoustic test: microphone/speaker paths, watchdog and reconnect behavior are out of scope.
+It is **not** a firmware or acoustic test: microphone/speaker paths, watchdog and reconnect behavior are out of scope. For interactive multi-turn self-testing with a real microphone/speaker, use the TUI sibling `performance_tester/device_simulator_tui.py` (see `docs/device-simulator-tui.md`).
 
 ## Quick start
 
