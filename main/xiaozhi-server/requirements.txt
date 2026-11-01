@@ -13,7 +13,7 @@ pydub==0.25.1
 funasr==1.4.16
 # transformers>=5 要求 torch>=2.6，与本项目 torch 2.2.2 冲突（会禁用 PyTorch，fun_local 加载不了模型）
 transformers<5
-openai==2.8.1
+openai==3.41.0
 google-generativeai==0.8.6
 edge_tts==7.3.1
 httpx==0.28.1
@@ -25,17 +25,17 @@ loguru==0.7.3
 requests==2.34.2
 cozepy==0.20.0
 mem0ai==2.2.1
-powermem>=0.3.1
+powermem>=1.1.7
 bs4==0.0.2
 modelscope==1.40.2
 sherpa_onnx==1.13.8
 mcp==2.3.0
 cnlunar==0.2.5
 PySocks==1.7.1
-dashscope==1.27.7
+dashscope==2.0.2
 baidu-aip==4.16.13
 aioconsole==0.8.2
-markitdown==0.1.8
+markitdown==0.1.9
 mcp-proxy==0.12.0
 PyJWT==2.15.1
 psutil==7.2.2
