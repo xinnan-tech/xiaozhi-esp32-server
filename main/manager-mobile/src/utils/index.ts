@@ -11,9 +11,9 @@ import { ensureSecureRandomReady } from './secure-random'
  * 小程序等环境没有该 API，项目中通过 pnpm patch（patches/sm-crypto@0.5.8.patch）
  * 将 sm-crypto 的熵池初始化推迟到首次取随机字节时，并由 secure-random.ts 提供
  * 垫片。因此小程序端首次调用 sm2 前必须 await 本方法，用 wx.getRandomValues
- * 预热真随机缓冲池；浏览器 / App WebView 原生支持时立即就绪。
+ * 预热真随机缓冲池；浏览器 / Node 等原生支持 globalThis.crypto 的环境立即就绪。
  */
-async function getSm2(): Promise<any> {
+async function getSm2(): Promise<typeof smCrypto.sm2> {
   await ensureSecureRandomReady()
   return smCrypto.sm2
 }

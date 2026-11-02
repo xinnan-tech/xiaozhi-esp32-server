@@ -1,11 +1,12 @@
 diff --git a/src/sm2/rng.js b/src/sm2/rng.js
-index c6572c1756579fb100c0d7bdf0cec323971ec211..2ccb9f9c69b6b38b4a10d1b37dee1c50ccadb5f4 100644
+index c6572c1756579fb100c0d7bdf0cec323971ec211..cdb1f1fcc7d58c52138f6f9fd76240bae5dde5d4 100644
 --- a/src/sm2/rng.js
 +++ b/src/sm2/rng.js
-@@ -55,7 +55,14 @@ function rngSeedTime() {
+@@ -54,8 +54,14 @@ function rngSeedTime() {
+   rngSeedInt(new Date().getTime())
  }
  
- // Initialize the pool with junk if needed.
+-// Initialize the pool with junk if needed.
 -if (rngPool == null) {
 +// [xiaozhi patch] 熵池初始化从模块加载时推迟到首次取随机字节时（见 rngGetByte）。
 +// 原因：微信小程序等环境没有同步的 crypto.getRandomValues，模块加载即取熵会直接抛异常；
@@ -18,7 +19,7 @@ index c6572c1756579fb100c0d7bdf0cec323971ec211..2ccb9f9c69b6b38b4a10d1b37dee1c50
    rngPool = []
    rngPptr = 0
    let t
-@@ -82,6 +89,7 @@ if (rngPool == null) {
+@@ -82,6 +88,7 @@ if (rngPool == null) {
  
  function rngGetByte() {
    if (rngState == null) {

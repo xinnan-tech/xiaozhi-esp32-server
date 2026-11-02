@@ -120,6 +120,9 @@ export default defineManifestConfig({
   /* 小程序特有相关 */
   'mp-weixin': {
     appid: VITE_WX_APPID,
+    // 最低基础库：wx.getRandomValues 要求 >= 2.17.3（sm-crypto 0.5.x 的
+    // 随机源垫片依赖该 API），低于此版本的客户端将无法完成登录加密
+    libVersion: '2.19.4',
     setting: {
       urlCheck: false,
       // 是否启用 ES6 转 ES5

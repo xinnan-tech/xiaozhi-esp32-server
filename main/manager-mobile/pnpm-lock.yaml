@@ -12,7 +12,7 @@ patchedDependencies:
     hash: 5763725268e9a493075be3c82d91b590b9ae30e997a04a418494dd7d6d327b9d
     path: patches/@dcloudio__uni-h5.patch
   sm-crypto@0.5.8:
-    hash: 134528f8afad01074c99f1aca5fe3807eedd510809c6b845233cd81452f6177c
+    hash: 62930665cf9612107916df2f12c9deab4ad907f6ac9080520b84bffe016c3352
     path: patches/sm-crypto@0.5.8.patch
 
 importers:
@@ -95,8 +95,8 @@ importers:
         specifier: 3.2.1
         version: 3.2.1(pinia@2.0.36(typescript@5.7.2)(vue@3.5.15(typescript@5.7.2)))
       sm-crypto:
-        specifier: ^0.5.8
-        version: 0.5.8(patch_hash=134528f8afad01074c99f1aca5fe3807eedd510809c6b845233cd81452f6177c)
+        specifier: 0.5.8
+        version: 0.5.8(patch_hash=62930665cf9612107916df2f12c9deab4ad907f6ac9080520b84bffe016c3352)
       vue:
         specifier: ^3.4.21
         version: 3.5.15(typescript@5.7.2)
@@ -14159,7 +14159,7 @@ snapshots:
       ansi-styles: 6.2.1
       is-fullwidth-code-point: 5.0.0
 
-  sm-crypto@0.5.8(patch_hash=134528f8afad01074c99f1aca5fe3807eedd510809c6b845233cd81452f6177c):
+  sm-crypto@0.5.8(patch_hash=62930665cf9612107916df2f12c9deab4ad907f6ac9080520b84bffe016c3352):
     dependencies:
       jsbn: 1.1.0
 

@@ -42,9 +42,12 @@ function getGlobalObj(): Record<string, any> | null {
 
 function hasNativeGetRandomValues(): boolean {
   try {
-    return typeof window !== 'undefined'
-      && !!window.crypto
-      && typeof window.crypto.getRandomValues === 'function'
+    // 探测 globalThis.crypto（而非仅 window.crypto）：Node、uni-app h5:ssr
+    // 等运行时有原生 CSPRNG 但没有 window，误判会导致走垫片分支，
+    // 而 installShim 发现 globalThis.crypto 已可用时不会安装，最终误报不支持
+    const globalObj = getGlobalObj()
+    return !!globalObj?.crypto
+      && typeof globalObj.crypto.getRandomValues === 'function'
   }
   catch {
     return false
@@ -113,12 +116,31 @@ function scheduleRefill() {
     return
   refillInFlight = true
   refillPool(256)
-    .catch(() => {
-      // 尽力而为的补充；缓冲池仍够用时静默失败，不足时由 getRandomValues 抛错兜底
+    .catch((err) => {
+      // 尽力而为的补充；缓冲池仍够用时静默失败，不足时由 getRandomValues 抛错兜底。
+      // 但要留下原始错误，避免池耗尽后只剩"缓冲池未就绪"而无根因可查
+      console.warn('[secure-random] 补充随机数缓冲池失败', err)
     })
     .finally(() => {
       refillInFlight = false
     })
+}
+
+function createGetRandomValues<T extends ArrayBufferView>(array: T): T {
+  // 按字节拷贝：调用方可能传入 Uint16Array/Uint32Array 等视图，
+  // 直接按下标赋值会写入错误的字节序值
+  const view = array as unknown as ArrayBufferView
+  const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+  if (pool.length < bytes.length) {
+    scheduleRefill()
+    throw new Error('安全随机数缓冲池未就绪或已耗尽，请先等待 ensureSecureRandomReady() 完成')
+  }
+  for (let i = 0; i < bytes.length; i++)
+    bytes[i] = pool[i]
+  pool = pool.slice(bytes.length)
+  if (pool.length < LOW_WATER_MARK)
+    scheduleRefill()
+  return array
 }
 
 function installShim() {
@@ -126,30 +148,27 @@ function installShim() {
   if (!globalObj)
     throw new Error('无法获取全局对象，无法安装 crypto.getRandomValues 垫片')
 
-  const existing = globalObj.crypto
-  if (existing && typeof existing.getRandomValues === 'function')
+  if (globalObj.crypto && typeof globalObj.crypto.getRandomValues === 'function')
     return
 
-  globalObj.crypto = {
-    getRandomValues<T extends ArrayBufferView>(array: T): T {
-      const bytes = array as unknown as Uint8Array
-      if (pool.length < bytes.length) {
-        scheduleRefill()
-        throw new Error('安全随机数缓冲池未就绪或已耗尽，请先等待 ensureSecureRandomReady() 完成')
-      }
-      for (let i = 0; i < bytes.length; i++)
-        bytes[i] = pool[i]
-      pool = pool.slice(bytes.length)
-      if (pool.length < LOW_WATER_MARK)
-        scheduleRefill()
-      return array
-    },
+  if (globalObj.crypto) {
+    // 宿主已有 crypto 但缺 getRandomValues：只补缺的方法，
+    // 保留 subtle、randomUUID 等原有成员；用 defineProperty 而非整体赋值，
+    // 避免 crypto 为只读访问器时赋值失败（如 Node 的 globalThis.crypto）
+    Object.defineProperty(globalObj.crypto, 'getRandomValues', {
+      value: createGetRandomValues,
+      configurable: true,
+      writable: true,
+    })
+  }
+  else {
+    globalObj.crypto = { getRandomValues: createGetRandomValues }
   }
 }
 
 /**
  * 确保密码学安全随机源可用（sm-crypto 加载前必须 await 本方法）。
- * - 浏览器 / App WebView 等原生支持 window.crypto 的环境：直接就绪；
+ * - 浏览器 / Node 等原生支持 globalThis.crypto 的环境：直接就绪；
  * - 小程序等缺失环境：安装垫片并从系统 CSPRNG 预热缓冲池。
  * 不支持获取随机数的环境会 reject，由调用方 fail-closed 处理。
  */
