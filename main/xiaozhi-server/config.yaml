@@ -707,6 +707,15 @@ LLM:
     base_url: https://ai-gateway.vei.volces.com/v1
     model_name: doubao-pro-32k-functioncall
     api_key: 你的网关访问密钥
+  AtlasCloudLLM:
+    # Atlas Cloud - OpenAI 兼容的多模型 API 网关
+    # 定义LLM API类型
+    type: openai
+    # 可在这里找到你的api key https://console.atlascloud.ai/api-keys
+    # 可用模型列表：https://api.atlascloud.ai/v1/models ，文档：https://www.atlascloud.ai/docs
+    base_url: https://api.atlascloud.ai/v1
+    model_name: deepseek-ai/deepseek-v4-flash
+    api_key: 你的atlascloud api key
   LMStudioLLM:
     # 定义LLM API类型
     type: openai
