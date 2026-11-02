@@ -1,6 +1,7 @@
 """服务端插件工具执行器"""
 
 import asyncio
+import functools
 from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -30,21 +31,23 @@ class ServerPluginExecutor(ToolExecutor):
             # 根据工具类型决定如何调用
             if hasattr(func_item, "type"):
                 func_type = func_item.type
-                if func_type.code in [4, 5]:  # SYSTEM_CTL, IOT_CTL (需要conn参数)
-                    result = func_item.func(conn, **arguments)
-                elif func_type.code == 2:  # WAIT
-                    result = func_item.func(**arguments)
-                elif func_type.code == 3:  # CHANGE_SYS_PROMPT
-                    result = func_item.func(conn, **arguments)
-                else:
-                    result = func_item.func(**arguments)
+                if func_type.code in [3, 4, 5]:  # CHANGE_SYS_PROMPT, SYSTEM_CTL, IOT_CTL (需要conn参数)
+                    call = functools.partial(func_item.func, conn, **arguments)
+                else:  # WAIT 等不传conn
+                    call = functools.partial(func_item.func, **arguments)
             else:
                 # 默认不传conn参数
-                result = func_item.func(**arguments)
+                call = functools.partial(func_item.func, **arguments)
 
-            # 兼容 async def 工具函数
-            if asyncio.iscoroutine(result):
-                result = await result
+            if asyncio.iscoroutinefunction(func_item.func):
+                result = await call()
+            else:
+                # 同步插件函数（requests 等阻塞调用）放到线程池：这个方法是在事件循环上被 await 的，
+                # 直接调用会把整个循环卡住，正在给设备发的音频节拍也会停。
+                result = await asyncio.get_running_loop().run_in_executor(None, call)
+                # 兼容同步函数返回协程的写法
+                if asyncio.iscoroutine(result):
+                    result = await result
 
             return result
 
