@@ -795,7 +795,8 @@ class ConnectionHandler:
             # 在线程池中初始化组件
             self.executor.submit(self._initialize_components)
         except Exception as e:
-            self.logger.bind(tag=TAG).error(f"后台初始化失败: {e}")
+            self.logger.bind(tag=TAG).error(f"后台初始化失败，关闭连接: {e}")
+            await self.close()
 
     async def _initialize_private_config_async(self):
         """从接口异步获取差异化配置（异步版本，不阻塞主循环）"""
@@ -823,10 +824,6 @@ class ConnectionHandler:
         except DeviceBindException as e:
             self.need_bind = True
             self.bind_code = e.bind_code
-            private_config = {}
-        except Exception as e:
-            self.need_bind = True
-            self.logger.bind(tag=TAG).error(f"异步获取差异化配置失败: {e}")
             private_config = {}
 
         init_llm, init_tts, init_memory, init_intent = (
