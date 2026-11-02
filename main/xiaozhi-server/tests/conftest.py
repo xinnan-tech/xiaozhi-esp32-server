@@ -184,7 +184,8 @@ def get_provider_type(module: str, provider_name: str | None = None) -> str | No
 def has_real_key(config: dict, *keys: str) -> bool:
     """任一候选 key 名下值不是占位符就算有真密钥。
 
-    占位符判定：空 / "你的..." / 包含 "placeholder" / 字面 "none"。
+    占位符判定：空 / "你的..." / 包含 "placeholder" / 字面 "none" / "ollama"
+    （Ollama本地服务无需鉴权，config.yaml默认占位值即为"ollama"）。
     """
     if not config:
         return False
@@ -193,7 +194,7 @@ def has_real_key(config: dict, *keys: str) -> bool:
         if val is None:
             continue
         s = str(val).strip().lower()
-        if not s or s == "none":
+        if not s or s == "none" or s == "ollama":
             continue
         if s.startswith("你的") or "placeholder" in s:
             continue
