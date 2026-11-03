@@ -47,10 +47,29 @@ if str(_PROJECT_ROOT) not in sys.path:
 # ---------------------------------------------------------------------------
 try:
     import opuslib_next  # noqa: F401
-except Exception:
+except Exception as _opus_import_error:
+    # opuslib_next 是 ctypes 绑定，pip 装上的是纯 Python 包，真正的编解码靠系统里的
+    # libopus.so。runner 上没装 libopus 时 import 会失败，这里换桩顶上。
+    # 桩只能撑住 import 链路，真要编解码得先把 libopus 装上
+    # （apt-get install libopus0，正式镜像 Dockerfile-server-base 里也是这么装的）。
+    print(
+        f"[conftest] opuslib_next 不可用，改用桩：{_opus_import_error}",
+        flush=True,
+    )
+
+    def _opus_unavailable(_self, *_args, **_kwargs):
+        raise RuntimeError(
+            "libopus 没装，Opus 编解码跑不了。"
+            "装法：apt-get install libopus0（正式镜像 Dockerfile-server-base 里也是这么装的）"
+        )
+
     _stub = types.ModuleType("opuslib_next")
-    _stub.Encoder = type("Encoder", (), {"__init__": lambda *a, **kw: None})
-    _stub.Decoder = type("Decoder", (), {"__init__": lambda *a, **kw: None})
+    _stub.Encoder = type(
+        "Encoder", (), {"__init__": lambda *a, **kw: None, "encode": _opus_unavailable}
+    )
+    _stub.Decoder = type(
+        "Decoder", (), {"__init__": lambda *a, **kw: None, "decode": _opus_unavailable}
+    )
     _stub.APPLICATION_AUDIO = 0
     _stub.OpusError = type("OpusError", (Exception,), {})
     _stub.constants = types.SimpleNamespace()
@@ -69,6 +88,13 @@ _DEFAULT_CUSTOM = _PROJECT_ROOT / "data" / ".config.yaml"
 _CUSTOM_CONFIG = Path(os.environ["PYTEST_CONFIG_FILE"]) if os.environ.get(
     "PYTEST_CONFIG_FILE"
 ) else _DEFAULT_CUSTOM
+
+# data/.config.yaml 在 .gitignore 里，本地没这个文件时现造一个空的。
+# 项目里好几个模块 import 的时候就要读它（config/logger.py 的 setup_logging
+# 直接抛 FileNotFoundError），缺了整份用例会收集不起来。CI 里也是这么造的
+_DEFAULT_CUSTOM.parent.mkdir(parents=True, exist_ok=True)
+if not _DEFAULT_CUSTOM.exists():
+    _DEFAULT_CUSTOM.write_text("{}\n", encoding="utf-8")
 
 
 def _load_via_file_merge() -> dict:
@@ -323,35 +349,25 @@ def _install_mock_layer() -> None:
 
     asyncio.sleep = _fast_sleep  # type: ignore[assignment]
 
-    # 网络层 mock：如果真实 httpx 已加载，把它的 AsyncClient.send 替换成
+    # 网络层 mock：如果真实 httpx 已加载，把它的 send 替换成
     # 立即抛 ConnectError 的桩，触发 ``_should_retry`` 走到 ``raise``，
     # 但避免真发请求。Live 模式完全不安装这层。
     if not LIVE_API_TESTS:
         try:
-            import httpx as _httpx  # noqa: F401
+            import httpx as _httpx
 
-            class _FakeAsyncClient:
-                def __init__(self, *args, **kwargs):
-                    pass
+            async def _fake_async_send(self, request, **kwargs):
+                raise _httpx.ConnectError("MOCK: connect refused")
 
-                async def send(self, *args, **kwargs):
-                    raise _httpx.ConnectError("MOCK: connect refused")
+            def _fake_send(self, request, **kwargs):
+                raise _httpx.ConnectError("MOCK: connect refused")
 
-                async def aclose(self):
-                    return None
-
-            class _FakeClient:
-                def __init__(self, *args, **kwargs):
-                    pass
-
-                def send(self, *args, **kwargs):
-                    raise _httpx.ConnectError("MOCK: connect refused")
-
-                def close(self):
-                    return None
-
-            _httpx.AsyncClient = _FakeAsyncClient  # type: ignore[misc]
-            _httpx.Client = _FakeClient  # type: ignore[misc]
+            # 只换 send 这一个方法，不换整个类。有些库（openai 2.x 的
+            # SyncHttpxClientWrapper）继承 httpx.Client 再自己拼请求，
+            # 整个类被换掉的话它们继承到的是假类，拼请求时直接
+            # AttributeError，报错还完全看不出是 mock 层的问题
+            _httpx.AsyncClient.send = _fake_async_send  # type: ignore[assignment]
+            _httpx.Client.send = _fake_send  # type: ignore[assignment]
         except ImportError:
             pass
 
@@ -437,9 +453,57 @@ if not LIVE_API_TESTS:
 import pytest  # noqa: E402  (after conftest hooks so pytest is initialised)
 
 
+def is_ci() -> bool:
+    """GitHub Actions 上会带 CI=true"""
+    value = os.environ.get("CI")
+    if value is None:
+        return False
+    trimmed = value.strip()
+    return bool(trimmed) and trimmed.lower() != "false"
+
+
+def skip_or_fail(reason: str) -> None:
+    """本地缺东西就跳过，CI 里缺东西直接让 job 挂掉。
+
+    口径跟 manager-api 那边的 IntegrationTestEnvironment 一致：本地没起依赖的
+    机器上跳过就行，不该把构建从绿变成红；CI 里依赖必须真的在，缺了就失败，
+    不许静默跳过 —— 静默跳过等于门禁被掏空，还看不出来。
+    """
+    if is_ci():
+        raise RuntimeError(f"CI 环境里{reason}，这条用例必须真的跑起来，不能跳过")
+    pytest.skip(reason)
+
+
 def pytest_collection_modifyitems(config, items):
-    """Live 模式下：``live_api`` 标记的测试必须配齐密钥才能跑（否则 skip）。"""
+    """Mock 模式下：``live_api`` 标记的用例要真凭据或真网络，不收，并列出是哪几条。
+
+    以前是在 CI 命令行上用 ``-k`` 排除，看不出排掉了什么、为什么排。
+    改成打标记 + 这里统一剔除，日志里会一条条列出来，剔了什么一目了然。
+    """
     if LIVE_API_TESTS:
         return
-    # Mock 模式下不强行 skip：测试应该都能跑（用 shim）。
-    return
+
+    keep = []
+    drop = []
+    for item in items:
+        if "live_api" in item.keywords:
+            drop.append(item)
+        else:
+            keep.append(item)
+
+    if not drop:
+        return
+
+    print(
+        "\n[conftest] 下面这些用例要真凭据或真网络，mock 模式下不收：",
+        flush=True,
+    )
+    for item in drop:
+        print(f"[conftest]   - {item.nodeid}", flush=True)
+    print(
+        "[conftest] 真请求模式：export RUN_LIVE_API_TESTS=1 并配好凭据后再跑。\n",
+        flush=True,
+    )
+
+    config.hook.pytest_deselected(items=drop)
+    items[:] = keep

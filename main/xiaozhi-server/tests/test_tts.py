@@ -8,7 +8,7 @@ Live 模式（``RUN_LIVE_API_TESTS=1``）：调真实 TTS provider。
     text_to_speak(text, output_file) -> 异步，把合成结果写到 output_file
 
 注意：
-- 3 个构造测试不依赖云服务；第 4 个 test_tts_text_to_speak_writes_nonempty_file
+- 3 个构造测试不依赖云服务；第 4 个 test_tts_text_to_speak_writes_file
   才是真链路测试，会真发 HTTP。
 - Mock 模式下：第 4 个测试断言宽松 —— 文件存在即可（shim 创建空文件），
   不强求 size > 0。Live 模式下严格校验 size > 0。
@@ -81,8 +81,12 @@ def test_tts_provider_has_output_dir() -> None:
     assert provider.output_file, "output_file 不应为空"
 
 
+@pytest.mark.live_api
 def test_tts_text_to_speak_writes_file() -> None:
     """Mock 模式：断言 file 存在即可。Live 模式：断言 size > 0。
+
+    这条要连微软公网，runner 的出口 IP 会被风控挡掉，所以打了 live_api 标记：
+    mock 模式下由 conftest 统一剔除（会列出剔的是哪几条），live 模式下才收。
 
     参考 performance_tester_tts.py 的实现：
     - mock conn（sample_rate/audio_format/stop_event/client_abort/headers）
