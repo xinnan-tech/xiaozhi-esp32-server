@@ -2,12 +2,17 @@
 
 import asyncio
 import functools
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.connection import ConnectionHandler
 from ..base import ToolType, ToolDefinition, ToolExecutor
 from plugins_func.register import all_function_registry, module_func_map, Action, ActionResponse
+
+# 插件专用线程池：不用 asyncio 默认池（DNS 解析、ASR、initialize_modules 等都在用），
+# 避免慢插件打满默认池后拖垮所有协程的 DNS 解析和连接建立。
+_PLUGIN_POOL = ThreadPoolExecutor(max_workers=8, thread_name_prefix="plugin")
 
 
 class ServerPluginExecutor(ToolExecutor):
@@ -29,22 +34,18 @@ class ServerPluginExecutor(ToolExecutor):
 
         try:
             # 根据工具类型决定如何调用
-            if hasattr(func_item, "type"):
-                func_type = func_item.type
-                if func_type.code in [3, 4, 5]:  # CHANGE_SYS_PROMPT, SYSTEM_CTL, IOT_CTL (需要conn参数)
-                    call = functools.partial(func_item.func, conn, **arguments)
-                else:  # WAIT 等不传conn
-                    call = functools.partial(func_item.func, **arguments)
-            else:
-                # 默认不传conn参数
+            func_type = getattr(func_item, "type", None)
+            if func_type is not None and func_type.code in [3, 4, 5]:
+                # CHANGE_SYS_PROMPT, SYSTEM_CTL, IOT_CTL (需要conn参数)
+                call = functools.partial(func_item.func, conn, **arguments)
+            else:  # WAIT 等不传conn（含 type 未指定的插件）
                 call = functools.partial(func_item.func, **arguments)
 
             if asyncio.iscoroutinefunction(func_item.func):
                 result = await call()
             else:
-                # 同步插件函数（requests 等阻塞调用）放到线程池：这个方法是在事件循环上被 await 的，
-                # 直接调用会把整个循环卡住，正在给设备发的音频节拍也会停。
-                result = await asyncio.get_running_loop().run_in_executor(None, call)
+                # 同步函数在 loop 线程上直接执行会卡住整个事件循环，放专用线程池。
+                result = await asyncio.get_running_loop().run_in_executor(_PLUGIN_POOL, call)
                 # 兼容同步函数返回协程的写法
                 if asyncio.iscoroutine(result):
                     result = await result
