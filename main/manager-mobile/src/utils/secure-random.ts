@@ -1,40 +1,39 @@
 /**
- * 为缺少 Web Crypto API 的运行环境（主要是微信小程序）提供
- * crypto.getRandomValues 兼容层，供 sm-crypto >= 0.5.0 使用。
+ * 为 sm-crypto >= 0.5.0 提供 crypto.getRandomValues 兼容层
+ * （0.5.0 起强制要求 CSPRNG，不支持时模块加载即抛异常，见 CVE-2026-73567）。
  *
- * 背景（CVE-2026-73567 / GHSA-vh45-f885-3848）：sm-crypto 0.5.0 起强制要求
- * 密码学安全随机源 crypto.getRandomValues（仅在模块加载时取一次 32 字节熵，
- * 之后不再重新播种），环境不支持时加载即抛异常，不会回退到不安全实现。
+ * 策略：
+ * 1. 经平台异步 CSPRNG API 分块并行取真随机字节，填入同步缓冲池。
+ *    探测顺序 wx → uni → my → tt → swan → ks → qq → jd → lark → xhs；
+ *    App 端逻辑层无 CSPRNG，
+ *    由 secure-random-bridge 组件经 renderjs 回传（registerRandomBridge 兜底）。
+ * 2. 垫片同步从缓冲池取字节，池不足即抛错，不回退弱随机（fail-closed）。
+ * 3. sm-crypto 熵池初始化已通过 pnpm patch 推迟到首次取随机
+ *    （patches/sm-crypto@0.5.8.patch），首次 sm2 调用前 await
+ *    ensureSecureRandomReady() 即可。
  *
- * 小程序运行环境没有 window.crypto / globalThis.crypto，也没有同步的
- * CSPRNG API，因此本垫片的策略是：
- * 1. 启动阶段通过平台提供的异步 CSPRNG API 获取真随机字节（64 字节分块、并行
- *    请求，规避单次长度上限），填入同步缓冲池。已知实现：微信 wx.getRandomValues；
- *    uni.getRandomValues 在 uni-app 运行时中仅有类型声明、无实现，故同时按
- *    wx → uni → my → tt → swan → ks 顺序探测各平台全局对象，后续其他小程序
- *    平台若提供同名 API 可被自动覆盖；
- * 2. 垫片的 getRandomValues 同步从缓冲池取字节，池不足时抛出异常
- *    （fail-closed，绝不回退到 Math.random 等可预测源）；
- * 3. sm-crypto 的熵池初始化已通过 pnpm patch（patches/sm-crypto@0.5.8.patch）
- *    推迟到首次取随机字节时，调用方只需在首次调用 sm2 前 await
- *    ensureSecureRandomReady()，即可保证其取到真随机熵。
- *
- * 注意：若某平台既无 window.crypto 又无任何 CSPRNG API（如支付宝/百度等
- * 小程序当前普遍如此），ensureSecureRandomReady 会 reject，登录等加密流程
- * 将明确报错而非静默使用弱随机——这是 fail-closed 的预期行为。
+ * 无任何 CSPRNG 的平台（如支付宝/百度小程序）会 reject，属预期行为。
  */
-
 const CHUNK_SIZE = 64
 const CHUNK_COUNT = 8
 const LOW_WATER_MARK = 128
+
+// 标记垫片自身，探测时与原生实现区分，避免失败重试被短路成假成功
+const SHIM_MARKER = Symbol('secureRandomShim')
+
+// App 端桥接通道，由 secure-random-bridge 组件挂载时注册
+let bridgeProvider: ((length: number) => Promise<Uint8Array>) | null = null
+
+export function registerRandomBridge(provider: (length: number) => Promise<Uint8Array>) {
+  bridgeProvider = provider
+}
 
 let pool: number[] = []
 let readyPromise: Promise<void> | null = null
 let refillInFlight = false
 
 function getGlobalObj(): Record<string, any> | null {
-  // globalThis 在所有目标环境（现代浏览器 / 微信小程序 / Node）均存在；
-  // sm-crypto 读取的也是 globalThis.crypto，垫片必须装在同一个对象上
+  // sm-crypto 读取的是 globalThis.crypto，垫片必须装在同一对象上
   if (typeof globalThis !== 'undefined')
     return globalThis as unknown as Record<string, any>
   return null
@@ -42,12 +41,10 @@ function getGlobalObj(): Record<string, any> | null {
 
 function hasNativeGetRandomValues(): boolean {
   try {
-    // 探测 globalThis.crypto（而非仅 window.crypto）：Node、uni-app h5:ssr
-    // 等运行时有原生 CSPRNG 但没有 window，误判会导致走垫片分支，
-    // 而 installShim 发现 globalThis.crypto 已可用时不会安装，最终误报不支持
-    const globalObj = getGlobalObj()
-    return !!globalObj?.crypto
-      && typeof globalObj.crypto.getRandomValues === 'function'
+    // 探测 globalThis.crypto：Node、h5:ssr 等环境有原生 CSPRNG 但无 window
+    const fn = getGlobalObj()?.crypto?.getRandomValues
+    // 排除垫片自身，否则失败重试会被短路成假成功
+    return typeof fn === 'function' && !(fn as any)[SHIM_MARKER]
   }
   catch {
     return false
@@ -55,10 +52,10 @@ function hasNativeGetRandomValues(): boolean {
 }
 
 /**
- * 按优先级探测当前平台提供异步 CSPRNG 的全局对象。
- * uni.getRandomValues 在 uni-app 运行时中无实现，仅为声明，因此 uni 放在
- * wx 之后仅作兜底；my/tt/swan/ks 等平台对象通过 globalThis 探测（未在
- * TS 类型中声明），若对应平台未来提供 getRandomValues 可自动适配。
+ * 按优先级探测提供异步 CSPRNG 的平台全局对象。
+ * uni.getRandomValues 仅有声明无实现，故排在 wx 之后兜底；
+ * 其余平台对象未在 TS 类型中声明，经 globalThis 探测，
+ * 对应平台未来实现同名 API 时自动生效。
  */
 function findRandomApi(): { name: string, api: any } | null {
   const globalObj = getGlobalObj()
@@ -69,6 +66,10 @@ function findRandomApi(): { name: string, api: any } | null {
     ['tt', globalObj ? globalObj.tt : null],
     ['swan', globalObj ? globalObj.swan : null],
     ['ks', globalObj ? globalObj.ks : null],
+    ['qq', globalObj ? globalObj.qq : null],
+    ['jd', globalObj ? globalObj.jd : null],
+    ['lark', globalObj ? globalObj.lark : null],
+    ['xhs', globalObj ? globalObj.xhs : null],
   ]
   for (const [name, api] of candidates) {
     if (api && typeof api.getRandomValues === 'function')
@@ -80,23 +81,30 @@ function findRandomApi(): { name: string, api: any } | null {
 function fetchRandomChunk(length: number): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     const found = findRandomApi()
-    if (!found) {
+    if (!found && !bridgeProvider) {
       reject(new Error(
         '当前平台不支持获取密码学安全随机数（getRandomValues），无法安全执行 SM2 加密。'
-        + '当前已适配：微信小程序（wx.getRandomValues）、浏览器、Node 环境；'
-        + '其余小程序/App 平台因缺少 CSPRNG API 被按 fail-closed 原则拒绝，'
+        + '当前已适配：微信小程序（wx.getRandomValues）、浏览器、Node 环境、'
+        + 'App 端（renderjs 桥接，需页面挂载 secure-random-bridge 组件）；'
+        + '其余小程序平台因缺少 CSPRNG API 被按 fail-closed 原则拒绝，'
         + '如需支持请扩展 secure-random.ts 的 findRandomApi 适配链。',
       ))
       return
     }
-    found.api.getRandomValues({
-      length,
-      success: (res: { randomValues: ArrayBuffer | Uint8Array | number[] }) => {
-        resolve(new Uint8Array(res.randomValues))
-      },
-      fail: (err: unknown) => {
-        reject(err instanceof Error ? err : new Error(`getRandomValues 调用失败: ${JSON.stringify(err)}`))
-      },
+    if (found) {
+      found.api.getRandomValues({
+        length,
+        success: (res: { randomValues: ArrayBuffer | Uint8Array | number[] }) => {
+          resolve(new Uint8Array(res.randomValues))
+        },
+        fail: (err: unknown) => {
+          reject(err instanceof Error ? err : new Error(`getRandomValues 调用失败: ${JSON.stringify(err)}`))
+        },
+      })
+      return
+    }
+    bridgeProvider!(length).then(resolve, (err: unknown) => {
+      reject(err instanceof Error ? err : new Error(`renderjs 桥接取随机失败: ${String(err)}`))
     })
   })
 }
@@ -117,8 +125,7 @@ function scheduleRefill() {
   refillInFlight = true
   refillPool(256)
     .catch((err) => {
-      // 尽力而为的补充；缓冲池仍够用时静默失败，不足时由 getRandomValues 抛错兜底。
-      // 但要留下原始错误，避免池耗尽后只剩"缓冲池未就绪"而无根因可查
+      // 补充失败仅告警：池仍够用则无感，耗尽时由 getRandomValues 抛错兜底
       console.warn('[secure-random] 补充随机数缓冲池失败', err)
     })
     .finally(() => {
@@ -127,8 +134,7 @@ function scheduleRefill() {
 }
 
 function createGetRandomValues<T extends ArrayBufferView>(array: T): T {
-  // 按字节拷贝：调用方可能传入 Uint16Array/Uint32Array 等视图，
-  // 直接按下标赋值会写入错误的字节序值
+  // 按字节拷贝，兼容 Uint16Array/Uint32Array 等视图
   const view = array as unknown as ArrayBufferView
   const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
   if (pool.length < bytes.length) {
@@ -143,6 +149,8 @@ function createGetRandomValues<T extends ArrayBufferView>(array: T): T {
   return array
 }
 
+;(createGetRandomValues as any)[SHIM_MARKER] = true
+
 function installShim() {
   const globalObj = getGlobalObj()
   if (!globalObj)
@@ -152,9 +160,7 @@ function installShim() {
     return
 
   if (globalObj.crypto) {
-    // 宿主已有 crypto 但缺 getRandomValues：只补缺的方法，
-    // 保留 subtle、randomUUID 等原有成员；用 defineProperty 而非整体赋值，
-    // 避免 crypto 为只读访问器时赋值失败（如 Node 的 globalThis.crypto）
+    // 只补缺的方法，保留宿主 crypto 其他成员；defineProperty 规避只读访问器赋值失败
     Object.defineProperty(globalObj.crypto, 'getRandomValues', {
       value: createGetRandomValues,
       configurable: true,
@@ -167,10 +173,9 @@ function installShim() {
 }
 
 /**
- * 确保密码学安全随机源可用（sm-crypto 加载前必须 await 本方法）。
- * - 浏览器 / Node 等原生支持 globalThis.crypto 的环境：直接就绪；
- * - 小程序等缺失环境：安装垫片并从系统 CSPRNG 预热缓冲池。
- * 不支持获取随机数的环境会 reject，由调用方 fail-closed 处理。
+ * 确保密码学安全随机源可用（首次 sm2 调用前必须 await）。
+ * 原生支持的环境直接就绪；缺失环境安装垫片并预热缓冲池；
+ * 无 CSPRNG 的环境 reject，由调用方 fail-closed 处理。
  */
 export function ensureSecureRandomReady(): Promise<void> {
   if (hasNativeGetRandomValues())

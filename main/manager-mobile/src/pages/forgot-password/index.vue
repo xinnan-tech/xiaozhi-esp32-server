@@ -13,6 +13,10 @@ import { onLoad } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
 // 导入API接口
 import { retrievePassword, sendSmsCode } from '@/api/auth'
+// #ifdef APP-PLUS
+// App 端随机源桥接：为 SM2 加密提供安全随机数（无视觉展示）
+import SecureRandomBridge from '@/components/secure-random-bridge/index.vue'
+// #endif
 // 导入国际化相关功能
 import { initI18n, t } from '@/i18n'
 import { useConfigStore } from '@/store'
@@ -305,6 +309,9 @@ onMounted(async () => {
     class="app-container box-border h-screen w-full"
     :style="{ paddingTop: `${safeAreaInsets?.top}px` }"
   >
+    <!-- #ifdef APP-PLUS -->
+    <SecureRandomBridge />
+    <!-- #endif -->
     <view class="header">
       <view class="back-button" @click="goBack">
         <wd-icon name="arrow-left" custom-class="back-icon" />

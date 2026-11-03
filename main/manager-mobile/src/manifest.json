@@ -92,6 +92,7 @@
       "minified": true
     },
     "usingComponents": true,
+    "libVersion": "2.19.4",
     "optimization": {
       "subPackages": true
     },

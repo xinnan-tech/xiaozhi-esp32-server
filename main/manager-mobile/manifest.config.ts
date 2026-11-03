@@ -120,8 +120,10 @@ export default defineManifestConfig({
   /* 小程序特有相关 */
   'mp-weixin': {
     appid: VITE_WX_APPID,
-    // 最低基础库：wx.getRandomValues 要求 >= 2.17.3（sm-crypto 0.5.x 的
-    // 随机源垫片依赖该 API），低于此版本的客户端将无法完成登录加密
+    // 仅供开发者工具选择调试基础库版本；线上客户端的最低基础库门槛需在
+    // 微信公众平台「开发管理 → 基础库最低版本设置」中配置（代码里改不动）。
+    // 功能硬性要求：wx.getRandomValues 需基础库 >= 2.17.3，低于该版本的
+    // 线上客户端登录时将收到 fail-closed 报错
     libVersion: '2.19.4',
     setting: {
       urlCheck: false,
