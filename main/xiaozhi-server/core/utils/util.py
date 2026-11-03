@@ -135,7 +135,7 @@ def get_ip_info(ip_addr, logger):
         if is_private_ip(ip_addr):
             ip_addr = ""
         url = f"https://whois.pconline.com.cn/ipJson.jsp?json=true&ip={ip_addr}"
-        resp = requests.get(url).json()
+        resp = requests.get(url, timeout=5).json()
         ip_info = {"city": resp.get("city")}
 
         # 存入缓存
