@@ -50,9 +50,6 @@ def _build_provider():
             x in cfg.get("user_id", "") for x in ["你的"]
         ):
             pytest.skip("LLM 'CozeLLM' 的 bot_id/user_id 未配置")
-    elif name == "Ollama":
-        if not cfg.get("model_name"):
-            pytest.skip("LLM 'Ollama' 的 model_name 未配置")
     elif not has_real_key(cfg, "api_key"):
         if LIVE_API_TESTS:
             pytest.skip(f"LLM '{name}' 的 api_key 未配置")

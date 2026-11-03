@@ -1,5 +1,6 @@
 from config.logger import setup_logging
 from openai import OpenAI
+from urllib.parse import urlsplit
 import json
 from core.providers.llm.base import LLMProviderBase
 
@@ -10,13 +11,15 @@ logger = setup_logging()
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
         self.model_name = config.get("model_name")
-        self.base_url = (config.get("base_url") or "http://localhost:11434").strip().rstrip("/")
+        self.base_url = (
+            str(config.get("base_url") or "").strip() or "http://localhost:11434"
+        ).rstrip("/")
         # 兼容处理用户输入完整端点的情况
         if self.base_url.endswith("/chat/completions"):
             self.base_url = self.base_url[:-len("/chat/completions")].rstrip("/")
         # Initialize OpenAI client with Ollama base URL
-        # 如果没有v1，增加v1
-        if not self.base_url.endswith("/v1"):
+        # 纯主机地址补/v1（Ollama默认约定）；带路径的地址尊重用户输入，不再改写
+        if not urlsplit(self.base_url).path.strip("/"):
             self.base_url = f"{self.base_url}/v1"
 
         self.client = OpenAI(

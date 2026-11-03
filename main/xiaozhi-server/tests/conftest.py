@@ -391,6 +391,9 @@ def _check_modules_ready() -> None:
                 f"{module}.{provider_name} 配置缺失（CFG 字典里没这个 provider）"
             )
             continue
+        # Ollama免鉴权供应器无需真实key，跳过占位符检查
+        if str(cfg.get("type", "")).lower() == "ollama":
+            continue
         secret_keys_present = [k for k in _SECRET_FIELDS if k in cfg]
         if secret_keys_present and not any(
             has_real_key(cfg, k) for k in secret_keys_present
