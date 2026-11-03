@@ -3,6 +3,7 @@ package xiaozhi.modules.device;
 import java.util.HashMap;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,12 +16,18 @@ import xiaozhi.common.exception.RenException;
 import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.sys.dto.SysUserDTO;
 import xiaozhi.modules.sys.service.SysUserService;
+import xiaozhi.testsupport.IntegrationTestEnvironment;
 
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("dev")
 @DisplayName("设备测试")
 public class DeviceTest {
+
+    @BeforeAll
+    static void checkDependencies() {
+        IntegrationTestEnvironment.requireDatabaseAndRedis();
+    }
 
     @Autowired
     private RedisUtils redisUtils;

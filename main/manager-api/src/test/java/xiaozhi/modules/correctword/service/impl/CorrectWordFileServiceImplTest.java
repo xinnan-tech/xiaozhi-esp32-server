@@ -14,8 +14,13 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 
 import xiaozhi.modules.agent.dao.AgentCorrectWordMappingDao;
 import xiaozhi.modules.agent.entity.AgentCorrectWordMappingEntity;
@@ -36,6 +41,20 @@ class CorrectWordFileServiceImplTest {
     private final AgentCorrectWordMappingDao mappingDao = mock(AgentCorrectWordMappingDao.class);
     private final CorrectWordFileServiceImpl service =
             new CorrectWordFileServiceImpl(fileDao, itemDao, mappingDao);
+
+    @BeforeAll
+    static void registerEntityMetadata() {
+        // 这条用例不起 Spring 上下文，MyBatis-Plus 的实体元数据没人注册，
+        // LambdaQueryWrapper 拼条件时找不到 lambda 缓存就抛异常。
+        // 全量跑的时候是前面的上下文测试顺带注册好的，单独跑就露馅。
+        // 这里自己补上，单独跑和跟着全量跑结果一样。
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(new MybatisConfiguration(), ""),
+                CorrectWordItemEntity.class);
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(new MybatisConfiguration(), ""),
+                CorrectWordFileEntity.class);
+    }
 
     @Test
     void getAllItemsByAgentId_returns_empty_list_when_no_mappings() {

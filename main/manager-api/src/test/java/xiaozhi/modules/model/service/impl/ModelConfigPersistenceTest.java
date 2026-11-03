@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +20,17 @@ import xiaozhi.common.redis.RedisUtils;
 import xiaozhi.modules.model.dto.ModelConfigBodyDTO;
 import xiaozhi.modules.model.dto.ModelConfigDTO;
 import xiaozhi.modules.model.service.ModelConfigService;
+import xiaozhi.testsupport.IntegrationTestEnvironment;
 
 @SpringBootTest
 @ActiveProfiles("dev")
 @Transactional
 class ModelConfigPersistenceTest {
+
+    @BeforeAll
+    static void checkDependencies() {
+        IntegrationTestEnvironment.requireDatabaseAndRedis();
+    }
 
     @Autowired
     private ModelConfigService service;
