@@ -166,13 +166,21 @@ async def _search_outcrawl(api_key: str, query: str, max_results: int) -> str:
     logger.bind(tag=TAG).debug(f"Outcrawl搜索响应 | status: {response.status_code}")
 
     if response.status_code != 200:
+        # 错误信封为 {"code": "...", "message": "...", "details": {}}，
+        # code 是官方承诺的封闭枚举
+        code = data.get("code", "") if isinstance(data, dict) else ""
         detail = data.get("message", "") if isinstance(data, dict) else ""
         logger.bind(tag=TAG).error(
-            f"Outcrawl搜索失败 | status: {response.status_code} | detail: {detail}"
+            f"Outcrawl搜索失败 | status: {response.status_code} | code: {code} | detail: {detail}"
         )
-        if response.status_code == 402:
-            return "联网搜索额度已用完，请检查Outcrawl账户余额。"
-        return "联网搜索请求失败，请检查API Key是否正确。"
+        if code == "quota_exceeded":
+            # 该code覆盖两种情况：每分钟请求数限流，或月度credits用尽
+            return "联网搜索被限流或额度已用完，请稍后重试或检查Outcrawl账户余额。"
+        if code == "unauthorized":
+            return "联网搜索请求失败，请检查API Key是否正确。"
+        # 其余code（bad_request、no_capacity、search_refused、internal等）
+        # 多为输入问题或服务端暂时性故障，统一引导重试
+        return "联网搜索请求失败，请稍后重试。"
 
     hits = data.get("hits", [])
     if not hits:

@@ -95,15 +95,18 @@ async def test_outcrawl_empty_hits(fake_http):
 
 
 @pytest.mark.parametrize(
-    ("status_code", "message"),
+    ("code", "message"),
     [
-        (401, "联网搜索请求失败，请检查API Key是否正确。"),
-        (402, "联网搜索额度已用完，请检查Outcrawl账户余额。"),
-        (429, "联网搜索请求失败，请检查API Key是否正确。"),
+        ("unauthorized", "联网搜索请求失败，请检查API Key是否正确。"),
+        ("quota_exceeded", "联网搜索被限流或额度已用完，请稍后重试或检查Outcrawl账户余额。"),
+        ("bad_request", "联网搜索请求失败，请稍后重试。"),
+        ("internal", "联网搜索请求失败，请稍后重试。"),
     ],
 )
-async def test_outcrawl_error_status(fake_http, status_code, message):
-    fake_http.response = FakeResponse(status_code=status_code, payload={"message": "denied"})
+async def test_outcrawl_error_code(fake_http, code, message):
+    fake_http.response = FakeResponse(
+        status_code=429, payload={"code": code, "message": "denied", "details": {}}
+    )
 
     assert await web_search_module._search_outcrawl("oc-key", "q", 3) == message
 
