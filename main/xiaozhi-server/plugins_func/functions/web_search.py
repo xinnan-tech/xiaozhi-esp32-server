@@ -149,6 +149,54 @@ async def _search_serply(api_key: str, query: str, max_results: int) -> str:
     return "\n".join(lines)
 
 
+async def _search_outcrawl(api_key: str, query: str, max_results: int) -> str:
+    """调用Outcrawl搜索API"""
+    url = "https://api.outcrawl.ai/v1/search"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "User-Agent": "xiaozhi-esp32-server",
+    }
+    # Outcrawl单次最多返回20条
+    payload = {"query": query, "limit": max(1, min(max_results, 20))}
+    logger.bind(tag=TAG).debug(f"Outcrawl搜索请求 | URL: {url} | payload: {payload}")
+    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=3.0)) as client:
+        response = await client.post(url, json=payload, headers=headers)
+    data = response.json()
+    logger.bind(tag=TAG).debug(f"Outcrawl搜索响应 | status: {response.status_code}")
+
+    if response.status_code != 200:
+        # 错误信封为 {"code": "...", "message": "...", "details": {}}，
+        # code 是官方承诺的封闭枚举
+        code = data.get("code", "") if isinstance(data, dict) else ""
+        detail = data.get("message", "") if isinstance(data, dict) else ""
+        logger.bind(tag=TAG).error(
+            f"Outcrawl搜索失败 | status: {response.status_code} | code: {code} | detail: {detail}"
+        )
+        if code == "quota_exceeded":
+            # 该code覆盖两种情况：每分钟请求数限流，或月度credits用尽
+            return "联网搜索被限流或额度已用完，请稍后重试或检查Outcrawl账户余额。"
+        if code == "unauthorized":
+            return "联网搜索请求失败，请检查API Key是否正确。"
+        # 其余code（bad_request、no_capacity、search_refused、internal等）
+        # 多为输入问题或服务端暂时性故障，统一引导重试
+        return "联网搜索请求失败，请稍后重试。"
+
+    hits = data.get("hits", [])
+    if not hits:
+        return "未找到相关搜索结果。"
+
+    lines = ["【联网搜索结果】"]
+    for i, item in enumerate(hits[:max_results], 1):
+        title = item.get("title") or "无标题"
+        snippet = item.get("snippet", "")
+        lines.append(f"{i}. 标题：{title}")
+        if snippet:
+            lines.append(f"   摘要：{snippet}")
+
+    return "\n".join(lines)
+
+
 @register_function("web_search", WEB_SEARCH_FUNCTION_DESC, ToolType.SYSTEM_CTL)
 async def web_search(conn: "ConnectionHandler", query: str = None):
     logger.bind(tag=TAG).info(f"web_search 被调用 | query={query}")
@@ -175,6 +223,8 @@ async def web_search(conn: "ConnectionHandler", query: str = None):
             result_text = await _search_tavily(api_key, query, max_results)
         elif provider == "serply":
             result_text = await _search_serply(api_key, query, max_results)
+        elif provider == "outcrawl":
+            result_text = await _search_outcrawl(api_key, query, max_results)
         else:
             return ActionResponse(
                 Action.REQLLM,
