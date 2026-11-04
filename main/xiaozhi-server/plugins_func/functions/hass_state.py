@@ -142,13 +142,12 @@ async def handle_hass_get_state(conn: "ConnectionHandler", entity_id):
                 + str(response.json()["attributes"]["rgb_color"])
                 + " "
             )
-        if "brightness" in response.json()["attributes"]:
-            responsetext = (
-                responsetext
-                + "亮度是:"
-                + str(response.json()["attributes"]["brightness"])
-                + " "
-            )
+        brightness = response.json()["attributes"].get("brightness")
+        if isinstance(brightness, (int, float)):
+            # HA 的 brightness 量程是 0～255，原样报出去会被念成"一百五十三"；
+            # 换算成百分比，和设置亮度（brightness_pct，1～100）同一个单位。开着的灯最低报 1%（同 HA 前端）
+            percent = max(1, round(brightness * 100 / 255)) if brightness > 0 else 0
+            responsetext = responsetext + "亮度是:" + f"{percent}%" + " "
         logger.bind(tag=TAG).info(f"查询返回内容: {responsetext}")
         return responsetext
     else:
