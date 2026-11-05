@@ -5,6 +5,17 @@ TAG = __name__
 logger = setup_logging()
 
 
+def _devices_text(devices) -> str:
+    """把 devices 配置转成拼进提示词的文字。
+
+    config.yaml 示例和手机端智控台给的是列表，每项一条"位置,设备名,entity_id"，这里拼成每行一条；
+    网页端智控台和 HA 集成文档是一段字符串，原样用；其它（如 None）当空。
+    """
+    if isinstance(devices, (list, tuple)):
+        return "\n".join(str(d).strip() for d in devices if str(d).strip())
+    return devices if isinstance(devices, str) else ""
+
+
 def append_devices_to_prompt(conn):
     if conn.intent_type == "function_call":
         funcs = conn.config["Intent"][conn.config["selected_module"]["Intent"]].get(
@@ -21,7 +32,9 @@ def append_devices_to_prompt(conn):
 
         if "hass_get_state" in funcs or "hass_set_state" in funcs:
             prompt = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
-            deviceStr = plugins_config.get(config_source, {}).get("devices", "")
+            deviceStr = _devices_text(
+                plugins_config.get(config_source, {}).get("devices", "")
+            )
             conn.prompt += prompt + deviceStr + "\n"
             # 更新提示词
             conn.dialogue.update_system_message(conn.prompt)
