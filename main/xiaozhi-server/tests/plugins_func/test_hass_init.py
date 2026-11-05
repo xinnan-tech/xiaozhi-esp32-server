@@ -5,6 +5,7 @@ can only concatenate str (not "list") to str，设备清单进不了提示词，
 """
 import pytest
 
+import plugins_func.functions.hass_state  # noqa: F401  注册 hass_state 模块，填充 module_func_map
 from plugins_func.functions.hass_init import append_devices_to_prompt
 
 HEADER = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
@@ -58,6 +59,13 @@ def test_string_devices_kept_as_is():
 def test_mobile_console_hass_state_list():
     # 智控台下发的插件配置键是 hass_state；手机端把 array 字段按行切成了列表
     conn = FakeConn(_plugin(devices=["客厅,玩具灯,switch.toy_lamp"]), source="hass_state")
+    append_devices_to_prompt(conn)
+    assert conn.prompt.endswith(HEADER + "客厅,玩具灯,switch.toy_lamp\n")
+
+
+def test_module_name_in_functions():
+    # functions 里写模块名 hass_state（config.yaml 注释的写法），展开后应能匹配
+    conn = FakeConn(_plugin(devices=["客厅,玩具灯,switch.toy_lamp"]), functions=("hass_state",))
     append_devices_to_prompt(conn)
     assert conn.prompt.endswith(HEADER + "客厅,玩具灯,switch.toy_lamp\n")
 
