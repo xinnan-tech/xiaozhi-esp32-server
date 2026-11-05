@@ -121,13 +121,10 @@ async def handle_hass_get_state(conn: "ConnectionHandler", entity_id):
                 + str(response.json()["attributes"]["media_title"])
                 + " "
             )
-        if "volume_level" in response.json()["attributes"]:
-            responsetext = (
-                responsetext
-                + "音量是:"
-                + str(response.json()["attributes"]["volume_level"])
-                + " "
-            )
+        volume_level = response.json()["attributes"].get("volume_level")
+        if isinstance(volume_level, (int, float)):
+            # volume_level 量程 0～1，换算成百分比（同 volume_set 的 1～100）
+            responsetext = responsetext + "音量是:" + f"{round(volume_level * 100)}%" + " "
         if "color_temp_kelvin" in response.json()["attributes"]:
             responsetext = (
                 responsetext
@@ -142,13 +139,11 @@ async def handle_hass_get_state(conn: "ConnectionHandler", entity_id):
                 + str(response.json()["attributes"]["rgb_color"])
                 + " "
             )
-        if "brightness" in response.json()["attributes"]:
-            responsetext = (
-                responsetext
-                + "亮度是:"
-                + str(response.json()["attributes"]["brightness"])
-                + " "
-            )
+        brightness = response.json()["attributes"].get("brightness")
+        if isinstance(brightness, (int, float)):
+            # brightness 量程 0～255，换算成百分比（同 brightness_pct 的 1～100），开灯最低报 1%
+            percent = max(1, round(brightness * 100 / 255)) if brightness > 0 else 0
+            responsetext = responsetext + "亮度是:" + f"{percent}%" + " "
         logger.bind(tag=TAG).info(f"查询返回内容: {responsetext}")
         return responsetext
     else:
