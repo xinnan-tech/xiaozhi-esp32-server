@@ -22,7 +22,7 @@
     "normalize.css": "^8.0.1",
     "opus-decoder": "^0.7.7",
     "opus-recorder": "^8.0.5",
-    "sm-crypto": "^0.3.13",
+    "sm-crypto": "^0.5.8",
     "v-code-diff": "^1.16.0",
     "vue": "^2.6.14",
     "vue-axios": "^3.5.2",

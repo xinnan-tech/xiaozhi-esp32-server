@@ -1,6 +1,6 @@
 packages:
   - '**'
   - '!node_modules'
-
 patchedDependencies:
   '@dcloudio/uni-h5': patches/@dcloudio__uni-h5.patch
+  sm-crypto@0.5.8: patches/sm-crypto@0.5.8.patch
