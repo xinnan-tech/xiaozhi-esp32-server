@@ -51,13 +51,14 @@ class TestRuntimeApplication:
         logger.info("test runtime application started")
 
     def stop(self) -> None:
-        if not self._is_running:
-            return
-
-        self.event_bridge.publish_service_stopping()
-        self.plugins.stop_all()
+        was_running = self._is_running
         self._is_running = False
-        logger.info("test runtime application stopped")
+        if was_running:
+            self.event_bridge.publish_service_stopping()
+            logger.info("test runtime application stopped")
+        # 启动中途失败时 _is_running 还是 False，但插件可能已经开过采集流，
+        # 这里不提前返回，保证采集流一定被关掉
+        self.plugins.stop_all()
 
     def shutdown(self) -> None:
         self.stop()
