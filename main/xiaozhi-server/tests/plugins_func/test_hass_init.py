@@ -6,7 +6,7 @@ can only concatenate str (not "list") to str，设备清单进不了提示词，
 import pytest
 
 import plugins_func.functions.hass_state  # noqa: F401  注册 hass_state 模块，填充 module_func_map
-from plugins_func.functions.hass_init import append_devices_to_prompt
+from plugins_func.functions.hass_init import append_devices_to_prompt, initialize_hass_handler
 
 HEADER = "\n下面是我家智能设备列表（位置，设备名，entity_id），可以通过homeassistant控制\n"
 BASE_PROMPT = "你是小智。"
@@ -82,3 +82,20 @@ def test_without_hass_functions_prompt_unchanged():
     append_devices_to_prompt(conn)
     assert conn.prompt == BASE_PROMPT
     assert conn.dialogue.system_messages == []
+
+
+def test_initialize_hass_handler_without_api_key_does_not_crash():
+    """插件配置里没有 api_key 时，初始化不能以 TypeError 崩掉。
+
+    check_model_key 以前直接写 ``"你" in modelKey``，modelKey 为 None 时
+    抛 TypeError，HA 插件初始化（hass_state / hass_play_music 都调它）
+    会被整个打断。
+    """
+    conn = FakeConn(_plugin())
+    conn.config["plugins"]["home_assistant"].pop("api_key")
+    conn.load_function_plugin = True
+
+    ha_config = initialize_hass_handler(conn)
+
+    assert ha_config["base_url"] == "http://homeassistant.local:8123"
+    assert ha_config["api_key"] is None
