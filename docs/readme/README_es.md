@@ -270,7 +270,7 @@ En la práctica, se puede integrar cualquier LLM que admita llamadas por la inte
 
 | Forma de uso | Plataformas compatibles | Plataformas gratuitas |
 |:---:|:---:|:---:|
-| Llamadas por la interfaz OpenAI | Alibaba Bailian, Zhipu ChatGLMVLLM | Zhipu ChatGLMVLLM |
+| Llamadas por la interfaz OpenAI | Alibaba Bailian, Zhipu ChatGLMVLLM, iFLYTEK | Zhipu ChatGLMVLLM |
 
 En la práctica, se puede integrar cualquier VLLM que admita llamadas por la interfaz OpenAI.
 
@@ -320,6 +320,7 @@ El reconocimiento de huella de voz requiere desplegar por separado el servicio [
 | Memory | [powermem](../powermem-integration.md) | Resumen local | Depende del LLM y de la base de datos | OceanBase de código abierto; admite búsqueda inteligente |
 | Memory | mem_local_short | Resumen local | Gratuito | |
 | Memory | nomem | Modo sin memoria | Gratuito | |
+| Memory | mem_report_only | Solo informe | Gratuito | Solo informa el historial de chat, sin resumen de memoria |
 
 ---
 

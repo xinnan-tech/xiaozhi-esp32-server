@@ -270,7 +270,7 @@ Na verdade, qualquer LLM que suporte chamadas via interface OpenAI pode ser inte
 
 | Método de Uso | Plataformas Suportadas | Plataformas Gratuitas |
 |:---:|:---:|:---:|
-| Chamadas via interface OpenAI | Alibaba Bailian, Zhipu ChatGLMVLLM | Zhipu ChatGLMVLLM |
+| Chamadas via interface OpenAI | Alibaba Bailian, Zhipu ChatGLMVLLM, iFLYTEK | Zhipu ChatGLMVLLM |
 
 Na verdade, qualquer VLLM que suporte chamadas via interface OpenAI pode ser integrado e utilizado.
 
@@ -320,6 +320,7 @@ O reconhecimento de impressão vocal exige um serviço [voiceprint-api](https://
 | Memória | [powermem](../powermem-integration.md) | Resumo local | Depende do LLM e BD | OceanBase de código aberto, suporta busca inteligente |
 | Memória | mem_local_short | Resumo local | Gratuito | |
 | Memória | nomem | Modo sem memória | Gratuito | |
+| Memória | mem_report_only | Apenas relatório | Gratuito | Apenas reporta o histórico de chat, sem resumo de memória |
 
 ---
 

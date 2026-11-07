@@ -270,7 +270,7 @@ In fact, any LLM that supports OpenAI interface calls can be integrated and used
 
 | Usage Method | Supported Platforms | Free Platforms |
 |:---:|:---:|:---:|
-| OpenAI interface calls | Alibaba Bailian, Zhipu ChatGLMVLLM | Zhipu ChatGLMVLLM |
+| OpenAI interface calls | Alibaba Bailian, Zhipu ChatGLMVLLM, iFLYTEK | Zhipu ChatGLMVLLM |
 
 In fact, any VLLM that supports OpenAI interface calls can be integrated and used.
 
@@ -320,6 +320,7 @@ Voiceprint recognition requires a separately deployed [voiceprint-api](https://g
 | Memory | [powermem](../powermem-integration.md) | Local summarization | Depends on LLM and DB | OceanBase open source, supports intelligent retrieval |
 | Memory | mem_local_short | Local summarization | Free | |
 | Memory | nomem | No memory mode | Free | |
+| Memory | mem_report_only | Report only | Free | Only reports chat records, no memory summarization |
 
 ---
 
