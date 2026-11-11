@@ -177,7 +177,7 @@ plugins:
   # Tavily API Key申请：https://app.tavily.com/home
   # Serply API Key申请：https://serply.io
   # Outcrawl API Key申请：https://outcrawl.ai
-  # SpecStream API Key申请：https://specstream.ai
+  # SpecStream API Key申请：https://specstream.ai/signup?src=xiaozhi-esp32-server
   web_search:
     # 搜索源：metaso / tavily / serply / outcrawl / specstream
     provider: "metaso"

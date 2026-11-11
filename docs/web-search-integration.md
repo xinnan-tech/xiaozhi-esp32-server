@@ -43,7 +43,7 @@
 
 ### 方式五：使用SpecStream搜索
 
-- 访问 [SpecStream](https://specstream.ai)，注册并登录账号
+- 访问 [SpecStream](https://specstream.ai/signup?src=xiaozhi-esp32-server)，注册并登录账号
 - 在工作区的 Agents & API 页面创建API Key
 - 复制生成的API Key，这是配置所需的关键信息
 - 接口说明见 [SpecStream文档](https://specstream.ai/search-api)
