@@ -1146,6 +1146,19 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
             return None
 
+        # 修复 barge-in 竞态：上一轮 TTS 播放被打断时，设备发来的 abort 消息可能在本轮
+        # LLM 流建立之后才到达（abortHandle 会把 client_abort 置为 True）。若不清掉这个
+        # 残留标志，本轮回答会在首个分片处被误判为"已打断"而提前退出——表现为只播第一
+        # 句甚至完全没有声音，且服务端没有任何报错。
+        # 只在顶层轮次（depth == 0，即用户新的一次提问）的流开始前清理一次；本轮流式期间
+        # 新到达的 abort 仍会即时置位并正常打断。递归调用（depth > 0，工具调用后继续生成）
+        # 不清理，避免把本轮工具执行期间产生的打断吞掉。
+        if depth == 0 and self.client_abort:
+            self.logger.bind(tag=TAG).debug(
+                "清理上一轮残留的打断标志，避免误断本轮 LLM 流"
+            )
+            self.client_abort = False
+
         # 处理流式响应
         tool_call_flag = False
         # 支持多个并行工具调用 - 使用列表存储
