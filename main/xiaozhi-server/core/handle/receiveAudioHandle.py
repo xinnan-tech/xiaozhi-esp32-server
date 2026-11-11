@@ -1,6 +1,7 @@
 import time
 import json
 import asyncio
+import uuid
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -102,9 +103,11 @@ async def startToChat(conn: "ConnectionHandler", text):
     await send_stt_message(conn, actual_text)
 
     # 准备开始新会话
+    # 在提交前确定轮次，避免线程池调度顺序让旧请求覆盖新轮次。
+    sentence_id = uuid.uuid4().hex
+    conn.sentence_id = sentence_id
     conn.client_abort = False
-
-    conn.executor.submit(conn.chat, actual_text)
+    conn.executor.submit(conn.chat, actual_text, current_sentence_id=sentence_id)
 
 
 async def no_voice_close_connect(conn: "ConnectionHandler", have_voice):

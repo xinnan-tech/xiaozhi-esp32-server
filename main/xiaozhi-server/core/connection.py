@@ -1052,17 +1052,24 @@ class ConnectionHandler:
         # 更新系统prompt至上下文
         self.dialogue.update_system_message(self.prompt)
 
-    def chat(self, query, depth=0):
-        # 保存当前任务的sentence_id到局部变量，避免被新任务覆盖
-        current_sentence_id = None
+    def chat(self, query, depth=0, current_sentence_id=None):
+        # 递归和线程池任务必须保留原始轮次，不能认领新的共享 sentence_id。
+        if current_sentence_id is None:
+            current_sentence_id = uuid.uuid4().hex if depth == 0 else self.sentence_id
+            if depth == 0:
+                self.sentence_id = current_sentence_id
+
+        def cancelled():
+            return self.client_abort or current_sentence_id != self.sentence_id
+
+        if cancelled():
+            return True
 
         if query is not None:
             self.logger.bind(tag=TAG).info(f"大模型收到用户消息: {query}")
 
         # 为最顶层时新建会话ID和发送FIRST请求
         if depth == 0:
-            current_sentence_id = str(uuid.uuid4().hex)
-            self.sentence_id = current_sentence_id  # 更新共享属性
             self.dialogue.put(Message(role="user", content=query))
             self.tts.tts_text_queue.put(
                 TTSMessageDTO(
@@ -1071,9 +1078,6 @@ class ConnectionHandler:
                     content_type=ContentType.ACTION,
                 )
             )
-        else:
-            # 递归调用时，使用当前的sentence_id
-            current_sentence_id = self.sentence_id
 
         # 设置最大递归深度，避免无限循环，可根据实际需求调整
         MAX_DEPTH = 5
@@ -1118,6 +1122,9 @@ class ConnectionHandler:
                 )
                 memory_str = future.result()
 
+            if cancelled():
+                return True
+
             # 仅在该说话人首次出现时把身份注入 system，之后靠对话历史首轮保留，
             # 避免每轮在 system 重复出现名字诱导模型反复称呼
             speaker_for_system = None
@@ -1126,6 +1133,10 @@ class ConnectionHandler:
                 self.system_introduced_speakers.add(cs)
                 speaker_for_system = cs
 
+            cancel_kwargs = (
+                {"cancel_check": cancelled}
+                if getattr(self.llm, "supports_cancel_check", False) else {}
+            )
             if self.intent_type == "function_call" and functions is not None:
                 # 使用支持functions的streaming接口
                 llm_responses = self.llm.response_with_functions(
@@ -1134,6 +1145,7 @@ class ConnectionHandler:
                         memory_str, self.config.get("voiceprint", {}), speaker_for_system
                     ),
                     functions=functions,
+                    **cancel_kwargs,
                 )
             else:
                 llm_responses = self.llm.response(
@@ -1141,23 +1153,13 @@ class ConnectionHandler:
                     self.dialogue.get_llm_dialogue_with_memory(
                         memory_str, self.config.get("voiceprint", {}), speaker_for_system
                     ),
+                    **cancel_kwargs,
                 )
         except Exception as e:
+            if cancelled():
+                return True
             self.logger.bind(tag=TAG).error(f"LLM 处理出错 {query}: {e}")
             return None
-
-        # 修复 barge-in 竞态：上一轮 TTS 播放被打断时，设备发来的 abort 消息可能在本轮
-        # LLM 流建立之后才到达（abortHandle 会把 client_abort 置为 True）。若不清掉这个
-        # 残留标志，本轮回答会在首个分片处被误判为"已打断"而提前退出——表现为只播第一
-        # 句甚至完全没有声音，且服务端没有任何报错。
-        # 只在顶层轮次（depth == 0，即用户新的一次提问）的流开始前清理一次；本轮流式期间
-        # 新到达的 abort 仍会即时置位并正常打断。递归调用（depth > 0，工具调用后继续生成）
-        # 不清理，避免把本轮工具执行期间产生的打断吞掉。
-        if depth == 0 and self.client_abort:
-            self.logger.bind(tag=TAG).debug(
-                "清理上一轮残留的打断标志，避免误断本轮 LLM 流"
-            )
-            self.client_abort = False
 
         # 处理流式响应
         tool_call_flag = False
@@ -1167,7 +1169,7 @@ class ConnectionHandler:
         emotion_flag = True
         try:
             for response in llm_responses:
-                if self.client_abort:
+                if cancelled():
                     break
                 if self.intent_type == "function_call" and functions is not None:
                     content, tools_call = response
@@ -1232,6 +1234,8 @@ class ConnectionHandler:
                             )
                         )
         except Exception as e:
+            if cancelled():
+                return True
             self.logger.bind(tag=TAG).error(f"LLM stream processing error: {e}")
             self.tts.tts_text_queue.put(
                 TTSMessageDTO(
@@ -1250,6 +1254,21 @@ class ConnectionHandler:
                     )
                 )
             return
+        finally:
+            close_stream = getattr(llm_responses, "close", None)
+            if close_stream is not None:
+                try:
+                    close_stream()
+                except Exception as e:
+                    self.logger.bind(tag=TAG).debug(f"关闭 LLM 流失败: {e}")
+            self.logger.bind(tag=TAG).debug(
+                f"CHAT_STREAM_END turn={current_sentence_id} interrupted={cancelled()}"
+            )
+
+        # 中断后不能执行已缓存的工具调用、写残缺历史或发 LAST。
+        if cancelled():
+            return True
+
         # 处理function call
         if tool_call_flag:
             bHasError = False
@@ -1340,6 +1359,8 @@ class ConnectionHandler:
                 # 收集所有工具调用的 Future
                 futures_with_data = []
                 for tool_call_data in tool_calls_list:
+                    if cancelled():
+                        return True
                     self.logger.bind(tag=TAG).debug(
                         f"function_name={tool_call_data['name']}, function_id={tool_call_data['id']}, function_arguments={tool_call_data['arguments']}"
                     )
@@ -1348,12 +1369,13 @@ class ConnectionHandler:
                     tool_input = json.loads(tool_call_data.get("arguments") or "{}")
                     enqueue_tool_report(self, tool_call_data['name'], tool_input)
 
-                    future = asyncio.run_coroutine_threadsafe(
-                        self.func_handler.handle_llm_function_call(
-                            self, tool_call_data
-                        ),
-                        self.loop,
-                    )
+                    async def invoke_tool(data=tool_call_data):
+                        # 提交到事件循环后也可能已换轮，在真正执行前再次判断。
+                        if cancelled():
+                            return None
+                        return await self.func_handler.handle_llm_function_call(self, data)
+
+                    future = asyncio.run_coroutine_threadsafe(invoke_tool(), self.loop)
                     futures_with_data.append((future, tool_call_data, tool_input))
 
                 # 工具调用超时时间，可配置，默认30秒
@@ -1364,6 +1386,8 @@ class ConnectionHandler:
                 for future, tool_call_data, tool_input in futures_with_data:
                     try:
                         result = future.result(timeout=tool_call_timeout)
+                        if cancelled() or result is None:
+                            return True
                         tool_results.append((result, tool_call_data))
                         # 使用公共方法上报工具调用结果
                         enqueue_tool_report(self, tool_call_data['name'], tool_input, str(result.result) if result.result else None, report_tool_call=False)
@@ -1381,10 +1405,17 @@ class ConnectionHandler:
                         enqueue_tool_report(self, tool_call_data['name'], tool_input, str(e), report_tool_call=False)
 
                 # 统一处理工具调用结果
+                if cancelled():
+                    return True
                 if tool_results:
-                    self._handle_function_result(tool_results, depth=depth, streamed_text=streamed_text)
+                    self._handle_function_result(
+                        tool_results, depth=depth, streamed_text=streamed_text,
+                        current_sentence_id=current_sentence_id,
+                    )
 
         # 存储对话内容
+        if cancelled():
+            return True
         if len(response_message) > 0:
             text_buff = "".join(response_message)
             self.tts.store_tts_text(current_sentence_id, text_buff)
@@ -1407,11 +1438,20 @@ class ConnectionHandler:
 
         return True
 
-    def _handle_function_result(self, tool_results, depth, streamed_text=""):
+    def _handle_function_result(self, tool_results, depth, streamed_text="", current_sentence_id=None):
+        current_sentence_id = current_sentence_id or self.sentence_id
+
+        def cancelled():
+            return self.client_abort or current_sentence_id != self.sentence_id
+
+        if cancelled():
+            return
         need_llm_tools = []
         record_tools = []
 
         for result, tool_call_data in tool_results:
+            if cancelled():
+                return
             if result.action in [
                 Action.RESPONSE,
                 Action.NOTFOUND,
@@ -1423,8 +1463,8 @@ class ConnectionHandler:
                         f"Skipping duplicate TTS for tool {tool_call_data['name']}, already streamed"
                     )
                 else:
-                    self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
-                    self.tts.store_tts_text(self.sentence_id, text)
+                    self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text, sentence_id=current_sentence_id)
+                    self.tts.store_tts_text(current_sentence_id, text)
                 self.dialogue.put(Message(role="assistant", content=text))
             elif result.action == Action.REQLLM:
                 need_llm_tools.append((result, tool_call_data))
@@ -1434,6 +1474,8 @@ class ConnectionHandler:
                 pass
 
         # Action.RECORD：写入完整工具调用链（assistant(tool_calls) → tool(result) → assistant(response)）
+        if cancelled():
+            return
         # 模型从历史中学到工具调用模式，不额外调用LLM
         if record_tools:
             # 构造 assistant 消息（含 tool_calls），记录"模型调用了哪些工具"
@@ -1513,7 +1555,7 @@ class ConnectionHandler:
                         )
                     )
 
-            self.chat(None, depth=depth + 1)
+            self.chat(None, depth=depth + 1, current_sentence_id=current_sentence_id)
 
     def _report_worker(self):
         """聊天记录上报工作线程"""

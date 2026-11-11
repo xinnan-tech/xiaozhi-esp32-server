@@ -26,6 +26,8 @@ THINKING_DISABLED_MODEL_EXCLUSIONS = {
 
 
 class LLMProvider(LLMProviderBase):
+    supports_cancel_check = True
+
     def __init__(self, config):
         self.model_name = config.get("model_name")
         # 可选实例级思考强度: off/disabled/none/disable | low/medium/high | 空/其他=按域名默认
@@ -118,6 +120,9 @@ class LLMProvider(LLMProviderBase):
             break
 
     def response(self, session_id, dialogue, **kwargs):
+        cancel_check = kwargs.get("cancel_check", lambda: False)
+        if cancel_check():
+            return
         dialogue = self.normalize_dialogue(dialogue)
 
         request_params = {
@@ -146,6 +151,8 @@ class LLMProvider(LLMProviderBase):
         is_active = True
         try:            
             for chunk in responses:
+                if cancel_check():
+                    break
                 try:
                     delta = chunk.choices[0].delta if getattr(chunk, "choices", None) else None
                     content = getattr(delta, "content", "") if delta else ""
@@ -164,6 +171,9 @@ class LLMProvider(LLMProviderBase):
             responses.close()
 
     def response_with_functions(self, session_id, dialogue, functions=None, **kwargs):
+        cancel_check = kwargs.get("cancel_check", lambda: False)
+        if cancel_check():
+            return
         dialogue = self.normalize_dialogue(dialogue)
 
         request_params = {
@@ -191,6 +201,8 @@ class LLMProvider(LLMProviderBase):
 
         try:
             for chunk in stream:
+                if cancel_check():
+                    break
                 if getattr(chunk, "choices", None):
                     delta = chunk.choices[0].delta
                     content = getattr(delta, "content", "")
