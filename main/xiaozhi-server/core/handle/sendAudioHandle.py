@@ -17,8 +17,9 @@ PRE_BUFFER_COUNT = 2  # 首段发送时不入队的帧数，避免流控延迟�
 
 
 async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text, sentence_id=None):
+    sentence_id = sentence_id or conn.sentence_id
     # 跳过旧句子残留音频
-    if sentence_id is not None and sentence_id != conn.sentence_id:
+    if conn.client_abort or sentence_id != conn.sentence_id:
         return
 
     if conn.tts.tts_audio_first_sentence:
@@ -34,13 +35,17 @@ async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text
             == conn.sentence_id
         ):
             conn.audio_rate_controller.add_message(
-                lambda: send_tts_message(conn, "sentence_start", text)
+                lambda: send_tts_message(conn, "sentence_start", text, sentence_id)
             )
         else:
             # 新句子或流控器未初始化，立即发送
-            await send_tts_message(conn, "sentence_start", text)
+            await send_tts_message(conn, "sentence_start", text, sentence_id)
 
+    if conn.client_abort or sentence_id != conn.sentence_id:
+        return
     await sendAudio(conn, audios)
+    if conn.client_abort or sentence_id != conn.sentence_id:
+        return
     # 发送句子开始消息
     if sentenceType is not SentenceType.MIDDLE:
         conn.logger.bind(tag=TAG).info(f"发送音频消息: {sentenceType}, {text}")
@@ -48,7 +53,9 @@ async def sendAudioMessage(conn: "ConnectionHandler", sentenceType, audios, text
     # 发送结束消息（如果是最后一个文本）
     # 通话需要维持speaking状态
     if not conn.calling and sentenceType == SentenceType.LAST:
-        await send_tts_message(conn, "stop", None)
+        await send_tts_message(conn, "stop", None, sentence_id)
+        if conn.client_abort or sentence_id != conn.sentence_id:
+            return
         if conn.close_after_chat:
             await conn.close()
 
@@ -218,7 +225,7 @@ def _start_background_sender(conn: "ConnectionHandler", rate_controller, flow_co
 
     async def send_callback(packet):
         # 检查是否应该中止
-        if conn.client_abort:
+        if conn.client_abort or flow_control["sentence_id"] != conn.sentence_id:
             raise asyncio.CancelledError("客户端已中止")
 
         conn.last_activity_time = time.time() * 1000
@@ -242,7 +249,7 @@ async def _send_audio_with_rate_control(
         send_delay_ms: 自定义发送间隔（毫秒）。
     """
     for packet in audio_list:
-        if conn.client_abort:
+        if conn.client_abort or flow_control["sentence_id"] != conn.sentence_id:
             return
 
         conn.last_activity_time = time.time() * 1000
@@ -262,6 +269,8 @@ async def _do_send_audio(conn: "ConnectionHandler", opus_packet, flow_control):
     """
     执行实际的音频发送
     """
+    if conn.client_abort or flow_control["sentence_id"] != conn.sentence_id:
+        return
     packet_index = flow_control.get("packet_count", 0)
     sequence = flow_control.get("sequence", 0)
 
@@ -279,8 +288,10 @@ async def _do_send_audio(conn: "ConnectionHandler", opus_packet, flow_control):
     flow_control["sequence"] = sequence + 1
 
 
-async def send_tts_message(conn: "ConnectionHandler", state, text=None):
+async def send_tts_message(conn: "ConnectionHandler", state, text=None, sentence_id=None):
     """发送 TTS 状态消息"""
+    if sentence_id is not None and (conn.client_abort or sentence_id != conn.sentence_id):
+        return
     if text is None and state == "sentence_start":
         return
     message = {"type": "tts", "state": state, "session_id": conn.session_id}
@@ -303,7 +314,7 @@ async def send_tts_message(conn: "ConnectionHandler", state, text=None):
         await _wait_for_audio_completion(conn)
 
         # 检查是否是当前轮次
-        if current_sentence_id != conn.sentence_id:
+        if current_sentence_id != conn.sentence_id or conn.client_abort:
             return
 
         # 停止音频发送循环（仅在流控器已初始化时调用）
