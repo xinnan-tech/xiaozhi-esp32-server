@@ -108,7 +108,10 @@ class MarkdownCleaner:
         (re.compile(r'```.*?```', re.DOTALL), ''),  # 代码块
         (re.compile(r'^#+\s*', re.MULTILINE), ''),  # 标题
         (re.compile(r'(\*\*|__)(.*?)\1'), r'\2'),  # 粗体
-        (re.compile(r'(\*|_)(?=\S)(.*?)(?<=\S)\1'), r'\2'),  # 斜体
+        # 斜体只认成对的分隔符，且不能从字母或数字中间切开。
+        # 否则 get_current_time 会被当成 _current_，2*3*4 会被当成 *3*。
+        (re.compile(r'(?<![A-Za-z0-9])\*(?=\S)(.*?)(?<=\S)\*(?![A-Za-z0-9])'), r'\1'),
+        (re.compile(r'(?<![A-Za-z_])_(?=\S)(.*?)(?<=\S)_(?![A-Za-z_])'), r'\1'),
         (re.compile(r'!\[.*?\]\(.*?\)'), ''),  # 图片
         (re.compile(r'\[(.*?)\]\(.*?\)'), r'\1'),  # 链接
         (re.compile(r'^\s*>+\s*', re.MULTILINE), ''),  # 引用
