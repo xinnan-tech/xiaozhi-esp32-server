@@ -704,3 +704,6 @@ class TTSProviderBase(ABC):
     def reset_stream_state(self):
         """重置流式处理状态，用于会话开始时清理残留状态"""
         self._pending_prefix = ""
+        # 清理编码器中未满一帧的PCM残留
+        if getattr(self, "opus_encoder", None):
+            self.opus_encoder.reset_state()
