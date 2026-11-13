@@ -348,10 +348,6 @@ Memory:
   nomem:
     # 不想使用记忆功能，可以使用nomem
     type: nomem
-  mem_report_only:
-    # 只把聊天记录上报到智控台，不做记忆总结，也不保存记忆
-    # 适合只想留存对话记录、又不需要记忆功能的场景
-    type: mem_report_only
   mem_local_short:
     # 本地记忆功能，通过selected_module的llm总结，数据保存在本地服务器，不会上传到外部服务器
     type: mem_local_short
