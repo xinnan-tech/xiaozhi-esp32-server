@@ -502,6 +502,24 @@ class TTSProviderBase(ABC):
     # 德语句子的切分只能靠“不平衡就顺延”保守处理（最终由 flush 兜底）。
     _CLOSERS = '」』”》）"»“】〉］]'
     _QUOTE_CHARS = "".join(ch for pair in _QUOTE_PAIRS for ch in pair)
+    # 数字内部的分隔符不是句末：1,280 / 1，280 的逗号，15：30 的冒号。
+    _NUMERIC_COMMAS = frozenset(",，")
+    _NUMERIC_COLONS = frozenset("：")
+
+    @classmethod
+    def _is_numeric_separator(cls, text: str, index: int) -> bool:
+        """数字里的逗号、冒号不能当断句点。
+
+        千分位（1,280、1，280）和时刻（15：30）要留在同一段里交给 TTS。
+        分隔符紧跟在数字后面、后一个字符还没到时也先不切，避免流式把
+        1,280 切成「1」；后一个字符到达后，只有数字才确认它是数字分隔符。
+        """
+        if index <= 0 or not text[index - 1].isdigit():
+            return False
+        ch = text[index]
+        if ch not in cls._NUMERIC_COMMAS and ch not in cls._NUMERIC_COLONS:
+            return False
+        return index + 1 >= len(text) or text[index + 1].isdigit()
 
     @classmethod
     def _quote_safe_cut(cls, text: str, pos: int, punctuations) -> int:
@@ -514,7 +532,9 @@ class TTSProviderBase(ABC):
             # 全文不含引号/括号：不存在未闭合引号，右引号也无需携带，候选位置必然安全
             return pos
         candidates = [pos] + [
-            i for i, ch in enumerate(text) if i > pos and ch in punctuations
+            i
+            for i, ch in enumerate(text)
+            if i > pos and ch in punctuations and not cls._is_numeric_separator(text, i)
         ]
         for candidate in candidates:
             end = candidate + 1
@@ -561,7 +581,9 @@ class TTSProviderBase(ABC):
         # 取每种标点最后出现位置的最早者作为切分点（与逐个 rfind 再取最小值等价）
         last_seen = {}
         for i, ch in enumerate(current_text):
-            if ch in punctuations_to_use:
+            if ch in punctuations_to_use and not self._is_numeric_separator(
+                current_text, i
+            ):
                 last_seen[ch] = i
         last_punct_pos = min(last_seen.values(), default=-1)
 
