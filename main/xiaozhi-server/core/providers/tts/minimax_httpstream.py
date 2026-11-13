@@ -85,6 +85,9 @@ class TTSProvider(TTSProviderBase):
         # PCM缓冲区
         self.pcm_buffer = bytearray()
 
+        # 一句话只发一次句首标记，重试时不能重复发
+        self._tts_first_sent = False
+
     async def open_audio_channels(self, conn):
         """初始化音频通道,并根据conn.sample_rate更新配置"""
         # 调用父类方法
@@ -146,35 +149,60 @@ class TTSProvider(TTSProviderBase):
             self._process_before_stop_play_files()
 
     def to_tts_single_stream(self, text, is_last=False):
+        original_text = text
         try:
-            max_repeat_time = 5
-            original_text = text
             text = MarkdownCleaner.clean_markdown(text)
             if self._correct_words_pattern:
                 text = self._correct_words_pattern.sub(lambda m: self.correct_words[m.group(0)], text)
-            try:
-                asyncio.run(self.text_to_speak(text, is_last))
-            except Exception as e:
-                logger.bind(tag=TAG).warning(
-                    f"语音生成失败{5 - max_repeat_time + 1}次: {original_text}，错误: {e}"
-                )
-                max_repeat_time -= 1
 
-            if max_repeat_time > 0:
+            # 原来的写法只试一次，而且失败后 max_repeat_time 只减 1（5→4），
+            # 于是 "max_repeat_time > 0" 恒为真 —— 失败也照样打「语音生成成功」。
+            max_repeat_time = 5
+            succeeded = False
+            attempt = 0
+            self._tts_first_sent = False
+            for attempt in range(1, max_repeat_time + 1):
+                error = None
+                try:
+                    ok, audio_sent = asyncio.run(self.text_to_speak(text, is_last))
+                except Exception as e:
+                    ok, audio_sent = False, False
+                    error = e
+                if ok:
+                    succeeded = True
+                    break
+                if audio_sent:
+                    # 音频已经推给设备了，再试一次同一句会被播两遍
+                    logger.bind(tag=TAG).warning(
+                        f"语音生成失败: {original_text}，已推送音频，不再重试"
+                    )
+                    break
+                suffix = f"，错误: {error}" if error else ""
+                logger.bind(tag=TAG).warning(
+                    f"语音生成失败{attempt}次: {original_text}{suffix}"
+                )
+
+            if succeeded:
                 logger.bind(tag=TAG).info(
-                    f"语音生成成功: {original_text}，重试{5 - max_repeat_time}次"
+                    f"语音生成成功: {original_text}，重试{attempt - 1}次"
                 )
             else:
                 logger.bind(tag=TAG).error(
                     f"语音生成失败: {original_text}，请检查网络或服务是否正常"
                 )
+                # 收尾标记只在这里发一次。text_to_speak 失败时不再自己塞 LAST，
+                # 否则重试成功的音频会排在 LAST 之后，设备根本听不到。
+                self.tts_audio_queue.put((SentenceType.LAST, [], None))
         except Exception as e:
             logger.bind(tag=TAG).error(f"Failed to generate TTS file: {e}")
-        finally:
-            return None
 
     async def text_to_speak(self, text, is_last):
-        """流式处理TTS音频，每句只推送一次音频列表"""
+        """流式处理TTS音频，每句只推送一次音频列表
+
+        Returns:
+            tuple[bool, bool]: (是否合成成功, 是否已经推送过音频帧)
+                音频一旦推给设备就不能重试，否则同一句会被播两遍。
+        """
         payload = {
             "model": self.model,
             "text": text,
@@ -195,6 +223,7 @@ class TTSProvider(TTSProviderBase):
             / 1000
             * 2
         )  # 16-bit = 2 bytes
+        audio_sent = False
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -208,11 +237,12 @@ class TTSProvider(TTSProviderBase):
                         logger.bind(tag=TAG).error(
                             f"TTS请求失败: {resp.status}, {await resp.text()}"
                         )
-                        self.tts_audio_queue.put((SentenceType.LAST, [], None))
-                        return
+                        return False, False
 
                     self.pcm_buffer.clear()
-                    self.tts_audio_queue.put((SentenceType.FIRST, [], text))
+                    if not self._tts_first_sent:
+                        self.tts_audio_queue.put((SentenceType.FIRST, [], text))
+                        self._tts_first_sent = True
 
                     # 处理音频流数据
                     buffer = b""
@@ -246,8 +276,7 @@ class TTSProvider(TTSProviderBase):
                                     logger.bind(tag=TAG).error(
                                         f"TTS请求失败, 错误码:{status_code}, 错误消息:{status_msg}"
                                     )
-                                    self.tts_audio_queue.put((SentenceType.LAST, [], None))
-                                    return
+                                    return False, audio_sent
 
                                 status = data.get("data", {}).get("status", 1)
                                 audio_hex = data.get("data", {}).get("audio")
@@ -268,6 +297,7 @@ class TTSProvider(TTSProviderBase):
                             self.opus_encoder.encode_pcm_to_opus_stream(
                                 frame, end_of_stream=False, callback=self.handle_opus
                             )
+                            audio_sent = True
 
                     # flush 剩余不足一帧的数据
                     if self.pcm_buffer:
@@ -277,14 +307,16 @@ class TTSProvider(TTSProviderBase):
                             callback=self.handle_opus,
                         )
                         self.pcm_buffer.clear()
+                        audio_sent = True
 
                     # 如果是最后一段，输出音频获取完毕
                     if is_last:
                         self._process_before_stop_play_files()
 
+            return True, audio_sent
         except Exception as e:
             logger.bind(tag=TAG).error(f"TTS请求异常: {e}")
-            self.tts_audio_queue.put((SentenceType.LAST, [], None))
+            return False, audio_sent
 
     async def close(self):
         """资源清理"""
