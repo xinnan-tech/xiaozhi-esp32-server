@@ -270,7 +270,7 @@ Tatsächlich kann jedes LLM, das OpenAI-Schnittstellenaufrufe unterstützt, inte
 
 | Verwendungsmethode | Unterstützte Plattformen | Kostenlose Plattformen |
 |:---:|:---:|:---:|
-| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Zhipu ChatGLMVLLM | Zhipu ChatGLMVLLM |
+| OpenAI-Schnittstellenaufrufe | Alibaba Bailian, Zhipu ChatGLMVLLM, iFLYTEK | Zhipu ChatGLMVLLM |
 
 Tatsächlich kann jedes VLLM, das OpenAI-Schnittstellenaufrufe unterstützt, integriert und verwendet werden.
 
@@ -320,6 +320,7 @@ Die Stimmabdruckerkennung erfordert einen separat bereitgestellten [voiceprint-a
 | Memory | [powermem](../powermem-integration.md) | Lokale Zusammenfassung | Abhängig von LLM und DB | OceanBase Open Source, unterstützt intelligente Abfrage |
 | Memory | mem_local_short | Lokale Zusammenfassung | Kostenlos | |
 | Memory | nomem | Kein Gedächtnismodus | Kostenlos | |
+| Memory | mem_report_only | Nur Meldung | Kostenlos | Meldet nur Chat-Verläufe, keine Gedächtniszusammenfassung |
 
 ---
 
