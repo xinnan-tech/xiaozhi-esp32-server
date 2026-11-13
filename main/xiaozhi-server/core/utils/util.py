@@ -179,6 +179,14 @@ def remove_punctuation_and_length(text):
 
 
 def check_model_key(modelType, modelKey):
+    """检查 API key 是不是还停留在出厂占位符上。
+
+    modelKey 允许是 None / 空串：智控台下发的配置里未必带 api_key 字段
+    （本地 LLM 场景也常把它留空），而 ``"你" in None`` 会直接抛
+    TypeError，把「配置没填」这种业务错误变成了 provider 构造期的崩溃。
+    """
+    if not modelKey:
+        return f"配置错误: {modelType} 的 API key 未设置"
     if "你" in modelKey:
         return f"配置错误: {modelType} 的 API key 未设置,当前值为: {modelKey}"
     return None
