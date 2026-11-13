@@ -47,7 +47,12 @@ async def handle_user_intent(conn: "ConnectionHandler", text):
     # 会话开始时生成sentence_id
     conn.sentence_id = str(uuid.uuid4().hex)
     # 处理各种意图
-    return await process_intent_result(conn, intent_result, text)
+    handled = await process_intent_result(conn, intent_result, text)
+    if handled:
+        return True
+    # 意图识别没有命中任何工具时，若配置了知识库，再做一次检索兜底，
+    # 避免"知识库里有答案，但描述没覆盖到该主题，导致检索根本没被触发"
+    return await fallback_knowledge_base(conn, text)
 
 
 async def check_direct_exit(conn: "ConnectionHandler", text):
@@ -78,6 +83,77 @@ async def analyze_intent_with_llm(conn: "ConnectionHandler", text):
         conn.logger.bind(tag=TAG).error(f"意图识别失败: {str(e)}")
 
     return None
+
+
+# 目前只有 ragflow 检索插件，后续新增知识库后端时在这里补充函数名即可
+KNOWLEDGE_TOOL_NAMES = ("search_from_ragflow",)
+
+
+def _get_knowledge_fallback_config(conn: "ConnectionHandler"):
+    """返回知识库兜底所需配置，未配置知识库时返回 None"""
+    plugins = conn.config.get("plugins", {}) or {}
+    for tool_name in KNOWLEDGE_TOOL_NAMES:
+        tool_config = plugins.get(tool_name)
+        if isinstance(tool_config, dict) and tool_config.get("dataset_ids"):
+            return tool_config
+    return None
+
+
+async def fallback_knowledge_base(conn: "ConnectionHandler", text: str) -> bool:
+    """意图识别判定为普通聊天时的知识库兜底检索。
+
+    意图识别只看得到知识库的"名称+描述"（受长度限制，很难穷举所有主题），
+    因此存在"知识库里有答案、但描述没覆盖该主题，检索从未被触发"的漏召回。
+    这里在意图识别结束后补充一次真实检索：命中相似度阈值内的片段就带着资料回复，
+    否则交回普通聊天流程，不改变原有行为。
+    """
+    tool_config = _get_knowledge_fallback_config(conn)
+    if tool_config is None:
+        return False
+    if not tool_config.get("fallback_enabled", True):
+        return False
+    if getattr(conn, "func_handler", None) is None:
+        return False
+
+    try:
+        min_similarity = float(tool_config.get("fallback_min_similarity", 0.5))
+    except (TypeError, ValueError):
+        min_similarity = 0.5
+
+    from plugins_func.functions.search_from_ragflow import retrieve_chunks
+
+    hits = await retrieve_chunks(conn, text, min_similarity=min_similarity)
+    if not hits:
+        return False
+
+    conn.logger.bind(tag=TAG).info(
+        f"意图识别未命中知识库工具，兜底检索命中 {len(hits)} 条"
+        f"（最高相似度 {hits[0]['similarity']:.3f}），改用知识库回答"
+    )
+
+    await send_stt_message(conn, text)
+    conn.client_abort = False
+
+    context_text = f"# 关于问题【{text}】查到知识库如下\n"
+    context_text += "```\n\n\n".join(hit["content"] for hit in hits[:5])
+    context_text += "\n```"
+
+    def process_knowledge_reply():
+        conn.dialogue.put(Message(role="user", content=text))
+        conn.dialogue.put(Message(role="tool", content=context_text))
+        try:
+            llm_result = asyncio.run_coroutine_threadsafe(
+                conn.intent.replyResult(context_text, text),
+                conn.loop,
+            ).result()
+        except Exception as e:
+            conn.logger.bind(tag=TAG).error(f"知识库兜底生成回复失败: {e}")
+            llm_result = None
+        if llm_result:
+            speak_txt(conn, llm_result)
+
+    conn.executor.submit(process_knowledge_reply)
+    return True
 
 
 async def process_intent_result(

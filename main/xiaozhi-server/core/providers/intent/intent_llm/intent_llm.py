@@ -60,6 +60,27 @@ class IntentProvider(IntentProviderBase):
 
             functions_desc += "---\n"
 
+        # 知识库类工具的 description 只是主题概览，无法穷举库内所有问答，
+        # 仅凭 description 判断相关性会造成"库里有答案、检索却没被触发"的漏召回，
+        # 因此对 search_from_* 类工具单独强调"可能相关就先检索"。
+        knowledge_rules = ""
+        kb_tool_names = [
+            func.get("function", {}).get("name", "")
+            for func in functions_list
+            if func.get("function", {}).get("name", "").startswith("search_from_")
+        ]
+        if kb_tool_names:
+            knowledge_rules = (
+                "【知识库工具调用规则】\n"
+                f"- 可用的知识库工具：{'、'.join(kb_tool_names)}\n"
+                "- 知识库的描述只是主题概览，不可能列出库内的全部问答内容。\n"
+                "- 只要用户问题有可能落在知识库覆盖的产品、功能、用法、参数、故障排查范围内，"
+                "即使描述里没有明确提到这个细分主题，也必须调用知识库工具检索一次。\n"
+                "- 遇到“怎么使用、如何操作、有什么功能、怎么设置、报错怎么办”这类问题，"
+                "若与知识库主题相关，应优先检索知识库而不是直接走普通聊天。\n"
+                "- 宁可多检索一次：检索不到内容时系统会自动降级，不影响正常回答。\n\n"
+            )
+
         prompt = (
             "【严格格式要求】你必须只能返回JSON格式，绝对不能返回任何自然语言！\n\n"
             "你是一个意图识别助手。请分析用户的最后一句话，判断用户意图并调用相应的函数。\n\n"
@@ -72,6 +93,7 @@ class IntentProvider(IntentProviderBase):
             "- 如果用户使用疑问词（如'怎么'、'为什么'、'如何'）询问退出相关的问题（例如'怎么退出了？'），注意这不是让你退出，请返回 {'function_call': {'name': 'continue_chat'}\n"
             "- 仅当用户明确使用'退出系统'、'结束对话'、'我不想和你说话了'等指令时，才触发 handle_exit_intent\n\n"
             f"{functions_desc}\n"
+            f"{knowledge_rules}"
             "处理步骤:\n"
             "1. 分析用户输入，确定用户意图\n"
             "2. 检查是否为上述基础信息查询（时间、日期等），如是则返回result_for_context\n"
