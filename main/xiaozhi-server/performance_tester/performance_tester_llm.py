@@ -119,7 +119,12 @@ class LLMPerformanceTester:
         return chunks, first_token_time
 
     async def _check_ollama_service(self, base_url: str, model_name: str) -> bool:
-        """异步检查 Ollama 服务状态"""
+        """异步检查 Ollama 服务状态（兼容带/v1或完整端点的base_url写法）"""
+        base_url = base_url.strip().rstrip("/")
+        if base_url.endswith("/chat/completions"):
+            base_url = base_url[: -len("/chat/completions")].rstrip("/")
+        if base_url.endswith("/v1"):
+            base_url = base_url[: -len("/v1")].rstrip("/")
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(f"{base_url}/api/version") as response:
@@ -230,7 +235,7 @@ class LLMPerformanceTester:
         """异步测试单个 LLM 性能"""
         try:
             # 对于 Ollama，跳过 api_key 检查并进行特殊处理
-            if llm_name == "Ollama":
+            if llm_name == "OllamaLLM" or str(config.get("type", "")).lower() == "ollama":
                 base_url = config.get("base_url", "http://localhost:11434")
                 model_name = config.get("model_name")
                 if not model_name:
@@ -474,7 +479,7 @@ class LLMPerformanceTester:
                     continue
 
                 # 对于 Ollama，先检查服务状态
-                if llm_name == "Ollama":
+                if llm_name == "OllamaLLM" or str(config.get("type", "")).lower() == "ollama":
                     base_url = config.get("base_url", "http://localhost:11434")
                     model_name = config.get("model_name")
                     if not model_name:

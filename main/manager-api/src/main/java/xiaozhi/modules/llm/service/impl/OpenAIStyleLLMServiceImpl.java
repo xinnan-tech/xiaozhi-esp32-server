@@ -64,6 +64,27 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
 
     private static final String DEFAULT_TITLE_PROMPT = "请根据以下对话内容，生成一个简洁的会话标题（约15字以内），只返回标题，不要包含任何解释或标点符号：\n{conversation}";
 
+    /**
+     * Ollama的OpenAI兼容端点位于{base_url}/v1下，与xiaozhi-server侧ollama provider逻辑保持一致：
+     * 剥离用户误填的完整端点后缀后，仅对不含路径的纯主机地址补/v1
+     */
+    private static String normalizeOllamaBaseUrl(String baseUrl) {
+        if (baseUrl == null) {
+            return null;
+        }
+        String url = baseUrl.trim();
+        if (url.endsWith("/chat/completions")) {
+            url = url.substring(0, url.length() - "/chat/completions".length());
+        }
+        while (url.endsWith("/")) {
+            url = url.substring(0, url.length() - 1);
+        }
+        if (url.replaceFirst("^https?://[^/]+", "").isEmpty()) {
+            url = url + "/v1";
+        }
+        return url;
+    }
+
     @Override
     public String generateSummary(String conversation) {
         return generateSummary(conversation, null, null);
@@ -101,6 +122,9 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             String baseUrl = configJson.getStr("base_url");
             String model = configJson.getStr("model_name");
             String apiKey = configJson.getStr("api_key");
+            if ("ollama".equalsIgnoreCase(configJson.getStr("type"))) {
+                baseUrl = normalizeOllamaBaseUrl(baseUrl);
+            }
             Double temperature = configJson.getDouble("temperature");
             Integer maxTokens = configJson.getInt("max_tokens");
 
@@ -196,6 +220,9 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             String baseUrl = configJson.getStr("base_url");
             String model = configJson.getStr("model_name");
             String apiKey = configJson.getStr("api_key");
+            if ("ollama".equalsIgnoreCase(configJson.getStr("type"))) {
+                baseUrl = normalizeOllamaBaseUrl(baseUrl);
+            }
 
             if (StringUtils.isBlank(baseUrl) || StringUtils.isBlank(apiKey)) {
                 log.error("LLM配置不完整，baseUrl或apiKey为空");
@@ -354,6 +381,9 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             String baseUrl = configJson.getStr("base_url");
             String model = configJson.getStr("model_name");
             String apiKey = configJson.getStr("api_key");
+            if ("ollama".equalsIgnoreCase(configJson.getStr("type"))) {
+                baseUrl = normalizeOllamaBaseUrl(baseUrl);
+            }
 
             if (StringUtils.isBlank(baseUrl) || StringUtils.isBlank(apiKey)) {
                 log.error("LLM配置不完整，baseUrl或apiKey为空");
