@@ -393,7 +393,7 @@ export class WebSocketHandler {
         }
     }
 
-    // 连接WebSocket服务器
+    // 连接WebSocket服务器：配置校验不通过时返回 false；OTA 请求或建立连接出错时抛出带原因的错误
     async connect() {
         const config = getConfig();
         log('正在检查OTA状态...', 'info');
@@ -425,7 +425,8 @@ export class WebSocketHandler {
             if (this.onConnectionStateChange) {
                 this.onConnectionStateChange(false);
             }
-            return false;
+            // 交给拨号逻辑，把具体原因（如OTA地址无法访问）显示在对话区
+            throw error;
         }
     }
 
