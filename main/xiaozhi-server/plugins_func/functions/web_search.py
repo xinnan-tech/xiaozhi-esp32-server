@@ -249,6 +249,59 @@ async def _search_specstream(api_key: str, query: str, max_results: int) -> str:
     return "\n".join(lines)
 
 
+async def _search_sofya(api_key: str, query: str, max_results: int) -> str:
+    """调用Sofya搜索API"""
+    url = "https://sofya.co/v1/search"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "User-Agent": "xiaozhi-esp32-server",
+    }
+    # snippets只返回摘要、不抓取网页正文，响应最快；单次最多返回20条
+    payload = {
+        "query": query,
+        "max_results": max(1, min(max_results, 20)),
+        "search_depth": "snippets",
+    }
+    logger.bind(tag=TAG).debug(f"Sofya搜索请求 | URL: {url} | payload: {payload}")
+    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=3.0)) as client:
+        response = await client.post(url, json=payload, headers=headers)
+    data = response.json()
+    logger.bind(tag=TAG).debug(f"Sofya搜索响应 | status: {response.status_code}")
+
+    if response.status_code != 200:
+        # 错误信封为 {"error": "...", "detail": "..."}，失败的请求不扣费
+        code = data.get("error", "") if isinstance(data, dict) else ""
+        detail = data.get("detail", "") if isinstance(data, dict) else ""
+        logger.bind(tag=TAG).error(
+            f"Sofya搜索失败 | status: {response.status_code} | code: {code} | detail: {detail}"
+        )
+        if response.status_code == 401:
+            return "联网搜索请求失败，请检查API Key是否正确。"
+        if response.status_code == 402:
+            # insufficient_credits（余额不足）或 key_cap_reached（该Key达到用量上限）
+            return "联网搜索额度已用完，请检查Sofya账户余额。"
+        # 其余状态（429限流、503、504等）多为暂时性故障，统一引导重试
+        return "联网搜索请求失败，请稍后重试。"
+
+    results = data.get("results", [])
+    if not results:
+        return "未找到相关搜索结果。"
+
+    lines = ["【联网搜索结果】"]
+    for i, item in enumerate(results[:max_results], 1):
+        title = item.get("title") or "无标题"
+        snippet = item.get("description") or item.get("content") or ""
+        date = item.get("published_date") or ""
+        lines.append(f"{i}. 标题：{title}")
+        if date:
+            lines.append(f"   日期：{date}")
+        if snippet:
+            lines.append(f"   摘要：{snippet}")
+
+    return "\n".join(lines)
+
+
 @register_function("web_search", WEB_SEARCH_FUNCTION_DESC, ToolType.SYSTEM_CTL)
 async def web_search(conn: "ConnectionHandler", query: str = None):
     logger.bind(tag=TAG).info(f"web_search 被调用 | query={query}")
@@ -279,6 +332,8 @@ async def web_search(conn: "ConnectionHandler", query: str = None):
             result_text = await _search_outcrawl(api_key, query, max_results)
         elif provider == "specstream":
             result_text = await _search_specstream(api_key, query, max_results)
+        elif provider == "sofya":
+            result_text = await _search_sofya(api_key, query, max_results)
         else:
             return ActionResponse(
                 Action.REQLLM,
