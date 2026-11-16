@@ -767,3 +767,10 @@ databaseChangeLog:
         - sqlFile:
             encoding: utf8
             path: classpath:db/changelog/202611021200.sql
+  - changeSet:
+      id: 202611101200
+      author: Specstreamai
+      changes:
+        - sqlFile:
+            encoding: utf8
+            path: classpath:db/changelog/202611101200.sql

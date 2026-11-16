@@ -197,6 +197,58 @@ async def _search_outcrawl(api_key: str, query: str, max_results: int) -> str:
     return "\n".join(lines)
 
 
+async def _search_specstream(api_key: str, query: str, max_results: int) -> str:
+    """调用SpecStream搜索API"""
+    url = "https://api.specstream.ai/v1/web-search"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "User-Agent": "xiaozhi-esp32-server",
+    }
+    # 单次10条以内按基础价计费，所以num按1到10截取
+    params = {"q": query, "num": max(1, min(max_results, 10))}
+    logger.bind(tag=TAG).debug(f"SpecStream搜索请求 | URL: {url} | params: {params}")
+    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=3.0)) as client:
+        response = await client.get(url, params=params, headers=headers)
+    data = response.json()
+    logger.bind(tag=TAG).debug(f"SpecStream搜索响应 | status: {response.status_code}")
+
+    if response.status_code != 200:
+        # 错误信封为 {"error": {"code": "...", "message": "...", "details": {}}}
+        error = data.get("error", {}) if isinstance(data, dict) else {}
+        code = error.get("code", "") if isinstance(error, dict) else ""
+        detail = error.get("message", "") if isinstance(error, dict) else ""
+        logger.bind(tag=TAG).error(
+            f"SpecStream搜索失败 | status: {response.status_code} | code: {code} | detail: {detail}"
+        )
+        if code in ("missing_api_key", "invalid_token"):
+            return "联网搜索请求失败，请检查API Key是否正确。"
+        if code in ("insufficient_balance", "payment_required"):
+            return "联网搜索额度已用完，请检查SpecStream账户余额。"
+        # 其余code（rate_limited、capacity、bad_request等）统一引导重试
+        return "联网搜索请求失败，请稍后重试。"
+
+    page = data.get("data") or {}
+    sources = page.get("sources", [])
+    if not sources:
+        return "未找到相关搜索结果。"
+
+    lines = ["【联网搜索结果】"]
+    answer = (page.get("answer") or {}).get("value", "")
+    if answer:
+        lines.append(f"总结：{answer}")
+    for i, item in enumerate(sources[:max_results], 1):
+        title = item.get("title") or "无标题"
+        snippet = item.get("snippet", "")
+        date = item.get("published") or ""
+        lines.append(f"{i}. 标题：{title}")
+        if date:
+            lines.append(f"   日期：{date}")
+        if snippet:
+            lines.append(f"   摘要：{snippet}")
+
+    return "\n".join(lines)
+
+
 @register_function("web_search", WEB_SEARCH_FUNCTION_DESC, ToolType.SYSTEM_CTL)
 async def web_search(conn: "ConnectionHandler", query: str = None):
     logger.bind(tag=TAG).info(f"web_search 被调用 | query={query}")
@@ -225,6 +277,8 @@ async def web_search(conn: "ConnectionHandler", query: str = None):
             result_text = await _search_serply(api_key, query, max_results)
         elif provider == "outcrawl":
             result_text = await _search_outcrawl(api_key, query, max_results)
+        elif provider == "specstream":
+            result_text = await _search_specstream(api_key, query, max_results)
         else:
             return ActionResponse(
                 Action.REQLLM,
