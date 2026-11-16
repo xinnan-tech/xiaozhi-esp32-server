@@ -165,6 +165,12 @@ plugins:
   search_from_ragflow:
     # 知识库的描述信息，方便大语言模型知道什么时候调用
     description: "当用户问xxx时，调用本方法，使用知识库中的信息回答问题"
+    # 意图识别判定为普通聊天时的知识库兜底检索。
+    # 描述无法穷举库内所有主题，开启后即使意图识别没选中知识库，
+    # 也会用用户问题真实检索一次，命中阈值内的内容就改用知识库回答
+    fallback_enabled: true
+    # 兜底检索的最低相似度（0~1），低于该值的片段直接丢弃
+    fallback_min_similarity: 0.5
     # ragflow接口配置
     base_url: "http://192.168.0.8"
     # ragflow api访问令牌

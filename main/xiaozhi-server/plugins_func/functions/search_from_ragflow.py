@@ -25,6 +25,75 @@ SEARCH_FROM_RAGFLOW_FUNCTION_DESC = {
 }
 
 
+def _get_ragflow_config(conn: "ConnectionHandler") -> dict:
+    return conn.config.get("plugins", {}).get("search_from_ragflow", {}) or {}
+
+
+def _normalize_content(content) -> str:
+    """把 chunk.content 统一成字符串"""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, bytes):
+        return content.decode("utf-8", errors="replace")
+    if content is None:
+        return ""
+    return str(content)
+
+
+async def retrieve_chunks(
+    conn: "ConnectionHandler", question: str, min_similarity: float = 0.0
+) -> list:
+    """直接检索知识库并返回命中的片段（按相似度降序，最多 5 条）。
+
+    与 search_from_ragflow 工具的区别：本函数只做检索、不做话术包装，
+    供意图识别兜底使用。任何异常都返回空列表，不阻塞正常对话链路。
+    """
+    if not question:
+        return []
+
+    ragflow_config = _get_ragflow_config(conn)
+    base_url = ragflow_config.get("base_url", "")
+    api_key = ragflow_config.get("api_key", "")
+    dataset_ids = ragflow_config.get("dataset_ids", [])
+    if not base_url or not dataset_ids:
+        return []
+
+    payload = {"question": question, "dataset_ids": dataset_ids}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(5.0, connect=3.0), verify=False
+        ) as client:
+            response = await client.post(
+                base_url + "/api/v1/retrieval", json=payload, headers=headers
+            )
+        response.encoding = "utf-8"
+        result = json.loads(response.text)
+        if result.get("code") != 0:
+            return []
+    except Exception as e:
+        logger.bind(tag=TAG).debug(f"知识库兜底检索失败: {type(e).__name__} {e}")
+        return []
+
+    hits = []
+    for chunk in result.get("data", {}).get("chunks", []) or []:
+        content = _normalize_content(chunk.get("content", ""))
+        if not content:
+            continue
+        try:
+            # RAGFlow 返回 similarity 为 0~1 的浮点数，缺失时视为 0
+            similarity = float(chunk.get("similarity", 0) or 0)
+        except (TypeError, ValueError):
+            similarity = 0.0
+        if similarity < min_similarity:
+            continue
+        hits.append({"content": content, "similarity": similarity})
+
+    hits.sort(key=lambda item: item["similarity"], reverse=True)
+    return hits
+
+
 @register_function(
     "search_from_ragflow", SEARCH_FROM_RAGFLOW_FUNCTION_DESC, ToolType.SYSTEM_CTL
 )
@@ -36,7 +105,7 @@ async def search_from_ragflow(conn: "ConnectionHandler", question=None):
     else:
         question = str(question) if question is not None else ""
 
-    ragflow_config = conn.config.get("plugins", {}).get("search_from_ragflow", {})
+    ragflow_config = _get_ragflow_config(conn)
     base_url = ragflow_config.get("base_url", "")
     api_key = ragflow_config.get("api_key", "")
     dataset_ids = ragflow_config.get("dataset_ids", [])
@@ -85,15 +154,9 @@ async def search_from_ragflow(conn: "ConnectionHandler", question=None):
         chunks = result.get("data", {}).get("chunks", [])
         contents = []
         for chunk in chunks:
-            content = chunk.get("content", "")
+            content = _normalize_content(chunk.get("content", ""))
             if content:
-                # 安全地处理内容字符串
-                if isinstance(content, str):
-                    contents.append(content)
-                elif isinstance(content, bytes):
-                    contents.append(content.decode("utf-8", errors="replace"))
-                else:
-                    contents.append(str(content))
+                contents.append(content)
 
         if contents:
             # 组织知识库内容为引用模式
