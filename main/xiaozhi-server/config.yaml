@@ -765,7 +765,11 @@ VLLM:
     # 开通应用地址：https://console.xfyun.cn/app/myapp
     # 有免费额度，但也要开通服务，才能获取api_key
     # 每一个模型都需要单独开通，每一个模型的 api_key 都不同，例如 Lite 模型在 https://console.xfyun.cn/services/cbm 开通
-    base_url: https://ark.cn-beijing.volces.com/api/v3
+    # 讯飞星火的 OpenAI 兼容端点，可用模型名（lite / 4.0Ultra 等）见
+    # https://www.xfyun.cn/doc/spark/HTTP调用文档.html
+    # 注意 base_url 必须指向讯飞自己的域名。这里曾误填成火山方舟的
+    # ark.cn-beijing.volces.com，会把讯飞的 api_key 发给火山引擎。
+    base_url: https://spark-api-open.xf-yun.com/v1
     model_name: lite
     api_key: 你的api_key
 TTS:
