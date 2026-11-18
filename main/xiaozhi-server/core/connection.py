@@ -1122,7 +1122,13 @@ class ConnectionHandler:
             # 仅在该说话人首次出现时把身份注入 system，之后靠对话历史首轮保留，
             # 避免每轮在 system 重复出现名字诱导模型反复称呼
             speaker_for_system = None
-            cs = (self.current_speaker or "").strip()
+            # 展示名优先取本轮 speaker 快照：manual 模式下两轮 chat 线程可能并发，
+            # conn.current_speaker 已被下一轮覆盖，连接态仅在无快照路径作兜底
+            cs = ""
+            if speaker is not None:
+                cs = (speaker.name or "").strip()
+            if not cs:
+                cs = (self.current_speaker or "").strip()
             if cs and cs != UNKNOWN_SPEAKER_NAME and cs not in self.system_introduced_speakers:
                 self.system_introduced_speakers.add(cs)
                 speaker_for_system = cs

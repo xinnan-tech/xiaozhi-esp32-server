@@ -362,7 +362,8 @@ async def call_mcp_endpoint_tool(
     message = json.dumps(payload)
     log_suffix = ""
     if meta:
-        log_suffix = f"，_meta: {json.dumps(meta, ensure_ascii=False)}"
+        # 只记是否附带身份及字段名，不输出 speakerId/speakerName 明文
+        log_suffix = f"，_meta: 附带身份字段 {list(meta.keys())}"
     logger.bind(tag=TAG).info(
         f"发送MCP接入点工具调用请求: {actual_name}，参数: {json.dumps(arguments, ensure_ascii=False)}{log_suffix}"
     )

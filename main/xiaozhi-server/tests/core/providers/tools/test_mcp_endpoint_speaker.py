@@ -153,6 +153,8 @@ async def test_executor_reads_snapshot_not_conn_state(monkeypatch):
 
     monkeypatch.setattr(executor_mod, "call_mcp_endpoint_tool", fake_call)
     conn = _Conn()
+    # 模拟并发场景：连接态已被下一轮覆盖成另一个人，meta 仍必须取自快照
+    conn.current_speaker = "旧说话人"
     await executor_mod.MCPEndpointExecutor(conn).execute(
         conn,
         "HassTurnOn",
