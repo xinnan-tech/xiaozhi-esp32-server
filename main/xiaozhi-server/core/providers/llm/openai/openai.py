@@ -31,6 +31,8 @@ class LLMProvider(LLMProviderBase):
         # 可选实例级思考强度: off/disabled/none/disable | low/medium/high | 空/其他=按域名默认
         self.thinking_mode = str(config.get("thinking") or "").strip().lower()
         self.api_key = config.get("api_key")
+        # 可选: 透传给后端的 chat_template_kwargs(供 vLLM/SGLang 等 OpenAI 兼容后端使用)
+        self.chat_template_kwargs = config.get("chat_template_kwargs") or {}
         if "base_url" in config:
             self.base_url = config.get("base_url")
         else:
@@ -140,6 +142,9 @@ class LLMProvider(LLMProviderBase):
 
         # 禁用思考模式
         self._apply_thinking_disabled(request_params)
+        # 透传 chat_template_kwargs 到 extra_body(OpenAI 兼容后端)
+        if self.chat_template_kwargs:
+            request_params.setdefault("extra_body", {})["chat_template_kwargs"] = self.chat_template_kwargs
 
         responses = self.client.chat.completions.create(**request_params)
 
@@ -186,6 +191,9 @@ class LLMProvider(LLMProviderBase):
 
         # 禁用思考模式
         self._apply_thinking_disabled(request_params)
+        # 透传 chat_template_kwargs 到 extra_body(OpenAI 兼容后端)
+        if self.chat_template_kwargs:
+            request_params.setdefault("extra_body", {})["chat_template_kwargs"] = self.chat_template_kwargs
 
         stream = self.client.chat.completions.create(**request_params)
 
