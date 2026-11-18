@@ -47,7 +47,7 @@ async def handle_user_intent(conn: "ConnectionHandler", text, speaker=None):
     # 会话开始时生成sentence_id
     conn.sentence_id = str(uuid.uuid4().hex)
     # 处理各种意图
-    return await process_intent_result(conn, intent_result, text)
+    return await process_intent_result(conn, intent_result, text, speaker=speaker)
 
 
 async def check_direct_exit(conn: "ConnectionHandler", text):
@@ -81,7 +81,7 @@ async def analyze_intent_with_llm(conn: "ConnectionHandler", text):
 
 
 async def process_intent_result(
-    conn: "ConnectionHandler", intent_result, original_text
+    conn: "ConnectionHandler", intent_result, original_text, speaker=None
 ):
     """处理意图识别结果"""
     try:
