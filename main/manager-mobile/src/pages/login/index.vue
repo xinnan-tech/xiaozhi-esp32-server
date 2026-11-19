@@ -13,6 +13,10 @@ import type { LoginData } from '@/api/auth'
 import type { Language } from '@/store/lang'
 import { computed, onMounted, ref } from 'vue'
 import { login } from '@/api/auth'
+// #ifdef APP-PLUS
+// App 端随机源桥接：为 SM2 加密提供安全随机数（无视觉展示）
+import SecureRandomBridge from '@/components/secure-random-bridge/index.vue'
+// #endif
 // 导入国际化相关功能
 import { changeLanguage, getCurrentLanguage, getSupportedLanguages, initI18n, t } from '@/i18n'
 import { useConfigStore, useUserStore } from '@/store'
@@ -202,7 +206,7 @@ async function handleLogin() {
     try {
       // 拼接验证码和密码
       const captchaAndPassword = formData.value.captcha + formData.value.password
-      encryptedPassword = sm2Encrypt(sm2PublicKey, captchaAndPassword)
+      encryptedPassword = await sm2Encrypt(sm2PublicKey, captchaAndPassword)
     }
     catch (error) {
       console.error('密码加密失败:', error)
@@ -281,6 +285,9 @@ onMounted(async () => {
 
 <template>
   <view class="app-container box-border h-screen w-full" :style="{ paddingTop: `${safeAreaInsets?.top}px` }">
+    <!-- #ifdef APP-PLUS -->
+    <SecureRandomBridge />
+    <!-- #endif -->
     <view class="header">
       <view class="logo-section">
         <wd-img :width="80" :height="80" round src="/static/logo.png" class="logo" />

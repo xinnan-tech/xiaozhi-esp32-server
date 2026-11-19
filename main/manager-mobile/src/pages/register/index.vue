@@ -11,6 +11,10 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { register, sendSmsCode } from '@/api/auth'
+// #ifdef APP-PLUS
+// App 端随机源桥接：为 SM2 加密提供安全随机数（无视觉展示）
+import SecureRandomBridge from '@/components/secure-random-bridge/index.vue'
+// #endif
 // 导入国际化相关功能
 import { initI18n, t } from '@/i18n'
 import { useConfigStore } from '@/store'
@@ -251,7 +255,7 @@ async function handleRegister() {
     try {
       // 拼接验证码和密码
       const captchaAndPassword = formData.value.captcha + formData.value.password
-      encryptedPassword = sm2Encrypt(sm2PublicKey.value, captchaAndPassword)
+      encryptedPassword = await sm2Encrypt(sm2PublicKey.value, captchaAndPassword)
     }
     catch (error) {
       console.error('密码加密失败:', error)
@@ -325,6 +329,9 @@ onMounted(async () => {
 
 <template>
   <view class="app-container box-border h-screen w-full" :style="{ paddingTop: `${safeAreaInsets?.top}px` }">
+    <!-- #ifdef APP-PLUS -->
+    <SecureRandomBridge />
+    <!-- #endif -->
     <view class="header">
       <view class="back-button" @click="goBack">
         <wd-icon name="arrow-left" custom-class="back-icon" />
