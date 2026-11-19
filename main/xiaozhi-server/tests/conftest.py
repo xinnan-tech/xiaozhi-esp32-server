@@ -203,7 +203,8 @@ def get_provider_type(module: str, provider_name: str | None = None) -> str | No
 def has_real_key(config: dict, *keys: str) -> bool:
     """任一候选 key 名下值不是占位符就算有真密钥。
 
-    占位符判定：空 / "你的..." / 包含 "placeholder" / 字面 "none"。
+    占位符判定：空 / "你的..." / 包含 "placeholder" / 字面 "none" / "ollama"
+    （Ollama本地服务无需鉴权，config.yaml默认占位值即为"ollama"）。
     """
     if not config:
         return False
@@ -212,7 +213,7 @@ def has_real_key(config: dict, *keys: str) -> bool:
         if val is None:
             continue
         s = str(val).strip().lower()
-        if not s or s == "none":
+        if not s or s == "none" or s == "ollama":
             continue
         if s.startswith("你的") or "placeholder" in s:
             continue
@@ -398,6 +399,9 @@ def _check_modules_ready() -> None:
             problems.append(
                 f"{module}.{provider_name} 配置缺失（CFG 字典里没这个 provider）"
             )
+            continue
+        # Ollama免鉴权供应器无需真实key，跳过占位符检查
+        if str(cfg.get("type", "")).lower() == "ollama":
             continue
         secret_keys_present = [k for k in _SECRET_FIELDS if k in cfg]
         if secret_keys_present and not any(
