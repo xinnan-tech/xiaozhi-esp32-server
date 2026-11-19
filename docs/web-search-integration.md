@@ -2,16 +2,17 @@
 
 ## 功能简介
 
-联网搜索插件 `web_search` 支持在对话过程中实时联网搜索信息并返回结果。插件支持五个搜索源：秘塔（Metaso）、Tavily、Serply、Outcrawl和SpecStream，用户可根据需要选择其中一个。
+联网搜索插件 `web_search` 支持在对话过程中实时联网搜索信息并返回结果。插件支持六个搜索源：秘塔（Metaso）、Tavily、Serply、Outcrawl、SpecStream和Sofya，用户可根据需要选择其中一个。
 
 ## API Key申请指南
 
-目前我们适配了`秘塔搜索`、`Tavily搜索`、`Serply搜索`、`Outcrawl搜索`和`SpecStream搜索`。
+目前我们适配了`秘塔搜索`、`Tavily搜索`、`Serply搜索`、`Outcrawl搜索`、`SpecStream搜索`和`Sofya搜索`。
 - Tavily搜索：每个月1000次免费额度。
 - 秘塔搜索：拥有较为优质的国内数据源。
 - Serply搜索：返回谷歌搜索结果，注册赠送2500次免费额度，额度用完后需要付费。
 - Outcrawl搜索：面向AI智能体的网页搜索接口，每月1000 credits免费额度。
 - SpecStream搜索：注册赠送10美元，每条结果带来源链接和摘要，有发布日期时一并返回；每1000次搜索5美元（每次最多10条结果）。
+- Sofya搜索：面向AI智能体的网页搜索接口，按量付费、无订阅，本插件每次搜索消耗1 credit（0.0025美元），失败的请求不扣费；使用注册满一年的GitHub账号登录，每30天有2000 credits免费额度。
 
 ## API Key申请指南
 
@@ -48,6 +49,12 @@
 - 复制生成的API Key，这是配置所需的关键信息
 - 接口说明见 [SpecStream文档](https://specstream.ai/search-api)
 
+### 方式六：使用Sofya搜索
+
+- 访问 [Sofya](https://sofya.co)，注册并登录账号
+- 在 [控制台](https://sofya.co/dashboard) 中复制API Key（以 `sofya_live_` 为前缀），这是配置所需的关键信息
+- 接口说明见 [Sofya文档](https://sofya.co/docs)
+
 ## 配置方式
 
 ### 方式1. 使用智控台部署（推荐）
@@ -56,14 +63,14 @@
 - 进入"配置角色"页面，选择要配置的智能体
 - 点击"编辑功能"按钮，在右侧参数配置区域找到"联网搜索"插件
 - 勾选"联网搜索"
-- 填入搜索源（`metaso`、`tavily`、`serply`、`outcrawl`或`specstream`），并将对应的`API Key`填入配置项
+- 填入搜索源（`metaso`、`tavily`、`serply`、`outcrawl`、`specstream`或`sofya`），并将对应的`API Key`填入配置项
 - 保存配置，再保存智能体配置
 
 ### 方式2. 单模块xiaozhi-server部署
 
 在 `data/.config.yaml` 中配置：
 
-- 将搜索源填入 `provider`，可选值为 `metaso`、`tavily`、`serply`、`outcrawl` 或 `specstream`
+- 将搜索源填入 `provider`，可选值为 `metaso`、`tavily`、`serply`、`outcrawl`、`specstream` 或 `sofya`
 - 将申请到的API Key填入 `api_key`
 
 ```yaml
