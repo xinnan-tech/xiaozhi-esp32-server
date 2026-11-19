@@ -12,7 +12,8 @@ Live 模式（``RUN_LIVE_API_TESTS=1``）：调真实 LLM provider，参考
 特殊处理：
 - CozeLLM 看 bot_id / user_id 而非 api_key
 - Ollama（type=ollama）免鉴权：api_key 占位值 "ollama" 不算缺失，
-  只要求 model_name 已配置；live 模式下直连本地 Ollama 服务
+  只要求 model_name 已配置；mock 模式无本地服务桩直接 skip，
+  live 模式下直连本地 Ollama 服务
 - placeholder 检测（"你的" / "placeholder" / "xxx" / "sk-xxx"）
 - 因为 LLM 是同步 generator，不能直接 asyncio.wait_for → 线程池
 """
@@ -52,10 +53,17 @@ def _build_provider():
     # 没有真 key 跑下去也会撞真 SDK 的网络栈（openai/edge_tts）报错。
     # Ollama 免鉴权供应器（比照 conftest._check_modules_ready 按 type 判断，
     # provider 名是 OllamaLLM 而非 Ollama）：api_key 占位 "ollama" 不算缺失，
-    # 只校验 model_name 后继续构造 provider。
+    # 只校验 model_name。
     if str(cfg.get("type", "")).lower() == "ollama":
         if not cfg.get("model_name"):
             pytest.skip(f"LLM '{name}' 的 model_name 未配置")
+        if not LIVE_API_TESTS:
+            # mock 层没有本地 Ollama / openai 响应桩（httpx 网络桩只会抛
+            # ConnectError），链路测试放行只会 fail —— 仅 live 模式运行。
+            pytest.skip(
+                "ollama 链路测试仅 live 模式运行（mock 层无本地 Ollama 响应桩）。"
+                "真请求模式：export RUN_LIVE_API_TESTS=1 并确保本地 Ollama 可用。"
+            )
     elif name == "CozeLLM":
         if any(x in cfg.get("bot_id", "") for x in ["你的"]) or any(
             x in cfg.get("user_id", "") for x in ["你的"]
