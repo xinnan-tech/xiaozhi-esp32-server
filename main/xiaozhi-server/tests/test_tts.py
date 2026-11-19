@@ -94,6 +94,14 @@ def test_tts_text_to_speak_writes_file() -> None:
     """
     provider = _build_provider()
 
+    # 会话型流式 TTS（activate_session）依赖真实长连接，text_to_speak 只发
+    # 会话请求、由异步监听任务收流，不走“同步写文件”契约，本测试不适用。
+    if getattr(provider, "activate_session", None) is not None:
+        pytest.skip(
+            f"会话型流式 TTS '{type(provider).__name__}' 需要真实连接，"
+            "文件链路测试不适用"
+        )
+
     # 参考 performance_tester_tts.py：部分 provider 内部访问 self.conn.sample_rate 等
     if not hasattr(provider, "conn") or provider.conn is None:
         provider.conn = SimpleNamespace(
@@ -102,6 +110,7 @@ def test_tts_text_to_speak_writes_file() -> None:
             stop_event=threading.Event(),
             client_abort=False,
             headers={},
+            sentence_id="test-sentence",  # huoshan_double_stream 等会话型 TTS 需要
         )
     if not hasattr(provider, "opus_encoder") or provider.opus_encoder is None:
         provider.opus_encoder = SimpleNamespace()
