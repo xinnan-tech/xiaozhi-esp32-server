@@ -16,7 +16,7 @@ class DeviceMCPExecutor(ToolExecutor):
         self.conn = conn
 
     async def execute(
-        self, conn: "ConnectionHandler", tool_name: str, arguments: Dict[str, Any]
+        self, conn: "ConnectionHandler", tool_name: str, arguments: Dict[str, Any], speaker=None
     ) -> ActionResponse:
         """执行设备端MCP工具"""
         if not hasattr(conn, "mcp_client") or not conn.mcp_client:

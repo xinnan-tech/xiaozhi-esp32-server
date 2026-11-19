@@ -137,16 +137,16 @@ class UnifiedToolHandler:
         return self.tool_manager.has_tool(tool_name)
 
     async def handle_llm_function_call(
-        self, conn, function_call_data: Dict[str, Any]
+        self, conn, function_call_data: Dict[str, Any], speaker=None
     ) -> Optional[ActionResponse]:
-        """处理LLM函数调用"""
+        """处理LLM函数调用。speaker: 本轮说话人快照。"""
         try:
             # 处理多函数调用
             if "function_calls" in function_call_data:
                 responses = []
                 for call in function_call_data["function_calls"]:
                     result = await self.tool_manager.execute_tool(
-                        call["name"], call.get("arguments", {})
+                        call["name"], call.get("arguments", {}), speaker=speaker
                     )
                     responses.append(result)
                 return self._combine_responses(responses)
@@ -175,7 +175,9 @@ class UnifiedToolHandler:
                 self.logger.warning(f"发送工具调用显示消息失败: {e}")
 
             # 执行工具调用
-            result = await self.tool_manager.execute_tool(function_name, arguments)
+            result = await self.tool_manager.execute_tool(
+                function_name, arguments, speaker=speaker
+            )
             return result
 
         except Exception as e:
