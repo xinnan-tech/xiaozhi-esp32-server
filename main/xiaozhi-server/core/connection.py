@@ -916,6 +916,8 @@ class ConnectionHandler:
             self.chat_history_conf = int(private_config["chat_history_conf"])
         if private_config.get("mcp_endpoint", None) is not None:
             self.config["mcp_endpoint"] = private_config["mcp_endpoint"]
+        if private_config.get("mcp_forward_speaker", None) is not None:
+            self.config["mcp_forward_speaker"] = private_config["mcp_forward_speaker"]
         if private_config.get("context_providers", None) is not None:
             self.config["context_providers"] = private_config["context_providers"]
 
@@ -1132,7 +1134,7 @@ class ConnectionHandler:
                     try:
                         parsed = json.loads(q)
                         if isinstance(parsed, dict):
-                            cs = (parsed.get("speaker") or "").strip()
+                            cs = str(parsed.get("speaker") or "").strip()
                     except (json.JSONDecodeError, TypeError, ValueError):
                         pass
             if cs and cs != UNKNOWN_SPEAKER_NAME and cs not in self.system_introduced_speakers:
