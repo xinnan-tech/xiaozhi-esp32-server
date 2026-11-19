@@ -119,6 +119,10 @@ wakeup_words:
 # MCP接入点地址，地址格式为：ws://你的mcp接入点ip或者域名:端口号/mcp/?token=你的token
 # 详细教程 https://github.com/xinnan-tech/xiaozhi-esp32-server/blob/main/docs/mcp-endpoint-integration.md
 mcp_endpoint: 你的接入点 websocket地址
+# 声纹识别到说话人后，是否把身份附在 MCP 接入点 tools/call 的 params._meta 上。
+# true：写入 speakerId、speakerName。未识别到说话人时不附带，请求与原来一致。
+# 工具参数本身不改。false：完全不附带。
+mcp_forward_speaker: true
 
 # 上下文源配置
 # 用于在系统提示词中注入动态数据，如健康数据、股票信息等

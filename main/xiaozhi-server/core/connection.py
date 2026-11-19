@@ -42,7 +42,7 @@ from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
 from config.logger import setup_logging, build_module_string, create_connection_logger
 from config.manage_api_client import DeviceNotFoundException, DeviceBindException, generate_and_save_chat_title
 from core.utils.prompt_manager import PromptManager
-from core.utils.voiceprint_provider import VoiceprintProvider
+from core.utils.voiceprint_provider import VoiceprintProvider, UNKNOWN_SPEAKER_NAME
 from core.utils.util import get_system_error_response
 from core.utils import textUtils
 
@@ -158,7 +158,7 @@ class ConnectionHandler:
         # 所以涉及到ASR的变量，需要在这里定义，属于connection的私有变量
         self.asr_audio = []  # 存储PCM帧列表，供VAD和ASR共享
         self.asr_audio_queue = queue.Queue()
-        self.current_speaker = None  # 存储当前说话人
+        self.current_speaker = None  # 当前说话人展示名
         self.introduced_speakers = set()  # 已"首次引入"的说话人，控制只在首轮带名字
         self.system_introduced_speakers = set()  # 已在 system 注入过身份的说话人，控制 system 身份只首轮出现
 
@@ -916,6 +916,8 @@ class ConnectionHandler:
             self.chat_history_conf = int(private_config["chat_history_conf"])
         if private_config.get("mcp_endpoint", None) is not None:
             self.config["mcp_endpoint"] = private_config["mcp_endpoint"]
+        if private_config.get("mcp_forward_speaker", None) is not None:
+            self.config["mcp_forward_speaker"] = private_config["mcp_forward_speaker"]
         if private_config.get("context_providers", None) is not None:
             self.config["context_providers"] = private_config["context_providers"]
 
@@ -1052,7 +1054,8 @@ class ConnectionHandler:
         # 更新系统prompt至上下文
         self.dialogue.update_system_message(self.prompt)
 
-    def chat(self, query, depth=0):
+    def chat(self, query, depth=0, speaker=None):
+        # speaker: 本轮声纹身份快照，随工具调用下传
         # 保存当前任务的sentence_id到局部变量，避免被新任务覆盖
         current_sentence_id = None
 
@@ -1121,8 +1124,20 @@ class ConnectionHandler:
             # 仅在该说话人首次出现时把身份注入 system，之后靠对话历史首轮保留，
             # 避免每轮在 system 重复出现名字诱导模型反复称呼
             speaker_for_system = None
-            cs = (self.current_speaker or "").strip()
-            if cs and cs != "未知说话人" and cs not in self.system_introduced_speakers:
+            # 展示名只取本轮数据（声纹快照 → query JSON），不读并发下会被覆盖的连接态
+            cs = ""
+            if speaker is not None:
+                cs = (speaker.name or "").strip()
+            if not cs and depth == 0 and query:
+                q = query.strip()
+                if q.startswith("{") and q.endswith("}"):
+                    try:
+                        parsed = json.loads(q)
+                        if isinstance(parsed, dict):
+                            cs = str(parsed.get("speaker") or "").strip()
+                    except (json.JSONDecodeError, TypeError, ValueError):
+                        pass
+            if cs and cs != UNKNOWN_SPEAKER_NAME and cs not in self.system_introduced_speakers:
                 self.system_introduced_speakers.add(cs)
                 speaker_for_system = cs
 
@@ -1337,7 +1352,7 @@ class ConnectionHandler:
 
                     future = asyncio.run_coroutine_threadsafe(
                         self.func_handler.handle_llm_function_call(
-                            self, tool_call_data
+                            self, tool_call_data, speaker=speaker
                         ),
                         self.loop,
                     )
@@ -1369,7 +1384,7 @@ class ConnectionHandler:
 
                 # 统一处理工具调用结果
                 if tool_results:
-                    self._handle_function_result(tool_results, depth=depth, streamed_text=streamed_text)
+                    self._handle_function_result(tool_results, depth=depth, streamed_text=streamed_text, speaker=speaker)
 
         # 存储对话内容
         if len(response_message) > 0:
@@ -1394,7 +1409,7 @@ class ConnectionHandler:
 
         return True
 
-    def _handle_function_result(self, tool_results, depth, streamed_text=""):
+    def _handle_function_result(self, tool_results, depth, streamed_text="", speaker=None):
         need_llm_tools = []
         record_tools = []
 
@@ -1500,7 +1515,7 @@ class ConnectionHandler:
                         )
                     )
 
-            self.chat(None, depth=depth + 1)
+            self.chat(None, depth=depth + 1, speaker=speaker)
 
     def _report_worker(self):
         """聊天记录上报工作线程"""

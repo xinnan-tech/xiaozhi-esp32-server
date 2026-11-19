@@ -17,7 +17,7 @@ from core.providers.tts.dto.dto import TTSMessageDTO, SentenceType
 TAG = __name__
 
 
-async def handle_user_intent(conn: "ConnectionHandler", text):
+async def handle_user_intent(conn: "ConnectionHandler", text, speaker=None):
     # 预处理输入文本，处理可能的JSON格式
     try:
         if text.strip().startswith("{") and text.strip().endswith("}"):
@@ -47,7 +47,7 @@ async def handle_user_intent(conn: "ConnectionHandler", text):
     # 会话开始时生成sentence_id
     conn.sentence_id = str(uuid.uuid4().hex)
     # 处理各种意图
-    return await process_intent_result(conn, intent_result, text)
+    return await process_intent_result(conn, intent_result, text, speaker=speaker)
 
 
 async def check_direct_exit(conn: "ConnectionHandler", text):
@@ -81,7 +81,7 @@ async def analyze_intent_with_llm(conn: "ConnectionHandler", text):
 
 
 async def process_intent_result(
-    conn: "ConnectionHandler", intent_result, original_text
+    conn: "ConnectionHandler", intent_result, original_text, speaker=None
 ):
     """处理意图识别结果"""
     try:
@@ -172,7 +172,7 @@ async def process_intent_result(
                 try:
                     result = asyncio.run_coroutine_threadsafe(
                         conn.func_handler.handle_llm_function_call(
-                            conn, function_call_data
+                            conn, function_call_data, speaker=speaker
                         ),
                         conn.loop,
                     ).result(timeout=tool_call_timeout)
