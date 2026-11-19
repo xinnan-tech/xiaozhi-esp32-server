@@ -118,3 +118,33 @@ def test_apostrophes_do_not_block_splitting():
 
 def test_first_sentence_still_splits_at_comma():
     assert _segments("そっか、実習で疲れたんだね。", 1, first_sentence=True)[0] == "そっか"
+
+
+@pytest.mark.parametrize("step", [1, 4])
+def test_thousands_separator_is_not_a_first_sentence_break(step):
+    # 第一句会在逗号处切，但 1,280 / 1，280 里的逗号是数字的一部分
+    assert _segments("一共1,280元，请查收。", step, first_sentence=True) == [
+        "一共1,280元",
+        "请查收",
+    ]
+    assert _segments("一共1，280元。请查收。", step, first_sentence=True) == [
+        "一共1，280元",
+        "请查收",
+    ]
+
+
+@pytest.mark.parametrize("step", [1, 3])
+def test_fullwidth_time_colon_stays_with_the_minutes(step):
+    # ： 在默认断句集里；15：30 不能切成「现在是15」和「30」
+    expected = ["现在是15：30", "请出门"]
+    assert _segments("现在是15：30。请出门。", step) == expected
+    assert _segments("现在是15：30。请出门。", step, first_sentence=True) == expected
+
+
+@pytest.mark.parametrize("step", [1, 3])
+def test_fullwidth_colon_after_numeric_label_still_breaks(step):
+    assert _segments("提示1：请出门。现在走。", step) == [
+        "提示1",
+        "请出门",
+        "现在走",
+    ]
