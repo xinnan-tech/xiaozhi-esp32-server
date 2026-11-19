@@ -135,7 +135,7 @@ def get_ip_info(ip_addr, logger):
         if is_private_ip(ip_addr):
             ip_addr = ""
         url = f"https://whois.pconline.com.cn/ipJson.jsp?json=true&ip={ip_addr}"
-        resp = requests.get(url).json()
+        resp = requests.get(url, timeout=5).json()
         ip_info = {"city": resp.get("city")}
 
         # 存入缓存
@@ -179,6 +179,14 @@ def remove_punctuation_and_length(text):
 
 
 def check_model_key(modelType, modelKey):
+    """检查 API key 是不是还停留在出厂占位符上。
+
+    modelKey 允许是 None / 空串：智控台下发的配置里未必带 api_key 字段
+    （本地 LLM 场景也常把它留空），而 ``"你" in None`` 会直接抛
+    TypeError，把「配置没填」这种业务错误变成了 provider 构造期的崩溃。
+    """
+    if not modelKey:
+        return f"配置错误: {modelType} 的 API key 未设置"
     if "你" in modelKey:
         return f"配置错误: {modelType} 的 API key 未设置,当前值为: {modelKey}"
     return None

@@ -271,7 +271,7 @@ Trên thực tế, bất kỳ LLM nào hỗ trợ gọi giao diện OpenAI đề
 
 | Phương pháp sử dụng | Nền tảng hỗ trợ | Nền tảng miễn phí |
 |:---:|:---:|:---:|
-| Gọi giao diện OpenAI | Alibaba Bailian, Zhipu ChatGLMVLLM | Zhipu ChatGLMVLLM |
+| Gọi giao diện OpenAI | Alibaba Bailian, Zhipu ChatGLMVLLM, iFLYTEK | Zhipu ChatGLMVLLM |
 
 Trên thực tế, bất kỳ VLLM nào hỗ trợ gọi giao diện OpenAI đều có thể truy cập sử dụng.
 
@@ -321,6 +321,7 @@ Nhận dạng vân giọng cần dịch vụ [voiceprint-api](https://github.com
 | Memory |     [powermem](../powermem-integration.md)    | Tóm tắt cục bộ | Phụ thuộc vào LLM và DB |  OceanBase mã nguồn mở, hỗ trợ tìm kiếm thông minh  |
 | Memory | mem_local_short | Tóm tắt cục bộ |    Miễn phí     |    |
 | Memory |     nomem       | Chế độ không có bộ nhớ |    Miễn phí     |    |
+| Memory | mem_report_only | Chỉ báo cáo |    Miễn phí     | Chỉ báo cáo lịch sử trò chuyện, không tóm tắt bộ nhớ |
 
 ---
 

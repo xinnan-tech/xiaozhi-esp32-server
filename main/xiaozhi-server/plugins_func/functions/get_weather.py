@@ -268,7 +268,8 @@ async def get_weather(conn: "ConnectionHandler", location: str = None, lang: str
                 location = cached_ip_info.get("city")
             else:
                 # 缓存未命中，调用API获取
-                ip_info = get_ip_info(client_ip, logger)
+                # get_ip_info 是同步 requests 调用，放线程池，避免卡住主事件循环
+                ip_info = await asyncio.to_thread(get_ip_info, client_ip, logger)
                 if ip_info:
                     cache_manager.set(CacheType.IP_INFO, client_ip, ip_info)
                     location = ip_info.get("city")

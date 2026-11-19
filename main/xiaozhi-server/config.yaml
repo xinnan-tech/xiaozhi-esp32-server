@@ -172,18 +172,20 @@ plugins:
     # ragflow知识库id
     dataset_ids: ["123456789"]
   # 联网搜索插件配置
-  # 支持秘塔(metaso)、Tavily和Serply三个搜索源
+  # 支持秘塔(metaso)、Tavily、Serply、Outcrawl和SpecStream五个搜索源
   # 秘塔API Key申请：https://metaso.cn/search-api/api-keys
   # Tavily API Key申请：https://app.tavily.com/home
   # Serply API Key申请：https://serply.io
+  # Outcrawl API Key申请：https://outcrawl.ai
+  # SpecStream API Key申请：https://specstream.ai/signup?src=xiaozhi-esp32-server
   web_search:
-    # 搜索源：metaso / tavily / serply
+    # 搜索源：metaso / tavily / serply / outcrawl / specstream
     provider: "metaso"
     # 工具描述，用于告知LLM何时调用此工具，可根据需要自定义
     description: "联网搜索工具。当用户明确需要联网搜索问题时使用此工具。"
     # 返回结果数量（默认5）
     max_results: 5
-    # 秘塔API Key（mk-前缀） / Tavily API Key（tvly-前缀） / Serply API Key
+    # 秘塔API Key（mk-前缀） / Tavily API Key（tvly-前缀） / Serply API Key / Outcrawl API Key / SpecStream API Key
     api_key: "mk-xxx"
 # 声纹识别配置
 voiceprint:
@@ -765,7 +767,11 @@ VLLM:
     # 开通应用地址：https://console.xfyun.cn/app/myapp
     # 有免费额度，但也要开通服务，才能获取api_key
     # 每一个模型都需要单独开通，每一个模型的 api_key 都不同，例如 Lite 模型在 https://console.xfyun.cn/services/cbm 开通
-    base_url: https://ark.cn-beijing.volces.com/api/v3
+    # 讯飞星火的 OpenAI 兼容端点，可用模型名（lite / 4.0Ultra 等）见
+    # https://www.xfyun.cn/doc/spark/HTTP调用文档.html
+    # 注意 base_url 必须指向讯飞自己的域名。这里曾误填成火山方舟的
+    # ark.cn-beijing.volces.com，会把讯飞的 api_key 发给火山引擎。
+    base_url: https://spark-api-open.xf-yun.com/v1
     model_name: lite
     api_key: 你的api_key
 TTS:
