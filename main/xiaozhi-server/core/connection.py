@@ -781,7 +781,7 @@ class ConnectionHandler:
                     self.voiceprint_provider = voiceprint_provider
                     self.logger.bind(tag=TAG).info("声纹识别功能已在连接时动态启用")
                 else:
-                    self.logger.bind(tag=TAG).warning("声纹识别功能启用但配置不完整")
+                    self.logger.bind(tag=TAG).debug("声纹识别功能启用但配置不完整")
             else:
                 self.logger.bind(tag=TAG).info("声纹识别功能未启用")
         except Exception as e:

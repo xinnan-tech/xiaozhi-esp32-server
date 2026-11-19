@@ -176,18 +176,20 @@ plugins:
     # ragflow知识库id
     dataset_ids: ["123456789"]
   # 联网搜索插件配置
-  # 支持秘塔(metaso)、Tavily和Serply三个搜索源
+  # 支持秘塔(metaso)、Tavily、Serply、Outcrawl和SpecStream五个搜索源
   # 秘塔API Key申请：https://metaso.cn/search-api/api-keys
   # Tavily API Key申请：https://app.tavily.com/home
   # Serply API Key申请：https://serply.io
+  # Outcrawl API Key申请：https://outcrawl.ai
+  # SpecStream API Key申请：https://specstream.ai/signup?src=xiaozhi-esp32-server
   web_search:
-    # 搜索源：metaso / tavily / serply
+    # 搜索源：metaso / tavily / serply / outcrawl / specstream
     provider: "metaso"
     # 工具描述，用于告知LLM何时调用此工具，可根据需要自定义
     description: "联网搜索工具。当用户明确需要联网搜索问题时使用此工具。"
     # 返回结果数量（默认5）
     max_results: 5
-    # 秘塔API Key（mk-前缀） / Tavily API Key（tvly-前缀） / Serply API Key
+    # 秘塔API Key（mk-前缀） / Tavily API Key（tvly-前缀） / Serply API Key / Outcrawl API Key / SpecStream API Key
     api_key: "mk-xxx"
 # 声纹识别配置
 voiceprint:
@@ -402,8 +404,8 @@ ASR:
     # DoubaoASR和DoubaoStreamASR的区别是：DoubaoASR是按次收费，DoubaoStreamASR是按时收费
     # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
     type: doubao
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: 你的火山引擎语音识别服务appid
+    access_token: 你的火山引擎语音识别服务access_token
     cluster: volcengine_input_common
     # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
     boosting_table_name: （选填）你的热词文件名称
@@ -416,8 +418,8 @@ ASR:
     # 开通地址https://console.volcengine.com/speech/service/10011
     # 一般来说按次收费的更便宜，但是DoubaoStreamASR使用了大模型技术，效果更好
     type: doubao_stream
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: 你的火山引擎语音识别服务appid
+    access_token: 你的火山引擎语音识别服务access_token
     # 资源ID：小时版 volc.bigasr.sauc.duration，并发版 volc.bigasr.sauc.concurrent
     resource_id: volc.bigasr.sauc.duration
     # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
@@ -436,8 +438,8 @@ ASR:
     # 开通地址：https://console.volcengine.com/speech/service/10038
     # 价格更为便宜，建议在高并发场景下使用
     type: doubao_stream
-    appid: 你的火山引擎语音合成服务appid
-    access_token: 你的火山引擎语音合成服务access_token
+    appid: 你的火山引擎语音识别服务appid
+    access_token: 你的火山引擎语音识别服务access_token
     # 资源ID：小时版 volc.seedasr.sauc.duration，并发版 volc.seedasr.sauc.concurrent
     resource_id: volc.seedasr.sauc.duration
     # 热词、替换词使用流程：https://www.volcengine.com/docs/6561/155738
@@ -455,9 +457,9 @@ ASR:
     # token申请地址：https://console.cloud.tencent.com/cam/capi
     # 免费领取资源：https://console.cloud.tencent.com/asr/resourcebundle
     type: tencent
-    appid: 你的腾讯语音合成服务appid
-    secret_id: 你的腾讯语音合成服务secret_id
-    secret_key: 你的腾讯语音合成服务secret_key
+    appid: 你的腾讯语音识别服务appid
+    secret_id: 你的腾讯语音识别服务secret_id
+    secret_key: 你的腾讯语音识别服务secret_key
     output_dir: tmp/
   AliyunASR:
     # 阿里云智能语音交互服务，需要先在阿里云平台开通服务，然后获取验证信息
@@ -623,7 +625,7 @@ LLM:
     # 可在这里找到你的 api_key https://bailian.console.aliyun.com/?apiKey=1#/api-key
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model_name: qwen-flash
-    api_key: 你的deepseek web key
+    api_key: 你的阿里云百炼API密钥
     temperature: 0.7  # 温度值
     max_tokens: 500   # 最大生成token数
     top_p: 1
@@ -767,10 +769,14 @@ VLLM:
     # 先新建应用，在下面的地址
     # 开通应用地址：https://console.xfyun.cn/app/myapp
     # 有免费额度，但也要开通服务，才能获取api_key
-    # 每一个模型都需要单独开通，每一个模型的api_password都不同，例如Lite模型在https://console.xfyun.cn/services/cbm 开通
-    base_url: https://ark.cn-beijing.volces.com/api/v3
+    # 每一个模型都需要单独开通，每一个模型的 api_key 都不同，例如 Lite 模型在 https://console.xfyun.cn/services/cbm 开通
+    # 讯飞星火的 OpenAI 兼容端点，可用模型名（lite / 4.0Ultra 等）见
+    # https://www.xfyun.cn/doc/spark/HTTP调用文档.html
+    # 注意 base_url 必须指向讯飞自己的域名。这里曾误填成火山方舟的
+    # ark.cn-beijing.volces.com，会把讯飞的 api_key 发给火山引擎。
+    base_url: https://spark-api-open.xf-yun.com/v1
     model_name: lite
-    api_key: 你的api_password
+    api_key: 你的api_key
 TTS:
   # 当前支持的type为edge、doubao，可自行适配
   EdgeTTS:
@@ -1121,8 +1127,8 @@ TTS:
     #SpeechServerDemo https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/demos/speech_server
     #流式传输请参考 https://github.com/PaddlePaddle/PaddleSpeech/wiki/PaddleSpeech-Server-WebSocket-API
     type: paddle_speech
-    protocol: websocket # protocol choices = ['websocket', 'http']
-    url: ws://127.0.0.1:8092/paddlespeech/tts/streaming  # TTS 服务的 URL 地址，指向本地服务器 [websocket默认ws://127.0.0.1:8092/paddlespeech/tts/streaming，http默认http://127.0.0.1:8090/paddlespeech/tts]
+    protocol: websocket # 当前仅实现 websocket；填其他值会在启动时报错
+    url: ws://127.0.0.1:8092/paddlespeech/tts/streaming  # TTS 服务地址（未配置时代码兜底同此本机地址）
     spk_id: 0  # 发音人 ID，0 通常表示默认的发音人
     speed: 1.0  # 语速，1.0 表示正常语速，>1 表示加快，<1 表示减慢
     volume: 1.0  # 音量，1.0 表示正常音量，>1 表示增大，<1 表示减小

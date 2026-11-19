@@ -2,7 +2,7 @@
 ![请参考-最简化架构图](../docs/images/deploy1.png)
 # 方式一：Docker只运行Server
 
-`0.8.2`版本开始，本项目发行的docker镜像只支持`x86架构`，如果需要在`arm64架构`的CPU上部署，可按照[这个教程](docker-build.md)在本机编译`arm64的镜像`。
+本项目发行的docker镜像同时提供`amd64`和`arm64`两种架构，可以直接拉取使用；如需自定义镜像，可按照[这个教程](docker-build.md)在本机编译。
 
 ## 1. 安装docker
 
@@ -36,9 +36,9 @@ xiaozhi-server
 
 #### 1.1.3 下载配置文件
 
-你需要下载两个配置文件：`docker-compose.yaml` 和 `config.yaml`。需要从项目仓库下载这两个文件。
+你需要下载两个配置文件：`docker-compose.yml` 和 `config.yaml`。需要从项目仓库下载这两个文件。
 
-##### 1.1.3.1 下载 docker-compose.yaml
+##### 1.1.3.1 下载 docker-compose.yml
 
 用浏览器打开[这个链接](../main/xiaozhi-server/docker-compose.yml)。
 
@@ -91,25 +91,22 @@ docker logs -f xiaozhi-esp32-server
 
 这时，你就要留意日志信息，可以根据这个教程，判断是否成功了。[跳转到运行状态确认](#运行状态确认)
 
-## 5. 版本升级操作
+## 4. 版本升级操作
 
 如果后期想升级版本，可以这么操作
 
-5.1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
+4.1、备份好`data`文件夹中的`.config.yaml`文件，一些关键的配置到时复制到新的`.config.yaml`文件里。
 请注意是对关键密钥逐个复制，不要直接覆盖。因为新的`.config.yaml`文件可能有一些新的配置项，旧的`.config.yaml`文件不一定有。
 
-5.2、执行以下命令
+4.2、执行以下命令
 
 ```
 docker stop xiaozhi-esp32-server
 docker rm xiaozhi-esp32-server
-docker stop xiaozhi-esp32-server-web
-docker rm xiaozhi-esp32-server-web
 docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
-docker rmi ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:web_latest
 ```
 
-5.3、重新按docker方式部署
+4.3、重新按docker方式部署
 
 # 方式二：本地源码只运行Server
 
@@ -213,14 +210,14 @@ prompt: |
   请你像一个人一样说话，请勿返回配置xml及其他特殊字符。
 
 selected_module:
-  LLM: DoubaoLLM
+  LLM: ChatGLMLLM
 
 LLM:
   ChatGLMLLM:
     api_key: xxxxxxxxxxxxxxx.xxxxxx
 ```
 
-建议先将最简单的配置运行起来，然后再去`xiaozhi/config.yaml`阅读配置的使用说明。
+建议先将最简单的配置运行起来，然后再去[`../main/xiaozhi-server/config.yaml`](../main/xiaozhi-server/config.yaml)阅读配置的使用说明。
 比如你要换更换模型，修改`selected_module`下的配置就行。
 
 ## 模型文件
@@ -238,11 +235,12 @@ LLM:
 如果你能看到，类似以下日志,则是本项目服务启动成功的标志。
 
 ```
-250427 13:04:20[0.3.11_SiFuChTTnofu][__main__]-INFO-OTA接口是           http://192.168.4.123:8003/xiaozhi/ota/
-250427 13:04:20[0.3.11_SiFuChTTnofu][__main__]-INFO-Websocket地址是     ws://192.168.4.123:8000/xiaozhi/v1/
-250427 13:04:20[0.3.11_SiFuChTTnofu][__main__]-INFO-=======上面的地址是websocket协议地址，请勿用浏览器访问=======
-250427 13:04:20[0.3.11_SiFuChTTnofu][__main__]-INFO-如想测试websocket请启动digital-human模块，打开浏览器交互测试
-250427 13:04:20[0.3.11_SiFuChTTnofu][__main__]-INFO-=======================================================
+250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-OTA接口是           http://192.168.4.123:8003/xiaozhi/ota/
+250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-视觉分析接口是      http://192.168.4.123:8003/mcp/vision/explain
+250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-Websocket地址是     ws://192.168.4.123:8000/xiaozhi/v1/
+250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-=======上面的地址是websocket协议地址，请勿用浏览器访问=======
+250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-如想测试websocket请启动digital-human模块，打开浏览器交互测试
+250427 13:04:20[0.9.8_00000000000000][__main__]-INFO-=============================================================
 ```
 
 正常来说，如果您是通过源码运行本项目，日志会有你的接口地址信息。

@@ -2,7 +2,7 @@ import os
 import importlib.util
 import asyncio
 
-print("使用前请根据doc/performance_testerer.md的说明准备配置。")
+print("使用前请根据仓库根目录下 docs/performance_tester.md 的说明准备配置。")
 
 
 def list_performance_tester_modules():

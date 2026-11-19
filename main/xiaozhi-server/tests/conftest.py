@@ -47,10 +47,29 @@ if str(_PROJECT_ROOT) not in sys.path:
 # ---------------------------------------------------------------------------
 try:
     import opuslib_next  # noqa: F401
-except Exception:
+except Exception as _opus_import_error:
+    # opuslib_next 是 ctypes 绑定，pip 装上的是纯 Python 包，真正的编解码靠系统里的
+    # libopus.so。runner 上没装 libopus 时 import 会失败，这里换桩顶上。
+    # 桩只能撑住 import 链路，真要编解码得先把 libopus 装上
+    # （apt-get install libopus0，正式镜像 Dockerfile-server-base 里也是这么装的）。
+    print(
+        f"[conftest] opuslib_next 不可用，改用桩：{_opus_import_error}",
+        flush=True,
+    )
+
+    def _opus_unavailable(_self, *_args, **_kwargs):
+        raise RuntimeError(
+            "libopus 没装，Opus 编解码跑不了。"
+            "装法：apt-get install libopus0（正式镜像 Dockerfile-server-base 里也是这么装的）"
+        )
+
     _stub = types.ModuleType("opuslib_next")
-    _stub.Encoder = type("Encoder", (), {"__init__": lambda *a, **kw: None})
-    _stub.Decoder = type("Decoder", (), {"__init__": lambda *a, **kw: None})
+    _stub.Encoder = type(
+        "Encoder", (), {"__init__": lambda *a, **kw: None, "encode": _opus_unavailable}
+    )
+    _stub.Decoder = type(
+        "Decoder", (), {"__init__": lambda *a, **kw: None, "decode": _opus_unavailable}
+    )
     _stub.APPLICATION_AUDIO = 0
     _stub.OpusError = type("OpusError", (Exception,), {})
     _stub.constants = types.SimpleNamespace()
@@ -323,35 +342,25 @@ def _install_mock_layer() -> None:
 
     asyncio.sleep = _fast_sleep  # type: ignore[assignment]
 
-    # 网络层 mock：如果真实 httpx 已加载，把它的 AsyncClient.send 替换成
+    # 网络层 mock：如果真实 httpx 已加载，把它的 send 替换成
     # 立即抛 ConnectError 的桩，触发 ``_should_retry`` 走到 ``raise``，
     # 但避免真发请求。Live 模式完全不安装这层。
     if not LIVE_API_TESTS:
         try:
-            import httpx as _httpx  # noqa: F401
+            import httpx as _httpx
 
-            class _FakeAsyncClient:
-                def __init__(self, *args, **kwargs):
-                    pass
+            async def _fake_async_send(self, request, **kwargs):
+                raise _httpx.ConnectError("MOCK: connect refused")
 
-                async def send(self, *args, **kwargs):
-                    raise _httpx.ConnectError("MOCK: connect refused")
+            def _fake_send(self, request, **kwargs):
+                raise _httpx.ConnectError("MOCK: connect refused")
 
-                async def aclose(self):
-                    return None
-
-            class _FakeClient:
-                def __init__(self, *args, **kwargs):
-                    pass
-
-                def send(self, *args, **kwargs):
-                    raise _httpx.ConnectError("MOCK: connect refused")
-
-                def close(self):
-                    return None
-
-            _httpx.AsyncClient = _FakeAsyncClient  # type: ignore[misc]
-            _httpx.Client = _FakeClient  # type: ignore[misc]
+            # 只换 send 这一个方法，不换整个类。有些库（openai 2.x 的
+            # SyncHttpxClientWrapper）继承 httpx.Client 再自己拼请求，
+            # 整个类被换掉的话它们继承到的是假类，拼请求时直接
+            # AttributeError，报错还完全看不出是 mock 层的问题
+            _httpx.AsyncClient.send = _fake_async_send  # type: ignore[assignment]
+            _httpx.Client.send = _fake_send  # type: ignore[assignment]
         except ImportError:
             pass
 

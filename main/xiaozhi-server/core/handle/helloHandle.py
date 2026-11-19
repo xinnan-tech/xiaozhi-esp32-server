@@ -4,6 +4,7 @@ import uuid
 import random
 import asyncio
 from typing import TYPE_CHECKING
+from config.logger import setup_logging
 
 if TYPE_CHECKING:
     from core.connection import ConnectionHandler
@@ -13,9 +14,14 @@ from core.providers.tts.dto.dto import SentenceType
 from core.utils.wakeup_word import WakeupWordsConfig
 from core.handle.sendAudioHandle import sendAudioMessage, send_tts_message
 from core.utils.util import remove_punctuation_and_length, opus_datas_to_wav_bytes
-from core.providers.tools.device_mcp import MCPClient, send_mcp_initialize_message
+from core.providers.tools.device_mcp import (
+    MCPClient,
+    send_mcp_initialize_message,
+    send_mcp_tools_list_request,
+)
 
 TAG = __name__
+_wakeup_logger = setup_logging()
 
 WAKEUP_CONFIG = {
     "refresh_time": 10,
@@ -63,6 +69,8 @@ async def handleHelloMessage(conn: "ConnectionHandler", msg_json):
     # The device waits for the server hello before processing MCP messages.
     if features and features.get("mcp"):
         asyncio.create_task(send_mcp_initialize_message(conn))
+        # 并发预发 tools/list，让帧排在 audio 流之前到达 client
+        asyncio.create_task(send_mcp_tools_list_request(conn))
 
 
 async def checkWakeupWords(conn: "ConnectionHandler", text):
@@ -105,25 +113,35 @@ async def checkWakeupWords(conn: "ConnectionHandler", text):
         }
 
     # 获取音频数据
-    opus_packets = await audio_to_data(response.get("file_path"), use_cache=False)
+    opus_packets = await audio_to_data(response.get("file_path"), use_cache=True)
     # 播放唤醒词回复
     conn.client_abort = False
 
     # 将唤醒词回复视为新会话，生成新的 sentence_id，确保流控器重置
     conn.sentence_id = str(uuid.uuid4().hex)
 
-    conn.logger.bind(tag=TAG).info(f"播放唤醒词回复: {response.get('text')}")
-    await sendAudioMessage(conn, SentenceType.FIRST, opus_packets, response.get("text"))
-    await sendAudioMessage(conn, SentenceType.LAST, [], None)
-
     # 补充对话
     conn.dialogue.put(Message(role="assistant", content=response.get("text")))
+    conn.logger.bind(tag=TAG).info(f"播放唤醒词回复: {response.get('text')}")
+
+    await sendAudioMessage(conn, SentenceType.FIRST, opus_packets, response.get("text"))
+    asyncio.create_task(_finish_wakeup_reply(conn))
 
     # 检查是否需要更新唤醒词回复
     if time.time() - response.get("time", 0) > WAKEUP_CONFIG["refresh_time"]:
         if not _wakeup_response_lock.locked():
             asyncio.create_task(wakeupWordsResponse(conn))
     return True
+
+
+async def _finish_wakeup_reply(conn: "ConnectionHandler"):
+    """等音频队列清空后再发 stop（时序：全部音频帧→stop），期间不阻塞接收循环"""
+    try:
+        await sendAudioMessage(conn, SentenceType.LAST, [], None)
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        conn.logger.bind(tag=TAG).error(f"唤醒词回复收尾失败: {e}")
 
 
 async def wakeupWordsResponse(conn: "ConnectionHandler"):
@@ -160,7 +178,32 @@ async def wakeupWordsResponse(conn: "ConnectionHandler"):
             f.write(wav_bytes)
         # 更新配置
         wakeup_words_config.update_wakeup_response(voice, file_path, result)
+        # 覆写文件后 mtime 变化使旧缓存失效，此处立刻预编码新文件，
+        # 下次唤醒直接命中缓存，编码成本不占用唤醒响应路径
+        await audio_to_data(file_path, use_cache=True)
     finally:
         # 确保在任何情况下都释放锁
         if _wakeup_response_lock.locked():
             _wakeup_response_lock.release()
+
+
+async def preheat_wakeup_audio_cache():
+    """进程启动时预热唤醒词音频编码缓存
+
+    把 wakeup_words/{voice}.wav 在 Opus 编码结果一次性算好塞进全局 cache，
+    后续每条连接上来就能直接命中，省掉 wav→PCM→Opus 的数百毫秒开销。
+    """
+    # 进程启动时 tts 还未初始化，无法拿到 conn.tts.voice，按常见 fallback 列表预热
+    preheat_voices = ["default", "female-shaonv", "male-qn-jingying"]
+    fallback_path = "config/assets/wakeup_words_short.wav"
+    for voice in preheat_voices:
+        file_path = fallback_path
+        try:
+            response = wakeup_words_config.get_wakeup_response(voice)
+            if response and response.get("file_path"):
+                file_path = response["file_path"]
+            await audio_to_data(file_path, use_cache=True)
+        except Exception as e:
+            _wakeup_logger.bind(tag=TAG).warning(
+                f"预热 voice={voice} 失败: {e}"
+            )

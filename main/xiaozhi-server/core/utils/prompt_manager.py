@@ -5,6 +5,7 @@
 
 import os
 import asyncio
+import hashlib
 import threading
 from typing import Dict, Any, TYPE_CHECKING
 
@@ -120,8 +121,9 @@ class PromptManager:
 
         # 使用传入的提示词并缓存（如果有设备ID）
         if device_id:
-            device_cache_key = f"device_prompt:{device_id}"
-            self.cache_manager.set(self.CacheType.DEVICE_PROMPT, device_cache_key, user_prompt)
+            self.cache_manager.set(
+                self.CacheType.DEVICE_PROMPT, device_cache_key, user_prompt
+            )
             self.logger.bind(tag=TAG).debug(f"设备 {device_id} 的提示词已缓存")
 
         self.logger.bind(tag=TAG).info(f"使用快速提示词: {user_prompt[:50]}...")
@@ -253,6 +255,18 @@ class PromptManager:
         if not self.base_prompt_template:
             return user_prompt
 
+        # 缓存键须覆盖所有渲染输入：emoji 开关、设备 prompt 变更否则会命中过期提示词
+        emoji_enabled = kwargs.get("emoji_enabled", True)
+        prompt_hash = hashlib.md5(user_prompt.encode("utf-8")).hexdigest()[:8]
+        enhanced_cache_key = (
+            f"enhanced_prompt:{device_id}:{emoji_enabled}:{prompt_hash}"
+        )
+        cached_prompt = self.cache_manager.get(
+            self.CacheType.DEVICE_PROMPT, enhanced_cache_key
+        )
+        if cached_prompt is not None:
+            return cached_prompt
+
         try:
             # 获取最新的时间信息（不缓存）
             today_date, today_weekday, lunar_date = self._get_current_time_info()
@@ -301,11 +315,13 @@ class PromptManager:
                 *args,
                 **kwargs,
             )
-            device_cache_key = f"device_prompt:{device_id}"
             self.cache_manager.set(
-                self.CacheType.DEVICE_PROMPT, device_cache_key, enhanced_prompt
+                self.CacheType.DEVICE_PROMPT,
+                enhanced_cache_key,
+                enhanced_prompt,
+                ttl=300,
             )
-            self.logger.bind(tag=TAG).info(
+            self.logger.bind(tag=TAG).debug(
                 f"构建增强提示词成功，长度: {len(enhanced_prompt)}"
             )
             return enhanced_prompt

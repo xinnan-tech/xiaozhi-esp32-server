@@ -77,7 +77,11 @@
       <el-form :model="formData.configJson" label-width="auto" label-position="left" class="custom-form">
         <div v-for="(row, rowIndex) in chunkedCallInfoFields" :key="rowIndex" class="form-row">
           <el-form-item v-for="field in row" :key="field.prop" :label="field.label" :prop="field.prop" style="flex: 1;">
-            <el-input v-if="field.type === 'json-textarea'" v-model="formData.configJson[field.prop]" type="textarea"
+            <el-select v-if="field.type === 'select'" v-model="formData.configJson[field.prop]"
+              :placeholder="field.placeholder" class="custom-input-bg" style="width: 100%">
+              <el-option v-for="opt in field.options" :key="opt" :label="opt" :value="opt"></el-option>
+            </el-select>
+            <el-input v-else-if="field.type === 'json-textarea'" v-model="formData.configJson[field.prop]" type="textarea"
               :rows="3" :placeholder="field.placeholder" class="custom-input-bg">
             </el-input>
             <el-input v-else v-model="formData.configJson[field.prop]" :placeholder="field.placeholder"
@@ -164,7 +168,8 @@ export default {
           fields: JSON.parse(item.fields || '[]').map(f => ({
             label: f.label,
             prop: f.key,
-            type: f.type === 'dict' ? 'json-textarea' : f.type === 'password' ? 'password' : 'text',
+            type: f.type === 'dict' ? 'json-textarea' : f.type === 'password' ? 'password' : (f.type === 'select' ? 'select' : 'text'),
+            options: f.options || [],
             placeholder: `请输入${f.key}`
           }))
         }))

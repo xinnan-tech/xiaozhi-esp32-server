@@ -83,7 +83,11 @@ module_func_map = {}
 
 
 def register_function(name, desc, type=None):
-    """注册函数到函数注册字典的装饰器"""
+    """注册函数到函数注册字典的装饰器
+
+    同步函数在工作线程中执行，函数体内不可调用 asyncio 事件循环 API；
+    需要异步（httpx、await）请定义为 async def。
+    """
 
     def decorator(func):
         all_function_registry[name] = FunctionItem(name, desc, func, type)

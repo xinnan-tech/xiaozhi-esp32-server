@@ -127,7 +127,7 @@ class TTSProvider(TTSProviderBase):
             raise ValueError("讯飞TTS需要配置app_id、api_key和api_secret")
 
     async def _ensure_connection(self):
-        """确保WebSocket连接可用"""
+        """建立新的WebSocket连接"""
         try:
             logger.bind(tag=TAG).debug("开始建立新连接...")
 
@@ -176,24 +176,14 @@ class TTSProvider(TTSProviderBase):
                 self.text_seq += 1
 
                 if message.sentence_type == SentenceType.FIRST:
-                    # 初始化参数
+                    # 初始化参数，连接在文本到达时建立
                     try:
                         if not getattr(self.conn, "sentence_id", None):
                             self.conn.sentence_id = uuid.uuid4().hex
                             logger.bind(tag=TAG).debug(f"自动生成新的 会话ID: {self.conn.sentence_id}")
-
-                        logger.bind(tag=TAG).debug("开始启动TTS会话...")
-                        future = asyncio.run_coroutine_threadsafe(
-                            self.start_session(self.conn.sentence_id),
-                            loop=self.conn.loop,
-                        )
-                        future.result(timeout=self.tts_timeout)
                         self.before_stop_play_files.clear()
-                        logger.bind(tag=TAG).debug("TTS会话启动成功")
-
                     except Exception as e:
-                        logger.bind(tag=TAG).error(f"启动TTS会话失败: {str(e)}")
-                        continue
+                        logger.bind(tag=TAG).error(f"准备TTS状态失败: {str(e)}")
 
                 # 处理文本内容
                 if ContentType.TEXT == message.content_type:
@@ -224,6 +214,17 @@ class TTSProvider(TTSProviderBase):
                 if message.sentence_type == SentenceType.LAST:
                     try:
                         logger.bind(tag=TAG).debug("开始结束TTS会话...")
+                        # 句尾替换词滑窗残留补发
+                        if self._pending_prefix:
+                            future = asyncio.run_coroutine_threadsafe(
+                                self.text_to_speak(self._pending_prefix, None),
+                                loop=self.conn.loop,
+                            )
+                            future.result(timeout=self.tts_timeout)
+                        if not self.activate_session:
+                            # 本轮无文本，未开启会话，直接收尾
+                            self._process_before_stop_play_files()
+                            continue
                         asyncio.run_coroutine_threadsafe(
                             self.finish_session(self.conn.sentence_id),
                             loop=self.conn.loop,
@@ -242,19 +243,22 @@ class TTSProvider(TTSProviderBase):
     async def text_to_speak(self, text, _):
         """发送文本到TTS服务进行合成"""
         try:
-            if self.ws is None:
-                logger.bind(tag=TAG).warning(f"WebSocket连接不存在，终止发送文本")
-                return
-
             filtered_text = MarkdownCleaner.clean_markdown(text)
 
             if filtered_text:
                 # 使用滑动窗口匹配处理跨分片的替换词
                 confirmed_texts, self._pending_prefix = self._match_stream_text(filtered_text)
+                confirmed_texts = [txt for txt in confirmed_texts if txt]
+                if not confirmed_texts:
+                    return
+
+                # 有文本时才开启会话
+                if not self.activate_session:
+                    await self.start_session(self.conn.sentence_id)
 
                 # 发送每个确定的文本片段
                 for txt in confirmed_texts:
-                    if txt and self.ws:
+                    if self.ws:
                         # 发送文本合成请求
                         run_request = self._build_base_request(status=1, text=txt)
                         await self.ws.send(json.dumps(run_request))
@@ -277,9 +281,6 @@ class TTSProvider(TTSProviderBase):
             if self.activate_session:
                 await self.close()
 
-            # 设置会话激活标志
-            self.activate_session = True
-
             # 建立新连接
             await self._ensure_connection()
 
@@ -288,10 +289,15 @@ class TTSProvider(TTSProviderBase):
                 logger.bind(tag=TAG).debug("启动监听任务...")
                 self._monitor_task = asyncio.create_task(self._start_monitor_tts_response())
 
-            # 发送会话启动请求
+            # 连接就绪后再标记会话激活，避免旧监听任务退出时重置标志
+            self.activate_session = True
+
+            # 启动帧序号从1开始，避免与后续文本帧重复
+            self.text_seq = 1
             start_request = self._build_base_request(status=0)
 
             await self.ws.send(json.dumps(start_request))
+            self.text_seq += 1
             logger.bind(tag=TAG).debug("会话启动请求已发送")
         except Exception as e:
             logger.bind(tag=TAG).error(f"启动会话失败: {str(e)}")
@@ -412,16 +418,14 @@ class TTSProvider(TTSProviderBase):
                     )
                     break
 
-            # 链接不可复用
+        # 监听任务退出时关闭连接并清理引用
+        finally:
             if self.ws:
                 try:
                     await self.ws.close()
                 except:
                     pass
                 self.ws = None
-        # 监听任务退出时清理引用
-        finally:
-            self.activate_session = False
             self._monitor_task = None
 
     def to_tts(self, text: str) -> list:

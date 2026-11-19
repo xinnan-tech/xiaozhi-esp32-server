@@ -81,6 +81,11 @@
                   "></el-input>
             </template>
 
+            <el-select v-else-if="field.type === 'select'" v-model="form.configJson[field.prop]"
+              :placeholder="field.placeholder" style="width: 100%">
+              <el-option v-for="opt in field.options" :key="opt" :label="opt" :value="opt"></el-option>
+            </el-select>
+
             <el-input v-else v-model="form.configJson[field.prop]" :placeholder="field.placeholder" :type="field.type"
               :show-password="field.type === 'password'" @focus="
                 isSensitiveField(field.prop)
@@ -312,7 +317,10 @@ export default {
                 ? "json-textarea"
                 : f.type === "password"
                   ? "password"
-                  : "text",
+                  : f.type === "select"
+                    ? "select"
+                    : "text",
+            options: f.options || [],
             placeholder: `请输入${f.key}`,
           }));
 
