@@ -630,6 +630,10 @@ LLM:
     max_tokens: 500   # 最大生成token数
     top_p: 1
     frequency_penalty: 0  # 频率惩罚
+    # 可选: chat_template_kwargs 仅供 vLLM/SGLang 等自托管 OpenAI 兼容后端使用(请求级控制 chat template, 例如思考开关)
+    # 注意: DashScope 等云服务不支持此字段, 请勿在 AliLLM 等云服务配置段启用; 此处示例仅作参数格式参考
+    # chat_template_kwargs:
+    #   enable_thinking: true
   AliAppLLM:
     # 定义LLM API类型
     type: AliBL

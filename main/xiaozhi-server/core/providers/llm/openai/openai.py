@@ -31,6 +31,13 @@ class LLMProvider(LLMProviderBase):
         # 可选实例级思考强度: off/disabled/none/disable | low/medium/high | 空/其他=按域名默认
         self.thinking_mode = str(config.get("thinking") or "").strip().lower()
         self.api_key = config.get("api_key")
+        # 可选: 透传给后端的 chat_template_kwargs(供 vLLM/SGLang 等自托管 OpenAI 兼容后端使用)
+        chat_template_kwargs = config.get("chat_template_kwargs")
+        if chat_template_kwargs and not isinstance(chat_template_kwargs, dict):
+            logger.bind(tag=TAG).warning(
+                f"chat_template_kwargs 配置格式错误, 应为键值对象, 已忽略: {chat_template_kwargs!r}")
+            chat_template_kwargs = None
+        self.chat_template_kwargs = chat_template_kwargs or {}
         if "base_url" in config:
             self.base_url = config.get("base_url")
         else:
@@ -117,6 +124,11 @@ class LLMProvider(LLMProviderBase):
             logger.bind(tag=TAG).info(f"为域名 {domain} 禁用思考模式，参数: {params}")
             break
 
+    def _apply_chat_template_kwargs(self, request_params: dict):
+        """透传 chat_template_kwargs 到 extra_body(仅 vLLM/SGLang 等自托管 OpenAI 兼容后端识别, 云服务会忽略)"""
+        if self.chat_template_kwargs:
+            request_params.setdefault("extra_body", {})["chat_template_kwargs"] = self.chat_template_kwargs
+
     def response(self, session_id, dialogue, **kwargs):
         dialogue = self.normalize_dialogue(dialogue)
 
@@ -140,6 +152,7 @@ class LLMProvider(LLMProviderBase):
 
         # 禁用思考模式
         self._apply_thinking_disabled(request_params)
+        self._apply_chat_template_kwargs(request_params)
 
         responses = self.client.chat.completions.create(**request_params)
 
@@ -186,6 +199,7 @@ class LLMProvider(LLMProviderBase):
 
         # 禁用思考模式
         self._apply_thinking_disabled(request_params)
+        self._apply_chat_template_kwargs(request_params)
 
         stream = self.client.chat.completions.create(**request_params)
 
