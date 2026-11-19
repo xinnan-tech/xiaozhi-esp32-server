@@ -25,6 +25,46 @@ THINKING_DISABLED_MODEL_EXCLUSIONS = {
 }
 
 
+def iter_answer_text(contents):
+    """从流式响应里挑出正文，丢掉 ``<think>...</think>`` 中的推理内容。
+
+    服务端有时把整段思考块放进同一个 chunk（``<think>推理</think>正文``），
+    有时又拆成多个 chunk。原来的写法先按 ``<think>`` 截断，截断后的
+    content 里已经没有 ``</think>`` 了，于是「正在思考」这个状态永远
+    退不出去 —— 整段回复连同后面的 chunk 全被丢掉，设备一句话都不说。
+
+    这里按标签出现的顺序扫一遍，跨 chunk 的状态用 in_think 记住：
+    - ``<think>`` 之前的文本是正文，照常输出
+    - ``<think>`` 和 ``</think>`` 之间是推理内容，丢掉
+    - ``</think>`` 之后的文本又是正文，照常输出
+    """
+    in_think = False
+    for content in contents:
+        if not content:
+            continue
+        while content:
+            if in_think:
+                # 还在思考块里，等 </think> 出现；这之前的内容都是推理过程
+                if "</think>" not in content:
+                    content = ""
+                    break
+                _, _, content = content.partition("</think>")
+                in_think = False
+                continue
+            if "<think>" in content:
+                before, _, content = content.partition("<think>")
+                if before:
+                    yield before
+                in_think = True
+                continue
+            if "</think>" in content:
+                # 没有开标签只有闭标签：从闭标签之后开始算正文
+                _, _, content = content.partition("</think>")
+                continue
+            yield content
+            content = ""
+
+
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
         self.model_name = config.get("model_name")
@@ -143,8 +183,8 @@ class LLMProvider(LLMProviderBase):
 
         responses = self.client.chat.completions.create(**request_params)
 
-        is_active = True
-        try:            
+        def _contents():
+            """把流式 chunk 里的 delta.content 依次吐出来。"""
             for chunk in responses:
                 try:
                     delta = chunk.choices[0].delta if getattr(chunk, "choices", None) else None
@@ -152,14 +192,11 @@ class LLMProvider(LLMProviderBase):
                 except IndexError:
                     content = ""
                 if content:
-                    if "<think>" in content:
-                        is_active = False
-                        content = content.split("<think>")[0]
-                    if "</think>" in content:
-                        is_active = True
-                        content = content.split("</think>")[-1]
-                    if is_active:
-                        yield content
+                    yield content
+
+        try:
+            for text in iter_answer_text(_contents()):
+                yield text
         finally:
             responses.close()
 
