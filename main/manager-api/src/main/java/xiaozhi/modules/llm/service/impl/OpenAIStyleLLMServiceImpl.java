@@ -66,18 +66,28 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
 
     /**
      * Ollama的OpenAI兼容端点位于{base_url}/v1下，与xiaozhi-server侧ollama provider逻辑保持一致：
-     * 剥离用户误填的完整端点后缀后，仅对不含路径的纯主机地址补/v1
+     * 先去尾斜杠、再剥离用户误填的完整端点后缀，仅对不含路径的纯主机地址补/v1。
+     * 空串返回null，交由上层"配置不完整"必填校验拦截
      */
     private static String normalizeOllamaBaseUrl(String baseUrl) {
         if (baseUrl == null) {
             return null;
         }
         String url = baseUrl.trim();
-        if (url.endsWith("/chat/completions")) {
-            url = url.substring(0, url.length() - "/chat/completions".length());
+        if (url.isEmpty()) {
+            return null;
         }
         while (url.endsWith("/")) {
             url = url.substring(0, url.length() - 1);
+        }
+        if (url.endsWith("/chat/completions")) {
+            url = url.substring(0, url.length() - "/chat/completions".length());
+            while (url.endsWith("/")) {
+                url = url.substring(0, url.length() - 1);
+            }
+        }
+        if (url.isEmpty()) {
+            return null;
         }
         if (url.replaceFirst("^https?://[^/]+", "").isEmpty()) {
             url = url + "/v1";
@@ -124,6 +134,10 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             String apiKey = configJson.getStr("api_key");
             if ("ollama".equalsIgnoreCase(configJson.getStr("type"))) {
                 baseUrl = normalizeOllamaBaseUrl(baseUrl);
+                // Ollama免鉴权：未填api_key时兜底为"ollama"，与xiaozhi-server侧ollama.py一致
+                if (StringUtils.isBlank(apiKey)) {
+                    apiKey = "ollama";
+                }
             }
             Double temperature = configJson.getDouble("temperature");
             Integer maxTokens = configJson.getInt("max_tokens");
@@ -222,6 +236,10 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             String apiKey = configJson.getStr("api_key");
             if ("ollama".equalsIgnoreCase(configJson.getStr("type"))) {
                 baseUrl = normalizeOllamaBaseUrl(baseUrl);
+                // Ollama免鉴权：未填api_key时兜底为"ollama"，与xiaozhi-server侧ollama.py一致
+                if (StringUtils.isBlank(apiKey)) {
+                    apiKey = "ollama";
+                }
             }
 
             if (StringUtils.isBlank(baseUrl) || StringUtils.isBlank(apiKey)) {
@@ -298,8 +316,10 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             String baseUrl = configJson.getStr("base_url");
             String apiKey = configJson.getStr("api_key");
 
+            // Ollama免鉴权：不要求api_key
+            boolean ollama = "ollama".equalsIgnoreCase(configJson.getStr("type"));
             return baseUrl != null && !baseUrl.trim().isEmpty() &&
-                    apiKey != null && !apiKey.trim().isEmpty();
+                    (ollama || (apiKey != null && !apiKey.trim().isEmpty()));
         } catch (Exception e) {
             log.error("检查LLM服务可用性时发生异常：", e);
             return false;
@@ -324,8 +344,10 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             String baseUrl = configJson.getStr("base_url");
             String apiKey = configJson.getStr("api_key");
 
+            // Ollama免鉴权：不要求api_key
+            boolean ollama = "ollama".equalsIgnoreCase(configJson.getStr("type"));
             return baseUrl != null && !baseUrl.trim().isEmpty() &&
-                    apiKey != null && !apiKey.trim().isEmpty();
+                    (ollama || (apiKey != null && !apiKey.trim().isEmpty()));
         } catch (Exception e) {
             log.error("检查LLM服务可用性时发生异常，modelId: {}", modelId, e);
             return false;
@@ -383,6 +405,10 @@ public class OpenAIStyleLLMServiceImpl implements LLMService {
             String apiKey = configJson.getStr("api_key");
             if ("ollama".equalsIgnoreCase(configJson.getStr("type"))) {
                 baseUrl = normalizeOllamaBaseUrl(baseUrl);
+                // Ollama免鉴权：未填api_key时兜底为"ollama"，与xiaozhi-server侧ollama.py一致
+                if (StringUtils.isBlank(apiKey)) {
+                    apiKey = "ollama";
+                }
             }
 
             if (StringUtils.isBlank(baseUrl) || StringUtils.isBlank(apiKey)) {
