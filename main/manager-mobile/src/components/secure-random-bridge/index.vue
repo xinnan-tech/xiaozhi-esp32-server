@@ -1,7 +1,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 // #ifdef APP-PLUS
-import { ensureSecureRandomReady, registerRandomBridge } from '@/utils/secure-random'
+import { ensureSecureRandomReady, registerRandomBridge, unregisterRandomBridge } from '@/utils/secure-random'
 // #endif
 
 interface BridgeItem {
@@ -27,19 +27,29 @@ export default defineComponent({
       sending: false,
       currentId: 0,
       timeoutTimer: undefined as ReturnType<typeof setTimeout> | undefined,
+      provider: undefined as ((length: number) => Promise<Uint8Array>) | undefined,
     }
   },
   mounted() {
     // #ifdef APP-PLUS
-    registerRandomBridge((length: number) =>
-      this.requestBytes(length).then(bytes => new Uint8Array(bytes)),
-    )
+    this.provider = (length: number) =>
+      this.requestBytes(length).then(bytes => new Uint8Array(bytes))
+    registerRandomBridge(this.provider)
     ensureSecureRandomReady().catch((e: Error) => {
       console.warn('[secure-random] App 端随机源预热失败', e)
     })
     // #endif
   },
   beforeUnmount() {
+    // #ifdef APP-PLUS
+    // 拒绝队列项并注销，否则销毁后 pending 的 Promise 永不 settle，readyPromise 死锁
+    if (this.provider)
+      unregisterRandomBridge(this.provider)
+    for (const item of this.queue)
+      item.reject(new Error('secure-random-bridge 组件已卸载，随机数请求中止'))
+    this.queue = []
+    this.sending = false
+    // #endif
     clearTimeout(this.timeoutTimer)
   },
   methods: {

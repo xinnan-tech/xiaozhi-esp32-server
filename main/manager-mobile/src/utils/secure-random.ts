@@ -28,6 +28,12 @@ export function registerRandomBridge(provider: (length: number) => Promise<Uint8
   bridgeProvider = provider
 }
 
+/** 仅当当前注册者仍是该实例时注销，避免多页栈下误清后挂载实例的注册 */
+export function unregisterRandomBridge(provider: (length: number) => Promise<Uint8Array>) {
+  if (bridgeProvider === provider)
+    bridgeProvider = null
+}
+
 let pool: number[] = []
 let readyPromise: Promise<void> | null = null
 let refillInFlight = false
@@ -92,12 +98,18 @@ function fetchRandomChunk(length: number): Promise<Uint8Array> {
       return
     }
     if (found) {
+      // 平台 API 异常时可能 success/fail 均不回调，超时兜底防止 readyPromise 死锁
+      const timer = setTimeout(() => {
+        reject(new Error(`${found.name}.getRandomValues 超时（5s 无响应）`))
+      }, 5000)
       found.api.getRandomValues({
         length,
         success: (res: { randomValues: ArrayBuffer | Uint8Array | number[] }) => {
+          clearTimeout(timer)
           resolve(new Uint8Array(res.randomValues))
         },
         fail: (err: unknown) => {
+          clearTimeout(timer)
           reject(err instanceof Error ? err : new Error(`getRandomValues 调用失败: ${JSON.stringify(err)}`))
         },
       })
