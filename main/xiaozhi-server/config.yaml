@@ -81,6 +81,10 @@ enable_websocket_ping: false
 #   > 0: 使用固定延迟（毫秒）发送，例如: 60
 tts_audio_send_delay: 0
 
+# 按设备覆盖配置（单模块部署没有智控台时的差异化配置）：按 device-id 从这个文件读该设备的大脑 / 提示词 / LLM / TTS，
+# 每次连接都重读，改完表设备重连即生效；文件不存在就全部用全局配置。格式见 docs/device-overrides.md
+device_overrides_file: data/devices.yaml
+
 exit_commands:
   - "退出"
   - "关闭"
