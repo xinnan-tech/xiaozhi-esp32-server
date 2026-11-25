@@ -105,7 +105,6 @@ class TTSProviderBase(ABC):
             ";",
             "：",
         )
-        self.tts_stop_request = False
         self.processed_chars = 0
         self.is_first_sentence = True
 
@@ -379,15 +378,16 @@ class TTSProviderBase(ABC):
                     continue
                 if message.sentence_type == SentenceType.FIRST:
                     self.current_sentence_id = message.sentence_id
-                    self.tts_stop_request = False
                     self.processed_chars = 0
                     self.tts_text_buff = []
                     self.is_first_sentence = True
                     self.tts_audio_first_sentence = True
                 elif ContentType.TEXT == message.content_type:
                     self.tts_text_buff.append(message.content_detail)
-                    segment_text = self._get_segment_text()
-                    if segment_text:
+                    while True:
+                        segment_text = self._get_segment_text()
+                        if not segment_text:
+                            break
                         self.to_tts_stream(segment_text, opus_handler=self.handle_opus)
                 elif ContentType.FILE == message.content_type:
                     self._process_remaining_text_stream(opus_handler=self.handle_opus)
@@ -602,10 +602,6 @@ class TTSProviderBase(ABC):
             if self.is_first_sentence:
                 self.is_first_sentence = False
 
-            return segment_text
-        elif self.tts_stop_request and current_text:
-            segment_text = current_text
-            self.is_first_sentence = True  # 重置标志
             return segment_text
         else:
             return None

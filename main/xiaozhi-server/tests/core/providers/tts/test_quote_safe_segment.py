@@ -15,19 +15,21 @@ class _TTS(TTSProviderBase):
 def _segments(text, step, first_sentence=False):
     """按 step 切片喂入，返回切出的各段。
 
-    与真实调用保持一致：每来一个 chunk 调用一次 _get_segment_text（切出一段），
+    与真实调用保持一致：每来一个 chunk 循环调用 _get_segment_text 直到切不出，
     结束时剩余文本由 _process_remaining_text_stream 一次性发出。
     """
     tts = object.__new__(_TTS)
     tts.punctuations = ("。", "？", "?", "！", "!", "；", ";", "：")
     tts.first_sentence_punctuations = ("，", "~", "、", ",") + tts.punctuations
     tts.tts_text_buff, tts.processed_chars = [], 0
-    tts.is_first_sentence, tts.tts_stop_request = first_sentence, False
+    tts.is_first_sentence = first_sentence
     out = []
     for i in range(0, len(text), step):
         tts.tts_text_buff.append(text[i:i + step])
-        segment = tts._get_segment_text()
-        if segment:
+        while True:
+            segment = tts._get_segment_text()
+            if not segment:
+                break
             out.append(segment)
     # 剩余文本一次性发出，不再切分
     full_text = "".join(tts.tts_text_buff)
@@ -175,3 +177,15 @@ def test_colon_and_period_both_split(step):
         "现在走",
         "马上到",
     ]
+
+
+@pytest.mark.parametrize("step", [1, 8, 20, 50, 100])
+def test_long_text_does_not_accumulate_into_one_segment(step):
+    # 每个 chunk 循环切分直到切不出，任意分片粒度下都不应累积成超长段
+    text = (
+        "简洁明了，直接回答问题。第二条规则是：包容语音识别错误，尽量理解你的意图。"
+        "第三条规则是：不要连续提问。第四条规则是：当你说再见的时候，我会礼貌地回应。"
+    )
+    segments = _segments(text, step)
+    assert len(segments) == 7
+    assert max(len(s) for s in segments) == 17
