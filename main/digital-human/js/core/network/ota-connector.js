@@ -7,18 +7,13 @@ export async function webSocketConnect(otaUrl, config) {
         return;
     }
 
-    // 发送OTA请求并获取返回的websocket信息
+    // 发送OTA请求并获取返回的websocket信息（请求失败时 sendOTA 抛出带地址和原因的错误）
     const otaResult = await sendOTA(otaUrl, config);
-    if (!otaResult) {
-        log('无法从OTA服务器获取信息', 'error');
-        return;
-    }
 
     // 从OTA响应中提取websocket信息
-    const { websocket } = otaResult;
+    const websocket = otaResult && otaResult.websocket;
     if (!websocket || !websocket.url) {
-        log('OTA响应中缺少websocket信息', 'error');
-        return;
+        throw new Error(`OTA地址 ${otaUrl} 的响应中缺少websocket信息`);
     }
 
     // 使用OTA返回的websocket URL
@@ -61,10 +56,11 @@ function validateConfig(config) {
     return true;
 }
 
-// OTA发送请求，验证状态，并返回响应数据
+// OTA发送请求，验证状态，并返回响应数据；失败时抛出带地址和排查提示的错误，供页面直接展示
 async function sendOTA(otaUrl, config) {
+    let res;
     try {
-        const res = await fetch(otaUrl, {
+        res = await fetch(otaUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -98,12 +94,30 @@ async function sendOTA(otaUrl, config) {
                 partition_table: [{ label: '', type: 0, subtype: 0, address: 0, size: 0 }]
             })
         });
-
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-
-        const result = await res.json();
-        return result; // 返回完整的响应数据
     } catch (err) {
-        return null; // 失败返回null
+        throw new Error(describeUnreachableOta(otaUrl));
     }
+
+    if (!res.ok) {
+        throw new Error(`OTA地址 ${otaUrl} 返回 ${res.status} ${res.statusText}，请确认地址以 /xiaozhi/ota/ 结尾`);
+    }
+
+    try {
+        return await res.json(); // 返回完整的响应数据
+    } catch (err) {
+        throw new Error(`OTA地址 ${otaUrl} 返回的不是JSON，请确认填写的是OTA接口地址`);
+    }
+}
+
+// 浏览器出于安全原因不区分“连接被拒”“跨域被拦”“路径不存在导致预检失败”等网络错误，这里列出最常见的排查方向
+function describeUnreachableOta(otaUrl) {
+    const hints = [
+        '服务是否已启动',
+        '端口是否正确（只运行xiaozhi-server时一般是8003，全模块部署时一般是8002）',
+        '路径是否以 /xiaozhi/ota/ 结尾'
+    ];
+    if (window.location.protocol === 'https:' && otaUrl.startsWith('http:')) {
+        hints.push('当前页面是https，浏览器会拦截对http地址的请求');
+    }
+    return `无法访问OTA地址 ${otaUrl}，请检查：${hints.join('；')}`;
 }
