@@ -102,25 +102,66 @@ class MarkdownCleaner:
 
         return "\n".join(lines_for_tts) + "\n"
 
+    @staticmethod
+    def _replace_emphasis(m: re.Match) -> str:
+        """* 斜体：内容是 ASCII 词字符/数字/运算符且左侧紧贴 ASCII 词字符时保留标记。
+
+        内容判定区分乘法与强调，左侧判定区分词内与独立强调。
+        """
+        before = m.string[m.start() - 1] if m.start() > 0 else ""
+        if not (before.isascii() and before.isalnum()):
+            return m.group(m.re.groups)
+        if not re.fullmatch(r"[A-Za-z0-9_+\-*/().\s]+", m.group(1)):
+            return m.group(m.re.groups)
+        return m.group(0)
+
+    @staticmethod
+    def _replace_underscore(m: re.Match) -> str:
+        """_ 斜体：词内不生效（CommonMark），任一侧紧贴 ASCII 词字符即保留标记。"""
+        before = m.string[m.start() - 1] if m.start() > 0 else ""
+        after = m.string[m.end()] if m.end() < len(m.string) else ""
+        before_word = before.isascii() and before.isalnum()
+        after_word = after.isascii() and after.isalnum()
+        if before_word or after_word:
+            return m.group(0)
+        return m.group(m.re.groups)
+
+    @staticmethod
+    def _replace_lone_marker(m: re.Match) -> str:
+        """落单的 ** ：左侧是词字符或参数列表分隔符时保留（幂运算/解包），否则剥掉。"""
+        before = m.string[m.start() - 1] if m.start() > 0 else ""
+        if before and (before.isascii() and before.isalnum() or before in "(,"):
+            return m.group(0)
+        return ""
+
     # 预编译所有正则表达式（按执行频率排序）
-    # 这里要把 replace_xxx 的静态方法放在最前定义，以便在列表里能正确引用它们。
+    # replace_xxx 的静态方法必须定义在此列表之前，列表里统一取 __func__
     REGEXES = [
         (re.compile(r'```.*?```', re.DOTALL), ''),  # 代码块
         (re.compile(r'^#+\s*', re.MULTILINE), ''),  # 标题
-        (re.compile(r'(\*\*|__)(.*?)\1'), r'\2'),  # 粗体
-        (re.compile(r'(\*|_)(?=\S)(.*?)(?<=\S)\1'), r'\2'),  # 斜体
+        # 粗体
+        (re.compile(r'\*\*(?=\S)(.+?)(?<=\S)\*\*'), r'\1'),
+        (re.compile(r'__(?=\S)(.+?)(?<=\S)__'), r'\1'),
+        # 千分位分组符（1_000_000 -> 1000000），整段数字须独立于标识符
+        (re.compile(r'(?<![A-Za-z_])\d+(?:_\d{3})+(?![\dA-Za-z_])'), lambda m: m.group(0).replace("_", "")),
+        # 斜体 * 和 _，内容允许内部空白
+        (re.compile(r'(?<!\*)\*(?!\*)(?=\S)((?:[^*\s]|[ \t])+?)(?<=\S)\*'), _replace_emphasis.__func__),
+        (re.compile(r'(?<!_)_(?!_)(?=\S)((?:[^_\s]|[ \t])+?)(?<=\S)_'), _replace_underscore.__func__),
         (re.compile(r'!\[.*?\]\(.*?\)'), ''),  # 图片
         (re.compile(r'\[(.*?)\]\(.*?\)'), r'\1'),  # 链接
         (re.compile(r'^\s*>+\s*', re.MULTILINE), ''),  # 引用
         (
             re.compile(r'(?P<table_block>(?:^[^\n]*\|[^\n]*\n)+)', re.MULTILINE),
-            _replace_table_block
+            _replace_table_block.__func__
         ),
-        (re.compile(r'^\s*[*+-]\s*', re.MULTILINE), '- '),  # 列表
+        # 列表，排除 ** 形态
+        (re.compile(r'^\s*(?!\*\*)[*+-]\s*', re.MULTILINE), '- '),
+        # 落单的 **
+        (re.compile(r'\*\*'), _replace_lone_marker.__func__),
         (re.compile(r'\$\$.*?\$\$', re.DOTALL), ''),  # 块级公式
         (
             re.compile(r'(?<![A-Za-z0-9])\$([^\n$]+)\$(?![A-Za-z0-9])'),
-            _replace_inline_dollar
+            _replace_inline_dollar.__func__
         ),
         (re.compile(r'\n{2,}'), '\n'),  # 多余空行
     ]

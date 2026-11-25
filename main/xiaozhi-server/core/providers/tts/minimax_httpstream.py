@@ -100,14 +100,15 @@ class TTSProvider(TTSProviderBase):
                 message = self.tts_text_queue.get(timeout=1)
                 if message.sentence_type == SentenceType.FIRST:
                     # 初始化参数
-                    self.tts_stop_request = False
                     self.processed_chars = 0
                     self.tts_text_buff = []
                     self.before_stop_play_files.clear()
                 elif ContentType.TEXT == message.content_type:
                     self.tts_text_buff.append(message.content_detail)
-                    segment_text = self._get_segment_text()
-                    if segment_text:
+                    while True:
+                        segment_text = self._get_segment_text()
+                        if not segment_text:
+                            break
                         self.to_tts_single_stream(segment_text)
 
                 elif ContentType.FILE == message.content_type:

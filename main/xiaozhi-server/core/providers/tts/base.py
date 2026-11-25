@@ -105,7 +105,6 @@ class TTSProviderBase(ABC):
             ";",
             "：",
         )
-        self.tts_stop_request = False
         self.processed_chars = 0
         self.is_first_sentence = True
 
@@ -379,15 +378,16 @@ class TTSProviderBase(ABC):
                     continue
                 if message.sentence_type == SentenceType.FIRST:
                     self.current_sentence_id = message.sentence_id
-                    self.tts_stop_request = False
                     self.processed_chars = 0
                     self.tts_text_buff = []
                     self.is_first_sentence = True
                     self.tts_audio_first_sentence = True
                 elif ContentType.TEXT == message.content_type:
                     self.tts_text_buff.append(message.content_detail)
-                    segment_text = self._get_segment_text()
-                    if segment_text:
+                    while True:
+                        segment_text = self._get_segment_text()
+                        if not segment_text:
+                            break
                         self.to_tts_stream(segment_text, opus_handler=self.handle_opus)
                 elif ContentType.FILE == message.content_type:
                     self._process_remaining_text_stream(opus_handler=self.handle_opus)
@@ -569,7 +569,6 @@ class TTSProviderBase(ABC):
         # 合并当前全部文本并处理未分割部分
         full_text = "".join(self.tts_text_buff)
         current_text = full_text[self.processed_chars :]  # 从未处理的位置开始
-        last_punct_pos = -1
 
         # 根据是否是第一句话选择不同的标点符号集合
         punctuations_to_use = (
@@ -578,19 +577,19 @@ class TTSProviderBase(ABC):
             else self.punctuations
         )
 
-        # 取每种标点最后出现位置的最早者作为切分点（与逐个 rfind 再取最小值等价）
-        last_seen = {}
+        # 取最早的合法句末作为切分点
+        first_punct_pos = -1
         for i, ch in enumerate(current_text):
             if ch in punctuations_to_use and not self._is_numeric_separator(
                 current_text, i
             ):
-                last_seen[ch] = i
-        last_punct_pos = min(last_seen.values(), default=-1)
+                first_punct_pos = i
+                break
 
         cut_pos = -1
-        if last_punct_pos != -1:
+        if first_punct_pos != -1:
             cut_pos = self._quote_safe_cut(
-                current_text, last_punct_pos, punctuations_to_use
+                current_text, first_punct_pos, punctuations_to_use
             )
         if cut_pos != -1:
             segment_text_raw = current_text[: cut_pos + 1]
@@ -603,10 +602,6 @@ class TTSProviderBase(ABC):
             if self.is_first_sentence:
                 self.is_first_sentence = False
 
-            return segment_text
-        elif self.tts_stop_request and current_text:
-            segment_text = current_text
-            self.is_first_sentence = True  # 重置标志
             return segment_text
         else:
             return None
