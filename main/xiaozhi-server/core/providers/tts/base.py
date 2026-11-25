@@ -569,7 +569,6 @@ class TTSProviderBase(ABC):
         # 合并当前全部文本并处理未分割部分
         full_text = "".join(self.tts_text_buff)
         current_text = full_text[self.processed_chars :]  # 从未处理的位置开始
-        last_punct_pos = -1
 
         # 根据是否是第一句话选择不同的标点符号集合
         punctuations_to_use = (
@@ -578,19 +577,19 @@ class TTSProviderBase(ABC):
             else self.punctuations
         )
 
-        # 取每种标点最后出现位置的最早者作为切分点（与逐个 rfind 再取最小值等价）
-        last_seen = {}
+        # 取最早的合法句末作为切分点
+        first_punct_pos = -1
         for i, ch in enumerate(current_text):
             if ch in punctuations_to_use and not self._is_numeric_separator(
                 current_text, i
             ):
-                last_seen[ch] = i
-        last_punct_pos = min(last_seen.values(), default=-1)
+                first_punct_pos = i
+                break
 
         cut_pos = -1
-        if last_punct_pos != -1:
+        if first_punct_pos != -1:
             cut_pos = self._quote_safe_cut(
-                current_text, last_punct_pos, punctuations_to_use
+                current_text, first_punct_pos, punctuations_to_use
             )
         if cut_pos != -1:
             segment_text_raw = current_text[: cut_pos + 1]
