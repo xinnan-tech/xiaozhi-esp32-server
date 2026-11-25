@@ -28,7 +28,7 @@ function tryConnect() {
         wakewordSocket = new WebSocket(bridgeUrl);
         wakewordSocket.onopen = () => {
             reconnectAttempts = 0;
-            log(`本地唤醒事件桥已连接: ${bridgeUrl}`, 'success');
+            log(`本地唤醒事件桥Đã kết nối: ${bridgeUrl}`, 'success');
             // 连接成功后自动保存地址，刷新后仍能记住
             localStorage.setItem('xz_tester_wakewordWsUrl', bridgeUrl);
             const urlInput = document.getElementById('wakewordWsUrl');
@@ -36,7 +36,7 @@ function tryConnect() {
         };
 
         wakewordSocket.onerror = () => {
-            log(`本地唤醒事件桥连接失败: ${bridgeUrl}`, 'error');
+            log(`本地唤醒事件桥Kết nối thất bại: ${bridgeUrl}`, 'error');
         };
 
         wakewordSocket.onmessage = async (event) => {
