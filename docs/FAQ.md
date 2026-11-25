@@ -87,6 +87,7 @@ VAD:
 12、[如何配置天气插件查询天气](./weather-integration.md)<br/>
 13、[如何开启设备呼叫插件](./device-call-guide.md)<br/>
 14、[如何开启联网搜索功能](./web-search-integration.md)<br/>
+15、[如何开启WebSocket心跳保活](./websocket-ping-guide.md)<br/>
 
 ### 10、数字人相关教程
 1、[数字人digital-human启动方法](./digital-human-wakeword.md)<br/>
