@@ -5,7 +5,7 @@ import asyncio
 from aioconsole import ainput
 from config.settings import load_config
 from config.logger import setup_logging
-from core.utils.util import get_local_ip, validate_mcp_endpoint
+from core.utils.util import get_local_ip, validate_mcp_endpoint, safe_int
 from core.http_server import SimpleHttpServer
 from core.websocket_server import WebSocketServer
 from core.utils.util import check_ffmpeg_installed
@@ -80,7 +80,7 @@ async def main():
     ota_task = asyncio.create_task(ota_server.start())
 
     read_config_from_api = config.get("read_config_from_api", False)
-    port = int(config["server"].get("http_port", 8003))
+    port = safe_int(config["server"].get("http_port"), 8003)
     if not read_config_from_api:
         logger.bind(tag=TAG).info(
             "OTA接口是\t\thttp://{}:{}/xiaozhi/ota/",
@@ -108,7 +108,7 @@ async def main():
     websocket_port = 8000
     server_config = config.get("server", {})
     if isinstance(server_config, dict):
-        websocket_port = int(server_config.get("port", 8000))
+        websocket_port = safe_int(server_config.get("port"), 8000)
 
     logger.bind(tag=TAG).info(
         "Websocket地址是\tws://{}:{}/xiaozhi/v1/",

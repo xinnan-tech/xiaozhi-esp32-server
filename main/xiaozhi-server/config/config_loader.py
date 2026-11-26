@@ -70,14 +70,35 @@ async def get_config_from_api_async(config):
     auth_enabled = config_data.get("server", {}).get("auth", {}).get("enabled", False)
     # server的配置以本地为准
     if config.get("server"):
-        config_data["server"] = {
-            "ip": config["server"].get("ip", ""),
-            "port": config["server"].get("port", ""),
-            "http_port": config["server"].get("http_port", ""),
-            "vision_explain": config["server"].get("vision_explain", ""),
-            "auth_key": config["server"].get("auth_key", ""),
-        }
-    config_data["server"]["auth"] = {"enabled": auth_enabled}
+        local_server = config["server"]
+        # 智控台下发的 server 段（server.ip / server.port / server.http_port / server.vision_explain）
+        api_server = config_data.get("server") or {}
+
+        def _pick_port(key, default):
+            """端口取本地值；本地没配或配成空串时回退到智控台下发的值。
+
+            早期版本这里一律用 "" 兜底，会把智控台下发的端口覆盖成空字符串，
+            随后 int("") 让服务在启动时直接抛 ValueError（#1491）。
+            """
+            for source in (local_server, api_server):
+                value = source.get(key)
+                if value is not None and value != "":
+                    return value
+            return default
+
+        # 本地没配的字段继续沿用智控台下发的值
+        merged_server = dict(api_server)
+        merged_server.update(
+            {
+                "ip": local_server.get("ip", ""),
+                "port": _pick_port("port", 8000),
+                "http_port": _pick_port("http_port", 8003),
+                "vision_explain": local_server.get("vision_explain", ""),
+                "auth_key": local_server.get("auth_key", ""),
+            }
+        )
+        config_data["server"] = merged_server
+    config_data.setdefault("server", {})["auth"] = {"enabled": auth_enabled}
     # 如果服务器没有prompt_template，则从本地配置读取
     if not config_data.get("prompt_template"):
         config_data["prompt_template"] = config.get("prompt_template")

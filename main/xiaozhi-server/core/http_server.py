@@ -3,6 +3,7 @@ from aiohttp import web
 from config.logger import setup_logging
 from core.api.ota_handler import OTAHandler
 from core.api.vision_handler import VisionHandler
+from core.utils.util import safe_int
 
 TAG = __name__
 
@@ -37,7 +38,7 @@ class SimpleHttpServer:
             server_config = self.config["server"]
             read_config_from_api = self.config.get("read_config_from_api", False)
             host = server_config.get("ip", "0.0.0.0")
-            port = int(server_config.get("http_port", 8003))
+            port = safe_int(server_config.get("http_port"), 8003)
 
             if port:
                 app = web.Application()
