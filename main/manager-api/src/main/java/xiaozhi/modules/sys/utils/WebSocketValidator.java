@@ -53,7 +53,9 @@ public class WebSocketValidator {
             // 等待最多5秒获取连接结果
             return future.get(5, TimeUnit.SECONDS);
         } catch (Exception e) {
-            logger.error("WebSocket连接测试失败: {}", url, e);
+            // 这个测试是在服务器自己的网络里发起的，连不上不代表设备连不上，
+            // 所以只记一条告警，由调用方决定要不要拦下这次保存
+            logger.warn("WebSocket连接测试失败（服务器侧视角）: {}", url, e);
             return false;
         }
     }
