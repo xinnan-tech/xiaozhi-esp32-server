@@ -688,6 +688,10 @@ LLM:
     # 使用workflows进行返回的时候输入参数为 query 返回参数的名字要设置为 answer
     # 文本生成的默认输入参数也是query
     mode: chat-messages
+    # 请求超时（秒），不配置默认 60；上游不响应时不会一直卡着
+    # timeout: 60
+    # 连接超时（秒），不配置默认 10
+    # connect_timeout: 10
   GeminiLLM:
     type: gemini
     # 谷歌Gemini API，需要先在Google Cloud控制台创建API密钥并获取api_key
@@ -738,6 +742,10 @@ LLM:
     # 你可以在这里找到你的api_key
     # https://cloud.tryfastgpt.ai/account/apikey
     api_key: 你的fastgpt密钥
+    # 请求超时（秒），不配置默认 60；上游不响应时不会一直卡着
+    # timeout: 60
+    # 连接超时（秒），不配置默认 10
+    # connect_timeout: 10
     variables:
       k: "v"
       k2: "v2"

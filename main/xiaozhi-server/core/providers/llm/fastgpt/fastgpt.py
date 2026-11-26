@@ -14,6 +14,8 @@ class LLMProvider(LLMProviderBase):
         self.base_url = config.get("base_url")
         self.detail = config.get("detail", False)
         self.variables = config.get("variables", {})
+        # 请求超时，避免上游不响应时一直挂着
+        self.timeout = self.resolve_timeout(config)
         model_key_msg = check_model_key("FastGPTLLM", self.api_key)
         if model_key_msg:
             logger.bind(tag=TAG).error(model_key_msg)
@@ -34,6 +36,7 @@ class LLMProvider(LLMProviderBase):
                 "messages": [{"role": "user", "content": last_msg["content"]}],
             },
             stream=True,
+            timeout=self.timeout,
         ) as r:
             for line in r.iter_lines():
                 if line:
