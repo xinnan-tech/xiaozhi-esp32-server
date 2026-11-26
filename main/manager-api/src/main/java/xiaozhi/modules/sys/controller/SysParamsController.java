@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import xiaozhi.common.annotation.LogOperation;
 import xiaozhi.common.constant.Constant;
 import xiaozhi.common.exception.RenException;
@@ -48,6 +49,7 @@ import xiaozhi.modules.sys.utils.WebSocketValidator;
 @RequestMapping("admin/params")
 @Tag(name = "参数管理")
 @AllArgsConstructor
+@Slf4j
 public class SysParamsController {
     private final SysParamsService sysParamsService;
     private final ConfigService configService;
@@ -130,7 +132,7 @@ public class SysParamsController {
      * @param urls WebSocket地址列表，以分号分隔
      * @return 验证结果
      */
-    private void validateWebSocketUrls(String paramCode, String urls) {
+    void validateWebSocketUrls(String paramCode, String urls) {
         if (!paramCode.equals(Constant.SERVER_WEBSOCKET)) {
             return;
         }
@@ -150,9 +152,14 @@ public class SysParamsController {
                     throw new RenException(ErrorCode.WEBSOCKET_URL_FORMAT_ERROR);
                 }
 
-                // 测试WebSocket连接
+                // 测试WebSocket连接。
+                // 这个测试是从 manager-api 自己的网络发起的，和设备所在的网络不是一个视角：
+                // 服务器连不上不代表设备连不上（公网地址、NAT 回环、端口映射都可能这样），
+                // 服务器连得上也不代表设备连得上（docker 内网地址，设备根本到不了）。
+                // 所以连不上只能当告警，不能拦着不让保存，否则设备能访问的公网/局域网
+                // 地址反而一个都填不进去（#2228）。
                 if (!WebSocketValidator.testConnection(url)) {
-                    throw new RenException(ErrorCode.WEBSOCKET_CONNECTION_FAILED);
+                    log.warn("WebSocket地址 {} 从服务器侧连接测试失败，请确认设备侧能访问该地址", url);
                 }
             }
         }
