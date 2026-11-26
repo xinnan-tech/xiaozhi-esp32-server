@@ -5,6 +5,7 @@ import time
 import shutil
 import psutil
 import asyncio
+import threading
 
 from funasr import AutoModel
 from config.logger import setup_logging
@@ -56,6 +57,9 @@ class ASRProvider(ASRProviderBase):
         self.output_dir = config.get("output_dir")  # 修正配置键名
         self.language = config.get("language", "auto")
         self.delete_audio_file = delete_audio_file
+        # 实例可能被多个连接共享（见 core/utils/asr.py 的本地 ASR 缓存），
+        # AutoModel.generate 不是线程安全的，这里串行化推理（#3365）
+        self._generate_lock = threading.Lock()
 
         # 确保输出目录存在
         os.makedirs(self.output_dir, exist_ok=True)
@@ -66,6 +70,16 @@ class ASRProvider(ASRProviderBase):
                 disable_update=True,
                 hub="hf",
                 # device="cuda:0",  # 启用GPU加速
+            )
+
+    def _generate_locked(self, pcm_bytes: bytes):
+        with self._generate_lock:
+            return self.model.generate(
+                input=pcm_bytes,
+                cache={},
+                language=self.language,
+                use_itn=True,
+                batch_size_s=60,
             )
 
     async def speech_to_text(
@@ -82,12 +96,7 @@ class ASRProvider(ASRProviderBase):
                 # 语音识别 - 使用线程池避免阻塞事件循环
                 start_time = time.time()
                 result = await asyncio.to_thread(
-                    self.model.generate,
-                    input=artifacts.pcm_bytes,
-                    cache={},
-                    language=self.language,
-                    use_itn=True,
-                    batch_size_s=60,
+                    self._generate_locked, artifacts.pcm_bytes
                 )
                 text = lang_tag_filter(result[0]["text"])
                 logger.bind(tag=TAG).debug(
