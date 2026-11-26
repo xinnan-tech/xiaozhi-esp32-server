@@ -34,7 +34,7 @@ from core.connection import ConnectionHandler
 from config.config_loader import get_config_from_api_async
 from core.auth import AuthManager, AuthenticationError
 from core.utils.modules_initialize import initialize_modules
-from core.utils.util import check_vad_update, check_asr_update
+from core.utils.util import check_vad_update, check_asr_update, safe_int
 
 TAG = __name__
 
@@ -71,7 +71,7 @@ class WebSocketServer:
     async def start(self):
         server_config = self.config["server"]
         host = server_config.get("ip", "0.0.0.0")
-        port = int(server_config.get("port", 8000))
+        port = safe_int(server_config.get("port"), 8000)
 
         async with websockets.serve(
             self._handle_connection,

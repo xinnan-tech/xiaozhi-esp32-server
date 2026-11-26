@@ -599,6 +599,33 @@ def filter_sensitive_info(config: dict) -> dict:
     return _filter_dict(copy.deepcopy(config))
 
 
+def safe_int(value, default: int) -> int:
+    """把配置里的端口等数值安全地转成 int
+
+    配置缺字段时各处用 .get(key, default) 兜底，但字段存在却是空字符串时
+    （例如从智控台读配置时本地配置把端口覆盖成了 ""），int("") 会直接抛
+    ValueError，服务在启动阶段就崩掉（#1491）。这里统一按"取不到有效数值就用
+    默认值"处理。
+
+    Args:
+        value: 配置里的原始值
+        default: 取不到有效数值时使用的默认值
+
+    Returns:
+        int: 转换后的数值，取不到时返回 default
+    """
+    if value is None:
+        return default
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def get_vision_url(config: dict) -> str:
     """获取 vision URL
 
@@ -612,7 +639,7 @@ def get_vision_url(config: dict) -> str:
     vision_explain = server_config.get("vision_explain", "")
     if "你的" in vision_explain:
         local_ip = get_local_ip()
-        port = int(server_config.get("http_port", 8003))
+        port = safe_int(server_config.get("http_port"), 8003)
         vision_explain = f"http://{local_ip}:{port}/mcp/vision/explain"
     return vision_explain
 

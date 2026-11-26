@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple
 from aiohttp import web
 
 from core.auth import AuthManager
-from core.utils.util import get_local_ip, get_vision_url
+from core.utils.util import get_local_ip, get_vision_url, safe_int
 from core.api.base_handler import BaseHandler
 
 TAG = __name__
@@ -177,8 +177,8 @@ class OTAHandler(BaseHandler):
             # Distinguish ports:
             # - websocket_port is used to construct websocket URL (server["port"])
             # - http_port is used to construct OTA download URLs (server["http_port"])
-            websocket_port = int(server_config.get("port", 8000))
-            http_port = int(server_config.get("http_port", 8003))
+            websocket_port = safe_int(server_config.get("port"), 8000)
+            http_port = safe_int(server_config.get("http_port"), 8003)
             local_ip = get_local_ip()
 
             # Determine device model (prefer headers)
@@ -358,7 +358,7 @@ class OTAHandler(BaseHandler):
             server_config = self.config["server"]
             local_ip = get_local_ip()
             # use websocket port for websocket URL
-            websocket_port = int(server_config.get("port", 8000))
+            websocket_port = safe_int(server_config.get("port"), 8000)
             websocket_url = self._get_websocket_url(local_ip, websocket_port)
             message = f"OTA接口运行正常，向设备发送的websocket地址是：{websocket_url}"
             response = web.Response(text=message, content_type="text/plain")
