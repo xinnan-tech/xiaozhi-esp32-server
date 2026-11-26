@@ -185,6 +185,9 @@ class ConnectionHandler:
                 int(self.config.get("close_connection_no_voice_time", 120)) + 60
         )  # 在原来第一道关闭的基础上加60秒，进行二道关闭
         self.timeout_task = None
+        # 后台初始化任务句柄与重复清理保护（#3000）
+        self._background_init_task = None
+        self._close_started = False
 
         # {"mcp":true} 表示启用MCP功能
         self.features = None
@@ -247,7 +250,9 @@ class ConnectionHandler:
             self.logger.bind(tag=TAG).info(f"配置输出音频采样率为: {self.sample_rate}")
 
             # 在后台初始化配置和组件（完全不阻塞主循环）
-            asyncio.create_task(self._background_initialize())
+            self._background_init_task = asyncio.create_task(
+                self._background_initialize()
+            )
 
             try:
                 async for message in self.websocket:
@@ -1054,6 +1059,20 @@ class ConnectionHandler:
         # 更新系统prompt至上下文
         self.dialogue.update_system_message(self.prompt)
 
+    def _is_turn_cancelled(self, current_sentence_id) -> bool:
+        """本轮是否应停止流式输出。
+
+        用户打断（client_abort）应即时生效；但 abort 也可能是上一轮 TTS 遗留的
+        迟到消息（barge-in 竞态），此时 sentence_id 已被新一轮覆盖，只应判废旧轮。
+        因此不能靠"流开始前清标志"（会吞掉真实打断），而是按轮次判废（#3437）。
+        """
+        if self.client_abort:
+            return True
+        return (
+            current_sentence_id is not None
+            and current_sentence_id != self.sentence_id
+        )
+
     def chat(self, query, depth=0, speaker=None):
         # speaker: 本轮声纹身份快照，随工具调用下传
         # 保存当前任务的sentence_id到局部变量，避免被新任务覆盖
@@ -1167,9 +1186,11 @@ class ConnectionHandler:
         tool_calls_list = []  # 格式: [{"id": "", "name": "", "arguments": ""}]
         content_arguments = ""
         emotion_flag = True
+        interrupted = False
         try:
             for response in llm_responses:
-                if self.client_abort:
+                if self._is_turn_cancelled(current_sentence_id):
+                    interrupted = True
                     break
                 if self.intent_type == "function_call" and functions is not None:
                     content, tools_call = response
@@ -1252,6 +1273,18 @@ class ConnectionHandler:
                     )
                 )
             return
+        finally:
+            # 中断或正常结束都释放底层流式响应，避免 HTTP 流悬挂（#3437）
+            try:
+                llm_responses.close()
+            except Exception:
+                pass
+        if interrupted:
+            self.logger.bind(tag=TAG).info(
+                f"本轮回答已取消（用户打断或已有新一轮接管）turn={current_sentence_id}，"
+                f"跳过历史写入与收尾"
+            )
+            return False
         # 处理function call
         if tool_call_flag:
             bHasError = False
@@ -1556,7 +1589,11 @@ class ConnectionHandler:
         self.logger.bind(tag=TAG).debug(f"清除服务端讲话状态")
 
     async def close(self, ws=None):
-        """资源清理方法"""
+        """资源清理方法（可重复调用：同设备重连时会被新连接、超时任务同时触发）"""
+        if getattr(self, "_close_started", False):
+            self.logger.bind(tag=TAG).debug("连接资源已清理过，跳过重复清理")
+            return
+        self._close_started = True
         try:
             # 清理 VAD 连接资源
             if (
@@ -1585,6 +1622,18 @@ class ConnectionHandler:
                 except asyncio.CancelledError:
                     pass
                 self.timeout_task = None
+
+            # 取消后台初始化任务：连接已断开就没必要再拉模型/查配置（#3000）
+            if (
+                    getattr(self, "_background_init_task", None)
+                    and not self._background_init_task.done()
+            ):
+                self._background_init_task.cancel()
+                try:
+                    await self._background_init_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+                self._background_init_task = None
 
             # 取消AEC缓存清理任务
             if hasattr(self, "_aec_cache_cleanup_task") and self._aec_cache_cleanup_task and not self._aec_cache_cleanup_task.done():
@@ -1615,6 +1664,22 @@ class ConnectionHandler:
 
             # 清空任务队列
             self.clear_queues()
+
+            # 上报线程收到毒丸后退出；清空 ASR 缓冲与队列，避免断开重连残留（#3000）
+            if self.report_thread is not None and self.report_thread.is_alive():
+                try:
+                    self.report_queue.put(None)
+                except Exception:
+                    pass
+                self.report_thread = None
+            try:
+                self.asr_audio.clear()
+                while True:
+                    self.asr_audio_queue.get_nowait()
+            except queue.Empty:
+                pass
+            except Exception:
+                pass
 
             # 关闭WebSocket连接
             try:
@@ -1666,6 +1731,8 @@ class ConnectionHandler:
                         f"关闭线程池时出错: {executor_error}"
                     )
                 self.executor = None
+            # 断开对 WebSocket 的引用，避免事件循环/传输层对象被长期持有（#3000）
+            self.websocket = None
             self.logger.bind(tag=TAG).info("连接资源已释放")
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"关闭连接时出错: {e}")

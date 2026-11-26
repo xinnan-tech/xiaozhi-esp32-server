@@ -35,6 +35,7 @@ from config.config_loader import get_config_from_api_async
 from core.auth import AuthManager, AuthenticationError
 from core.utils.modules_initialize import initialize_modules
 from core.utils.util import check_vad_update, check_asr_update
+from core.utils.device_session_registry import DeviceSessionRegistry
 
 TAG = __name__
 
@@ -67,6 +68,9 @@ class WebSocketServer:
         secret_key = self.config["server"]["auth_key"]
         expire_seconds = auth_config.get("expire_seconds", None)
         self.auth = AuthManager(secret_key=secret_key, expire_seconds=expire_seconds)
+
+        # 同一 device-id 只保留一个活跃会话（#3526）
+        self.device_sessions = DeviceSessionRegistry()
 
     async def start(self):
         server_config = self.config["server"]
@@ -127,11 +131,17 @@ class WebSocketServer:
             self._intent,
             self,  # 传入server实例
         )
+        # 同设备重连：先关掉旧会话，避免两条会话并存（#3526）
+        device_id = websocket.request.headers.get("device-id")
+        stale = await self.device_sessions.bind(device_id, handler)
+        if stale is not None and stale is not handler:
+            await self._close_stale_session(device_id, stale)
         try:
             await handler.handle_connection(websocket)
         except Exception as e:
             self.logger.bind(tag=TAG).error(f"处理连接时出错: {e}")
         finally:
+            await self.device_sessions.release(device_id, handler)
             # 强制关闭连接（如果还没有关闭的话）
             try:
                 # 安全地检查WebSocket状态并关闭
@@ -146,6 +156,22 @@ class WebSocketServer:
                 self.logger.bind(tag=TAG).error(
                     f"服务器端强制关闭连接时出错: {close_error}"
                 )
+
+    async def _close_stale_session(self, device_id, handler, timeout: float = 5.0):
+        """主动收敛被顶替的旧会话，目标 5 秒内关闭（#3526）。"""
+        try:
+            self.logger.bind(tag=TAG).info(
+                f"设备 {device_id} 建立新连接，主动关闭旧会话 {handler.session_id}"
+            )
+            handler.client_abort = True
+            handler.clear_queues()
+            await asyncio.wait_for(handler.close(handler.websocket), timeout=timeout)
+        except asyncio.TimeoutError:
+            self.logger.bind(tag=TAG).warning(
+                f"关闭设备 {device_id} 旧会话超时（>{timeout:g}s），继续处理新连接"
+            )
+        except Exception as e:
+            self.logger.bind(tag=TAG).error(f"关闭设备 {device_id} 旧会话失败: {e}")
 
     async def _http_response(self, websocket, request_headers):
         # 检查是否为 WebSocket 升级请求

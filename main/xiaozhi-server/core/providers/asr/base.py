@@ -16,6 +16,8 @@ from config.logger import setup_logging
 from core.providers.asr.dto.dto import InterfaceType
 from core.handle.receiveAudioHandle import startToChat
 from core.handle.reportHandle import enqueue_asr_report
+from core.handle.sendAudioHandle import send_stt_message
+from core.providers.tts.dto.dto import ContentType, TTSMessageDTO, SentenceType
 from core.utils.util import remove_punctuation_and_length
 from core.utils.voiceprint_provider import SpeakerIdentification
 from core.handle.receiveAudioHandle import handleAudioMessage
@@ -27,6 +29,9 @@ if TYPE_CHECKING:
 
 TAG = __name__
 logger = setup_logging()
+
+# 有实音但识别为空时的提示语（#3526）
+EMPTY_ASR_PROMPT = "没听清，请再说一遍。"
 
 
 class ASRProviderBase(ABC):
@@ -175,11 +180,49 @@ class ASRProviderBase(ABC):
                 enqueue_asr_report(conn, enhanced_text, audio_snapshot)
                 # 使用自定义模块进行上报
                 await startToChat(conn, enhanced_text, speaker=speaker)
+            else:
+                # 空识别：静音只记日志；确实检测到有人说话时给一句提示，
+                # 否则用户只会觉得"我说完了小智没反应"（#3526）
+                await self.notify_empty_asr(conn, bool(getattr(conn, "client_have_voice", False)))
         except Exception as e:
             logger.bind(tag=TAG).error(f"处理语音停止失败: {e}")
             import traceback
 
             logger.bind(tag=TAG).debug(f"异常详情: {traceback.format_exc()}")
+
+    async def notify_empty_asr(self, conn: "ConnectionHandler", had_voice: bool):
+        """ASR 最终文本为空时的收尾：静音场景只记日志，有实音则提示用户重说一次。"""
+        if not had_voice:
+            logger.bind(tag=TAG).info("识别到空文本（静音），跳过本轮")
+            return
+        logger.bind(tag=TAG).info("识别到空文本但检测到有人说话，提示用户重说")
+        try:
+            await send_stt_message(conn, EMPTY_ASR_PROMPT)
+            sentence_id = str(uuid.uuid4().hex)
+            conn.tts.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=sentence_id,
+                    sentence_type=SentenceType.FIRST,
+                    content_type=ContentType.ACTION,
+                )
+            )
+            conn.tts.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=sentence_id,
+                    sentence_type=SentenceType.MIDDLE,
+                    content_type=ContentType.TEXT,
+                    content_detail=EMPTY_ASR_PROMPT,
+                )
+            )
+            conn.tts.tts_text_queue.put(
+                TTSMessageDTO(
+                    sentence_id=sentence_id,
+                    sentence_type=SentenceType.LAST,
+                    content_type=ContentType.ACTION,
+                )
+            )
+        except Exception as e:
+            logger.bind(tag=TAG).error(f"发送空识别提示失败: {e}")
 
     def _build_enhanced_text(self, text: str, speaker_name: Optional[str]) -> str:
         """构建包含说话人信息的文本（仅用于纯文本ASR）"""
