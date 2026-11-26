@@ -13,6 +13,8 @@ class LLMProvider(LLMProviderBase):
         self.api_key = config.get("api_key")
         self.base_url = config.get("base_url", config.get("url"))  # 默认使用 base_url
         self.api_url = f"{self.base_url}/api/conversation/process"  # 拼接完整的 API URL
+        # 请求超时，避免上游不响应时一直挂着
+        self.timeout = self.resolve_timeout(config)
 
     def response(self, session_id, dialogue, **kwargs):
         # home assistant语音助手自带意图，无需使用xiaozhi ai自带的，只需要把用户说的话传递给home assistant即可
@@ -39,7 +41,9 @@ class LLMProvider(LLMProviderBase):
         }
 
         # 发起 POST 请求
-        with requests.post(self.api_url, json=payload, headers=headers) as response:
+        with requests.post(
+            self.api_url, json=payload, headers=headers, timeout=self.timeout
+        ) as response:
             # 检查请求是否成功
             response.raise_for_status()
 

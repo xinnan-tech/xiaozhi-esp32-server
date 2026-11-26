@@ -18,7 +18,11 @@ TAG = __name__
 
 def test_proxy(proxy_url: str, test_url: str) -> bool:
     try:
-        resp = requests.get(test_url, proxies={"http": proxy_url, "https": proxy_url})
+        resp = requests.get(
+            test_url,
+            proxies={"http": proxy_url, "https": proxy_url},
+            timeout=10,
+        )
         return 200 <= resp.status_code < 400
     except RequestException:
         return False
