@@ -10,7 +10,9 @@ logger = setup_logging()
 class LLMProvider(LLMProviderBase):
     def __init__(self, config):
         self.model_name = config.get("model_name")
-        self.base_url = config.get("base_url", "http://localhost:9997")
+        self.base_url = (
+            str(config.get("base_url") or "").strip() or "http://localhost:9997"
+        ).rstrip("/")
         # Initialize OpenAI client with Xinference base URL
         # 如果没有v1，增加v1
         if not self.base_url.endswith("/v1"):
