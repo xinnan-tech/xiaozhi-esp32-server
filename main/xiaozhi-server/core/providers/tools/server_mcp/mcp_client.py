@@ -12,6 +12,7 @@ from typing import Optional, List, Dict, Any
 
 import httpx2
 from mcp import ClientSession, StdioServerParameters, Implementation
+from mcp.types import PaginatedRequestParams
 from mcp.client.session import SamplingFnT, ElicitationFnT, ListRootsFnT, LoggingFnT, MessageHandlerFnT
 from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
@@ -253,7 +254,20 @@ class ServerMCPClient:
                 await self.session.initialize()
 
                 # 获取工具
-                self.tools = (await self.session.list_tools()).tools
+                self.tools = []
+                cursor = None
+                seen_cursors = set()
+                while True:
+                    params = (PaginatedRequestParams(cursor=cursor)
+                              if cursor is not None else None)
+                    page = await self.session.list_tools(params=params)
+                    self.tools.extend(page.tools)
+                    cursor = page.next_cursor
+                    if cursor is None:
+                        break
+                    if cursor in seen_cursors:
+                        raise ValueError("MCP tools/list returned a repeated cursor")
+                    seen_cursors.add(cursor)
                 for t in self.tools:
                     sanitized = sanitize_tool_name(t.name)
                     self.tools_dict[sanitized] = t
